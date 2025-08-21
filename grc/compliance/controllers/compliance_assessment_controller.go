@@ -136,8 +136,14 @@ func (cac *ComplianceAssessmentController) CreateComplianceAssessment(c *gin.Con
 
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 			return
 		default:
 			utility.SendInternalErrResp(cac.db, c, e.Error())
@@ -204,8 +210,17 @@ func (cac *ComplianceAssessmentController) DeleteComplianceAssessments(c *gin.Co
 
 	failedIDs, err := cac.service.Delete(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(cac.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(cac.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
@@ -220,7 +235,7 @@ func (cac *ComplianceAssessmentController) GetComplianceAssessmentSummary(c *gin
 		return
 	}
 
-	assessmentCompletionSummary, err := cac.service.AssessmentCompletionSummary(uint(id))
+	assessmentCompletionSummary, err := cac.service.AssessmentCompletionRollup(uint(id))
 	if err != nil {
 		utility.SendInternalErrResp(cac.db, c, err.Error())
 		return
@@ -238,7 +253,7 @@ func (cac *ComplianceAssessmentController) GetComplianceStatusSummary(c *gin.Con
 		return
 	}
 
-	statusCounts, err := cac.service.GetComplianceStatusSummary(uint(id))
+	statusCounts, err := cac.service.GetComplianceStatusSummaryByRequirement(uint(id))
 	if err != nil {
 		utility.SendInternalErrResp(cac.db, c, err.Error())
 		return
@@ -331,4 +346,27 @@ func (cac *ComplianceAssessmentController) ApproveComplianceAssessment(c *gin.Co
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (cac *ComplianceAssessmentController) GetApprovalStatus(c *gin.Context) {
+	idStr := c.Param("assessmentId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	status, err := cac.service.GetApprovalStatus(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(cac.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, status)
 }

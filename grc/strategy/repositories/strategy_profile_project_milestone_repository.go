@@ -12,6 +12,7 @@ type StrategyProfileProjectMilestoneRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileProjectMilestoneListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileProjectMilestoneListDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProjectMilestone, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProjectMilestone, error)
 	Create(strategyProfileProjectMilestone *models.StrategyProfileProjectMilestone, tx ...utility.DatabaseTransaction) (uint, error)
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 }
@@ -134,6 +135,27 @@ func (repo *StrategyProfileProjectMilestoneRepository) GetByID(id uint, tx ...ut
 	}
 
 	result := db.First(&projectMilestone, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return projectMilestone, nil
+}
+
+func (repo *StrategyProfileProjectMilestoneRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProjectMilestone, error) {
+	var projectMilestone *models.StrategyProfileProjectMilestone
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Preload("StrategyProfileProject").
+		Preload("ProjectMilestone").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&projectMilestone, id)
+
 	if result.Error != nil {
 		return nil, result.Error
 	}

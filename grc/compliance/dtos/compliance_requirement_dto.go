@@ -95,18 +95,18 @@ type ComplianceRequirementByComplianceIDListResponseDTO struct {
 type ComplianceRequirementFormDTO struct {
 	//ComplianceClauseNo              string  `json:"compliance_clause_no" binding:"required"`
 	//ComplianceClauseTitle           string  `json:"compliance_clause_title" binding:"required"`
-	ComplianceClauseID              uint    `json:"compliance_clause_id" binding:"required"`
-	TitleEn                         string  `json:"title_en" binding:"required"`
-	TitleAr                         string  `json:"title_ar" binding:"required"`
-	ComplianceRequirementCategoryID uint    `json:"compliance_requirement_category_id" binding:"omitempty"`
-	SeverityLevelID                 uint    `json:"severity_level_id" binding:"omitempty"`
-	Deadline                        string  `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
-	ComplianceStatusID              uint    `json:"compliance_status_id" binding:"required"`
-	ControlIDs                      []*uint `json:"control_ids"`
-	StrategicObjectiveIDs           []*uint `json:"strategic_objective_ids"`
-	DocumentIds                     []*uint `json:"document_ids"`
-	RequiredDocumentTitleIDs        []*uint `json:"required_document_title_ids"`
-	ResponsibleUnitIDs              []*uint `json:"responsible_unit_ids"`
+	ComplianceClauseID              uint   `json:"compliance_clause_id" binding:"required"`
+	TitleEn                         string `json:"title_en" binding:"required"`
+	TitleAr                         string `json:"title_ar" binding:"required"`
+	ComplianceRequirementCategoryID uint   `json:"compliance_requirement_category_id" binding:"omitempty"`
+	SeverityLevelID                 uint   `json:"severity_level_id" binding:"omitempty"`
+	Deadline                        string `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
+	// ComplianceStatusID              *uint   `json:"compliance_status_id"`
+	ControlIDs               []*uint `json:"control_ids"`
+	StrategicObjectiveIDs    []*uint `json:"strategic_objective_ids"`
+	DocumentIds              []*uint `json:"document_ids"`
+	RequiredDocumentTitleIDs []*uint `json:"required_document_title_ids"`
+	ResponsibleUnitIDs       []*uint `json:"responsible_unit_ids"`
 }
 
 type ComplianceRequirementParsedDates struct {
@@ -130,7 +130,7 @@ type ComplianceRequirementDetailDTO struct {
 	Controls                      []*ComplianceRequirementControlDTO               `json:"controls"`
 	StrategicObjectives           []*ComplianceRequirementStrategicObjectiveDTO    `json:"strategic_objectives"`
 	Documents                     []*ComplianceRequirementAssociatedDocumentDTO    `json:"documents"`
-	ComplianceStatus              ComplianceStatusDTO                              `json:"compliance_status"`
+	ComplianceStatus              *ComplianceStatusDTO                             `json:"compliance_status"`
 	RequiredDocumentTitles        []*ComplianceRequirementRequiredDocumentTitleDTO `json:"required_document_titles"`
 	ResponsibleUnits              []*ComplianceRequirementResponsibleUnitDTO       `json:"responsible_units"`
 }
@@ -138,6 +138,9 @@ type ComplianceRequirementResponsibleUnitDTO struct {
 	ID                                 uint                                         `json:"id"`
 	ResponsibleUnit                    settingsDTOs.OrganizationUnitDTO             `json:"responsible_unit"`
 	ComplianceAssessmentFrameworkValue *ComplianceAssessmentFrameworkValueDetailDTO `json:"compliance_assessment_framework_value"`
+	CompletedByUser                    *organizationDTOs.UserMinimalDTO             `json:"completed_by_user"`
+	CompletedAt                        *time.Time                                   `json:"completed_at"`
+	Comments                           *string                                      `json:"comments"`
 }
 
 type ComplianceRequirementAssociatedDocumentDTO struct {
@@ -206,4 +209,14 @@ type ComplianceRequirementResponsibleUnitRowDTO struct {
 	Status                               string `json:"status"`
 	ColorCode                            string `json:"color_code"`
 	ParentID                             *uint  `json:"parent_id"`
+}
+type ComplianceRequirementValueUpdateDTO struct {
+	ComplianceRequirementID              uint       `json:"compliance_requirement_id"`
+	ComplianceStatusID                   *uint      `json:"compliance_status_id"`
+	ComplianceAssessmentFrameworkValueID uint       `json:"compliance_assessment_framework_value_id"`
+	ResponsibleUnitID                    uint       `json:"responsible_unit_id"`
+	Score                                *float64   `json:"score"`
+	Comments                             *string    `json:"comments"`
+	CompletedByUserID                    *uint      `json:"completed_by_user_id"`
+	CompletedAt                          *time.Time `json:"completed_at"`
 }

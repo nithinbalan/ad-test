@@ -304,7 +304,7 @@ func (dcrrs *DocumentChangeRequestReviewService) handleApprovedCase(id uint, cur
 				return err
 			}
 
-			task, err := dcrrs.taskSvc.UpdateDocumentTaskStatus(id, currentUserID, currentDocumentCRWorkflow.ID)
+			task, err := dcrrs.taskSvc.UpdateDocumentChangeRequestTaskStatus(id, currentUserID, currentDocumentCRWorkflow.ID)
 			if err != nil {
 				return err
 			}

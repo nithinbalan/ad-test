@@ -239,21 +239,7 @@ func (krc *KPIRegisterController) GetKPITrendAnalysis(c *gin.Context) {
 	c.JSON(http.StatusOK, controlTrend)
 }
 
-func (krc *KPIRegisterController) GetKPIChartDetails(c *gin.Context) {
-	idStr := c.Param("kpiRegisterId")
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-	chartDetails, err := krc.service.GetKPIChartDetails(uint(id))
-	if err != nil {
-		utility.SendInternalErrResp(krc.db, c, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, chartDetails)
-}
-
+// In kpi_register_controller.go
 func (krc *KPIRegisterController) GetKPILatestValueUpdate(c *gin.Context) {
 	idStr := c.Param("kpiRegisterId")
 

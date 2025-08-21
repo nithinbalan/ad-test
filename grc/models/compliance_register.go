@@ -29,13 +29,14 @@ type ComplianceRegister struct {
 	LastReviewNote                  *string    `json:"last_review_note" gorm:"type:varchar(max)"`
 	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                       *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	CreatedByID                     uint       `json:"created_by_id" gorm:"not null"`
-	UpdatedByID                     *uint      `json:"updated_by_id" gorm:"default:null"`
+	CreatedBYID                     uint       `json:"created_by_id" gorm:"not null"`
+	UpdatedBYID                     *uint      `json:"updated_by_id" gorm:"default:null"`
 	LifecycleStatusID               uint       `json:"lifecycle_status_id" gorm:"not null"`
 	ComplianceReviewStatusID        *uint      `json:"compliance_review_status_id" gorm:"default:null"`
 	TotalScore                      int        `json:"total_score" gorm:"default:0"`
+	Score                           *float64   `json:"score" gorm:"type:decimal(10,2)"`
 	ComplianceFolderID              *uint      `json:"compliance_folder_id" binding:"omitempty" gorm:"default:null"`
-	ComplianceAssessmentFrameworkID *uint      `json:"compliance_assessment_framework_id" gorm:"default:null"`
+	ComplianceAssessmentFrameworkID uint       `json:"compliance_assessment_framework_id" binding:"required" gorm:"not null"`
 
 	// Relationships
 	ComplianceCategory            *ComplianceCategory            `gorm:"foreignKey:ComplianceCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -50,8 +51,8 @@ type ComplianceRegister struct {
 	ComplianceReviewStatus        *ComplianceReviewStatus        `gorm:"foreignKey:ComplianceReviewStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	DocumentEn                    *ComplianceDocument            `gorm:"foreignKey:ComplianceRegisterID"`
 	DocumentAr                    *ComplianceDocument            `gorm:"foreignKey:ComplianceRegisterID"`
-	CreatedByUser                 *User                          `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser                 *User                          `gorm:"foreignKey:UpdatedByID"`
+	CreatedByUser                 *User                          `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser                 *User                          `gorm:"foreignKey:UpdatedBYID"`
 	Controls                      []*ComplianceControl           `gorm:"foreignKey:ComplianceRegisterID"`
 	ComplianceStatusUpdates       []*ComplianceStatusUpdate      `gorm:"foreignKey:ComplianceRegisterID"`
 	ComplianceClauses             []*ComplianceClause            `gorm:"foreignKey:ComplianceRegisterID"`

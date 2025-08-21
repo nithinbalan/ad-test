@@ -12,8 +12,12 @@ type StrategyProfileKpiRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileKpiListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileKpiListDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileKpi, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileKpi, error)
 	Create(kpi *models.StrategyProfileKpi, tx ...utility.DatabaseTransaction) (uint, error)
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	GetObjectivesForKPI(kpiID uint, tx ...utility.DatabaseTransaction) ([]*models.StrategyProfileStrategicObjective, error)
+	GetKPIsForObjective(objectiveID uint, tx ...utility.DatabaseTransaction) ([]*strategyDTOs.KpiRegisterMinimalDetails, error)
+	UpdateWeightage(kpi *models.StrategyProfileKpi, tx ...utility.DatabaseTransaction) error
 }
 
 type StrategyProfileKpiRepository struct {
@@ -124,19 +128,39 @@ func (repo *StrategyProfileKpiRepository) GetAll(strategyProfileID uint, params 
 
 // GetByID fetches a single objective by ID
 func (repo *StrategyProfileKpiRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileKpi, error) {
-	var kpi *models.StrategyProfileKpi
+	var kpi models.StrategyProfileKpi
+	db := repo.db
+
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.First(&kpi, id).Error; err != nil {
+		return nil, err
+	}
+
+	return &kpi, nil
+}
+
+func (repo *StrategyProfileKpiRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileKpi, error) {
+	var strategyProfileKpi *models.StrategyProfileKpi
 
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	result := db.First(&kpi, id)
+	result := db.Preload("StrategyProfileStrategicObjective").
+		Preload("Kpi").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&strategyProfileKpi, id)
+
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return kpi, nil
+	return strategyProfileKpi, nil
 }
 
 // Create inserts a new objective record
@@ -161,6 +185,59 @@ func (repo *StrategyProfileKpiRepository) Delete(id uint, tx ...utility.Database
 	}
 
 	if err := db.Delete(&models.StrategyProfileKpi{}, id).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *StrategyProfileKpiRepository) GetObjectivesForKPI(kpiID uint, tx ...utility.DatabaseTransaction) ([]*models.StrategyProfileStrategicObjective, error) {
+	var objectives []*models.StrategyProfileStrategicObjective
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	err := db.
+		Joins("JOIN strategy_profile_kpis ON strategy_profile_kpis.strategy_profile_strategic_objective_id = strategy_profile_strategic_objectives.id").
+		Where("strategy_profile_kpis.kpi_id = ?", kpiID).
+		Find(&objectives).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return objectives, nil
+}
+func (repo *StrategyProfileKpiRepository) GetKPIsForObjective(objectiveID uint, tx ...utility.DatabaseTransaction) ([]*strategyDTOs.KpiRegisterMinimalDetails, error) {
+	var kpis []*strategyDTOs.KpiRegisterMinimalDetails
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Updated to use weightage from strategy_profile_kpis table
+	err := db.
+		Table("strategy_profile_kpis").
+		Select(`
+            kpi_register.id as "kpi_id",
+            kpi_register.achievement as "achievement",
+            strategy_profile_kpis.weightage as "weightage"
+        `).
+		Joins("LEFT JOIN kpi_register ON kpi_register.id = strategy_profile_kpis.kpi_id").
+		Where("strategy_profile_kpis.strategy_profile_strategic_objective_id = ?", objectiveID).
+		Find(&kpis).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return kpis, nil
+}
+
+func (repo *StrategyProfileKpiRepository) UpdateWeightage(kpi *models.StrategyProfileKpi, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(kpi).Error; err != nil {
 		return err
 	}
 	return nil

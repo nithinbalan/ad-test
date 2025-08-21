@@ -16,6 +16,8 @@ type ComplianceClause struct {
 	ScopeAr              *string    `json:"scope_ar" gorm:"type:nvarchar(max);default:null"`
 	ObjectiveEn          *string    `json:"objective_en" gorm:"type:nvarchar(max);default:null"`
 	ObjectiveAr          *string    `json:"objective_ar" gorm:"type:nvarchar(max);default:null"`
+	ComplianceStatusID   *uint      `json:"compliance_status_id"`
+	Score                *float64   `json:"score" gorm:"type:decimal(10,2)"`
 	CreatedAt            time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt            *time.Time `json:"updated_at" gorm:"type:datetime"`
 	CreatedBYID          uint       `json:"created_by_id" gorm:"not null"`
@@ -25,6 +27,7 @@ type ComplianceClause struct {
 	ComplianceRegister     *ComplianceRegister      `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ParentClause           *ComplianceClause        `gorm:"foreignKey:ParentClauseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"` // Self-referencing relationship
 	ChildClauses           []*ComplianceClause      `gorm:"foreignKey:ParentClauseID"`                                               // Recursive relationship
+	ComplianceStatus       *ComplianceStatus        `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser          *User                    `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser          *User                    `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceRequirements []*ComplianceRequirement `gorm:"foreignKey:ComplianceClauseID"`

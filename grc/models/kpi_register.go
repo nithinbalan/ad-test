@@ -28,6 +28,8 @@ type KPIRegister struct {
 
 	Remarks *string `json:"remarks" gorm:"type:nvarchar(max)"`
 
+	Achievement *float64 `json:"achievement"`
+
 	EntryTypeID      *uint      `json:"entry_type_id"`
 	DataSourceID     *uint      `json:"data_source_id"`
 	LastReviewedDate *time.Time `json:"last_reviewed_date" gorm:"type:date"`

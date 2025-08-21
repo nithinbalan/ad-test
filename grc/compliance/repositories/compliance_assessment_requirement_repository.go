@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	commonDTOs "jethur/grc/common/dtos"
@@ -15,15 +16,19 @@ import (
 type ComplianceAssessmentRequirementRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 
+	GetAllClauses(assessmentID uint, currentUserID uint) ([]*models.ComplianceClause, error)
 	GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentRequirementListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceAssessmentRequirement, error)
-	GetFullDetailsByID(requirementId uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessmentRequirement, error)
+	GetFullDetailsByID(requirementId uint, responsibleUnitID uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessmentRequirement, error)
 	Update(complianceAssessmentRequirement *models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) error
 
 	CreateDocuments(documents []*models.ComplianceAssessmentRequirementRequiredDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocuments(documentId uint, tx ...utility.DatabaseTransaction) error
 
 	CreateComment(comment *models.ComplianceAssessmentRequirementComment, tx ...utility.DatabaseTransaction) error
+	GetComplianceAssessmentRequirementResponsibleUnitByID(id uint) (*models.ComplianceAssessmentRequirementResponsibleUnit, error)
+	UpdateComplianceAssessmentRequirementResponsibleUnit(complianceAssessmentRequirementResponsibleUnit *models.ComplianceAssessmentRequirementResponsibleUnit, tx ...utility.DatabaseTransaction) error
+	ComplianceAssessmentUpdateStatus(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceAssessmentRequirementRepository struct {
@@ -41,6 +46,36 @@ func (repo *ComplianceAssessmentRequirementRepository) BeginTransaction() utilit
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
+func (repo *ComplianceAssessmentRequirementRepository) GetAllClauses(assessmentID uint, currentUserID uint) ([]*models.ComplianceClause, error) {
+	var clauses []*models.ComplianceClause
+
+	// Return all clauses with hierarchical structure for users with full access
+	err := repo.db.
+		Preload("ChildClauses", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("ChildClauses") // Recursive preload
+		}).
+		Joins("JOIN compliance_register ON compliance_register.id = compliance_clauses.compliance_register_id").
+		Joins("JOIN compliance_assessments ON compliance_assessments.compliance_register_id = compliance_register.id").
+		Where("compliance_assessments.id = ?", assessmentID).
+		Find(&clauses).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Sort clauses correctly using numeric sorting
+	sort.SliceStable(clauses, func(i, j int) bool {
+		return compareClauseNumbers(clauses[i].ClauseNo, clauses[j].ClauseNo)
+	})
+
+	// Recursively sort child clauses
+	for _, clause := range clauses {
+		sortChildClauses(clause)
+	}
+
+	return clauses, nil
+}
+
 func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentRequirementListResponseDTO, error) {
 	var complianceRequirements []*complianceDTOs.ComplianceAssessmentRequirementListDTO
 	var total int64
@@ -49,16 +84,21 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 		Select(`
 			compliance_assessment_requirements.*,
 			compliance_clauses.id AS clause_id,
+			compliance_clauses.description_en AS clause_description_en,
+			compliance_clauses.description_ar AS clause_description_ar,
 			compliance_clauses.clause_no AS compliance_clause_no,
 			compliance_clauses.title_en AS compliance_clause_title_en,
 			compliance_clauses.title_ar AS compliance_clause_title_ar,
+			compliance_requirements.id AS compliance_requirement_id,
 			compliance_requirements.title_en AS compliance_requirement_title_en,
 			compliance_requirements.title_ar AS compliance_requirement_title_ar,
 			compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
 			compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
+			severity_levels.id AS severity_level_id,
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
 			severity_levels.color_code AS severity_level_color_code,
+			severity_levels.type AS severity_level_type,
 			compliance_assessment_requirement_statuses.title_en AS compliance_assessment_requirement_status_title_en,
 			compliance_assessment_requirement_statuses.title_ar AS compliance_assessment_requirement_status_title_ar,
 			compliance_assessment_requirement_statuses.color_code AS compliance_assessment_requirement_status_color_code,
@@ -75,6 +115,10 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 		`).
 		Where("compliance_assessment_requirements.compliance_assessment_id = ?", assessmentID)
 
+	// Apply clause filter if provided
+	if params.ClauseID != 0 {
+		query = query.Where("compliance_requirements.compliance_clause_id = ?", params.ClauseID)
+	}
 	// Apply dynamic filters if provided
 	for columnName, values := range params.Filters {
 		if columnName == "compliance_status_id" {
@@ -90,9 +134,9 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 	for _, filter := range params.QuickFilter {
 		switch filter {
 		case "completed":
-			query = query.Where("compliance_assessment_requirements.is_completed = ?", true)
+			query = query.Where("compliance_assessment_requirements.is_all_completed = ?", true)
 		case "not_completed":
-			query = query.Where("compliance_assessment_requirements.is_completed = ?", false)
+			query = query.Where("compliance_assessment_requirements.is_all_completed = ?", false)
 		}
 	}
 
@@ -160,41 +204,55 @@ func (repo *ComplianceAssessmentRequirementRepository) GetByID(id uint) (*models
 	return complianceAssessmentRequirement, nil
 }
 
-func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requirementId uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessmentRequirement, error) {
+func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requirementId uint, responsibleUnitID uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessmentRequirement, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	var complianceAssessmentRequirement *models.ComplianceAssessmentRequirement
 
-	result := db.
+	var car models.ComplianceAssessmentRequirement
+
+	query := db.
 		Preload("ComplianceAssessment").
 		Preload("ComplianceAssessment.SubmittedByUser").
-		Preload("ComplianceAssessment.OrganizationUnit").
 		Preload("ComplianceRequirement").
 		Preload("ComplianceRequirement.ComplianceStatus").
 		Preload("ComplianceRequirement.ComplianceClause").
 		Preload("ComplianceRequirement.SeverityLevel").
-		Preload("RequiredDocumentTitles").
-		Preload("RequiredDocumentTitles.RequiredDocumentTitle").
-		Preload("RequiredDocumentTitles.Documents").
-		Preload("ActionPlans").
-		Preload("ActionPlans.ResponsibleUser").
-		Preload("ActionPlans.ReviewUser").
-		Preload("ActionPlans.ActionPlanStatus").
-		Preload("RequirementComments").
-		Preload("RequirementComments.CreatedByUser").
 		Preload("ComplianceStatus").
 		Preload("ComplianceAssessmentRequirementStatus").
 		Preload("CreatedByUser").
-		Preload("UpdatedByUser").
-		First(&complianceAssessmentRequirement, requirementId)
+		Preload("UpdatedByUser")
 
-	if result.Error != nil {
-		return nil, result.Error
+	if responsibleUnitID != 0 {
+		query = query.Preload("ResponsibleUnits", "responsible_unit_id = ?", responsibleUnitID)
+	} else {
+		query = query.Preload("ResponsibleUnits")
 	}
 
-	return complianceAssessmentRequirement, nil
+	query = query.
+		Preload("ResponsibleUnits.CompletedByUser").
+		Preload("ResponsibleUnits.ResponsibleUnit").
+		Preload("ResponsibleUnits.ComplianceAssessmentFrameworkValue").
+		Preload("ResponsibleUnits.ComplianceAssessmentFrameworkValue.ComplianceAssessmentFramework").
+		Preload("ResponsibleUnits.ComplianceAssessmentFrameworkValue.ComplianceAssessmentFramework.AssessmentFrameworkType").
+		Preload("ResponsibleUnits.ComplianceAssessmentFrameworkValue.ComplianceStatus").
+		Preload("ResponsibleUnits.ComplianceAssessmentRequirementStatus").
+		Preload("ResponsibleUnits.RequiredDocumentTitles").
+		Preload("ResponsibleUnits.RequiredDocumentTitles.RequiredDocumentTitle").
+		Preload("ResponsibleUnits.RequiredDocumentTitles.Documents").
+		Preload("ResponsibleUnits.ActionPlans").
+		Preload("ResponsibleUnits.ActionPlans.ResponsibleUser").
+		Preload("ResponsibleUnits.ActionPlans.ReviewUser").
+		Preload("ResponsibleUnits.ActionPlans.ActionPlanStatus").
+		Preload("ResponsibleUnits.RequirementComments").
+		Preload("ResponsibleUnits.RequirementComments.ComplianceAssessmentRequirementStatus").
+		Preload("ResponsibleUnits.RequirementComments.CreatedByUser")
+
+	if err := query.First(&car, requirementId).Error; err != nil {
+		return nil, err
+	}
+	return &car, nil
 }
 
 func (repo *ComplianceAssessmentRequirementRepository) Update(complianceAssessmentRequirement *models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) error {
@@ -242,4 +300,33 @@ func (repo *ComplianceAssessmentRequirementRepository) CreateComment(comment *mo
 	}
 	result := db.Create(comment)
 	return result.Error
+}
+func (repo *ComplianceAssessmentRequirementRepository) GetComplianceAssessmentRequirementResponsibleUnitByID(id uint) (*models.ComplianceAssessmentRequirementResponsibleUnit, error) {
+	var complianceAssessmentRequirementResponsibleUnit *models.ComplianceAssessmentRequirementResponsibleUnit
+
+	result := repo.db.Preload("ResponsibleUnit").First(&complianceAssessmentRequirementResponsibleUnit, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return complianceAssessmentRequirementResponsibleUnit, nil
+}
+
+func (repo *ComplianceAssessmentRequirementRepository) UpdateComplianceAssessmentRequirementResponsibleUnit(complianceAssessmentRequirementResponsibleUnit *models.ComplianceAssessmentRequirementResponsibleUnit, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Save(complianceAssessmentRequirementResponsibleUnit).Error
+}
+
+func (repo *ComplianceAssessmentRequirementRepository) ComplianceAssessmentUpdateStatus(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(complianceAssessment).Error; err != nil {
+		return err
+	}
+	return nil
 }

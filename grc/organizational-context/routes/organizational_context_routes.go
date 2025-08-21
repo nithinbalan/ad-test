@@ -68,7 +68,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationalContextRoutes.PUT("/swot-questions/:questionId/answer-invitees", middlewares.RolePermissionMiddleware(db, "swot_analysis", "modify"), swotPestelQuestionController.CreateInvitees)
 	organizationalContextRoutes.PUT("/swot-questions/:questionId/answer-invitees/delete", middlewares.RolePermissionMiddleware(db, "swot_analysis", "modify"), swotPestelQuestionController.DeleteInvitees)
 
-	//Swot Pestel Category
+	// Swot Pestel Category
 	organizationalContextRoutes.GET("/swot-pestel-categories", swotPestelCategoryController.GetAllSwotPestelCategories)
 	organizationalContextRoutes.GET("/swot-pestel-categories/:id", swotPestelCategoryController.GetSwotPestelCategoryDetails)
 
@@ -148,10 +148,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Stakeholder Status Update
 	unauthenticatedRoutes.GET("/stakeholder/:stakeholderId/action-plans/:actionPlanId/status-updates/:id/document-download", stakeholderActionPlanStatusUpdateController.DownloadStakeholderActionPlanStatusUpdateDocument)
 	unauthenticatedRoutes.GET("/stakeholder/:stakeholderId/action-plans/:actionPlanId/status-updates/:id/document-preview", stakeholderActionPlanStatusUpdateController.GetStakeholderActionPlanStatusUpdateDocumentPreview)
-	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "stakeholder_register", "view"), stakeholderActionPlanStatusUpdateController.GetAllStakeholderActionPlanStatusUpdates)
+	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderActionPlanStatusUpdateController.GetAllStakeholderActionPlanStatusUpdates)
 	organizationalContextRoutes.POST("/stakeholder/:stakeholderId/action-plans/:actionPlanId/status-updates", stakeholderActionPlanStatusUpdateController.CreateStakeholderActionPlanStatusUpdate)
 	organizationalContextRoutes.PUT("/stakeholder/:stakeholderId/action-plans/:actionPlanId/status-updates/:id", stakeholderActionPlanStatusUpdateController.UpdateStakeholderActionPlanStatusUpdate)
-	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "stakeholder_register", "view"), stakeholderActionPlanStatusUpdateController.GetLatestStakeholderActionPlanStatusUpdate)
+	organizationalContextRoutes.GET("/stakeholder/:stakeholderId/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "view"), stakeholderActionPlanStatusUpdateController.GetLatestStakeholderActionPlanStatusUpdate)
 	organizationalContextRoutes.PUT("/stakeholder/:stakeholderId/action-plans/:actionPlanId/approve", stakeholderActionPlanStatusUpdateController.ApproveStakeholderActionPlan)
 	organizationalContextRoutes.PUT("/stakeholder/:stakeholderId/action-plans/:actionPlanId/revert", stakeholderActionPlanStatusUpdateController.RevertStakeholderActionPlan)
 

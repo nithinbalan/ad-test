@@ -37,11 +37,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Meeting Type
 	meetingRoutes.GET("/meeting-types", meetingTypeController.GetAllMeetingTypes)
 	meetingRoutes.GET("/meeting-types/:id", meetingTypeController.GetMeetingTypeDetails)
-	meetingRoutes.POST("/meeting-types", middlewares.RolePermissionMiddleware(db, "meeting_setting", "modify"), meetingTypeController.CreateMeetingType)
-	meetingRoutes.PUT("/meeting-types/:id", middlewares.RolePermissionMiddleware(db, "meeting_setting", "modify"), meetingTypeController.UpdateMeetingType)
-	meetingRoutes.POST("/meeting-types/delete", middlewares.RolePermissionMiddleware(db, "meeting_setting", "modify"), meetingTypeController.DeleteMeetingTypes)
-	meetingRoutes.PUT("/meeting-types/activate", middlewares.RolePermissionMiddleware(db, "meeting_setting", "modify"), meetingTypeController.ActivateMeetingTypes)
-	meetingRoutes.PUT("/meeting-types/deactivate", middlewares.RolePermissionMiddleware(db, "meeting_setting", "modify"), meetingTypeController.DeactivateMeetingTypes)
+	meetingRoutes.POST("/meeting-types", middlewares.RolePermissionMiddleware(db, "review_meeting_setting", "modify"), meetingTypeController.CreateMeetingType)
+	meetingRoutes.PUT("/meeting-types/:id", middlewares.RolePermissionMiddleware(db, "review_meeting_setting", "modify"), meetingTypeController.UpdateMeetingType)
+	meetingRoutes.POST("/meeting-types/delete", middlewares.RolePermissionMiddleware(db, "review_meeting_setting", "modify"), meetingTypeController.DeleteMeetingTypes)
+	meetingRoutes.PUT("/meeting-types/activate", middlewares.RolePermissionMiddleware(db, "review_meeting_setting", "modify"), meetingTypeController.ActivateMeetingTypes)
+	meetingRoutes.PUT("/meeting-types/deactivate", middlewares.RolePermissionMiddleware(db, "review_meeting_setting", "modify"), meetingTypeController.DeactivateMeetingTypes)
 
 	// Meetings
 	meetingRoutes.GET("/meetings/export", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingController.GetMeetingExport)

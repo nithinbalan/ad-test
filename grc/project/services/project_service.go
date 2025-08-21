@@ -23,6 +23,7 @@ type ProjectServiceInterface interface {
 	Create(currentUserID uint, form *dtos.ProjectFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, form *dtos.ProjectFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	UpdateStatus(id uint, currentUserID uint, form *dtos.ProjectStatusUpdateDTO) error
 }
 
 type ProjectService struct {
@@ -276,4 +277,67 @@ func parseProjectDates(form *dtos.ProjectFormDTO) (startDate, endDate *time.Time
 		endDate = ed
 	}
 	return startDate, endDate, nil
+}
+
+func (s *ProjectService) UpdateStatus(id uint, currentUserID uint, projectStatusUpdateDTO *dtos.ProjectStatusUpdateDTO) error {
+	tx := s.repo.BeginTransaction()
+
+	project, err := s.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &utility.ResourceNotFoundError{}
+		}
+		return err
+	}
+
+	oldData := map[string]interface{}{
+		"project_status_id": project.ProjectStatusID,
+	}
+
+	// Update the weightage
+	project.ProjectStatusID = projectStatusUpdateDTO.ProjectStatusID
+	project.UpdatedBYID = &currentUserID
+
+	// Save the changes
+	if err := s.repo.Update(project, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	newData := map[string]interface{}{
+		"project_status_id": project.ProjectStatusID,
+	}
+
+	// Commit first before logging
+	if err := tx.Commit(); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Log the activity asynchronously
+	go func() {
+		err := s.activityLog.LogActivity(
+			models.UpdateAction,
+			models.Project{}.TableName(),
+			id,
+			map[string]interface{}{
+				"old": oldData,
+				"new": newData,
+			},
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.Project{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
 }

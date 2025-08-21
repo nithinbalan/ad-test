@@ -10,13 +10,16 @@ import (
 	strategyProfileStrategicObjectiveRepositories "jethur/grc/strategy/repositories"
 	"jethur/utility"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type StrategyProfileStrategicObjectiveServiceInterface interface {
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileStrategicObjectiveListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileStrategicObjectiveListDTO, error)
+	GetFullDetailsByID(strategyProfileID uint, id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.StrategyProfileStrategicObjectiveDetailDTO, error)
 	Create(strategyProfileID uint, currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileStrategicObjectiveFormDTO) ([]uint, error)
 	Delete(strategyProfileID uint, objectiveID uint, currentUserID uint) error
+	UpdateObjectiveScore(objective *models.StrategyProfileStrategicObjective, tx utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -70,6 +73,35 @@ func (sps StrategyProfileStrategicObjectiveService) GetByID(id uint, tx ...utili
 		return nil, err
 	}
 	return strategyProfileStrategicObjective, nil
+}
+
+func (sps *StrategyProfileStrategicObjectiveService) GetFullDetailsByID(strategyProfileID uint, id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.StrategyProfileStrategicObjectiveDetailDTO, error) {
+	var strategyProfileStrategicObjectiveDTO strategyDTOs.StrategyProfileStrategicObjectiveDetailDTO
+
+	// Check if the PROJECT register exists
+	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
+		return nil, err
+	}
+
+	// Get full details of the PROJECT action plan
+	strategyProfileStrategicObjective, err := sps.repo.GetFullDetailsByID(id, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	// Decode the PROJECT action plan into the DTO
+	err = mapstructure.Decode(strategyProfileStrategicObjective, &strategyProfileStrategicObjectiveDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	strategyProfileStrategicObjectiveDTO.CreatedAt = strategyProfileStrategicObjective.CreatedAt
+	strategyProfileStrategicObjectiveDTO.UpdatedAt = strategyProfileStrategicObjective.UpdatedAt
+
+	return &strategyProfileStrategicObjectiveDTO, nil
 }
 
 func (sps *StrategyProfileStrategicObjectiveService) Create(strategyProfileID uint, currentUserID uint, strategyProfileStrategicObjectiveFormDTO *strategyDTOs.StrategyProfileStrategicObjectiveFormDTO) ([]uint, error) {
@@ -241,6 +273,15 @@ func (sps *StrategyProfileStrategicObjectiveService) Delete(strategyProfileID ui
 			utility.LogError("Failed to log activity", fields)
 		}
 	}()
+
+	return nil
+}
+
+func (sps *StrategyProfileStrategicObjectiveService) UpdateObjectiveScore(objective *models.StrategyProfileStrategicObjective, tx utility.DatabaseTransaction) error {
+	err := sps.repo.Update(objective, tx)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

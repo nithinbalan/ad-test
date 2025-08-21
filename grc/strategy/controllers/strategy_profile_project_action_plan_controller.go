@@ -79,6 +79,39 @@ func (sppac *StrategyProfileProjectActionPlanController) GetAllStrategyProfilePr
 	c.JSON(http.StatusOK, strategicIntiatives)
 }
 
+func (sppac *StrategyProfileProjectActionPlanController) GetStrategyProfileProjectActionPlanDetails(c *gin.Context) {
+	// Get strategy profile ID from URL
+	strategyProfileIDStr := c.Param("strategyProfileId")
+	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Get focus area ID from URL
+	projectActionPlanIDStr := c.Param("id")
+	projectActionPlanID, err := strconv.ParseUint(projectActionPlanIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Call service to get the focus area details
+	projectActionPlan, err := sppac.service.GetFullDetailsByID(uint(strategyProfileID), uint(projectActionPlanID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(sppac.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, projectActionPlan)
+}
+
 func (sppac *StrategyProfileProjectActionPlanController) CreateStrategyProfileProjectActionPlan(c *gin.Context) {
 	var FormDTO strategyDTOs.StrategyProfileProjectActionPlanFormDTO
 

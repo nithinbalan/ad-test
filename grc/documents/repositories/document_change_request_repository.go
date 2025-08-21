@@ -112,25 +112,44 @@ func (repo *DocumentChangeRequestRepository) GetAll(params *dtos.DocumentChangeR
 	for _, filter := range params.QuickFilter {
 		switch filter {
 		case "draft":
-			query = query.Where("initiate_statuses.type = ?", "initiated")
+			query = query.Where("change_request_statuses.type = ?", "draft")
 		case "in-review":
-			query = query.Where("initiate_statuses.type = ?", "approved")
+			query = query.Where("change_request_statuses.type = ?", "in-review")
 		case "published":
-			query = query.Where("initiate_statuses.type = ?", "rejected")
+			query = query.Where("change_request_statuses.type = ?", "published")
+		case "major-update":
+			query = query.Where("change_request_types.type = ?", "major")
+		case "minor-update":
+			query = query.Where("change_request_types.type = ?", "minor")
 		}
 	}
 
 	if params.Keyword != "" {
 		query = query.Where(`
         (
+			documents.title_en LIKE ? OR
+			documents.title_ar LIKE ? OR
             document_change_requests.reason_for_change LIKE ? OR
             change_request_types.title_en LIKE ? OR
             change_request_types.title_ar LIKE ? OR
             change_request_statuses.title_en LIKE ? OR
-            change_request_statuses.title_ar LIKE ?
+            change_request_statuses.title_ar LIKE ? OR
+			document_change_requests.created_at LIKE ? OR
+			created_by_user.first_name_en LIKE ? OR
+			created_by_user.first_name_ar LIKE ? OR
+			created_by_user.last_name_en LIKE ? OR
+			created_by_user.last_name_ar LIKE ? OR
+			created_by_user.email LIKE ? OR
+			updated_by_user.first_name_en LIKE ? OR
+			updated_by_user.first_name_ar LIKE ? OR
+			updated_by_user.last_name_en LIKE ? OR
+			updated_by_user.last_name_ar LIKE ? OR
+			updated_by_user.email LIKE ?
         )`,
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	// Sort by the specified column and order

@@ -106,21 +106,21 @@ func (cavs *ComplianceAssessmentFrameworkValueService) Create(complianceAssessme
 	}
 
 	// Validate duplicate value only if value is provided
-	if form.Value != nil {
-		if err := cavs.validateDuplicateValue(complianceAssessmentFrameworkID, nil, *form.Value); err != nil {
-			return 0, err
-		}
-	}
+	// if form.Value != nil {
+	// 	if err := cavs.validateDuplicateValue(complianceAssessmentFrameworkID, nil, *form.Value); err != nil {
+	// 		return 0, err
+	// 	}
+	// }
 
 	// Handle IsApplicable with proper default value
-	var isApplicable *bool
-	if form.IsApplicable != nil {
-		isApplicable = form.IsApplicable
-	} else {
-		// Default to true when not specified
-		defaultValue := true
-		isApplicable = &defaultValue
-	}
+	// var isApplicable bool
+	// if form.IsApplicable != nil {
+	// 	isApplicable = *form.IsApplicable
+	// } else {
+	// 	// Default to true when not specified
+	// 	defaultValue := true
+	// 	isApplicable = defaultValue
+	// }
 
 	complianceAssessmentFrameworkValue := &models.ComplianceAssessmentFrameworkValue{
 		ComplianceAssessmentFrameworkID: complianceAssessmentFramework.ID,
@@ -130,7 +130,7 @@ func (cavs *ComplianceAssessmentFrameworkValueService) Create(complianceAssessme
 		Value:                           form.Value,
 		ScoreMin:                        form.ScoreMin,
 		ScoreMax:                        form.ScoreMax,
-		IsApplicable:                    isApplicable,
+		IsApplicable:                    form.IsApplicable,
 		ComplianceStatusID:              form.ComplianceStatusID,
 		CreatedBYID:                     currentUserID,
 		CreatedAt:                       time.Now(),
@@ -150,7 +150,7 @@ func (cavs *ComplianceAssessmentFrameworkValueService) Create(complianceAssessme
 			"value":                              form.Value,
 			"score_min":                          form.ScoreMin,
 			"score_max":                          form.ScoreMax,
-			"is_applicable":                      isApplicable,
+			"is_applicable":                      form.IsApplicable,
 			"compliance_status_id":               form.ComplianceStatusID,
 		}
 		err := cavs.activityLog.LogActivity(models.CreateAction, models.ComplianceAssessmentFrameworkValue{}.TableName(), id, activityData, currentUserID, nil)
@@ -192,14 +192,14 @@ func (cavs *ComplianceAssessmentFrameworkValueService) Update(complianceAssessme
 	}
 
 	// Handle IsApplicable with proper default value
-	var isApplicable *bool
-	if form.IsApplicable != nil {
-		isApplicable = form.IsApplicable
-	} else {
-		// Default to true when not specified
-		defaultValue := true
-		isApplicable = &defaultValue
-	}
+	// var isApplicable *bool
+	// if form.IsApplicable != nil {
+	// 	isApplicable = form.IsApplicable
+	// } else {
+	// 	// Default to true when not specified
+	// 	defaultValue := true
+	// 	isApplicable = &defaultValue
+	// }
 
 	// Update fields
 	complianceAssessmentFrameworkValue.TitleEn = form.TitleEn
@@ -208,7 +208,7 @@ func (cavs *ComplianceAssessmentFrameworkValueService) Update(complianceAssessme
 	complianceAssessmentFrameworkValue.Value = form.Value
 	complianceAssessmentFrameworkValue.ScoreMin = form.ScoreMin
 	complianceAssessmentFrameworkValue.ScoreMax = form.ScoreMax
-	complianceAssessmentFrameworkValue.IsApplicable = isApplicable
+	complianceAssessmentFrameworkValue.IsApplicable = form.IsApplicable
 	complianceAssessmentFrameworkValue.ComplianceStatusID = form.ComplianceStatusID
 	complianceAssessmentFrameworkValue.UpdatedBYID = &currentUserID
 	complianceAssessmentFrameworkValue.UpdatedAt = timePtr(time.Now())
@@ -226,7 +226,7 @@ func (cavs *ComplianceAssessmentFrameworkValueService) Update(complianceAssessme
 			"value":                form.Value,
 			"score_min":            form.ScoreMin,
 			"score_max":            form.ScoreMax,
-			"is_applicable":        isApplicable,
+			"is_applicable":        form.IsApplicable,
 			"compliance_status_id": form.ComplianceStatusID,
 		}
 		changes := utility.CompareFieldChanges(oldData, newData)
@@ -304,7 +304,7 @@ func timePtr(t time.Time) *time.Time {
 func (cavs *ComplianceAssessmentFrameworkValueService) validateComplianceAssessmentFrameworkValue(form *dtos.ComplianceAssessmentFrameworkValueFormDTO) error {
 
 	// IsApplicable-based validation
-	if form.IsApplicable != nil && *form.IsApplicable {
+	if form.IsApplicable {
 		// If IsApplicable is true, value, score_min, and score_max are required
 		if form.Value == nil {
 			return utility.NewValidationError(

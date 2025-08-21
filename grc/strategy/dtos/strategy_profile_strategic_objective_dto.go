@@ -1,5 +1,10 @@
 package dtos
 
+import (
+	organizationDTOs "jethur/grc/organization/dtos"
+	"time"
+)
+
 type StrategyProfileStrategicObjectiveListDTO struct {
 	ID                              int      `json:"id"`
 	StrategyProfileTitle            string   `json:"strategy_profile_title"`
@@ -46,4 +51,19 @@ type StrategyProfileStrategicObjectiveListQueryParamsDTO struct {
 	Page     int
 	PageSize int
 	Filters  map[string][]string
+}
+
+type StrategyProfileStrategicObjectiveDetailDTO struct {
+	ID                         uint                               `json:"id"`
+	StrategyProfileFocusAreaID *uint                              `json:"strategy_profile_focus_area_id"`
+	StrategyProfileFocusArea   *StrategyProfileFocusAreaDetailDTO `json:"strategy_profile_focus_area"`
+	StrategicObjectiveID       *uint                              `json:"strategic_objective_id"`
+	StrategicObjective         *StrategicObjectiveDetailDTO       `json:"strategic_objective"`
+	Score                      *float64                           `json:"score"`
+	CreatedByID                uint                               `json:"created_by_id"`
+	CreatedByUser              organizationDTOs.UserMinimalDTO    `json:"created_by_user"`
+	UpdatedByID                *uint                              `json:"updated_by_id"`
+	UpdatedByUser              *organizationDTOs.UserMinimalDTO   `json:"updated_by_user"`
+	CreatedAt                  time.Time                          `json:"created_at"`
+	UpdatedAt                  *time.Time                         `json:"updated_at"`
 }

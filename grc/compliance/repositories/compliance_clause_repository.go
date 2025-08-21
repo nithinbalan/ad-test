@@ -19,6 +19,7 @@ type ComplianceClauseRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(complianceID uint) ([]*models.ComplianceClause, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
+	GetFullDetailsByID(clauseID uint) (*models.ComplianceClause, error)
 	Create(clause *models.ComplianceClause, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(clause *models.ComplianceClause, tx ...utility.DatabaseTransaction) error
 	Delete(clauseID uint, tx ...utility.DatabaseTransaction) error
@@ -123,6 +124,26 @@ func (repo *ComplianceClauseRepository) GetByID(id uint, tx ...utility.DatabaseT
 	}
 
 	return &complianceClause, nil
+}
+
+func (repo *ComplianceClauseRepository) GetFullDetailsByID(clauseID uint) (*models.ComplianceClause, error) {
+	var clause models.ComplianceClause
+
+	err := repo.db.
+		Preload("ComplianceRequirements").
+		Preload("ComplianceRequirements.RequiredDocumentTitles").
+		Preload("ComplianceRequirements.ComplianceRequirementCategory").
+		Preload("ComplianceRequirements.ResponsibleUnits").
+		Preload("ComplianceRequirements.ResponsibleUnits.ResponsibleUnit").
+		Preload("ComplianceRequirements.ResponsibleUnits.ComplianceAssessmentFrameworkValue").
+		Where("id = ?", clauseID).
+		First(&clause).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &clause, nil
 }
 
 func (repo *ComplianceClauseRepository) Create(clause *models.ComplianceClause, tx ...utility.DatabaseTransaction) (uint, error) {

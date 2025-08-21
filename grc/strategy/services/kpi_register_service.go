@@ -26,7 +26,6 @@ type KPIRegisterServiceInterface interface {
 	UpdateValue(kpiRegister *models.KPIRegister, tx utility.DatabaseTransaction) error
 	GetTrendAnalysis(kpiID uint, limit int) ([]*strategyDTOs.KPITrendAnalysisDTO, error)
 	GetLatestValueUpdateByKPIRegisterID(kpiRegisterID uint) (*strategyDTOs.KPIValueUpdateDetailsDTO, error)
-	GetKPIChartDetails(kpiRegisterID uint) (*strategyDTOs.KPIChartDetailsDTO, error)
 }
 
 // Service and implementations
@@ -495,22 +494,4 @@ func (krs *KPIRegisterService) GetLatestValueUpdateByKPIRegisterID(kpiRegisterID
 	}
 
 	return &dto, nil
-}
-
-// In services/kpi_register_service.go
-func (krs *KPIRegisterService) GetKPIChartDetails(kpiRegisterID uint) (*strategyDTOs.KPIChartDetailsDTO, error) {
-	kpi, err := krs.repo.GetKPIChartDetails(kpiRegisterID)
-	if err != nil {
-		return nil, err
-	}
-
-	var achievement *float64
-	if kpi.TargetValue != nil && *kpi.TargetValue != 0 && kpi.ActualValue != nil {
-		val := (*kpi.ActualValue / *kpi.TargetValue) * 100
-		achievement = &val
-	}
-
-	return &strategyDTOs.KPIChartDetailsDTO{
-		AchievementPercentage: achievement,
-	}, nil
 }
