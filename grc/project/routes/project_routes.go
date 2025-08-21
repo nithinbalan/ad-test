@@ -69,8 +69,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/projects/:projectId/action-plans/:actionPlanId/status-updates", projectActionPlanStatusUpdateController.CreateProjectActionPlanStatusUpdate)
 	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/status-updates/:id", projectActionPlanStatusUpdateController.UpdateProjectActionPlanStatusUpdate)
 	projectRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "project_management", "view"), projectActionPlanStatusUpdateController.GetLatestProjectActionPlanStatusUpdate)
-	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/approve", projectActionPlanStatusUpdateController.ApproveProjectActionPlan)
-	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/revert", projectActionPlanStatusUpdateController.RevertProjectActionPlan)
+	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/approve", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectActionPlanStatusUpdateController.ApproveProjectActionPlan)
+	projectRoutes.PUT("/projects/:projectId/action-plans/:actionPlanId/revert", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectActionPlanStatusUpdateController.RevertProjectActionPlan)
 
 	// Project Action Plan Comments
 	unauthenticatedRoutes.GET("/projects/:projectId/action-plans/:actionPlanId/comments/:commentId/document-download", projectActionPlanCommentController.DownloadProjectActionPlanCommentDocument)

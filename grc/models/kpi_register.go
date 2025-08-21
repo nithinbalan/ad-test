@@ -21,7 +21,6 @@ type KPIRegister struct {
 	ActualValue       *float64 `json:"actual_value"`
 
 	TargetValue *float64 `json:"target_value"`
-	Weightage   *float64 `json:"weightage"`
 
 	StartDate *time.Time `json:"start_date" gorm:"type:date;default:null"`
 	EndDate   *time.Time `json:"end_date" gorm:"type:date;default:null"`
