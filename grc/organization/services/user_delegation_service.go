@@ -18,6 +18,8 @@ type UserDelegationServiceInterface interface {
 	GetAll(userID uint) ([]*organizationDTOs.UserDelegationHistoryListDTO, error)
 	GetByID(id uint) (*models.UserDelegationHistory, error)
 	Create(currentUserID uint, userDelegationForm *organizationDTOs.UserDelegationFormDTO) (uint, error)
+
+	GetLatestUserDelegation(userID uint) (*organizationDTOs.UserDelegationHistoryListDTO, error)
 }
 
 type UserDelegationService struct {
@@ -140,4 +142,13 @@ func (ushs *UserDelegationService) Create(currentUserID uint, userDelegationForm
 	}()
 
 	return id, nil
+}
+
+func (ushs *UserDelegationService) GetLatestUserDelegation(userID uint) (*organizationDTOs.UserDelegationHistoryListDTO, error) {
+	_, err := ushs.userSvc.GetByID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return ushs.repo.GetLatestUserDelegation(userID)
 }

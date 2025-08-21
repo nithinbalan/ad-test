@@ -23,7 +23,7 @@ type UserDelegationHistoryListDTO struct {
 	ModuleCount                   int        `json:"module_count"`
 	TaskCount                     int        `json:"task_count"`
 	Comments                      *string    `json:"comments"`
-	AssignedDate                  time.Time  `json:"assigned_date"`
+	AssignedDate                  string     `json:"assigned_date"`
 	CreatedUserID                 uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn        string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr        string     `json:"created_user_first_name_ar"`
