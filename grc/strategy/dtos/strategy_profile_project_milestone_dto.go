@@ -1,5 +1,11 @@
 package dtos
 
+import (
+	organizationDTOs "jethur/grc/organization/dtos"
+	projectDTOs "jethur/grc/project/dtos"
+	"time"
+)
+
 type StrategyProfileProjectMilestoneListDTO struct {
 	ID                            int     `json:"id"`
 	StrategyProfileID             uint    `json:"strategy_profile_id"`
@@ -42,4 +48,18 @@ type StrategyProfileProjectMilestoneListQueryParamsDTO struct {
 	Page     int
 	PageSize int
 	Filters  map[string][]string
+}
+
+type StrategyProfileProjectMilestoneDetailDTO struct {
+	ID                       uint                                   `json:"id"`
+	StrategyProfileProjectID *uint                                  `json:"strategy_profile_project_id"`
+	StrategyProfileProject   *StrategyProfileProjectDetailDTO       `json:"strategy_profile_project"`
+	ProjectMilestoneID       *uint                                  `json:"project_milestone_id"`
+	ProjectMilestone         *projectDTOs.ProjectMilestoneDetailDTO `json:"project_milestone"`
+	CreatedByID              uint                                   `json:"created_by_id"`
+	CreatedByUser            organizationDTOs.UserMinimalDTO        `json:"created_by_user"`
+	UpdatedByID              *uint                                  `json:"updated_by_id"`
+	UpdatedByUser            *organizationDTOs.UserMinimalDTO       `json:"updated_by_user"`
+	CreatedAt                time.Time                              `json:"created_at"`
+	UpdatedAt                *time.Time                             `json:"updated_at"`
 }

@@ -392,7 +392,7 @@ func (bfc *BusinessFunctionController) GetProcessAssociatedControls(c *gin.Conte
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
+
 	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
@@ -407,11 +407,10 @@ func (bfc *BusinessFunctionController) GetProcessAssociatedControls(c *gin.Conte
 		return
 	}
 
-	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortBy,
 		Keyword:     keyword,
-		Status:      status,
 		QuickFilter: quickFilter,
 		Page:        page,
 		PageSize:    pageSize,

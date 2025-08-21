@@ -10,12 +10,14 @@ import (
 	strategyProfileFocusAreaRepositories "jethur/grc/strategy/repositories"
 	"jethur/utility"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type StrategyProfileFocusAreaServiceInterface interface {
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileFocusAreaListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileFocusAreaListDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileFocusArea, error)
+	GetFullDetailsByID(strategyProfileID uint, id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.StrategyProfileFocusAreaDetailDTO, error)
 	Create(strategyProfileID uint, currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileFocusAreaFormDTO) ([]uint, error)
 	Delete(strategyProfileID uint, focusAreaID uint, currentUserID uint) error
 }
@@ -65,6 +67,37 @@ func (sps StrategyProfileFocusAreaService) GetByID(id uint, tx ...utility.Databa
 		return nil, err
 	}
 	return strategyProfileFocusArea, nil
+}
+
+func (sps *StrategyProfileFocusAreaService) GetFullDetailsByID(strategyProfileID uint, id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.StrategyProfileFocusAreaDetailDTO, error) {
+	var strategyProfileFocusAreaDTO strategyDTOs.StrategyProfileFocusAreaDetailDTO
+
+	// Check if the PROJECT register exists
+	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
+		return nil, err
+	}
+
+	// Get full details of the PROJECT action plan
+	strategyProfileFocusArea, err := sps.repo.GetFullDetailsByID(id, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	// Decode the PROJECT action plan into the DTO
+	err = mapstructure.Decode(strategyProfileFocusArea, &strategyProfileFocusAreaDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	strategyProfileFocusAreaDTO.CreatedAt = strategyProfileFocusArea.CreatedAt
+	strategyProfileFocusAreaDTO.UpdatedAt = strategyProfileFocusArea.UpdatedAt
+
+	// TODO: Add any additional fields required for the details screen
+
+	return &strategyProfileFocusAreaDTO, nil
 }
 
 func (sps *StrategyProfileFocusAreaService) Create(strategyProfileID uint, currentUserID uint, strategyProfileFocusAreaFormDTO *strategyDTOs.StrategyProfileFocusAreaFormDTO) ([]uint, error) {

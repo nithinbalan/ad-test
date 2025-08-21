@@ -202,3 +202,37 @@ func (pc *ProjectController) DeleteProjects(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (pc *ProjectController) UpdateProjectStatus(c *gin.Context) {
+	var form dtos.ProjectStatusUpdateDTO
+	projectID, err := strconv.ParseUint(c.Param("projectId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&form); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(pc.db, c, err.Error())
+		return
+	}
+
+	err = pc.service.UpdateStatus(uint(projectID), currentUserID, &form)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+		default:
+			utility.SendInternalErrResp(pc.db, c, e.Error())
+		}
+		return
+	}
+	c.Status(http.StatusOK)
+}

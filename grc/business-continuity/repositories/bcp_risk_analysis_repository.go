@@ -134,10 +134,6 @@ func (repo *BcpRiskAnalysisRepository) GetAllRisksByBcpId(bcpId uint, params *co
             LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
 		`).Where("bcp_risks.business_continuity_plan_id = ?", bcpId)
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -161,14 +157,25 @@ func (repo *BcpRiskAnalysisRepository) GetAllRisksByBcpId(bcpId uint, params *co
 	}
 
 	if params.Value != 0 {
-		query = query.Where("risk_matrix_risk_rating_values.value = ?", params.Value)
+		query = query.Where("current_risk_rating_value.value = ?", params.Value)
+	}
+
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
 	}
 
 	if params.SortBy == "" {
 		params.SortBy = "risk_register.title"
 	}
+
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)

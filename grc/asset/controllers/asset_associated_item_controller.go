@@ -853,3 +853,313 @@ func (aaic *AssetAssociatedItemController) DeleteAssetControl(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Control unmapped from asset successfully"})
 }
+
+func (aaic *AssetAssociatedItemController) GetAllAssetProcess(c *gin.Context) {
+
+	assetIDStr := c.Param("id")
+
+	assetID, err := strconv.ParseUint(assetIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	controls, err := aaic.service.GetAllAssetProcess(uint(assetID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(aaic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, controls)
+}
+func (aaic *AssetAssociatedItemController) CreateAssetProcess(c *gin.Context) {
+	var input commonDTOs.AssociatedProcessMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	assetID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, err.Error())
+		return
+	}
+
+	err = aaic.service.CreateAssetProcess(uint(assetID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(aaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (aaic *AssetAssociatedItemController) DeleteAssetProcess(c *gin.Context) {
+	assetID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	processID, _ := strconv.ParseUint(c.Param("processId"), 10, 64)
+	err := aaic.service.DeleteAssetProcess(uint(assetID), uint(processID))
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Process unmapped from asset successfully"})
+}
+
+func (aaic *AssetAssociatedItemController) GetAllAssetStrategicObjectives(c *gin.Context) {
+
+	assetIDStr := c.Param("id")
+
+	assetID, err := strconv.ParseUint(assetIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	controls, err := aaic.service.GetAllAssetStrategicObjectives(uint(assetID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(aaic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, controls)
+}
+func (aaic *AssetAssociatedItemController) CreateAssetStrategicObjective(c *gin.Context) {
+	var input commonDTOs.AssociatedStrategicObjectiveMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	assetID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, err.Error())
+		return
+	}
+
+	err = aaic.service.CreateAssetStrategicObjective(uint(assetID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(aaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (aaic *AssetAssociatedItemController) DeleteAssetStrategicObjective(c *gin.Context) {
+	assetID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	strategicObjectiveID, _ := strconv.ParseUint(c.Param("strategicObjectiveId"), 10, 64)
+	err := aaic.service.DeleteAssetStrategicObjective(uint(assetID), uint(strategicObjectiveID))
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Strategic Objective unmapped from asset successfully"})
+}
+
+func (aaic *AssetAssociatedItemController) GetAllAssetKPI(c *gin.Context) {
+
+	assetIDStr := c.Param("id")
+
+	assetID, err := strconv.ParseUint(assetIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	kpis, err := aaic.service.GetAllAssetKPI(uint(assetID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(aaic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, kpis)
+}
+func (aaic *AssetAssociatedItemController) CreateAssetKPI(c *gin.Context) {
+	var input commonDTOs.AssociatedKPIMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	assetID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, err.Error())
+		return
+	}
+
+	err = aaic.service.CreateAssetKPI(uint(assetID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(aaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (aaic *AssetAssociatedItemController) DeleteAssetKPI(c *gin.Context) {
+	assetIDStr := c.Param("id")
+	kpiIDStr := c.Param("kpiRegisterId")
+	assetID, err := strconv.ParseUint(assetIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	kpiID, err := strconv.ParseUint(kpiIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = aaic.service.DeleteAssetKPI(uint(assetID), uint(kpiID))
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "KPI unmapped from asset successfully"})
+}

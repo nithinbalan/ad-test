@@ -41,10 +41,10 @@ type KPIRegisterListDTO struct {
 	UnitCodeEn                      *string  `json:"unit_code_en"`
 	UnitCodeAr                      *string  `json:"unit_code_ar"`
 	UnitColorCode                   *string  `json:"unit_color_code"`
-	Weightage                       *float64 `json:"weightage"`
 	StartDate                       *string  `json:"start_date"`
 	EndDate                         *string  `json:"end_date"`
 	Remarks                         *string  `json:"remarks"`
+	Achievement                     *float64 `json:"achievement"`
 	CreatedUserID                   uint     `json:"created_user_id"`
 	CreatedUserFirstNameEn          string   `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string   `json:"created_user_first_name_ar"`
@@ -78,7 +78,6 @@ type KPIRegisterFormDTO struct {
 	UnitID            *uint               `json:"unit_id" binding:"required"`
 
 	TargetValue *float64 `json:"target_value" binding:"required"`
-	Weightage   *float64 `json:"weightage"`
 
 	StartDate *string `json:"start_date"`
 	EndDate   *string `json:"end_date"`
@@ -127,7 +126,7 @@ type KPIRegisterDetailDTO struct {
 	Unit              *masterDTOs.UnitDTO              `json:"unit"`
 	ActualValue       *float64                         `json:"actual_value"`
 	TargetValue       *float64                         `json:"target_value"`
-	Weightage         *float64                         `json:"weightage"`
+	Achievement       *float64                         `json:"achievement"`
 	StartDateString   *string                          `json:"start_date"`
 	EndDateString     *string                          `json:"end_date"`
 	Remarks           *string                          `json:"remarks"`
@@ -152,8 +151,4 @@ type KPIRegisterDataInputDTO struct {
 type KPITrendAnalysisDTO struct {
 	ReviewedAtString string  `json:"reviewed_at"`
 	Value            float64 `json:"value"`
-}
-
-type KPIChartDetailsDTO struct {
-	AchievementPercentage *float64 `json:"achievement_percentage"`
 }

@@ -26,7 +26,6 @@ type KPIRegisterServiceInterface interface {
 	UpdateValue(kpiRegister *models.KPIRegister, tx utility.DatabaseTransaction) error
 	GetTrendAnalysis(kpiID uint, limit int) ([]*strategyDTOs.KPITrendAnalysisDTO, error)
 	GetLatestValueUpdateByKPIRegisterID(kpiRegisterID uint) (*strategyDTOs.KPIValueUpdateDetailsDTO, error)
-	GetKPIChartDetails(kpiRegisterID uint) (*strategyDTOs.KPIChartDetailsDTO, error)
 }
 
 // Service and implementations
@@ -156,7 +155,6 @@ func (krs *KPIRegisterService) Create(currentUserID uint, kpiRegisterFormDTO *st
 		EntryTypeID:       &entryType.ID,
 		DataSourceID:      &dataSource.ID,
 		TargetValue:       kpiRegisterFormDTO.TargetValue,
-		Weightage:         kpiRegisterFormDTO.Weightage,
 		StartDate:         dates.StartDate,
 		EndDate:           dates.EndDate,
 		Remarks:           kpiRegisterFormDTO.Remarks,
@@ -249,7 +247,6 @@ func (krs *KPIRegisterService) Update(id uint, currentUserID uint, kpiRegisterFo
 	existingKPIRegister.Formula = kpiRegisterFormDTO.Formula
 	existingKPIRegister.UnitID = kpiRegisterFormDTO.UnitID
 	existingKPIRegister.TargetValue = kpiRegisterFormDTO.TargetValue
-	existingKPIRegister.Weightage = kpiRegisterFormDTO.Weightage
 	existingKPIRegister.StartDate = dates.StartDate
 	existingKPIRegister.EndDate = dates.EndDate
 	existingKPIRegister.Remarks = kpiRegisterFormDTO.Remarks
@@ -307,7 +304,6 @@ func (krs *KPIRegisterService) Update(id uint, currentUserID uint, kpiRegisterFo
 			"formula":          oldKPIRegister.Formula,
 			"unit":             utility.GetFieldValue(oldKPIRegister.Unit),
 			"target_value":     oldKPIRegister.TargetValue,
-			"weightage":        oldKPIRegister.Weightage,
 			"start_date":       oldKPIRegister.StartDateString,
 			"end_date":         oldKPIRegister.EndDateString,
 			"remarks":          oldKPIRegister.Remarks,
@@ -323,7 +319,6 @@ func (krs *KPIRegisterService) Update(id uint, currentUserID uint, kpiRegisterFo
 			"formula":          existingKPIRegister.Formula,
 			"unit":             utility.GetFieldValue(existingKPIRegister.Unit),
 			"target_value":     existingKPIRegister.TargetValue,
-			"weightage":        existingKPIRegister.Weightage,
 			"start_date":       existingKPIRegister.StartDateString,
 			"end_date":         existingKPIRegister.EndDateString,
 			"remarks":          existingKPIRegister.Remarks,
@@ -495,22 +490,4 @@ func (krs *KPIRegisterService) GetLatestValueUpdateByKPIRegisterID(kpiRegisterID
 	}
 
 	return &dto, nil
-}
-
-// In services/kpi_register_service.go
-func (krs *KPIRegisterService) GetKPIChartDetails(kpiRegisterID uint) (*strategyDTOs.KPIChartDetailsDTO, error) {
-	kpi, err := krs.repo.GetKPIChartDetails(kpiRegisterID)
-	if err != nil {
-		return nil, err
-	}
-
-	var achievement *float64
-	if kpi.TargetValue != nil && *kpi.TargetValue != 0 && kpi.ActualValue != nil {
-		val := (*kpi.ActualValue / *kpi.TargetValue) * 100
-		achievement = &val
-	}
-
-	return &strategyDTOs.KPIChartDetailsDTO{
-		AchievementPercentage: achievement,
-	}, nil
 }

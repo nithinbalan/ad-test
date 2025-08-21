@@ -12,6 +12,7 @@ type StrategyProfileFocusAreaRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileFocusAreaListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileFocusAreaListDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileFocusArea, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileFocusArea, error)
 	Create(strategyProfileFocusArea *models.StrategyProfileFocusArea, tx ...utility.DatabaseTransaction) (uint, error)
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 }
@@ -38,36 +39,33 @@ func (repo *StrategyProfileFocusAreaRepository) GetAll(strategyProfileID uint, p
 	query := repo.db.Table("strategy_profile_focus_areas").
 		Select(`
             strategy_profile_focus_areas.*,
-			strategy_profiles.title AS strategy_profile_title,
-			focus_areas.title_en AS focus_area_title_en,
-			focus_areas.title_ar AS focus_area_title_ar,
-			focus_areas.description_en AS focus_area_description_en,
-			focus_areas.description_ar AS focus_area_description_ar,
-			created_user.id AS created_user_id,
-        	created_user.first_name_en AS created_user_first_name_en,
+            strategy_profiles.title AS strategy_profile_title,
+			focus_areas.id AS focus_area_id,
+            focus_areas.title_en AS focus_area_title_en,
+            focus_areas.title_ar AS focus_area_title_ar,
+            focus_areas.description_en AS focus_area_description_en,
+            focus_areas.description_ar AS focus_area_description_ar,
+            created_user.id AS created_user_id,
+            created_user.email AS created_user_email,
+            created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
             created_user.last_name_ar AS created_user_last_name_ar,
-			created_user.initial AS created_user_initial,
-            created_user.color AS created_user_color,
-            created_user.email AS created_user_email,
-            created_user.profile_image_path AS created_user_profile_image_path,   
-			updated_user.id AS updated_user_id,
-    		updated_user.first_name_en AS updated_user_first_name_en,
+            created_user.profile_image_path AS created_user_profile_image_path,
+            updated_user.id AS updated_user_id,
+            updated_user.email AS updated_user_email,
+            updated_user.first_name_en AS updated_user_first_name_en,
             updated_user.first_name_ar AS updated_user_first_name_ar,
             updated_user.last_name_en AS updated_user_last_name_en,
             updated_user.last_name_ar AS updated_user_last_name_ar,
-			updated_user.initial AS updated_user_initial,
-            updated_user.color AS updated_user_color,
-            updated_user.email AS updated_user_email,
-            updated_user.profile_image_path AS updated_user_profile_image_path  
+            updated_user.profile_image_path AS updated_user_profile_image_path
         `).
-		Joins(`
-			LEFT JOIN strategy_profiles ON strategy_profiles.id = strategy_profile_focus_areas.strategy_profile_id
-			LEFT JOIN focus_areas ON focus_areas.id = strategy_profile_focus_areas.focus_area_id
-			LEFT JOIN users AS created_user ON created_user.id = strategy_profile_focus_areas.created_by_id
-			LEFT JOIN users AS updated_user ON updated_user.id = strategy_profile_focus_areas.updated_by_id
-        `).Where("strategy_profile_focus_areas.strategy_profile_id = ?", strategyProfileID)
+		Joins("LEFT JOIN strategy_profiles ON strategy_profiles.id = strategy_profile_focus_areas.strategy_profile_id").
+		Joins("LEFT JOIN focus_areas ON focus_areas.id = strategy_profile_focus_areas.focus_area_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = strategy_profile_focus_areas.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = strategy_profile_focus_areas.updated_by_id").
+		Where("strategy_profile_focus_areas.strategy_profile_id = ?", strategyProfileID)
+
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
@@ -78,39 +76,38 @@ func (repo *StrategyProfileFocusAreaRepository) GetAll(strategyProfileID uint, p
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
+
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(focus_areas.title_en LIKE ? OR
-			focus_areas.title_ar LIKE ? OR
-			focus_areas.description_en LIKE ? OR
-			focus_areas.description_ar LIKE ? OR
-			created_user.first_name_en LIKE ? OR
-			created_user.first_name_ar LIKE ? OR
-			created_user.last_name_en LIKE ? OR
-			created_user.last_name_ar LIKE ? OR
-    		updated_user.first_name_en LIKE ? OR
-			updated_user.first_name_ar LIKE ? OR
-			updated_user.last_name_en LIKE ? OR
-			updated_user.last_name_ar LIKE ?)`,
+            (focus_areas.title_en LIKE ? OR
+            focus_areas.title_ar LIKE ? OR
+            focus_areas.description_en LIKE ? OR
+            focus_areas.description_ar LIKE ? OR
+            created_user.first_name_en LIKE ? OR
+            created_user.first_name_ar LIKE ? OR
+            created_user.last_name_en LIKE ? OR
+            created_user.last_name_ar LIKE ? OR
+            updated_user.first_name_en LIKE ? OR
+            updated_user.first_name_ar LIKE ? OR
+            updated_user.last_name_en LIKE ? OR
+            updated_user.last_name_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
+	// Get total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
+	// Apply sorting and execute query
 	query = query.Order(params.SortBy + " " + params.Sort)
 
-	err := query.Find(&strategyProfileFocusAreas).Error
-	if err != nil {
+	if err := query.Find(&strategyProfileFocusAreas).Error; err != nil {
 		return nil, err
 	}
+
 	return strategyProfileFocusAreas, nil
 }
 
@@ -123,6 +120,26 @@ func (repo *StrategyProfileFocusAreaRepository) GetByID(id uint, tx ...utility.D
 	}
 
 	result := db.First(&strategyProfileFocusArea, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return strategyProfileFocusArea, nil
+}
+
+func (repo *StrategyProfileFocusAreaRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileFocusArea, error) {
+	var strategyProfileFocusArea *models.StrategyProfileFocusArea
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Preload("FocusArea").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&strategyProfileFocusArea, id)
+
 	if result.Error != nil {
 		return nil, result.Error
 	}

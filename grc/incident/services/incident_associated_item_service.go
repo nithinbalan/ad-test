@@ -16,7 +16,7 @@ type IncidentAssociatedItemServiceInterface interface {
 	GetAllControls(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	GetAllComplianceRequirements(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemComplianceRequirementListResponseDTO, error)
 	GetAllRisks(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
-	GetAllProcesses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemProcessListResponseDTO, error)
+	GetAllProcesses(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
 	GetAllSLAs(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemSLAListResponseDTO, error)
 	GetAllDocuments(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	GetAllAssets(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemAssetListResponseDTO, error)
@@ -28,6 +28,14 @@ type IncidentAssociatedItemServiceInterface interface {
 	DeleteIncidentDocument(incidentID uint, documentID uint) error
 	CreateIncidentControl(incidentID uint, currentUserID uint, dto *commonDTOs.AssociatedControlMapDTO) error
 	DeleteIncidentControl(incidentID uint, controlID uint) error
+	CreateIncidentProcess(incidentID uint, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
+	DeleteIncidentProcess(incidentID uint, processID uint) error
+	GetAllIncidentStrategicObjectives(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
+	CreateIncidentStrategicObjective(incidentID uint, currentUserID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
+	DeleteIncidentStrategicObjective(incidentID uint, strategicObjectiveID uint) error
+	GetAllIncidentKPI(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateIncidentKPI(incidentID uint, currentUserID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeleteIncidentKPI(incidentID uint, kpiRegisterID uint) error
 }
 
 // Service and implementations
@@ -74,7 +82,7 @@ func (iais *IncidentAssociatedItemService) GetAllRisks(incidentID uint, params *
 	return iais.repo.GetAllRisks(incidentID, params)
 }
 
-func (iais *IncidentAssociatedItemService) GetAllProcesses(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemProcessListResponseDTO, error) {
+func (iais *IncidentAssociatedItemService) GetAllProcesses(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error) {
 	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}
@@ -335,6 +343,149 @@ func (iais *IncidentAssociatedItemService) DeleteIncidentControl(incidentID uint
 	tx := iais.repo.BeginTransaction()
 
 	if err := iais.repo.DeleteIncidentControl(incidentID, controlID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) CreateIncidentProcess(incidentID, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+	if err := iais.validationSvc.ValidateProcessMapping(incidentID, dto.ProcessIDs, "incident_processes", "incident_register_id"); err != nil {
+		return err
+	}
+	tx := iais.repo.BeginTransaction()
+	var mappings []*models.IncidentProcess
+	currentTime := time.Now()
+
+	for _, controlID := range dto.ProcessIDs {
+		mappings = append(mappings, &models.IncidentProcess{
+			ProcessID:          controlID,
+			IncidentRegisterID: incidentID,
+			CreatedByID:        currentUserID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := iais.repo.CreateIncidentProcess(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) DeleteIncidentProcess(incidentID uint, processID uint) error {
+	// Validate control existence
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+
+	tx := iais.repo.BeginTransaction()
+
+	if err := iais.repo.DeleteIncidentProcess(incidentID, processID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) GetAllIncidentStrategicObjectives(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error) {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return nil, err
+	}
+	return iais.repo.GetAllIncidentStrategicObjectives(incidentID, params)
+}
+
+func (iais *IncidentAssociatedItemService) CreateIncidentStrategicObjective(incidentID, currentUserID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+	if err := iais.validationSvc.ValidateStrtegicObjectiveMapping(incidentID, dto.StrategicObjectiveIDs, "incident_strategic_objectives", "incident_register_id"); err != nil {
+		return err
+	}
+	tx := iais.repo.BeginTransaction()
+	var mappings []*models.IncidentStrategicObjective
+	currentTime := time.Now()
+
+	for _, StrategicObjectiveID := range dto.StrategicObjectiveIDs {
+		mappings = append(mappings, &models.IncidentStrategicObjective{
+			StrategicObjectiveID: StrategicObjectiveID,
+			IncidentRegisterID:   incidentID,
+			CreatedBYID:          currentUserID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := iais.repo.CreateIncidentStrategicObjective(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) DeleteIncidentStrategicObjective(incidentID uint, strategicObjectiveID uint) error {
+	// Validate control existence
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("incident does not exist for ID: %d", incidentID), "not_exist", "incident_id")
+	}
+
+	tx := iais.repo.BeginTransaction()
+
+	if err := iais.repo.DeleteIncidentStrategicObjective(incidentID, strategicObjectiveID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) GetAllIncidentKPI(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return nil, err
+	}
+	return iais.repo.GetAllIncidentKPI(incidentID, params)
+}
+
+func (iais *IncidentAssociatedItemService) CreateIncidentKPI(incidentID, currentUserID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return err
+	}
+	if err := iais.validationSvc.ValidateKPIMapping(incidentID, dto.KpiIDs, "incident_kpis", "incident_register_id"); err != nil {
+		return err
+	}
+	tx := iais.repo.BeginTransaction()
+	var mappings []*models.IncidentKPI
+	currentTime := time.Now()
+
+	for _, KpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.IncidentKPI{
+			KPIRegisterID:      KpiID,
+			IncidentRegisterID: incidentID,
+			CreatedByID:        currentUserID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := iais.repo.CreateIncidentKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) DeleteIncidentKPI(incidentID uint, kpiRegisterID uint) error {
+	// Validate control existence
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return err
+	}
+
+	tx := iais.repo.BeginTransaction()
+
+	if err := iais.repo.DeleteIncidentKPI(incidentID, kpiRegisterID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

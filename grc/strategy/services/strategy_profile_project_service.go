@@ -11,12 +11,14 @@ import (
 	strategyProfileProjectRepositories "jethur/grc/strategy/repositories"
 	"jethur/utility"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type StrategyProfileProjectServiceInterface interface {
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileProjectListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileProjectListDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProject, error)
+	GetFullDetailsByID(strategyProfileID uint, id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.StrategyProfileProjectDetailDTO, error)
 	Create(strategyProfileID uint, currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileProjectFormDTO) ([]uint, error)
 	Delete(strategyProfileID uint, projectID uint, currentUserID uint) error
 }
@@ -72,6 +74,37 @@ func (ssp *StrategyProfileProjectService) GetByID(id uint, tx ...utility.Databas
 		return nil, err
 	}
 	return strategyProfileProject, nil
+}
+
+func (ssp *StrategyProfileProjectService) GetFullDetailsByID(strategyProfileID uint, id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.StrategyProfileProjectDetailDTO, error) {
+	var strategyProfileProjectDTO strategyDTOs.StrategyProfileProjectDetailDTO
+
+	// Check if the PROJECT register exists
+	if _, err := ssp.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
+		return nil, err
+	}
+
+	// Get full details of the PROJECT action plan
+	strategyProfileProject, err := ssp.repo.GetFullDetailsByID(id, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	// Decode the PROJECT action plan into the DTO
+	err = mapstructure.Decode(strategyProfileProject, &strategyProfileProjectDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	strategyProfileProjectDTO.CreatedAt = strategyProfileProject.CreatedAt
+	strategyProfileProjectDTO.UpdatedAt = strategyProfileProject.UpdatedAt
+
+	// TODO: Add any additional fields required for the details screen
+
+	return &strategyProfileProjectDTO, nil
 }
 
 func (ssp *StrategyProfileProjectService) Create(strategyProfileID uint, currentUserID uint, strategyProfileProjectFormDTO *strategyDTOs.StrategyProfileProjectFormDTO) ([]uint, error) {

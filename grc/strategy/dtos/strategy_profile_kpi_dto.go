@@ -1,5 +1,10 @@
 package dtos
 
+import (
+	organizationDTOs "jethur/grc/organization/dtos"
+	"time"
+)
+
 type StrategyProfileKpiListDTO struct {
 	ID                                       int      `json:"id"`
 	StrategyProfileID                        uint     `json:"strategy_profile_id"`
@@ -31,9 +36,8 @@ type StrategyProfileKpiListDTO struct {
 }
 
 type StrategyProfileKpiFormDTO struct {
-	StrategyProfileStrategicObjectiveID *uint    `json:"strategy_profile_strategic_objective_id"`
-	KpiIDs                              []uint   `json:"kpi_ids" binding:"required,min=1"`
-	Weightage                           *float64 `json:"weightage"`
+	StrategyProfileStrategicObjectiveID *uint  `json:"strategy_profile_strategic_objective_id"`
+	KpiIDs                              []uint `json:"kpi_ids" binding:"required,min=1"`
 }
 
 type StrategyProfileKpiListQueryParamsDTO struct {
@@ -43,4 +47,29 @@ type StrategyProfileKpiListQueryParamsDTO struct {
 	Page     int
 	PageSize int
 	Filters  map[string][]string
+}
+
+type KpiRegisterMinimalDetails struct {
+	ID          uint     `json:"id"`
+	Achievement *float64 `json:"achievement,omitempty"`
+	Weightage   *float64 `json:"weightage,omitempty"`
+}
+
+type StrategyProfileKpiDetailDTO struct {
+	ID                                  uint                                        `json:"id"`
+	StrategyProfileStrategicObjectiveID *uint                                       `json:"strategy_profile_strategic_objective_id"`
+	StrategyProfileStrategicObjective   *StrategyProfileStrategicObjectiveDetailDTO `json:"strategy_profile_strategic_objective"`
+	KpiID                               *uint                                       `json:"kpi_id"`
+	Kpi                                 *KPIRegisterDetailDTO                       `json:"kpi"`
+	Weightage                           *float64                                    `json:"weightage"`
+	CreatedByID                         uint                                        `json:"created_by_id"`
+	CreatedByUser                       organizationDTOs.UserMinimalDTO             `json:"created_by_user"`
+	UpdatedByID                         *uint                                       `json:"updated_by_id"`
+	UpdatedByUser                       *organizationDTOs.UserMinimalDTO            `json:"updated_by_user"`
+	CreatedAt                           time.Time                                   `json:"created_at"`
+	UpdatedAt                           *time.Time                                  `json:"updated_at"`
+}
+
+type StrategyProfileKpiWeightageUpdateDTO struct {
+	Weightage *float64 `json:"weightage" binding:"required,min=0,max=100"`
 }

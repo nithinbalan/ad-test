@@ -78,6 +78,39 @@ func (snec *StrategyProfileStrategicObjectiveController) GetAllStrategyProfileSt
 	c.JSON(http.StatusOK, objectives)
 }
 
+func (snec *StrategyProfileStrategicObjectiveController) GetStrategyProfileStrategicObjectiveDetails(c *gin.Context) {
+	// Get strategy profile ID from URL
+	strategyProfileIDStr := c.Param("strategyProfileId")
+	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Get objective ID from URL
+	objectiveIDStr := c.Param("id")
+	objectiveID, err := strconv.ParseUint(objectiveIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Call service to get the objective details
+	objective, err := snec.service.GetFullDetailsByID(uint(strategyProfileID), uint(objectiveID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(snec.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, objective)
+}
+
 func (snec *StrategyProfileStrategicObjectiveController) CreateStrategyProfileStrategicObjective(c *gin.Context) {
 	var FormDTO strategyDTOs.StrategyProfileStrategicObjectiveFormDTO
 

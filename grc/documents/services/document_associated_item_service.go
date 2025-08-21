@@ -16,7 +16,7 @@ import (
 type DocumentAssociatedItemServiceInterface interface {
 	GetAllControls(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	GetAllComplianceRequirements(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemComplianceRequirementListResponseDTO, error)
-	GetAllProcesses(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemProcessListResponseDTO, error)
+	GetAllProcesses(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
 	GetAllSLAs(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemSLAListResponseDTO, error)
 	GetAllIncidents(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemIncidentListResponseDTO, error)
 	GetAllRisks(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
@@ -26,6 +26,17 @@ type DocumentAssociatedItemServiceInterface interface {
 	DeleteDocumentRisk(documentID uint, riskID uint) error
 	CreateDocumentControl(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedControlMapDTO) error
 	DeleteDocumentControl(documentID uint, controlID uint) error
+	CreateDocumentProcess(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
+	DeleteDocumentProcess(documentID uint, processID uint) error
+	GetAllStrategicObjectives(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
+	CreateDocumentStrategicObjective(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
+	DeleteDocumentStrategicObjective(documentID uint, strategicObjectiveId uint) error
+	GetAllDocumentKPI(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateDocumentKPI(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeleteDocumentKPI(documentID uint, kpiID uint) error
+	GetAllAssociatedDocument(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
+	CreateAssociatedDocument(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
+	DeleteAssociatedDocument(documentID uint, associatedDocumentID uint) error
 }
 
 // Service Implementation
@@ -115,7 +126,7 @@ func (dais *DocumentAssociatedItemService) GetAllComplianceRequirements(document
 	return response, nil
 }
 
-func (dais *DocumentAssociatedItemService) GetAllProcesses(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemProcessListResponseDTO, error) {
+func (dais *DocumentAssociatedItemService) GetAllProcesses(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error) {
 	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
 		return nil, err
 	}
@@ -334,6 +345,203 @@ func (dais *DocumentAssociatedItemService) DeleteDocumentControl(documentID uint
 	tx := dais.repo.BeginTransaction()
 
 	if err := dais.repo.DeleteDocumentControl(documentID, controlID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) CreateDocumentProcess(documentID, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", documentID), "not_exist", "document_id")
+	}
+	if err := dais.validationSvc.ValidateProcessMapping(documentID, dto.ProcessIDs, "process_associated_documents", "document_id"); err != nil {
+		return err
+	}
+	tx := dais.repo.BeginTransaction()
+	var mappings []*models.ProcessAssociatedDocument
+	currentTime := time.Now()
+
+	for _, processID := range dto.ProcessIDs {
+		mappings = append(mappings, &models.ProcessAssociatedDocument{
+			ProcessID:   processID,
+			DocumentID:  documentID,
+			CreatedByID: currentUserID,
+			CreatedAt:   currentTime,
+		})
+	}
+
+	if err := dais.repo.CreateDocumentProcess(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) DeleteDocumentProcess(documentID uint, processID uint) error {
+	// Validate control existence
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", documentID), "not_exist", "document_id")
+	}
+
+	tx := dais.repo.BeginTransaction()
+
+	if err := dais.repo.DeleteDocumentProcess(documentID, processID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) GetAllStrategicObjectives(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error) {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return nil, err
+	}
+	return dais.repo.GetAllStrategicObjectives(documentID, params)
+}
+func (dais *DocumentAssociatedItemService) CreateDocumentStrategicObjective(documentID, currentUserID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", documentID), "not_exist", "document_id")
+	}
+	if err := dais.validationSvc.ValidateStrtegicObjectiveMapping(documentID, dto.StrategicObjectiveIDs, "strategic_objective_associated_documents", "document_id"); err != nil {
+		return err
+	}
+	tx := dais.repo.BeginTransaction()
+	var mappings []*models.StrategicObjectiveAssociatedDocument
+	currentTime := time.Now()
+
+	for _, strategicObjectiveID := range dto.StrategicObjectiveIDs {
+		mappings = append(mappings, &models.StrategicObjectiveAssociatedDocument{
+			StrategicObjectiveID: strategicObjectiveID,
+			DocumentID:           documentID,
+			CreatedByID:          currentUserID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := dais.repo.CreateDocumentStrategicObjective(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) DeleteDocumentStrategicObjective(documentID uint, strategicObjectiveID uint) error {
+	// Validate control existence
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", documentID), "not_exist", "document_id")
+	}
+
+	tx := dais.repo.BeginTransaction()
+
+	if err := dais.repo.DeleteDocumentStrategicObjective(documentID, strategicObjectiveID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) GetAllDocumentKPI(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return nil, err
+	}
+	return dais.repo.GetAllDocumentKPI(documentID, params)
+}
+func (dais *DocumentAssociatedItemService) CreateDocumentKPI(documentID, currentUserID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("document does not exist for ID: %d", documentID), "not_exist", "document_id")
+	}
+	if err := dais.validationSvc.ValidateKPIMapping(documentID, dto.KpiIDs, "kpi_associated_documents", "document_id"); err != nil {
+		return err
+	}
+	tx := dais.repo.BeginTransaction()
+	var mappings []*models.KPIAssociatedDocument
+	currentTime := time.Now()
+
+	for _, KpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.KPIAssociatedDocument{
+			KPIRegisterID: KpiID,
+			DocumentID:    documentID,
+			CreatedByID:   currentUserID,
+			CreatedAt:     currentTime,
+		})
+	}
+
+	if err := dais.repo.CreateDocumentKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) DeleteDocumentKPI(documentID uint, kpiID uint) error {
+	// Validate control existence
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return err
+	}
+
+	tx := dais.repo.BeginTransaction()
+
+	if err := dais.repo.DeleteDocumentKPI(documentID, kpiID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) GetAllAssociatedDocument(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return nil, err
+	}
+	return dais.repo.GetAllAssociatedDocument(documentID, params)
+}
+func (dais *DocumentAssociatedItemService) CreateAssociatedDocument(documentID, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return err
+	}
+
+	for _, id := range dto.DocumentIDs {
+		if id == documentID {
+			return fmt.Errorf("a document cannot be associated with itself (id: %d)", documentID)
+		}
+	}
+
+	if err := dais.validationSvc.ValidateDocumentMapping(documentID, dto.DocumentIDs, "document_associated_documents", "associated_document_id"); err != nil {
+		return err
+	}
+	tx := dais.repo.BeginTransaction()
+	var mappings []*models.DocumentAssociatedDocument
+	currentTime := time.Now()
+
+	for _, AssociatedDocumentID := range dto.DocumentIDs {
+		mappings = append(mappings, &models.DocumentAssociatedDocument{
+			AssociatedDocumentID: AssociatedDocumentID,
+			DocumentID:           documentID,
+			CreatedByID:          currentUserID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := dais.repo.CreateAssociatedDocument(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) DeleteAssociatedDocument(documentID uint, associatedDocumentID uint) error {
+	// Validate control existence
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return err
+	}
+
+	tx := dais.repo.BeginTransaction()
+
+	if err := dais.repo.DeleteAssociatedDocument(documentID, associatedDocumentID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

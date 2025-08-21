@@ -11,11 +11,14 @@ import (
 	strategyProfileProjectMilestoneRepositories "jethur/grc/strategy/repositories"
 	"jethur/utility"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type StrategyProfileProjectMilestoneServiceInterface interface {
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileProjectMilestoneListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileProjectMilestoneListDTO, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProjectMilestone, error)
+	GetFullDetailsByID(strategyProfileID uint, id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.StrategyProfileProjectMilestoneDetailDTO, error)
 	Create(strategyProfileID uint, currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileProjectMilestoneFormDTO) ([]uint, error)
 	Delete(strategyProfileID uint, kpiID uint, currentUserID uint) error
 }
@@ -68,6 +71,37 @@ func (sppm *StrategyProfileProjectMilestoneService) GetByID(id uint, tx ...utili
 		return nil, err
 	}
 	return strategyProfileProjectMilestone, nil
+}
+
+func (ssp *StrategyProfileProjectMilestoneService) GetFullDetailsByID(strategyProfileID uint, id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.StrategyProfileProjectMilestoneDetailDTO, error) {
+	var strategyProfileProjectMilestoneDTO strategyDTOs.StrategyProfileProjectMilestoneDetailDTO
+
+	// Check if the PROJECT register exists
+	if _, err := ssp.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
+		return nil, err
+	}
+
+	// Get full details of the PROJECT action plan
+	strategyProfileProjectMilestone, err := ssp.repo.GetFullDetailsByID(id, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	// Decode the PROJECT action plan into the DTO
+	err = mapstructure.Decode(strategyProfileProjectMilestone, &strategyProfileProjectMilestoneDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	strategyProfileProjectMilestoneDTO.CreatedAt = strategyProfileProjectMilestone.CreatedAt
+	strategyProfileProjectMilestoneDTO.UpdatedAt = strategyProfileProjectMilestone.UpdatedAt
+
+	// TODO: Add any additional fields required for the details screen
+
+	return &strategyProfileProjectMilestoneDTO, nil
 }
 
 func (sppm *StrategyProfileProjectMilestoneService) Create(strategyProfileID uint, currentUserID uint, strategyProfileProjectMilestoneFormDTO *strategyDTOs.StrategyProfileProjectMilestoneFormDTO) ([]uint, error) {

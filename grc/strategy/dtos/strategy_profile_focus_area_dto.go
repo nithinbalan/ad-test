@@ -1,5 +1,10 @@
 package dtos
 
+import (
+	organizationDTOs "jethur/grc/organization/dtos"
+	"time"
+)
+
 type StrategyProfileFocusAreaListDTO struct {
 	ID                          int     `json:"id"`
 	FocusAreaID                 *uint   `json:"focus_area_id"`
@@ -39,4 +44,16 @@ type StrategyProfileFocusAreaListQueryParamsDTO struct {
 	Page     int
 	PageSize int
 	Filters  map[string][]string
+}
+
+type StrategyProfileFocusAreaDetailDTO struct {
+	ID            uint                             `json:"id"`
+	FocusAreaID   *uint                            `json:"focus_area_id"`
+	FocusArea     *FocusAreaDetailDTO              `json:"focus_area"`
+	CreatedByID   uint                             `json:"created_by_id"`
+	CreatedByUser organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
+	UpdatedByID   *uint                            `json:"updated_by_id"`
+	UpdatedByUser *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
+	CreatedAt     time.Time                        `json:"created_at"`
+	UpdatedAt     *time.Time                       `json:"updated_at"`
 }
