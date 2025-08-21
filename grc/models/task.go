@@ -35,6 +35,7 @@ type Task struct {
 	SeverityLevelID                 *uint      `json:"severity_level_id"`
 	ResponsibleUserID               uint       `json:"responsible_user_id"`
 	TaskStatusID                    uint       `json:"task_status_id" binding:"required"`
+	DelegateeUserID                 *uint      `json:"delegatee_user_id"`
 	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                       *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedByID                     uint       `json:"created_by_id" gorm:"not null"`
@@ -52,6 +53,7 @@ type Task struct {
 	SeverityLevel          *SeverityLevel          `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ResponsibleUser        *User                   `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	TaskStatus             *TaskStatus             `gorm:"foreignKey:TaskStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	DelegateeUser          *User                   `gorm:"foreignKey:DelegateeUserID"`
 	CreatedByUser          *User                   `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser          *User                   `gorm:"foreignKey:UpdatedByID"`
 }

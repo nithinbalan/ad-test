@@ -28,6 +28,7 @@ type User struct {
 	MarkedAsAuditableItem bool       `json:"marked_as_auditable_item" gorm:"default:false" binding:"-"`
 	ReportingUserID       *uint      `json:"reporting_user"`
 	LicenseTypeID         *uint      `json:"license_type_id"`
+	DelegateeUserID       *uint      `json:"delegatee_user_id"`
 	CreatedAt             time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt             *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedByID           uint       `json:"created_by_id" gorm:"not null"`
@@ -46,6 +47,7 @@ type User struct {
 	UserSetting       *UserSetting        `gorm:"foreignKey:UserID"`
 	ReportingUser     *User               `gorm:"foreignKey:ReportingUserID"`
 	LicenseType       *LicenseType        `gorm:"foreignKey:LicenseTypeID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	DelegateeUser     *User               `gorm:"foreignKey:DelegateeUserID"`
 	CreatedByUser     *User               `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser     *User               `gorm:"foreignKey:UpdatedByID"`
 	// Add this virtual field
