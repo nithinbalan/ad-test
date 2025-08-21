@@ -24,7 +24,7 @@ type AssetRegisterRepositoryInterface interface {
 
 	GenerateReferenceNumber() (string, error)
 
-	CreateAssetControls(controls []*models.AssetControl, tx ...utility.DatabaseTransaction) error
+	// CreateAssetControls(controls []*models.AssetControl, tx ...utility.DatabaseTransaction) error
 	DeleteAssetControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetControlSummary(assetID uint) ([]models.AssetControl, error)
@@ -216,7 +216,7 @@ func (repo *AssetRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.D
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("ResponsibleUnit").
-		Preload("Controls").
+		// Preload("Controls").
 		Preload("AssetCriticalityMatrixRatingScale").
 		Preload("AssetCriticalityMatrix").
 		Preload("Documents").
@@ -285,16 +285,16 @@ func (repo *AssetRegisterRepository) GenerateReferenceNumber() (string, error) {
 	return newReferenceNumber, nil
 }
 
-func (repo *AssetRegisterRepository) CreateAssetControls(controls []*models.AssetControl, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(&controls).Error; err != nil {
-		return err
-	}
-	return nil
-}
+// func (repo *AssetRegisterRepository) CreateAssetControls(controls []*models.AssetControl, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	if err := db.Create(&controls).Error; err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
 func (repo *AssetRegisterRepository) DeleteAssetControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
