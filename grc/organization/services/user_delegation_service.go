@@ -14,14 +14,14 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserDelegationHistoryServiceInterface interface {
+type UserDelegationServiceInterface interface {
 	GetAll(userID uint) ([]*organizationDTOs.UserDelegationHistoryListDTO, error)
 	GetByID(id uint) (*models.UserDelegationHistory, error)
-	Create(currentUserID uint, userDelegationHistoryForm *organizationDTOs.UserDelegationHistoryFormDTO) (uint, error)
+	Create(currentUserID uint, userDelegationForm *organizationDTOs.UserDelegationFormDTO) (uint, error)
 }
 
-type UserDelegationHistoryService struct {
-	repo            organizationRepositories.UserDelegationHistoryRepositoryInterface
+type UserDelegationService struct {
+	repo            organizationRepositories.UserDelegationRepositoryInterface
 	activityLogSvc  logServices.ActivityLogServiceInterface
 	userSvc         UserServiceInterface
 	notificationSvc commonServices.NotificationServiceInterface
@@ -29,15 +29,15 @@ type UserDelegationHistoryService struct {
 	taskSvc         taskServices.TaskServiceInterface
 }
 
-func NewUserDelegationHistoryService(
-	repo organizationRepositories.UserDelegationHistoryRepositoryInterface,
+func NewUserDelegationService(
+	repo organizationRepositories.UserDelegationRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	userSettingSvc UserSettingServiceInterface,
 	taskSvc taskServices.TaskServiceInterface,
-) UserDelegationHistoryServiceInterface {
-	return &UserDelegationHistoryService{
+) UserDelegationServiceInterface {
+	return &UserDelegationService{
 		repo:            repo,
 		activityLogSvc:  activityLogSvc,
 		userSvc:         userSvc,
@@ -47,11 +47,11 @@ func NewUserDelegationHistoryService(
 	}
 }
 
-func (ushs *UserDelegationHistoryService) GetAll(userID uint) ([]*organizationDTOs.UserDelegationHistoryListDTO, error) {
+func (ushs *UserDelegationService) GetAll(userID uint) ([]*organizationDTOs.UserDelegationHistoryListDTO, error) {
 	return ushs.repo.GetAll(userID)
 }
 
-func (ushs *UserDelegationHistoryService) GetByID(id uint) (*models.UserDelegationHistory, error) {
+func (ushs *UserDelegationService) GetByID(id uint) (*models.UserDelegationHistory, error) {
 	process, err := ushs.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -62,15 +62,15 @@ func (ushs *UserDelegationHistoryService) GetByID(id uint) (*models.UserDelegati
 	return process, nil
 }
 
-func (ushs *UserDelegationHistoryService) Create(currentUserID uint, userDelegationHistoryForm *organizationDTOs.UserDelegationHistoryFormDTO) (uint, error) {
+func (ushs *UserDelegationService) Create(currentUserID uint, userDelegationForm *organizationDTOs.UserDelegationFormDTO) (uint, error) {
 
-	taskCount := len(userDelegationHistoryForm.TaskIDs)
-	moduleCount := len(userDelegationHistoryForm.ModuleIDs)
+	taskCount := len(userDelegationForm.TaskIDs)
+	moduleCount := len(userDelegationForm.ModuleIDs)
 
 	currentDateStr := time.Now().Format("2006-01-02")
 	assignedDate, err := utility.ParseDate(currentDateStr)
 
-	user, err := ushs.userSvc.GetByID(userDelegationHistoryForm.UserID)
+	user, err := ushs.userSvc.GetByID(userDelegationForm.UserID)
 
 	if err != nil {
 		return 0, err
@@ -81,16 +81,16 @@ func (ushs *UserDelegationHistoryService) Create(currentUserID uint, userDelegat
 	}
 
 	userDelegation := &models.UserDelegationHistory{
-		UserID:          userDelegationHistoryForm.UserID,
-		DelegateeUserID: userDelegationHistoryForm.DelegateeUserID,
-		Comments:        userDelegationHistoryForm.Comments,
+		UserID:          userDelegationForm.UserID,
+		DelegateeUserID: userDelegationForm.DelegateeUserID,
+		Comments:        userDelegationForm.Comments,
 		TaskCount:       taskCount,
 		ModuleCount:     moduleCount,
 		AssignedDate:    *assignedDate,
 		CreatedBYID:     currentUserID,
 	}
 
-	oldUser, err := ushs.userSvc.GetByID(userDelegationHistoryForm.UserID)
+	oldUser, err := ushs.userSvc.GetByID(userDelegationForm.UserID)
 	if err != nil {
 		return 0, err
 	}
@@ -103,15 +103,15 @@ func (ushs *UserDelegationHistoryService) Create(currentUserID uint, userDelegat
 		return 0, err
 	}
 
-	oldUser.DelegateeUserID = &userDelegationHistoryForm.DelegateeUserID
+	oldUser.DelegateeUserID = &userDelegationForm.DelegateeUserID
 
 	if err := ushs.userSvc.UpdateDelegateeUser(oldUser, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 
-	for _, task := range userDelegationHistoryForm.TaskIDs {
-		_, err = ushs.taskSvc.UpdateDelegateeUser(task, userDelegationHistoryForm.DelegateeUserID, currentUserID, tx)
+	for _, task := range userDelegationForm.TaskIDs {
+		_, err = ushs.taskSvc.UpdateDelegateeUser(task, userDelegationForm.DelegateeUserID, currentUserID, tx)
 		if err != nil {
 			return 0, err
 		}

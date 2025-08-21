@@ -2,7 +2,7 @@ package dtos
 
 import "time"
 
-type UserDelegationHistoryFormDTO struct {
+type UserDelegationFormDTO struct {
 	UserID          uint    `json:"user_id" binding:"required"`
 	DelegateeUserID uint    `json:"delegatee_user_id" binding:"required"`
 	Comments        *string `json:"comments"`

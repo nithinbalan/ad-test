@@ -9,7 +9,7 @@ import (
 )
 
 // Interface
-type UserDelegationHistoryRepositoryInterface interface {
+type UserDelegationRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(userID uint) ([]*orgDTOs.UserDelegationHistoryListDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.UserDelegationHistory, error)
@@ -17,21 +17,21 @@ type UserDelegationHistoryRepositoryInterface interface {
 }
 
 // Implementation
-type UserDelegationHistoryRepository struct {
+type UserDelegationRepository struct {
 	db *gorm.DB
 }
 
-func NewUserDelegationHistoryRepository(db *gorm.DB) *UserDelegationHistoryRepository {
-	return &UserDelegationHistoryRepository{
+func NewUserDelegationRepository(db *gorm.DB) *UserDelegationRepository {
+	return &UserDelegationRepository{
 		db: db,
 	}
 }
 
-func (repo *UserDelegationHistoryRepository) BeginTransaction() utility.DatabaseTransaction {
+func (repo *UserDelegationRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *UserDelegationHistoryRepository) GetAll(userID uint) ([]*orgDTOs.UserDelegationHistoryListDTO, error) {
+func (repo *UserDelegationRepository) GetAll(userID uint) ([]*orgDTOs.UserDelegationHistoryListDTO, error) {
 	var userDelegations []*orgDTOs.UserDelegationHistoryListDTO
 
 	query := repo.db.Table("user_delegation_history").
@@ -78,7 +78,7 @@ func (repo *UserDelegationHistoryRepository) GetAll(userID uint) ([]*orgDTOs.Use
 	return userDelegations, nil
 }
 
-func (repo *UserDelegationHistoryRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.UserDelegationHistory, error) {
+func (repo *UserDelegationRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.UserDelegationHistory, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -92,7 +92,7 @@ func (repo *UserDelegationHistoryRepository) GetByID(id uint, tx ...utility.Data
 	return userDelegationHistory, nil
 }
 
-func (repo *UserDelegationHistoryRepository) Create(userDelegationHistory *models.UserDelegationHistory, tx ...utility.DatabaseTransaction) (uint, error) {
+func (repo *UserDelegationRepository) Create(userDelegationHistory *models.UserDelegationHistory, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()

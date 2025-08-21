@@ -11,18 +11,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserDelegationHistoryController struct {
-	service services.UserDelegationHistoryServiceInterface
+type UserDelegationController struct {
+	service services.UserDelegationServiceInterface
 	db      *gorm.DB
 }
 
-func NewUserDelegationHistoryController(service services.UserDelegationHistoryServiceInterface) *UserDelegationHistoryController {
-	return &UserDelegationHistoryController{
+func NewUserDelegationController(service services.UserDelegationServiceInterface) *UserDelegationController {
+	return &UserDelegationController{
 		service: service,
 	}
 }
 
-func (spc *UserDelegationHistoryController) GetUserDelegationHistory(c *gin.Context) {
+func (spc *UserDelegationController) GetUserDelegationHistory(c *gin.Context) {
 
 	idStr := c.Param("userId")
 
@@ -31,7 +31,7 @@ func (spc *UserDelegationHistoryController) GetUserDelegationHistory(c *gin.Cont
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	UserDelegationHistory, err := spc.service.GetAll(uint(id))
+	UserDelegation, err := spc.service.GetAll(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -42,12 +42,12 @@ func (spc *UserDelegationHistoryController) GetUserDelegationHistory(c *gin.Cont
 			return
 		}
 	}
-	c.JSON(http.StatusOK, UserDelegationHistory)
+	c.JSON(http.StatusOK, UserDelegation)
 }
 
-func (spc *UserDelegationHistoryController) CreateUserDelegationHistory(c *gin.Context) {
-	var UserDelegationHistoryFormDTO organizationDTOs.UserDelegationHistoryFormDTO
-	if err := c.ShouldBindJSON(&UserDelegationHistoryFormDTO); err != nil {
+func (spc *UserDelegationController) CreateUserDelegation(c *gin.Context) {
+	var UserDelegationFormDTO organizationDTOs.UserDelegationFormDTO
+	if err := c.ShouldBindJSON(&UserDelegationFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -58,7 +58,7 @@ func (spc *UserDelegationHistoryController) CreateUserDelegationHistory(c *gin.C
 		return
 	}
 
-	_, err = spc.service.Create(currentUserID, &UserDelegationHistoryFormDTO)
+	_, err = spc.service.Create(currentUserID, &UserDelegationFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
