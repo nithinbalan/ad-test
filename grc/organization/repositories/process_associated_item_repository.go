@@ -13,7 +13,7 @@ import (
 type ProcessAssociatedItemRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAllControls(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) ([]*organizationDTOs.ProcessControlListDTO, error)
-	GetAllControlsWithPagination(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemControlListResponseDTO, error)
+	GetAllControlsWithPagination(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	GetAllRisks(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllIncidents(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
 	GetAllDocuments(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
@@ -30,6 +30,9 @@ type ProcessAssociatedItemRepositoryInterface interface {
 	DeleteProcessDocument(processID uint, documentID uint, tx ...utility.DatabaseTransaction) error
 	CreateProcessControl(controls []*models.ProcessControl, tx ...utility.DatabaseTransaction) error
 	DeleteProcessControl(processID uint, controlID uint, tx ...utility.DatabaseTransaction) error
+	GetAllProcessKPI(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateProcessKPI(kpis []*models.KPIProcess, tx ...utility.DatabaseTransaction) error
+	DeleteProcessKPI(processID uint, kpiID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ProcessAssociatedItemRepository struct {
@@ -690,48 +693,81 @@ func (repo *ProcessAssociatedItemRepository) GetAllAssociatedCounts(processID ui
 	}, nil
 }
 
-func (repo *ProcessAssociatedItemRepository) GetAllControlsWithPagination(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemControlListResponseDTO, error) {
-	var controlList []*organizationDTOs.ProcessControlListDTO
+func (repo *ProcessAssociatedItemRepository) GetAllControlsWithPagination(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
+	var controlList []*commonDTOs.AssociatedControlListDTO
 	var totalCount int64
 
 	query := repo.db.Table("process_controls").
 		Select(`
-			controls.id AS control_id,
-			controls.reference_number AS control_reference_number,
-            controls.code AS control_code,
-			CONVERT(VARCHAR, controls.last_test_date, 23) AS control_last_test_date,
-            control_categories.title_en AS control_category_title_en,
-            control_categories.title_ar AS control_category_title_ar,
-            control_types.title_en AS control_type_title_en,
-            control_types.title_ar AS control_type_title_ar,
-            controls.title_en AS control_title_en,
-            controls.title_ar AS control_title_ar,
-            controls.description AS control_description,
-            control_efficiency_statuses.title_en AS control_efficiency_status_title_en,
-            control_efficiency_statuses.title_ar AS control_efficiency_status_title_ar,
-			control_efficiency_statuses.type AS control_efficiency_status_type,
-            control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
-            control_implementation_statuses.title_en AS control_implementation_status_title_en,
-            control_implementation_statuses.title_ar AS control_implementation_status_title_ar,
-			control_implementation_statuses.type AS control_implementation_status_type,
-            control_implementation_statuses.color_code AS control_implementation_status_color_code,
-			owner.id AS control_owner_id,
-			owner.first_name_en AS control_owner_first_name_en,
-			owner.first_name_ar AS control_owner_first_name_ar,
-			owner.last_name_en AS control_owner_last_name_en,
-			owner.last_name_ar AS control_owner_last_name_ar,
-			owner.initial AS control_owner_initial,
-            owner.color AS control_owner_color,
-            owner.email AS control_owner_email,
-            owner.profile_image_path AS control_owner_profile_image_path
+		DISTINCT controls.id AS control_id,
+		controls.*,
+		CONVERT(VARCHAR, controls.last_test_date, 23) AS control_last_test_date,
+		control_types.title_en AS control_type_title_en,
+		control_types.title_ar AS control_type_title_ar,
+		control_categories.title_en AS control_category_title_en,
+		control_categories.title_ar AS control_category_title_ar,
+		organization_units.title_en AS owner_unit_title_en,
+		organization_units.title_ar AS owner_unit_title_ar,
+		owner.id AS owner_id,
+		owner.first_name_en AS owner_first_name_en,
+		owner.first_name_ar AS owner_first_name_ar,
+		owner.last_name_en AS owner_last_name_en,
+		owner.last_name_ar AS owner_last_name_ar,
+		owner.initial AS owner_initial,
+		owner.color AS owner_color,
+		owner.email AS owner_email,
+		owner.profile_image_path AS owner_profile_image_path,
+		review_frequencies.title_en AS review_frequency_title_en,
+		review_frequencies.title_ar AS review_frequency_title_ar,
+		test_responsible_user.id AS test_responsible_user_id,
+		test_responsible_user.first_name_en AS test_responsible_user_first_name_en,
+		test_responsible_user.first_name_ar AS test_responsible_user_first_name_ar,
+		test_responsible_user.last_name_en AS test_responsible_user_last_name_en,
+		test_responsible_user.last_name_ar AS test_responsible_user_last_name_ar,
+		test_responsible_user.initial AS test_responsible_user_initial,
+		test_responsible_user.color AS test_responsible_user_color,
+		test_responsible_user.email AS test_responsible_user_email,
+		test_responsible_user.profile_image_path AS test_responsible_user_profile_image_path,
+		test_frequencies.title_en AS test_frequency_title_en,
+		test_frequencies.title_ar AS test_frequency_title_ar,
+		lifecycle_statuses.title_en AS lifecycle_status_title_en,
+		lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
+		lifecycle_statuses.color_code AS lifecycle_status_color_code,
+		control_implementation_statuses.title_en AS control_implementation_status_title_en,
+		control_implementation_statuses.title_ar AS control_implementation_status_title_ar,
+		control_implementation_statuses.color_code AS control_implementation_status_color_code,
+		control_efficiency_statuses.title_en AS control_efficiency_status_title_en,
+		control_efficiency_statuses.title_ar AS control_efficiency_status_title_ar,
+		control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
+		risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
+		risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
+		risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
+		risk_matrix_risk_rating_values.value AS risk_rating_value,
+		created_user.id AS created_user_id,
+		created_user.first_name_en AS created_user_first_name_en,
+		created_user.first_name_ar AS created_user_first_name_ar,
+		created_user.last_name_en AS created_user_last_name_en,
+		created_user.last_name_ar AS created_user_last_name_ar,
+		created_user.initial AS created_user_initial,
+		created_user.color AS created_user_color,
+		created_user.email AS created_user_email,
+		created_user.profile_image_path AS created_user_profile_image_path
         `).
 		Joins(`
-			LEFT JOIN controls ON controls.id = process_controls.control_id
-            LEFT JOIN control_categories ON controls.control_category_id = control_categories.id
-            LEFT JOIN control_types ON controls.control_type_id = control_types.id
-            LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
-            LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
-			LEFT JOIN users AS owner ON controls.responsible_user_id = owner.id
+	    LEFT JOIN controls ON controls.id = process_controls.control_id
+		LEFT JOIN control_types ON controls.control_type_id = control_types.id
+		LEFT JOIN control_categories ON controls.control_category_id = control_categories.id
+		LEFT JOIN organization_units ON controls.responsible_unit_id = organization_units.id
+		LEFT JOIN users AS owner ON controls.responsible_user_id = owner.id
+		LEFT JOIN review_frequencies ON controls.review_frequency_id = review_frequencies.id
+		LEFT JOIN users AS test_responsible_user ON controls.test_responsible_user_id = test_responsible_user.id
+		LEFT JOIN review_frequencies AS test_frequencies ON controls.test_frequency_id = test_frequencies.id
+		LEFT JOIN lifecycle_statuses ON controls.lifecycle_status_id = lifecycle_statuses.id
+		LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
+		LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
+		LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = controls.risk_matrix_risk_rating_id
+		LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id
+		LEFT JOIN users AS created_user ON created_user.id = controls.created_by_id
         `).
 		Where("process_controls.process_id = ?", processID)
 
@@ -784,7 +820,7 @@ func (repo *ProcessAssociatedItemRepository) GetAllControlsWithPagination(proces
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	response := &organizationDTOs.ProcessAssociatedItemControlListResponseDTO{
+	response := &commonDTOs.AssociatedControlListResponseDTO{
 		Items: controlList,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
@@ -1011,5 +1047,143 @@ func (repo *ProcessAssociatedItemRepository) DeleteProcessControl(processID uint
 	return db.
 		Where("control_id = ? AND process_id = ?", controlId, processID).
 		Delete(&models.ProcessControl{}).
+		Error
+}
+
+func (repo *ProcessAssociatedItemRepository) GetAllProcessKPI(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	var kpiRegister []*commonDTOs.AssociatedKPIRegisterListDTO
+	var totalCount int64
+
+	query := repo.db.Table("kpi_processes").
+		Select(`
+            kpi_register.*,
+			kpi_processes.kpi_register_id,
+			kpi_categories.title_en AS kpi_category_title_en,
+			kpi_categories.title_ar AS kpi_category_title_ar,
+			CONVERT(VARCHAR, kpi_register.start_date, 23) AS start_date,
+			CONVERT(VARCHAR, kpi_register.end_date, 23) AS target_date,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			kpi_statuses.title_en AS kpi_status_title_en,
+			kpi_statuses.title_ar AS kpi_status_title_ar,
+			kpi_statuses.type AS kpi_status_type,
+			kpi_statuses.color_code AS kpi_status_color_code,
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+			review_frequencies.type AS review_frequency_type,
+			calculation_types.title_en AS calculation_type_title_en,
+			calculation_types.title_ar AS calculation_type_title_ar,
+			calculation_types.type AS calculation_type_type,
+			units.title_en AS unit_title_en,
+			units.title_ar AS unit_title_ar,
+			units.code_en AS unit_code_en,
+			units.code_ar AS unit_code_ar,
+			units.color_code AS unit_color_code,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path  
+        `).
+		Joins(`
+		    LEFT JOIN kpi_register ON kpi_register.id = kpi_processes.kpi_register_id
+			LEFT JOIN kpi_categories ON kpi_categories.id = kpi_register.kpi_category_id
+			LEFT JOIN kpi_statuses ON kpi_statuses.id = kpi_register.kpi_status_id
+			LEFT JOIN calculation_types ON calculation_types.id = kpi_register.calculation_type_id
+			LEFT JOIN review_frequencies ON review_frequencies.id = kpi_register.review_frequency_id
+			LEFT JOIN units ON units.id = kpi_register.unit_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = kpi_register.responsible_user_id
+			LEFT JOIN users AS created_user ON created_user.id = kpi_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = kpi_register.updated_by_id
+        `).Where("kpi_processes.process_id = ?", processID)
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(kpi_register.title LIKE ? OR
+			created_user.first_name_en LIKE ? OR
+			created_user.first_name_ar LIKE ? OR
+			created_user.last_name_en LIKE ? OR
+			created_user.last_name_ar LIKE ? OR
+    		updated_user.first_name_en LIKE ? OR
+			updated_user.first_name_ar LIKE ? OR
+			updated_user.last_name_en LIKE ? OR
+			updated_user.last_name_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "kpi_register.title"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	// Apply pagination
+	offset := (params.Page - 1) * params.PageSize
+	query = query.Offset(offset).Limit(params.PageSize)
+
+	// Fetch the data
+	if err := query.Find(&kpiRegister).Error; err != nil {
+		return nil, err
+	}
+
+	// Calculate total pages
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedKPIRegisterListResponseDTO{
+		Items: kpiRegister,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *ProcessAssociatedItemRepository) CreateProcessKPI(kpis []*models.KPIProcess, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&kpis).Error
+}
+
+func (repo *ProcessAssociatedItemRepository) DeleteProcessKPI(processID uint, kpiID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("kpi_register_id = ? AND process_id = ?", kpiID, processID).
+		Delete(&models.KPIProcess{}).
 		Error
 }

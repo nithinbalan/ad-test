@@ -17,44 +17,53 @@ type BcpAssociatedItemServiceInterface interface {
 	GetAllBcpControl(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	CreateBcpControl(BcpID uint, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
 	DeleteBcpControl(BcpID uint, controlID uint) error
+	GetAllBcpKPI(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateBcpKPI(BcpID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeleteBcpKPI(BcpID uint, kpiRegisterID uint) error
+	GetAllBcpRisk(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
+	CreateBcpRisk(BcpID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	DeleteBcpRisk(BcpID uint, riskID uint) error
 }
 
 // Service and implementations
 type BcpAssociatedItemService struct {
-	repo          repositories.BcpAssociatedItemRepositoryInterface
-	BcpSvc        BusinessContinuityPlanServiceInterface
-	validationSvc commonServices.AssociatedItemValidationServiceInterface
+	repo               repositories.BcpAssociatedItemRepositoryInterface
+	BcpSvc             BusinessContinuityPlanServiceInterface
+	validationSvc      commonServices.AssociatedItemValidationServiceInterface
+	bcpRiskAnalysisSvc BcpRiskAnalysisServiceInterface
 }
 
 func NewBcpAssociatedItemService(repo repositories.BcpAssociatedItemRepositoryInterface,
 	BcpSvc BusinessContinuityPlanServiceInterface,
 	validationSvc commonServices.AssociatedItemValidationServiceInterface,
+	bcpRiskAnalysisSvc BcpRiskAnalysisServiceInterface,
 ) BcpAssociatedItemServiceInterface {
 	return &BcpAssociatedItemService{
-		repo:          repo,
-		BcpSvc:        BcpSvc,
-		validationSvc: validationSvc,
+		repo:               repo,
+		BcpSvc:             BcpSvc,
+		validationSvc:      validationSvc,
+		bcpRiskAnalysisSvc: bcpRiskAnalysisSvc,
 	}
 }
 
-func (pais *BcpAssociatedItemService) GetAllBcpDocuments(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
-	if _, err := pais.BcpSvc.GetByID(assetID); err != nil {
+func (bais *BcpAssociatedItemService) GetAllBcpDocuments(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
+	if _, err := bais.BcpSvc.GetByID(assetID); err != nil {
 		return nil, err
 	}
-	return pais.repo.GetAllBcpDocuments(assetID, params)
+	return bais.repo.GetAllBcpDocuments(assetID, params)
 }
 
-func (pais *BcpAssociatedItemService) CreateBcpDocument(BcpID, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error {
+func (bais *BcpAssociatedItemService) CreateBcpDocument(BcpID, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error {
 
-	if _, err := pais.BcpSvc.GetByID(BcpID); err != nil {
+	if _, err := bais.BcpSvc.GetByID(BcpID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("bcp does not exist for ID: %d", BcpID), "not_exist", "business_continuity_plan_id")
 	}
 
-	if err := pais.validationSvc.ValidateDocumentMapping(BcpID, dto.DocumentIDs, "bcp_associated_documents", "business_continuity_plan_id"); err != nil {
+	if err := bais.validationSvc.ValidateDocumentMapping(BcpID, dto.DocumentIDs, "bcp_associated_documents", "business_continuity_plan_id"); err != nil {
 		return err
 	}
 
-	tx := pais.repo.BeginTransaction()
+	tx := bais.repo.BeginTransaction()
 	var mappings []*models.BCPAssociatedDocument
 	currentTime := time.Now()
 
@@ -67,22 +76,22 @@ func (pais *BcpAssociatedItemService) CreateBcpDocument(BcpID, userID uint, dto 
 		})
 	}
 
-	if err := pais.repo.CreateBcpDocument(mappings, tx); err != nil {
+	if err := bais.repo.CreateBcpDocument(mappings, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
 	return tx.Commit()
 }
 
-func (pais *BcpAssociatedItemService) DeleteBcpDocument(BcpID uint, documentID uint) error {
+func (bais *BcpAssociatedItemService) DeleteBcpDocument(BcpID uint, documentID uint) error {
 	// Validate control existence
-	if _, err := pais.BcpSvc.GetByID(BcpID); err != nil {
+	if _, err := bais.BcpSvc.GetByID(BcpID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("bcp does not exist for ID: %d", BcpID), "not_exist", "business_continuity_plan_id")
 	}
 
-	tx := pais.repo.BeginTransaction()
+	tx := bais.repo.BeginTransaction()
 
-	if err := pais.repo.DeleteBcpDocument(BcpID, documentID, tx); err != nil {
+	if err := bais.repo.DeleteBcpDocument(BcpID, documentID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -90,24 +99,24 @@ func (pais *BcpAssociatedItemService) DeleteBcpDocument(BcpID uint, documentID u
 	return tx.Commit()
 }
 
-func (pais *BcpAssociatedItemService) GetAllBcpControl(bcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
-	if _, err := pais.BcpSvc.GetByID(bcpID); err != nil {
+func (bais *BcpAssociatedItemService) GetAllBcpControl(bcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
+	if _, err := bais.BcpSvc.GetByID(bcpID); err != nil {
 		return nil, err
 	}
-	return pais.repo.GetAllBcpControl(bcpID, params)
+	return bais.repo.GetAllBcpControl(bcpID, params)
 }
 
-func (pais *BcpAssociatedItemService) CreateBcpControl(BcpID, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error {
+func (bais *BcpAssociatedItemService) CreateBcpControl(BcpID, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error {
 
-	if _, err := pais.BcpSvc.GetByID(BcpID); err != nil {
+	if _, err := bais.BcpSvc.GetByID(BcpID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("bcp does not exist for ID: %d", BcpID), "not_exist", "business_continuity_plan_id")
 	}
 
-	if err := pais.validationSvc.ValidateControlMapping(BcpID, dto.ControlIDs, "bcp_controls", "business_continuity_plan_id"); err != nil {
+	if err := bais.validationSvc.ValidateControlMapping(BcpID, dto.ControlIDs, "bcp_controls", "business_continuity_plan_id"); err != nil {
 		return err
 	}
 
-	tx := pais.repo.BeginTransaction()
+	tx := bais.repo.BeginTransaction()
 	var mappings []*models.BCPControl
 	currentTime := time.Now()
 
@@ -120,22 +129,127 @@ func (pais *BcpAssociatedItemService) CreateBcpControl(BcpID, userID uint, dto *
 		})
 	}
 
-	if err := pais.repo.CreateBcpControl(mappings, tx); err != nil {
+	if err := bais.repo.CreateBcpControl(mappings, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
 	return tx.Commit()
 }
 
-func (pais *BcpAssociatedItemService) DeleteBcpControl(BcpID uint, controlID uint) error {
+func (bais *BcpAssociatedItemService) DeleteBcpControl(BcpID uint, controlID uint) error {
 	// Validate control existence
-	if _, err := pais.BcpSvc.GetByID(BcpID); err != nil {
+	if _, err := bais.BcpSvc.GetByID(BcpID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("bcp does not exist for ID: %d", BcpID), "not_exist", "business_continuity_plan_id")
 	}
 
-	tx := pais.repo.BeginTransaction()
+	tx := bais.repo.BeginTransaction()
 
-	if err := pais.repo.DeleteBcpControl(BcpID, controlID, tx); err != nil {
+	if err := bais.repo.DeleteBcpControl(BcpID, controlID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (bais *BcpAssociatedItemService) GetAllBcpKPI(bcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	if _, err := bais.BcpSvc.GetByID(bcpID); err != nil {
+		return nil, err
+	}
+	return bais.repo.GetAllBcpKPI(bcpID, params)
+}
+
+func (bais *BcpAssociatedItemService) CreateBcpKPI(BcpID, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+
+	if _, err := bais.BcpSvc.GetByID(BcpID); err != nil {
+		return err
+	}
+
+	if err := bais.validationSvc.ValidateKPIMapping(BcpID, dto.KpiIDs, "bcp_kpis", "business_continuity_plan_id"); err != nil {
+		return err
+	}
+
+	tx := bais.repo.BeginTransaction()
+	var mappings []*models.BCPKPI
+	currentTime := time.Now()
+
+	for _, KpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.BCPKPI{
+			KPIRegisterID:            KpiID,
+			BusinessContinuityPlanID: BcpID,
+			CreatedByID:              userID,
+			CreatedAt:                currentTime,
+		})
+	}
+
+	if err := bais.repo.CreateBcpKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (bais *BcpAssociatedItemService) DeleteBcpKPI(BcpID uint, kpiRegisterID uint) error {
+	// Validate control existence
+	if _, err := bais.BcpSvc.GetByID(BcpID); err != nil {
+		return err
+	}
+
+	tx := bais.repo.BeginTransaction()
+
+	if err := bais.repo.DeleteBcpKPI(BcpID, kpiRegisterID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+func (bais *BcpAssociatedItemService) GetAllBcpRisk(bcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+	if _, err := bais.BcpSvc.GetByID(bcpID); err != nil {
+		return nil, err
+	}
+	return bais.bcpRiskAnalysisSvc.GetAllRisksByBcpId(bcpID, params)
+}
+
+func (bais *BcpAssociatedItemService) CreateBcpRisk(BcpID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+
+	if _, err := bais.BcpSvc.GetByID(BcpID); err != nil {
+		return err
+	}
+
+	if err := bais.validationSvc.ValidateRiskMapping(BcpID, dto.RiskIDs, "bcp_risks", "business_continuity_plan_id"); err != nil {
+		return err
+	}
+
+	tx := bais.repo.BeginTransaction()
+	var mappings []*models.BcpRisk
+	currentTime := time.Now()
+
+	for _, RiskID := range dto.RiskIDs {
+		mappings = append(mappings, &models.BcpRisk{
+			RiskRegisterID:           RiskID,
+			BusinessContinuityPlanID: BcpID,
+			CreatedBYID:              userID,
+			CreatedAt:                currentTime,
+		})
+	}
+
+	if err := bais.repo.CreateBcpRisk(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (bais *BcpAssociatedItemService) DeleteBcpRisk(BcpID uint, riskID uint) error {
+	// Validate control existence
+	if _, err := bais.BcpSvc.GetByID(BcpID); err != nil {
+		return err
+	}
+
+	tx := bais.repo.BeginTransaction()
+
+	if err := bais.repo.DeleteBcpRisk(BcpID, riskID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

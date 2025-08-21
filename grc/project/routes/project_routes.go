@@ -88,4 +88,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.GET("/projects/:projectId/controls", middlewares.RolePermissionMiddleware(db, "project_management", "view"), projectAssociatedItemController.GetAllProjectControls)
 	projectRoutes.POST("/projects/:projectId/controls", middlewares.RolePermissionMiddleware(db, "project_management", "modify"), projectAssociatedItemController.CreateProjectControl)
 	projectRoutes.DELETE("/projects/:projectId/controls/:controlId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.DeleteProjectContol)
+
+	projectRoutes.GET("/projects/:projectId/processes", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectAssociatedItemController.GetAllProjectProcesses)
+	projectRoutes.POST("/projects/:projectId/processes", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.CreateProjectProcess)
+	projectRoutes.DELETE("/projects/:projectId/processes/:processId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.DeleteProjectProcess)
+
+	projectRoutes.GET("/projects/:projectId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectAssociatedItemController.GetAllProjectStrategicObjectives)
+	projectRoutes.POST("/projects/:projectId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.CreateProjectStrategicObjective)
+	projectRoutes.DELETE("/projects/:projectId/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.DeleteProjectStrategicObjective)
+
+	projectRoutes.GET("/projects/:projectId/kpis", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectAssociatedItemController.GetAllProjectKPI)
+	projectRoutes.POST("/projects/:projectId/kpis", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.CreateProjectKPI)
+	projectRoutes.DELETE("/projects/:projectId/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.DeleteProjectKPI)
+
 }

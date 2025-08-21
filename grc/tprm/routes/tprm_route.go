@@ -22,6 +22,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	questionSetController := app.TprmModule.QuestionSetController
 	thirdPartyAssessmentStatusController := app.TprmModule.ThirdPartyAssessmentStatusController
 	thirdPartyAssessmentController := app.TprmModule.ThirdPartyAssessmentController
+	thirdPartyAssociatedItemController := app.TprmModule.ThirdPartyAssociatedItemController
 
 	tprmRoutes.GET("/third-party-types", thirdPartyTypeController.GetAllThirdPartyTypes)
 	tprmRoutes.GET("/third-party-types/:id", thirdPartyTypeController.GetThirdPartyTypeDetails)
@@ -77,4 +78,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	tprmRoutes.POST("/third-party-assessments/delete", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentController.DeleteThirdPartyAssessment)
 	tprmRoutes.POST("/third-party-assessments/:assessmentID/share-link", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentController.ShareLink)
 
+	tprmRoutes.GET("/third-party-register/:id/processes", middlewares.RolePermissionMiddleware(db, "third_party_register", "view"), thirdPartyAssociatedItemController.GetAllThirdPartyProcesses)
+	tprmRoutes.POST("/third-party-register/:id/processes", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.CreateThirdPartyProcess)
+	tprmRoutes.DELETE("/third-party-register/:id/processes/:processId", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.DeleteThirdPartyProcess)
+
+	tprmRoutes.GET("/third-party-register/:id/strategic-objectives", middlewares.RolePermissionMiddleware(db, "third_party_register", "view"), thirdPartyAssociatedItemController.GetAllThirdPartyStrategicObjectives)
+	tprmRoutes.POST("/third-party-register/:id/strategic-objectives", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.CreateThirdPartyStrategicObjective)
+	tprmRoutes.DELETE("/third-party-register/:id/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.DeleteThirdPartyStrategicObjective)
 }

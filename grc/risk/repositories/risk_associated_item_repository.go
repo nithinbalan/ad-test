@@ -265,7 +265,8 @@ func (repo *RiskAssociatedItemRepository) GetAllProcesses(riskID uint, params *c
 
 	query := repo.db.Table("risk_processes").
 		Select(`
-		processes.id,
+		risk_processes.id,
+		risk_processes.process_id,
 		processes.reference_number,
 		processes.title_en,
 		processes.title_ar,
@@ -423,6 +424,7 @@ func (repo *RiskAssociatedItemRepository) GetAllStrategicObjectives(riskID uint,
 	query := repo.db.Table("risk_strategic_objectives").
 		Select(`
 			strategic_objectives.*,
+			risk_strategic_objectives.strategic_objective_id,
 			strategic_objective_categories.title_en AS strategic_objective_category_title_en,
 			strategic_objective_categories.title_ar AS strategic_objective_category_title_ar,
 			organization_units.title_en AS responsible_unit_title_en,
@@ -1281,6 +1283,7 @@ func (repo *RiskAssociatedItemRepository) GetAllRiskKPI(riskID uint, params *com
 	query := repo.db.Table("kpi_risks").
 		Select(`
             kpi_register.*,
+			kpi_risks.kpi_register_id,
 			kpi_categories.title_en AS kpi_category_title_en,
 			kpi_categories.title_ar AS kpi_category_title_ar,
 			CONVERT(VARCHAR, kpi_register.start_date, 23) AS start_date,

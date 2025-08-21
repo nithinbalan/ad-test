@@ -32,6 +32,7 @@ type BusinessContinuityModule struct {
 	TaeRecoveryActionPlanCommentController           *controllers.TaeRecoveryActionPlanCommentController
 	BcpRiskAnalysisController                        *controllers.BcpRiskAnalysisController
 	BcpAssociatedItemController                      *controllers.BcpAssociatedItemController
+	BusinessFunctionAssociateItemController          *controllers.BusinessFunctionAssociatedItemController
 
 	BusinessFunctionSvc                  services.BusinessFunctionServiceInterface
 	BcpTeamSvc                           services.BcpTeamServiceInterface
@@ -154,8 +155,12 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	taeRecoveryActionPlanCommentController := controllers.NewTaeRecoveryActionPlanCommentController(taeRecoveryActionPlanCommentSvc)
 
 	bcpAssociatedItemRepo := repositories.NewBcpAssociatedItemRepository(db)
-	bcpAssociatedItemSvc := services.NewBcpAssociatedItemService(bcpAssociatedItemRepo, businessContinuityPlanSvc, commonModule.AssociatedItemValidationService)
+	bcpAssociatedItemSvc := services.NewBcpAssociatedItemService(bcpAssociatedItemRepo, businessContinuityPlanSvc, commonModule.AssociatedItemValidationService, bcpRiskAnalysisSvc)
 	bcpAssociatedItemController := controllers.NewBcpAssociatedItemController(bcpAssociatedItemSvc)
+
+	businessFunctionAssociatedItemRepo := repositories.NewBusinessFunctionAssociatedItemRepository(db)
+	businessFunctionAssociatedItemSvc := services.NewBusinessFunctionAssociatedItemService(businessFunctionAssociatedItemRepo, businessFunctionSvc, commonModule.AssociatedItemValidationService)
+	businessFunctionAssociatedItemController := controllers.NewBusinessFunctionAssociatedItemController(businessFunctionAssociatedItemSvc)
 
 	return &BusinessContinuityModule{
 		BusinessFunctionController:                       businessFunctionController,
@@ -181,6 +186,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		TaeRecoveryActionPlanCommentController:           taeRecoveryActionPlanCommentController,
 		BcpRiskAnalysisController:                        bcpRiskAnalysisController,
 		BcpAssociatedItemController:                      bcpAssociatedItemController,
+		BusinessFunctionAssociateItemController:          businessFunctionAssociatedItemController,
 
 		BusinessFunctionSvc:                  businessFunctionSvc,
 		BcpTeamSvc:                           bcpTeamSvc,

@@ -1312,6 +1312,7 @@ func (repo *ComplianceClauseRepository) GetAssociatedKPI(complianceID uint, clau
 	query := repo.db.Table("kpi_compliances").
 		Select(`
             kpi_register.*,
+			kpi_compliances.kpi_register_id,
 			kpi_categories.title_en AS kpi_category_title_en,
 			kpi_categories.title_ar AS kpi_category_title_ar,
 			CONVERT(VARCHAR, kpi_register.start_date, 23) AS start_date,

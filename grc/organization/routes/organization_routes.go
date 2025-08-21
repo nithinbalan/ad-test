@@ -241,6 +241,18 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/controls/:controlId/documents", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.CreateControlDocument)
 	organizationRoutes.DELETE("/controls/:controlId/documents/:documentId", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.DeleteControlDocument)
 
+	organizationRoutes.POST("/controls/:controlId/processes", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.CreateControlPocess)
+	organizationRoutes.DELETE("/controls/:controlId/processes/:processId", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.DeleteControlProcess)
+
+	organizationRoutes.GET("/controls/:controlId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlAssociatedItemController.GetAllControlStrategicObjectives)
+	organizationRoutes.POST("/controls/:controlId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.CreateControlStrategicObjectives)
+	organizationRoutes.DELETE("/controls/:controlId/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.DeleteControlStrategicObjectives)
+
+	organizationRoutes.GET("/controls/:controlId/kpis", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlAssociatedItemController.GetAllControlKPI)
+	organizationRoutes.POST("/controls/:controlId/kpis", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.CreateControlKPI)
+	organizationRoutes.DELETE("/controls/:controlId/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.DeleteControlKPI)
+
+	//Process Group
 	// Process Group
 	organizationRoutes.GET("/process-groups", processGroupController.GetAllProcessGroups)
 	organizationRoutes.GET("/process-groups/:id", processGroupController.GetProcessGroupDetails)
@@ -297,6 +309,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	organizationRoutes.POST("/processes/:processId/controls", middlewares.RolePermissionMiddleware(db, "process", "modify"), processAssociatedItemController.CreateProcessControl)
 	organizationRoutes.DELETE("/processes/:processId/controls/:controlId", middlewares.RolePermissionMiddleware(db, "process", "modify"), processAssociatedItemController.DeleteProcessControl)
+
+	organizationRoutes.GET("/processes/:processId/kpis", middlewares.RolePermissionMiddleware(db, "processes", "view"), processAssociatedItemController.GetAllProcessKPI)
+	organizationRoutes.POST("/processes/:processId/kpis", middlewares.RolePermissionMiddleware(db, "processes", "modify"), processAssociatedItemController.CreateProcessKPI)
+	organizationRoutes.DELETE("/processes/:processId/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "processes", "modify"), processAssociatedItemController.DeleteProcessKPI)
+
+	organizationRoutes.GET("/processes/:processId/associated-controls", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllProcessAssociatedControls)
 
 	// process dependency type
 	organizationRoutes.GET("/process-dependency-types", processDependencyTypeController.GetAllProcessDependencyTypes)

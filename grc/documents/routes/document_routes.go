@@ -142,6 +142,21 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/controls", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.CreateDocumentControl)
 	documentRoutes.DELETE("/documents/:id/controls/:controlId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.DeleteDocumentControl)
 
+	documentRoutes.POST("documents/:id/processes", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.CreateDocumentProcess)
+	documentRoutes.DELETE("documents/:id/processes/:processId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.DeleteDocumentProcess)
+
+	documentRoutes.GET("documents/:id/strategic-objectives", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.GetAllDocumentStrategicObjectives)
+	documentRoutes.POST("documents/:id/strategic-objectives", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.CreateDocumentStrategicObjective)
+	documentRoutes.DELETE("documents/:id/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.DeleteDocumentStrategicObjective)
+
+	documentRoutes.GET("documents/:id/kpis", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.GetAllDocumentKPI)
+	documentRoutes.POST("documents/:id/kpis", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.CreateDocumentKPI)
+	documentRoutes.DELETE("documents/:id/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.DeleteDocumentKPI)
+
+	documentRoutes.GET("documents/:id/associated-documents", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.GetAllAssociatedDocument)
+	documentRoutes.POST("documents/:id/associated-documents", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.CreateAssociatedDocument)
+	documentRoutes.DELETE("documents/:id/associated-documents/:associatedDocumentId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.DeleteAssociatedDocument)
+
 	documentRoutes.GET("/document-change-request-initiate-types", documentChangeRequestInitiateTypeController.GetAllDocumentChangeRequestInitiateTypes)
 	documentRoutes.GET("/document-change-request-initiate-types/:id", documentChangeRequestInitiateTypeController.GetDocumentChangeRequestInitiateTypeDetails)
 

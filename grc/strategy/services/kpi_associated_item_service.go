@@ -22,8 +22,8 @@ type KPIAssociatedItemServiceInterface interface {
 	CreateKPIControls(kpiID, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
 	DeleteKPIControl(kpiID, controlID uint) error
 
-	GetAllProcesses(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemProcessListResponseDTO, error)
-	CreateKPIProcesses(kpiID, userID uint, dto *strategyDTOs.KPIProcessMapDTO) error
+	GetAllProcesses(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
+	CreateKPIProcesses(kpiID, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
 	DeleteKPIProcess(kpiID, processID uint) error
 
 	GetAllCompliances(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemComplianceListResponseDTO, error)
@@ -48,6 +48,10 @@ type KPIAssociatedItemServiceInterface interface {
 
 	GetAllClauses(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(kpiID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
+
+	GetAllStrategicObjectives(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
+	CreateKPIStrategicObjective(kpiID, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
+	DeleteKPIStrategicObjective(kpiID, strategicObjectiveID uint) error
 }
 
 // Service and implementations
@@ -171,15 +175,20 @@ func (kais *KPIAssociatedItemService) validateControlIDs(kpiID uint, controlIDs 
 }
 
 // processes
-func (kais *KPIAssociatedItemService) GetAllProcesses(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemProcessListResponseDTO, error) {
+func (kais *KPIAssociatedItemService) GetAllProcesses(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error) {
 	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
 		return nil, err
 	}
 	return kais.repo.GetAllProcesses(kpiID, params)
 }
 
-func (kais *KPIAssociatedItemService) CreateKPIProcesses(kpiID, userID uint, dto *strategyDTOs.KPIProcessMapDTO) error {
-	if err := kais.validateProcessIDs(kpiID, dto.ProcessIDs); err != nil {
+func (kais *KPIAssociatedItemService) CreateKPIProcesses(kpiID, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error {
+
+	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("kpi not exist for ID: %d", kpiID), "not_exist", "kpi_register_id")
+	}
+
+	if err := kais.validationSvc.ValidateProcessMapping(kpiID, dto.ProcessIDs, "kpi_processes", "kpi_register_id"); err != nil {
 		return err
 	}
 
@@ -722,4 +731,52 @@ func (kais *KPIAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx ...
 	}
 
 	return clauses, nil
+}
+func (kais *KPIAssociatedItemService) GetAllStrategicObjectives(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error) {
+	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
+		return nil, err
+	}
+	return kais.repo.GetAllStrategicObjectives(kpiID, params)
+}
+
+func (kais *KPIAssociatedItemService) CreateKPIStrategicObjective(kpiID, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error {
+	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", kpiID), "not_exist", "process_id")
+	}
+	if err := kais.validationSvc.ValidateStrtegicObjectiveMapping(kpiID, dto.StrategicObjectiveIDs, "strategic_objective_kpis", "kpi_register_id"); err != nil {
+		return err
+	}
+	tx := kais.repo.BeginTransaction()
+	var mappings []*models.StrategicObjectiveKPI
+	currentTime := time.Now()
+
+	for _, strategicObjectiveID := range dto.StrategicObjectiveIDs {
+		mappings = append(mappings, &models.StrategicObjectiveKPI{
+			KPIRegisterID:        kpiID,
+			StrategicObjectiveID: strategicObjectiveID,
+			CreatedBYID:          userID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := kais.repo.CreateKPIStrategicObjective(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (kais *KPIAssociatedItemService) DeleteKPIStrategicObjective(kpiID, strategicObjectiveID uint) error {
+	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", kpiID), "not_exist", "process_id")
+	}
+
+	tx := kais.repo.BeginTransaction()
+
+	if err := kais.repo.DeleteKPIStrategicObjective(kpiID, strategicObjectiveID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }

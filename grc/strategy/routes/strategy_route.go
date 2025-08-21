@@ -162,6 +162,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	strategyRoutes.GET("/kpi-register/:kpiRegisterId/clauses", middlewares.RolePermissionMiddleware(db, "kpi", "view"), kpiAssociatedItemController.GetAllClauses)
 	strategyRoutes.PUT("/kpi-register/:kpiRegisterId/clauses", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.UpdateClauses)
+
+	strategyRoutes.GET("/kpi-register/:kpiRegisterId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "kpi", "view"), kpiAssociatedItemController.GetAllKPIStrategicObjectives)
+	strategyRoutes.POST("/kpi-register/:kpiRegisterId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.CreateKPIStrategicObjective)
+	strategyRoutes.DELETE("/kpi-register/:kpiRegisterId/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "kpi", "modify"), kpiAssociatedItemController.DeleteKPIStrategicObjective)
 	// strategic objective category
 	strategyRoutes.GET("/strategic-objective-categories", strategicObjectiveCategoryController.GetAllStrategicObjectiveCategories)
 	strategyRoutes.POST("/strategic-objective-categories", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveCategoryController.CreateStrategicObjectiveCategory)
@@ -253,6 +257,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.GET("/strategic-objectives/:id/controls", middlewares.RolePermissionMiddleware(db, "strategy_profile", "view"), strategicObjectiveAssociatedItemController.GetAllStrategicObjectivControls)
 	strategyRoutes.POST("/strategic-objectives/:id/controls", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.CreateStrategicObjectiveControl)
 	strategyRoutes.DELETE("/strategic-objectives/:id/controls/:controlId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.DeleteStrategicObjectiveControl)
+
+	strategyRoutes.GET("/strategic-objectives/:id/processes", middlewares.RolePermissionMiddleware(db, "strategy_profile", "view"), strategicObjectiveAssociatedItemController.GetAllStrategicObjectiveProcesses)
+	strategyRoutes.POST("/strategic-objectives/:id/processes", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.CreateStrategicObjectiveProcess)
+	strategyRoutes.DELETE("/strategic-objectives/:id/processes/:processId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.DeleteStrategicObjectiveProcess)
 	// project milestone
 	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/project-milestones", strategyProfileProjectMilestoneController.GetAllStrategyProfileProjectMilestones)
 	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/project-milestones/:id", strategyProfileProjectMilestoneController.GetStrategyProfileProjectMilestoneDetails)

@@ -153,6 +153,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.POST("/incidents/:incidentID/controls", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentAssociatedItemController.CreateIncidentControl)
 	incidentRoutes.DELETE("/incidents/:incidentID/controls/:controlId", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentAssociatedItemController.DeleteIncidentControl)
 
+	incidentRoutes.POST("/incidents/:incidentID/processes", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentAssociatedItemController.CreateIncidentProcess)
+	incidentRoutes.DELETE("/incidents/:incidentID/processes/:processId", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentAssociatedItemController.DeleteIncidentProcess)
+
+	incidentRoutes.GET("/incidents/:incidentID/strategic-objectives", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentAssociatedItemController.GetAllIncidentStrategicObjectives)
+	incidentRoutes.POST("/incidents/:incidentID/strategic-objectives", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentAssociatedItemController.CreateIncidentStrategicObjective)
+	incidentRoutes.DELETE("/incidents/:incidentID/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentAssociatedItemController.DeleteIncidentStrategicObjective)
+
+	incidentRoutes.GET("/incidents/:incidentID/kpis", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentAssociatedItemController.GetAllIncidentKPI)
+	incidentRoutes.POST("/incidents/:incidentID/kpis", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentAssociatedItemController.CreateIncidentKPI)
+	incidentRoutes.DELETE("/incidents/:incidentID/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentAssociatedItemController.DeleteIncidentKPI)
+
 	//Incident timelines
 	incidentRoutes.GET("/incidents/:incidentID/timelines", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentTimelineController.GetAllIncidentTimelines)
 
