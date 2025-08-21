@@ -10,8 +10,6 @@ type ArticleLibraryDTO struct {
 	CategoryID      uint    `json:"category_id"`
 	CategoryTitleEn string  `json:"category_title_en"`
 	CategoryTitleAr string  `json:"category_title_ar"`
-	TableOfContents *string `json:"table_of_contents"`
-	Content         string  `json:"content"`
 	CreatedBy       string  `json:"created_by"`
 	CreatedAt       string  `json:"created_at"`
 }

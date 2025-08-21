@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 
 	libraryDTOs "jethur/grc/library/dtos"
 	"jethur/grc/library/services"
@@ -22,7 +23,7 @@ func NewArticleLibraryController(service services.ArticleLibraryServiceInterface
 	}
 }
 
-func (vlc *ArticleLibraryController) GetAll(c *gin.Context) {
+func (alc *ArticleLibraryController) GetAll(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -37,11 +38,34 @@ func (vlc *ArticleLibraryController) GetAll(c *gin.Context) {
 		PageSize: pageSize,
 	}
 
-	StrategicObjective, err := vlc.service.GetAll(&params)
+	StrategicObjective, err := alc.service.GetAll(&params)
 	if err != nil {
-		utility.SendInternalErrResp(vlc.db, c, err.Error())
+		utility.SendInternalErrResp(alc.db, c, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, StrategicObjective)
+}
+
+func (alc *ArticleLibraryController) GetArticleLibraryDetails(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	Article, err := alc.service.GetByID(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(alc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, Article)
 }
