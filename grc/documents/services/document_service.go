@@ -2040,6 +2040,7 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint, document
 	}
 
 	documentVersion.AcknowledgeDueDate = dates.AcknowledgeDueDate
+	documentVersion.EnableAcknowledgeComment = documentPublishFormDTO.EnableAcknowledgeComment
 	documentVersion.PublishedBYID = &currentUserID
 	documentVersion.PublishedAt = publishedAt
 
