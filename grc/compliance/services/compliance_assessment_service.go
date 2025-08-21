@@ -499,7 +499,7 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(com
 	}
 
 	if exists {
-		return utility.NewValidationError(fmt.Errorf("an assessment already exists for this compliance register"), "unique", "compliance")
+		return utility.NewForbiddenError("assessment_already_in_progress_for_compliance_register")
 	}
 	hasRequirement, err := cras.repo.HasRequirementForRegister(complianceAssessmentFormDTO.ComplianceRegisterID)
 	if err != nil {
@@ -894,6 +894,9 @@ func (cras *ComplianceAssessmentService) UpdateComplianceRequirementValueFromSco
 				ComplianceAssessmentFrameworkValueID: *ru.ComplianceAssessmentFrameworkValueID,
 				ResponsibleUnitID:                    ru.ResponsibleUnitID,
 				Score:                                eval.Score,
+				Comments:                             ru.Comments,          // new
+				CompletedByUserID:                    ru.CompletedByUserID, // new
+				CompletedAt:                          ru.CompletedAt,
 			}
 
 			if err := cras.repo.UpdateComplianceRequirementResponsibleUintValue(dto, tx...); err != nil {
