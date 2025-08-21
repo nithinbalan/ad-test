@@ -30,6 +30,7 @@ type DocumentVersion struct {
 	FAQAr              *string    `json:"faq_ar" gorm:"type:nvarchar(max)"`
 	SampleQuestionsEn  *string    `json:"sample_questions_en" gorm:"type:nvarchar(max)"`
 	SampleQuestionsAr  *string    `json:"sample_questions_ar" gorm:"type:nvarchar(max)"`
+	CommentEnabled     bool       `json:"comment_enabled" gorm:"type:tinyint(1);not null;default:0"`
 	CreatedBYID        uint       `json:"created_by_id" binding:"required" gorm:"not null"`
 	UpdatedBYID        *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt          time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`

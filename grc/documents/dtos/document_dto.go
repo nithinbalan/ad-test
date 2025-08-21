@@ -155,6 +155,7 @@ type DocumentVersionDTO struct {
 	NextReviewLevel     *int                             `json:"next_review_level"`
 	SubmittedByUser     *organizationDTOs.UserMinimalDTO `json:"submitted_by"`
 	AcknowledgeDueDate  *time.Time                       `json:"acknowledge_due_date"`
+	CommentEnabled      bool                             `json:"comment_enabled"`
 	CreatedByUser       organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser       organizationDTOs.UserMinimalDTO  `json:"updated_by"`
 	CreatedAt           time.Time                        `json:"created_at"`
@@ -256,6 +257,7 @@ type ActivityDTO struct {
 
 type DocumentPublishFormDTO struct {
 	AcknowledgeDueDate *string `json:"acknowledge_due_date" binding:"required"`
+	CommentEnabled     bool    `json:"comment_enabled"`
 }
 
 type DocumentPublishParsedDates struct {
