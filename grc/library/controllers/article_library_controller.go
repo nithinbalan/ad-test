@@ -56,7 +56,7 @@ func (alc *ArticleLibraryController) GetArticleLibraryDetails(c *gin.Context) {
 		return
 	}
 
-	Article, err := alc.service.GetByID(uint(id))
+	Article, err := alc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

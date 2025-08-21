@@ -13,7 +13,7 @@ import (
 
 type ArticleLibraryRepositoryInterface interface {
 	GetAll(params *libraryDTOs.ArticleLibraryListQueryParamsDTO) (*libraryDTOs.ArticleLibraryListResponseDTO, error)
-	GetByID(id uint) (*models.ArticleLibrary, error)
+	GetFullDetailsByID(id uint) (*models.ArticleLibrary, error)
 }
 
 type ArticleLibraryRepository struct {
@@ -85,7 +85,7 @@ func (repo *ArticleLibraryRepository) GetAll(params *libraryDTOs.ArticleLibraryL
 	return response, nil
 }
 
-func (repo *ArticleLibraryRepository) GetByID(id uint) (*models.ArticleLibrary, error) {
+func (repo *ArticleLibraryRepository) GetFullDetailsByID(id uint) (*models.ArticleLibrary, error) {
 	var article *models.ArticleLibrary
 
 	result := repo.db.
