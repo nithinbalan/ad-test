@@ -493,6 +493,13 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(com
 
 	statusIds = append(statusIds, uint(complianceAssessmentInreviewStatus.ID))
 
+	complianceAssessmentInProgressStatus, err := cras.complianceAssessmentStatusSvc.GetByType("in_progress")
+	if err != nil {
+		return err
+	}
+
+	statusIds = append(statusIds, uint(complianceAssessmentInProgressStatus.ID))
+
 	exists, err := cras.repo.IsAssessmentExists(0, complianceAssessmentFormDTO.ComplianceRegisterID, statusIds)
 	if err != nil {
 		return fmt.Errorf("failed to validate assessment %w", err)

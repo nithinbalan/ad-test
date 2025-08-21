@@ -139,22 +139,22 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 					orgUnitID = incident.ResponsibleUnitID
 					responsibleUserID = incident.ResponsibleUserID
 				}
-
-			case "compliance":
-				auditableItem.ComplianceRequirementID = id
-				auditableItem.Type = "compliance_requirement"
-				compliance, err := aus.complianceRequirementSvc.GetByComplianceRequirementID(*id)
-				if err != nil {
-					return fmt.Errorf("failed to get compliance requirement: %w", err)
-				}
-				if compliance != nil {
-					userUnit, err := aus.userSvc.GetUserPrimaryUnitID(compliance.ResponsibleUserID)
-					if err != nil {
-						return fmt.Errorf("failed to get user primary unit ID: %w", err)
-					}
-					orgUnitID = userUnit
-					responsibleUserID = compliance.ResponsibleUserID
-				}
+			// Commented -ToDo, Responsible User removed from Compliance req
+			// case "compliance":
+			// 	auditableItem.ComplianceRequirementID = id
+			// 	auditableItem.Type = "compliance_requirement"
+			// 	compliance, err := aus.complianceRequirementSvc.GetByComplianceRequirementID(*id)
+			// 	if err != nil {
+			// 		return fmt.Errorf("failed to get compliance requirement: %w", err)
+			// 	}
+			// 	if compliance != nil {
+			// 		userUnit, err := aus.userSvc.GetUserPrimaryUnitID(compliance.ResponsibleUserID)
+			// 		if err != nil {
+			// 			return fmt.Errorf("failed to get user primary unit ID: %w", err)
+			// 		}
+			// 		orgUnitID = userUnit
+			// 		responsibleUserID = compliance.ResponsibleUserID
+			// 	}
 
 			case "risk":
 				auditableItem.RiskRegisterID = id

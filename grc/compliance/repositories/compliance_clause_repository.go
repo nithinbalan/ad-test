@@ -302,15 +302,6 @@ func (repo *ComplianceClauseRepository) GetAssociatedComplianceRequirements(comp
 		sl.title_en AS severity_level_title_en,
 		sl.title_ar AS severity_level_title_ar,
 		sl.color_code AS severity_level_color_code,
-		u.id AS responsible_user_id,
-		u.first_name_en AS responsible_user_first_name_en,
-		u.first_name_ar AS responsible_user_first_name_ar,
-		u.last_name_en AS responsible_user_last_name_en,
-		u.last_name_ar AS responsible_user_last_name_ar,
-		u.initial AS responsible_user_initial,
-		u.color AS responsible_user_color,
-		u.email AS responsible_user_email,
-		u.profile_image_path AS responsible_user_profile_image_path,
 		FORMAT(cr.deadline, 'yyyy-MM-dd') AS deadline,
 		cs.title_en AS compliance_status_title_en,
 		cs.title_ar AS compliance_status_title_ar,
@@ -340,7 +331,6 @@ func (repo *ComplianceClauseRepository) GetAssociatedComplianceRequirements(comp
 	JOIN compliance_requirement_categories crc ON cr.compliance_requirement_category_id = crc.id
 	JOIN severity_levels sl ON cr.severity_level_id = sl.id
 	JOIN compliance_statuses cs ON cr.compliance_status_id = cs.id
-	LEFT JOIN users u ON cr.responsible_user_id = u.id
 	LEFT JOIN users uc ON cr.created_by_id = uc.id
 	LEFT JOIN users uu ON cr.updated_by_id = uu.id
 	WHERE cr.compliance_clause_id = ? AND cc.compliance_register_id = ?
