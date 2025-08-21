@@ -193,12 +193,6 @@ func (ds DocumentService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*
 
 func (ds *DocumentService) GetFullDetailsByID(id uint, currentUserID *uint, tx ...utility.DatabaseTransaction) (*documentDTOs.DocumentDetailsDTO, error) {
 	var documentDTO documentDTOs.DocumentDetailsDTO
-
-	// if currentUserID != nil {
-	// 	if err := ds.CheckDocumentPermission(id, *currentUserID); err != nil {
-	// 		return nil, err
-	// 	}
-	// }
 	document, err := ds.repo.GetFullDetailsByID(id, currentUserID, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -2546,55 +2540,3 @@ func (ds *DocumentService) parseDocumentPublishDates(dto *documentDTOs.DocumentP
 
 	return parsed, nil
 }
-
-// func (ds *DocumentService) CheckDocumentPermission(documentID uint, currentUserID uint) error {
-// 	// Get user details to check for super admin role
-// 	user, err := ds.userSvc.GetFullDetailsByID(currentUserID)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// Check if user has super admin role
-// 	isUserSuperAdmin := false
-// 	if user.Roles != nil {
-// 		for _, role := range *user.Roles {
-// 			if role.IsSuperAdmin {
-// 				isUserSuperAdmin = true
-// 				break
-// 			}
-// 		}
-// 	}
-
-// 	// Get primary organization unit field
-// 	primaryLevel, err := ds.orgLevelSvc.GetPrimaryLevel()
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// Determine the field name based on the primary level
-// 	var primaryOrgUnitField string
-// 	switch primaryLevel.Level {
-// 	case 1:
-// 		primaryOrgUnitField = "organization_unit_1_id"
-// 	case 2:
-// 		primaryOrgUnitField = "organization_unit_2_id"
-// 	case 3:
-// 		primaryOrgUnitField = "organization_unit_3_id"
-// 	case 4:
-// 		primaryOrgUnitField = "organization_unit_4_id"
-// 	case 5:
-// 		primaryOrgUnitField = "organization_unit_5_id"
-// 	default:
-// 		return fmt.Errorf("unsupported primary level: %d", primaryLevel.Level)
-// 	}
-
-// 	hasPermission, err := ds.repo.HasDocumentPermission(documentID, currentUserID, isUserSuperAdmin, primaryOrgUnitField)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if !hasPermission {
-// 		return utility.NewForbiddenError("You have no permission to this document.")
-// 	}
-
-// 	return nil
-// }
