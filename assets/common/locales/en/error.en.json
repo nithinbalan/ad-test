@@ -179,6 +179,12 @@
   "id": "field_max_length",
   "translation": "The {{.Field}} field cannot exceed maximum characters supported." 
  }
+,
+{
+  "id": "invalid_total_weightage",
+  "translation": "Total weightage of all KPIs for this objective cannot exceed 100%."
+}
+
 
 
   

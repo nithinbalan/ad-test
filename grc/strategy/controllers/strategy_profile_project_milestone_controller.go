@@ -78,6 +78,39 @@ func (sppmc *StrategyProfileProjectMilestoneController) GetAllStrategyProfilePro
 	c.JSON(http.StatusOK, strategicIntiatives)
 }
 
+func (sppmc *StrategyProfileProjectMilestoneController) GetStrategyProfileProjectMilestoneDetails(c *gin.Context) {
+	// Get strategy profile ID from URL
+	strategyProfileIDStr := c.Param("strategyProfileId")
+	strategyProfileID, err := strconv.ParseUint(strategyProfileIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Get focus area ID from URL
+	milestoneIDStr := c.Param("id")
+	milestoneID, err := strconv.ParseUint(milestoneIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Call service to get the focus area details
+	milestone, err := sppmc.service.GetFullDetailsByID(uint(strategyProfileID), uint(milestoneID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(sppmc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, milestone)
+}
+
 func (sppmc *StrategyProfileProjectMilestoneController) CreateStrategyProfileProjectMilestone(c *gin.Context) {
 	var FormDTO strategyDTOs.StrategyProfileProjectMilestoneFormDTO
 

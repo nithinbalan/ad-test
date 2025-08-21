@@ -1,5 +1,11 @@
 package dtos
 
+import (
+	organizationDTOs "jethur/grc/organization/dtos"
+	projectDTOs "jethur/grc/project/dtos"
+	"time"
+)
+
 type StrategyProfileProjectListDTO struct {
 	ID                                       int     `json:"id"`
 	ProjectID                                *uint   `json:"project_id"`
@@ -7,6 +13,10 @@ type StrategyProfileProjectListDTO struct {
 	ProjectTitleAr                           *string `json:"project_title_ar"`
 	ProjectDescriptionEn                     *string `json:"project_description_en"`
 	ProjectDescriptionAr                     *string `json:"project_description_ar"`
+	ProjectProjectStatusID                   *uint   `json:"project_project_status_id"`
+	ProjectProjectStatusTitleEn              *string `json:"project_project_status_title_en"`
+	ProjectProjectStatusTitleAr              *string `json:"project_project_status_title_ar"`
+	ProjectStatusColorCode                   *string `json:"project_status_color_code"`
 	StrategyProfileTitle                     string  `json:"strategy_profile_title"`
 	StrategyProfileStrategicObjectiveID      *uint   `json:"strategy_profile_strategic_objective_id"`
 	StrategyProfileStrategicObjectiveTitleEn *string `json:"strategy_profile_strategic_objective_title_en"`
@@ -47,4 +57,20 @@ type StrategyProfileProjectListQueryParamsDTO struct {
 	Page     int
 	PageSize int
 	Filters  map[string][]string
+}
+
+type StrategyProfileProjectDetailDTO struct {
+	ID                                  uint                                        `json:"id"`
+	StrategyProfileStrategicObjectiveID *uint                                       `json:"strategy_profile_strategic_objective_id"`
+	StrategyProfileStrategicObjective   *StrategyProfileStrategicObjectiveDetailDTO `json:"strategy_profile_strategic_objective"`
+	StrategyProfileStrategicIntiativeID *uint                                       `json:"strategy_profile_strategic_intiative_id"`
+	StrategyProfileStrategicIntiative   *StrategyProfileStrategicIntiativeDetailDTO `json:"strategy_profile_strategic_intiative"`
+	ProjectID                           *uint                                       `json:"project_id"`
+	Project                             *projectDTOs.ProjectDetailDTO               `json:"project"`
+	CreatedByID                         uint                                        `json:"created_by_id"`
+	CreatedByUser                       organizationDTOs.UserMinimalDTO             `json:"created_by_user"`
+	UpdatedByID                         *uint                                       `json:"updated_by_id"`
+	UpdatedByUser                       *organizationDTOs.UserMinimalDTO            `json:"updated_by_user"`
+	CreatedAt                           time.Time                                   `json:"created_at"`
+	UpdatedAt                           *time.Time                                  `json:"updated_at"`
 }

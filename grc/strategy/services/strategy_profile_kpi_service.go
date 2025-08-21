@@ -10,13 +10,18 @@ import (
 	strategyProfileKpiRepositories "jethur/grc/strategy/repositories"
 	"jethur/utility"
 
+	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type StrategyProfileKpiServiceInterface interface {
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileKpiListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileKpiListDTO, error)
+	GetFullDetailsByID(strategyProfileID uint, id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.StrategyProfileFocusAreaDetailDTO, error)
 	Create(strategyProfileID uint, currentUserID uint, strategyDTOs *strategyDTOs.StrategyProfileKpiFormDTO) ([]uint, error)
 	Delete(strategyProfileID uint, kpiID uint, currentUserID uint) error
+	GetObjectivesForKPI(kpiID uint, tx utility.DatabaseTransaction) ([]*models.StrategyProfileStrategicObjective, error)
+	GetKPIsForObjective(objectiveID uint, tx utility.DatabaseTransaction) ([]*strategyDTOs.KpiRegisterMinimalDetails, error)
+	UpdateWeightage(id uint, currentUserID uint, kpi *strategyDTOs.StrategyProfileKpiWeightageUpdateDTO) error
 }
 
 // Service and implementations
@@ -69,6 +74,37 @@ func (sps StrategyProfileKpiService) GetByID(id uint, tx ...utility.DatabaseTran
 	return strategyProfileKpi, nil
 }
 
+func (sps *StrategyProfileKpiService) GetFullDetailsByID(strategyProfileID uint, id uint, tx ...utility.DatabaseTransaction) (*strategyDTOs.StrategyProfileFocusAreaDetailDTO, error) {
+	var strategyProfileFocusAreaDTO strategyDTOs.StrategyProfileFocusAreaDetailDTO
+
+	// Check if the PROJECT register exists
+	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
+		return nil, err
+	}
+
+	// Get full details of the PROJECT action plan
+	strategyProfileFocusArea, err := sps.repo.GetFullDetailsByID(id, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	// Decode the PROJECT action plan into the DTO
+	err = mapstructure.Decode(strategyProfileFocusArea, &strategyProfileFocusAreaDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	strategyProfileFocusAreaDTO.CreatedAt = strategyProfileFocusArea.CreatedAt
+	strategyProfileFocusAreaDTO.UpdatedAt = strategyProfileFocusArea.UpdatedAt
+
+	// TODO: Add any additional fields required for the details screen
+
+	return &strategyProfileFocusAreaDTO, nil
+}
+
 func (sps *StrategyProfileKpiService) Create(strategyProfileID uint, currentUserID uint, strategyProfileKpiFormDTO *strategyDTOs.StrategyProfileKpiFormDTO) ([]uint, error) {
 
 	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
@@ -83,7 +119,6 @@ func (sps *StrategyProfileKpiService) Create(strategyProfileID uint, currentUser
 			StrategyProfileID:                   strategyProfileID,
 			StrategyProfileStrategicObjectiveID: strategyProfileKpiFormDTO.StrategyProfileStrategicObjectiveID,
 			KpiID:                               &kpiID,
-			Weightage:                           strategyProfileKpiFormDTO.Weightage,
 			CreatedBYID:                         currentUserID,
 		}
 		id, err := sps.repo.Create(strategyProfileKpi, tx)
@@ -108,7 +143,6 @@ func (sps *StrategyProfileKpiService) Create(strategyProfileID uint, currentUser
 					"strategy_profile_id":    strategyProfileID,
 					"strategic_objective_id": strategyProfileKpiFormDTO.StrategyProfileStrategicObjectiveID,
 					"kpi_id":                 kpiID,
-					"weightage":              strategyProfileKpiFormDTO.Weightage,
 				},
 				currentUserID,
 				nil,
@@ -166,7 +200,6 @@ func (sps *StrategyProfileKpiService) Delete(strategyProfileID uint, id uint, cu
 			map[string]interface{}{
 				"strategy_profile_id":    strategyProfileID,
 				"strategic_objective_id": strategyProfileKpi.KpiID,
-				"weightage":              strategyProfileKpi.Weightage,
 			},
 			currentUserID,
 			nil,
@@ -184,6 +217,126 @@ func (sps *StrategyProfileKpiService) Delete(strategyProfileID uint, id uint, cu
 			utility.LogError("Failed to log activity", fields)
 		}
 	}()
+
+	return nil
+}
+
+func (sps *StrategyProfileKpiService) GetObjectivesForKPI(kpiID uint, tx utility.DatabaseTransaction) ([]*models.StrategyProfileStrategicObjective, error) {
+	return sps.repo.GetObjectivesForKPI(kpiID, tx)
+}
+
+func (sps *StrategyProfileKpiService) GetKPIsForObjective(objectiveID uint, tx utility.DatabaseTransaction) ([]*strategyDTOs.KpiRegisterMinimalDetails, error) {
+	return sps.repo.GetKPIsForObjective(objectiveID, tx)
+}
+
+func (sps *StrategyProfileKpiService) UpdateWeightage(id uint, currentUserID uint, kpiWeightageUpdateDTO *strategyDTOs.StrategyProfileKpiWeightageUpdateDTO) error {
+	tx := sps.repo.BeginTransaction()
+
+	// Get the KPI to update
+	kpi, err := sps.repo.GetByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	oldData := map[string]interface{}{
+		"weightage": kpi.Weightage,
+	}
+
+	// Validate the weightage
+	if err := sps.validateKPIWeightage(kpi, kpiWeightageUpdateDTO.Weightage, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Update the weightage
+	kpi.Weightage = kpiWeightageUpdateDTO.Weightage
+	kpi.UpdatedBYID = &currentUserID
+
+	// Save the changes
+	if err := sps.repo.UpdateWeightage(kpi, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	newData := map[string]interface{}{
+		"weightage": kpi.Weightage,
+	}
+
+	// Commit first before logging
+	if err := tx.Commit(); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Log the activity asynchronously
+	go func() {
+		err := sps.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.StrategyProfileKpi{}.TableName(),
+			kpi.ID,
+			map[string]interface{}{
+				"old": oldData,
+				"new": newData,
+			},
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.StrategyProfileKpi{}.TableName(),
+				"recordID":  kpi.ID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
+}
+
+func (sps *StrategyProfileKpiService) validateKPIWeightage(kpi *models.StrategyProfileKpi, newWeightage *float64, tx utility.DatabaseTransaction) error {
+	// Validate weightage is not nil
+	if newWeightage == nil {
+		return utility.NewValidationError(
+			fmt.Errorf("weightage is required"),
+			"required",
+			"weightage",
+		)
+	}
+
+	// Skip total weightage validation if no objective is set
+	if kpi.StrategyProfileStrategicObjectiveID == nil {
+		return nil
+	}
+
+	// Get all KPIs for the same objective
+	kpis, err := sps.GetKPIsForObjective(*kpi.StrategyProfileStrategicObjectiveID, tx)
+	if err != nil {
+		return err
+	}
+
+	// Calculate total weightage of other KPIs (excluding current one being updated)
+	totalWeightage := 0.0
+	for _, k := range kpis {
+		if k.ID != kpi.ID && k.Weightage != nil {
+			totalWeightage += *k.Weightage
+		}
+	}
+
+	// Add the new weightage to the total
+	newTotal := totalWeightage + *newWeightage
+
+	// Validate total doesn't exceed 100
+	if newTotal > 100 {
+		return utility.NewValidationError(
+			fmt.Errorf("total weightage of all KPIs for this objective cannot exceed 100%%. Current total would be %.2f%%", newTotal),
+			"invalid_total_weightage",
+			"total_weightage",
+		)
+	}
 
 	return nil
 }

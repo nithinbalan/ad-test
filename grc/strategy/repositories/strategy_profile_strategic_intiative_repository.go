@@ -12,6 +12,7 @@ type StrategyProfileStrategicIntiativeRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(strategyProfileID uint, params *strategyDTOs.StrategyProfileStrategicIntiativeListQueryParamsDTO) ([]*strategyDTOs.StrategyProfileStrategicIntiativeListDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileStrategicIntiative, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileStrategicIntiative, error)
 	Create(strategicIntiative *models.StrategyProfileStrategicIntiative, tx ...utility.DatabaseTransaction) (uint, error)
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 }
@@ -139,6 +140,27 @@ func (repo *StrategyProfileStrategicIntiativeRepository) GetByID(id uint, tx ...
 	}
 
 	return strategicIntiative, nil
+}
+
+func (repo *StrategyProfileStrategicIntiativeRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileStrategicIntiative, error) {
+	var strategyProfileStrategicIntiative *models.StrategyProfileStrategicIntiative
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Preload("StrategyProfileStrategicObjective").
+		Preload("StrategicIntiative").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&strategyProfileStrategicIntiative, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return strategyProfileStrategicIntiative, nil
 }
 
 // Create inserts a new objective record
