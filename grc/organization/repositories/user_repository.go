@@ -95,6 +95,10 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 			designations.title_ar AS designation_title_ar,
 			roles_agg.roles_en,
 			roles_agg.roles_ar,
+			license_types.title_en as license_type_title_en,
+			license_types.title_ar as license_type_title_ar,
+			license_types.type as license_type_type,
+			license_types.color_code as license_type_color_code,
 			user_statuses.title_en AS user_status_title_en,
 			user_statuses.title_ar AS user_status_title_ar,
 			user_statuses.color_code AS user_status_color_code,
@@ -106,6 +110,7 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 		Joins("LEFT JOIN organization_units org4 ON org4.id = users.organization_unit_4_id").
 		Joins("LEFT JOIN organization_units org5 ON org5.id = users.organization_unit_5_id").
 		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
+		Joins("LEFT JOIN license_types ON license_types.id = users.license_type_id").
 		Joins("LEFT JOIN user_statuses ON user_statuses.id = users.user_status_id").
 		Joins("LEFT JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id")
 
@@ -263,6 +268,7 @@ func (repo *UserRepository) GetFullDetailsByID(id uint) (*models.User, error) {
 		Preload("UserSetting").
 		Preload("UserSetting.Timezone").
 		Preload("UserRoles.Role").
+		Preload("UserRoles.Role.LicenseType").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("ReportingUser").
