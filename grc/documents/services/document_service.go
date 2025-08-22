@@ -193,7 +193,6 @@ func (ds DocumentService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*
 
 func (ds *DocumentService) GetFullDetailsByID(id uint, currentUserID *uint, tx ...utility.DatabaseTransaction) (*documentDTOs.DocumentDetailsDTO, error) {
 	var documentDTO documentDTOs.DocumentDetailsDTO
-
 	document, err := ds.repo.GetFullDetailsByID(id, currentUserID, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
