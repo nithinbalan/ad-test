@@ -213,58 +213,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 			return 0, err
 		}
 	}
-	// Save Controls
-	var controls []*models.IncidentControl
-	for _, ctrl := range incidentRegisterFormDTO.ControlIds {
-		control := &models.IncidentControl{
-			IncidentRegisterID: id,
-			ControlID:          *ctrl,
-			CreatedByID:        currentUserID,
-		}
-		controls = append(controls, control)
-	}
 
-	if len(controls) > 0 {
-		if err := irs.repo.CreateIncidentControls(controls, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
-	// Save Risks
-	var risks []*models.IncidentRisk
-	for _, rsk := range incidentRegisterFormDTO.RiskIds {
-		risk := &models.IncidentRisk{
-			IncidentRegisterID: id,
-			RiskRegisterID:     *rsk,
-			CreatedByID:        currentUserID,
-		}
-		risks = append(risks, risk)
-	}
-
-	if len(risks) > 0 {
-		if err := irs.repo.CreateIncidentRisks(risks, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
-
-	// Save Processes
-	var processes []*models.IncidentProcess
-	for _, processID := range incidentRegisterFormDTO.ProcessIDs {
-		process := &models.IncidentProcess{
-			IncidentRegisterID: id,
-			ProcessID:          *processID,
-			CreatedByID:        currentUserID,
-		}
-		processes = append(processes, process)
-	}
-
-	if len(processes) > 0 {
-		if err := irs.repo.CreateIncidentProcesses(processes, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
 	// Add SLA Register
 	var slaRegisters []*models.IncidentSLA
 	for _, slaRegisterID := range incidentRegisterFormDTO.SLARegisterIDs {
@@ -295,23 +244,6 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 
 	if len(associatedDocs) > 0 {
 		if err := irs.repo.CreateIncidentDocuments(associatedDocs, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
-	// Save Assets
-	var assets []*models.IncidentAsset
-	for _, ast := range incidentRegisterFormDTO.AssetIds {
-		asset := &models.IncidentAsset{
-			IncidentRegisterID: id,
-			AssetRegisterID:    *ast,
-			CreatedBYID:        currentUserID,
-		}
-		assets = append(assets, asset)
-	}
-
-	if len(assets) > 0 {
-		if err := irs.repo.CreateIncidentAssets(assets, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -574,56 +506,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		tx.Rollback()
 		return err
 	}
-	existingControlIDs := make(map[uint]bool)
-	for _, ctrl := range existingIncident.Controls {
-		existingControlIDs[ctrl.ControlID] = true
-	}
 
-	// Collect new control IDs
-	newControlIDs := make(map[uint]bool)
-	for _, ctrl := range incidentRegisterFormDTO.ControlIds {
-		newControlIDs[*ctrl] = true
-	}
-
-	// Add new controls
-	var controlsToAdd []*models.IncidentControl
-	for _, newControlID := range incidentRegisterFormDTO.ControlIds {
-		if _, exists := existingControlIDs[*newControlID]; !exists {
-			// Create a new incident control record
-			control := &models.IncidentControl{
-				IncidentRegisterID: id,
-				ControlID:          *newControlID,
-				CreatedByID:        currentUserID,
-			}
-			controlsToAdd = append(controlsToAdd, control)
-		}
-	}
-
-	// Save the new controls
-	if len(controlsToAdd) > 0 {
-		if err := irs.repo.CreateIncidentControls(controlsToAdd, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Remove controls not in the new list
-	var deleteControlIDs []*uint
-
-	for _, existingControl := range existingIncident.Controls {
-		if _, exists := newControlIDs[existingControl.ControlID]; !exists {
-			// Append control to delete list
-			deleteControlIDs = append(deleteControlIDs, existingControl.ID)
-		}
-	}
-
-	// Delete controls not in the new list
-	if len(deleteControlIDs) > 0 {
-		if err := irs.repo.DeleteIncidentControls(deleteControlIDs, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
 	// Collect existing compliance requirement IDs
 	existingRequirementIDs := make(map[uint]bool)
 	for _, req := range existingIncident.ComplianceRequirements {
@@ -670,108 +553,6 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 	// Delete compliance requirements not in the new list
 	if len(deleteRequirementIDs) > 0 {
 		if err := irs.repo.DeleteIncidentComplianceRequirements(deleteRequirementIDs, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Collect existing risk IDs
-	existingRiskIDs := make(map[uint]bool)
-	for _, risk := range existingIncident.Risks {
-		existingRiskIDs[risk.RiskRegisterID] = true
-	}
-
-	// Collect new risk IDs
-	newRiskIDs := make(map[uint]bool)
-	for _, riskID := range incidentRegisterFormDTO.RiskIds {
-		newRiskIDs[*riskID] = true
-	}
-
-	// Add new risks
-	var risksToAdd []*models.IncidentRisk
-	for _, newRiskID := range incidentRegisterFormDTO.RiskIds {
-		if _, exists := existingRiskIDs[*newRiskID]; !exists {
-			// Create a new incident risk record
-			risk := &models.IncidentRisk{
-				IncidentRegisterID: id,
-				RiskRegisterID:     *newRiskID,
-				CreatedByID:        currentUserID,
-			}
-			risksToAdd = append(risksToAdd, risk)
-		}
-	}
-
-	// Save the new risks
-	if len(risksToAdd) > 0 {
-		if err := irs.repo.CreateIncidentRisks(risksToAdd, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Remove risks not in the new list
-	var deleteRiskIDs []*uint
-	for _, existingRisk := range existingIncident.Risks {
-		if _, exists := newRiskIDs[existingRisk.RiskRegisterID]; !exists {
-			// Append risk ID to delete list
-			deleteRiskIDs = append(deleteRiskIDs, existingRisk.ID)
-		}
-	}
-
-	// Delete risks not in the new list
-	if len(deleteRiskIDs) > 0 {
-		if err := irs.repo.DeleteIncidentRisks(deleteRiskIDs, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	existingProcessIDs := make(map[uint]bool)
-	for _, proc := range existingIncident.Processes {
-		existingProcessIDs[proc.ProcessID] = true
-	}
-
-	// Collect new process IDs
-	newProcessIDs := make(map[uint]bool)
-	for _, proc := range incidentRegisterFormDTO.ProcessIDs {
-		newProcessIDs[*proc] = true
-	}
-
-	// Add new processes
-	var processesToAdd []*models.IncidentProcess
-	for _, newProcessID := range incidentRegisterFormDTO.ProcessIDs {
-		if _, exists := existingProcessIDs[*newProcessID]; !exists {
-			// Create a new incident process record
-			process := &models.IncidentProcess{
-				IncidentRegisterID: id,
-				ProcessID:          *newProcessID,
-				CreatedByID:        currentUserID,
-			}
-			processesToAdd = append(processesToAdd, process)
-		}
-	}
-
-	// Save the new processes
-	if len(processesToAdd) > 0 {
-		if err := irs.repo.CreateIncidentProcesses(processesToAdd, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Remove processes not in the new list
-	var deleteProcessIDs []*uint
-
-	for _, existingProcess := range existingIncident.Processes {
-		if _, exists := newProcessIDs[existingProcess.ProcessID]; !exists {
-			// Append process to delete list
-			deleteProcessIDs = append(deleteProcessIDs, existingProcess.ID)
-		}
-	}
-
-	// Delete processes not in the new list
-	if len(deleteProcessIDs) > 0 {
-		if err := irs.repo.DeleteIncidentProcesses(deleteProcessIDs, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -879,56 +660,6 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		}
 	}
 
-	// Collect existing asset IDs
-	existingAssetIDs := make(map[uint]bool)
-	for _, asset := range existingIncident.Assets {
-		existingAssetIDs[asset.AssetRegisterID] = true
-	}
-
-	// Collect new asset IDs
-	newAssetIDs := make(map[uint]bool)
-	for _, assetID := range incidentRegisterFormDTO.AssetIds {
-		newAssetIDs[*assetID] = true
-	}
-
-	// Add new assets
-	var assetsToAdd []*models.IncidentAsset
-	for _, newAssetID := range incidentRegisterFormDTO.AssetIds {
-		if _, exists := existingAssetIDs[*newAssetID]; !exists {
-			// Create a new incident asset record
-			asset := &models.IncidentAsset{
-				IncidentRegisterID: id,
-				AssetRegisterID:    *newAssetID,
-				CreatedBYID:        currentUserID,
-			}
-			assetsToAdd = append(assetsToAdd, asset)
-		}
-	}
-
-	// Save the new assets
-	if len(assetsToAdd) > 0 {
-		if err := irs.repo.CreateIncidentAssets(assetsToAdd, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Remove assets not in the new list
-	var deleteAssetIDs []*uint
-	for _, existingAsset := range existingIncident.Assets {
-		if _, exists := newAssetIDs[existingAsset.AssetRegisterID]; !exists {
-			// Append asset ID to delete list
-			deleteAssetIDs = append(deleteAssetIDs, existingAsset.ID)
-		}
-	}
-
-	// Delete assets not in the new list
-	if len(deleteAssetIDs) > 0 {
-		if err := irs.repo.DeleteIncidentAssets(deleteAssetIDs, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
 	// Update timeline
 	// todo
 	timelineType, err := irs.incidentTimelineSvc.GetByType("reporting")
@@ -1034,57 +765,57 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 			return
 		}
 		// Determine control and document changes
-		controlsAdded := []uint{}
-		controlsRemoved := []uint{}
-		for id := range newControlIDs {
-			if !existingControlIDs[id] {
-				controlsAdded = append(controlsAdded, id)
-			}
-		}
-		for id := range existingControlIDs {
-			if !newControlIDs[id] {
-				controlsRemoved = append(controlsRemoved, id)
-			}
-		}
+		// controlsAdded := []uint{}
+		// controlsRemoved := []uint{}
+		// for id := range newControlIDs {
+		// 	if !existingControlIDs[id] {
+		// 		controlsAdded = append(controlsAdded, id)
+		// 	}
+		// }
+		// for id := range existingControlIDs {
+		// 	if !newControlIDs[id] {
+		// 		controlsRemoved = append(controlsRemoved, id)
+		// 	}
+		// }
 
-		processesAdded := []uint{}
-		processesRemoved := []uint{}
-		for id := range newProcessIDs {
-			if !existingProcessIDs[id] {
-				processesAdded = append(processesAdded, id)
-			}
-		}
-		for id := range existingProcessIDs {
-			if !newProcessIDs[id] {
-				processesRemoved = append(processesRemoved, id)
-			}
-		}
+		// processesAdded := []uint{}
+		// processesRemoved := []uint{}
+		// for id := range newProcessIDs {
+		// 	if !existingProcessIDs[id] {
+		// 		processesAdded = append(processesAdded, id)
+		// 	}
+		// }
+		// for id := range existingProcessIDs {
+		// 	if !newProcessIDs[id] {
+		// 		processesRemoved = append(processesRemoved, id)
+		// 	}
+		// }
 
-		risksAdded := []uint{}
-		risksRemoved := []uint{}
-		for id := range newRiskIDs {
-			if !existingRiskIDs[id] {
-				risksAdded = append(risksAdded, id)
-			}
-		}
-		for id := range existingRiskIDs {
-			if !newRiskIDs[id] {
-				risksRemoved = append(risksRemoved, id)
-			}
-		}
+		// risksAdded := []uint{}
+		// risksRemoved := []uint{}
+		// for id := range newRiskIDs {
+		// 	if !existingRiskIDs[id] {
+		// 		risksAdded = append(risksAdded, id)
+		// 	}
+		// }
+		// for id := range existingRiskIDs {
+		// 	if !newRiskIDs[id] {
+		// 		risksRemoved = append(risksRemoved, id)
+		// 	}
+		// }
 
-		assetsAdded := []uint{}
-		assetsRemoved := []uint{}
-		for id := range newAssetIDs {
-			if !existingAssetIDs[id] {
-				assetsAdded = append(assetsAdded, id)
-			}
-		}
-		for id := range existingAssetIDs {
-			if !newAssetIDs[id] {
-				assetsRemoved = append(assetsRemoved, id)
-			}
-		}
+		// assetsAdded := []uint{}
+		// assetsRemoved := []uint{}
+		// for id := range newAssetIDs {
+		// 	if !existingAssetIDs[id] {
+		// 		assetsAdded = append(assetsAdded, id)
+		// 	}
+		// }
+		// for id := range existingAssetIDs {
+		// 	if !newAssetIDs[id] {
+		// 		assetsRemoved = append(assetsRemoved, id)
+		// 	}
+		// }
 
 		complianceRequirementsAdded := []uint{}
 		complianceRequirementsRemoved := []uint{}
@@ -1126,25 +857,6 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		// Prepare log data
 		changedData := make(map[string]interface{})
 		associatedItems := make(map[string]interface{})
-
-		if len(controlsAdded) > 0 || len(controlsRemoved) > 0 {
-			associatedItems["control_ids"] = map[string]interface{}{
-				"added":   controlsAdded,
-				"removed": controlsRemoved,
-			}
-		}
-		if len(assetsAdded) > 0 || len(assetsRemoved) > 0 {
-			associatedItems["asset_ids"] = map[string]interface{}{
-				"added":   assetsAdded,
-				"removed": assetsRemoved,
-			}
-		}
-		if len(risksAdded) > 0 || len(risksRemoved) > 0 {
-			associatedItems["risk_ids"] = map[string]interface{}{
-				"added":   risksAdded,
-				"removed": risksRemoved,
-			}
-		}
 		if len(complianceRequirementsAdded) > 0 || len(complianceRequirementsRemoved) > 0 {
 			associatedItems["requirement_ids"] = map[string]interface{}{
 				"added":   complianceRequirementsAdded,
@@ -1155,12 +867,6 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 			associatedItems["sla_ids"] = map[string]interface{}{
 				"added":   slaRegistersAdded,
 				"removed": slaRegistersRemoved,
-			}
-		}
-		if len(processesAdded) > 0 || len(processesRemoved) > 0 {
-			associatedItems["process_ids"] = map[string]interface{}{
-				"added":   processesAdded,
-				"removed": processesRemoved,
 			}
 		}
 		if len(documentsAdded) > 0 || len(documentsRemoved) > 0 {
@@ -1402,19 +1108,6 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 			ReferenceNumber: incident.ReferenceNumber,
 		})
 
-		// Check if controls exist
-		if len(incident.Controls) > 0 {
-			var deleteControlIds []*uint
-			for _, ctrl := range incident.Controls {
-				deleteControlIds = append(deleteControlIds, ctrl.ID)
-			}
-			if err := irs.repo.DeleteIncidentControls(deleteControlIds, tx); err != nil {
-
-				tx.Rollback()
-				return nil, err
-			}
-		}
-
 		// Delete each compliance requirement if requirements exist
 		if len(incident.ComplianceRequirements) > 0 {
 			var deleteRequirementIds []*uint
@@ -1427,29 +1120,7 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 			}
 
 		}
-		// Check if Risk exist
-		if len(incident.Risks) > 0 {
-			var deleteRiskIds []*uint
-			for _, rsk := range incident.Risks {
-				deleteRiskIds = append(deleteRiskIds, rsk.ID)
-			}
-			if err := irs.repo.DeleteIncidentRisks(deleteRiskIds, tx); err != nil {
 
-				tx.Rollback()
-				return nil, err
-			}
-		}
-
-		if len(incident.Processes) > 0 {
-			var deleteControlIDs []*uint
-			for _, process := range incident.Processes {
-				deleteControlIDs = append(deleteControlIDs, process.ID)
-			}
-			if err := irs.repo.DeleteIncidentProcesses(deleteControlIDs, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-		}
 		if len(incident.SLARegisters) > 0 {
 			var deleteSLARegisterIDs []*uint
 			for _, sla := range incident.SLARegisters {
@@ -1467,16 +1138,6 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 				deleteDocumentIds = append(deleteDocumentIds, document.ID)
 			}
 			if err := irs.repo.DeleteIncidentDocuments(deleteDocumentIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-		}
-		if len(incident.Assets) > 0 {
-			var deleteAssetIds []*uint
-			for _, ast := range incident.Assets {
-				deleteAssetIds = append(deleteAssetIds, ast.ID)
-			}
-			if err := irs.repo.DeleteIncidentAssets(deleteAssetIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
