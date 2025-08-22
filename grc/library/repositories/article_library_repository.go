@@ -1,14 +1,19 @@
 package repositories
 
 import (
+	"errors"
+
 	commonDTOs "jethur/grc/common/dtos"
 	libraryDTOs "jethur/grc/library/dtos"
+	"jethur/grc/models"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 type ArticleLibraryRepositoryInterface interface {
 	GetAll(params *libraryDTOs.ArticleLibraryListQueryParamsDTO) (*libraryDTOs.ArticleLibraryListResponseDTO, error)
+	GetFullDetailsByID(id uint) (*models.ArticleLibrary, error)
 }
 
 type ArticleLibraryRepository struct {
@@ -32,10 +37,8 @@ func (repo *ArticleLibraryRepository) GetAll(params *libraryDTOs.ArticleLibraryL
 			article_category.title_en AS category_title_en,
 			article_category.title_ar AS category_title_ar,
 			article_library.image_path,
-			article_library.table_of_contents,
 			article_library.title_en,
 			article_library.title_ar,
-			article_library.content,
 			article_library.created_by,
 			article_library.created_at
 		`).
@@ -80,4 +83,19 @@ func (repo *ArticleLibraryRepository) GetAll(params *libraryDTOs.ArticleLibraryL
 		},
 	}
 	return response, nil
+}
+
+func (repo *ArticleLibraryRepository) GetFullDetailsByID(id uint) (*models.ArticleLibrary, error) {
+	var article *models.ArticleLibrary
+
+	result := repo.db.
+		Preload("ArticleCategory").
+		First(&article, id)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, id)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+	return article, nil
 }
