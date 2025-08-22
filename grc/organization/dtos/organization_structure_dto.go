@@ -1,8 +1,33 @@
 package dtos
 
+import commonDTOs "jethur/grc/common/dtos"
+
 type OrganizationStructureDTO struct {
 	ID       uint                       `json:"id"`
 	TitleEn  string                     `json:"title_en"`
 	TitleAr  string                     `json:"title_ar"`
 	Children []OrganizationStructureDTO `json:"children,omitempty"`
+}
+
+type OrganizationUnitUserPrimaryDetailsDTO struct {
+	ID               uint    `json:"id"`
+	FirstNameEn      string  `json:"first_name_en"`
+	LastNameEn       string  `json:"last_name_en"`
+	FirstNameAr      string  `json:"first_name_ar"`
+	LastNameAr       string  `json:"last_name_ar"`
+	DesignationEn    string  `json:"designation_en"`
+	DesignationAr    string  `json:"designation_ar"`
+	ProfileImagePath *string `json:"profile_image_path"`
+}
+
+type OrganizationUnitUserPrimaryDetailsQueryParamsDTO struct {
+	Sort     string `form:"sort"`
+	SortBy   string `form:"sort_by"`
+	Page     int    `form:"page"`
+	PageSize int    `form:"page_size"`
+}
+
+type OrganizationUnitUserPrimaryDetailsResponseDTO struct {
+	Items      []OrganizationUnitUserPrimaryDetailsDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO            `json:"pagination"`
 }

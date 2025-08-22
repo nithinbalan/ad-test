@@ -1,26 +1,31 @@
 package services
 
 import (
-	"jethur/grc/organization/dtos"
+	"fmt"
+	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/repositories"
+	settingServices "jethur/grc/settings/services"
 )
 
 // Interface
 type OrganizationStructureServiceInterface interface {
-	GetOrganizationStructure(sort string, sortBy string) ([]dtos.OrganizationStructureDTO, error)
+	GetOrganizationStructure(sort string, sortBy string) ([]organizationDTOs.OrganizationStructureDTO, error)
+	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
 }
 
 type OrganizationStructureService struct {
-	repo repositories.OrganizationStructureRepositoryInterface
+	repo                 repositories.OrganizationStructureRepositoryInterface
+	organizationLevelSvc settingServices.OrganizationLevelServiceInterface
 }
 
-func NewOrganizationStructureService(repo repositories.OrganizationStructureRepositoryInterface) *OrganizationStructureService {
+func NewOrganizationStructureService(repo repositories.OrganizationStructureRepositoryInterface, organizationLevelSvc settingServices.OrganizationLevelServiceInterface) *OrganizationStructureService {
 	return &OrganizationStructureService{
-		repo: repo,
+		repo:                 repo,
+		organizationLevelSvc: organizationLevelSvc,
 	}
 }
 
-func (s *OrganizationStructureService) GetOrganizationStructure(sort string, sortBy string) ([]dtos.OrganizationStructureDTO, error) {
+func (s *OrganizationStructureService) GetOrganizationStructure(sort string, sortBy string) ([]organizationDTOs.OrganizationStructureDTO, error) {
 	// Get all organization units
 	units, err := s.repo.GetOrganizationStructure(sort, sortBy)
 	if err != nil {
@@ -28,12 +33,12 @@ func (s *OrganizationStructureService) GetOrganizationStructure(sort string, sor
 	}
 
 	// Create a map for quick lookup of units by ID
-	unitMap := make(map[uint]*dtos.OrganizationStructureDTO)
-	var rootUnits []*dtos.OrganizationStructureDTO
+	unitMap := make(map[uint]*organizationDTOs.OrganizationStructureDTO)
+	var rootUnits []*organizationDTOs.OrganizationStructureDTO
 
 	// First pass: create all nodes
 	for _, unit := range units {
-		structure := &dtos.OrganizationStructureDTO{
+		structure := &organizationDTOs.OrganizationStructureDTO{
 			ID:      unit.ID,
 			TitleEn: unit.TitleEn,
 			TitleAr: unit.TitleAr,
@@ -56,10 +61,38 @@ func (s *OrganizationStructureService) GetOrganizationStructure(sort string, sor
 	}
 
 	// Convert to slice of DTOs
-	result := make([]dtos.OrganizationStructureDTO, len(rootUnits))
+	result := make([]organizationDTOs.OrganizationStructureDTO, len(rootUnits))
 	for i, structure := range rootUnits {
 		result[i] = *structure
 	}
 
 	return result, nil
+}
+
+func (s *OrganizationStructureService) GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error) {
+	var primaryOrgUnitField string
+
+	// Get the primary organization level
+	primaryLevel, err := s.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return nil, err
+	}
+
+	// Determine the field name based on the primary level
+	switch primaryLevel.Level {
+	case 1:
+		primaryOrgUnitField = "organization_unit_1_id"
+	case 2:
+		primaryOrgUnitField = "organization_unit_2_id"
+	case 3:
+		primaryOrgUnitField = "organization_unit_3_id"
+	case 4:
+		primaryOrgUnitField = "organization_unit_4_id"
+	case 5:
+		primaryOrgUnitField = "organization_unit_5_id"
+	default:
+		return nil, fmt.Errorf("unsupported primary level")
+	}
+
+	return s.repo.GetUsersByOrganizationUnit(params, orgUnitID, primaryOrgUnitField)
 }
