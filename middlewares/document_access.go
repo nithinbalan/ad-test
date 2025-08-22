@@ -34,33 +34,26 @@ func DocumentAccessCheckingMiddleware(db *gorm.DB) gin.HandlerFunc {
 		currentUserID, err := utility.GetCurrentUserID(c)
 
 		if err != nil {
-
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 			c.Abort()
 			return
-
 		}
 
 		// Check super admin status first (most common case)
 		isSuperAdmin, err := checkSuperAdminStatus(db, currentUserID)
 
 		if err != nil {
-
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check user permissions"})
 			c.Abort()
 			return
-
 		}
 
 		if isSuperAdmin {
-
 			c.Next()
 			return
-
 		}
 
 		// Check document access
-
 		hasAccess, err := checkDocumentAccess(db, documentID, currentUserID)
 
 		if err != nil {
@@ -68,19 +61,15 @@ func DocumentAccessCheckingMiddleware(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check document permissions"})
 			c.Abort()
 			return
-
 		}
 
 		if !hasAccess {
-
 			c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden: insufficient permissions to this document"})
 			c.Abort()
 			return
-
 		}
 
 		c.Next()
-
 	}
 
 }
@@ -88,9 +77,7 @@ func DocumentAccessCheckingMiddleware(db *gorm.DB) gin.HandlerFunc {
 func initOrgLevelCache(db *gorm.DB) {
 
 	if orgLevelCacheInitialized {
-
 		return
-
 	}
 
 	primaryOrgLevelCache.mu.Lock()
@@ -98,9 +85,7 @@ func initOrgLevelCache(db *gorm.DB) {
 	defer primaryOrgLevelCache.mu.Unlock()
 
 	if orgLevelCacheInitialized {
-
 		return
-
 	}
 
 	var primaryLevel models.OrganizationLevel
@@ -112,12 +97,9 @@ func initOrgLevelCache(db *gorm.DB) {
 		primaryOrgLevelCache.field = "organization_unit_1_id"
 
 	} else {
-
 		primaryOrgLevelCache.level = primaryLevel.Level
 		primaryOrgLevelCache.field = getOrgUnitField(primaryLevel.Level)
-
 	}
-
 	orgLevelCacheInitialized = true
 
 }
