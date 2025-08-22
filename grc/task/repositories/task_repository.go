@@ -29,6 +29,8 @@ type TaskRepositoryInteface interface {
 	UpdateAuditReportTaskStatus(auditFinalReportID uint, userID uint, auditReportWorkflowID uint, status uint) (*models.Task, error)
 	UpdateAuditDraftReportTaskStatus(auditDraftReportID uint, userID uint, auditReportWorkflowID uint, status uint) (*models.Task, error)
 	UpdateComplianceActionPlanTaskStatus(compliaceActionPlanID uint, userID uint, status uint) (*models.Task, error)
+
+	UpdateDelegateeUser(taskID uint, DelegateeUserID uint, userID uint, tx ...utility.DatabaseTransaction) (*models.Task, error)
 }
 
 type TaskRepository struct {
@@ -101,7 +103,11 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			if columnName == "module_id" {
+				query = query.Where("tasks."+columnName+" IN (?)", values)
+			} else {
+				query = query.Where(columnName+" IN (?)", values)
+			}
 		}
 	}
 
@@ -378,6 +384,29 @@ func (repo *TaskRepository) UpdateComplianceActionPlanTaskStatus(compliaceAction
 	task.TaskStatusID = status
 	task.UpdatedByID = userID
 	if err := repo.db.Save(&task).Error; err != nil {
+		return nil, err
+	}
+
+	return &task, nil
+}
+
+func (repo *TaskRepository) UpdateDelegateeUser(taskID uint, DelegateeUserID uint, userID uint, tx ...utility.DatabaseTransaction) (*models.Task, error) {
+	var task models.Task
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Find the task by document and user ID
+	if err := db.Where("id = ?", taskID).First(&task).Error; err != nil {
+		return nil, err
+	}
+
+	// Update the task status
+	task.DelegateeUserID = &DelegateeUserID
+	task.UpdatedByID = userID
+	if err := db.Save(&task).Error; err != nil {
 		return nil, err
 	}
 

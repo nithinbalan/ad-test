@@ -32,6 +32,8 @@ type TaskServiceInterface interface {
 	UpdateAuditDraftReportTaskStatus(auditDraftReportID uint, userID uint, auditReportWorkflowID uint) (*models.Task, error)
 	AuditDocumentRequestTaskUpdate(auditDocumentRequestID uint, userID uint, taskStatusType string, tx ...utility.DatabaseTransaction) (*models.Task, error)
 	UpdateActionPlanTaskStatus(field string, value interface{}, userID uint, taskStatusID uint, tx ...utility.DatabaseTransaction) (*models.Task, error)
+
+	UpdateDelegateeUser(taskID uint, DelegateeUserID uint, userID uint, tx ...utility.DatabaseTransaction) (*models.Task, error)
 }
 
 type TaskService struct {
@@ -327,6 +329,16 @@ func (ts *TaskService) UpdateActionPlanTaskStatus(field string, value interface{
 	task.UpdatedByID = userID
 
 	if err := ts.repo.Update(task, tx...); err != nil {
+		return nil, err
+	}
+
+	return task, nil
+}
+
+func (ts *TaskService) UpdateDelegateeUser(taskID uint, DelegateeUserID uint, userID uint, tx ...utility.DatabaseTransaction) (*models.Task, error) {
+
+	task, err := ts.repo.UpdateDelegateeUser(taskID, DelegateeUserID, userID, tx...)
+	if err != nil {
 		return nil, err
 	}
 

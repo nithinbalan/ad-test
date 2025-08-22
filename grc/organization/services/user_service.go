@@ -70,6 +70,7 @@ type UserServiceInterface interface {
 	UpdateUserOrganizationUnit(userID uint, departmentUpdateFormDTO userDTOs.UpdateOrganizationUnitDTO) error
 
 	GetUserModulesWithPermissions(userID uint, params *settingDTOs.ModuleListQueryParamsDTO) ([]settingDTOs.ModulePermissionListDTO, error)
+	UpdateDelegateeUser(user *models.User, tx utility.DatabaseTransaction) error
 }
 
 type UserService struct {
@@ -2448,4 +2449,14 @@ func (us *UserService) GetUserModulesWithPermissions(userID uint, params *settin
 	}
 
 	return subModuleList, nil
+}
+
+func (us *UserService) UpdateDelegateeUser(user *models.User, tx utility.DatabaseTransaction) error {
+	err := us.repo.Update(user, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return nil
 }
