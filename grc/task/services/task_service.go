@@ -19,6 +19,8 @@ type TaskServiceInterface interface {
 	GetByID(id uint) (*models.Task, error)
 	GetByFieldID(field string, value interface{}) (*models.Task, error)
 	GetByResponsibleUserID(field string, value interface{}, responsibleUserID uint) (*models.Task, error)
+	GetByDelegateeUserID(field string, value interface{}, responsibleuserID uint) ([]*models.Task, error)
+	GetModuleCountByTaskIDs(taskIDs []uint) (int, error)
 	Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(currentUserID uint, taskDTO commonDTOs.TaskFormDTO, fieldName string, id uint, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, currentUserID uint) (uint, error)
@@ -91,6 +93,24 @@ func (ts TaskService) GetByResponsibleUserID(field string, value interface{}, re
 		return nil, err
 	}
 	return task, nil
+}
+
+func (ts TaskService) GetByDelegateeUserID(field string, value interface{}, responsibleuserID uint) ([]*models.Task, error) {
+	task, err := ts.repo.GetByDelegateeUserID(field, value, responsibleuserID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, value)
+		}
+		return nil, err
+	}
+	return task, nil
+}
+
+func (ts *TaskService) GetModuleCountByTaskIDs(taskIDs []uint) (int, error) {
+	if len(taskIDs) == 0 {
+		return 0, nil
+	}
+	return ts.repo.GetModuleCountByTaskIDs(taskIDs)
 }
 
 func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint, tx ...utility.DatabaseTransaction) (uint, error) {
@@ -337,7 +357,15 @@ func (ts *TaskService) UpdateActionPlanTaskStatus(field string, value interface{
 
 func (ts *TaskService) UpdateDelegateeUser(taskID uint, DelegateeUserID uint, userID uint, tx ...utility.DatabaseTransaction) (*models.Task, error) {
 
-	task, err := ts.repo.UpdateDelegateeUser(taskID, DelegateeUserID, userID, tx...)
+	task, err := ts.repo.GetByID(taskID)
+	if err != nil {
+		return nil, err
+	}
+
+	task.DelegateeUserID = &DelegateeUserID
+	task.UpdatedByID = userID
+
+	err = ts.repo.UpdateDelegateeUser(*task, tx...)
 	if err != nil {
 		return nil, err
 	}

@@ -153,6 +153,7 @@ func NewAssetModule(db *gorm.DB,
 		organizationModule.UserSettingSvc,
 		organizationModule.UserSvc,
 		commonModule.NotificationService,
+		commonModule.ActionPlanDelegateeUserService,
 	)
 	threatActionPlanController := controllers.NewThreatActionPlanController(threatActionPlanSvc)
 

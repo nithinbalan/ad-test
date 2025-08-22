@@ -18,6 +18,8 @@ type TaskRepositoryInteface interface {
 	GetByID(id uint) (*models.Task, error)
 	GetByFieldID(field string, value interface{}) (*models.Task, error)
 	GetByResponsibleUserID(field string, value interface{}, responsibleuserID uint) (*models.Task, error)
+	GetByDelegateeUserID(field string, value interface{}, responsibleuserID uint) ([]*models.Task, error)
+	GetModuleCountByTaskIDs(taskIDs []uint) (int, error)
 	Create(task *models.Task, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(task *models.Task, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
@@ -30,7 +32,7 @@ type TaskRepositoryInteface interface {
 	UpdateAuditDraftReportTaskStatus(auditDraftReportID uint, userID uint, auditReportWorkflowID uint, status uint) (*models.Task, error)
 	UpdateComplianceActionPlanTaskStatus(compliaceActionPlanID uint, userID uint, status uint) (*models.Task, error)
 
-	UpdateDelegateeUser(taskID uint, DelegateeUserID uint, userID uint, tx ...utility.DatabaseTransaction) (*models.Task, error)
+	UpdateDelegateeUser(task models.Task, tx ...utility.DatabaseTransaction) error
 }
 
 type TaskRepository struct {
@@ -222,6 +224,29 @@ func (repo *TaskRepository) GetByResponsibleUserID(field string, value interface
 	return &task, nil
 }
 
+func (repo *TaskRepository) GetByDelegateeUserID(field string, value interface{}, responsibleUserID uint) ([]*models.Task, error) {
+	var task []*models.Task
+
+	result := repo.db.Where(field+" = ? AND responsible_user_id = ?", value, responsibleUserID).Find(&task)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return task, nil
+}
+
+func (r *TaskRepository) GetModuleCountByTaskIDs(taskIDs []uint) (int, error) {
+	var count int64
+	err := r.db.Model(&models.Task{}).
+		Where("id IN ?", taskIDs).
+		Select("COUNT(DISTINCT module_id)").
+		Scan(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return int(count), nil
+}
+
 func (repo *TaskRepository) Create(task *models.Task, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -390,25 +415,16 @@ func (repo *TaskRepository) UpdateComplianceActionPlanTaskStatus(compliaceAction
 	return &task, nil
 }
 
-func (repo *TaskRepository) UpdateDelegateeUser(taskID uint, DelegateeUserID uint, userID uint, tx ...utility.DatabaseTransaction) (*models.Task, error) {
-	var task models.Task
+func (repo *TaskRepository) UpdateDelegateeUser(task models.Task, tx ...utility.DatabaseTransaction) error {
 
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	// Find the task by document and user ID
-	if err := db.Where("id = ?", taskID).First(&task).Error; err != nil {
-		return nil, err
+	if err := db.Save(task).Error; err != nil {
+		return err
 	}
 
-	// Update the task status
-	task.DelegateeUserID = &DelegateeUserID
-	task.UpdatedByID = userID
-	if err := db.Save(&task).Error; err != nil {
-		return nil, err
-	}
-
-	return &task, nil
+	return nil
 }
