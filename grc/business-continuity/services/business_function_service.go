@@ -5,6 +5,8 @@ import (
 	"fmt"
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	businessFunctionRepositories "jethur/grc/business-continuity/repositories"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
@@ -12,8 +14,7 @@ import (
 	"jethur/utility"
 	"os"
 	"strings"
-
-	commonDTOs "jethur/grc/common/dtos"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -34,6 +35,8 @@ type BusinessFunctionServiceInterface interface {
 	GetProcessAssociatedIncidents(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
 	GetProcessAssociatedControls(businessFunctionID uint, processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	GetTestResults(businessFunctionID uint) (*businessContinuityDTOs.BusinessFunctionOverallTestResultDTO, error)
+	CreateBusinessFunctionProcess(BusinessFunctionID uint, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
+	DeleteBusinessFunctionProcess(BusinessFunctionID uint, processID uint) error
 }
 
 // Service and implementations
@@ -43,6 +46,7 @@ type BusinessFunctionService struct {
 	userSvc                  organizationServices.UserServiceInterface
 	userSettingSvc           organizationServices.UserSettingServiceInterface
 	processAssociatedItemSvc organizationServices.ProcessAssociatedItemServiceInterface
+	validationSvc            commonServices.AssociatedItemValidationServiceInterface
 }
 
 func NewBusinessFunctionService(
@@ -51,6 +55,7 @@ func NewBusinessFunctionService(
 	userSvc organizationServices.UserServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	processAssociatedItemSvc organizationServices.ProcessAssociatedItemServiceInterface,
+	validationSvc commonServices.AssociatedItemValidationServiceInterface,
 ) BusinessFunctionServiceInterface {
 	return &BusinessFunctionService{
 		repo:                     repo,
@@ -58,6 +63,7 @@ func NewBusinessFunctionService(
 		userSvc:                  userSvc,
 		userSettingSvc:           userSettingSvc,
 		processAssociatedItemSvc: processAssociatedItemSvc,
+		validationSvc:            validationSvc,
 	}
 }
 
@@ -664,4 +670,52 @@ func (bfs *BusinessFunctionService) GetTestResults(businessFunctionID uint) (*bu
 		TestExecuted:     testExecuted,
 		OverallScore:     overallScore,
 	}, nil
+}
+
+func (bfs *BusinessFunctionService) CreateBusinessFunctionProcess(businessFunctionID, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error {
+
+	_, err := bfs.repo.GetByID(businessFunctionID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, businessFunctionID)
+	}
+
+	if err := bfs.validationSvc.ValidateProcessMapping(businessFunctionID, dto.ProcessIDs, "business_function_processes", "business_function_id"); err != nil {
+		return err
+	}
+
+	tx := bfs.repo.BeginTransaction()
+	var mappings []*models.BusinessFunctionProcess
+	currentTime := time.Now()
+
+	for _, processID := range dto.ProcessIDs {
+		mappings = append(mappings, &models.BusinessFunctionProcess{
+			ProcessID:          processID,
+			BusinessFunctionID: businessFunctionID,
+			CreatedBYID:        userID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := bfs.repo.CreateBusinessFunctionProcess(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (bfs *BusinessFunctionService) DeleteBusinessFunctionProcess(businessFunctionID uint, processID uint) error {
+	// Validate control existence
+	_, err := bfs.repo.GetByID(businessFunctionID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, businessFunctionID)
+	}
+
+	tx := bfs.repo.BeginTransaction()
+
+	if err := bfs.repo.DeleteBusinessFunctionProcess(businessFunctionID, processID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }
