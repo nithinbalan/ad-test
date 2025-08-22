@@ -2,17 +2,12 @@ package middlewares
 
 import (
 	"jethur/grc/models"
-
 	"jethur/utility"
-
+	"log"
 	"net/http"
-
 	"sync"
 
 	"github.com/gin-gonic/gin"
-
-	"log"
-
 	"gorm.io/gorm"
 )
 
@@ -21,10 +16,8 @@ import (
 var (
 	primaryOrgLevelCache struct {
 		level uint8
-
 		field string
-
-		mu sync.RWMutex
+		mu    sync.RWMutex
 	}
 
 	orgLevelCacheInitialized bool
@@ -35,33 +28,26 @@ func DocumentAccessCheckingMiddleware(db *gorm.DB) gin.HandlerFunc {
 	// Initialize cache on first use
 
 	initOrgLevelCache(db)
-
 	return func(c *gin.Context) {
 
 		documentID := c.Param("id")
-
 		currentUserID, err := utility.GetCurrentUserID(c)
 
 		if err != nil {
 
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-
 			c.Abort()
-
 			return
 
 		}
 
 		// Check super admin status first (most common case)
-
 		isSuperAdmin, err := checkSuperAdminStatus(db, currentUserID)
 
 		if err != nil {
 
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check user permissions"})
-
 			c.Abort()
-
 			return
 
 		}
@@ -69,7 +55,6 @@ func DocumentAccessCheckingMiddleware(db *gorm.DB) gin.HandlerFunc {
 		if isSuperAdmin {
 
 			c.Next()
-
 			return
 
 		}
@@ -80,11 +65,8 @@ func DocumentAccessCheckingMiddleware(db *gorm.DB) gin.HandlerFunc {
 
 		if err != nil {
 			log.Printf("checkDocumentAccess failed: %v", err)
-
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check document permissions"})
-
 			c.Abort()
-
 			return
 
 		}
@@ -92,9 +74,7 @@ func DocumentAccessCheckingMiddleware(db *gorm.DB) gin.HandlerFunc {
 		if !hasAccess {
 
 			c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden: insufficient permissions to this document"})
-
 			c.Abort()
-
 			return
 
 		}
@@ -128,15 +108,12 @@ func initOrgLevelCache(db *gorm.DB) {
 	if err := db.Where("is_primary = ?", true).First(&primaryLevel).Error; err != nil {
 
 		// Set default if query fails
-
 		primaryOrgLevelCache.level = 1
-
 		primaryOrgLevelCache.field = "organization_unit_1_id"
 
 	} else {
 
 		primaryOrgLevelCache.level = primaryLevel.Level
-
 		primaryOrgLevelCache.field = getOrgUnitField(primaryLevel.Level)
 
 	}
@@ -148,31 +125,18 @@ func initOrgLevelCache(db *gorm.DB) {
 func getOrgUnitField(level uint8) string {
 
 	switch level {
-
 	case 1:
-
 		return "organization_unit_1_id"
-
 	case 2:
-
 		return "organization_unit_2_id"
-
 	case 3:
-
 		return "organization_unit_3_id"
-
 	case 4:
-
 		return "organization_unit_4_id"
-
 	case 5:
-
 		return "organization_unit_5_id"
-
 	default:
-
 		return "organization_unit_1_id" // fallback
-
 	}
 
 }
@@ -180,12 +144,10 @@ func getOrgUnitField(level uint8) string {
 func checkSuperAdminStatus(db *gorm.DB, userID uint) (bool, error) {
 
 	var count int64
-
 	err := db.Table("user_roles").
 		Joins("JOIN roles ON user_roles.role_id = roles.id").
 		Where("user_roles.user_id = ? AND roles.is_super_admin = ?", userID, true).
 		Count(&count).Error
-
 	return count > 0, err
 
 }
@@ -194,7 +156,6 @@ func checkDocumentAccess(db *gorm.DB, documentID string, userID uint) (bool, err
 	primaryOrgLevelCache.mu.RLock()
 	orgUnitField := primaryOrgLevelCache.field
 	primaryOrgLevelCache.mu.RUnlock()
-
 	// SQL Server compatible query
 	query := `
 		SELECT CASE 
@@ -230,6 +191,7 @@ func checkDocumentAccess(db *gorm.DB, documentID string, userID uint) (bool, err
 
 	var accessInt int
 	err := db.Raw(query, documentID, userID, userID, userID, userID, userID, userID, userID).Scan(&accessInt).Error
+
 	if err != nil {
 		return false, err
 	}
