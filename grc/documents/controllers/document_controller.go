@@ -156,6 +156,10 @@ func (dc *DocumentController) GetDocumentDetails(c *gin.Context) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(dc.db, c, e.Error())
 			return
