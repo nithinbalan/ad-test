@@ -442,28 +442,6 @@ func (crc *ComplianceReportController) GetComplianceRequirementByCategory(c *gin
 	c.JSON(http.StatusOK, results)
 }
 
-func (crc *ComplianceReportController) GetComplianceRequirementByResponsibleUser(c *gin.Context) {
-	dateFrom := c.Query("date_from")
-	dateTo := c.Query("date_to")
-
-	queryParams := reportDTOs.ReportListQueryParamsDTO{
-		DateFrom: dateFrom,
-		DateTo:   dateTo,
-	}
-	results, err := crc.service.GetComplianceRequirementByResponsibleUser(&queryParams)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		default:
-			utility.SendInternalErrResp(crc.db, c, e.Error())
-			return
-		}
-	}
-	c.JSON(http.StatusOK, results)
-}
-
 func (crc *ComplianceReportController) GetAllComplianceActionPlans(c *gin.Context) {
 	complianceIDStr := c.Param("complianceId")
 

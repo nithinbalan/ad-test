@@ -71,20 +71,6 @@ type ComplianceRequirementByCategoryDTO struct {
 	Count                                int64  `json:"count"`
 }
 
-type ComplianceRequirementByResponsibleUserDTO struct {
-	ResponsibleUserID               uint   `json:"id"`
-	ResponsibleUserFirstNameEn      string `json:"first_name_en"`
-	ResponsibleUserFirstNameAr      string `json:"first_name_ar"`
-	ResponsibleUserLastNameEn       string `json:"last_name_en"`
-	ResponsibleUserLastNameAr       string `json:"last_name_ar"`
-	ResponsibleUserTitleEn          string `json:"title_en"`
-	ResponsibleUserTitleAr          string `json:"title_ar"`
-	ResponsibleUserEmail            string `json:"email"`
-	ResponsibleUserColor            string `json:"color"`
-	ResponsibleUserProfileImagePath string `json:"profile_image"`
-	Count                           int64  `json:"count"`
-}
-
 type ComplianceActionPlanByStatusDTO struct {
 	ActionPlanStatusID        uint   `json:"id"`
 	ActionPlanStatusTitleEn   string `json:"title_en"`
