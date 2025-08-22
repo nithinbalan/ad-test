@@ -23,15 +23,6 @@ type ComplianceRequirementListDTO struct {
 	SeverityLevelTitleAr                 string                                         `json:"severity_level_title_ar"`
 	SeverityLevelColorCode               string                                         `json:"severity_level_color_code"`
 	Deadline                             string                                         `json:"deadline"`
-	ResponsibleUserID                    uint                                           `json:"responsible_user_id"`
-	ResponsibleUserFirstNameEn           string                                         `json:"responsible_user_first_name_en"`
-	ResponsibleUserFirstNameAr           string                                         `json:"responsible_user_first_name_ar"`
-	ResponsibleUserLastNameEn            string                                         `json:"responsible_user_last_name_en"`
-	ResponsibleUserLastNameAr            string                                         `json:"responsible_user_last_name_ar"`
-	ResponsibleUserInitial               string                                         `json:"responsible_user_initial"`
-	ResponsibleUserColor                 string                                         `json:"responsible_user_color"`
-	ResponsibleUserEmail                 string                                         `json:"responsible_user_email"`
-	ResponsibleUserProfileImagePath      string                                         `json:"responsible_user_profile_image_path"`
 	ComplianceStatusTitleEn              string                                         `json:"compliance_status_title_en"`
 	ComplianceStatusTitleAr              string                                         `json:"compliance_status_title_ar"`
 	ComplianceStatusColorCode            string                                         `json:"compliance_status_color_code"`
@@ -95,12 +86,12 @@ type ComplianceRequirementByComplianceIDListResponseDTO struct {
 type ComplianceRequirementFormDTO struct {
 	//ComplianceClauseNo              string  `json:"compliance_clause_no" binding:"required"`
 	//ComplianceClauseTitle           string  `json:"compliance_clause_title" binding:"required"`
-	ComplianceClauseID              uint   `json:"compliance_clause_id" binding:"required"`
-	TitleEn                         string `json:"title_en" binding:"required"`
-	TitleAr                         string `json:"title_ar" binding:"required"`
-	ComplianceRequirementCategoryID uint   `json:"compliance_requirement_category_id" binding:"omitempty"`
-	SeverityLevelID                 uint   `json:"severity_level_id" binding:"omitempty"`
-	Deadline                        string `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
+	ComplianceClauseID              uint    `json:"compliance_clause_id" binding:"required"`
+	TitleEn                         string  `json:"title_en" binding:"required"`
+	TitleAr                         string  `json:"title_ar" binding:"required"`
+	ComplianceRequirementCategoryID *uint   `json:"compliance_requirement_category_id"`
+	SeverityLevelID                 *uint   `json:"severity_level_id"`
+	Deadline                        *string `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
 	// ComplianceStatusID              *uint   `json:"compliance_status_id"`
 	ControlIDs               []*uint `json:"control_ids"`
 	StrategicObjectiveIDs    []*uint `json:"strategic_objective_ids"`
@@ -121,7 +112,6 @@ type ComplianceRequirementDetailDTO struct {
 	ResponsibleUserID             uint                                             `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	ComplianceRequirementCategory ComplianceRequirementCategoryDTO                 `json:"compliance_requirement_category"`
 	SeverityLevel                 *masterDTOs.SeverityLevelDTO                     `json:"severity_level"`
-	ResponsibleUser               organizationDTOs.UserMinimalDTO                  `json:"responsible_user"`
 	DeadlineString                *string                                          `json:"deadline"`
 	CreatedAt                     time.Time                                        `json:"created_at"`
 	UpdatedAt                     *time.Time                                       `json:"updated_at"`
