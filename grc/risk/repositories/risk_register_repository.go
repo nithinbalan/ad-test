@@ -29,24 +29,24 @@ type RiskRegisterRepositoryInterface interface {
 
 	//Associated Items
 	CreateRiskComplianceRequirements(complianceRequirements []*models.RiskComplianceRequirement, tx ...utility.DatabaseTransaction) error
-	CreateRiskControls(controls []*models.RiskControl, tx ...utility.DatabaseTransaction) error
-	DeleteRiskControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
+	// CreateRiskControls(controls []*models.RiskControl, tx ...utility.DatabaseTransaction) error
+	// DeleteRiskControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteRiskComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error
-	CreateRiskProcesses(processes []*models.RiskProcess, tx ...utility.DatabaseTransaction) error
-	DeleteRiskProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
-	CreateRiskStrategicObjectives(strategicObjectives []*models.RiskStrategicObjective, tx ...utility.DatabaseTransaction) error
-	DeleteRiskStrategicObjectives(strategicObjectiveIds []*uint, tx ...utility.DatabaseTransaction) error
+	// CreateRiskProcesses(processes []*models.RiskProcess, tx ...utility.DatabaseTransaction) error
+	// DeleteRiskProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
+	// CreateRiskStrategicObjectives(strategicObjectives []*models.RiskStrategicObjective, tx ...utility.DatabaseTransaction) error
+	// DeleteRiskStrategicObjectives(strategicObjectiveIds []*uint, tx ...utility.DatabaseTransaction) error
 	CreateRiskSLAs(slaRegisters []*models.RiskSLA, tx ...utility.DatabaseTransaction) error
 	DeleteRiskSLAs(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error
 
-	CreateRiskDocuments(documents []*models.RiskAssociatedDocument, tx ...utility.DatabaseTransaction) error
-	DeleteRiskDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
+	// CreateRiskDocuments(documents []*models.RiskAssociatedDocument, tx ...utility.DatabaseTransaction) error
+	// DeleteRiskDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
 
-	CreateRiskAssets(assets []*models.RiskAsset, tx ...utility.DatabaseTransaction) error
-	DeleteRiskAssets(assetIds []*uint, tx ...utility.DatabaseTransaction) error
+	// CreateRiskAssets(assets []*models.RiskAsset, tx ...utility.DatabaseTransaction) error
+	// DeleteRiskAssets(assetIds []*uint, tx ...utility.DatabaseTransaction) error
 
-	CreateRiskThreats(threats []*models.RiskThreat, tx ...utility.DatabaseTransaction) error
-	DeleteRiskThreats(threatIDs []*uint, tx ...utility.DatabaseTransaction) error
+	// CreateRiskThreats(threats []*models.RiskThreat, tx ...utility.DatabaseTransaction) error
+	// DeleteRiskThreats(threatIDs []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetControlSummary(riskID uint, controlType string) ([]models.RiskControlAnalysis, error)
 
@@ -547,16 +547,16 @@ func (repo *RiskRegisterRepository) CreateRiskComplianceRequirements(complianceR
 	return nil
 }
 
-func (repo *RiskRegisterRepository) CreateRiskControls(controls []*models.RiskControl, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(&controls).Error; err != nil {
-		return err
-	}
-	return nil
-}
+// func (repo *RiskRegisterRepository) CreateRiskControls(controls []*models.RiskControl, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	if err := db.Create(&controls).Error; err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
 func (repo *RiskRegisterRepository) DeleteRiskComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
@@ -571,68 +571,68 @@ func (repo *RiskRegisterRepository) DeleteRiskComplianceRequirements(requirement
 	return nil
 }
 
-func (repo *RiskRegisterRepository) DeleteRiskControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
+// func (repo *RiskRegisterRepository) DeleteRiskControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
 
-	if err := db.Where("id IN (?)", controlIds).Delete(&models.RiskControl{}).Error; err != nil {
-		return err
-	}
+// 	if err := db.Where("id IN (?)", controlIds).Delete(&models.RiskControl{}).Error; err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (repo *RiskRegisterRepository) CreateRiskProcesses(processes []*models.RiskProcess, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(&processes).Error; err != nil {
-		return err
-	}
-	return nil
-}
+// func (repo *RiskRegisterRepository) CreateRiskProcesses(processes []*models.RiskProcess, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	if err := db.Create(&processes).Error; err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func (repo *RiskRegisterRepository) DeleteRiskProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
+// func (repo *RiskRegisterRepository) DeleteRiskProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
 
-	// Delete processes by IDs
-	if err := db.Where("id IN (?)", processIds).Delete(&models.RiskProcess{}).Error; err != nil {
-		return err
-	}
+// 	// Delete processes by IDs
+// 	if err := db.Where("id IN (?)", processIds).Delete(&models.RiskProcess{}).Error; err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (repo *RiskRegisterRepository) CreateRiskStrategicObjectives(strategicObjectives []*models.RiskStrategicObjective, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(&strategicObjectives).Error; err != nil {
-		return err
-	}
-	return nil
-}
+// func (repo *RiskRegisterRepository) CreateRiskStrategicObjectives(strategicObjectives []*models.RiskStrategicObjective, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	if err := db.Create(&strategicObjectives).Error; err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func (repo *RiskRegisterRepository) DeleteRiskStrategicObjectives(strategicObjectiveIds []*uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
+// func (repo *RiskRegisterRepository) DeleteRiskStrategicObjectives(strategicObjectiveIds []*uint, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
 
-	// Delete strategicObjectives by IDs
-	if err := db.Where("id IN (?)", strategicObjectiveIds).Delete(&models.RiskStrategicObjective{}).Error; err != nil {
-		return err
-	}
+// 	// Delete strategicObjectives by IDs
+// 	if err := db.Where("id IN (?)", strategicObjectiveIds).Delete(&models.RiskStrategicObjective{}).Error; err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func (repo *RiskRegisterRepository) CreateRiskSLAs(slaRegisters []*models.RiskSLA, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
@@ -659,29 +659,29 @@ func (repo *RiskRegisterRepository) DeleteRiskSLAs(slaRegisterIds []*uint, tx ..
 	return nil
 }
 
-func (repo *RiskRegisterRepository) CreateRiskDocuments(documents []*models.RiskAssociatedDocument, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(&documents).Error; err != nil {
-		return err
-	}
-	return nil
-}
+// func (repo *RiskRegisterRepository) CreateRiskDocuments(documents []*models.RiskAssociatedDocument, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	if err := db.Create(&documents).Error; err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func (repo *RiskRegisterRepository) DeleteRiskDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
+// func (repo *RiskRegisterRepository) DeleteRiskDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
 
-	if err := db.Where("id IN (?)", documentIds).Delete(&models.RiskAssociatedDocument{}).Error; err != nil {
-		return err
-	}
+// 	if err := db.Where("id IN (?)", documentIds).Delete(&models.RiskAssociatedDocument{}).Error; err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func (repo *RiskRegisterRepository) GetControlSummary(riskID uint, controlType string) ([]models.RiskControlAnalysis, error) {
 	var riskControlAnalyses []models.RiskControlAnalysis
@@ -700,52 +700,52 @@ func (repo *RiskRegisterRepository) GetControlSummary(riskID uint, controlType s
 	return riskControlAnalyses, nil
 }
 
-func (repo *RiskRegisterRepository) CreateRiskAssets(assets []*models.RiskAsset, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(&assets).Error; err != nil {
-		return err
-	}
-	return nil
-}
+// func (repo *RiskRegisterRepository) CreateRiskAssets(assets []*models.RiskAsset, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	if err := db.Create(&assets).Error; err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func (repo *RiskRegisterRepository) DeleteRiskAssets(assetIds []*uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
+// func (repo *RiskRegisterRepository) DeleteRiskAssets(assetIds []*uint, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
 
-	// Delete assets by IDs
-	if err := db.Where("id IN (?)", assetIds).Delete(&models.RiskAsset{}).Error; err != nil {
-		return err
-	}
+// 	// Delete assets by IDs
+// 	if err := db.Where("id IN (?)", assetIds).Delete(&models.RiskAsset{}).Error; err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (repo *RiskRegisterRepository) CreateRiskThreats(threats []*models.RiskThreat, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(&threats).Error; err != nil {
-		return err
-	}
-	return nil
-}
+// func (repo *RiskRegisterRepository) CreateRiskThreats(threats []*models.RiskThreat, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	if err := db.Create(&threats).Error; err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func (repo *RiskRegisterRepository) DeleteRiskThreats(threatIDs []*uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Where("id IN ?", threatIDs).Delete(&models.RiskThreat{}).Error; err != nil {
-		return err
-	}
-	return nil
-}
+// func (repo *RiskRegisterRepository) DeleteRiskThreats(threatIDs []*uint, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	if err := db.Where("id IN ?", threatIDs).Delete(&models.RiskThreat{}).Error; err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
 func (repo *RiskRegisterRepository) GetAllRiskTitles() ([]string, error) {
 	var titles []string
