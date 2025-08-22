@@ -59,6 +59,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		organizationModule.UserSvc,
 		organizationModule.UserSettingSvc,
 		organizationModule.ProcessAssociatedItemSvc,
+		commonModule.AssociatedItemValidationService,
 	)
 	businessFunctionController := controllers.NewBusinessFunctionController(businessFunctionSvc)
 

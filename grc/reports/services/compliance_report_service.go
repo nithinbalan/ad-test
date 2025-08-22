@@ -15,7 +15,6 @@ type ComplianceReportServiceInterface interface {
 	GetComplianceRequirementByComplianceStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByComplianceStatusDTO, error)
 	GetComplianceRequirementBySeverity(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementBySeverityLevelDTO, error)
 	GetComplianceRequirementByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByCategoryDTO, error)
-	GetComplianceRequirementByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByResponsibleUserDTO, error)
 
 	GetComplianceActionPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceActionPlanByStatusDTO, error)
 	GetComplianceActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceActionPlanByResponsibleUserDTO, error)
@@ -63,10 +62,6 @@ func (crs *ComplianceReportService) GetComplianceRequirementBySeverity(params *r
 
 func (crs *ComplianceReportService) GetComplianceRequirementByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByCategoryDTO, error) {
 	return crs.repo.GetComplianceRequirementByCategory(params)
-}
-
-func (crs *ComplianceReportService) GetComplianceRequirementByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByResponsibleUserDTO, error) {
-	return crs.repo.GetComplianceRequirementByResponsibleUser(params)
 }
 
 func (crs *ComplianceReportService) GetComplianceActionPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceActionPlanByStatusDTO, error) {

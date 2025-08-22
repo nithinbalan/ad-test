@@ -70,4 +70,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	libraryRoutes.GET("/vulnerability-library/category-count", VulnerabilityLibraryController.CountByCategory)
 
 	libraryRoutes.GET("/article-library", ArticleLibraryController.GetAll)
+	libraryRoutes.GET("/article-library/:id", ArticleLibraryController.GetArticleLibraryDetails)
 }

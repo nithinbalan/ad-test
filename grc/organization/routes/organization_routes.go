@@ -55,6 +55,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	userDocumentController := app.OrganizationModule.UserDocumentController
 	userJobDescriptionController := app.OrganizationModule.UserJobDescriptionController
 	userDelegationHistoryController := app.OrganizationModule.UserDelegationHistoryController
+	organizationStructureController := app.OrganizationModule.OrganizationStructureController
 
 	// Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
@@ -433,4 +434,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/users/:userId/user-delegate-history", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userDelegationHistoryController.GetUserDelegationHistory)
 	organizationRoutes.GET("/users/:userId/user-delegate-history/latest", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userDelegationHistoryController.GetLatestUserDelegation)
 
+	// organization structure
+	organizationRoutes.GET("/organization-structures", middlewares.RolePermissionMiddleware(db, "organization_structure", "view"), organizationStructureController.GetOrganizationStructure)
 }
