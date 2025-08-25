@@ -19,7 +19,7 @@ type TaskServiceInterface interface {
 	GetByID(id uint) (*models.Task, error)
 	GetByFieldID(field string, value interface{}) (*models.Task, error)
 	GetByResponsibleUserID(field string, value interface{}, responsibleUserID uint) (*models.Task, error)
-	GetAllTasksByResponsibleUserID(delegateeUserID uint, responsibleuserID uint) ([]*models.Task, error)
+	GetAllTasksByResponsibleUserID(responsibleuserID uint, delegateeUserID uint) ([]*models.Task, error)
 	GetModuleCountByTaskIDs(taskIDs []uint) (int, error)
 	Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(currentUserID uint, taskDTO commonDTOs.TaskFormDTO, fieldName string, id uint, tx ...utility.DatabaseTransaction) error
@@ -35,7 +35,7 @@ type TaskServiceInterface interface {
 	AuditDocumentRequestTaskUpdate(auditDocumentRequestID uint, userID uint, taskStatusType string, tx ...utility.DatabaseTransaction) (*models.Task, error)
 	UpdateActionPlanTaskStatus(field string, value interface{}, userID uint, taskStatusID uint, tx ...utility.DatabaseTransaction) (*models.Task, error)
 
-	UpdateDelegateeUser(taskID uint, DelegateeUserID uint, userID uint, tx ...utility.DatabaseTransaction) (*models.Task, error)
+	UpdateDelegateeUser(taskID uint, delegateeUserID *uint, userID uint, tx ...utility.DatabaseTransaction) (*models.Task, error)
 }
 
 type TaskService struct {
@@ -95,8 +95,8 @@ func (ts TaskService) GetByResponsibleUserID(field string, value interface{}, re
 	return task, nil
 }
 
-func (ts TaskService) GetAllTasksByResponsibleUserID(delegateeUserID uint, responsibleuserID uint) ([]*models.Task, error) {
-	tasks, err := ts.repo.GetAllTasksByResponsibleUserID(delegateeUserID, responsibleuserID)
+func (ts TaskService) GetAllTasksByResponsibleUserID(responsibleuserID uint, delegateeUserID uint) ([]*models.Task, error) {
+	tasks, err := ts.repo.GetAllTasksByResponsibleUserID(responsibleuserID, delegateeUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -352,14 +352,14 @@ func (ts *TaskService) UpdateActionPlanTaskStatus(field string, value interface{
 	return task, nil
 }
 
-func (ts *TaskService) UpdateDelegateeUser(taskID uint, DelegateeUserID uint, userID uint, tx ...utility.DatabaseTransaction) (*models.Task, error) {
+func (ts *TaskService) UpdateDelegateeUser(taskID uint, delegateeUserID *uint, userID uint, tx ...utility.DatabaseTransaction) (*models.Task, error) {
 
 	task, err := ts.repo.GetByID(taskID)
 	if err != nil {
 		return nil, err
 	}
 
-	task.DelegateeUserID = &DelegateeUserID
+	task.DelegateeUserID = delegateeUserID
 	task.UpdatedByID = userID
 
 	err = ts.repo.Update(task, tx...)

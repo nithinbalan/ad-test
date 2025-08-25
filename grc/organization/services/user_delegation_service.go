@@ -117,7 +117,7 @@ func (ushs *UserDelegationService) Create(currentUserID uint, userDelegationForm
 	}
 
 	for _, task := range userDelegationForm.TaskIDs {
-		_, err = ushs.taskSvc.UpdateDelegateeUser(task, userDelegationForm.DelegateeUserID, currentUserID, tx)
+		_, err = ushs.taskSvc.UpdateDelegateeUser(task, &userDelegationForm.DelegateeUserID, currentUserID, tx)
 		if err != nil {
 			return 0, err
 		}
@@ -169,24 +169,24 @@ func (ushs *UserDelegationService) GetLatestUserDelegation(userID uint) (*organi
 
 func (ushs *UserDelegationService) EndUserDelegation(userID uint, currentUserID uint) error {
 
-	oldUser, err := ushs.userSvc.GetByID(userID)
+	responsibleUser, err := ushs.userSvc.GetByID(userID)
 	if err != nil {
 		return err
 	}
 	tx := ushs.repo.BeginTransaction()
 
-	tasks, _ := ushs.taskSvc.GetAllTasksByResponsibleUserID(*oldUser.DelegateeUserID, userID)
+	tasks, _ := ushs.taskSvc.GetAllTasksByResponsibleUserID(userID, *responsibleUser.DelegateeUserID)
 
 	for _, task := range tasks {
-		_, err = ushs.taskSvc.UpdateDelegateeUser(task.ID, *oldUser.DelegateeUserID, currentUserID, tx)
+		_, err = ushs.taskSvc.UpdateDelegateeUser(task.ID, nil, currentUserID, tx)
 		if err != nil {
 			return err
 		}
 	}
 
-	oldUser.DelegateeUserID = nil
+	responsibleUser.DelegateeUserID = nil
 
-	if err := ushs.userSvc.UpdateDelegateeUser(oldUser, tx); err != nil {
+	if err := ushs.userSvc.UpdateDelegateeUser(responsibleUser, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
