@@ -26,7 +26,6 @@ type ComplianceRegisterRepositoryInterface interface {
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
 
-	CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	//Document
@@ -421,17 +420,6 @@ func (repo *ComplianceRegisterRepository) GenerateReferenceNumber() (string, err
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "CR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
-}
-
-func (repo *ComplianceRegisterRepository) CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(&controls).Error; err != nil {
-		return err
-	}
-	return nil
 }
 
 func (repo *ComplianceRegisterRepository) DeleteComplianceControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
