@@ -43,7 +43,7 @@ type ThreatActionPlanService struct {
 	userSettingSvc      organizationServices.UserSettingServiceInterface
 	userSvc             organizationServices.UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
-	delegateeUserSvc    commonServices.ActionPlanDelegateeUserserviceInterface
+	delegateeUserSvc    commonServices.DelegateeUserserviceInterface
 }
 
 func NewThreatActionPlanService(
@@ -55,7 +55,7 @@ func NewThreatActionPlanService(
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
-	delegateeUserSvc commonServices.ActionPlanDelegateeUserserviceInterface,
+	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
 ) ThreatActionPlanServiceInterface {
 	return &ThreatActionPlanService{
 		repo:                repo,

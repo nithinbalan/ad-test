@@ -6,22 +6,22 @@ import (
 	"gorm.io/gorm"
 )
 
-type ActionPlanDelegateeUserRepositoryInterface interface {
+type DelegateeUserRepositoryInterface interface {
 	GetUserByID(userID uint) (*models.User, error)
 	HasViewPermission(userID uint, moduleID uint) (bool, error)
 }
 
-type ActionPlanDelegateeUserRepository struct {
+type DelegateeUserRepository struct {
 	db *gorm.DB
 }
 
-func NewActionPlanDelegateeUserRepository(db *gorm.DB) *ActionPlanDelegateeUserRepository {
-	return &ActionPlanDelegateeUserRepository{
+func NewDelegateeUserRepository(db *gorm.DB) *DelegateeUserRepository {
+	return &DelegateeUserRepository{
 		db: db,
 	}
 }
 
-func (repo *ActionPlanDelegateeUserRepository) GetUserByID(userID uint) (*models.User, error) {
+func (repo *DelegateeUserRepository) GetUserByID(userID uint) (*models.User, error) {
 	var user *models.User
 
 	result := repo.db.First(&user, userID)
@@ -36,7 +36,7 @@ func (repo *ActionPlanDelegateeUserRepository) GetUserByID(userID uint) (*models
 	return user, nil
 }
 
-func (repo *ActionPlanDelegateeUserRepository) HasViewPermission(userID uint, moduleID uint) (bool, error) {
+func (repo *DelegateeUserRepository) HasViewPermission(userID uint, moduleID uint) (bool, error) {
 	var count int64
 
 	err := repo.db.Table("user_roles ur").

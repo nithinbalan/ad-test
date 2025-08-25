@@ -5,26 +5,26 @@ import (
 	settingService "jethur/grc/settings/services"
 )
 
-type ActionPlanDelegateeUserserviceInterface interface {
+type DelegateeUserserviceInterface interface {
 	AssignDelegateeIfPermitted(responsibleUserID uint, moduleIdentifier string) (*uint, error)
 }
 
-type ActionPlanDelegateeUserservice struct {
-	repo      repositories.ActionPlanDelegateeUserRepositoryInterface
+type DelegateeUserservice struct {
+	repo      repositories.DelegateeUserRepositoryInterface
 	moduleSvc settingService.ModuleServiceInterface
 }
 
-func NewActionPlanDelegateeUserservice(
-	repo repositories.ActionPlanDelegateeUserRepositoryInterface,
+func NewDelegateeUserservice(
+	repo repositories.DelegateeUserRepositoryInterface,
 	moduleSvc settingService.ModuleServiceInterface,
-) ActionPlanDelegateeUserserviceInterface {
-	return &ActionPlanDelegateeUserservice{
+) DelegateeUserserviceInterface {
+	return &DelegateeUserservice{
 		repo:      repo,
 		moduleSvc: moduleSvc,
 	}
 }
 
-func (taps *ActionPlanDelegateeUserservice) AssignDelegateeIfPermitted(responsibleUserID uint, moduleIdentifier string) (*uint, error) {
+func (taps *DelegateeUserservice) AssignDelegateeIfPermitted(responsibleUserID uint, moduleIdentifier string) (*uint, error) {
 	// Step 1: Get Responsible User
 	responsibleUser, err := taps.repo.GetUserByID(responsibleUserID)
 	if err != nil {

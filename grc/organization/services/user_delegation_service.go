@@ -20,6 +20,7 @@ type UserDelegationServiceInterface interface {
 	Create(currentUserID uint, userDelegationForm *organizationDTOs.UserDelegationFormDTO) (uint, error)
 
 	GetLatestUserDelegation(userID uint) (*organizationDTOs.UserDelegationHistoryListDTO, error)
+	EndUserDelegation(userID uint, currentUserID uint) error
 }
 
 type UserDelegationService struct {
@@ -122,6 +123,16 @@ func (ushs *UserDelegationService) Create(currentUserID uint, userDelegationForm
 		}
 	}
 
+	tables := []string{
+		"threat_action_plans",
+		"vulnerability_action_plans",
+	}
+
+	if err := ushs.repo.UpdateActionPlanDelegationUser(userDelegationForm.UserID, tables, &userDelegationForm.DelegateeUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 	go func() {
 
@@ -154,4 +165,45 @@ func (ushs *UserDelegationService) GetLatestUserDelegation(userID uint) (*organi
 	}
 
 	return ushs.repo.GetLatestUserDelegation(userID)
+}
+
+func (ushs *UserDelegationService) EndUserDelegation(userID uint, currentUserID uint) error {
+	_, err := ushs.userSvc.GetByID(userID)
+	if err != nil {
+		return err
+	}
+	oldUser, err := ushs.userSvc.GetByID(userID)
+	if err != nil {
+		return err
+	}
+	tx := ushs.repo.BeginTransaction()
+
+	tasks, _ := ushs.taskSvc.GetAllTasksByResponsibleUserID(*oldUser.DelegateeUserID, userID)
+
+	for _, task := range tasks {
+		_, err = ushs.taskSvc.UpdateDelegateeUser(task.ID, *oldUser.DelegateeUserID, currentUserID, tx)
+		if err != nil {
+			return err
+		}
+	}
+
+	oldUser.DelegateeUserID = nil
+
+	if err := ushs.userSvc.UpdateDelegateeUser(oldUser, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tables := []string{
+		"threat_action_plans",
+		"vulnerability_action_plans",
+	}
+
+	if err := ushs.repo.UpdateActionPlanDelegationUser(userID, tables, nil, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+	return nil
 }
