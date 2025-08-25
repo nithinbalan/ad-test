@@ -22,13 +22,7 @@ type IncidentRegisterRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber() (string, error)
 	CreateIncidentComplianceRequirements(complianceRequirements []*models.IncidentComplianceRequirement, tx ...utility.DatabaseTransaction) error
-	// CreateIncidentControls(controls []*models.IncidentControl, tx ...utility.DatabaseTransaction) error
-	// DeleteIncidentControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error
-	// CreateIncidentRisks(risks []*models.IncidentRisk, tx ...utility.DatabaseTransaction) error
-	// DeleteIncidentRisks(riskIds []*uint, tx ...utility.DatabaseTransaction) error
-	// CreateIncidentProcesses(processes []*models.IncidentProcess, tx ...utility.DatabaseTransaction) error
-	// DeleteIncidentProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	//Document
 	CreateDocuments(docs []*models.IncidentDocument, tx ...utility.DatabaseTransaction) error
@@ -40,9 +34,6 @@ type IncidentRegisterRepositoryInterface interface {
 
 	CreateIncidentDocuments(documents []*models.IncidentAssociatedDocument, tx ...utility.DatabaseTransaction) error
 	DeleteIncidentDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
-
-	// CreateIncidentAssets(assets []*models.IncidentAsset, tx ...utility.DatabaseTransaction) error
-	// DeleteIncidentAssets(assetIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentRegisterRepository struct {
@@ -528,28 +519,3 @@ func (repo *IncidentRegisterRepository) DeleteIncidentDocuments(documentIds []*u
 
 	return nil
 }
-
-// func (repo *IncidentRegisterRepository) CreateIncidentAssets(assets []*models.IncidentAsset, tx ...utility.DatabaseTransaction) error {
-// 	db := repo.db
-// 	if len(tx) > 0 && tx[0] != nil {
-// 		db = tx[0].DB()
-// 	}
-// 	if err := db.Create(&assets).Error; err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
-// func (repo *IncidentRegisterRepository) DeleteIncidentAssets(assetIds []*uint, tx ...utility.DatabaseTransaction) error {
-// 	db := repo.db
-// 	if len(tx) > 0 && tx[0] != nil {
-// 		db = tx[0].DB()
-// 	}
-
-// 	// Delete assets by IDs
-// 	if err := db.Where("id IN (?)", assetIds).Delete(&models.IncidentAsset{}).Error; err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }

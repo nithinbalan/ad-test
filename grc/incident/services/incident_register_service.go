@@ -764,58 +764,6 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		if err != nil {
 			return
 		}
-		// Determine control and document changes
-		// controlsAdded := []uint{}
-		// controlsRemoved := []uint{}
-		// for id := range newControlIDs {
-		// 	if !existingControlIDs[id] {
-		// 		controlsAdded = append(controlsAdded, id)
-		// 	}
-		// }
-		// for id := range existingControlIDs {
-		// 	if !newControlIDs[id] {
-		// 		controlsRemoved = append(controlsRemoved, id)
-		// 	}
-		// }
-
-		// processesAdded := []uint{}
-		// processesRemoved := []uint{}
-		// for id := range newProcessIDs {
-		// 	if !existingProcessIDs[id] {
-		// 		processesAdded = append(processesAdded, id)
-		// 	}
-		// }
-		// for id := range existingProcessIDs {
-		// 	if !newProcessIDs[id] {
-		// 		processesRemoved = append(processesRemoved, id)
-		// 	}
-		// }
-
-		// risksAdded := []uint{}
-		// risksRemoved := []uint{}
-		// for id := range newRiskIDs {
-		// 	if !existingRiskIDs[id] {
-		// 		risksAdded = append(risksAdded, id)
-		// 	}
-		// }
-		// for id := range existingRiskIDs {
-		// 	if !newRiskIDs[id] {
-		// 		risksRemoved = append(risksRemoved, id)
-		// 	}
-		// }
-
-		// assetsAdded := []uint{}
-		// assetsRemoved := []uint{}
-		// for id := range newAssetIDs {
-		// 	if !existingAssetIDs[id] {
-		// 		assetsAdded = append(assetsAdded, id)
-		// 	}
-		// }
-		// for id := range existingAssetIDs {
-		// 	if !newAssetIDs[id] {
-		// 		assetsRemoved = append(assetsRemoved, id)
-		// 	}
-		// }
 
 		complianceRequirementsAdded := []uint{}
 		complianceRequirementsRemoved := []uint{}
