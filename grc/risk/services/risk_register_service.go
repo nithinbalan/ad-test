@@ -276,59 +276,6 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			return 0, err
 		}
 	}
-	// Save Controls
-	// var controls []*models.RiskControl
-	// for _, controlID := range riskRegisterFormDTO.ControlIDs {
-	// 	control := &models.RiskControl{
-	// 		RiskRegisterID: id,
-	// 		ControlID:      *controlID,
-	// 		CreatedByID:    currentUserID,
-	// 	}
-	// 	controls = append(controls, control)
-	// }
-
-	// if len(controls) > 0 {
-	// 	if err := rrs.repo.CreateRiskControls(controls, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return 0, err
-	// 	}
-	// }
-
-	// // Save Processes
-	// var processes []*models.RiskProcess
-	// for _, processID := range riskRegisterFormDTO.ProcessIDs {
-	// 	process := &models.RiskProcess{
-	// 		RiskRegisterID: id,
-	// 		ProcessID:      *processID,
-	// 		CreatedByID:    currentUserID,
-	// 	}
-	// 	processes = append(processes, process)
-	// }
-
-	// if len(processes) > 0 {
-	// 	if err := rrs.repo.CreateRiskProcesses(processes, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return 0, err
-	// 	}
-	// }
-
-	// // Add Strategic Objectives
-	// var strategicObjectives []*models.RiskStrategicObjective
-	// for _, strategicObjectiveID := range riskRegisterFormDTO.StrategicObjectiveIDs {
-	// 	strategicObjective := &models.RiskStrategicObjective{
-	// 		RiskRegisterID:       id,
-	// 		StrategicObjectiveID: *strategicObjectiveID,
-	// 		CreatedByID:          currentUserID,
-	// 	}
-	// 	strategicObjectives = append(strategicObjectives, strategicObjective)
-	// }
-
-	// if len(strategicObjectives) > 0 {
-	// 	if err := rrs.repo.CreateRiskStrategicObjectives(strategicObjectives, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return 0, err
-	// 	}
-	// }
 
 	// Add SLA Register
 	var slaRegisters []*models.RiskSLA
@@ -347,57 +294,6 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			return 0, err
 		}
 	}
-
-	// var associatedDocs []*models.RiskAssociatedDocument
-	// for _, documentID := range riskRegisterFormDTO.DocumentIds {
-	// 	document := &models.RiskAssociatedDocument{
-	// 		RiskRegisterID: id,
-	// 		DocumentID:     *documentID,
-	// 		CreatedByID:    currentUserID,
-	// 	}
-	// 	associatedDocs = append(associatedDocs, document)
-	// }
-
-	// if len(associatedDocs) > 0 {
-	// 	if err := rrs.repo.CreateRiskDocuments(associatedDocs, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return 0, err
-	// 	}
-	// }
-
-	// var assets []*models.RiskAsset
-	// for _, ast := range riskRegisterFormDTO.AssetIds {
-	// 	asset := &models.RiskAsset{
-	// 		RiskRegisterID:  id,
-	// 		AssetRegisterID: *ast,
-	// 		CreatedByID:     currentUserID,
-	// 	}
-	// 	assets = append(assets, asset)
-	// }
-
-	// if len(assets) > 0 {
-	// 	if err := rrs.repo.CreateRiskAssets(assets, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return 0, err
-	// 	}
-	// }
-
-	// var threats []*models.RiskThreat
-	// for _, threatID := range riskRegisterFormDTO.ThreatIds {
-	// 	threat := &models.RiskThreat{
-	// 		RiskRegisterID: id,
-	// 		ThreatID:       *threatID,
-	// 		CreatedByID:    currentUserID,
-	// 	}
-	// 	threats = append(threats, threat)
-	// }
-
-	// if len(threats) > 0 {
-	// 	if err := rrs.repo.CreateRiskThreats(threats, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return 0, err
-	// 	}
-	// }
 
 	// Add timeline
 	// todo
@@ -774,50 +670,6 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		return err
 	}
 
-	// existingControlIDs := make(map[uint]bool)
-	// for _, ctrl := range existingRisk.Controls {
-	// 	existingControlIDs[ctrl.ControlID] = true
-	// }
-
-	// newControlIDs := make(map[uint]bool)
-	// for _, ctrl := range riskRegisterFormDTO.ControlIDs {
-	// 	newControlIDs[*ctrl] = true
-	// }
-
-	// var controlsToAdd []*models.RiskControl
-	// for _, newControlID := range riskRegisterFormDTO.ControlIDs {
-	// 	if _, exists := existingControlIDs[*newControlID]; !exists {
-	// 		control := &models.RiskControl{
-	// 			RiskRegisterID: id,
-	// 			ControlID:      *newControlID,
-	// 			CreatedByID:    currentUserID,
-	// 		}
-	// 		controlsToAdd = append(controlsToAdd, control)
-	// 	}
-	// }
-
-	// if len(controlsToAdd) > 0 {
-	// 	if err := rrs.repo.CreateRiskControls(controlsToAdd, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-	// }
-
-	// var deleteControlIDs []*uint
-
-	// for _, existingControl := range existingRisk.Controls {
-	// 	if _, exists := newControlIDs[existingControl.ControlID]; !exists {
-	// 		deleteControlIDs = append(deleteControlIDs, existingControl.ID)
-	// 	}
-	// }
-
-	// if len(deleteControlIDs) > 0 {
-	// 	if err := rrs.repo.DeleteRiskControls(deleteControlIDs, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-	// }
-
 	existingComplianceRequirementIDs := make(map[uint]bool)
 	for _, req := range existingRisk.ComplianceRequirements {
 		existingComplianceRequirementIDs[req.ComplianceRequirementID] = true
@@ -873,57 +725,6 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		}
 	}
 
-	// existingProcessIDs := make(map[uint]bool)
-	// for _, proc := range existingRisk.Processes {
-	// 	existingProcessIDs[proc.ProcessID] = true
-	// }
-
-	// // Collect new process IDs
-	// newProcessIDs := make(map[uint]bool)
-	// for _, proc := range riskRegisterFormDTO.ProcessIDs {
-	// 	newProcessIDs[*proc] = true
-	// }
-
-	// // Add new processes
-	// var processesToAdd []*models.RiskProcess
-	// for _, newProcessID := range riskRegisterFormDTO.ProcessIDs {
-	// 	if _, exists := existingProcessIDs[*newProcessID]; !exists {
-	// 		// Create a new risk process record
-	// 		process := &models.RiskProcess{
-	// 			RiskRegisterID: id,
-	// 			ProcessID:      *newProcessID,
-	// 			CreatedByID:    currentUserID,
-	// 		}
-	// 		processesToAdd = append(processesToAdd, process)
-	// 	}
-	// }
-
-	// // Save the new processes
-	// if len(processesToAdd) > 0 {
-	// 	if err := rrs.repo.CreateRiskProcesses(processesToAdd, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-	// }
-
-	// // Remove processes not in the new list
-	// var deleteProcessIDs []*uint
-
-	// for _, existingProcess := range existingRisk.Processes {
-	// 	if _, exists := newProcessIDs[existingProcess.ProcessID]; !exists {
-	// 		// Append process to delete list
-	// 		deleteProcessIDs = append(deleteProcessIDs, existingProcess.ID)
-	// 	}
-	// }
-
-	// // Delete processes not in the new list
-	// if len(deleteProcessIDs) > 0 {
-	// 	if err := rrs.repo.DeleteRiskProcesses(deleteProcessIDs, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-	// }
-
 	existingSLARegisterIDs := make(map[uint]bool)
 	for _, sla := range existingRisk.SLARegisters {
 		existingSLARegisterIDs[sla.SLARegisterID] = true
@@ -974,208 +775,6 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			return err
 		}
 	}
-	// Update Strategic Objectives
-	// existingStrategicObjectiveIDs := make(map[uint]bool)
-	// for _, obj := range existingRisk.StrategicObjectives {
-	// 	existingStrategicObjectiveIDs[obj.StrategicObjectiveID] = true
-	// }
-
-	// // Collect new strategic objective IDs
-	// newStrategicObjectiveIDs := make(map[uint]bool)
-	// for _, obj := range riskRegisterFormDTO.StrategicObjectiveIDs {
-	// 	newStrategicObjectiveIDs[*obj] = true
-	// }
-
-	// // Add new strategic objectives
-	// var strategicObjectivesToAdd []*models.RiskStrategicObjective
-	// for _, newStrategicObjectiveID := range riskRegisterFormDTO.StrategicObjectiveIDs {
-	// 	if _, exists := existingStrategicObjectiveIDs[*newStrategicObjectiveID]; !exists {
-	// 		// Create a new risk strategic objective record
-	// 		strategicObjective := &models.RiskStrategicObjective{
-	// 			RiskRegisterID:       id,
-	// 			StrategicObjectiveID: *newStrategicObjectiveID,
-	// 			CreatedByID:          currentUserID,
-	// 		}
-	// 		strategicObjectivesToAdd = append(strategicObjectivesToAdd, strategicObjective)
-	// 	}
-	// }
-
-	// // Save the new strategic objectives
-	// if len(strategicObjectivesToAdd) > 0 {
-	// 	if err := rrs.repo.CreateRiskStrategicObjectives(strategicObjectivesToAdd, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-	// }
-
-	// // Remove strategic objectives not in the new list
-	// var deleteStrategicObjectiveIDs []*uint
-
-	// for _, existingStrategicObjective := range existingRisk.StrategicObjectives {
-	// 	if _, exists := newStrategicObjectiveIDs[existingStrategicObjective.StrategicObjectiveID]; !exists {
-	// 		// Append strategic objective to delete list
-	// 		deleteStrategicObjectiveIDs = append(deleteStrategicObjectiveIDs, existingStrategicObjective.ID)
-	// 	}
-	// }
-
-	// // Delete strategic objectives not in the new list
-	// if len(deleteStrategicObjectiveIDs) > 0 {
-	// 	if err := rrs.repo.DeleteRiskStrategicObjectives(deleteStrategicObjectiveIDs, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-	// }
-
-	// existingDocumentIDs := make(map[uint]bool)
-	// for _, doc := range existingRisk.AssociatedDocuments {
-	// 	existingDocumentIDs[doc.DocumentID] = true
-	// }
-
-	// // Collect new document IDs
-	// newDocumentIDs := make(map[uint]bool)
-	// for _, doc := range riskRegisterFormDTO.DocumentIds {
-	// 	newDocumentIDs[*doc] = true
-	// }
-
-	// // Add new documents
-	// var documentsToAdd []*models.RiskAssociatedDocument
-	// for _, newDocumentID := range riskRegisterFormDTO.DocumentIds {
-	// 	if _, exists := existingDocumentIDs[*newDocumentID]; !exists {
-	// 		// Create a new risk document record
-	// 		document := &models.RiskAssociatedDocument{
-	// 			RiskRegisterID: id,
-	// 			DocumentID:     *newDocumentID,
-	// 			CreatedByID:    currentUserID,
-	// 		}
-	// 		documentsToAdd = append(documentsToAdd, document)
-	// 	}
-	// }
-
-	// // Save the new documents
-	// if len(documentsToAdd) > 0 {
-	// 	if err := rrs.repo.CreateRiskDocuments(documentsToAdd, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-	// }
-
-	// // Remove documents not in the new list
-	// var deleteDocumentIDs []*uint
-
-	// for _, existingDocument := range existingRisk.AssociatedDocuments {
-	// 	if _, exists := newDocumentIDs[existingDocument.DocumentID]; !exists {
-	// 		// Append document to delete list
-	// 		deleteDocumentIDs = append(deleteDocumentIDs, existingDocument.ID)
-	// 	}
-	// }
-
-	// // Delete documents not in the new list
-	// if len(deleteDocumentIDs) > 0 {
-	// 	if err := rrs.repo.DeleteRiskDocuments(deleteDocumentIDs, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-	// }
-
-	// existingAssetIDs := make(map[uint]bool)
-	// for _, asset := range existingRisk.Assets {
-	// 	existingAssetIDs[asset.AssetRegisterID] = true
-	// }
-
-	// // Collect new asset IDs
-	// newAssetIDs := make(map[uint]bool)
-	// for _, assetID := range riskRegisterFormDTO.AssetIds {
-	// 	newAssetIDs[*assetID] = true
-	// }
-
-	// // Add new assets
-	// var assetsToAdd []*models.RiskAsset
-	// for _, newAssetID := range riskRegisterFormDTO.AssetIds {
-	// 	if _, exists := existingAssetIDs[*newAssetID]; !exists {
-	// 		// Create a new risk asset record
-	// 		asset := &models.RiskAsset{
-	// 			RiskRegisterID:  id,
-	// 			AssetRegisterID: *newAssetID,
-	// 			CreatedByID:     currentUserID,
-	// 		}
-	// 		assetsToAdd = append(assetsToAdd, asset)
-	// 	}
-	// }
-
-	// // Save the new assets
-	// if len(assetsToAdd) > 0 {
-	// 	if err := rrs.repo.CreateRiskAssets(assetsToAdd, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-	// }
-
-	// // Remove assets not in the new list
-	// var deleteAssetIDs []*uint
-	// for _, existingAsset := range existingRisk.Assets {
-	// 	if _, exists := newAssetIDs[existingAsset.AssetRegisterID]; !exists {
-	// 		// Append asset ID to delete list
-	// 		deleteAssetIDs = append(deleteAssetIDs, existingAsset.ID)
-	// 	}
-	// }
-
-	// // Delete assets not in the new list
-	// if len(deleteAssetIDs) > 0 {
-	// 	if err := rrs.repo.DeleteRiskAssets(deleteAssetIDs, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-	// }
-
-	// existingThreatIDs := make(map[uint]bool)
-	// for _, threat := range existingRisk.Threats {
-	// 	existingThreatIDs[threat.ThreatID] = true
-	// }
-
-	// // Collect new threat IDs
-	// newThreatIDs := make(map[uint]bool)
-	// for _, threatID := range riskRegisterFormDTO.ThreatIds {
-	// 	newThreatIDs[*threatID] = true
-	// }
-
-	// // Add new threats
-	// var threatsToAdd []*models.RiskThreat
-	// for _, newThreatID := range riskRegisterFormDTO.ThreatIds {
-	// 	if _, exists := existingThreatIDs[*newThreatID]; !exists {
-	// 		// Create a new risk threat record
-	// 		threat := &models.RiskThreat{
-	// 			RiskRegisterID: id,
-	// 			ThreatID:       *newThreatID,
-	// 			CreatedByID:    currentUserID,
-	// 		}
-	// 		threatsToAdd = append(threatsToAdd, threat)
-	// 	}
-	// }
-
-	// // Save the new threats
-	// if len(threatsToAdd) > 0 {
-	// 	if err := rrs.repo.CreateRiskThreats(threatsToAdd, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-	// }
-
-	// // Remove threats not in the new list
-	// var deleteThreatIDs []*uint
-	// for _, existingThreat := range existingRisk.Threats {
-	// 	if _, exists := newThreatIDs[existingThreat.ThreatID]; !exists {
-	// 		// Append threat ID to delete list
-	// 		deleteThreatIDs = append(deleteThreatIDs, existingThreat.ID)
-	// 	}
-	// }
-
-	// // Delete threats not in the new list
-	// if len(deleteThreatIDs) > 0 {
-	// 	if err := rrs.repo.DeleteRiskThreats(deleteThreatIDs, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-	// }
 
 	// Save Documents
 	// documents update
@@ -1262,33 +861,6 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 	tx.Commit()
 
 	go func() {
-		// Determine control, process, compliant register, sla register, asset and document changes
-		// controlsAdded := []uint{}
-		// controlsRemoved := []uint{}
-		// for id := range newControlIDs {
-		// 	if !existingControlIDs[id] {
-		// 		controlsAdded = append(controlsAdded, id)
-		// 	}
-		// }
-		// for id := range existingControlIDs {
-		// 	if !newControlIDs[id] {
-		// 		controlsRemoved = append(controlsRemoved, id)
-		// 	}
-		// }
-
-		// processesAdded := []uint{}
-		// processesRemoved := []uint{}
-		// for id := range newProcessIDs {
-		// 	if !existingProcessIDs[id] {
-		// 		processesAdded = append(processesAdded, id)
-		// 	}
-		// }
-		// for id := range existingProcessIDs {
-		// 	if !newProcessIDs[id] {
-		// 		processesRemoved = append(processesRemoved, id)
-		// 	}
-		// }
-
 		compliantRequirementAdded := []uint{}
 		compliantRequirementRemoved := []uint{}
 		for id := range newComplianceRequirementIDs {
@@ -1315,49 +887,9 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			}
 		}
 
-		// AssetAdded := []uint{}
-		// AssetRemoved := []uint{}
-		// for id := range newAssetIDs {
-		// 	if !existingAssetIDs[id] {
-		// 		AssetAdded = append(AssetAdded, id)
-		// 	}
-		// }
-		// for id := range existingAssetIDs {
-		// 	if !newAssetIDs[id] {
-		// 		AssetRemoved = append(AssetRemoved, id)
-		// 	}
-		// }
-
-		// documentsAdded := []uint{}
-		// documentsRemoved := []uint{}
-		// for id := range newDocumentIDs {
-		// 	if !existingDocumentIDs[id] {
-		// 		documentsAdded = append(documentsAdded, id)
-		// 	}
-		// }
-		// for id := range existingDocumentIDs {
-		// 	if !newDocumentIDs[id] {
-		// 		documentsRemoved = append(documentsRemoved, id)
-		// 	}
-		// }
-
 		// Prepare log data
 		changedData := make(map[string]interface{})
 		associatedItems := make(map[string]interface{})
-
-		// if len(controlsAdded) > 0 || len(controlsRemoved) > 0 {
-		// 	associatedItems["control_ids"] = map[string]interface{}{
-		// 		"added":   controlsAdded,
-		// 		"removed": controlsRemoved,
-		// 	}
-		// }
-
-		// if len(processesAdded) > 0 || len(processesRemoved) > 0 {
-		// 	associatedItems["process_ids"] = map[string]interface{}{
-		// 		"added":   processesAdded,
-		// 		"removed": processesRemoved,
-		// 	}
-		// }
 
 		if len(compliantRequirementAdded) > 0 || len(compliantRequirementRemoved) > 0 {
 			associatedItems["compliance_requirement_ids"] = map[string]interface{}{
@@ -1373,23 +905,6 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			}
 		}
 
-		// if len(AssetAdded) > 0 || len(AssetRemoved) > 0 {
-		// 	associatedItems["asset_ids"] = map[string]interface{}{
-		// 		"added":   AssetAdded,
-		// 		"removed": AssetRemoved,
-		// 	}
-		// }
-
-		// if len(documentsAdded) > 0 || len(documentsRemoved) > 0 {
-		// 	associatedItems["document_ids"] = map[string]interface{}{
-		// 		"added":   documentsAdded,
-		// 		"removed": documentsRemoved,
-		// 	}
-		// }
-
-		// if len(associatedItems) > 0 {
-		// 	changedData["associated_items"] = associatedItems
-		// }
 		// log changes
 		oldData := map[string]interface{}{
 			"title":            oldRiskRegister.Title,
@@ -1607,17 +1122,6 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 			"id":    id,
 			"title": risk.Title,
 		})
-		// // Check if controls exist
-		// if len(risk.Controls) > 0 {
-		// 	var deleteControlIDs []*uint
-		// 	for _, ctrl := range risk.Controls {
-		// 		deleteControlIDs = append(deleteControlIDs, ctrl.ID)
-		// 	}
-		// 	if err := rrs.repo.DeleteRiskControls(deleteControlIDs, tx); err != nil {
-		// 		failedIds = append(failedIds, id)
-		// 		continue
-		// 	}
-		// }
 
 		// Delete each compliance requirement if requirements exist
 		if len(risk.ComplianceRequirements) > 0 {
@@ -1632,17 +1136,6 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 
 		}
 
-		// Check if controls exist
-		// if len(risk.Processes) > 0 {
-		// 	var deleteProcessIDs []*uint
-		// 	for _, process := range risk.Processes {
-		// 		deleteProcessIDs = append(deleteProcessIDs, process.ID)
-		// 	}
-		// 	if err := rrs.repo.DeleteRiskProcesses(deleteProcessIDs, tx); err != nil {
-		// 		failedIds = append(failedIds, id)
-		// 		continue
-		// 	}
-		// }
 		if len(risk.SLARegisters) > 0 {
 			var deleteSLARegisterIDs []*uint
 			for _, sla := range risk.SLARegisters {
@@ -1653,49 +1146,6 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				continue
 			}
 		}
-		// if len(risk.StrategicObjectives) > 0 {
-		// 	var deleteStrategicObjectiveIds []*uint
-		// 	for _, obj := range risk.StrategicObjectives {
-		// 		deleteStrategicObjectiveIds = append(deleteStrategicObjectiveIds, obj.ID)
-		// 	}
-		// 	if err := rrs.repo.DeleteRiskStrategicObjectives(deleteStrategicObjectiveIds, tx); err != nil {
-		// 		failedIds = append(failedIds, id)
-		// 		continue
-		// 	}
-		// }
-
-		// if len(risk.AssociatedDocuments) > 0 {
-		// 	var deleteDocumentIds []*uint
-		// 	for _, document := range risk.AssociatedDocuments {
-		// 		deleteDocumentIds = append(deleteDocumentIds, document.ID)
-		// 	}
-		// 	if err := rrs.repo.DeleteRiskDocuments(deleteDocumentIds, tx); err != nil {
-		// 		failedIds = append(failedIds, id)
-		// 		continue
-		// 	}
-		// }
-
-		// if len(risk.Assets) > 0 {
-		// 	var deleteAssetIds []*uint
-		// 	for _, ast := range risk.Assets {
-		// 		deleteAssetIds = append(deleteAssetIds, ast.ID)
-		// 	}
-		// 	if err := rrs.repo.DeleteRiskAssets(deleteAssetIds, tx); err != nil {
-		// 		failedIds = append(failedIds, id)
-		// 		continue
-		// 	}
-		// }
-
-		// if len(risk.Threats) > 0 {
-		// 	var deleteThreatIds []*uint
-		// 	for _, threat := range risk.Threats {
-		// 		deleteThreatIds = append(deleteThreatIds, threat.ID)
-		// 	}
-		// 	if err := rrs.repo.DeleteRiskThreats(deleteThreatIds, tx); err != nil {
-		// 		failedIds = append(failedIds, id)
-		// 		continue
-		// 	}
-		// }
 
 		// Delete timeline
 		// todo
