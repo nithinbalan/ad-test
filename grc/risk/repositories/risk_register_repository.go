@@ -375,18 +375,11 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("ReviewFrequency").
 		Preload("RiskStatus").
 		Preload("Documents").
-		Preload("Controls").
-		Preload("Controls.Control.ControlCategory").
-		Preload("Controls.Control.ControlType").
 		Preload("ComplianceRequirements").
 		Preload("ComplianceRequirements.ComplianceRequirement").
-		Preload("Processes").
-		Preload("StrategicObjectives").
 		Preload("SLARegisters").
 		Preload("KRIs").
-		Preload("AssociatedDocuments").
 		Preload("Assets").
-		Preload("Threats").
 		Preload("CurrentLikelihood").
 		Preload("CurrentImpact").
 		Preload("CurrentRiskRating").
@@ -585,16 +578,6 @@ func (repo *RiskRegisterRepository) GetControlSummary(riskID uint, controlType s
 
 	return riskControlAnalyses, nil
 }
-
-// 	db := repo.db
-// 	if len(tx) > 0 && tx[0] != nil {
-// 		db = tx[0].DB()
-// 	}
-// 	if err := db.Where("id IN ?", threatIDs).Delete(&models.RiskThreat{}).Error; err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
 
 func (repo *RiskRegisterRepository) GetAllRiskTitles() ([]string, error) {
 	var titles []string
