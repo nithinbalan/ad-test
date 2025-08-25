@@ -23,6 +23,7 @@ type AssetRegisterRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 
 	GenerateReferenceNumber() (string, error)
+	DeleteAssetControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetControlSummary(assetID uint) ([]models.AssetControl, error)
 	CreateAssetDocuments(documents []*models.AssetDocument, tx ...utility.DatabaseTransaction) error
@@ -213,6 +214,7 @@ func (repo *AssetRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.D
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("ResponsibleUnit").
+		Preload("Controls").
 		Preload("AssetCriticalityMatrixRatingScale").
 		Preload("AssetCriticalityMatrix").
 		Preload("Documents").
@@ -279,6 +281,20 @@ func (repo *AssetRegisterRepository) GenerateReferenceNumber() (string, error) {
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "AST", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
+}
+
+func (repo *AssetRegisterRepository) DeleteAssetControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Delete controls by IDs
+	if err := db.Where("id IN (?)", controlIds).Delete(&models.AssetControl{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (repo *AssetRegisterRepository) GetControlSummary(assetID uint) ([]models.AssetControl, error) {
