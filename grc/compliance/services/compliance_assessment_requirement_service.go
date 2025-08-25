@@ -86,16 +86,18 @@ func (cars *ComplianceAssessmentRequirementService) GetAllClauses(assessmentID u
 	if err != nil {
 		return nil, err
 	}
-
 	// If no clauses are found, return an empty slice
 	if len(clauses) == 0 {
 		return []*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO{}, nil
 	}
-
-	return cars.buildHierarchicalClauseStructure(clauses)
+	countsMap, err := cars.repo.GetClauseRequirementCounts(assessmentID)
+	if err != nil {
+		return nil, err
+	}
+	return cars.buildHierarchicalClauseStructure(clauses, countsMap)
 
 }
-func (cars *ComplianceAssessmentRequirementService) buildHierarchicalClauseStructure(clauses []*models.ComplianceClause) ([]*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO, error) {
+func (cars *ComplianceAssessmentRequirementService) buildHierarchicalClauseStructure(clauses []*models.ComplianceClause, countMap map[uint]complianceDTOs.ClauseRequirementCountDTO) ([]*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO, error) {
 	// Build a proper hierarchy by filtering out child clauses from the root level
 	var rootClauses []*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO
 	clauseMap := make(map[uint]*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO)
@@ -103,11 +105,17 @@ func (cars *ComplianceAssessmentRequirementService) buildHierarchicalClauseStruc
 	// Convert all clauses into DTOs and map them by ID
 	for _, clause := range clauses {
 		dto := &complianceDTOs.ComplianceAssessmentRequirementClausesListDTO{
-			ID:           clause.ID,
-			ClauseNo:     clause.ClauseNo,
-			TitleEn:      clause.TitleEn,
-			TitleAr:      clause.TitleAr,
-			ChildClauses: []*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO{},
+			ID:                    clause.ID,
+			ClauseNo:              clause.ClauseNo,
+			TitleEn:               clause.TitleEn,
+			TitleAr:               clause.TitleAr,
+			ChildClauses:          []*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO{},
+			TotalRequirements:     0,
+			CompletedRequirements: 0,
+		}
+		if counts, ok := countMap[clause.ID]; ok {
+			dto.TotalRequirements = counts.TotalRequirements
+			dto.CompletedRequirements = counts.CompletedRequirements
 		}
 		clauseMap[clause.ID] = dto
 	}

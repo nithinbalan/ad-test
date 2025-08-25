@@ -17,6 +17,7 @@ type ComplianceAssessmentRequirementRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 
 	GetAllClauses(assessmentID uint, currentUserID uint) ([]*models.ComplianceClause, error)
+	GetClauseRequirementCounts(assessmentID uint) (map[uint]complianceDTOs.ClauseRequirementCountDTO, error)
 	GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentRequirementListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceAssessmentRequirement, error)
 	GetFullDetailsByID(requirementId uint, responsibleUnitID uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessmentRequirement, error)
@@ -74,6 +75,33 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAllClauses(assessmentI
 	}
 
 	return clauses, nil
+}
+
+func (repo *ComplianceAssessmentRequirementRepository) GetClauseRequirementCounts(assessmentID uint) (map[uint]complianceDTOs.ClauseRequirementCountDTO, error) {
+	var results []complianceDTOs.ClauseRequirementCountDTO
+
+	err := repo.db.Table("compliance_clauses cc").
+		Select(`
+			cc.id as id,
+			COUNT(carru.id) as total_requirements,
+			SUM(CASE WHEN carru.is_completed = 1 THEN 1 ELSE 0 END) as completed_requirements
+		`).
+		Joins("JOIN compliance_requirements cr ON cr.compliance_clause_id = cc.id").
+		Joins("JOIN compliance_assessment_requirements car ON car.compliance_requirement_id = cr.id").
+		Joins("JOIN compliance_assessments ca ON ca.id = car.compliance_assessment_id").
+		Joins("LEFT JOIN compliance_assessment_requirement_responsible_units carru ON carru.compliance_assessment_requirement_id = car.id").
+		Where("ca.id = ?", assessmentID).
+		Group("cc.id").
+		Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	countMap := make(map[uint]complianceDTOs.ClauseRequirementCountDTO)
+	for _, r := range results {
+		countMap[r.ID] = r
+	}
+	return countMap, nil
 }
 
 func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentRequirementListResponseDTO, error) {

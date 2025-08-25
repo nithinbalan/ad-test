@@ -105,9 +105,16 @@ type ComplianceAssessmentRequirementListQueryParamsDTO struct {
 }
 
 type ComplianceAssessmentRequirementClausesListDTO struct {
-	ID           uint                                             `json:"id"`
-	ClauseNo     string                                           `json:"clause_no"`
-	TitleEn      string                                           `json:"title_en"`
-	TitleAr      *string                                          `json:"title_ar"`
-	ChildClauses []*ComplianceAssessmentRequirementClausesListDTO `json:"child_clauses"`
+	ID                    uint                                             `json:"id"`
+	ClauseNo              string                                           `json:"clause_no"`
+	TitleEn               string                                           `json:"title_en"`
+	TitleAr               *string                                          `json:"title_ar"`
+	ChildClauses          []*ComplianceAssessmentRequirementClausesListDTO `json:"child_clauses"`
+	TotalRequirements     int                                              `json:"total_requirements"`
+	CompletedRequirements int                                              `json:"completed_requirements"`
+}
+type ClauseRequirementCountDTO struct {
+	ID                    uint `json:"id"`
+	TotalRequirements     int  `json:"total_requirements"`
+	CompletedRequirements int  `json:"completed_requirements"`
 }
