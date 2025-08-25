@@ -20,6 +20,7 @@ type UserDelegationServiceInterface interface {
 	Create(currentUserID uint, userDelegationForm *organizationDTOs.UserDelegationFormDTO) (uint, error)
 
 	GetLatestUserDelegation(userID uint) (*organizationDTOs.UserDelegationHistoryListDTO, error)
+	EndUserDelegation(userID uint, currentUserID uint) error
 }
 
 type UserDelegationService struct {
@@ -67,7 +68,10 @@ func (ushs *UserDelegationService) GetByID(id uint) (*models.UserDelegationHisto
 func (ushs *UserDelegationService) Create(currentUserID uint, userDelegationForm *organizationDTOs.UserDelegationFormDTO) (uint, error) {
 
 	taskCount := len(userDelegationForm.TaskIDs)
-	moduleCount := len(userDelegationForm.ModuleIDs)
+	moduleCount, err := ushs.taskSvc.GetModuleCountByTaskIDs(userDelegationForm.TaskIDs)
+	if err != nil {
+		return 0, err
+	}
 
 	currentDateStr := time.Now().Format("2006-01-02")
 	assignedDate, err := utility.ParseDate(currentDateStr)
@@ -113,10 +117,20 @@ func (ushs *UserDelegationService) Create(currentUserID uint, userDelegationForm
 	}
 
 	for _, task := range userDelegationForm.TaskIDs {
-		_, err = ushs.taskSvc.UpdateDelegateeUser(task, userDelegationForm.DelegateeUserID, currentUserID, tx)
+		_, err = ushs.taskSvc.UpdateDelegateeUser(task, &userDelegationForm.DelegateeUserID, currentUserID, tx)
 		if err != nil {
 			return 0, err
 		}
+	}
+
+	tables := []string{
+		"threat_action_plans",
+		"vulnerability_action_plans",
+	}
+
+	if err := ushs.repo.UpdateActionPlanDelegationUser(userDelegationForm.UserID, tables, &userDelegationForm.DelegateeUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 
 	tx.Commit()
@@ -151,4 +165,42 @@ func (ushs *UserDelegationService) GetLatestUserDelegation(userID uint) (*organi
 	}
 
 	return ushs.repo.GetLatestUserDelegation(userID)
+}
+
+func (ushs *UserDelegationService) EndUserDelegation(userID uint, currentUserID uint) error {
+
+	responsibleUser, err := ushs.userSvc.GetByID(userID)
+	if err != nil {
+		return err
+	}
+	tx := ushs.repo.BeginTransaction()
+
+	tasks, _ := ushs.taskSvc.GetAllTasksByResponsibleUserID(userID, *responsibleUser.DelegateeUserID)
+
+	for _, task := range tasks {
+		_, err = ushs.taskSvc.UpdateDelegateeUser(task.ID, nil, currentUserID, tx)
+		if err != nil {
+			return err
+		}
+	}
+
+	responsibleUser.DelegateeUserID = nil
+
+	if err := ushs.userSvc.UpdateDelegateeUser(responsibleUser, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tables := []string{
+		"threat_action_plans",
+		"vulnerability_action_plans",
+	}
+
+	if err := ushs.repo.UpdateActionPlanDelegationUser(userID, tables, nil, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+	return nil
 }

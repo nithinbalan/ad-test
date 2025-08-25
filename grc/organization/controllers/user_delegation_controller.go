@@ -108,3 +108,39 @@ func (udc *UserDelegationController) GetLatestUserDelegation(c *gin.Context) {
 
 	c.JSON(http.StatusOK, userDelegation)
 }
+
+func (udc *UserDelegationController) EndUserDelegation(c *gin.Context) {
+	userIDStr := c.Param("userId")
+
+	userID, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(udc.db, c, err.Error())
+		return
+	}
+
+	err = udc.service.EndUserDelegation(uint(userID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(udc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

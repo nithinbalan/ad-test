@@ -11,6 +11,7 @@ type CommonModule struct {
 	NotificationService             commonServices.NotificationServiceInterface
 	FileRepo                        commonRepositories.FileRepositoryInterface
 	AssociatedItemValidationService commonServices.AssociatedItemValidationServiceInterface
+	DelegateeUserService            commonServices.DelegateeUserserviceInterface
 }
 
 func NewCommonModule(db *gorm.DB, settingsModule *SettingsModule) *CommonModule {
@@ -19,6 +20,8 @@ func NewCommonModule(db *gorm.DB, settingsModule *SettingsModule) *CommonModule 
 	notificationSvc := commonServices.NewNotificationService(notificationRepo, settingsModule.ModuleSvc, settingsModule.EmailTemplateSettingsSvc)
 	associatedItemValidationRepo := commonRepositories.NewRiskMappingRepository(db)
 	associatedItemValidationSvc := commonServices.NewAssociatedItemValidationService(associatedItemValidationRepo)
+	DelegateeUserRepo := commonRepositories.NewDelegateeUserRepository(db)
+	DelegateeUserSvc := commonServices.NewDelegateeUserservice(DelegateeUserRepo, settingsModule.ModuleSvc)
 
 	fileRepo := commonRepositories.NewFileRepository()
 
@@ -26,5 +29,6 @@ func NewCommonModule(db *gorm.DB, settingsModule *SettingsModule) *CommonModule 
 		NotificationService:             notificationSvc,
 		FileRepo:                        fileRepo,
 		AssociatedItemValidationService: associatedItemValidationSvc,
+		DelegateeUserService:            DelegateeUserSvc,
 	}
 }

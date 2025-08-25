@@ -43,6 +43,7 @@ type ThreatActionPlanService struct {
 	userSettingSvc      organizationServices.UserSettingServiceInterface
 	userSvc             organizationServices.UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
+	delegateeUserSvc    commonServices.DelegateeUserserviceInterface
 }
 
 func NewThreatActionPlanService(
@@ -54,6 +55,7 @@ func NewThreatActionPlanService(
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
 ) ThreatActionPlanServiceInterface {
 	return &ThreatActionPlanService{
 		repo:                repo,
@@ -64,6 +66,7 @@ func NewThreatActionPlanService(
 		userSettingSvc:      userSettingSvc,
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
+		delegateeUserSvc:    delegateeUserSvc,
 	}
 }
 
@@ -153,6 +156,16 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 		Comments:           formDTO.Comments,
 		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedByID:        currentUserID,
+	}
+
+	if formDTO.ResponsibleUserID != 0 {
+		delegateeID, err := taps.delegateeUserSvc.AssignDelegateeIfPermitted(formDTO.ResponsibleUserID, "threat")
+		if err != nil {
+			return 0, err
+		}
+		if delegateeID != nil {
+			actionPlan.DelegateeUserID = delegateeID
+		}
 	}
 
 	id, err := taps.repo.Create(actionPlan)

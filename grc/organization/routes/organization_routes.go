@@ -433,6 +433,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/users/:userId/user-delegate", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userDelegationHistoryController.CreateUserDelegation)
 	organizationRoutes.GET("/users/:userId/user-delegate-history", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userDelegationHistoryController.GetUserDelegationHistory)
 	organizationRoutes.GET("/users/:userId/user-delegate-history/latest", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userDelegationHistoryController.GetLatestUserDelegation)
+	organizationRoutes.PUT("/users/:userId/end-delegation", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userDelegationHistoryController.EndUserDelegation)
 
 	// organization structure
 	organizationRoutes.GET("/organization-structures", middlewares.RolePermissionMiddleware(db, "organization_structure", "view"), organizationStructureController.GetOrganizationStructure)

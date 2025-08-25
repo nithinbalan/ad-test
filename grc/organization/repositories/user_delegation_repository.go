@@ -16,6 +16,7 @@ type UserDelegationRepositoryInterface interface {
 	Create(item *models.UserDelegationHistory, tx ...utility.DatabaseTransaction) (uint, error)
 
 	GetLatestUserDelegation(userID uint) (*orgDTOs.UserDelegationHistoryListDTO, error)
+	UpdateActionPlanDelegationUser(responsibleUserID uint, tables []string, value *uint, tx ...utility.DatabaseTransaction) error
 }
 
 // Implementation
@@ -153,4 +154,23 @@ func (repo *UserDelegationRepository) GetLatestUserDelegation(userID uint) (*org
 	}
 
 	return userDelegations, nil
+}
+
+func (repo *UserDelegationRepository) UpdateActionPlanDelegationUser(responsibleUserID uint, tables []string, value *uint, tx ...utility.DatabaseTransaction) error {
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, table := range tables {
+			if err := tx.Table(table).
+				Where("responsible_user_id = ? AND delegatee_user_id IS NOT NULL", responsibleUserID).
+				Update("delegatee_user_id", nil).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

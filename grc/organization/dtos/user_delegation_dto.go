@@ -7,7 +7,6 @@ type UserDelegationFormDTO struct {
 	DelegateeUserID uint    `json:"delegatee_user_id" binding:"required"`
 	Comments        *string `json:"comments"`
 	TaskIDs         []uint  `json:"task_ids" binding:"required"`
-	ModuleIDs       []uint  `json:"module_ids" binding:"required"`
 }
 
 type UserDelegationHistoryListDTO struct {
