@@ -374,31 +374,6 @@ func (repo *IncidentRegisterRepository) CreateIncidentComplianceRequirements(com
 	return nil
 }
 
-// func (repo *IncidentRegisterRepository) CreateIncidentControls(controls []*models.IncidentControl, tx ...utility.DatabaseTransaction) error {
-// 	db := repo.db
-// 	if len(tx) > 0 && tx[0] != nil {
-// 		db = tx[0].DB()
-// 	}
-// 	if err := db.Create(&controls).Error; err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
-// func (repo *IncidentRegisterRepository) DeleteIncidentControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
-// 	db := repo.db
-// 	if len(tx) > 0 && tx[0] != nil {
-// 		db = tx[0].DB()
-// 	}
-
-// 	// Delete controls by IDs
-// 	if err := db.Where("id IN (?)", controlIds).Delete(&models.IncidentControl{}).Error; err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
 func (repo *IncidentRegisterRepository) DeleteIncidentComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -412,56 +387,6 @@ func (repo *IncidentRegisterRepository) DeleteIncidentComplianceRequirements(req
 
 	return nil
 }
-
-// func (repo *IncidentRegisterRepository) CreateIncidentRisks(risks []*models.IncidentRisk, tx ...utility.DatabaseTransaction) error {
-// 	db := repo.db
-// 	if len(tx) > 0 && tx[0] != nil {
-// 		db = tx[0].DB()
-// 	}
-// 	if err := db.Create(&risks).Error; err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
-// func (repo *IncidentRegisterRepository) DeleteIncidentRisks(riskIds []*uint, tx ...utility.DatabaseTransaction) error {
-// 	db := repo.db
-// 	if len(tx) > 0 && tx[0] != nil {
-// 		db = tx[0].DB()
-// 	}
-
-// 	// Delete risks by IDs
-// 	if err := db.Where("id IN (?)", riskIds).Delete(&models.IncidentRisk{}).Error; err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
-// func (repo *IncidentRegisterRepository) CreateIncidentProcesses(processes []*models.IncidentProcess, tx ...utility.DatabaseTransaction) error {
-// 	db := repo.db
-// 	if len(tx) > 0 && tx[0] != nil {
-// 		db = tx[0].DB()
-// 	}
-// 	if err := db.Create(&processes).Error; err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
-// func (repo *IncidentRegisterRepository) DeleteIncidentProcesses(processIds []*uint, tx ...utility.DatabaseTransaction) error {
-// 	db := repo.db
-// 	if len(tx) > 0 && tx[0] != nil {
-// 		db = tx[0].DB()
-// 	}
-
-// 	// Delete processes by IDs
-// 	if err := db.Where("id IN (?)", processIds).Delete(&models.IncidentProcess{}).Error; err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
 
 func (repo *IncidentRegisterRepository) CreateIncidentSLAs(slaRegisters []*models.IncidentSLA, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
