@@ -245,17 +245,9 @@ func (repo *IncidentRegisterRepository) GetFullDetailsByID(id uint, tx ...utilit
 		Preload("ReportedByUser").
 		Preload("SeverityLevel").
 		Preload("Documents").
-		// Preload("Controls").
 		Preload("ComplianceRequirements").
-		// Preload("Risks").
-		// Preload("Processes").
 		Preload("SLARegisters").
 		Preload("AssociatedDocuments").
-		// Preload("Assets").
-		// Preload("Assets.AssetRegister").
-		// Preload("Assets.AssetRegister.AssetCategory").
-		// Preload("Assets.AssetRegister.AssetStatus").
-		// Preload("Assets.AssetRegister.ResponsibleUser").
 		Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
