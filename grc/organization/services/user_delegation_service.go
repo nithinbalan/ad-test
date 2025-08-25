@@ -67,7 +67,10 @@ func (ushs *UserDelegationService) GetByID(id uint) (*models.UserDelegationHisto
 func (ushs *UserDelegationService) Create(currentUserID uint, userDelegationForm *organizationDTOs.UserDelegationFormDTO) (uint, error) {
 
 	taskCount := len(userDelegationForm.TaskIDs)
-	moduleCount := len(userDelegationForm.ModuleIDs)
+	moduleCount, err := ushs.taskSvc.GetModuleCountByTaskIDs(userDelegationForm.TaskIDs)
+	if err != nil {
+		return 0, err
+	}
 
 	currentDateStr := time.Now().Format("2006-01-02")
 	assignedDate, err := utility.ParseDate(currentDateStr)
