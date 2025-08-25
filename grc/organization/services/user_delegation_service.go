@@ -168,10 +168,7 @@ func (ushs *UserDelegationService) GetLatestUserDelegation(userID uint) (*organi
 }
 
 func (ushs *UserDelegationService) EndUserDelegation(userID uint, currentUserID uint) error {
-	_, err := ushs.userSvc.GetByID(userID)
-	if err != nil {
-		return err
-	}
+
 	oldUser, err := ushs.userSvc.GetByID(userID)
 	if err != nil {
 		return err

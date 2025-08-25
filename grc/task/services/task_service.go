@@ -96,11 +96,11 @@ func (ts TaskService) GetByResponsibleUserID(field string, value interface{}, re
 }
 
 func (ts TaskService) GetAllTasksByResponsibleUserID(delegateeUserID uint, responsibleuserID uint) ([]*models.Task, error) {
-	task, err := ts.repo.GetAllTasksByResponsibleUserID(delegateeUserID, responsibleuserID)
+	tasks, err := ts.repo.GetAllTasksByResponsibleUserID(delegateeUserID, responsibleuserID)
 	if err != nil {
 		return nil, err
 	}
-	return task, nil
+	return tasks, nil
 }
 
 func (ts *TaskService) GetModuleCountByTaskIDs(taskIDs []uint) (int, error) {
@@ -362,7 +362,7 @@ func (ts *TaskService) UpdateDelegateeUser(taskID uint, DelegateeUserID uint, us
 	task.DelegateeUserID = &DelegateeUserID
 	task.UpdatedByID = userID
 
-	err = ts.repo.UpdateDelegateeUser(*task, tx...)
+	err = ts.repo.Update(task, tx...)
 	if err != nil {
 		return nil, err
 	}
