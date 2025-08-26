@@ -119,30 +119,55 @@ func (s *OrganizationStructureService) GetOrganizationUnitSummary(unitID uint) (
 		ResponsibleUnitID: unitID,
 	}
 
-	// Compliance %
-	cs, err := s.repo.GetComplianceStatusByUnit(unitID)
+	// Step 1+2: Get compliance summary
+	compliant, total, statuses, err := s.repo.GetComplianceSummaryByUnit(unitID)
 	if err != nil {
 		return nil, err
 	}
-	dto.ComplianceStatus = cs
+
+	// Step 3: If no counts → no compliance_status
+	if total == 0 {
+		dto.ComplianceStatus = nil
+	} else {
+		// Step 4: Compute percentage
+		pct := float64(compliant) * 100.0 / float64(total)
+
+		// Step 5: Match against thresholds
+		var matched *organizationDTOs.ComplianceStatusCountDTO
+		for _, st := range statuses {
+			if st.Type == "exempt" || st.Type == "not_applicable" {
+				continue
+			}
+			if st.ScoreFrom != nil && st.ScoreTo != nil {
+				if int(pct) >= *st.ScoreFrom && int(pct) <= *st.ScoreTo {
+					matched = &st
+					break
+				}
+			}
+		}
+
+		if matched != nil {
+			dto.ComplianceStatus = &organizationDTOs.OverallComplianceStatusDTO{
+				TitleEn:       matched.TitleEn,
+				TitleAr:       matched.TitleAr,
+				ColorCode:     matched.ColorCode,
+				CompliancePct: pct,
+			}
+		}
+	}
 
 	// Risks
-	riskCount, err := s.repo.GetOpenRiskCountByUnit(unitID)
-	if err != nil {
-		return nil, err
+	if riskCount, err := s.repo.GetOpenRiskCountByUnit(unitID); err == nil {
+		dto.OpenRiskCount = riskCount
 	}
-	dto.OpenRiskCount = riskCount
 
-	// Control Efficiency (DTO)
-	ce, err := s.repo.GetControlEfficiencyByUnit(unitID)
-	if err != nil {
-		return nil, err
+	// Control Efficiency
+	if ce, err := s.repo.GetControlEfficiencyByUnit(unitID); err == nil {
+		dto.OverallControlEfficiency = ce
 	}
-	dto.OverallControlEfficiency = ce
 
 	return dto, nil
 }
-
 func (s *OrganizationStructureService) UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error {
 
 	// Get primary organization level field
