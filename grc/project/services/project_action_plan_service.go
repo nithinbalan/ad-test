@@ -3,7 +3,9 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
 
+	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
@@ -11,6 +13,7 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	projectDTOs "jethur/grc/project/dtos"
 	projectRepositories "jethur/grc/project/repositories"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -37,6 +40,8 @@ type ProjectActionPlanService struct {
 	projectMilestoneSvc ProjectMilestoneServiceInterface
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
 	delegateeUserSvc    commonServices.DelegateeUserserviceInterface
+	taskSvc             taskServices.TaskServiceInterface
+	notificationSvc     commonServices.NotificationServiceInterface
 }
 
 func NewProjectActionPlanService(
@@ -48,6 +53,8 @@ func NewProjectActionPlanService(
 	projectMilestoneSvc ProjectMilestoneServiceInterface,
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
+	taskSvc taskServices.TaskServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) ProjectActionPlanServiceInterface {
 	return &ProjectActionPlanService{
 		repo:                repo,
@@ -58,6 +65,8 @@ func NewProjectActionPlanService(
 		projectMilestoneSvc: projectMilestoneSvc,
 		severityLevelSvc:    severityLevelSvc,
 		delegateeUserSvc:    delegateeUserSvc,
+		taskSvc:             taskSvc,
+		notificationSvc:     notificationSvc,
 	}
 }
 
@@ -168,6 +177,24 @@ func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint,
 		return 0, err
 	}
 
+	urlParam := fmt.Sprintf(`{"project_id":%d, "action_plan_id":%d}`, projectID, id)
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:    "project_management",
+		ProjectActionPlanID: &id,
+		Title:               ProjectActionPlanFormDTO.Title,
+		Description:         ProjectActionPlanFormDTO.Description,
+		TargetDate:          dates.TargetDate,
+		URLParam:            &urlParam,
+		QueryParam:          nil,
+		SeverityLevelID:     ProjectActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID:   ProjectActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	if _, err := paps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -195,6 +222,74 @@ func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint,
 
 			utility.LogError("Failed to log activity", fields)
 		}
+
+		// prepare notification
+		urlParam := fmt.Sprintf(`{"project_id":%d, "action_plan_id":%d}`, projectID, id)
+		queryParam := ""
+		entity := "project-action-plan"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{ProjectActionPlanFormDTO.ResponsibleUserID},
+			ModuleIdentifier:     "project_management",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Project Action Plan Responsibility Assigned",
+			HeadingAr:            "تم تعيين مسؤولية خطة عمل المشروع",
+			TitleEn:              ProjectActionPlanFormDTO.Title,
+			TitleAr:              ProjectActionPlanFormDTO.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := paps.userSvc.GetByID(ProjectActionPlanFormDTO.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		assignedBy, err := paps.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Project Action Plan/%s: Responsibility Assigned", ProjectActionPlanFormDTO.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":           responsibleUser.FirstNameEn,
+			"LastNameEn":            responsibleUser.LastNameEn,
+			"ProjectTitle":          project.TitleEn,
+			"ActionPlanTitle":       ProjectActionPlanFormDTO.Title,
+			"ActionPlanDescription": ProjectActionPlanFormDTO.Description,
+			"TargetDate":            dates.TargetDate.Format("2006-01-02"),
+			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+			"AssignedByLastNameEn":  assignedBy.LastNameEn,
+			"AssignedOn":            time.Now().Format("2006-01-02"),
+			"RedirectURL":           fmt.Sprintf("%s/project/%d/action-plans?action_plan_id=%d", appURL, projectID, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "compliance/templates/email/compliance_action_plan_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		// send notification and mail
+		err = paps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 
 	return id, nil
@@ -212,6 +307,12 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 
 	existingProjectActionPlan, err := paps.GetByID(projectID, id)
 	if err != nil {
+		return err
+	}
+
+	oldProjectActionPlan, err := paps.GetFullDetailsByID(projectID, id)
+	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -260,29 +361,209 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 		return err
 	}
 
+	// //update task
+	urlParam := fmt.Sprintf(`{"project_id":%d, "action_plan_id":%d}`, projectID, id)
+
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             ProjectActionPlanFormDTO.Title,
+		Description:       ProjectActionPlanFormDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		SeverityLevelID:   ProjectActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUserID: ProjectActionPlanFormDTO.ResponsibleUserID,
+	}
+
+	err = paps.taskSvc.Update(currentUserID, taskUpdateDTO, "project_action_plan_id", id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+
 	go func() {
-		activityData := map[string]interface{}{
-			"title":                 ProjectActionPlanFormDTO.Title,
-			"description":           ProjectActionPlanFormDTO.Description,
-			"comments":              ProjectActionPlanFormDTO.Comments,
-			"responsible_user_id":   ProjectActionPlanFormDTO.ResponsibleUserID,
-			"severity_level_id":     ProjectActionPlanFormDTO.SeverityLevelID,
-			"review_user_id":        ProjectActionPlanFormDTO.ReviewUserID,
-			"target_date":           dates.TargetDate,
-			"percentage":            ProjectActionPlanFormDTO.Percentage,
-			"project_id":            projectID,
-			"project_milestone_id":  ProjectActionPlanFormDTO.ProjectMilestoneID,
-			"action_plan_status_id": ProjectActionPlanFormDTO.ActionPlanStatusID,
-		}
-		err := paps.activityLogSvc.LogActivity(models.UpdateAction, models.ProjectActionPlan{}.TableName(), id, activityData, currentUserID, nil)
+		existingActionPlan, err := paps.GetFullDetailsByID(projectID, id)
 		if err != nil {
-			utility.LogError("Failed to log activity", map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.ProjectActionPlan{}.TableName(),
-				"recordID":  id,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			})
+			return
+		}
+
+		// log changes
+		changedData := make(map[string]interface{})
+		oldData := map[string]interface{}{
+			"title":              oldProjectActionPlan.Title,
+			"description":        oldProjectActionPlan.Description,
+			"severity_level":     oldProjectActionPlan.SeverityLevel.TitleEn,
+			"responsible_user":   fmt.Sprintf("%s %s", oldProjectActionPlan.ResponsibleUser.FirstNameEN, oldProjectActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        utility.GetFieldValue(oldProjectActionPlan.ReviewUser),
+			"target_date":        oldProjectActionPlan.TargetDateString,
+			"percentage":         oldProjectActionPlan.Percentage,
+			"comment":            oldProjectActionPlan.Comments,
+			"action_plan_status": oldProjectActionPlan.ActionPlanStatus.TitleEn,
+		}
+
+		newData := map[string]interface{}{
+			"title":              existingActionPlan.Title,
+			"description":        existingActionPlan.Description,
+			"comments":           existingActionPlan.Comments,
+			"responsible_user":   fmt.Sprintf("%s %s", existingActionPlan.ResponsibleUser.FirstNameEN, existingActionPlan.ResponsibleUser.LastNameEN),
+			"review_user":        utility.GetFieldValue(existingActionPlan.ReviewUser),
+			"target_date":        existingActionPlan.TargetDateString,
+			"percentage":         existingActionPlan.Percentage,
+			"action_plan_status": existingActionPlan.ActionPlanStatus.TitleEn,
+		}
+
+		// Compare other fields and add them to changedData
+		fieldChanges := utility.CompareFieldChanges(oldData, newData)
+		for k, v := range fieldChanges {
+			changedData[k] = v
+		}
+
+		// Log activity if there are any changes
+		if len(changedData) > 0 {
+			err := paps.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.ProjectActionPlan{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fields := map[string]interface{}{
+					"action":    models.UpdateAction,
+					"tableName": models.ProjectActionPlan{}.TableName(),
+					"recordID":  id,
+					"userID":    currentUserID,
+					"error":     err.Error(),
+				}
+				utility.LogError("Failed to log activity", fields)
+			}
+		}
+
+		// sends notification if responsible user has changed
+		if oldResponsibleUserID != existingProjectActionPlan.ResponsibleUserID {
+			urlParam := fmt.Sprintf(`{"project_id":%d, "action_plan_id":%d}`, projectID, id)
+			queryParam := ""
+			entity := "project-action-plan"
+
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{oldResponsibleUserID},
+				ModuleIdentifier:     "project_management",
+				NotificationType:     string(commonDTOs.InformationType),
+				HeadingEn:            "Project Action Plan Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية خطة العمل",
+				TitleEn:              existingProjectActionPlan.Title,
+				TitleAr:              existingProjectActionPlan.Title,
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{ProjectActionPlanFormDTO.ResponsibleUserID},
+				ModuleIdentifier:     "project_management",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Project Action Plan Responsibility Assigned",
+				HeadingAr:            "تم تعيين مسؤولية خطة العمل",
+				TitleEn:              existingProjectActionPlan.Title,
+				TitleAr:              existingProjectActionPlan.Title,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			oldResponsibleUser, err := paps.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUser, err := paps.userSvc.GetByID(ProjectActionPlanFormDTO.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := paps.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			appURL := utility.GetAppURL()
+
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Project Action Plan/%s: Responsibility Removed", existingProjectActionPlan.Title)
+			oldResponsibleUserTemplateRelativePath := "compliance/templates/email/compliance_action_plan_remove_responsible_user_mail.html"
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":           oldResponsibleUser.FirstNameEn,
+				"LastNameEn":            oldResponsibleUser.LastNameEn,
+				"ProjectTitle":          project.TitleEn,
+				"ActionPlanTitle":       existingProjectActionPlan.Title,
+				"ActionPlanDescription": existingProjectActionPlan.Description,
+				"RedirectURL":           fmt.Sprintf("%s/project/%d/action-plans?action_plan_id=%d", appURL, projectID, id),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: oldResponsibleUserTemplateRelativePath,
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Project Action Plan/%s: Responsibility Assigned", existingProjectActionPlan.Title)
+			newResponsibleUserTemplateRelativePath := "compliance/templates/email/compliance_action_plan_change_responsible_user_mail.html"
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":           newResponsibleUser.FirstNameEn,
+				"LastNameEn":            newResponsibleUser.LastNameEn,
+				"ProjectTitle":          project.TitleEn,
+				"ActionPlanTitle":       existingProjectActionPlan.Title,
+				"ActionPlanDescription": existingProjectActionPlan.Description,
+				"TargetDate":            existingProjectActionPlan.TargetDate.Format("2006-01-02"),
+				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%s/project/%d/action-plans?action_plan_id=%d", appURL, projectID, id),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: newResponsibleUserTemplateRelativePath,
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			err = paps.notificationSvc.SendNotification(
+				newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "compliance_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send new responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = paps.notificationSvc.SendNotification(
+				oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "project_action_plan",
+			)
+			if err != nil {
+				utility.LogError("Failed to send old responsible user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
 		}
 	}()
 
