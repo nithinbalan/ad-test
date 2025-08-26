@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	activityLogServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	settingDTOs "jethur/grc/settings/dtos"
@@ -78,7 +79,6 @@ func (rrs *ReminderRuleService) GetFullDetailsByID(id uint) (*settingDTOs.Remind
 }
 
 func (rrs *ReminderRuleService) Create(currentUserID uint, dto *settingDTOs.ReminderRuleFormDTO) (uint, error) {
-
 	if err := rrs.validateReminderRuleFormDTO(dto); err != nil {
 		return 0, err
 	}
@@ -91,6 +91,7 @@ func (rrs *ReminderRuleService) Create(currentUserID uint, dto *settingDTOs.Remi
 		NotificationMethod: dto.NotificationMethod,
 		DayOffset:          dto.DayOffset,
 		Type:               dto.Type,
+		ReminderContextID:  dto.ReminderContextID,
 		CreatedBYID:        currentUserID,
 	}
 

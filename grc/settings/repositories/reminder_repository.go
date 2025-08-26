@@ -16,6 +16,7 @@ type ReminderRepositoryInterface interface {
 
 	GetAllEnabledModules() ([]*dtos.ModuleListDTO, error)
 	GetReminderByModuleID(moduleID uint) ([]*models.Reminder, error)
+	GetAllReminderContexts() ([]*models.ReminderContext, error)
 }
 
 // implementation
@@ -163,4 +164,16 @@ func (repo *ReminderRepository) GetReminderByModuleID(moduleID uint) ([]*models.
 	}
 
 	return summary, nil
+}
+
+func (repo *ReminderRepository) GetAllReminderContexts() ([]*models.ReminderContext, error) {
+	var contexts []*models.ReminderContext
+
+	result := repo.db.Find(&contexts)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return contexts, result.Error
 }

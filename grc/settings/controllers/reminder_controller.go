@@ -1,11 +1,12 @@
 package controllers
 
 import (
+	"net/http"
+	"strconv"
+
 	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/services"
 	"jethur/utility"
-	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -42,7 +43,6 @@ func (rc *ReminderController) GetAllReminderes(c *gin.Context) {
 	}
 
 	reminders, err := rc.service.GetAll(queryParams)
-
 	if err != nil {
 		utility.SendInternalErrResp(rc.db, c, err.Error())
 		return
@@ -96,7 +96,6 @@ func (rc *ReminderController) GetReminderByModuleID(c *gin.Context) {
 	}
 
 	stakeholderStatuses, err := rc.service.GetAllRemindersByModuleID(uint(moduleID))
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -108,4 +107,14 @@ func (rc *ReminderController) GetReminderByModuleID(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, stakeholderStatuses)
+}
+
+func (rc *ReminderController) GetAllReminderContexts(c *gin.Context) {
+	data, err := rc.service.GetAllReminderContexts()
+	if err != nil {
+		utility.SendInternalErrResp(rc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, data)
 }

@@ -139,10 +139,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.GET("/trigger-conditions/:id", triggerConditionController.GetTriggerConditionDetails)
 
 	//Reminder
-	settingRoutes.GET("/reminders", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), reminderController.GetAllReminderes)
+	settingRoutes.GET("/reminders", middlewares.RolePermissionMiddleware(db, "general_setting", "view-"), reminderController.GetAllReminderes)
 	settingRoutes.GET("/reminders/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), reminderController.GetReminderDetails)
 	settingRoutes.GET("/reminder-modules", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), reminderController.GetAllEnabledModules)
 	settingRoutes.GET("/modules/:moduleId/reminders", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), reminderController.GetReminderByModuleID)
+
+	//Reminder Context
+	settingRoutes.GET(("/reminder-contexts"), middlewares.RolePermissionMiddleware(db, "general_setting", "view"), reminderController.GetAllReminderContexts)
 
 	// Reminder Rule
 	settingRoutes.GET("/reminder-rules", reminderRuleController.GetAllReminderRules)

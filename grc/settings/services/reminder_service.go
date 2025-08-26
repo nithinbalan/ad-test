@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+
 	"jethur/grc/models"
 	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
@@ -17,6 +18,7 @@ type ReminderServiceInterface interface {
 
 	GetAllEnabledModules() ([]*dtos.ModuleListDTO, error)
 	GetAllRemindersByModuleID(moduleID uint) ([]*dtos.GroupedReminderDTO, error)
+	GetAllReminderContexts() ([]*models.ReminderContext, error)
 }
 
 // Service and implementations
@@ -101,4 +103,8 @@ func (rs *ReminderService) GetAllRemindersByModuleID(moduleID uint) ([]*dtos.Gro
 		reminderDTOs = append(reminderDTOs, reminderDTO)
 	}
 	return reminderDTOs, err
+}
+
+func (rs *ReminderService) GetAllReminderContexts() ([]*models.ReminderContext, error) {
+	return rs.repo.GetAllReminderContexts()
 }
