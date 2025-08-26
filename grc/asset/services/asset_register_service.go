@@ -511,18 +511,6 @@ func (as *AssetRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				return nil, err
 			}
 		}
-
-		if len(asset.Controls) > 0 {
-			var deleteControlIDs []*uint
-			for _, ctrl := range asset.Controls {
-				deleteControlIDs = append(deleteControlIDs, ctrl.ID)
-			}
-			if err := as.repo.DeleteAssetControls(deleteControlIDs, tx); err != nil {
-				failedIds = append(failedIds, id)
-				continue
-			}
-		}
-
 		// Delete asset record
 		err = as.repo.Delete(id, tx)
 		if err != nil {

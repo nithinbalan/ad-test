@@ -214,7 +214,6 @@ func (repo *AssetRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.D
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("ResponsibleUnit").
-		Preload("Controls").
 		Preload("AssetCriticalityMatrixRatingScale").
 		Preload("AssetCriticalityMatrix").
 		Preload("Documents").
