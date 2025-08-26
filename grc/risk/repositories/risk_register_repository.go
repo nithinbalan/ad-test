@@ -28,8 +28,6 @@ type RiskRegisterRepositoryInterface interface {
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	//Associated Items
-	CreateRiskComplianceRequirements(complianceRequirements []*models.RiskComplianceRequirement, tx ...utility.DatabaseTransaction) error
-	DeleteRiskComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error
 	CreateRiskSLAs(slaRegisters []*models.RiskSLA, tx ...utility.DatabaseTransaction) error
 	DeleteRiskSLAs(slaRegisterIds []*uint, tx ...utility.DatabaseTransaction) error
 	GetControlSummary(riskID uint, controlType string) ([]models.RiskControlAnalysis, error)
@@ -507,30 +505,6 @@ func (repo *RiskRegisterRepository) DeleteDocuments(docIds []*uint, tx ...utilit
 
 	// Delete documents by IDs
 	if err := db.Where("id IN (?)", docIds).Delete(&models.RiskDocument{}).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (repo *RiskRegisterRepository) CreateRiskComplianceRequirements(complianceRequirements []*models.RiskComplianceRequirement, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(&complianceRequirements).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *RiskRegisterRepository) DeleteRiskComplianceRequirements(requirementIds []*uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	if err := db.Where("id IN (?)", requirementIds).Delete(&models.RiskComplianceRequirement{}).Error; err != nil {
 		return err
 	}
 

@@ -254,29 +254,6 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		return 0, err
 	}
 
-	// Save ComplianceRequirements
-	var complianceRequirements []*models.RiskComplianceRequirement
-	for _, requirementID := range riskRegisterFormDTO.ComplianceRequirementIDs {
-		complianceRequirement, err := rrs.complianceRequirementSvc.GetByComplianceRequirementID(*requirementID)
-		if err != nil {
-			return 0, err
-		}
-		requirement := &models.RiskComplianceRequirement{
-			RiskRegisterID:          id,
-			ComplianceRegisterID:    complianceRequirement.ComplianceClause.ComplianceRegisterID,
-			ComplianceRequirementID: requirementID,
-			CreatedByID:             currentUserID,
-		}
-		complianceRequirements = append(complianceRequirements, requirement)
-	}
-
-	if len(complianceRequirements) > 0 {
-		if err := rrs.repo.CreateRiskComplianceRequirements(complianceRequirements, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
-
 	// Add SLA Register
 	var slaRegisters []*models.RiskSLA
 	for _, slaRegisterID := range riskRegisterFormDTO.SLARegisterIDs {
@@ -670,61 +647,6 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		return err
 	}
 
-	existingComplianceRequirementIDs := make(map[uint]bool)
-	for _, req := range existingRisk.ComplianceRequirements {
-		existingComplianceRequirementIDs[req.ComplianceRequirementID] = true
-	}
-
-	// Collect new compliance requirement IDs
-	newComplianceRequirementIDs := make(map[uint]bool)
-	for _, req := range riskRegisterFormDTO.ComplianceRequirementIDs {
-		newComplianceRequirementIDs[*req] = true
-	}
-
-	// Add new compliance requirements
-	var complianceRequirementsToAdd []*models.RiskComplianceRequirement
-	for _, newComplianceRequirementID := range riskRegisterFormDTO.ComplianceRequirementIDs {
-		if _, exists := existingComplianceRequirementIDs[*newComplianceRequirementID]; !exists {
-			// Create a new risk compliance requirement record
-			req, err := rrs.complianceRequirementSvc.GetByComplianceRequirementID(*newComplianceRequirementID)
-			if err != nil {
-				return err
-			}
-			complianceRequirement := &models.RiskComplianceRequirement{
-				RiskRegisterID:          id,
-				ComplianceRegisterID:    req.ComplianceClause.ComplianceRegisterID,
-				ComplianceRequirementID: newComplianceRequirementID,
-				CreatedByID:             currentUserID,
-			}
-			complianceRequirementsToAdd = append(complianceRequirementsToAdd, complianceRequirement)
-		}
-	}
-
-	// Save the new compliance requirements
-	if len(complianceRequirementsToAdd) > 0 {
-		if err := rrs.repo.CreateRiskComplianceRequirements(complianceRequirementsToAdd, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Remove compliance requirements not in the new list
-	var deleteComplianceRequirementIDs []*uint
-
-	for _, existingComplianceRequirement := range existingRisk.ComplianceRequirements {
-		if _, exists := newComplianceRequirementIDs[existingComplianceRequirement.ComplianceRequirementID]; !exists {
-			// Append compliance requirement to delete list
-			deleteComplianceRequirementIDs = append(deleteComplianceRequirementIDs, existingComplianceRequirement.ID)
-		}
-	}
-
-	if len(deleteComplianceRequirementIDs) > 0 {
-		if err := rrs.repo.DeleteRiskComplianceRequirements(deleteComplianceRequirementIDs, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
 	existingSLARegisterIDs := make(map[uint]bool)
 	for _, sla := range existingRisk.SLARegisters {
 		existingSLARegisterIDs[sla.SLARegisterID] = true
@@ -861,19 +783,6 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 	tx.Commit()
 
 	go func() {
-		compliantRequirementAdded := []uint{}
-		compliantRequirementRemoved := []uint{}
-		for id := range newComplianceRequirementIDs {
-			if !existingComplianceRequirementIDs[id] {
-				compliantRequirementAdded = append(compliantRequirementAdded, id)
-			}
-		}
-		for id := range existingComplianceRequirementIDs {
-			if !newComplianceRequirementIDs[id] {
-				compliantRequirementRemoved = append(compliantRequirementRemoved, id)
-			}
-		}
-
 		SLARegisterAdded := []uint{}
 		SLARegisterRemoved := []uint{}
 		for id := range newSLARegisterIDs {
@@ -890,13 +799,6 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 		// Prepare log data
 		changedData := make(map[string]interface{})
 		associatedItems := make(map[string]interface{})
-
-		if len(compliantRequirementAdded) > 0 || len(compliantRequirementRemoved) > 0 {
-			associatedItems["compliance_requirement_ids"] = map[string]interface{}{
-				"added":   compliantRequirementAdded,
-				"removed": compliantRequirementRemoved,
-			}
-		}
 
 		if len(SLARegisterAdded) > 0 || len(SLARegisterRemoved) > 0 {
 			associatedItems["sla_register_ids"] = map[string]interface{}{
@@ -1122,19 +1024,6 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 			"id":    id,
 			"title": risk.Title,
 		})
-
-		// Delete each compliance requirement if requirements exist
-		if len(risk.ComplianceRequirements) > 0 {
-			var deleteRequirementIds []*uint
-			for _, req := range risk.ComplianceRequirements {
-				deleteRequirementIds = append(deleteRequirementIds, req.ID)
-			}
-			if err := rrs.repo.DeleteRiskComplianceRequirements(deleteRequirementIds, tx); err != nil {
-				failedIds = append(failedIds, id)
-				continue
-			}
-
-		}
 
 		if len(risk.SLARegisters) > 0 {
 			var deleteSLARegisterIDs []*uint
@@ -1637,54 +1526,6 @@ func (rrs *RiskRegisterService) validateRiskRegisterFormDTO(riskRegisterFormDTO 
 		}
 	}
 
-	controlIds := riskRegisterFormDTO.ControlIDs
-
-	controlIDs := make(map[uint]bool)
-
-	for _, controlId := range controlIds {
-		if controlIDs[*controlId] {
-			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", controlId), "duplicate", "control")
-		}
-
-		if _, err := rrs.controlSvc.GetByID(*controlId); err != nil {
-			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", controlId), "not_exist", "control")
-		}
-
-		controlIDs[*controlId] = true
-	}
-
-	requirementIds := riskRegisterFormDTO.ComplianceRequirementIDs
-
-	requirementIDs := make(map[uint]bool)
-
-	for _, requirementId := range requirementIds {
-		if requirementIDs[*requirementId] {
-			return utility.NewValidationError(fmt.Errorf("duplicate compliance requirement ID: %d", requirementId), "duplicate", "compliance requirement")
-		}
-
-		if _, err := rrs.complianceRequirementSvc.GetByComplianceRequirementID(*requirementId); err != nil {
-			return utility.NewValidationError(fmt.Errorf("compliance requirement does not exist for ID: %d", requirementId), "not_exist", "compliance requirement")
-		}
-
-		requirementIDs[*requirementId] = true
-	}
-
-	processIds := riskRegisterFormDTO.ProcessIDs
-
-	processIDs := make(map[uint]bool)
-
-	for _, processId := range processIds {
-		if processIDs[*processId] {
-			return utility.NewValidationError(fmt.Errorf("duplicate process ID: %d", processId), "duplicate", "process")
-		}
-
-		if _, err := rrs.processSvc.GetByID(*processId); err != nil {
-			return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", processId), "not_exist", "process")
-		}
-
-		processIDs[*processId] = true
-	}
-
 	slaRegisterIds := riskRegisterFormDTO.SLARegisterIDs
 
 	slaRegisterIDs := make(map[uint]bool)
@@ -1699,22 +1540,6 @@ func (rrs *RiskRegisterService) validateRiskRegisterFormDTO(riskRegisterFormDTO 
 		}
 
 		slaRegisterIDs[*slaRegisterId] = true
-	}
-
-	strategicObjectiveIds := riskRegisterFormDTO.StrategicObjectiveIDs
-
-	strategicObjectiveIDs := make(map[uint]bool)
-
-	for _, strategicObjectiveId := range strategicObjectiveIds {
-		if strategicObjectiveIDs[*strategicObjectiveId] {
-			return utility.NewValidationError(fmt.Errorf("duplicate strategic objective ID: %d", strategicObjectiveId), "duplicate", "strategic objective")
-		}
-
-		if _, err := rrs.strategicObjectiveSvc.GetByID(*strategicObjectiveId); err != nil {
-			return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveId), "not_exist", "strategic objective")
-		}
-
-		strategicObjectiveIDs[*strategicObjectiveId] = true
 	}
 
 	assets := riskRegisterFormDTO.AssetIds
