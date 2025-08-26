@@ -187,35 +187,6 @@ func (ars *AssetRegisterService) Create(assetRegisterFormDTO *dtos.AssetRegister
 		return 0, err
 	}
 
-	defaultImplementationStatus, err := ars.controlImplementationStatusSvc.GetByType("not-implemented")
-	if err != nil {
-		return 0, err
-	}
-
-	defaultEfficiencyStatus, err := ars.controlEfficiencyStatusSvc.GetByType("inefficient")
-	if err != nil {
-		return 0, err
-	}
-
-	var controls []*models.AssetControl
-	for _, controlID := range assetRegisterFormDTO.ControlIds {
-		control := &models.AssetControl{
-			AssetRegisterID:               assetID,
-			ControlID:                     *controlID,
-			ControlImplementationStatusID: &defaultImplementationStatus.ID,
-			ControlEfficiencyStatusID:     &defaultEfficiencyStatus.ID,
-			CreatedBYID:                   currentUserID,
-		}
-		controls = append(controls, control)
-	}
-
-	if len(controls) > 0 {
-		if err := ars.repo.CreateAssetControls(controls, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
-
 	// Handle Asset Documents Upload
 	var assetDocuments []*models.AssetDocument
 
@@ -351,56 +322,6 @@ func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.Asse
 		return err
 	}
 
-	// Collect existing control IDs
-	existingAssetFullDetails, err := ars.GetFullDetailsByID(id, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	existingControlIDs := make(map[uint]bool)
-	for _, ctrl := range existingAssetFullDetails.Controls {
-		existingControlIDs[ctrl.ControlID] = true
-	}
-
-	newControlIDs := make(map[uint]bool)
-	for _, ctrl := range assetRegisterFormDTO.ControlIds {
-		newControlIDs[*ctrl] = true
-	}
-
-	var controlsToAdd []*models.AssetControl
-	for _, newControlID := range assetRegisterFormDTO.ControlIds {
-		if _, exists := existingControlIDs[*newControlID]; !exists {
-			control := &models.AssetControl{
-				AssetRegisterID: id,
-				ControlID:       *newControlID,
-				CreatedBYID:     currentUserID,
-			}
-			controlsToAdd = append(controlsToAdd, control)
-		}
-	}
-
-	if len(controlsToAdd) > 0 {
-		if err := ars.repo.CreateAssetControls(controlsToAdd, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	var deleteControlIDs []*uint
-	for _, existingControl := range existingAssetFullDetails.Controls {
-		if _, exists := newControlIDs[existingControl.ControlID]; !exists {
-			deleteControlIDs = append(deleteControlIDs, existingControl.ID)
-		}
-	}
-
-	if len(deleteControlIDs) > 0 {
-		if err := ars.repo.DeleteAssetControls(deleteControlIDs, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
 	// Handle Asset Document Updates
 	var assetDocuments []*models.AssetDocument
 	var deleteDocumentIds []*uint
@@ -493,32 +414,10 @@ func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.Asse
 		if err != nil {
 			return
 		}
-		// Determine control and document changes
-		controlsAdded := []uint{}
-		controlsRemoved := []uint{}
-		for id := range newControlIDs {
-			if !existingControlIDs[id] {
-				controlsAdded = append(controlsAdded, id)
-			}
-		}
-		for id := range existingControlIDs {
-			if !newControlIDs[id] {
-				controlsRemoved = append(controlsRemoved, id)
-			}
-		}
+
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		associatedItems := make(map[string]interface{})
 
-		if len(controlsAdded) > 0 || len(controlsRemoved) > 0 {
-			associatedItems["control_ids"] = map[string]interface{}{
-				"added":   controlsAdded,
-				"removed": controlsRemoved,
-			}
-		}
-		if len(associatedItems) > 0 {
-			changedData["associated_items"] = associatedItems
-		}
 		//log changes
 		oldData := map[string]interface{}{
 			"asset_category":     oldAssetRegister.AssetCategory.TitleEn,
@@ -612,7 +511,6 @@ func (as *AssetRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				return nil, err
 			}
 		}
-
 		// Delete asset record
 		err = as.repo.Delete(id, tx)
 		if err != nil {
