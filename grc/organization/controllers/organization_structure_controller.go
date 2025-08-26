@@ -112,14 +112,14 @@ func (osc *OrganizationStructureController) GetUsersByOrganizationUnitID(c *gin.
 	c.JSON(http.StatusOK, users)
 }
 
-func (osc *OrganizationStructureController) GetOrganizationUnitDashboard(c *gin.Context) {
+func (osc *OrganizationStructureController) GetOrganizationUnitSummary(c *gin.Context) {
 	unitID, err := strconv.ParseUint(c.Param("unitId"), 10, 32)
 	if err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	result, err := osc.service.GetOrganizationUnitDashboard(uint(unitID))
+	result, err := osc.service.GetOrganizationUnitSummary(uint(unitID))
 	if err != nil {
 		utility.SendInternalErrResp(osc.db, c, err.Error())
 		return

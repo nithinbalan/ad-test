@@ -17,8 +17,8 @@ import (
 type OrganizationStructureServiceInterface interface {
 	GetOrganizationStructure(sort string, sortBy string) ([]organizationDTOs.OrganizationStructureDTO, error)
 	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
-	GetOrganizationUnitDashboard(unitID uint) (*organizationDTOs.OrganizationUnitDashboardDTO, error)
 	UpdateDepartmentHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error
+	GetOrganizationUnitSummary(unitID uint) (*organizationDTOs.OrganizationUnitSummaryDTO, error)
 }
 
 type OrganizationStructureService struct {
@@ -117,8 +117,8 @@ func (s *OrganizationStructureService) GetUsersByOrganizationUnit(params *organi
 	return s.repo.GetUsersByOrganizationUnit(params, orgUnitID, primaryOrgUnitField)
 }
 
-func (s *OrganizationStructureService) GetOrganizationUnitDashboard(unitID uint) (*organizationDTOs.OrganizationUnitDashboardDTO, error) {
-	dto := &organizationDTOs.OrganizationUnitDashboardDTO{
+func (s *OrganizationStructureService) GetOrganizationUnitSummary(unitID uint) (*organizationDTOs.OrganizationUnitSummaryDTO, error) {
+	dto := &organizationDTOs.OrganizationUnitSummaryDTO{
 		ResponsibleUnitID: unitID,
 	}
 
