@@ -373,8 +373,6 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("ReviewFrequency").
 		Preload("RiskStatus").
 		Preload("Documents").
-		Preload("ComplianceRequirements").
-		Preload("ComplianceRequirements.ComplianceRequirement").
 		Preload("SLARegisters").
 		Preload("KRIs").
 		Preload("Assets").
