@@ -245,6 +245,7 @@ func (repo *RiskActionPlanRepository) GetFullDetailsByID(id uint) (*models.RiskA
 		Preload("Controls.Control.ResponsibleUser").
 		Preload("Controls.Control.ResponsibleUnit").
 		Preload("ReviewUser").
+		Preload("DelegateeUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&riskActionPlan, id)

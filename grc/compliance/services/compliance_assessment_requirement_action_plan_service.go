@@ -395,6 +395,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 	existingComplianceAssessmentRequirementActionPlan.UpdatedByID = &currentUserID
 
 	if ComplianceActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != ComplianceActionPlanFormDTO.ResponsibleUserID {
+		existingComplianceAssessmentRequirementActionPlan.DelegateeUserID = nil
 		delegateeID, err := caraps.delegateeUserSvc.AssignDelegateeIfPermitted(ComplianceActionPlanFormDTO.ResponsibleUserID, "compliance_assessment")
 		if err != nil {
 			return err

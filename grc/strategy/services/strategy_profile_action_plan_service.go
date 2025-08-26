@@ -349,6 +349,7 @@ func (spaps *StrategyProfileActionPlanService) Update(strategyProfileID uint, id
 	existingStrategyProfilePlan.UpdatedBYID = &currentUserID
 
 	if strategyProfileActionPlanFormDTO.ResponsibleUserID != nil && oldResponsibleUserID != strategyProfileActionPlanFormDTO.ResponsibleUserID {
+		existingStrategyProfilePlan.DelegateeUserID = nil
 		delegateeID, err := spaps.delegateeUserSvc.AssignDelegateeIfPermitted(*strategyProfileActionPlanFormDTO.ResponsibleUserID, "strategy_profile")
 		if err != nil {
 			return err

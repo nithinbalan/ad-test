@@ -114,6 +114,7 @@ type AuditFindingActionPlanDetailDTO struct {
 	Percentage              *uint                                    `json:"percentage"`
 	Comments                *string                                  `json:"comments"`
 	TargetDateString        *string                                  `json:"target_date"`
+	DelegateeUser           *organizationDTOs.UserMinimalDTO         `json:"delegatee_user"`
 	CreatedAt               time.Time                                `json:"created_at"`
 	UpdatedAt               *time.Time                               `json:"updated_at"`
 	CreatedByUser           organizationDTOs.UserMinimalDTO          `json:"created_by_user"`

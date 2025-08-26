@@ -336,6 +336,7 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 	existingControlActionPlan.UpdatedByID = &currentUserID
 
 	if ControlActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != ControlActionPlanFormDTO.ResponsibleUserID {
+		existingControlActionPlan.DelegateeUserID = nil
 		delegateeID, err := caps.delegateeUserSvc.AssignDelegateeIfPermitted(ControlActionPlanFormDTO.ResponsibleUserID, "controls")
 		if err != nil {
 			return err

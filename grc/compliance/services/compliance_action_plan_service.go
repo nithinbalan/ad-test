@@ -398,6 +398,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 	existingComplianceActionPlan.UpdatedByID = &currentUserID
 
 	if ComplianceActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != ComplianceActionPlanFormDTO.ResponsibleUserID {
+		existingComplianceActionPlan.DelegateeUserID = nil
 		delegateeID, err := caps.delegateeUserSvc.AssignDelegateeIfPermitted(ComplianceActionPlanFormDTO.ResponsibleUserID, "compliance_register")
 		if err != nil {
 			return err

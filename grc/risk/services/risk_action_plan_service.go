@@ -426,6 +426,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	existingRiskActionPlan.UpdatedBYID = &currentUserID
 
 	if RiskActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != RiskActionPlanFormDTO.ResponsibleUserID {
+		existingRiskActionPlan.DelegateeUserID = nil
 		delegateeID, err := raps.delegateeUserSvc.AssignDelegateeIfPermitted(RiskActionPlanFormDTO.ResponsibleUserID, "risk_register")
 		if err != nil {
 			return err

@@ -360,6 +360,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 	existingRecoveryPlan.UpdatedBYID = &currentUserID
 
 	if recoveryActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != recoveryActionPlanFormDTO.ResponsibleUserID {
+		existingRecoveryPlan.DelegateeUserID = nil
 		delegateeID, err := teraps.delegateeUserSvc.AssignDelegateeIfPermitted(recoveryActionPlanFormDTO.ResponsibleUserID, "test_and_exercise")
 		if err != nil {
 			return err

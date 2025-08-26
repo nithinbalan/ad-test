@@ -204,6 +204,7 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetFullDetailsByID(id u
 		Preload("UpdatedByUser").
 		Preload("ActionPlanStatusUpdates").
 		Preload("ReviewUser").
+		Preload("DelegateeUser").
 		Where("id = ?", id).
 		First(&actionPlan)
 

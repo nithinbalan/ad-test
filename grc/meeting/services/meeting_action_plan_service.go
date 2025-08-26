@@ -371,6 +371,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	existingMeetingActionPlan.UpdatedByID = &currentUserID
 
 	if MeetingActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != MeetingActionPlanFormDTO.ResponsibleUserID {
+		existingMeetingActionPlan.DelegateeUserID = nil
 		delegateeID, err := maps.delegateeUserSvc.AssignDelegateeIfPermitted(MeetingActionPlanFormDTO.ResponsibleUserID, "meeting")
 		if err != nil {
 			return err

@@ -394,6 +394,7 @@ func (caps *StakeholderActionPlanService) Update(stakeholderID uint, id uint, cu
 	existingStakeholderActionPlan.UpdatedByID = &currentUserID
 
 	if StakeholderActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != StakeholderActionPlanFormDTO.ResponsibleUserID {
+		existingStakeholderActionPlan.DelegateeUserID = nil
 		delegateeID, err := caps.delegateeUserSvc.AssignDelegateeIfPermitted(StakeholderActionPlanFormDTO.ResponsibleUserID, "stakeholder_analysis")
 		if err != nil {
 			return err

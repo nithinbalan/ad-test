@@ -328,6 +328,7 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 	existingActionPlan.UpdatedByID = &currentUserID
 
 	if formDTO.ResponsibleUserID != 0 && oldResponsibleUserID != formDTO.ResponsibleUserID {
+		existingActionPlan.DelegateeUserID = nil
 		delegateeID, err := taps.delegateeUserSvc.AssignDelegateeIfPermitted(formDTO.ResponsibleUserID, "threat")
 		if err != nil {
 			return err
@@ -359,7 +360,7 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 			"description":        oldActionPlan.Description,
 			"severity_level":     oldActionPlan.SeverityLevel.TitleEn,
 			"responsible_user":   fmt.Sprintf("%s %s", oldActionPlan.ResponsibleUser.FirstNameEN, oldActionPlan.ResponsibleUser.LastNameEN),
-			"review_user":        fmt.Sprintf("%s %s", oldActionPlan.ReviewUser.FirstNameEN, oldActionPlan.ReviewUser.LastNameEN),
+			"review_user":        utility.GetFieldValue(oldActionPlan.ReviewUser),
 			"target_date":        oldActionPlan.TargetDateString,
 			"percentage":         oldActionPlan.Percentage,
 			"comment":            oldActionPlan.Comments,
@@ -371,7 +372,7 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 			"description":        existingThreatActionPlan.Description,
 			"severity_level":     existingThreatActionPlan.SeverityLevel.TitleEn,
 			"responsible_user":   fmt.Sprintf("%s %s", existingThreatActionPlan.ResponsibleUser.FirstNameEN, existingThreatActionPlan.ResponsibleUser.LastNameEN),
-			"review_user":        fmt.Sprintf("%s %s", existingThreatActionPlan.ReviewUser.FirstNameEN, existingThreatActionPlan.ReviewUser.LastNameEN),
+			"review_user":        utility.GetFieldValue(existingThreatActionPlan.ReviewUser),
 			"target_date":        existingThreatActionPlan.TargetDateString,
 			"percentage":         existingThreatActionPlan.Percentage,
 			"comment":            existingThreatActionPlan.Comments,

@@ -354,6 +354,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 	existingSLAActionPlan.UpdatedByID = &currentUserID
 
 	if slaActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != slaActionPlanFormDTO.ResponsibleUserID {
+		existingSLAActionPlan.DelegateeUserID = nil
 		delegateeID, err := saps.delegateeUserSvc.AssignDelegateeIfPermitted(slaActionPlanFormDTO.ResponsibleUserID, "sla_contracts")
 		if err != nil {
 			return err

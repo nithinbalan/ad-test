@@ -82,7 +82,7 @@ func (ushs *UserDelegationService) Create(currentUserID uint, userDelegationForm
 		return 0, err
 	}
 
-	if user.DelegateeUserID != nil {
+	if user.DelegationUserID != nil {
 		return 0, utility.NewForbiddenError("User is already in user delegation stage")
 	}
 
@@ -109,7 +109,7 @@ func (ushs *UserDelegationService) Create(currentUserID uint, userDelegationForm
 		return 0, err
 	}
 
-	oldUser.DelegateeUserID = &userDelegationForm.DelegateeUserID
+	oldUser.DelegationUserID = &userDelegationForm.DelegateeUserID
 
 	if err := ushs.userSvc.UpdateDelegateeUser(oldUser, tx); err != nil {
 		tx.Rollback()
@@ -189,7 +189,7 @@ func (ushs *UserDelegationService) EndUserDelegation(userID uint, currentUserID 
 	}
 	tx := ushs.repo.BeginTransaction()
 
-	tasks, _ := ushs.taskSvc.GetAllTasksByResponsibleUserID(userID, *responsibleUser.DelegateeUserID)
+	tasks, _ := ushs.taskSvc.GetAllTasksByResponsibleUserID(userID, *responsibleUser.DelegationUserID)
 
 	for _, task := range tasks {
 		_, err = ushs.taskSvc.UpdateDelegateeUser(task.ID, nil, currentUserID, tx)
@@ -198,7 +198,7 @@ func (ushs *UserDelegationService) EndUserDelegation(userID uint, currentUserID 
 		}
 	}
 
-	responsibleUser.DelegateeUserID = nil
+	responsibleUser.DelegationUserID = nil
 
 	if err := ushs.userSvc.UpdateDelegateeUser(responsibleUser, tx); err != nil {
 		tx.Rollback()

@@ -244,6 +244,7 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 	existingProjectActionPlan.UpdatedBYID = &currentUserID
 
 	if ProjectActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != ProjectActionPlanFormDTO.ResponsibleUserID {
+		existingProjectActionPlan.DelegateeUserID = nil
 		delegateeID, err := paps.delegateeUserSvc.AssignDelegateeIfPermitted(ProjectActionPlanFormDTO.ResponsibleUserID, "project_management")
 		if err != nil {
 			return err

@@ -100,6 +100,7 @@ type StrategyProfileActionPlanDetailDTO struct {
 	ResponsibleUser         organizationDTOs.UserMinimalDTO              `json:"responsible_user"`
 	ReviewUserID            *uint                                        `json:"review_user_id"`
 	ReviewUser              *organizationDTOs.UserMinimalDTO             `json:"review_user"`
+	DelegateeUser           *organizationDTOs.UserMinimalDTO             `json:"delegatee_user"`
 	TargetDateString        string                                       `json:"target_date"`
 	ActionPlanStatusID      *uint                                        `json:"action_plan_status_id"`
 	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO               `json:"action_plan_status"`

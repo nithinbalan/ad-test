@@ -390,6 +390,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	existingIncidentActionPlan.UpdatedBYID = &currentUserID
 
 	if IncidentActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != IncidentActionPlanFormDTO.ResponsibleUserID {
+		existingIncidentActionPlan.DelegateeUserID = nil
 		delegateeID, err := iaps.delegateeUserSvc.AssignDelegateeIfPermitted(IncidentActionPlanFormDTO.ResponsibleUserID, "incident_register")
 		if err != nil {
 			return err

@@ -357,6 +357,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	existingAuditFindingActionPlan.UpdatedBYID = &currentUserID
 
 	if AuditFindingActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != AuditFindingActionPlanFormDTO.ResponsibleUserID {
+		existingAuditFindingActionPlan.DelegateeUserID = nil
 		delegateeID, err := afaps.delegateeUserSvc.AssignDelegateeIfPermitted(AuditFindingActionPlanFormDTO.ResponsibleUserID, "audits")
 		if err != nil {
 			return err

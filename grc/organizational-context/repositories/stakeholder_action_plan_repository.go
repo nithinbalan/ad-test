@@ -219,6 +219,7 @@ func (repo *StakeholderActionPlanRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("ActionPlanStatusUpdates").
 		Preload("ReviewUser").
 		Preload("ReviewUser.OrganizationUnit1").
+		Preload("DelegateeUser").
 		First(&stakeholderActionPlan, id)
 
 	if result.Error != nil {

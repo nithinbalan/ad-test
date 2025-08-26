@@ -170,6 +170,7 @@ func (repo *StrategyProfileActionPlanRepository) GetFullDetailsByID(id uint, tx 
 		Preload("SeverityLevel").
 		Preload("ResponsibleUnit").
 		Preload("ReviewUser").
+		Preload("DelegateeUser").
 		Preload("ActionPlanStatusUpdates").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
