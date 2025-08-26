@@ -5,14 +5,20 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 // Interface
 type OrganizationStructureRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetOrganizationStructure(sort string, sortBy string) ([]models.OrganizationUnit, error)
 	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint, primaryOrgUnitField string) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
+	GetComplianceStatusByUnit(unitID uint) (float64, error)
+	GetOpenRiskCountByUnit(unitID uint) (int64, error)
+	GetControlEfficiencyByUnit(unitID uint) (*organizationDTOs.ControlEfficiencyStatusDTO, error)
+	SetAllIsLatestFalse(orgUnitID uint, primaryField string, tx ...utility.DatabaseTransaction) error
 }
 
 type OrganizationStructureRepository struct {
@@ -23,6 +29,10 @@ func NewOrganizationStructureRepository(db *gorm.DB) *OrganizationStructureRepos
 	return &OrganizationStructureRepository{
 		db: db,
 	}
+}
+
+func (repo *OrganizationStructureRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *OrganizationStructureRepository) GetOrganizationStructure(sort string, sortBy string) ([]models.OrganizationUnit, error) {
@@ -60,6 +70,7 @@ func (repo *OrganizationStructureRepository) GetUsersByOrganizationUnit(params *
             users.last_name_en,
             users.first_name_ar,
             users.last_name_ar,
+			users.is_head,
             designations.title_en AS designation_en,
             designations.title_ar AS designation_ar`).
 		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
@@ -92,4 +103,66 @@ func (repo *OrganizationStructureRepository) GetUsersByOrganizationUnit(params *
 		},
 	}
 	return response, nil
+}
+
+func (repo *OrganizationStructureRepository) GetComplianceStatusByUnit(unitID uint) (float64, error) {
+	var compliance float64
+	query := `
+		SELECT 
+			CASE 
+				WHEN COUNT(*) = 0 THEN 0
+				ELSE CAST(SUM(CASE WHEN carru.is_completed = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) AS FLOAT)
+			END
+		FROM compliance_assessment_requirement_responsible_units carru
+		WHERE carru.responsible_unit_id = ?
+	`
+	if err := repo.db.Raw(query, unitID).Scan(&compliance).Error; err != nil {
+		return 0, err
+	}
+	return compliance, nil
+}
+
+func (repo *OrganizationStructureRepository) GetOpenRiskCountByUnit(unitID uint) (int64, error) {
+	var count int64
+	query := `
+		SELECT COUNT(*)
+		FROM risk_register r
+		JOIN risk_statuses rs ON r.risk_status_id = rs.id
+		WHERE r.responsible_unit_id = ? AND rs.type = 'open'
+	`
+	if err := repo.db.Raw(query, unitID).Scan(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (repo *OrganizationStructureRepository) GetControlEfficiencyByUnit(unitID uint) (*organizationDTOs.ControlEfficiencyStatusDTO, error) {
+	var avgScore float64
+	if err := repo.db.Model(&models.Control{}).
+		Select("COALESCE(AVG(efficiency_score),0)").
+		Where("responsible_unit_id = ?", unitID).
+		Scan(&avgScore).Error; err != nil {
+		return nil, err
+	}
+
+	var status organizationDTOs.ControlEfficiencyStatusDTO
+	err := repo.db.Table("control_efficiency_statuses").
+		Select("id, title_en, title_ar, status, color_code, score_from, score_to").
+		Where("? BETWEEN score_from AND score_to AND status = 'active'", avgScore).
+		First(&status).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &status, nil
+}
+
+func (repo *OrganizationStructureRepository) SetAllIsLatestFalse(orgUnitID uint, primaryField string, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Model(&models.User{}).
+		Where(fmt.Sprintf("%s = ? AND is_head = ?", primaryField), orgUnitID, true).
+		Update("is_head", false).Error
 }
