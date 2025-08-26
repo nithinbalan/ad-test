@@ -342,6 +342,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		organizationModule.UserSvc,
 		commonModule.NotificationService,
 		organizationModule.UserSettingSvc,
+		commonModule.DelegateeUserService,
 	)
 	auditFindingActionPlanController := controllers.NewAuditFindingActionPlanController(auditFindingActionPlanSvc)
 

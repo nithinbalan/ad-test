@@ -119,6 +119,7 @@ type ProjectActionPlanDetailDTO struct {
 	ReviewUserUnitID        *uint                               `json:"review_user_unit_id"`
 	ActionPlanStatusUpdates []*ProjectActionPlanStatusUpdateDTO `json:"action_plan_status_updates"`
 	ReviewUserUnit          *settingsDTOs.OrganizationUnitDTO   `json:"review_user_unit"`
+	DelegateeUser           *organizationDTOs.UserMinimalDTO    `json:"delegatee_user"`
 	TargetDateString        *string                             `json:"target_date"`
 	Comments                *string                             `json:"comments"`
 	CreatedAt               time.Time                           `json:"created_at"`

@@ -36,14 +36,14 @@ func (taps *DelegateeUserservice) AssignDelegateeIfPermitted(responsibleUserID u
 	if err != nil {
 		return nil, err
 	}
-	if responsibleUser.DelegateeUserID != nil {
+	if responsibleUser.DelegationUserID != nil {
 		// Step 3: Check permission
-		hasPermission, err := taps.repo.HasViewPermission(*responsibleUser.DelegateeUserID, moduleID)
+		hasPermission, err := taps.repo.HasViewPermission(*responsibleUser.DelegationUserID, moduleID)
 		if err != nil {
 			return nil, err
 		}
 		if hasPermission {
-			return responsibleUser.DelegateeUserID, nil
+			return responsibleUser.DelegationUserID, nil
 		}
 	}
 

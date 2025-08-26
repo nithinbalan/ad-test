@@ -186,7 +186,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Cre
 	if complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && complianceActionPlan.ReviewUserID != nil {
 		urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, AssessmentID, RequirementID, ComplianceActionPlanID)
 		taskDTO := commonDTOs.TaskFormDTO{
-			ModuleIdentifier:       "compliance",
+			ModuleIdentifier:       "compliance_assessment",
 			ComplianceActionPlanID: &ComplianceActionPlanID,
 			Title:                  complianceActionPlan.Title,
 			Description:            complianceActionPlan.Description,

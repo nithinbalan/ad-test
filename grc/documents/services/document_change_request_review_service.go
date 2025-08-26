@@ -693,7 +693,7 @@ func (dcrrs *DocumentChangeRequestReviewService) CreateTasksForNextLevelUsers(ch
 	// Loop through each participant and create a task
 	for _, participant := range workflowLevel.DocumentChangeRequestWorkflowParticipants {
 		taskDTO := commonDTOs.TaskFormDTO{
-			ModuleIdentifier:                "document",
+			ModuleIdentifier:                "change_request",
 			DocumentChangeRequestID:         &changeRequestID,
 			DocumentChangeRequestWorkflowID: &workflowLevel.ID,
 			// Title:              documentChangeRequest.Document.TitleEn,

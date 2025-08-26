@@ -261,7 +261,7 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 			}
 			urlParam := fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, id, actionPlanId)
 			taskDTO := commonDTOs.TaskFormDTO{
-				ModuleIdentifier:     "business_continuity",
+				ModuleIdentifier:     "test_and_exercise",
 				RecoveryActionPlanID: &actionPlanId,
 				Title:                bcpRecoveryPlan.Title,
 				TargetDate:           &targetDate,

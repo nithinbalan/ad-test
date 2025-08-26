@@ -128,6 +128,7 @@ type ComplianceActionPlanDetailDTO struct {
 	ReviewUser                                     *organizationDTOs.UserMinimalDTO                   `json:"review_user"`
 	ReviewUserUnitID                               *uint                                              `json:"review_user_unit_id"`
 	ReviewUserUnit                                 *settingsDTOs.OrganizationUnitDTO                  `json:"review_user_unit"`
+	DelegateeUser                                  *organizationDTOs.UserMinimalDTO                   `json:"delegatee_user"`
 	ActionPlanStatus                               masterDTOs.ActionPlanStatusDTO                     `json:"action_plan_status"`
 	Percentage                                     *int                                               `json:"percentage"`
 	Comments                                       *string                                            `json:"comments"`

@@ -248,6 +248,7 @@ func (repo *ComplianceActionPlanRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("ActionPlanStatusUpdates").
 		Preload("ReviewUser").
 		Preload("ReviewUser.OrganizationUnit1").
+		Preload("DelegateeUser").
 		First(&complianceActionPlan, id)
 
 	if result.Error != nil {

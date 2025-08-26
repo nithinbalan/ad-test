@@ -17,6 +17,7 @@ type StakeholderActionPlan struct {
 	TargetDate         *time.Time `json:"target_date" binding:"omitempty" gorm:"type:date,default:null"`
 	ActionPlanStatusID uint       `json:"action_plan_status_id" binding:"required" gorm:"not null"`
 	Percentage         *int       `json:"percentage" binding:"omitempty,min=0,max=100" gorm:"not null;default:0"`
+	DelegateeUserID    *uint      `json:"delegatee_user_id"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime"`
 	CreatedByID        uint       `json:"created_by_id" gorm:"not null"`
@@ -30,6 +31,7 @@ type StakeholderActionPlan struct {
 	ActionPlanStatus             *ActionPlanStatus                    `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatusUpdates      []*StakeholderActionPlanStatusUpdate `gorm:"foreignKey:StakeholderActionPlanID"`
 	LatestActionPlanStatusUpdate *StakeholderActionPlanStatusUpdate   `gorm:"foreignKey:StakeholderActionPlanID"`
+	DelegateeUser                *User                                `gorm:"foreignKey:DelegateeUserID"`
 	CreatedByUser                *User                                `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser                *User                                `gorm:"foreignKey:UpdatedByID"`
 }

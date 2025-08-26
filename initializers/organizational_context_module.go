@@ -90,7 +90,7 @@ func NewOrganizationalContextModule(db *gorm.DB,
 	stakeholderEngagementEvaluationController := controllers.NewStakeholderEngagementEvaluationController(stakeholderEngagementEvaluationSvc)
 
 	stakeholderActionPlanRepo := repositories.NewStakeholderActionPlanRepository(db)
-	stakeholderActionPlanSvc := services.NewStakeholderActionPlanService(stakeholderActionPlanRepo, sharedModule.ActivityLogService, stakeholderSvc, masterModule.ActionPlanStatusSvc, masterModule.SeverityLevelSvc, taskModule.TaskService, settingsModule.ModuleSvc, organizationModule.UserSvc, commonModule.NotificationService, organizationModule.UserSettingSvc, settingsModule.OrganizationUnitSvc)
+	stakeholderActionPlanSvc := services.NewStakeholderActionPlanService(stakeholderActionPlanRepo, sharedModule.ActivityLogService, stakeholderSvc, masterModule.ActionPlanStatusSvc, masterModule.SeverityLevelSvc, taskModule.TaskService, settingsModule.ModuleSvc, organizationModule.UserSvc, commonModule.NotificationService, organizationModule.UserSettingSvc, settingsModule.OrganizationUnitSvc, commonModule.DelegateeUserService)
 	stakeholderActionPlanController := controllers.NewStakeholderActionPlanController(stakeholderActionPlanSvc)
 
 	stakeholderActionPlanStatusUpdateRepo := repositories.NewStakeholderActionPlanStatusUpdateRepository(db)

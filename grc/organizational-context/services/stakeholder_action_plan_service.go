@@ -45,6 +45,7 @@ type StakeholderActionPlanService struct {
 	notificationSvc     commonServices.NotificationServiceInterface
 	userSettingSvc      organizationServices.UserSettingServiceInterface
 	organizationUnitSvc settingService.OrganizationUnitServiceInterface
+	delegateeUserSvc    commonServices.DelegateeUserserviceInterface
 }
 
 func NewStakeholderActionPlanService(
@@ -59,6 +60,7 @@ func NewStakeholderActionPlanService(
 	notificationSvc commonServices.NotificationServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
+	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
 ) StakeholderActionPlanServiceInterface {
 	return &StakeholderActionPlanService{
 		repo:                repo,
@@ -72,6 +74,7 @@ func NewStakeholderActionPlanService(
 		notificationSvc:     notificationSvc,
 		userSettingSvc:      userSettingSvc,
 		organizationUnitSvc: organizationUnitSvc,
+		delegateeUserSvc:    delegateeUserSvc,
 	}
 }
 
@@ -200,6 +203,16 @@ func (caps *StakeholderActionPlanService) Create(stakeholderID uint, currentUser
 		TargetDate:         dates.TargetDate,
 		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedByID:        currentUserID,
+	}
+
+	if StakeholderActionPlanFormDTO.ResponsibleUserID != 0 {
+		delegateeID, err := caps.delegateeUserSvc.AssignDelegateeIfPermitted(StakeholderActionPlanFormDTO.ResponsibleUserID, "stakeholder_analysis")
+		if err != nil {
+			return 0, err
+		}
+		if delegateeID != nil {
+			stakeholderActionPlan.DelegateeUserID = delegateeID
+		}
 	}
 
 	id, err := caps.repo.Create(stakeholderActionPlan, tx)
@@ -379,6 +392,17 @@ func (caps *StakeholderActionPlanService) Update(stakeholderID uint, id uint, cu
 	existingStakeholderActionPlan.ReviewUserID = StakeholderActionPlanFormDTO.ReviewUserID
 	existingStakeholderActionPlan.TargetDate = dates.TargetDate
 	existingStakeholderActionPlan.UpdatedByID = &currentUserID
+
+	if StakeholderActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != StakeholderActionPlanFormDTO.ResponsibleUserID {
+		existingStakeholderActionPlan.DelegateeUserID = nil
+		delegateeID, err := caps.delegateeUserSvc.AssignDelegateeIfPermitted(StakeholderActionPlanFormDTO.ResponsibleUserID, "stakeholder_analysis")
+		if err != nil {
+			return err
+		}
+		if delegateeID != nil {
+			existingStakeholderActionPlan.DelegateeUserID = delegateeID
+		}
+	}
 
 	err = caps.repo.Update(existingStakeholderActionPlan, tx)
 	if err != nil {

@@ -17,6 +17,7 @@ type MeetingActionPlan struct {
 	ActionPlanStatusID uint       `json:"action_plan_status_id" gorm:"not null" binding:"required"`
 	Percentage         uint       `json:"percentage" gorm:"default:0;not null" binding:"required"`
 	Comments           *string    `json:"comments" gorm:"type:nvarchar(max);null"`
+	DelegateeUserID    *uint      `json:"delegatee_user_id"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"not null" binding:"required"`
 	UpdatedAt          *time.Time `json:"updated_at,omitempty" gorm:"default:null"`
 	CreatedByID        uint       `json:"created_by_id" gorm:"not null; column:created_by_id" binding:"required"`
@@ -31,6 +32,7 @@ type MeetingActionPlan struct {
 	ActionPlanStatus             *ActionPlanStatus                `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatusUpdates      []*MeetingActionPlanStatusUpdate `gorm:"foreignKey:MeetingActionPlanID"`
 	LatestActionPlanStatusUpdate *MeetingActionPlanStatusUpdate   `gorm:"foreignKey:MeetingActionPlanID"`
+	DelegateeUser                *User                            `gorm:"foreignKey:DelegateeUserID"`
 	CreatedByUser                *User                            `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser                *User                            `gorm:"foreignKey:UpdatedByID"`
 }

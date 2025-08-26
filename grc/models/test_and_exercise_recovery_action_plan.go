@@ -18,6 +18,7 @@ type TestAndExerciseRecoveryActionPlan struct {
 	ActionPlanStatusId *uint      `json:"action_plan_status_id"`
 	IsRecovery         bool       `json:"is_recovery"`
 	Percentage         *int       `json:"percentage"`
+	DelegateeUserID    *uint      `json:"delegatee_user_id"`
 	ReviewUserID       *uint      `json:"review_user_id" gorm:"default:null"`
 	CreatedBYID        uint       `json:"created_by_id" binding:"required"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
@@ -34,6 +35,7 @@ type TestAndExerciseRecoveryActionPlan struct {
 	ResponsibleUnit         *OrganizationUnit                    `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ReviewUser              *User                                `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"` // New foreign key relationship
 	ActionPlanStatusUpdates []*TaeRecoveryActionPlanStatusUpdate `gorm:"foreignKey:TestAndExerciseRecoveryActionPlanID"`
+	DelegateeUser           *User                                `gorm:"foreignKey:DelegateeUserID"`
 	CreatedByUser           *User                                `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser           *User                                `gorm:"foreignKey:UpdatedBYID"`
 }

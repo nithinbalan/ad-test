@@ -110,6 +110,7 @@ type MeetingActionPlanDetailDTO struct {
 	ResponsibleUserID       uint                                `json:"responsible_user_id"`
 	ResponsibleUser         organizationDTOs.UserMinimalDTO     `json:"responsible_user"`
 	ReviewUser              organizationDTOs.UserMinimalDTO     `json:"review_user"`
+	DelegateeUser           *organizationDTOs.UserMinimalDTO    `json:"delegatee_user"`
 	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO      `json:"action_plan_status"`
 	MeetingMinute           *MeetingMinuteDetailDTO             `json:"meeting_minute"`
 	Meeting                 *MeetingDetailDTO                   `json:"meeting"`

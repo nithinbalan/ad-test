@@ -184,7 +184,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Create(TestAndExerciseID 
 			urlParam = fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, TestAndExerciseID, TaeRecoveryActionPlanID)
 		}
 		taskDTO := commonDTOs.TaskFormDTO{
-			ModuleIdentifier:     "business_continuity",
+			ModuleIdentifier:     "test_and_exercise",
 			RecoveryActionPlanID: &TaeRecoveryActionPlanID,
 			Title:                actionPlan.Title,
 			URLParam:             &urlParam,
