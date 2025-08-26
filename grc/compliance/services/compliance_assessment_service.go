@@ -1042,6 +1042,10 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 	if err != nil {
 		return nil, err
 	}
+	notApplicable, err := cras.complianceStatusSvc.GetByType("not_applicable")
+	if err != nil {
+		return nil, err
+	}
 	// fmt.Println("=== CalculateComplianceScores Debug ===")
 
 	frameworkType := ""
@@ -1099,7 +1103,8 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 		}
 		ComplianceClauseID := req.ComplianceRequirement.ComplianceClauseID
 		// fmt.Println("ComplianceClauseID ID----:", ComplianceClauseID)
-
+		applicableFound := false
+		notApplicableCount := 0
 		for _, ru := range req.ResponsibleUnits {
 
 			complianceAssessmentRequirementID := ru.ComplianceAssessmentRequirementID
@@ -1123,9 +1128,10 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 			}
 			// Only count applicable requirements
 			if !isApplicable {
-				// fmt.Printf("SKIP (NA): reqID=%d\n", complianceAssessmentRequirementID)
+				notApplicableCount++
 				continue
 			}
+			applicableFound = true
 			responsibleUnitScores[complianceAssessmentRequirementID].TotalRequirements++
 			// totalRequirements++
 
@@ -1155,6 +1161,18 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 			}
 
 		}
+		// If NO applicable RU and at least one NA → mark whole requirement NA
+		if !applicableFound && notApplicableCount > 0 {
+			if err := cras.repo.UpdateComplianceAssessmentRequirementStatus(
+				req.ID, notApplicable.ID, 0, tx...,
+			); err != nil {
+				return nil, err
+			}
+			responsibleUnitScores[req.ID].CompliancePercentage = 0
+			responsibleUnitScores[req.ID].Score = 0
+			responsibleUnitScores[req.ID].MappedComplianceStatusID = &notApplicable.ID
+			continue
+		}
 	}
 
 	type clauseAgg struct{ total, compliant, partial, notImpl int }
@@ -1169,7 +1187,11 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 	var results []*complianceDTOs.ResponsibleUnitComplianceScoreDTO
 	for _, responsibleUnitScore := range responsibleUnitScores {
 		// fmt.Println("responsibleUnitScore ID:", responsibleUnitScore.ComplianceAssessmentRequirementID)
-
+		if responsibleUnitScore.MappedComplianceStatusID != nil &&
+			*responsibleUnitScore.MappedComplianceStatusID == notApplicable.ID {
+			results = append(results, responsibleUnitScore)
+			continue
+		}
 		if responsibleUnitScore.MaxPossibleScore > 0 {
 			responsibleUnitScore.CompliancePercentage = (responsibleUnitScore.TotalScore / responsibleUnitScore.MaxPossibleScore) * 100
 			responsibleUnitScore.Score = float64(int(responsibleUnitScore.CompliancePercentage*100)) / 100
