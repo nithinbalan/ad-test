@@ -11,6 +11,7 @@ type ReminderRuleDetailDTO struct {
 	TriggerConditionID uint                `json:"trigger_condition_id"`
 	TriggerCondition   TriggerConditionDTO `json:"trigger_condition"`
 	Type               string              `json:"type"`
+	ReminderContextID  uint                `json:"reminder_context_id"`
 	ReminderContext    ReminderContextDTO  `json:"reminder_context"`
 	NotificationMethod string              `json:"notification_method"`
 	DayOffset          int                 `json:"day_offset"`
@@ -32,6 +33,10 @@ type ReminderRuleListDTO struct {
 	TriggerConditionTitleEn     string     `json:"trigger_condition_title_en"`
 	TriggerConditionTitleAr     string     `json:"trigger_condition_title_ar"`
 	TriggerConditionType        string     `json:"trigger_condition_type"`
+	ReminderContextID           uint       `json:"reminder_context_id"`
+	ReminderContextTitleEn      string     `json:"reminder_context_title_en"`
+	ReminderContextTitleAr      string     `json:"reminder_context_title_ar"`
+	ReminderContextType         string     `json:"reminder_context_type"`
 	NotificationMethod          string     `json:"notification_method"`
 	DayOffset                   int        `json:"day_offset"`
 	CreatedUserID               uint       `json:"created_user_id"`

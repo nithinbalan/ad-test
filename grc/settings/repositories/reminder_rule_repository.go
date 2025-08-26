@@ -42,6 +42,9 @@ func (repo *ReminderRuleRepository) GetAll(params *orgDTOs.ReminderRuleListQuery
 			trigger_conditions.type AS trigger_condition_type,
 			trigger_conditions.title_en AS trigger_condition_title_en,
 			trigger_conditions.title_ar AS trigger_condition_title_ar,
+			reminder_contexts.type AS reminder_context_type,
+			reminder_contexts.title_en AS reminder_context_title_en,
+			reminder_contexts.title_ar AS reminder_context_title_ar,
 			created_user.id AS created_user_id,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
@@ -63,6 +66,7 @@ func (repo *ReminderRuleRepository) GetAll(params *orgDTOs.ReminderRuleListQuery
 		`).
 		Joins(`LEFT JOIN reminders ON reminders.id = reminder_rules.reminder_id`).
 		Joins(`LEFT JOIN trigger_conditions ON trigger_conditions.id = reminder_rules.trigger_condition_id`).
+		Joins(`LEFT JOIN reminder_contexts ON reminder_contexts.id = reminder_rules.reminder_context_id`).
 		Joins("LEFT JOIN users AS created_user ON created_user.id = reminder_rules.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = reminder_rules.updated_by_id")
 
@@ -104,12 +108,12 @@ func (repo *ReminderRuleRepository) GetByID(id uint) (*models.ReminderRule, erro
 }
 
 func (repo *ReminderRuleRepository) GetFullDetailsByID(id uint) (*models.ReminderRule, error) {
-
 	var reminderRule *models.ReminderRule
 
 	result := repo.db.
 		Preload("Reminder").
 		Preload("TriggerCondition").
+		Preload("ReminderContext").
 		First(&reminderRule, id)
 
 	if result.Error != nil {
@@ -125,7 +129,6 @@ func (repo *ReminderRuleRepository) Create(reminderRule *models.ReminderRule) (u
 }
 
 func (repo *ReminderRuleRepository) Update(updatedReminderRule *models.ReminderRule) error {
-
 	if err := repo.db.Save(updatedReminderRule).Error; err != nil {
 		return err
 	}
