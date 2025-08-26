@@ -1,10 +1,16 @@
 package services
 
 import (
+	"errors"
 	"fmt"
+	logServices "jethur/grc/logs/services"
+	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/repositories"
 	settingServices "jethur/grc/settings/services"
+	"jethur/utility"
+
+	"gorm.io/gorm"
 )
 
 // Interface
@@ -12,17 +18,30 @@ type OrganizationStructureServiceInterface interface {
 	GetOrganizationStructure(sort string, sortBy string) ([]organizationDTOs.OrganizationStructureDTO, error)
 	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
 	GetOrganizationUnitDashboard(unitID uint) (*organizationDTOs.OrganizationUnitDashboardDTO, error)
+	UpdateDepartmentHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error
 }
 
 type OrganizationStructureService struct {
 	repo                 repositories.OrganizationStructureRepositoryInterface
+	activityLog          logServices.ActivityLogServiceInterface
 	organizationLevelSvc settingServices.OrganizationLevelServiceInterface
+	userRepo             repositories.UserRepositoryInterface
+	userSvc              UserServiceInterface
 }
 
-func NewOrganizationStructureService(repo repositories.OrganizationStructureRepositoryInterface, organizationLevelSvc settingServices.OrganizationLevelServiceInterface) *OrganizationStructureService {
+func NewOrganizationStructureService(
+	repo repositories.OrganizationStructureRepositoryInterface,
+	activityLog logServices.ActivityLogServiceInterface,
+	organizationLevelSvc settingServices.OrganizationLevelServiceInterface,
+	userRepo repositories.UserRepositoryInterface,
+	userSvc UserServiceInterface,
+) *OrganizationStructureService {
 	return &OrganizationStructureService{
 		repo:                 repo,
+		activityLog:          activityLog,
 		organizationLevelSvc: organizationLevelSvc,
+		userRepo:             userRepo,
+		userSvc:              userSvc,
 	}
 }
 
@@ -125,4 +144,87 @@ func (s *OrganizationStructureService) GetOrganizationUnitDashboard(unitID uint)
 	dto.OverallControlEfficiency = ce
 
 	return dto, nil
+}
+
+func (s *OrganizationStructureService) UpdateDepartmentHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error {
+	// Start transaction
+	tx := s.repo.BeginTransaction()
+
+	// Get primary organization level field
+	primaryLevel, err := s.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return err
+	}
+	primaryField := fmt.Sprintf("organization_unit_%d_id", primaryLevel.Level)
+
+	// If setting as head, first unset any existing head in this unit
+	if err := s.repo.SetAllIsLatestFalse(unitID, primaryField, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Get the user
+	user, err := s.userSvc.GetByID(userID)
+	if err != nil {
+		tx.Rollback()
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &utility.ResourceNotFoundError{}
+		}
+		return err
+	}
+
+	// Old data for logging
+	oldData := map[string]interface{}{
+		"is_head":    user.IsHead,
+		"updated_by": user.UpdatedByID,
+	}
+
+	// Update user head status
+	user.IsHead = true
+	user.UpdatedByID = &currentUserID
+
+	// Save the changes
+	if err := s.userRepo.Update(user, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// New data for logging
+	newData := map[string]interface{}{
+		"is_head":    user.IsHead,
+		"updated_by": user.UpdatedByID,
+	}
+
+	// Commit first before logging
+	if err := tx.Commit(); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Log the activity asynchronously
+	go func() {
+		err := s.activityLog.LogActivity(
+			models.UpdateAction,
+			models.User{}.TableName(),
+			user.ID,
+			map[string]interface{}{
+				"old": oldData,
+				"new": newData,
+			},
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.User{}.TableName(),
+				"recordID":  user.ID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
 }

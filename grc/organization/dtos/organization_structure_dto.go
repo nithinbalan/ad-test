@@ -17,6 +17,7 @@ type OrganizationUnitUserPrimaryDetailsDTO struct {
 	LastNameAr       string  `json:"last_name_ar"`
 	DesignationEn    string  `json:"designation_en"`
 	DesignationAr    string  `json:"designation_ar"`
+	IsHead           bool    `json:"is_head"`
 	ProfileImagePath *string `json:"profile_image_path"`
 }
 
@@ -37,4 +38,8 @@ type OrganizationUnitDashboardDTO struct {
 	ComplianceStatus         float64                     `json:"compliance_status"`
 	OpenRiskCount            int64                       `json:"open_risk"`
 	OverallControlEfficiency *ControlEfficiencyStatusDTO `json:"overall_control_efficiency"`
+}
+
+type DepartmentHeadUpdateDTO struct {
+	IsHead bool `json:"is_head"`
 }

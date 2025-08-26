@@ -5,17 +5,20 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
 
 // Interface
 type OrganizationStructureRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetOrganizationStructure(sort string, sortBy string) ([]models.OrganizationUnit, error)
 	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint, primaryOrgUnitField string) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
 	GetComplianceStatusByUnit(unitID uint) (float64, error)
 	GetOpenRiskCountByUnit(unitID uint) (int64, error)
 	GetControlEfficiencyByUnit(unitID uint) (*organizationDTOs.ControlEfficiencyStatusDTO, error)
+	SetAllIsLatestFalse(orgUnitID uint, primaryField string, tx ...utility.DatabaseTransaction) error
 }
 
 type OrganizationStructureRepository struct {
@@ -26,6 +29,10 @@ func NewOrganizationStructureRepository(db *gorm.DB) *OrganizationStructureRepos
 	return &OrganizationStructureRepository{
 		db: db,
 	}
+}
+
+func (repo *OrganizationStructureRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *OrganizationStructureRepository) GetOrganizationStructure(sort string, sortBy string) ([]models.OrganizationUnit, error) {
@@ -63,6 +70,7 @@ func (repo *OrganizationStructureRepository) GetUsersByOrganizationUnit(params *
             users.last_name_en,
             users.first_name_ar,
             users.last_name_ar,
+			users.is_head,
             designations.title_en AS designation_en,
             designations.title_ar AS designation_ar`).
 		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
@@ -147,4 +155,14 @@ func (repo *OrganizationStructureRepository) GetControlEfficiencyByUnit(unitID u
 	}
 
 	return &status, nil
+}
+
+func (repo *OrganizationStructureRepository) SetAllIsLatestFalse(orgUnitID uint, primaryField string, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Model(&models.User{}).
+		Where(fmt.Sprintf("%s = ? AND is_head = ?", primaryField), orgUnitID, true).
+		Update("is_head", false).Error
 }

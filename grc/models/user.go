@@ -29,6 +29,7 @@ type User struct {
 	ReportingUserID       *uint      `json:"reporting_user"`
 	LicenseTypeID         *uint      `json:"license_type_id"`
 	DelegateeUserID       *uint      `json:"delegatee_user_id"`
+	IsHead                bool       `json:"is_head"`
 	CreatedAt             time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt             *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedByID           uint       `json:"created_by_id" gorm:"not null"`
