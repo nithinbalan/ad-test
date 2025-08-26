@@ -744,18 +744,6 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 			ReferenceNumber: complianceRegister.ReferenceNumber,
 		})
 
-		// Check if controls exist
-		if len(complianceRegister.Controls) > 0 {
-			var deleteControlIds []*uint
-			for _, ctrl := range complianceRegister.Controls {
-				deleteControlIds = append(deleteControlIds, ctrl.ID)
-			}
-			if err := crs.repo.DeleteComplianceControls(deleteControlIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-		}
-
 		if len(complianceRegister.ComplianceStatusUpdates) > 0 {
 			var deleteStatusUpdateIds []*uint
 			for _, update := range complianceRegister.ComplianceStatusUpdates {
@@ -1034,22 +1022,6 @@ func (crs *ComplianceRegisterService) validateComplianceRegisterFormDTO(complian
 	}
 	if _, err := crs.complianceAssessmentFrameworkSvc.GetByID(complianceRegisterFormDTO.ComplianceAssessmentFrameworkID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance assessment framework does not exist"), "not_exist", "compliance assessment framework")
-	}
-	// Controls exist
-	controls := complianceRegisterFormDTO.ControlIDs
-
-	controlIDs := make(map[uint]bool)
-
-	for _, control := range controls {
-		if controlIDs[*control] {
-			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", control), "duplicate", "control")
-		}
-
-		if _, err := crs.controlSvc.GetByID(*control); err != nil {
-			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", control), "not_exist", "control")
-		}
-
-		controlIDs[*control] = true
 	}
 
 	return nil
