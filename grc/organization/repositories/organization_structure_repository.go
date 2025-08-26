@@ -15,7 +15,7 @@ type OrganizationStructureRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetOrganizationStructure(sort string, sortBy string) ([]models.OrganizationUnit, error)
 	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint, primaryOrgUnitField string) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
-	GetComplianceStatusesByUnit(unitID uint) ([]organizationDTOs.ComplianceStatusCountDTO, error)
+	GetComplianceSummaryByUnit(unitID uint) (int64, int64, []organizationDTOs.ComplianceStatusCountDTO, error)
 	GetOpenRiskCountByUnit(unitID uint) (int64, error)
 	GetControlEfficiencyByUnit(unitID uint) (*organizationDTOs.ControlEfficiencyStatusDTO, error)
 	SetAllIsLatestFalse(orgUnitID uint, primaryField string, tx ...utility.DatabaseTransaction) error
@@ -105,37 +105,63 @@ func (repo *OrganizationStructureRepository) GetUsersByOrganizationUnit(params *
 	return response, nil
 }
 
-func (repo *OrganizationStructureRepository) GetComplianceStatusesByUnit(unitID uint) ([]organizationDTOs.ComplianceStatusCountDTO, error) {
-	var out []organizationDTOs.ComplianceStatusCountDTO
+func (repo *OrganizationStructureRepository) GetComplianceSummaryByUnit(unitID uint) (int64, int64, []organizationDTOs.ComplianceStatusCountDTO, error) {
+	var compliant, total int64
+	var statuses []organizationDTOs.ComplianceStatusCountDTO
 
-	const q = `
+	// Step 1: compliant + total
+	const q1 = `
+		SELECT 
+			COALESCE(SUM(CASE WHEN cs.type = 'compliant' THEN 1 ELSE 0 END), 0) AS compliant,
+			COALESCE(COUNT(*), 0) AS total
+		FROM compliance_assessment_requirement_responsible_units carru
+		JOIN compliance_assessment_framework_values cafv
+			ON cafv.id = carru.compliance_assessment_framework_value_id
+		JOIN compliance_statuses cs
+			ON cs.id = cafv.compliance_status_id
+		JOIN compliance_assessment_requirement_statuses carrs
+			ON carrs.id = carru.compliance_assessment_requirement_status_id
+		WHERE carru.responsible_unit_id = ?
+		  AND carrs.type = 'approved'
+		  AND cs.type NOT IN ('exempt','not_applicable')
+	`
+	if err := repo.db.Raw(q1, unitID).Row().Scan(&compliant, &total); err != nil {
+		return 0, 0, nil, err
+	}
+
+	// Step 2: per-status (for thresholds)
+	const q2 = `
 		SELECT
 			cs.id   AS compliance_status_id,
 			cs.title_en,
 			cs.title_ar,
 			cs.type,
 			cs.color_code,
+			cs.score_from,
+			cs.score_to,
 			COALESCE(agg.cnt, 0) AS count
 		FROM compliance_statuses cs
 		LEFT JOIN (
 			SELECT 
-				cafv.compliance_status_id AS compliance_status_id,
+				cafv.compliance_status_id,
 				COUNT(*) AS cnt
 			FROM compliance_assessment_requirement_responsible_units carru
-			LEFT JOIN compliance_assessment_framework_values cafv
+			JOIN compliance_assessment_framework_values cafv
 				ON cafv.id = carru.compliance_assessment_framework_value_id
+			JOIN compliance_assessment_requirement_statuses carrs
+				ON carrs.id = carru.compliance_assessment_requirement_status_id
 			WHERE carru.responsible_unit_id = ?
+			  AND carrs.type = 'approved'
 			GROUP BY cafv.compliance_status_id
 		) agg
 			ON agg.compliance_status_id = cs.id
-		WHERE cs.status = 'active'
 		ORDER BY cs.id
 	`
-
-	if err := repo.db.Raw(q, unitID).Scan(&out).Error; err != nil {
-		return nil, err
+	if err := repo.db.Raw(q2, unitID).Scan(&statuses).Error; err != nil {
+		return 0, 0, nil, err
 	}
-	return out, nil
+
+	return compliant, total, statuses, nil
 }
 
 func (repo *OrganizationStructureRepository) GetOpenRiskCountByUnit(unitID uint) (int64, error) {

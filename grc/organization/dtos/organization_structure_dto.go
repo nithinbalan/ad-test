@@ -33,6 +33,13 @@ type OrganizationUnitUserPrimaryDetailsResponseDTO struct {
 	Pagination commonDTOs.PaginationInfoDTO            `json:"pagination"`
 }
 
+type OverallComplianceStatusDTO struct {
+	TitleEn       string  `json:"title_en"`
+	TitleAr       string  `json:"title_ar"`
+	ColorCode     string  `json:"color_code"`
+	CompliancePct float64 `json:"compliance_pct"`
+}
+
 type ComplianceStatusCountDTO struct {
 	ComplianceStatusID uint   `json:"compliance_status_id"`
 	TitleEn            string `json:"title_en"`
@@ -40,15 +47,16 @@ type ComplianceStatusCountDTO struct {
 	Type               string `json:"type"`
 	ColorCode          string `json:"color_code"`
 	Count              int64  `json:"count"`
+	ScoreFrom          *int   `json:"score_from"`
+	ScoreTo            *int   `json:"score_to"`
 }
 
 type OrganizationUnitSummaryDTO struct {
 	ResponsibleUnitID        uint                        `json:"responsible_unit_id"`
-	ComplianceStatuses       []ComplianceStatusCountDTO  `json:"compliance_statuses"`
+	ComplianceStatus         *OverallComplianceStatusDTO `json:"compliance_status"`
 	OpenRiskCount            int64                       `json:"open_risk"`
 	OverallControlEfficiency *ControlEfficiencyStatusDTO `json:"overall_control_efficiency"`
 }
-
 type DepartmentHeadUpdateDTO struct {
 	IsHead bool `json:"is_head"`
 }
