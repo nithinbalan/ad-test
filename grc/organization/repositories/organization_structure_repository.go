@@ -15,7 +15,7 @@ type OrganizationStructureRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetOrganizationStructure(sort string, sortBy string) ([]models.OrganizationUnit, error)
 	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint, primaryOrgUnitField string) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
-	GetComplianceStatusByUnit(unitID uint) (float64, error)
+	GetComplianceStatusesByUnit(unitID uint) ([]organizationDTOs.ComplianceStatusCountDTO, error)
 	GetOpenRiskCountByUnit(unitID uint) (int64, error)
 	GetControlEfficiencyByUnit(unitID uint) (*organizationDTOs.ControlEfficiencyStatusDTO, error)
 	SetAllIsLatestFalse(orgUnitID uint, primaryField string, tx ...utility.DatabaseTransaction) error
@@ -105,21 +105,37 @@ func (repo *OrganizationStructureRepository) GetUsersByOrganizationUnit(params *
 	return response, nil
 }
 
-func (repo *OrganizationStructureRepository) GetComplianceStatusByUnit(unitID uint) (float64, error) {
-	var compliance float64
-	query := `
-		SELECT 
-			CASE 
-				WHEN COUNT(*) = 0 THEN 0
-				ELSE CAST(SUM(CASE WHEN carru.is_completed = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) AS FLOAT)
-			END
-		FROM compliance_assessment_requirement_responsible_units carru
-		WHERE carru.responsible_unit_id = ?
+func (repo *OrganizationStructureRepository) GetComplianceStatusesByUnit(unitID uint) ([]organizationDTOs.ComplianceStatusCountDTO, error) {
+	var out []organizationDTOs.ComplianceStatusCountDTO
+
+	const q = `
+		SELECT
+			cs.id   AS compliance_status_id,
+			cs.title_en,
+			cs.title_ar,
+			cs.type,
+			cs.color_code,
+			COALESCE(agg.cnt, 0) AS count
+		FROM compliance_statuses cs
+		LEFT JOIN (
+			SELECT 
+				cafv.compliance_status_id AS compliance_status_id,
+				COUNT(*) AS cnt
+			FROM compliance_assessment_requirement_responsible_units carru
+			LEFT JOIN compliance_assessment_framework_values cafv
+				ON cafv.id = carru.compliance_assessment_framework_value_id
+			WHERE carru.responsible_unit_id = ?
+			GROUP BY cafv.compliance_status_id
+		) agg
+			ON agg.compliance_status_id = cs.id
+		WHERE cs.status = 'active'
+		ORDER BY cs.id
 	`
-	if err := repo.db.Raw(query, unitID).Scan(&compliance).Error; err != nil {
-		return 0, err
+
+	if err := repo.db.Raw(q, unitID).Scan(&out).Error; err != nil {
+		return nil, err
 	}
-	return compliance, nil
+	return out, nil
 }
 
 func (repo *OrganizationStructureRepository) GetOpenRiskCountByUnit(unitID uint) (int64, error) {

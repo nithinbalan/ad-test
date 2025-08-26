@@ -33,9 +33,18 @@ type OrganizationUnitUserPrimaryDetailsResponseDTO struct {
 	Pagination commonDTOs.PaginationInfoDTO            `json:"pagination"`
 }
 
+type ComplianceStatusCountDTO struct {
+	ComplianceStatusID uint   `json:"compliance_status_id"`
+	TitleEn            string `json:"title_en"`
+	TitleAr            string `json:"title_ar"`
+	Type               string `json:"type"`
+	ColorCode          string `json:"color_code"`
+	Count              int64  `json:"count"`
+}
+
 type OrganizationUnitSummaryDTO struct {
 	ResponsibleUnitID        uint                        `json:"responsible_unit_id"`
-	ComplianceStatus         float64                     `json:"compliance_status"`
+	ComplianceStatuses       []ComplianceStatusCountDTO  `json:"compliance_statuses"`
 	OpenRiskCount            int64                       `json:"open_risk"`
 	OverallControlEfficiency *ControlEfficiencyStatusDTO `json:"overall_control_efficiency"`
 }

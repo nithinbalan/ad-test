@@ -120,11 +120,11 @@ func (s *OrganizationStructureService) GetOrganizationUnitSummary(unitID uint) (
 	}
 
 	// Compliance %
-	cs, err := s.repo.GetComplianceStatusByUnit(unitID)
+	statuses, err := s.repo.GetComplianceStatusesByUnit(unitID)
 	if err != nil {
 		return nil, err
 	}
-	dto.ComplianceStatus = cs
+	dto.ComplianceStatuses = statuses
 
 	// Risks
 	riskCount, err := s.repo.GetOpenRiskCountByUnit(unitID)
