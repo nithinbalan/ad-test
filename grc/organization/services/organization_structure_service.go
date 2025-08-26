@@ -1,7 +1,6 @@
 package services
 
 import (
-	"errors"
 	"fmt"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
@@ -9,15 +8,13 @@ import (
 	"jethur/grc/organization/repositories"
 	settingServices "jethur/grc/settings/services"
 	"jethur/utility"
-
-	"gorm.io/gorm"
 )
 
 // Interface
 type OrganizationStructureServiceInterface interface {
 	GetOrganizationStructure(sort string, sortBy string) ([]organizationDTOs.OrganizationStructureDTO, error)
 	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
-	UpdateDepartmentHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error
+	UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error
 	GetOrganizationUnitSummary(unitID uint) (*organizationDTOs.OrganizationUnitSummaryDTO, error)
 }
 
@@ -146,9 +143,7 @@ func (s *OrganizationStructureService) GetOrganizationUnitSummary(unitID uint) (
 	return dto, nil
 }
 
-func (s *OrganizationStructureService) UpdateDepartmentHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error {
-	// Start transaction
-	tx := s.repo.BeginTransaction()
+func (s *OrganizationStructureService) UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error {
 
 	// Get primary organization level field
 	primaryLevel, err := s.organizationLevelSvc.GetPrimaryLevel()
@@ -156,6 +151,9 @@ func (s *OrganizationStructureService) UpdateDepartmentHead(unitID uint, userID 
 		return err
 	}
 	primaryField := fmt.Sprintf("organization_unit_%d_id", primaryLevel.Level)
+
+	// Start transaction
+	tx := s.repo.BeginTransaction()
 
 	// If setting as head, first unset any existing head in this unit
 	if err := s.repo.SetAllIsLatestFalse(unitID, primaryField, tx); err != nil {
@@ -167,9 +165,6 @@ func (s *OrganizationStructureService) UpdateDepartmentHead(unitID uint, userID 
 	user, err := s.userSvc.GetByID(userID)
 	if err != nil {
 		tx.Rollback()
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return &utility.ResourceNotFoundError{}
-		}
 		return err
 	}
 

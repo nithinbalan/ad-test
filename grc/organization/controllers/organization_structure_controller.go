@@ -128,7 +128,7 @@ func (osc *OrganizationStructureController) GetOrganizationUnitSummary(c *gin.Co
 	c.JSON(http.StatusOK, result)
 }
 
-func (osc *OrganizationStructureController) UpdateDepartmentHead(c *gin.Context) {
+func (osc *OrganizationStructureController) UpdatePrimaryOrganizationUnitHead(c *gin.Context) {
 	var form organizationDTOs.DepartmentHeadUpdateDTO
 
 	unitID, err := strconv.ParseUint(c.Param("unitId"), 10, 64)
@@ -154,7 +154,7 @@ func (osc *OrganizationStructureController) UpdateDepartmentHead(c *gin.Context)
 		return
 	}
 
-	err = osc.service.UpdateDepartmentHead(uint(unitID), uint(userID), currentUserID, &form)
+	err = osc.service.UpdatePrimaryOrganizationUnitHead(uint(unitID), uint(userID), currentUserID, &form)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
