@@ -32,7 +32,7 @@ type OrganizationUnitUserPrimaryDetailsResponseDTO struct {
 	Pagination commonDTOs.PaginationInfoDTO            `json:"pagination"`
 }
 
-type OrganizationUnitDashboardDTO struct {
+type OrganizationUnitSummaryDTO struct {
 	ResponsibleUnitID        uint                        `json:"responsible_unit_id"`
 	ComplianceStatus         float64                     `json:"compliance_status"`
 	OpenRiskCount            int64                       `json:"open_risk"`

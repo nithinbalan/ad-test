@@ -438,5 +438,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// organization structure
 	organizationRoutes.GET("/organization-structures", middlewares.RolePermissionMiddleware(db, "organization_structure", "view"), organizationStructureController.GetOrganizationStructure)
 	organizationRoutes.GET("/organization-structures/:unitId/users", middlewares.RolePermissionMiddleware(db, "organization_structure", "view"), organizationStructureController.GetUsersByOrganizationUnitID)
-	organizationRoutes.GET("/organization-structures/:unitId/dashboard", middlewares.RolePermissionMiddleware(db, "organization_structure", "view"), organizationStructureController.GetOrganizationUnitDashboard)
+	organizationRoutes.GET("/organization-structures/:unitId/summary", middlewares.RolePermissionMiddleware(db, "organization_structure", "view"), organizationStructureController.GetOrganizationUnitSummary)
 }
