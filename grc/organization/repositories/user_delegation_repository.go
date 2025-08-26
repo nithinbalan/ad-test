@@ -165,10 +165,18 @@ func (repo *UserDelegationRepository) UpdateActionPlanDelegationUser(responsible
 
 	return db.Transaction(func(tx *gorm.DB) error {
 		for _, table := range tables {
-			if err := tx.Table(table).
-				Where("responsible_user_id = ? ", responsibleUserID).
-				Update("delegatee_user_id", value).Error; err != nil {
-				return err
+			if table != "document_change_request_workflow_participants" && table != "document_workflow_participants" {
+				if err := tx.Table(table).
+					Where("responsible_user_id = ? ", responsibleUserID).
+					Update("delegatee_user_id", value).Error; err != nil {
+					return err
+				}
+			} else {
+				if err := tx.Table(table).
+					Where("user_id = ? ", responsibleUserID).
+					Update("delegatee_user_id", value).Error; err != nil {
+					return err
+				}
 			}
 		}
 		return nil

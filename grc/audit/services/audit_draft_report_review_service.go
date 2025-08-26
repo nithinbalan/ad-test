@@ -159,24 +159,24 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 	}
 
 	urlParam := fmt.Sprintf(`{"id":%d}`, auditID)
-	for _, participant := range participants {
-		taskDTO := commonDTOs.TaskFormDTO{
-			ModuleIdentifier:      "audit",
-			AuditDraftReportID:    &auditDraftReportID,
-			AuditReportWorkflowID: &auditReportWorkflowID,
-			Title:                 existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
-			Description:           existingAuditDraftReportFullDetails.Audit.AuditPlan.Description,
-			URLParam:              &urlParam,
-			QueryParam:            nil,
-			ResponsibleUserID:     participant.UserID,
-		}
+	// for _, participant := range participants {
+	// 	taskDTO := commonDTOs.TaskFormDTO{
+	// 		ModuleIdentifier:      "audit",
+	// 		AuditDraftReportID:    &auditDraftReportID,
+	// 		AuditReportWorkflowID: &auditReportWorkflowID,
+	// 		Title:                 existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
+	// 		Description:           existingAuditDraftReportFullDetails.Audit.AuditPlan.Description,
+	// 		URLParam:              &urlParam,
+	// 		QueryParam:            nil,
+	// 		ResponsibleUserID:     participant.UserID,
+	// 	}
 
-		_, err := adrrs.taskSvc.Create(taskDTO, currentUserID, tx)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
+	// 	_, err := adrrs.taskSvc.Create(taskDTO, currentUserID, tx)
+	// 	if err != nil {
+	// 		tx.Rollback()
+	// 		return err
+	// 	}
+	// }
 	tx.Commit()
 	go func() {
 		entity := "audit-draft-report"
@@ -353,10 +353,10 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 		tx.Rollback()
 		return err
 	}
-	_, err = adrrs.taskSvc.UpdateAuditDraftReportTaskStatus(auditDraftReportID, currentUserID, existingAuditReportWorkflow.ID)
-	if err != nil {
-		return err
-	}
+	// _, err = adrrs.taskSvc.UpdateAuditDraftReportTaskStatus(auditDraftReportID, currentUserID, existingAuditReportWorkflow.ID)
+	// if err != nil {
+	// 	return err
+	// }
 
 	tx.Commit()
 
@@ -559,10 +559,10 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 		return err
 	}
 
-	_, err = adrrs.taskSvc.UpdateAuditDraftReportTaskStatus(auditDraftReportID, currentUserID, existingAuditReportWorkflow.ID)
-	if err != nil {
-		return err
-	}
+	// _, err = adrrs.taskSvc.UpdateAuditDraftReportTaskStatus(auditDraftReportID, currentUserID, existingAuditReportWorkflow.ID)
+	// if err != nil {
+	// 	return err
+	// }
 
 	tx.Commit()
 
@@ -794,24 +794,24 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 		return err
 	}
 	urlParam := fmt.Sprintf(`{"id":%d}`, auditID)
-	for _, participant := range auditReportWorkflowFormDTO.UserIDs {
-		taskDTO := commonDTOs.TaskFormDTO{
-			ModuleIdentifier:      "audit",
-			AuditDraftReportID:    &auditDraftReportID,
-			AuditReportWorkflowID: &auditReportWorkflowID,
-			Title:                 existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
-			Description:           existingAuditDraftReportFullDetails.Audit.AuditPlan.Description,
-			URLParam:              &urlParam,
-			QueryParam:            nil,
-			ResponsibleUserID:     *participant,
-		}
+	// for _, participant := range auditReportWorkflowFormDTO.UserIDs {
+	// 	taskDTO := commonDTOs.TaskFormDTO{
+	// 		ModuleIdentifier:      "audit",
+	// 		AuditDraftReportID:    &auditDraftReportID,
+	// 		AuditReportWorkflowID: &auditReportWorkflowID,
+	// 		Title:                 existingAuditDraftReportFullDetails.Audit.AuditPlan.Title,
+	// 		Description:           existingAuditDraftReportFullDetails.Audit.AuditPlan.Description,
+	// 		URLParam:              &urlParam,
+	// 		QueryParam:            nil,
+	// 		ResponsibleUserID:     *participant,
+	// 	}
 
-		_, err := adrrs.taskSvc.Create(taskDTO, currentUserID, tx)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
+	// 	_, err := adrrs.taskSvc.Create(taskDTO, currentUserID, tx)
+	// 	if err != nil {
+	// 		tx.Rollback()
+	// 		return err
+	// 	}
+	// }
 
 	tx.Commit()
 
