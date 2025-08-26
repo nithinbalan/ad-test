@@ -13,6 +13,9 @@ import (
 type OrganizationStructureRepositoryInterface interface {
 	GetOrganizationStructure(sort string, sortBy string) ([]models.OrganizationUnit, error)
 	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint, primaryOrgUnitField string) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
+	GetComplianceStatusByUnit(unitID uint) (float64, error)
+	GetOpenRiskCountByUnit(unitID uint) (int64, error)
+	GetControlEfficiencyByUnit(unitID uint) (*organizationDTOs.ControlEfficiencyStatusDTO, error)
 }
 
 type OrganizationStructureRepository struct {
@@ -92,4 +95,56 @@ func (repo *OrganizationStructureRepository) GetUsersByOrganizationUnit(params *
 		},
 	}
 	return response, nil
+}
+
+func (repo *OrganizationStructureRepository) GetComplianceStatusByUnit(unitID uint) (float64, error) {
+	var compliance float64
+	query := `
+		SELECT 
+			CASE 
+				WHEN COUNT(*) = 0 THEN 0
+				ELSE CAST(SUM(CASE WHEN carru.is_completed = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) AS FLOAT)
+			END
+		FROM compliance_assessment_requirement_responsible_units carru
+		WHERE carru.responsible_unit_id = ?
+	`
+	if err := repo.db.Raw(query, unitID).Scan(&compliance).Error; err != nil {
+		return 0, err
+	}
+	return compliance, nil
+}
+
+func (repo *OrganizationStructureRepository) GetOpenRiskCountByUnit(unitID uint) (int64, error) {
+	var count int64
+	query := `
+		SELECT COUNT(*)
+		FROM risk_register r
+		JOIN risk_statuses rs ON r.risk_status_id = rs.id
+		WHERE r.responsible_unit_id = ? AND rs.type = 'open'
+	`
+	if err := repo.db.Raw(query, unitID).Scan(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (repo *OrganizationStructureRepository) GetControlEfficiencyByUnit(unitID uint) (*organizationDTOs.ControlEfficiencyStatusDTO, error) {
+	var avgScore float64
+	if err := repo.db.Model(&models.Control{}).
+		Select("COALESCE(AVG(efficiency_score),0)").
+		Where("responsible_unit_id = ?", unitID).
+		Scan(&avgScore).Error; err != nil {
+		return nil, err
+	}
+
+	var status organizationDTOs.ControlEfficiencyStatusDTO
+	err := repo.db.Table("control_efficiency_statuses").
+		Select("id, title_en, title_ar, status, color_code, score_from, score_to").
+		Where("? BETWEEN score_from AND score_to AND status = 'active'", avgScore).
+		First(&status).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &status, nil
 }

@@ -11,6 +11,7 @@ import (
 type OrganizationStructureServiceInterface interface {
 	GetOrganizationStructure(sort string, sortBy string) ([]organizationDTOs.OrganizationStructureDTO, error)
 	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
+	GetOrganizationUnitDashboard(unitID uint) (*organizationDTOs.OrganizationUnitDashboardDTO, error)
 }
 
 type OrganizationStructureService struct {
@@ -95,4 +96,33 @@ func (s *OrganizationStructureService) GetUsersByOrganizationUnit(params *organi
 	}
 
 	return s.repo.GetUsersByOrganizationUnit(params, orgUnitID, primaryOrgUnitField)
+}
+
+func (s *OrganizationStructureService) GetOrganizationUnitDashboard(unitID uint) (*organizationDTOs.OrganizationUnitDashboardDTO, error) {
+	dto := &organizationDTOs.OrganizationUnitDashboardDTO{
+		ResponsibleUnitID: unitID,
+	}
+
+	// Compliance %
+	cs, err := s.repo.GetComplianceStatusByUnit(unitID)
+	if err != nil {
+		return nil, err
+	}
+	dto.ComplianceStatus = cs
+
+	// Risks
+	riskCount, err := s.repo.GetOpenRiskCountByUnit(unitID)
+	if err != nil {
+		return nil, err
+	}
+	dto.OpenRiskCount = riskCount
+
+	// Control Efficiency (DTO)
+	ce, err := s.repo.GetControlEfficiencyByUnit(unitID)
+	if err != nil {
+		return nil, err
+	}
+	dto.OverallControlEfficiency = ce
+
+	return dto, nil
 }

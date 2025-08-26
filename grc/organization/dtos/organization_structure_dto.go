@@ -31,3 +31,10 @@ type OrganizationUnitUserPrimaryDetailsResponseDTO struct {
 	Items      []OrganizationUnitUserPrimaryDetailsDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO            `json:"pagination"`
 }
+
+type OrganizationUnitDashboardDTO struct {
+	ResponsibleUnitID        uint                        `json:"responsible_unit_id"`
+	ComplianceStatus         float64                     `json:"compliance_status"`
+	OpenRiskCount            int64                       `json:"open_risk"`
+	OverallControlEfficiency *ControlEfficiencyStatusDTO `json:"overall_control_efficiency"`
+}
