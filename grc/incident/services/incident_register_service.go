@@ -191,28 +191,6 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		tx.Rollback()
 		return 0, err
 	}
-	// Save ComplianceRequirements
-	var complianceRequirements []*models.IncidentComplianceRequirement
-	for _, reqId := range incidentRegisterFormDTO.ComplianceRequirementIds {
-		complianceRequirement, err := irs.complianceRequirementSvc.GetByComplianceRequirementID(*reqId)
-		if err != nil {
-			return 0, err
-		}
-		requirement := &models.IncidentComplianceRequirement{
-			IncidentRegisterID:      id,
-			ComplianceRegisterID:    complianceRequirement.ComplianceClause.ComplianceRegisterID,
-			ComplianceRequirementID: reqId,
-			CreatedByID:             currentUserID,
-		}
-		complianceRequirements = append(complianceRequirements, requirement)
-	}
-
-	if len(complianceRequirements) > 0 {
-		if err := irs.repo.CreateIncidentComplianceRequirements(complianceRequirements, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
 
 	// Add SLA Register
 	var slaRegisters []*models.IncidentSLA
@@ -232,22 +210,6 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 		}
 	}
 
-	var associatedDocs []*models.IncidentAssociatedDocument
-	for _, documentID := range incidentRegisterFormDTO.DocumentIds {
-		document := &models.IncidentAssociatedDocument{
-			IncidentRegisterID: id,
-			DocumentID:         *documentID,
-			CreatedByID:        currentUserID,
-		}
-		associatedDocs = append(associatedDocs, document)
-	}
-
-	if len(associatedDocs) > 0 {
-		if err := irs.repo.CreateIncidentDocuments(associatedDocs, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
 	// Add timeline
 	// todo
 	timelineTypes, err := irs.incidentTimelineSvc.GetAllTypes()
@@ -507,57 +469,6 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		return err
 	}
 
-	// Collect existing compliance requirement IDs
-	existingRequirementIDs := make(map[uint]bool)
-	for _, req := range existingIncident.ComplianceRequirements {
-		existingRequirementIDs[req.ComplianceRequirementID] = true
-	}
-
-	// Collect new compliance requirement IDs
-	newRequirementIDs := make(map[uint]bool)
-	for _, req := range incidentRegisterFormDTO.ComplianceRequirementIds {
-		newRequirementIDs[*req] = true
-	}
-
-	// Add new compliance requirements
-	var requirementsToAdd []*models.IncidentComplianceRequirement
-	for _, newRequirementID := range incidentRegisterFormDTO.ComplianceRequirementIds {
-		if _, exists := existingRequirementIDs[*newRequirementID]; !exists {
-			// Create a new incident compliance requirement record
-			requirement := &models.IncidentComplianceRequirement{
-				IncidentRegisterID:      id,
-				ComplianceRequirementID: newRequirementID,
-				CreatedByID:             currentUserID,
-			}
-			requirementsToAdd = append(requirementsToAdd, requirement)
-		}
-	}
-
-	// Save the new compliance requirements
-	if len(requirementsToAdd) > 0 {
-		if err := irs.repo.CreateIncidentComplianceRequirements(requirementsToAdd, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Remove compliance requirements not in the new list
-	var deleteRequirementIDs []*uint
-	for _, existingRequirement := range existingIncident.ComplianceRequirements {
-		if _, exists := newRequirementIDs[existingRequirement.ComplianceRequirementID]; !exists {
-			// Append requirement to delete list
-			deleteRequirementIDs = append(deleteRequirementIDs, existingRequirement.ID)
-		}
-	}
-
-	// Delete compliance requirements not in the new list
-	if len(deleteRequirementIDs) > 0 {
-		if err := irs.repo.DeleteIncidentComplianceRequirements(deleteRequirementIDs, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
 	existingSLARegisterIDs := make(map[uint]bool)
 	for _, sla := range existingIncident.SLARegisters {
 		existingSLARegisterIDs[sla.SLARegisterID] = true
@@ -604,57 +515,6 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 	// Delete slaRegisters not in the new list
 	if len(deleteSLARegisterIDs) > 0 {
 		if err := irs.repo.DeleteIncidentSLAs(deleteSLARegisterIDs, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	existingDocumentIDs := make(map[uint]bool)
-	for _, doc := range existingIncident.AssociatedDocuments {
-		existingDocumentIDs[doc.DocumentID] = true
-	}
-
-	// Collect new document IDs
-	newDocumentIDs := make(map[uint]bool)
-	for _, doc := range incidentRegisterFormDTO.DocumentIds {
-		newDocumentIDs[*doc] = true
-	}
-
-	// Add new documents
-	var documentsToAdd []*models.IncidentAssociatedDocument
-	for _, newDocumentID := range incidentRegisterFormDTO.DocumentIds {
-		if _, exists := existingDocumentIDs[*newDocumentID]; !exists {
-			// Create a new incident document record
-			document := &models.IncidentAssociatedDocument{
-				IncidentRegisterID: id,
-				DocumentID:         *newDocumentID,
-				CreatedByID:        currentUserID,
-			}
-			documentsToAdd = append(documentsToAdd, document)
-		}
-	}
-
-	// Save the new documents
-	if len(documentsToAdd) > 0 {
-		if err := irs.repo.CreateIncidentDocuments(documentsToAdd, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Remove documents not in the new list
-	var deleteDocumentIDs []*uint
-
-	for _, existingDocument := range existingIncident.AssociatedDocuments {
-		if _, exists := newDocumentIDs[existingDocument.DocumentID]; !exists {
-			// Append document to delete list
-			deleteDocumentIDs = append(deleteDocumentIDs, existingDocument.ID)
-		}
-	}
-
-	// Delete documents not in the new list
-	if len(deleteDocumentIDs) > 0 {
-		if err := irs.repo.DeleteIncidentDocuments(deleteDocumentIDs, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -764,19 +624,6 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 		if err != nil {
 			return
 		}
-
-		complianceRequirementsAdded := []uint{}
-		complianceRequirementsRemoved := []uint{}
-		for id := range newRequirementIDs {
-			if !existingRequirementIDs[id] {
-				complianceRequirementsAdded = append(complianceRequirementsAdded, id)
-			}
-		}
-		for id := range existingRequirementIDs {
-			if !newRequirementIDs[id] {
-				complianceRequirementsRemoved = append(complianceRequirementsRemoved, id)
-			}
-		}
 		slaRegistersAdded := []uint{}
 		slaRegistersRemoved := []uint{}
 		for id := range newSLARegisterIDs {
@@ -789,40 +636,10 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 				slaRegistersRemoved = append(slaRegistersRemoved, id)
 			}
 		}
-		documentsAdded := []uint{}
-		documentsRemoved := []uint{}
-		for id := range newDocumentIDs {
-			if !existingDocumentIDs[id] {
-				documentsAdded = append(documentsAdded, id)
-			}
-		}
-		for id := range existingDocumentIDs {
-			if !newDocumentIDs[id] {
-				documentsRemoved = append(documentsRemoved, id)
-			}
-		}
 
 		// Prepare log data
 		changedData := make(map[string]interface{})
 		associatedItems := make(map[string]interface{})
-		if len(complianceRequirementsAdded) > 0 || len(complianceRequirementsRemoved) > 0 {
-			associatedItems["requirement_ids"] = map[string]interface{}{
-				"added":   complianceRequirementsAdded,
-				"removed": complianceRequirementsRemoved,
-			}
-		}
-		if len(slaRegistersAdded) > 0 || len(slaRegistersRemoved) > 0 {
-			associatedItems["sla_ids"] = map[string]interface{}{
-				"added":   slaRegistersAdded,
-				"removed": slaRegistersRemoved,
-			}
-		}
-		if len(documentsAdded) > 0 || len(documentsRemoved) > 0 {
-			associatedItems["document_ids"] = map[string]interface{}{
-				"added":   documentsAdded,
-				"removed": documentsRemoved,
-			}
-		}
 
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
@@ -1056,36 +873,12 @@ func (irs *IncidentRegisterService) Delete(ids []uint, currentUserID uint) ([]ui
 			ReferenceNumber: incident.ReferenceNumber,
 		})
 
-		// Delete each compliance requirement if requirements exist
-		if len(incident.ComplianceRequirements) > 0 {
-			var deleteRequirementIds []*uint
-			for _, req := range incident.ComplianceRequirements {
-				deleteRequirementIds = append(deleteRequirementIds, req.ID)
-			}
-			if err := irs.repo.DeleteIncidentComplianceRequirements(deleteRequirementIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-
-		}
-
 		if len(incident.SLARegisters) > 0 {
 			var deleteSLARegisterIDs []*uint
 			for _, sla := range incident.SLARegisters {
 				deleteSLARegisterIDs = append(deleteSLARegisterIDs, sla.ID)
 			}
 			if err := irs.repo.DeleteIncidentSLAs(deleteSLARegisterIDs, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-		}
-
-		if len(incident.AssociatedDocuments) > 0 {
-			var deleteDocumentIds []*uint
-			for _, document := range incident.AssociatedDocuments {
-				deleteDocumentIds = append(deleteDocumentIds, document.ID)
-			}
-			if err := irs.repo.DeleteIncidentDocuments(deleteDocumentIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}
@@ -1283,66 +1076,6 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 		// Add the control ID to the map
 		controlIDs[*control] = true
 	}
-	// Compliance Requirements Exist
-	requirements := incidentRegisterFormDTO.ComplianceRequirementIds
-
-	// Create a map to store requirement IDs
-	requirementIDs := make(map[uint]bool)
-
-	// Check if each requirement exists
-	for _, requirement := range requirements {
-		// Check if the requirement ID already exists in the map
-		if requirementIDs[*requirement] {
-			// If the requirement ID already exists, return a validation error
-			return utility.NewValidationError(fmt.Errorf("duplicate compliance requirement ID: %d", requirement), "duplicate", "compliance requirement")
-		}
-
-		// Check if the requirement exists in the database
-		if _, err := irs.complianceRequirementSvc.GetByComplianceRequirementID(*requirement); err != nil {
-			return utility.NewValidationError(fmt.Errorf("compliance requirement does not exist for ID: %d", requirement), "not_exist", "compliance requirement")
-		}
-
-		// Add the requirement ID to the map
-		requirementIDs[*requirement] = true
-	}
-	// Risks exist
-	risks := incidentRegisterFormDTO.RiskIds
-	// Create a map to store risk IDs
-	riskIDs := make(map[uint]bool)
-
-	// Check if each risk exists
-	for _, risk := range risks {
-		// Check if the risk ID already exists in the map
-		if riskIDs[*risk] {
-			// If the risk ID already exists, return a validation error
-			return utility.NewValidationError(fmt.Errorf("duplicate risk ID: %d", risk), "duplicate", "risk")
-		}
-
-		// Check if the risk exists in the database
-		if _, err := irs.riskRegisterSvc.GetByID(*risk); err != nil {
-			return utility.NewValidationError(fmt.Errorf("risk does not exist for ID: %d", risk), "not_exist", "risk")
-		}
-
-		// Add the risk ID to the map
-		riskIDs[*risk] = true
-	}
-
-	processIds := incidentRegisterFormDTO.ProcessIDs
-
-	processIDs := make(map[uint]bool)
-
-	for _, processId := range processIds {
-		if processIDs[*processId] {
-			return utility.NewValidationError(fmt.Errorf("duplicate process ID: %d", processId), "duplicate", "process")
-		}
-
-		if _, err := irs.processSvc.GetByID(*processId); err != nil {
-			return utility.NewValidationError(fmt.Errorf("process does not exist for ID: %d", processId), "not_exist", "process")
-		}
-
-		processIDs[*processId] = true
-	}
-
 	slaRegisterIds := incidentRegisterFormDTO.SLARegisterIDs
 
 	slaRegisterIDs := make(map[uint]bool)
@@ -1357,27 +1090,6 @@ func (irs *IncidentRegisterService) validateIncidentRegisterFormDTO(incidentRegi
 		}
 
 		slaRegisterIDs[*slaRegisterId] = true
-	}
-	// Assets exist
-	assets := incidentRegisterFormDTO.AssetIds
-	// Create a map to store asset IDs
-	assetIDs := make(map[uint]bool)
-
-	// Check if each asset exists
-	for _, asset := range assets {
-		// Check if the asset ID already exists in the map
-		if assetIDs[*asset] {
-			// If the asset ID already exists, return a validation error
-			return utility.NewValidationError(fmt.Errorf("duplicate asset ID: %d", asset), "duplicate", "asset")
-		}
-
-		// Check if the asset exists in the database
-		if _, err := irs.assetRegisterSvc.GetByID(*asset); err != nil {
-			return utility.NewValidationError(fmt.Errorf("asset does not exist for ID: %d", asset), "not_exist", "asset")
-		}
-
-		// Add the asset ID to the map
-		assetIDs[*asset] = true
 	}
 
 	return nil
