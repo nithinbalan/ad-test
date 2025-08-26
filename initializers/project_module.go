@@ -23,7 +23,7 @@ type ProjectModule struct {
 	projectActionPlanSvc services.ProjectActionPlanServiceInterface
 }
 
-func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule) *ProjectModule {
+func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule, taskModule *TaskModule) *ProjectModule {
 	projectTypeRepo := repositories.NewProjectTypeRepository(db)
 	projectTypeSvc := services.NewProjectTypeService(projectTypeRepo, sharedModule.ActivityLogService)
 	projectTypeController := controllers.NewProjectTypeController(projectTypeSvc)
@@ -61,6 +61,8 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		projectSvc,
 		projectMilestoneSvc,
 		masterModule.SeverityLevelSvc, commonModule.DelegateeUserService,
+		taskModule.TaskService,
+		commonModule.NotificationService,
 	)
 	projectActionPlanController := controllers.NewProjectActionPlanController(projectActionPlanSvc)
 

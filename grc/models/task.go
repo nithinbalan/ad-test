@@ -15,6 +15,7 @@ type Task struct {
 	RiskActionPlanID                *uint      `json:"risk_action_plan_id"`
 	MeetingActionPlanID             *uint      `json:"meeting_action_plan_id"`
 	AuditFindingActionPlanID        *uint      `json:"audit_finding_action_plan_id"`
+	ProjectActionPlanID             *uint      `json:"project_action_plan_id"`
 	DocumentID                      *uint      `json:"document_id"`
 	DocumentWorkflowID              *uint      `json:"document_workflow_id"`
 	DocumentChangeRequestID         *uint      `json:"document_change_request_id"`
@@ -50,6 +51,7 @@ type Task struct {
 	RiskActionPlan         *RiskActionPlan         `gorm:"foreignKey:RiskActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`         // New relationship added
 	MeetingActionPlan      *MeetingActionPlan      `gorm:"foreignKey:MeetingActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`      // New relationship added
 	AuditFindingActionPlan *AuditFindingActionPlan `gorm:"foreignKey:AuditFindingActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"` // New relationship added
+	ProjectActionPlan      *ProjectActionPlan      `gorm:"foreignKey:ProjectActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	SeverityLevel          *SeverityLevel          `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ResponsibleUser        *User                   `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	TaskStatus             *TaskStatus             `gorm:"foreignKey:TaskStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
