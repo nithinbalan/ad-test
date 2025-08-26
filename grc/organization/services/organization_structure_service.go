@@ -2,26 +2,43 @@ package services
 
 import (
 	"fmt"
+	logServices "jethur/grc/logs/services"
+	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/repositories"
 	settingServices "jethur/grc/settings/services"
+	"jethur/utility"
 )
 
 // Interface
 type OrganizationStructureServiceInterface interface {
 	GetOrganizationStructure(sort string, sortBy string) ([]organizationDTOs.OrganizationStructureDTO, error)
 	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
+	UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error
+	GetOrganizationUnitSummary(unitID uint) (*organizationDTOs.OrganizationUnitSummaryDTO, error)
 }
 
 type OrganizationStructureService struct {
 	repo                 repositories.OrganizationStructureRepositoryInterface
+	activityLog          logServices.ActivityLogServiceInterface
 	organizationLevelSvc settingServices.OrganizationLevelServiceInterface
+	userRepo             repositories.UserRepositoryInterface
+	userSvc              UserServiceInterface
 }
 
-func NewOrganizationStructureService(repo repositories.OrganizationStructureRepositoryInterface, organizationLevelSvc settingServices.OrganizationLevelServiceInterface) *OrganizationStructureService {
+func NewOrganizationStructureService(
+	repo repositories.OrganizationStructureRepositoryInterface,
+	activityLog logServices.ActivityLogServiceInterface,
+	organizationLevelSvc settingServices.OrganizationLevelServiceInterface,
+	userRepo repositories.UserRepositoryInterface,
+	userSvc UserServiceInterface,
+) *OrganizationStructureService {
 	return &OrganizationStructureService{
 		repo:                 repo,
+		activityLog:          activityLog,
 		organizationLevelSvc: organizationLevelSvc,
+		userRepo:             userRepo,
+		userSvc:              userSvc,
 	}
 }
 
@@ -95,4 +112,114 @@ func (s *OrganizationStructureService) GetUsersByOrganizationUnit(params *organi
 	}
 
 	return s.repo.GetUsersByOrganizationUnit(params, orgUnitID, primaryOrgUnitField)
+}
+
+func (s *OrganizationStructureService) GetOrganizationUnitSummary(unitID uint) (*organizationDTOs.OrganizationUnitSummaryDTO, error) {
+	dto := &organizationDTOs.OrganizationUnitSummaryDTO{
+		ResponsibleUnitID: unitID,
+	}
+
+	// Compliance %
+	cs, err := s.repo.GetComplianceStatusByUnit(unitID)
+	if err != nil {
+		return nil, err
+	}
+	dto.ComplianceStatus = cs
+
+	// Risks
+	riskCount, err := s.repo.GetOpenRiskCountByUnit(unitID)
+	if err != nil {
+		return nil, err
+	}
+	dto.OpenRiskCount = riskCount
+
+	// Control Efficiency (DTO)
+	ce, err := s.repo.GetControlEfficiencyByUnit(unitID)
+	if err != nil {
+		return nil, err
+	}
+	dto.OverallControlEfficiency = ce
+
+	return dto, nil
+}
+
+func (s *OrganizationStructureService) UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error {
+
+	// Get primary organization level field
+	primaryLevel, err := s.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return err
+	}
+	primaryField := fmt.Sprintf("organization_unit_%d_id", primaryLevel.Level)
+
+	// Start transaction
+	tx := s.repo.BeginTransaction()
+
+	// If setting as head, first unset any existing head in this unit
+	if err := s.repo.SetAllIsLatestFalse(unitID, primaryField, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Get the user
+	user, err := s.userSvc.GetByID(userID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Old data for logging
+	oldData := map[string]interface{}{
+		"is_head":    user.IsHead,
+		"updated_by": user.UpdatedByID,
+	}
+
+	// Update user head status
+	user.IsHead = true
+	user.UpdatedByID = &currentUserID
+
+	// Save the changes
+	if err := s.userRepo.Update(user, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// New data for logging
+	newData := map[string]interface{}{
+		"is_head":    user.IsHead,
+		"updated_by": user.UpdatedByID,
+	}
+
+	// Commit first before logging
+	if err := tx.Commit(); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Log the activity asynchronously
+	go func() {
+		err := s.activityLog.LogActivity(
+			models.UpdateAction,
+			models.User{}.TableName(),
+			user.ID,
+			map[string]interface{}{
+				"old": oldData,
+				"new": newData,
+			},
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.User{}.TableName(),
+				"recordID":  user.ID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
 }
