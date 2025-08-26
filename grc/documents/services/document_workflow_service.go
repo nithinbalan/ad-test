@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	commonServices "jethur/grc/common/services"
 	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/repositories"
 	logSvc "jethur/grc/logs/services"
@@ -40,6 +41,7 @@ type DocumentWorkflowService struct {
 	userSvc                   organizationSvc.UserServiceInterface
 	documentAccessSvc         DocumentAccessServiceInterface
 	documentSvc               DocumentServiceInterface
+	delegateeUserSvc          commonServices.DelegateeUserserviceInterface
 }
 
 func NewDocumentWorkflowService(
@@ -48,6 +50,7 @@ func NewDocumentWorkflowService(
 	workflowSvc settinsSvc.WorkflowServiceInterface,
 	documentWorkflowStatusSvc DocumentWorkflowStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
+	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
 ) DocumentWorkflowServiceInterface {
 	return &DocumentWorkflowService{
 		repo:                      repo,
@@ -55,6 +58,7 @@ func NewDocumentWorkflowService(
 		workflowSvc:               workflowSvc,
 		documentWorkflowStatusSvc: documentWorkflowStatusSvc,
 		userSvc:                   userSvc,
+		delegateeUserSvc:          delegateeUserSvc,
 	}
 }
 
@@ -224,6 +228,16 @@ func (dws *DocumentWorkflowService) createWorkflowParticipant(userID uint, docum
 		DocumentWorkflowID: documentWorkflowID,
 		UserID:             userID,
 		CreatedBYID:        currentUserID,
+	}
+
+	if userID != 0 {
+		delegateeID, err := dws.delegateeUserSvc.AssignDelegateeIfPermitted(userID, "document_register")
+		if err != nil {
+			return err
+		}
+		if delegateeID != nil {
+			docWorkflowParticipant.DelegateeUserID = delegateeID
+		}
 	}
 
 	if participant.Role != nil {

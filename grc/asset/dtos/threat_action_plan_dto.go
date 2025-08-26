@@ -104,6 +104,7 @@ type ThreatActionPlanDetailDTO struct {
 	SeverityLevel           *masterDTOs.SeverityLevelDTO       `json:"severity_level"`
 	ResponsibleUser         organizationDTOs.UserMinimalDTO    `json:"responsible_user"`
 	ReviewUser              *organizationDTOs.UserMinimalDTO   `json:"review_user"`
+	DelegateeUser           *organizationDTOs.UserMinimalDTO   `json:"delegatee_user"`
 	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO     `json:"action_plan_status"`
 	Percentage              *uint                              `json:"percentage"`
 	Comments                *string                            `json:"comments"`

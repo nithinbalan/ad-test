@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	commonServices "jethur/grc/common/services"
 	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/repositories"
 	logSvc "jethur/grc/logs/services"
@@ -39,6 +40,7 @@ type DocumentChangeRequestWorkflowService struct {
 	documentChangeRequestWorkflowStatusSvc DocumentChangeRequestWorkflowStatusServiceInterface
 	userSvc                                organizationSvc.UserServiceInterface
 	documentChangeRequestSvc               DocumentChangeRequestServiceInterface
+	delegateeUserSvc                       commonServices.DelegateeUserserviceInterface
 }
 
 func NewDocumentChangeRequestWorkflowService(
@@ -49,6 +51,7 @@ func NewDocumentChangeRequestWorkflowService(
 	documentChangeRequestWorkflowStatusSvc DocumentChangeRequestWorkflowStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
 	documentChangeRequestSvc DocumentChangeRequestServiceInterface,
+	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
 ) *DocumentChangeRequestWorkflowService {
 	return &DocumentChangeRequestWorkflowService{
 		repo:                                   repo,
@@ -58,6 +61,7 @@ func NewDocumentChangeRequestWorkflowService(
 		documentChangeRequestWorkflowStatusSvc: documentChangeRequestWorkflowStatusSvc,
 		userSvc:                                userSvc,
 		documentChangeRequestSvc:               documentChangeRequestSvc,
+		delegateeUserSvc:                       delegateeUserSvc,
 	}
 }
 
@@ -177,6 +181,16 @@ func (dcrws *DocumentChangeRequestWorkflowService) CreateDocumentCRWorkflowParti
 		DocumentChangeRequestWorkflowID: documentCRWorkflowID,
 		UserID:                          userID,
 		CreatedBYID:                     currentUserID,
+	}
+
+	if userID != 0 {
+		delegateeID, err := dcrws.delegateeUserSvc.AssignDelegateeIfPermitted(userID, "change_request")
+		if err != nil {
+			return err
+		}
+		if delegateeID != nil {
+			docCRWorkflowParticipant.DelegateeUserID = delegateeID
+		}
 	}
 
 	if participant.Role != nil {

@@ -43,6 +43,7 @@ type ComplianceAssessmentRequirementActionPlanService struct {
 	organizationUnitSvc                settingService.OrganizationUnitServiceInterface
 	taskSvc                            taskServices.TaskServiceInterface
 	notificationSvc                    commonServices.NotificationServiceInterface
+	delegateeUserSvc                   commonServices.DelegateeUserserviceInterface
 }
 
 func NewComplianceAssessmentRequirementActionPlanService(
@@ -55,6 +56,7 @@ func NewComplianceAssessmentRequirementActionPlanService(
 	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
 	taskSvc taskServices.TaskServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
 ) ComplianceAssessmentRequirementActionPlanServiceInterface {
 	return &ComplianceAssessmentRequirementActionPlanService{
 		repo:                               repo,
@@ -66,6 +68,7 @@ func NewComplianceAssessmentRequirementActionPlanService(
 		organizationUnitSvc:                organizationUnitSvc,
 		taskSvc:                            taskSvc,
 		notificationSvc:                    notificationSvc,
+		delegateeUserSvc:                   delegateeUserSvc,
 	}
 }
 
@@ -199,6 +202,16 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		CreatedByID:        currentUserID,
 	}
 
+	if ComplianceActionPlanFormDTO.ResponsibleUserID != 0 {
+		delegateeID, err := caraps.delegateeUserSvc.AssignDelegateeIfPermitted(ComplianceActionPlanFormDTO.ResponsibleUserID, "compliance_assessment")
+		if err != nil {
+			return 0, err
+		}
+		if delegateeID != nil {
+			complianceAssessmentRequirementActionPlan.DelegateeUserID = delegateeID
+		}
+	}
+
 	id, err := caraps.repo.Create(complianceAssessmentRequirementActionPlan, tx)
 	if err != nil {
 		tx.Rollback()
@@ -221,7 +234,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 	}
 	urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirementt_id":%d, "action_plan_id":%d}`, complianceAssessmentID, requirementID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:       "compliance",
+		ModuleIdentifier:       "compliance_assessment",
 		ComplianceActionPlanID: &id,
 		Title:                  ComplianceActionPlanFormDTO.Title,
 		Description:            ComplianceActionPlanFormDTO.Description,
@@ -380,6 +393,16 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 	existingComplianceAssessmentRequirementActionPlan.ReviewUserID = ComplianceActionPlanFormDTO.ReviewUserID
 
 	existingComplianceAssessmentRequirementActionPlan.UpdatedByID = &currentUserID
+
+	if ComplianceActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != ComplianceActionPlanFormDTO.ResponsibleUserID {
+		delegateeID, err := caraps.delegateeUserSvc.AssignDelegateeIfPermitted(ComplianceActionPlanFormDTO.ResponsibleUserID, "compliance_assessment")
+		if err != nil {
+			return err
+		}
+		if delegateeID != nil {
+			existingComplianceAssessmentRequirementActionPlan.DelegateeUserID = delegateeID
+		}
+	}
 
 	err = caraps.repo.Update(existingComplianceAssessmentRequirementActionPlan, tx)
 	if err != nil {

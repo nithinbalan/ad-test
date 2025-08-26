@@ -38,6 +38,7 @@ type TestAndExerciseRecoveryActionPlanService struct {
 	taskSvc             taskServices.TaskServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
 	userSettingSvc      organizationServices.UserSettingServiceInterface
+	delegateeUserSvc    commonServices.DelegateeUserserviceInterface
 }
 
 func NewTestAndExerciseRecoveryActionPlanService(
@@ -49,6 +50,7 @@ func NewTestAndExerciseRecoveryActionPlanService(
 	taskSvc taskServices.TaskServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
 ) TestAndExerciseRecoveryActionPlanServiceInterface {
 	return &TestAndExerciseRecoveryActionPlanService{
 		repo:                repo,
@@ -59,6 +61,7 @@ func NewTestAndExerciseRecoveryActionPlanService(
 		taskSvc:             taskSvc,
 		notificationSvc:     notificationSvc,
 		userSettingSvc:      userSettingSvc,
+		delegateeUserSvc:    delegateeUserSvc,
 	}
 }
 
@@ -154,6 +157,16 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 		CreatedBYID:        currentUserID,
 	}
 
+	if recoveryActionPlanFormDTO.ResponsibleUserID != 0 {
+		delegateeID, err := teraps.delegateeUserSvc.AssignDelegateeIfPermitted(recoveryActionPlanFormDTO.ResponsibleUserID, "test_and_exercise")
+		if err != nil {
+			return 0, err
+		}
+		if delegateeID != nil {
+			actionPlan.DelegateeUserID = delegateeID
+		}
+	}
+
 	id, err := teraps.repo.Create(actionPlan, tx)
 	if err != nil {
 		tx.Rollback()
@@ -180,7 +193,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 		urlParam = fmt.Sprintf(`{"test_and_exercise_id":%d, "recovery_action_plan_id":%d}`, testAndExerciseID, id)
 	}
 	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:     "business_continuity",
+		ModuleIdentifier:     "test_and_exercise",
 		RecoveryActionPlanID: &id,
 		Title:                recoveryActionPlanFormDTO.Title,
 		TargetDate:           dates.TargetDate,
@@ -345,6 +358,16 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 	existingRecoveryPlan.Percentage = recoveryActionPlanFormDTO.Percentage
 	existingRecoveryPlan.ReviewUserID = recoveryActionPlanFormDTO.ReviewUserID
 	existingRecoveryPlan.UpdatedBYID = &currentUserID
+
+	if recoveryActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != recoveryActionPlanFormDTO.ResponsibleUserID {
+		delegateeID, err := teraps.delegateeUserSvc.AssignDelegateeIfPermitted(recoveryActionPlanFormDTO.ResponsibleUserID, "test_and_exercise")
+		if err != nil {
+			return err
+		}
+		if delegateeID != nil {
+			existingRecoveryPlan.DelegateeUserID = delegateeID
+		}
+	}
 
 	err = teraps.repo.Update(existingRecoveryPlan, tx)
 	if err != nil {

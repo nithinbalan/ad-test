@@ -46,6 +46,7 @@ type IncidentActionPlanService struct {
 	taskSvc             taskServices.TaskServiceInterface
 	userSvc             organizationServices.UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
+	delegateeUserSvc    commonServices.DelegateeUserserviceInterface
 }
 
 func NewIncidentActionPlanService(
@@ -59,6 +60,7 @@ func NewIncidentActionPlanService(
 	taskSvc taskServices.TaskServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
 ) IncidentActionPlanServiceInterface {
 	return &IncidentActionPlanService{
 		repo:                repo,
@@ -71,6 +73,7 @@ func NewIncidentActionPlanService(
 		taskSvc:             taskSvc,
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
+		delegateeUserSvc:    delegateeUserSvc,
 	}
 }
 
@@ -166,6 +169,16 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		CreatedBYID:        currentUserID,
 	}
 
+	if IncidentActionPlanFormDTO.ResponsibleUserID != 0 {
+		delegateeID, err := iaps.delegateeUserSvc.AssignDelegateeIfPermitted(IncidentActionPlanFormDTO.ResponsibleUserID, "incident_register")
+		if err != nil {
+			return 0, err
+		}
+		if delegateeID != nil {
+			incidentActionPlan.DelegateeUserID = delegateeID
+		}
+	}
+
 	id, err := iaps.repo.Create(incidentActionPlan, tx)
 	if err != nil {
 		tx.Rollback()
@@ -216,7 +229,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 
 	urlParam := fmt.Sprintf(`{"incident_register_id":%d, "action_plan_id":%d}`, incidentID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:     "incident",
+		ModuleIdentifier:     "incident_register",
 		IncidentActionPlanID: &id,
 		Title:                IncidentActionPlanFormDTO.Title,
 		Description:          IncidentActionPlanFormDTO.Description,
@@ -375,6 +388,16 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	existingIncidentActionPlan.Percentage = IncidentActionPlanFormDTO.Percentage
 	existingIncidentActionPlan.Comments = IncidentActionPlanFormDTO.Comments
 	existingIncidentActionPlan.UpdatedBYID = &currentUserID
+
+	if IncidentActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != IncidentActionPlanFormDTO.ResponsibleUserID {
+		delegateeID, err := iaps.delegateeUserSvc.AssignDelegateeIfPermitted(IncidentActionPlanFormDTO.ResponsibleUserID, "incident_register")
+		if err != nil {
+			return err
+		}
+		if delegateeID != nil {
+			existingIncidentActionPlan.DelegateeUserID = delegateeID
+		}
+	}
 
 	err = iaps.repo.Update(existingIncidentActionPlan, tx)
 	if err != nil {

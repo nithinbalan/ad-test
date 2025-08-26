@@ -327,6 +327,16 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 	existingActionPlan.Comments = formDTO.Comments
 	existingActionPlan.UpdatedByID = &currentUserID
 
+	if formDTO.ResponsibleUserID != 0 && oldResponsibleUserID != formDTO.ResponsibleUserID {
+		delegateeID, err := taps.delegateeUserSvc.AssignDelegateeIfPermitted(formDTO.ResponsibleUserID, "threat")
+		if err != nil {
+			return err
+		}
+		if delegateeID != nil {
+			existingActionPlan.DelegateeUserID = delegateeID
+		}
+	}
+
 	err = taps.repo.Update(existingActionPlan, tx)
 	if err != nil {
 		tx.Rollback()

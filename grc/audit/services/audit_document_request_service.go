@@ -422,7 +422,7 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 	urlParam := fmt.Sprintf(`{"audit_id":%d,"document_request_id":%d}`, auditID, id)
 
 	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:       "audit",
+		ModuleIdentifier:       "audits",
 		AuditDocumentRequestID: &id,
 		Title:                  documentRequestFullDetails.Title,
 		Description:            documentRequestFullDetails.Description,

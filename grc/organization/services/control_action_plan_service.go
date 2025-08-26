@@ -39,6 +39,7 @@ type ControlActionPlanService struct {
 	userSvc             UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
 	taskSvc             taskServices.TaskServiceInterface
+	delegateeUserSvc    commonServices.DelegateeUserserviceInterface
 }
 
 func NewControlActionPlanService(
@@ -50,6 +51,7 @@ func NewControlActionPlanService(
 	userSvc UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	taskSvc taskServices.TaskServiceInterface,
+	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
 ) ControlActionPlanServiceInterface {
 	return &ControlActionPlanService{
 		repo:                repo,
@@ -60,6 +62,7 @@ func NewControlActionPlanService(
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
 		taskSvc:             taskSvc,
+		delegateeUserSvc:    delegateeUserSvc,
 	}
 }
 
@@ -152,6 +155,16 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		CreatedByID:        currentUserID,
 	}
 
+	if ControlActionPlanFormDTO.ResponsibleUserID != 0 {
+		delegateeID, err := caps.delegateeUserSvc.AssignDelegateeIfPermitted(ControlActionPlanFormDTO.ResponsibleUserID, "controls")
+		if err != nil {
+			return 0, err
+		}
+		if delegateeID != nil {
+			controlActionPlan.DelegateeUserID = delegateeID
+		}
+	}
+
 	id, err := caps.repo.Create(controlActionPlan, tx)
 	if err != nil {
 		tx.Rollback()
@@ -176,7 +189,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 	urlParam := fmt.Sprintf(`{"control_id":%d, "action_plan_id":%d}`, controlID, id)
 
 	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:    "organization",
+		ModuleIdentifier:    "controls",
 		ControlActionPlanID: &id,
 		Title:               ControlActionPlanFormDTO.Title,
 		Description:         ControlActionPlanFormDTO.Description,
@@ -321,6 +334,16 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 	existingControlActionPlan.TargetDate = dates.TargetDate
 	existingControlActionPlan.Percentage = *ControlActionPlanFormDTO.Percentage
 	existingControlActionPlan.UpdatedByID = &currentUserID
+
+	if ControlActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != ControlActionPlanFormDTO.ResponsibleUserID {
+		delegateeID, err := caps.delegateeUserSvc.AssignDelegateeIfPermitted(ControlActionPlanFormDTO.ResponsibleUserID, "controls")
+		if err != nil {
+			return err
+		}
+		if delegateeID != nil {
+			existingControlActionPlan.DelegateeUserID = delegateeID
+		}
+	}
 
 	err = caps.repo.Update(existingControlActionPlan, tx)
 	if err != nil {

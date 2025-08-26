@@ -60,7 +60,7 @@ func NewProjectModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		organizationModule.UserSvc,
 		projectSvc,
 		projectMilestoneSvc,
-		masterModule.SeverityLevelSvc,
+		masterModule.SeverityLevelSvc, commonModule.DelegateeUserService,
 	)
 	projectActionPlanController := controllers.NewProjectActionPlanController(projectActionPlanSvc)
 

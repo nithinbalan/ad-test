@@ -186,7 +186,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 	if complianceActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && complianceActionPlan.ReviewUserID != nil {
 		urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, ComplianceID, ComplianceActionPlanID)
 		taskDTO := commonDTOs.TaskFormDTO{
-			ModuleIdentifier:       "compliance",
+			ModuleIdentifier:       "compliance_register",
 			ComplianceActionPlanID: &ComplianceActionPlanID,
 			Title:                  complianceActionPlan.Title,
 			Description:            complianceActionPlan.Description,

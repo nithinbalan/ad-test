@@ -1260,7 +1260,7 @@ func (dcrs *DocumentChangeRequestService) SubmitDocumentChangeRequest(id uint, c
 
 	for _, participant := range docCRWorkflowLevel.DocumentChangeRequestWorkflowParticipants {
 		taskDTO := commonDTOs.TaskFormDTO{
-			ModuleIdentifier:                "document",
+			ModuleIdentifier:                "change_request",
 			DocumentChangeRequestID:         &id,
 			DocumentChangeRequestWorkflowID: &docCRWorkflowLevel.ID,
 			// Title:                           documentCRFullDetails.Document.TitleEn,

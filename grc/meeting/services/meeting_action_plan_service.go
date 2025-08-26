@@ -47,6 +47,7 @@ type MeetingActionPlanService struct {
 	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface
 	userSettingSvc         organizationServices.UserSettingServiceInterface
 	taskSvc                taskServices.TaskServiceInterface
+	delegateeUserSvc       commonServices.DelegateeUserserviceInterface
 }
 
 func NewMeetingActionPlanService(
@@ -61,6 +62,7 @@ func NewMeetingActionPlanService(
 	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	taskSvc taskServices.TaskServiceInterface,
+	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
 ) MeetingActionPlanServiceInterface {
 	return &MeetingActionPlanService{
 		repo:                   repo,
@@ -74,6 +76,7 @@ func NewMeetingActionPlanService(
 		meetingMinuteStatusSvc: meetingMinuteStatusSvc,
 		userSettingSvc:         userSettingSvc,
 		taskSvc:                taskSvc,
+		delegateeUserSvc:       delegateeUserSvc,
 	}
 }
 
@@ -164,6 +167,16 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		Percentage:         MeetingActionPlanFormDTO.Percentage,
 		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedByID:        currentUserID,
+	}
+
+	if MeetingActionPlanFormDTO.ResponsibleUserID != 0 {
+		delegateeID, err := maps.delegateeUserSvc.AssignDelegateeIfPermitted(MeetingActionPlanFormDTO.ResponsibleUserID, "meeting")
+		if err != nil {
+			return 0, err
+		}
+		if delegateeID != nil {
+			meetingActionPlan.DelegateeUserID = delegateeID
+		}
 	}
 
 	id, err := maps.repo.Create(meetingActionPlan, tx)
@@ -356,6 +369,16 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	existingMeetingActionPlan.Percentage = MeetingActionPlanFormDTO.Percentage
 	existingMeetingActionPlan.MeetingMinuteID = MeetingActionPlanFormDTO.MeetingMinuteID
 	existingMeetingActionPlan.UpdatedByID = &currentUserID
+
+	if MeetingActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != MeetingActionPlanFormDTO.ResponsibleUserID {
+		delegateeID, err := maps.delegateeUserSvc.AssignDelegateeIfPermitted(MeetingActionPlanFormDTO.ResponsibleUserID, "meeting")
+		if err != nil {
+			return err
+		}
+		if delegateeID != nil {
+			existingMeetingActionPlan.DelegateeUserID = delegateeID
+		}
+	}
 
 	err = maps.repo.Update(existingMeetingActionPlan)
 	if err != nil {

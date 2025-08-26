@@ -143,6 +143,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		settingsModule.ModuleSvc, organizationModule.UserSvc, commonModule.NotificationService,
 		organizationModule.UserSettingSvc,
 		settingsModule.OrganizationUnitSvc,
+		commonModule.DelegateeUserService,
 	)
 	complianceActionPlanController := controllers.NewComplianceActionPlanController(complianceActionPlanSvc)
 
@@ -208,7 +209,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		masterModule.ActionPlanStatusSvc,
 		masterModule.SeverityLevelSvc,
 		taskModule.TaskService,
-		organizationModule.UserSvc, commonModule.NotificationService,
+		organizationModule.UserSvc, commonModule.NotificationService, commonModule.DelegateeUserService,
 	)
 	slaActionPlanController := controllers.NewSLAActionPlanController(slaActionPlanSvc)
 
@@ -259,6 +260,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		settingsModule.OrganizationUnitSvc,
 		taskModule.TaskService,
 		commonModule.NotificationService,
+		commonModule.DelegateeUserService,
 	)
 	complianceAssessmentRequirementActionPlanController := controllers.NewComplianceAssessmentRequirementActionPlanController(complianceAssessmentRequirementActionPlanSvc)
 

@@ -181,7 +181,7 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Create(StrategyProfil
 	if StrategyProfileActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && actionPlan.ReviewUserID != nil {
 		urlParam := fmt.Sprintf(`{"strategy_profile_id":%d, "action_plan_id":%d}`, StrategyProfileID, StrategyProfileActionPlanID)
 		taskDTO := commonDTOs.TaskFormDTO{
-			ModuleIdentifier:            "strategy",
+			ModuleIdentifier:            "strategy_profile",
 			StrategyProfileActionPlanID: &StrategyProfileActionPlanID,
 			Title:                       actionPlan.Title,
 			URLParam:                    &urlParam,

@@ -7,7 +7,7 @@ import (
 )
 
 type User struct {
-	ID                    uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	ID                    uint       `json:"id" gorm:"primaryKey;autoIncrement"`
 	OrganizationUnit1ID   uint       `json:"organization_unit_1_id" binding:"required" gorm:"column:organization_unit_1_id;not null"`
 	OrganizationUnit2ID   *uint      `json:"organization_unit_2_id" gorm:"column:organization_unit_2_id;default:null"`
 	OrganizationUnit3ID   *uint      `json:"organization_unit_3_id" gorm:"column:organization_unit_3_id;default:null"`

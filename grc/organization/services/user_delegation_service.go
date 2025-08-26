@@ -126,6 +126,20 @@ func (ushs *UserDelegationService) Create(currentUserID uint, userDelegationForm
 	tables := []string{
 		"threat_action_plans",
 		"vulnerability_action_plans",
+		"audit_finding_action_plans",
+		"test_and_exercise_recovery_action_plans",
+		"compliance_action_plans",
+		"compliance_assessment_requirement_action_plans",
+		"sla_action_plans",
+		"incident_action_plans",
+		"meeting_action_plans",
+		"control_action_plans",
+		"risk_action_plans",
+		"strategy_profile_action_plans",
+		"stakeholder_action_plans",
+		"project_action_plans",
+		"document_change_request_workflow_participants",
+		"document_workflow_participants",
 	}
 
 	if err := ushs.repo.UpdateActionPlanDelegationUser(userDelegationForm.UserID, tables, &userDelegationForm.DelegateeUserID, tx); err != nil {
@@ -194,6 +208,20 @@ func (ushs *UserDelegationService) EndUserDelegation(userID uint, currentUserID 
 	tables := []string{
 		"threat_action_plans",
 		"vulnerability_action_plans",
+		"audit_finding_action_plans",
+		"test_and_exercise_recovery_action_plans",
+		"compliance_action_plans",
+		"compliance_assessment_requirement_action_plans",
+		"sla_action_plans",
+		"incident_action_plans",
+		"meeting_action_plans",
+		"control_action_plans",
+		"risk_action_plans",
+		"strategy_profile_action_plans",
+		"stakeholder_action_plans",
+		"project_action_plans",
+		"document_change_request_workflow_participants",
+		"document_workflow_participants",
 	}
 
 	if err := ushs.repo.UpdateActionPlanDelegationUser(userID, tables, nil, tx); err != nil {

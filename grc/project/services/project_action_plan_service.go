@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -35,6 +36,7 @@ type ProjectActionPlanService struct {
 	projectSvc          ProjectServiceInterface
 	projectMilestoneSvc ProjectMilestoneServiceInterface
 	severityLevelSvc    masterServices.SeverityLevelServiceInterface
+	delegateeUserSvc    commonServices.DelegateeUserserviceInterface
 }
 
 func NewProjectActionPlanService(
@@ -45,6 +47,7 @@ func NewProjectActionPlanService(
 	projectSvc ProjectServiceInterface,
 	projectMilestoneSvc ProjectMilestoneServiceInterface,
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
+	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
 ) ProjectActionPlanServiceInterface {
 	return &ProjectActionPlanService{
 		repo:                repo,
@@ -54,6 +57,7 @@ func NewProjectActionPlanService(
 		projectSvc:          projectSvc,
 		projectMilestoneSvc: projectMilestoneSvc,
 		severityLevelSvc:    severityLevelSvc,
+		delegateeUserSvc:    delegateeUserSvc,
 	}
 }
 
@@ -148,6 +152,16 @@ func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint,
 		CreatedBYID:        currentUserID,
 	}
 
+	if ProjectActionPlanFormDTO.ResponsibleUserID != 0 {
+		delegateeID, err := paps.delegateeUserSvc.AssignDelegateeIfPermitted(ProjectActionPlanFormDTO.ResponsibleUserID, "project_management")
+		if err != nil {
+			return 0, err
+		}
+		if delegateeID != nil {
+			projectActionPlan.DelegateeUserID = delegateeID
+		}
+	}
+
 	id, err := paps.repo.Create(projectActionPlan, tx)
 	if err != nil {
 		tx.Rollback()
@@ -201,6 +215,8 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 		return err
 	}
 
+	oldResponsibleUserID := existingProjectActionPlan.ResponsibleUserID
+
 	project, err := paps.projectSvc.GetByID(projectID)
 	if err != nil {
 		return err
@@ -226,6 +242,16 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 	existingProjectActionPlan.TargetDate = dates.TargetDate
 	existingProjectActionPlan.Percentage = &ProjectActionPlanFormDTO.Percentage
 	existingProjectActionPlan.UpdatedBYID = &currentUserID
+
+	if ProjectActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != ProjectActionPlanFormDTO.ResponsibleUserID {
+		delegateeID, err := paps.delegateeUserSvc.AssignDelegateeIfPermitted(ProjectActionPlanFormDTO.ResponsibleUserID, "project_management")
+		if err != nil {
+			return err
+		}
+		if delegateeID != nil {
+			existingProjectActionPlan.DelegateeUserID = delegateeID
+		}
+	}
 
 	err = paps.repo.Update(existingProjectActionPlan, tx)
 	if err != nil {

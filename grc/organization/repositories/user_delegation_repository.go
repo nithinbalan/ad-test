@@ -166,8 +166,8 @@ func (repo *UserDelegationRepository) UpdateActionPlanDelegationUser(responsible
 	return db.Transaction(func(tx *gorm.DB) error {
 		for _, table := range tables {
 			if err := tx.Table(table).
-				Where("responsible_user_id = ? AND delegatee_user_id IS NOT NULL", responsibleUserID).
-				Update("delegatee_user_id", nil).Error; err != nil {
+				Where("responsible_user_id = ? ", responsibleUserID).
+				Update("delegatee_user_id", value).Error; err != nil {
 				return err
 			}
 		}
