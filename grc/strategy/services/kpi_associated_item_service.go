@@ -30,7 +30,7 @@ type KPIAssociatedItemServiceInterface interface {
 	CreateKPICompliances(kpiID, userID uint, dto *strategyDTOs.KPIComplianceMapDTO) error
 	DeleteKPICompliance(kpiID, compianceID uint) error
 
-	GetAllAssets(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemAssetListResponseDTO, error)
+	GetAllAssets(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateKPIAssets(kpiID, userID uint, dto *strategyDTOs.KPIAssetMapDTO) error
 	DeleteKPIAsset(kpiID, assetID uint) error
 
@@ -328,7 +328,7 @@ func (kais *KPIAssociatedItemService) validateComplianceIDs(kpiID uint, complian
 }
 
 // Assets
-func (kais *KPIAssociatedItemService) GetAllAssets(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemAssetListResponseDTO, error) {
+func (kais *KPIAssociatedItemService) GetAllAssets(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
 		return nil, err
 	}

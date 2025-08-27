@@ -26,7 +26,7 @@ type KPIAssociatedItemRepositoryInterface interface {
 	DeleteKPIComplianceMapping(kpiID, complianceRegisterID uint, tx ...utility.DatabaseTransaction) error
 	IsComplianceMappedToKPI(kpiID, complianceRegisterID uint) (bool, error)
 
-	GetAllAssets(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemAssetListResponseDTO, error)
+	GetAllAssets(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateKPIAssets(assets []*models.KPIAsset, tx ...utility.DatabaseTransaction) error
 	DeleteKPIAssetMapping(kpiID, assetRegisterID uint, tx ...utility.DatabaseTransaction) error
 	IsAssetMappedToKPI(kpiID, assetRegisterID uint) (bool, error)
@@ -593,57 +593,71 @@ func (repo *KPIAssociatedItemRepository) IsComplianceMappedToKPI(kpiID, complian
 	return count > 0, nil
 }
 
-func (repo *KPIAssociatedItemRepository) GetAllAssets(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemAssetListResponseDTO, error) {
-	var assetList []*strategyDTOs.KPIAssetListDTO
+func (repo *KPIAssociatedItemRepository) GetAllAssets(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	var assetList []*commonDTOs.AssociatedAssetListDTO
 	var totalCount int64
 
 	query := repo.db.Table("kpi_assets").
 		Select(`
-		asset_register.id AS asset_register_id,
-		asset_register.reference_number,
-		asset_register.title_en,
-		asset_register.title_ar,
-		asset_register.location,
-		asset_register.description,
-		CONVERT(VARCHAR, asset_register.acquisition_date, 23) AS acquisition_date,
-		asset_categories.title_en AS asset_category_title_en,
-		asset_categories.title_ar AS asset_category_title_ar,
-		asset_statuses.title_en AS asset_status_title_en,
-		asset_statuses.title_ar AS asset_status_title_ar,
-		asset_statuses.color_code AS asset_status_color_code,
-		organization_units.title_en AS responsible_unit_title_en,
-		organization_units.title_ar AS responsible_unit_title_ar,
-		responsible_user.id AS responsible_user_id,
-		responsible_user.first_name_en AS responsible_user_first_name_en,
-		responsible_user.first_name_ar AS responsible_user_first_name_ar,
-		responsible_user.last_name_en AS responsible_user_last_name_en,
-		responsible_user.last_name_ar AS responsible_user_last_name_ar,
-		responsible_user.initial AS responsible_user_initial,
-		responsible_user.color AS responsible_user_color,
-		responsible_user.email AS responsible_user_email,
-		responsible_user.profile_image_path AS responsible_user_profile_image_path,
-		created_user.id AS created_user_id,
-		created_user.first_name_en AS created_user_first_name_en,
-		created_user.first_name_ar AS created_user_first_name_ar,
-		created_user.last_name_en AS created_user_last_name_en,
-		created_user.last_name_ar AS created_user_last_name_ar,
-		created_user.initial AS created_user_initial,
-		created_user.color AS created_user_color,
-		created_user.email AS created_user_email,
-		created_user.profile_image_path AS created_user_profile_image_path,
-		updated_user.id AS updated_user_id,
-		updated_user.first_name_en AS updated_user_first_name_en,
-		updated_user.first_name_ar AS updated_user_first_name_ar,
-		updated_user.last_name_en AS updated_user_last_name_en,
-		updated_user.last_name_ar AS updated_user_last_name_ar,
-		updated_user.initial AS updated_user_initial,
-		updated_user.color AS updated_user_color,
-		updated_user.email AS updated_user_email,
-		updated_user.profile_image_path AS updated_user_profile_image_path
+		    kpi_assets.id,
+			kpi_assets.asset_register_id,
+			asset_register.reference_number,
+			asset_register.title_en,
+			asset_register.title_ar,
+			asset_register.location,
+			asset_register.description,
+			CONVERT(VARCHAR, asset_register.acquisition_date, 23) AS acquisition_date,
+			CONVERT(VARCHAR, asset_register.assignment_date, 23) AS assignment_date,
+			CONVERT(VARCHAR, asset_register.warranty_expiry_date, 23) AS warranty_expiry_date,
+			asset_register.manufacturer,
+			asset_register.model,
+			asset_register.serial_number,
+			asset_categories.title_en AS asset_category_title_en,
+			asset_categories.title_ar AS asset_category_title_ar,
+			asset_sub_categories.title_en AS asset_sub_category_title_en,
+			asset_sub_categories.title_ar AS asset_sub_category_title_ar,
+			asset_statuses.title_en AS asset_status_title_en,
+			asset_statuses.title_ar AS asset_status_title_ar,
+			asset_statuses.color_code AS asset_status_color_code,
+			asset_register.total_score,
+			asset_criticality_matrix_rating_scales.title_en AS asset_criticality_matrix_rating_scale_title_en,
+			asset_criticality_matrix_rating_scales.title_ar AS asset_criticality_matrix_rating_scale_title_ar,
+			asset_criticality_matrix_rating_scales.color_code AS asset_criticality_matrix_rating_scale_color_code,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+			updated_user.id AS updated_user_id,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
 	`).
 		Joins("LEFT JOIN asset_register ON asset_register.id = kpi_assets.asset_register_id").
 		Joins("LEFT JOIN asset_categories ON asset_categories.id = asset_register.asset_category_id").
+		Joins("LEFT JOIN asset_sub_categories ON asset_sub_categories.id = asset_register.asset_sub_category_id").
 		Joins("LEFT JOIN asset_statuses ON asset_statuses.id = asset_register.asset_status_id").
+		Joins("LEFT JOIN asset_criticality_matrix_rating_scales ON asset_criticality_matrix_rating_scales.id = asset_register.asset_criticality_matrix_rating_scale_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = asset_register.responsible_unit_id").
 		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = asset_register.responsible_user_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = asset_register.created_by_id").
@@ -689,7 +703,7 @@ func (repo *KPIAssociatedItemRepository) GetAllAssets(kpiID uint, params *strate
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	response := &strategyDTOs.KPIAssociatedItemAssetListResponseDTO{
+	response := &commonDTOs.AssociatedItemAssetListResponseDTO{
 		Items: assetList,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
