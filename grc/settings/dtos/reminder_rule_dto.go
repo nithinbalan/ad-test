@@ -37,6 +37,7 @@ type ReminderRuleListDTO struct {
 	ReminderContextTitleEn      string     `json:"reminder_context_title_en"`
 	ReminderContextTitleAr      string     `json:"reminder_context_title_ar"`
 	ReminderContextType         string     `json:"reminder_context_type"`
+	ReminderContextStatus       string     `json:"reminder_context_status"`
 	NotificationMethod          string     `json:"notification_method"`
 	DayOffset                   int        `json:"day_offset"`
 	CreatedUserID               uint       `json:"created_user_id"`

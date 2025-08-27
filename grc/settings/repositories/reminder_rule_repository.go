@@ -43,6 +43,7 @@ func (repo *ReminderRuleRepository) GetAll(params *orgDTOs.ReminderRuleListQuery
 			trigger_conditions.title_en AS trigger_condition_title_en,
 			trigger_conditions.title_ar AS trigger_condition_title_ar,
 			reminder_contexts.type AS reminder_context_type,
+			reminder_contexts.status AS reminder_context_status,
 			reminder_contexts.title_en AS reminder_context_title_en,
 			reminder_contexts.title_ar AS reminder_context_title_ar,
 			created_user.id AS created_user_id,
