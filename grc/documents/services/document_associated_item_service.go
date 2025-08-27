@@ -37,6 +37,9 @@ type DocumentAssociatedItemServiceInterface interface {
 	GetAllAssociatedDocument(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	CreateAssociatedDocument(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
 	DeleteAssociatedDocument(documentID uint, associatedDocumentID uint) error
+	GetAllDocumentAsset(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	CreateDocumentAsset(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
+	DeleteDocumentAsset(documentID uint, assetID uint) error
 }
 
 // Service Implementation
@@ -542,6 +545,56 @@ func (dais *DocumentAssociatedItemService) DeleteAssociatedDocument(documentID u
 	tx := dais.repo.BeginTransaction()
 
 	if err := dais.repo.DeleteAssociatedDocument(documentID, associatedDocumentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) GetAllDocumentAsset(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return nil, err
+	}
+	return dais.repo.GetAllDocumentAsset(documentID, params)
+}
+func (dais *DocumentAssociatedItemService) CreateDocumentAsset(documentID, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return err
+	}
+
+	if err := dais.validationSvc.ValidateAssetMapping(documentID, dto.AssetIDs, "asset_associated_documents", "document_id"); err != nil {
+		return err
+	}
+	tx := dais.repo.BeginTransaction()
+	var mappings []*models.AssetAssociatedDocument
+	currentTime := time.Now()
+
+	for _, AssetID := range dto.AssetIDs {
+		mappings = append(mappings, &models.AssetAssociatedDocument{
+			AssetRegisterID: AssetID,
+			DocumentID:      documentID,
+			CreatedByID:     currentUserID,
+			CreatedAt:       currentTime,
+		})
+	}
+
+	if err := dais.repo.CreateDocumentAsset(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) DeleteDocumentAsset(documentID uint, assetID uint) error {
+	// Validate control existence
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return err
+	}
+
+	tx := dais.repo.BeginTransaction()
+
+	if err := dais.repo.DeleteDocumentAsset(documentID, assetID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
