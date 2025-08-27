@@ -35,7 +35,7 @@ type TaskListDTO struct {
 	ResponsibleUserColor            string  `json:"responsible_user_color"`
 	ResponsibleUserEmail            string  `json:"responsible_user_email"`
 	ResponsibleUserProfileImagePath string  `json:"responsible_user_profile_image_path"`
-	DelegateeUserID                 uint    `json:"delegatee_user_id"`
+	DelegateeUserID                 *uint   `json:"delegatee_user_id"`
 	DelegateeUserFirstNameEn        string  `json:"delegatee_user_first_name_en"`
 	DelegateeUserFirstNameAr        string  `json:"delegatee_user_first_name_ar"`
 	DelegateeUserLastNameEn         string  `json:"delegatee_user_last_name_en"`
