@@ -132,9 +132,6 @@ func (maic *MeetingAssociatedItemController) GetAllMeetingRisks(c *gin.Context) 
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
-
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(maic.db, c, "Invalid page parameter")
@@ -147,14 +144,12 @@ func (maic *MeetingAssociatedItemController) GetAllMeetingRisks(c *gin.Context) 
 		return
 	}
 
-	queryParams := meetingDTOs.MeetingAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	meetings, err := maic.service.GetAllRisks(uint(meetingID), &queryParams)
 
@@ -220,9 +215,6 @@ func (maic *MeetingAssociatedItemController) GetAllMeetingIncidents(c *gin.Conte
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
-
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(maic.db, c, "Invalid page parameter")
@@ -235,14 +227,12 @@ func (maic *MeetingAssociatedItemController) GetAllMeetingIncidents(c *gin.Conte
 		return
 	}
 
-	queryParams := meetingDTOs.MeetingAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	meetings, err := maic.service.GetAllIncidents(uint(meetingID), &queryParams)
 
@@ -568,4 +558,126 @@ func (maic *MeetingAssociatedItemController) DeleteMeetingStrategicObjective(c *
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Strategic Objective unmapped from meeting successfully"})
+}
+
+func (maic *MeetingAssociatedItemController) CreateMeetingRisk(c *gin.Context) {
+	var input commonDTOs.AssociatedRiskMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	meetingID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, err.Error())
+		return
+	}
+
+	err = maic.service.CreateMeetingRisk(uint(meetingID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(maic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (maic *MeetingAssociatedItemController) DeleteMeetingRisk(c *gin.Context) {
+	meetingIDStr := c.Param("id")
+	riskIDStr := c.Param("riskId")
+
+	meetingID, err := strconv.ParseUint(meetingIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = maic.service.DeleteMeetingRisk(uint(meetingID), uint(riskID))
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from meeting successfully"})
+}
+
+func (maic *MeetingAssociatedItemController) CreateMeetingIncident(c *gin.Context) {
+	var input commonDTOs.AssociatedIncidentMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	meetingID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, err.Error())
+		return
+	}
+
+	err = maic.service.CreateMeetingIncident(uint(meetingID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(maic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (maic *MeetingAssociatedItemController) DeleteMeetingIncident(c *gin.Context) {
+	meetingIDStr := c.Param("id")
+	incidentIDStr := c.Param("incidentId")
+
+	meetingID, err := strconv.ParseUint(meetingIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = maic.service.DeleteMeetingIncident(uint(meetingID), uint(incidentID))
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Incident unmapped from meeting successfully"})
 }

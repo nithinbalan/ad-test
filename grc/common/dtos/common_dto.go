@@ -383,6 +383,7 @@ type AssociatedDocumentListResponseDTO struct {
 
 type AssociatedIncidentListDTO struct {
 	ID                              uint       `json:"id"`
+	IncidentRegisterID              uint       `json:"incident_register_id"`
 	ReferenceNumber                 string     `json:"reference_number"`
 	Title                           string     `json:"title"`
 	Description                     *string    `json:"description"`

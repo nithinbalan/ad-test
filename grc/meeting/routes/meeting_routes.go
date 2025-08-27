@@ -93,8 +93,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.GET("/meetings/:id/controls", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingAssociatedItemController.GetAllMeetingControls)
 	meetingRoutes.GET("/meetings/:id/compliance-requirements", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingAssociatedItemController.GetAllMeetingComplianceRequirements)
 	meetingRoutes.GET("/meetings/:id/risks", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingAssociatedItemController.GetAllMeetingRisks)
+	meetingRoutes.POST("/meetings/:id/risks", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingAssociatedItemController.CreateMeetingRisk)
+	meetingRoutes.DELETE("/meetings/:id/risks/:riskId", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingAssociatedItemController.DeleteMeetingRisk)
 	meetingRoutes.GET("/meetings/:id/processes", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingAssociatedItemController.GetAllMeetingProcesses)
 	meetingRoutes.GET("/meetings/:id/incidents", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingAssociatedItemController.GetAllMeetingIncidents)
+	meetingRoutes.POST("/meetings/:id/incidents", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingAssociatedItemController.CreateMeetingIncident)
+	meetingRoutes.DELETE("/meetings/:id/incidents/:incidentId", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingAssociatedItemController.DeleteMeetingIncident)
 
 	meetingRoutes.GET("/meetings/:id/documents", middlewares.RolePermissionMiddleware(db, "meeting", "view"), meetingAssociatedItemController.GetAllMeetingDocuments)
 	meetingRoutes.POST("/meetings/:id/documents", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingAssociatedItemController.CreateMeetingDocument)
