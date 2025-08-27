@@ -18,6 +18,7 @@ type OrganizationUnitUserPrimaryDetailsDTO struct {
 	DesignationEn    string  `json:"designation_en"`
 	DesignationAr    string  `json:"designation_ar"`
 	IsHead           bool    `json:"is_head"`
+	Initial          string  `json:"initial"`
 	ProfileImagePath *string `json:"profile_image_path"`
 }
 
@@ -78,4 +79,5 @@ type OrganizationUnitUserDTO struct {
 	LastNameAr       string  `json:"last_name_ar"`
 	ProfileImagePath *string `json:"profile_image_path,omitempty"`
 	IsHead           bool    `json:"is_head"`
+	Initial          string  `json:"initial"`
 }

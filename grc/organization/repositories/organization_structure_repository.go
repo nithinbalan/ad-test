@@ -75,6 +75,7 @@ func (repo *OrganizationStructureRepository) GetUsersByOrganizationUnit(params *
             users.first_name_ar,
             users.last_name_ar,
 			users.is_head,
+			users.initial,
             designations.title_en AS designation_en,
             designations.title_ar AS designation_ar`).
 		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
@@ -560,7 +561,8 @@ func (repo *OrganizationStructureRepository) GetParentOrganizationUnitWithHead(u
                 u.first_name_ar,
                 u.last_name_ar,
                 u.profile_image_path,
-                u.is_head
+                u.is_head,
+				u.initial
             FROM users u
             WHERE u.%s = ? AND u.is_head = 1`, primaryField)
 
