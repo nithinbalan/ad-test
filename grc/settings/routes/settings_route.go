@@ -8,7 +8,6 @@ import (
 )
 
 func RegisterRoutes(app *initializers.App, router *gin.Engine) {
-
 	settingRoutes := router.Group("/")
 
 	settingRoutes.Use(middlewares.AuthMiddleware())
@@ -37,28 +36,29 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reminderRuleController := app.SettingsModule.ReminderRuleController
 	escalationController := app.SettingsModule.EscalationController
 	escalationLevelController := app.SettingsModule.EscalationLevelController
+	reminderContextController := app.SettingsModule.ReminderContextController
 
-	//Organization Level
+	// Organization Level
 	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
 	settingRoutes.POST("/organization-levels", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), organizationLevelController.CreateOrganizationLevels)
 	settingRoutes.POST("/organization-level", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), organizationLevelController.CreateOrganizationLevel)
 	settingRoutes.PUT("/organization-levels/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), organizationLevelController.UpdateOrganizationLevel)
 	settingRoutes.DELETE("/organization-levels/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), organizationLevelController.DeleteOrganizationLevel)
 
-	//System Preference
+	// System Preference
 	settingRoutes.GET("/system-preferences", systemPreferenceController.GetSystemPreference)
 	settingRoutes.PUT("/system-preferences/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), systemPreferenceController.UpdateSystemPreference)
 	unauthenticatedRoutes.PUT("/update-license-key", systemPreferenceController.UpdateLicenseKey)
 	unauthenticatedRoutes.GET("/license-key", systemPreferenceController.GetSystemPreference)
 
-	//Email template settings
+	// Email template settings
 	settingRoutes.GET("/email-template-settings", emailTemplateSettingsController.GetEmailTemplateSettings)
 	settingRoutes.PUT("/email-template-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), emailTemplateSettingsController.UpdateEmailTemplateSettings)
 
 	settingRoutes.GET("/role-permission-types", rolePermissionTypeController.GetAllRolePermissionTypes)
 	settingRoutes.GET("/role-permission-types/:id", rolePermissionTypeController.GetRolePermissionTypeDetails)
 
-	//Role
+	// Role
 	settingRoutes.GET("/roles", roleController.GetAllRoles)
 	settingRoutes.GET("/roles/:id", roleController.GetRoleDetails)
 	settingRoutes.POST("/roles", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), roleController.CreateRole)
@@ -134,15 +134,18 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.GET("/ai-settings/modules", aiSettingController.GetAllAIModules)
 	settingRoutes.GET("/ai-settings/modules/:id", aiSettingController.GetFeaturesByModuleID)
 
-	//Trigger Condition
+	// Trigger Condition
 	settingRoutes.GET("/trigger-conditions", triggerConditionController.GetAllTriggerConditiones)
 	settingRoutes.GET("/trigger-conditions/:id", triggerConditionController.GetTriggerConditionDetails)
 
-	//Reminder
+	// Reminder
 	settingRoutes.GET("/reminders", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), reminderController.GetAllReminderes)
 	settingRoutes.GET("/reminders/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), reminderController.GetReminderDetails)
 	settingRoutes.GET("/reminder-modules", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), reminderController.GetAllEnabledModules)
 	settingRoutes.GET("/modules/:moduleId/reminders", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), reminderController.GetReminderByModuleID)
+
+	// Reminder Context
+	settingRoutes.GET("/reminder-contexts", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), reminderContextController.GetAllReminderContexts)
 
 	// Reminder Rule
 	settingRoutes.GET("/reminder-rules", reminderRuleController.GetAllReminderRules)
@@ -163,5 +166,4 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.POST("/escalation-levels", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), escalationLevelController.CreateEscalationLevel)
 	settingRoutes.PUT("/escalation-levels/:escalationLevelId", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), escalationLevelController.UpdateEscalationLevel)
 	settingRoutes.POST("/escalation-levels/delete", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), escalationLevelController.DeleteEscalationLevels)
-
 }

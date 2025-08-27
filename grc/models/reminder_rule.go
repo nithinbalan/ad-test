@@ -11,6 +11,7 @@ type ReminderRule struct {
 	NotificationMethod string     `json:"notification_method"`
 	DayOffset          int        `json:"day_offset"`
 	Type               string     `json:"type"`
+	ReminderContextID  uint       `json:"reminder_context_id"`
 	CreatedBYID        uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID        *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
@@ -19,6 +20,7 @@ type ReminderRule struct {
 	// Relationships
 	Reminder         *Reminder         `gorm:"foreignKey:ReminderID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
 	TriggerCondition *TriggerCondition `gorm:"foreignKey:TriggerConditionID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	ReminderContext  *ReminderContext  `gorm:"foreignKey:ReminderContextID;references:ID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	CreatedByUser    *User             `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
