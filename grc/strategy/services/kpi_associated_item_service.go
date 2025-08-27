@@ -31,7 +31,7 @@ type KPIAssociatedItemServiceInterface interface {
 	DeleteKPICompliance(kpiID, compianceID uint) error
 
 	GetAllAssets(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
-	CreateKPIAssets(kpiID, userID uint, dto *strategyDTOs.KPIAssetMapDTO) error
+	CreateKPIAssets(kpiID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
 	DeleteKPIAsset(kpiID, assetID uint) error
 
 	GetAllRisks(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
@@ -335,11 +335,15 @@ func (kais *KPIAssociatedItemService) GetAllAssets(kpiID uint, params *commonDTO
 	return kais.repo.GetAllAssets(kpiID, params)
 }
 
-func (kais *KPIAssociatedItemService) CreateKPIAssets(kpiID, userID uint, dto *strategyDTOs.KPIAssetMapDTO) error {
-	if err := kais.validateAssetIDs(kpiID, dto.AssetIDs); err != nil {
+func (kais *KPIAssociatedItemService) CreateKPIAssets(kpiID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
+
+	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
 		return err
 	}
 
+	if err := kais.validationSvc.ValidateAssetMapping(kpiID, dto.AssetIDs, "kpi_assets", "kpi_register_id"); err != nil {
+		return err
+	}
 	tx := kais.repo.BeginTransaction()
 	var mappings []*models.KPIAsset
 	currentTime := time.Now()

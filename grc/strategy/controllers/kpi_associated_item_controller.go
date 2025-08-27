@@ -382,7 +382,7 @@ func (kaic *KPIAssociatedItemController) GetAllKPIAssets(c *gin.Context) {
 }
 
 func (kaic *KPIAssociatedItemController) CreateKPIAssets(c *gin.Context) {
-	var input strategyDTOs.KPIAssetMapDTO
+	var input commonDTOs.AssociatedAssetMapDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
