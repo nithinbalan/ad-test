@@ -14,7 +14,7 @@ import (
 type ArticleLibraryRepositoryInterface interface {
 	GetAll(params *libraryDTOs.ArticleLibraryListQueryParamsDTO) (*libraryDTOs.ArticleLibraryListResponseDTO, error)
 	GetFullDetailsByID(id uint) (*models.ArticleLibrary, error)
-	GetArticleCategory() ([]libraryDTOs.ArticleCategory, error)
+	GetArticleCategories() ([]libraryDTOs.ArticleCategory, error)
 }
 
 type ArticleLibraryRepository struct {
@@ -107,7 +107,7 @@ func (repo *ArticleLibraryRepository) GetFullDetailsByID(id uint) (*models.Artic
 	return article, nil
 }
 
-func (repo *ArticleLibraryRepository) GetArticleCategory() ([]libraryDTOs.ArticleCategory, error) {
+func (repo *ArticleLibraryRepository) GetArticleCategories() ([]libraryDTOs.ArticleCategory, error) {
 	var results []libraryDTOs.ArticleCategory
 
 	err := repo.db.Table("article_categories").

@@ -78,8 +78,8 @@ func (alc *ArticleLibraryController) GetArticleLibraryDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, Article)
 }
 
-func (alc *ArticleLibraryController) ArticleCategory(c *gin.Context) {
-	result, err := alc.service.GetArticleCategory()
+func (alc *ArticleLibraryController) ArticleCategories(c *gin.Context) {
+	result, err := alc.service.GetArticleCategories()
 	if err != nil {
 		utility.SendInternalErrResp(alc.db, c, err.Error())
 		return
