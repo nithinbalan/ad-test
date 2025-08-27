@@ -70,6 +70,7 @@ type UserServiceInterface interface {
 	UpdateUserOrganizationUnit(userID uint, departmentUpdateFormDTO userDTOs.UpdateOrganizationUnitDTO) error
 
 	GetUserModulesWithPermissions(userID uint, params *settingDTOs.ModuleListQueryParamsDTO) ([]settingDTOs.ModulePermissionListDTO, error)
+	GetUserModulesWithOpenTasks(userID uint) ([]settingDTOs.ModulePermissionListDTO, error)
 	UpdateDelegateeUser(user *models.User, tx utility.DatabaseTransaction) error
 }
 
@@ -2440,7 +2441,6 @@ func (us *UserService) GetUserModulesWithPermissions(userID uint, params *settin
 					Identifier:    submodule.Identifier,
 					TitleEn:       submodule.TitleEn,
 					TitleAr:       submodule.TitleAr,
-					Permissions:   userPermissions[submodule.ID],
 					OpenTaskCount: openTaskCount,
 				}
 				subModuleList = append(subModuleList, submoduleDTO)
@@ -2449,6 +2449,16 @@ func (us *UserService) GetUserModulesWithPermissions(userID uint, params *settin
 	}
 
 	return subModuleList, nil
+}
+
+func (us *UserService) GetUserModulesWithOpenTasks(userID uint) ([]settingDTOs.ModulePermissionListDTO, error) {
+	// Call repository to fetch submodules with open/in_progress tasks
+	submodules, err := us.repo.GetUserModulesWithOpenTasks(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return submodules, nil
 }
 
 func (us *UserService) UpdateDelegateeUser(user *models.User, tx utility.DatabaseTransaction) error {

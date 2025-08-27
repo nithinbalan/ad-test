@@ -704,3 +704,21 @@ func (uc *UserController) GetUserModulesWithPermissions(c *gin.Context) {
 
 	c.JSON(http.StatusOK, permissions)
 }
+
+func (uc *UserController) GetUserModulesWithOpenTasks(c *gin.Context) {
+	idStr := c.Param("userId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	permissions, err := uc.service.GetUserModulesWithOpenTasks(uint(id))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, permissions)
+}
