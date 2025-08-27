@@ -9,6 +9,7 @@ import (
 type ArticleLibraryServiceInterface interface {
 	GetAll(params *libraryDTOs.ArticleLibraryListQueryParamsDTO) (*libraryDTOs.ArticleLibraryListResponseDTO, error)
 	GetFullDetailsByID(id uint) (*models.ArticleLibrary, error)
+	GetArticleCategory() ([]libraryDTOs.ArticleCategory, error)
 }
 
 // Service and implementations
@@ -30,4 +31,8 @@ func (als *ArticleLibraryService) GetAll(params *libraryDTOs.ArticleLibraryListQ
 
 func (als ArticleLibraryService) GetFullDetailsByID(id uint) (*models.ArticleLibrary, error) {
 	return als.repo.GetFullDetailsByID(id)
+}
+
+func (als *ArticleLibraryService) GetArticleCategory() ([]libraryDTOs.ArticleCategory, error) {
+	return als.repo.GetArticleCategory()
 }

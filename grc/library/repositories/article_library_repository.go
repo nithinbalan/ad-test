@@ -14,6 +14,7 @@ import (
 type ArticleLibraryRepositoryInterface interface {
 	GetAll(params *libraryDTOs.ArticleLibraryListQueryParamsDTO) (*libraryDTOs.ArticleLibraryListResponseDTO, error)
 	GetFullDetailsByID(id uint) (*models.ArticleLibrary, error)
+	GetArticleCategory() ([]libraryDTOs.ArticleCategory, error)
 }
 
 type ArticleLibraryRepository struct {
@@ -52,6 +53,10 @@ func (repo *ArticleLibraryRepository) GetAll(params *libraryDTOs.ArticleLibraryL
 			article_category.title_en LIKE ? OR
 			article_category.title_ar LIKE ?  
 		`, keyword, keyword, keyword, keyword)
+	}
+
+	if len(params.Categories) > 0 {
+		query = query.Where("article_library.article_category_id IN ?", params.Categories)
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -98,4 +103,15 @@ func (repo *ArticleLibraryRepository) GetFullDetailsByID(id uint) (*models.Artic
 		return nil, result.Error
 	}
 	return article, nil
+}
+
+func (repo *ArticleLibraryRepository) GetArticleCategory() ([]libraryDTOs.ArticleCategory, error) {
+	var results []libraryDTOs.ArticleCategory
+
+	err := repo.db.Table("article_categories").
+		Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
 }
