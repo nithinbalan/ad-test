@@ -67,7 +67,7 @@ func (osc *OrganizationStructureController) GetUsersByOrganizationUnitID(c *gin.
 		return
 	}
 
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 12)
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
 	if err != nil {
 		utility.SendInternalErrResp(osc.db, c, "Invalid page_size parameter")
 		return
@@ -170,7 +170,7 @@ func (osc *OrganizationStructureController) UpdatePrimaryOrganizationUnitHead(c 
 	c.Status(http.StatusOK)
 }
 
-func (osc *OrganizationStructureController) GetAllPolicyByOrganizationUnit(c *gin.Context) {
+func (osc *OrganizationStructureController) GetAllPoliciesByOrganizationUnit(c *gin.Context) {
 	unitIDStr := c.Param("unitId")
 
 	unitID, err := strconv.ParseUint(unitIDStr, 10, 64)
@@ -204,7 +204,7 @@ func (osc *OrganizationStructureController) GetAllPolicyByOrganizationUnit(c *gi
 		PageSize:    pageSize,
 		QuickFilter: quickFilter,
 	}
-	policies, err := osc.service.GetAllPolicyByOrganizationUnit(uint(unitID), &queryParams)
+	policies, err := osc.service.GetAllPoliciesByOrganizationUnit(uint(unitID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -272,7 +272,7 @@ func (osc *OrganizationStructureController) GetAllRiskByOrganizationUnit(c *gin.
 		PageSize: pageSize,
 		Filters:  filters,
 	}
-	controls, err := osc.service.GetAllRiskByOrganizationUnit(uint(unitID), &queryParams)
+	risks, err := osc.service.GetAllRiskByOrganizationUnit(uint(unitID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -287,5 +287,31 @@ func (osc *OrganizationStructureController) GetAllRiskByOrganizationUnit(c *gin.
 			return
 		}
 	}
-	c.JSON(http.StatusOK, controls)
+	c.JSON(http.StatusOK, risks)
+}
+
+func (osc *OrganizationStructureController) GetParentOrganizationUnitWithHead(c *gin.Context) {
+	unitIDStr := c.Param("unitId")
+
+	unitID, err := strconv.ParseUint(unitIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	result, err := osc.service.GetParentOrganizationUnitWithHead(uint(unitID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(osc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, result)
 }

@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
@@ -19,8 +20,9 @@ type OrganizationStructureRepositoryInterface interface {
 	GetOpenRiskCountByUnit(unitID uint) (int64, error)
 	GetControlEfficiencyByUnit(unitID uint) (*organizationDTOs.ControlEfficiencyStatusDTO, error)
 	SetAllIsLatestFalse(orgUnitID uint, primaryField string, tx ...utility.DatabaseTransaction) error
-	GetAllPolicyByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
+	GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
+	GetParentOrganizationUnitWithHead(unitID uint, primaryField string) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error)
 }
 
 type OrganizationStructureRepository struct {
@@ -97,11 +99,14 @@ func (repo *OrganizationStructureRepository) GetUsersByOrganizationUnit(params *
 		return nil, err
 	}
 
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
 	response := &organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO{
 		Items: users,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
 			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
 			TotalCount:  totalCount,
 		},
 	}
@@ -212,7 +217,7 @@ func (repo *OrganizationStructureRepository) SetAllIsLatestFalse(orgUnitID uint,
 		Update("is_head", false).Error
 }
 
-func (repo *OrganizationStructureRepository) GetAllPolicyByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
+func (repo *OrganizationStructureRepository) GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
 	var documentList []*commonDTOs.AssociatedDocumentListDTO
 	var totalCount int64
 
@@ -247,46 +252,46 @@ func (repo *OrganizationStructureRepository) GetAllPolicyByOrganizationUnit(unit
 			responsible_user.last_name_en AS responsible_user_last_name_en,
 			responsible_user.last_name_ar AS responsible_user_last_name_ar,
 			responsible_user.initial AS responsible_user_initial,
-			responsible_user.color AS responsible_user_color,
-			responsible_user.email AS responsible_user_email,
-			responsible_user.profile_image_path AS responsible_user_profile_image_path,
-			document_versions.url AS document_url,
-			document_versions.name AS document_name,
-			document_versions.size AS document_size,
-			document_versions.token AS document_token,
-			document_versions.original_name AS document_original_name,
-			document_versions.type AS document_type,
-			document_versions.version AS document_version,
-			document_statuses.title_en AS document_status_title_en,
-			document_statuses.title_ar AS document_status_title_ar,
-			document_statuses.color_code AS document_status_color_code,
-			document_statuses.type AS document_status_type,
-			created_user.id AS created_user_id,
-			created_user.first_name_en AS created_user_first_name_en,
-			created_user.first_name_ar AS created_user_first_name_ar,
-			created_user.last_name_en AS created_user_last_name_en,
-			created_user.last_name_ar AS created_user_last_name_ar,
+        	responsible_user.color AS responsible_user_color,
+        	responsible_user.email AS responsible_user_email,
+        	responsible_user.profile_image_path AS responsible_user_profile_image_path,
+            document_versions.url AS document_url,
+            document_versions.name AS document_name,
+            document_versions.size AS document_size,
+            document_versions.token AS document_token,
+            document_versions.original_name AS document_original_name,
+            document_versions.type AS document_type,
+            document_versions.version AS document_version,
+            document_statuses.title_en AS document_status_title_en,
+            document_statuses.title_ar AS document_status_title_ar,
+            document_statuses.color_code AS document_status_color_code,
+            document_statuses.type AS document_status_type,
+            created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
 			created_user.initial AS created_user_initial,
-			created_user.color AS created_user_color,
-			created_user.email AS created_user_email,
-			created_user.profile_image_path AS created_user_profile_image_path,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,
 			updated_user.id AS updated_user_id,
-			updated_user.first_name_en AS updated_user_first_name_en,
-			updated_user.first_name_ar AS updated_user_first_name_ar,
-			updated_user.last_name_en AS updated_user_last_name_en,
-			updated_user.last_name_ar AS updated_user_last_name_ar,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
 			updated_user.initial AS updated_user_initial,
-			updated_user.color AS updated_user_color,
-			updated_user.email AS updated_user_email,
-			updated_user.profile_image_path AS updated_user_profile_image_path,
-			published_user.first_name_en AS published_user_first_name_en,
-			published_user.first_name_ar AS published_user_first_name_ar,
-			published_user.last_name_en AS published_user_last_name_en,
-			published_user.last_name_ar AS published_user_last_name_ar,
-			published_user.initial AS published_user_initial,
-			published_user.color AS published_user_color,
-			published_user.email AS published_user_email,
-			published_user.profile_image_path AS published_user_profile_image_path
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path,
+            published_user.first_name_en AS published_user_first_name_en,
+            published_user.first_name_ar AS published_user_first_name_ar,
+            published_user.last_name_en AS published_user_last_name_en,
+            published_user.last_name_ar AS published_user_last_name_ar,
+            published_user.initial AS published_user_initial,
+            published_user.color AS published_user_color,
+            published_user.email AS published_user_email,
+            published_user.profile_image_path AS published_user_profile_image_path
 		`).
 		Joins(`
             LEFT JOIN document_categories ON document_categories.id = documents.document_category_id
@@ -464,7 +469,8 @@ func (repo *OrganizationStructureRepository) GetAllRiskByOrganizationUnit(unitID
             LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id
             LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
 		`).
-		Where("risk_register.responsible_unit_id = ?", unitID)
+		Where("risk_register.responsible_unit_id = ?", unitID).
+		Where("risk_statuses.type = ?", "open")
 
 	// Count total records
 
@@ -516,4 +522,59 @@ func (repo *OrganizationStructureRepository) GetAllRiskByOrganizationUnit(unitID
 			TotalCount:  totalCount,
 		},
 	}, nil
+}
+
+// GetParentOrganizationUnitWithHead retrieves the main organization unit and its head user
+func (repo *OrganizationStructureRepository) GetParentOrganizationUnitWithHead(unitID uint, primaryField string) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error) {
+	var result organizationDTOs.ParentOrganizationUnitWithHeadDTO
+
+	// First, get the main organization unit (where organization_unit_id is null)
+	parentQuery := `
+        SELECT 
+            COALESCE(parent_ou.id, child_ou.id) as id,
+            COALESCE(parent_ou.title_en, child_ou.title_en) as title_en,
+            COALESCE(parent_ou.title_ar, child_ou.title_ar) as title_ar
+        FROM organization_units child_ou
+        LEFT JOIN organization_units parent_ou ON parent_ou.id = child_ou.organization_unit_id
+        WHERE child_ou.id = ?`
+
+	var parentUnit organizationDTOs.OrganizationUnitDTO
+	err := repo.db.Raw(parentQuery, unitID).Scan(&parentUnit).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// No parent unit found, return empty result
+			return &result, nil
+		}
+		return nil, fmt.Errorf("failed to fetch parent organization unit: %w", err)
+	}
+
+	result.OrganizationUnit = parentUnit
+
+	// If we found a parent unit, try to find its head user from primary organization unit
+	if parentUnit.ID != 0 {
+		headUserQuery := fmt.Sprintf(`
+            SELECT
+                u.id,
+                u.first_name_en,
+                u.last_name_en,
+                u.first_name_ar,
+                u.last_name_ar,
+                u.profile_image_path,
+                u.is_head
+            FROM users u
+            WHERE u.%s = ? AND u.is_head = 1`, primaryField)
+
+		var headUser organizationDTOs.OrganizationUnitUserDTO
+		err = repo.db.Raw(headUserQuery, unitID).Scan(&headUser).Error
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("failed to fetch head user: %w", err)
+		}
+
+		// Only set head user if found
+		if headUser.ID != 0 {
+			result.HeadUser = &headUser
+		}
+	}
+
+	return &result, nil
 }
