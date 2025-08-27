@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 
 	"jethur/grc/organization/services"
@@ -66,7 +67,7 @@ func (osc *OrganizationStructureController) GetUsersByOrganizationUnitID(c *gin.
 		return
 	}
 
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 12)
 	if err != nil {
 		utility.SendInternalErrResp(osc.db, c, "Invalid page_size parameter")
 		return
@@ -167,4 +168,124 @@ func (osc *OrganizationStructureController) UpdatePrimaryOrganizationUnitHead(c 
 		return
 	}
 	c.Status(http.StatusOK)
+}
+
+func (osc *OrganizationStructureController) GetAllPolicyByOrganizationUnit(c *gin.Context) {
+	unitIDStr := c.Param("unitId")
+
+	unitID, err := strconv.ParseUint(unitIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(osc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(osc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Page:        page,
+		PageSize:    pageSize,
+		QuickFilter: quickFilter,
+	}
+	policies, err := osc.service.GetAllPolicyByOrganizationUnit(uint(unitID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(osc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, policies)
+}
+
+func (osc *OrganizationStructureController) GetAllRiskByOrganizationUnit(c *gin.Context) {
+
+	unitIDStr := c.Param("unitId")
+
+	unitID, err := strconv.ParseUint(unitIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	valueStr := c.Query("value")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(osc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(osc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(osc.db, c, "Invalid value parameter")
+			return
+		}
+	}
+	allowedParams := []string{
+		"current_likelihood_ids",
+		"current_impact_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Value:    value,
+		Page:     page,
+		PageSize: pageSize,
+		Filters:  filters,
+	}
+	controls, err := osc.service.GetAllRiskByOrganizationUnit(uint(unitID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(osc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, controls)
 }

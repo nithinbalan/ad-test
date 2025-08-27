@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
@@ -16,6 +17,8 @@ type OrganizationStructureServiceInterface interface {
 	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
 	UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error
 	GetOrganizationUnitSummary(unitID uint) (*organizationDTOs.OrganizationUnitSummaryDTO, error)
+	GetAllPolicyByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
+	GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 }
 
 type OrganizationStructureService struct {
@@ -247,4 +250,12 @@ func (s *OrganizationStructureService) UpdatePrimaryOrganizationUnitHead(unitID 
 	}()
 
 	return nil
+}
+
+func (s *OrganizationStructureService) GetAllPolicyByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
+	return s.repo.GetAllPolicyByOrganizationUnit(unitID, params)
+}
+
+func (s *OrganizationStructureService) GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+	return s.repo.GetAllRiskByOrganizationUnit(unitID, params)
 }
