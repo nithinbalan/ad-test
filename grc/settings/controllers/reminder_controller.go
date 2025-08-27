@@ -108,13 +108,3 @@ func (rc *ReminderController) GetReminderByModuleID(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, stakeholderStatuses)
 }
-
-func (rc *ReminderController) GetAllReminderContexts(c *gin.Context) {
-	data, err := rc.service.GetAllReminderContexts()
-	if err != nil {
-		utility.SendInternalErrResp(rc.db, c, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, data)
-}

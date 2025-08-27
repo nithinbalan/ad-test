@@ -28,6 +28,7 @@ type ReminderRuleService struct {
 	reminderSvc         ReminderServiceInterface
 	triggerConditionSvc TriggerConditionServiceInterface
 	activityLogSvc      activityLogServices.ActivityLogServiceInterface
+	reminderContextSvc  ReminderContextServiceInterface
 }
 
 func NewReminderRuleService(
@@ -35,12 +36,14 @@ func NewReminderRuleService(
 	reminderSvc ReminderServiceInterface,
 	triggerConditionSvc TriggerConditionServiceInterface,
 	activityLogSvc activityLogServices.ActivityLogServiceInterface,
+	reminderContextSvc ReminderContextServiceInterface,
 ) ReminderRuleServiceInterface {
 	return &ReminderRuleService{
 		repo:                repo,
 		reminderSvc:         reminderSvc,
 		triggerConditionSvc: triggerConditionSvc,
 		activityLogSvc:      activityLogSvc,
+		reminderContextSvc:  reminderContextSvc,
 	}
 }
 
@@ -104,7 +107,6 @@ func (rrs *ReminderRuleService) Create(currentUserID uint, dto *settingDTOs.Remi
 }
 
 func (rrs *ReminderRuleService) Update(id uint, currentUserID uint, dto *settingDTOs.ReminderRuleFormDTO) error {
-
 	oldData, err := rrs.GetFullDetailsByID(id)
 	if err != nil {
 		return err
@@ -184,7 +186,6 @@ func (rrs *ReminderRuleService) Update(id uint, currentUserID uint, dto *setting
 }
 
 func (rrs *ReminderRuleService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
-
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedItems []map[string]interface{}
@@ -228,6 +229,10 @@ func (rrs *ReminderRuleService) validateReminderRuleFormDTO(reminderRuleFormDTO 
 
 	if _, err := rrs.triggerConditionSvc.GetByID(reminderRuleFormDTO.TriggerConditionID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("trigger condition does not exist"), "not_exist", "process dependency sub type")
+	}
+
+	if _, err := rrs.reminderContextSvc.GetByID(reminderRuleFormDTO.ReminderContextID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("reminder context does not exist"), "not_exist", "process dependency sub type")
 	}
 
 	return nil
