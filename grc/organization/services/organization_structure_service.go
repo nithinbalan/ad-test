@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
@@ -16,6 +17,9 @@ type OrganizationStructureServiceInterface interface {
 	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
 	UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error
 	GetOrganizationUnitSummary(unitID uint) (*organizationDTOs.OrganizationUnitSummaryDTO, error)
+	GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
+	GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
+	GetParentOrganizationUnitWithHead(unitID uint) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error)
 }
 
 type OrganizationStructureService struct {
@@ -247,4 +251,30 @@ func (s *OrganizationStructureService) UpdatePrimaryOrganizationUnitHead(unitID 
 	}()
 
 	return nil
+}
+
+func (s *OrganizationStructureService) GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
+	return s.repo.GetAllPoliciesByOrganizationUnit(unitID, params)
+}
+
+func (s *OrganizationStructureService) GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+	return s.repo.GetAllRiskByOrganizationUnit(unitID, params)
+}
+
+func (s *OrganizationStructureService) GetParentOrganizationUnitWithHead(unitID uint) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error) {
+
+	// Get primary organization level field
+	primaryLevel, err := s.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return nil, err
+	}
+	primaryField := fmt.Sprintf("organization_unit_%d_id", primaryLevel.Level)
+
+	// Get parent organization unit with head
+	result, err := s.repo.GetParentOrganizationUnitWithHead(unitID, primaryField)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get parent organization unit: %w", err)
+	}
+
+	return result, nil
 }
