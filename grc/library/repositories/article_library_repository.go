@@ -45,6 +45,12 @@ func (repo *ArticleLibraryRepository) GetAll(params *libraryDTOs.ArticleLibraryL
 		`).
 		Joins("LEFT JOIN article_categories AS article_category ON article_library.article_category_id = article_category.id")
 
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN ?", values)
+		}
+	}
+
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -53,10 +59,6 @@ func (repo *ArticleLibraryRepository) GetAll(params *libraryDTOs.ArticleLibraryL
 			article_category.title_en LIKE ? OR
 			article_category.title_ar LIKE ?  
 		`, keyword, keyword, keyword, keyword)
-	}
-
-	if len(params.Categories) > 0 {
-		query = query.Where("article_category.title_en IN ?", params.Categories)
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
