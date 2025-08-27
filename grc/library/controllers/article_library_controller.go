@@ -27,23 +27,15 @@ func (alc *ArticleLibraryController) GetAll(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	categoryStrings := c.QueryArray("categories")
+	categories := c.QueryArray("categories")
 	page, _ := utility.ParseQueryParamToInt(c, "page", 1)
 	pageSize, _ := utility.ParseQueryParamToInt(c, "page_size", 10)
-
-	var categoryIDs []uint
-	for _, s := range categoryStrings {
-		id, err := strconv.ParseUint(s, 10, 64)
-		if err == nil {
-			categoryIDs = append(categoryIDs, uint(id))
-		}
-	}
 
 	params := libraryDTOs.ArticleLibraryListQueryParamsDTO{
 		Sort:       sort,
 		SortBy:     sortBy,
 		Keyword:    keyword,
-		Categories: categoryIDs,
+		Categories: categories,
 		Page:       page,
 		PageSize:   pageSize,
 	}

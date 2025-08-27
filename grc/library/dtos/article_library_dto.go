@@ -18,7 +18,7 @@ type ArticleLibraryListQueryParamsDTO struct {
 	Sort       string
 	SortBy     string
 	Keyword    string
-	Categories []uint
+	Categories []string
 	Page       int
 	PageSize   int
 }

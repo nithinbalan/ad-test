@@ -56,7 +56,7 @@ func (repo *ArticleLibraryRepository) GetAll(params *libraryDTOs.ArticleLibraryL
 	}
 
 	if len(params.Categories) > 0 {
-		query = query.Where("article_library.article_category_id IN ?", params.Categories)
+		query = query.Where("article_category.title_en IN ?", params.Categories)
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
