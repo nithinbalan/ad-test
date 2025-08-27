@@ -30,7 +30,7 @@ type ComplianceClauseRepositoryInterface interface {
 	GetClauseWithChildren(clauseID uint, tx ...utility.DatabaseTransaction) (*models.ComplianceClause, error)
 
 	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
-	GetAssociatedControls(complianceID uint, clauseID uint) ([]commonDTOs.AssociatedControlListDTO, error)
+	GetAssociatedControls(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceControlByClauseAndControl(clauseID, controlID uint, tx ...utility.DatabaseTransaction) error
 
@@ -341,10 +341,10 @@ func (repo *ComplianceClauseRepository) GetAssociatedComplianceRequirements(comp
 	return requirements, err
 }
 
-func (r *ComplianceClauseRepository) GetAssociatedControls(complianceID uint, clauseID uint) ([]commonDTOs.AssociatedControlListDTO, error) {
-	controls := make([]commonDTOs.AssociatedControlListDTO, 0)
-
-	err := r.db.Table("compliance_controls cc").
+func (r *ComplianceClauseRepository) GetAssociatedControls(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
+	var controlList []*commonDTOs.AssociatedControlListDTO
+	var totalCount int64
+	query := r.db.Table("compliance_controls cc").
 		Select(`
 			controls.*,
 			control_types.title_en AS control_type_title_en,
@@ -425,14 +425,63 @@ func (r *ComplianceClauseRepository) GetAssociatedControls(complianceID uint, cl
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = controls.updated_by_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = controls.risk_matrix_risk_rating_id").
 		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id").
-		Where("cc.compliance_register_id = ? AND cl.id = ?", complianceID, clauseID).
-		Scan(&controls).Error
+		Where("cc.compliance_register_id = ? AND cl.id = ?", complianceID, clauseID)
+		// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(controls.title_en LIKE ? OR
+			controls.title_ar LIKE ? OR
+			controls.reference_number LIKE ? OR
+			controls.code LIKE ? OR
+			control_categories.title_en LIKE ? OR
+			control_categories.title_ar LIKE ? OR
+			control_types.title_en LIKE ? OR
+			control_types.title_ar LIKE ? OR
+			control_efficiency_statuses.title_en LIKE ? OR
+			control_efficiency_statuses.title_ar LIKE ? OR
+			control_implementation_statuses.title_en LIKE ? OR
+			control_implementation_statuses.title_ar LIKE ? OR
+			owner.first_name_en LIKE ? OR
+			owner.first_name_ar LIKE ? OR
+			owner.last_name_en LIKE ? OR
+			owner.last_name_ar LIKE ? OR
+			owner.email LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
 
+	if params.SortBy == "" {
+		params.SortBy = "controls.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&controlList).Error
 	if err != nil {
 		return nil, err
 	}
 
-	return controls, nil
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedControlListResponseDTO{
+		Items: controlList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
 }
 
 func compareClauseNumbers(a, b string) bool {
