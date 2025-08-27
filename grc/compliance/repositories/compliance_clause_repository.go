@@ -347,6 +347,7 @@ func (r *ComplianceClauseRepository) GetAssociatedControls(complianceID uint, cl
 	query := r.db.Table("compliance_controls cc").
 		Select(`
 			controls.*,
+			cc.control_id,
 			control_types.title_en AS control_type_title_en,
 			control_types.title_ar AS control_type_title_ar,
 			control_categories.title_en AS control_category_title_en,
