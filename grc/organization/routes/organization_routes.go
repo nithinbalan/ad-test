@@ -430,6 +430,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// user delegation
 	organizationRoutes.GET("/users/:userId/modules", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserModulesWithPermissions)
+	organizationRoutes.GET("/users/:userId/task-modules", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserModulesWithOpenTasks)
 	organizationRoutes.POST("/users/:userId/user-delegate", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userDelegationHistoryController.CreateUserDelegation)
 	organizationRoutes.GET("/users/:userId/user-delegate-history", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userDelegationHistoryController.GetUserDelegationHistory)
 	organizationRoutes.GET("/users/:userId/user-delegate-history/latest", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userDelegationHistoryController.GetLatestUserDelegation)

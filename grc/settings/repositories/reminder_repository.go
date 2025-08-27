@@ -1,9 +1,10 @@
 package repositories
 
 import (
+	"sort"
+
 	"jethur/grc/models"
 	"jethur/grc/settings/dtos"
-	"sort"
 
 	"gorm.io/gorm"
 )

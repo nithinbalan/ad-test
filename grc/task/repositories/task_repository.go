@@ -75,6 +75,14 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
             responsible_user.color AS responsible_user_color,
             responsible_user.email AS responsible_user_email,
             responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			delegatee_user.first_name_en AS delegatee_user_first_name_en,
+            delegatee_user.first_name_ar AS delegatee_user_first_name_ar,
+            delegatee_user.last_name_en AS delegatee_user_last_name_en,
+            delegatee_user.last_name_ar AS delegatee_user_last_name_ar,
+            delegatee_user.initial AS delegatee_user_initial,
+            delegatee_user.color AS delegatee_user_color,
+            delegatee_user.email AS delegatee_user_email,
+            delegatee_user.profile_image_path AS delegatee_user_profile_image_path,
 			created_user.id AS created_user_id,
        		created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -99,6 +107,7 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
             LEFT JOIN task_statuses ON task_statuses.id = tasks.task_status_id
 		    LEFT JOIN severity_levels ON severity_levels.id = tasks.severity_level_id
             LEFT JOIN users AS responsible_user ON responsible_user.id = tasks.responsible_user_id
+			LEFT JOIN users AS delegatee_user ON delegatee_user.id = tasks.delegatee_user_id
 			LEFT JOIN users AS created_user ON created_user.id = tasks.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = tasks.updated_by_id
         `)
