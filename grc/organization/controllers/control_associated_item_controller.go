@@ -775,7 +775,7 @@ func (caic *ControlAssociatedItemController) DeleteControlKPI(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Strategic Objective unmapped from control successfully"})
 }
 
-func (caic *ControlAssociatedItemController) GetAllControlAsset(c *gin.Context) {
+func (caic *ControlAssociatedItemController) GetAllControlAssets(c *gin.Context) {
 	controlIDStr := c.Param("controlId")
 
 	controlID, err := strconv.ParseUint(controlIDStr, 10, 64)
@@ -807,7 +807,7 @@ func (caic *ControlAssociatedItemController) GetAllControlAsset(c *gin.Context) 
 		Page:     page,
 		PageSize: pageSize,
 	}
-	assets, err := caic.service.GetAllControlAsset(uint(controlID), &queryParams)
+	assets, err := caic.service.GetAllControlAssets(uint(controlID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {

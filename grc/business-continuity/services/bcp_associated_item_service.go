@@ -23,7 +23,7 @@ type BcpAssociatedItemServiceInterface interface {
 	GetAllBcpRisk(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	CreateBcpRisk(BcpID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteBcpRisk(BcpID uint, riskID uint) error
-	GetAllBcpAsset(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	GetAllBcpAssets(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateBcpAsset(BcpID uint, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
 	DeleteBcpAsset(BcpID uint, assetID uint) error
 }
@@ -260,11 +260,11 @@ func (bais *BcpAssociatedItemService) DeleteBcpRisk(BcpID uint, riskID uint) err
 	return tx.Commit()
 }
 
-func (bais *BcpAssociatedItemService) GetAllBcpAsset(bcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+func (bais *BcpAssociatedItemService) GetAllBcpAssets(bcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	if _, err := bais.BcpSvc.GetByID(bcpID); err != nil {
 		return nil, err
 	}
-	return bais.repo.GetAllBcpAsset(bcpID, params)
+	return bais.repo.GetAllBcpAssets(bcpID, params)
 }
 
 func (bais *BcpAssociatedItemService) CreateBcpAsset(BcpID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {

@@ -262,7 +262,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.POST("/strategic-objectives/:id/processes", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.CreateStrategicObjectiveProcess)
 	strategyRoutes.DELETE("/strategic-objectives/:id/processes/:processId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.DeleteStrategicObjectiveProcess)
 
-	strategyRoutes.GET("/strategic-objectives/:id/assets", middlewares.RolePermissionMiddleware(db, "strategy_profile", "view"), strategicObjectiveAssociatedItemController.GetAllStrategicObjectiveAsset)
+	strategyRoutes.GET("/strategic-objectives/:id/assets", middlewares.RolePermissionMiddleware(db, "strategy_profile", "view"), strategicObjectiveAssociatedItemController.GetAllStrategicObjectiveAssets)
 	strategyRoutes.POST("/strategic-objectives/:id/assets", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.CreateStrategicObjectiveAsset)
 	strategyRoutes.DELETE("/strategic-objectives/:id/assets/:assetId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.DeleteStrategicObjectiveAsset)
 	// project milestone

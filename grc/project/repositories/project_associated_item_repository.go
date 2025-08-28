@@ -26,7 +26,7 @@ type ProjectAssociatedItemRepositoryInterface interface {
 	GetAllProjectKPI(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateProjectKPI(kpis []*models.KPIProject, tx ...utility.DatabaseTransaction) error
 	DeleteProjectKPI(projectID uint, kpiID uint, tx ...utility.DatabaseTransaction) error
-	GetAllProjectAsset(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	GetAllProjectAssets(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateProjectAsset(assets []*models.ProjectAsset, tx ...utility.DatabaseTransaction) error
 	DeleteProjectAsset(projectID uint, assetID uint, tx ...utility.DatabaseTransaction) error
 }
@@ -805,7 +805,7 @@ func (repo *ProjectAssociatedItemRepository) DeleteProjectKPI(projectID uint, kp
 		Error
 }
 
-func (repo *ProjectAssociatedItemRepository) GetAllProjectAsset(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+func (repo *ProjectAssociatedItemRepository) GetAllProjectAssets(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	var Assets []*commonDTOs.AssociatedAssetListDTO
 	var totalCount int64
 

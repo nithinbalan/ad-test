@@ -17,7 +17,7 @@ type KRIAssociatedItemServiceInterface interface {
 	GetAllKRIControls(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	CreateKRIControl(kriID uint, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
 	DeleteKRIControl(kriID uint, controlID uint) error
-	GetAllKRIAsset(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	GetAllKRIAssets(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateKRIAsset(kriID uint, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
 	DeleteKRIAsset(kriID uint, assetID uint) error
 }
@@ -146,11 +146,11 @@ func (pais *KRIAssociatedItemService) DeleteKRIControl(kriID uint, controlID uin
 	return tx.Commit()
 }
 
-func (pais *KRIAssociatedItemService) GetAllKRIAsset(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+func (pais *KRIAssociatedItemService) GetAllKRIAssets(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	if _, err := pais.KRISvc.GetByID(assetID); err != nil {
 		return nil, err
 	}
-	return pais.repo.GetAllKRIAsset(assetID, params)
+	return pais.repo.GetAllKRIAssets(assetID, params)
 }
 
 func (pais *KRIAssociatedItemService) CreateKRIAsset(kriID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {

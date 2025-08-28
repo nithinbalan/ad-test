@@ -535,7 +535,7 @@ func (paic *ProjectAssociatedItemController) DeleteProjectKPI(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "KPI unmapped from project successfully"})
 }
 
-func (paic *ProjectAssociatedItemController) GetAllProjectAsset(c *gin.Context) {
+func (paic *ProjectAssociatedItemController) GetAllProjectAssets(c *gin.Context) {
 
 	projectIDStr := c.Param("projectId")
 
@@ -568,7 +568,7 @@ func (paic *ProjectAssociatedItemController) GetAllProjectAsset(c *gin.Context) 
 		Page:     page,
 		PageSize: pageSize,
 	}
-	assets, err := paic.service.GetAllProjectAsset(uint(projectID), &queryParams)
+	assets, err := paic.service.GetAllProjectAssets(uint(projectID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {

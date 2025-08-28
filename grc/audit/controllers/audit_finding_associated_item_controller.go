@@ -418,7 +418,7 @@ func (afaic *AuditFindingAssociatedItemController) DeleteAuditFindingStrategicOb
 	c.JSON(http.StatusOK, gin.H{"message": "Strategic Objective unmapped from AuditFinding successfully"})
 }
 
-func (afaic *AuditFindingAssociatedItemController) GetAllAuditFindingAsset(c *gin.Context) {
+func (afaic *AuditFindingAssociatedItemController) GetAllAuditFindingAssets(c *gin.Context) {
 
 	findingIdStr := c.Param("findingId")
 
@@ -451,7 +451,7 @@ func (afaic *AuditFindingAssociatedItemController) GetAllAuditFindingAsset(c *gi
 		Page:     page,
 		PageSize: pageSize,
 	}
-	assets, err := afaic.service.GetAllAuditFindingAsset(uint(findingId), &queryParams)
+	assets, err := afaic.service.GetAllAuditFindingAssets(uint(findingId), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {

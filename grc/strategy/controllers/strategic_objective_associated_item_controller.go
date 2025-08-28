@@ -522,7 +522,7 @@ func (soai *StrategicObjectiveAssociatedItemController) DeleteStrategicObjective
 	c.JSON(http.StatusOK, gin.H{"message": "process unmapped from strategic objective successfully"})
 }
 
-func (soai *StrategicObjectiveAssociatedItemController) GetAllStrategicObjectiveAsset(c *gin.Context) {
+func (soai *StrategicObjectiveAssociatedItemController) GetAllStrategicObjectiveAssets(c *gin.Context) {
 	strategyIDStr := c.Param("id")
 
 	strategicObjectiveID, err := strconv.ParseUint(strategyIDStr, 10, 64)
@@ -554,7 +554,7 @@ func (soai *StrategicObjectiveAssociatedItemController) GetAllStrategicObjective
 		Page:     page,
 		PageSize: pageSize,
 	}
-	risks, err := soai.service.GetAllStrategicObjectiveAsset(uint(strategicObjectiveID), &queryParams)
+	risks, err := soai.service.GetAllStrategicObjectiveAssets(uint(strategicObjectiveID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {

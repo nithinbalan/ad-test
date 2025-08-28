@@ -893,7 +893,7 @@ func (daic *DocumentAssociatedItemController) DeleteAssociatedDocument(c *gin.Co
 	c.JSON(http.StatusOK, gin.H{"message": "Associated document unmapped from document successfully"})
 }
 
-func (daic *DocumentAssociatedItemController) GetAllDocumentAsset(c *gin.Context) {
+func (daic *DocumentAssociatedItemController) GetAllDocumentAssets(c *gin.Context) {
 
 	documentIDStr := c.Param("id")
 
@@ -926,7 +926,7 @@ func (daic *DocumentAssociatedItemController) GetAllDocumentAsset(c *gin.Context
 		Page:     page,
 		PageSize: pageSize,
 	}
-	assets, err := daic.service.GetAllDocumentAsset(uint(documentID), &queryParams)
+	assets, err := daic.service.GetAllDocumentAssets(uint(documentID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {

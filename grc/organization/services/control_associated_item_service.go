@@ -32,7 +32,7 @@ type ControlAssociatedItemServiceInterface interface {
 	GetAllControlKPI(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateControlKPI(controlID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
 	DeleteControlKPI(controlID uint, kpiID uint) error
-	GetAllControlAsset(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	GetAllControlAssets(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateControlAsset(controlID uint, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
 	DeleteControlAsset(controlID uint, assetID uint) error
 }
@@ -495,11 +495,11 @@ func (cais *ControlAssociatedItemService) DeleteControlKPI(controlID uint, kpiID
 	return tx.Commit()
 }
 
-func (cais *ControlAssociatedItemService) GetAllControlAsset(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+func (cais *ControlAssociatedItemService) GetAllControlAssets(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
 		return nil, err
 	}
-	return cais.repo.GetAllControlAsset(controlID, params)
+	return cais.repo.GetAllControlAssets(controlID, params)
 }
 func (cais *ControlAssociatedItemService) CreateControlAsset(controlID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
 	if _, err := cais.controlSvc.GetByID(controlID); err != nil {

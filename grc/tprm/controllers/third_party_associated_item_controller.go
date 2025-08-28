@@ -235,7 +235,7 @@ func (tpaic *ThirdPartyAssociatedItemController) DeleteThirdPartyStrategicObject
 	c.JSON(http.StatusOK, gin.H{"message": "Strategic Objective unmapped from third party successfully"})
 }
 
-func (tpaic *ThirdPartyAssociatedItemController) GetAllThirdPartyAsset(c *gin.Context) {
+func (tpaic *ThirdPartyAssociatedItemController) GetAllThirdPartyAssets(c *gin.Context) {
 
 	ThirdPartyIDStr := c.Param("id")
 
@@ -268,7 +268,7 @@ func (tpaic *ThirdPartyAssociatedItemController) GetAllThirdPartyAsset(c *gin.Co
 		Page:     page,
 		PageSize: pageSize,
 	}
-	assets, err := tpaic.service.GetAllThirdPartyAsset(uint(ThirdPartyID), &queryParams)
+	assets, err := tpaic.service.GetAllThirdPartyAssets(uint(ThirdPartyID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {

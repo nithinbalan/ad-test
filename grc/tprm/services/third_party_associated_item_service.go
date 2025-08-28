@@ -19,7 +19,7 @@ type ThirdPartyAssociatedItemServiceInterface interface {
 	CreateThirdPartyStrategicObjective(ThirdPartyID uint, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
 	DeleteThirdPartyStrategicObjective(ThirdPartyID uint, strategicObjectiveID uint) error
 
-	GetAllThirdPartyAsset(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	GetAllThirdPartyAssets(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateThirdPartyAsset(ThirdPartyID uint, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
 	DeleteThirdPartyAsset(ThirdPartyID uint, assetID uint) error
 }
@@ -148,11 +148,11 @@ func (tpais *ThirdPartyAssociatedItemService) DeleteThirdPartyStrategicObjective
 	return tx.Commit()
 }
 
-func (tpais *ThirdPartyAssociatedItemService) GetAllThirdPartyAsset(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+func (tpais *ThirdPartyAssociatedItemService) GetAllThirdPartyAssets(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
 		return nil, err
 	}
-	return tpais.repo.GetAllThirdPartyAsset(ThirdPartyID, params)
+	return tpais.repo.GetAllThirdPartyAssets(ThirdPartyID, params)
 }
 
 func (tpais *ThirdPartyAssociatedItemService) CreateThirdPartyAsset(ThirdPartyID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {

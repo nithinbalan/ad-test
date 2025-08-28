@@ -23,7 +23,7 @@ type AuditFindingAssociatedItemRepositoryInterface interface {
 	GetAllAuditFindingStrategicObjectives(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
 	CreateAuditFindingStrategicObjective(objectives []*models.AuditFindingStrategicObjective, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFindingStrategicObjective(findingID uint, strategicObjectiveID uint, tx ...utility.DatabaseTransaction) error
-	GetAllAuditFindingAsset(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	GetAllAuditFindingAssets(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateAuditFindingAsset(assets []*models.AuditFindingAsset, tx ...utility.DatabaseTransaction) error
 	DeleteAuditFindingAsset(findingID uint, assetID uint, tx ...utility.DatabaseTransaction) error
 }
@@ -665,7 +665,7 @@ func (repo *AuditFindingAssociatedItemRepository) DeleteAuditFindingStrategicObj
 		Error
 }
 
-func (repo *AuditFindingAssociatedItemRepository) GetAllAuditFindingAsset(AuditFindingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+func (repo *AuditFindingAssociatedItemRepository) GetAllAuditFindingAssets(AuditFindingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	var Assets []*commonDTOs.AssociatedAssetListDTO
 	var totalCount int64
 

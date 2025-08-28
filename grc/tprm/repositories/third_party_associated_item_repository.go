@@ -18,7 +18,7 @@ type ThirdPartyAssociatedItemRepositoryInterface interface {
 	GetAllThirdPartyStrategicObjectives(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
 	CreateThirdPartyStrategicObjective(objectives []*models.ThirdPartyStrategicObjective, tx ...utility.DatabaseTransaction) error
 	DeleteThirdPartyStrategicObjective(ThirdPartyID uint, strategicObjectiveID uint, tx ...utility.DatabaseTransaction) error
-	GetAllThirdPartyAsset(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	GetAllThirdPartyAssets(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateThirdPartyAsset(assets []*models.ThirdPartyAsset, tx ...utility.DatabaseTransaction) error
 	DeleteThirdPartyAsset(ThirdPartyID uint, assetID uint, tx ...utility.DatabaseTransaction) error
 }
@@ -339,7 +339,7 @@ func (repo *ThirdPartyAssociatedItemRepository) DeleteThirdPartyStrategicObjecti
 		Error
 }
 
-func (repo *ThirdPartyAssociatedItemRepository) GetAllThirdPartyAsset(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+func (repo *ThirdPartyAssociatedItemRepository) GetAllThirdPartyAssets(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	var Assets []*commonDTOs.AssociatedAssetListDTO
 	var totalCount int64
 

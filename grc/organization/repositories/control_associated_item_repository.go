@@ -34,7 +34,7 @@ type ControlAssociatedItemRepositoryInterface interface {
 	GetAllControlKPI(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateControlKPI(kpis []*models.KPIControl, tx ...utility.DatabaseTransaction) error
 	DeleteControlKPI(controlID uint, kpiID uint, tx ...utility.DatabaseTransaction) error
-	GetAllControlAsset(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	GetAllControlAssets(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateControlAsset(assets []*models.AssetControl, tx ...utility.DatabaseTransaction) error
 	DeleteControlAsset(controlID uint, assetID uint, tx ...utility.DatabaseTransaction) error
 }
@@ -1209,7 +1209,7 @@ func (repo *ControlAssociatedItemRepository) DeleteControlKPI(controlID uint, kp
 		Error
 }
 
-func (repo *ControlAssociatedItemRepository) GetAllControlAsset(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+func (repo *ControlAssociatedItemRepository) GetAllControlAssets(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	var Assets []*commonDTOs.AssociatedAssetListDTO
 	var totalCount int64
 

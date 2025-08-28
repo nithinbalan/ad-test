@@ -37,7 +37,7 @@ type DocumentAssociatedItemServiceInterface interface {
 	GetAllAssociatedDocument(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	CreateAssociatedDocument(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
 	DeleteAssociatedDocument(documentID uint, associatedDocumentID uint) error
-	GetAllDocumentAsset(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	GetAllDocumentAssets(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateDocumentAsset(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
 	DeleteDocumentAsset(documentID uint, assetID uint) error
 }
@@ -552,7 +552,7 @@ func (dais *DocumentAssociatedItemService) DeleteAssociatedDocument(documentID u
 	return tx.Commit()
 }
 
-func (dais *DocumentAssociatedItemService) GetAllDocumentAsset(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+func (dais *DocumentAssociatedItemService) GetAllDocumentAssets(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
 		return nil, err
 	}

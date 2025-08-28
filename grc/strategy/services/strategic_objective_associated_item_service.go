@@ -26,7 +26,7 @@ type StrategicObjectiveAssociatedItemServiceInterface interface {
 	GetAllStrategicObjectiveProcesses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
 	CreateStrategicObjectiveProcess(strategicObjectiveID uint, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
 	DeleteStrategicObjectiveProcess(strategicObjectiveID uint, processID uint) error
-	GetAllStrategicObjectiveAsset(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	GetAllStrategicObjectiveAssets(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateStrategicObjectiveAsset(strategicObjectiveID uint, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
 	DeleteStrategicObjectiveAsset(strategicObjectiveID uint, assetID uint) error
 }
@@ -365,11 +365,11 @@ func (rais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectivePro
 	return tx.Commit()
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) GetAllStrategicObjectiveAsset(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+func (rais *StrategicObjectiveAssociatedItemService) GetAllStrategicObjectiveAssets(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return nil, err
 	}
-	return rais.repo.GetAllStrategicObjectiveAsset(strategicObjectiveID, params)
+	return rais.repo.GetAllStrategicObjectiveAssets(strategicObjectiveID, params)
 }
 
 func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveAsset(strategicObjectiveID, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {

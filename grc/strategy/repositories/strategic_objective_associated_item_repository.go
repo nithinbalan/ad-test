@@ -26,7 +26,7 @@ type StrategicObjectiveAssociatedItemRepositoryInterface interface {
 	GetAllStrategicObjectiveProcesses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
 	CreateStrategicObjectiveProcess(process []*models.StrategicObjectiveProcess, tx ...utility.DatabaseTransaction) error
 	DeleteStrategicObjectiveProcess(strategicObjectiveID uint, processID uint, tx ...utility.DatabaseTransaction) error
-	GetAllStrategicObjectiveAsset(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	GetAllStrategicObjectiveAssets(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateStrategicObjectiveAsset(assets []*models.AssetStrategicObjective, tx ...utility.DatabaseTransaction) error
 	DeleteStrategicObjectiveAsset(strategicObjectiveID uint, assetID uint, tx ...utility.DatabaseTransaction) error
 }
@@ -883,7 +883,7 @@ func (repo *StrategicObectiveAssociatedItemRepository) DeleteStrategicObjectiveP
 		Error
 }
 
-func (repo *StrategicObectiveAssociatedItemRepository) GetAllStrategicObjectiveAsset(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+func (repo *StrategicObectiveAssociatedItemRepository) GetAllStrategicObjectiveAssets(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	var Assets []*commonDTOs.AssociatedAssetListDTO
 	var totalCount int64
 

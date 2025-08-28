@@ -157,7 +157,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("documents/:id/associated-documents", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.CreateAssociatedDocument)
 	documentRoutes.DELETE("documents/:id/associated-documents/:associatedDocumentId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.DeleteAssociatedDocument)
 
-	documentRoutes.GET("documents/:id/assets", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.GetAllDocumentAsset)
+	documentRoutes.GET("documents/:id/assets", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.GetAllDocumentAssets)
 	documentRoutes.POST("documents/:id/assets", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.CreateDocumentAsset)
 	documentRoutes.DELETE("documents/:id/assets/:assetId", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentAssociatedItemController.DeleteDocumentAsset)
 

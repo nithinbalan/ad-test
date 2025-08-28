@@ -464,7 +464,7 @@ func (baic *BcpAssociatedItemController) DeleteBcpRisk(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from Bcp successfully"})
 }
 
-func (baic *BcpAssociatedItemController) GetAllBcpAsset(c *gin.Context) {
+func (baic *BcpAssociatedItemController) GetAllBcpAssets(c *gin.Context) {
 
 	BcpIDStr := c.Param("id")
 
@@ -513,7 +513,7 @@ func (baic *BcpAssociatedItemController) GetAllBcpAsset(c *gin.Context) {
 		Page:     page,
 		PageSize: pageSize,
 	}
-	assets, err := baic.service.GetAllBcpAsset(uint(BcpID), &queryParams)
+	assets, err := baic.service.GetAllBcpAssets(uint(BcpID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {

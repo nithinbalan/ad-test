@@ -220,7 +220,7 @@ func (paic *KRIAssociatedItemController) DeleteKRIControl(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Control unmapped from KRI successfully"})
 }
 
-func (paic *KRIAssociatedItemController) GetAllKRIAsset(c *gin.Context) {
+func (paic *KRIAssociatedItemController) GetAllKRIAssets(c *gin.Context) {
 
 	kriIDStr := c.Param("id")
 
@@ -253,7 +253,7 @@ func (paic *KRIAssociatedItemController) GetAllKRIAsset(c *gin.Context) {
 		Page:     page,
 		PageSize: pageSize,
 	}
-	controls, err := paic.service.GetAllKRIAsset(uint(kriID), &queryParams)
+	controls, err := paic.service.GetAllKRIAssets(uint(kriID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {

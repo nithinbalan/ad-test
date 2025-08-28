@@ -22,7 +22,7 @@ type BcpAssociatedItemRepositoryInterface interface {
 	DeleteBcpKPI(BcpID uint, kpiRegisterID uint, tx ...utility.DatabaseTransaction) error
 	CreateBcpRisk(risks []*models.BcpRisk, tx ...utility.DatabaseTransaction) error
 	DeleteBcpRisk(BcpID uint, riskID uint, tx ...utility.DatabaseTransaction) error
-	GetAllBcpAsset(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	GetAllBcpAssets(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateBcpAsset(assets []*models.BcpAsset, tx ...utility.DatabaseTransaction) error
 	DeleteBcpAsset(BcpID uint, documentId uint, tx ...utility.DatabaseTransaction) error
 }
@@ -520,7 +520,7 @@ func (repo *BcpAssociatedItemRepository) DeleteBcpRisk(BcpID uint, riskID uint, 
 		Error
 }
 
-func (repo *BcpAssociatedItemRepository) GetAllBcpAsset(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+func (repo *BcpAssociatedItemRepository) GetAllBcpAssets(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	var Assets []*commonDTOs.AssociatedAssetListDTO
 	var totalCount int64
 

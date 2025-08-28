@@ -26,7 +26,7 @@ type AuditFindingAssociatedItemServiceInterface interface {
 	CreateAuditFindingStrategicObjective(findingID uint, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
 	DeleteAuditFindingStrategicObjective(findingID uint, strategicObjectiveID uint) error
 
-	GetAllAuditFindingAsset(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	GetAllAuditFindingAssets(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateAuditFindingAsset(findingID uint, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
 	DeleteAuditFindingAsset(findingID uint, assetID uint) error
 }
@@ -261,11 +261,11 @@ func (afais *AuditFindingAssociatedItemService) DeleteAuditFindingStrategicObjec
 	return tx.Commit()
 }
 
-func (afais *AuditFindingAssociatedItemService) GetAllAuditFindingAsset(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+func (afais *AuditFindingAssociatedItemService) GetAllAuditFindingAssets(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
 		return nil, err
 	}
-	return afais.repo.GetAllAuditFindingAsset(findingID, params)
+	return afais.repo.GetAllAuditFindingAssets(findingID, params)
 }
 
 func (afais *AuditFindingAssociatedItemService) CreateAuditFindingAsset(findingID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {

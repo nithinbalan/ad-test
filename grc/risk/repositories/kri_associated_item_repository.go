@@ -17,7 +17,7 @@ type KRIAssociatedItemRepositoryInterface interface {
 	GetAllKRIControls(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	CreateKRIControl(controls []*models.KRIControl, tx ...utility.DatabaseTransaction) error
 	DeleteKRIControl(kriID uint, controlId uint, tx ...utility.DatabaseTransaction) error
-	GetAllKRIAsset(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	GetAllKRIAssets(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateKRIAsset(assets []*models.AssetKri, tx ...utility.DatabaseTransaction) error
 	DeleteKRIAsset(kriID uint, assetID uint, tx ...utility.DatabaseTransaction) error
 }
@@ -357,7 +357,7 @@ func (repo *KRIAssociatedItemRepository) DeleteKRIControl(kriID uint, controlId 
 		Error
 }
 
-func (repo *KRIAssociatedItemRepository) GetAllKRIAsset(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+func (repo *KRIAssociatedItemRepository) GetAllKRIAssets(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	var Assets []*commonDTOs.AssociatedAssetListDTO
 	var totalCount int64
 

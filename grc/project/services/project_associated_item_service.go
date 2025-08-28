@@ -26,7 +26,7 @@ type ProjectAssociatedItemServiceInterface interface {
 	GetAllProjectKPI(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateProjectKPI(projectID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
 	DeleteProjectKPI(projectID uint, kpiID uint) error
-	GetAllProjectAsset(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	GetAllProjectAssets(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateProjectAsset(projectID uint, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
 	DeleteProjectAsset(projectID uint, kpiID uint) error
 }
@@ -313,11 +313,11 @@ func (pais *ProjectAssociatedItemService) DeleteProjectKPI(projectID uint, kpiID
 	return tx.Commit()
 }
 
-func (pais *ProjectAssociatedItemService) GetAllProjectAsset(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+func (pais *ProjectAssociatedItemService) GetAllProjectAssets(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	if _, err := pais.projectSvc.GetByID(projectID); err != nil {
 		return nil, err
 	}
-	return pais.repo.GetAllProjectAsset(projectID, params)
+	return pais.repo.GetAllProjectAssets(projectID, params)
 }
 
 func (pais *ProjectAssociatedItemService) CreateProjectAsset(projectID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
