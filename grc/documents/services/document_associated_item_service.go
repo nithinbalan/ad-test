@@ -18,7 +18,7 @@ type DocumentAssociatedItemServiceInterface interface {
 	GetAllComplianceRequirements(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemComplianceRequirementListResponseDTO, error)
 	GetAllProcesses(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
 	GetAllSLAs(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemSLAListResponseDTO, error)
-	GetAllIncidents(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemIncidentListResponseDTO, error)
+	GetAllIncidents(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
 	GetAllRisks(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllClauses(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(documentID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
@@ -40,6 +40,8 @@ type DocumentAssociatedItemServiceInterface interface {
 	GetAllDocumentAssets(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateDocumentAsset(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
 	DeleteDocumentAsset(documentID uint, assetID uint) error
+	CreateDocumentIncident(documentID uint, currentUserID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
+	DeleteDocumentIncident(documentID uint, incidentID uint) error
 }
 
 // Service Implementation
@@ -143,7 +145,7 @@ func (dais *DocumentAssociatedItemService) GetAllSLAs(documentID uint, params *d
 	return dais.repo.GetAllSLAs(documentID, params)
 }
 
-func (dais *DocumentAssociatedItemService) GetAllIncidents(documentID uint, params *documentDTOs.DocumentAssociatedItemListQueryParamsDTO) (*documentDTOs.DocumentAssociatedItemIncidentListResponseDTO, error) {
+func (dais *DocumentAssociatedItemService) GetAllIncidents(documentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error) {
 	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
 		return nil, err
 	}
@@ -595,6 +597,50 @@ func (dais *DocumentAssociatedItemService) DeleteDocumentAsset(documentID uint, 
 	tx := dais.repo.BeginTransaction()
 
 	if err := dais.repo.DeleteDocumentAsset(documentID, assetID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) CreateDocumentIncident(documentID, currentUserID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error {
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return err
+	}
+
+	if err := dais.validationSvc.ValidateIncidentMapping(documentID, dto.IncidentIDs, "incident_associated_documents", "document_id"); err != nil {
+		return err
+	}
+	tx := dais.repo.BeginTransaction()
+	var mappings []*models.IncidentAssociatedDocument
+	currentTime := time.Now()
+
+	for _, IncidentID := range dto.IncidentIDs {
+		mappings = append(mappings, &models.IncidentAssociatedDocument{
+			IncidentRegisterID: IncidentID,
+			DocumentID:         documentID,
+			CreatedByID:        currentUserID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := dais.repo.CreateDocumentIncident(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (dais *DocumentAssociatedItemService) DeleteDocumentIncident(documentID uint, incidentID uint) error {
+	// Validate control existence
+	if _, err := dais.documentSvc.GetByID(documentID); err != nil {
+		return err
+	}
+
+	tx := dais.repo.BeginTransaction()
+
+	if err := dais.repo.DeleteDocumentIncident(documentID, incidentID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
