@@ -18,6 +18,9 @@ type ThirdPartyAssociatedItemRepositoryInterface interface {
 	GetAllThirdPartyStrategicObjectives(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
 	CreateThirdPartyStrategicObjective(objectives []*models.ThirdPartyStrategicObjective, tx ...utility.DatabaseTransaction) error
 	DeleteThirdPartyStrategicObjective(ThirdPartyID uint, strategicObjectiveID uint, tx ...utility.DatabaseTransaction) error
+	GetAllThirdPartyAsset(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	CreateThirdPartyAsset(assets []*models.ThirdPartyAsset, tx ...utility.DatabaseTransaction) error
+	DeleteThirdPartyAsset(ThirdPartyID uint, assetID uint, tx ...utility.DatabaseTransaction) error
 }
 
 // implementation
@@ -333,5 +336,147 @@ func (repo *ThirdPartyAssociatedItemRepository) DeleteThirdPartyStrategicObjecti
 	return db.
 		Where("strategic_objective_id = ? AND third_party_register_id = ?", strategicObjectiveID, ThirdPartyID).
 		Delete(&models.ThirdPartyStrategicObjective{}).
+		Error
+}
+
+func (repo *ThirdPartyAssociatedItemRepository) GetAllThirdPartyAsset(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	var Assets []*commonDTOs.AssociatedAssetListDTO
+	var totalCount int64
+
+	query := repo.db.Table("third_party_assets").
+		Select(`
+		    third_party_assets.id,
+			third_party_assets.asset_register_id,
+			asset_register.reference_number,
+			asset_register.title_en,
+			asset_register.title_ar,
+			asset_register.location,
+			asset_register.description,
+			CONVERT(VARCHAR, asset_register.acquisition_date, 23) AS acquisition_date,
+			CONVERT(VARCHAR, asset_register.assignment_date, 23) AS assignment_date,
+			CONVERT(VARCHAR, asset_register.warranty_expiry_date, 23) AS warranty_expiry_date,
+			asset_register.manufacturer,
+			asset_register.model,
+			asset_register.serial_number,
+			asset_categories.title_en AS asset_category_title_en,
+			asset_categories.title_ar AS asset_category_title_ar,
+			asset_sub_categories.title_en AS asset_sub_category_title_en,
+			asset_sub_categories.title_ar AS asset_sub_category_title_ar,
+			asset_statuses.title_en AS asset_status_title_en,
+			asset_statuses.title_ar AS asset_status_title_ar,
+			asset_statuses.color_code AS asset_status_color_code,
+			asset_register.total_score,
+			asset_criticality_matrix_rating_scales.title_en AS asset_criticality_matrix_rating_scale_title_en,
+			asset_criticality_matrix_rating_scales.title_ar AS asset_criticality_matrix_rating_scale_title_ar,
+			asset_criticality_matrix_rating_scales.color_code AS asset_criticality_matrix_rating_scale_color_code,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+			updated_user.id AS updated_user_id,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
+	`).
+		Joins("LEFT JOIN asset_register ON asset_register.id = third_party_assets.asset_register_id").
+		Joins("LEFT JOIN asset_categories ON asset_categories.id = asset_register.asset_category_id").
+		Joins("LEFT JOIN asset_sub_categories ON asset_sub_categories.id = asset_register.asset_sub_category_id").
+		Joins("LEFT JOIN asset_statuses ON asset_statuses.id = asset_register.asset_status_id").
+		Joins("LEFT JOIN asset_criticality_matrix_rating_scales ON asset_criticality_matrix_rating_scales.id = asset_register.asset_criticality_matrix_rating_scale_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = asset_register.responsible_unit_id").
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = asset_register.responsible_user_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = asset_register.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = asset_register.updated_by_id").
+		Where("third_party_assets.third_party_register_id = ?", ThirdPartyID)
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		query = query.Where(`
+			(asset_register.title_en LIKE ? OR
+			asset_register.title_ar LIKE ? OR
+			asset_register.reference_number LIKE ? OR
+			asset_register.description LIKE ? OR
+			asset_categories.title_en LIKE ? OR
+			asset_categories.title_ar LIKE ? OR
+			asset_statuses.title_en LIKE ? OR
+			asset_statuses.title_ar LIKE ?)`,
+
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "asset_register.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&Assets).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedItemAssetListResponseDTO{
+		Items: Assets,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *ThirdPartyAssociatedItemRepository) CreateThirdPartyAsset(assets []*models.ThirdPartyAsset, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&assets).Error
+}
+
+func (repo *ThirdPartyAssociatedItemRepository) DeleteThirdPartyAsset(ThirdPartyID uint, assetID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("asset_register_id = ? AND third_party_register_id = ?", assetID, ThirdPartyID).
+		Delete(&models.ThirdPartyAsset{}).
 		Error
 }

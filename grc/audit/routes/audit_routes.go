@@ -232,11 +232,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	auditRoutes.GET("/audit-findings/:findingId/processes", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingAssociatedItemController.GetAllAuditFindingProcesses)
 	auditRoutes.POST("/audit-findings/:findingId/processes", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.CreateAuditFindingProcess)
-	auditRoutes.DELETE("/audit-findings/:findingId/processes/:processId/", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.DeleteAuditFindingProcess)
+	auditRoutes.DELETE("/audit-findings/:findingId/processes/:processId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.DeleteAuditFindingProcess)
 
 	auditRoutes.GET("/audit-findings/:findingId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingAssociatedItemController.GetAllAuditFindingStrategicObjectives)
 	auditRoutes.POST("/audit-findings/:findingId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.CreateAuditFindingStrategicObjective)
 	auditRoutes.DELETE("/audit-findings/:findingId/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.DeleteAuditFindingStrategicObjective)
+
+	auditRoutes.GET("/audit-findings/:findingId/assets", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingAssociatedItemController.GetAllAuditFindingAsset)
+	auditRoutes.POST("/audit-findings/:findingId/assets", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.CreateAuditFindingAsset)
+	auditRoutes.DELETE("/audit-findings/:findingId/assets/:assetId", middlewares.RolePermissionMiddleware(db, "audit_findings", "modify"), auditFindingAssociatedItemController.DeleteAuditFindingAsset)
 
 	//Audit Document  Request Status
 	// Audit Document  Request Status

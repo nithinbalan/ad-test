@@ -26,6 +26,9 @@ type ProjectAssociatedItemServiceInterface interface {
 	GetAllProjectKPI(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateProjectKPI(projectID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
 	DeleteProjectKPI(projectID uint, kpiID uint) error
+	GetAllProjectAsset(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	CreateProjectAsset(projectID uint, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
+	DeleteProjectAsset(projectID uint, kpiID uint) error
 }
 
 // Service and implementations
@@ -303,6 +306,59 @@ func (pais *ProjectAssociatedItemService) DeleteProjectKPI(projectID uint, kpiID
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteProjectKPI(projectID, kpiID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *ProjectAssociatedItemService) GetAllProjectAsset(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	if _, err := pais.projectSvc.GetByID(projectID); err != nil {
+		return nil, err
+	}
+	return pais.repo.GetAllProjectAsset(projectID, params)
+}
+
+func (pais *ProjectAssociatedItemService) CreateProjectAsset(projectID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
+
+	if _, err := pais.projectSvc.GetByID(projectID); err != nil {
+		return err
+	}
+
+	if err := pais.validationSvc.ValidateAssetMapping(projectID, dto.AssetIDs, "project_assets", "project_id"); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.ProjectAsset
+	currentTime := time.Now()
+
+	for _, AssetID := range dto.AssetIDs {
+		mappings = append(mappings, &models.ProjectAsset{
+			AssetRegisterID: AssetID,
+			ProjectID:       projectID,
+			CreatedBYID:     userID,
+			CreatedAt:       currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateProjectAsset(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *ProjectAssociatedItemService) DeleteProjectAsset(projectID uint, assetID uint) error {
+	// Validate control existence
+	if _, err := pais.projectSvc.GetByID(projectID); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteProjectAsset(projectID, assetID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
