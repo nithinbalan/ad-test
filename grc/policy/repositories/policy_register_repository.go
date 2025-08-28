@@ -4,7 +4,7 @@ import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
-	documentDTOs "jethur/grc/policy-management/dtos"
+	policyDTOs "jethur/grc/policy/dtos"
 	"jethur/utility"
 	"strconv"
 	"time"
@@ -15,7 +15,7 @@ import (
 // Interfaces
 type PolicyRegisterRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *documentDTOs.PolicyRegisterListQueryParamsDTO, currentUserID uint, isUserSuperAdmin bool, primaryOrgUnitField string) (*documentDTOs.PolicyRegisterListResponseDTO, error)
+	GetAll(params *policyDTOs.PolicyRegisterListQueryParamsDTO, currentUserID uint, isUserSuperAdmin bool, primaryOrgUnitField string) (*policyDTOs.PolicyRegisterListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
 	GetFullDetailsByID(id uint, currentUserID *uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
 	Create(document *models.Document, tx ...utility.DatabaseTransaction) (uint, error)
@@ -44,8 +44,8 @@ func (repo *PolicyRegisterRepository) BeginTransaction() utility.DatabaseTransac
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *PolicyRegisterRepository) GetAll(params *documentDTOs.PolicyRegisterListQueryParamsDTO, currentUserID uint, isUserSuperAdmin bool, primaryOrgUnitField string) (*documentDTOs.PolicyRegisterListResponseDTO, error) {
-	var documents []*documentDTOs.PolicyRegisterListDTO
+func (repo *PolicyRegisterRepository) GetAll(params *policyDTOs.PolicyRegisterListQueryParamsDTO, currentUserID uint, isUserSuperAdmin bool, primaryOrgUnitField string) (*policyDTOs.PolicyRegisterListResponseDTO, error) {
+	var documents []*policyDTOs.PolicyRegisterListDTO
 	var totalCount int64
 
 	selectClause := `
@@ -144,13 +144,6 @@ func (repo *PolicyRegisterRepository) GetAll(params *documentDTOs.PolicyRegister
 	) AS user_access_types
 `
 
-	joinAcknowledge := false
-
-	if params.EnableAcknowledgedStatus {
-		joinAcknowledge = true
-		selectClause += `, CASE WHEN document_acknowledge_users.id IS NULL THEN 0 ELSE 1 END AS acknowledged`
-	}
-
 	query := repo.db.Table("documents").Select(selectClause,
 		currentUserID, // for creator check in array
 		currentUserID, // for responsible check in array
@@ -176,18 +169,6 @@ func (repo *PolicyRegisterRepository) GetAll(params *documentDTOs.PolicyRegister
 			LEFT JOIN users AS published_user ON published_user.id = documents.published_by_id
 		`).Where("document_types.type = ?", "policy")
 
-	if joinAcknowledge {
-		query = query.Joins("LEFT JOIN document_acknowledge_users ON document_acknowledge_users.document_version_id = document_versions.id AND document_acknowledge_users.user_id = ?", currentUserID)
-	}
-
-	// Filter by document types if provided
-	if len(params.DocumentTypes) > 0 {
-		query = query.Where("document_types.type IN (?)", params.DocumentTypes)
-	}
-	// Filter by document status if provided
-	if len(params.DocumentStatus) > 0 {
-		query = query.Where("document_statuses.type IN (?)", params.DocumentStatus)
-	}
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
@@ -208,14 +189,6 @@ func (repo *PolicyRegisterRepository) GetAll(params *documentDTOs.PolicyRegister
 			query = query.Where("document_statuses.type = ?", "draft")
 		case "published":
 			query = query.Where("document_statuses.type = ?", "published")
-		case "acknowledged":
-			if joinAcknowledge {
-				query = query.Where("document_acknowledge_users.id IS NOT NULL")
-			}
-		case "unacknowledged":
-			if joinAcknowledge {
-				query = query.Where("document_acknowledge_users.id IS NULL")
-			}
 		}
 	}
 
@@ -313,14 +286,14 @@ func (repo *PolicyRegisterRepository) GetAll(params *documentDTOs.PolicyRegister
 	}
 
 	if params.Export {
-		return &documentDTOs.PolicyRegisterListResponseDTO{
+		return &policyDTOs.PolicyRegisterListResponseDTO{
 			Items: documents,
 		}, nil
 	}
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	response := &documentDTOs.PolicyRegisterListResponseDTO{
+	response := &policyDTOs.PolicyRegisterListResponseDTO{
 		Items: documents,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
@@ -371,20 +344,11 @@ func (repo *PolicyRegisterRepository) GetFullDetailsByID(id uint, currentUserID 
 		Preload("DocumentVersions.CreatedByUser").
 		Preload("DocumentVersions.UpdatedByUser").
 		Preload("DocumentVersions.PublishedByUser").
-		Preload("DocumentVersions.DocumentEditHistory").
-		Preload("DocumentVersions.DocumentWorkflows").
-		Preload("DocumentVersions.DocumentWorkflows.DocumentWorkflowParticipants").
-		Preload("DocumentVersions.DocumentWorkflows.DocumentWorkflowParticipants.User").
-		Preload("DocumentVersions.DocumentWorkflows.DocumentWorkflowReviews").
-		Preload("DocumentVersions.DocumentWorkflows.DocumentWorkflowReviews.DocumentWorkflowStatus").
-		Preload("DocumentAuditLogs").
 		Preload("DocumentSharedUsers").
 		Preload("DocumentSharedUsers.User").
 		Preload("DocumentSharedUsers.CreatedByUser").
 		Preload("DocumentSharedUnits").
 		Preload("DocumentSharedUnits.OrganizationUnit").
-		Preload("DocumentRequirementGroups").
-		Preload("DocumentRequirementGroups.DocumentRequirements").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&document, id)

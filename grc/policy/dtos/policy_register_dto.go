@@ -76,18 +76,15 @@ type PolicyRegisterListDTO struct {
 }
 
 type PolicyRegisterListQueryParamsDTO struct {
-	Sort                     string
-	SortBy                   string
-	Keyword                  string
-	Status                   string
-	Page                     int
-	PageSize                 int
-	Filters                  map[string][]string
-	QuickFilter              []string
-	EnableAcknowledgedStatus bool
-	DocumentTypes            []string
-	DocumentStatus           []string
-	Export                   bool
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Status      string
+	Page        int
+	PageSize    int
+	Filters     map[string][]string
+	QuickFilter []string
+	Export      bool
 }
 
 type PolicyRegisterListResponseDTO struct {
@@ -110,68 +107,39 @@ type PolicyRegisterFormDTO struct {
 }
 
 type PolicyRegisterDetailsDTO struct {
-	ID                    int                                 `json:"id"`
-	ReferenceNumber       string                              `json:"reference_number"`
-	TitleEn               string                              `json:"title_en"`
-	TitleAr               string                              `json:"title_ar"`
-	DescriptionEn         *string                             `json:"description_en"`
-	DescriptionAr         *string                             `json:"description_ar"`
-	IsLocked              bool                                `json:"is_locked"`
-	DocumentType          documentsDTOs.DocumentTypeDTO       `json:"document_type"`
-	DocumentCategory      documentsDTOs.DocumentCategoryDTO   `json:"document_category"`
-	DocumentAccessType    documentsDTOs.DocumentAccessTypeDTO `json:"document_access_type"`
-	ResponsibleUnit       settingsDTOs.OrganizationUnitDTO    `json:"responsible_unit"`
-	ResponsibleUser       organizationDTOs.UserMinimalDTO     `json:"responsible_user"`
-	LatestDocumentVersion DocumentVersionDTO                  `json:"latest_document_version"`
-	DocumentVersions      []DocumentVersionDTO                `json:"document_versions"`
-	DocumentStatus        documentsDTOs.DocumentStatusDTO     `json:"document_status"`
-	DocumentSharedUsers   []*DocumentSharedUserDTO            `json:"document_shared_users"`
-	DocumentSharedUnits   []*DocumentSharedUnitDTO            `json:"document_shared_units"`
-	CreatedByUser         organizationDTOs.UserMinimalDTO     `json:"created_by"`
-	UpdatedByUser         *organizationDTOs.UserMinimalDTO    `json:"updated_by"`
-	CreatedAt             time.Time                           `json:"created_at"`
-	UpdatedAt             *time.Time                          `json:"updated_at"`
-	Acknowledged          *bool                               `json:"acknowledged,omitempty"`
-	ReviewFrequency       *masterDTOs.ReviewFrequencyDTO      `json:"review_frequency"`
-	NextReviewDate        *time.Time                          `json:"next_review_date"`
+	ID                    int                                    `json:"id"`
+	ReferenceNumber       string                                 `json:"reference_number"`
+	TitleEn               string                                 `json:"title_en"`
+	TitleAr               string                                 `json:"title_ar"`
+	DescriptionEn         *string                                `json:"description_en"`
+	DescriptionAr         *string                                `json:"description_ar"`
+	IsLocked              bool                                   `json:"is_locked"`
+	DocumentType          documentsDTOs.DocumentTypeDTO          `json:"document_type"`
+	DocumentCategory      documentsDTOs.DocumentCategoryDTO      `json:"document_category"`
+	DocumentAccessType    documentsDTOs.DocumentAccessTypeDTO    `json:"document_access_type"`
+	ResponsibleUnit       settingsDTOs.OrganizationUnitDTO       `json:"responsible_unit"`
+	ResponsibleUser       organizationDTOs.UserMinimalDTO        `json:"responsible_user"`
+	LatestDocumentVersion DocumentVersionDTO                     `json:"latest_document_version"`
+	DocumentVersions      []DocumentVersionDTO                   `json:"document_versions"`
+	DocumentStatus        documentsDTOs.DocumentStatusDTO        `json:"document_status"`
+	DocumentSharedUsers   []*documentsDTOs.DocumentSharedUserDTO `json:"document_shared_users"`
+	DocumentSharedUnits   []*documentsDTOs.DocumentSharedUnitDTO `json:"document_shared_units"`
+	CreatedByUser         organizationDTOs.UserMinimalDTO        `json:"created_by"`
+	UpdatedByUser         *organizationDTOs.UserMinimalDTO       `json:"updated_by"`
+	CreatedAt             time.Time                              `json:"created_at"`
+	UpdatedAt             *time.Time                             `json:"updated_at"`
+	Acknowledged          *bool                                  `json:"acknowledged,omitempty"`
+	ReviewFrequency       *masterDTOs.ReviewFrequencyDTO         `json:"review_frequency"`
+	NextReviewDate        *time.Time                             `json:"next_review_date"`
 }
 
 type DocumentVersionDTO struct {
-	ID                 uint                             `json:"id"`
-	DocumentID         uint                             `json:"document_id"`
-	Version            float64                          `json:"version"`
-	IsLatestVersion    bool                             `json:"is_latest_version"`
-	URL                string                           `json:"url"`
-	Name               string                           `json:"name"`
-	Size               int                              `json:"size"`
-	Token              string                           `json:"token"`
-	OriginalName       *string                          `json:"original_name,omitempty"`
-	Type               string                           `json:"type"`
-	NextReviewLevel    *int                             `json:"next_review_level"`
-	SubmittedByUser    *organizationDTOs.UserMinimalDTO `json:"submitted_by"`
-	AcknowledgeDueDate *time.Time                       `json:"acknowledge_due_date"`
-	CreatedByUser      organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser      organizationDTOs.UserMinimalDTO  `json:"updated_by"`
-	CreatedAt          time.Time                        `json:"created_at"`
-	UpdatedAt          *time.Time                       `json:"updated_at"`
-	PublishedAt        *time.Time                       `json:"published_at"`
-	PublishedByUser    organizationDTOs.UserMinimalDTO  `json:"published_by"`
-}
-
-type DocumentSharedUserDTO struct {
-	ID            uint                            `json:"id"`
-	DocumentID    uint                            `json:"document_id"`
-	User          organizationDTOs.UserMinimalDTO `json:"user"`
-	Type          string                          `json:"type"`
-	CreatedByUser organizationDTOs.UserMinimalDTO `json:"created_by"`
-	CreatedAt     time.Time                       `json:"created_at"`
-}
-
-type DocumentSharedUnitDTO struct {
-	ID               uint                             `json:"id"`
-	DocumentID       uint                             `json:"document_id"`
-	OrganizationUnit settingsDTOs.OrganizationUnitDTO `json:"organization_unit"`
-	Type             string                           `json:"type"`
-	CreatedByUser    organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	CreatedAt        time.Time                        `json:"created_at"`
+	ID              uint                            `json:"id"`
+	DocumentID      uint                            `json:"document_id"`
+	Version         float64                         `json:"version"`
+	IsLatestVersion bool                            `json:"is_latest_version"`
+	CreatedByUser   organizationDTOs.UserMinimalDTO `json:"created_by"`
+	UpdatedByUser   organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	CreatedAt       time.Time                       `json:"created_at"`
+	UpdatedAt       *time.Time                      `json:"updated_at"`
 }

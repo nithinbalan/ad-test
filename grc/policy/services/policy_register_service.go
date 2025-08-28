@@ -9,8 +9,8 @@ import (
 	masterSvc "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationSvc "jethur/grc/organization/services"
-	documentDTOs "jethur/grc/policy-management/dtos"
-	"jethur/grc/policy-management/repositories"
+	policyDTOs "jethur/grc/policy/dtos"
+	"jethur/grc/policy/repositories"
 	settinsSvc "jethur/grc/settings/services"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
@@ -24,14 +24,14 @@ import (
 )
 
 type PolicyRegisterServiceInterface interface {
-	GetAll(params *documentDTOs.PolicyRegisterListQueryParamsDTO, currentUserID uint) (*documentDTOs.PolicyRegisterListResponseDTO, error)
+	GetAll(params *policyDTOs.PolicyRegisterListQueryParamsDTO, currentUserID uint) (*policyDTOs.PolicyRegisterListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
-	GetFullDetailsByID(id uint, currentUserID *uint, tx ...utility.DatabaseTransaction) (*documentDTOs.PolicyRegisterDetailsDTO, error)
-	Create(currentUserID uint, documentFormDTO *documentDTOs.PolicyRegisterFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, documentFormDTO *documentDTOs.PolicyRegisterFormDTO) error
+	GetFullDetailsByID(id uint, currentUserID *uint, tx ...utility.DatabaseTransaction) (*policyDTOs.PolicyRegisterDetailsDTO, error)
+	Create(currentUserID uint, documentFormDTO *policyDTOs.PolicyRegisterFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, documentFormDTO *policyDTOs.PolicyRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
-	ExportDocuments(data []*documentDTOs.PolicyRegisterListDTO, currentUserID uint) (*os.File, error)
+	ExportDocuments(data []*policyDTOs.PolicyRegisterListDTO, currentUserID uint) (*os.File, error)
 }
 
 type PolicyRegisterService struct {
@@ -85,7 +85,7 @@ func NewPolicyRegisterService(
 	}
 }
 
-func (prs *PolicyRegisterService) GetAll(params *documentDTOs.PolicyRegisterListQueryParamsDTO, currentUserID uint) (*documentDTOs.PolicyRegisterListResponseDTO, error) {
+func (prs *PolicyRegisterService) GetAll(params *policyDTOs.PolicyRegisterListQueryParamsDTO, currentUserID uint) (*policyDTOs.PolicyRegisterListResponseDTO, error) {
 	// Get user details to check for super admin role
 	user, err := prs.userSvc.GetFullDetailsByID(currentUserID)
 	if err != nil {
@@ -140,8 +140,8 @@ func (prs PolicyRegisterService) GetByID(id uint, tx ...utility.DatabaseTransact
 	return document, nil
 }
 
-func (prs *PolicyRegisterService) GetFullDetailsByID(id uint, currentUserID *uint, tx ...utility.DatabaseTransaction) (*documentDTOs.PolicyRegisterDetailsDTO, error) {
-	var documentDTO documentDTOs.PolicyRegisterDetailsDTO
+func (prs *PolicyRegisterService) GetFullDetailsByID(id uint, currentUserID *uint, tx ...utility.DatabaseTransaction) (*policyDTOs.PolicyRegisterDetailsDTO, error) {
+	var documentDTO policyDTOs.PolicyRegisterDetailsDTO
 
 	document, err := prs.repo.GetFullDetailsByID(id, currentUserID, tx...)
 	if err != nil {
@@ -162,7 +162,7 @@ func (prs *PolicyRegisterService) GetFullDetailsByID(id uint, currentUserID *uin
 	return &documentDTO, nil
 }
 
-func (prs *PolicyRegisterService) Create(currentUserID uint, documentFormDTO *documentDTOs.PolicyRegisterFormDTO) (uint, error) {
+func (prs *PolicyRegisterService) Create(currentUserID uint, documentFormDTO *policyDTOs.PolicyRegisterFormDTO) (uint, error) {
 	tx := prs.repo.BeginTransaction()
 
 	if err := prs.validateDocumentFormDTO(documentFormDTO); err != nil {
@@ -308,8 +308,7 @@ func (prs *PolicyRegisterService) Create(currentUserID uint, documentFormDTO *do
 	return id, nil
 }
 
-func (prs *PolicyRegisterService) Update(id uint, currentUserID uint, documentFormDTO *documentDTOs.PolicyRegisterFormDTO) error {
-	tx := prs.repo.BeginTransaction()
+func (prs *PolicyRegisterService) Update(id uint, currentUserID uint, documentFormDTO *policyDTOs.PolicyRegisterFormDTO) error {
 	// Fetch existing document details
 	existingDocument, err := prs.repo.GetByID(id)
 	if err != nil {
@@ -325,6 +324,7 @@ func (prs *PolicyRegisterService) Update(id uint, currentUserID uint, documentFo
 		return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "responsible user unit")
 	}
 
+	tx := prs.repo.BeginTransaction()
 	oldDocument, err := prs.repo.GetFullDetailsByID(id, nil, tx)
 	if err != nil {
 		return err
@@ -669,8 +669,8 @@ func (prs *PolicyRegisterService) Delete(ids []uint, currentUserID uint) ([]uint
 				deleteSharedUserIds = append(deleteSharedUserIds, user.UserID)
 			}
 			if err := prs.documentAccessSvc.DeleteAllSharedUsers(id, deleteSharedUserIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 
@@ -680,8 +680,8 @@ func (prs *PolicyRegisterService) Delete(ids []uint, currentUserID uint) ([]uint
 				deleteSharedUnitIds = append(deleteSharedUnitIds, unit.OrgUnitID)
 			}
 			if err := prs.documentAccessSvc.DeleteSharedUnits(id, deleteSharedUnitIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 		}
 
@@ -694,8 +694,8 @@ func (prs *PolicyRegisterService) Delete(ids []uint, currentUserID uint) ([]uint
 			}
 
 			if err := prs.repo.DeleteDocumentVersions(deleteDocumentIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
+				failedIds = append(failedIds, id)
+				continue
 			}
 
 		}
@@ -773,7 +773,7 @@ func (prs *PolicyRegisterService) Delete(ids []uint, currentUserID uint) ([]uint
 	return failedIds, nil
 }
 
-func (prs *PolicyRegisterService) validateDocumentFormDTO(documentFormDTO *documentDTOs.PolicyRegisterFormDTO) error {
+func (prs *PolicyRegisterService) validateDocumentFormDTO(documentFormDTO *policyDTOs.PolicyRegisterFormDTO) error {
 	if _, err := prs.documentCategorySvc.GetByID(documentFormDTO.DocumentCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("document category does not exist"), "not_exist", "document category")
 	}
@@ -784,7 +784,7 @@ func (prs *PolicyRegisterService) validateDocumentFormDTO(documentFormDTO *docum
 	return nil
 }
 
-func (prs *PolicyRegisterService) ExportDocuments(data []*documentDTOs.PolicyRegisterListDTO, currentUserID uint) (*os.File, error) {
+func (prs *PolicyRegisterService) ExportDocuments(data []*policyDTOs.PolicyRegisterListDTO, currentUserID uint) (*os.File, error) {
 	// Fetch user setting for language preference
 	userSetting, err := prs.userSettingSvc.GetUserSettingsByUserID(currentUserID)
 	if err != nil {

@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"errors"
-	documentDTOs "jethur/grc/policy-management/dtos"
-	"jethur/grc/policy-management/services"
+	policyDTOs "jethur/grc/policy/dtos"
+	"jethur/grc/policy/services"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -23,19 +23,16 @@ func NewPolicyRegisterController(service services.PolicyRegisterServiceInterface
 	}
 }
 
-func (dc *PolicyRegisterController) GetAllDocuments(c *gin.Context) {
+func (prc *PolicyRegisterController) GetAllDocuments(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
-	enableAcknowledgedStatus := c.Query("enable_acknowledge_status")
-	documentTypes := utility.ParseCommaSeparatedStringToArray(c.Query("document_types"))
-	documentStatus := utility.ParseCommaSeparatedStringToArray(c.Query("document_status"))
 
 	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
 	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, "Invalid export parameter")
+		utility.SendInternalErrResp(prc.db, c, "Invalid export parameter")
 		return
 	}
 
@@ -66,13 +63,13 @@ func (dc *PolicyRegisterController) GetAllDocuments(c *gin.Context) {
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, "Invalid page parameter")
+		utility.SendInternalErrResp(prc.db, c, "Invalid page parameter")
 		return
 	}
 
 	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
 	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, "Invalid page_size parameter")
+		utility.SendInternalErrResp(prc.db, c, "Invalid page_size parameter")
 		return
 	}
 
@@ -83,43 +80,40 @@ func (dc *PolicyRegisterController) GetAllDocuments(c *gin.Context) {
 		return
 	}
 
-	queryParams := documentDTOs.PolicyRegisterListQueryParamsDTO{
-		Sort:                     sort,
-		SortBy:                   dbField,
-		Keyword:                  keyword,
-		Status:                   status,
-		Page:                     page,
-		PageSize:                 pageSize,
-		Filters:                  filters,
-		QuickFilter:              quickFilter,
-		EnableAcknowledgedStatus: enableAcknowledgedStatus == "true",
-		DocumentTypes:            documentTypes,
-		DocumentStatus:           documentStatus,
-		Export:                   export,
+	queryParams := policyDTOs.PolicyRegisterListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      dbField,
+		Keyword:     keyword,
+		Status:      status,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+		Export:      export,
 	}
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, err.Error())
+		utility.SendInternalErrResp(prc.db, c, err.Error())
 		return
 	}
 
-	documents, err := dc.service.GetAll(&queryParams, currentUserID)
+	documents, err := prc.service.GetAll(&queryParams, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, err.Error())
+		utility.SendInternalErrResp(prc.db, c, err.Error())
 		return
 	}
 
 	if export {
 		currentUserID, err := utility.GetCurrentUserID(c)
 		if err != nil {
-			utility.SendInternalErrResp(dc.db, c, err.Error())
+			utility.SendInternalErrResp(prc.db, c, err.Error())
 			return
 		}
 
-		excelFile, err := dc.service.ExportDocuments(documents.Items, currentUserID)
+		excelFile, err := prc.service.ExportDocuments(documents.Items, currentUserID)
 		if err != nil {
-			utility.SendInternalErrResp(dc.db, c, err.Error())
+			utility.SendInternalErrResp(prc.db, c, err.Error())
 			return
 		}
 		defer excelFile.Close()
@@ -134,7 +128,7 @@ func (dc *PolicyRegisterController) GetAllDocuments(c *gin.Context) {
 	c.JSON(http.StatusOK, documents)
 }
 
-func (dc *PolicyRegisterController) GetDocumentDetails(c *gin.Context) {
+func (prc *PolicyRegisterController) GetDocumentDetails(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -144,26 +138,26 @@ func (dc *PolicyRegisterController) GetDocumentDetails(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, err.Error())
+		utility.SendInternalErrResp(prc.db, c, err.Error())
 		return
 	}
 
-	document, err := dc.service.GetFullDetailsByID(uint(id), &currentUserID)
+	document, err := prc.service.GetFullDetailsByID(uint(id), &currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(dc.db, c, e.Error())
+			utility.SendInternalErrResp(prc.db, c, e.Error())
 			return
 		}
 	}
 	c.JSON(http.StatusOK, document)
 }
 
-func (dc *PolicyRegisterController) CreateDocument(c *gin.Context) {
-	var documentFormDTO documentDTOs.PolicyRegisterFormDTO
+func (prc *PolicyRegisterController) CreateDocument(c *gin.Context) {
+	var documentFormDTO policyDTOs.PolicyRegisterFormDTO
 	if err := c.ShouldBindJSON(&documentFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -171,18 +165,18 @@ func (dc *PolicyRegisterController) CreateDocument(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, err.Error())
+		utility.SendInternalErrResp(prc.db, c, err.Error())
 		return
 	}
 
-	createdDocument, err := dc.service.Create(currentUserID, &documentFormDTO)
+	createdDocument, err := prc.service.Create(currentUserID, &documentFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(dc.db, c, e.Error())
+			utility.SendInternalErrResp(prc.db, c, e.Error())
 			return
 		}
 	}
@@ -190,14 +184,14 @@ func (dc *PolicyRegisterController) CreateDocument(c *gin.Context) {
 	c.JSON(http.StatusCreated, createdDocument)
 }
 
-func (dc *PolicyRegisterController) UpdateDocument(c *gin.Context) {
+func (prc *PolicyRegisterController) UpdateDocument(c *gin.Context) {
 	documentID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	var documentFormDTO documentDTOs.PolicyRegisterFormDTO
+	var documentFormDTO policyDTOs.PolicyRegisterFormDTO
 	if err := c.ShouldBindJSON(&documentFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -205,11 +199,11 @@ func (dc *PolicyRegisterController) UpdateDocument(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, err.Error())
+		utility.SendInternalErrResp(prc.db, c, err.Error())
 		return
 	}
 
-	err = dc.service.Update(uint(documentID), currentUserID, &documentFormDTO)
+	err = prc.service.Update(uint(documentID), currentUserID, &documentFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -222,7 +216,7 @@ func (dc *PolicyRegisterController) UpdateDocument(c *gin.Context) {
 			utility.SendForbiddenErrResp(c, err.Error())
 			return
 		default:
-			utility.SendInternalErrResp(dc.db, c, e.Error())
+			utility.SendInternalErrResp(prc.db, c, e.Error())
 			return
 		}
 	}
@@ -231,7 +225,7 @@ func (dc *PolicyRegisterController) UpdateDocument(c *gin.Context) {
 
 }
 
-func (dc *PolicyRegisterController) DeleteDocuments(c *gin.Context) {
+func (prc *PolicyRegisterController) DeleteDocuments(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -243,14 +237,26 @@ func (dc *PolicyRegisterController) DeleteDocuments(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, err.Error())
+		utility.SendInternalErrResp(prc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := dc.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := prc.service.Delete(request.IDs, currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(prc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})

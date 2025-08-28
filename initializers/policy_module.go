@@ -1,27 +1,27 @@
 package initializers
 
 import (
-	"jethur/grc/policy-management/controllers"
-	"jethur/grc/policy-management/repositories"
-	"jethur/grc/policy-management/services"
+	"jethur/grc/policy/controllers"
+	"jethur/grc/policy/repositories"
+	"jethur/grc/policy/services"
 
 	"gorm.io/gorm"
 )
 
-type PolicyManagementModule struct {
+type PolicyModule struct {
 	PolicyRegisterController *controllers.PolicyRegisterController
 
 	PolicyRegisterSvc services.PolicyRegisterServiceInterface
 }
 
-func NewPolicyManagementModule(db *gorm.DB,
+func NewPolicyModule(db *gorm.DB,
 	sharedModule *SharedModule,
 	settingsModule *SettingsModule,
 	masterModule *MasterModule,
 	organizationModule *OrganizationModule,
 	taskModule *TaskModule,
 	commonModule *CommonModule,
-	documentModule *DocumentModule) *PolicyManagementModule {
+	documentModule *DocumentModule) *PolicyModule {
 
 	policyRegisterRepo := repositories.NewPolicyRegisterRepository(db)
 	policyRegisterSvc := services.NewPolicyRegisterService(
@@ -41,7 +41,7 @@ func NewPolicyManagementModule(db *gorm.DB,
 		settingsModule.SystemPreferenceSvc)
 	policyRegisterController := controllers.NewPolicyRegisterController(policyRegisterSvc)
 
-	return &PolicyManagementModule{
+	return &PolicyModule{
 		PolicyRegisterController: policyRegisterController,
 	}
 }
