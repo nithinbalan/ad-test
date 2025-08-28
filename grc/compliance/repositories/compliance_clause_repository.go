@@ -1058,6 +1058,7 @@ func (repo *ComplianceClauseRepository) GetAssociatedAssets(complianceID uint, c
 	query := repo.db.Table("asset_compliance_requirements").
 		Select(`
 		asset_compliance_requirements.id,
+		asset_compliance_requirements.asset_register_id,
 		asset_register.reference_number,
 		asset_register.title_en,
 		asset_register.title_ar,
