@@ -237,25 +237,6 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, err
 	}
 
-	// Save Controls
-	var controls []*models.ComplianceControl
-	for _, ctrl := range complianceRegisterFormDTO.ControlIDs {
-		control := &models.ComplianceControl{
-			ComplianceRegisterID:    id,
-			ControlID:               *ctrl,
-			ComplianceRequirementID: nil,
-			CreatedByID:             currentUserID,
-		}
-		controls = append(controls, control)
-	}
-
-	if len(controls) > 0 {
-		if err := crs.repo.CreateComplianceControls(controls, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
-
 	if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentEn, tx); err != nil {
 		tx.Rollback()
 		return 0, err
@@ -461,64 +442,6 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		return err
 	}
 
-	// Collect existing control IDs
-	existingCompliance, err := crs.GetFullDetailsByID(id, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	existingControlIDs := make(map[uint]bool)
-	for _, ctrl := range existingCompliance.Controls {
-		existingControlIDs[ctrl.ControlID] = true
-	}
-
-	// Collect new control IDs
-	newControlIDs := make(map[uint]bool)
-	for _, ctrl := range complianceRegisterFormDTO.ControlIDs {
-		newControlIDs[*ctrl] = true
-	}
-
-	// Add new controls
-	var controlsToAdd []*models.ComplianceControl
-	for _, newControlID := range complianceRegisterFormDTO.ControlIDs {
-		if _, exists := existingControlIDs[*newControlID]; !exists {
-			// Create a new compliance control record
-			control := &models.ComplianceControl{
-				ComplianceRegisterID:    id,
-				ComplianceRequirementID: nil,
-				ControlID:               *newControlID,
-				CreatedByID:             currentUserID,
-			}
-			controlsToAdd = append(controlsToAdd, control)
-		}
-	}
-
-	// Save the new controls
-	if len(controlsToAdd) > 0 {
-		if err := crs.repo.CreateComplianceControls(controlsToAdd, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Remove controls not in the new list
-	var deleteControlIDs []*uint
-
-	for _, existingControl := range existingCompliance.Controls {
-		if _, exists := newControlIDs[existingControl.ControlID]; !exists {
-			// Append control to delete list
-			deleteControlIDs = append(deleteControlIDs, existingControl.ID)
-		}
-	}
-
-	// Delete controls not in the new list
-	if len(deleteControlIDs) > 0 {
-		if err := crs.repo.DeleteComplianceControls(deleteControlIDs, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
 	existingComplianceDocumentEn, err := crs.repo.GetLatestDocumentByComplianceID(id, "en")
 	if err != nil {
 		return err
@@ -572,32 +495,10 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		if err != nil {
 			return
 		}
-		// Determine control and document changes
-		controlsAdded := []uint{}
-		controlsRemoved := []uint{}
-		for id := range newControlIDs {
-			if !existingControlIDs[id] {
-				controlsAdded = append(controlsAdded, id)
-			}
-		}
-		for id := range existingControlIDs {
-			if !newControlIDs[id] {
-				controlsRemoved = append(controlsRemoved, id)
-			}
-		}
+
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		associatedItems := make(map[string]interface{})
 
-		if len(controlsAdded) > 0 || len(controlsRemoved) > 0 {
-			associatedItems["control_ids"] = map[string]interface{}{
-				"added":   controlsAdded,
-				"removed": controlsRemoved,
-			}
-		}
-		if len(associatedItems) > 0 {
-			changedData["associated_items"] = associatedItems
-		}
 		// log changes
 		oldData := map[string]interface{}{
 			"compliance_category":      oldComplianceRegister.ComplianceCategory.TitleEn,
@@ -842,18 +743,6 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 			Description:     complianceRegister.DescriptionEn,
 			ReferenceNumber: complianceRegister.ReferenceNumber,
 		})
-
-		// Check if controls exist
-		if len(complianceRegister.Controls) > 0 {
-			var deleteControlIds []*uint
-			for _, ctrl := range complianceRegister.Controls {
-				deleteControlIds = append(deleteControlIds, ctrl.ID)
-			}
-			if err := crs.repo.DeleteComplianceControls(deleteControlIds, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-		}
 
 		if len(complianceRegister.ComplianceStatusUpdates) > 0 {
 			var deleteStatusUpdateIds []*uint
@@ -1133,22 +1022,6 @@ func (crs *ComplianceRegisterService) validateComplianceRegisterFormDTO(complian
 	}
 	if _, err := crs.complianceAssessmentFrameworkSvc.GetByID(complianceRegisterFormDTO.ComplianceAssessmentFrameworkID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance assessment framework does not exist"), "not_exist", "compliance assessment framework")
-	}
-	// Controls exist
-	controls := complianceRegisterFormDTO.ControlIDs
-
-	controlIDs := make(map[uint]bool)
-
-	for _, control := range controls {
-		if controlIDs[*control] {
-			return utility.NewValidationError(fmt.Errorf("duplicate control ID: %d", control), "duplicate", "control")
-		}
-
-		if _, err := crs.controlSvc.GetByID(*control); err != nil {
-			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", control), "not_exist", "control")
-		}
-
-		controlIDs[*control] = true
 	}
 
 	return nil
