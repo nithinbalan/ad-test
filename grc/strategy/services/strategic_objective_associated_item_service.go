@@ -29,6 +29,9 @@ type StrategicObjectiveAssociatedItemServiceInterface interface {
 	GetAllStrategicObjectiveAssets(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateStrategicObjectiveAsset(strategicObjectiveID uint, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
 	DeleteStrategicObjectiveAsset(strategicObjectiveID uint, assetID uint) error
+	GetAllStrategicObjectiveIncidents(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
+	CreateStrategicObjectiveIncident(strategicObjectiveID uint, currentUserID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
+	DeleteStrategicObjectiveIncident(strategicObjectiveID uint, incidentID uint) error
 }
 
 // Service and implementations
@@ -54,12 +57,12 @@ func NewstrategicObjectiveAssociatedItemService(
 	}
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) GetAllClauses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
-	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+func (soais *StrategicObjectiveAssociatedItemService) GetAllClauses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return nil, err
 	}
 
-	response, err := rais.repo.GetAllClauses(strategicObjectiveID, params)
+	response, err := soais.repo.GetAllClauses(strategicObjectiveID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -67,21 +70,21 @@ func (rais *StrategicObjectiveAssociatedItemService) GetAllClauses(strategicObje
 	return response, nil
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) UpdateClauses(strategicObjectiveID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error {
+func (soais *StrategicObjectiveAssociatedItemService) UpdateClauses(strategicObjectiveID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error {
 
-	tx := rais.repo.BeginTransaction()
+	tx := soais.repo.BeginTransaction()
 
-	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return err
 	}
 
-	clauses, err := rais.validateClauseIDs(ClauseFormDTO.ClauseIDs, tx)
+	clauses, err := soais.validateClauseIDs(ClauseFormDTO.ClauseIDs, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	existingControlClauses, err := rais.repo.GetClausesByStrategicObjectiveID(strategicObjectiveID, tx)
+	existingControlClauses, err := soais.repo.GetClausesByStrategicObjectiveID(strategicObjectiveID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -112,7 +115,7 @@ func (rais *StrategicObjectiveAssociatedItemService) UpdateClauses(strategicObje
 	}
 
 	if len(clausesToAdd) > 0 {
-		if err := rais.repo.CreateStrategicObjectiveClauses(clausesToAdd, tx); err != nil {
+		if err := soais.repo.CreateStrategicObjectiveClauses(clausesToAdd, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -126,7 +129,7 @@ func (rais *StrategicObjectiveAssociatedItemService) UpdateClauses(strategicObje
 	}
 
 	if len(deleteClauseIDs) > 0 {
-		if err := rais.repo.DeleteStrategicObjectiveClauses(strategicObjectiveID, deleteClauseIDs, tx); err != nil {
+		if err := soais.repo.DeleteStrategicObjectiveClauses(strategicObjectiveID, deleteClauseIDs, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -137,7 +140,7 @@ func (rais *StrategicObjectiveAssociatedItemService) UpdateClauses(strategicObje
 	return nil
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error) {
+func (soais *StrategicObjectiveAssociatedItemService) validateClauseIDs(clauseIDs []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error) {
 	seen := make(map[uint]bool)
 	for _, id := range clauseIDs {
 		if seen[id] {
@@ -146,7 +149,7 @@ func (rais *StrategicObjectiveAssociatedItemService) validateClauseIDs(clauseIDs
 		seen[id] = true
 	}
 
-	clauses, err := rais.clauseSvc.GetClausesByIDs(clauseIDs, tx...)
+	clauses, err := soais.clauseSvc.GetClausesByIDs(clauseIDs, tx...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch clauses: %w", err)
 	}
@@ -165,21 +168,21 @@ func (rais *StrategicObjectiveAssociatedItemService) validateClauseIDs(clauseIDs
 
 	return clauses, nil
 }
-func (rais *StrategicObjectiveAssociatedItemService) GetAllRisks(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
-	if _, err := rais.strategicObjectiveSvc.GetByID(processID); err != nil {
+func (soais *StrategicObjectiveAssociatedItemService) GetAllRisks(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+	if _, err := soais.strategicObjectiveSvc.GetByID(processID); err != nil {
 		return nil, err
 	}
-	return rais.repo.GetAllRisks(processID, params)
+	return soais.repo.GetAllRisks(processID, params)
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveRisk(strategicObjectiveID, currentUserID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
-	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+func (soais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveRisk(strategicObjectiveID, currentUserID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
 	}
-	if err := rais.validationSvc.ValidateRiskMapping(strategicObjectiveID, dto.RiskIDs, "risk_strategic_objectives", "strategic_objective_id"); err != nil {
+	if err := soais.validationSvc.ValidateRiskMapping(strategicObjectiveID, dto.RiskIDs, "risk_strategic_objectives", "strategic_objective_id"); err != nil {
 		return err
 	}
-	tx := rais.repo.BeginTransaction()
+	tx := soais.repo.BeginTransaction()
 	var mappings []*models.RiskStrategicObjective
 	currentTime := time.Now()
 
@@ -192,22 +195,22 @@ func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveRis
 		})
 	}
 
-	if err := rais.repo.CreateStrategicObjectiveRisk(mappings, tx); err != nil {
+	if err := soais.repo.CreateStrategicObjectiveRisk(mappings, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
 	return tx.Commit()
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveRisk(strategicObjectiveID uint, riskID uint) error {
+func (soais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveRisk(strategicObjectiveID uint, riskID uint) error {
 	// Validate control existence
-	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
 	}
 
-	tx := rais.repo.BeginTransaction()
+	tx := soais.repo.BeginTransaction()
 
-	if err := rais.repo.DeleteStrategicObjectiveRisk(strategicObjectiveID, riskID, tx); err != nil {
+	if err := soais.repo.DeleteStrategicObjectiveRisk(strategicObjectiveID, riskID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -215,21 +218,21 @@ func (rais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveRis
 	return tx.Commit()
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) GetAllStrategicObjectiveDocuments(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
-	if _, err := rais.strategicObjectiveSvc.GetByID(processID); err != nil {
+func (soais *StrategicObjectiveAssociatedItemService) GetAllStrategicObjectiveDocuments(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
+	if _, err := soais.strategicObjectiveSvc.GetByID(processID); err != nil {
 		return nil, err
 	}
-	return rais.repo.GetAllStrategicObjectiveDocuments(processID, params)
+	return soais.repo.GetAllStrategicObjectiveDocuments(processID, params)
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveDocuments(strategicObjectiveID, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error {
-	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+func (soais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveDocuments(strategicObjectiveID, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
 	}
-	if err := rais.validationSvc.ValidateDocumentMapping(strategicObjectiveID, dto.DocumentIDs, "strategic_objective_associated_documents", "strategic_objective_id"); err != nil {
+	if err := soais.validationSvc.ValidateDocumentMapping(strategicObjectiveID, dto.DocumentIDs, "strategic_objective_associated_documents", "strategic_objective_id"); err != nil {
 		return err
 	}
-	tx := rais.repo.BeginTransaction()
+	tx := soais.repo.BeginTransaction()
 	var mappings []*models.StrategicObjectiveAssociatedDocument
 	currentTime := time.Now()
 
@@ -242,22 +245,22 @@ func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveDoc
 		})
 	}
 
-	if err := rais.repo.CreateStrategicObjectiveDocuments(mappings, tx); err != nil {
+	if err := soais.repo.CreateStrategicObjectiveDocuments(mappings, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
 	return tx.Commit()
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveDocument(strategicObjectiveID uint, documentID uint) error {
+func (soais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveDocument(strategicObjectiveID uint, documentID uint) error {
 	// Validate control existence
-	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
 	}
 
-	tx := rais.repo.BeginTransaction()
+	tx := soais.repo.BeginTransaction()
 
-	if err := rais.repo.DeleteStrategicObjectiveDocument(strategicObjectiveID, documentID, tx); err != nil {
+	if err := soais.repo.DeleteStrategicObjectiveDocument(strategicObjectiveID, documentID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -265,21 +268,21 @@ func (rais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveDoc
 	return tx.Commit()
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) GetAllStrategicObjectivControls(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
-	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+func (soais *StrategicObjectiveAssociatedItemService) GetAllStrategicObjectivControls(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return nil, err
 	}
-	return rais.repo.GetAllStrategicObjectivControls(strategicObjectiveID, params)
+	return soais.repo.GetAllStrategicObjectivControls(strategicObjectiveID, params)
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveControl(strategicObjectiveID, currentUserID uint, dto *commonDTOs.AssociatedControlMapDTO) error {
-	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+func (soais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveControl(strategicObjectiveID, currentUserID uint, dto *commonDTOs.AssociatedControlMapDTO) error {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
 	}
-	if err := rais.validationSvc.ValidateControlMapping(strategicObjectiveID, dto.ControlIDs, "strategic_objective_controls", "strategic_objective_id"); err != nil {
+	if err := soais.validationSvc.ValidateControlMapping(strategicObjectiveID, dto.ControlIDs, "strategic_objective_controls", "strategic_objective_id"); err != nil {
 		return err
 	}
-	tx := rais.repo.BeginTransaction()
+	tx := soais.repo.BeginTransaction()
 	var mappings []*models.StrategicObjectiveControl
 	currentTime := time.Now()
 
@@ -292,22 +295,22 @@ func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveCon
 		})
 	}
 
-	if err := rais.repo.CreateStrategicObjectiveControl(mappings, tx); err != nil {
+	if err := soais.repo.CreateStrategicObjectiveControl(mappings, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
 	return tx.Commit()
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveControl(strategicObjectiveID uint, controlID uint) error {
+func (soais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveControl(strategicObjectiveID uint, controlID uint) error {
 	// Validate control existence
-	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
 	}
 
-	tx := rais.repo.BeginTransaction()
+	tx := soais.repo.BeginTransaction()
 
-	if err := rais.repo.DeleteStrategicObjectiveControl(strategicObjectiveID, controlID, tx); err != nil {
+	if err := soais.repo.DeleteStrategicObjectiveControl(strategicObjectiveID, controlID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -315,21 +318,21 @@ func (rais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveCon
 	return tx.Commit()
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) GetAllStrategicObjectiveProcesses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error) {
-	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+func (soais *StrategicObjectiveAssociatedItemService) GetAllStrategicObjectiveProcesses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error) {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return nil, err
 	}
-	return rais.repo.GetAllStrategicObjectiveProcesses(strategicObjectiveID, params)
+	return soais.repo.GetAllStrategicObjectiveProcesses(strategicObjectiveID, params)
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveProcess(strategicObjectiveID, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error {
-	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+func (soais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveProcess(strategicObjectiveID, currentUserID uint, dto *commonDTOs.AssociatedProcessMapDTO) error {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
 	}
-	if err := rais.validationSvc.ValidateProcessMapping(strategicObjectiveID, dto.ProcessIDs, "strategic_objective_processes", "strategic_objective_id"); err != nil {
+	if err := soais.validationSvc.ValidateProcessMapping(strategicObjectiveID, dto.ProcessIDs, "strategic_objective_processes", "strategic_objective_id"); err != nil {
 		return err
 	}
-	tx := rais.repo.BeginTransaction()
+	tx := soais.repo.BeginTransaction()
 	var mappings []*models.StrategicObjectiveProcess
 	currentTime := time.Now()
 
@@ -342,22 +345,22 @@ func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectivePro
 		})
 	}
 
-	if err := rais.repo.CreateStrategicObjectiveProcess(mappings, tx); err != nil {
+	if err := soais.repo.CreateStrategicObjectiveProcess(mappings, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
 	return tx.Commit()
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveProcess(strategicObjectiveID uint, processID uint) error {
+func (soais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveProcess(strategicObjectiveID uint, processID uint) error {
 	// Validate control existence
-	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
 	}
 
-	tx := rais.repo.BeginTransaction()
+	tx := soais.repo.BeginTransaction()
 
-	if err := rais.repo.DeleteStrategicObjectiveProcess(strategicObjectiveID, processID, tx); err != nil {
+	if err := soais.repo.DeleteStrategicObjectiveProcess(strategicObjectiveID, processID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -365,49 +368,99 @@ func (rais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectivePro
 	return tx.Commit()
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) GetAllStrategicObjectiveAssets(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
-	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+func (soais *StrategicObjectiveAssociatedItemService) GetAllStrategicObjectiveAssets(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return nil, err
 	}
-	return rais.repo.GetAllStrategicObjectiveAssets(strategicObjectiveID, params)
+	return soais.repo.GetAllStrategicObjectiveAssets(strategicObjectiveID, params)
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveAsset(strategicObjectiveID, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
-	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+func (soais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveAsset(strategicObjectiveID, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
 	}
-	if err := rais.validationSvc.ValidateAssetMapping(strategicObjectiveID, dto.AssetIDs, "asset_strategic_objectives", "strategic_objective_id"); err != nil {
+	if err := soais.validationSvc.ValidateAssetMapping(strategicObjectiveID, dto.AssetIDs, "asset_strategic_objectives", "strategic_objective_id"); err != nil {
 		return err
 	}
-	tx := rais.repo.BeginTransaction()
+	tx := soais.repo.BeginTransaction()
 	var mappings []*models.AssetStrategicObjective
 	currentTime := time.Now()
 
-	for _, processID := range dto.AssetIDs {
+	for _, assetID := range dto.AssetIDs {
 		mappings = append(mappings, &models.AssetStrategicObjective{
-			AssetRegisterID:      processID,
+			AssetRegisterID:      assetID,
 			StrategicObjectiveID: strategicObjectiveID,
 			CreatedBYID:          currentUserID,
 			CreatedAt:            currentTime,
 		})
 	}
 
-	if err := rais.repo.CreateStrategicObjectiveAsset(mappings, tx); err != nil {
+	if err := soais.repo.CreateStrategicObjectiveAsset(mappings, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
 	return tx.Commit()
 }
 
-func (rais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveAsset(strategicObjectiveID uint, assetID uint) error {
+func (soais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveAsset(strategicObjectiveID uint, assetID uint) error {
 	// Validate control existence
-	if _, err := rais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("strategic objective does not exist for ID: %d", strategicObjectiveID), "not_exist", "strategic_objective_id")
 	}
 
-	tx := rais.repo.BeginTransaction()
+	tx := soais.repo.BeginTransaction()
 
-	if err := rais.repo.DeleteStrategicObjectiveAsset(strategicObjectiveID, assetID, tx); err != nil {
+	if err := soais.repo.DeleteStrategicObjectiveAsset(strategicObjectiveID, assetID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (soais *StrategicObjectiveAssociatedItemService) GetAllStrategicObjectiveIncidents(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error) {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+		return nil, err
+	}
+	return soais.repo.GetAllStrategicObjectiveIncidents(strategicObjectiveID, params)
+}
+
+func (soais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveIncident(strategicObjectiveID, currentUserID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+		return err
+	}
+	if err := soais.validationSvc.ValidateIncidentMapping(strategicObjectiveID, dto.IncidentIDs, "incident_strategic_objectives", "strategic_objective_id"); err != nil {
+		return err
+	}
+	tx := soais.repo.BeginTransaction()
+	var mappings []*models.IncidentStrategicObjective
+	currentTime := time.Now()
+
+	for _, incidentID := range dto.IncidentIDs {
+		mappings = append(mappings, &models.IncidentStrategicObjective{
+			IncidentRegisterID:   incidentID,
+			StrategicObjectiveID: strategicObjectiveID,
+			CreatedBYID:          currentUserID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := soais.repo.CreateStrategicObjectiveIncident(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (soais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveIncident(strategicObjectiveID uint, incidentID uint) error {
+	// Validate control existence
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+		return err
+	}
+
+	tx := soais.repo.BeginTransaction()
+
+	if err := soais.repo.DeleteStrategicObjectiveIncident(strategicObjectiveID, incidentID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
