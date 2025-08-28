@@ -53,6 +53,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceAssessmentFrameworkTypeController := app.ComplianceModule.ComplianceAssessmentFrameworkTypeController
 	complianceAssessmentFrameworkController := app.ComplianceModule.ComplianceAssessmentFrameworkController
 	complianceAssessmentFrameworkValueController := app.ComplianceModule.ComplianceAssessmentFrameworkValueController
+	complianceAssessmentControlController := app.ComplianceModule.ComplianceAssessmentControlController
 
 	// Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -398,4 +399,18 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/compliance-assessment-frameworks/:complianceAssessmentFrameworkId/values", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceAssessmentFrameworkValueController.CreateComplianceAssessmentFrameworkValue)
 	complianceRoutes.PUT("/compliance-assessment-frameworks/:complianceAssessmentFrameworkId/values/:complianceAssessmentFrameworkValueId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceAssessmentFrameworkValueController.UpdateComplianceAssessmentFrameworkValue)
 	complianceRoutes.POST("/compliance-assessment-frameworks/:complianceAssessmentFrameworkId/values/delete", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceAssessmentFrameworkValueController.DeleteComplianceAssessmentFrameworkValues)
+	// CLAUSES
+	complianceRoutes.GET("/compliance-assessments/:assessmentId/control-clauses", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentControlController.GetComplianceAssessmentControlClauses)
+	// CONTROLS LIST + DETAILS + UPDATE
+	complianceRoutes.GET("/compliance-assessments/:assessmentId/controls", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentControlController.GetComplianceAssessmentControls)
+	complianceRoutes.GET("/compliance-assessments/:assessmentId/controls/:controlId", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentControlController.GetComplianceAssessmentControlDetails)
+	complianceRoutes.PUT("/compliance-assessments/:assessmentId/controls/:controlId", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentControlController.UpdateComplianceAssessmentControl)
+	// MARK COMPLETED / OPEN
+	complianceRoutes.PUT("/compliance-assessments/:assessmentId/controls/:controlId/mark-as-completed", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentControlController.MarkAsCompleted)
+	complianceRoutes.PUT("/compliance-assessments/:assessmentId/controls/:controlId/mark-as-open", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentControlController.MarkAsOpen)
+	// WORKFLOW: APPROVE / REVERT / RESUBMIT
+	complianceRoutes.PUT("/compliance-assessments/:assessmentId/controls/:controlId/approve", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentControlController.ApproveComplianceAssessmentControl)
+	complianceRoutes.PUT("/compliance-assessments/:assessmentId/controls/:controlId/revert", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentControlController.RevertComplianceAssessmentControl)
+	complianceRoutes.PUT("/compliance-assessments/:assessmentId/controls/:controlId/resubmit", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentControlController.ResubmitComplianceAssessmentControl)
+
 }

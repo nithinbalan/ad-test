@@ -46,6 +46,7 @@ type ComplianceModule struct {
 	ComplianceAssessmentFrameworkTypeController                     *controllers.ComplianceAssessmentFrameworkTypeController
 	ComplianceAssessmentFrameworkController                         *controllers.ComplianceAssessmentFrameworkController
 	ComplianceAssessmentFrameworkValueController                    *controllers.ComplianceAssessmentFrameworkValueController
+	ComplianceAssessmentControlController                           *controllers.ComplianceAssessmentControlController
 
 	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
@@ -290,6 +291,16 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	)
 	policyExceptionController := controllers.NewPolicyExceptionController(policyExceptionSvc)
 
+	complianceAssessmentControlRepo := repositories.NewComplianceAssessmentControlRepository(db)
+	complianceAssessmentControlSvc := services.NewComplianceAssessmentControlService(
+		complianceAssessmentControlRepo,
+		sharedModule.ActivityLogService,
+		organizationModule.UserSvc,
+		complianceAssessmentSvc,
+		complianceAssessmentRequirementStatusSvc,
+		commonModule.NotificationService,
+	)
+	complianceAssessmentControlController := controllers.NewComplianceAssessmentControlController(complianceAssessmentControlSvc)
 	return &ComplianceModule{
 		ComplianceCategoryController:                                    complianceCategoryController,
 		ComplianceStatusController:                                      complianceStatusController,
@@ -328,6 +339,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceAssessmentFrameworkTypeController:                     complianceAssessmentFrameworkTypeController,
 		ComplianceAssessmentFrameworkController:                         complianceAssessmentFrameworkController,
 		ComplianceAssessmentFrameworkValueController:                    complianceAssessmentFrameworkValueController,
+		ComplianceAssessmentControlController:                           complianceAssessmentControlController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,

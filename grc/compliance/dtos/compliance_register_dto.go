@@ -79,28 +79,31 @@ type ComplianceRegisterListDTO struct {
 	ComplianceAssessmentFrameworkID       *uint  `json:"compliance_assessment_framework_id"`
 	ComplianceAssessmentFrameworkTitleEn  string `json:"compliance_assessment_framework_title_en"`
 	ComplianceAssessmentFrameworkTitleAr  string `json:"compliance_assessment_framework_title_ar"`
+	IsControlAssessment                   bool   `json:"is_control_assessment"`
+	IsRequirementAssessment               bool   `json:"is_requirement_assessment"`
 }
-
 type ComplianceRegisterListQueryParamsDTO struct {
-	Sort               string
-	SortBy             string
-	Keyword            string
-	Status             string
-	Page               int
-	PageSize           int
-	Filters            map[string][]string
-	QuickFilter        []string
-	DeadlineFrom       string
-	DeadlineTo         string
-	IssueDateFrom      string
-	IssueDateTo        string
-	ExpiryDateFrom     string
-	ExpiryDateTo       string
-	DateFrom           string
-	DateTo             string
-	NextReviewDateFrom string
-	NextReviewDateTo   string
-	Export             bool
+	Sort                    string
+	SortBy                  string
+	Keyword                 string
+	Status                  string
+	Page                    int
+	PageSize                int
+	Filters                 map[string][]string
+	QuickFilter             []string
+	DeadlineFrom            string
+	DeadlineTo              string
+	IssueDateFrom           string
+	IssueDateTo             string
+	ExpiryDateFrom          string
+	ExpiryDateTo            string
+	DateFrom                string
+	DateTo                  string
+	NextReviewDateFrom      string
+	NextReviewDateTo        string
+	Export                  bool
+	IsControlAssessment     *bool
+	IsRequirementAssessment *bool
 }
 
 type ComplianceRegisterListResponseDTO struct {
@@ -134,6 +137,8 @@ type ComplianceRegisterFormDTO struct {
 	DocumentAr                      ComplianceDocumentFormDTO `json:"document_ar" binding:"required"`
 	ControlIDs                      []*uint                   `json:"control_ids"`
 	ComplianceFolderID              *uint                     `json:"compliance_folder_id"`
+	IsControlAssessment             bool                      `json:"is_control_assessment"`
+	IsRequirementAssessment         bool                      `json:"is_requirement_assessment"`
 }
 
 type ComplianceDocumentFormDTO struct {
@@ -204,10 +209,12 @@ type ComplianceRegisterDetailDTO struct {
 	ComplianceClauses               []*ComplianceClauseDetailDTO                    `json:"compliance_clauses"`
 	ComplianceFolder                *ComplianceFolderDTO                            `json:"compliance_folder"`
 	ComplianceAssessmentFramework   *ComplianceAssessmentFrameworkDetailResponseDTO `json:"compliance_assessment_framework"`
+	IsControlAssessment             bool                                            `json:"is_control_assessment"`
+	IsRequirementAssessment         bool                                            `json:"is_requirement_assessment"`
 }
 
 type ComplianceControlDTO struct {
-	ID                   *uint                             `json:"id"`
+	ID                   uint                              `json:"id"`
 	ComplianceRegisterID uint                              `json:"compliance_register_id"`
 	ControlID            uint                              `json:"control_id"`
 	Control              organizationDTOs.ControlDetailDTO `json:"control"`

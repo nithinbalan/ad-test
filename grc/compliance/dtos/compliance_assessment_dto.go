@@ -97,6 +97,7 @@ type ComplianceAssessmentDetailDTO struct {
 	AssessmentRequirements     []*ComplianceAssessmentRequirementDTO `json:"compliance_requirements"`
 	IsCompleted                bool                                  `json:"is_completed"`
 	IsApproved                 bool                                  `json:"is_approved"`
+	AssessmentControls         []*ComplianceAssessmentControlDTO     `json:"compliance_controls"` // ✅ new field
 }
 
 type ComplianceAssessmentRequirementDTO struct {
@@ -237,4 +238,46 @@ type ClauseStatusAggregateDTO struct {
 type ComplianceRequirementScoreStatusDTO struct {
 	ComplianceStatusID *uint    `json:"compliance_status_id"`
 	Score              *float64 `json:"score"`
+}
+
+type ComplianceAssessmentControlDTO struct {
+	ID                                      *uint                                        `json:"id"`
+	ComplianceAssessmentID                  uint                                         `json:"compliance_assessment_id"`
+	ComplianceControlID                     uint                                         `json:"compliance_control_id"`
+	ComplianceControl                       ComplianceClauseControlDTO                   `json:"compliance_control"` // nested details
+	CompletedByUserID                       *uint                                        `json:"completed_by_user_id"`
+	CompletedByUser                         *organizationDTOs.UserMinimalDTO             `json:"completed_by_user"`
+	CompletedAt                             *time.Time                                   `json:"completed_at"`
+	ComplianceAssessmentFrameworkValueID    *uint                                        `json:"compliance_assessment_framework_value_id"`
+	ComplianceAssessmentFrameworkValue      *ComplianceAssessmentFrameworkValueDetailDTO `json:"framework_value"`
+	Comments                                *string                                      `json:"comments"`
+	IsCompleted                             bool                                         `json:"is_completed"`
+	Score                                   *float64                                     `json:"score"`
+	ComplianceAssessmentRequirementStatusID *uint                                        `json:"compliance_assessment_requirement_status_id"`
+	ComplianceAssessmentRequirementStatus   *ComplianceAssessmentRequirementStatusDTO    `json:"requirement_status"`
+	CreatedAt                               time.Time                                    `json:"created_at"`
+	UpdatedAt                               *time.Time                                   `json:"updated_at"`
+	CreatedByUser                           *organizationDTOs.UserMinimalDTO             `json:"created_by_user"`
+	UpdatedByUser                           *organizationDTOs.UserMinimalDTO             `json:"updated_by_user"`
+}
+
+type ControlComplianceScoreDTO struct {
+	ComplianceRegisterID   uint   `json:"compliance_register_id"`
+	ComplianceAssessmentID uint   `json:"compliance_assessment_id"`
+	ComplianceControlID    uint   `json:"compliance_control_id"`
+	ComplianceClauseID     uint   `json:"compliance_clause_id"`
+	FrameworkType          string `json:"framework_type"`
+
+	// scoring
+	TotalControls        int     `json:"total_controls"`
+	ScoredControls       int     `json:"scored_controls"`
+	TotalScore           float64 `json:"total_score"`
+	MaxPossibleScore     float64 `json:"max_possible_score"`
+	ComplianceScore      float64 `json:"compliance_score"`
+	CompliancePercentage float64 `json:"compliance_percentage"`
+	Score                float64 `json:"score"`
+
+	// mappings
+	MappedFrameworkValueID   *uint `json:"mapped_framework_value_id"`
+	MappedComplianceStatusID *uint `json:"mapped_compliance_status_id"`
 }

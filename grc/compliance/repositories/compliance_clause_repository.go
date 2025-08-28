@@ -130,6 +130,8 @@ func (repo *ComplianceClauseRepository) GetFullDetailsByID(clauseID uint) (*mode
 	var clause models.ComplianceClause
 
 	err := repo.db.
+		Preload("ComplianceControls").
+		Preload("ComplianceControls.Control").
 		Preload("ComplianceRequirements").
 		Preload("ComplianceRequirements.RequiredDocumentTitles").
 		Preload("ComplianceRequirements.ComplianceRequirementCategory").

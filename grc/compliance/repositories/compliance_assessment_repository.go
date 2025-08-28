@@ -40,7 +40,11 @@ type ComplianceAssessmentRepositoryInterface interface {
 	UpdateComplianceRequirementStatusUpdate(complianceRequirementValueUpdateDTO complianceDTOs.ComplianceRequirementValueUpdateDTO, tx ...utility.DatabaseTransaction) error
 	UpdateComplianceStatus(complianceRegisterID uint, complianceStatusID uint, score float64, tx ...utility.DatabaseTransaction) error
 	UpdateComplianceAssessmentRequirementStatus(assessmentReqID uint, complianceStatusID uint, score float64, tx ...utility.DatabaseTransaction) error
+	UpdateComplianceAssessmentControlStatus(complianceControlID uint, complianceStatusID uint, score float64, tx ...utility.DatabaseTransaction) error
 	UpdateClauseComplianceStatus(clauseID uint, statusID uint, score float64, tx ...utility.DatabaseTransaction) error
+	CreateComplianceAssessmentControl(control *models.ComplianceAssessmentControl, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceAssessmentControls(ids []*uint, tx ...utility.DatabaseTransaction) error
+	HasControlForRegister(registerID uint) (bool, error)
 }
 
 type ComplianceAssessmentRepository struct {
@@ -538,6 +542,16 @@ func (repo *ComplianceAssessmentRepository) UpdateComplianceAssessmentRequiremen
 		Where("id = ?", assessmentReqID).
 		Update("compliance_status_id", complianceStatusID).Update("score", score).Error
 }
+func (repo *ComplianceAssessmentRepository) UpdateComplianceAssessmentControlStatus(complianceControlID uint, complianceStatusID uint, score float64, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Model(&models.ComplianceAssessmentControl{}).
+		Where("id = ?", complianceControlID).
+		Update("compliance_status_id", complianceStatusID).Update("score", score).Error
+}
 func (repo *ComplianceAssessmentRepository) UpdateClauseComplianceStatus(clauseID uint, statusID uint, score float64, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -547,4 +561,42 @@ func (repo *ComplianceAssessmentRepository) UpdateClauseComplianceStatus(clauseI
 		Where("id = ?", clauseID).
 		Update("compliance_status_id", statusID).
 		Update("score", score).Error
+}
+
+func (repo *ComplianceAssessmentRepository) CreateComplianceAssessmentControl(control *models.ComplianceAssessmentControl, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(control).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceAssessmentRepository) DeleteComplianceAssessmentControls(ids []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", ids).Delete(&models.ComplianceAssessmentControl{}).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ComplianceAssessmentRepository) HasControlForRegister(registerID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Table("compliance_controls").
+		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_controls.compliance_clause_id").
+		Where("compliance_clauses.compliance_register_id = ?", registerID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }

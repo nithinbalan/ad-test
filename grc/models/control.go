@@ -17,6 +17,7 @@ type Control struct {
 	TitleEn                       string     `json:"title_en" gorm:"type:nvarchar(MAX);not null" binding:"required"`
 	TitleAr                       string     `json:"title_ar" gorm:"type:nvarchar(MAX);not null" binding:"required"`
 	Description                   *string    `json:"description,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
+	ComplianceStatusID            *uint      `json:"compliance_status_id" gorm:"default:null"`
 	EfficiencyScore               *uint      `json:"efficiency_score" gorm:"default:0;check:efficiency_score >= 0 AND efficiency_score <= 100" binding:"omitempty"`
 	Objective                     *string    `json:"objective,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
 	ReviewFrequencyID             *uint      `json:"review_frequency_id,omitempty" gorm:"default:null" binding:"omitempty"`
@@ -61,6 +62,7 @@ type Control struct {
 	RiskMatrixRating            *RiskMatrixRiskRating        `gorm:"foreignKey:RiskMatrixRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskMatrixRatingValue       *RiskMatrixRiskRatingValue   `gorm:"foreignKey:RiskMatrixRiskRatingValueID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Risks                       []*RiskControl               `gorm:"foreignKey:ControlID"`
+	ComplianceStatus            *ComplianceStatus            `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser               *User                        `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser               *User                        `gorm:"foreignKey:UpdatedByID"`
 }
