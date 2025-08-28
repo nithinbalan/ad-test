@@ -32,6 +32,9 @@ type ControlAssociatedItemServiceInterface interface {
 	GetAllControlKPI(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateControlKPI(controlID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
 	DeleteControlKPI(controlID uint, kpiID uint) error
+	GetAllControlAssets(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	CreateControlAsset(controlID uint, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
+	DeleteControlAsset(controlID uint, assetID uint) error
 }
 
 type ControlAssociatedItemService struct {
@@ -485,6 +488,55 @@ func (cais *ControlAssociatedItemService) DeleteControlKPI(controlID uint, kpiID
 	tx := cais.repo.BeginTransaction()
 
 	if err := cais.repo.DeleteControlKPI(controlID, kpiID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (cais *ControlAssociatedItemService) GetAllControlAssets(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return nil, err
+	}
+	return cais.repo.GetAllControlAssets(controlID, params)
+}
+func (cais *ControlAssociatedItemService) CreateControlAsset(controlID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return err
+	}
+	if err := cais.validationSvc.ValidateAssetMapping(controlID, dto.AssetIDs, "asset_controls", "control_id"); err != nil {
+		return err
+	}
+	tx := cais.repo.BeginTransaction()
+	var mappings []*models.AssetControl
+	currentTime := time.Now()
+
+	for _, AssetID := range dto.AssetIDs {
+		mappings = append(mappings, &models.AssetControl{
+			AssetRegisterID: AssetID,
+			ControlID:       controlID,
+			CreatedBYID:     userID,
+			CreatedAt:       currentTime,
+		})
+	}
+
+	if err := cais.repo.CreateControlAsset(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (cais *ControlAssociatedItemService) DeleteControlAsset(controlID uint, assetID uint) error {
+	// Validate control existence
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return err
+	}
+
+	tx := cais.repo.BeginTransaction()
+
+	if err := cais.repo.DeleteControlAsset(controlID, assetID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

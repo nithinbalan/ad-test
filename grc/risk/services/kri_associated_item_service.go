@@ -17,6 +17,9 @@ type KRIAssociatedItemServiceInterface interface {
 	GetAllKRIControls(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	CreateKRIControl(kriID uint, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
 	DeleteKRIControl(kriID uint, controlID uint) error
+	GetAllKRIAssets(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	CreateKRIAsset(kriID uint, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
+	DeleteKRIAsset(kriID uint, assetID uint) error
 }
 
 // Service and implementations
@@ -136,6 +139,59 @@ func (pais *KRIAssociatedItemService) DeleteKRIControl(kriID uint, controlID uin
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteKRIControl(kriID, controlID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *KRIAssociatedItemService) GetAllKRIAssets(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	if _, err := pais.KRISvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+	return pais.repo.GetAllKRIAssets(assetID, params)
+}
+
+func (pais *KRIAssociatedItemService) CreateKRIAsset(kriID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
+
+	if _, err := pais.KRISvc.GetByID(kriID); err != nil {
+		return err
+	}
+
+	if err := pais.validationSvc.ValidateAssetMapping(kriID, dto.AssetIDs, "asset_kris", "kri_register_id"); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.AssetKri
+	currentTime := time.Now()
+
+	for _, AssetID := range dto.AssetIDs {
+		mappings = append(mappings, &models.AssetKri{
+			AssetRegisterID: AssetID,
+			KriRegisterID:   kriID,
+			CreatedBYID:     userID,
+			CreatedAt:       currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateKRIAsset(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *KRIAssociatedItemService) DeleteKRIAsset(kriID uint, assetID uint) error {
+
+	if _, err := pais.KRISvc.GetByID(kriID); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteKRIAsset(kriID, assetID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

@@ -774,3 +774,116 @@ func (caic *ControlAssociatedItemController) DeleteControlKPI(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Strategic Objective unmapped from control successfully"})
 }
+
+func (caic *ControlAssociatedItemController) GetAllControlAssets(c *gin.Context) {
+	controlIDStr := c.Param("controlId")
+
+	controlID, err := strconv.ParseUint(controlIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	assets, err := caic.service.GetAllControlAssets(uint(controlID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(caic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, assets)
+}
+
+func (caic *ControlAssociatedItemController) CreateControlAsset(c *gin.Context) {
+	var input commonDTOs.AssociatedAssetMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	controlID, err := strconv.ParseUint(c.Param("controlId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	err = caic.service.CreateControlAsset(uint(controlID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(caic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (caic *ControlAssociatedItemController) DeleteControlAsset(c *gin.Context) {
+
+	controlIDStr := c.Param("controlId")
+	assetIDStr := c.Param("assetId")
+	controlID, err := strconv.ParseUint(controlIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	assetID, err := strconv.ParseUint(assetIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = caic.service.DeleteControlAsset(uint(controlID), uint(assetID))
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Asset unmapped from control successfully"})
+}

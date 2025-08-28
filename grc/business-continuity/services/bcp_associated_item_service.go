@@ -23,6 +23,9 @@ type BcpAssociatedItemServiceInterface interface {
 	GetAllBcpRisk(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	CreateBcpRisk(BcpID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteBcpRisk(BcpID uint, riskID uint) error
+	GetAllBcpAssets(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	CreateBcpAsset(BcpID uint, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
+	DeleteBcpAsset(BcpID uint, assetID uint) error
 }
 
 // Service and implementations
@@ -250,6 +253,58 @@ func (bais *BcpAssociatedItemService) DeleteBcpRisk(BcpID uint, riskID uint) err
 	tx := bais.repo.BeginTransaction()
 
 	if err := bais.repo.DeleteBcpRisk(BcpID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (bais *BcpAssociatedItemService) GetAllBcpAssets(bcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	if _, err := bais.BcpSvc.GetByID(bcpID); err != nil {
+		return nil, err
+	}
+	return bais.repo.GetAllBcpAssets(bcpID, params)
+}
+
+func (bais *BcpAssociatedItemService) CreateBcpAsset(BcpID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
+
+	if _, err := bais.BcpSvc.GetByID(BcpID); err != nil {
+		return err
+	}
+
+	if err := bais.validationSvc.ValidateAssetMapping(BcpID, dto.AssetIDs, "bcp_assets", "business_continuity_plan_id"); err != nil {
+		return err
+	}
+
+	tx := bais.repo.BeginTransaction()
+	var mappings []*models.BcpAsset
+	currentTime := time.Now()
+	for _, AssetID := range dto.AssetIDs {
+		mappings = append(mappings, &models.BcpAsset{
+			AssetRegisterID:          AssetID,
+			BusinessContinuityPlanID: BcpID,
+			CreatedBYID:              userID,
+			CreatedAt:                currentTime,
+		})
+	}
+
+	if err := bais.repo.CreateBcpAsset(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (bais *BcpAssociatedItemService) DeleteBcpAsset(BcpID uint, assetID uint) error {
+	// Validate control existence
+	if _, err := bais.BcpSvc.GetByID(BcpID); err != nil {
+		return err
+	}
+
+	tx := bais.repo.BeginTransaction()
+
+	if err := bais.repo.DeleteBcpAsset(BcpID, assetID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

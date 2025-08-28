@@ -227,4 +227,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// businessContinuityRoutes.POST("/business-functions/:id/processes", middlewares.RolePermissionMiddleware(db, "business_functions", "modify"), businessfunctionAssociatedItemController.CreateBusinessFunctionProcess)
 	// businessContinuityRoutes.DELETE("/business-functions/:id/processes/:processId", middlewares.RolePermissionMiddleware(db, "business_functions", "modify"), businessfunctionAssociatedItemController.DeleteBusinessFunctionProcess)
 
+	businessContinuityRoutes.GET("/business-continuity-plans/:id/assets", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpAssociatedItemController.GetAllBcpAssets)
+	businessContinuityRoutes.POST("/business-continuity-plans/:id/assets", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpAssociatedItemController.CreateBcpAsset)
+	businessContinuityRoutes.DELETE("/business-continuity-plans/:id/assets/:assetId", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpAssociatedItemController.DeleteBcpAsset)
+
 }

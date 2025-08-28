@@ -254,6 +254,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/controls/:controlId/kpis", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.CreateControlKPI)
 	organizationRoutes.DELETE("/controls/:controlId/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.DeleteControlKPI)
 
+	organizationRoutes.GET("/controls/:controlId/assets", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlAssociatedItemController.GetAllControlAssets)
+	organizationRoutes.POST("/controls/:controlId/assets", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.CreateControlAsset)
+	organizationRoutes.DELETE("/controls/:controlId/assets/:assetId", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.DeleteControlAsset)
+
 	//Process Group
 	// Process Group
 	organizationRoutes.GET("/process-groups", processGroupController.GetAllProcessGroups)
