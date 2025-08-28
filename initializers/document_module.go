@@ -40,6 +40,11 @@ type DocumentModule struct {
 	// DocumentRequirementController                 *controllers.DocumentRequirementController
 
 	DocumentSvc                 services.DocumentServiceInterface
+	DocumentCategorySvc         services.DocumentCategoryServiceInterface
+	DocumentTypeSvc             services.DocumentTypeServiceInterface
+	DocumentAccessSvc           services.DocumentAccessServiceInterface
+	DocumentAccessTypeSvc       services.DocumentAccessTypeServiceInterface
+	DocumentStatusSvc           services.DocumentStatusServiceInterface
 	DocumentChangeRequestSvc    services.DocumentChangeRequestServiceInterface
 	DocumentRequirementGroupSvc services.DocumentRequirementGroupServiceInterface
 	DocumentRequirementSvc      services.DocumentRequirementServiceInterface
@@ -280,5 +285,10 @@ func NewDocumentModule(db *gorm.DB,
 		DocumentRequirementGroupSvc: documentRequirementGroupSvc,
 		DocumentRequirementSvc:      documentRequirementSvc,
 		DocumentClauseSvc:           documentClauseSvc,
+		DocumentCategorySvc:         documentCategorySvc,
+		DocumentTypeSvc:             documentTypeSvc,
+		DocumentAccessTypeSvc:       documentAccessTypeSvc,
+		DocumentStatusSvc:           documentStatusSvc,
+		DocumentAccessSvc:           documentAccessSvc,
 	}
 }
