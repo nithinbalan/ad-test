@@ -17,7 +17,7 @@ import (
 // Service Interface
 type AssetAssociatedItemServiceInterface interface {
 	GetAllControls(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error)
-	GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error)
+	GetAllIncidents(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
 	GetAllRisks(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllVulnerabilities(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) ([]assetDTOs.VulnerabilityDTO, error)
 	GetAllClauses(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
@@ -49,6 +49,8 @@ type AssetAssociatedItemServiceInterface interface {
 	GetAllAssetKPI(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateAssetKPI(assetID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
 	DeleteAssetKPI(assetID uint, kpiID uint) error
+	CreateAssetIncident(assetID uint, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
+	DeleteAssetIncident(assetID uint, incidentID uint) error
 }
 
 // Service Implementation
@@ -206,7 +208,7 @@ func (aais *AssetAssociatedItemService) GetAllControls(assetID uint, params *com
 	return response, nil
 }
 
-func (aais *AssetAssociatedItemService) GetAllIncidents(assetID uint, params *assetDTOs.AssetAssociatedItemListQueryParamsDTO) (*assetDTOs.AssetAssociatedItemIncidentListResponseDTO, error) {
+func (aais *AssetAssociatedItemService) GetAllIncidents(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error) {
 	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
 		return nil, err
 	}
@@ -1167,6 +1169,52 @@ func (aais *AssetAssociatedItemService) DeleteAssetKPI(assetID uint, kpiID uint)
 	tx := aais.repo.BeginTransaction()
 
 	if err := aais.repo.DeleteAssetKPI(assetID, kpiID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (aais *AssetAssociatedItemService) CreateAssetIncident(assetID, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error {
+
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return err
+	}
+
+	if err := aais.validationSvc.ValidateIncidentMapping(assetID, dto.IncidentIDs, "incident_assets", "asset_register_id"); err != nil {
+		return err
+	}
+
+	tx := aais.repo.BeginTransaction()
+	var mappings []*models.IncidentAsset
+	currentTime := time.Now()
+
+	for _, incidentID := range dto.IncidentIDs {
+		mappings = append(mappings, &models.IncidentAsset{
+			AssetRegisterID:    assetID,
+			IncidentRegisterID: incidentID,
+			CreatedBYID:        userID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := aais.repo.CreateAssetIncident(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (aais *AssetAssociatedItemService) DeleteAssetIncident(assetID uint, incidentID uint) error {
+	// Validate control existence
+	if _, err := aais.assetRegisterSvc.GetByID(assetID); err != nil {
+		return err
+	}
+
+	tx := aais.repo.BeginTransaction()
+
+	if err := aais.repo.DeleteAssetIncident(assetID, incidentID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
