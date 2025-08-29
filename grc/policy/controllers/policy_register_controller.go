@@ -44,6 +44,7 @@ func (prc *PolicyRegisterController) GetAllDocuments(c *gin.Context) {
 		"responsible_user_ids",
 		"responsible_unit_ids",
 		"document_status_ids",
+		"policy_folder_ids",
 	}
 
 	validSortFields := map[string]string{
