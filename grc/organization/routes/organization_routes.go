@@ -441,4 +441,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/organization-structures/:unitId/users", middlewares.RolePermissionMiddleware(db, "organization_structure", "view"), organizationStructureController.GetUsersByOrganizationUnitID)
 	organizationRoutes.PUT("/organization-structures/:unitId/users/:userId", middlewares.RolePermissionMiddleware(db, "organization_structure", "modify"), organizationStructureController.UpdatePrimaryOrganizationUnitHead)
 	organizationRoutes.GET("/organization-structures/:unitId/summary", middlewares.RolePermissionMiddleware(db, "organization_structure", "view"), organizationStructureController.GetOrganizationUnitSummary)
+	organizationRoutes.GET("/organization-structures/:unitId/policies", middlewares.RolePermissionMiddleware(db, "organization_structure", "view"), organizationStructureController.GetAllPoliciesByOrganizationUnit)
+	organizationRoutes.GET("/organization-structures/:unitId/risks", middlewares.RolePermissionMiddleware(db, "organization_structure", "view"), organizationStructureController.GetAllRiskByOrganizationUnit)
+	organizationRoutes.GET("/organization-structures/:unitId/details", middlewares.RolePermissionMiddleware(db, "organization_structure", "view"), organizationStructureController.GetParentOrganizationUnitWithHead)
 }

@@ -135,7 +135,6 @@ type ComplianceRegisterFormDTO struct {
 	StandardCode                    *string                   `json:"standard_code" binding:"omitempty,max=45"`
 	DocumentEn                      ComplianceDocumentFormDTO `json:"document_en" binding:"required"`
 	DocumentAr                      ComplianceDocumentFormDTO `json:"document_ar" binding:"required"`
-	ControlIDs                      []*uint                   `json:"control_ids"`
 	ComplianceFolderID              *uint                     `json:"compliance_folder_id"`
 	IsControlAssessment             bool                      `json:"is_control_assessment"`
 	IsRequirementAssessment         bool                      `json:"is_requirement_assessment"`
