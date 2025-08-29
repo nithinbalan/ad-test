@@ -32,6 +32,9 @@ type MeetingAssociatedItemServiceInterface interface {
 	DeleteMeetingRisk(meetingID uint, riskID uint) error
 	CreateMeetingIncident(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
 	DeleteMeetingIncident(meetingID uint, incidentID uint) error
+	GetAllMeetingAssets(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	CreateMeetingAsset(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
+	DeleteMeetingAsset(meetingID uint, assetID uint) error
 }
 
 // Service and implementations
@@ -426,6 +429,59 @@ func (mais *MeetingAssociatedItemService) DeleteMeetingIncident(meetingID uint, 
 	tx := mais.repo.BeginTransaction()
 
 	if err := mais.repo.DeleteMeetingIncident(meetingID, incidentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) GetAllMeetingAssets(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return nil, err
+	}
+	return mais.repo.GetAllMeetingAssets(meetingID, params)
+}
+
+func (mais *MeetingAssociatedItemService) CreateMeetingAsset(meetingID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
+
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return err
+	}
+
+	if err := mais.validationSvc.ValidateAssetMapping(meetingID, dto.AssetIDs, "meeting_assets", "meeting_id"); err != nil {
+		return err
+	}
+
+	tx := mais.repo.BeginTransaction()
+	var mappings []*models.MeetingAsset
+	currentTime := time.Now()
+
+	for _, assetID := range dto.AssetIDs {
+		mappings = append(mappings, &models.MeetingAsset{
+			AssetRegisterID: assetID,
+			MeetingID:       meetingID,
+			CreatedBYID:     userID,
+			CreatedAt:       currentTime,
+		})
+	}
+
+	if err := mais.repo.CreateMeetingAsset(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) DeleteMeetingAsset(meetingID uint, assetID uint) error {
+	// Validate control existence
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return err
+	}
+
+	tx := mais.repo.BeginTransaction()
+
+	if err := mais.repo.DeleteMeetingAsset(meetingID, assetID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

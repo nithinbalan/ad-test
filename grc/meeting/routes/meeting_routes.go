@@ -113,6 +113,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.POST("/meetings/:id/strategic-objectives", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingAssociatedItemController.CreateMeetingStrategicObjective)
 	meetingRoutes.DELETE("/meetings/:id/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingAssociatedItemController.DeleteMeetingStrategicObjective)
 
+	meetingRoutes.GET("/meetings/:id/assets", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingAssociatedItemController.GetAllMeetingAssets)
+	meetingRoutes.POST("/meetings/:id/assets", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingAssociatedItemController.CreateMeetingAsset)
+	meetingRoutes.DELETE("/meetings/:id/assets/:assetId", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingAssociatedItemController.DeleteMeetingAsset)
+
 	// Meeting Minute Status
 	meetingRoutes.GET("/meeting-minute-statuses", meetingMinuteStatusController.GetAllMeetingMinuteStatuses)
 	meetingRoutes.GET("/meeting-minute-statuses/:id", meetingMinuteStatusController.GetMeetingMinuteStatusDetails)

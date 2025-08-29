@@ -681,3 +681,115 @@ func (maic *MeetingAssociatedItemController) DeleteMeetingIncident(c *gin.Contex
 
 	c.JSON(http.StatusOK, gin.H{"message": "Incident unmapped from meeting successfully"})
 }
+
+func (maic *MeetingAssociatedItemController) GetAllMeetingAssets(c *gin.Context) {
+
+	mmetingIDStr := c.Param("id")
+
+	meetingID, err := strconv.ParseUint(mmetingIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	assets, err := maic.service.GetAllMeetingAssets(uint(meetingID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(maic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, assets)
+}
+
+func (maic *MeetingAssociatedItemController) CreateMeetingAsset(c *gin.Context) {
+	var input commonDTOs.AssociatedAssetMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	meetingID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, err.Error())
+		return
+	}
+
+	err = maic.service.CreateMeetingAsset(uint(meetingID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(maic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (maic *MeetingAssociatedItemController) DeleteMeetingAsset(c *gin.Context) {
+	meetingIDStr := c.Param("id")
+	assetIDStr := c.Param("assetId")
+
+	meetingID, err := strconv.ParseUint(meetingIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	assetID, err := strconv.ParseUint(assetIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = maic.service.DeleteMeetingAsset(uint(meetingID), uint(assetID))
+	if err != nil {
+		utility.SendInternalErrResp(maic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Asset unmapped from meeting successfully"})
+}
