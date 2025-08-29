@@ -925,19 +925,32 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		}
 		// log changes
 		oldData := map[string]interface{}{
-			"compliance_requirement_category": oldComplianceRequirement.ComplianceRequirementCategory.TitleEn,
-			"severity_level":                  oldComplianceRequirement.SeverityLevel.TitleEn,
-			"title":                           oldComplianceRequirement.TitleEn,
-			"dead_line":                       oldComplianceRequirement.DeadlineString,
-			"compliance_clause":               oldComplianceRequirement.ComplianceClause.TitleEn,
+			"title":             oldComplianceRequirement.TitleEn,
+			"dead_line":         oldComplianceRequirement.DeadlineString,
+			"compliance_clause": oldComplianceRequirement.ComplianceClause.TitleEn,
+		}
+		// Add category title if exists
+		if oldComplianceRequirement.ComplianceRequirementCategory != nil {
+			oldData["compliance_requirement_category"] = oldComplianceRequirement.ComplianceRequirementCategory.TitleEn
+		}
+
+		// Add severity level title if exists
+		if oldComplianceRequirement.SeverityLevel != nil {
+			oldData["severity_level"] = oldComplianceRequirement.SeverityLevel.TitleEn
 		}
 
 		newData := map[string]interface{}{
-			"compliance_requirement_category": existingRequirement.ComplianceRequirementCategory.TitleEn,
-			"severity_level":                  existingRequirement.SeverityLevel.TitleEn,
-			"title":                           existingRequirement.TitleEn,
-			"dead_line":                       existingRequirement.DeadlineString,
-			"compliance_clause":               existingRequirement.ComplianceClause.TitleEn,
+			"title":             existingRequirement.TitleEn,
+			"dead_line":         existingRequirement.DeadlineString,
+			"compliance_clause": existingRequirement.ComplianceClause.TitleEn,
+		}
+		// Add category title if exists
+		if existingRequirement.ComplianceRequirementCategory != nil {
+			newData["compliance_requirement_category"] = existingRequirement.ComplianceRequirementCategory.TitleEn
+		}
+		// Add severity level title if exists
+		if existingRequirement.SeverityLevel != nil {
+			newData["severity_level"] = existingRequirement.SeverityLevel.TitleEn
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
