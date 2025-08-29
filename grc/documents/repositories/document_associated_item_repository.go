@@ -590,7 +590,7 @@ func (repo *DocumentAssociatedItemRepository) GetAllIncidents(documentID uint, p
 		`).
 		Joins(`
 			LEFT JOIN incident_register ON incident_register.id = incident_associated_documents.incident_register_id
-			 LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
+			LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
             LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id
             LEFT JOIN incident_types ON incident_types.id = incident_register.incident_type_id
             LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id

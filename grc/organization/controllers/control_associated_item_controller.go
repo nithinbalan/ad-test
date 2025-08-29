@@ -206,9 +206,6 @@ func (caic *ControlAssociatedItemController) GetAllControlIncidents(c *gin.Conte
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
-
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(caic.db, c, "Invalid page parameter")
@@ -221,14 +218,12 @@ func (caic *ControlAssociatedItemController) GetAllControlIncidents(c *gin.Conte
 		return
 	}
 
-	queryParams := organizationDTOs.ControlAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	incidents, err := caic.service.GetAllIncidents(uint(controlID), &queryParams)
 
@@ -886,4 +881,67 @@ func (caic *ControlAssociatedItemController) DeleteControlAsset(c *gin.Context) 
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Asset unmapped from control successfully"})
+}
+
+func (caic *ControlAssociatedItemController) CreateControlIncident(c *gin.Context) {
+	var input commonDTOs.AssociatedIncidentMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	controlID, err := strconv.ParseUint(c.Param("controlId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	err = caic.service.CreateControlIncident(uint(controlID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(caic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (caic *ControlAssociatedItemController) DeleteControlIncident(c *gin.Context) {
+
+	controlIDStr := c.Param("controlId")
+	incidentIDStr := c.Param("incidentId")
+	controlID, err := strconv.ParseUint(controlIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = caic.service.DeleteControlIncident(uint(controlID), uint(incidentID))
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Incident unmapped from control successfully"})
 }
