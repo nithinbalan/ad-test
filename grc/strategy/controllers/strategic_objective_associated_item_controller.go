@@ -739,5 +739,115 @@ func (soai *StrategicObjectiveAssociatedItemController) DeleteStrategicObjective
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "asset unmapped from strategic objective successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Incident unmapped from strategic objective successfully"})
+}
+
+func (soai *StrategicObjectiveAssociatedItemController) GetAllStrategicObjectiveKPI(c *gin.Context) {
+	strategyIDStr := c.Param("id")
+
+	strategicObjectiveID, err := strconv.ParseUint(strategyIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(soai.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(soai.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	kpis, err := soai.service.GetAllStrategicObjectiveKPI(uint(strategicObjectiveID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(soai.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, kpis)
+}
+
+func (soai *StrategicObjectiveAssociatedItemController) CreateStrategicObjectiveKPI(c *gin.Context) {
+	var input commonDTOs.AssociatedKPIMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	strategicObjectiveID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(soai.db, c, err.Error())
+		return
+	}
+
+	err = soai.service.CreateStrategicObjectiveKPI(uint(strategicObjectiveID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(soai.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (soai *StrategicObjectiveAssociatedItemController) DeleteStrategicObjectiveKPI(c *gin.Context) {
+	strategicObjectiveIDStr := c.Param("id")
+	kpiIDStr := c.Param("kpiRegisterId")
+	strategicObjectiveID, err := strconv.ParseUint(strategicObjectiveIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	kpiID, err := strconv.ParseUint(kpiIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = soai.service.DeleteStrategicObjectiveKPI(uint(strategicObjectiveID), uint(kpiID))
+	if err != nil {
+		utility.SendInternalErrResp(soai.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "KPI unmapped from strategic objective successfully"})
 }

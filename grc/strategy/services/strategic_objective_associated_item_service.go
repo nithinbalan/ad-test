@@ -32,6 +32,9 @@ type StrategicObjectiveAssociatedItemServiceInterface interface {
 	GetAllStrategicObjectiveIncidents(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
 	CreateStrategicObjectiveIncident(strategicObjectiveID uint, currentUserID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
 	DeleteStrategicObjectiveIncident(strategicObjectiveID uint, incidentID uint) error
+	GetAllStrategicObjectiveKPI(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateStrategicObjectiveKPI(strategicObjectiveID uint, currentUserID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeleteStrategicObjectiveKPI(strategicObjectiveID uint, kpiID uint) error
 }
 
 // Service and implementations
@@ -453,7 +456,6 @@ func (soais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveIn
 }
 
 func (soais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveIncident(strategicObjectiveID uint, incidentID uint) error {
-	// Validate control existence
 	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
 		return err
 	}
@@ -461,6 +463,55 @@ func (soais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveIn
 	tx := soais.repo.BeginTransaction()
 
 	if err := soais.repo.DeleteStrategicObjectiveIncident(strategicObjectiveID, incidentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (soais *StrategicObjectiveAssociatedItemService) GetAllStrategicObjectiveKPI(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+		return nil, err
+	}
+	return soais.repo.GetAllStrategicObjectiveKPI(strategicObjectiveID, params)
+}
+
+func (soais *StrategicObjectiveAssociatedItemService) CreateStrategicObjectiveKPI(strategicObjectiveID, currentUserID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+		return err
+	}
+	if err := soais.validationSvc.ValidateKPIMapping(strategicObjectiveID, dto.KpiIDs, "strategic_objective_kpis", "strategic_objective_id"); err != nil {
+		return err
+	}
+	tx := soais.repo.BeginTransaction()
+	var mappings []*models.StrategicObjectiveKPI
+	currentTime := time.Now()
+
+	for _, kpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.StrategicObjectiveKPI{
+			KPIRegisterID:        kpiID,
+			StrategicObjectiveID: strategicObjectiveID,
+			CreatedBYID:          currentUserID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := soais.repo.CreateStrategicObjectiveKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (soais *StrategicObjectiveAssociatedItemService) DeleteStrategicObjectiveKPI(strategicObjectiveID uint, kpiID uint) error {
+	if _, err := soais.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
+		return err
+	}
+
+	tx := soais.repo.BeginTransaction()
+
+	if err := soais.repo.DeleteStrategicObjectiveKPI(strategicObjectiveID, kpiID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
