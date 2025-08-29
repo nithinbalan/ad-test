@@ -23,7 +23,7 @@ func NewPolicyRegisterController(service services.PolicyRegisterServiceInterface
 	}
 }
 
-func (prc *PolicyRegisterController) GetAllDocuments(c *gin.Context) {
+func (prc *PolicyRegisterController) GetAllPolicies(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
@@ -112,7 +112,7 @@ func (prc *PolicyRegisterController) GetAllDocuments(c *gin.Context) {
 			return
 		}
 
-		excelFile, err := prc.service.ExportDocuments(documents.Items, currentUserID)
+		excelFile, err := prc.service.ExportPolicies(documents.Items, currentUserID)
 		if err != nil {
 			utility.SendInternalErrResp(prc.db, c, err.Error())
 			return
@@ -120,7 +120,7 @@ func (prc *PolicyRegisterController) GetAllDocuments(c *gin.Context) {
 		defer excelFile.Close()
 
 		c.Header("Content-Description", "File Transfer")
-		c.Header("Content-Disposition", `attachment; filename="Document.xlsx"`)
+		c.Header("Content-Disposition", `attachment; filename="Policy.xlsx"`)
 		c.Header("Content-Type", "application/octet-stream")
 		c.File(excelFile.Name())
 
@@ -129,7 +129,7 @@ func (prc *PolicyRegisterController) GetAllDocuments(c *gin.Context) {
 	c.JSON(http.StatusOK, documents)
 }
 
-func (prc *PolicyRegisterController) GetDocumentDetails(c *gin.Context) {
+func (prc *PolicyRegisterController) GetPolicyDetails(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -157,7 +157,7 @@ func (prc *PolicyRegisterController) GetDocumentDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, document)
 }
 
-func (prc *PolicyRegisterController) CreateDocument(c *gin.Context) {
+func (prc *PolicyRegisterController) CreatePolicy(c *gin.Context) {
 	var documentFormDTO policyDTOs.PolicyRegisterFormDTO
 	if err := c.ShouldBindJSON(&documentFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -170,7 +170,7 @@ func (prc *PolicyRegisterController) CreateDocument(c *gin.Context) {
 		return
 	}
 
-	createdDocument, err := prc.service.Create(currentUserID, &documentFormDTO)
+	createdPolicy, err := prc.service.Create(currentUserID, &documentFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -182,10 +182,10 @@ func (prc *PolicyRegisterController) CreateDocument(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusCreated, createdDocument)
+	c.JSON(http.StatusCreated, createdPolicy)
 }
 
-func (prc *PolicyRegisterController) UpdateDocument(c *gin.Context) {
+func (prc *PolicyRegisterController) UpdatePolicy(c *gin.Context) {
 	documentID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -226,7 +226,7 @@ func (prc *PolicyRegisterController) UpdateDocument(c *gin.Context) {
 
 }
 
-func (prc *PolicyRegisterController) DeleteDocuments(c *gin.Context) {
+func (prc *PolicyRegisterController) DeletePolicies(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}

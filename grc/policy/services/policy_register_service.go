@@ -31,7 +31,7 @@ type PolicyRegisterServiceInterface interface {
 	Update(id uint, currentUserID uint, documentFormDTO *policyDTOs.PolicyRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
-	ExportDocuments(data []*policyDTOs.PolicyRegisterListDTO, currentUserID uint) (*os.File, error)
+	ExportPolicies(data []*policyDTOs.PolicyRegisterListDTO, currentUserID uint) (*os.File, error)
 }
 
 type PolicyRegisterService struct {
@@ -785,7 +785,7 @@ func (prs *PolicyRegisterService) validateDocumentFormDTO(documentFormDTO *polic
 	return nil
 }
 
-func (prs *PolicyRegisterService) ExportDocuments(data []*policyDTOs.PolicyRegisterListDTO, currentUserID uint) (*os.File, error) {
+func (prs *PolicyRegisterService) ExportPolicies(data []*policyDTOs.PolicyRegisterListDTO, currentUserID uint) (*os.File, error) {
 	// Fetch user setting for language preference
 	userSetting, err := prs.userSettingSvc.GetUserSettingsByUserID(currentUserID)
 	if err != nil {

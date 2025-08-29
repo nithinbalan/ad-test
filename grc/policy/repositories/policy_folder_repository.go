@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"errors"
 	"jethur/grc/models"
 	policyDTOs "jethur/grc/policy/dtos"
 	"jethur/utility"
@@ -94,14 +93,11 @@ func (repo *PolicyFolderRepository) GetAll(sort string, sortBy string, keyword s
 func (repo *PolicyFolderRepository) GetByID(id uint) (*models.PolicyFolder, error) {
 	var folder *models.PolicyFolder
 	result := repo.db.First(&folder, id)
-
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, utility.NewResourceNotFoundError(result.Error, id)
-	} else if result.Error != nil {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return folder, result.Error
+	return folder, nil
 }
 
 func (repo *PolicyFolderRepository) Create(folder *models.PolicyFolder) (*models.PolicyFolder, error) {
