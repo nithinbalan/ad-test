@@ -284,7 +284,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		// prepare notification
 		urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, complianceAssessmentID, requirementID, id)
 		queryParam := ""
-		entity := "compliance-action-plan"
+		entity := "compliance-assessment-action-plan"
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
@@ -485,7 +485,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 		if oldResponsibleUserID != existingComplianceAssessmentRequirementActionPlan.ResponsibleUserID {
 			urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, complianceAssessmentID, requirementID, id)
 			queryParam := ""
-			entity := "compliance-action-plan"
+			entity := "compliance-assessment-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{

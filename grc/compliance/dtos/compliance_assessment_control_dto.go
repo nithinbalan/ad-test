@@ -55,10 +55,6 @@ type ComplianceAssessmentControlUpdateFormDTO struct {
 	AssessmentFrameworkValueID uint     `json:"assessment_framework_value_id" binding:"required"`
 }
 
-type ComplianceAssessmentControlCommentFormDTO struct {
-	Comment string `json:"comment" binding:"required"`
-}
-
 type ComplianceAssessmentControlClausesListDTO struct {
 	ID                uint                                         `json:"id"`
 	ClauseNo          string                                       `json:"clause_no"`

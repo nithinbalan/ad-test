@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
@@ -14,6 +15,7 @@ type ComplianceAssessmentRepositoryInterface interface {
 	GetAll(params *complianceDTOs.ComplianceAssessmentListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceAssessment, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessment, error)
+	GetMinimalDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessment, error)
 	Create(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
@@ -235,6 +237,35 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByID(id uint, tx ...ut
 	return complianceAssessment, nil
 }
 
+func (repo *ComplianceAssessmentRepository) GetMinimalDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessment, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var complianceAssessment *models.ComplianceAssessment
+
+	result := db.
+		Preload("ComplianceRegister").
+		Preload("ComplianceRegister.ComplianceAssessmentFramework").
+		Preload("ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType").
+		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values").
+		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values.ComplianceStatus").
+		Preload("ComplianceRegister.ResponsibleUser").
+		Preload("AssessmentRequirements").
+		Preload("ReviewUser").
+		Preload("ComplianceAssessmentStatus").
+		Preload("SubmittedByUser").
+		Preload("ReviewedByUser").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&complianceAssessment, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return complianceAssessment, nil
+}
 func (repo *ComplianceAssessmentRepository) Create(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -253,6 +284,7 @@ func (repo *ComplianceAssessmentRepository) Update(complianceAssessment *models.
 		db = tx[0].DB()
 	}
 	if err := db.Save(complianceAssessment).Error; err != nil {
+		fmt.Println("hoiiiiii", err)
 		return err
 	}
 

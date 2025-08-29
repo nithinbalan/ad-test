@@ -82,7 +82,8 @@ type ComplianceAssessmentDetailDTO struct {
 	ID                 int                          `json:"id"`
 	ComplianceRegister *ComplianceRegisterDetailDTO `json:"compliance_register"`
 	// OrganizationUnitID uint                         `json:"organization_unit_id"`
-	ReviewuserID uint `json:"review_user_id"`
+	ReviewUserID      uint `json:"review_user_id"`
+	SubmittedByUserID uint `json:"submitted_by_user_id"`
 	// OrganizationUnit           settingsDTOs.OrganizationUnitDTO      `json:"organization_unit"`
 	ReviewUser                 *organizationDTOs.UserMinimalDTO      `json:"review_user"`
 	Description                *string                               `json:"description"`

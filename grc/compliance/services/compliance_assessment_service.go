@@ -784,7 +784,7 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 		return err
 	}
 
-	assessment, err := cras.GetByID(assessmentID)
+	assessment, err := cras.repo.GetByID(assessmentID)
 	if err != nil {
 		return err
 	}
@@ -811,7 +811,11 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 		tx.Rollback()
 		return err
 	}
-	if assessment.ComplianceRegister.IsRequirementAssessment {
+	assessmentDetails, err := cras.repo.GetMinimalDetailsByID(assessmentID, tx)
+	if err != nil {
+		return err
+	}
+	if assessmentDetails.ComplianceRegister.IsRequirementAssessment {
 		scores, err := cras.CalculateComplianceRequirementScores(assessmentID, tx)
 		if err != nil {
 			tx.Rollback()
