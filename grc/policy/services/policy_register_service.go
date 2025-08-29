@@ -190,6 +190,7 @@ func (prs *PolicyRegisterService) Create(currentUserID uint, documentFormDTO *po
 		ReviewFrequencyID:    documentFormDTO.ReviewFrequencyID,
 		DocumentAccessTypeID: documentFormDTO.DocumentAccessTypeID,
 		DocumentStatusID:     documentStatus.ID,
+		PolicyFolderID:       documentFormDTO.PolicyFolderID,
 		CreatedBYID:          currentUserID,
 	}
 

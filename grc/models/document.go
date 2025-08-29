@@ -38,6 +38,7 @@ type Document struct {
 	ReviewFrequencyID     *uint      `json:"review_frequency_id,omitempty" gorm:"default:null" binding:"omitempty"`
 	NextReviewDate        *time.Time `json:"next_review_date,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
 	ReviewStatusID        *uint      `json:"review_status_id,omitempty" gorm:"default:null"`
+	PolicyFolderID        *uint      `json:"policy_folder_id" binding:"omitempty" gorm:"default:null"`
 
 	// Relations
 	DocumentType       *DocumentType       `gorm:"foreignKey:DocumentTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -50,6 +51,7 @@ type Document struct {
 	CreatedByUser      *User               `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ReviewStatus       *ReviewStatus       `gorm:"foreignKey:ReviewStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser      *User               `gorm:"foreignKey:UpdatedBYID"`
+	PolicyFolder       *PolicyFolder       `gorm:"foreignKey:PolicyFolderID"`
 	LastCheckoutByUser *User               `gorm:"foreignKey:LastCheckoutBYID"`
 	LastCheckinByUser  *User               `gorm:"foreignKey:LastCheckinBYID"`
 	PublishedByUser    *User               `gorm:"foreignKey:PublishedBYID"`

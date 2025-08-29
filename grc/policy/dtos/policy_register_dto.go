@@ -103,6 +103,7 @@ type PolicyRegisterFormDTO struct {
 	DocumentVersion      float64 `json:"document_version" binding:"required"`
 	SharedUserIDs        []*uint `json:"shared_user_ids"`
 	SharedUnitIDs        []*uint `json:"shared_unit_ids"`
+	PolicyFolderID       *uint   `json:"policy_folder_id"`
 	ReviewFrequencyID    *uint   `json:"review_frequency_id" binding:"omitempty"`
 }
 
