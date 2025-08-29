@@ -32,6 +32,9 @@ type ProjectAssociatedItemServiceInterface interface {
 	GetAllProjectIncidents(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
 	CreateProjectIncident(projectID uint, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
 	DeleteProjectIncident(projectID uint, incidentID uint) error
+	GetAllProjectRisks(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
+	CreateProjectRisk(projectID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	DeleteProjectRisk(projectID uint, riskID uint) error
 }
 
 // Service and implementations
@@ -407,7 +410,7 @@ func (pais *ProjectAssociatedItemService) CreateProjectIncident(projectID, userI
 }
 
 func (pais *ProjectAssociatedItemService) DeleteProjectIncident(projectID uint, incidentID uint) error {
-	// Validate control existence
+
 	if _, err := pais.projectSvc.GetByID(projectID); err != nil {
 		return err
 	}
@@ -415,6 +418,59 @@ func (pais *ProjectAssociatedItemService) DeleteProjectIncident(projectID uint, 
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteProjectIncident(projectID, incidentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *ProjectAssociatedItemService) GetAllProjectRisks(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+	if _, err := pais.projectSvc.GetByID(projectID); err != nil {
+		return nil, err
+	}
+	return pais.repo.GetAllProjectRisks(projectID, params)
+}
+
+func (pais *ProjectAssociatedItemService) CreateProjectRisk(projectID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+
+	if _, err := pais.projectSvc.GetByID(projectID); err != nil {
+		return err
+	}
+
+	if err := pais.validationSvc.ValidateRiskMapping(projectID, dto.RiskIDs, "project_risks", "project_id"); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.ProjectRisk
+	currentTime := time.Now()
+
+	for _, riskID := range dto.RiskIDs {
+		mappings = append(mappings, &models.ProjectRisk{
+			RiskRegisterID: riskID,
+			ProjectID:      projectID,
+			CreatedByID:    userID,
+			CreatedAt:      currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateProjectRisk(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *ProjectAssociatedItemService) DeleteProjectRisk(projectID uint, riskID uint) error {
+
+	if _, err := pais.projectSvc.GetByID(projectID); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteProjectRisk(projectID, riskID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

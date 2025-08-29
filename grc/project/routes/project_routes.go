@@ -109,4 +109,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/projects/:projectId/incidents", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.CreateProjectIncident)
 	projectRoutes.DELETE("/projects/:projectId/incidents/:incidentId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.DeleteProjectIncident)
 
+	projectRoutes.GET("/projects/:projectId/risks", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectAssociatedItemController.GetAllProjectRisks)
+	projectRoutes.POST("/projects/:projectId/risks", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.CreateProjectRisk)
+	projectRoutes.DELETE("/projects/:projectId/risks/:riskId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.DeleteProjectRisk)
+
 }
