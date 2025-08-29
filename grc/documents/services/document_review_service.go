@@ -695,7 +695,7 @@ func (drs *DocumentReviewService) CreateTasksForNextLevelUsers(documentID uint, 
 	// Loop through each participant and create a task
 	for _, participant := range workflowLevel.DocumentWorkflowParticipants {
 		taskDTO := commonDTOs.TaskFormDTO{
-			ModuleIdentifier:   "document",
+			ModuleIdentifier:   "document_register",
 			DocumentID:         &documentID,
 			DocumentWorkflowID: &workflowLevel.ID,
 			Title:              document.TitleEn,

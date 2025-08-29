@@ -16,6 +16,7 @@ type IncidentActionPlan struct {
 	TargetDate         *time.Time `json:"target_date" binding:"omitempty" gorm:"type:date,default:null"`
 	ActionPlanStatusID uint       `json:"action_plan_status_id" binding:"required" gorm:"not null"`
 	Percentage         *uint      `json:"percentage" binding:"omitempty,min=0,max=100" gorm:"not null;default:0"`
+	DelegateeUserID    *uint      `json:"delegatee_user_id"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime"`
 	CreatedBYID        uint       `json:"created_by_id" gorm:"not null"`
@@ -26,6 +27,7 @@ type IncidentActionPlan struct {
 	SeverityLevel           *SeverityLevel                    `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUser         *User                             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ReviewUser              *User                             `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"` // New foreign key relationship
+	DelegateeUser           *User                             `gorm:"foreignKey:DelegateeUserID"`
 	ActionPlanStatus        *ActionPlanStatus                 `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatusUpdates []*IncidentActionPlanStatusUpdate `gorm:"foreignKey:IncidentActionPlanID"`
 	CreatedByUser           *User                             `gorm:"foreignKey:CreatedBYID"`

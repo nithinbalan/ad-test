@@ -90,7 +90,7 @@ func NewDocumentModule(db *gorm.DB,
 		sharedModule.ActivityLogService,
 		settingsModule.WorkflowSvc,
 		documentWorkflowStatusSvc,
-		organizationModule.UserSvc)
+		organizationModule.UserSvc, commonModule.DelegateeUserService)
 
 	documentSvc := services.NewDocumentService(
 		documentRepo,
@@ -202,6 +202,7 @@ func NewDocumentModule(db *gorm.DB,
 		documentChangeRequestWorkflowStatusSvc,
 		organizationModule.UserSvc,
 		documentChangeRequestSvc,
+		commonModule.DelegateeUserService,
 	)
 
 	documentChangeRequestWorkflowController := controllers.NewDocumentChangeRequestWorkflowController(documentChangeRequestWorkflowSvc)

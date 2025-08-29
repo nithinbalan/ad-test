@@ -205,6 +205,7 @@ func (repo *ThreatActionPlanRepository) GetFullDetailsByID(id uint) (*models.Thr
 		Preload("Threat").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
+		Preload("DelegateeUser").
 		Preload("SeverityLevel").
 		Preload("ActionPlanStatus").
 		Preload("ActionPlanStatusUpdates").

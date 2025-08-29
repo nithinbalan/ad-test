@@ -38,6 +38,7 @@ type StrategyProfileActionPlanService struct {
 	taskSvc             taskServices.TaskServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
 	userSettingSvc      organizationServices.UserSettingServiceInterface
+	delegateeUserSvc    commonServices.DelegateeUserserviceInterface
 }
 
 func NewStrategyProfileActionPlanService(
@@ -49,6 +50,7 @@ func NewStrategyProfileActionPlanService(
 	taskSvc taskServices.TaskServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
 ) StrategyProfileActionPlanServiceInterface {
 	return &StrategyProfileActionPlanService{
 		repo:                repo,
@@ -59,6 +61,7 @@ func NewStrategyProfileActionPlanService(
 		taskSvc:             taskSvc,
 		notificationSvc:     notificationSvc,
 		userSettingSvc:      userSettingSvc,
+		delegateeUserSvc:    delegateeUserSvc,
 	}
 }
 
@@ -156,6 +159,16 @@ func (spaps *StrategyProfileActionPlanService) Create(strategyProfileID uint, cu
 		CreatedBYID:                 currentUserID,
 	}
 
+	if strategyProfileActionPlanFormDTO.ResponsibleUserID != nil {
+		delegateeID, err := spaps.delegateeUserSvc.AssignDelegateeIfPermitted(*strategyProfileActionPlanFormDTO.ResponsibleUserID, "strategy_profile")
+		if err != nil {
+			return 0, err
+		}
+		if delegateeID != nil {
+			actionPlan.DelegateeUserID = delegateeID
+		}
+	}
+
 	id, err := spaps.repo.Create(actionPlan, tx)
 	if err != nil {
 		tx.Rollback()
@@ -178,7 +191,7 @@ func (spaps *StrategyProfileActionPlanService) Create(strategyProfileID uint, cu
 
 	urlParam := fmt.Sprintf(`{"strategy_profile_id":%d, "action_plan_id":%d}`, strategyProfileID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:            "strategy",
+		ModuleIdentifier:            "strategy_profile",
 		StrategyProfileActionPlanID: &id,
 		Title:                       strategyProfileActionPlanFormDTO.Title,
 		TargetDate:                  dates.TargetDate,
@@ -334,6 +347,17 @@ func (spaps *StrategyProfileActionPlanService) Update(strategyProfileID uint, id
 	existingStrategyProfilePlan.TargetDate = dates.TargetDate
 	existingStrategyProfilePlan.ReviewUserID = strategyProfileActionPlanFormDTO.ReviewUserID
 	existingStrategyProfilePlan.UpdatedBYID = &currentUserID
+
+	if strategyProfileActionPlanFormDTO.ResponsibleUserID != nil && oldResponsibleUserID != strategyProfileActionPlanFormDTO.ResponsibleUserID {
+		existingStrategyProfilePlan.DelegateeUserID = nil
+		delegateeID, err := spaps.delegateeUserSvc.AssignDelegateeIfPermitted(*strategyProfileActionPlanFormDTO.ResponsibleUserID, "strategy_profile")
+		if err != nil {
+			return err
+		}
+		if delegateeID != nil {
+			existingStrategyProfilePlan.DelegateeUserID = delegateeID
+		}
+	}
 
 	err = spaps.repo.Update(existingStrategyProfilePlan, tx)
 	if err != nil {

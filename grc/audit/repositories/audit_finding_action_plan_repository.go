@@ -213,6 +213,7 @@ func (repo *AuditFindingActionPlanRepository) GetFullDetailsByID(id uint) (*mode
 		Preload("UpdatedByUser").
 		Preload("ActionPlanStatusUpdates").
 		Preload("ReviewUser").
+		Preload("DelegateeUser").
 		First(&auditFindingActionPlan, id)
 
 	if result.Error != nil {

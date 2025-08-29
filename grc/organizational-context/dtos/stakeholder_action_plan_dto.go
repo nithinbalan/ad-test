@@ -84,6 +84,7 @@ type StakeholderActionPlanDetailDTO struct {
 	ActionPlanStatusID      *uint                                    `json:"action_plan_status_id"`
 	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO           `json:"action_plan_status"`
 	Description             *string                                  `json:"description"`
+	DelegateeUser           *organizationDTOs.UserMinimalDTO         `json:"delegatee_user"`
 	CreatedBYID             uint                                     `json:"created_by_id"`
 	CreatedByUser           organizationDTOs.UserMinimalDTO          `json:"created_by_user"`
 	CreatedAt               time.Time                                `json:"created_at"`

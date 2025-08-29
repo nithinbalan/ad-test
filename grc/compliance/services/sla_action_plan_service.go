@@ -43,6 +43,7 @@ type SLAActionPlanService struct {
 	taskSvc             taskServices.TaskServiceInterface
 	userSvc             organizationServices.UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
+	delegateeUserSvc    commonServices.DelegateeUserserviceInterface
 }
 
 func NewSLAActionPlanService(
@@ -55,6 +56,7 @@ func NewSLAActionPlanService(
 	taskSvc taskServices.TaskServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
 ) SLAActionPlanServiceInterface {
 	return &SLAActionPlanService{
 		repo:                repo,
@@ -66,6 +68,7 @@ func NewSLAActionPlanService(
 		taskSvc:             taskSvc,
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
+		delegateeUserSvc:    delegateeUserSvc,
 	}
 }
 
@@ -155,6 +158,16 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		CreatedByID:        currentUserID,
 	}
 
+	if slaActionPlanFormDTO.ResponsibleUserID != 0 {
+		delegateeID, err := saps.delegateeUserSvc.AssignDelegateeIfPermitted(slaActionPlanFormDTO.ResponsibleUserID, "sla_contracts")
+		if err != nil {
+			return 0, err
+		}
+		if delegateeID != nil {
+			slaActionPlan.DelegateeUserID = delegateeID
+		}
+	}
+
 	id, err := saps.repo.Create(slaActionPlan)
 	if err != nil {
 		tx.Rollback()
@@ -178,7 +191,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 
 	urlParam := fmt.Sprintf(`{"sla_register_id":%d, "action_plan_id":%d}`, slaID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:  "compliance",
+		ModuleIdentifier:  "sla_contracts",
 		SLAActionPlanID:   &id,
 		Title:             slaActionPlanFormDTO.Title,
 		Description:       slaActionPlanFormDTO.Description,
@@ -339,6 +352,17 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 	existingSLAActionPlan.Percentage = slaActionPlanFormDTO.Percentage
 	existingSLAActionPlan.Comments = slaActionPlanFormDTO.Comments
 	existingSLAActionPlan.UpdatedByID = &currentUserID
+
+	if slaActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != slaActionPlanFormDTO.ResponsibleUserID {
+		existingSLAActionPlan.DelegateeUserID = nil
+		delegateeID, err := saps.delegateeUserSvc.AssignDelegateeIfPermitted(slaActionPlanFormDTO.ResponsibleUserID, "sla_contracts")
+		if err != nil {
+			return err
+		}
+		if delegateeID != nil {
+			existingSLAActionPlan.DelegateeUserID = delegateeID
+		}
+	}
 
 	err = saps.repo.Update(existingSLAActionPlan, tx)
 	if err != nil {

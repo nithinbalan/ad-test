@@ -93,7 +93,6 @@ type AssetRegisterFormDTO struct {
 	Location           *string                       `json:"location" binding:"omitempty"`
 	Description        *string                       `json:"description" binding:"omitempty"`
 	AcquisitionDate    *string                       `json:"acquisition_date" binding:"omitempty,datetime=2006-01-02"`
-	ControlIds         []*uint                       `json:"control_ids"`
 	AssignmentDate     *string                       `json:"assignment_date" binding:"omitempty,datetime=2006-01-02"`
 	WarrantyExpiryDate *string                       `json:"warranty_expiry_date" binding:"omitempty,datetime=2006-01-02"`
 	Manufacturer       *string                       `json:"manufacturer" binding:"omitempty"`

@@ -161,50 +161,50 @@ func (arrs *AuditReportReviewService) Submit(auditID uint, currentUserID uint) e
 	}
 
 	urlParam := fmt.Sprintf(`{"id":%d}`, existingAuditFinalReport.ID)
-	var taskIDs []uint
-	auditFinalReportID := &existingAuditFinalReport.ID
-	auditReportWorkflowID := &auditReportWorkflowLevel.ID
-	for _, participant := range auditReportWorkflowLevel.AuditReportWorkflowParticipants {
-		taskDTO := commonDTOs.TaskFormDTO{
-			ModuleIdentifier:      "audit",
-			AuditFinalReportID:    auditFinalReportID,
-			AuditReportWorkflowID: auditReportWorkflowID,
-			Title:                 existingAuditFinalReport.Audit.AuditPlan.Title,
-			Description:           existingAuditFinalReport.Audit.AuditPlan.Description,
-			URLParam:              &urlParam,
-			QueryParam:            nil,
-			ResponsibleUserID:     participant.User.ID,
-		}
+	// var taskIDs []uint
+	// auditFinalReportID := &existingAuditFinalReport.ID
+	// auditReportWorkflowID := &auditReportWorkflowLevel.ID
+	// for _, participant := range auditReportWorkflowLevel.AuditReportWorkflowParticipants {
+	// 	taskDTO := commonDTOs.TaskFormDTO{
+	// 		ModuleIdentifier:      "audit",
+	// 		AuditFinalReportID:    auditFinalReportID,
+	// 		AuditReportWorkflowID: auditReportWorkflowID,
+	// 		Title:                 existingAuditFinalReport.Audit.AuditPlan.Title,
+	// 		Description:           existingAuditFinalReport.Audit.AuditPlan.Description,
+	// 		URLParam:              &urlParam,
+	// 		QueryParam:            nil,
+	// 		ResponsibleUserID:     participant.User.ID,
+	// 	}
 
-		taskID, err := arrs.taskSvc.Create(taskDTO, currentUserID, tx)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-		taskIDs = append(taskIDs, taskID)
+	// 	taskID, err := arrs.taskSvc.Create(taskDTO, currentUserID, tx)
+	// 	if err != nil {
+	// 		tx.Rollback()
+	// 		return err
+	// 	}
+	// 	taskIDs = append(taskIDs, taskID)
 
-	}
+	// }
 
-	for _, taskID := range taskIDs {
-		relatedTaskIDs := []uint{}
-		for _, otherTaskID := range taskIDs {
-			if otherTaskID != taskID {
-				relatedTaskIDs = append(relatedTaskIDs, otherTaskID)
-			}
-		}
+	// for _, taskID := range taskIDs {
+	// 	relatedTaskIDs := []uint{}
+	// 	for _, otherTaskID := range taskIDs {
+	// 		if otherTaskID != taskID {
+	// 			relatedTaskIDs = append(relatedTaskIDs, otherTaskID)
+	// 		}
+	// 	}
 
-		relatedTaskIDsJSON, err := json.Marshal(relatedTaskIDs)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
+	// 	relatedTaskIDsJSON, err := json.Marshal(relatedTaskIDs)
+	// 	if err != nil {
+	// 		tx.Rollback()
+	// 		return err
+	// 	}
 
-		err = arrs.taskSvc.UpdateTaskWithRelatedIDs(taskID, string(relatedTaskIDsJSON), tx)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
+	// 	err = arrs.taskSvc.UpdateTaskWithRelatedIDs(taskID, string(relatedTaskIDsJSON), tx)
+	// 	if err != nil {
+	// 		tx.Rollback()
+	// 		return err
+	// 	}
+	// }
 	// add audit report edit history
 	auditReportEditHistoryDTO := &auditDTOs.AuditReportEditHistoryDTO{
 		AuditID:            auditID,
@@ -353,10 +353,10 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 		if err != nil {
 			return err
 		}
-		_, err = arrs.taskSvc.UpdateAuditReportTaskStatus(id, currentUserID, currentAuditReportWorkflow.ID)
-		if err != nil {
-			return err
-		}
+		// _, err = arrs.taskSvc.UpdateAuditReportTaskStatus(id, currentUserID, currentAuditReportWorkflow.ID)
+		// if err != nil {
+		// 	return err
+		// }
 
 		arrs.sendApprovalNotification(id, currentUserID, auditFinalReport)
 
@@ -395,10 +395,10 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 			if err != nil {
 				return err
 			}
-			err = arrs.CreateTasksForNextLevelUsers(auditFinalReport.ID, nextWorkflow, auditFinalReport, currentUserID)
-			if err != nil {
-				return err
-			}
+			// err = arrs.CreateTasksForNextLevelUsers(auditFinalReport.ID, nextWorkflow, auditFinalReport, currentUserID)
+			// if err != nil {
+			// 	return err
+			// }
 
 			arrs.notifyNextLevelUsers(auditFinalReport.ID, nextWorkflow, auditFinalReport)
 		}
@@ -429,10 +429,10 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 		arrs.sendApprovalNotification(id, currentUserID, auditFinalReport)
 
 		if currentAuditReportWorkflow.ApprovalType == "all" {
-			_, err := arrs.taskSvc.UpdateAuditReportTaskStatus(id, currentUserID, currentAuditReportWorkflow.ID)
-			if err != nil {
-				return err
-			}
+			// _, err := arrs.taskSvc.UpdateAuditReportTaskStatus(id, currentUserID, currentAuditReportWorkflow.ID)
+			// if err != nil {
+			// 	return err
+			// }
 			allApproved, err := arrs.auditReportWorkflowSvc.CheckAllParticipantsApproved(currentAuditReportWorkflow.ID, currentAuditReportWorkflow.AuditReportWorkflowParticipants)
 			if err != nil {
 				return err
@@ -487,10 +487,10 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 					if err != nil {
 						return err
 					}
-					err = arrs.CreateTasksForNextLevelUsers(auditFinalReport.ID, nextWorkflow, auditFinalReport, currentUserID)
-					if err != nil {
-						return err
-					}
+					// err = arrs.CreateTasksForNextLevelUsers(auditFinalReport.ID, nextWorkflow, auditFinalReport, currentUserID)
+					// if err != nil {
+					// 	return err
+					// }
 
 					// fmt.Println("124")
 					arrs.notifyNextLevelUsers(auditFinalReport.ID, nextWorkflow, auditFinalReport)
@@ -508,30 +508,30 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 				return err
 			}
 
-			task, err := arrs.taskSvc.UpdateAuditReportTaskStatus(id, currentUserID, currentAuditReportWorkflow.ID)
-			if err != nil {
-				return err
-			}
+			// task, err := arrs.taskSvc.UpdateAuditReportTaskStatus(id, currentUserID, currentAuditReportWorkflow.ID)
+			// if err != nil {
+			// 	return err
+			// }
 
 			// Parse the related_task_ids from the task
-			var relatedTaskIDs []uint
-			if task.RelatedTaskIDs != nil {
-				if err := json.Unmarshal([]byte(*task.RelatedTaskIDs), &relatedTaskIDs); err != nil {
-					return err
-				}
+			// var relatedTaskIDs []uint
+			// if task.RelatedTaskIDs != nil {
+			// 	if err := json.Unmarshal([]byte(*task.RelatedTaskIDs), &relatedTaskIDs); err != nil {
+			// 		return err
+			// 	}
 
-				// Close each related task
-				for _, relatedTaskID := range relatedTaskIDs {
-					relatedTask, err := arrs.taskSvc.GetByID(relatedTaskID)
-					if err != nil {
-						return err
-					}
-					_, err = arrs.taskSvc.UpdateAuditReportTaskStatus(id, relatedTask.ResponsibleUserID, currentAuditReportWorkflow.ID)
-					if err != nil {
-						return err
-					}
-				}
-			}
+			// 	// Close each related task
+			// 	for _, relatedTaskID := range relatedTaskIDs {
+			// 		relatedTask, err := arrs.taskSvc.GetByID(relatedTaskID)
+			// 		if err != nil {
+			// 			return err
+			// 		}
+			// 		_, err = arrs.taskSvc.UpdateAuditReportTaskStatus(id, relatedTask.ResponsibleUserID, currentAuditReportWorkflow.ID)
+			// 		if err != nil {
+			// 			return err
+			// 		}
+			// 	}
+			// }
 
 			nextAuditReportWorkflowLevel, err := arrs.auditReportWorkflowSvc.GetNextLevel(auditFinalReport.ID, currentApprovalLevel)
 			if err != nil {
@@ -569,10 +569,10 @@ func (arrs *AuditReportReviewService) handleApprovedCase(id uint, currentUserID 
 					return err
 				}
 
-				err = arrs.CreateTasksForNextLevelUsers(auditFinalReport.ID, nextWorkflow, auditFinalReport, currentUserID)
-				if err != nil {
-					return err
-				}
+				// err = arrs.CreateTasksForNextLevelUsers(auditFinalReport.ID, nextWorkflow, auditFinalReport, currentUserID)
+				// if err != nil {
+				// 	return err
+				// }
 				arrs.notifyNextLevelUsers(auditFinalReport.ID, nextWorkflow, auditFinalReport)
 			}
 		}
@@ -636,30 +636,30 @@ func (arrs *AuditReportReviewService) handleRejectedCase(id uint, currentUserID 
 	if err != nil {
 		return err
 	}
-	task, err := arrs.taskSvc.UpdateAuditReportTaskStatus(id, currentUserID, currentAuditReportWorkflow.ID)
-	if err != nil {
-		return err
-	}
+	// task, err := arrs.taskSvc.UpdateAuditReportTaskStatus(id, currentUserID, currentAuditReportWorkflow.ID)
+	// if err != nil {
+	// 	return err
+	// }
 
 	// Parse the related_task_ids from the task
-	var relatedTaskIDs []uint
-	if task.RelatedTaskIDs != nil {
-		if err := json.Unmarshal([]byte(*task.RelatedTaskIDs), &relatedTaskIDs); err != nil {
-			return err
-		}
+	// var relatedTaskIDs []uint
+	// if task.RelatedTaskIDs != nil {
+	// 	if err := json.Unmarshal([]byte(*task.RelatedTaskIDs), &relatedTaskIDs); err != nil {
+	// 		return err
+	// 	}
 
-		// Close each related task
-		for _, relatedTaskID := range relatedTaskIDs {
-			relatedTask, err := arrs.taskSvc.GetByID(relatedTaskID)
-			if err != nil {
-				return err
-			}
-			_, err = arrs.taskSvc.UpdateAuditReportTaskStatus(id, relatedTask.ResponsibleUserID, currentAuditReportWorkflow.ID)
-			if err != nil {
-				return err
-			}
-		}
-	}
+	// 	// Close each related task
+	// 	for _, relatedTaskID := range relatedTaskIDs {
+	// 		relatedTask, err := arrs.taskSvc.GetByID(relatedTaskID)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 		_, err = arrs.taskSvc.UpdateAuditReportTaskStatus(id, relatedTask.ResponsibleUserID, currentAuditReportWorkflow.ID)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 	}
+	// }
 	// todo
 
 	// arrs.sendRejectedNotification(id, currentUserID, auditFinalReportDetailDTO)
@@ -683,30 +683,30 @@ func (arrs *AuditReportReviewService) handleRevertedCase(id, currentUserID uint,
 	if err != nil {
 		return err
 	}
-	task, err := arrs.taskSvc.UpdateAuditReportTaskStatus(id, currentUserID, currentAuditReportWorkflow.ID)
-	if err != nil {
-		return err
-	}
+	// task, err := arrs.taskSvc.UpdateAuditReportTaskStatus(id, currentUserID, currentAuditReportWorkflow.ID)
+	// if err != nil {
+	// 	return err
+	// }
 
 	// Parse the related_task_ids from the task
-	var relatedTaskIDs []uint
-	if task.RelatedTaskIDs != nil {
-		if err := json.Unmarshal([]byte(*task.RelatedTaskIDs), &relatedTaskIDs); err != nil {
-			return err
-		}
+	// var relatedTaskIDs []uint
+	// if task.RelatedTaskIDs != nil {
+	// 	if err := json.Unmarshal([]byte(*task.RelatedTaskIDs), &relatedTaskIDs); err != nil {
+	// 		return err
+	// 	}
 
-		// Close each related task
-		for _, relatedTaskID := range relatedTaskIDs {
-			relatedTask, err := arrs.taskSvc.GetByID(relatedTaskID)
-			if err != nil {
-				return err
-			}
-			_, err = arrs.taskSvc.UpdateAuditReportTaskStatus(id, relatedTask.ResponsibleUserID, currentAuditReportWorkflow.ID)
-			if err != nil {
-				return err
-			}
-		}
-	}
+	// 	// Close each related task
+	// 	for _, relatedTaskID := range relatedTaskIDs {
+	// 		relatedTask, err := arrs.taskSvc.GetByID(relatedTaskID)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 		_, err = arrs.taskSvc.UpdateAuditReportTaskStatus(id, relatedTask.ResponsibleUserID, currentAuditReportWorkflow.ID)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 	}
+	// }
 	// add audit report edit history
 	auditReportEditHistoryDTO := &auditDTOs.AuditReportEditHistoryDTO{
 		AuditID:            auditFinalReportDetailDTO.AuditID,

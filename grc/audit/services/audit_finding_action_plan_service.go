@@ -47,6 +47,7 @@ type AuditFindingActionPlanService struct {
 	userSvc             organizationServices.UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
 	userSettingSvc      organizationServices.UserSettingServiceInterface
+	delegateeUserSvc    commonServices.DelegateeUserserviceInterface
 }
 
 func NewAuditFindingActionPlanService(
@@ -60,6 +61,7 @@ func NewAuditFindingActionPlanService(
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
 ) AuditFindingActionPlanServiceInterface {
 	return &AuditFindingActionPlanService{
 		repo:                repo,
@@ -72,6 +74,7 @@ func NewAuditFindingActionPlanService(
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
 		userSettingSvc:      userSettingSvc,
+		delegateeUserSvc:    delegateeUserSvc,
 	}
 }
 
@@ -159,6 +162,17 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedBYID:        currentUserID,
 	}
+
+	if AuditFindingActionPlanFormDTO.ResponsibleUserID != 0 {
+		delegateeID, err := afaps.delegateeUserSvc.AssignDelegateeIfPermitted(AuditFindingActionPlanFormDTO.ResponsibleUserID, "audits")
+		if err != nil {
+			return 0, err
+		}
+		if delegateeID != nil {
+			auditFindingActionPlan.DelegateeUserID = delegateeID
+		}
+	}
+
 	tx := afaps.repo.BeginTransaction()
 
 	id, err := afaps.repo.Create(auditFindingActionPlan, tx)
@@ -184,7 +198,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 
 	urlParam := fmt.Sprintf(`{"audit_id":%d,"audit_finding_id":%d, "action_plan_id":%d}`, audit.AuditID, findingID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:         "audit",
+		ModuleIdentifier:         "audits",
 		AuditFindingActionPlanID: &id,
 		Title:                    AuditFindingActionPlanFormDTO.Title,
 		Description:              AuditFindingActionPlanFormDTO.Description,
@@ -341,6 +355,17 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	existingAuditFindingActionPlan.Percentage = AuditFindingActionPlanFormDTO.Percentage
 	existingAuditFindingActionPlan.Comments = AuditFindingActionPlanFormDTO.Comments
 	existingAuditFindingActionPlan.UpdatedBYID = &currentUserID
+
+	if AuditFindingActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != AuditFindingActionPlanFormDTO.ResponsibleUserID {
+		existingAuditFindingActionPlan.DelegateeUserID = nil
+		delegateeID, err := afaps.delegateeUserSvc.AssignDelegateeIfPermitted(AuditFindingActionPlanFormDTO.ResponsibleUserID, "audits")
+		if err != nil {
+			return err
+		}
+		if delegateeID != nil {
+			existingAuditFindingActionPlan.DelegateeUserID = delegateeID
+		}
+	}
 
 	err = afaps.repo.Update(existingAuditFindingActionPlan, tx)
 	if err != nil {

@@ -9,7 +9,6 @@ import (
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
-	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 	"os"
@@ -32,7 +31,7 @@ type BusinessFunctionServiceInterface interface {
 	ExportBusinessFunction(data []*businessContinuityDTOs.BusinessFunctionListDTO, currentUserID uint) (*os.File, error)
 
 	GetProcessAssociatedRisks(businessFunctionID uint, processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
-	GetProcessAssociatedIncidents(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
+	GetProcessAssociatedIncidents(businessFunctionID uint, processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
 	GetProcessAssociatedControls(businessFunctionID uint, processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	GetTestResults(businessFunctionID uint) (*businessContinuityDTOs.BusinessFunctionOverallTestResultDTO, error)
 	CreateBusinessFunctionProcess(BusinessFunctionID uint, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
@@ -592,7 +591,7 @@ func (bfs *BusinessFunctionService) GetProcessAssociatedRisks(businessFunctionID
 	return risks, nil
 }
 
-func (bfs *BusinessFunctionService) GetProcessAssociatedIncidents(businessFunctionID uint, processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error) {
+func (bfs *BusinessFunctionService) GetProcessAssociatedIncidents(businessFunctionID uint, processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error) {
 	incidents, err := bfs.processAssociatedItemSvc.GetAllIncidents(processID, params)
 	if err != nil {
 		return nil, err

@@ -111,3 +111,60 @@ func (osc *OrganizationStructureController) GetUsersByOrganizationUnitID(c *gin.
 
 	c.JSON(http.StatusOK, users)
 }
+
+func (osc *OrganizationStructureController) GetOrganizationUnitSummary(c *gin.Context) {
+	unitID, err := strconv.ParseUint(c.Param("unitId"), 10, 32)
+	if err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	result, err := osc.service.GetOrganizationUnitSummary(uint(unitID))
+	if err != nil {
+		utility.SendInternalErrResp(osc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (osc *OrganizationStructureController) UpdatePrimaryOrganizationUnitHead(c *gin.Context) {
+	var form organizationDTOs.DepartmentHeadUpdateDTO
+
+	unitID, err := strconv.ParseUint(c.Param("unitId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	userID, err := strconv.ParseUint(c.Param("userId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&form); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(osc.db, c, err.Error())
+		return
+	}
+
+	err = osc.service.UpdatePrimaryOrganizationUnitHead(uint(unitID), uint(userID), currentUserID, &form)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+		default:
+			utility.SendInternalErrResp(osc.db, c, e.Error())
+		}
+		return
+	}
+	c.Status(http.StatusOK)
+}

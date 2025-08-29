@@ -273,7 +273,7 @@ func (repo *UserRepository) GetFullDetailsByID(id uint) (*models.User, error) {
 		Preload("UpdatedByUser").
 		Preload("ReportingUser").
 		Preload("LicenseType").
-		Preload("DelegateeUser").
+		Preload("DelegationUser").
 		First(&user, id)
 
 	if result.Error != nil {

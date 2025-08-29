@@ -50,6 +50,7 @@ type RiskActionPlanService struct {
 	controlSvc                     organizationServices.ControlServiceInterface
 	controlImplementationStatusSvc organizationServices.ControlImplementationStatusServiceInterface
 	controlEfficiencyStatusSvc     organizationServices.ControlEfficiencyStatusServiceInterface
+	delegateeUserSvc               commonServices.DelegateeUserserviceInterface
 }
 
 func NewRiskActionPlanService(
@@ -66,6 +67,7 @@ func NewRiskActionPlanService(
 	controlSvc organizationServices.ControlServiceInterface,
 	controlImplementationStatusSvc organizationServices.ControlImplementationStatusServiceInterface,
 	controlEfficiencyStatusSvc organizationServices.ControlEfficiencyStatusServiceInterface,
+	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
 ) RiskActionPlanServiceInterface {
 	return &RiskActionPlanService{
 		repo:                           repo,
@@ -81,6 +83,7 @@ func NewRiskActionPlanService(
 		controlSvc:                     controlSvc,
 		controlImplementationStatusSvc: controlImplementationStatusSvc,
 		controlEfficiencyStatusSvc:     controlEfficiencyStatusSvc,
+		delegateeUserSvc:               delegateeUserSvc,
 	}
 }
 
@@ -178,6 +181,15 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		CreatedBYID:        currentUserID,
 	}
 
+	if RiskActionPlanFormDTO.ResponsibleUserID != 0 {
+		delegateeID, err := raps.delegateeUserSvc.AssignDelegateeIfPermitted(RiskActionPlanFormDTO.ResponsibleUserID, "risk_register")
+		if err != nil {
+			return 0, err
+		}
+		if delegateeID != nil {
+			riskActionPlan.DelegateeUserID = delegateeID
+		}
+	}
 	id, err := raps.repo.Create(riskActionPlan, tx)
 	if err != nil {
 		tx.Rollback()
@@ -200,7 +212,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 
 	urlParam := fmt.Sprintf(`{"risk_register_id":%d, "action_plan_id":%d}`, riskID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:  "risk",
+		ModuleIdentifier:  "risk_register",
 		RiskActionPlanID:  &id,
 		Title:             RiskActionPlanFormDTO.Title,
 		Description:       RiskActionPlanFormDTO.Description,
@@ -412,6 +424,17 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	existingRiskActionPlan.Percentage = RiskActionPlanFormDTO.Percentage
 	existingRiskActionPlan.Comments = RiskActionPlanFormDTO.Comments
 	existingRiskActionPlan.UpdatedBYID = &currentUserID
+
+	if RiskActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != RiskActionPlanFormDTO.ResponsibleUserID {
+		existingRiskActionPlan.DelegateeUserID = nil
+		delegateeID, err := raps.delegateeUserSvc.AssignDelegateeIfPermitted(RiskActionPlanFormDTO.ResponsibleUserID, "risk_register")
+		if err != nil {
+			return err
+		}
+		if delegateeID != nil {
+			existingRiskActionPlan.DelegateeUserID = delegateeID
+		}
+	}
 
 	err = raps.repo.Update(existingRiskActionPlan, tx)
 	if err != nil {

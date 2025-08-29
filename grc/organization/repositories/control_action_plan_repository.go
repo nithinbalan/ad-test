@@ -204,6 +204,7 @@ func (repo *ControlActionPlanRepository) GetFullDetailsByID(id uint) (*models.Co
 		Preload("UpdatedByUser.OrganizationUnit1").
 		Preload("ActionPlanStatusUpdates").
 		Preload("ReviewUser").
+		Preload("DelegateeUser").
 		First(&controlActionPlan, id)
 
 	if result.Error != nil {

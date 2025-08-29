@@ -219,6 +219,7 @@ func (repo *ProjectActionPlanRepository) GetFullDetailsByID(id uint, tx ...utili
 		Preload("SeverityLevel").
 		Preload("ReviewUser").
 		Preload("ReviewUser.OrganizationUnit1").
+		Preload("DelegateeUser").
 		Preload("ActionPlanStatus").
 		Preload("ActionPlanStatusUpdates").
 		Preload("CreatedByUser").

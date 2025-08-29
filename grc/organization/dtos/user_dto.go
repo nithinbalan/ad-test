@@ -155,7 +155,7 @@ type UserDetailsDTO struct {
 	UpdatedAt        time.Time                 `json:"updated_at"`
 	PrimaryUnitID    *uint                     `json:"primary_unit_id"`
 	LicenseType      masterDTOs.LicenseTypeDTO `json:"license_type"`
-	DelegateeUser    *UserMinimalDTO           `json:"delegatee_user"`
+	DelegationUser   *UserMinimalDTO           `json:"delegatee_user"`
 
 	// Relationship DTOs
 	OrganizationUnit1 settingDTOs.OrganizationUnitDTO  `json:"organization_unit_1"`

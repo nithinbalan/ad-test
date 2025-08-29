@@ -48,6 +48,7 @@ type ComplianceActionPlanService struct {
 	notificationSvc          commonServices.NotificationServiceInterface
 	userSettingSvc           organizationServices.UserSettingServiceInterface
 	organizationUnitSvc      settingService.OrganizationUnitServiceInterface
+	delegateeUserSvc         commonServices.DelegateeUserserviceInterface
 }
 
 func NewComplianceActionPlanService(
@@ -63,6 +64,7 @@ func NewComplianceActionPlanService(
 	notificationSvc commonServices.NotificationServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
+	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
 ) ComplianceActionPlanServiceInterface {
 	return &ComplianceActionPlanService{
 		repo:                     repo,
@@ -77,6 +79,7 @@ func NewComplianceActionPlanService(
 		notificationSvc:          notificationSvc,
 		userSettingSvc:           userSettingSvc,
 		organizationUnitSvc:      organizationUnitSvc,
+		delegateeUserSvc:         delegateeUserSvc,
 	}
 }
 
@@ -202,6 +205,16 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		CreatedByID:             currentUserID,
 	}
 
+	if ComplianceActionPlanFormDTO.ResponsibleUserID != 0 {
+		delegateeID, err := caps.delegateeUserSvc.AssignDelegateeIfPermitted(ComplianceActionPlanFormDTO.ResponsibleUserID, "compliance_register")
+		if err != nil {
+			return 0, err
+		}
+		if delegateeID != nil {
+			complianceActionPlan.DelegateeUserID = delegateeID
+		}
+	}
+
 	id, err := caps.repo.Create(complianceActionPlan, tx)
 	if err != nil {
 		tx.Rollback()
@@ -224,7 +237,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 	}
 	urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:       "compliance",
+		ModuleIdentifier:       "compliance_register",
 		ComplianceActionPlanID: &id,
 		Title:                  ComplianceActionPlanFormDTO.Title,
 		Description:            ComplianceActionPlanFormDTO.Description,
@@ -383,6 +396,17 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 	existingComplianceActionPlan.Percentage = ComplianceActionPlanFormDTO.Percentage
 	existingComplianceActionPlan.Comments = ComplianceActionPlanFormDTO.Comments
 	existingComplianceActionPlan.UpdatedByID = &currentUserID
+
+	if ComplianceActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != ComplianceActionPlanFormDTO.ResponsibleUserID {
+		existingComplianceActionPlan.DelegateeUserID = nil
+		delegateeID, err := caps.delegateeUserSvc.AssignDelegateeIfPermitted(ComplianceActionPlanFormDTO.ResponsibleUserID, "compliance_register")
+		if err != nil {
+			return err
+		}
+		if delegateeID != nil {
+			existingComplianceActionPlan.DelegateeUserID = delegateeID
+		}
+	}
 
 	err = caps.repo.Update(existingComplianceActionPlan, tx)
 	if err != nil {

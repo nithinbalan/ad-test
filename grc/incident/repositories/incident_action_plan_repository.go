@@ -222,6 +222,7 @@ func (repo *IncidentActionPlanRepository) GetFullDetailsByID(id uint) (*models.I
 		Preload("ActionPlanStatus").
 		Preload("ActionPlanStatusUpdates").
 		Preload("ReviewUser").
+		Preload("DelegateeUser").
 		First(&incidentActionPlan, id)
 
 	if result.Error != nil {

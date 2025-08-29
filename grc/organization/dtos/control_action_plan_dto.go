@@ -109,6 +109,7 @@ type ControlActionPlanDetailDTO struct {
 	UpdatedByUser           *UserMinimalDTO                     `json:"updated_by_user"`
 	Control                 *ControlDetailDTO                   `json:"control"`
 	ReviewUser              *UserMinimalDTO                     `json:"review_user"`
+	DelegateeUser           *UserMinimalDTO                     `json:"delegatee_user"`
 	ActionPlanStatusUpdates []*ControlActionPlanStatusUpdateDTO `json:"action_plan_status_updates"`
 }
 

@@ -202,7 +202,7 @@ func NewOrganizationModule(
 	processGroupController := controllers.NewProcessGroupController(processGroupSvc)
 
 	controlActionPlanRepo := repositories.NewControlActionPlanRepository(db)
-	controlActionPlanSvc := services.NewControlActionPlanService(controlActionPlanRepo, sharedModule.ActivityLogService, controlSvc, masterModule.SeverityLevelSvc, masterModule.ActionPlanStatusSvc, userSvc, commonModule.NotificationService, taskModule.TaskService)
+	controlActionPlanSvc := services.NewControlActionPlanService(controlActionPlanRepo, sharedModule.ActivityLogService, controlSvc, masterModule.SeverityLevelSvc, masterModule.ActionPlanStatusSvc, userSvc, commonModule.NotificationService, taskModule.TaskService, commonModule.DelegateeUserService)
 	controlActionPlanController := controllers.NewControlActionPlanController(controlActionPlanSvc)
 
 	controlActionPlanStatusUpdateRepo := repositories.NewControlActionPlanStatusUpdateRepository(db)
@@ -269,7 +269,7 @@ func NewOrganizationModule(
 	userDelegationHistoryController := controllers.NewUserDelegationController(userDelegationHistorySvc)
 
 	organizationStructureRepo := repositories.NewOrganizationStructureRepository(db)
-	organizationStructureSvc := services.NewOrganizationStructureService(organizationStructureRepo, settingsModule.OrganizationLevelSvc)
+	organizationStructureSvc := services.NewOrganizationStructureService(organizationStructureRepo, sharedModule.ActivityLogService, settingsModule.OrganizationLevelSvc, userRepo, userSvc)
 	organizationStructureController := controllers.NewOrganizationStructureController(organizationStructureSvc)
 
 	return &OrganizationModule{

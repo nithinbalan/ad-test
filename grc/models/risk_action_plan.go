@@ -16,6 +16,7 @@ type RiskActionPlan struct {
 	ActionPlanStatusID uint       `json:"action_plan_status_id" binding:"required" gorm:"not null"`
 	ReviewUserID       *uint      `json:"review_user_id" gorm:"default:null"`
 	Percentage         *uint      `json:"percentage" binding:"omitempty,min=0,max=100" gorm:"not null;default:0"`
+	DelegateeUserID    *uint      `json:"delegatee_user_id"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime"`
 	CreatedBYID        uint       `json:"created_by_id" gorm:"not null"`
@@ -29,6 +30,7 @@ type RiskActionPlan struct {
 	ActionPlanStatus        *ActionPlanStatus             `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatusUpdates []*RiskActionPlanStatusUpdate `gorm:"foreignKey:RiskActionPlanID"`
 	Controls                []*RiskActionPlanControl      `gorm:"foreignKey:RiskActionPlanID"`
+	DelegateeUser           *User                         `gorm:"foreignKey:DelegateeUserID"`
 	CreatedByUser           *User                         `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser           *User                         `gorm:"foreignKey:UpdatedBYID"`
 }

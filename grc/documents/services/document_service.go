@@ -1857,7 +1857,7 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 
 	for _, participant := range docWorkflowLevel.DocumentWorkflowParticipants {
 		taskDTO := commonDTOs.TaskFormDTO{
-			ModuleIdentifier:   "document",
+			ModuleIdentifier:   "document_register",
 			DocumentID:         &id,
 			DocumentWorkflowID: &docWorkflowLevel.ID,
 			Title:              existingDocument.TitleEn,

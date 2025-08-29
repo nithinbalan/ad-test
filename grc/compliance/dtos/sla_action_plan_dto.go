@@ -112,6 +112,7 @@ type SLAActionPlanDetailDTO struct {
 	Comments                *string                          `json:"comments"`
 	TargetDateString        *string                          `json:"target_date"`
 	ActionPlanStatusUpdates []*SLAActionPlanStatusUpdateDTO  `json:"action_plan_status_updates"`
+	DelegateeUser           *organizationDTOs.UserMinimalDTO `json:"delegatee_user"`
 	CreatedAt               time.Time                        `json:"created_at"`
 	UpdatedAt               *time.Time                       `json:"updated_at"`
 	CreatedByUser           organizationDTOs.UserMinimalDTO  `json:"created_by_user"`

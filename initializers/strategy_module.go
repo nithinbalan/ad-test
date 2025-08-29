@@ -64,7 +64,7 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileGoalController := controllers.NewStrategyProfileGoalController(strategyProfileGoalSvc)
 
 	strategyProfileActionPlanRepo := repositories.NewStrategyProfileActionPlanRepository(db)
-	strategyProfileActionPlanSvc := services.NewStrategyProfileActionPlanService(strategyProfileActionPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, strategyProfileSvc, masterModule.ActionPlanStatusSvc, taskModule.TaskService, commonModule.NotificationService, organizationModule.UserSettingSvc)
+	strategyProfileActionPlanSvc := services.NewStrategyProfileActionPlanService(strategyProfileActionPlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, strategyProfileSvc, masterModule.ActionPlanStatusSvc, taskModule.TaskService, commonModule.NotificationService, organizationModule.UserSettingSvc, commonModule.DelegateeUserService)
 	strategyProfileActionPlanController := controllers.NewStrategyProfileActionPlanController(strategyProfileActionPlanSvc)
 
 	strategyProfileActionPlanStatusUpdateRepo := repositories.NewStrategyProfileActionPlanStatusUpdateRepository(db)

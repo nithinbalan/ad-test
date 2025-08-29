@@ -15,6 +15,7 @@ type ControlActionPlan struct {
 	ActionPlanStatusID uint       `json:"action_plan_status_id" gorm:"not null" binding:"required"`
 	ReviewUserID       *uint      `json:"review_user_id" gorm:"default:null"`
 	Percentage         uint       `json:"percentage" gorm:"default:0;not null" binding:"required"`
+	DelegateeUserID    *uint      `json:"delegatee_user_id"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"not null" binding:"required"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"default:null"`
 	CreatedByID        uint       `json:"created_by_id" gorm:"not null" binding:"required"`
@@ -27,6 +28,7 @@ type ControlActionPlan struct {
 	ReviewUser              *User                            `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"` // New foreign key relationship
 	ActionPlanStatus        *ActionPlanStatus                `gorm:"foreignKey:ActionPlanStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatusUpdates []*ControlActionPlanStatusUpdate `gorm:"foreignKey:ControlActionPlanID"`
+	DelegateeUser           *User                            `gorm:"foreignKey:DelegateeUserID"`
 	CreatedByUser           *User                            `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser           *User                            `gorm:"foreignKey:UpdatedByID"`
 }

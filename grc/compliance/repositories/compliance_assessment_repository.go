@@ -204,6 +204,7 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("ComplianceRegister.ComplianceAssessmentFramework").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values").
+		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values.ComplianceStatus").
 		Preload("ComplianceRegister.ResponsibleUser").
 		Preload("AssessmentRequirements").
 		Preload("AssessmentRequirements.ComplianceStatus").
@@ -438,9 +439,12 @@ func (repo *ComplianceAssessmentRepository) GetComplianceScoreSummary(assessment
 			ON car.compliance_assessment_id = ca.id
 		JOIN compliance_assessment_statuses cas 
 			ON ca.compliance_assessment_status_id = cas.id
+		JOIN compliance_statuses cs
+			ON cs.id = car.compliance_status_id
 		WHERE car.compliance_assessment_id = ? 
 		  AND car.score IS NOT NULL
 		  AND cas.type = 'approved'
+		  AND cs.type <> 'not_applicable'
 	`
 
 	if err := repo.db.Raw(query, assessmentID).Scan(&result).Error; err != nil {

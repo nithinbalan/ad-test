@@ -19,6 +19,7 @@ type StrategyProfileActionPlan struct {
 	TargetDate                  *time.Time `json:"target_date"`
 	ActionPlanStatusId          *uint      `json:"action_plan_status_id"`
 	Percentage                  *int       `json:"percentage"`
+	DelegateeUserID             *uint      `json:"delegatee_user_id"`
 	ReviewUserID                *uint      `json:"review_user_id" gorm:"default:null"`
 	CreatedBYID                 uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID                 *uint      `json:"updated_by_id" gorm:"default:null"`
@@ -38,6 +39,7 @@ type StrategyProfileActionPlan struct {
 	ActionPlanStatus        *ActionPlanStatus                        `gorm:"foreignKey:ActionPlanStatusId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUnit         *OrganizationUnit                        `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ReviewUser              *User                                    `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"` // New foreign key relationship
+	DelegateeUser           *User                                    `gorm:"foreignKey:DelegateeUserID"`
 	ActionPlanStatusUpdates []*StrategyProfileActionPlanStatusUpdate `gorm:"foreignKey:StrategyProfileActionPlanID"`
 	CreatedByUser           *User                                    `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	UpdatedByUser           *User                                    `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
