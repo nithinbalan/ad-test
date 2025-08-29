@@ -316,6 +316,84 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 				utility.LogError("Failed to log activity", fields)
 			}
 		}
+
+		// Send notification and email to review user if assigned
+		if complianceAssessmentFormDTO.ReviewUserID != 0 {
+			// Prepare notification
+			urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d}`, id)
+			queryParam := ""
+			entity := "compliance-assessment"
+			action := "review-user-assign"
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{complianceAssessmentFormDTO.ReviewUserID},
+				ModuleIdentifier:     "compliance",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Compliance Assessment Review Assigned",
+				HeadingAr:            "تم تعيين مراجعة لتقييم الامتثال",
+				TitleEn:              compliance.TitleEn,
+				TitleAr:              compliance.TitleAr,
+				ReferenceNumber:      compliance.ReferenceNumber,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: true,
+				CreatedByID:          &currentUserID,
+			}
+
+			// Prepare email data
+			reviewUser, err := cras.userSvc.GetByID(complianceAssessmentFormDTO.ReviewUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := cras.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			emailTo := []string{reviewUser.Email}
+			subject := fmt.Sprintf("Action Required: Review Compliance Assessment [%s] - %s", compliance.ReferenceNumber, compliance.TitleEn)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":     reviewUser.FirstNameEn,
+				"LastNameEn":      reviewUser.LastNameEn,
+				"TitleEn":         compliance.TitleEn,
+				"TitleAr":         compliance.TitleAr,
+				"ReferenceNumber": compliance.ReferenceNumber,
+				"AssignedBy":      fmt.Sprintf("%s %s", assignedBy.FirstNameEn, assignedBy.LastNameEn),
+				"AssignedOn":      time.Now().Format("2006-01-02"),
+				"Description":     "N/A",
+				"RedirectURL":     fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, id),
+			}
+
+			// Set description if available
+			if complianceAssessmentFormDTO.Description != nil {
+				emailData["Description"] = *complianceAssessmentFormDTO.Description
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "compliance/templates/email/compliance_assessment_review_user_assign_mail.html",
+				EmailData:            emailData,
+			}
+
+			// Send notification and email
+			if err := cras.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_assessment"); err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+
 	}()
 
 	return nil
@@ -396,6 +474,153 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 				})
 			}
 		}
+
+		// Get the old review user ID for comparison
+		oldReviewUserID := oldComplianceAssessment.ReviewuserID
+
+		// sends notification if review user has changed
+		if oldReviewUserID != complianceAssessmentUpdateFormDTO.ReviewUserID {
+			urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d}`, id)
+			queryParam := ""
+			entity := "compliance-assessment"
+
+			if oldReviewUserID != 0 {
+				oldReviewUserAction := "review-user-remove"
+				oldReviewUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserIDs:              []uint{oldReviewUserID},
+					ModuleIdentifier:     "compliance",
+					NotificationType:     string(commonDTOs.InformationType),
+					HeadingEn:            "Compliance Assessment Review Responsibility Removed",
+					HeadingAr:            "تمت إزالة مسؤولية مراجعة تقييم الامتثال",
+					TitleEn:              oldComplianceAssessment.ComplianceRegister.TitleEn,
+					TitleAr:              oldComplianceAssessment.ComplianceRegister.TitleAr,
+					ReferenceNumber:      oldComplianceAssessment.ComplianceRegister.ReferenceNumber,
+					Entity:               &entity,
+					Action:               &oldReviewUserAction,
+					URLParam:             urlParam,
+					QueryParam:           queryParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				oldReviewUser, err := cras.userSvc.GetByID(oldReviewUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch old review user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+
+				appURL := utility.GetAppURL()
+				oldReviewUserEmailTo := []string{oldReviewUser.Email}
+				oldReviewUserSubject := fmt.Sprintf("Compliance Assessment/%s: Review Responsibility Removed", oldComplianceAssessment.ComplianceRegister.TitleEn)
+				oldReviewUserTemplateRelativePath := "compliance/templates/email/compliance_assessment_remove_review_user_mail.html"
+				oldReviewUserEmailData := map[string]interface{}{
+					"FirstNameEn":     oldReviewUser.FirstNameEn,
+					"LastNameEn":      oldReviewUser.LastNameEn,
+					"ReferenceNumber": oldComplianceAssessment.ComplianceRegister.ReferenceNumber,
+					"TitleEn":         oldComplianceAssessment.ComplianceRegister.TitleEn,
+					"TitleAr":         oldComplianceAssessment.ComplianceRegister.TitleAr,
+					"Description":     "N/A",
+					"RedirectURL":     fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, id),
+				}
+
+				if complianceAssessmentUpdateFormDTO.Description != nil {
+					oldReviewUserEmailData["Description"] = *complianceAssessmentUpdateFormDTO.Description
+				}
+
+				oldReviewUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              oldReviewUserEmailTo,
+					Subject:              oldReviewUserSubject,
+					TemplateRelativePath: oldReviewUserTemplateRelativePath,
+					EmailData:            oldReviewUserEmailData,
+				}
+
+				// send old review user notification + email
+				err = cras.notificationSvc.SendNotification(
+					oldReviewUserNotificationDTO, oldReviewUserEmailNotificationDTO, "compliance_assessment",
+				)
+				if err != nil {
+					utility.LogError("Failed to send old review user notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			}
+
+			if complianceAssessmentUpdateFormDTO.ReviewUserID != 0 {
+				newReviewUserAction := "review-user-assign"
+				newReviewUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserIDs:              []uint{complianceAssessmentUpdateFormDTO.ReviewUserID},
+					ModuleIdentifier:     "compliance",
+					NotificationType:     string(commonDTOs.AssignmentType),
+					HeadingEn:            "Compliance Assessment Review Assigned",
+					HeadingAr:            "تم تعيين مراجعة لتقييم الامتثال",
+					TitleEn:              existingAssessment.ComplianceRegister.TitleEn,
+					TitleAr:              existingAssessment.ComplianceRegister.TitleAr,
+					ReferenceNumber:      existingAssessment.ComplianceRegister.ReferenceNumber,
+					Entity:               &entity,
+					Action:               &newReviewUserAction,
+					URLParam:             urlParam,
+					QueryParam:           queryParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				newReviewUser, err := cras.userSvc.GetByID(complianceAssessmentUpdateFormDTO.ReviewUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch new review user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+
+				assignedBy, err := cras.userSvc.GetByID(currentUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+
+				appURL := utility.GetAppURL()
+				newReviewUserEmailTo := []string{newReviewUser.Email}
+				newReviewUserSubject := fmt.Sprintf("Action Required: Review Compliance Assessment [%s] - %s", existingAssessment.ComplianceRegister.ReferenceNumber, existingAssessment.ComplianceRegister.TitleEn)
+				newReviewUserTemplateRelativePath := "compliance/templates/email/compliance_assessment_review_user_assign_mail.html"
+				newReviewUserEmailData := map[string]interface{}{
+					"FirstNameEn":     newReviewUser.FirstNameEn,
+					"LastNameEn":      newReviewUser.LastNameEn,
+					"TitleEn":         existingAssessment.ComplianceRegister.TitleEn,
+					"TitleAr":         existingAssessment.ComplianceRegister.TitleAr,
+					"ReferenceNumber": existingAssessment.ComplianceRegister.ReferenceNumber,
+					"AssignedBy":      fmt.Sprintf("%s %s", assignedBy.FirstNameEn, assignedBy.LastNameEn),
+					"AssignedOn":      time.Now().Format("2006-01-02"),
+					"Description":     "N/A",
+					"RedirectURL":     fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, id),
+				}
+
+				if complianceAssessmentUpdateFormDTO.Description != nil {
+					newReviewUserEmailData["Description"] = *complianceAssessmentUpdateFormDTO.Description
+				}
+
+				newReviewUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              newReviewUserEmailTo,
+					Subject:              newReviewUserSubject,
+					TemplateRelativePath: newReviewUserTemplateRelativePath,
+					EmailData:            newReviewUserEmailData,
+				}
+
+				// send new review user notification + email
+				err = cras.notificationSvc.SendNotification(
+					newReviewUserNotificationDTO, newReviewUserEmailNotificationDTO, "compliance_assessment",
+				)
+				if err != nil {
+					utility.LogError("Failed to send new review user notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			}
+		}
+
 	}()
 
 	return nil

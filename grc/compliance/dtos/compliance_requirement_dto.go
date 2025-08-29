@@ -110,7 +110,7 @@ type ComplianceRequirementDetailDTO struct {
 	TitleEn                       string                                           `json:"title_en"`
 	TitleAr                       string                                           `json:"title_ar"`
 	ResponsibleUserID             uint                                             `json:"responsible_user_id" binding:"required" gorm:"not null"`
-	ComplianceRequirementCategory ComplianceRequirementCategoryDTO                 `json:"compliance_requirement_category"`
+	ComplianceRequirementCategory *ComplianceRequirementCategoryDTO                `json:"compliance_requirement_category"`
 	SeverityLevel                 *masterDTOs.SeverityLevelDTO                     `json:"severity_level"`
 	DeadlineString                *string                                          `json:"deadline"`
 	CreatedAt                     time.Time                                        `json:"created_at"`
