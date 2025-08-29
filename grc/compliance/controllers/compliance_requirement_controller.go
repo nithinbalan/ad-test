@@ -162,6 +162,7 @@ func (crc *ComplianceRequirementController) GetComplianceRequirementsByID(c *gin
 		"severity_level_ids",
 		"compliance_status_ids",
 		"responsible_user_ids",
+		"responsible_unit_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
