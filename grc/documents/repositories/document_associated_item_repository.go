@@ -603,9 +603,6 @@ func (repo *DocumentAssociatedItemRepository) GetAllIncidents(documentID uint, p
 			LEFT JOIN users AS updated_user ON updated_user.id = incident_register.updated_by_id
 		`).
 		Where("incident_associated_documents.document_id = ?", documentID)
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -632,6 +629,10 @@ func (repo *DocumentAssociatedItemRepository) GetAllIncidents(documentID uint, p
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
 		params.Sort = "asc"
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)

@@ -24,7 +24,10 @@ type BcpAssociatedItemRepositoryInterface interface {
 	DeleteBcpRisk(BcpID uint, riskID uint, tx ...utility.DatabaseTransaction) error
 	GetAllBcpAssets(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateBcpAsset(assets []*models.BcpAsset, tx ...utility.DatabaseTransaction) error
-	DeleteBcpAsset(BcpID uint, documentId uint, tx ...utility.DatabaseTransaction) error
+	DeleteBcpAsset(BcpID uint, assetId uint, tx ...utility.DatabaseTransaction) error
+	GetAllBcpIncidents(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
+	CreateBcpIncident(incidents []*models.BcpIncident, tx ...utility.DatabaseTransaction) error
+	DeleteBcpIncident(BcpID uint, incidentID uint, tx ...utility.DatabaseTransaction) error
 }
 
 // implementation
@@ -659,5 +662,155 @@ func (repo *BcpAssociatedItemRepository) DeleteBcpAsset(BcpID uint, assetID uint
 	return db.
 		Where("asset_register_id = ? AND business_continuity_plan_id = ?", assetID, BcpID).
 		Delete(&models.BcpAsset{}).
+		Error
+}
+
+func (repo *BcpAssociatedItemRepository) GetAllBcpIncidents(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error) {
+	var incidentList []*commonDTOs.AssociatedIncidentListDTO
+	var totalCount int64
+
+	query := repo.db.Table("bcp_incidents").
+		Select(`
+			 incident_register.*,
+			bcp_incidents.id as id,
+			bcp_incidents.incident_register_id,
+            incident_categories.title_en AS incident_category_title_en,
+            incident_categories.title_ar AS incident_category_title_ar,
+            incident_types.title_en AS incident_type_title_en,
+            incident_types.title_ar AS incident_type_title_ar,
+            incident_statuses.title_en AS incident_status_title_en,
+            incident_statuses.title_ar AS incident_status_title_ar,
+			incident_statuses.color_code AS incident_status_color_code,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+            responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            responsible_user.last_name_en AS responsible_user_last_name_en,
+            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			reported_user.id AS reported_by_id,
+            reported_user.first_name_en AS reported_user_first_name_en,
+            reported_user.first_name_ar AS reported_user_first_name_ar,
+            reported_user.last_name_en AS reported_user_last_name_en,
+            reported_user.last_name_ar AS reported_user_last_name_ar,
+			reported_user.initial AS reported_user_initial,
+            reported_user.color AS reported_user_color,
+            reported_user.email AS reported_user_email,
+            reported_user.profile_image_path AS reported_user_profile_image_path,
+			CONVERT(VARCHAR, incident_investigations.initiated_at, 23) AS investigation_initiated_at,
+			incident_investigations.description AS investigation_description,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path  
+		`).
+		Joins(`
+			LEFT JOIN incident_register ON incident_register.id = bcp_incidents.incident_register_id
+			LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
+            LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id
+            LEFT JOIN incident_types ON incident_types.id = incident_register.incident_type_id
+            LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id
+		    LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id
+            LEFT JOIN organization_units ON organization_units.id = incident_register.responsible_unit_id
+		    LEFT JOIN users AS responsible_user ON responsible_user.id = incident_register.responsible_user_id
+			LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
+			LEFT JOIN incident_investigations ON incident_investigations.incident_register_id = incident_register.id
+			LEFT JOIN users AS created_user ON created_user.id = incident_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = incident_register.updated_by_id
+		`).
+		Where("bcp_incidents.business_continuity_plan_id = ?", BcpID)
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(incident_register.reference_number LIKE ? OR
+			incident_register.title LIKE ? OR
+			incident_register.description LIKE ? OR
+			incident_register.location LIKE ? OR
+			incident_categories.title_en LIKE ? OR
+			incident_categories.title_ar LIKE ? OR
+			incident_sub_categories.title_en LIKE ? OR
+			incident_sub_categories.title_ar LIKE ? OR
+			incident_types.title_en LIKE ? OR
+			incident_types.title_ar LIKE ? OR
+			severity_levels.title_en LIKE ? OR
+			severity_levels.title_ar LIKE ? OR
+			incident_statuses.title_en LIKE ? OR
+			incident_statuses.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "incident_register.title"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&incidentList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedIncidentListResponseDTO{
+		Items: incidentList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *BcpAssociatedItemRepository) CreateBcpIncident(incidents []*models.BcpIncident, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&incidents).Error
+}
+
+func (repo *BcpAssociatedItemRepository) DeleteBcpIncident(BcpID uint, incidentID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("incident_register_id = ? AND business_continuity_plan_id = ?", incidentID, BcpID).
+		Delete(&models.BcpIncident{}).
 		Error
 }

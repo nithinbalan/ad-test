@@ -347,3 +347,116 @@ func (tpaic *ThirdPartyAssociatedItemController) DeleteThirdPartyAsset(c *gin.Co
 
 	c.JSON(http.StatusOK, gin.H{"message": "Asset unmapped from third party successfully"})
 }
+
+func (tpaic *ThirdPartyAssociatedItemController) GetAllThirdPartyIncidents(c *gin.Context) {
+
+	ThirdPartyIDStr := c.Param("id")
+
+	ThirdPartyID, err := strconv.ParseUint(ThirdPartyIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(tpaic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(tpaic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	incidents, err := tpaic.service.GetAllThirdPartyIncidents(uint(ThirdPartyID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(tpaic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, incidents)
+}
+
+func (tpaic *ThirdPartyAssociatedItemController) CreateThirdPartyIncident(c *gin.Context) {
+	var input commonDTOs.AssociatedIncidentMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	ThirdPartyID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tpaic.db, c, err.Error())
+		return
+	}
+
+	err = tpaic.service.CreateThirdPartyIncident(uint(ThirdPartyID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(tpaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (tpaic *ThirdPartyAssociatedItemController) DeleteThirdPartyIncident(c *gin.Context) {
+
+	ThirdPartyIDStr := c.Param("id")
+	incidentIDStr := c.Param("incidentId")
+
+	ThirdPartyID, err := strconv.ParseUint(ThirdPartyIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = tpaic.service.DeleteThirdPartyIncident(uint(ThirdPartyID), uint(incidentID))
+	if err != nil {
+		utility.SendInternalErrResp(tpaic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Incident unmapped from third party successfully"})
+}

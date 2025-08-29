@@ -22,6 +22,10 @@ type ThirdPartyAssociatedItemServiceInterface interface {
 	GetAllThirdPartyAssets(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateThirdPartyAsset(ThirdPartyID uint, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
 	DeleteThirdPartyAsset(ThirdPartyID uint, assetID uint) error
+
+	GetAllThirdPartyIncidents(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
+	CreateThirdPartyIncident(ThirdPartyID uint, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
+	DeleteThirdPartyIncident(ThirdPartyID uint, incidentID uint) error
 }
 
 // Service and implementations
@@ -194,6 +198,59 @@ func (tpais *ThirdPartyAssociatedItemService) DeleteThirdPartyAsset(ThirdPartyID
 	tx := tpais.repo.BeginTransaction()
 
 	if err := tpais.repo.DeleteThirdPartyAsset(ThirdPartyID, assetID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (tpais *ThirdPartyAssociatedItemService) GetAllThirdPartyIncidents(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error) {
+	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return nil, err
+	}
+	return tpais.repo.GetAllThirdPartyIncidents(ThirdPartyID, params)
+}
+
+func (tpais *ThirdPartyAssociatedItemService) CreateThirdPartyIncident(ThirdPartyID, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error {
+
+	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return err
+	}
+
+	if err := tpais.validationSvc.ValidateIncidentMapping(ThirdPartyID, dto.IncidentIDs, "third_party_incidents", "third_party_register_id"); err != nil {
+		return err
+	}
+
+	tx := tpais.repo.BeginTransaction()
+	var mappings []*models.ThirdPartyIncident
+	currentTime := time.Now()
+
+	for _, incidentID := range dto.IncidentIDs {
+		mappings = append(mappings, &models.ThirdPartyIncident{
+			IncidentRegisterID:   incidentID,
+			ThirdPartyRegisterID: ThirdPartyID,
+			CreatedBYID:          userID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := tpais.repo.CreateThirdPartyIncident(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (tpais *ThirdPartyAssociatedItemService) DeleteThirdPartyIncident(ThirdPartyID uint, incidentID uint) error {
+	// Validate control existence
+	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return err
+	}
+
+	tx := tpais.repo.BeginTransaction()
+
+	if err := tpais.repo.DeleteThirdPartyIncident(ThirdPartyID, incidentID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
