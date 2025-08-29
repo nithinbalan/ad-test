@@ -476,7 +476,7 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 		}
 
 		// Get the old review user ID for comparison
-		oldReviewUserID := oldComplianceAssessment.ReviewuserID
+		oldReviewUserID := oldComplianceAssessment.ReviewUserID
 
 		// sends notification if review user has changed
 		if oldReviewUserID != complianceAssessmentUpdateFormDTO.ReviewUserID {
