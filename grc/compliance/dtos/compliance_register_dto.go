@@ -217,4 +217,5 @@ type ComplianceControlDTO struct {
 	ComplianceRegisterID uint                              `json:"compliance_register_id"`
 	ControlID            uint                              `json:"control_id"`
 	Control              organizationDTOs.ControlDetailDTO `json:"control"`
+	ComplianceClauseID   uint                              `json:"compliance_clause_id"`
 }

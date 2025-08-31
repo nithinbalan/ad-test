@@ -222,6 +222,13 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("AssessmentRequirements.ComplianceRequirement").
 		Preload("AssessmentRequirements.ComplianceRequirement.ComplianceStatus").
 		Preload("AssessmentRequirements.ComplianceRequirement.ComplianceClause").
+		Preload("AssessmentControls").
+		Preload("AssessmentControls.ComplianceControl").
+		Preload("AssessmentControls.ComplianceControl.Control").
+		Preload("AssessmentControls.ComplianceControl.ComplianceClause"). // if nested
+		Preload("AssessmentControls.ComplianceAssessmentFrameworkValue").
+		Preload("AssessmentControls.ComplianceAssessmentRequirementStatus").
+		Preload("AssessmentControls.CompletedByUser").
 		Preload("ReviewUser").
 		Preload("ComplianceAssessmentStatus").
 		Preload("SubmittedByUser").

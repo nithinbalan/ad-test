@@ -25,6 +25,7 @@ type ComplianceAssessmentControlRepositoryInterface interface {
 
 	CreateComment(comment *models.ComplianceAssessmentControlComment, tx ...utility.DatabaseTransaction) error
 	Delete(controlID uint, tx ...utility.DatabaseTransaction) error
+	ComplianceAssessmentUpdateStatus(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceAssessmentControlRepository struct {
@@ -121,6 +122,9 @@ func (repo *ComplianceAssessmentControlRepository) GetAll(assessmentID uint, par
 		`).
 		Where("compliance_assessment_controls.compliance_assessment_id = ?", assessmentID)
 
+	if params.ClauseID != 0 {
+		query = query.Where("compliance_controls.compliance_clause_id = ?", params.ClauseID)
+	}
 	// dynamic filters
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
@@ -239,4 +243,15 @@ func (repo *ComplianceAssessmentControlRepository) Delete(controlID uint, tx ...
 		db = tx[0].DB()
 	}
 	return db.Delete(&models.ComplianceAssessmentControl{}, controlID).Error
+}
+
+func (repo *ComplianceAssessmentControlRepository) ComplianceAssessmentUpdateStatus(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(complianceAssessment).Error; err != nil {
+		return err
+	}
+	return nil
 }

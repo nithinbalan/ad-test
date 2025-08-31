@@ -9,6 +9,7 @@ type ComplianceActionPlan struct {
 	ComplianceRegisterID                             *uint      `json:"compliance_register_id" binding:"required" gorm:"not null"`
 	ComplianceRequirementID                          *uint      `json:"compliance_requirement_id" binding:"omitempty"  gorm:"default:null"`
 	ComplianceAssessmentRequirementResponsibleUnitID *uint      `json:"compliance_assessment_requirement_responsible_unit_id"  binding:"omitempty"  gorm:"default:null"`
+	ComplianceAssessmentControlID                    *uint      `json:"compliance_assessment_control_id" gorm:"default:null"`
 	Title                                            string     `json:"title" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
 	Description                                      *string    `json:"description" gorm:"type:nvarchar(max);null"`
 	SeverityLevelID                                  *uint      `json:"severity_level_id" binding:"omitempty" gorm:"not null"`
@@ -26,6 +27,7 @@ type ComplianceActionPlan struct {
 
 	// Relationships
 	ComplianceRegister                             *ComplianceRegister                             `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceAssessmentControl                    *ComplianceAssessmentControl                    `gorm:"foreignKey:ComplianceAssessmentControlID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 	ComplianceAssessmentRequirementResponsibleUnit *ComplianceAssessmentRequirementResponsibleUnit `gorm:"foreignKey:ComplianceAssessmentRequirementResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 	ComplianceRequirement                          *ComplianceRequirement                          `gorm:"foreignKey:ComplianceRequirementID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel                                  *SeverityLevel                                  `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

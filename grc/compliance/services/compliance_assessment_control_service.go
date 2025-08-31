@@ -34,12 +34,14 @@ type ComplianceAssessmentControlServiceInterface interface {
 }
 
 type ComplianceAssessmentControlService struct {
-	repo                    complianceRepositories.ComplianceAssessmentControlRepositoryInterface
-	activityLogSvc          logServices.ActivityLogServiceInterface
-	userSvc                 organizationServices.UserServiceInterface
-	complianceAssessmentSvc ComplianceAssessmentServiceInterface
-	controlStatusSvc        ComplianceAssessmentRequirementStatusServiceInterface
-	notificationSvc         commonServices.NotificationServiceInterface
+	repo                             complianceRepositories.ComplianceAssessmentControlRepositoryInterface
+	activityLogSvc                   logServices.ActivityLogServiceInterface
+	userSvc                          organizationServices.UserServiceInterface
+	complianceAssessmentSvc          ComplianceAssessmentServiceInterface
+	controlStatusSvc                 ComplianceAssessmentRequirementStatusServiceInterface
+	notificationSvc                  commonServices.NotificationServiceInterface
+	complianceAssessmentFrameworkSvc ComplianceAssessmentFrameworkServiceInterface
+	complianceAssessmentStatusSvc    ComplianceAssessmentStatusServiceInterface
 }
 
 func NewComplianceAssessmentControlService(
@@ -49,14 +51,18 @@ func NewComplianceAssessmentControlService(
 	complianceAssessmentSvc ComplianceAssessmentServiceInterface,
 	controlStatusSvc ComplianceAssessmentRequirementStatusServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	complianceAssessmentFrameworkSvc ComplianceAssessmentFrameworkServiceInterface,
+	complianceAssessmentStatusSvc ComplianceAssessmentStatusServiceInterface,
 ) ComplianceAssessmentControlServiceInterface {
 	return &ComplianceAssessmentControlService{
-		repo:                    repo,
-		activityLogSvc:          activityLogSvc,
-		userSvc:                 userSvc,
-		complianceAssessmentSvc: complianceAssessmentSvc,
-		controlStatusSvc:        controlStatusSvc,
-		notificationSvc:         notificationSvc,
+		repo:                             repo,
+		activityLogSvc:                   activityLogSvc,
+		userSvc:                          userSvc,
+		complianceAssessmentSvc:          complianceAssessmentSvc,
+		controlStatusSvc:                 controlStatusSvc,
+		notificationSvc:                  notificationSvc,
+		complianceAssessmentFrameworkSvc: complianceAssessmentFrameworkSvc,
+		complianceAssessmentStatusSvc:    complianceAssessmentStatusSvc,
 	}
 }
 
@@ -151,13 +157,48 @@ func (s *ComplianceAssessmentControlService) Update(complianceAssessmentId uint,
 	if err != nil {
 		return err
 	}
+	complianceAssessment, err := s.complianceAssessmentSvc.GetByID(complianceAssessmentId)
+	if err != nil {
+		return err
+	}
+	assessmentDetails, err := s.complianceAssessmentSvc.GetFullDetailsByID(complianceAssessmentId)
+	if err != nil {
+		return err
+	}
+	assessmentInProgressStatus, err := s.complianceAssessmentStatusSvc.GetByType("in_progress")
+	if err != nil {
+		return err
+	}
 
-	control.Score = updateForm.Score
+	assessmentInitiatedStatus, err := s.complianceAssessmentStatusSvc.GetByType("draft")
+	if err != nil {
+		return err
+	}
+	complianceAssessmentFrameworkValue, err := s.complianceAssessmentFrameworkSvc.GetByFrameworkValueID(updateForm.AssessmentFrameworkValueID)
+	if err != nil {
+		return err
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	if complianceAssessment.ComplianceAssessmentStatusID == assessmentInitiatedStatus.ID {
+		complianceAssessment.ComplianceAssessmentStatusID = assessmentInProgressStatus.ID
+		err = s.repo.ComplianceAssessmentUpdateStatus(complianceAssessment, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if complianceAssessmentFrameworkValue.IsApplicable && assessmentDetails.ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType.Type == "percentage" {
+		control.Score = updateForm.Score
+	} else {
+		control.Score = nil
+	}
 	control.Comments = updateForm.Comments
 	control.ComplianceAssessmentFrameworkValueID = &updateForm.AssessmentFrameworkValueID
 	control.UpdatedBYID = &currentUserID
 
-	tx := s.repo.BeginTransaction()
 	err = s.repo.Update(control, tx)
 	if err != nil {
 		tx.Rollback()

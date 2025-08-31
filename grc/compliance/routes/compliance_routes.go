@@ -55,6 +55,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceAssessmentFrameworkValueController := app.ComplianceModule.ComplianceAssessmentFrameworkValueController
 	complianceAssessmentControlController := app.ComplianceModule.ComplianceAssessmentControlController
 	complianceAssessmentControlCommentController := app.ComplianceModule.ComplianceAssessmentControlCommentController
+	complianceAssessmentControlActionPlanController := app.ComplianceModule.ComplianceAssessmentControlActionPlanController
 
 	// Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -301,6 +302,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliance-assessments", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentController.GetAllComplianceAssessments)
 	complianceRoutes.GET("/compliance-assessments/:assessmentId", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentController.GetComplianceAssessmentDetails)
 	complianceRoutes.GET("/compliance-assessments/:assessmentId/is-all-requirements-approved", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentController.GetApprovalStatus)
+	complianceRoutes.GET("/compliance-assessments/:assessmentId/is-all-controls-approved", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentController.GetControlsApprovalStatus)
 	complianceRoutes.POST("/compliance-assessments", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentController.CreateComplianceAssessment)
 	complianceRoutes.PUT("/compliance-assessments/:assessmentId", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentController.UpdateComplianceAssessment)
 	complianceRoutes.POST("/compliance-assessments/delete", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentController.DeleteComplianceAssessments)
@@ -420,5 +422,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/compliance-assessments/:assessmentId/controls/:controlId/comments", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentControlCommentController.CreateComment)
 	complianceRoutes.PUT("/compliance-assessments/:assessmentId/controls/:controlId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentControlCommentController.UpdateComment)
 	complianceRoutes.POST("/compliance-assessments/:assessmentId/controls/:controlId/comments/delete", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentControlCommentController.DeleteComment)
+	// Compliance Assessment Control Action Plan
+	complianceRoutes.GET("/compliance-assessments/:assessmentId/controls/:controlId/action-plans", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentControlActionPlanController.GetAllComplianceAssessmentControlActionPlans)
+	complianceRoutes.GET("/compliance-assessments/:assessmentId/controls/:controlId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentControlActionPlanController.GetComplianceAssessmentControlActionPlanDetails)
+	complianceRoutes.POST("/compliance-assessments/:assessmentId/controls/:controlId/action-plans", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentControlActionPlanController.CreateComplianceAssessmentControlActionPlan)
+	complianceRoutes.PUT("/compliance-assessments/:assessmentId/controls/:controlId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentControlActionPlanController.UpdateComplianceAssessmentControlActionPlan)
+	complianceRoutes.POST("/compliance-assessments/:assessmentId/controls/:controlId/action-plans/delete", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentControlActionPlanController.DeleteComplianceAssessmentControlActionPlans)
 
 }

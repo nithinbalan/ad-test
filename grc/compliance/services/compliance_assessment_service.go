@@ -36,6 +36,7 @@ type ComplianceAssessmentServiceInterface interface {
 	ApproveComplianceAssessment(assessmentID uint, currentUserID uint) error
 
 	GetApprovalStatus(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentApprovalStatusDTO, error)
+	GetControlApprovalStatus(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentApprovalStatusDTO, error)
 }
 
 // Service and implementations
@@ -140,6 +141,22 @@ func (cras ComplianceAssessmentService) GetFullDetailsByID(id uint, tx ...utilit
 	// Set assessment-level flags
 	dto.IsCompleted = allCompleted
 	dto.IsApproved = allApproved
+
+	allControlsCompleted := true
+	allControlsApproved := true
+
+	for _, ctrlModel := range model.AssessmentControls {
+		if !ctrlModel.IsCompleted {
+			allControlsCompleted = false
+		}
+		if ctrlModel.ComplianceAssessmentRequirementStatus == nil || ctrlModel.ComplianceAssessmentRequirementStatus.Type != "approved" {
+			allControlsApproved = false
+		}
+	}
+
+	// Merge requirement + control flags
+	dto.IsCompleted = allCompleted && allControlsCompleted
+	dto.IsApproved = allApproved && allControlsApproved
 
 	dto.CreatedAt = model.CreatedAt
 	dto.UpdatedAt = model.UpdatedAt
@@ -268,9 +285,7 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 		// CASE 2: Control-based assessment
 		// =================================
 		if compliance.IsControlAssessment {
-			fmt.Println("hiiii2222222222")
-
-			for _, control := range clauseDetails.Controls {
+			for _, control := range clauseDetails.ComplianceControls {
 				assessmentControl := &models.ComplianceAssessmentControl{
 					ComplianceAssessmentID: id,
 					ComplianceControlID:    control.ID,
@@ -1066,11 +1081,11 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 		}
 	} else if assessment.ComplianceRegister.IsControlAssessment {
 		// Control-based scoring
-		_, err := cras.CalculateComplianceControlScores(assessmentID, tx)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
+		// _, err := cras.CalculateComplianceControlScores(assessmentID, tx)
+		// if err != nil {
+		// 	tx.Rollback()
+		// 	return err
+		// }
 
 		// process control scores (structure can be similar or different depending on your DTO)
 		// if err := cras.UpdateComplianceControlValueFromScores(assessmentID, scores, tx); err != nil {
@@ -1921,6 +1936,32 @@ func (cras ComplianceAssessmentService) GetApprovalStatus(id uint, tx ...utility
 
 		if !isApproved {
 			break
+		}
+	}
+
+	return &complianceDTOs.ComplianceAssessmentApprovalStatusDTO{
+		AssessmentID: id,
+		IsApproved:   isApproved,
+	}, nil
+}
+func (cras ComplianceAssessmentService) GetControlApprovalStatus(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentApprovalStatusDTO, error) {
+
+	model, err := cras.repo.GetFullDetailsByID(id, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	isApproved := true
+	if isApproved { // only check if requirements already passed
+		for _, ctrl := range model.AssessmentControls {
+			if ctrl.ComplianceAssessmentRequirementStatus == nil ||
+				ctrl.ComplianceAssessmentRequirementStatus.Type != "approved" {
+				isApproved = false
+				break
+			}
 		}
 	}
 
