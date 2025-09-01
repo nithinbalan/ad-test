@@ -32,21 +32,23 @@ type ComplianceAssessmentControlListResponseDTO struct {
 }
 
 type ComplianceAssessmentControlDetailDTO struct {
-	ID                                    int                                          `json:"id"`
-	ComplianceAssessmentID                uint                                         `json:"compliance_assessment_id"`
-	ComplianceControlID                   uint                                         `json:"compliance_control_id"`
-	ComplianceControl                     ComplianceControlDTO                         `json:"compliance_control"`
-	Comments                              *string                                      `json:"comments"`
-	IsCompleted                           bool                                         `json:"is_completed"`
-	Score                                 *float64                                     `json:"score"`
-	ComplianceAssessmentRequirementStatus *ComplianceAssessmentRequirementStatusDTO    `json:"compliance_assessment_requirement_status"`
-	ComplianceAssessmentFrameworkValueID  *uint                                        `json:"compliance_assessment_framework_value_id"`
-	ComplianceAssessmentFrameworkValue    *ComplianceAssessmentFrameworkValueDetailDTO `json:"compliance_assessment_framework_value"`
-	CompletedByUser                       *organizationDTOs.UserMinimalDTO             `json:"completed_by_user"`
-	CreatedAt                             time.Time                                    `json:"created_at"`
-	UpdatedAt                             *time.Time                                   `json:"updated_at"`
-	CreatedByUser                         organizationDTOs.UserMinimalDTO              `json:"created_by_user"`
-	UpdatedByUser                         *organizationDTOs.UserMinimalDTO             `json:"updated_by_user"`
+	ID                                    int                                            `json:"id"`
+	ComplianceAssessmentID                uint                                           `json:"compliance_assessment_id"`
+	ComplianceControlID                   uint                                           `json:"compliance_control_id"`
+	ComplianceControl                     ComplianceControlDTO                           `json:"compliance_control"`
+	Comments                              *string                                        `json:"comments"`
+	IsCompleted                           bool                                           `json:"is_completed"`
+	Score                                 *float64                                       `json:"score"`
+	ComplianceAssessmentRequirementStatus *ComplianceAssessmentRequirementStatusDTO      `json:"compliance_assessment_requirement_status"`
+	ComplianceAssessmentFrameworkValueID  *uint                                          `json:"compliance_assessment_framework_value_id"`
+	ComplianceAssessmentFrameworkValue    *ComplianceAssessmentFrameworkValueDetailDTO   `json:"compliance_assessment_framework_value"`
+	CompletedByUser                       *organizationDTOs.UserMinimalDTO               `json:"completed_by_user"`
+	CreatedAt                             time.Time                                      `json:"created_at"`
+	UpdatedAt                             *time.Time                                     `json:"updated_at"`
+	CreatedByUser                         organizationDTOs.UserMinimalDTO                `json:"created_by_user"`
+	UpdatedByUser                         *organizationDTOs.UserMinimalDTO               `json:"updated_by_user"`
+	ControlComments                       []*ComplianceAssessmentControlCommentDetailDTO `json:"control_comments"`
+	ActionPlans                           []*ComplianceActionPlanDetailDTO               `json:"action_plans"`
 }
 
 type ComplianceAssessmentControlUpdateFormDTO struct {

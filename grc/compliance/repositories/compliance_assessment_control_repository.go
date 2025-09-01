@@ -214,7 +214,14 @@ func (repo *ComplianceAssessmentControlRepository) GetFullDetailsByID(controlId 
 		Preload("ComplianceAssessmentFrameworkValue.ComplianceStatus").
 		Preload("ComplianceAssessmentRequirementStatus").
 		Preload("CreatedByUser").
-		Preload("UpdatedByUser")
+		Preload("UpdatedByUser").
+		Preload("ActionPlans").
+		Preload("ActionPlans.ResponsibleUser").
+		Preload("ActionPlans.ReviewUser").
+		Preload("ActionPlans.ActionPlanStatus").
+		Preload("ControlComments").
+		Preload("ControlComments.ComplianceAssessmentRequirementStatus").
+		Preload("ControlComments.CreatedByUser")
 
 	if err := query.First(&control, controlId).Error; err != nil {
 		return nil, err

@@ -13,7 +13,7 @@ type ComplianceAssessmentControlComment struct {
 	ComplianceAssessmentRequirementStatusID *uint     `json:"compliance_assessment_requirement_status_id" gorm:"default:null"`
 
 	// Relationships
-	ComplianceAssessmentControl           *ComplianceAssessmentControl           `gorm:"foreignKey:ComplianceAssessmentControlUnitID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	ComplianceAssessmentControl           *ComplianceAssessmentControl           `gorm:"foreignKey:ComplianceAssessmentControlID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 	ComplianceAssessmentRequirementStatus *ComplianceAssessmentRequirementStatus `gorm:"foreignKey:ComplianceAssessmentRequirementStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser                         *User                                  `gorm:"foreignKey:CreatedBYID"`
 }

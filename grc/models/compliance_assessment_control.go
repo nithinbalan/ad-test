@@ -26,6 +26,8 @@ type ComplianceAssessmentControl struct {
 	ComplianceAssessmentRequirementStatus *ComplianceAssessmentRequirementStatus `gorm:"foreignKey:ComplianceAssessmentRequirementStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser                         *User                                  `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser                         *User                                  `gorm:"foreignKey:UpdatedBYID"`
+	ControlComments                       []*ComplianceAssessmentControlComment  `gorm:"foreignKey:ComplianceAssessmentControlID"`
+	ActionPlans                           []*ComplianceActionPlan                `gorm:"foreignKey:ComplianceAssessmentControlID"`
 }
 
 // TableName overrides the table name used by ComplianceAssessmentControl to `compliance_assessment_controls`
