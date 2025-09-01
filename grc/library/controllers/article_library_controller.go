@@ -27,6 +27,13 @@ func (alc *ArticleLibraryController) GetAll(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
+
+	allowedParams := []string{
+		"article_category_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
 	page, _ := utility.ParseQueryParamToInt(c, "page", 1)
 	pageSize, _ := utility.ParseQueryParamToInt(c, "page_size", 10)
 
@@ -34,6 +41,7 @@ func (alc *ArticleLibraryController) GetAll(c *gin.Context) {
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
+		Filters:  filters,
 		Page:     page,
 		PageSize: pageSize,
 	}
@@ -68,4 +76,13 @@ func (alc *ArticleLibraryController) GetArticleLibraryDetails(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, Article)
+}
+
+func (alc *ArticleLibraryController) ArticleCategories(c *gin.Context) {
+	result, err := alc.service.GetArticleCategories()
+	if err != nil {
+		utility.SendInternalErrResp(alc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, result)
 }

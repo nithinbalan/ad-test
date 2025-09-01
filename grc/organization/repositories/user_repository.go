@@ -5,6 +5,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
+	settingDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
 	"time"
 
@@ -57,6 +58,7 @@ type UserRepositoryInterface interface {
 	UpdateResponsibleUserTasks(oldUserID, newUserID uint, tx ...utility.DatabaseTransaction) error
 
 	CountTasksByUser(userID uint, moduleID uint) (int, error)
+	GetUserModulesWithOpenTasks(userID uint) ([]settingDTOs.ModulePermissionListDTO, error)
 }
 
 type UserRepository struct {
@@ -917,4 +919,47 @@ func (r *UserRepository) CountTasksByUser(userID uint, moduleID uint) (int, erro
 		Count(&count).Error
 
 	return int(count), err
+}
+
+func (r *UserRepository) GetUserModulesWithOpenTasks(userID uint) ([]settingDTOs.ModulePermissionListDTO, error) {
+	var submodules []settingDTOs.ModulePermissionListDTO
+
+	query := `
+	SELECT 
+		m.id, 
+		m.identifier, 
+		m.title_en, 
+		m.title_ar, 
+		m.[order], 
+		m.icon, 
+		m.route, 
+		m.is_enable,
+		COUNT(t.id) AS open_task_count
+	FROM modules m
+	INNER JOIN tasks t 
+		ON t.module_id = m.id
+		AND t.responsible_user_id = ?
+	INNER JOIN task_statuses ts 
+		ON ts.id = t.task_status_id
+		AND ts.type NOT IN ('closed')
+	INNER JOIN role_permissions rp 
+		ON rp.module_id = m.id 
+		AND rp.role_permission_type_id = (SELECT id FROM role_permission_types WHERE type = 'view')
+		AND rp.is_granted = 1
+	INNER JOIN user_roles ur 
+		ON ur.role_id = rp.role_id 
+		AND ur.user_id = ?
+	WHERE m.module_id IS NOT NULL
+	GROUP BY 
+		m.id, m.identifier, m.title_en, m.title_ar, m.[order], 
+		m.icon, m.route, m.is_enable
+	ORDER BY m.[order]
+	`
+
+	err := r.db.Raw(query, userID, userID).Scan(&submodules).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return submodules, nil
 }

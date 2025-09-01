@@ -71,4 +71,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	libraryRoutes.GET("/article-library", ArticleLibraryController.GetAll)
 	libraryRoutes.GET("/article-library/:id", ArticleLibraryController.GetArticleLibraryDetails)
+	libraryRoutes.GET("/article-categories", ArticleLibraryController.ArticleCategories)
 }

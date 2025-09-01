@@ -14,6 +14,7 @@ import (
 type ArticleLibraryRepositoryInterface interface {
 	GetAll(params *libraryDTOs.ArticleLibraryListQueryParamsDTO) (*libraryDTOs.ArticleLibraryListResponseDTO, error)
 	GetFullDetailsByID(id uint) (*models.ArticleLibrary, error)
+	GetArticleCategories() ([]libraryDTOs.ArticleCategory, error)
 }
 
 type ArticleLibraryRepository struct {
@@ -43,6 +44,12 @@ func (repo *ArticleLibraryRepository) GetAll(params *libraryDTOs.ArticleLibraryL
 			article_library.created_at
 		`).
 		Joins("LEFT JOIN article_categories AS article_category ON article_library.article_category_id = article_category.id")
+
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN ?", values)
+		}
+	}
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -98,4 +105,15 @@ func (repo *ArticleLibraryRepository) GetFullDetailsByID(id uint) (*models.Artic
 		return nil, result.Error
 	}
 	return article, nil
+}
+
+func (repo *ArticleLibraryRepository) GetArticleCategories() ([]libraryDTOs.ArticleCategory, error) {
+	var results []libraryDTOs.ArticleCategory
+
+	err := repo.db.Table("article_categories").
+		Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
 }

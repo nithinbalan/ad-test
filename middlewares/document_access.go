@@ -151,6 +151,12 @@ func checkDocumentAccess(db *gorm.DB, documentID string, userID uint) (bool, err
 						  OR EXISTS (SELECT 1 FROM document_shared_users dsu 
 						             WHERE dsu.document_id = d.id AND dsu.user_id = ? AND dsu.type = 'review-user')))
 					OR
+					-- Approved documents: creator, responsible, or shared for review
+					(d.document_status_id = (SELECT id FROM document_statuses WHERE type = 'approved')
+					 AND (d.created_by_id = ? OR d.responsible_user_id = ? 
+						  OR EXISTS (SELECT 1 FROM document_shared_users dsu 
+						             WHERE dsu.document_id = d.id AND dsu.user_id = ? AND dsu.type = 'review-user')))
+					OR
 					-- Published documents: public, shared, or org unit access
 					(d.document_status_id = (SELECT id FROM document_statuses WHERE type = 'published')
 					 AND (d.document_access_type_id = (SELECT id FROM document_access_types WHERE type = 'public')
@@ -160,10 +166,12 @@ func checkDocumentAccess(db *gorm.DB, documentID string, userID uint) (bool, err
 						             FROM document_shared_units dsu
 						             JOIN organization_units ou ON ou.id = dsu.organization_unit_id
 						             JOIN users u ON u.id = ?
-						             WHERE dsu.document_id = d.id AND ou.id = u.` + orgUnitField + `)))
+						             WHERE dsu.document_id = d.id AND ou.id = u.` + orgUnitField + `)
+						  OR d.created_by_id = ?
+						  OR d.responsible_user_id = ?))
 					OR
 					-- Other documents: only creator or responsible
-					(d.document_status_id NOT IN (SELECT id FROM document_statuses WHERE type IN ('in-review','published'))
+					(d.document_status_id NOT IN (SELECT id FROM document_statuses WHERE type IN ('in-review','published','approved'))
 					 AND (d.created_by_id = ? OR d.responsible_user_id = ?))
 				)
 			) 
@@ -172,7 +180,7 @@ func checkDocumentAccess(db *gorm.DB, documentID string, userID uint) (bool, err
 	`
 
 	var accessInt int
-	err := db.Raw(query, documentID, userID, userID, userID, userID, userID, userID, userID).Scan(&accessInt).Error
+	err := db.Raw(query, documentID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID).Scan(&accessInt).Error
 
 	if err != nil {
 		return false, err
