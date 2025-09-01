@@ -17,6 +17,7 @@ type DocumentAcknowledgeUserServiceInterface interface {
 	Create(docuemntID uint, versionId uint, currentUserID uint, documentAcknowledgeFormDTO *documentDTOs.DocumentAcknowledgeFormDTO) (uint, error)
 	Delete(docuemntID uint, versionId uint, currentUserID uint) (uint, error)
 	GetDocumentAcknowledgmentSummary(documentID uint, versionId uint) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error)
+	GetDocumentAcknowledgmentWithOrgUnits(documentID uint, versionId uint) (*documentDTOs.DocumentAcknowledgementUnitSummaryResponseDTO, error)
 }
 
 type DocumentAcknowledgeUserService struct {
@@ -228,4 +229,49 @@ func (daus *DocumentAcknowledgeUserService) GetDocumentAcknowledgmentSummary(doc
 	}
 
 	return daus.repo.GetDocumentAcknowledgmentSummary(documentID, versionId, primaryOrgUnitField)
+}
+
+func (daus *DocumentAcknowledgeUserService) GetDocumentAcknowledgmentWithOrgUnits(documentID, versionId uint) (*documentDTOs.DocumentAcknowledgementUnitSummaryResponseDTO, error) {
+	document, err := daus.documentSvc.GetFullDetailsByID(documentID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var orgUnits []documentDTOs.DocumentAcknowledgementUnitSummaryDTO
+
+	if document.DocumentAccessType.Type == "public" {
+		orgUnits, err = daus.repo.GetPublicOrgUnitAcknowledgmentSummary(documentID, versionId)
+	} else {
+		// Get primary organization level
+		primaryLevel, err := daus.organizationLevelSvc.GetPrimaryLevel()
+		if err != nil {
+			return nil, err
+		}
+
+		var primaryOrgUnitField string
+		switch primaryLevel.Level {
+		case 1:
+			primaryOrgUnitField = "organization_unit_1_id"
+		case 2:
+			primaryOrgUnitField = "organization_unit_2_id"
+		case 3:
+			primaryOrgUnitField = "organization_unit_3_id"
+		case 4:
+			primaryOrgUnitField = "organization_unit_4_id"
+		case 5:
+			primaryOrgUnitField = "organization_unit_5_id"
+		default:
+			return nil, fmt.Errorf("unsupported primary level")
+		}
+
+		orgUnits, err = daus.repo.GetOrgUnitAcknowledgmentSummary(documentID, versionId, primaryOrgUnitField)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &documentDTOs.DocumentAcknowledgementUnitSummaryResponseDTO{
+		Items: orgUnits,
+	}, nil
 }

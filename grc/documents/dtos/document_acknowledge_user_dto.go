@@ -42,3 +42,13 @@ type DocumentAcknowledgmentSummaryDTO struct {
 type DocumentAcknowledgeFormDTO struct {
 	Comment *string `json:"comment" binding:"omitempty"`
 }
+
+type DocumentAcknowledgementUnitSummaryDTO struct {
+	OrganizationUnitID       uint   `json:"organization_unit_id"`
+	OrganizationUnitName     string `json:"organization_unit_name"`
+	AcknowledgmentPercentage int    `json:"acknowledgment_percentage"`
+}
+
+type DocumentAcknowledgementUnitSummaryResponseDTO struct {
+	Items []DocumentAcknowledgementUnitSummaryDTO `json:"items"`
+}
