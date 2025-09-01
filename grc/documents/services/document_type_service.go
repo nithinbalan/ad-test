@@ -20,6 +20,8 @@ type DocumentTypeServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
+
+	GetByType(documentType string) (*models.DocumentType, error)
 }
 
 type DocumentTypeService struct {
@@ -226,4 +228,14 @@ func (dts *DocumentTypeService) Deactivate(ids []uint, currentUserID uint) error
 		}()
 	}
 	return err
+}
+
+func (dts *DocumentTypeService) GetByType(documentType string) (*models.DocumentType, error) {
+	docType, err := dts.repo.GetByType(documentType)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return docType, nil
 }
