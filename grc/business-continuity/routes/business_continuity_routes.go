@@ -235,4 +235,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.POST("/business-continuity-plans/:id/incidents", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpAssociatedItemController.CreateBcpIncident)
 	businessContinuityRoutes.DELETE("/business-continuity-plans/:id/incidents/:incidentId", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpAssociatedItemController.DeleteBcpIncident)
 
+	businessContinuityRoutes.GET("/business-continuity-plans/:id/strategic-objectives", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpAssociatedItemController.GetAllBcpStrategicObjectives)
+	businessContinuityRoutes.POST("/business-continuity-plans/:id/strategic-objectives", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpAssociatedItemController.CreateBcpStrategicObjectives)
+	businessContinuityRoutes.DELETE("/business-continuity-plans/:id/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpAssociatedItemController.DeleteBcpStrategicObjectives)
+
 }

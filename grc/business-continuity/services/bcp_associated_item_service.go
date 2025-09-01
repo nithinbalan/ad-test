@@ -29,6 +29,9 @@ type BcpAssociatedItemServiceInterface interface {
 	GetAllBcpIncidents(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
 	CreateBcpIncident(BcpID uint, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
 	DeleteBcpIncident(BcpID uint, incidentID uint) error
+	GetAllBcpStrategicObjectives(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
+	CreateBcpStrategicObjectives(BcpID uint, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
+	DeleteBcpStrategicObjectives(BcpID uint, strategicObjectiveID uint) error
 }
 
 // Service and implementations
@@ -360,6 +363,58 @@ func (bais *BcpAssociatedItemService) DeleteBcpIncident(BcpID uint, incidentID u
 	tx := bais.repo.BeginTransaction()
 
 	if err := bais.repo.DeleteBcpIncident(BcpID, incidentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (bais *BcpAssociatedItemService) GetAllBcpStrategicObjectives(bcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error) {
+	if _, err := bais.BcpSvc.GetByID(bcpID); err != nil {
+		return nil, err
+	}
+	return bais.repo.GetAllBcpStrategicObjectives(bcpID, params)
+}
+
+func (bais *BcpAssociatedItemService) CreateBcpStrategicObjectives(BcpID, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error {
+
+	if _, err := bais.BcpSvc.GetByID(BcpID); err != nil {
+		return err
+	}
+
+	if err := bais.validationSvc.ValidateStrtegicObjectiveMapping(BcpID, dto.StrategicObjectiveIDs, "bcp_strategic_objectives", "business_continuity_plan_id"); err != nil {
+		return err
+	}
+
+	tx := bais.repo.BeginTransaction()
+	var mappings []*models.BcpStrategicObjective
+	currentTime := time.Now()
+	for _, strategicObjectiveID := range dto.StrategicObjectiveIDs {
+		mappings = append(mappings, &models.BcpStrategicObjective{
+			StrategicObjectiveID:     strategicObjectiveID,
+			BusinessContinuityPlanID: BcpID,
+			CreatedBYID:              userID,
+			CreatedAt:                currentTime,
+		})
+	}
+
+	if err := bais.repo.CreateBcpStrategicObjectives(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (bais *BcpAssociatedItemService) DeleteBcpStrategicObjectives(BcpID uint, strategicObjectiveID uint) error {
+	// Validate control existence
+	if _, err := bais.BcpSvc.GetByID(BcpID); err != nil {
+		return err
+	}
+
+	tx := bais.repo.BeginTransaction()
+
+	if err := bais.repo.DeleteBcpStrategicObjectives(BcpID, strategicObjectiveID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
