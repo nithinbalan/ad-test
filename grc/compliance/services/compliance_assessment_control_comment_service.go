@@ -141,11 +141,12 @@ func (s *ComplianceAssessmentControlCommentService) Create(assessmentID uint, co
 
 		// decide receiver: if reviewer commented → notify submitter, if submitter commented → notify reviewer
 		var notifyUserID uint
-		if assessment.ReviewUserID == currentUserID {
-			notifyUserID = uint(assessment.SubmittedByUser.ID)
-		} else {
-			notifyUserID = uint(assessment.ReviewUser.ID)
-		}
+		// if assessment.ReviewUserID == currentUserID {
+		// 	notifyUserID = uint(assessment.SubmittedByUser.ID)
+		// } else {
+		// 	notifyUserID = uint(assessment.ReviewUser.ID)
+		// }
+		notifyUserID = uint(assessment.ReviewUser.ID)
 
 		notifyUser, err := s.userSvc.GetByID(notifyUserID)
 		if err != nil {

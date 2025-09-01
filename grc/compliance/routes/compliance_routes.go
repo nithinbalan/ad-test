@@ -56,6 +56,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceAssessmentControlController := app.ComplianceModule.ComplianceAssessmentControlController
 	complianceAssessmentControlCommentController := app.ComplianceModule.ComplianceAssessmentControlCommentController
 	complianceAssessmentControlActionPlanController := app.ComplianceModule.ComplianceAssessmentControlActionPlanController
+	complianceAssessmentControlActionPlanStatusUpdateController := app.ComplianceModule.ComplianceAssessmentControlActionPlanStatusUpdateController
 
 	// Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -428,5 +429,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/compliance-assessments/:assessmentId/controls/:controlId/action-plans", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentControlActionPlanController.CreateComplianceAssessmentControlActionPlan)
 	complianceRoutes.PUT("/compliance-assessments/:assessmentId/controls/:controlId/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentControlActionPlanController.UpdateComplianceAssessmentControlActionPlan)
 	complianceRoutes.POST("/compliance-assessments/:assessmentId/controls/:controlId/action-plans/delete", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentControlActionPlanController.DeleteComplianceAssessmentControlActionPlans)
+
+	unauthenticatedRoutes.GET("/compliance-assessments/:assessmentId/controls/:controlId/action-plans/:actionPlanId/status-updates/:id/document-download", complianceAssessmentControlActionPlanStatusUpdateController.DownloadComplianceAssessmentControlActionPlanStatusUpdateDocument)
+	unauthenticatedRoutes.GET("/compliance-assessments/:assessmentId/controls/:controlId/action-plans/:actionPlanId/status-updates/:id/document-preview", complianceAssessmentControlActionPlanStatusUpdateController.GetComplianceAssessmentControlActionPlanStatusUpdateDocumentPreview)
+	complianceRoutes.GET("/compliance-assessments/:assessmentId/controls/:controlId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentControlActionPlanStatusUpdateController.GetAllComplianceAssessmentControlActionPlanStatusUpdates)
+	complianceRoutes.POST("/compliance-assessments/:assessmentId/controls/:controlId/action-plans/:actionPlanId/status-updates", complianceAssessmentControlActionPlanStatusUpdateController.CreateComplianceAssessmentControlActionPlanStatusUpdate)
+	complianceRoutes.PUT("/compliance-assessments/:assessmentId/controls/:controlId/action-plans/:actionPlanId/status-updates/:id", complianceAssessmentControlActionPlanStatusUpdateController.UpdateComplianceAssessmentControlActionPlanStatusUpdate)
+	complianceRoutes.GET("/compliance-assessments/:assessmentId/controls/:controlId/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentControlActionPlanStatusUpdateController.GetLatestComplianceAssessmentControlActionPlanStatusUpdate)
+	complianceRoutes.PUT("/compliance-assessments/:assessmentId/controls/:controlId/action-plans/:actionPlanId/approve", complianceAssessmentControlActionPlanStatusUpdateController.ApproveComplianceAssessmentControlActionPlan)
+	complianceRoutes.PUT("/compliance-assessments/:assessmentId/controls/:controlId/action-plans/:actionPlanId/revert", complianceAssessmentControlActionPlanStatusUpdateController.RevertComplianceAssessmentControlActionPlan)
 
 }

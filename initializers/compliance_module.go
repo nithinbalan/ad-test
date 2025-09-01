@@ -49,6 +49,7 @@ type ComplianceModule struct {
 	ComplianceAssessmentControlController                           *controllers.ComplianceAssessmentControlController
 	ComplianceAssessmentControlCommentController                    *controllers.ComplianceAssessmentControlCommentController
 	ComplianceAssessmentControlActionPlanController                 *controllers.ComplianceAssessmentControlActionPlanController
+	ComplianceAssessmentControlActionPlanStatusUpdateController     *controllers.ComplianceAssessmentControlActionPlanStatusUpdateController
 
 	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
@@ -324,6 +325,10 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	)
 	complianceAssessmentControlActionPlanController := controllers.NewComplianceAssessmentControlActionPlanController(complianceAssessmentControlActionPlanSvc)
 
+	complianceAssessmentControlActionPlanStatusUpdateRepo := repositories.NewComplianceActionPlanStatusUpdateRepository(db)
+	complianceAssessmentControlActionPlanStatusUpdateSvc := services.NewComplianceAssessmentControlActionPlanStatusUpdateService(complianceAssessmentControlActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, complianceAssessmentSvc, complianceAssessmentControlActionPlanSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, taskModule.TaskStatusService)
+	complianceAssessmentControlActionPlanStatusUpdateController := controllers.NewComplianceAssessmentControlActionPlanStatusUpdateController(complianceAssessmentControlActionPlanStatusUpdateSvc)
+
 	return &ComplianceModule{
 		ComplianceCategoryController:                                    complianceCategoryController,
 		ComplianceStatusController:                                      complianceStatusController,
@@ -365,6 +370,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceAssessmentControlController:                           complianceAssessmentControlController,
 		ComplianceAssessmentControlCommentController:                    complianceAssessmentControlCommentController,
 		ComplianceAssessmentControlActionPlanController:                 complianceAssessmentControlActionPlanController,
+		ComplianceAssessmentControlActionPlanStatusUpdateController:     complianceAssessmentControlActionPlanStatusUpdateController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,
