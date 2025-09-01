@@ -43,12 +43,16 @@ type DocumentAcknowledgeFormDTO struct {
 	Comment *string `json:"comment" binding:"omitempty"`
 }
 
-type DocumentAcknowledgementUnitSummaryDTO struct {
-	OrganizationUnitID       uint   `json:"organization_unit_id"`
-	OrganizationUnitName     string `json:"organization_unit_name"`
-	AcknowledgmentPercentage int    `json:"acknowledgment_percentage"`
+type DocumentAcknowledgmentOrgUnitSummaryDTO struct {
+	OrganizationUnitID      uint    `json:"organization_unit_id"`
+	OrganizationUnitTitleEn string  `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr string  `json:"organization_unit_title_ar"`
+	TotalUsers              int64   `json:"total_users"`
+	AcknowledgedUsers       int64   `json:"acknowledged_users"`
+	NotAcknowledgedUsers    int64   `json:"not_acknowledged_users"`
+	AcknowledgedPercent     float64 `json:"acknowledged_percent"`
 }
 
-type DocumentAcknowledgementUnitSummaryResponseDTO struct {
-	Items []DocumentAcknowledgementUnitSummaryDTO `json:"items"`
-}
+// type DocumentAcknowledgementUnitSummaryResponseDTO struct {
+// 	Items []DocumentAcknowledgementUnitSummaryDTO `json:"items"`
+// }

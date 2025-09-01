@@ -211,7 +211,7 @@ func (dauc *DocumentAcknowledgeUserController) GetDocumentAcknowledgmentSummary(
 	c.JSON(http.StatusOK, summary)
 }
 
-func (dauc *DocumentAcknowledgeUserController) GetDocumentAcknowledgmentWithOrgUnits(c *gin.Context) {
+func (dauc *DocumentAcknowledgeUserController) GetDocumentAcknowledgmentSummaryByOrgUnits(c *gin.Context) {
 	documentIdStr := c.Param("id")
 	documentId, err := strconv.ParseUint(documentIdStr, 10, 32)
 	if err != nil {
@@ -226,7 +226,7 @@ func (dauc *DocumentAcknowledgeUserController) GetDocumentAcknowledgmentWithOrgU
 		return
 	}
 
-	summary, err := dauc.service.GetDocumentAcknowledgmentWithOrgUnits(uint(documentId), uint(documentVersionId))
+	summary, err := dauc.service.GetDocumentAcknowledgmentSummaryByOrgUnit(uint(documentId), uint(documentVersionId))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

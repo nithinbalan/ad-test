@@ -117,7 +117,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents/:id/version/:versionId/acknowledge", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), documentAcknowledgeUserController.CreateDocumentAcknowledgeUser)
 	documentRoutes.DELETE("/documents/:id/version/:versionId/acknowledge", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), documentAcknowledgeUserController.DeleteDocumentAcknowledgeUser)
 	documentRoutes.GET("/documents/:id/version/:versionId/acknowledge-user-summary", middlewares.RolePermissionMiddleware(db, "document_register", "view"), middlewares.DocumentAccessCheckingMiddleware(db), documentAcknowledgeUserController.GetDocumentAcknowledgmentSummary)
-	documentRoutes.GET("/documents/:id/version/:versionId/acknowledge-user-unit-summary", middlewares.RolePermissionMiddleware(db, "document_register", "view"), middlewares.DocumentAccessCheckingMiddleware(db), documentAcknowledgeUserController.GetDocumentAcknowledgmentWithOrgUnits)
+	documentRoutes.GET("/documents/:id/version/:versionId/acknowledge-user-unit-summary", middlewares.RolePermissionMiddleware(db, "document_register", "view"), middlewares.DocumentAccessCheckingMiddleware(db), documentAcknowledgeUserController.GetDocumentAcknowledgmentSummaryByOrgUnits)
 
 	documentRoutes.GET("/documents/:id/audit-logs", middlewares.RolePermissionMiddleware(db, "document_register", "view"), middlewares.DocumentAccessCheckingMiddleware(db), documentAuditLogController.GetAllDocumentAuditLogs)
 

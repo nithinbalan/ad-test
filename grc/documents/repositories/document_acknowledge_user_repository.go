@@ -20,8 +20,8 @@ type DocumentAcknowledgeUserRepositoryInterface interface {
 	Delete(documentID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error
 	GetDocumentAcknowledgmentSummary(documentID uint, versionId uint, primaryOrgUnitField string) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error)
 	GetPublicDocumentAcknowledgmentSummary(documentID uint, versionId uint) (*documentDTOs.DocumentAcknowledgmentSummaryDTO, error)
-	GetOrgUnitAcknowledgmentSummary(documentID uint, versionId uint, primaryOrgUnitField string) ([]documentDTOs.DocumentAcknowledgementUnitSummaryDTO, error)
-	GetPublicOrgUnitAcknowledgmentSummary(documentID uint, versionId uint) ([]documentDTOs.DocumentAcknowledgementUnitSummaryDTO, error)
+	GetOrgUnitAcknowledgmentSummary(documentID uint, versionId uint, primaryOrgUnitField string) ([]documentDTOs.DocumentAcknowledgmentOrgUnitSummaryDTO, error)
+	GetPublicAcknowledgmentSummaryByOrgUnit(documentID uint, versionId uint) ([]documentDTOs.DocumentAcknowledgmentOrgUnitSummaryDTO, error)
 }
 
 // Implementation
@@ -380,112 +380,77 @@ func (repo *DocumentAcknowledgeUserRepository) GetPublicDocumentAcknowledgmentSu
 	return summary, nil
 }
 
-func (repo *DocumentAcknowledgeUserRepository) GetOrgUnitAcknowledgmentSummary(documentID, versionId uint, primaryOrgUnitField string) ([]documentDTOs.DocumentAcknowledgementUnitSummaryDTO, error) {
-	var result []documentDTOs.DocumentAcknowledgementUnitSummaryDTO
+func (repo *DocumentAcknowledgeUserRepository) GetOrgUnitAcknowledgmentSummary(documentID uint, versionId uint, primaryOrgUnitField string) ([]documentDTOs.DocumentAcknowledgmentOrgUnitSummaryDTO, error) {
+	var results []documentDTOs.DocumentAcknowledgmentOrgUnitSummaryDTO
 
-	query := `
-    WITH document_users AS (
-        -- Get users who have access to the document
-        SELECT DISTINCT u.id as user_id
-        FROM document_shared_users dsu
-        JOIN users u ON u.id = dsu.user_id
-        JOIN user_statuses us ON us.id = u.user_status_id
-        WHERE dsu.document_id = ?
-        AND us.is_active = 1
-        
-        UNION
-        
-        -- Get users who have access through their organization unit
-        SELECT DISTINCT u.id as user_id
-        FROM document_shared_units dsu
-        JOIN organization_units ou ON ou.id = dsu.organization_unit_id
-        JOIN users u ON (u.organization_unit_1_id = ou.id OR 
-                        u.organization_unit_2_id = ou.id OR
-                        u.organization_unit_3_id = ou.id OR
-                        u.organization_unit_4_id = ou.id OR
-                        u.organization_unit_5_id = ou.id)
-        JOIN user_statuses us ON us.id = u.user_status_id
-        WHERE dsu.document_id = ?
-        AND us.is_active = 1
-    ),
-    org_unit_stats AS (
+	query := fmt.Sprintf(`
         SELECT 
-            ou.id as org_unit_id,
-            ou.title_en as org_unit_name,
-            COUNT(DISTINCT u.id) as total_users,
-            COUNT(DISTINCT CASE WHEN dau.id IS NOT NULL THEN u.id END) as acknowledged_users
-        FROM document_users du
-        JOIN users u ON u.id = du.user_id
-        JOIN organization_units ou ON ou.id = u.` + primaryOrgUnitField + `
-        LEFT JOIN document_acknowledge_users dau ON dau.user_id = u.id 
-            AND dau.document_id = ? 
-            AND dau.document_version_id = ?
-        WHERE u.` + primaryOrgUnitField + ` IS NOT NULL
-        GROUP BY ou.id, ou.title_en
-        HAVING COUNT(DISTINCT u.id) > 0
-    )
-    SELECT 
-        org_unit_id as organization_unit_id,
-        org_unit_name as organization_unit_name,
-        CAST(CASE 
-            WHEN total_users > 0 THEN ROUND((acknowledged_users * 100.0) / total_users, 0)
-            ELSE 0 
-        END AS INT) as acknowledgment_percentage
-    FROM org_unit_stats
-    ORDER BY acknowledgment_percentage DESC, org_unit_name`
+            ou.id AS organization_unit_id,
+            ou.title_en AS organization_unit_title_en,
+            ou.title_ar AS organization_unit_title_ar,
+            COUNT(DISTINCT u.id) AS total_users,
+            COUNT(DISTINCT dau.user_id) AS acknowledged_users,
+            COUNT(DISTINCT u.id) - COUNT(DISTINCT dau.user_id) AS not_acknowledged_users,
+            CASE 
+                WHEN COUNT(DISTINCT u.id) = 0 THEN 0
+                ELSE (CAST(COUNT(DISTINCT dau.user_id) AS FLOAT) / COUNT(DISTINCT u.id)) * 100
+            END AS acknowledged_percent
+        FROM (
+            -- explicit users
+            SELECT u.id, u.%s AS org_unit_id
+            FROM document_shared_users dsu
+            JOIN users u ON u.id = dsu.user_id
+            JOIN user_statuses us ON us.id = u.user_status_id AND us.is_active = 1
+            WHERE dsu.document_id = ?
+            UNION
+            -- unit-based users
+            SELECT u.id, u.%s AS org_unit_id
+            FROM document_shared_units dsu
+            JOIN organization_units ou ON ou.id = dsu.organization_unit_id
+            JOIN users u ON u.%s = ou.id
+            JOIN user_statuses us ON us.id = u.user_status_id AND us.is_active = 1
+            WHERE dsu.document_id = ?
+        ) eligible
+        JOIN users u ON u.id = eligible.id
+        LEFT JOIN organization_units ou ON ou.id = eligible.org_unit_id
+        LEFT JOIN document_acknowledge_users dau 
+               ON dau.user_id = u.id AND dau.document_id = ? AND dau.document_version_id = ?
+        GROUP BY ou.id, ou.title_en, ou.title_ar
+    `, primaryOrgUnitField, primaryOrgUnitField, primaryOrgUnitField)
 
-	err := repo.db.Raw(query, documentID, documentID, documentID, versionId).Scan(&result).Error
-	if err != nil {
-		return nil, fmt.Errorf("error fetching organization unit acknowledgment summary: %v", err)
+	if err := repo.db.Raw(query, documentID, documentID, documentID, versionId).Scan(&results).Error; err != nil {
+		return nil, err
 	}
 
-	return result, nil
+	return results, nil
 }
 
-func (repo *DocumentAcknowledgeUserRepository) GetPublicOrgUnitAcknowledgmentSummary(documentID, versionId uint) ([]documentDTOs.DocumentAcknowledgementUnitSummaryDTO, error) {
-	var result []documentDTOs.DocumentAcknowledgementUnitSummaryDTO
+func (repo *DocumentAcknowledgeUserRepository) GetPublicAcknowledgmentSummaryByOrgUnit(documentID uint, versionId uint) ([]documentDTOs.DocumentAcknowledgmentOrgUnitSummaryDTO, error) {
+	var results []documentDTOs.DocumentAcknowledgmentOrgUnitSummaryDTO
 
 	query := `
-    WITH document_users AS (
-        -- All active users for public documents
-        SELECT u.id as user_id
-        FROM users u
-        JOIN user_statuses us ON us.id = u.user_status_id
-        WHERE us.is_active = 1
-    ),
-    org_unit_stats AS (
         SELECT 
-            ou.id as org_unit_id,
-            ou.title_en as org_unit_name,
-            COUNT(DISTINCT u.id) as total_users,
-            COUNT(DISTINCT CASE WHEN dau.id IS NOT NULL THEN u.id END) as acknowledged_users
-        FROM document_users du
-        JOIN users u ON u.id = du.user_id
-        JOIN organization_units ou ON ou.id = u.organization_unit_1_id 
-                                  OR ou.id = u.organization_unit_2_id
-                                  OR ou.id = u.organization_unit_3_id
-                                  OR ou.id = u.organization_unit_4_id
-                                  OR ou.id = u.organization_unit_5_id
-        LEFT JOIN document_acknowledge_users dau ON dau.user_id = u.id 
-            AND dau.document_id = ? 
-            AND dau.document_version_id = ?
-        GROUP BY ou.id, ou.title_en
-        HAVING COUNT(DISTINCT u.id) > 0
-    )
-    SELECT 
-        org_unit_id as organization_unit_id,
-        org_unit_name as organization_unit_name,
-       CAST(CASE 
-            WHEN total_users > 0 THEN ROUND((acknowledged_users * 100.0) / total_users, 0)
-            ELSE 0 
-        END AS INT) as acknowledgment_percentage
-    FROM org_unit_stats
-    ORDER BY acknowledgment_percentage DESC, org_unit_name`
+            ou.id AS organization_unit_id,
+            ou.title_en AS organization_unit_title_en,
+            ou.title_ar AS organization_unit_title_ar,
+            COUNT(DISTINCT u.id) AS total_users,
+            COUNT(DISTINCT dau.user_id) AS acknowledged_users,
+            COUNT(DISTINCT u.id) - COUNT(DISTINCT dau.user_id) AS not_acknowledged_users,
+            CASE 
+                WHEN COUNT(DISTINCT u.id) = 0 THEN 0
+                ELSE (CAST(COUNT(DISTINCT dau.user_id) AS FLOAT) / COUNT(DISTINCT u.id)) * 100
+            END AS acknowledged_percent
+        FROM users u
+        JOIN user_statuses us ON us.id = u.user_status_id AND us.is_active = 1
+        LEFT JOIN organization_units ou ON ou.id = u.organization_unit_1_id  -- replace with primary field
+        LEFT JOIN document_acknowledge_users dau 
+            ON dau.user_id = u.id AND dau.document_id = ? AND dau.document_version_id = ?
+        GROUP BY ou.id, ou.title_en, ou.title_ar
+    `
 
-	err := repo.db.Raw(query, documentID, versionId).Scan(&result).Error
-	if err != nil {
-		return nil, fmt.Errorf("error fetching public organization unit acknowledgment summary: %v", err)
+	if err := repo.db.Raw(query, documentID, versionId).Scan(&results).Error; err != nil {
+		return nil, err
 	}
 
-	return result, nil
+	return results, nil
 }
