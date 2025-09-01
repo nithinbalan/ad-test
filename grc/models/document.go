@@ -7,16 +7,16 @@ import (
 type Document struct {
 	ID                    uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	ReferenceNumber       string     `json:"reference_number" binding:"required" gorm:"type:varchar(45);not null"`
-	DocumentTypeID        uint       `json:"document_type_id" binding:"required" gorm:"not null"`
+	DocumentTypeID        *uint      `json:"document_type_id"`
 	TitleEn               string     `json:"title_en" binding:"required" gorm:"type:nvarchar(255);not null"`
 	TitleAr               string     `json:"title_ar" binding:"required" gorm:"type:nvarchar(255);not null"`
 	DescriptionEn         *string    `json:"description_en" gorm:"type:nvarchar(max);default:null"`
 	DescriptionAr         *string    `json:"description_ar" gorm:"type:nvarchar(max);default:null"`
-	DocumentCategoryID    uint       `json:"document_category_id" binding:"required" gorm:"not null"`
-	ResponsibleUserID     uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
-	ResponsibleUnitID     uint       `json:"responsible_unit_id" binding:"required" gorm:"not null"`
-	DocumentAccessTypeID  uint       `json:"document_access_type_id" binding:"required" gorm:"not null"`
-	DocumentStatusID      uint       `json:"document_status_id" binding:"required" gorm:"not null"`
+	DocumentCategoryID    *uint      `json:"document_category_id"`
+	ResponsibleUserID     *uint      `json:"responsible_user_id"`
+	ResponsibleUnitID     *uint      `json:"responsible_unit_id"`
+	DocumentAccessTypeID  uint       `json:"document_access_type_id"`
+	DocumentStatusID      *uint      `json:"document_status_id"`
 	MarkedAsAuditableItem bool       `json:"marked_as_auditable_item" gorm:"default:false" binding:"-"`
 	IsLocked              bool       `json:"is_locked" binding:"required" gorm:"type:tinyint(1);not null;default:0"`
 	LastCheckoutAt        *time.Time `json:"last_checkout_at" gorm:"type:date;default:null"`
@@ -39,6 +39,8 @@ type Document struct {
 	NextReviewDate        *time.Time `json:"next_review_date,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
 	ReviewStatusID        *uint      `json:"review_status_id,omitempty" gorm:"default:null"`
 	PolicyFolderID        *uint      `json:"policy_folder_id" binding:"omitempty" gorm:"default:null"`
+	ParentDocumentID      *uint      `json:"parent_document_id"`
+	IsFolder              bool       `json:"is_folder"`
 
 	// Relations
 	DocumentType       *DocumentType       `gorm:"foreignKey:DocumentTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

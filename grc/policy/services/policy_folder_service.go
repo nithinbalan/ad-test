@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
+	"jethur/grc/policy/dtos"
 	policyDTOs "jethur/grc/policy/dtos"
 	"jethur/grc/policy/repositories"
 	"jethur/utility"
@@ -11,10 +12,10 @@ import (
 )
 
 type PolicyFolderServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*policyDTOs.PolicyFolderListDTO, error)
-	GetByID(id uint) (*models.PolicyFolder, error)
-	Create(currentUserID uint, folder *models.PolicyFolder) (*models.PolicyFolder, error)
-	Update(id uint, currentUserID uint, folder *models.PolicyFolder) (*models.PolicyFolder, error)
+	GetAll(params *policyDTOs.PolicyRegisterListQueryParamsDTO) (*policyDTOs.PolicyRegisterListResponseDTO, error)
+	GetByID(id uint) (*models.Document, error)
+	Create(currentUserID uint, formDTO *dtos.PolicyFolderFormDTO) (*models.Document, error)
+	Update(id uint, currentUserID uint, formDTO *dtos.PolicyFolderFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
@@ -33,21 +34,28 @@ func NewPolicyFolderService(repo repositories.PolicyFolderRepositoryInterface, a
 	}
 }
 
-func (cfs *PolicyFolderService) GetAll(sort string, sortBy string, keyword string, status string) ([]*policyDTOs.PolicyFolderListDTO, error) {
-	return cfs.repo.GetAll(sort, sortBy, keyword, status)
+func (cfs *PolicyFolderService) GetAll(params *policyDTOs.PolicyRegisterListQueryParamsDTO) (*policyDTOs.PolicyRegisterListResponseDTO, error) {
+	return cfs.repo.GetAll(params)
 }
 
-func (cfs PolicyFolderService) GetByID(id uint) (*models.PolicyFolder, error) {
+func (cfs PolicyFolderService) GetByID(id uint) (*models.Document, error) {
 	return cfs.repo.GetByID(id)
 }
 
-func (cfs *PolicyFolderService) Create(currentUserID uint, folder *models.PolicyFolder) (*models.PolicyFolder, error) {
-	if exists, err := cfs.repo.ExistsByTitle(folder.TitleEn, folder.TitleAr); err != nil {
+func (cfs *PolicyFolderService) Create(currentUserID uint, formDTO *dtos.PolicyFolderFormDTO) (*models.Document, error) {
+	if exists, err := cfs.repo.ExistsByTitle(formDTO.TitleEn, formDTO.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
+	folder := &models.Document{
+		TitleEn:              formDTO.TitleEn,
+		TitleAr:              formDTO.TitleEn,
+		IsFolder:             true,
+		ParentDocumentID:     formDTO.ParentDocumentID,
+		DocumentAccessTypeID: formDTO.DocumentAccessTypeID,
+	}
 	// Set the CreatedByID field
 	folder.CreatedBYID = currentUserID
 
@@ -59,7 +67,7 @@ func (cfs *PolicyFolderService) Create(currentUserID uint, folder *models.Policy
 	go func() {
 		err := cfs.activityLogSvc.LogActivity(
 			models.CreateAction,
-			models.PolicyFolder{}.TableName(),
+			models.Document{}.TableName(),
 			folder.ID,
 			createdFolder,
 			currentUserID,
@@ -75,31 +83,31 @@ func (cfs *PolicyFolderService) Create(currentUserID uint, folder *models.Policy
 	return createdFolder, nil
 }
 
-func (cfs *PolicyFolderService) Update(id uint, currentUserID uint, updatedFolder *models.PolicyFolder) (*models.PolicyFolder, error) {
+func (cfs *PolicyFolderService) Update(id uint, currentUserID uint, formDTO *dtos.PolicyFolderFormDTO) error {
 	existingFolder, err := cfs.repo.GetByID(id)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if updatedFolder.TitleEn != existingFolder.TitleEn || updatedFolder.TitleAr != existingFolder.TitleAr {
-		if exists, err := cfs.repo.ExistsByTitleExcludingID(id, updatedFolder.TitleEn, updatedFolder.TitleAr); err != nil {
-			return nil, err
+	if formDTO.TitleEn != existingFolder.TitleEn || formDTO.TitleAr != existingFolder.TitleAr {
+		if exists, err := cfs.repo.ExistsByTitleExcludingID(id, formDTO.TitleEn, formDTO.TitleAr); err != nil {
+			return err
 		} else if exists {
-			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
 	}
 
-	updatedFolder.UpdatedBYID = &currentUserID
+	existingFolder.UpdatedBYID = &currentUserID
 
-	result, err := cfs.repo.Update(id, updatedFolder)
+	result, err := cfs.repo.Update(id, existingFolder)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status"}
-	changes, err := utility.CompareFields(existingFolder, updatedFolder, fieldsToCompare)
+	changes, err := utility.CompareFields(existingFolder, existingFolder, fieldsToCompare)
 
 	if err != nil {
 		log.Println("error :", err.Error())
@@ -113,7 +121,7 @@ func (cfs *PolicyFolderService) Update(id uint, currentUserID uint, updatedFolde
 	go func() {
 		err := cfs.activityLogSvc.LogActivity(
 			models.UpdateAction,
-			models.PolicyFolder{}.TableName(),
+			models.Document{}.TableName(),
 			result.ID,
 			changedDataJSON,
 			currentUserID,
@@ -124,7 +132,7 @@ func (cfs *PolicyFolderService) Update(id uint, currentUserID uint, updatedFolde
 			fmt.Printf("Failed to log activity: %v\n", err)
 		}
 	}()
-	return result, err
+	return err
 }
 
 func (cfs *PolicyFolderService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
@@ -156,7 +164,7 @@ func (cfs *PolicyFolderService) Delete(ids []uint, currentUserID uint) ([]uint, 
 		go func() {
 			err := cfs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
-				models.PolicyFolder{}.TableName(),
+				models.Document{}.TableName(),
 				successfulIds,
 				deletedFolders,
 				currentUserID,
@@ -179,7 +187,7 @@ func (cfs *PolicyFolderService) Activate(ids []uint, currentUserID uint) error {
 		go func() {
 			err := cfs.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
-				models.PolicyFolder{}.TableName(),
+				models.Document{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -202,7 +210,7 @@ func (cfs *PolicyFolderService) Deactivate(ids []uint, currentUserID uint) error
 		go func() {
 			err := cfs.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,
-				models.PolicyFolder{}.TableName(),
+				models.Document{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,

@@ -184,22 +184,17 @@ func (prs *PolicyRegisterService) Create(currentUserID uint, documentFormDTO *po
 		TitleAr:              documentFormDTO.TitleAr,
 		DescriptionEn:        documentFormDTO.DescriptionEn,
 		DescriptionAr:        documentFormDTO.DescriptionAr,
-		DocumentCategoryID:   documentFormDTO.DocumentCategoryID,
-		ResponsibleUserID:    documentFormDTO.ResponsibleUserID,
-		ResponsibleUnitID:    responsibleUnitID,
+		DocumentTypeID:       &documentFormDTO.DocumentTypeID,
+		DocumentCategoryID:   &documentFormDTO.DocumentCategoryID,
+		ResponsibleUserID:    &documentFormDTO.ResponsibleUserID,
+		ResponsibleUnitID:    &responsibleUnitID,
 		ReviewFrequencyID:    documentFormDTO.ReviewFrequencyID,
 		DocumentAccessTypeID: documentFormDTO.DocumentAccessTypeID,
-		DocumentStatusID:     documentStatus.ID,
+		DocumentStatusID:     &documentStatus.ID,
 		PolicyFolderID:       documentFormDTO.PolicyFolderID,
+		ParentDocumentID:     documentFormDTO.ParentDocumentID,
 		CreatedBYID:          currentUserID,
 	}
-
-	documentType, err := prs.documentTypeSvc.GetByType("policy")
-	if err != nil {
-		return 0, err
-	}
-
-	document.DocumentTypeID = documentType.ID
 
 	id, err := prs.repo.Create(document, tx)
 	if err != nil {
@@ -344,9 +339,10 @@ func (prs *PolicyRegisterService) Update(id uint, currentUserID uint, documentFo
 	existingDocument.TitleAr = documentFormDTO.TitleAr
 	existingDocument.DescriptionEn = documentFormDTO.DescriptionEn
 	existingDocument.DescriptionAr = documentFormDTO.DescriptionAr
-	existingDocument.DocumentCategoryID = documentFormDTO.DocumentCategoryID
-	existingDocument.ResponsibleUserID = documentFormDTO.ResponsibleUserID
-	existingDocument.ResponsibleUnitID = responsibleUnitID
+	existingDocument.DocumentTypeID = &documentFormDTO.DocumentTypeID
+	existingDocument.DocumentCategoryID = &documentFormDTO.DocumentCategoryID
+	existingDocument.ResponsibleUserID = &documentFormDTO.ResponsibleUserID
+	existingDocument.ResponsibleUnitID = &responsibleUnitID
 	existingDocument.ReviewFrequencyID = documentFormDTO.ReviewFrequencyID
 	existingDocument.DocumentAccessTypeID = documentFormDTO.DocumentAccessTypeID
 	existingDocument.UpdatedBYID = &currentUserID
@@ -378,7 +374,7 @@ func (prs *PolicyRegisterService) Update(id uint, currentUserID uint, documentFo
 	var sharedUsers []*models.DocumentSharedUser
 	var sharedUnits []*models.DocumentSharedUnit
 
-	if existingDocument.ResponsibleUserID != documentFormDTO.ResponsibleUserID {
+	if existingDocument.ResponsibleUserID != &documentFormDTO.ResponsibleUserID {
 		sharedUsers = append(sharedUsers, &models.DocumentSharedUser{
 			DocumentID:  id,
 			UserID:      documentFormDTO.ResponsibleUserID,
@@ -386,7 +382,7 @@ func (prs *PolicyRegisterService) Update(id uint, currentUserID uint, documentFo
 			CreatedBYID: currentUserID,
 		})
 
-		err = prs.documentAccessSvc.DeleteResponsibleUser(id, existingDocument.ResponsibleUserID, tx)
+		err = prs.documentAccessSvc.DeleteResponsibleUser(id, *existingDocument.ResponsibleUserID, tx)
 		if err != nil {
 			tx.Rollback()
 			return err

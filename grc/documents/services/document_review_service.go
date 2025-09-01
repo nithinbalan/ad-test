@@ -170,7 +170,7 @@ func (drs *DocumentReviewService) handleApprovedCase(id uint, currentUserID uint
 				return err
 			}
 
-			existingDocument.DocumentStatusID = documentStatus.ID
+			existingDocument.DocumentStatusID = &documentStatus.ID
 			err = drs.documentSvc.UpdateDocument(existingDocument)
 			if err != nil {
 				return err
@@ -264,7 +264,7 @@ func (drs *DocumentReviewService) handleApprovedCase(id uint, currentUserID uint
 						return err
 					}
 
-					existingDocument.DocumentStatusID = documentStatus.ID
+					existingDocument.DocumentStatusID = &documentStatus.ID
 					err = drs.documentSvc.UpdateDocument(existingDocument)
 					if err != nil {
 						return err
@@ -344,7 +344,7 @@ func (drs *DocumentReviewService) handleApprovedCase(id uint, currentUserID uint
 					return err
 				}
 
-				existingDocument.DocumentStatusID = documentStatus.ID
+				existingDocument.DocumentStatusID = &documentStatus.ID
 				err = drs.documentSvc.UpdateDocument(existingDocument)
 				if err != nil {
 					return err
@@ -417,7 +417,7 @@ func (drs *DocumentReviewService) handleRejectedCase(id uint, currentUserID uint
 		return err
 	}
 
-	existingDocument.DocumentStatusID = documentStatus.ID
+	existingDocument.DocumentStatusID = &documentStatus.ID
 	err = drs.documentSvc.UpdateDocument(existingDocument)
 	if err != nil {
 		return err
@@ -490,7 +490,7 @@ func (drs *DocumentReviewService) handleRevertedCase(id, currentUserID uint, doc
 		return err
 	}
 
-	existingDocument.DocumentStatusID = documentStatus.ID
+	existingDocument.DocumentStatusID = &documentStatus.ID
 	err = drs.documentSvc.UpdateDocument(existingDocument)
 	if err != nil {
 		return err

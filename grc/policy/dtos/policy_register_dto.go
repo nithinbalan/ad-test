@@ -42,6 +42,8 @@ type PolicyRegisterListDTO struct {
 	DocumentToken                   string     `json:"document_token"`
 	DocumentOriginalName            *string    `json:"document_original_name"`
 	DocumentType                    string     `json:"document_type"`
+	IsFolder                        *bool      `json:"is_folder"`
+	ParentDocumentID                *uint      `json:"parent_document_id"`
 	CreatedUserID                   uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn          string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string     `json:"created_user_first_name_ar"`
@@ -97,6 +99,7 @@ type PolicyRegisterFormDTO struct {
 	TitleAr              string  `json:"title_ar" binding:"required"`
 	DescriptionEn        *string `json:"description_en"`
 	DescriptionAr        *string `json:"description_ar"`
+	DocumentTypeID       uint    `json:"document_type_id" binding:"required"`
 	DocumentCategoryID   uint    `json:"document_category_id" binding:"required"`
 	ResponsibleUserID    uint    `json:"responsible_user_id" binding:"required"`
 	DocumentAccessTypeID uint    `json:"document_access_type_id" binding:"required"`
@@ -104,6 +107,7 @@ type PolicyRegisterFormDTO struct {
 	SharedUserIDs        []*uint `json:"shared_user_ids"`
 	SharedUnitIDs        []*uint `json:"shared_unit_ids"`
 	PolicyFolderID       *uint   `json:"policy_folder_id"`
+	ParentDocumentID     *uint   `json:"parent_document_id"`
 	ReviewFrequencyID    *uint   `json:"review_frequency_id" binding:"omitempty"`
 }
 
