@@ -23,6 +23,9 @@ type KRIAssociatedItemServiceInterface interface {
 	GetAllKRIIncidents(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
 	CreateKRIIncident(kriID uint, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
 	DeleteKRIIncident(kriID uint, incidentID uint) error
+	GetAllKRIRisks(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
+	CreateKRIRisk(kriID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	DeleteKRIRisk(kriID uint, riskID uint) error
 }
 
 // Service and implementations
@@ -248,6 +251,59 @@ func (pais *KRIAssociatedItemService) DeleteKRIIncident(kriID uint, incidentID u
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteKRIIncident(kriID, incidentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *KRIAssociatedItemService) GetAllKRIRisks(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+	if _, err := pais.KRISvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+	return pais.repo.GetAllKRIRisks(assetID, params)
+}
+
+func (pais *KRIAssociatedItemService) CreateKRIRisk(kriID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+
+	if _, err := pais.KRISvc.GetByID(kriID); err != nil {
+		return err
+	}
+
+	if err := pais.validationSvc.ValidateRiskMapping(kriID, dto.RiskIDs, "risk_kris", "kri_register_id"); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.RiskKri
+	currentTime := time.Now()
+
+	for _, riskID := range dto.RiskIDs {
+		mappings = append(mappings, &models.RiskKri{
+			RiskRegisterID: riskID,
+			KriRegisterID:  kriID,
+			CreatedByID:    userID,
+			CreatedAt:      currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateKRIRisk(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *KRIAssociatedItemService) DeleteKRIRisk(kriID uint, riskID uint) error {
+
+	if _, err := pais.KRISvc.GetByID(kriID); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteKRIRisk(kriID, riskID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
