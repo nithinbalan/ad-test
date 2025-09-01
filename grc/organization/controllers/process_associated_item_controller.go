@@ -833,3 +833,114 @@ func (paic *ProcessAssociatedItemController) DeleteProcessIncident(c *gin.Contex
 
 	c.JSON(http.StatusOK, gin.H{"message": "Incident unmapped from process successfully"})
 }
+
+func (paic *ProcessAssociatedItemController) GetAllProcessStrategicObjectives(c *gin.Context) {
+	processIDStr := c.Param("processId")
+
+	processID, err := strconv.ParseUint(processIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	objectives, err := paic.service.GetAllProcessStrategicObjectives(uint(processID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(paic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, objectives)
+}
+
+func (paic *ProcessAssociatedItemController) CreateProcessStrategicObjective(c *gin.Context) {
+	var input commonDTOs.AssociatedStrategicObjectiveMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	processID, err := strconv.ParseUint(c.Param("processId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, err.Error())
+		return
+	}
+
+	err = paic.service.CreateProcessStrategicObjective(uint(processID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(paic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (paic *ProcessAssociatedItemController) DeleteProcessStrategicObjective(c *gin.Context) {
+
+	processIDStr := c.Param("processId")
+	strategicObjectiveIDStr := c.Param("strategicObjectiveId")
+
+	processID, err := strconv.ParseUint(processIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	strategicObjectiveID, err := strconv.ParseUint(strategicObjectiveIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = paic.service.DeleteProcessStrategicObjective(uint(processID), uint(strategicObjectiveID))
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Strategic Objective unmapped from process successfully"})
+}
