@@ -20,6 +20,7 @@ type ThreatActionPlanStatusUpdateRepositoryInterface interface {
 	CreateDocuments(docs []*models.ThreatActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.ThreatActionPlanStatusUpdateDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	ThreatActionPlanUpdateStatus(ThreatActionPlan *models.ThreatActionPlan, tx ...utility.DatabaseTransaction) error
 }
 
 type ThreatActionPlanStatusUpdateRepository struct {
@@ -201,4 +202,15 @@ func (repo *ThreatActionPlanStatusUpdateRepository) GetLatestThreatActionPlanSta
 	}
 
 	return threatActionPlanUpdate, nil
+}
+
+func (repo *ThreatActionPlanStatusUpdateRepository) ThreatActionPlanUpdateStatus(ThreatActionPlan *models.ThreatActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(ThreatActionPlan).Error; err != nil {
+		return err
+	}
+	return nil
 }

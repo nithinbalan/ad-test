@@ -257,3 +257,97 @@ func (tasuc *ThreatActionPlanStatusUpdateController) DownloadThreatActionPlanDoc
 
 	c.File(documentPath)
 }
+
+func (tasuc *ThreatActionPlanStatusUpdateController) ApproveThreatActionPlan(c *gin.Context) {
+	var threatStatusReviewUserUpdateFormDTO threatDTOs.ThreatActionPlanReviewUserStatusUpdateFormDTO
+
+	threatID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	threatActionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&threatStatusReviewUserUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tasuc.db, c, err.Error())
+		return
+	}
+
+	err = tasuc.service.Approve(uint(threatID), uint(threatActionPlanID), currentUserID, &threatStatusReviewUserUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(tasuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (tasuc *ThreatActionPlanStatusUpdateController) RevertThreatActionPlan(c *gin.Context) {
+	var threatStatusReviewUserUpdateFormDTO threatDTOs.ThreatActionPlanReviewUserStatusUpdateFormDTO
+
+	threatID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	threatActionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&threatStatusReviewUserUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tasuc.db, c, err.Error())
+		return
+	}
+
+	err = tasuc.service.Revert(uint(threatID), uint(threatActionPlanID), currentUserID, &threatStatusReviewUserUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(tasuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

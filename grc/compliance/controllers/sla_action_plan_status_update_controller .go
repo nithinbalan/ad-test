@@ -1,13 +1,14 @@
 package controllers
 
 import (
+	"net/http"
+	"path/filepath"
+	"strconv"
+
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/services"
 	"jethur/utility"
-	"net/http"
-	"path/filepath"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -46,7 +47,6 @@ func (sasuc *SLAActionPlanStatusUpdateController) GetAllSLAActionPlanStatusUpdat
 	keyword := c.Query("keyword")
 
 	slaStatuses, err := sasuc.service.GetAll(uint(slaID), uint(actionPlanID), sort, sortBy, keyword)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -91,7 +91,6 @@ func (sasuc *SLAActionPlanStatusUpdateController) CreateSLAActionPlanStatusUpdat
 	}
 
 	createdID, err := sasuc.service.Create(uint(slaID), uint(actionPlanID), currentUserID, &slaStatusUpdateFormDTO)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -292,4 +291,96 @@ func (sasuc *SLAActionPlanStatusUpdateController) DownloadSLAActionPlanStatusUpd
 
 	// Serve the file
 	c.File(slaActionPlanStatusUpdateDocumentPath)
+}
+
+func (sasuc *SLAActionPlanStatusUpdateController) ApproveSLAActionPlan(c *gin.Context) {
+	var slaStatusReviewUserUpdateFormDTO complianceDTOs.SLAActionPlanReviewUserStatusUpdateFormDTO
+
+	slaID, err := strconv.Atoi(c.Param("slaId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&slaStatusReviewUserUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(sasuc.db, c, err.Error())
+		return
+	}
+	err = sasuc.service.Approve(uint(slaID), uint(actionPlanID), currentUserID, &slaStatusReviewUserUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(sasuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (sasuc *SLAActionPlanStatusUpdateController) RevertSLAActionPlan(c *gin.Context) {
+	var slaStatusReviewUserUpdateFormDTO complianceDTOs.SLAActionPlanReviewUserStatusUpdateFormDTO
+
+	slaID, err := strconv.Atoi(c.Param("slaId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&slaStatusReviewUserUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(sasuc.db, c, err.Error())
+		return
+	}
+	err = sasuc.service.Revert(uint(slaID), uint(actionPlanID), currentUserID, &slaStatusReviewUserUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(sasuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }

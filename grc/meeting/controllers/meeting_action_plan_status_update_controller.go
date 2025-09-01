@@ -323,3 +323,95 @@ func (mapuc *MeetingActionPlanStatusUpdateController) DownloadMeetingActionPlanD
 
 	c.File(documentPath)
 }
+
+func (mapuc *MeetingActionPlanStatusUpdateController) ApproveMeetingActionPlan(c *gin.Context) {
+	var meetingActionPlanReviewUserStatusUpdateFormDTO meetingDTOs.MeetingActionPlanReviewUserStatusUpdateFormDTO
+
+	meetingID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	meetingActionPlanID, err := strconv.Atoi(c.Param("meetingActionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&meetingActionPlanReviewUserStatusUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(mapuc.db, c, err.Error())
+		return
+	}
+	err = mapuc.service.Approve(uint(meetingID), uint(meetingActionPlanID), currentUserID, &meetingActionPlanReviewUserStatusUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(mapuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (mapuc *MeetingActionPlanStatusUpdateController) RevertMeetingActionPlan(c *gin.Context) {
+	var meetingActionPlanReviewUserStatusUpdateFormDTO meetingDTOs.MeetingActionPlanReviewUserStatusUpdateFormDTO
+
+	meetingID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	meetingActionPlanID, err := strconv.Atoi(c.Param("meetingActionPlanID"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&meetingActionPlanReviewUserStatusUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(mapuc.db, c, err.Error())
+		return
+	}
+	err = mapuc.service.Revert(uint(meetingID), uint(meetingActionPlanID), currentUserID, &meetingActionPlanReviewUserStatusUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(mapuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

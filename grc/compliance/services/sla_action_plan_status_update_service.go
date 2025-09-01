@@ -3,16 +3,22 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"jethur/config"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -23,6 +29,8 @@ type SLAActionPlanStatusUpdateServiceInterface interface {
 	Update(SLAID uint, SLAActionPlanID uint, id uint, currentUserID uint, SLAActionPlanStatusUpdateFormDTO *complianceDTOs.SLAActionPlanStatusUpdateFormDTO) error
 	GetLatestSLAActionPlanStatusUpdate(slaID uint, actionPlanID uint) (*complianceDTOs.SLAActionPlanStatusUpdateListDTO, error)
 	GetDocumentPath(slaID uint, actionPlanID uint, id uint, token string) (string, error)
+	Approve(slaID uint, actionPlanID uint, currentUserID uint, SLAAStatusReviewUserUpdateFormDTO *complianceDTOs.SLAActionPlanReviewUserStatusUpdateFormDTO) error
+	Revert(slaID uint, actionPlanID uint, currentUserID uint, SLAActionPlanReviewUserStatusUpdateFormDTO *complianceDTOs.SLAActionPlanReviewUserStatusUpdateFormDTO) error
 }
 
 type SLAActionPlanStatusUpdateService struct {
@@ -30,6 +38,11 @@ type SLAActionPlanStatusUpdateService struct {
 	activityLogSvc      logServices.ActivityLogServiceInterface
 	slaActionPlanSvc    SLAActionPlanServiceInterface
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface
+	slaRegisterSvc      SLARegisterServiceInterface
+	taskSvc             taskServices.TaskServiceInterface
+	taskStatusSvc       taskServices.TaskStatusServiceInterface
+	userSvc             organizationServices.UserServiceInterface
+	notificationSvc     commonServices.NotificationServiceInterface
 }
 
 func NewSLAActionPlanStatusUpdateService(
@@ -37,12 +50,22 @@ func NewSLAActionPlanStatusUpdateService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	slaActionPlanSvc SLAActionPlanServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
+	slaRegisterSvc SLARegisterServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
+	taskStatusSvc taskServices.TaskStatusServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) SLAActionPlanStatusUpdateServiceInterface {
 	return &SLAActionPlanStatusUpdateService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
 		slaActionPlanSvc:    slaActionPlanSvc,
 		actionPlanStatusSvc: actionPlanStatusSvc,
+		slaRegisterSvc:      slaRegisterSvc,
+		taskSvc:             taskSvc,
+		taskStatusSvc:       taskStatusSvc,
+		userSvc:             userSvc,
+		notificationSvc:     notificationSvc,
 	}
 }
 
@@ -60,7 +83,6 @@ func (sasus SLAActionPlanStatusUpdateService) GetByID(SLAID uint, SLAActionPlanI
 	}
 
 	SLAActionPlanStatusUpdate, err := sasus.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -135,7 +157,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 			tx.Rollback()
 			return 0, err
 		}
-		//move file to storage
+		// move file to storage
 		for _, doc := range documents {
 			storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(SLAID), 10), "action-plans", strconv.FormatUint(uint64(SLAActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
@@ -156,7 +178,6 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -181,13 +202,11 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 	}
 
 	oldSLAActionPlanStatusUpdate, err := sasus.GetByID(SLAID, SLAActionPlanID, id)
-
 	if err != nil {
 		return err
 	}
 
 	existingSLAActionPlanStatusUpdate, err := sasus.GetByID(SLAID, SLAActionPlanID, id)
-
 	if err != nil {
 		return err
 	}
@@ -214,18 +233,16 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 	var documentsToDelete []*models.SLAActionPlanStatusUpdateDocument
 
 	for _, doc := range SLAActionPlanStatusUpdateFormDTO.Documents {
-
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
-			//genereate URL
+			// genereate URL
 			url := utility.GenerateDocumentURL("compliance", "sla-register", strconv.FormatUint(uint64(SLAID), 10), "action-plans", strconv.FormatUint(uint64(SLAActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			// Create a new Control test Document instance
 			document := &models.SLAActionPlanStatusUpdateDocument{
@@ -296,7 +313,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"comment":    oldSLAActionPlanStatusUpdate.Comment,
@@ -322,7 +339,6 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 				currentUserID,
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -341,7 +357,6 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 }
 
 func (sasus *SLAActionPlanStatusUpdateService) validateSLAActionPlanStatusUpdateFormDTO(SLAActionPlanStatusUpdateFormDTO *complianceDTOs.SLAActionPlanStatusUpdateFormDTO) error {
-
 	if _, err := sasus.actionPlanStatusSvc.GetByID(SLAActionPlanStatusUpdateFormDTO.ActionPlanStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
@@ -358,7 +373,6 @@ func (sasus SLAActionPlanStatusUpdateService) GetLatestSLAActionPlanStatusUpdate
 }
 
 func (sasus *SLAActionPlanStatusUpdateService) GetDocumentPath(slaID, ActionPlanID, id uint, token string) (string, error) {
-
 	existingSLAActionplanStatusUpdate, err := sasus.GetByID(slaID, ActionPlanID, id)
 	if err != nil {
 		return "", err
@@ -390,4 +404,341 @@ func (sasus *SLAActionPlanStatusUpdateService) GetDocumentPath(slaID, ActionPlan
 	}
 
 	return fullPath, nil
+}
+
+func (sasus *SLAActionPlanStatusUpdateService) Approve(slaID uint, actionPlanID uint, currentUserID uint, SLAAStatusReviewUserUpdateFormDTO *complianceDTOs.SLAActionPlanReviewUserStatusUpdateFormDTO) error {
+	sla, err := sasus.slaRegisterSvc.GetByID(slaID)
+	if err != nil {
+		return err
+	}
+	existingSLAActionPlan, err := sasus.slaActionPlanSvc.GetByID(slaID, actionPlanID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, actionPlanID)
+	}
+
+	if existingSLAActionPlan.ReviewUserID == nil {
+		return utility.NewForbiddenError("Review user is not assigned to this SLA action plan.")
+	}
+
+	if currentUserID != *existingSLAActionPlan.ReviewUserID {
+		return utility.NewForbiddenError("Permission denied.")
+	}
+
+	SLAActionPlanStatusResolved, err := sasus.actionPlanStatusSvc.GetByType("completed")
+	if err != nil {
+		return err
+	}
+
+	slaActionPlanClosedStatus, err := sasus.actionPlanStatusSvc.GetByType("close")
+	if err != nil {
+		return err
+	}
+
+	tx := sasus.repo.BeginTransaction()
+
+	if existingSLAActionPlan.ActionPlanStatusID != SLAActionPlanStatusResolved.ID {
+		tx.Rollback()
+		return utility.NewForbiddenError("The sla action plan status must be resolved.")
+	}
+
+	existingSLAActionPlan.ActionPlanStatusID = slaActionPlanClosedStatus.ID
+
+	if err := sasus.repo.SLAActionPlanUpdateStatus(existingSLAActionPlan); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	SLAActionPlanUpdate := &models.SLAActionPlanStatusUpdate{
+		SLAActionPlanID:    actionPlanID,
+		ActionPlanStatusID: slaActionPlanClosedStatus.ID,
+		Percentage:         nil,
+		Comment:            SLAAStatusReviewUserUpdateFormDTO.Comment,
+		CreatedByID:        currentUserID,
+	}
+
+	id, err := sasus.repo.Create(SLAActionPlanUpdate)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	taskStatus, err := sasus.taskStatusSvc.GetByType("closed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	_, err = sasus.taskSvc.UpdateActionPlanTaskStatus("sla_action_plan_id", actionPlanID, *existingSLAActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	// Start a new transaction for the second update
+	tx2 := sasus.repo.BeginTransaction()
+	_, err = sasus.taskSvc.UpdateActionPlanTaskStatus("sla_action_plan_id", actionPlanID, existingSLAActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx2)
+	if err != nil {
+		tx2.Rollback()
+		return err
+	}
+
+	tx2.Commit()
+
+	go func() {
+		urlParam := fmt.Sprintf(`{"sla_register_id":%d, "action_plan_id":%d}`, slaID, actionPlanID)
+		queryParam := ""
+		entity := "sla-action-plan"
+		action := "close-sla-action-plan"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{existingSLAActionPlan.ResponsibleUserID},
+			ModuleIdentifier:     "sla_contracts",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "SLA Action Plan Status Update",
+			HeadingAr:            "تحديث حالة خطة عمل SLA",
+			TitleEn:              existingSLAActionPlan.Title,
+			TitleAr:              existingSLAActionPlan.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := sasus.userSvc.GetByID(existingSLAActionPlan.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch review user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		resolvedBy, err := sasus.userSvc.GetByID(*existingSLAActionPlan.ReviewUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch updated user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("SLA Action Plan %s: Resolved", existingSLAActionPlan.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":           responsibleUser.FirstNameEn,
+			"LastNameEn":            responsibleUser.LastNameEn,
+			"SLAReferenceNumber":    sla.ReferenceNumber,
+			"SLATitle":              sla.TitleEn,
+			"ActionPlanTitle":       existingSLAActionPlan.Title,
+			"ActionPlanDescription": existingSLAActionPlan.Description,
+			"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
+			"ResolvedByLastNameEn":  resolvedBy.LastNameEn,
+			"ResolvedOn":            time.Now().Format("2006-01-02"),
+			"RedirectURL":           fmt.Sprintf("%s/compliance/sla-contracts/%d/action-plans?action_plan_id=%d", appURL, slaID, actionPlanID),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "compliance/templates/email/sla_action_plan_closed_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		err = sasus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "sla_contracts")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
+		existingSLAActionPlan, err := sasus.slaActionPlanSvc.GetByID(slaID, actionPlanID)
+		if err != nil {
+			return
+		}
+
+		err = sasus.activityLogSvc.LogActivity(
+			models.ApproveAction,
+			models.SLAActionPlanStatusUpdate{}.TableName(),
+			id,
+			existingSLAActionPlan,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.ApproveAction,
+				"tableName": models.SLAActionPlanStatusUpdate{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
+}
+
+func (sasus *SLAActionPlanStatusUpdateService) Revert(slaID uint, actionPlanID uint, currentUserID uint, SLAActionPlanReviewUserStatusUpdateFormDTO *complianceDTOs.SLAActionPlanReviewUserStatusUpdateFormDTO) error {
+	sla, err := sasus.slaRegisterSvc.GetByID(slaID)
+	if err != nil {
+		return err
+	}
+	existingSLAActionPlan, err := sasus.slaActionPlanSvc.GetByID(slaID, actionPlanID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, actionPlanID)
+	}
+
+	if currentUserID != *existingSLAActionPlan.ReviewUserID {
+		return utility.NewForbiddenError("Permission denied.")
+	}
+
+	slaActionPlanStatusResolved, err := sasus.actionPlanStatusSvc.GetByType("completed")
+	if err != nil {
+		return err
+	}
+
+	slaActionPlanReopenStatus, err := sasus.actionPlanStatusSvc.GetByType("reopen")
+	if err != nil {
+		return err
+	}
+
+	tx := sasus.repo.BeginTransaction()
+
+	if existingSLAActionPlan.ActionPlanStatusID != slaActionPlanStatusResolved.ID {
+		tx.Rollback()
+		return utility.NewForbiddenError("The sla action plan status must be resolved.")
+	}
+
+	existingSLAActionPlan.ActionPlanStatusID = slaActionPlanReopenStatus.ID
+
+	if err := sasus.repo.SLAActionPlanUpdateStatus(existingSLAActionPlan); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	SLAActionPlanUpdate := &models.SLAActionPlanStatusUpdate{
+		SLAActionPlanID:    slaID,
+		ActionPlanStatusID: slaActionPlanReopenStatus.ID,
+		Comment:            SLAActionPlanReviewUserStatusUpdateFormDTO.Comment,
+		CreatedByID:        currentUserID,
+	}
+
+	id, err := sasus.repo.Create(SLAActionPlanUpdate)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	taskStatus, err := sasus.taskStatusSvc.GetByType("closed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	_, err = sasus.taskSvc.UpdateActionPlanTaskStatus("sla_action_plan_id", actionPlanID, *existingSLAActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	go func() {
+		urlParam := fmt.Sprintf(`{"sla_register_id":%d, "action_plan_id":%d}`, slaID, actionPlanID)
+		queryParam := ""
+		entity := "sla-action-plan"
+		action := "reopen-sla-action-plan"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{existingSLAActionPlan.ResponsibleUserID},
+			ModuleIdentifier:     "sla_contracts",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "SLA Action Plan Status Update",
+			HeadingAr:            "تحديث حالة خطة عمل SLA",
+			TitleEn:              existingSLAActionPlan.Title,
+			TitleAr:              existingSLAActionPlan.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := sasus.userSvc.GetByID(existingSLAActionPlan.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch review user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		resolvedBy, err := sasus.userSvc.GetByID(*existingSLAActionPlan.ReviewUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch updated user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("SLA Action Plan %s: Reopened", existingSLAActionPlan.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":           responsibleUser.FirstNameEn,
+			"LastNameEn":            responsibleUser.LastNameEn,
+			"SLAReferenceNumber":    sla.ReferenceNumber,
+			"SLATitle":              sla.TitleEn,
+			"ActionPlanTitle":       existingSLAActionPlan.Title,
+			"ActionPlanDescription": existingSLAActionPlan.Description,
+			"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
+			"ResolvedByLastNameEn":  resolvedBy.LastNameEn,
+			"ResolvedOn":            time.Now().Format("2006-01-02"),
+			"RedirectURL":           fmt.Sprintf("%s/compliance/sla-contracts/%d/action-plans?action_plan_id=%d", appURL, slaID, actionPlanID),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "compliance/templates/email/sla_action_plan_reopen_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		err = sasus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "sla_contracts")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
+		existingComplianceActionPlan, err := sasus.slaActionPlanSvc.GetByID(slaID, actionPlanID)
+		if err != nil {
+			return
+		}
+
+		err = sasus.activityLogSvc.LogActivity(
+			models.RejectAction,
+			models.SLAActionPlanStatusUpdate{}.TableName(),
+			id,
+			existingComplianceActionPlan,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.ApproveAction,
+				"tableName": models.SLAActionPlanStatusUpdate{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
 }

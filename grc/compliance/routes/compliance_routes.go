@@ -278,6 +278,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/slas/:slaId/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"), slaActionPlanStatusUpdateController.GetAllSLAActionPlanStatusUpdates)
 	complianceRoutes.POST("/slas/:slaId/action-plans/:actionPlanId/status-updates", slaActionPlanStatusUpdateController.CreateSLAActionPlanStatusUpdate)
 	complianceRoutes.PUT("/slas/:slaId/action-plans/:actionPlanId/status-updates/:id", slaActionPlanStatusUpdateController.UpdateSLAActionPlanStatusUpdate)
+	complianceRoutes.PUT("/slas/:slaId/action-plans/:actionPlanId/approve", slaActionPlanStatusUpdateController.ApproveSLAActionPlan)
+	complianceRoutes.PUT("/slas/:slaId/action-plans/:actionPlanId/revert", slaActionPlanStatusUpdateController.RevertSLAActionPlan)
 	complianceRoutes.GET("/slas/:slaId/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"), slaActionPlanStatusUpdateController.GetLatestSLAActionPlanStatusUpdate)
 
 	complianceRoutes.GET("/slas/:slaId/processes", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"), slaAssociatedItemController.GetAllSLAProcesses)
