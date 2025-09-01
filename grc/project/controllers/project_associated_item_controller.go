@@ -796,7 +796,7 @@ func (paic *ProjectAssociatedItemController) GetAllProjectRisks(c *gin.Context) 
 		Page:     page,
 		PageSize: pageSize,
 	}
-	projects, err := paic.service.GetAllProjectRisks(uint(projectID), &queryParams)
+	risks, err := paic.service.GetAllProjectRisks(uint(projectID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -811,7 +811,7 @@ func (paic *ProjectAssociatedItemController) GetAllProjectRisks(c *gin.Context) 
 			return
 		}
 	}
-	c.JSON(http.StatusOK, projects)
+	c.JSON(http.StatusOK, risks)
 }
 
 func (paic *ProjectAssociatedItemController) CreateProjectRisk(c *gin.Context) {
