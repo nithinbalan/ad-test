@@ -26,6 +26,12 @@ type ThirdPartyAssociatedItemServiceInterface interface {
 	GetAllThirdPartyIncidents(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
 	CreateThirdPartyIncident(ThirdPartyID uint, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
 	DeleteThirdPartyIncident(ThirdPartyID uint, incidentID uint) error
+	GetAllThirdPartyDocuments(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
+	CreateThirdPartyDocument(ThirdPartyID uint, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
+	DeleteThirdPartyDocument(ThirdPartyID uint, incidentID uint) error
+	GetAllThirdPartyControls(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
+	CreateThirdPartyControl(ThirdPartyID uint, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
+	DeleteThirdPartyControl(ThirdPartyID uint, incidentID uint) error
 }
 
 // Service and implementations
@@ -251,6 +257,112 @@ func (tpais *ThirdPartyAssociatedItemService) DeleteThirdPartyIncident(ThirdPart
 	tx := tpais.repo.BeginTransaction()
 
 	if err := tpais.repo.DeleteThirdPartyIncident(ThirdPartyID, incidentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (tpais *ThirdPartyAssociatedItemService) GetAllThirdPartyDocuments(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
+	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return nil, err
+	}
+	return tpais.repo.GetAllThirdPartyDocuments(ThirdPartyID, params)
+}
+
+func (tpais *ThirdPartyAssociatedItemService) CreateThirdPartyDocument(ThirdPartyID, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error {
+
+	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return err
+	}
+
+	if err := tpais.validationSvc.ValidateDocumentMapping(ThirdPartyID, dto.DocumentIDs, "third_party_associated_documents", "third_party_register_id"); err != nil {
+		return err
+	}
+
+	tx := tpais.repo.BeginTransaction()
+	var mappings []*models.ThirdPartyAssociatedDocument
+	currentTime := time.Now()
+
+	for _, documentID := range dto.DocumentIDs {
+		mappings = append(mappings, &models.ThirdPartyAssociatedDocument{
+			DocumentID:           documentID,
+			ThirdPartyRegisterID: ThirdPartyID,
+			CreatedByID:          userID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := tpais.repo.CreateThirdPartyDocument(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (tpais *ThirdPartyAssociatedItemService) DeleteThirdPartyDocument(ThirdPartyID uint, documentID uint) error {
+	// Validate control existence
+	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return err
+	}
+
+	tx := tpais.repo.BeginTransaction()
+
+	if err := tpais.repo.DeleteThirdPartyDocument(ThirdPartyID, documentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (tpais *ThirdPartyAssociatedItemService) GetAllThirdPartyControls(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
+	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return nil, err
+	}
+	return tpais.repo.GetAllThirdPartyControls(ThirdPartyID, params)
+}
+
+func (tpais *ThirdPartyAssociatedItemService) CreateThirdPartyControl(ThirdPartyID, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error {
+
+	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return err
+	}
+
+	if err := tpais.validationSvc.ValidateControlMapping(ThirdPartyID, dto.ControlIDs, "third_party_controls", "third_party_register_id"); err != nil {
+		return err
+	}
+
+	tx := tpais.repo.BeginTransaction()
+	var mappings []*models.ThirdPartyControl
+	currentTime := time.Now()
+
+	for _, controlID := range dto.ControlIDs {
+		mappings = append(mappings, &models.ThirdPartyControl{
+			ControlID:            controlID,
+			ThirdPartyRegisterID: ThirdPartyID,
+			CreatedByID:          userID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := tpais.repo.CreateThirdPartyControl(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (tpais *ThirdPartyAssociatedItemService) DeleteThirdPartyControl(ThirdPartyID uint, controlID uint) error {
+	// Validate control existence
+	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return err
+	}
+
+	tx := tpais.repo.BeginTransaction()
+
+	if err := tpais.repo.DeleteThirdPartyControl(ThirdPartyID, controlID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
