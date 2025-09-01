@@ -101,4 +101,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	tprmRoutes.GET("/third-party-register/:id/controls", middlewares.RolePermissionMiddleware(db, "third_party_register", "view"), thirdPartyAssociatedItemController.GetAllThirdPartyControls)
 	tprmRoutes.POST("/third-party-register/:id/controls", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.CreateThirdPartyControl)
 	tprmRoutes.DELETE("/third-party-register/:id/controls/:controlId", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.DeleteThirdPartyControl)
+
+	tprmRoutes.GET("/third-party-register/:id/risks", middlewares.RolePermissionMiddleware(db, "third_party_register", "view"), thirdPartyAssociatedItemController.GetAllThirdPartyRisks)
+	tprmRoutes.POST("/third-party-register/:id/risks", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.CreateThirdPartyRisk)
+	tprmRoutes.DELETE("/third-party-register/:id/risks/:riskId", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.DeleteThirdPartyRisk)
 }

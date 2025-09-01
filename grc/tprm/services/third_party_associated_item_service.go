@@ -32,6 +32,9 @@ type ThirdPartyAssociatedItemServiceInterface interface {
 	GetAllThirdPartyControls(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	CreateThirdPartyControl(ThirdPartyID uint, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
 	DeleteThirdPartyControl(ThirdPartyID uint, incidentID uint) error
+	GetAllThirdPartyRisks(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
+	CreateThirdPartyRisk(ThirdPartyID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	DeleteThirdPartyRisk(ThirdPartyID uint, riskID uint) error
 }
 
 // Service and implementations
@@ -363,6 +366,59 @@ func (tpais *ThirdPartyAssociatedItemService) DeleteThirdPartyControl(ThirdParty
 	tx := tpais.repo.BeginTransaction()
 
 	if err := tpais.repo.DeleteThirdPartyControl(ThirdPartyID, controlID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (tpais *ThirdPartyAssociatedItemService) GetAllThirdPartyRisks(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return nil, err
+	}
+	return tpais.repo.GetAllThirdPartyRisks(ThirdPartyID, params)
+}
+
+func (tpais *ThirdPartyAssociatedItemService) CreateThirdPartyRisk(ThirdPartyID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+
+	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return err
+	}
+
+	if err := tpais.validationSvc.ValidateRiskMapping(ThirdPartyID, dto.RiskIDs, "third_party_risks", "third_party_register_id"); err != nil {
+		return err
+	}
+
+	tx := tpais.repo.BeginTransaction()
+	var mappings []*models.ThirdPartyRisk
+	currentTime := time.Now()
+
+	for _, riskID := range dto.RiskIDs {
+		mappings = append(mappings, &models.ThirdPartyRisk{
+			RiskRegisterID:       riskID,
+			ThirdPartyRegisterID: ThirdPartyID,
+			CreatedBYID:          userID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := tpais.repo.CreateThirdPartyRisk(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (tpais *ThirdPartyAssociatedItemService) DeleteThirdPartyRisk(ThirdPartyID uint, riskID uint) error {
+	// Validate control existence
+	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return err
+	}
+
+	tx := tpais.repo.BeginTransaction()
+
+	if err := tpais.repo.DeleteThirdPartyRisk(ThirdPartyID, riskID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

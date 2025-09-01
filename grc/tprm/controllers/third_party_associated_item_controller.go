@@ -685,3 +685,116 @@ func (tpaic *ThirdPartyAssociatedItemController) DeleteThirdPartyControl(c *gin.
 
 	c.JSON(http.StatusOK, gin.H{"message": "Control unmapped from third party successfully"})
 }
+
+func (tpaic *ThirdPartyAssociatedItemController) GetAllThirdPartyRisks(c *gin.Context) {
+
+	ThirdPartyIDStr := c.Param("id")
+
+	ThirdPartyID, err := strconv.ParseUint(ThirdPartyIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(tpaic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(tpaic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	risks, err := tpaic.service.GetAllThirdPartyRisks(uint(ThirdPartyID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(tpaic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, risks)
+}
+
+func (tpaic *ThirdPartyAssociatedItemController) CreateThirdPartyRisk(c *gin.Context) {
+	var input commonDTOs.AssociatedRiskMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	ThirdPartyID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tpaic.db, c, err.Error())
+		return
+	}
+
+	err = tpaic.service.CreateThirdPartyRisk(uint(ThirdPartyID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(tpaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (tpaic *ThirdPartyAssociatedItemController) DeleteThirdPartyRisk(c *gin.Context) {
+
+	ThirdPartyIDStr := c.Param("id")
+	riskIDStr := c.Param("riskId")
+
+	ThirdPartyID, err := strconv.ParseUint(ThirdPartyIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = tpaic.service.DeleteThirdPartyRisk(uint(ThirdPartyID), uint(riskID))
+	if err != nil {
+		utility.SendInternalErrResp(tpaic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from third party successfully"})
+}
