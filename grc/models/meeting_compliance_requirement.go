@@ -9,7 +9,7 @@ type MeetingComplianceRequirement struct {
 	MeetingID               uint      `json:"meeting_id" binding:"required"`
 	ComplianceClauseID      *uint     `json:"compliance_clause_id"`
 	ComplianceRegisterID    uint      `json:"compliance_register_id" binding:"required"`
-	ComplianceRequirementID uint      `json:"compliance_requirement_id" binding:"required"`
+	ComplianceRequirementID *uint     `json:"compliance_requirement_id"`
 	CreatedBYID             uint      `json:"created_by_id" gorm:"not null"`
 	CreatedAt               time.Time `json:"created_at" gorm:"type:datetime;not null"`
 
