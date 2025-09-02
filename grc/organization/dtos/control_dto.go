@@ -206,7 +206,7 @@ type ControlDetailDTO struct {
 	ImplementationGuideline       *string                          `json:"implementation_guideline"`
 	ApplicabilityChangeDateString *string                          `json:"applicability_change_date"`
 	ComplianceStatusID            uint                             `json:"compliance_status_id"`
-	ComplianceStatus              ComplianceStatusDTO              `json:"compliance_status"`
+	ComplianceStatus              *ComplianceStatusDTO             `json:"compliance_status"`
 }
 type ComplianceStatusDTO struct {
 	ID        int    `json:"id"`

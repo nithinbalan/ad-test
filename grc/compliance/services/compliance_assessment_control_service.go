@@ -147,21 +147,35 @@ func (s *ComplianceAssessmentControlService) GetFullDetailsByID(assessmentId uin
 	if err != nil {
 		return nil, err
 	}
+	// ❗ Prevent duplicates: mapstructure already filled ActionPlans.
+	// Clear it, then repopulate with TargetDateString set.
+	dto.ActionPlans = nil
+
+	seen := make(map[uint]struct{}, len(control.ActionPlans))
+	for _, ap := range control.ActionPlans {
+		if ap == nil {
+			continue
+		}
+		if _, ok := seen[ap.ID]; ok {
+			continue
+		}
+		seen[ap.ID] = struct{}{}
+
+		var apDTO complianceDTOs.ComplianceActionPlanDetailDTO
+		if err := mapstructure.Decode(ap, &apDTO); err != nil {
+			return nil, err
+		}
+
+		if ap.TargetDate != nil {
+			td := ap.TargetDate.Format("2006-01-02")
+			apDTO.TargetDateString = &td
+		}
+
+		dto.ActionPlans = append(dto.ActionPlans, &apDTO)
+	}
+
 	dto.CreatedAt = control.CreatedAt
 	dto.UpdatedAt = control.UpdatedAt
-	// for _, ap := range control.ActionPlans {
-	// 	var apDTO complianceDTOs.ComplianceActionPlanDetailDTO
-	// 	if err := mapstructure.Decode(ap, &apDTO); err == nil {
-	// 		if ap.TargetDate != nil {
-	// 			td := ap.TargetDate.Format("2006-01-02")
-	// 			apDTO.TargetDateString = &td
-	// 			fmt.Println("hii========", td)
-
-	// 		}
-	// 		dto.ActionPlans = append(dto.ActionPlans, &apDTO)
-	// 	}
-
-	// }
 	return &dto, nil
 }
 func (s *ComplianceAssessmentControlService) Update(complianceAssessmentId uint, controlId uint, currentUserID uint, updateForm *complianceDTOs.ComplianceAssessmentControlUpdateFormDTO) error {
@@ -289,7 +303,18 @@ func (s *ComplianceAssessmentControlService) ApproveComplianceControl(assessment
 		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("control already approved"), "invalid_state", "control")
 	}
+	comment := &models.ComplianceAssessmentControlComment{
+		ComplianceAssessmentControlID:           controlID,
+		Comment:                                 commentForm.Comment,
+		CreatedBYID:                             currentUserID,
+		ComplianceAssessmentRequirementStatusID: &approvedStatus.ID,
+	}
 
+	err = s.repo.CreateComment(comment, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 	control.ComplianceAssessmentRequirementStatusID = &approvedStatus.ID
 	control.UpdatedBYID = &currentUserID
 
