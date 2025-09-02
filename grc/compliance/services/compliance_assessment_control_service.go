@@ -149,19 +149,19 @@ func (s *ComplianceAssessmentControlService) GetFullDetailsByID(assessmentId uin
 	}
 	dto.CreatedAt = control.CreatedAt
 	dto.UpdatedAt = control.UpdatedAt
-	for _, ap := range control.ActionPlans {
-		var apDTO complianceDTOs.ComplianceActionPlanDetailDTO
-		if err := mapstructure.Decode(ap, &apDTO); err == nil {
-			if ap.TargetDate != nil {
-				td := ap.TargetDate.Format("2006-01-02")
-				apDTO.TargetDateString = &td
-				fmt.Println("hii========", td)
+	// for _, ap := range control.ActionPlans {
+	// 	var apDTO complianceDTOs.ComplianceActionPlanDetailDTO
+	// 	if err := mapstructure.Decode(ap, &apDTO); err == nil {
+	// 		if ap.TargetDate != nil {
+	// 			td := ap.TargetDate.Format("2006-01-02")
+	// 			apDTO.TargetDateString = &td
+	// 			fmt.Println("hii========", td)
 
-			}
-			dto.ActionPlans = append(dto.ActionPlans, &apDTO)
-		}
+	// 		}
+	// 		dto.ActionPlans = append(dto.ActionPlans, &apDTO)
+	// 	}
 
-	}
+	// }
 	return &dto, nil
 }
 func (s *ComplianceAssessmentControlService) Update(complianceAssessmentId uint, controlId uint, currentUserID uint, updateForm *complianceDTOs.ComplianceAssessmentControlUpdateFormDTO) error {
