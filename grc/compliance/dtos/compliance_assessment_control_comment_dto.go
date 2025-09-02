@@ -27,10 +27,10 @@ type ComplianceAssessmentControlCommentFormDTO struct {
 }
 
 type ComplianceAssessmentControlCommentDetailDTO struct {
-	ID                                uint                                      `json:"id"`
-	Comment                           string                                    `json:"comment"`
-	ComplianceAssessmentControlID     uint                                      `json:"compliance_assessment_requirement_id"`
-	CreatedAt                         time.Time                                 `json:"created_at"`
-	CreatedByUser                     organizationDTOs.UserMinimalDTO           `json:"created_by"`
-	ComplianceAssessmentControlStatus *ComplianceAssessmentRequirementStatusDTO `json:"compliance_assessment_requirement_status"`
+	ID                                    uint                                      `json:"id"`
+	Comment                               string                                    `json:"comment"`
+	ComplianceAssessmentControlID         uint                                      `json:"compliance_assessment_requirement_id"`
+	CreatedAt                             time.Time                                 `json:"created_at"`
+	CreatedByUser                         organizationDTOs.UserMinimalDTO           `json:"created_by"`
+	ComplianceAssessmentRequirementStatus *ComplianceAssessmentRequirementStatusDTO `json:"compliance_assessment_requirement_status"`
 }
