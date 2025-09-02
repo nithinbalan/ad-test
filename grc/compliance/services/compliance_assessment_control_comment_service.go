@@ -116,7 +116,6 @@ func (s *ComplianceAssessmentControlCommentService) Create(assessmentID uint, co
 		ComplianceAssessmentControlID: controlID,
 		Comment:                       dto.Comment,
 		CreatedBYID:                   currentUserID,
-		CreatedAt:                     time.Now(),
 	}
 	id, err := s.repo.Create(comment, tx)
 	if err != nil {
