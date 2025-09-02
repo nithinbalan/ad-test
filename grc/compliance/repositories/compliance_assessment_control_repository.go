@@ -109,10 +109,10 @@ func (repo *ComplianceAssessmentControlRepository) GetAll(assessmentID uint, par
 			controls.id AS control_id,
 			controls.title_en AS control_title_en,
 			controls.title_ar AS control_title_ar,
-			compliance_assessment_requirement_statuses.title_en AS status_title_en,
-			compliance_assessment_requirement_statuses.title_ar AS status_title_ar,
-			compliance_assessment_requirement_statuses.color_code AS status_color_code,
-			compliance_assessment_requirement_statuses.type AS status_type
+			compliance_assessment_requirement_statuses.title_en AS compliance_assessment_requirement_status_title_en,
+			compliance_assessment_requirement_statuses.title_ar AS compliance_assessment_requirement_status_title_ar,
+			compliance_assessment_requirement_statuses.color_code AS compliance_assessment_requirement_status_color_code,
+			compliance_assessment_requirement_statuses.type AS compliance_assessment_requirement_status_type
 		`).
 		Joins(`
 			LEFT JOIN compliance_controls ON compliance_controls.id = compliance_assessment_controls.compliance_control_id

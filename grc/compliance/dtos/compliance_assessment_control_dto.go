@@ -7,23 +7,23 @@ import (
 )
 
 type ComplianceAssessmentControlListDTO struct {
-	ID                                      uint     `json:"id"`
-	ClauseID                                uint     `json:"clause_id"`
-	ComplianceClauseNo                      string   `json:"compliance_clause_no"`
-	ComplianceClauseTitleEn                 string   `json:"compliance_clause_title_en"`
-	ComplianceClauseTitleAr                 string   `json:"compliance_clause_title_ar"`
-	ComplianceControlID                     uint     `json:"compliance_control_id"`
-	ControlTitleEn                          string   `json:"control_title_en"`
-	ControlTitleAr                          string   `json:"control_title_ar"`
-	ComplianceAssessmentRequirementStatusID *uint    `json:"compliance_assessment_requirement_status_id"`
-	ComplianceAssessmentRequirementStatusEn string   `json:"compliance_assessment_requirement_status_title_en"`
-	ComplianceAssessmentRequirementStatusAr string   `json:"compliance_assessment_requirement_status_title_ar"`
-	ComplianceAssessmentRequirementColor    string   `json:"compliance_assessment_requirement_status_color_code"`
-	ComplianceAssessmentRequirementType     string   `json:"compliance_assessment_requirement_status_type"`
-	IsCompleted                             bool     `json:"is_completed"`
-	Score                                   *float64 `json:"score"`
-	CreatedAt                               string   `json:"created_at"`
-	UpdatedAt                               *string  `json:"updated_at"`
+	ID                                             uint     `json:"id"`
+	ClauseID                                       uint     `json:"clause_id"`
+	ComplianceClauseNo                             string   `json:"compliance_clause_no"`
+	ComplianceClauseTitleEn                        string   `json:"compliance_clause_title_en"`
+	ComplianceClauseTitleAr                        string   `json:"compliance_clause_title_ar"`
+	ComplianceControlID                            uint     `json:"compliance_control_id"`
+	ControlTitleEn                                 string   `json:"control_title_en"`
+	ControlTitleAr                                 string   `json:"control_title_ar"`
+	ComplianceAssessmentRequirementStatusID        *uint    `json:"compliance_assessment_requirement_status_id"`
+	ComplianceAssessmentRequirementStatusTitleEn   string   `json:"compliance_assessment_requirement_status_title_en"`
+	ComplianceAssessmentRequirementStatusTitleAr   string   `json:"compliance_assessment_requirement_status_title_ar"`
+	ComplianceAssessmentRequirementStatusColorCode string   `json:"compliance_assessment_requirement_status_color_code"`
+	ComplianceAssessmentRequirementStatusType      string   `json:"compliance_assessment_requirement_status_type"`
+	IsCompleted                                    bool     `json:"is_completed"`
+	Score                                          *float64 `json:"score"`
+	CreatedAt                                      string   `json:"created_at"`
+	UpdatedAt                                      *string  `json:"updated_at"`
 }
 
 type ComplianceAssessmentControlListResponseDTO struct {
