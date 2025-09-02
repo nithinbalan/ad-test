@@ -22,6 +22,15 @@ type ComplianceAssessmentControlListDTO struct {
 	ComplianceAssessmentRequirementStatusType      string   `json:"compliance_assessment_requirement_status_type"`
 	IsCompleted                                    bool     `json:"is_completed"`
 	Score                                          *float64 `json:"score"`
+	OwnerID                                        *uint    `json:"owner_id"`
+	OwnerFirstNameEn                               *string  `json:"owner_first_name_en"`
+	OwnerFirstNameAr                               *string  `json:"owner_first_name_ar"`
+	OwnerLastNameEn                                *string  `json:"owner_last_name_en"`
+	OwnerLastNameAr                                *string  `json:"owner_last_name_ar"`
+	OwnerInitial                                   string   `json:"owner_initial"`
+	OwnerColor                                     string   `json:"owner_color"`
+	OwnerEmail                                     string   `json:"owner_email"`
+	OwnerProfileImagePath                          string   `json:"owner_profile_image_path"`
 	CreatedAt                                      string   `json:"created_at"`
 	UpdatedAt                                      *string  `json:"updated_at"`
 }

@@ -109,6 +109,15 @@ func (repo *ComplianceAssessmentControlRepository) GetAll(assessmentID uint, par
 			controls.id AS control_id,
 			controls.title_en AS control_title_en,
 			controls.title_ar AS control_title_ar,
+			owner.id AS owner_id,
+			owner.first_name_en AS owner_first_name_en,
+			owner.first_name_ar AS owner_first_name_ar,
+			owner.last_name_en AS owner_last_name_en,
+			owner.last_name_ar AS owner_last_name_ar,
+			owner.initial AS owner_initial,
+			owner.color AS owner_color,
+			owner.email AS owner_email,
+			owner.profile_image_path AS owner_profile_image_path,
 			compliance_assessment_requirement_statuses.title_en AS compliance_assessment_requirement_status_title_en,
 			compliance_assessment_requirement_statuses.title_ar AS compliance_assessment_requirement_status_title_ar,
 			compliance_assessment_requirement_statuses.color_code AS compliance_assessment_requirement_status_color_code,
@@ -117,6 +126,7 @@ func (repo *ComplianceAssessmentControlRepository) GetAll(assessmentID uint, par
 		Joins(`
 			LEFT JOIN compliance_controls ON compliance_controls.id = compliance_assessment_controls.compliance_control_id
 			LEFT JOIN controls ON controls.id = compliance_controls.control_id
+			LEFT JOIN users AS owner ON owner.id = controls.responsible_user_id
 			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_controls.compliance_clause_id
 			LEFT JOIN compliance_assessment_requirement_statuses ON compliance_assessment_requirement_statuses.id = compliance_assessment_controls.compliance_assessment_requirement_status_id
 		`).
@@ -208,6 +218,8 @@ func (repo *ComplianceAssessmentControlRepository) GetFullDetailsByID(controlId 
 		Preload("ComplianceAssessment.ComplianceRegister").
 		Preload("ComplianceControl").
 		Preload("ComplianceControl.Control").
+		Preload("ComplianceControl.Control.ResponsibleUser").
+		Preload("ComplianceControl.Control.ResponsibleUser").
 		Preload("ComplianceControl.ComplianceClause").
 		Preload("CompletedByUser").
 		Preload("ComplianceAssessmentFrameworkValue").
