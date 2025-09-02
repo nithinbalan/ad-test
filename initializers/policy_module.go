@@ -26,7 +26,7 @@ func NewPolicyModule(db *gorm.DB,
 	documentModule *DocumentModule) *PolicyModule {
 
 	policyFolderRepo := repositories.NewPolicyFolderRepository(db)
-	policyFolderSvc := services.NewPolicyFolderService(policyFolderRepo, sharedModule.ActivityLogService)
+	policyFolderSvc := services.NewPolicyFolderService(policyFolderRepo, sharedModule.ActivityLogService, documentModule.DocumentAccessTypeSvc)
 	policyFolderController := controllers.NewPolicyFolderController(policyFolderSvc)
 
 	policyRegisterRepo := repositories.NewPolicyRegisterRepository(db)

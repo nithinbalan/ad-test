@@ -1631,7 +1631,7 @@ func (dcrs *DocumentChangeRequestService) PublishDocumentChangeRequest(id uint, 
 			return err
 		}
 
-		existingDocument.DocumentStatusID = documentStatus.ID
+		existingDocument.DocumentStatusID = &documentStatus.ID
 
 		err = dcrs.documentSvc.UpdateDocument(existingDocument, tx)
 		if err != nil {
@@ -1652,7 +1652,7 @@ func (dcrs *DocumentChangeRequestService) PublishDocumentChangeRequest(id uint, 
 			return err
 		}
 
-		existingDocument.DocumentStatusID = documentStatus.ID
+		existingDocument.DocumentStatusID = &documentStatus.ID
 
 		err = dcrs.documentSvc.UpdateDocument(existingDocument, tx)
 		if err != nil {
@@ -1743,7 +1743,7 @@ func (dcrs *DocumentChangeRequestService) PublishDocumentChangeRequest(id uint, 
 				return err
 			}
 
-			existingDocument.DocumentStatusID = documentStatus.ID
+			existingDocument.DocumentStatusID = &documentStatus.ID
 
 			err = dcrs.documentSvc.UpdateDocument(existingDocument, tx)
 			if err != nil {

@@ -73,7 +73,7 @@ func (dcrws *DocumentChangeRequestWorkflowService) CreateDocumentCRWorkflow(docu
 		return err
 	}
 	fmt.Println("13")
-	workflow, err := dcrws.workflowSvc.GetWorkflowByDocumentType(document.DocumentTypeID, tx...)
+	workflow, err := dcrws.workflowSvc.GetWorkflowByDocumentType(*document.DocumentTypeID, tx...)
 	if err != nil {
 		return err
 	}
