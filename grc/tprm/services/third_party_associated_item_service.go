@@ -38,6 +38,8 @@ type ThirdPartyAssociatedItemServiceInterface interface {
 	GetAllThirdPartyKPI(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateThirdPartyKPI(ThirdPartyID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
 	DeleteThirdPartyKPI(ThirdPartyID uint, kpiID uint) error
+	GetAllClauses(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	UpdateClauses(ThirdPartyID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
 // Service and implementations
@@ -480,4 +482,85 @@ func (tpais *ThirdPartyAssociatedItemService) DeleteThirdPartyKPI(ThirdPartyID u
 	}
 
 	return tx.Commit()
+}
+
+func (tpais *ThirdPartyAssociatedItemService) GetAllClauses(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return nil, err
+	}
+
+	response, err := tpais.repo.GetAllClauses(ThirdPartyID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (tpais *ThirdPartyAssociatedItemService) UpdateClauses(ThirdPartyID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error {
+
+	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return err
+	}
+	tx := tpais.repo.BeginTransaction()
+	clauses, err := tpais.validationSvc.ValidateClauseIDs(ClauseFormDTO.ClauseIDs)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingControlClauses, err := tpais.repo.GetClausesByThirdPartyId(ThirdPartyID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingClauses := make(map[uint]bool) // clauseID => exists
+	for _, clauseID := range existingControlClauses {
+		existingClauses[clauseID] = true
+	}
+
+	newClauses := make(map[uint]*models.ComplianceClause)
+	for _, clause := range clauses {
+		newClauses[clause.ID] = clause
+	}
+
+	var clausesToAdd []*models.ThirdPartyComplianceRequirement
+	now := time.Now()
+	for id, clause := range newClauses {
+		if !existingClauses[id] {
+			clausesToAdd = append(clausesToAdd, &models.ThirdPartyComplianceRequirement{
+				ThirdPartyRegisterID: ThirdPartyID,
+				ComplianceRegisterID: clause.ComplianceRegisterID,
+				ComplianceClauseID:   clause.ID,
+				CreatedByID:          currentUserID,
+				CreatedAt:            now,
+			})
+		}
+	}
+
+	if len(clausesToAdd) > 0 {
+		if err := tpais.repo.CreateThirdPartyClauses(clausesToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteClauseIDs []uint
+	for existingID := range existingClauses {
+		if _, found := newClauses[existingID]; !found {
+			deleteClauseIDs = append(deleteClauseIDs, existingID)
+		}
+	}
+
+	if len(deleteClauseIDs) > 0 {
+		if err := tpais.repo.DeleteThirdPartyClauses(ThirdPartyID, deleteClauseIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	return nil
 }

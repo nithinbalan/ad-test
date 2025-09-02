@@ -109,4 +109,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	tprmRoutes.GET("/third-party-register/:id/kpis", middlewares.RolePermissionMiddleware(db, "third_party_register", "view"), thirdPartyAssociatedItemController.GetAllThirdPartyKPI)
 	tprmRoutes.POST("/third-party-register/:id/kpis", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.CreateThirdPartyKPI)
 	tprmRoutes.DELETE("/third-party-register/:id/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.DeleteThirdPartyKPI)
+
+	tprmRoutes.GET("/third-party-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "third_party_register", "view"), thirdPartyAssociatedItemController.GetAllClauses)
+	tprmRoutes.PUT("/third-party-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.UpdateClauses)
 }
