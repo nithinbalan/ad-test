@@ -167,6 +167,39 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 
 		}
 	}
+
+	sla, err := sasus.slaRegisterSvc.GetByID(SLAID)
+	if err != nil {
+		return 0, err
+	}
+
+	slaActionPlan, err := sasus.slaActionPlanSvc.GetByID(SLAID, SLAActionPlanID)
+	if err != nil {
+		return 0, err
+	}
+
+	actionPlanStatus, err := sasus.actionPlanStatusSvc.GetByType("completed")
+	if err != nil {
+		return 0, err
+	}
+	if SLAActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && slaActionPlan.ReviewUserID != nil {
+		urlParam := fmt.Sprintf(`{"sla_contracts_id":%d, "action_plan_id":%d}`, SLAID, SLAActionPlanID)
+		taskDTO := commonDTOs.TaskFormDTO{
+			ModuleIdentifier:  "sla_contracts",
+			SLAActionPlanID:   &SLAActionPlanID,
+			Title:             slaActionPlan.Title,
+			Description:       slaActionPlan.Description,
+			URLParam:          &urlParam,
+			QueryParam:        nil,
+			SeverityLevelID:   slaActionPlan.SeverityLevelID,
+			ResponsibleUserID: *slaActionPlan.ReviewUserID,
+		}
+
+		if _, err := sasus.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
 	tx.Commit()
 
 	go func() {
@@ -188,6 +221,76 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		if SLAActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && slaActionPlan.ReviewUserID != nil {
+			// prepare notification
+			urlParam := fmt.Sprintf(`{"sla_contracts_id":%d, "action_plan_id":%d}`, SLAID, SLAActionPlanID)
+			queryParam := ""
+			entity := "sla-action-plan"
+			action := "review-user"
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{*slaActionPlan.ReviewUserID},
+				ModuleIdentifier:     "sla_contracts",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Sla Action Plan Status Update",
+				HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+				TitleEn:              slaActionPlan.Title,
+				TitleAr:              slaActionPlan.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			reviewUser, err := sasus.userSvc.GetByID(*slaActionPlan.ReviewUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+			resolvedBy, err := sasus.userSvc.GetByID(slaActionPlan.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch updated user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			emailTo := []string{reviewUser.Email}
+			subject := fmt.Sprintf("Sla Action Plan %s: Resolved", slaActionPlan.Title)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":           reviewUser.FirstNameEn,
+				"LastNameEn":            reviewUser.LastNameEn,
+				"SlaReferenceNumber":    sla.ReferenceNumber,
+				"SlaTitle":              sla.TitleEn,
+				"ActionPlanTitle":       slaActionPlan.Title,
+				"ActionPlanDescription": slaActionPlan.Description,
+				"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
+				"ResolvedByLastNameEn":  resolvedBy.LastNameEn,
+				"ResolvedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%s/compliance/sla-contracts/%d/action-plans?action_plan_id=%d", appURL, SLAID, id),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "compliance/templates/email/sla_action_plan_review_user_mail.html",
+				EmailData:            emailData,
+			}
+
+			// send notification and mail
+			err = sasus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "sla_register_action_plan")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
 		}
 	}()
 
@@ -548,7 +651,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Approve(slaID uint, actionPlanID 
 			EmailData:            emailData,
 		}
 
-		err = sasus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "sla_contracts")
+		err = sasus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "sla_register_action_plan")
 		if err != nil {
 			utility.LogError("Failed to send notifications", map[string]interface{}{
 				"error": err.Error(),
@@ -708,7 +811,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Revert(slaID uint, actionPlanID u
 			EmailData:            emailData,
 		}
 
-		err = sasus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "sla_contracts")
+		err = sasus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "sla_register_action_plan")
 		if err != nil {
 			utility.LogError("Failed to send notifications", map[string]interface{}{
 				"error": err.Error(),
