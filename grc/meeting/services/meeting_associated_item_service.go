@@ -38,6 +38,8 @@ type MeetingAssociatedItemServiceInterface interface {
 	GetAllMeetingKPI(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateMeetingKPI(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
 	DeleteMeetingKPI(meetingID uint, kpiID uint) error
+	GetAllClauses(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	UpdateClauses(meetingID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
 // Service and implementations
@@ -543,4 +545,85 @@ func (mais *MeetingAssociatedItemService) DeleteMeetingKPI(meetingID uint, kpiID
 	}
 
 	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) GetAllClauses(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return nil, err
+	}
+
+	response, err := mais.repo.GetAllClauses(meetingID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (mais *MeetingAssociatedItemService) UpdateClauses(meetingID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error {
+
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return err
+	}
+	tx := mais.repo.BeginTransaction()
+	clauses, err := mais.validationSvc.ValidateClauseIDs(ClauseFormDTO.ClauseIDs)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingControlClauses, err := mais.repo.GetClausesByMeetingId(meetingID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingClauses := make(map[uint]bool) // clauseID => exists
+	for _, clauseID := range existingControlClauses {
+		existingClauses[clauseID] = true
+	}
+
+	newClauses := make(map[uint]*models.ComplianceClause)
+	for _, clause := range clauses {
+		newClauses[clause.ID] = clause
+	}
+
+	var clausesToAdd []*models.MeetingComplianceRequirement
+	now := time.Now()
+	for id, clause := range newClauses {
+		if !existingClauses[id] {
+			clausesToAdd = append(clausesToAdd, &models.MeetingComplianceRequirement{
+				MeetingID:            meetingID,
+				ComplianceRegisterID: clause.ComplianceRegisterID,
+				ComplianceClauseID:   &clause.ID,
+				CreatedBYID:          currentUserID,
+				CreatedAt:            now,
+			})
+		}
+	}
+
+	if len(clausesToAdd) > 0 {
+		if err := mais.repo.CreateMeetingClauses(clausesToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteClauseIDs []uint
+	for existingID := range existingClauses {
+		if _, found := newClauses[existingID]; !found {
+			deleteClauseIDs = append(deleteClauseIDs, existingID)
+		}
+	}
+
+	if len(deleteClauseIDs) > 0 {
+		if err := mais.repo.DeleteMeetingClauses(meetingID, deleteClauseIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	return nil
 }
