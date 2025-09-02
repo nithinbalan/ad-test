@@ -780,9 +780,9 @@ func (kaic *KRIAssociatedItemController) DeleteKRIProcess(c *gin.Context) {
 }
 
 func (kaic *KRIAssociatedItemController) GetAllClauses(c *gin.Context) {
-	projectIDStr := c.Param("id")
+	kriIDStr := c.Param("id")
 
-	projectID, err := strconv.ParseUint(projectIDStr, 10, 64)
+	kriID, err := strconv.ParseUint(kriIDStr, 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -811,7 +811,7 @@ func (kaic *KRIAssociatedItemController) GetAllClauses(c *gin.Context) {
 		Page:     page,
 		PageSize: pageSize,
 	}
-	clauses, err := kaic.service.GetAllClauses(uint(projectID), &queryParams)
+	clauses, err := kaic.service.GetAllClauses(uint(kriID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -831,7 +831,7 @@ func (kaic *KRIAssociatedItemController) GetAllClauses(c *gin.Context) {
 func (kaic *KRIAssociatedItemController) UpdateClauses(c *gin.Context) {
 	var clauseFormDTO commonDTOs.AssociatedClauseFormDTO
 
-	projectID, err := strconv.Atoi(c.Param("id"))
+	kriID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -848,7 +848,7 @@ func (kaic *KRIAssociatedItemController) UpdateClauses(c *gin.Context) {
 		return
 	}
 
-	err = kaic.service.UpdateClauses(uint(projectID), currentUserID, &clauseFormDTO)
+	err = kaic.service.UpdateClauses(uint(kriID), currentUserID, &clauseFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

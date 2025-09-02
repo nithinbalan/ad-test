@@ -854,9 +854,9 @@ func (baic *BcpAssociatedItemController) DeleteBcpStrategicObjectives(c *gin.Con
 	c.JSON(http.StatusOK, gin.H{"message": "Strategic Objective unmapped from Bcp successfully"})
 }
 func (baic *BcpAssociatedItemController) GetAllClauses(c *gin.Context) {
-	projectIDStr := c.Param("id")
+	bcpIDStr := c.Param("id")
 
-	projectID, err := strconv.ParseUint(projectIDStr, 10, 64)
+	bcpID, err := strconv.ParseUint(bcpIDStr, 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -885,7 +885,7 @@ func (baic *BcpAssociatedItemController) GetAllClauses(c *gin.Context) {
 		Page:     page,
 		PageSize: pageSize,
 	}
-	clauses, err := baic.service.GetAllClauses(uint(projectID), &queryParams)
+	clauses, err := baic.service.GetAllClauses(uint(bcpID), &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -905,7 +905,7 @@ func (baic *BcpAssociatedItemController) GetAllClauses(c *gin.Context) {
 func (baic *BcpAssociatedItemController) UpdateClauses(c *gin.Context) {
 	var clauseFormDTO commonDTOs.AssociatedClauseFormDTO
 
-	projectID, err := strconv.Atoi(c.Param("id"))
+	bcpID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -922,7 +922,7 @@ func (baic *BcpAssociatedItemController) UpdateClauses(c *gin.Context) {
 		return
 	}
 
-	err = baic.service.UpdateClauses(uint(projectID), currentUserID, &clauseFormDTO)
+	err = baic.service.UpdateClauses(uint(bcpID), currentUserID, &clauseFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
