@@ -35,6 +35,9 @@ type MeetingAssociatedItemServiceInterface interface {
 	GetAllMeetingAssets(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateMeetingAsset(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
 	DeleteMeetingAsset(meetingID uint, assetID uint) error
+	GetAllMeetingKPI(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateMeetingKPI(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeleteMeetingKPI(meetingID uint, kpiID uint) error
 }
 
 // Service and implementations
@@ -482,6 +485,59 @@ func (mais *MeetingAssociatedItemService) DeleteMeetingAsset(meetingID uint, ass
 	tx := mais.repo.BeginTransaction()
 
 	if err := mais.repo.DeleteMeetingAsset(meetingID, assetID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) GetAllMeetingKPI(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return nil, err
+	}
+	return mais.repo.GetAllMeetingKPI(meetingID, params)
+}
+
+func (mais *MeetingAssociatedItemService) CreateMeetingKPI(meetingID, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return err
+	}
+
+	if err := mais.validationSvc.ValidateKPIMapping(meetingID, dto.KpiIDs, "meeting_kpis", "meeting_id"); err != nil {
+		return err
+	}
+
+	tx := mais.repo.BeginTransaction()
+	var mappings []*models.MeetingKpi
+	currentTime := time.Now()
+
+	for _, kpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.MeetingKpi{
+			KPIRegisterID: kpiID,
+			MeetingID:     meetingID,
+			CreatedByID:   userID,
+			CreatedAt:     currentTime,
+		})
+	}
+
+	if err := mais.repo.CreateMeetingKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) DeleteMeetingKPI(meetingID uint, kpiID uint) error {
+	// Validate control existence
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return err
+	}
+
+	tx := mais.repo.BeginTransaction()
+
+	if err := mais.repo.DeleteMeetingKPI(meetingID, kpiID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
