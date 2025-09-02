@@ -253,7 +253,7 @@ func (cac *ComplianceAssessmentController) GetComplianceStatusSummary(c *gin.Con
 		return
 	}
 
-	statusCounts, err := cac.service.GetComplianceStatusSummaryByRequirement(uint(id))
+	statusCounts, err := cac.service.GetComplianceStatusSummary(uint(id))
 	if err != nil {
 		utility.SendInternalErrResp(cac.db, c, err.Error())
 		return

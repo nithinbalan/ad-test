@@ -33,9 +33,9 @@ type ComplianceAssessmentRepositoryInterface interface {
 	CreateComplianceAssessmentRequirementResponsibleUnits(resUnits []*models.ComplianceAssessmentRequirementResponsibleUnit, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceAssessmentRequirementResponsibleUnits(ids []*uint, tx ...utility.DatabaseTransaction) error
 
-	GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error)
+	GetComplianceScoreSummaryByRequirement(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error)
 
-	AssessmentCompletionRollup(assessmentID uint) (*complianceDTOs.AssessmentCompletionRollupDTO, error)
+	AssessmentRequirementCompletionRollup(assessmentID uint) (*complianceDTOs.AssessmentCompletionRollupDTO, error)
 	GetComplianceStatusSummaryByRequirement(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error)
 
 	UpdateComplianceRequirementResponsibleUintValue(complianceRequirementValueUpdateDTO complianceDTOs.ComplianceRequirementValueUpdateDTO, tx ...utility.DatabaseTransaction) error
@@ -47,6 +47,13 @@ type ComplianceAssessmentRepositoryInterface interface {
 	CreateComplianceAssessmentControl(control *models.ComplianceAssessmentControl, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceAssessmentControls(ids []*uint, tx ...utility.DatabaseTransaction) error
 	HasControlForRegister(registerID uint) (bool, error)
+
+	UpdateControlComplianceStatus(dto complianceDTOs.ControlSyncUpdateDTO, tx ...utility.DatabaseTransaction) error
+	UpdateComplianceControlMeta(dto complianceDTOs.ControlSyncUpdateDTO, tx ...utility.DatabaseTransaction) error
+
+	AssessmentControlCompletionRollup(assessmentID uint) (*complianceDTOs.AssessmentCompletionRollupDTO, error)
+	GetComplianceStatusSummaryByControl(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error)
+	GetComplianceScoreSummaryByControl(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error)
 }
 
 type ComplianceAssessmentRepository struct {
@@ -404,7 +411,7 @@ func (repo *ComplianceAssessmentRepository) DeleteComplianceAssessmentRequiremen
 
 	return nil
 }
-func (repo *ComplianceAssessmentRepository) AssessmentCompletionRollup(assessmentID uint) (*complianceDTOs.AssessmentCompletionRollupDTO, error) {
+func (repo *ComplianceAssessmentRepository) AssessmentRequirementCompletionRollup(assessmentID uint) (*complianceDTOs.AssessmentCompletionRollupDTO, error) {
 	var out complianceDTOs.AssessmentCompletionRollupDTO
 
 	const q = `
@@ -470,7 +477,7 @@ func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummaryByRequirem
 	return out, nil
 }
 
-func (repo *ComplianceAssessmentRepository) GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error) {
+func (repo *ComplianceAssessmentRepository) GetComplianceScoreSummaryByRequirement(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error) {
 	var result complianceDTOs.ComplianceScoreSummaryDTO
 
 	const query = `
@@ -638,4 +645,123 @@ func (repo *ComplianceAssessmentRepository) HasControlForRegister(registerID uin
 	}
 
 	return count > 0, nil
+}
+
+func (repo *ComplianceAssessmentRepository) UpdateControlComplianceStatus(dto complianceDTOs.ControlSyncUpdateDTO, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	// Use map so NULLs (nil) are written
+	return db.Model(&models.Control{}).
+		Where("id = ?", dto.ControlID).
+		Updates(map[string]interface{}{
+			"compliance_status_id": dto.ComplianceStatusID,
+		}).Error
+}
+
+func (repo *ComplianceAssessmentRepository) UpdateComplianceControlMeta(dto complianceDTOs.ControlSyncUpdateDTO, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	// Use map so NULLs (nil) are written
+	return db.Model(&models.ComplianceControl{}).
+		Where("id = ?", dto.ComplianceControlID).
+		Updates(map[string]interface{}{
+			"compliance_assessment_framework_value_id": dto.ComplianceAssessmentFrameworkValueID,
+			"completed_by_user_id":                     dto.CompletedByUserID,
+			"completed_at":                             dto.CompletedAt,
+		}).Error
+}
+
+func (repo *ComplianceAssessmentRepository) AssessmentControlCompletionRollup(assessmentID uint) (*complianceDTOs.AssessmentCompletionRollupDTO, error) {
+	var out complianceDTOs.AssessmentCompletionRollupDTO
+
+	const q = `
+		SELECT
+			COUNT(*) AS total,
+			SUM(CASE WHEN cac.is_completed = 1 THEN 1 ELSE 0 END) AS completed,
+			SUM(CASE WHEN cac.is_completed = 0 THEN 1 ELSE 0 END) AS not_completed,
+			CASE 
+				WHEN COUNT(*) = 0 THEN 0
+				ELSE CAST(SUM(CASE WHEN cac.is_completed = 1 THEN 1 ELSE 0 END) * 100.0 
+				          / COUNT(*) AS DECIMAL(5,2))
+			END AS completion_percentage
+		FROM compliance_assessment_controls cac
+		WHERE cac.compliance_assessment_id = ?
+	`
+
+	if err := repo.db.Raw(q, assessmentID).Scan(&out).Error; err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummaryByControl(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error) {
+	var out []complianceDTOs.ComplianceStatusCountDTO
+
+	const q = `
+		SELECT
+			cs.id   AS compliance_status_id,
+			cs.title_en,
+			cs.title_ar,
+			cs.type,
+			cs.color_code,
+			COALESCE(agg.cnt, 0) AS count
+		FROM compliance_statuses cs
+		LEFT JOIN (
+			SELECT 
+				cafv.compliance_status_id AS compliance_status_id,
+				COUNT(*) AS cnt
+			FROM compliance_assessment_controls cac
+			JOIN compliance_assessments ca
+				ON ca.id = cac.compliance_assessment_id
+			JOIN compliance_assessment_statuses cas
+				ON cas.id = ca.compliance_assessment_status_id
+			LEFT JOIN compliance_assessment_framework_values cafv
+				ON cafv.id = cac.compliance_assessment_framework_value_id
+			WHERE cac.compliance_assessment_id = ?
+			  AND cas.type = 'approved'
+				-- If you want to count only applicable controls, uncomment:
+				-- AND cafv.is_applicable = 1
+				-- If you want to ignore unset framework values, uncomment:
+				-- AND cac.compliance_assessment_framework_value_id IS NOT NULL
+			GROUP BY cafv.compliance_status_id
+		) agg
+			ON agg.compliance_status_id = cs.id
+		ORDER BY cs.id
+	`
+
+	if err := repo.db.Raw(q, assessmentID).Scan(&out).Error; err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (repo *ComplianceAssessmentRepository) GetComplianceScoreSummaryByControl(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error) {
+	var result complianceDTOs.ComplianceScoreSummaryDTO
+
+	const query = `
+		SELECT 
+			COUNT(cac.id) AS total_requirements,   -- keep DTO shape
+			COALESCE(AVG(CAST(cac.score AS FLOAT)), 0) AS average_score
+		FROM compliance_assessment_controls cac
+		JOIN compliance_assessments ca
+			ON cac.compliance_assessment_id = ca.id
+		JOIN compliance_assessment_statuses cas
+			ON cas.id = ca.compliance_assessment_status_id
+		LEFT JOIN compliance_assessment_framework_values cafv
+			ON cafv.id = cac.compliance_assessment_framework_value_id
+		LEFT JOIN compliance_statuses cs
+			ON cs.id = cafv.compliance_status_id
+		WHERE cac.compliance_assessment_id = ?
+		  AND cac.score IS NOT NULL
+		  AND cas.type = 'approved'
+		  AND (cs.type IS NULL OR cs.type <> 'not_applicable')
+	`
+
+	if err := repo.db.Raw(query, assessmentID).Scan(&result).Error; err != nil {
+		return nil, err
+	}
+	return &result, nil
 }

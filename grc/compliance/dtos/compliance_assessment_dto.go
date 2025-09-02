@@ -282,3 +282,19 @@ type ControlComplianceScoreDTO struct {
 	MappedFrameworkValueID   *uint `json:"mapped_framework_value_id"`
 	MappedComplianceStatusID *uint `json:"mapped_compliance_status_id"`
 }
+type ClauseComplianceScoreDTO struct {
+	ComplianceClauseID       *uint   `json:"compliance_clause_id"`
+	ControlCount             int     `json:"control_count"`
+	SumPct                   float64 `json:"-"`
+	AveragePct               float64 `json:"average_pct"`
+	MappedFrameworkValueID   *uint   `json:"mapped_framework_value_id,omitempty"`
+	MappedComplianceStatusID *uint   `json:"mapped_compliance_status_id,omitempty"`
+}
+type ControlSyncUpdateDTO struct {
+	ControlID                            uint
+	ComplianceControlID                  uint
+	ComplianceAssessmentFrameworkValueID *uint
+	CompletedByUserID                    *uint
+	CompletedAt                          *time.Time
+	ComplianceStatusID                   *uint
+}
