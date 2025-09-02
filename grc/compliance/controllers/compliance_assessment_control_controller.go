@@ -173,11 +173,23 @@ func (cacc *ComplianceAssessmentControlController) MarkAsCompleted(ctx *gin.Cont
 
 	currentUserID, _ := utility.GetCurrentUserID(ctx)
 
-	if err := cacc.service.MarkAsCompleted(uint(assessmentID), uint(controlID), currentUserID); err != nil {
-		utility.SendInternalErrResp(cacc.db, ctx, err.Error())
-		return
+	err := cacc.service.MarkAsCompleted(uint(assessmentID), uint(controlID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(ctx)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(ctx, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(ctx, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(cacc.db, ctx, e.Error())
+			return
+		}
 	}
-
 	ctx.Status(http.StatusOK)
 }
 
@@ -187,11 +199,22 @@ func (cacc *ComplianceAssessmentControlController) MarkAsOpen(ctx *gin.Context) 
 
 	currentUserID, _ := utility.GetCurrentUserID(ctx)
 
-	if err := cacc.service.MarkAsOpen(uint(assessmentID), uint(controlID), currentUserID); err != nil {
-		utility.SendInternalErrResp(cacc.db, ctx, err.Error())
-		return
+	err := cacc.service.MarkAsOpen(uint(assessmentID), uint(controlID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(ctx, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(ctx, e.Error())
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(ctx)
+			return
+		default:
+			utility.SendInternalErrResp(cacc.db, ctx, e.Error())
+			return
+		}
 	}
-
 	ctx.Status(http.StatusOK)
 }
 

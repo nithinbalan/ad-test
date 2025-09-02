@@ -236,7 +236,9 @@ func (s *ComplianceAssessmentControlService) MarkAsCompleted(complianceAssessmen
 	if err != nil {
 		return err
 	}
-
+	if control.ComplianceAssessmentFrameworkValueID == nil {
+		return utility.NewForbiddenError("score_not_updated")
+	}
 	now := time.Now()
 	control.IsCompleted = true
 	control.CompletedByUserID = &currentUserID
