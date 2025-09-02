@@ -753,3 +753,115 @@ func (afaic *AuditFindingAssociatedItemController) DeleteAuditFindingRisk(c *gin
 
 	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from AuditFinding successfully"})
 }
+
+func (afaic *AuditFindingAssociatedItemController) GetAllAuditFindingKPI(c *gin.Context) {
+
+	findingIdStr := c.Param("findingId")
+
+	findingId, err := strconv.ParseUint(findingIdStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(afaic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(afaic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	kpis, err := afaic.service.GetAllAuditFindingKPI(uint(findingId), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(afaic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, kpis)
+}
+func (afaic *AuditFindingAssociatedItemController) CreateAuditFindingKPI(c *gin.Context) {
+	var input commonDTOs.AssociatedKPIMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	findingId, err := strconv.ParseUint(c.Param("findingId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(afaic.db, c, err.Error())
+		return
+	}
+
+	err = afaic.service.CreateAuditFindingKPI(uint(findingId), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(afaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (afaic *AuditFindingAssociatedItemController) DeleteAuditFindingKPI(c *gin.Context) {
+	kpiIDStr := c.Param("kpiRegisterId")
+	findingIdIDStr := c.Param("findingId")
+	findingID, err := strconv.ParseUint(findingIdIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	kpiID, err := strconv.ParseUint(kpiIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	err = afaic.service.DeleteAuditFindingKPI(uint(findingID), uint(kpiID))
+	if err != nil {
+		utility.SendInternalErrResp(afaic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "KPI unmapped from AuditFinding successfully"})
+}

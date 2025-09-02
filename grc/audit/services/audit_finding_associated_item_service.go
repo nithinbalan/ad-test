@@ -37,6 +37,10 @@ type AuditFindingAssociatedItemServiceInterface interface {
 	GetAllAuditFindingRisks(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	CreateAuditFindingRisk(findingID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteAuditFindingRisk(findingID uint, riskID uint) error
+
+	GetAllAuditFindingKPI(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateAuditFindingKPI(findingID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeleteAuditFindingKPI(findingID uint, kpiID uint) error
 }
 
 // Service and implementations
@@ -421,6 +425,59 @@ func (afais *AuditFindingAssociatedItemService) DeleteAuditFindingRisk(findingID
 	tx := afais.repo.BeginTransaction()
 
 	if err := afais.repo.DeleteAuditFindingRisk(findingID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (afais *AuditFindingAssociatedItemService) GetAllAuditFindingKPI(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return nil, err
+	}
+	return afais.repo.GetAllAuditFindingKPI(findingID, params)
+}
+
+func (afais *AuditFindingAssociatedItemService) CreateAuditFindingKPI(findingID, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return err
+	}
+
+	if err := afais.validationSvc.ValidateKPIMapping(findingID, dto.KpiIDs, "audit_finding_kpis", "audit_finding_id"); err != nil {
+		return err
+	}
+
+	tx := afais.repo.BeginTransaction()
+	var mappings []*models.AuditFindingKpi
+	currentTime := time.Now()
+
+	for _, kpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.AuditFindingKpi{
+			KPIRegisterID:  kpiID,
+			AuditFindingID: findingID,
+			CreatedByID:    userID,
+			CreatedAt:      currentTime,
+		})
+	}
+
+	if err := afais.repo.CreateAuditFindingKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (afais *AuditFindingAssociatedItemService) DeleteAuditFindingKPI(findingID uint, kpiID uint) error {
+	// Validate control existence
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return err
+	}
+
+	tx := afais.repo.BeginTransaction()
+
+	if err := afais.repo.DeleteAuditFindingKPI(findingID, kpiID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
