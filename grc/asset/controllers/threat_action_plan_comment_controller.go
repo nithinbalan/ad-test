@@ -25,7 +25,7 @@ func NewThreatActionPlanCommentController(service services.ThreatActionPlanComme
 	}
 }
 
-func (capc *ThreatActionPlanCommentController) GetAllComments(c *gin.Context) {
+func (tapc *ThreatActionPlanCommentController) GetAllComments(c *gin.Context) {
 	threatIDStr := c.Param("id")
 	threatID, err := strconv.ParseUint(threatIDStr, 10, 32)
 	if err != nil {
@@ -39,14 +39,14 @@ func (capc *ThreatActionPlanCommentController) GetAllComments(c *gin.Context) {
 		return
 	}
 
-	comments, err := capc.service.GetAll(uint(threatID), uint(actionPlanID))
+	comments, err := tapc.service.GetAll(uint(threatID), uint(actionPlanID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(capc.db, c, e.Error())
+			utility.SendInternalErrResp(tapc.db, c, e.Error())
 			return
 		}
 	}
@@ -54,7 +54,7 @@ func (capc *ThreatActionPlanCommentController) GetAllComments(c *gin.Context) {
 	c.JSON(http.StatusOK, comments)
 }
 
-func (capc *ThreatActionPlanCommentController) GetCommentDetails(c *gin.Context) {
+func (tapc *ThreatActionPlanCommentController) GetCommentDetails(c *gin.Context) {
 	threatIDStr := c.Param("id")
 	threatID, err := strconv.ParseUint(threatIDStr, 10, 32)
 	if err != nil {
@@ -75,14 +75,14 @@ func (capc *ThreatActionPlanCommentController) GetCommentDetails(c *gin.Context)
 		return
 	}
 
-	comment, err := capc.service.GetFullDetailsByID(uint(threatID), uint(actionPlanID), uint(commentID))
+	comment, err := tapc.service.GetFullDetailsByID(uint(threatID), uint(actionPlanID), uint(commentID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(capc.db, c, e.Error())
+			utility.SendInternalErrResp(tapc.db, c, e.Error())
 			return
 		}
 	}
@@ -90,7 +90,7 @@ func (capc *ThreatActionPlanCommentController) GetCommentDetails(c *gin.Context)
 	c.JSON(http.StatusOK, comment)
 }
 
-func (capc *ThreatActionPlanCommentController) CreateComment(c *gin.Context) {
+func (tapc *ThreatActionPlanCommentController) CreateComment(c *gin.Context) {
 
 	threatIDStr := c.Param("id")
 	threatID, err := strconv.ParseUint(threatIDStr, 10, 32)
@@ -114,18 +114,18 @@ func (capc *ThreatActionPlanCommentController) CreateComment(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, err.Error())
+		utility.SendInternalErrResp(tapc.db, c, err.Error())
 		return
 	}
 
-	id, err := capc.service.Create(uint(threatID), uint(actionPlanID), currentUserID, &formDTO)
+	id, err := tapc.service.Create(uint(threatID), uint(actionPlanID), currentUserID, &formDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(capc.db, c, e.Error())
+			utility.SendInternalErrResp(tapc.db, c, e.Error())
 			return
 		}
 	}
@@ -133,7 +133,7 @@ func (capc *ThreatActionPlanCommentController) CreateComment(c *gin.Context) {
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-func (capc *ThreatActionPlanCommentController) UpdateComment(c *gin.Context) {
+func (tapc *ThreatActionPlanCommentController) UpdateComment(c *gin.Context) {
 	threatIDStr := c.Param("id")
 	threatID, err := strconv.ParseUint(threatIDStr, 10, 32)
 	if err != nil {
@@ -162,18 +162,18 @@ func (capc *ThreatActionPlanCommentController) UpdateComment(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, err.Error())
+		utility.SendInternalErrResp(tapc.db, c, err.Error())
 		return
 	}
 
-	err = capc.service.Update(uint(threatID), uint(actionPlanID), uint(commentID), currentUserID, &formDTO)
+	err = tapc.service.Update(uint(threatID), uint(actionPlanID), uint(commentID), currentUserID, &formDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(capc.db, c, e.Error())
+			utility.SendInternalErrResp(tapc.db, c, e.Error())
 			return
 		}
 	}
@@ -181,7 +181,7 @@ func (capc *ThreatActionPlanCommentController) UpdateComment(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (capc *ThreatActionPlanCommentController) DeleteComment(c *gin.Context) {
+func (tapc *ThreatActionPlanCommentController) DeleteComment(c *gin.Context) {
 	threatIDStr := c.Param("id")
 	threatID, err := strconv.ParseUint(threatIDStr, 10, 32)
 	if err != nil {
@@ -206,11 +206,11 @@ func (capc *ThreatActionPlanCommentController) DeleteComment(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, err.Error())
+		utility.SendInternalErrResp(tapc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := capc.service.Delete(uint(threatID), uint(actionPlanID), request.IDs, currentUserID)
+	failedIDs, err := tapc.service.Delete(uint(threatID), uint(actionPlanID), request.IDs, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -220,7 +220,7 @@ func (capc *ThreatActionPlanCommentController) DeleteComment(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(capc.db, c, e.Error())
+			utility.SendInternalErrResp(tapc.db, c, e.Error())
 			return
 		}
 	}
@@ -228,7 +228,7 @@ func (capc *ThreatActionPlanCommentController) DeleteComment(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (capc *ThreatActionPlanCommentController) GetThreatActionPlanCommentDocumentPreview(c *gin.Context) {
+func (tapc *ThreatActionPlanCommentController) GetThreatActionPlanCommentDocumentPreview(c *gin.Context) {
 	threatIDStr := c.Param("id")
 
 	threatID, err := strconv.ParseUint(threatIDStr, 10, 64)
@@ -258,20 +258,20 @@ func (capc *ThreatActionPlanCommentController) GetThreatActionPlanCommentDocumen
 		return
 	}
 
-	threatActionPlanCommentDocumentPath, err := capc.service.GetDocumentPath(uint(threatID), uint(actionPlanID), uint(id), token)
+	threatActionPlanCommentDocumentPath, err := tapc.service.GetDocumentPath(uint(threatID), uint(actionPlanID), uint(id), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 		default:
-			utility.SendInternalErrResp(capc.db, c, err.Error())
+			utility.SendInternalErrResp(tapc.db, c, err.Error())
 		}
 		return
 	}
 	c.File(threatActionPlanCommentDocumentPath)
 }
 
-func (capc *ThreatActionPlanCommentController) DownloadThreatActionPlanCommentDocument(c *gin.Context) {
+func (tapc *ThreatActionPlanCommentController) DownloadThreatActionPlanCommentDocument(c *gin.Context) {
 	threatIDStr := c.Param("id")
 
 	threatID, err := strconv.ParseUint(threatIDStr, 10, 64)
@@ -300,13 +300,13 @@ func (capc *ThreatActionPlanCommentController) DownloadThreatActionPlanCommentDo
 		return
 	}
 
-	threatActionPlanCommentDocumentPath, err := capc.service.GetDocumentPath(uint(threatID), uint(actionPlanID), uint(id), token)
+	threatActionPlanCommentDocumentPath, err := tapc.service.GetDocumentPath(uint(threatID), uint(actionPlanID), uint(id), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 		default:
-			utility.SendInternalErrResp(capc.db, c, err.Error())
+			utility.SendInternalErrResp(tapc.db, c, err.Error())
 		}
 		return
 	}

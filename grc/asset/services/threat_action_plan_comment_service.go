@@ -55,20 +55,20 @@ func NewThreatActionPlanCommentService(repo repositories.ThreatActionPlanComment
 	}
 }
 
-func (caps *ThreatActionPlanCommentService) GetAll(threatID uint, actionPlanID uint) ([]*threatDTOs.ThreatActionPlanCommentListDTO, error) {
-	if _, err := caps.threatActionPlanSvc.GetByID(threatID, actionPlanID); err != nil {
+func (tapc *ThreatActionPlanCommentService) GetAll(threatID uint, actionPlanID uint) ([]*threatDTOs.ThreatActionPlanCommentListDTO, error) {
+	if _, err := tapc.threatActionPlanSvc.GetByID(threatID, actionPlanID); err != nil {
 		return nil, err
 	}
 
-	return caps.repo.GetAll(actionPlanID)
+	return tapc.repo.GetAll(actionPlanID)
 }
 
-func (caps *ThreatActionPlanCommentService) GetByID(threatID uint, actionPlanID uint, id uint) (*models.ThreatActionPlanComment, error) {
-	if _, err := caps.threatActionPlanSvc.GetByID(threatID, actionPlanID); err != nil {
+func (tapc *ThreatActionPlanCommentService) GetByID(threatID uint, actionPlanID uint, id uint) (*models.ThreatActionPlanComment, error) {
+	if _, err := tapc.threatActionPlanSvc.GetByID(threatID, actionPlanID); err != nil {
 		return nil, err
 	}
 
-	comment, err := caps.repo.GetByID(id)
+	comment, err := tapc.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -78,15 +78,15 @@ func (caps *ThreatActionPlanCommentService) GetByID(threatID uint, actionPlanID 
 	return comment, nil
 }
 
-func (caps *ThreatActionPlanCommentService) GetFullDetailsByID(threatID uint, actionPlanID uint, id uint, tx ...utility.DatabaseTransaction) (*threatDTOs.ThreatActionPlanCommentDetailDTO, error) {
-	if _, err := caps.threatActionPlanSvc.GetByID(threatID, actionPlanID); err != nil {
+func (tapc *ThreatActionPlanCommentService) GetFullDetailsByID(threatID uint, actionPlanID uint, id uint, tx ...utility.DatabaseTransaction) (*threatDTOs.ThreatActionPlanCommentDetailDTO, error) {
+	if _, err := tapc.threatActionPlanSvc.GetByID(threatID, actionPlanID); err != nil {
 		fmt.Printf("ThreatActionPlan not found for threatID %d, actionPlanID %d\n", threatID, actionPlanID)
 		return nil, err
 	}
 
 	var commentDetail threatDTOs.ThreatActionPlanCommentDetailDTO
 
-	comment, err := caps.repo.GetFullDetailsByID(id, tx...)
+	comment, err := tapc.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -104,14 +104,14 @@ func (caps *ThreatActionPlanCommentService) GetFullDetailsByID(threatID uint, ac
 	return &commentDetail, nil
 }
 
-func (caps *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID uint, currentUserID uint, threatActionPlanCommentFormDTO *threatDTOs.ThreatActionPlanCommentFormDTO) (uint, error) {
-	tx := caps.repo.BeginTransaction()
+func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID uint, currentUserID uint, threatActionPlanCommentFormDTO *threatDTOs.ThreatActionPlanCommentFormDTO) (uint, error) {
+	tx := tapc.repo.BeginTransaction()
 
-	if _, err := caps.threatActionPlanSvc.GetByID(threatID, actionPlanID); err != nil {
+	if _, err := tapc.threatActionPlanSvc.GetByID(threatID, actionPlanID); err != nil {
 		return 0, err
 	}
 
-	threatActionPlan, err := caps.threatActionPlanSvc.GetFullDetailsByID(threatID, actionPlanID)
+	threatActionPlan, err := tapc.threatActionPlanSvc.GetFullDetailsByID(threatID, actionPlanID)
 
 
 	if err != nil {
@@ -124,7 +124,7 @@ func (caps *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 		CreatedBYID:            currentUserID,
 	}
 
-	id, err := caps.repo.Create(comment)
+	id, err := tapc.repo.Create(comment)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -162,7 +162,7 @@ func (caps *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 	}
 
 	if len(documents) > 0 {
-		if err := caps.repo.CreateDocuments(documents, tx); err != nil {
+		if err := tapc.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -184,7 +184,7 @@ func (caps *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 
 	tx.Commit()
 	go func() {
-		existingComment, err := caps.GetFullDetailsByID(threatID, actionPlanID, id)
+		existingComment, err := tapc.GetFullDetailsByID(threatID, actionPlanID, id)
 		if err != nil {
 			utility.LogError("Failed to fetch threat action plan comment", map[string]interface{}{
 				"error": err.Error(),
@@ -192,7 +192,7 @@ func (caps *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 			return
 		}
 
-		err = caps.activityLogSvc.LogActivity(
+		err = tapc.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.ThreatActionPlanComment{}.TableName(),
 			id,
@@ -238,14 +238,14 @@ func (caps *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 					CreatedByID:          &currentUserID,
 				}
 
-				reviewUser, err := caps.userSvc.GetByID(uint(threatActionPlan.ReviewUser.ID))
+				reviewUser, err := tapc.userSvc.GetByID(uint(threatActionPlan.ReviewUser.ID))
 				if err != nil {
 					utility.LogError("Failed to fetch review user", map[string]interface{}{
 						"error": err.Error(),
 					})
 					return
 				}
-				assignedBy, err := caps.userSvc.GetByID(currentUserID)
+				assignedBy, err := tapc.userSvc.GetByID(currentUserID)
 				if err != nil {
 					utility.LogError("Failed to fetch commented user", map[string]interface{}{
 						"error": err.Error(),
@@ -277,7 +277,7 @@ func (caps *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 				}
 
 				// send notification and mail
-				err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "threat_action_plan")
+				err = tapc.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "threat_action_plan")
 				if err != nil {
 					utility.LogError("Failed to send notifications", map[string]interface{}{
 						"error": err.Error(),
@@ -308,14 +308,14 @@ func (caps *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 				CreatedByID:          &currentUserID,
 			}
 
-			responsibleUser, err := caps.userSvc.GetByID(uint(threatActionPlan.ResponsibleUser.ID))
+			responsibleUser, err := tapc.userSvc.GetByID(uint(threatActionPlan.ResponsibleUser.ID))
 			if err != nil {
 				utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 					"error": err.Error(),
 				})
 				return
 			}
-			assignedBy, err := caps.userSvc.GetByID(currentUserID)
+			assignedBy, err := tapc.userSvc.GetByID(currentUserID)
 			if err != nil {
 				utility.LogError("Failed to fetch commented user", map[string]interface{}{
 					"error": err.Error(),
@@ -347,7 +347,7 @@ func (caps *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 			}
 
 			// send notification and mail
-			err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "threat_action_plan")
+			err = tapc.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "threat_action_plan")
 			if err != nil {
 				utility.LogError("Failed to send notifications", map[string]interface{}{
 					"error": err.Error(),
@@ -377,14 +377,14 @@ func (caps *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 				CreatedByID:          &currentUserID,
 			}
 
-			responsibleUser, err := caps.userSvc.GetByID(uint(threatActionPlan.ResponsibleUser.ID))
+			responsibleUser, err := tapc.userSvc.GetByID(uint(threatActionPlan.ResponsibleUser.ID))
 			if err != nil {
 				utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 					"error": err.Error(),
 				})
 				return
 			}
-			assignedBy, err := caps.userSvc.GetByID(currentUserID)
+			assignedBy, err := tapc.userSvc.GetByID(currentUserID)
 			if err != nil {
 				utility.LogError("Failed to fetch commented user", map[string]interface{}{
 					"error": err.Error(),
@@ -416,7 +416,7 @@ func (caps *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 			}
 
 			// send notification and mail
-			err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "threat_action_plan")
+			err = tapc.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "threat_action_plan")
 			if err != nil {
 				utility.LogError("Failed to send notifications", map[string]interface{}{
 					"error": err.Error(),
@@ -445,14 +445,14 @@ func (caps *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 					CreatedByID:          &currentUserID,
 				}
 
-				responsibleUser, err := caps.userSvc.GetByID(uint(threatActionPlan.ReviewUser.ID))
+				responsibleUser, err := tapc.userSvc.GetByID(uint(threatActionPlan.ReviewUser.ID))
 				if err != nil {
 					utility.LogError("Failed to fetch review user", map[string]interface{}{
 						"error": err.Error(),
 					})
 					return
 				}
-				assignedBy, err := caps.userSvc.GetByID(currentUserID)
+				assignedBy, err := tapc.userSvc.GetByID(currentUserID)
 				if err != nil {
 					utility.LogError("Failed to fetch commented user", map[string]interface{}{
 						"error": err.Error(),
@@ -484,7 +484,7 @@ func (caps *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 				}
 
 				// send notification and mail
-				err = caps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "threat_action_plan")
+				err = tapc.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "threat_action_plan")
 				if err != nil {
 					utility.LogError("Failed to send notifications", map[string]interface{}{
 						"error": err.Error(),
@@ -495,26 +495,26 @@ func (caps *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 	}()
 	return id, nil
 }
-func (caps *ThreatActionPlanCommentService) Update(threatID uint, actionPlanID uint, id uint, currentUserID uint, threatActionPlanCommentFormDTO *threatDTOs.ThreatActionPlanCommentFormDTO) error {
-	tx := caps.repo.BeginTransaction()
+func (tapc *ThreatActionPlanCommentService) Update(threatID uint, actionPlanID uint, id uint, currentUserID uint, threatActionPlanCommentFormDTO *threatDTOs.ThreatActionPlanCommentFormDTO) error {
+	tx := tapc.repo.BeginTransaction()
 
-	if _, err := caps.threatActionPlanSvc.GetByID(threatID, actionPlanID); err != nil {
+	if _, err := tapc.threatActionPlanSvc.GetByID(threatID, actionPlanID); err != nil {
 		return err
 	}
 
-	existingComment, err := caps.GetByID(threatID, actionPlanID, id)
+	existingComment, err := tapc.GetByID(threatID, actionPlanID, id)
 	if err != nil {
 		return err
 	}
 
-	oldComment, err := caps.GetFullDetailsByID(threatID, actionPlanID, id)
+	oldComment, err := tapc.GetFullDetailsByID(threatID, actionPlanID, id)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	existingComment.Comment = threatActionPlanCommentFormDTO.Comment
-	err = caps.repo.Update(existingComment, tx)
+	err = tapc.repo.Update(existingComment, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -551,7 +551,7 @@ func (caps *ThreatActionPlanCommentService) Update(threatID uint, actionPlanID u
 
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
 			if doc.ID != nil {
-				existingDocument, err := caps.repo.GetDocumentByID(*doc.ID)
+				existingDocument, err := tapc.repo.GetDocumentByID(*doc.ID)
 				if err != nil {
 					if errors.Is(err, gorm.ErrRecordNotFound) {
 						return utility.NewResourceNotFoundError(err, id)
@@ -566,14 +566,14 @@ func (caps *ThreatActionPlanCommentService) Update(threatID uint, actionPlanID u
 	}
 
 	if len(newDocuments) > 0 {
-		if err := caps.repo.CreateDocuments(newDocuments, tx); err != nil {
+		if err := tapc.repo.CreateDocuments(newDocuments, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
 
 	if len(deleteDocumentIds) > 0 {
-		if err := caps.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+		if err := tapc.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -599,7 +599,7 @@ func (caps *ThreatActionPlanCommentService) Update(threatID uint, actionPlanID u
 
 	tx.Commit()
 	go func() {
-		existingComment, err := caps.GetFullDetailsByID(threatID, actionPlanID, id)
+		existingComment, err := tapc.GetFullDetailsByID(threatID, actionPlanID, id)
 		if err != nil {
 			return
 		}
@@ -620,7 +620,7 @@ func (caps *ThreatActionPlanCommentService) Update(threatID uint, actionPlanID u
 		}
 
 		if len(changedData) > 0 {
-			err := caps.activityLogSvc.LogActivity(
+			err := tapc.activityLogSvc.LogActivity(
 				models.UpdateAction,
 				models.ThreatActionPlanComment{}.TableName(),
 				id,
@@ -644,9 +644,9 @@ func (caps *ThreatActionPlanCommentService) Update(threatID uint, actionPlanID u
 	return nil
 }
 
-func (caps *ThreatActionPlanCommentService) Delete(threatID uint, actionPlanID uint, ids []uint, currentUserID uint) ([]uint, error) {
-	tx := caps.repo.BeginTransaction()
-	if _, err := caps.threatActionPlanSvc.GetByID(threatID, actionPlanID); err != nil {
+func (tapc *ThreatActionPlanCommentService) Delete(threatID uint, actionPlanID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	tx := tapc.repo.BeginTransaction()
+	if _, err := tapc.threatActionPlanSvc.GetByID(threatID, actionPlanID); err != nil {
 		return nil, err
 	}
 
@@ -654,7 +654,7 @@ func (caps *ThreatActionPlanCommentService) Delete(threatID uint, actionPlanID u
 	var successfulIDs []uint
 	var deletedComments []map[string]interface{}
 	for _, id := range ids {
-		if _, err := caps.repo.GetFullDetailsByID(id); err != nil {
+		if _, err := tapc.repo.GetFullDetailsByID(id); err != nil {
 			failedIDs = append(failedIDs, id)
 			continue
 		}
@@ -664,7 +664,7 @@ func (caps *ThreatActionPlanCommentService) Delete(threatID uint, actionPlanID u
 			"threat_action": actionPlanID,
 		})
 
-		err := caps.repo.Delete(id, tx)
+		err := tapc.repo.Delete(id, tx)
 		if err != nil {
 			failedIDs = append(failedIDs, id)
 		}
@@ -678,7 +678,7 @@ func (caps *ThreatActionPlanCommentService) Delete(threatID uint, actionPlanID u
 	tx.Commit()
 	if len(successfulIDs) > 0 {
 		go func() {
-			err := caps.activityLogSvc.LogBulkActivities(
+			err := tapc.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
 				models.ThreatActionPlanComment{}.TableName(),
 				successfulIDs,
@@ -694,8 +694,8 @@ func (caps *ThreatActionPlanCommentService) Delete(threatID uint, actionPlanID u
 	return failedIDs, nil
 }
 
-func (caps *ThreatActionPlanCommentService) GetDocumentPath(threatID, actionPlanID, id uint, token string) (string, error) {
-	existingComment, err := caps.GetByID(threatID, actionPlanID, id)
+func (tapc *ThreatActionPlanCommentService) GetDocumentPath(threatID, actionPlanID, id uint, token string) (string, error) {
+	existingComment, err := tapc.GetByID(threatID, actionPlanID, id)
 	if err != nil {
 		return "", err
 	}

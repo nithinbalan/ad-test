@@ -192,14 +192,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("/threats/:id/action-plan-summary", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatActionPlanController.GetThreatActionPlanSummary)
 
 	// Threat action plan comment
- 	assetRoutes.POST("/threats/:id/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatActionPlanCommentController.CreateComment)
-	assetRoutes.GET("/threats/:id/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatActionPlanCommentController.GetAllComments)
-	assetRoutes.GET("/threats/:id/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatActionPlanCommentController.GetCommentDetails)
-	assetRoutes.PUT("/threats/:id/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatActionPlanCommentController.UpdateComment)
-	assetRoutes.POST("/threats/:id/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatActionPlanCommentController.DeleteComment)
 	unauthenticatedRoutes.GET("/threats/:id/action-plans/:actionPlanId/comments/:commentId/document-download", threatActionPlanCommentController.DownloadThreatActionPlanCommentDocument)
 	unauthenticatedRoutes.GET("/threats/:id/action-plans/:actionPlanId/comments/:commentId/document-preview", threatActionPlanCommentController.GetThreatActionPlanCommentDocumentPreview)
-	
+	assetRoutes.GET("/threats/:id/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatActionPlanCommentController.GetAllComments)
+	assetRoutes.GET("/threats/:id/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatActionPlanCommentController.GetCommentDetails)
+ 	assetRoutes.POST("/threats/:id/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatActionPlanCommentController.CreateComment)
+	assetRoutes.PUT("/threats/:id/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatActionPlanCommentController.UpdateComment)
+	assetRoutes.POST("/threats/:id/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatActionPlanCommentController.DeleteComment)
+
 
 
 	// Document Preview and Download for Threat Action Plan Status Update
