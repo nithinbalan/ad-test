@@ -798,3 +798,116 @@ func (tpaic *ThirdPartyAssociatedItemController) DeleteThirdPartyRisk(c *gin.Con
 
 	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from third party successfully"})
 }
+
+func (tpaic *ThirdPartyAssociatedItemController) GetAllThirdPartyKPI(c *gin.Context) {
+
+	ThirdPartyIDStr := c.Param("id")
+
+	ThirdPartyID, err := strconv.ParseUint(ThirdPartyIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(tpaic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(tpaic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	kpis, err := tpaic.service.GetAllThirdPartyKPI(uint(ThirdPartyID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(tpaic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, kpis)
+}
+
+func (tpaic *ThirdPartyAssociatedItemController) CreateThirdPartyKPI(c *gin.Context) {
+	var input commonDTOs.AssociatedKPIMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	ThirdPartyID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tpaic.db, c, err.Error())
+		return
+	}
+
+	err = tpaic.service.CreateThirdPartyKPI(uint(ThirdPartyID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(tpaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (tpaic *ThirdPartyAssociatedItemController) DeleteThirdPartyKPI(c *gin.Context) {
+
+	ThirdPartyIDStr := c.Param("id")
+	kpiIDStr := c.Param("kpiRegisterId")
+
+	ThirdPartyID, err := strconv.ParseUint(ThirdPartyIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	kpiID, err := strconv.ParseUint(kpiIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = tpaic.service.DeleteThirdPartyKPI(uint(ThirdPartyID), uint(kpiID))
+	if err != nil {
+		utility.SendInternalErrResp(tpaic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "KPI unmapped from third party successfully"})
+}

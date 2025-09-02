@@ -35,6 +35,9 @@ type ThirdPartyAssociatedItemServiceInterface interface {
 	GetAllThirdPartyRisks(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	CreateThirdPartyRisk(ThirdPartyID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteThirdPartyRisk(ThirdPartyID uint, riskID uint) error
+	GetAllThirdPartyKPI(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateThirdPartyKPI(ThirdPartyID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeleteThirdPartyKPI(ThirdPartyID uint, kpiID uint) error
 }
 
 // Service and implementations
@@ -419,6 +422,59 @@ func (tpais *ThirdPartyAssociatedItemService) DeleteThirdPartyRisk(ThirdPartyID 
 	tx := tpais.repo.BeginTransaction()
 
 	if err := tpais.repo.DeleteThirdPartyRisk(ThirdPartyID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (tpais *ThirdPartyAssociatedItemService) GetAllThirdPartyKPI(ThirdPartyID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return nil, err
+	}
+	return tpais.repo.GetAllThirdPartyKPI(ThirdPartyID, params)
+}
+
+func (tpais *ThirdPartyAssociatedItemService) CreateThirdPartyKPI(ThirdPartyID, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+
+	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return err
+	}
+
+	if err := tpais.validationSvc.ValidateKPIMapping(ThirdPartyID, dto.KpiIDs, "kpi_third_parties", "third_party_register_id"); err != nil {
+		return err
+	}
+
+	tx := tpais.repo.BeginTransaction()
+	var mappings []*models.KPIThirdParty
+	currentTime := time.Now()
+
+	for _, kpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.KPIThirdParty{
+			KPIRegisterID:        kpiID,
+			ThirdPartyRegisterID: ThirdPartyID,
+			CreatedByID:          userID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := tpais.repo.CreateThirdPartyKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (tpais *ThirdPartyAssociatedItemService) DeleteThirdPartyKPI(ThirdPartyID uint, kpiID uint) error {
+	// Validate control existence
+	if _, err := tpais.ThirdPartySvc.GetByID(ThirdPartyID); err != nil {
+		return err
+	}
+
+	tx := tpais.repo.BeginTransaction()
+
+	if err := tpais.repo.DeleteThirdPartyKPI(ThirdPartyID, kpiID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
