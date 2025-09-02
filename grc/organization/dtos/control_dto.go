@@ -205,6 +205,18 @@ type ControlDetailDTO struct {
 	Justification                 *string                          `json:"justification"`
 	ImplementationGuideline       *string                          `json:"implementation_guideline"`
 	ApplicabilityChangeDateString *string                          `json:"applicability_change_date"`
+	ComplianceStatusID            uint                             `json:"compliance_status_id"`
+	ComplianceStatus              ComplianceStatusDTO              `json:"compliance_status"`
+}
+type ComplianceStatusDTO struct {
+	ID        int    `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	Type      string `json:"type"`
+	ColorCode string `json:"color_code"`
+	Status    string `json:"status"`
+	ScoreFrom *int   `json:"score_from"`
+	ScoreTo   *int   `json:"score_to"`
 }
 
 type ControlRiskDTO struct {
