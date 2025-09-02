@@ -16,10 +16,8 @@ type PolicyFolderRepositoryInterface interface {
 	Create(folder *models.Document) (*models.Document, error)
 	Update(id uint, folder *models.Document) (*models.Document, error)
 	Delete(id uint) error
-	Activate(ids []uint) ([]uint, error)
-	Deactivate(ids []uint) ([]uint, error)
-	ExistsByTitle(titleEn string, titleAr string) (bool, error)
-	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
+	ExistsByTitle(titleEn string, titleAr string, parentDocumentID *uint) (bool, error)
+	ExistsByTitleExcludingID(id uint, titleEn, titleAr string, parentDocumentID *uint) (bool, error)
 }
 
 // Implementation
@@ -247,75 +245,41 @@ func (repo *PolicyFolderRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *PolicyFolderRepository) Activate(ids []uint) ([]uint, error) {
-	var idsToUpdate []uint
-
-	// Step 1: Fetch the IDs of records that are currently 'inactive' and within the provided 'ids' slice
-	if err := repo.db.Model(&models.Document{}).
-		Where("id IN ? AND status = ?", ids, "inactive").
-		Pluck("id", &idsToUpdate).Error; err != nil {
-		return nil, err
-	}
-
-	// Step 2: If there are any IDs to update, perform the update operation
-	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.Document{}).
-			Where("id IN ?", idsToUpdate).
-			Update("status", "active").Error; err != nil {
-			return nil, err
-		}
-	}
-
-	// Return the IDs of the records that were activated
-	return idsToUpdate, nil
-}
-
-func (repo *PolicyFolderRepository) Deactivate(ids []uint) ([]uint, error) {
-	var idsToUpdate []uint
-
-	// Step 1: Fetch the IDs of records that are currently 'active' and within the provided 'ids' slice
-	if err := repo.db.Model(&models.Document{}).
-		Where("id IN ? AND status = ?", ids, "active").
-		Pluck("id", &idsToUpdate).Error; err != nil {
-		return nil, err
-	}
-
-	// Step 2: If there are any IDs to update, perform the update operation
-	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.Document{}).
-			Where("id IN ?", idsToUpdate).
-			Update("status", "inactive").Error; err != nil {
-			return nil, err
-		}
-	}
-
-	// Return the IDs of the records that were deactivated
-	return idsToUpdate, nil
-}
-
-func (repo *PolicyFolderRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
+func (repo *PolicyFolderRepository) ExistsByTitle(titleEn, titleAr string, parentDocumentID *uint) (bool, error) {
 	var count int64
 
-	// Check for the existence of titleEn or titleAr in a single query
-	err := repo.db.Model(&models.Document{}).
-		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
-		Count(&count).Error
+	query := repo.db.Model(&models.Document{})
 
+	// If parentDocumentID is provided, filter by it
+	if parentDocumentID != nil {
+		query = query.Where("parent_document_id = ?", *parentDocumentID)
+	} else {
+		query = query.Where("parent_document_id IS NULL")
+	}
+
+	// Check for English or Arabic title
+	err := query.Where("title_en = ? OR title_ar = ?", titleEn, titleAr).Count(&count).Error
 	if err != nil {
 		return false, utility.NewInternalServerError(err)
 	}
 
-	// Return true if either title exists, otherwise false
 	return count > 0, nil
 }
 
-func (repo *PolicyFolderRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
+func (repo *PolicyFolderRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string, parentDocumentID *uint) (bool, error) {
 	var count int64
 
-	err := repo.db.Model(&models.Document{}).
-		Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, titleEn, titleAr).
-		Count(&count).Error
+	query := repo.db.Model(&models.Document{}).Where("id <> ?", id)
 
+	// Apply parent folder condition
+	if parentDocumentID != nil {
+		query = query.Where("parent_document_id = ?", *parentDocumentID)
+	} else {
+		query = query.Where("parent_document_id IS NULL")
+	}
+
+	// Check for duplicate titles (either English or Arabic)
+	err := query.Where("title_en = ? OR title_ar = ?", titleEn, titleAr).Count(&count).Error
 	if err != nil {
 		return false, utility.NewInternalServerError(err)
 	}

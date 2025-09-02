@@ -26,8 +26,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	policyRoutes.POST("/policy-folders", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), policyFolderController.CreatePolicyFolder)
 	policyRoutes.PUT("/policy-folders/:id", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), policyFolderController.UpdatePolicyFolder)
 	policyRoutes.POST("/policy-folders/delete", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), policyFolderController.DeletePolicyFolders)
-	policyRoutes.PUT("/policy-folders/activate", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), policyFolderController.ActivatePolicyFolders)
-	policyRoutes.PUT("/policy-folders/deactivate", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), policyFolderController.DeactivatePolicyFolders)
 
 	//policy
 	policyRoutes.GET("/policy-register", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), policyRegisterController.GetAllPolicies)

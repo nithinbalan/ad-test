@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	documentServices "jethur/grc/documents/services"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/policy/dtos"
@@ -17,20 +18,20 @@ type PolicyFolderServiceInterface interface {
 	Create(currentUserID uint, formDTO *dtos.PolicyFolderFormDTO) (*models.Document, error)
 	Update(id uint, currentUserID uint, formDTO *dtos.PolicyFolderFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
-	Activate(ids []uint, currentUserID uint) error
-	Deactivate(ids []uint, currentUserID uint) error
 }
 
 // Service and implementations
 type PolicyFolderService struct {
-	repo           repositories.PolicyFolderRepositoryInterface
-	activityLogSvc services.ActivityLogServiceInterface
+	repo                  repositories.PolicyFolderRepositoryInterface
+	activityLogSvc        services.ActivityLogServiceInterface
+	documentAccessTypeSvc documentServices.DocumentAccessTypeServiceInterface
 }
 
-func NewPolicyFolderService(repo repositories.PolicyFolderRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) PolicyFolderServiceInterface {
+func NewPolicyFolderService(repo repositories.PolicyFolderRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, documentAccessTypeSvc documentServices.DocumentAccessTypeServiceInterface) PolicyFolderServiceInterface {
 	return &PolicyFolderService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
+		repo:                  repo,
+		activityLogSvc:        activityLogSvc,
+		documentAccessTypeSvc: documentAccessTypeSvc,
 	}
 }
 
@@ -43,10 +44,15 @@ func (cfs PolicyFolderService) GetByID(id uint) (*models.Document, error) {
 }
 
 func (cfs *PolicyFolderService) Create(currentUserID uint, formDTO *dtos.PolicyFolderFormDTO) (*models.Document, error) {
-	if exists, err := cfs.repo.ExistsByTitle(formDTO.TitleEn, formDTO.TitleAr); err != nil {
+	if exists, err := cfs.repo.ExistsByTitle(formDTO.TitleEn, formDTO.TitleAr, formDTO.ParentDocumentID); err != nil {
 		return nil, err
 	} else if exists {
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+	}
+
+	accessType, err := cfs.documentAccessTypeSvc.GetByType("public")
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("document access type does not exist"), "not_exist", "document access type")
 	}
 
 	folder := &models.Document{
@@ -54,10 +60,9 @@ func (cfs *PolicyFolderService) Create(currentUserID uint, formDTO *dtos.PolicyF
 		TitleAr:              formDTO.TitleEn,
 		IsFolder:             true,
 		ParentDocumentID:     formDTO.ParentDocumentID,
-		DocumentAccessTypeID: formDTO.DocumentAccessTypeID,
+		DocumentAccessTypeID: uint(accessType.ID),
+		CreatedBYID:          currentUserID,
 	}
-	// Set the CreatedByID field
-	folder.CreatedBYID = currentUserID
 
 	createdFolder, err := cfs.repo.Create(folder)
 	if err != nil {
@@ -91,7 +96,7 @@ func (cfs *PolicyFolderService) Update(id uint, currentUserID uint, formDTO *dto
 	}
 
 	if formDTO.TitleEn != existingFolder.TitleEn || formDTO.TitleAr != existingFolder.TitleAr {
-		if exists, err := cfs.repo.ExistsByTitleExcludingID(id, formDTO.TitleEn, formDTO.TitleAr); err != nil {
+		if exists, err := cfs.repo.ExistsByTitleExcludingID(id, formDTO.TitleEn, formDTO.TitleAr, formDTO.ParentDocumentID); err != nil {
 			return err
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
@@ -178,50 +183,4 @@ func (cfs *PolicyFolderService) Delete(ids []uint, currentUserID uint) ([]uint, 
 	}
 
 	return failedIds, nil
-}
-
-func (cfs *PolicyFolderService) Activate(ids []uint, currentUserID uint) error {
-	successfulIds, err := cfs.repo.Activate(ids)
-
-	if len(successfulIds) > 0 {
-		go func() {
-			err := cfs.activityLogSvc.LogBulkActivities(
-				models.ActivateAction,
-				models.Document{}.TableName(),
-				successfulIds,
-				nil,
-				currentUserID,
-				nil,
-			)
-			if err != nil {
-				// @todo - save to log file
-				fmt.Printf("Failed to log activity: %v\n", err)
-			}
-		}()
-	}
-
-	return err
-}
-
-func (cfs *PolicyFolderService) Deactivate(ids []uint, currentUserID uint) error {
-	successfulIds, err := cfs.repo.Deactivate(ids)
-
-	if len(successfulIds) > 0 {
-		go func() {
-			err := cfs.activityLogSvc.LogBulkActivities(
-				models.DeactivateAction,
-				models.Document{}.TableName(),
-				successfulIds,
-				nil,
-				currentUserID,
-				nil,
-			)
-			if err != nil {
-				// @todo - save to log file
-				fmt.Printf("Failed to log activity: %v\n", err)
-			}
-		}()
-	}
-
-	return err
 }
