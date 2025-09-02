@@ -27,6 +27,7 @@ func (alc *ArticleLibraryController) GetAll(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
 
 	allowedParams := []string{
 		"article_category_ids",
@@ -38,12 +39,13 @@ func (alc *ArticleLibraryController) GetAll(c *gin.Context) {
 	pageSize, _ := utility.ParseQueryParamToInt(c, "page_size", 10)
 
 	params := libraryDTOs.ArticleLibraryListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortBy,
-		Keyword:  keyword,
-		Filters:  filters,
-		Page:     page,
-		PageSize: pageSize,
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+		Page:        page,
+		PageSize:    pageSize,
 	}
 
 	StrategicObjective, err := alc.service.GetAll(&params)
