@@ -219,7 +219,6 @@ func (repo *ComplianceAssessmentControlRepository) GetFullDetailsByID(controlId 
 		Preload("ComplianceControl").
 		Preload("ComplianceControl.Control").
 		Preload("ComplianceControl.Control.ResponsibleUser").
-		Preload("ComplianceControl.Control.ResponsibleUser").
 		Preload("ComplianceControl.ComplianceClause").
 		Preload("CompletedByUser").
 		Preload("ComplianceAssessmentFrameworkValue").
