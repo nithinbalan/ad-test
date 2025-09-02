@@ -4,6 +4,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
+	"sort"
 
 	"gorm.io/gorm"
 )
@@ -31,6 +32,10 @@ type BcpAssociatedItemRepositoryInterface interface {
 	GetAllBcpStrategicObjectives(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
 	CreateBcpStrategicObjectives(objectives []*models.BcpStrategicObjective, tx ...utility.DatabaseTransaction) error
 	DeleteBcpStrategicObjectives(BcpID uint, strategicObjectiveID uint, tx ...utility.DatabaseTransaction) error
+	GetAllClauses(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	CreateBcpClauses(clauses []*models.BcpComplianceRequirement, tx ...utility.DatabaseTransaction) error
+	DeleteBcpClauses(projectID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
+	GetClausesByBcpId(projectID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 }
 
 // implementation
@@ -940,4 +945,149 @@ func (repo *BcpAssociatedItemRepository) DeleteBcpStrategicObjectives(BcpID uint
 		Where("strategic_objective_id = ? AND business_continuity_plan_id = ?", strategicObjectiveID, BcpID).
 		Delete(&models.BcpStrategicObjective{}).
 		Error
+}
+
+func (repo *BcpAssociatedItemRepository) GetAllClauses(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+
+	var clauseList []commonDTOs.AssociatedClauseRowDTO
+	var totalCount int64
+	query := repo.db.Table("bcp_compliance_requirements").
+		Select(`
+			compliance_clauses.title_en AS clause_title_en,
+			compliance_clauses.title_ar AS clause_title_ar,
+			compliance_clauses.clause_no,
+			compliance_clauses.compliance_register_id,
+			compliance_clauses.id AS compliance_clause_id,
+			compliance_register.title_en AS compliance_register_title_en,
+			compliance_register.title_ar AS compliance_register_title_ar
+		`).
+		Joins(`
+			INNER JOIN compliance_clauses ON bcp_compliance_requirements.compliance_clause_id = compliance_clauses.id
+			LEFT JOIN compliance_register ON bcp_compliance_requirements.compliance_register_id = compliance_register.id
+		`).
+		Where("bcp_compliance_requirements.compliance_clause_id IS NOT NULL").
+		Where("bcp_compliance_requirements.business_continuity_plan_id = ?", BcpID)
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`(
+		compliance_register.title_en LIKE ? OR
+		compliance_register.title_ar LIKE ? OR
+		compliance_clauses.clause_no LIKE ? OR
+		compliance_clauses.title_en LIKE ? OR
+		compliance_clauses.title_ar LIKE ?)`, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "compliance_register.title_en"
+	}
+
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	if err := query.Find(&clauseList).Error; err != nil {
+		return nil, err
+	}
+
+	clausesByComplianceRegister := make(map[uint]*commonDTOs.AssociatedClauseListDTO)
+	for _, row := range clauseList {
+		if _, exists := clausesByComplianceRegister[row.ComplianceRegisterID]; !exists {
+			clausesByComplianceRegister[row.ComplianceRegisterID] = &commonDTOs.AssociatedClauseListDTO{
+				ComplianceRegisterID:      row.ComplianceRegisterID,
+				ComplianceRegisterTitleEn: row.ComplianceRegisterTitleEn,
+				ComplianceRegisterTitleAr: row.ComplianceRegisterTitleAr,
+				Clauses:                   []commonDTOs.AssociatedClauseDTO{},
+			}
+		}
+		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(clausesByComplianceRegister[row.ComplianceRegisterID].Clauses, commonDTOs.AssociatedClauseDTO{
+			ComplianceClauseID: row.ComplianceClauseID,
+			ClauseNo:           row.ClauseNo,
+			ClauseTitleEn:      row.ClauseTitleEn,
+			ClauseTitleAr:      row.ClauseTitleAr,
+		})
+	}
+
+	var groupedClauses []*commonDTOs.AssociatedClauseListDTO
+	for _, v := range clausesByComplianceRegister {
+		// Sort clauses inside the group by ClauseNo
+		sort.Slice(v.Clauses, func(i, j int) bool {
+			return v.Clauses[i].ClauseNo < v.Clauses[j].ClauseNo
+		})
+		groupedClauses = append(groupedClauses, v)
+	}
+
+	if groupedClauses == nil {
+		groupedClauses = []*commonDTOs.AssociatedClauseListDTO{}
+	}
+
+	totalCount = int64(len(groupedClauses))
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	start := (params.Page - 1) * params.PageSize
+	if start > int(totalCount) {
+		start = int(totalCount)
+	}
+
+	end := start + params.PageSize
+	if end > int(totalCount) {
+		end = int(totalCount)
+	}
+
+	pagedClauses := groupedClauses[start:end]
+	response := &commonDTOs.AssociatedItemClauseListResponseDTO{
+		Items: pagedClauses,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *BcpAssociatedItemRepository) GetClausesByBcpId(BcpID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var clauseIDs []uint
+	if err := db.
+		Model(&models.BcpComplianceRequirement{}).
+		Where("business_continuity_plan_id = ?", BcpID).
+		Pluck("compliance_clause_id", &clauseIDs).Error; err != nil {
+		return nil, err
+	}
+
+	return clauseIDs, nil
+}
+
+func (repo *BcpAssociatedItemRepository) CreateBcpClauses(clauses []*models.BcpComplianceRequirement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(&clauses).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *BcpAssociatedItemRepository) DeleteBcpClauses(BcpID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.
+		Where("business_continuity_plan_id = ? AND compliance_clause_id IN ?", BcpID, clauseIDs).
+		Delete(&models.BcpComplianceRequirement{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

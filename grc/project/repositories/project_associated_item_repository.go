@@ -36,10 +36,10 @@ type ProjectAssociatedItemRepositoryInterface interface {
 	GetAllProjectRisks(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	CreateProjectRisk(risks []*models.ProjectRisk, tx ...utility.DatabaseTransaction) error
 	DeleteProjectRisk(projectID uint, incidentID uint, tx ...utility.DatabaseTransaction) error
-	GetAllClauses(riskID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	GetAllClauses(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	CreateProjectClauses(clauses []*models.ProjectComplianceRequirement, tx ...utility.DatabaseTransaction) error
-	DeleteProjectClauses(riskID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
-	GetClausesByProjectID(riskID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
+	DeleteProjectClauses(projectID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
+	GetClausesByProjectId(projectID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 }
 
 // implementation
@@ -1408,7 +1408,7 @@ func (repo *ProjectAssociatedItemRepository) GetAllClauses(projectID uint, param
 	return response, nil
 }
 
-func (repo *ProjectAssociatedItemRepository) GetClausesByProjectID(projectID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+func (repo *ProjectAssociatedItemRepository) GetClausesByProjectId(projectID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()

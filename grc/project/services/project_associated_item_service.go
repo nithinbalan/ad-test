@@ -35,8 +35,8 @@ type ProjectAssociatedItemServiceInterface interface {
 	GetAllProjectRisks(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	CreateProjectRisk(projectID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteProjectRisk(projectID uint, riskID uint) error
-	GetAllClauses(riskID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
-	UpdateClauses(riskID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
+	GetAllClauses(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	UpdateClauses(projectID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
 // Service and implementations
@@ -505,7 +505,7 @@ func (pais *ProjectAssociatedItemService) UpdateClauses(projectID uint, currentU
 		return err
 	}
 
-	existingControlClauses, err := pais.repo.GetClausesByProjectID(projectID, tx)
+	existingControlClauses, err := pais.repo.GetClausesByProjectId(projectID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
