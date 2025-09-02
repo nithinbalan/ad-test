@@ -29,6 +29,9 @@ type KRIAssociatedItemServiceInterface interface {
 	GetAllKRIKPI(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateKRIKPI(kriID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
 	DeleteKRIKPI(kriID uint, kpiID uint) error
+	GetAllKRIProcesses(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
+	CreateKRIProcess(kriID uint, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error
+	DeleteKRIProcess(kriID uint, processID uint) error
 }
 
 // Service and implementations
@@ -360,6 +363,59 @@ func (pais *KRIAssociatedItemService) DeleteKRIKPI(kriID uint, kpiID uint) error
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteKRIKPI(kriID, kpiID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *KRIAssociatedItemService) GetAllKRIProcesses(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error) {
+	if _, err := pais.KRISvc.GetByID(kriID); err != nil {
+		return nil, err
+	}
+	return pais.repo.GetAllKRIProcesses(kriID, params)
+}
+
+func (pais *KRIAssociatedItemService) CreateKRIProcess(kriID, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error {
+
+	if _, err := pais.KRISvc.GetByID(kriID); err != nil {
+		return err
+	}
+
+	if err := pais.validationSvc.ValidateProcessMapping(kriID, dto.ProcessIDs, "kri_processes", "kri_register_id"); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.KriProcess
+	currentTime := time.Now()
+
+	for _, processID := range dto.ProcessIDs {
+		mappings = append(mappings, &models.KriProcess{
+			ProcessID:     processID,
+			KRIRegisterID: kriID,
+			CreatedByID:   userID,
+			CreatedAt:     currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateKRIProcess(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *KRIAssociatedItemService) DeleteKRIProcess(kriID uint, processID uint) error {
+
+	if _, err := pais.KRISvc.GetByID(kriID); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteKRIProcess(kriID, processID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

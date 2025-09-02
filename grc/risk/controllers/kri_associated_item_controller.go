@@ -666,3 +666,115 @@ func (paic *KRIAssociatedItemController) DeleteKRIKPI(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "KPI unmapped from KRI successfully"})
 }
+
+func (paic *KRIAssociatedItemController) GetAllKRIProcesses(c *gin.Context) {
+
+	kriIDStr := c.Param("id")
+
+	kriID, err := strconv.ParseUint(kriIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	proceeses, err := paic.service.GetAllKRIProcesses(uint(kriID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(paic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, proceeses)
+}
+func (paic *KRIAssociatedItemController) CreateKRIProcess(c *gin.Context) {
+	var input commonDTOs.AssociatedProcessMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	kriID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, err.Error())
+		return
+	}
+
+	err = paic.service.CreateKRIProcess(uint(kriID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(paic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (paic *KRIAssociatedItemController) DeleteKRIProcess(c *gin.Context) {
+	kriIDStr := c.Param("id")
+	processIDStr := c.Param("processId")
+	kriID, err := strconv.ParseUint(kriIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	processID, err := strconv.ParseUint(processIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = paic.service.DeleteKRIProcess(uint(kriID), uint(processID))
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Process unmapped from KRI successfully"})
+}
