@@ -78,7 +78,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) GetAll(complianc
 			return nil, err
 		}
 	}
-	return caraps.repo.GetAll(uint(0), params, requirementID)
+	return caraps.repo.GetAll(uint(0), params, requirementID, nil)
 }
 
 func (caraps ComplianceAssessmentRequirementActionPlanService) GetByID(complianceAssessmentID uint, requirementID uint, id uint) (*models.ComplianceActionPlan, error) {

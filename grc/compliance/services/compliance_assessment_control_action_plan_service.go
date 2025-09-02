@@ -78,7 +78,7 @@ func (cacaps *ComplianceAssessmentControlActionPlanService) GetAll(complianceAss
 			return nil, err
 		}
 	}
-	return cacaps.repo.GetAll(uint(0), params, controlID)
+	return cacaps.repo.GetAll(uint(0), params, uint(0), &controlID)
 }
 
 func (cacaps ComplianceAssessmentControlActionPlanService) GetByID(complianceAssessmentID uint, controlID uint, id uint) (*models.ComplianceActionPlan, error) {

@@ -89,7 +89,7 @@ func (caps *ComplianceActionPlanService) GetAll(complianceID uint, params *compl
 			return nil, err
 		}
 	}
-	return caps.repo.GetAll(complianceID, params, uint(0))
+	return caps.repo.GetAll(complianceID, params, uint(0), nil)
 }
 
 func (caps ComplianceActionPlanService) GetByID(complianceID uint, id uint) (*models.ComplianceActionPlan, error) {
