@@ -15,12 +15,13 @@ type ArticleLibraryDTO struct {
 }
 
 type ArticleLibraryListQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Page     int
-	PageSize int
-	Filters  map[string][]string
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Page        int
+	PageSize    int
+	Filters     map[string][]string
+	QuickFilter []string
 }
 
 type ArticleLibraryListResponseDTO struct {

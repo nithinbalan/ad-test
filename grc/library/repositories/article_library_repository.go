@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
 	libraryDTOs "jethur/grc/library/dtos"
@@ -48,6 +49,15 @@ func (repo *ArticleLibraryRepository) GetAll(params *libraryDTOs.ArticleLibraryL
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN ?", values)
+		}
+	}
+
+	// ✅ Apply Quick Filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "recent":
+			lastMonth := time.Now().AddDate(0, 0, -30).Format("2006-01-02 00:00:00")
+			query = query.Where("article_library.created_at >= ?", lastMonth)
 		}
 	}
 
