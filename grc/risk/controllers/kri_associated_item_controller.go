@@ -555,3 +555,114 @@ func (paic *KRIAssociatedItemController) DeleteKRIRisk(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from KRI successfully"})
 }
+func (paic *KRIAssociatedItemController) GetAllKRIKPI(c *gin.Context) {
+
+	kriIDStr := c.Param("id")
+
+	kriID, err := strconv.ParseUint(kriIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	kpis, err := paic.service.GetAllKRIKPI(uint(kriID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(paic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, kpis)
+}
+func (paic *KRIAssociatedItemController) CreateKRIKPI(c *gin.Context) {
+	var input commonDTOs.AssociatedKPIMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	kriID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, err.Error())
+		return
+	}
+
+	err = paic.service.CreateKRIKPI(uint(kriID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(paic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (paic *KRIAssociatedItemController) DeleteKRIKPI(c *gin.Context) {
+	kriIDStr := c.Param("id")
+	kpiIDStr := c.Param("kpiRegisterId")
+	kriID, err := strconv.ParseUint(kriIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	kpiID, err := strconv.ParseUint(kpiIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = paic.service.DeleteKRIKPI(uint(kriID), uint(kpiID))
+	if err != nil {
+		utility.SendInternalErrResp(paic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "KPI unmapped from KRI successfully"})
+}

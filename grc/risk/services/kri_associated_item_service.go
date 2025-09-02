@@ -26,6 +26,9 @@ type KRIAssociatedItemServiceInterface interface {
 	GetAllKRIRisks(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	CreateKRIRisk(kriID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteKRIRisk(kriID uint, riskID uint) error
+	GetAllKRIKPI(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateKRIKPI(kriID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeleteKRIKPI(kriID uint, kpiID uint) error
 }
 
 // Service and implementations
@@ -304,6 +307,59 @@ func (pais *KRIAssociatedItemService) DeleteKRIRisk(kriID uint, riskID uint) err
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteKRIRisk(kriID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *KRIAssociatedItemService) GetAllKRIKPI(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	if _, err := pais.KRISvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+	return pais.repo.GetAllKRIKPI(assetID, params)
+}
+
+func (pais *KRIAssociatedItemService) CreateKRIKPI(kriID, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+
+	if _, err := pais.KRISvc.GetByID(kriID); err != nil {
+		return err
+	}
+
+	if err := pais.validationSvc.ValidateKPIMapping(kriID, dto.KpiIDs, "kri_kpis", "kri_register_id"); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.KriKpi
+	currentTime := time.Now()
+
+	for _, kpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.KriKpi{
+			KPIRegisterID: kpiID,
+			KRIRegisterID: kriID,
+			CreatedByID:   userID,
+			CreatedAt:     currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateKRIKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *KRIAssociatedItemService) DeleteKRIKPI(kriID uint, kpiID uint) error {
+
+	if _, err := pais.KRISvc.GetByID(kriID); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteKRIKPI(kriID, kpiID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

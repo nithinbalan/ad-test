@@ -390,4 +390,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/kri-register/:id/risks", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriAssociatedItemController.GetAllKRIRisks)
 	riskRoutes.POST("/kri-register/:id/risks", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.CreateKRIRisk)
 	riskRoutes.DELETE("/kri-register/:id/risks/:riskId", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.DeleteKRIRisk)
+
+	riskRoutes.GET("/kri-register/:id/kpis", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriAssociatedItemController.GetAllKRIKPI)
+	riskRoutes.POST("/kri-register/:id/kpis", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.CreateKRIKPI)
+	riskRoutes.DELETE("/kri-register/:id/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.DeleteKRIKPI)
 }
