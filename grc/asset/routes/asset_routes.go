@@ -35,6 +35,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	vulnerabilityActionPlanController := app.AssetModule.VulnerabilityActionPlanController
 	vulnerabilityActionPlanStatusUpdateController := app.AssetModule.VulnerabilityActionPlanStatusUpdateController
 	threatActionPlanController := app.AssetModule.ThreatActionPlanController
+    threatActionPlanCommentController:=app.AssetModule.ThreatActionPlanCommentController
+
 	threatActionPlanStatusUpdateController := app.AssetModule.ThreatActionPlanStatusUpdateController
 	assetMaintenanceController := app.AssetModule.AssetMaintenanceController
 	assetAssociatedItemController := app.AssetModule.AssetAssociatedItemController
@@ -188,6 +190,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/threats/:id/action-plans/delete", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatActionPlanController.DeleteThreatActionPlans)
 
 	assetRoutes.GET("/threats/:id/action-plan-summary", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatActionPlanController.GetThreatActionPlanSummary)
+
+	// Threat action plan comment
+ 	assetRoutes.POST("/threats/:id/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatActionPlanCommentController.CreateComment)
+	assetRoutes.GET("/threats/:id/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatActionPlanCommentController.GetAllComments)
+	assetRoutes.GET("/threats/:id/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatActionPlanCommentController.GetCommentDetails)
+	assetRoutes.PUT("/threats/:id/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatActionPlanCommentController.UpdateComment)
+	assetRoutes.POST("/threats/:id/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatActionPlanCommentController.DeleteComment)
+	unauthenticatedRoutes.GET("/threats/:id/action-plans/:actionPlanId/comments/:commentId/document-download", threatActionPlanCommentController.DownloadThreatActionPlanCommentDocument)
+	unauthenticatedRoutes.GET("/threats/:id/action-plans/:actionPlanId/comments/:commentId/document-preview", threatActionPlanCommentController.GetThreatActionPlanCommentDocumentPreview)
+	
+
 
 	// Document Preview and Download for Threat Action Plan Status Update
 	unauthenticatedRoutes.GET("/threats/:id/action-plans/:actionPlanId/status-updates/:statusUpdateId/document-preview", threatActionPlanStatusUpdateController.GetDocumentPreview)
