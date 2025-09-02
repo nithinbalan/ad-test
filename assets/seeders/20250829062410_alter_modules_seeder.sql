@@ -5,7 +5,7 @@
 UPDATE modules 
 SET 
     identifier = 'organization_unit',
-    title_en = 'Organization Unit',
+    title_en = 'Organization Units',
     title_ar = 'الوحدة التنظيمية',
     route = '/organization/organization-units'
 WHERE identifier = 'organization_structure';
