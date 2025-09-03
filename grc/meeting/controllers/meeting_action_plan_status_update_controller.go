@@ -379,7 +379,7 @@ func (mapuc *MeetingActionPlanStatusUpdateController) RevertMeetingActionPlan(c 
 		return
 	}
 
-	meetingActionPlanID, err := strconv.Atoi(c.Param("meetingActionPlanID"))
+	meetingActionPlanID, err := strconv.Atoi(c.Param("meetingActionPlanId"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
