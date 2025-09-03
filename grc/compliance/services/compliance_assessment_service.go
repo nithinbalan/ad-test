@@ -1725,6 +1725,9 @@ func (cras *ComplianceAssessmentService) CalculateComplianceControlScores(assess
 		}
 	}
 
+	fmt.Println("Framework Type:", frameworkType)
+	fmt.Println("Framework Values Map:", frameworkValuesMap)
+	fmt.Println("Max Value In Framework:", maxValueInFramework)
 	// Normalize per-control max by framework
 	perControlMax := func() float64 {
 		switch frameworkType {
@@ -1744,7 +1747,7 @@ func (cras *ComplianceAssessmentService) CalculateComplianceControlScores(assess
 			return 100.0
 		}
 	}()
-
+	fmt.Println("Per control Max:", perControlMax)
 	// Map % (0–100) -> framework band/status (from ScoreMin/ScoreMax ranges)
 	mapPctToBand := func(pct float64) (fvID *uint, statusID *uint) {
 		if assessment.ComplianceRegister == nil || assessment.ComplianceRegister.ComplianceAssessmentFramework == nil {
@@ -1770,6 +1773,7 @@ func (cras *ComplianceAssessmentService) CalculateComplianceControlScores(assess
 	clauseControls := make(map[uint][]*models.ComplianceAssessmentControl)
 
 	for _, ac := range assessment.AssessmentControls {
+		fmt.Println("complianceAssessmentControl ID:", ac.ComplianceControl.ID)
 		if ac == nil || ac.ComplianceControl == nil {
 			continue
 		}
@@ -1806,6 +1810,9 @@ func (cras *ComplianceAssessmentService) CalculateComplianceControlScores(assess
 		}
 		clauseID := *ac.ComplianceControl.ComplianceClauseID
 		clauseControls[clauseID] = append(clauseControls[clauseID], ac)
+		fmt.Println("ComplianceClauseID ID----:", clauseID)
+		fmt.Println("isApplicable:", ac.ComplianceAssessmentFrameworkValue.IsApplicable)
+
 	}
 
 	// We keep this to satisfy the signature; no per-control results needed.
@@ -1866,13 +1873,18 @@ func (cras *ComplianceAssessmentService) CalculateComplianceControlScores(assess
 		// 	clausePct = 99.99
 		// }
 		clauseScore := math.Round(clausePct*100) / 100
-
+		// fmt.Println("Score (Rounded):", responsibleUnitScore.Score)
 		// Map clause % to band/status and persist
 		if _, stID := mapPctToBand(clausePct); stID != nil {
 			if err := cras.repo.UpdateClauseComplianceStatus(clauseID, *stID, clauseScore, tx...); err != nil {
+				fmt.Println("Compliance  Clause err:", err)
+				fmt.Println("Compliance  Clause Status:", stID)
 				return nil, err
 			}
 		}
+		fmt.Println("Compliance Clause ID:", clauseID)
+		fmt.Println("Compliance Clause Percentage:", clausePct)
+		fmt.Println("Compliance Clause Score:", clauseScore)
 
 		// Accumulate for overall
 		sumClauseAvgs += clauseScore
@@ -1891,9 +1903,13 @@ func (cras *ComplianceAssessmentService) CalculateComplianceControlScores(assess
 			if err := cras.repo.UpdateComplianceStatus(
 				assessment.ComplianceRegisterID, *stID, overall, tx...,
 			); err != nil {
+				fmt.Println("Compliance  err:", err)
 				return nil, err
 			}
+			fmt.Println("Compliance  Status:", stID)
+
 		}
+		fmt.Println("Compliance  Percentage:", overall)
 	}
 
 	return results, nil
