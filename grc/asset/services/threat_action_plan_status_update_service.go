@@ -93,6 +93,10 @@ func (tasus ThreatActionPlanStatusUpdateService) GetByID(ThreatID uint, ThreatAc
 }
 
 func (tasus *ThreatActionPlanStatusUpdateService) Create(ThreatID uint, ThreatActionPlanID uint, currentUserID uint, threatActionPlanStatusUpdateFormDTO *threatDTOs.ThreatActionPlanStatusUpdateFormDTO) (uint, error) {
+	if _, err := tasus.threatActionPlanSvc.GetByID(ThreatID, ThreatActionPlanID); err != nil {
+		return 0, err
+	}
+
 	threat, err := tasus.threatSvc.GetByID(ThreatID)
 	if err != nil {
 		return 0, err
@@ -109,10 +113,6 @@ func (tasus *ThreatActionPlanStatusUpdateService) Create(ThreatID uint, ThreatAc
 	}
 
 	tx := tasus.repo.BeginTransaction()
-
-	if _, err := tasus.threatActionPlanSvc.GetByID(ThreatID, ThreatActionPlanID); err != nil {
-		return 0, err
-	}
 
 	if err := tasus.validateThreatActionPlanStatusUpdateFormDTO(threatActionPlanStatusUpdateFormDTO); err != nil {
 		return 0, err
@@ -180,7 +180,7 @@ func (tasus *ThreatActionPlanStatusUpdateService) Create(ThreatID uint, ThreatAc
 	}
 
 	if threatActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && threatActionPlan.ReviewUserID != nil {
-		urlParam := fmt.Sprintf(`{"incident_register_id":%d, "action_plan_id":%d}`, ThreatID, ThreatActionPlanID)
+		urlParam := fmt.Sprintf(`{"threat_id":%d, "action_plan_id":%d}`, ThreatID, ThreatActionPlanID)
 		taskDTO := commonDTOs.TaskFormDTO{
 			ModuleIdentifier:   "threat",
 			ThreatActionPlanID: &ThreatActionPlanID,
@@ -278,7 +278,7 @@ func (tasus *ThreatActionPlanStatusUpdateService) Create(ThreatID uint, ThreatAc
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 				EmailTo:              emailTo,
 				Subject:              subject,
-				TemplateRelativePath: "assets/templates/email/threat_action_plan_review_user_mail.html",
+				TemplateRelativePath: "asset/templates/email/threat_action_plan_review_user_mail.html",
 				EmailData:            emailData,
 			}
 
@@ -507,6 +507,7 @@ func (tasus *ThreatActionPlanStatusUpdateService) Approve(threatID uint, actionP
 	if err != nil {
 		return err
 	}
+
 	existingThreatActionPlan, err := tasus.threatActionPlanSvc.GetByID(threatID, actionPlanID)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, actionPlanID)
@@ -530,11 +531,16 @@ func (tasus *ThreatActionPlanStatusUpdateService) Approve(threatID uint, actionP
 		return err
 	}
 
+	taskStatus, err := tasus.taskStatusSvc.GetByType("closed")
+	if err != nil {
+		return err
+	}
+
 	tx := tasus.repo.BeginTransaction()
 
 	if existingThreatActionPlan.ActionPlanStatusID != threatActionPlanStatusResolved.ID {
 		tx.Rollback()
-		return utility.NewForbiddenError("The threat action plan status must be resolved.")
+		return utility.NewForbiddenError("The compliance action plan status must be resolved.")
 	}
 
 	existingThreatActionPlan.ActionPlanStatusID = threatActionPlanClosedStatus.ID
@@ -558,7 +564,7 @@ func (tasus *ThreatActionPlanStatusUpdateService) Approve(threatID uint, actionP
 		return err
 	}
 
-	taskStatus, err := tasus.taskStatusSvc.GetByType("closed")
+	taskStatus, err = tasus.taskStatusSvc.GetByType("closed")
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -581,7 +587,7 @@ func (tasus *ThreatActionPlanStatusUpdateService) Approve(threatID uint, actionP
 	}
 
 	go func() {
-		urlParam := fmt.Sprintf(`{"threat_register_id":%d, "action_plan_id":%d}`, threatID, actionPlanID)
+		urlParam := fmt.Sprintf(`{"threat_id":%d, "action_plan_id":%d}`, threatID, actionPlanID)
 		queryParam := ""
 		entity := "threat-action-plan"
 		action := "close-threat-action-plan"
@@ -621,9 +627,8 @@ func (tasus *ThreatActionPlanStatusUpdateService) Approve(threatID uint, actionP
 		subject := fmt.Sprintf("Threat Action Plan %s: Resolved", existingThreatActionPlan.Title)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
-			"FirstNameEn": responsibleUser.FirstNameEn,
-			"LastNameEn":  responsibleUser.LastNameEn,
-			// "ThreatReferenceNumber":    threat.ReferenceNumber,
+			"FirstNameEn":           responsibleUser.FirstNameEn,
+			"LastNameEn":            responsibleUser.LastNameEn,
 			"ThreatTitle":           threat.TitleEn,
 			"ActionPlanTitle":       existingThreatActionPlan.Title,
 			"ActionPlanDescription": existingThreatActionPlan.Description,
@@ -636,7 +641,7 @@ func (tasus *ThreatActionPlanStatusUpdateService) Approve(threatID uint, actionP
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
 			Subject:              subject,
-			TemplateRelativePath: "assets/templates/email/threat_action_plan_closed_responsible_user_mail.html",
+			TemplateRelativePath: "asset/templates/email/threat_action_plan_closed_responsible_user_mail.html",
 			EmailData:            emailData,
 		}
 
@@ -647,7 +652,7 @@ func (tasus *ThreatActionPlanStatusUpdateService) Approve(threatID uint, actionP
 			})
 		}
 
-		existingthreatActionPlan, err := tasus.threatActionPlanSvc.GetByID(threatID, actionPlanID)
+		existingThreatActionPlan, err := tasus.threatActionPlanSvc.GetByID(threatID, actionPlanID)
 		if err != nil {
 			return
 		}
@@ -656,7 +661,7 @@ func (tasus *ThreatActionPlanStatusUpdateService) Approve(threatID uint, actionP
 			models.ApproveAction,
 			models.ThreatActionPlanStatusUpdate{}.TableName(),
 			id,
-			existingthreatActionPlan,
+			existingThreatActionPlan,
 			currentUserID,
 			nil,
 		)
@@ -796,7 +801,7 @@ func (tasus *ThreatActionPlanStatusUpdateService) Revert(threatID uint, actionPl
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
 			Subject:              subject,
-			TemplateRelativePath: "assets/templates/email/threat_action_plan_reopen_responsible_user_mail.html",
+			TemplateRelativePath: "asset/templates/email/threat_action_plan_reopen_responsible_user_mail.html",
 			EmailData:            emailData,
 		}
 

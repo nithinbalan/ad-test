@@ -543,8 +543,7 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 	tx := capus.repo.BeginTransaction()
 
 	if existingComplianceActionPlan.ActionPlanStatusID != complianceActionPlanStatusResolved.ID {
-		tx.Rollback()
-		return utility.NewForbiddenError("The compliance action plan status must be resolved.")
+		
 	}
 
 	existingComplianceActionPlan.ActionPlanStatusID = complianceActionPlanClosedStatus.ID
@@ -574,13 +573,13 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 		return err
 	}
 
-	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("sla_action_plan_id", compliaceActionPlanID, existingComplianceActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
+	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, existingComplianceActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("sla_action_plan_id", compliaceActionPlanID, *existingComplianceActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
+	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, *existingComplianceActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
 	if err != nil {
 		tx.Rollback()
 		return err
