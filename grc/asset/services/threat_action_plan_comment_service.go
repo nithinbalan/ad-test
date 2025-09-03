@@ -266,13 +266,13 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 					"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":     assignedBy.LastNameEn,
 					"CommentedOn":               time.Now().Format("2006-01-02"),
-					"RedirectURL":               fmt.Sprintf("%s/threat/register/%d/action-plans?action_plan_id=%d", appURL, threatID, id),
+					"RedirectURL":               fmt.Sprintf("%s/threat/%d/action-plans?action_plan_id=%d", appURL, threatID, id),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 					EmailTo:              emailTo,
 					Subject:              subject,
-					TemplateRelativePath: "threat/templates/email/threat_action_plan_comment.html",
+					TemplateRelativePath: "asset/templates/email/threat_action_plan_comment.html",
 					EmailData:            emailData,
 				}
 
@@ -336,13 +336,13 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 				"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":     assignedBy.LastNameEn,
 				"AssignedOn":                time.Now().Format("2006-01-02"),
-				"RedirectURL":               fmt.Sprintf("%s/threat/register/%d/action-plans?action_plan_id=%d", appURL, threatID, id),
+				"RedirectURL":               fmt.Sprintf("%s/threat/%d/action-plans?action_plan_id=%d", appURL, threatID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 				EmailTo:              emailTo,
 				Subject:              subject,
-				TemplateRelativePath: "threat/templates/email/threat_action_plan_comment.html",
+				TemplateRelativePath: "asset/templates/email/threat_action_plan_comment.html",
 				EmailData:            emailData,
 			}
 
@@ -405,13 +405,13 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 				"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":     assignedBy.LastNameEn,
 				"AssignedOn":                time.Now().Format("2006-01-02"),
-				"RedirectURL":               fmt.Sprintf("%s/threat/register/%d/action-plans?action_plan_id=%d", appURL, threatID, id),
+				"RedirectURL":               fmt.Sprintf("%s/threat/%d/action-plans?action_plan_id=%d", appURL, threatID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 				EmailTo:              emailTo,
 				Subject:              subject,
-				TemplateRelativePath: "threat/templates/email/threat_action_plan_comment.html",
+				TemplateRelativePath: "asset/templates/email/threat_action_plan_comment.html",
 				EmailData:            emailData,
 			}
 
@@ -473,13 +473,13 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 					"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":     assignedBy.LastNameEn,
 					"AssignedOn":                time.Now().Format("2006-01-02"),
-					"RedirectURL":               fmt.Sprintf("%s/threat/register/%d/action-plans?action_plan_id=%d", appURL, threatID, id),
+					"RedirectURL":               fmt.Sprintf("%s/threat/%d/action-plans?action_plan_id=%d", appURL, threatID, id),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 					EmailTo:              emailTo,
 					Subject:              subject,
-					TemplateRelativePath: "threat/templates/email/threat_action_plan_comment.html",
+					TemplateRelativePath: "asset/templates/email/threat_action_plan_comment.html",
 					EmailData:            emailData,
 				}
 
