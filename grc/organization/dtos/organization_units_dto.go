@@ -2,11 +2,15 @@ package dtos
 
 import commonDTOs "jethur/grc/common/dtos"
 
-type OrganizationStructureDTO struct {
-	ID       uint                       `json:"id"`
-	TitleEn  string                     `json:"title_en"`
-	TitleAr  string                     `json:"title_ar"`
-	Children []OrganizationStructureDTO `json:"children,omitempty"`
+type OrganizationUnitsDTO struct {
+	ID           uint                   `json:"id"`
+	TitleEn      string                 `json:"title_en"`
+	TitleAr      string                 `json:"title_ar"`
+	Level        uint8                  `json:"level"`
+	LevelTitleEn string                 `json:"level_title_en,omitempty"`
+	LevelTitleAr string                 `json:"level_title_ar,omitempty"`
+	IsPrimary    bool                   `json:"is_primary"`
+	Children     []OrganizationUnitsDTO `json:"children,omitempty"`
 }
 
 type OrganizationUnitUserPrimaryDetailsDTO struct {
@@ -27,6 +31,7 @@ type OrganizationUnitUserPrimaryDetailsQueryParamsDTO struct {
 	SortBy   string `form:"sort_by"`
 	Page     int    `form:"page"`
 	PageSize int    `form:"page_size"`
+	Level    uint   `form:"level"`
 }
 
 type OrganizationUnitUserPrimaryDetailsResponseDTO struct {
@@ -58,6 +63,7 @@ type OrganizationUnitSummaryDTO struct {
 	OpenRiskCount            int64                       `json:"open_risk"`
 	OverallControlEfficiency *ControlEfficiencyStatusDTO `json:"overall_control_efficiency"`
 }
+
 type DepartmentHeadUpdateDTO struct {
 	IsHead bool `json:"is_head"`
 }
@@ -66,11 +72,13 @@ type ParentOrganizationUnitWithHeadDTO struct {
 	OrganizationUnit OrganizationUnitDTO      `json:"organization_unit"`
 	HeadUser         *OrganizationUnitUserDTO `json:"head_user,omitempty"`
 }
+
 type OrganizationUnitDTO struct {
 	ID      uint   `json:"id"`
 	TitleEn string `json:"title_en"`
 	TitleAr string `json:"title_ar"`
 }
+
 type OrganizationUnitUserDTO struct {
 	ID               uint    `json:"id"`
 	FirstNameEn      string  `json:"first_name_en"`

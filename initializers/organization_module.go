@@ -48,7 +48,7 @@ type OrganizationModule struct {
 	UserDocumentController                  *controllers.UserDocumentController
 	UserJobDescriptionController            *controllers.UserJobDescriptionController
 	UserDelegationHistoryController         *controllers.UserDelegationController
-	OrganizationStructureController         *controllers.OrganizationStructureController
+	OrganizationUnitsController             *controllers.OrganizationUnitsController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -268,9 +268,9 @@ func NewOrganizationModule(
 	userDelegationHistorySvc := services.NewUserDelegationService(userDelegationHistoryRepo, sharedModule.ActivityLogService, userSvc, commonModule.NotificationService, userSettingSvc, taskModule.TaskService)
 	userDelegationHistoryController := controllers.NewUserDelegationController(userDelegationHistorySvc)
 
-	organizationStructureRepo := repositories.NewOrganizationStructureRepository(db)
-	organizationStructureSvc := services.NewOrganizationStructureService(organizationStructureRepo, sharedModule.ActivityLogService, settingsModule.OrganizationLevelSvc, userRepo, userSvc)
-	organizationStructureController := controllers.NewOrganizationStructureController(organizationStructureSvc)
+	organizationUnitsRepo := repositories.NewOrganizationUnitsRepository(db)
+	organizationUnitsSvc := services.NewOrganizationUnitsService(organizationUnitsRepo, sharedModule.ActivityLogService, settingsModule.OrganizationLevelSvc, userRepo, userSvc)
+	organizationUnitsController := controllers.NewOrganizationUnitsController(organizationUnitsSvc)
 
 	return &OrganizationModule{
 		DesignationController:                   designationController,
@@ -312,7 +312,7 @@ func NewOrganizationModule(
 		UserDocumentController:                  userDocumentController,
 		UserJobDescriptionController:            userJobDescriptionController,
 		UserDelegationHistoryController:         userDelegationHistoryController,
-		OrganizationStructureController:         organizationStructureController,
+		OrganizationUnitsController:             organizationUnitsController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,

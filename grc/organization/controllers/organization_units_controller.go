@@ -15,20 +15,20 @@ import (
 	"gorm.io/gorm"
 )
 
-type OrganizationStructureController struct {
-	service services.OrganizationStructureServiceInterface
+type OrganizationUnitsController struct {
+	service services.OrganizationUnitsServiceInterface
 	db      *gorm.DB
 }
 
-func NewOrganizationStructureController(
-	service services.OrganizationStructureServiceInterface,
-) *OrganizationStructureController {
-	return &OrganizationStructureController{
+func NewOrganizationUnitsController(
+	service services.OrganizationUnitsServiceInterface,
+) *OrganizationUnitsController {
+	return &OrganizationUnitsController{
 		service: service,
 	}
 }
 
-func (osc *OrganizationStructureController) GetOrganizationStructure(c *gin.Context) {
+func (osc *OrganizationUnitsController) GetOrganizationStructure(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 
@@ -50,12 +50,19 @@ func (osc *OrganizationStructureController) GetOrganizationStructure(c *gin.Cont
 	c.JSON(http.StatusOK, organizationStructure)
 }
 
-func (osc *OrganizationStructureController) GetUsersByOrganizationUnitID(c *gin.Context) {
+func (osc *OrganizationUnitsController) GetUsersByOrganizationUnitID(c *gin.Context) {
 
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "first_name_en")
+	Level := c.DefaultQuery("level", "1")
 	// Get organization unit ID from URL parameter
 	unitID, err := strconv.ParseUint(c.Param("unitId"), 10, 32)
+	if err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	level, err := strconv.ParseUint(Level, 10, 32)
 	if err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -92,10 +99,11 @@ func (osc *OrganizationStructureController) GetUsersByOrganizationUnitID(c *gin.
 		SortBy:   dbField,
 		Page:     page,
 		PageSize: pageSize,
+		Level:    uint(level),
 	}
 
 	// Call service to get users by organization unit ID
-	users, err := osc.service.GetUsersByOrganizationUnit(&queryParams, uint(unitID))
+	users, err := osc.service.GetUsersByOrganizationUnit(&queryParams, uint(unitID), uint(level))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -113,7 +121,7 @@ func (osc *OrganizationStructureController) GetUsersByOrganizationUnitID(c *gin.
 	c.JSON(http.StatusOK, users)
 }
 
-func (osc *OrganizationStructureController) GetOrganizationUnitSummary(c *gin.Context) {
+func (osc *OrganizationUnitsController) GetOrganizationUnitSummary(c *gin.Context) {
 	unitID, err := strconv.ParseUint(c.Param("unitId"), 10, 32)
 	if err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -129,7 +137,7 @@ func (osc *OrganizationStructureController) GetOrganizationUnitSummary(c *gin.Co
 	c.JSON(http.StatusOK, result)
 }
 
-func (osc *OrganizationStructureController) UpdatePrimaryOrganizationUnitHead(c *gin.Context) {
+func (osc *OrganizationUnitsController) UpdatePrimaryOrganizationUnitHead(c *gin.Context) {
 	var form organizationDTOs.DepartmentHeadUpdateDTO
 
 	unitID, err := strconv.ParseUint(c.Param("unitId"), 10, 64)
@@ -170,7 +178,7 @@ func (osc *OrganizationStructureController) UpdatePrimaryOrganizationUnitHead(c 
 	c.Status(http.StatusOK)
 }
 
-func (osc *OrganizationStructureController) GetAllPoliciesByOrganizationUnit(c *gin.Context) {
+func (osc *OrganizationUnitsController) GetAllPoliciesByOrganizationUnit(c *gin.Context) {
 	unitIDStr := c.Param("unitId")
 
 	unitID, err := strconv.ParseUint(unitIDStr, 10, 64)
@@ -222,7 +230,7 @@ func (osc *OrganizationStructureController) GetAllPoliciesByOrganizationUnit(c *
 	c.JSON(http.StatusOK, policies)
 }
 
-func (osc *OrganizationStructureController) GetAllRiskByOrganizationUnit(c *gin.Context) {
+func (osc *OrganizationUnitsController) GetAllRiskByOrganizationUnit(c *gin.Context) {
 
 	unitIDStr := c.Param("unitId")
 
@@ -290,7 +298,7 @@ func (osc *OrganizationStructureController) GetAllRiskByOrganizationUnit(c *gin.
 	c.JSON(http.StatusOK, risks)
 }
 
-func (osc *OrganizationStructureController) GetParentOrganizationUnitWithHead(c *gin.Context) {
+func (osc *OrganizationUnitsController) GetParentOrganizationUnitWithHead(c *gin.Context) {
 	unitIDStr := c.Param("unitId")
 
 	unitID, err := strconv.ParseUint(unitIDStr, 10, 64)
