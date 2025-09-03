@@ -30,16 +30,16 @@ type PolicyClauseListDTO struct {
 	UpdatedUserProfileImagePath *string                `json:"updated_user_profile_image_path"`
 	CreatedAt                   time.Time              `json:"created_at"`
 	UpdatedAt                   *time.Time             `json:"updated_at"`
-	Children                    []*PolicyClauseListDTO `json:"children"`
+	DocumentVersionClauseID     *uint                  `json:"document_version_clause_id"`
+	Children                    []*PolicyClauseListDTO `json:"children" gorm:"-"`
 }
 
 type PolicyClauseFormDTO struct {
-	ClauseNumber   *string `json:"clause_number"`
-	ClauseTitleEn  string  `json:"clause_title_en" binding:"required"`
-	ClauseTitleAr  string  `json:"clause_title_ar" binding:"required"`
-	Description    *string `json:"description"`
-	AfterClauseID  *uint   `json:"after_clause_id"`
-	ParentClauseID *uint   `json:"parent_clause_id"`
+	ClauseTitleEn    string  `json:"clause_title_en" binding:"required"`
+	ClauseTitleAr    string  `json:"clause_title_ar" binding:"required"`
+	Description      *string `json:"description"`
+	PreviousClauseID *uint   `json:"previous_clause_id"`
+	ParentClauseID   *uint   `json:"parent_clause_id"`
 }
 
 type PolicyClauseListQueryParamsDTO struct {
@@ -54,10 +54,10 @@ type PolicyClauseDetailsDTO struct {
 	ClauseTitleEn string                   `json:"clause_title_en"`
 	ClauseTitleAr string                   `json:"clause_title_ar"`
 	Description   *string                  `json:"description"`
-	ParantClause  *DocumentParantClauseDTO `json:"parant_clause"`
+	ParentClause  *DocumentParentClauseDTO `json:"parent_clause"`
 }
 
-type DocumentParantClauseDTO struct {
+type DocumentParentClauseDTO struct {
 	ID            uint    `json:"id"`
 	ClauseNumber  *string `json:"clause_number"`
 	ClauseTitleEn string  `json:"clause_title_en"`

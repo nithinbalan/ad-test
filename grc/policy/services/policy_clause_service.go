@@ -42,11 +42,13 @@ func NewPolicyClauseService(
 }
 
 func (dcs *PolicyClauseService) GetAll(params *policyDTOs.PolicyClauseListQueryParamsDTO, documentId uint) ([]*policyDTOs.PolicyClauseListDTO, error) {
+	// Get full document details (to know latest version ID)
 	document, err := dcs.documentSvc.GetFullDetailsByID(documentId, nil)
 	if err != nil {
 		return nil, err
 	}
 
+	// Fetch all clauses (flattened DTOs with user info)
 	clauses, err := dcs.repo.GetAll(params, document.LatestDocumentVersion.ID)
 	if err != nil {
 		return nil, err
@@ -57,47 +59,50 @@ func (dcs *PolicyClauseService) GetAll(params *policyDTOs.PolicyClauseListQueryP
 	var roots []*policyDTOs.PolicyClauseListDTO
 
 	for _, clause := range clauses {
+		// Since repo.GetAll already returns PolicyClauseListDTO with aliased fields,
+		// we can just copy it directly
 		dto := &policyDTOs.PolicyClauseListDTO{
 			ID:                          clause.ID,
 			ClauseNumber:                clause.ClauseNumber,
 			ClauseTitleEn:               clause.ClauseTitleEn,
 			ClauseTitleAr:               clause.ClauseTitleAr,
 			Description:                 clause.Description,
-			CreatedUserFirstNameEn:      clause.CreatedByUser.FirstNameEn,
-			CreatedUserFirstNameAr:      clause.CreatedByUser.FirstNameAr,
-			CreatedUserLastNameEn:       clause.CreatedByUser.LastNameEn,
-			CreatedUserLastNameAr:       clause.CreatedByUser.LastNameAr,
-			CreatedUserInitial:          clause.CreatedByUser.Initial,
-			CreatedUserColor:            clause.CreatedByUser.Color,
-			CreatedUserEmail:            clause.CreatedByUser.Email,
-			CreatedUserProfileImagePath: clause.CreatedByUser.ProfileImagePath,
+			CreatedUserID:               clause.CreatedUserID,
+			CreatedUserFirstNameEn:      clause.CreatedUserFirstNameEn,
+			CreatedUserFirstNameAr:      clause.CreatedUserFirstNameAr,
+			CreatedUserLastNameEn:       clause.CreatedUserLastNameEn,
+			CreatedUserLastNameAr:       clause.CreatedUserLastNameAr,
+			CreatedUserInitial:          clause.CreatedUserInitial,
+			CreatedUserColor:            clause.CreatedUserColor,
+			CreatedUserEmail:            clause.CreatedUserEmail,
+			CreatedUserProfileImagePath: clause.CreatedUserProfileImagePath,
+			UpdatedUserID:               clause.UpdatedUserID,
+			UpdatedUserFirstNameEn:      clause.UpdatedUserFirstNameEn,
+			UpdatedUserFirstNameAr:      clause.UpdatedUserFirstNameAr,
+			UpdatedUserLastNameEn:       clause.UpdatedUserLastNameEn,
+			UpdatedUserLastNameAr:       clause.UpdatedUserLastNameAr,
+			UpdatedUserInitial:          clause.UpdatedUserInitial,
+			UpdatedUserColor:            clause.UpdatedUserColor,
+			UpdatedUserEmail:            clause.UpdatedUserEmail,
+			UpdatedUserProfileImagePath: clause.UpdatedUserProfileImagePath,
 			CreatedAt:                   clause.CreatedAt,
 			UpdatedAt:                   clause.UpdatedAt,
-		}
-
-		if clause.UpdatedByUser != nil {
-			dto.UpdatedUserFirstNameEn = clause.UpdatedByUser.FirstNameEn
-			dto.UpdatedUserFirstNameAr = clause.UpdatedByUser.FirstNameAr
-			dto.UpdatedUserLastNameEn = clause.UpdatedByUser.LastNameEn
-			dto.UpdatedUserLastNameAr = clause.UpdatedByUser.LastNameAr
-			dto.UpdatedUserInitial = clause.UpdatedByUser.Initial
-			dto.UpdatedUserColor = clause.UpdatedByUser.Color
-			dto.UpdatedUserEmail = clause.UpdatedByUser.Email
-			dto.UpdatedUserProfileImagePath = clause.UpdatedByUser.ProfileImagePath
+			DocumentVersionClauseID:     clause.DocumentVersionClauseID, // important for tree building
 		}
 
 		dtoMap[clause.ID] = dto
 	}
 
-	// Build tree
+	// Build parent-child hierarchy
 	for _, clause := range clauses {
 		dto := dtoMap[clause.ID]
-		if clause.DocumentVersionClauseID != nil { // has parent
-			parent := dtoMap[*clause.DocumentVersionClauseID]
-			if parent != nil {
+		if clause.DocumentVersionClauseID != nil {
+			// has parent → attach to parent
+			if parent, ok := dtoMap[*clause.DocumentVersionClauseID]; ok {
 				parent.Children = append(parent.Children, dto)
 			}
 		} else {
+			// no parent → root
 			roots = append(roots, dto)
 		}
 	}
@@ -136,8 +141,8 @@ func (dcs *PolicyClauseService) Create(documentId uint, currentUserId uint, form
 		return 0, err
 	}
 
-	if form.AfterClauseID != nil {
-		afterClause, err := dcs.repo.GetByID(*form.AfterClauseID, tx)
+	if form.PreviousClauseID != nil {
+		afterClause, err := dcs.repo.GetByID(*form.PreviousClauseID, tx)
 		if err != nil || afterClause == nil {
 			tx.Rollback()
 			return 0, fmt.Errorf("invalid after_clause_id")
@@ -321,7 +326,6 @@ func (dcs *PolicyClauseService) Update(documentId uint, clauseId uint, currentUs
 
 func (dcs *PolicyClauseService) Delete(clauseIDs []uint, currentUserID uint) ([]uint, error) {
 	tx := dcs.repo.BeginTransaction()
-
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedClause []map[string]interface{}
@@ -333,11 +337,30 @@ func (dcs *PolicyClauseService) Delete(clauseIDs []uint, currentUserID uint) ([]
 			return nil, err
 		}
 
+		// 1. Check subclauses
+		hasSubs, err := dcs.repo.HasSubClauses(id, tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		if hasSubs {
+			// Cannot delete if subclauses exist
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		// 2. Delete clause
 		if err := dcs.repo.Delete(id, tx); err != nil {
 			failedIds = append(failedIds, id)
 			continue
 		} else {
 			successfulIds = append(successfulIds, id)
+		}
+
+		// 3. Shift sibling clause numbers
+		if err := dcs.repo.ShiftClauseNumberAfterDeleting(clause.DocumentVersionID, clause.DocumentVersionClauseID, *clause.ClauseNumber, tx); err != nil {
+			tx.Rollback()
+			return nil, err
 		}
 
 		deletedClause = append(deletedClause, map[string]interface{}{
@@ -354,6 +377,7 @@ func (dcs *PolicyClauseService) Delete(clauseIDs []uint, currentUserID uint) ([]
 
 	tx.Commit()
 
+	// Async activity log
 	if len(successfulIds) > 0 {
 		go func() {
 			err := dcs.activityLogSvc.LogBulkActivities(
@@ -369,9 +393,6 @@ func (dcs *PolicyClauseService) Delete(clauseIDs []uint, currentUserID uint) ([]
 			}
 		}()
 	}
-	return failedIds, nil
-}
 
-func isValidChildClauseNumber(parentNumber, childNumber string) bool {
-	return strings.HasPrefix(childNumber, parentNumber+".")
+	return failedIds, nil
 }

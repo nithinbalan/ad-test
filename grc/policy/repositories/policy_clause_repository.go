@@ -13,7 +13,7 @@ import (
 // Interface
 type PolicyClauseRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *policyDTOs.PolicyClauseListQueryParamsDTO, documentVersionId uint) ([]*models.DocumentVersionClause, error)
+	GetAll(params *policyDTOs.PolicyClauseListQueryParamsDTO, documentVersionId uint) ([]*policyDTOs.PolicyClauseListDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersionClause, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersionClause, error)
 	GetByClauseNumber(clauseNumber string, tx ...utility.DatabaseTransaction) (*models.DocumentVersionClause, error)
@@ -25,6 +25,10 @@ type PolicyClauseRepositoryInterface interface {
 	GetNextTopLevelClauseSequence(complianceRegisterID uint, tx ...utility.DatabaseTransaction) (int, error)
 	ShiftClausesAfter(documentVersionID uint, afterClauseNo string, tx ...utility.DatabaseTransaction) error
 	shiftClauseNumber(clauseNo string, parentPrefix []int, insertPos int) (string, bool)
+
+	HasSubClauses(clauseID uint, tx ...utility.DatabaseTransaction) (bool, error)
+	ShiftClauseNumberAfterDeleting(documentVersionID uint, parentClauseID *uint, deletedClauseNumber string, tx ...utility.DatabaseTransaction) error
+	shiftSubClauseNumberAfterDeleting(db *gorm.DB, oldPrefix, newPrefix string, parentClauseID uint, documentVersionID uint) error
 }
 
 // Repository implementation
@@ -43,14 +47,40 @@ func (repo *PolicyClauseRepository) BeginTransaction() utility.DatabaseTransacti
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *PolicyClauseRepository) GetAll(params *policyDTOs.PolicyClauseListQueryParamsDTO, documentVersionId uint) ([]*models.DocumentVersionClause, error) {
-	var clauses []*models.DocumentVersionClause
-	query := repo.db.Model(&models.DocumentVersionClause{}).
-		Preload("CreatedByUser").
-		Preload("UpdatedByUser").
-		Where("document_version_id = ?", documentVersionId)
+func (repo *PolicyClauseRepository) GetAll(params *policyDTOs.PolicyClauseListQueryParamsDTO, documentVersionId uint) ([]*policyDTOs.PolicyClauseListDTO, error) {
+	var clauses []*policyDTOs.PolicyClauseListDTO
 
-	// Dynamic filtering based on the keyword
+	selectClause := `
+		document_version_clauses.*,
+
+		created_user.id AS created_user_id,
+		created_user.first_name_en AS created_user_first_name_en,
+		created_user.first_name_ar AS created_user_first_name_ar,
+		created_user.last_name_en AS created_user_last_name_en,
+		created_user.last_name_ar AS created_user_last_name_ar,
+		created_user.initial AS created_user_initial,
+		created_user.color AS created_user_color,
+		created_user.email AS created_user_email,
+		created_user.profile_image_path AS created_user_profile_image_path,
+
+		updated_user.id AS updated_user_id,
+		updated_user.first_name_en AS updated_user_first_name_en,
+		updated_user.first_name_ar AS updated_user_first_name_ar,
+		updated_user.last_name_en AS updated_user_last_name_en,
+		updated_user.last_name_ar AS updated_user_last_name_ar,
+		updated_user.initial AS updated_user_initial,
+		updated_user.color AS updated_user_color,
+		updated_user.email AS updated_user_email,
+		updated_user.profile_image_path AS updated_user_profile_image_path
+	`
+
+	query := repo.db.Table("document_version_clauses").
+		Select(selectClause).
+		Joins("LEFT JOIN users AS created_user ON created_user.id = document_version_clauses.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = document_version_clauses.updated_by_id").
+		Where("document_version_clauses.document_version_id = ?", documentVersionId)
+
+	// Apply keyword filter
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -62,10 +92,10 @@ func (repo *PolicyClauseRepository) GetAll(params *policyDTOs.PolicyClauseListQu
 
 	// Sorting
 	if params.SortBy == "" {
-		params.SortBy = "clause_number" // Default sort by clause_number if no sortBy is specified
+		params.SortBy = "clause_number"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
+		params.Sort = "asc"
 	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 
@@ -100,7 +130,7 @@ func (repo *PolicyClauseRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 	var documentVersionClause *models.DocumentVersionClause
 
 	result := db.
-		Preload("ParantClause").
+		Preload("ParentClause").
 		Preload("ChildClauses").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
@@ -294,4 +324,89 @@ func (repo *PolicyClauseRepository) shiftClauseNumber(clauseNo string, parentPre
 	}
 
 	return clauseNo, false
+}
+
+func (repo *PolicyClauseRepository) HasSubClauses(clauseID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var count int64
+	err := db.Model(&models.DocumentVersionClause{}).
+		Where("document_version_clause_id = ?", clauseID).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *PolicyClauseRepository) ShiftClauseNumberAfterDeleting(documentVersionID uint, parentClauseID *uint, deletedClauseNumber string, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Build query based on parentClauseID
+	query := db.Where("document_version_id = ? AND clause_number > ?", documentVersionID, deletedClauseNumber)
+
+	if parentClauseID == nil {
+		query = query.Where("document_version_clause_id IS NULL")
+	} else {
+		query = query.Where("document_version_clause_id = ?", *parentClauseID)
+	}
+
+	var siblings []*models.DocumentVersionClause
+	if err := query.Order("clause_number ASC").Find(&siblings).Error; err != nil {
+		return err
+	}
+
+	for _, sibling := range siblings {
+		if sibling.ClauseNumber == nil {
+			continue
+		}
+
+		// Example: 3.3 → 3.2, 3.4 → 3.3
+		parts := strings.Split(*sibling.ClauseNumber, ".")
+		last, _ := strconv.Atoi(parts[len(parts)-1])
+		parts[len(parts)-1] = strconv.Itoa(last - 1)
+		newNumber := strings.Join(parts, ".")
+		oldNumber := *sibling.ClauseNumber
+		sibling.ClauseNumber = &newNumber
+
+		if err := db.Save(sibling).Error; err != nil {
+			return err
+		}
+
+		// Also update all subclauses recursively
+		if err := repo.shiftSubClauseNumberAfterDeleting(db, oldNumber, newNumber, sibling.ID, documentVersionID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (repo *PolicyClauseRepository) shiftSubClauseNumberAfterDeleting(db *gorm.DB, oldPrefix, newPrefix string, parentClauseID uint, documentVersionID uint) error {
+	var subClauses []*models.DocumentVersionClause
+	if err := db.Where("document_version_id = ? AND document_version_clause_id = ?", documentVersionID, parentClauseID).
+		Find(&subClauses).Error; err != nil {
+		return err
+	}
+
+	for _, sub := range subClauses {
+		if sub.ClauseNumber != nil && strings.HasPrefix(*sub.ClauseNumber, oldPrefix) {
+			newNumber := strings.Replace(*sub.ClauseNumber, oldPrefix, newPrefix, 1)
+			sub.ClauseNumber = &newNumber
+			if err := db.Save(sub).Error; err != nil {
+				return err
+			}
+			// Recurse deeper
+			if err := repo.shiftSubClauseNumberAfterDeleting(db, *sub.ClauseNumber, newNumber, sub.ID, documentVersionID); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
