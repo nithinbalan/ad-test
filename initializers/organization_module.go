@@ -269,7 +269,7 @@ func NewOrganizationModule(
 	userDelegationHistoryController := controllers.NewUserDelegationController(userDelegationHistorySvc)
 
 	organizationUnitsRepo := repositories.NewOrganizationUnitsRepository(db)
-	organizationUnitsSvc := services.NewOrganizationUnitsService(organizationUnitsRepo, sharedModule.ActivityLogService, settingsModule.OrganizationLevelSvc, userRepo, userSvc)
+	organizationUnitsSvc := services.NewOrganizationUnitsService(organizationUnitsRepo, sharedModule.ActivityLogService, settingsModule.OrganizationLevelSvc, userRepo, userSvc, settingsModule.OrganizationUnitSvc)
 	organizationUnitsController := controllers.NewOrganizationUnitsController(organizationUnitsSvc)
 
 	return &OrganizationModule{

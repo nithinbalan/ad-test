@@ -28,11 +28,11 @@ func NewOrganizationUnitsController(
 	}
 }
 
-func (osc *OrganizationUnitsController) GetOrganizationStructure(c *gin.Context) {
+func (osc *OrganizationUnitsController) GetOrganizationUnitsHierarchies(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 
-	organizationStructure, err := osc.service.GetOrganizationStructure(sort, sortBy)
+	organizationStructure, err := osc.service.GetOrganizationUnitsHierarchies(sort, sortBy)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -54,15 +54,8 @@ func (osc *OrganizationUnitsController) GetUsersByOrganizationUnitID(c *gin.Cont
 
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "first_name_en")
-	Level := c.DefaultQuery("level", "1")
 	// Get organization unit ID from URL parameter
 	unitID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
-	level, err := strconv.ParseUint(Level, 10, 32)
 	if err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -99,11 +92,10 @@ func (osc *OrganizationUnitsController) GetUsersByOrganizationUnitID(c *gin.Cont
 		SortBy:   dbField,
 		Page:     page,
 		PageSize: pageSize,
-		Level:    uint(level),
 	}
 
 	// Call service to get users by organization unit ID
-	users, err := osc.service.GetUsersByOrganizationUnit(&queryParams, uint(unitID), uint(level))
+	users, err := osc.service.GetUsersByOrganizationUnit(&queryParams, uint(unitID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

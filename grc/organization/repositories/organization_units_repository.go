@@ -14,7 +14,7 @@ import (
 // Interface
 type OrganizationUnitsRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetOrganizationStructure(sort string, sortBy string) ([]models.OrganizationUnit, error)
+	GetOrganizationUnitsHierarchies(sort string, sortBy string) ([]models.OrganizationUnit, error)
 	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint, level uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
 	GetComplianceSummaryByUnit(unitID uint) (int64, int64, []organizationDTOs.ComplianceStatusCountDTO, error)
 	GetOpenRiskCountByUnit(unitID uint) (int64, error)
@@ -39,7 +39,7 @@ func (repo *OrganizationUnitsRepository) BeginTransaction() utility.DatabaseTran
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *OrganizationUnitsRepository) GetOrganizationStructure(sort string, sortBy string) ([]models.OrganizationUnit, error) {
+func (repo *OrganizationUnitsRepository) GetOrganizationUnitsHierarchies(sort string, sortBy string) ([]models.OrganizationUnit, error) {
 	var units []struct {
 		models.OrganizationUnit
 		Level        uint   `gorm:"column:level"`

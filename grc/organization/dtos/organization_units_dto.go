@@ -31,7 +31,6 @@ type OrganizationUnitUserPrimaryDetailsQueryParamsDTO struct {
 	SortBy   string `form:"sort_by"`
 	Page     int    `form:"page"`
 	PageSize int    `form:"page_size"`
-	Level    uint   `form:"level"`
 }
 
 type OrganizationUnitUserPrimaryDetailsResponseDTO struct {
