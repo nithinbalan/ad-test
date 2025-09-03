@@ -173,6 +173,27 @@ func (s *ComplianceAssessmentControlService) GetFullDetailsByID(assessmentId uin
 
 		dto.ActionPlans = append(dto.ActionPlans, &apDTO)
 	}
+	// --- ControlComments: ensure CreatedAt & Comment are set; prevent duplicates ---
+	dto.ControlComments = nil
+	seenCmt := make(map[uint]struct{}, len(control.ControlComments))
+	for _, c := range control.ControlComments {
+		if c == nil {
+			continue
+		}
+		if _, ok := seenCmt[c.ID]; ok {
+			continue
+		}
+		seenCmt[c.ID] = struct{}{}
+
+		var cDTO complianceDTOs.ComplianceAssessmentControlCommentDetailDTO
+		if err := mapstructure.Decode(c, &cDTO); err != nil {
+			return nil, err
+		}
+		cDTO.CreatedAt = c.CreatedAt
+		cDTO.Comment = c.Comment
+
+		dto.ControlComments = append(dto.ControlComments, &cDTO)
+	}
 
 	dto.CreatedAt = control.CreatedAt
 	dto.UpdatedAt = control.UpdatedAt
