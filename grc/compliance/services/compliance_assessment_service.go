@@ -1131,7 +1131,9 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 			return err
 		}
 	}
+
 	tx.Commit()
+
 	go func() {
 		err := cras.activityLogSvc.LogActivity(
 			models.UpdateAction,
