@@ -1698,7 +1698,6 @@ func (cras *ComplianceAssessmentService) CalculateComplianceRequirementScores(as
 }
 
 func (cras *ComplianceAssessmentService) CalculateComplianceControlScores(assessmentID uint, tx ...utility.DatabaseTransaction) ([]*complianceDTOs.ControlComplianceScoreDTO, error) {
-
 	assessment, err := cras.repo.GetFullDetailsByID(assessmentID, tx...)
 	if err != nil {
 		return nil, err
@@ -1707,7 +1706,7 @@ func (cras *ComplianceAssessmentService) CalculateComplianceControlScores(assess
 	// ---------------- Framework setup ----------------
 	frameworkType := ""
 	var frameworkValues []*models.ComplianceAssessmentFrameworkValue
-	frameworkValuesMap := make(map[uint]int) // framework_value_id -> numeric value
+	frameworkValuesMap := make(map[uint]int) // framework_value_id -> numeric raw value (points/binary)
 	maxValueInFramework := 0
 
 	if reg := assessment.ComplianceRegister; reg != nil && reg.ComplianceAssessmentFramework != nil {
@@ -1725,7 +1724,7 @@ func (cras *ComplianceAssessmentService) CalculateComplianceControlScores(assess
 		}
 	}
 
-	// Normalize per-control max by framework
+	// Per-control max for denominator
 	perControlMax := func() float64 {
 		switch frameworkType {
 		case "percentage":
@@ -1736,6 +1735,7 @@ func (cras *ComplianceAssessmentService) CalculateComplianceControlScores(assess
 			if maxValueInFramework > 0 {
 				return float64(maxValueInFramework)
 			}
+			// sensible fallbacks
 			if frameworkType == "point" {
 				return 2.0
 			}
@@ -1744,8 +1744,15 @@ func (cras *ComplianceAssessmentService) CalculateComplianceControlScores(assess
 			return 100.0
 		}
 	}()
-
-	// Map % (0–100) -> framework band/status (from ScoreMin/ScoreMax ranges)
+	// ---- DEBUG toggle ----
+	// const DEBUG = true
+	// debugf := func(format string, args ...any) {
+	// 	if DEBUG {
+	// 		fmt.Printf(format, args...)
+	// 	}
+	// }
+	// Map % (0–100) -> framework band/status (from ScoreMin/ScoreMax ranges).
+	// IMPORTANT: For SAMA point/maturity, ScoreMin/ScoreMax are already percentages.
 	mapPctToBand := func(pct float64) (fvID *uint, statusID *uint) {
 		if assessment.ComplianceRegister == nil || assessment.ComplianceRegister.ComplianceAssessmentFramework == nil {
 			return nil, nil
@@ -1754,33 +1761,69 @@ func (cras *ComplianceAssessmentService) CalculateComplianceControlScores(assess
 			if fv == nil || fv.ScoreMin == nil || fv.ScoreMax == nil {
 				continue
 			}
-			min := float64(*fv.ScoreMin)
-			max := float64(*fv.ScoreMax)
-			// include right edge only for the top band (100)
-			if pct >= min && (pct < max || (pct == max && max == 100)) {
+			min := float64(*fv.ScoreMin) // already %
+			max := float64(*fv.ScoreMax) // already %
+
+			// debugf("[mapPctToBand] pct=%.2f  fv=%d  band=[%.2f, %.2f]  status=%d\n",
+			// 	pct, fv.ID, min, max, fv.ComplianceStatusID)
+
+			if pct >= min && (pct < max || (math.Abs(pct-max) < 1e-9 && math.Abs(max-100.0) < 1e-9)) {
 				id := fv.ID
 				st := fv.ComplianceStatusID
 				return &id, &st
 			}
 		}
+		// debugf("[mapPctToBand] NO MATCH for pct=%.2f (framework=%s)\n", pct, frameworkType)
 		return nil, nil
 	}
 
-	// ---------------- Group applicable controls by clause ----------------
-	clauseControls := make(map[uint][]*models.ComplianceAssessmentControl)
+	// ---------------- Applicability + group controls by clause ----------------
+	notApplicable, err := cras.complianceStatusSvc.GetByType("not_applicable")
+	if err != nil {
+		return nil, err
+	}
+
+	type clauseStat struct {
+		total         int // total controls under clause
+		applicable    int // CAFV.IsApplicable = true
+		notApplicable int // CAFV.IsApplicable = false (explicit)
+	}
+
+	clauseControls := make(map[uint][]*models.ComplianceAssessmentControl) // applicable only (for scoring)
+	clauseStats := make(map[uint]*clauseStat)                              // applicability counters
 
 	for _, ac := range assessment.AssessmentControls {
-		if ac == nil || ac.ComplianceControl == nil {
+		if ac == nil || ac.ComplianceControl == nil || ac.ComplianceControl.ComplianceClauseID == nil {
 			continue
 		}
+		clauseID := *ac.ComplianceControl.ComplianceClauseID
 
+		if clauseStats[clauseID] == nil {
+			clauseStats[clauseID] = &clauseStat{}
+		}
+		cs := clauseStats[clauseID]
+		cs.total++
+
+		// Determine applicability
+		isApplicable := false
+		if ac.ComplianceAssessmentFrameworkValue != nil {
+			isApplicable = ac.ComplianceAssessmentFrameworkValue.IsApplicable
+		}
+		if isApplicable {
+			cs.applicable++
+			clauseControls[clauseID] = append(clauseControls[clauseID], ac)
+		} else {
+			if ac.ComplianceAssessmentFrameworkValue != nil {
+				cs.notApplicable++
+			}
+		}
+
+		// Sync control metadata + control's control status
 		var statusID *uint
 		if ac.ComplianceAssessmentFrameworkValue != nil {
-			// take the framework value's mapped ComplianceStatusID
 			sid := ac.ComplianceAssessmentFrameworkValue.ComplianceStatusID
 			statusID = &sid
-		} // else keep nil -> will set NULL if desired
-
+		}
 		dto := complianceDTOs.ControlSyncUpdateDTO{
 			ControlID:                            ac.ComplianceControl.ControlID,
 			ComplianceControlID:                  ac.ComplianceControlID,
@@ -1789,65 +1832,72 @@ func (cras *ComplianceAssessmentService) CalculateComplianceControlScores(assess
 			CompletedAt:                          ac.CompletedAt,
 			ComplianceStatusID:                   statusID,
 		}
-
-		// DB updates live in repo (two tables)
 		if err := cras.repo.UpdateControlComplianceStatus(dto, tx...); err != nil {
 			return nil, err
 		}
 		if err := cras.repo.UpdateComplianceControlMeta(dto, tx...); err != nil {
 			return nil, err
 		}
-		// Only consider applicable controls
-		if ac.ComplianceAssessmentFrameworkValue == nil || !ac.ComplianceAssessmentFrameworkValue.IsApplicable {
-			continue
-		}
-		if ac.ComplianceControl.ComplianceClauseID == nil {
-			continue
-		}
-		clauseID := *ac.ComplianceControl.ComplianceClauseID
-		clauseControls[clauseID] = append(clauseControls[clauseID], ac)
 	}
 
-	// We keep this to satisfy the signature; no per-control results needed.
+	// return signature satisfaction (you don't need per-control DTOs)
 	var results []*complianceDTOs.ControlComplianceScoreDTO
 
 	// ---------------- Compute per-clause score & update ----------------
 	var (
-		clauseCount   int
-		sumClauseAvgs float64
+		clauseCount   int     // number of clauses that produced a numeric score
+		sumClauseAvgs float64 // sum of clause scores used in overall
+		totalClauses  int
+		naClauses     int
 	)
 
-	for clauseID, ctrls := range clauseControls {
-		// Aggregate totals for the clause (not per control output)
-		var totalScore float64
-		var maxPossible float64
+	for clauseID, stat := range clauseStats {
+		totalClauses++
 
+		// All controls in clause are NA → mark clause NA and skip from overall
+		if stat.total > 0 && stat.applicable == 0 && stat.notApplicable == stat.total {
+			// debugf("[CLAUSE %d] all controls NA → set status=not_applicable, score=0\n", clauseID)
+			if err := cras.repo.UpdateClauseComplianceStatus(clauseID, notApplicable.ID, 0, tx...); err != nil {
+				return nil, err
+			}
+			naClauses++
+			continue
+		}
+
+		// Only average applicable controls
+		ctrls := clauseControls[clauseID]
+		if len(ctrls) == 0 {
+			// debugf("[CLAUSE %d] no applicable controls → skip averaging\n", clauseID)
+			continue // neither score nor status change here
+		}
+
+		var totalScore, maxPossible float64
 		for _, ac := range ctrls {
 			switch frameworkType {
 			case "point", "maturity":
-				// value from framework value (e.g., 0..N), normalize by max in framework
+				maxPossible += perControlMax
 				if ac.ComplianceAssessmentFrameworkValueID != nil {
 					if val, ok := frameworkValuesMap[*ac.ComplianceAssessmentFrameworkValueID]; ok {
 						totalScore += float64(val)
-						maxPossible += perControlMax
+						// vStr = fmt.Sprintf("%d", val)
 					}
 				}
+				// debugf("  [ctrl #%d] point val=%s  maxPossible+=%.0f  totals: score=%.2f max=%.2f\n",
+				// 	ac.ID, vStr, perControlMax, totalScore, maxPossible)
+
 			case "percentage":
-				// direct percentage per control; normalize by 100
 				if ac.Score != nil {
 					totalScore += float64(*ac.Score)
-					maxPossible += perControlMax // 100
+					maxPossible += 100.0
 				}
 			case "binary":
-				// normalize by 1; convert framework value into 0/1
-				maxPossible += perControlMax // 1
+				maxPossible += 1.0
 				if ac.ComplianceAssessmentFrameworkValueID != nil {
 					if raw, ok := frameworkValuesMap[*ac.ComplianceAssessmentFrameworkValueID]; ok && raw > 0 {
 						totalScore += 1.0
 					}
 				}
 			default:
-				// fallback: treat like percentage
 				if ac.Score != nil {
 					totalScore += float64(*ac.Score)
 					maxPossible += 100.0
@@ -1855,44 +1905,42 @@ func (cras *ComplianceAssessmentService) CalculateComplianceControlScores(assess
 			}
 		}
 
-		// Skip clause if nothing to normalize
 		if maxPossible <= 0 {
+			// debugf("[CLAUSE %d] maxPossible=0 → skip\n", clauseID)
 			continue
 		}
 
-		// Clause % and score
-		clausePct := (totalScore / maxPossible) * 100
-		// if clausePct == 100 {
-		// 	clausePct = 99.99
-		// }
+		clausePct := (totalScore / maxPossible) * 100.0
 		clauseScore := math.Round(clausePct*100) / 100
+		// debugf("[CLAUSE %d] totalScore=%.2f max=%.2f → pct=%.2f score=%.2f\n",
+		// 	clauseID, totalScore, maxPossible, clausePct, clauseScore)
 
-		// Map clause % to band/status and persist
 		if _, stID := mapPctToBand(clausePct); stID != nil {
+			// debugf("[CLAUSE %d] mapped statusID=%d → updating DB\n", clauseID, *stID)
 			if err := cras.repo.UpdateClauseComplianceStatus(clauseID, *stID, clauseScore, tx...); err != nil {
+				// debugf("[CLAUSE %d] update ERROR: %v\n", clauseID, err)
 				return nil, err
 			}
 		}
 
-		// Accumulate for overall
 		sumClauseAvgs += clauseScore
 		clauseCount++
 	}
 
 	// ---------------- Overall (average of clause averages) ----------------
 	if clauseCount > 0 {
-		overall := sumClauseAvgs / float64(clauseCount)
-		// if overall == 100 {
-		// 	overall = 99.99
-		// }
-		overall = math.Round(overall*100) / 100
-
+		overall := math.Round((sumClauseAvgs/float64(clauseCount))*100) / 100
 		if _, stID := mapPctToBand(overall); stID != nil {
-			if err := cras.repo.UpdateComplianceStatus(
-				assessment.ComplianceRegisterID, *stID, overall, tx...,
-			); err != nil {
+			// debugf("[OVERALL] score=%.2f statusID=%d → updating register\n", overall, *stID)
+			if err := cras.repo.UpdateComplianceStatus(assessment.ComplianceRegisterID, *stID, overall, tx...); err != nil {
+				// debugf("[OVERALL] update ERROR: %v\n", err)
 				return nil, err
 			}
+		}
+	} else if totalClauses > 0 && naClauses == totalClauses {
+		// debugf("[OVERALL] all clauses NA → set register NA, score=0\n")
+		if err := cras.repo.UpdateComplianceStatus(assessment.ComplianceRegisterID, notApplicable.ID, 0, tx...); err != nil {
+			return nil, err
 		}
 	}
 

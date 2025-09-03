@@ -603,10 +603,19 @@ func (repo *ComplianceAssessmentRepository) UpdateClauseComplianceStatus(clauseI
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	return db.Model(&models.ComplianceClause{}).
+
+	res := db.Model(&models.ComplianceClause{}).
 		Where("id = ?", clauseID).
-		Update("compliance_status_id", statusID).
-		Update("score", score).Error
+		Updates(map[string]interface{}{
+			"compliance_status_id": statusID,
+			"score":                score,
+		})
+
+	if res.Error != nil {
+		return res.Error
+	}
+
+	return nil
 }
 
 func (repo *ComplianceAssessmentRepository) CreateComplianceAssessmentControl(control *models.ComplianceAssessmentControl, tx ...utility.DatabaseTransaction) error {
@@ -739,54 +748,57 @@ func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummaryByControl(
 }
 
 func (repo *ComplianceAssessmentRepository) GetComplianceScoreSummaryByControl(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error) {
+	db := repo.db
+
 	var result complianceDTOs.ComplianceScoreSummaryDTO
 
-	const query = `
-		SELECT
-			(
-				SELECT COUNT(cac.id)
-				FROM compliance_assessment_controls cac
-				JOIN compliance_assessments ca
-					ON ca.id = cac.compliance_assessment_id
-				JOIN compliance_assessment_statuses cas
-					ON cas.id = ca.compliance_assessment_status_id
-				LEFT JOIN compliance_assessment_framework_values cafv
-					ON cafv.id = cac.compliance_assessment_framework_value_id
-				LEFT JOIN compliance_statuses cs
-					ON cs.id = cafv.compliance_status_id
-				WHERE cac.compliance_assessment_id = ?
-				  AND cac.score IS NOT NULL
-				  AND cas.type = 'approved'
-				  AND (cs.type IS NULL OR cs.type <> 'not_applicable')
-			) AS total_requirements,
+	// average_score: average of clause-level scores (each clause weighted equally)
+	// total_requirements: count of applicable controls for this assessment
+	const q = `
+        SELECT
+            /* total applicable controls */
+            (
+                SELECT COUNT(cac.id)
+                FROM compliance_assessment_controls cac
+                JOIN compliance_assessments ca
+                  ON ca.id = cac.compliance_assessment_id
+                JOIN compliance_assessment_statuses cas
+                  ON cas.id = ca.compliance_assessment_status_id
+                LEFT JOIN compliance_assessment_framework_values cafv
+                  ON cafv.id = cac.compliance_assessment_framework_value_id
+                LEFT JOIN compliance_statuses cs
+                  ON cs.id = cafv.compliance_status_id
+                WHERE cac.compliance_assessment_id = ?
+                  AND cas.type = 'approved'
+                  AND cafv.is_applicable = 1             -- count only applicable controls
+                  AND (cs.type IS NULL OR cs.type <> 'not_applicable')
+            ) AS total_requirements,
 
-			/* average across clause-level averages (each clause weighted equally) */
-			COALESCE(AVG(clause_avg), 0) AS average_score
-		FROM (
-			SELECT
-				cc.compliance_clause_id,
-				AVG(CAST(cac.score AS DECIMAL(10,2))) AS clause_avg
-			FROM compliance_assessment_controls cac
-			JOIN compliance_controls cc
-				ON cc.id = cac.compliance_control_id
-			JOIN compliance_assessments ca
-				ON ca.id = cac.compliance_assessment_id
-			JOIN compliance_assessment_statuses cas
-				ON cas.id = ca.compliance_assessment_status_id
-			LEFT JOIN compliance_assessment_framework_values cafv
-				ON cafv.id = cac.compliance_assessment_framework_value_id
-			LEFT JOIN compliance_statuses cs
-				ON cs.id = cafv.compliance_status_id
-			WHERE cac.compliance_assessment_id = ?
-			  AND cac.score IS NOT NULL
-			  AND cas.type = 'approved'
-			  AND (cs.type IS NULL OR cs.type <> 'not_applicable')
-			  AND cc.compliance_clause_id IS NOT NULL
-			GROUP BY cc.compliance_clause_id
-		) clause_aggs;
-	`
+            /* average across DISTINCT clauses using their persisted clause score */
+            COALESCE(AVG(clause_score), 0) AS average_score
+        FROM (
+            SELECT
+                c.id AS clause_id,
+                COALESCE(c.score, 0) AS clause_score
+            FROM compliance_clauses c
+            JOIN compliance_controls cc
+              ON cc.compliance_clause_id = c.id
+            JOIN compliance_assessment_controls cac
+              ON cac.compliance_control_id = cc.id
+             AND cac.compliance_assessment_id = ?
+            JOIN compliance_assessments ca
+              ON ca.id = cac.compliance_assessment_id
+            JOIN compliance_assessment_statuses cas
+              ON cas.id = ca.compliance_assessment_status_id
+            LEFT JOIN compliance_statuses ccs
+              ON ccs.id = c.compliance_status_id
+            WHERE cas.type = 'approved'
+              AND (ccs.type IS NULL OR ccs.type <> 'not_applicable') -- drop NA clauses
+            GROUP BY c.id, c.score
+        ) clause_aggs;
+    `
 
-	if err := repo.db.Raw(query, assessmentID, assessmentID).Scan(&result).Error; err != nil {
+	if err := db.Raw(q, assessmentID, assessmentID).Scan(&result).Error; err != nil {
 		return nil, err
 	}
 	return &result, nil
