@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	commonDTOs "jethur/grc/common/dtos"
@@ -1564,4 +1565,137 @@ func (srs *ComplianceRequirementService) ExportComplianceRequirements(data []*co
 	}
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+type ComplianceRequirementService struct {
+	clauseSvc   *ComplianceClauseService
+	categorySvc *ComplianceRequirementCategoryService
+	severitySvc *SeverityLevelService
+	statusSvc   *ComplianceStatusService
+	repo        *ComplianceRequirementRepository
+}
+
+// Generate Excel template
+func (cs *ComplianceRequirementService) GenerateRequirementTemplate() (*os.File, error) {
+	templateHeaders := []string{
+		"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "ComplianceStatus", "MarkedAsAuditableItem",
+	}
+	templateData := [][]interface{}{}
+
+	// Clauses
+	clauses, _ := cs.clauseSvc.GetAllClauses()
+	clauseHeaders := []string{"ClauseNo", "TitleEn"}
+	clauseData := [][]interface{}{}
+	for _, c := range clauses {
+		clauseData = append(clauseData, []interface{}{c.ClauseNo, c.TitleEn})
+	}
+
+	// Categories
+	categories, _ := cs.categorySvc.GetAllActive()
+	categoryHeaders := []string{"CategoryEn", "CategoryAr"}
+	categoryData := [][]interface{}{}
+	for _, cat := range categories {
+		categoryData = append(categoryData, []interface{}{cat.TitleEn, cat.TitleAr})
+	}
+
+	// Severity Levels
+	severities, _ := cs.severitySvc.GetAllActive()
+	severityHeaders := []string{"SeverityEn", "SeverityAr"}
+	severityData := [][]interface{}{}
+	for _, sev := range severities {
+		severityData = append(severityData, []interface{}{sev.TitleEn, sev.TitleAr})
+	}
+
+	// Compliance Statuses
+	statuses, _ := cs.statusSvc.GetAllActive()
+	statusHeaders := []string{"StatusEn", "StatusAr"}
+	statusData := [][]interface{}{}
+	for _, st := range statuses {
+		statusData = append(statusData, []interface{}{st.TitleEn, st.TitleAr})
+	}
+
+	// Generate file
+	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
+		"Template":       append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+		"Clauses":        append([][]interface{}{utility.ConvertToInterfaceSlice(clauseHeaders)}, clauseData...),
+		"Categories":     append([][]interface{}{utility.ConvertToInterfaceSlice(categoryHeaders)}, categoryData...),
+		"SeverityLevels": append([][]interface{}{utility.ConvertToInterfaceSlice(severityHeaders)}, severityData...),
+		"Statuses":       append([][]interface{}{utility.ConvertToInterfaceSlice(statusHeaders)}, statusData...),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
+
+// Validate Excel Template
+func (cs *ComplianceRequirementService) ValidateRequirementTemplate(file io.Reader) ([]map[string]interface{}, error) {
+	rows, err := utility.ReadExcelFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	inputHeaders := []string{"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "ComplianceStatus", "MarkedAsAuditableItem"}
+	snakeHeaders := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "compliance_status", "marked_as_auditable_item"}
+
+	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid headers"), "invalid_header", "Requirement Template")
+	}
+
+	var input []map[string]interface{}
+	for _, row := range rows[1:] {
+		record := make(map[string]interface{})
+		for i, h := range snakeHeaders {
+			if i < len(row) {
+				record[h] = row[i]
+			} else {
+				record[h] = ""
+			}
+		}
+		input = append(input, record)
+	}
+
+	return cs.validateRequirements(input)
+}
+
+// Validate JSON input
+func (cs *ComplianceRequirementService) ValidateImportRequirement(input []map[string]interface{}) ([]map[string]interface{}, error) {
+	return cs.validateRequirements(input)
+}
+
+// Import
+func (cs *ComplianceRequirementService) ImportRequirements(input []map[string]interface{}, currentUserID uint) ([]uint, error) {
+	validated, err := cs.validateRequirements(input)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, r := range validated {
+		if errs, ok := r["errors"].(map[string]interface{}); ok && len(errs) > 0 {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid data"), "invalid_data", "Invalid Data")
+		}
+	}
+
+	var createdIDs []uint
+	for _, record := range validated {
+		req := &models.ComplianceRequirement{
+			ComplianceClauseID:              record["clause_id"].(uint),
+			TitleEn:                         record["title_en"].(string),
+			TitleAr:                         record["title_ar"].(string),
+			ComplianceRequirementCategoryID: utility.GetOptionalUintValue(record["category_id"]),
+			SeverityLevelID:                 utility.GetOptionalUintValue(record["severity_level_id"]),
+			Deadline:                        utility.ParseOptionalDate(record["deadline"]),
+			ComplianceStatusID:              utility.GetOptionalUintValue(record["status_id"]),
+			MarkedAsAuditableItem:           utility.ParseBool(record["marked_as_auditable_item"]),
+			CreatedByID:                     currentUserID,
+		}
+
+		id, err := cs.repo.Create(req)
+		if err != nil {
+			return nil, err
+		}
+		createdIDs = append(createdIDs, id)
+	}
+	return createdIDs, nil
 }

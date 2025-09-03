@@ -396,3 +396,101 @@ func (crc *ComplianceRequirementController) GetComplianceRequirementsExport(c *g
 
 	crc.GetAllComplianceRequirements(c)
 }
+
+func (crc *ComplianceRequirementController) GetRequirementsTemplate(c *gin.Context) {
+	file, err := crc.service.GenerateRequirementTemplate()
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Failed to generate template")
+		return
+	}
+	defer file.Close()
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Disposition", `attachment; filename="ComplianceRequirementTemplate.xlsx"`)
+	c.Header("Content-Type", "application/octet-stream")
+	c.File(file.Name())
+}
+
+// POST /requirements/template/validate
+func (crc *ComplianceRequirementController) ValidateRequirementTemplate(c *gin.Context) {
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Failed to read uploaded file")
+		return
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Failed to open file")
+		return
+	}
+	defer file.Close()
+
+	validationResult, err := crc.service.ValidateRequirementTemplate(file)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, validationResult)
+}
+
+// POST /requirements/import/validate
+func (crc *ComplianceRequirementController) ValidateImportRequirement(c *gin.Context) {
+	var input []map[string]interface{}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	validationResult, err := crc.service.ValidateImportRequirement(input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, validationResult)
+}
+
+// POST /requirements/import
+func (crc *ComplianceRequirementController) ImportRequirements(c *gin.Context) {
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	createdIDs, err := crc.service.ImportRequirements(input, currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"created_ids": createdIDs})
+}
