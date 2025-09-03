@@ -259,7 +259,6 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 				emailData := map[string]interface{}{
 					"FirstNameEn":               reviewUser.FirstNameEn,
 					"LastNameEn":                reviewUser.LastNameEn,
-					"ThreatReferenceNumber": threatActionPlan.Threat.ID,
 					"ThreatTitle":           threatActionPlan.Threat.TitleEn,
 					"ActionPlanTitle":           threatActionPlan.Title,
 					"ActionPlanDescription":     threatActionPlan.Description,
@@ -329,7 +328,6 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 			emailData := map[string]interface{}{
 				"FirstNameEn":               responsibleUser.FirstNameEn,
 				"LastNameEn":                responsibleUser.LastNameEn,
-				"ThreatReferenceNumber": threatActionPlan.Threat.ID,
 				"ThreatTitle":           threatActionPlan.Threat.TitleEn,
 				"ActionPlanTitle":           threatActionPlan.Title,
 				"ActionPlanDescription":     threatActionPlan.Description,
@@ -398,7 +396,6 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 			emailData := map[string]interface{}{
 				"FirstNameEn":               responsibleUser.FirstNameEn,
 				"LastNameEn":                responsibleUser.LastNameEn,
-				"ThreatReferenceNumber": threatActionPlan.Threat.ID,
 				"ThreatTitle":           threatActionPlan.Threat.TitleEn,
 				"ActionPlanTitle":           threatActionPlan.Title,
 				"ActionPlanDescription":     threatActionPlan.Description,
@@ -466,7 +463,6 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 				emailData := map[string]interface{}{
 					"FirstNameEn":               responsibleUser.FirstNameEn,
 					"LastNameEn":                responsibleUser.LastNameEn,
-					"ThreatReferenceNumber": threatActionPlan.Threat.ID,
 					"ThreatTitle":           threatActionPlan.Threat.TitleEn,
 					"ActionPlanTitle":           threatActionPlan.Title,
 					"ActionPlanDescription":     threatActionPlan.Description,
