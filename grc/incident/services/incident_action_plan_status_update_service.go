@@ -62,6 +62,10 @@ func NewIncidentActionPlanStatusUpdateService(
 		incidentActionPlanSvc: incidentActionPlanSvc,
 		actionPlanStatusSvc:   actionPlanStatusSvc,
 		incidentRegisterSvc:   incidentRegisterSvc,
+		taskSvc:               taskSvc,
+		taskStatusSvc:         taskStatusSvc,
+		userSvc:               userSvc,
+		notificationSvc:       notificationSvc,
 	}
 }
 

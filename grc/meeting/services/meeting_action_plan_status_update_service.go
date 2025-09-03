@@ -214,6 +214,34 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 		}
 	}
 
+	meeting, err := masus.meetingSvc.GetByID(meetingID)
+	if err != nil {
+		return 0, err
+	}
+
+	actionPlanStatus, err := masus.actionPlanStatusSvc.GetByType("completed")
+	if err != nil {
+		return 0, err
+	}
+	if meetingActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && meetingActionPlan.ReviewUserID != nil {
+		urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, meetingID, meetingActionPlanID)
+		taskDTO := commonDTOs.TaskFormDTO{
+			ModuleIdentifier:    "meeting",
+			MeetingActionPlanID: &meetingActionPlanID,
+			Title:               meetingActionPlan.Title,
+			Description:         meetingActionPlan.Description,
+			URLParam:            &urlParam,
+			QueryParam:          nil,
+			SeverityLevelID:     meetingActionPlan.SeverityLevelID,
+			ResponsibleUserID:   *meetingActionPlan.ReviewUserID,
+		}
+
+		if _, err := masus.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -242,6 +270,76 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		if meetingActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && meetingActionPlan.ReviewUserID != nil {
+			// prepare notification
+			urlParam := fmt.Sprintf(`{"meeting_register_id":%d, "action_plan_id":%d}`, meetingID, meetingActionPlanID)
+			queryParam := ""
+			entity := "meeting-action-plan"
+			action := "review-user"
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{*meetingActionPlan.ReviewUserID},
+				ModuleIdentifier:     "meeting",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Meeting Action Plan Status Update",
+				HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+				TitleEn:              meetingActionPlan.Title,
+				TitleAr:              meetingActionPlan.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			reviewUser, err := masus.userSvc.GetByID(*meetingActionPlan.ReviewUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+			resolvedBy, err := masus.userSvc.GetByID(meetingActionPlan.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch updated user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			emailTo := []string{reviewUser.Email}
+			subject := fmt.Sprintf("Meeting Action Plan %s: Resolved", meetingActionPlan.Title)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":            reviewUser.FirstNameEn,
+				"LastNameEn":             reviewUser.LastNameEn,
+				"MeetingReferenceNumber": meeting.ReferenceNumber,
+				"MeetingTitle":           meeting.Title,
+				"ActionPlanTitle":        meetingActionPlan.Title,
+				"ActionPlanDescription":  meetingActionPlan.Description,
+				"ResolvedByFirstNameEn":  resolvedBy.FirstNameEn,
+				"ResolvedByLastNameEn":   resolvedBy.LastNameEn,
+				"ResolvedOn":             time.Now().Format("2006-01-02"),
+				"RedirectURL":            fmt.Sprintf("%s/meeting/register/%d/action-plans?action_plan_id=%d", appURL, meetingID, id),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "meeting/templates/email/meeting_action_plan_review_user_mail.html",
+				EmailData:            emailData,
+			}
+
+			// send notification and mail
+			err = masus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "meeting_action_plan")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
 		}
 	}()
 
@@ -682,7 +780,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Revert(meetingId uint, action
 	}
 
 	meetingActionPlanUpdate := &models.MeetingActionPlanStatusUpdate{
-		MeetingActionPlanID: meetingId,
+		MeetingActionPlanID: actionPlanID,
 		ActionPlanStatusID:  meetingActionPlanReopenStatus.ID,
 		Comment:             MeetingActionPlanReviewUserStatusUpdateFormDTO.Comment,
 		CreatedByID:         currentUserID,
@@ -775,7 +873,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Revert(meetingId uint, action
 			})
 		}
 
-		existingComplianceActionPlan, err := masus.meetingActionPlanSvc.GetByID(meetingId, actionPlanID)
+		existingMeetingActionPlan, err := masus.meetingActionPlanSvc.GetByID(meetingId, actionPlanID)
 		if err != nil {
 			return
 		}
@@ -784,7 +882,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Revert(meetingId uint, action
 			models.RejectAction,
 			models.MeetingActionPlanStatusUpdate{}.TableName(),
 			id,
-			existingComplianceActionPlan,
+			existingMeetingActionPlan,
 			currentUserID,
 			nil,
 		)
