@@ -93,15 +93,26 @@ func (iasus IncidentActionPlanStatusUpdateService) GetByID(IncidentID uint, Inci
 }
 
 func (iasus *IncidentActionPlanStatusUpdateService) Create(IncidentID uint, IncidentActionPlanID uint, currentUserID uint, incidentActionPlanStatusUpdateFormDTO *incidentDTOs.IncidentActionPlanStatusUpdateFormDTO) (uint, error) {
-	tx := iasus.repo.BeginTransaction()
-
-	if _, err := iasus.incidentActionPlanSvc.GetByID(IncidentID, IncidentActionPlanID); err != nil {
-		return 0, err
-	}
-
 	if err := iasus.validateIncidentActionPlanStatusUpdateFormDTO(incidentActionPlanStatusUpdateFormDTO); err != nil {
 		return 0, err
 	}
+
+	incident, err := iasus.incidentRegisterSvc.GetByID(IncidentID)
+	if err != nil {
+		return 0, err
+	}
+
+	incidentActionPlan, err := iasus.incidentActionPlanSvc.GetByID(IncidentID, IncidentActionPlanID)
+	if err != nil {
+		return 0, err
+	}
+
+	actionPlanStatus, err := iasus.actionPlanStatusSvc.GetByType("completed")
+	if err != nil {
+		return 0, err
+	}
+
+	tx := iasus.repo.BeginTransaction()
 
 	//@todo validate document form
 
@@ -113,7 +124,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Create(IncidentID uint, Inci
 		CreatedByID:          currentUserID,
 	}
 
-	id, err := iasus.repo.Create(incidentActionPlanUpdate, tx)
+	id, err := iasus.repo.Create(incidentActionPlanUpdate,tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -164,9 +175,28 @@ func (iasus *IncidentActionPlanStatusUpdateService) Create(IncidentID uint, Inci
 				tx.Rollback()
 				return 0, err
 			}
-
 		}
 	}
+
+	if incidentActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && incidentActionPlan.ReviewUserID != nil {
+		urlParam := fmt.Sprintf(`{"incident_register_id":%d, "action_plan_id":%d}`, IncidentID, IncidentActionPlanID)
+		taskDTO := commonDTOs.TaskFormDTO{
+			ModuleIdentifier:     "incident_register",
+			IncidentActionPlanID: &IncidentActionPlanID,
+			Title:                incidentActionPlan.Title,
+			Description:          incidentActionPlan.Description,
+			URLParam:             &urlParam,
+			QueryParam:           nil,
+			SeverityLevelID:      incidentActionPlan.SeverityLevelID,
+			ResponsibleUserID:    *incidentActionPlan.ReviewUserID,
+		}
+
+		if _, err := iasus.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -188,6 +218,76 @@ func (iasus *IncidentActionPlanStatusUpdateService) Create(IncidentID uint, Inci
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		if incidentActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && incidentActionPlan.ReviewUserID != nil {
+			// prepare notification
+			urlParam := fmt.Sprintf(`{"incident_register_id":%d, "action_plan_id":%d}`, IncidentID, IncidentActionPlanID)
+			queryParam := ""
+			entity := "incident-action-plan"
+			action := "review-user"
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{*incidentActionPlan.ReviewUserID},
+				ModuleIdentifier:     "incident",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Incident Action Plan Status Update",
+				HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+				TitleEn:              incidentActionPlan.Title,
+				TitleAr:              incidentActionPlan.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			reviewUser, err := iasus.userSvc.GetByID(*incidentActionPlan.ReviewUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+			resolvedBy, err := iasus.userSvc.GetByID(incidentActionPlan.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch updated user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			emailTo := []string{reviewUser.Email}
+			subject := fmt.Sprintf("Incidenta Action Plan %s: Resolved", incidentActionPlan.Title)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":             reviewUser.FirstNameEn,
+				"LastNameEn":              reviewUser.LastNameEn,
+				"IncidentReferenceNumber": incident.ReferenceNumber,
+				"IncidentTitle":           incident.Title,
+				"ActionPlanTitle":         incidentActionPlan.Title,
+				"ActionPlanDescription":   incidentActionPlan.Description,
+				"ResolvedByFirstNameEn":   resolvedBy.FirstNameEn,
+				"ResolvedByLastNameEn":    resolvedBy.LastNameEn,
+				"ResolvedOn":              time.Now().Format("2006-01-02"),
+				"RedirectURL":             fmt.Sprintf("%s/compliance/register/%d/action-plans?action_plan_id=%d", appURL, IncidentID, id),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "incident/templates/email/incident_action_plan_review_user_mail.html",
+				EmailData:            emailData,
+			}
+
+			// send notification and mail
+			err = iasus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "incident_action_plan")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
 		}
 	}()
 
