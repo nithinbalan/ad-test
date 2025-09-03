@@ -26,6 +26,7 @@ type AssetModule struct {
 	ThreatController                              *controllers.ThreatController
 	VulnerabilityActionPlanController             *controllers.VulnerabilityActionPlanController
 	VulnerabilityActionPlanStatusUpdateController *controllers.VulnerabilityActionPlanStatusUpdateController
+	VulnerabilityActionPlanCommentController      *controllers.VulnerabilityActionPlanCommentController
 	ThreatActionPlanController                    *controllers.ThreatActionPlanController
 	ThreatActionPlanStatusUpdateController        *controllers.ThreatActionPlanStatusUpdateController
 	AssetMaintenanceController                    *controllers.AssetMaintenanceController
@@ -144,6 +145,11 @@ func NewAssetModule(db *gorm.DB,
 	)
 	vulnerabilityActionPlanStatusUpdateController := controllers.NewVulnerabilityActionPlanStatusUpdateController(vulnerabilityActionPlanStatusUpdateSvc)
 
+	vulnerabilityeActionPlanCommentRepository := repositories.NewVulnerabilityActionPlanCommentRepository(db)
+	vulnerabilityActionPlanCommentSvc := services.NewVulnerabilityActionPlanCommentService(vulnerabilityeActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, vulnerabilityActionPlanSvc, commonModule.NotificationService)
+	vulnerabilityActionPlanCommentController := controllers.NewVulnerabilityActionPlanCommentController(vulnerabilityActionPlanCommentSvc)
+
+
 	threatActionPlanRepo := repositories.NewThreatActionPlanRepository(db)
 	threatActionPlanSvc := services.NewThreatActionPlanService(
 		threatActionPlanRepo,
@@ -258,6 +264,7 @@ func NewAssetModule(db *gorm.DB,
 		ThreatController:                              threatController,
 		VulnerabilityActionPlanController:             vulnerabilityActionPlanController,
 		VulnerabilityActionPlanStatusUpdateController: vulnerabilityActionPlanStatusUpdateController,
+		VulnerabilityActionPlanCommentController:      vulnerabilityActionPlanCommentController,
 		ThreatActionPlanController:                    threatActionPlanController,
 		ThreatActionPlanStatusUpdateController:        threatActionPlanStatusUpdateController,
 		AssetMaintenanceController:                    assetMaintenanceController,
