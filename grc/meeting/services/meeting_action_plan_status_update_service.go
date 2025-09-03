@@ -626,6 +626,12 @@ func (masus *MeetingActionPlanStatusUpdateService) Approve(meetingId uint, actio
 		return err
 	}
 
+	_, err = masus.taskSvc.UpdateActionPlanTaskStatus("meeting_action_plan_id", actionPlanID, existingMeetingActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	_, err = masus.taskSvc.UpdateActionPlanTaskStatus("meeting_action_plan_id", actionPlanID, *existingMeetingActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
 	if err != nil {
 		tx.Rollback()
@@ -635,16 +641,6 @@ func (masus *MeetingActionPlanStatusUpdateService) Approve(meetingId uint, actio
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-
-	// Start a new transaction for the second update
-	tx2 := masus.repo.BeginTransaction()
-	_, err = masus.taskSvc.UpdateActionPlanTaskStatus("meeting_action_plan_id", actionPlanID, existingMeetingActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx2)
-	if err != nil {
-		tx2.Rollback()
-		return err
-	}
-
-	tx2.Commit()
 
 	go func() {
 		urlParam := fmt.Sprintf(`{"meeting_register_id":%d, "action_plan_id":%d}`, meetingId, actionPlanID)

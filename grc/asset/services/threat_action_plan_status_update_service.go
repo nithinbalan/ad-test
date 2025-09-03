@@ -93,6 +93,21 @@ func (tasus ThreatActionPlanStatusUpdateService) GetByID(ThreatID uint, ThreatAc
 }
 
 func (tasus *ThreatActionPlanStatusUpdateService) Create(ThreatID uint, ThreatActionPlanID uint, currentUserID uint, threatActionPlanStatusUpdateFormDTO *threatDTOs.ThreatActionPlanStatusUpdateFormDTO) (uint, error) {
+	threat, err := tasus.threatSvc.GetByID(ThreatID)
+	if err != nil {
+		return 0, err
+	}
+
+	threatActionPlan, err := tasus.threatActionPlanSvc.GetByID(ThreatID, ThreatActionPlanID)
+	if err != nil {
+		return 0, err
+	}
+
+	actionPlanStatus, err := tasus.actionPlanStatusSvc.GetByType("completed")
+	if err != nil {
+		return 0, err
+	}
+
 	tx := tasus.repo.BeginTransaction()
 
 	if _, err := tasus.threatActionPlanSvc.GetByID(ThreatID, ThreatActionPlanID); err != nil {
@@ -163,6 +178,26 @@ func (tasus *ThreatActionPlanStatusUpdateService) Create(ThreatID uint, ThreatAc
 			}
 		}
 	}
+
+	if threatActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && threatActionPlan.ReviewUserID != nil {
+		urlParam := fmt.Sprintf(`{"incident_register_id":%d, "action_plan_id":%d}`, ThreatID, ThreatActionPlanID)
+		taskDTO := commonDTOs.TaskFormDTO{
+			ModuleIdentifier:   "threat",
+			ThreatActionPlanID: &ThreatActionPlanID,
+			Title:              threatActionPlan.Title,
+			Description:        threatActionPlan.Description,
+			URLParam:           &urlParam,
+			QueryParam:         nil,
+			SeverityLevelID:    threatActionPlan.SeverityLevelID,
+			ResponsibleUserID:  *threatActionPlan.ReviewUserID,
+		}
+
+		if _, err := tasus.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -184,6 +219,76 @@ func (tasus *ThreatActionPlanStatusUpdateService) Create(ThreatID uint, ThreatAc
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		if threatActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && threatActionPlan.ReviewUserID != nil {
+			// prepare notification
+			urlParam := fmt.Sprintf(`{"threat_register_id":%d, "action_plan_id":%d}`, ThreatID, ThreatActionPlanID)
+			queryParam := ""
+			entity := "threat-action-plan"
+			action := "review-user"
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{*threatActionPlan.ReviewUserID},
+				ModuleIdentifier:     "threat",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Threat Action Plan Status Update",
+				HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+				TitleEn:              threatActionPlan.Title,
+				TitleAr:              threatActionPlan.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			reviewUser, err := tasus.userSvc.GetByID(*threatActionPlan.ReviewUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+			resolvedBy, err := tasus.userSvc.GetByID(threatActionPlan.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch updated user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			emailTo := []string{reviewUser.Email}
+			subject := fmt.Sprintf("Threat Action Plan %s: Resolved", threatActionPlan.Title)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn": reviewUser.FirstNameEn,
+				"LastNameEn":  reviewUser.LastNameEn,
+				// "ThreatReferenceNumber": threat.ReferenceNumber,
+				"ThreatTitle":           threat.TitleEn,
+				"ActionPlanTitle":       threatActionPlan.Title,
+				"ActionPlanDescription": threatActionPlan.Description,
+				"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
+				"ResolvedByLastNameEn":  resolvedBy.LastNameEn,
+				"ResolvedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%s/compliance/register/%d/action-plans?action_plan_id=%d", appURL, ThreatID, id),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "assets/templates/email/threat_action_plan_review_user_mail.html",
+				EmailData:            emailData,
+			}
+
+			// send notification and mail
+			err = tasus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "threat")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
 		}
 	}()
 
@@ -459,6 +564,12 @@ func (tasus *ThreatActionPlanStatusUpdateService) Approve(threatID uint, actionP
 		return err
 	}
 
+	_, err = tasus.taskSvc.UpdateActionPlanTaskStatus("threat_action_plan_id", actionPlanID, existingThreatActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	_, err = tasus.taskSvc.UpdateActionPlanTaskStatus("threat_action_plan_id", actionPlanID, *existingThreatActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
 	if err != nil {
 		tx.Rollback()
@@ -468,16 +579,6 @@ func (tasus *ThreatActionPlanStatusUpdateService) Approve(threatID uint, actionP
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-
-	// Start a new transaction for the second update
-	tx2 := tasus.repo.BeginTransaction()
-	_, err = tasus.taskSvc.UpdateActionPlanTaskStatus("threat_action_plan_id", actionPlanID, existingThreatActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx2)
-	if err != nil {
-		tx2.Rollback()
-		return err
-	}
-
-	tx2.Commit()
 
 	go func() {
 		urlParam := fmt.Sprintf(`{"threat_register_id":%d, "action_plan_id":%d}`, threatID, actionPlanID)

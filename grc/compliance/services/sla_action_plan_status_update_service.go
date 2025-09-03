@@ -571,6 +571,12 @@ func (sasus *SLAActionPlanStatusUpdateService) Approve(slaID uint, actionPlanID 
 		return err
 	}
 
+	_, err = sasus.taskSvc.UpdateActionPlanTaskStatus("sla_action_plan_id", actionPlanID, existingSLAActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	_, err = sasus.taskSvc.UpdateActionPlanTaskStatus("sla_action_plan_id", actionPlanID, *existingSLAActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
 	if err != nil {
 		tx.Rollback()
@@ -580,16 +586,6 @@ func (sasus *SLAActionPlanStatusUpdateService) Approve(slaID uint, actionPlanID 
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-
-	// Start a new transaction for the second update
-	tx2 := sasus.repo.BeginTransaction()
-	_, err = sasus.taskSvc.UpdateActionPlanTaskStatus("sla_action_plan_id", actionPlanID, existingSLAActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx2)
-	if err != nil {
-		tx2.Rollback()
-		return err
-	}
-
-	tx2.Commit()
 
 	go func() {
 		urlParam := fmt.Sprintf(`{"sla_register_id":%d, "action_plan_id":%d}`, slaID, actionPlanID)

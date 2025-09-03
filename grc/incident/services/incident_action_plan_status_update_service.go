@@ -567,6 +567,12 @@ func (iasus *IncidentActionPlanStatusUpdateService) Approve(incidentID uint, act
 		return err
 	}
 
+	_, err = iasus.taskSvc.UpdateActionPlanTaskStatus("incident_action_plan_id", actionPlanID, existingIncidentActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	_, err = iasus.taskSvc.UpdateActionPlanTaskStatus("incident_action_plan_id", actionPlanID, *existingIncidentActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
 	if err != nil {
 		tx.Rollback()
@@ -576,16 +582,6 @@ func (iasus *IncidentActionPlanStatusUpdateService) Approve(incidentID uint, act
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-
-	// Start a new transaction for the second update
-	tx2 := iasus.repo.BeginTransaction()
-	_, err = iasus.taskSvc.UpdateActionPlanTaskStatus("incident_action_plan_id", actionPlanID, existingIncidentActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx2)
-	if err != nil {
-		tx2.Rollback()
-		return err
-	}
-
-	tx2.Commit()
 
 	go func() {
 		urlParam := fmt.Sprintf(`{"incident_id":%d, "action_plan_id":%d}`, incidentID, actionPlanID)
