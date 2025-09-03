@@ -12,8 +12,8 @@ import (
 )
 
 // Interface
-type OrganizationStructureServiceInterface interface {
-	GetOrganizationStructure(sort string, sortBy string) ([]organizationDTOs.OrganizationStructureDTO, error)
+type OrganizationUnitsServiceInterface interface {
+	GetOrganizationUnitsHierarchies(sort string, sortBy string) ([]organizationDTOs.OrganizationUnitsDTO, error)
 	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
 	UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error
 	GetOrganizationUnitSummary(unitID uint) (*organizationDTOs.OrganizationUnitSummaryDTO, error)
@@ -22,47 +22,58 @@ type OrganizationStructureServiceInterface interface {
 	GetParentOrganizationUnitWithHead(unitID uint) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error)
 }
 
-type OrganizationStructureService struct {
-	repo                 repositories.OrganizationStructureRepositoryInterface
+type OrganizationUnitsService struct {
+	repo                 repositories.OrganizationUnitsRepositoryInterface
 	activityLog          logServices.ActivityLogServiceInterface
 	organizationLevelSvc settingServices.OrganizationLevelServiceInterface
 	userRepo             repositories.UserRepositoryInterface
 	userSvc              UserServiceInterface
+	organizationUnitSvc  settingServices.OrganizationUnitServiceInterface
 }
 
-func NewOrganizationStructureService(
-	repo repositories.OrganizationStructureRepositoryInterface,
+func NewOrganizationUnitsService(
+	repo repositories.OrganizationUnitsRepositoryInterface,
 	activityLog logServices.ActivityLogServiceInterface,
 	organizationLevelSvc settingServices.OrganizationLevelServiceInterface,
 	userRepo repositories.UserRepositoryInterface,
 	userSvc UserServiceInterface,
-) *OrganizationStructureService {
-	return &OrganizationStructureService{
+	organizationUnitSvc settingServices.OrganizationUnitServiceInterface,
+) *OrganizationUnitsService {
+	return &OrganizationUnitsService{
 		repo:                 repo,
 		activityLog:          activityLog,
 		organizationLevelSvc: organizationLevelSvc,
 		userRepo:             userRepo,
 		userSvc:              userSvc,
+		organizationUnitSvc:  organizationUnitSvc,
 	}
 }
 
-func (s *OrganizationStructureService) GetOrganizationStructure(sort string, sortBy string) ([]organizationDTOs.OrganizationStructureDTO, error) {
+func (s *OrganizationUnitsService) GetOrganizationUnitsHierarchies(sort string, sortBy string) ([]organizationDTOs.OrganizationUnitsDTO, error) {
 	// Get all organization units
-	units, err := s.repo.GetOrganizationStructure(sort, sortBy)
+	units, err := s.repo.GetOrganizationUnitsHierarchies(sort, sortBy)
 	if err != nil {
 		return nil, err
 	}
 
 	// Create a map for quick lookup of units by ID
-	unitMap := make(map[uint]*organizationDTOs.OrganizationStructureDTO)
-	var rootUnits []*organizationDTOs.OrganizationStructureDTO
+	unitMap := make(map[uint]*organizationDTOs.OrganizationUnitsDTO)
+	var rootUnits []*organizationDTOs.OrganizationUnitsDTO
 
 	// First pass: create all nodes
 	for _, unit := range units {
-		structure := &organizationDTOs.OrganizationStructureDTO{
+		structure := &organizationDTOs.OrganizationUnitsDTO{
 			ID:      unit.ID,
 			TitleEn: unit.TitleEn,
 			TitleAr: unit.TitleAr,
+		}
+
+		// Safely handle nil OrganizationLevel
+		if unit.OrganizationLevel != nil {
+			structure.LevelTitleEn = unit.OrganizationLevel.TitleEn
+			structure.LevelTitleAr = unit.OrganizationLevel.TitleAr
+			structure.IsPrimary = unit.OrganizationLevel.IsPrimary
+			structure.Level = uint8(unit.OrganizationLevel.Level)
 		}
 		unitMap[unit.ID] = structure
 
@@ -82,7 +93,7 @@ func (s *OrganizationStructureService) GetOrganizationStructure(sort string, sor
 	}
 
 	// Convert to slice of DTOs
-	result := make([]organizationDTOs.OrganizationStructureDTO, len(rootUnits))
+	result := make([]organizationDTOs.OrganizationUnitsDTO, len(rootUnits))
 	for i, structure := range rootUnits {
 		result[i] = *structure
 	}
@@ -90,35 +101,17 @@ func (s *OrganizationStructureService) GetOrganizationStructure(sort string, sor
 	return result, nil
 }
 
-func (s *OrganizationStructureService) GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error) {
-	var primaryOrgUnitField string
-
-	// Get the primary organization level
-	primaryLevel, err := s.organizationLevelSvc.GetPrimaryLevel()
+func (s *OrganizationUnitsService) GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error) {
+	orgUnit, err := s.organizationUnitSvc.GetByID(orgUnitID)
 	if err != nil {
 		return nil, err
 	}
-
-	// Determine the field name based on the primary level
-	switch primaryLevel.Level {
-	case 1:
-		primaryOrgUnitField = "organization_unit_1_id"
-	case 2:
-		primaryOrgUnitField = "organization_unit_2_id"
-	case 3:
-		primaryOrgUnitField = "organization_unit_3_id"
-	case 4:
-		primaryOrgUnitField = "organization_unit_4_id"
-	case 5:
-		primaryOrgUnitField = "organization_unit_5_id"
-	default:
-		return nil, fmt.Errorf("unsupported primary level")
-	}
-
-	return s.repo.GetUsersByOrganizationUnit(params, orgUnitID, primaryOrgUnitField)
+	level := uint(orgUnit.OrganizationLevel.Level)
+	// Pass the level value directly to the repository
+	return s.repo.GetUsersByOrganizationUnit(params, orgUnitID, level)
 }
 
-func (s *OrganizationStructureService) GetOrganizationUnitSummary(unitID uint) (*organizationDTOs.OrganizationUnitSummaryDTO, error) {
+func (s *OrganizationUnitsService) GetOrganizationUnitSummary(unitID uint) (*organizationDTOs.OrganizationUnitSummaryDTO, error) {
 	dto := &organizationDTOs.OrganizationUnitSummaryDTO{
 		ResponsibleUnitID: unitID,
 	}
@@ -172,7 +165,7 @@ func (s *OrganizationStructureService) GetOrganizationUnitSummary(unitID uint) (
 
 	return dto, nil
 }
-func (s *OrganizationStructureService) UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error {
+func (s *OrganizationUnitsService) UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error {
 
 	// Get primary organization level field
 	primaryLevel, err := s.organizationLevelSvc.GetPrimaryLevel()
@@ -253,15 +246,15 @@ func (s *OrganizationStructureService) UpdatePrimaryOrganizationUnitHead(unitID 
 	return nil
 }
 
-func (s *OrganizationStructureService) GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
+func (s *OrganizationUnitsService) GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
 	return s.repo.GetAllPoliciesByOrganizationUnit(unitID, params)
 }
 
-func (s *OrganizationStructureService) GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+func (s *OrganizationUnitsService) GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 	return s.repo.GetAllRiskByOrganizationUnit(unitID, params)
 }
 
-func (s *OrganizationStructureService) GetParentOrganizationUnitWithHead(unitID uint) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error) {
+func (s *OrganizationUnitsService) GetParentOrganizationUnitWithHead(unitID uint) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error) {
 
 	// Get primary organization level field
 	primaryLevel, err := s.organizationLevelSvc.GetPrimaryLevel()
