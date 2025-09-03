@@ -56,7 +56,7 @@ func (osc *OrganizationUnitsController) GetUsersByOrganizationUnitID(c *gin.Cont
 	sortBy := c.DefaultQuery("sort_by", "first_name_en")
 	Level := c.DefaultQuery("level", "1")
 	// Get organization unit ID from URL parameter
-	unitID, err := strconv.ParseUint(c.Param("unitId"), 10, 32)
+	unitID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -122,7 +122,7 @@ func (osc *OrganizationUnitsController) GetUsersByOrganizationUnitID(c *gin.Cont
 }
 
 func (osc *OrganizationUnitsController) GetOrganizationUnitSummary(c *gin.Context) {
-	unitID, err := strconv.ParseUint(c.Param("unitId"), 10, 32)
+	unitID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -140,7 +140,7 @@ func (osc *OrganizationUnitsController) GetOrganizationUnitSummary(c *gin.Contex
 func (osc *OrganizationUnitsController) UpdatePrimaryOrganizationUnitHead(c *gin.Context) {
 	var form organizationDTOs.DepartmentHeadUpdateDTO
 
-	unitID, err := strconv.ParseUint(c.Param("unitId"), 10, 64)
+	unitID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -179,7 +179,7 @@ func (osc *OrganizationUnitsController) UpdatePrimaryOrganizationUnitHead(c *gin
 }
 
 func (osc *OrganizationUnitsController) GetAllPoliciesByOrganizationUnit(c *gin.Context) {
-	unitIDStr := c.Param("unitId")
+	unitIDStr := c.Param("id")
 
 	unitID, err := strconv.ParseUint(unitIDStr, 10, 64)
 	if err != nil {
@@ -232,7 +232,7 @@ func (osc *OrganizationUnitsController) GetAllPoliciesByOrganizationUnit(c *gin.
 
 func (osc *OrganizationUnitsController) GetAllRiskByOrganizationUnit(c *gin.Context) {
 
-	unitIDStr := c.Param("unitId")
+	unitIDStr := c.Param("id")
 
 	unitID, err := strconv.ParseUint(unitIDStr, 10, 64)
 	if err != nil {
@@ -299,7 +299,7 @@ func (osc *OrganizationUnitsController) GetAllRiskByOrganizationUnit(c *gin.Cont
 }
 
 func (osc *OrganizationUnitsController) GetParentOrganizationUnitWithHead(c *gin.Context) {
-	unitIDStr := c.Param("unitId")
+	unitIDStr := c.Param("id")
 
 	unitID, err := strconv.ParseUint(unitIDStr, 10, 64)
 	if err != nil {

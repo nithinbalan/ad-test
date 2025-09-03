@@ -437,11 +437,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/users/:userId/end-delegation", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userDelegationHistoryController.EndUserDelegation)
 
 	// organization structure
-	organizationRoutes.GET("/organization-unit/hierarchies", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetOrganizationStructure)
-	organizationRoutes.GET("/organization-unit/:unitId/users", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetUsersByOrganizationUnitID)
-	organizationRoutes.PUT("/organization-unit/:unitId/users/:userId", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitsController.UpdatePrimaryOrganizationUnitHead)
-	organizationRoutes.GET("/organization-unit/:unitId/summary", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetOrganizationUnitSummary)
-	organizationRoutes.GET("/organization-unit/:unitId/policies", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetAllPoliciesByOrganizationUnit)
-	organizationRoutes.GET("/organization-unit/:unitId/risks", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetAllRiskByOrganizationUnit)
-	organizationRoutes.GET("/organization-unit/:unitId/details", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetParentOrganizationUnitWithHead)
+	organizationRoutes.GET("/organization-units/hierarchies", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetOrganizationStructure)
+	organizationRoutes.GET("/organization-units/:id/users", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetUsersByOrganizationUnitID)
+	organizationRoutes.PUT("/organization-units/:id/users/:userId", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitsController.UpdatePrimaryOrganizationUnitHead)
+	organizationRoutes.GET("/organization-units/:id/summary", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetOrganizationUnitSummary)
+	organizationRoutes.GET("/organization-units/:id/policies", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetAllPoliciesByOrganizationUnit)
+	organizationRoutes.GET("/organization-units/:id/risks", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetAllRiskByOrganizationUnit)
+	organizationRoutes.GET("/organization-units/:id/details", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetParentOrganizationUnitWithHead)
 }
