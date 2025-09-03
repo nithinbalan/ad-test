@@ -12,10 +12,10 @@ import (
 )
 
 // Interface
-type OrganizationStructureRepositoryInterface interface {
+type OrganizationUnitsRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetOrganizationStructure(sort string, sortBy string) ([]models.OrganizationUnit, error)
-	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint, primaryOrgUnitField string) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
+	GetOrganizationUnitsHierarchies(sort string, sortBy string) ([]models.OrganizationUnit, error)
+	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint, level uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
 	GetComplianceSummaryByUnit(unitID uint) (int64, int64, []organizationDTOs.ComplianceStatusCountDTO, error)
 	GetOpenRiskCountByUnit(unitID uint) (int64, error)
 	GetControlEfficiencyByUnit(unitID uint) (*organizationDTOs.ControlEfficiencyStatusDTO, error)
@@ -25,22 +25,28 @@ type OrganizationStructureRepositoryInterface interface {
 	GetParentOrganizationUnitWithHead(unitID uint, primaryField string) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error)
 }
 
-type OrganizationStructureRepository struct {
+type OrganizationUnitsRepository struct {
 	db *gorm.DB
 }
 
-func NewOrganizationStructureRepository(db *gorm.DB) *OrganizationStructureRepository {
-	return &OrganizationStructureRepository{
+func NewOrganizationUnitsRepository(db *gorm.DB) *OrganizationUnitsRepository {
+	return &OrganizationUnitsRepository{
 		db: db,
 	}
 }
 
-func (repo *OrganizationStructureRepository) BeginTransaction() utility.DatabaseTransaction {
+func (repo *OrganizationUnitsRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *OrganizationStructureRepository) GetOrganizationStructure(sort string, sortBy string) ([]models.OrganizationUnit, error) {
-	var units []models.OrganizationUnit
+func (repo *OrganizationUnitsRepository) GetOrganizationUnitsHierarchies(sort string, sortBy string) ([]models.OrganizationUnit, error) {
+	var units []struct {
+		models.OrganizationUnit
+		Level        uint   `gorm:"column:level"`
+		LevelTitleEn string `gorm:"column:level_title_en"`
+		LevelTitleAr string `gorm:"column:level_title_ar"`
+		IsPrimary    bool   `gorm:"column:is_primary"`
+	}
 
 	if sortBy == "" {
 		sortBy = "title_en"
@@ -49,40 +55,67 @@ func (repo *OrganizationStructureRepository) GetOrganizationStructure(sort strin
 		sort = "asc"
 	}
 
-	// Build the base query
+	// Build the query with explicit joins
 	query := repo.db.Table("organization_units").
-		Select("organization_units.*").
-		Joins("LEFT JOIN organization_levels ON organization_units.organization_level_id = organization_levels.id")
+		Select(`
+            organization_units.*,
+			organization_levels.level,
+            organization_levels.title_en as level_title_en,
+            organization_levels.title_ar as level_title_ar,
+            organization_levels.is_primary as is_primary
+        `).
+		Joins("LEFT JOIN organization_levels ON organization_units.organization_level_id = organization_levels.id").
+		Order(fmt.Sprintf("%s %s", sortBy, sort))
 
-	// Execute the query
-	query = query.Order(sortBy + " " + sort)
-	err := query.Find(&units).Error
+	err := query.Scan(&units).Error
+	if err != nil {
+		return nil, err
+	}
 
-	return units, err
+	// Map the results to the expected return type
+	result := make([]models.OrganizationUnit, len(units))
+	for i, u := range units {
+		result[i] = u.OrganizationUnit
+		if u.OrganizationLevel == nil {
+			result[i].OrganizationLevel = &models.OrganizationLevel{}
+		}
+		result[i].OrganizationLevel.TitleEn = u.LevelTitleEn
+		result[i].OrganizationLevel.TitleAr = u.LevelTitleAr
+		result[i].OrganizationLevel.IsPrimary = u.IsPrimary
+		result[i].OrganizationLevel.Level = uint8(u.Level)
+	}
+
+	return result, nil
 }
 
-func (repo *OrganizationStructureRepository) GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint, primaryOrgUnitField string) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error) {
+func (repo *OrganizationUnitsRepository) GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint, level uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error) {
 	var users []organizationDTOs.OrganizationUnitUserPrimaryDetailsDTO
 	var totalCount int64
 
-	// Base query with joins
-	joinClause := fmt.Sprintf("LEFT JOIN organization_units AS primary_unit ON primary_unit.id = users.%s", primaryOrgUnitField)
+	// Build the base query
 	query := repo.db.Table("users").
 		Select(`
-            users.id,
-            users.first_name_en,
-            users.last_name_en,
-            users.first_name_ar,
-            users.last_name_ar,
-			users.is_head,
-			users.initial,
-            designations.title_en AS designation_en,
-            designations.title_ar AS designation_ar`).
-		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
-		Joins(joinClause).
-		Where("users."+primaryOrgUnitField+" = ?", orgUnitID)
+		 users.id,
+		 users.first_name_en,
+		 users.last_name_en,
+		 users.first_name_ar,
+		 users.last_name_ar,
+		 users.is_head,
+		 users.initial,
+		 users.email,
+		 users.profile_image_path,
+		 designations.title_en AS designation_en,
+		 designations.title_ar AS designation_ar`).
+		Joins("LEFT JOIN designations ON designations.id = users.designation_id")
 
-	// Calculate total count for pagination
+	// Build the WHERE clause based on level
+	if level > 0 {
+		// Construct the field name using the level parameter (e.g., organization_unit_1_id)
+		field := fmt.Sprintf("organization_unit_%d_id", level)
+		query = query.Where(fmt.Sprintf("users.%s = ?", field), orgUnitID)
+	}
+
+	// Rest of the function remains the same...
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
@@ -102,7 +135,7 @@ func (repo *OrganizationStructureRepository) GetUsersByOrganizationUnit(params *
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	response := &organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO{
+	return &organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO{
 		Items: users,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
@@ -110,11 +143,10 @@ func (repo *OrganizationStructureRepository) GetUsersByOrganizationUnit(params *
 			TotalPages:  totalPages,
 			TotalCount:  totalCount,
 		},
-	}
-	return response, nil
+	}, nil
 }
 
-func (repo *OrganizationStructureRepository) GetComplianceSummaryByUnit(unitID uint) (int64, int64, []organizationDTOs.ComplianceStatusCountDTO, error) {
+func (repo *OrganizationUnitsRepository) GetComplianceSummaryByUnit(unitID uint) (int64, int64, []organizationDTOs.ComplianceStatusCountDTO, error) {
 	var compliant, total int64
 	var statuses []organizationDTOs.ComplianceStatusCountDTO
 
@@ -173,7 +205,7 @@ func (repo *OrganizationStructureRepository) GetComplianceSummaryByUnit(unitID u
 	return compliant, total, statuses, nil
 }
 
-func (repo *OrganizationStructureRepository) GetOpenRiskCountByUnit(unitID uint) (int64, error) {
+func (repo *OrganizationUnitsRepository) GetOpenRiskCountByUnit(unitID uint) (int64, error) {
 	var count int64
 	query := `
 		SELECT COUNT(*)
@@ -187,7 +219,7 @@ func (repo *OrganizationStructureRepository) GetOpenRiskCountByUnit(unitID uint)
 	return count, nil
 }
 
-func (repo *OrganizationStructureRepository) GetControlEfficiencyByUnit(unitID uint) (*organizationDTOs.ControlEfficiencyStatusDTO, error) {
+func (repo *OrganizationUnitsRepository) GetControlEfficiencyByUnit(unitID uint) (*organizationDTOs.ControlEfficiencyStatusDTO, error) {
 	var avgScore float64
 	if err := repo.db.Model(&models.Control{}).
 		Select("COALESCE(AVG(efficiency_score),0)").
@@ -208,7 +240,7 @@ func (repo *OrganizationStructureRepository) GetControlEfficiencyByUnit(unitID u
 	return &status, nil
 }
 
-func (repo *OrganizationStructureRepository) SetAllIsLatestFalse(orgUnitID uint, primaryField string, tx ...utility.DatabaseTransaction) error {
+func (repo *OrganizationUnitsRepository) SetAllIsLatestFalse(orgUnitID uint, primaryField string, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -218,7 +250,7 @@ func (repo *OrganizationStructureRepository) SetAllIsLatestFalse(orgUnitID uint,
 		Update("is_head", false).Error
 }
 
-func (repo *OrganizationStructureRepository) GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
+func (repo *OrganizationUnitsRepository) GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
 	var documentList []*commonDTOs.AssociatedDocumentListDTO
 	var totalCount int64
 
@@ -363,7 +395,7 @@ func (repo *OrganizationStructureRepository) GetAllPoliciesByOrganizationUnit(un
 	return response, nil
 }
 
-func (repo *OrganizationStructureRepository) GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+func (repo *OrganizationUnitsRepository) GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 	var totalCount int64
 	var riskList []*commonDTOs.AssociatedRiskListDTO
 
@@ -526,7 +558,7 @@ func (repo *OrganizationStructureRepository) GetAllRiskByOrganizationUnit(unitID
 }
 
 // GetParentOrganizationUnitWithHead retrieves the main organization unit and its head user
-func (repo *OrganizationStructureRepository) GetParentOrganizationUnitWithHead(unitID uint, primaryField string) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error) {
+func (repo *OrganizationUnitsRepository) GetParentOrganizationUnitWithHead(unitID uint, primaryField string) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error) {
 	var result organizationDTOs.ParentOrganizationUnitWithHeadDTO
 
 	// First, get the main organization unit (where organization_unit_id is null)

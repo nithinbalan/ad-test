@@ -108,7 +108,7 @@ func (repo *OrganizationUnitRepository) GetAll(params *settingsDTOs.Organization
 func (repo *OrganizationUnitRepository) GetByID(id uint) (*models.OrganizationUnit, error) {
 	var organizationUnit *models.OrganizationUnit
 
-	result := repo.db.First(&organizationUnit, id)
+	result := repo.db.Preload("OrganizationLevel").First(&organizationUnit, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
