@@ -215,6 +215,8 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		LifecycleStatusID:               lifecycleStatus.ID,
 		ComplianceFolderID:              complianceRegisterFormDTO.ComplianceFolderID,
 		ComplianceAssessmentFrameworkID: complianceRegisterFormDTO.ComplianceAssessmentFrameworkID,
+		IsControlAssessment:             complianceRegisterFormDTO.IsControlAssessment,
+		IsRequirementAssessment:         complianceRegisterFormDTO.IsRequirementAssessment,
 	}
 
 	id, err := crs.repo.Create(complianceRegister, tx)
@@ -412,6 +414,15 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 
 		return utility.NewValidationError(fmt.Errorf("compliance assessment framework cannot be changed when assessments exist"), "not_allowed", "Compliance assessment framework")
 	}
+	// Prevent changing IsControlAssessment if assessments exist
+	if hasAssessments && existingComplianceRegister.IsControlAssessment != complianceRegisterFormDTO.IsControlAssessment {
+		return utility.NewValidationError(fmt.Errorf("is_control_assessment cannot be changed when assessments exist"), "not_allowed", "Is control assessment")
+	}
+
+	// Prevent changing IsRequirementAssessment if assessments exist
+	if hasAssessments && existingComplianceRegister.IsRequirementAssessment != complianceRegisterFormDTO.IsRequirementAssessment {
+		return utility.NewValidationError(fmt.Errorf("is_requirement_assessment cannot be changed when assessments exist"), "not_allowed", "Is requirement assessment")
+	}
 	existingComplianceRegister.ComplianceCategoryID = complianceRegisterFormDTO.ComplianceCategoryID
 	existingComplianceRegister.ComplianceStatusID = complianceRegisterFormDTO.ComplianceStatusID
 	existingComplianceRegister.ResponsibleUserID = complianceRegisterFormDTO.ResponsibleUserID
@@ -435,6 +446,8 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	existingComplianceRegister.UpdatedBYID = &currentUserID
 	existingComplianceRegister.ComplianceFolderID = complianceRegisterFormDTO.ComplianceFolderID
 	existingComplianceRegister.ComplianceAssessmentFrameworkID = complianceRegisterFormDTO.ComplianceAssessmentFrameworkID
+	existingComplianceRegister.IsControlAssessment = complianceRegisterFormDTO.IsControlAssessment
+	existingComplianceRegister.IsRequirementAssessment = complianceRegisterFormDTO.IsRequirementAssessment
 
 	err = crs.repo.Update(existingComplianceRegister, tx)
 	if err != nil {

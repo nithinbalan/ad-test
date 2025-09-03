@@ -505,6 +505,10 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 	if err != nil {
 		return err
 	}
+	if complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID == nil {
+		return utility.NewForbiddenError("score_not_updated")
+	}
+
 	now := time.Now()
 	complianceAssessmentRequirementResponsibleUnit.IsCompleted = true
 	complianceAssessmentRequirementResponsibleUnit.UpdatedBYID = &currentUserID

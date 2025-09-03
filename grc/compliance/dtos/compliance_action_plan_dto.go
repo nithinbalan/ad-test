@@ -117,6 +117,7 @@ type ComplianceActionPlanDetailDTO struct {
 	ComplianceRequirement                          *ComplianceRequirementMinimalDTO                   `json:"compliance_requirement"`
 	ComplianceRegister                             *ComplianceRegisterDetailDTO                       `json:"compliance_register"`
 	ComplianceAssessmentRequirementResponsibleUnit *ComplianceAssessmentRequirementResponsibleUnitDTO `json:"compliance_assessment_requirement_responsible_unit"`
+	ComplianceAssessmentControl                    *ComplianceAssessmentControlDTO                    `json:"compliance_assessment_control"`
 	Title                                          string                                             `json:"title"`
 	Description                                    string                                             `json:"description"`
 	SeverityLevel                                  *masterDTOs.SeverityLevelDTO                       `json:"severity_level"`

@@ -13,7 +13,7 @@ import (
 
 type ComplianceActionPlanRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO, complianceAssessmentRequirementID uint) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
+	GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO, complianceAssessmentRequirementID uint, controlID *uint) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceActionPlan, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceActionPlan, error)
 	Create(complianceActionPlan *models.ComplianceActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
@@ -42,7 +42,7 @@ func (repo *ComplianceActionPlanRepository) BeginTransaction() utility.DatabaseT
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO, complianceAssessmentRequirementID uint) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error) {
+func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO, complianceAssessmentRequirementID uint, controlID *uint) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error) {
 
 	var complianceActionPlans []*complianceDTOs.ComplianceActionPlanListDTO
 	var totalCount int64
@@ -120,7 +120,9 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 	if complianceAssessmentRequirementID != 0 {
 		query = query.Where("compliance_action_plans.compliance_assessment_requirement_id = ?", complianceAssessmentRequirementID)
 	}
-
+	if controlID != nil {
+		query = query.Where("compliance_action_plans.compliance_assessment_control_id = ?", controlID)
+	}
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
