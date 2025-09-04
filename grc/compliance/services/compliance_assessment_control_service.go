@@ -345,6 +345,65 @@ func (s *ComplianceAssessmentControlService) ApproveComplianceControl(assessment
 	}
 
 	tx.Commit()
+	go func() {
+		// log activity
+		_ = s.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.ComplianceAssessmentControl{}.TableName(),
+			controlID,
+			map[string]interface{}{"status": "approved", "comment": commentForm.Comment},
+			currentUserID,
+			nil,
+		)
+
+		assessment, _ := s.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)
+		createdBy, _ := s.userSvc.GetByID(currentUserID)
+
+		if control.CompletedByUserID != nil {
+			completedUser, _ := s.userSvc.GetByID(*control.CompletedByUserID)
+
+			urlParam := fmt.Sprintf(`{"assessment_id":%d, "control_id":%d}`, assessmentID, controlID)
+			entity := "compliance-assessment-control"
+			action := "approved"
+
+			// DB Notification
+			dbNotification := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{completedUser.ID},
+				ModuleIdentifier:     "compliance_register",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Compliance Control Approved",
+				HeadingAr:            "تمت الموافقة على الضبط",
+				TitleEn:              assessment.ComplianceRegister.TitleEn,
+				TitleAr:              assessment.ComplianceRegister.TitleAr,
+				ReferenceNumber:      assessment.ComplianceRegister.ReferenceNumber,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			// Email Notification
+			emailNotification := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              []string{completedUser.Email},
+				Subject:              fmt.Sprintf("Compliance Control #%d Approved", controlID),
+				TemplateRelativePath: "compliance/templates/email/compliance_control_approved.html",
+				EmailData: map[string]interface{}{
+					"FirstNameEn":     completedUser.FirstNameEn,
+					"LastNameEn":      completedUser.LastNameEn,
+					"TitleEn":         assessment.ComplianceRegister.TitleEn,
+					"TitleAr":         assessment.ComplianceRegister.TitleAr,
+					"ReferenceNumber": assessment.ComplianceRegister.ReferenceNumber,
+					"Comment":         commentForm.Comment,
+					"ApprovedBy":      createdBy.FirstNameEn,
+					"ApprovalDate":    time.Now().Format("2006-01-02"),
+				},
+			}
+
+			_ = s.notificationSvc.SendNotification(dbNotification, emailNotification, "compliance_assessment")
+		}
+	}()
+
 	return nil
 }
 func (s *ComplianceAssessmentControlService) RevertComplianceControl(assessmentID uint, controlID uint, currentUserID uint, commentForm *complianceDTOs.ComplianceAssessmentControlCommentFormDTO) error {
