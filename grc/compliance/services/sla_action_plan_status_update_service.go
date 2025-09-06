@@ -235,7 +235,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 				ModuleIdentifier:     "sla_contracts",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Sla Action Plan Status Update",
-				HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+				HeadingAr:            "تحديث حالة خطة عمل SLA",
 				TitleEn:              slaActionPlan.Title,
 				TitleAr:              slaActionPlan.Title,
 				Entity:               &entity,

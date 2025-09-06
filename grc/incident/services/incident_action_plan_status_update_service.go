@@ -124,7 +124,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Create(IncidentID uint, Inci
 		CreatedByID:          currentUserID,
 	}
 
-	id, err := iasus.repo.Create(incidentActionPlanUpdate,tx)
+	id, err := iasus.repo.Create(incidentActionPlanUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err

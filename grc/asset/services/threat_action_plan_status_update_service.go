@@ -222,8 +222,7 @@ func (tasus *ThreatActionPlanStatusUpdateService) Create(ThreatID uint, ThreatAc
 		}
 
 		if threatActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && threatActionPlan.ReviewUserID != nil {
-			// prepare notification
-			urlParam := fmt.Sprintf(`{"threat_register_id":%d, "action_plan_id":%d}`, ThreatID, ThreatActionPlanID)
+			urlParam := fmt.Sprintf(`{"threat_id":%d, "action_plan_id":%d}`, ThreatID, ThreatActionPlanID)
 			queryParam := ""
 			entity := "threat-action-plan"
 			action := "review-user"
@@ -233,7 +232,7 @@ func (tasus *ThreatActionPlanStatusUpdateService) Create(ThreatID uint, ThreatAc
 				ModuleIdentifier:     "threat",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Threat Action Plan Status Update",
-				HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+				HeadingAr:            "تحديث حالة خطة العمل الخاصة بالتهديدات",
 				TitleEn:              threatActionPlan.Title,
 				TitleAr:              threatActionPlan.Title,
 				Entity:               &entity,
@@ -272,7 +271,7 @@ func (tasus *ThreatActionPlanStatusUpdateService) Create(ThreatID uint, ThreatAc
 				"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
 				"ResolvedByLastNameEn":  resolvedBy.LastNameEn,
 				"ResolvedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/compliance/register/%d/action-plans?action_plan_id=%d", appURL, ThreatID, id),
+				"RedirectURL":           fmt.Sprintf("%s/asset/threats/%d/action-plans?action_plan_id=%d", appURL, ThreatID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

@@ -323,7 +323,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 				"ResolvedByFirstNameEn":  resolvedBy.FirstNameEn,
 				"ResolvedByLastNameEn":   resolvedBy.LastNameEn,
 				"ResolvedOn":             time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%s/meeting/register/%d/action-plans?action_plan_id=%d", appURL, meetingID, id),
+				"RedirectURL":            fmt.Sprintf("%s/review-meeting/%d/action-plans?action_plan_id=%d", appURL, meetingID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -692,7 +692,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Approve(meetingId uint, actio
 			"ResolvedByFirstNameEn":  resolvedBy.FirstNameEn,
 			"ResolvedByLastNameEn":   resolvedBy.LastNameEn,
 			"ResolvedOn":             time.Now().Format("2006-01-02"),
-			"RedirectURL":            fmt.Sprintf("%s/review-meeting/action-plan-list?action_plan_id=%d", appURL, id),
+			"RedirectURL":            fmt.Sprintf("%s/review-meeting/%d/action-plans?action_plan_id=%d", appURL, meetingId, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -852,7 +852,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Revert(meetingId uint, action
 			"ResolvedByFirstNameEn":  resolvedBy.FirstNameEn,
 			"ResolvedByLastNameEn":   resolvedBy.LastNameEn,
 			"ResolvedOn":             time.Now().Format("2006-01-02"),
-			"RedirectURL":            fmt.Sprintf("%s/review-meeting/action-plan-list?action_plan_id=%d", appURL, id),
+			"RedirectURL":            fmt.Sprintf("%s/review-meeting/%d/action-plans?action_plan_id=%d", appURL, meetingId, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
