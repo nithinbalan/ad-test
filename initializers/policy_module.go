@@ -11,9 +11,11 @@ import (
 type PolicyModule struct {
 	PolicyFolderController   *controllers.PolicyFolderController
 	PolicyRegisterController *controllers.PolicyRegisterController
+	PolicyClauseController   *controllers.PolicyClauseController
 
 	PolicyFolderSvc   services.PolicyFolderServiceInterface
 	PolicyRegisterSvc services.PolicyRegisterServiceInterface
+	PolicyClauseSvc   services.PolicyClauseServiceInterface
 }
 
 func NewPolicyModule(db *gorm.DB,
@@ -26,7 +28,7 @@ func NewPolicyModule(db *gorm.DB,
 	documentModule *DocumentModule) *PolicyModule {
 
 	policyFolderRepo := repositories.NewPolicyFolderRepository(db)
-	policyFolderSvc := services.NewPolicyFolderService(policyFolderRepo, sharedModule.ActivityLogService)
+	policyFolderSvc := services.NewPolicyFolderService(policyFolderRepo, sharedModule.ActivityLogService, documentModule.DocumentAccessTypeSvc)
 	policyFolderController := controllers.NewPolicyFolderController(policyFolderSvc)
 
 	policyRegisterRepo := repositories.NewPolicyRegisterRepository(db)
@@ -47,8 +49,13 @@ func NewPolicyModule(db *gorm.DB,
 		settingsModule.SystemPreferenceSvc)
 	policyRegisterController := controllers.NewPolicyRegisterController(policyRegisterSvc)
 
+	policyClauseRepo := repositories.NewPolicyClauseRepository(db)
+	policyClauseSvc := services.NewPolicyClauseService(policyClauseRepo, documentModule.DocumentSvc, sharedModule.ActivityLogService)
+	policyClauseController := controllers.NewPolicyClauseController(policyClauseSvc)
+
 	return &PolicyModule{
 		PolicyFolderController:   policyFolderController,
 		PolicyRegisterController: policyRegisterController,
+		PolicyClauseController:   policyClauseController,
 	}
 }

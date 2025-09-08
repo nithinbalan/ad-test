@@ -25,6 +25,7 @@ type ComplianceAssociatedItemRepositoryInterface interface {
 	GetAllDocuments(complianceID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	CreateComplianceDocument(risks []*models.DocumentComplianceRequirement, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceDocument(complianceID uint, riskID uint, tx ...utility.DatabaseTransaction) error
+	GetComplianceControlCountByStatus(complianceID uint) ([]complianceDTOs.ComplianceRequirementStatusCountResponseDTO, error)
 }
 
 type ComplianceAssociatedItemRepository struct {
@@ -776,4 +777,35 @@ func (repo *ComplianceAssociatedItemRepository) DeleteComplianceDocument(complia
 		Where("document_id = ? AND compliance_register_id = ?", documentId, complianceID).
 		Delete(&models.DocumentComplianceRequirement{}).
 		Error
+}
+
+func (repo *ComplianceAssociatedItemRepository) GetComplianceControlCountByStatus(complianceID uint) ([]complianceDTOs.ComplianceRequirementStatusCountResponseDTO, error) {
+	controlStatusCounts := []complianceDTOs.ComplianceRequirementStatusCountResponseDTO{}
+
+	query := `
+        SELECT 
+            cs.id,
+            cs.type,
+            cs.title_en,
+            cs.title_ar,
+            cs.color_code,
+            COUNT(c.id) AS Count
+        FROM 
+            compliance_controls cc
+        JOIN 
+            controls c ON cc.control_id = c.id
+        LEFT JOIN 
+            compliance_statuses cs ON cs.id = c.compliance_status_id
+        WHERE 
+            cc.compliance_register_id = ?
+        GROUP BY 
+            cs.id, cs.type, cs.title_en, cs.title_ar, cs.color_code
+    `
+
+	err := repo.db.Raw(query, complianceID).Scan(&controlStatusCounts).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return controlStatusCounts, nil
 }

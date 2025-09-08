@@ -10,30 +10,57 @@ JETHUR is a Go language project structured to manage tasks and database migratio
 - Go (Version specified in `go.mod`)
 - Database (As configured in `database.go`)
 
-### Setup
-```bash
-# Clone the repository
-git clone [repository_url]
+### Setup# 🚀 JETHUR API – Setup Guide
 
-# Navigate to the project directory
+This guide walks you through setting up and running the JETHUR API locally.
+
+## 1. Clone the Repository
+git clone [repository_url]  
 cd JETHUR
 
-# Install dependencies
+## 2. Install Go Dependencies
 go mod tidy
 
-# Set up environment variables
-cp .env.example .env
-# Then edit .env to contain your environment-specific configurations
+## 3. Configure Environment Variables
+Copy the example environment file and update it:  
+cp .env.example .env  
 
-# Install goose in the system
+Edit `.env` with your environment-specific settings (database, server port, etc).  
+Set `ROOT_PATH` to your project folder.
+
+## 4. Database Migrations with Goose
+We use Goose for managing migrations.
+
+### Install Goose
 go install github.com/pressly/goose/v3/cmd/goose@latest
 
-# Run migrations
-go run cmd/migrate/migrate.go up/down
+### Configure Migration Script
+cp script.example.bat script.bat  
+Edit `script.bat` with your database connection details.
 
-# Update .env ROOT_PATH with project folder
-# Start the server
+## 5. Run the Application
+
+### Option A: Normal Run
 go run cmd/api/main.go
+
+### Option B: Run with Air (hot reload for development)
+1. Install Air:
+   go install github.com/cosmtrek/air@latest
+
+2. Create a `.air.toml` config file in the project root (if not already present).
+
+3. Start the server with auto-reload:
+   air
+
+---
+
+## ✅ Quick Setup Checklist
+- Repository cloned  
+- Dependencies installed (`go mod tidy`)  
+- `.env` configured (with `ROOT_PATH`)  
+- Goose installed & migration script updated  
+- Server started successfully (via `go run` or `air`)  
+
 ```
 
 ## Project Structure

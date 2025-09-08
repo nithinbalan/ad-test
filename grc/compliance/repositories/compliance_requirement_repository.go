@@ -15,7 +15,7 @@ import (
 type ComplianceRequirementRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementListResponseDTO, error)
-	GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementListDTO, error)
+	GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementListDTO, int64, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error)
 	Create(complianceRequirement *models.ComplianceRequirement, tx ...utility.DatabaseTransaction) (uint, error)
@@ -203,116 +203,134 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 	return response, nil
 }
 
-func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementListDTO, error) {
+func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) ([]*complianceDTOs.ComplianceRequirementListDTO, int64, error) {
 
 	var allRows []*complianceDTOs.ComplianceRequirementListDTO
+	var totalCount int64
 
-	query := repo.db.Table("compliance_requirements").
-		Select(`
-			compliance_clauses.id AS clause_id,
-			compliance_clauses.clause_no AS compliance_clause_no,
-			compliance_clauses.title_en AS compliance_clause_title_en,
-			compliance_clauses.title_ar AS compliance_clause_title_ar,
-			compliance_requirements.*,
-			CONVERT(VARCHAR, compliance_requirements.deadline, 23) AS deadline,
-			compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
-			compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
-			severity_levels.title_en AS severity_level_title_en,
-			severity_levels.title_ar AS severity_level_title_ar,
-			severity_levels.color_code AS severity_level_color_code,
-			compliance_statuses.title_en AS compliance_status_title_en,
-			compliance_statuses.title_ar AS compliance_status_title_ar,
-			compliance_statuses.color_code AS compliance_status_color_code,
-			created_user.id AS created_user_id,
-			created_user.first_name_en AS created_user_first_name_en,
-			created_user.first_name_ar AS created_user_first_name_ar,
-			created_user.last_name_en AS created_user_last_name_en,
-			created_user.last_name_ar AS created_user_last_name_ar,
-			created_user.initial AS created_user_initial,
-			created_user.color AS created_user_color,
-			created_user.email AS created_user_email,
-			created_user.profile_image_path AS created_user_profile_image_path,
-			updated_user.id AS updated_user_id,
-			updated_user.first_name_en AS updated_user_first_name_en,
-			updated_user.first_name_ar AS updated_user_first_name_ar,
-			updated_user.last_name_en AS updated_user_last_name_en,
-			updated_user.last_name_ar AS updated_user_last_name_ar,
-			updated_user.initial AS updated_user_initial,
-			updated_user.color AS updated_user_color,
-			updated_user.email AS updated_user_email,
-			updated_user.profile_image_path AS updated_user_profile_image_path
-		`).
-		Joins(`
-			LEFT JOIN compliance_requirement_categories ON compliance_requirement_categories.id = compliance_requirements.compliance_requirement_category_id
-			LEFT JOIN severity_levels ON severity_levels.id = compliance_requirements.severity_level_id
-			LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_requirements.compliance_status_id
-			LEFT JOIN users AS created_user ON created_user.id = compliance_requirements.created_by_id
-			LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by_id
-			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
-		`).
+	// Base query for counting
+	countQuery := repo.db.Table("compliance_requirements").
+		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
 		Where("compliance_clauses.compliance_register_id = ?", complianceID)
 
-	// Apply filters
+	// Apply same filters for counting
 	for column, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(column+" IN (?)", values)
+			countQuery = countQuery.Where(column+" IN (?)", values)
 		}
 	}
 	if params.DeadlineFrom != "" {
-		query = query.Where("compliance_requirements.deadline >= ?", params.DeadlineFrom)
+		countQuery = countQuery.Where("compliance_requirements.deadline >= ?", params.DeadlineFrom)
 	}
 	if params.DeadlineTo != "" {
-		query = query.Where("compliance_requirements.deadline <= ?", params.DeadlineTo)
+		countQuery = countQuery.Where("compliance_requirements.deadline <= ?", params.DeadlineTo)
 	}
 	if params.DateFrom != "" && params.DateTo != "" {
-		query = query.Where("compliance_requirements.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		countQuery = countQuery.Where(
+			"compliance_requirements.created_at BETWEEN ? AND ?",
+			params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59",
+		)
 	}
 	for _, filter := range params.QuickFilter {
 		switch filter {
 		case "severe":
-			query = query.Where("severity_levels.type = ?", "high")
+			countQuery = countQuery.Where("severity_levels.type = ?", "high")
 		case "non_compliant":
-			query = query.Where("compliance_statuses.type = ?", "not_implemented")
+			countQuery = countQuery.Where("compliance_statuses.type = ?", "not_implemented")
 		case "non_compliant_due":
-			query = query.Where("compliance_statuses.type = ? AND compliance_requirements.deadline < ?", "not_implemented", time.Now())
+			countQuery = countQuery.Where(
+				"compliance_statuses.type = ? AND compliance_requirements.deadline < ?",
+				"not_implemented", time.Now(),
+			)
 		}
 	}
-
-	// Keyword search
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
-		query = query.Where(`
-			(compliance_clauses.clause_no LIKE ? OR
-			compliance_clauses.title_en LIKE ? OR
-			compliance_clauses.title_ar LIKE ? OR
-			compliance_requirements.title_en LIKE ? OR
-			compliance_requirements.title_ar LIKE ? OR
-			compliance_requirement_categories.title_en LIKE ? OR
-			compliance_requirement_categories.title_ar LIKE ? OR
-			severity_levels.title_en LIKE ? OR
-			severity_levels.title_ar LIKE ? OR
-			CAST(compliance_requirements.deadline AS VARCHAR) LIKE ? OR
-			compliance_statuses.title_en LIKE ? OR
-			compliance_statuses.title_ar LIKE ?)`,
+		countQuery = countQuery.Where(`
+            (compliance_clauses.clause_no LIKE ? OR
+             compliance_clauses.title_en LIKE ? OR
+             compliance_clauses.title_ar LIKE ? OR
+             compliance_requirements.title_en LIKE ? OR
+             compliance_requirements.title_ar LIKE ? OR
+             compliance_requirement_categories.title_en LIKE ? OR
+             compliance_requirement_categories.title_ar LIKE ? OR
+             severity_levels.title_en LIKE ? OR
+             severity_levels.title_ar LIKE ? OR
+             CAST(compliance_requirements.deadline AS VARCHAR) LIKE ? OR
+             compliance_statuses.title_en LIKE ? OR
+             compliance_statuses.title_ar LIKE ?)`,
 			keyword, keyword, keyword,
 			keyword, keyword,
 			keyword, keyword,
 			keyword, keyword,
-			keyword, keyword, keyword)
+			keyword, keyword, keyword,
+		)
 	}
 
-	// Sorting
-	// if params.SortBy == "clause_no" {
-	// 	params.SortBy = "compliance_clauses.clause_no"
-	// }
-	query = query.Order(params.SortBy + " " + params.Sort)
+	// Execute count query
+	if err := countQuery.Count(&totalCount).Error; err != nil {
+		return nil, 0, err
+	}
 
-	// Execute
+	// Main select query with joins
+	query := repo.db.Table("compliance_requirements").
+		Select(`
+            compliance_clauses.id AS clause_id,
+            compliance_clauses.clause_no AS compliance_clause_no,
+            compliance_clauses.title_en AS compliance_clause_title_en,
+            compliance_clauses.title_ar AS compliance_clause_title_ar,
+            compliance_requirements.*,
+            CONVERT(VARCHAR, compliance_requirements.deadline, 23) AS deadline,
+            compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
+            compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
+            severity_levels.title_en AS severity_level_title_en,
+            severity_levels.title_ar AS severity_level_title_ar,
+            severity_levels.color_code AS severity_level_color_code,
+            compliance_statuses.title_en AS compliance_status_title_en,
+            compliance_statuses.title_ar AS compliance_status_title_ar,
+            compliance_statuses.color_code AS compliance_status_color_code,
+            created_user.id AS created_user_id,
+            created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+            created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,
+            updated_user.id AS updated_user_id,
+            updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+            updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path
+        `).
+		Joins(`
+            LEFT JOIN compliance_requirement_categories ON compliance_requirement_categories.id = compliance_requirements.compliance_requirement_category_id
+            LEFT JOIN severity_levels ON severity_levels.id = compliance_requirements.severity_level_id
+            LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_requirements.compliance_status_id
+            LEFT JOIN users AS created_user ON created_user.id = compliance_requirements.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by_id
+            LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
+        `).
+		Where("compliance_clauses.compliance_register_id = ?", complianceID).
+		Order(params.SortBy + " " + params.Sort)
+
+	// Pagination
+	if params.Page > 0 && params.PageSize > 0 {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	// Execute main query
 	if err := query.Find(&allRows).Error; err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return allRows, nil
+	return allRows, totalCount, nil
 }
 
 func (repo *ComplianceRequirementRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error) {

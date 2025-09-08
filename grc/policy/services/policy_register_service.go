@@ -16,8 +16,6 @@ import (
 	"jethur/utility"
 	"log"
 	"os"
-	"path/filepath"
-	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -184,22 +182,17 @@ func (prs *PolicyRegisterService) Create(currentUserID uint, documentFormDTO *po
 		TitleAr:              documentFormDTO.TitleAr,
 		DescriptionEn:        documentFormDTO.DescriptionEn,
 		DescriptionAr:        documentFormDTO.DescriptionAr,
-		DocumentCategoryID:   documentFormDTO.DocumentCategoryID,
-		ResponsibleUserID:    documentFormDTO.ResponsibleUserID,
-		ResponsibleUnitID:    responsibleUnitID,
+		DocumentTypeID:       &documentFormDTO.DocumentTypeID,
+		DocumentCategoryID:   &documentFormDTO.DocumentCategoryID,
+		ResponsibleUserID:    &documentFormDTO.ResponsibleUserID,
+		ResponsibleUnitID:    &responsibleUnitID,
 		ReviewFrequencyID:    documentFormDTO.ReviewFrequencyID,
 		DocumentAccessTypeID: documentFormDTO.DocumentAccessTypeID,
-		DocumentStatusID:     documentStatus.ID,
+		DocumentStatusID:     &documentStatus.ID,
 		PolicyFolderID:       documentFormDTO.PolicyFolderID,
+		ParentDocumentID:     documentFormDTO.ParentDocumentID,
 		CreatedBYID:          currentUserID,
 	}
-
-	documentType, err := prs.documentTypeSvc.GetByType("policy")
-	if err != nil {
-		return 0, err
-	}
-
-	document.DocumentTypeID = documentType.ID
 
 	id, err := prs.repo.Create(document, tx)
 	if err != nil {
@@ -344,9 +337,10 @@ func (prs *PolicyRegisterService) Update(id uint, currentUserID uint, documentFo
 	existingDocument.TitleAr = documentFormDTO.TitleAr
 	existingDocument.DescriptionEn = documentFormDTO.DescriptionEn
 	existingDocument.DescriptionAr = documentFormDTO.DescriptionAr
-	existingDocument.DocumentCategoryID = documentFormDTO.DocumentCategoryID
-	existingDocument.ResponsibleUserID = documentFormDTO.ResponsibleUserID
-	existingDocument.ResponsibleUnitID = responsibleUnitID
+	existingDocument.DocumentTypeID = &documentFormDTO.DocumentTypeID
+	existingDocument.DocumentCategoryID = &documentFormDTO.DocumentCategoryID
+	existingDocument.ResponsibleUserID = &documentFormDTO.ResponsibleUserID
+	existingDocument.ResponsibleUnitID = &responsibleUnitID
 	existingDocument.ReviewFrequencyID = documentFormDTO.ReviewFrequencyID
 	existingDocument.DocumentAccessTypeID = documentFormDTO.DocumentAccessTypeID
 	existingDocument.UpdatedBYID = &currentUserID
@@ -378,7 +372,7 @@ func (prs *PolicyRegisterService) Update(id uint, currentUserID uint, documentFo
 	var sharedUsers []*models.DocumentSharedUser
 	var sharedUnits []*models.DocumentSharedUnit
 
-	if existingDocument.ResponsibleUserID != documentFormDTO.ResponsibleUserID {
+	if existingDocument.ResponsibleUserID != &documentFormDTO.ResponsibleUserID {
 		sharedUsers = append(sharedUsers, &models.DocumentSharedUser{
 			DocumentID:  id,
 			UserID:      documentFormDTO.ResponsibleUserID,
@@ -386,7 +380,7 @@ func (prs *PolicyRegisterService) Update(id uint, currentUserID uint, documentFo
 			CreatedBYID: currentUserID,
 		})
 
-		err = prs.documentAccessSvc.DeleteResponsibleUser(id, existingDocument.ResponsibleUserID, tx)
+		err = prs.documentAccessSvc.DeleteResponsibleUser(id, *existingDocument.ResponsibleUserID, tx)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -649,7 +643,6 @@ func (prs *PolicyRegisterService) Delete(ids []uint, currentUserID uint) ([]uint
 	var successfulIds []uint
 	var deletedDocument []map[string]interface{}
 	documentsToDelete := make(map[uint][]*models.DocumentVersion)
-	documentEditHistoryToDelete := make(map[uint][]*models.DocumentEditHistory)
 
 	for _, id := range ids {
 		document, err := prs.repo.GetFullDetailsByID(id, nil, tx)
@@ -721,38 +714,8 @@ func (prs *PolicyRegisterService) Delete(ids []uint, currentUserID uint) ([]uint
 	}
 
 	if len(successfulIds) > 0 {
-		for documentID, history := range documentEditHistoryToDelete {
-			for _, doc := range history {
-				if doc.Name != nil {
-					storagePath := filepath.Join("document", "draft", strconv.FormatUint(uint64(documentID), 10), "document-history", strconv.FormatUint(uint64(doc.ID), 10), "documents")
-					if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
-						tx.Rollback()
-						fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
-					}
-				}
-			}
-			destinationPath := filepath.Join("document", "draft", strconv.FormatUint(uint64(documentID), 10), "document-history")
-			if err := utility.RemoveFolder(destinationPath); err != nil {
-				tx.Rollback()
-			}
-		}
-
-		for documentID, documents := range documentsToDelete {
-			for _, doc := range documents {
-				storagePath := filepath.Join("document", "draft", strconv.FormatUint(uint64(documentID), 10), "documents")
-				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
-					tx.Rollback()
-					fmt.Printf("Failed to delete file at URL %s: %v\n", doc.URL, err)
-				}
-			}
-			destinationPath := filepath.Join("document", "draft", strconv.FormatUint(uint64(documentID), 10))
-			if err := utility.RemoveFolder(destinationPath); err != nil {
-				tx.Rollback()
-			}
-		}
+		tx.Commit()
 	}
-
-	tx.Commit()
 
 	if len(successfulIds) > 0 {
 		go func() {

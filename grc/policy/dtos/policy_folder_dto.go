@@ -14,3 +14,9 @@ type PolicyFolderDTO struct {
 	TitleEn string `json:"title_en"`
 	TitleAr string `json:"title_ar"`
 }
+
+type PolicyFolderFormDTO struct {
+	TitleEn          string `json:"title_en" binding:"required"`
+	TitleAr          string `json:"title_ar" binding:"required"`
+	ParentDocumentID *uint  `json:"parent_document_id"`
+}

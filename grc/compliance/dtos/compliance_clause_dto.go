@@ -4,6 +4,7 @@ import (
 	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
+	organizationDTOs "jethur/grc/organization/dtos"
 )
 
 type ComplianceClauseDTO struct {
@@ -84,8 +85,16 @@ type ComplianceClauseDetailDTO struct {
 	ObjectiveEn            *string                           `json:"objective_en"`
 	ObjectiveAr            *string                           `json:"objective_ar"`
 	ComplianceRequirements []*ComplianceRequirementDetailDTO `json:"compliance_requirements"`
+	ComplianceControls     []*ComplianceControlDTO           `json:"compliance_controls"`
 }
 
+type ComplianceClauseControlDTO struct {
+	ID                   uint                              `json:"id"`
+	ComplianceClauseID   uint                              `json:"compliance_clause_id"`
+	ComplianceRegisterID uint                              `json:"compliance_register_id"`
+	ControlID            uint                              `json:"control_id"`
+	Control              organizationDTOs.ControlDetailDTO `json:"control"`
+}
 type ComplianceClauseControlMapDTO struct {
 	ControlIDs []uint `json:"control_ids" binding:"required"`
 }

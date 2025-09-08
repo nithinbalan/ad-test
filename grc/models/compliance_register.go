@@ -37,6 +37,8 @@ type ComplianceRegister struct {
 	Score                           *float64   `json:"score" gorm:"type:decimal(10,2)"`
 	ComplianceFolderID              *uint      `json:"compliance_folder_id" binding:"omitempty" gorm:"default:null"`
 	ComplianceAssessmentFrameworkID uint       `json:"compliance_assessment_framework_id" binding:"required" gorm:"not null"`
+	IsControlAssessment             bool       `json:"is_control_assessment" gorm:"column:is_control_assessment;not null;default:false"`
+	IsRequirementAssessment         bool       `json:"is_requirement_assessment" gorm:"column:is_requirement_assessment;not null;default:false"`
 
 	// Relationships
 	ComplianceCategory            *ComplianceCategory            `gorm:"foreignKey:ComplianceCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

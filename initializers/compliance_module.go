@@ -46,6 +46,11 @@ type ComplianceModule struct {
 	ComplianceAssessmentFrameworkTypeController                     *controllers.ComplianceAssessmentFrameworkTypeController
 	ComplianceAssessmentFrameworkController                         *controllers.ComplianceAssessmentFrameworkController
 	ComplianceAssessmentFrameworkValueController                    *controllers.ComplianceAssessmentFrameworkValueController
+	ComplianceAssessmentControlController                           *controllers.ComplianceAssessmentControlController
+	ComplianceAssessmentControlCommentController                    *controllers.ComplianceAssessmentControlCommentController
+	ComplianceAssessmentControlActionPlanController                 *controllers.ComplianceAssessmentControlActionPlanController
+	ComplianceAssessmentControlActionPlanStatusUpdateController     *controllers.ComplianceAssessmentControlActionPlanStatusUpdateController
+	ComplianceAssessmentControlActionPlanCommentController          *controllers.ComplianceAssessmentControlActionPlanCommentController
 
 	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
@@ -290,6 +295,45 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	)
 	policyExceptionController := controllers.NewPolicyExceptionController(policyExceptionSvc)
 
+	complianceAssessmentControlRepo := repositories.NewComplianceAssessmentControlRepository(db)
+	complianceAssessmentControlSvc := services.NewComplianceAssessmentControlService(
+		complianceAssessmentControlRepo,
+		sharedModule.ActivityLogService,
+		organizationModule.UserSvc,
+		complianceAssessmentSvc,
+		complianceAssessmentRequirementStatusSvc,
+		commonModule.NotificationService,
+		complianceAssessmentFrameworkSvc,
+		complianceAssessmentStatusSvc,
+	)
+	complianceAssessmentControlController := controllers.NewComplianceAssessmentControlController(complianceAssessmentControlSvc)
+	complianceAssessmentControlCommentRepository := repositories.NewComplianceAssessmentControlCommentRepository(db)
+	complianceAssessmentControlCommentSvc := services.NewComplianceAssessmentControlCommentService(complianceAssessmentControlCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, complianceAssessmentControlSvc, complianceAssessmentSvc, commonModule.NotificationService, complianceAssessmentStatusSvc)
+	complianceAssessmentControlCommentController := controllers.NewComplianceAssessmentControlCommentController(complianceAssessmentControlCommentSvc)
+
+	complianceAssessmentControlActionPlanRepo := repositories.NewComplianceActionPlanRepository(db)
+	complianceAssessmentControlActionPlanSvc := services.NewComplianceAssessmentControlActionPlanService(
+		complianceAssessmentControlActionPlanRepo,
+		sharedModule.ActivityLogService,
+		complianceAssessmentSvc,
+		complianceAssessmentControlSvc,
+		masterModule.ActionPlanStatusSvc,
+		organizationModule.UserSvc,
+		settingsModule.OrganizationUnitSvc,
+		taskModule.TaskService,
+		commonModule.NotificationService,
+		commonModule.DelegateeUserService,
+	)
+	complianceAssessmentControlActionPlanController := controllers.NewComplianceAssessmentControlActionPlanController(complianceAssessmentControlActionPlanSvc)
+
+	complianceAssessmentControlActionPlanStatusUpdateRepo := repositories.NewComplianceActionPlanStatusUpdateRepository(db)
+	complianceAssessmentControlActionPlanStatusUpdateSvc := services.NewComplianceAssessmentControlActionPlanStatusUpdateService(complianceAssessmentControlActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, complianceAssessmentSvc, complianceAssessmentControlActionPlanSvc, masterModule.ActionPlanStatusSvc, organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, taskModule.TaskStatusService)
+	complianceAssessmentControlActionPlanStatusUpdateController := controllers.NewComplianceAssessmentControlActionPlanStatusUpdateController(complianceAssessmentControlActionPlanStatusUpdateSvc)
+
+	complianceAssessmentControlActionPlanCommentRepository := repositories.NewComplianceActionPlanCommentRepository(db)
+	complianceAssessmentControlActionPlanCommentSvc := services.NewComplianceAssessmentControlActionPlanCommentService(complianceAssessmentControlActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, complianceAssessmentControlActionPlanSvc, commonModule.NotificationService)
+	complianceAssessmentControlActionPlanCommentController := controllers.NewComplianceAssessmentControlActionPlanCommentController(complianceAssessmentControlActionPlanCommentSvc)
+
 	return &ComplianceModule{
 		ComplianceCategoryController:                                    complianceCategoryController,
 		ComplianceStatusController:                                      complianceStatusController,
@@ -328,6 +372,11 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceAssessmentFrameworkTypeController:                     complianceAssessmentFrameworkTypeController,
 		ComplianceAssessmentFrameworkController:                         complianceAssessmentFrameworkController,
 		ComplianceAssessmentFrameworkValueController:                    complianceAssessmentFrameworkValueController,
+		ComplianceAssessmentControlController:                           complianceAssessmentControlController,
+		ComplianceAssessmentControlCommentController:                    complianceAssessmentControlCommentController,
+		ComplianceAssessmentControlActionPlanController:                 complianceAssessmentControlActionPlanController,
+		ComplianceAssessmentControlActionPlanStatusUpdateController:     complianceAssessmentControlActionPlanStatusUpdateController,
+		ComplianceAssessmentControlActionPlanCommentController:          complianceAssessmentControlActionPlanCommentController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,

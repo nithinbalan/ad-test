@@ -26,6 +26,7 @@ type ComplianceAssociatedItemServiceInterface interface {
 	GetAllDocuments(complianceID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	CreateComplianceDocument(complianceID uint, userID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
 	DeleteComplianceDocument(complianceID uint, riskID uint) error
+	GetComplianceControlCountByStatus(complianceID uint) ([]complianceDTOs.ComplianceRequirementStatusCountResponseDTO, error)
 }
 
 // Service and implementations
@@ -261,4 +262,15 @@ func (cais *ComplianceAssociatedItemService) DeleteComplianceDocument(compliance
 	}
 
 	return tx.Commit()
+}
+
+func (cais *ComplianceAssociatedItemService) GetComplianceControlCountByStatus(complianceID uint) ([]complianceDTOs.ComplianceRequirementStatusCountResponseDTO, error) {
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil, err
+	}
+	response, err := cais.repo.GetComplianceControlCountByStatus(complianceID)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
 }

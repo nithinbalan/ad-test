@@ -124,8 +124,8 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 					return fmt.Errorf("failed to get document: %w", err)
 				}
 				if document != nil {
-					orgUnitID = document.ResponsibleUnitID
-					responsibleUserID = document.ResponsibleUserID
+					orgUnitID = *document.ResponsibleUnitID
+					responsibleUserID = *document.ResponsibleUserID
 				}
 
 			case "incident":

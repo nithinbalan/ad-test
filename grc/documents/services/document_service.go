@@ -230,17 +230,17 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 	}
 
 	document := &models.Document{
-		DocumentTypeID:       documentFormDTO.DocumentTypeID,
+		DocumentTypeID:       &documentFormDTO.DocumentTypeID,
 		TitleEn:              documentFormDTO.TitleEn,
 		TitleAr:              documentFormDTO.TitleAr,
 		DescriptionEn:        documentFormDTO.DescriptionEn,
 		DescriptionAr:        documentFormDTO.DescriptionAr,
-		DocumentCategoryID:   documentFormDTO.DocumentCategoryID,
-		ResponsibleUserID:    documentFormDTO.ResponsibleUserID,
-		ResponsibleUnitID:    responsibleUnitID,
+		DocumentCategoryID:   &documentFormDTO.DocumentCategoryID,
+		ResponsibleUserID:    &documentFormDTO.ResponsibleUserID,
+		ResponsibleUnitID:    &responsibleUnitID,
 		ReviewFrequencyID:    documentFormDTO.ReviewFrequencyID,
 		DocumentAccessTypeID: documentFormDTO.DocumentAccessTypeID,
-		DocumentStatusID:     documentStatus.ID,
+		DocumentStatusID:     &documentStatus.ID,
 		CreatedBYID:          currentUserID,
 	}
 
@@ -548,13 +548,13 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	}
 
 	// Check if the document type has changed
-	documentTypeChanged := existingDocument.DocumentTypeID != documentFormDTO.DocumentTypeID
+	documentTypeChanged := existingDocument.DocumentTypeID != &documentFormDTO.DocumentTypeID
 	if documentTypeChanged {
 		documentStatus, err := ds.documentStatusSvc.GetByType("draft")
 		if err != nil {
 			return err
 		}
-		if existingDocument.DocumentStatusID != documentStatus.ID {
+		if existingDocument.DocumentStatusID != &documentStatus.ID {
 			return utility.NewForbiddenError("Document type can only be changed in draft status")
 		}
 	}
@@ -564,7 +564,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		if err != nil {
 			return err
 		}
-		if existingDocument.DocumentStatusID != documentStatus.ID {
+		if existingDocument.DocumentStatusID != &documentStatus.ID {
 			return utility.NewForbiddenError("Document can only be changed in draft status")
 		}
 	}
@@ -573,14 +573,14 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		return err
 	}
 
-	existingDocument.DocumentTypeID = documentFormDTO.DocumentTypeID
+	existingDocument.DocumentTypeID = &documentFormDTO.DocumentTypeID
 	existingDocument.TitleEn = documentFormDTO.TitleEn
 	existingDocument.TitleAr = documentFormDTO.TitleAr
 	existingDocument.DescriptionEn = documentFormDTO.DescriptionEn
 	existingDocument.DescriptionAr = documentFormDTO.DescriptionAr
-	existingDocument.DocumentCategoryID = documentFormDTO.DocumentCategoryID
-	existingDocument.ResponsibleUserID = documentFormDTO.ResponsibleUserID
-	existingDocument.ResponsibleUnitID = responsibleUnitID
+	existingDocument.DocumentCategoryID = &documentFormDTO.DocumentCategoryID
+	existingDocument.ResponsibleUserID = &documentFormDTO.ResponsibleUserID
+	existingDocument.ResponsibleUnitID = &responsibleUnitID
 	existingDocument.ReviewFrequencyID = documentFormDTO.ReviewFrequencyID
 	existingDocument.DocumentAccessTypeID = documentFormDTO.DocumentAccessTypeID
 	existingDocument.UpdatedBYID = &currentUserID
@@ -612,7 +612,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	var sharedUsers []*models.DocumentSharedUser
 	var sharedUnits []*models.DocumentSharedUnit
 
-	if existingDocument.ResponsibleUserID != documentFormDTO.ResponsibleUserID {
+	if existingDocument.ResponsibleUserID != &documentFormDTO.ResponsibleUserID {
 		sharedUsers = append(sharedUsers, &models.DocumentSharedUser{
 			DocumentID:  id,
 			UserID:      documentFormDTO.ResponsibleUserID,
@@ -620,7 +620,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			CreatedBYID: currentUserID,
 		})
 
-		err = ds.documentAccessSvc.DeleteResponsibleUser(id, existingDocument.ResponsibleUserID, tx)
+		err = ds.documentAccessSvc.DeleteResponsibleUser(id, *existingDocument.ResponsibleUserID, tx)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -955,7 +955,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		}
 	}
 
-	if existingDocumentTypeID != documentFormDTO.DocumentTypeID {
+	if existingDocumentTypeID != &documentFormDTO.DocumentTypeID {
 
 		var deleteDocumentWorkflowIds []*uint
 		var deleteDocumentWorkflowParticipantIds []*uint
@@ -1777,7 +1777,7 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 		return err
 	}
 
-	existingDocument.DocumentStatusID = documentStatus.ID
+	existingDocument.DocumentStatusID = &documentStatus.ID
 
 	err = ds.repo.Update(existingDocument, tx)
 	if err != nil {
@@ -2015,7 +2015,7 @@ func (ds *DocumentService) PublishDocument(id uint, currentUserID uint, document
 		nextReviewDate = &reviewDate
 	}
 
-	existingDocument.DocumentStatusID = documentStatus.ID
+	existingDocument.DocumentStatusID = &documentStatus.ID
 	existingDocument.ReferenceNumber = referenceNumber
 	existingDocument.PublishedBYID = &currentUserID
 	existingDocument.PublishedAt = publishedAt
