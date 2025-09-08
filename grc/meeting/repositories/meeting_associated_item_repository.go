@@ -422,7 +422,6 @@ func (repo *MeetingAssociatedItemRepository) GetAllRisks(meetingID uint, params 
 		Select(`
 		    meeting_risks.id,
 		    meeting_risks.risk_register_id,
-		    meeting_risks.document_id,
 			 risk_register.reference_number,
             risk_register.title,
             risk_register.description,
