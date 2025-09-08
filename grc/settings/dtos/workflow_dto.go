@@ -1,6 +1,7 @@
 package dtos
 
 import (
+	masterDTOs "jethur/grc/masters/dtos"
 	"time"
 )
 
@@ -11,6 +12,11 @@ type WorkflowListDTO struct {
 	TitleAr                     *string    `json:"title_ar"`
 	DocumentTypeID              *uint      `json:"document_type_id"`
 	Status                      string     `json:"status"`
+	WorkflowContextID           *uint      `json:"workflow_context_id"`
+	WorkflowContextTitleEn      *string    `json:"workflow_context_title_en"`
+	WorkflowContextTitleAr      *string    `json:"workflow_context_title_ar"`
+	ModuleTitleEn               *string    `json:"module_title_en"`
+	ModuleTitleAr               *string    `json:"module_title_ar"`
 	CreatedByID                 uint       `json:"created_by_id"`
 	UpdatedByID                 *uint      `json:"updated_by_id"`
 	CreatedAt                   time.Time  `json:"created_at"`
@@ -35,6 +41,30 @@ type WorkflowListDTO struct {
 	UpdatedUserColor            string     `json:"updated_user_color"`
 	UpdatedUserEmail            string     `json:"updated_user_email"`
 	UpdatedUserProfileImagePath string     `json:"updated_user_profile_image_path"`
+}
+
+type WorkflowFormDTO struct {
+	TitleEn           string `json:"title_en" binding:"required"`
+	TitleAr           string `json:"title_ar" binding:"required"`
+	WorkflowContextID *uint  `json:"workflow_context_id" binding:"required"`
+	ModuleID          uint   `json:"module_id" binding:"required"`
+	Status            string `json:"status" binding:"required"`
+}
+
+type WorkflowListQueryParamsDTO struct {
+	Sort    string
+	SortBy  string
+	Keyword string
+	Status  string
+	Filters map[string][]string
+}
+
+type WorkflowDetailDTO struct {
+	TitleEn           string                        `json:"title_en"`
+	TitleAr           string                        `json:"title_ar"`
+	WorkflowContextID *uint                         `json:"workflow_context_id"`
+	WorkflowContext   masterDTOs.WorkflowContextDTO `json:"workflow_context"`
+	WorkflowLevels    []WorkflowLevelDTO            `json:"workflow_levels"`
 }
 
 type WorkflowLevelFormDTO struct {

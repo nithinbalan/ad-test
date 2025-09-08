@@ -35,6 +35,7 @@ type MasterModule struct {
 	CalculationTypeController        *controllers.CalculationTypeController
 	ProjectMilestoneStatusController *controllers.ProjectMilestoneStatusController
 	LicenseTypeController            *controllers.LicenseTypeController
+	WorkflowContextController        *controllers.WorkflowContextController
 
 	ReviewFrequencySvc        services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc          services.SeverityLevelServiceInterface
@@ -61,6 +62,7 @@ type MasterModule struct {
 	CountrySvc                services.CountryServiceInterface
 	ProjectMilestoneStatusSvc services.ProjectMilestoneStatusServiceInterface
 	LicenseTypeSvc            services.LicenseTypeServiceInterface
+	WorkflowContextSvc        services.WorkflowContextServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -189,6 +191,11 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	licenseTypeSvc := services.NewLicenseTypeService(licenseTypeRepo)
 	licenseTypeController := controllers.NewLicenseTypeController(licenseTypeSvc)
 
+	// workflow context
+	workflowContextRepo := repositories.NewWorkflowContextRepository(db)
+	workflowContextSvc := services.NewWorkflowContextService(workflowContextRepo)
+	workflowContextController := controllers.NewWorkflowContextController(workflowContextSvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:        reviewFrequencyController,
 		SeverityLevelController:          severityLevelController,
@@ -216,6 +223,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		CalculationTypeController:        calculationTypeController,
 		ProjectMilestoneStatusController: projectMilestoneStatusController,
 		LicenseTypeController:            licenseTypeController,
+		WorkflowContextController:        workflowContextController,
 
 		ReviewFrequencySvc:        reviewFrequencySvc,
 		SeverityLevelSvc:          severityLevelSvc,
@@ -242,5 +250,6 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		CountrySvc:                countrySvc,
 		ProjectMilestoneStatusSvc: projectMilestoneStatusSvc,
 		LicenseTypeSvc:            licenseTypeSvc,
+		WorkflowContextSvc:        workflowContextSvc,
 	}
 }

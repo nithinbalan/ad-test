@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"jethur/grc/models"
+	"jethur/grc/settings/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
 
@@ -13,6 +14,13 @@ import (
 // Interfaces
 type WorkflowRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
+	GetAll(params *dtos.WorkflowListQueryParamsDTO) ([]*dtos.WorkflowListDTO, error)
+	GetFullDetailsByID(id uint) (*models.Workflow, error)
+	GetByID(id uint) (*models.Workflow, error)
+	Create(workflow *models.Workflow) (uint, error)
+	Update(workflow *models.Workflow) error
+	Delete(id uint) error
+
 	GetAllWorkflowsByType(workflowType string, moduleIdentifier string) ([]*settingsDTOs.WorkflowListDTO, error)
 	GetWorkflowByDocumentType(documentTypeId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
 	GetWorkflowLevelByID(id uint, tx ...utility.DatabaseTransaction) (*models.WorkflowLevel, error)
@@ -40,6 +48,108 @@ func NewWorkflowRepository(db *gorm.DB) *WorkflowRepository {
 // BeginTransaction starts a new transaction.
 func (repo *WorkflowRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
+func (repo *WorkflowRepository) GetAll(params *dtos.WorkflowListQueryParamsDTO) ([]*dtos.WorkflowListDTO, error) {
+	var workflows []*settingsDTOs.WorkflowListDTO
+
+	query := repo.db.Table("workflows").
+		Select(`
+            workflows.*,
+			modules.title_en AS module_title_en,
+			modules.title_ar AS module_title_ar,
+            workflow_contexts.title_en AS workflow_context_title_en,
+            workflow_contexts.title_ar AS workflow_context_title_ar
+        `).
+		Joins("LEFT JOIN workflow_contexts ON workflows.workflow_context_id = workflow_contexts.id").
+		Joins("LEFT JOIN modules ON workflow_contexts.module_id = modules.id")
+
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where("workflows."+columnName+" IN (?)", values)
+		}
+	}
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where("workflows.title_en LIKE ? OR workflows.title_ar LIKE ?", keyword, keyword)
+	}
+
+	// Apply sorting
+	if params.SortBy == "" {
+		params.SortBy = "title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	// Execute the query
+	err := query.Find(&workflows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return workflows, nil
+}
+
+func (repo *WorkflowRepository) GetByID(id uint) (*models.Workflow, error) {
+	var workflowContext *models.Workflow
+
+	result := repo.db.First(&workflowContext, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return workflowContext, nil
+
+}
+
+func (repo *WorkflowRepository) GetFullDetailsByID(id uint) (*models.Workflow, error) {
+	db := repo.db
+	var workflowContext *models.Workflow
+
+	result := db.
+		Preload("WorkflowContext").
+		Preload("WorkflowLevels").
+		Preload("WorkflowLevels.WorkflowLevelType").
+		Preload("WorkflowLevels.Participants").
+		First(&workflowContext, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return workflowContext, nil
+}
+
+func (repo *WorkflowRepository) Create(workflow *models.Workflow) (uint, error) {
+	db := repo.db
+	if err := db.Create(workflow).Error; err != nil {
+		return 0, err
+	}
+
+	return workflow.ID, nil
+}
+
+func (repo *WorkflowRepository) Update(workflow *models.Workflow) error {
+	db := repo.db
+	if err := db.Save(workflow).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *WorkflowRepository) Delete(id uint) error {
+	db := repo.db
+
+	if err := db.Delete(&models.Workflow{}, id).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (repo *WorkflowRepository) GetAllWorkflowsByType(workflowType string, moduleIdentifier string) ([]*settingsDTOs.WorkflowListDTO, error) {
@@ -80,12 +190,14 @@ func (repo *WorkflowRepository) GetAllWorkflowsByType(workflowType string, modul
         	updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins("LEFT JOIN document_types ON document_types.id = workflows.document_type_id").
+		Joins("LEFT JOIN workflow_contexts ON workflow_contexts.id = workflows.workflow_context_id").
+		Joins("LEFT JOIN modules ON modules.id = workflow_contexts.module_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = workflows.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = workflows.updated_by_id").
-		Where("workflows.module_identifier = ?", moduleIdentifier)
+		Where("modules.identifier = ?", moduleIdentifier)
 
 	if workflowType != "" {
-		query = query.Where("workflows.type = ?", workflowType)
+		query = query.Where("workflow_contexts.type = ?", workflowType)
 	}
 
 	err := query.Find(&workflows).Error
