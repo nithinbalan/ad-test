@@ -70,7 +70,7 @@ func (pfc *PolicyFolderController) GetAllPolicyFolders(c *gin.Context) {
 		return
 	}
 
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 20)
 	if err != nil {
 		utility.SendInternalErrResp(pfc.db, c, "Invalid page_size parameter")
 		return

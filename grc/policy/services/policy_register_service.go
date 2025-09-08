@@ -16,8 +16,6 @@ import (
 	"jethur/utility"
 	"log"
 	"os"
-	"path/filepath"
-	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -645,7 +643,6 @@ func (prs *PolicyRegisterService) Delete(ids []uint, currentUserID uint) ([]uint
 	var successfulIds []uint
 	var deletedDocument []map[string]interface{}
 	documentsToDelete := make(map[uint][]*models.DocumentVersion)
-	documentEditHistoryToDelete := make(map[uint][]*models.DocumentEditHistory)
 
 	for _, id := range ids {
 		document, err := prs.repo.GetFullDetailsByID(id, nil, tx)
@@ -717,38 +714,8 @@ func (prs *PolicyRegisterService) Delete(ids []uint, currentUserID uint) ([]uint
 	}
 
 	if len(successfulIds) > 0 {
-		for documentID, history := range documentEditHistoryToDelete {
-			for _, doc := range history {
-				if doc.Name != nil {
-					storagePath := filepath.Join("document", "draft", strconv.FormatUint(uint64(documentID), 10), "document-history", strconv.FormatUint(uint64(doc.ID), 10), "documents")
-					if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
-						tx.Rollback()
-						fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
-					}
-				}
-			}
-			destinationPath := filepath.Join("document", "draft", strconv.FormatUint(uint64(documentID), 10), "document-history")
-			if err := utility.RemoveFolder(destinationPath); err != nil {
-				tx.Rollback()
-			}
-		}
-
-		for documentID, documents := range documentsToDelete {
-			for _, doc := range documents {
-				storagePath := filepath.Join("document", "draft", strconv.FormatUint(uint64(documentID), 10), "documents")
-				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
-					tx.Rollback()
-					fmt.Printf("Failed to delete file at URL %s: %v\n", doc.URL, err)
-				}
-			}
-			destinationPath := filepath.Join("document", "draft", strconv.FormatUint(uint64(documentID), 10))
-			if err := utility.RemoveFolder(destinationPath); err != nil {
-				tx.Rollback()
-			}
-		}
+		tx.Commit()
 	}
-
-	tx.Commit()
 
 	if len(successfulIds) > 0 {
 		go func() {
