@@ -26,7 +26,7 @@ func NewIncidentActionPlanCommentController(service services.IncidentActionPlanC
 }
 
 func (capc *IncidentActionPlanCommentController) GetAllComments(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -55,7 +55,7 @@ func (capc *IncidentActionPlanCommentController) GetAllComments(c *gin.Context) 
 }
 
 func (capc *IncidentActionPlanCommentController) GetCommentDetails(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -91,7 +91,7 @@ func (capc *IncidentActionPlanCommentController) GetCommentDetails(c *gin.Contex
 }
 
 func (capc *IncidentActionPlanCommentController) CreateComment(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -132,7 +132,7 @@ func (capc *IncidentActionPlanCommentController) CreateComment(c *gin.Context) {
 }
 
 func (capc *IncidentActionPlanCommentController) UpdateComment(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -180,7 +180,7 @@ func (capc *IncidentActionPlanCommentController) UpdateComment(c *gin.Context) {
 }
 
 func (capc *IncidentActionPlanCommentController) DeleteComment(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -227,7 +227,7 @@ func (capc *IncidentActionPlanCommentController) DeleteComment(c *gin.Context) {
 }
 
 func (capc *IncidentActionPlanCommentController) GetIncidentActionPlanCommentDocumentPreview(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
@@ -270,7 +270,7 @@ func (capc *IncidentActionPlanCommentController) GetIncidentActionPlanCommentDoc
 }
 
 func (capc *IncidentActionPlanCommentController) DownloadIncidentActionPlanCommentDocument(c *gin.Context) {
-	incidentIDStr := c.Param("incidentId")
+	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
 	if err != nil {
