@@ -93,11 +93,26 @@ func (afs AuditFindingActionPlanStatusUpdateService) GetByID(auditFindingID uint
 }
 
 func (afs *AuditFindingActionPlanStatusUpdateService) Create(auditFindingID uint, auditFindingActionPlanID uint, currentUserID uint, auditFindingActionPlanStatusUpdateFormDTO *auditDTOs.AuditFindingActionPlanStatusUpdateFormDTO) (uint, error) {
-	tx := afs.repo.BeginTransaction()
 	if _, err := afs.auditFindingActionPlanSvc.GetByID(auditFindingID, auditFindingActionPlanID); err != nil {
 		return 0, err
 	}
 
+	auditFinding, err := afs.auditFindingSvc.GetByID(auditFindingID)
+	if err != nil {
+		return 0, err
+	}
+
+	auditFindingActionPlan, err := afs.auditFindingActionPlanSvc.GetByID(auditFindingID, auditFindingActionPlanID)
+	if err != nil {
+		return 0, err
+	}
+
+	actionPlanStatus, err := afs.actionPlanStatusSvc.GetByType("completed")
+	if err != nil {
+		return 0, err
+	}
+
+	tx := afs.repo.BeginTransaction()
 	if err := afs.validateAuditFindingActionPlanStatusUpdateFormDTO(auditFindingActionPlanStatusUpdateFormDTO); err != nil {
 		return 0, err
 	}
@@ -165,24 +180,10 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Create(auditFindingID uint
 		}
 	}
 
-	auditFinding, err := afs.auditFindingSvc.GetByID(auditFindingID)
-	if err != nil {
-		return 0, err
-	}
-
-	auditFindingActionPlan, err := afs.auditFindingActionPlanSvc.GetByID(auditFindingID, auditFindingActionPlanID)
-	if err != nil {
-		return 0, err
-	}
-
-	actionPlanStatus, err := afs.actionPlanStatusSvc.GetByType("completed")
-	if err != nil {
-		return 0, err
-	}
 	if auditFindingActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && auditFindingActionPlan.ReviewUserID != nil {
-		urlParam := fmt.Sprintf(`{"audit_id":%d, "action_plan_id":%d}`, auditFindingID, auditFindingActionPlanID)
+		urlParam := fmt.Sprintf(`{"threat_id":%d, "action_plan_id":%d}`, auditFindingID, auditFindingActionPlanID)
 		taskDTO := commonDTOs.TaskFormDTO{
-			ModuleIdentifier:         "audit",
+			ModuleIdentifier:         "threat",
 			AuditFindingActionPlanID: &auditFindingActionPlanID,
 			Title:                    auditFindingActionPlan.Title,
 			Description:              auditFindingActionPlan.Description,
@@ -197,6 +198,7 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Create(auditFindingID uint
 			return 0, err
 		}
 	}
+
 	tx.Commit()
 
 	go func() {
@@ -227,6 +229,8 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Create(auditFindingID uint
 
 			utility.LogError("Failed to log activity", fields)
 		}
+
+		fmt.Println("check 6")
 		if auditFindingActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && auditFindingActionPlan.ReviewUserID != nil {
 			// prepare notification
 			urlParam := fmt.Sprintf(`{"audit_id":%d, "action_plan_id":%d}`, auditFindingID, auditFindingActionPlanID)
