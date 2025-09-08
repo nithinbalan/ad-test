@@ -94,8 +94,8 @@ func (crs *ComplianceRequirementService) GetAll(complianceID uint, params *compl
 
 func (crs *ComplianceRequirementService) GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error) {
 
-	// Step 1: Fetch raw data from repository
-	requirements, err := crs.repo.GetRequirementsByComplianceID(complianceID, params)
+	// Step 1: Fetch paged requirements + total count
+	requirements, totalCount, err := crs.repo.GetRequirementsByComplianceID(complianceID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -106,20 +106,20 @@ func (crs *ComplianceRequirementService) GetRequirementsByComplianceID(complianc
 		}, nil
 	}
 
-	// Step 2: Collect requirement IDs for bulk fetch of responsible units
+	// Step 2: Collect requirement IDs
 	reqIDs := make([]uint, 0, len(requirements))
 	for _, r := range requirements {
 		reqIDs = append(reqIDs, r.ID)
 	}
 
-	// Step 3: Fetch all responsible units in a single query
+	// Step 3: Fetch responsible units
 	var unitRows []complianceDTOs.ComplianceRequirementResponsibleUnitRowDTO
 	err = crs.repo.GetResponsibleUnitRowsByRequirementIDs(reqIDs, &unitRows)
 	if err != nil {
 		return nil, err
 	}
 
-	// Step 4: Map responsible units by requirement ID
+	// Step 4: Map responsible units
 	unitMap := make(map[uint][]*complianceDTOs.ComplianceRequirementResponsibleUnitListDTO)
 	for _, row := range unitRows {
 		unit := &settingsDTOs.OrganizationUnitDTO{
@@ -132,7 +132,6 @@ func (crs *ComplianceRequirementService) GetRequirementsByComplianceID(complianc
 		if row.ParentID != nil {
 			unit.ParentUnit = &settingsDTOs.OrganizationUnitDTO{ID: int(*row.ParentID)}
 		}
-
 		unitDTO := &complianceDTOs.ComplianceRequirementResponsibleUnitListDTO{
 			ID:                                   row.ID,
 			ComplianceRequirementID:              row.ComplianceRequirementID,
@@ -143,16 +142,16 @@ func (crs *ComplianceRequirementService) GetRequirementsByComplianceID(complianc
 		unitMap[row.ComplianceRequirementID] = append(unitMap[row.ComplianceRequirementID], unitDTO)
 	}
 
-	// Step 5: Assign responsible units to each requirement
+	// Step 5: Assign responsible units
 	for _, r := range requirements {
 		if units, ok := unitMap[r.ID]; ok {
 			r.ResponsibleUnits = units
 		} else {
-			// Return empty array instead of null
 			r.ResponsibleUnits = []*complianceDTOs.ComplianceRequirementResponsibleUnitListDTO{}
 		}
 	}
-	// Step 6: Group by clause ID
+
+	// Step 6: Group into clauses
 	clauseMap := make(map[uint]*complianceDTOs.ComplianceRequirementByComplianceIDListDTO)
 	for _, r := range requirements {
 		if _, exists := clauseMap[r.ClauseID]; !exists {
@@ -167,28 +166,16 @@ func (crs *ComplianceRequirementService) GetRequirementsByComplianceID(complianc
 		clauseMap[r.ClauseID].Requirements = append(clauseMap[r.ClauseID].Requirements, r)
 	}
 
-	// Step 7: Convert map to list
+	// Step 7: Convert map to slice
 	var clauseList []*complianceDTOs.ComplianceRequirementByComplianceIDListDTO
 	for _, v := range clauseMap {
 		clauseList = append(clauseList, v)
 	}
 
-	// Step 8: In-memory pagination
-	totalCount := int64(len(clauseList))
+	// Step 8: Build response with correct pagination
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-	start := (params.Page - 1) * params.PageSize
-	if start > int(totalCount) {
-		start = int(totalCount)
-	}
-	end := start + params.PageSize
-	if end > int(totalCount) {
-		end = int(totalCount)
-	}
-	pagedClauses := clauseList[start:end]
-
-	// Step 9: Return response
 	return &complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO{
-		Items: pagedClauses,
+		Items: clauseList,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
 			PageSize:    params.PageSize,
