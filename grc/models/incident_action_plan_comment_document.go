@@ -7,7 +7,7 @@ import (
 // IncidentActionPlanCommentDocument represents a document attached to a compliance action plan comment.
 type IncidentActionPlanCommentDocument struct {
 	ID                            uint      `json:"id" gorm:"primary_key;auto_increment"`
-	IncidentActionPlanCommentID uint      `json:"compliance_action_plan_comment_id" gorm:"not null"`
+	IncidentActionPlanCommentID uint      `json:"incident_action_plan_comment_id" gorm:"not null"`
 	URL                           string    `json:"url"`
 	Name                          string    `json:"name" binding:"required"`
 	Size                          int       `json:"size"`
@@ -27,5 +27,5 @@ type IncidentActionPlanCommentDocument struct {
 
 // TableName overrides the default table name
 func (IncidentActionPlanCommentDocument) TableName() string {
-	return "compliance_action_plan_comment_documents"
+	return "incident_action_plan_comment_documents"
 }
