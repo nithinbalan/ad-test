@@ -420,9 +420,9 @@ func (repo *MeetingAssociatedItemRepository) GetAllRisks(meetingID uint, params 
 
 	query := repo.db.Table("meeting_risks").
 		Select(`
-		 risk_associated_documents.id,
-		    risk_associated_documents.risk_register_id,
-		    risk_associated_documents.document_id,
+		    meeting_risks.id,
+		    meeting_risks.risk_register_id,
+		    meeting_risks.document_id,
 			 risk_register.reference_number,
             risk_register.title,
             risk_register.description,
