@@ -27,6 +27,7 @@ type AssetModule struct {
 	VulnerabilityActionPlanController             *controllers.VulnerabilityActionPlanController
 	VulnerabilityActionPlanStatusUpdateController *controllers.VulnerabilityActionPlanStatusUpdateController
 	ThreatActionPlanController                    *controllers.ThreatActionPlanController
+	ThreatActionPlanCommentController              *controllers.ThreatActionPlanCommentController
 	ThreatActionPlanStatusUpdateController        *controllers.ThreatActionPlanStatusUpdateController
 	AssetMaintenanceController                    *controllers.AssetMaintenanceController
 	AssetAssociatedItemController                 *controllers.AssetAssociatedItemController
@@ -158,6 +159,12 @@ func NewAssetModule(db *gorm.DB,
 	)
 	threatActionPlanController := controllers.NewThreatActionPlanController(threatActionPlanSvc)
 
+	
+	threatActionPlanCommentRepository := repositories.NewThreatActionPlanCommentRepository(db)
+	threatActionPlanCommentSvc := services.NewThreatActionPlanCommentService(threatActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService,threatActionPlanSvc, commonModule.NotificationService)
+	threatActionPlanCommentController := controllers.NewThreatActionPlanCommentController(threatActionPlanCommentSvc)
+
+
 	threatActionPlanStatusUpdateRepo := repositories.NewThreatActionPlanStatusUpdateRepository(db)
 	threatActionPlanStatusUpdateSvc := services.NewThreatActionPlanStatusUpdateService(
 		threatActionPlanStatusUpdateRepo,
@@ -259,6 +266,7 @@ func NewAssetModule(db *gorm.DB,
 		VulnerabilityActionPlanController:             vulnerabilityActionPlanController,
 		VulnerabilityActionPlanStatusUpdateController: vulnerabilityActionPlanStatusUpdateController,
 		ThreatActionPlanController:                    threatActionPlanController,
+		ThreatActionPlanCommentController:             threatActionPlanCommentController,
 		ThreatActionPlanStatusUpdateController:        threatActionPlanStatusUpdateController,
 		AssetMaintenanceController:                    assetMaintenanceController,
 		AssetAssociatedItemController:                 assetAssociatedItemController,
