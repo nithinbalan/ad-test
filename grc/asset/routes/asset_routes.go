@@ -171,13 +171,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("/vulnerabilities/:id/action-plan-summary", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityActionPlanController.GetVulnerabilityActionPlanSummary)
 
 	// vulnerability action plan comment
-	// unauthenticatedRoutes.GET("/threats/:id/action-plans/:actionPlanId/comments/:commentId/document-download", threatActionPlanCommentController.DownloadThreatActionPlanCommentDocument)
-	// unauthenticatedRoutes.GET("/threats/:id/action-plans/:actionPlanId/comments/:commentId/document-preview", threatActionPlanCommentController.GetThreatActionPlanCommentDocumentPreview)
-	// assetRoutes.GET("/threats/:id/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatActionPlanCommentController.GetAllComments)
-	// assetRoutes.GET("/threats/:id/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatActionPlanCommentController.GetCommentDetails)
+	unauthenticatedRoutes.GET("/vulnerabilities/:id/action-plans/:actionPlanId/comments/:commentId/document-download", vulnerabilityActionPlanCommentController.DownloadVulnerabilityActionPlanCommentDocument)
+	unauthenticatedRoutes.GET("/vulnerabilities/:id/action-plans/:actionPlanId/comments/:commentId/document-preview", vulnerabilityActionPlanCommentController.GetVulnerabilityActionPlanCommentDocumentPreview)
+	assetRoutes.GET("/vulnerabilities/:id/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "vulnerabilities", "view"), vulnerabilityActionPlanCommentController.GetAllComments)
+	assetRoutes.GET("/vulnerabilities/:id/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "vulnerabilities", "view"), vulnerabilityActionPlanCommentController.GetCommentDetails)
 	assetRoutes.POST("/vulnerabilities/:id/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "vulnerabilitie", "modify"), vulnerabilityActionPlanCommentController.CreateComment)
-	// assetRoutes.PUT("/threats/:id/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatActionPlanCommentController.UpdateComment)
-	// assetRoutes.POST("/threats/:id/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatActionPlanCommentController.DeleteComment)
+	assetRoutes.PUT("/vulnerabilities/:id/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "threat", "modify"), vulnerabilityActionPlanCommentController.UpdateComment)
+	assetRoutes.POST("/vulnerabilities/:id/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "threat", "modify"), vulnerabilityActionPlanCommentController.DeleteComment)
 
 
 
