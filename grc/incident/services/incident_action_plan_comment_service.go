@@ -34,11 +34,11 @@ type IncidentActionPlanCommentServiceInterface interface {
 }
 
 type IncidentActionPlanCommentService struct {
-	repo                    repositories.IncidentActionPlanCommentRepositoryInterface
-	userSvc                 organizationServices.UserServiceInterface
-	activityLogSvc          logServices.ActivityLogServiceInterface
+	repo                  repositories.IncidentActionPlanCommentRepositoryInterface
+	userSvc               organizationServices.UserServiceInterface
+	activityLogSvc        logServices.ActivityLogServiceInterface
 	incidentActionPlanSvc IncidentActionPlanServiceInterface
-	notificationSvc         commonServices.NotificationServiceInterface
+	notificationSvc       commonServices.NotificationServiceInterface
 }
 
 func NewIncidentActionPlanCommentService(repo repositories.IncidentActionPlanCommentRepositoryInterface, userSvc organizationServices.UserServiceInterface,
@@ -47,11 +47,11 @@ func NewIncidentActionPlanCommentService(repo repositories.IncidentActionPlanCom
 	notificationSvc commonServices.NotificationServiceInterface,
 ) IncidentActionPlanCommentServiceInterface {
 	return &IncidentActionPlanCommentService{
-		repo:                    repo,
-		userSvc:                 userSvc,
-		activityLogSvc:          activityLogSvc,
-	    incidentActionPlanSvc: incidentActionPlanSvc,
-		notificationSvc:         notificationSvc,
+		repo:                  repo,
+		userSvc:               userSvc,
+		activityLogSvc:        activityLogSvc,
+		incidentActionPlanSvc: incidentActionPlanSvc,
+		notificationSvc:       notificationSvc,
 	}
 }
 
@@ -113,15 +113,14 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 
 	incidentActionPlan, err := iapc.incidentActionPlanSvc.GetFullDetailsByID(incidentID, actionPlanID)
 
-
 	if err != nil {
 		return 0, err
 	}
 
 	comment := &models.IncidentActionPlanComment{
 		IncidentActionPlanID: actionPlanID,
-		Comment:                incidentActionPlanCommentFormDTO.Comment,
-		CreatedBYID:            currentUserID,
+		Comment:              incidentActionPlanCommentFormDTO.Comment,
+		CreatedBYID:          currentUserID,
 	}
 
 	id, err := iapc.repo.Create(comment)
@@ -149,13 +148,13 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 
 		document := &models.IncidentActionPlanCommentDocument{
 			IncidentActionPlanCommentID: id,
-			URL:                           url,
-			Name:                          doc.FileName,
-			Size:                          doc.Size,
-			Token:                         encryptedFilename,
-			OriginalName:                  doc.OriginalName,
-			Type:                          doc.Type,
-			CreatedBYID:                   currentUserID,
+			URL:                         url,
+			Name:                        doc.FileName,
+			Size:                        doc.Size,
+			Token:                       encryptedFilename,
+			OriginalName:                doc.OriginalName,
+			Type:                        doc.Type,
+			CreatedBYID:                 currentUserID,
 		}
 
 		documents = append(documents, document)
@@ -210,11 +209,10 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 			}
 
 			utility.LogError("Failed to log activity", fields)
-		}		
+		}
 		if uint(incidentActionPlan.ResponsibleUser.ID) == currentUserID {
 			// if responsible user added the comment, notification for review user
 			if incidentActionPlan.ReviewUser.ID != 0 {
-				   
 
 				// prepare notification
 				urlParam := fmt.Sprintf(`{"incident_id":%d, "action_plan_id":%d}`, incidentID, id)
@@ -257,15 +255,16 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 				subject := fmt.Sprintf("Comment Added for Incident Action Plan:%s", incidentActionPlan.Title)
 				appURL := utility.GetAppURL()
 				emailData := map[string]interface{}{
-					"FirstNameEn":               reviewUser.FirstNameEn,
-					"LastNameEn":                reviewUser.LastNameEn,
+					"FirstNameEn":             reviewUser.FirstNameEn,
+					"LastNameEn":              reviewUser.LastNameEn,
 					"IncidentTitle":           incidentActionPlan.IncidentRegister.Title,
-					"ActionPlanTitle":           incidentActionPlan.Title,
-					"ActionPlanDescription":     incidentActionPlan.Description,
-					"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
-					"CommentedByLastNameEn":     assignedBy.LastNameEn,
-					"CommentedOn":               time.Now().Format("2006-01-02"),
-					"RedirectURL":               fmt.Sprintf("%s/Incident/incidents/%d/action-plans?action_plan_id=%d", appURL, incidentID, id),
+					"IncidentReferenceNumber": incidentActionPlan.IncidentRegister.ReferenceNumber,
+					"ActionPlanTitle":         incidentActionPlan.Title,
+					"ActionPlanDescription":   incidentActionPlan.Description,
+					"CommentedByFirstNameEn":  assignedBy.FirstNameEn,
+					"CommentedByLastNameEn":   assignedBy.LastNameEn,
+					"CommentedOn":             time.Now().Format("2006-01-02"),
+					"RedirectURL":             fmt.Sprintf("%s/Incident/incidents/%d/action-plans?action_plan_id=%d", appURL, incidentID, id),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -283,7 +282,7 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 					})
 				}
 			}
-		} else if  uint(incidentActionPlan.ReviewUser.ID) == currentUserID {
+		} else if uint(incidentActionPlan.ReviewUser.ID) == currentUserID {
 			// if review user added the comment, notification for responsible user
 			// prepare notification
 			urlParam := fmt.Sprintf(`{"incident_id":%d, "action_plan_id":%d}`, incidentID, id)
@@ -326,15 +325,16 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 			subject := fmt.Sprintf("Comment Added for Incident Action Plan:%s", incidentActionPlan.Title)
 			appURL := utility.GetAppURL()
 			emailData := map[string]interface{}{
-				"FirstNameEn":               responsibleUser.FirstNameEn,
-				"LastNameEn":                responsibleUser.LastNameEn,
+				"FirstNameEn":             responsibleUser.FirstNameEn,
+				"LastNameEn":              responsibleUser.LastNameEn,
 				"IncidentTitle":           incidentActionPlan.IncidentRegister.Title,
-				"ActionPlanTitle":           incidentActionPlan.Title,
-				"ActionPlanDescription":     incidentActionPlan.Description,
-				"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
-				"CommentedByLastNameEn":     assignedBy.LastNameEn,
-				"AssignedOn":                time.Now().Format("2006-01-02"),
-				"RedirectURL":               fmt.Sprintf("%s/Incident/incidents/%d/action-plans?action_plan_id=%d", appURL, incidentID, id),
+				"IncidentReferenceNumber": incidentActionPlan.IncidentRegister.ReferenceNumber,
+				"ActionPlanTitle":         incidentActionPlan.Title,
+				"ActionPlanDescription":   incidentActionPlan.Description,
+				"CommentedByFirstNameEn":  assignedBy.FirstNameEn,
+				"CommentedByLastNameEn":   assignedBy.LastNameEn,
+				"AssignedOn":              time.Now().Format("2006-01-02"),
+				"RedirectURL":             fmt.Sprintf("%s/Incident/incidents/%d/action-plans?action_plan_id=%d", appURL, incidentID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -394,15 +394,17 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 			subject := fmt.Sprintf("Comment Added for Incident Action Plan:%s", incidentActionPlan.Title)
 			appURL := utility.GetAppURL()
 			emailData := map[string]interface{}{
-				"FirstNameEn":               responsibleUser.FirstNameEn,
-				"LastNameEn":                responsibleUser.LastNameEn,
+				"FirstNameEn":             responsibleUser.FirstNameEn,
+				"LastNameEn":              responsibleUser.LastNameEn,
 				"IncidentTitle":           incidentActionPlan.IncidentRegister.Title,
-				"ActionPlanTitle":           incidentActionPlan.Title,
-				"ActionPlanDescription":     incidentActionPlan.Description,
-				"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
-				"CommentedByLastNameEn":     assignedBy.LastNameEn,
-				"AssignedOn":                time.Now().Format("2006-01-02"),
-				"RedirectURL":               fmt.Sprintf("%s/Incident/incidents/%d/action-plans?action_plan_id=%d", appURL, incidentID, id),
+				"IncidentReferenceNumber": incidentActionPlan.IncidentRegister.ReferenceNumber,
+
+				"ActionPlanTitle":        incidentActionPlan.Title,
+				"ActionPlanDescription":  incidentActionPlan.Description,
+				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
+				"CommentedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":             time.Now().Format("2006-01-02"),
+				"RedirectURL":            fmt.Sprintf("%s/Incident/incidents/%d/action-plans?action_plan_id=%d", appURL, incidentID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -461,15 +463,17 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 				subject := fmt.Sprintf("Comment Added for Incident Action Plan:%s", incidentActionPlan.Title)
 				appURL := utility.GetAppURL()
 				emailData := map[string]interface{}{
-					"FirstNameEn":               responsibleUser.FirstNameEn,
-					"LastNameEn":                responsibleUser.LastNameEn,
+					"FirstNameEn":             responsibleUser.FirstNameEn,
+					"LastNameEn":              responsibleUser.LastNameEn,
 					"IncidentTitle":           incidentActionPlan.IncidentRegister.Title,
-					"ActionPlanTitle":           incidentActionPlan.Title,
-					"ActionPlanDescription":     incidentActionPlan.Description,
-					"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
-					"CommentedByLastNameEn":     assignedBy.LastNameEn,
-					"AssignedOn":                time.Now().Format("2006-01-02"),
-					"RedirectURL":               fmt.Sprintf("%s/Incident/incidents/%d/action-plans?action_plan_id=%d", appURL, incidentID, id),
+					"IncidentReferenceNumber": incidentActionPlan.IncidentRegister.ReferenceNumber,
+
+					"ActionPlanTitle":        incidentActionPlan.Title,
+					"ActionPlanDescription":  incidentActionPlan.Description,
+					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
+					"CommentedByLastNameEn":  assignedBy.LastNameEn,
+					"AssignedOn":             time.Now().Format("2006-01-02"),
+					"RedirectURL":            fmt.Sprintf("%s/Incident/incidents/%d/action-plans?action_plan_id=%d", appURL, incidentID, id),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -534,13 +538,13 @@ func (iapc *IncidentActionPlanCommentService) Update(incidentID uint, actionPlan
 
 			document := &models.IncidentActionPlanCommentDocument{
 				IncidentActionPlanCommentID: id,
-				URL:                           url,
-				Name:                          doc.FileName,
-				Size:                          doc.Size,
-				Token:                         encryptedFileName,
-				OriginalName:                  doc.OriginalName,
-				Type:                          doc.Type,
-				CreatedBYID:                   currentUserID,
+				URL:                         url,
+				Name:                        doc.FileName,
+				Size:                        doc.Size,
+				Token:                       encryptedFileName,
+				OriginalName:                doc.OriginalName,
+				Type:                        doc.Type,
+				CreatedBYID:                 currentUserID,
 			}
 
 			newDocuments = append(newDocuments, document)
@@ -656,7 +660,7 @@ func (iapc *IncidentActionPlanCommentService) Delete(incidentID uint, actionPlan
 		}
 
 		deletedComments = append(deletedComments, map[string]interface{}{
-			"id":                id,
+			"id":              id,
 			"incident_action": actionPlanID,
 		})
 
