@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 
+	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/services"
 	"jethur/utility"
 
@@ -22,7 +23,17 @@ func NewReminderContextController(service services.ReminderContextServiceInterfa
 }
 
 func (rcc *ReminderContextController) GetAllReminderContexts(c *gin.Context) {
-	data, err := rcc.service.GetAllReminderContexts()
+	allowedParams := []string{
+		"module_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	queryParams := dtos.ReminderContextListQueryParamsDTO{
+		Filters: filters,
+	}
+
+	data, err := rcc.service.GetAllReminderContexts(queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(rcc.db, c, err.Error())
 		return

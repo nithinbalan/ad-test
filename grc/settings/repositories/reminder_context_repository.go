@@ -2,13 +2,14 @@ package repositories
 
 import (
 	"jethur/grc/models"
+	"jethur/grc/settings/dtos"
 
 	"gorm.io/gorm"
 )
 
 // Interfaces
 type ReminderContextRepositoryInterface interface {
-	GetAllReminderContexts() ([]*models.ReminderContext, error)
+	GetAllReminderContexts(params dtos.ReminderContextListQueryParamsDTO) ([]*models.ReminderContext, error)
 	GetByID(id uint) (*models.ReminderContext, error)
 }
 
@@ -23,16 +24,19 @@ func NewReminderContextRepository(db *gorm.DB) *ReminderContextRepository {
 	}
 }
 
-func (repo *ReminderContextRepository) GetAllReminderContexts() ([]*models.ReminderContext, error) {
+func (repo *ReminderContextRepository) GetAllReminderContexts(params dtos.ReminderContextListQueryParamsDTO) ([]*models.ReminderContext, error) {
 	var contexts []*models.ReminderContext
 
-	result := repo.db.Find(&contexts)
+	query := repo.db.Model(&models.ReminderContext{})
 
-	if result.Error != nil {
-		return nil, result.Error
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
 	}
 
-	return contexts, result.Error
+	err := query.Find(&contexts).Error
+	return contexts, err
 }
 
 func (repo *ReminderContextRepository) GetByID(id uint) (*models.ReminderContext, error) {
