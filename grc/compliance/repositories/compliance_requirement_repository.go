@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"errors"
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
@@ -211,6 +212,11 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 	// Base query for counting
 	countQuery := repo.db.Table("compliance_requirements").
 		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
+		Joins("LEFT JOIN compliance_requirement_categories ON compliance_requirement_categories.id = compliance_requirements.compliance_requirement_category_id").
+		Joins("LEFT JOIN severity_levels ON severity_levels.id = compliance_requirements.severity_level_id").
+		Joins("LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_requirements.compliance_status_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = compliance_requirements.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by_id").
 		Where("compliance_clauses.compliance_register_id = ?", complianceID)
 
 	// Apply same filters for counting
@@ -316,8 +322,23 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
             LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by_id
             LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
         `).
-		Where("compliance_clauses.compliance_register_id = ?", complianceID).
-		Order(params.SortBy + " " + params.Sort)
+		Where("compliance_clauses.compliance_register_id = ?", complianceID)
+	if params.SortBy == "" {
+		params.SortBy = "compliance_clauses.clause_no"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	// NUMERIC order for clause_no + stable tie-breaker
+	var orderExpr string
+	switch params.SortBy {
+	case "compliance_clauses.clause_no", "compliance_clause_no", "":
+		orderExpr = fmt.Sprintf("CAST(compliance_clauses.clause_no AS INT) %s, compliance_requirements.id %s", params.Sort, params.Sort)
+	default:
+		orderExpr = fmt.Sprintf("%s %s, compliance_requirements.id %s", params.SortBy, params.Sort, params.Sort)
+	}
+	query = query.Order(orderExpr)
 
 	// Pagination
 	if params.Page > 0 && params.PageSize > 0 {
