@@ -33,6 +33,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentPostReviewController := app.IncidentModule.IncidentPostReviewController
 	incidentAssociatedItemController := app.IncidentModule.IncidentAssociatedItemController
 	incidentTimelineController := app.IncidentModule.IncidentTimelineController
+	incidentActionPlanCommentController := app.IncidentModule.IncidentActionPlanCommentController
 
 	//Incident Category
 	incidentRoutes.GET("/incident-categories", incidentCategoryController.GetAllIncidentCategories)
@@ -103,6 +104,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.POST("/incidents/:incidentID/action-plans/:actionPlanId/status-updates", incidentActionPlanStatusUpdateController.CreateIncidentActionPlanStatusUpdate)
 	incidentRoutes.PUT("/incidents/:incidentID/action-plans/:actionPlanId/status-updates/:id", incidentActionPlanStatusUpdateController.UpdateIncidentActionPlanStatusUpdate)
 	incidentRoutes.GET("/incidents/:incidentID/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "view"), incidentActionPlanStatusUpdateController.GetLatestIncidentActionPlanStatusUpdate)
+
+	// Incident Action Plan Comments
+	unauthenticatedRoutes.GET("/incidents/:incidentID/action-plans/:actionPlanId/comments/:commentId/document-download", incidentActionPlanCommentController.DownloadIncidentActionPlanCommentDocument)
+	unauthenticatedRoutes.GET("/incidents/:incidentID/action-plans/:actionPlanId/comments/:commentId/document-preview", incidentActionPlanCommentController.GetIncidentActionPlanCommentDocumentPreview)
+	incidentRoutes.GET("/incidents/:incidentID/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentActionPlanCommentController.GetAllComments)
+	incidentRoutes.GET("/incidents/:incidentID/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentActionPlanCommentController.GetCommentDetails)
+	incidentRoutes.POST("/incidents/:incidentID/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentActionPlanCommentController.CreateComment)
+	incidentRoutes.PUT("/incidents/:incidentID/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentActionPlanCommentController.UpdateComment)
+	incidentRoutes.POST("/incidents/:incidentID/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentActionPlanCommentController.DeleteComment)
+
 
 	//Incident Root Cause Analyses
 	incidentRoutes.GET("/incidents/:incidentID/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentRootCauseAnalysisController.GetAllIncidentRootCauseAnalyses)

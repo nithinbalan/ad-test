@@ -25,6 +25,7 @@ type IncidentModule struct {
 	IncidentPostReviewController              *controllers.IncidentPostReviewController
 	IncidentAssociatedItemController          *controllers.IncidentAssociatedItemController
 	IncidentTimelineController                *controllers.IncidentTimelineController
+	IncidentActionPlanCommentController       *controllers.IncidentActionPlanCommentController
 
 	IncidentRegisterSvc   services.IncidentRegisterServiceInterface
 	IncidentActionPlanSvc services.IncidentActionPlanServiceInterface
@@ -115,6 +116,10 @@ func NewIncidentModule(db *gorm.DB,
 	incidentActionPlanStatusUpdateSvc := services.NewIncidentActionPlanStatusUpdateService(incidentActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, incidentActionPlanSvc, masterModule.ActionPlanStatusSvc)
 	incidentActionPlanStatusUpdateController := controllers.NewIncidentActionPlanStatusUpdateController(incidentActionPlanStatusUpdateSvc)
 
+	incidentActionPlanCommentRepository := repositories.NewIncidentActionPlanCommentRepository(db)
+	incidentActionPlanCommentSvc := services.NewIncidentActionPlanCommentService(incidentActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, incidentActionPlanSvc, commonModule.NotificationService)
+	incidentActionPlanCommentController := controllers.NewIncidentActionPlanCommentController(incidentActionPlanCommentSvc)
+
 	incidentRootCauseAnalysisRepo := repositories.NewIncidentRootCauseAnalysisRepository(db)
 	incidentRootCauseAnalysisSvc := services.NewIncidentRootCauseAnalysisService(incidentRootCauseAnalysisRepo, sharedModule.ActivityLogService, incidentRegisterSvc, incidentTimelineSvc)
 	incidentRootCauseAnalysisController := controllers.NewIncidentRootCauseAnalysisController(incidentRootCauseAnalysisSvc)
@@ -163,6 +168,7 @@ func NewIncidentModule(db *gorm.DB,
 		IncidentPostReviewController:              incidentPostReviewController,
 		IncidentAssociatedItemController:          incidentAssociatedItemController,
 		IncidentTimelineController:                incidentTimelineController,
+		IncidentActionPlanCommentController:       incidentActionPlanCommentController,
 
 		IncidentRegisterSvc:   incidentRegisterSvc,
 		IncidentActionPlanSvc: incidentActionPlanSvc,
