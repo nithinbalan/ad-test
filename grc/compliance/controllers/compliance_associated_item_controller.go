@@ -487,3 +487,27 @@ func (caic *ComplianceAssociatedItemController) DeleteComplianceDocument(c *gin.
 
 	c.JSON(http.StatusOK, gin.H{"message": "Document unmapped from compliance register successfully"})
 }
+
+func (caic *ComplianceAssociatedItemController) GetComplianceControlCountByStatus(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	controlCounts, err := caic.service.GetComplianceControlCountByStatus(uint(complianceID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(caic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, controlCounts)
+}
