@@ -12,7 +12,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	incidentDTOs "jethur/grc/incident/dtos"
-	"jethur/grc/Incident/repositories"
+	"jethur/grc/incident/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
