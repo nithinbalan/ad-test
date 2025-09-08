@@ -254,7 +254,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/controls/:controlId/kpis", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.CreateControlKPI)
 	organizationRoutes.DELETE("/controls/:controlId/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlAssociatedItemController.DeleteControlKPI)
 
-	//Process Group
+	// Process Group
 	// Process Group
 	organizationRoutes.GET("/process-groups", processGroupController.GetAllProcessGroups)
 	organizationRoutes.GET("/process-groups/:id", processGroupController.GetProcessGroupDetails)
@@ -278,6 +278,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/:controlActionPlanUpdateId", controlActionPlanStatusUpdateController.UpdateControlActionPlanStatusUpdate)
 
 	organizationRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlActionPlanStatusUpdateController.GetLatestControlActionPlanStatusUpdate)
+	organizationRoutes.PUT("/controls/:controlId/action-plans/:controlActionPlanId/approve", controlActionPlanStatusUpdateController.ApproveControlActionPlan)
+	organizationRoutes.PUT("/controls/:controlId/action-plans/:controlActionPlanId/revert", controlActionPlanStatusUpdateController.RevertControlActionPlan)
 
 	// process
 	organizationRoutes.GET("/processes/template", middlewares.RolePermissionMiddleware(db, "process", "modify"), processController.GetProcessesTemplate)

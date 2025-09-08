@@ -181,9 +181,9 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Create(auditFindingID uint
 	}
 
 	if auditFindingActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && auditFindingActionPlan.ReviewUserID != nil {
-		urlParam := fmt.Sprintf(`{"threat_id":%d, "action_plan_id":%d}`, auditFindingID, auditFindingActionPlanID)
+		urlParam := fmt.Sprintf(`{"audit_id":%d, "action_plan_id":%d}`, auditFindingID, auditFindingActionPlanID)
 		taskDTO := commonDTOs.TaskFormDTO{
-			ModuleIdentifier:         "threat",
+			ModuleIdentifier:         "audit",
 			AuditFindingActionPlanID: &auditFindingActionPlanID,
 			Title:                    auditFindingActionPlan.Title,
 			Description:              auditFindingActionPlan.Description,
@@ -230,7 +230,6 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Create(auditFindingID uint
 			utility.LogError("Failed to log activity", fields)
 		}
 
-		fmt.Println("check 6")
 		if auditFindingActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && auditFindingActionPlan.ReviewUserID != nil {
 			// prepare notification
 			urlParam := fmt.Sprintf(`{"audit_id":%d, "action_plan_id":%d}`, auditFindingID, auditFindingActionPlanID)
