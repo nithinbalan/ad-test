@@ -25,7 +25,7 @@ func NewIncidentActionPlanCommentController(service services.IncidentActionPlanC
 	}
 }
 
-func (capc *IncidentActionPlanCommentController) GetAllComments(c *gin.Context) {
+func (iapc *IncidentActionPlanCommentController) GetAllComments(c *gin.Context) {
 	incidentIDStr := c.Param("incidentID")
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 32)
 	if err != nil {
@@ -39,14 +39,14 @@ func (capc *IncidentActionPlanCommentController) GetAllComments(c *gin.Context) 
 		return
 	}
 
-	comments, err := capc.service.GetAll(uint(incidentID), uint(actionPlanID))
+	comments, err := iapc.service.GetAll(uint(incidentID), uint(actionPlanID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(capc.db, c, e.Error())
+			utility.SendInternalErrResp(iapc.db, c, e.Error())
 			return
 		}
 	}
@@ -54,7 +54,7 @@ func (capc *IncidentActionPlanCommentController) GetAllComments(c *gin.Context) 
 	c.JSON(http.StatusOK, comments)
 }
 
-func (capc *IncidentActionPlanCommentController) GetCommentDetails(c *gin.Context) {
+func (iapc *IncidentActionPlanCommentController) GetCommentDetails(c *gin.Context) {
 	incidentIDStr := c.Param("incidentID")
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 32)
 	if err != nil {
@@ -75,14 +75,14 @@ func (capc *IncidentActionPlanCommentController) GetCommentDetails(c *gin.Contex
 		return
 	}
 
-	comment, err := capc.service.GetFullDetailsByID(uint(incidentID), uint(actionPlanID), uint(commentID))
+	comment, err := iapc.service.GetFullDetailsByID(uint(incidentID), uint(actionPlanID), uint(commentID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(capc.db, c, e.Error())
+			utility.SendInternalErrResp(iapc.db, c, e.Error())
 			return
 		}
 	}
@@ -90,7 +90,7 @@ func (capc *IncidentActionPlanCommentController) GetCommentDetails(c *gin.Contex
 	c.JSON(http.StatusOK, comment)
 }
 
-func (capc *IncidentActionPlanCommentController) CreateComment(c *gin.Context) {
+func (iapc *IncidentActionPlanCommentController) CreateComment(c *gin.Context) {
 	incidentIDStr := c.Param("incidentID")
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 32)
 	if err != nil {
@@ -112,18 +112,18 @@ func (capc *IncidentActionPlanCommentController) CreateComment(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, err.Error())
+		utility.SendInternalErrResp(iapc.db, c, err.Error())
 		return
 	}
 
-	id, err := capc.service.Create(uint(incidentID), uint(actionPlanID), currentUserID, &formDTO)
+	id, err := iapc.service.Create(uint(incidentID), uint(actionPlanID), currentUserID, &formDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(capc.db, c, e.Error())
+			utility.SendInternalErrResp(iapc.db, c, e.Error())
 			return
 		}
 	}
@@ -131,7 +131,7 @@ func (capc *IncidentActionPlanCommentController) CreateComment(c *gin.Context) {
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-func (capc *IncidentActionPlanCommentController) UpdateComment(c *gin.Context) {
+func (iapc *IncidentActionPlanCommentController) UpdateComment(c *gin.Context) {
 	incidentIDStr := c.Param("incidentID")
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 32)
 	if err != nil {
@@ -160,18 +160,18 @@ func (capc *IncidentActionPlanCommentController) UpdateComment(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, err.Error())
+		utility.SendInternalErrResp(iapc.db, c, err.Error())
 		return
 	}
 
-	err = capc.service.Update(uint(incidentID), uint(actionPlanID), uint(commentID), currentUserID, &formDTO)
+	err = iapc.service.Update(uint(incidentID), uint(actionPlanID), uint(commentID), currentUserID, &formDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(capc.db, c, e.Error())
+			utility.SendInternalErrResp(iapc.db, c, e.Error())
 			return
 		}
 	}
@@ -179,7 +179,7 @@ func (capc *IncidentActionPlanCommentController) UpdateComment(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (capc *IncidentActionPlanCommentController) DeleteComment(c *gin.Context) {
+func (iapc *IncidentActionPlanCommentController) DeleteComment(c *gin.Context) {
 	incidentIDStr := c.Param("incidentID")
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 32)
 	if err != nil {
@@ -204,11 +204,11 @@ func (capc *IncidentActionPlanCommentController) DeleteComment(c *gin.Context) {
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(capc.db, c, err.Error())
+		utility.SendInternalErrResp(iapc.db, c, err.Error())
 		return
 	}
 
-	failedIDs, err := capc.service.Delete(uint(incidentID), uint(actionPlanID), request.IDs, currentUserID)
+	failedIDs, err := iapc.service.Delete(uint(incidentID), uint(actionPlanID), request.IDs, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -218,7 +218,7 @@ func (capc *IncidentActionPlanCommentController) DeleteComment(c *gin.Context) {
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(capc.db, c, e.Error())
+			utility.SendInternalErrResp(iapc.db, c, e.Error())
 			return
 		}
 	}
@@ -226,7 +226,7 @@ func (capc *IncidentActionPlanCommentController) DeleteComment(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (capc *IncidentActionPlanCommentController) GetIncidentActionPlanCommentDocumentPreview(c *gin.Context) {
+func (iapc *IncidentActionPlanCommentController) GetIncidentActionPlanCommentDocumentPreview(c *gin.Context) {
 	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
@@ -256,20 +256,20 @@ func (capc *IncidentActionPlanCommentController) GetIncidentActionPlanCommentDoc
 		return
 	}
 
-	incidentActionPlanCommentDocumentPath, err := capc.service.GetDocumentPath(uint(incidentID), uint(actionPlanID), uint(id), token)
+	incidentActionPlanCommentDocumentPath, err := iapc.service.GetDocumentPath(uint(incidentID), uint(actionPlanID), uint(id), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 		default:
-			utility.SendInternalErrResp(capc.db, c, err.Error())
+			utility.SendInternalErrResp(iapc.db, c, err.Error())
 		}
 		return
 	}
 	c.File(incidentActionPlanCommentDocumentPath)
 }
 
-func (capc *IncidentActionPlanCommentController) DownloadIncidentActionPlanCommentDocument(c *gin.Context) {
+func (iapc *IncidentActionPlanCommentController) DownloadIncidentActionPlanCommentDocument(c *gin.Context) {
 	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
@@ -298,13 +298,13 @@ func (capc *IncidentActionPlanCommentController) DownloadIncidentActionPlanComme
 		return
 	}
 
-	incidentActionPlanCommentDocumentPath, err := capc.service.GetDocumentPath(uint(incidentID), uint(actionPlanID), uint(id), token)
+	incidentActionPlanCommentDocumentPath, err := iapc.service.GetDocumentPath(uint(incidentID), uint(actionPlanID), uint(id), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 		default:
-			utility.SendInternalErrResp(capc.db, c, err.Error())
+			utility.SendInternalErrResp(iapc.db, c, err.Error())
 		}
 		return
 	}
