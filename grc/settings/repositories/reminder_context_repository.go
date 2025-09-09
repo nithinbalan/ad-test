@@ -29,12 +29,33 @@ func (repo *ReminderContextRepository) GetAllReminderContexts(params dtos.Remind
 
 	query := repo.db.Model(&models.ReminderContext{})
 
+	// Keyword search (title_en / title_ar)
+	if params.Keyword != "" {
+		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
+
+	// Status filter
+	if params.Status == "active" || params.Status == "inactive" {
+		query = query.Where("status = ?", params.Status)
+	}
+
+	// Other filters
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
 
+	// Sorting
+	if params.SortBy == "" {
+		params.SortBy = "title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	// Execute query
 	err := query.Find(&contexts).Error
 	return contexts, err
 }
