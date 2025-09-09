@@ -168,7 +168,7 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 
 		for _, doc := range documents {
 			storagePath := filepath.Join(
-				"incident", "incident", strconv.FormatUint(uint64(incidentID), 10),
+				"incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10),
 				"action-plans", strconv.FormatUint(uint64(actionPlanID), 10),
 				"comments", strconv.FormatUint(uint64(id), 10),
 				"documents",
@@ -580,7 +580,7 @@ func (iapc *IncidentActionPlanCommentService) Update(incidentID uint, actionPlan
 	}
 
 	for _, doc := range newDocuments {
-		storagePath := filepath.Join("incident", "incident", strconv.FormatUint(uint64(incidentID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			tx.Rollback()
@@ -589,7 +589,7 @@ func (iapc *IncidentActionPlanCommentService) Update(incidentID uint, actionPlan
 	}
 
 	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("incident", "incident", strconv.FormatUint(uint64(incidentID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 			tx.Rollback()
@@ -713,7 +713,7 @@ func (iapc *IncidentActionPlanCommentService) GetDocumentPath(incidentID, action
 		return "", fmt.Errorf("resource not found")
 	}
 
-	storagePath := filepath.Join("incident", "incident", strconv.FormatUint(uint64(incidentID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+	storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
 	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
