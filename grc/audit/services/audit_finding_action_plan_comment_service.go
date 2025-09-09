@@ -338,7 +338,7 @@ func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, action
 				EmailData:            emailData,
 			}
 
-			err = afaps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_action_plan")
+			err = afaps.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "audit_finding_action_plan")
 			if err != nil {
 				utility.LogError("Failed to send notifications", map[string]interface{}{
 					"error": err.Error(),
