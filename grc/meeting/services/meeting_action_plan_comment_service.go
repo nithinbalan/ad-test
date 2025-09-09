@@ -264,7 +264,7 @@ func (mapc *MeetingActionPlanCommentService) Create(meetingID uint, actionPlanID
 					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":  assignedBy.LastNameEn,
 					"CommentedOn":            time.Now().Format("2006-01-02"),
-					"RedirectURL":            fmt.Sprintf("%s/meeting/register/%d/action-plans?action_plan_id=%d", appURL, meetingID, id),
+					"RedirectURL":            fmt.Sprintf("%s/management-review/meetings/%d/action-plans?action_plan_id=%d", appURL, meetingID, id),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -334,7 +334,7 @@ func (mapc *MeetingActionPlanCommentService) Create(meetingID uint, actionPlanID
 				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":             time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%s/meeting/register/%d/action-plans?action_plan_id=%d", appURL, meetingID, id),
+				"RedirectURL":            fmt.Sprintf("%s/management-review/meetings/%d/action-plans?action_plan_id=%d", appURL, meetingID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -404,7 +404,7 @@ func (mapc *MeetingActionPlanCommentService) Create(meetingID uint, actionPlanID
 				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":             time.Now().Format("2006-01-02"),
-				"RedirectURL":            fmt.Sprintf("%s/meeting/register/%d/action-plans?action_plan_id=%d", appURL, meetingID, id),
+				"RedirectURL":            fmt.Sprintf("%s/management-review/meetings/%d/action-plans?action_plan_id=%d", appURL, meetingID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -473,7 +473,7 @@ func (mapc *MeetingActionPlanCommentService) Create(meetingID uint, actionPlanID
 					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":  assignedBy.LastNameEn,
 					"AssignedOn":             time.Now().Format("2006-01-02"),
-					"RedirectURL":            fmt.Sprintf("%s/meeting/register/%d/action-plans?action_plan_id=%d", appURL, meetingID, id),
+					"RedirectURL":            fmt.Sprintf("%s/management-review/meetings/%d/action-plans?action_plan_id=%d", appURL, meetingID, id),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
