@@ -257,8 +257,7 @@ func (mapc *MeetingActionPlanCommentService) Create(meetingID uint, actionPlanID
 					"FirstNameEn":            reviewUser.FirstNameEn,
 					"LastNameEn":             reviewUser.LastNameEn,
 					"MeetingReferenceNumber": meetingActionPlan.Meeting.ReferenceNumber,
-
-					"MeetingTitle":           meetingActionPlan.Title,
+					"MeetingTitle":           meetingActionPlan.Meeting.Title,
 					"ActionPlanTitle":        meetingActionPlan.Title,
 					"ActionPlanDescription":  meetingActionPlan.Description,
 					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
@@ -328,7 +327,7 @@ func (mapc *MeetingActionPlanCommentService) Create(meetingID uint, actionPlanID
 				"FirstNameEn":            responsibleUser.FirstNameEn,
 				"LastNameEn":             responsibleUser.LastNameEn,
 				"MeetingReferenceNumber": meetingActionPlan.Meeting.ReferenceNumber,
-				"MeetingTitle":           meetingActionPlan.Title,
+				"MeetingTitle":           meetingActionPlan.Meeting.Title,
 				"ActionPlanTitle":        meetingActionPlan.Title,
 				"ActionPlanDescription":  meetingActionPlan.Description,
 				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
@@ -397,8 +396,7 @@ func (mapc *MeetingActionPlanCommentService) Create(meetingID uint, actionPlanID
 				"FirstNameEn":            responsibleUser.FirstNameEn,
 				"LastNameEn":             responsibleUser.LastNameEn,
 				"MeetingReferenceNumber": meetingActionPlan.Meeting.ReferenceNumber,
-
-				"MeetingTitle":           meetingActionPlan.Title,
+				"MeetingTitle":           meetingActionPlan.Meeting.Title,
 				"ActionPlanTitle":        meetingActionPlan.Title,
 				"ActionPlanDescription":  meetingActionPlan.Description,
 				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
@@ -466,8 +464,7 @@ func (mapc *MeetingActionPlanCommentService) Create(meetingID uint, actionPlanID
 					"FirstNameEn":            responsibleUser.FirstNameEn,
 					"LastNameEn":             responsibleUser.LastNameEn,
 					"MeetingReferenceNumber": meetingActionPlan.Meeting.ReferenceNumber,
-
-					"MeetingTitle":           meetingActionPlan.Title,
+					"MeetingTitle":           meetingActionPlan.Meeting.Title,
 					"ActionPlanTitle":        meetingActionPlan.Title,
 					"ActionPlanDescription":  meetingActionPlan.Description,
 					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
