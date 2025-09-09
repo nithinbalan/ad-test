@@ -8,6 +8,7 @@ import (
 	"jethur/grc/models"
 	"jethur/utility"
 	"math"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -334,7 +335,7 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 	var orderExpr string
 	switch params.SortBy {
 	case "compliance_clauses.clause_no", "compliance_clause_no", "":
-		orderExpr = fmt.Sprintf("CAST(compliance_clauses.clause_no AS INT) %s, compliance_requirements.id %s", params.Sort, params.Sort)
+		orderExpr = buildClauseOrderExprRows(params.Sort)
 	default:
 		orderExpr = fmt.Sprintf("%s %s, compliance_requirements.id %s", params.SortBy, params.Sort, params.Sort)
 	}
@@ -717,4 +718,28 @@ func (repo *ComplianceRequirementRepository) GetResponsibleUnitRowsByRequirement
 		Joins("JOIN organization_units ou ON ou.id = compliance_requirement_responsible_units.responsible_unit_id").
 		Where("compliance_requirement_responsible_units.compliance_requirement_id IN ?", requirementIDs).
 		Scan(out).Error
+}
+func buildClauseOrderExprRows(sort string) string {
+	dir := "ASC"
+	if strings.EqualFold(sort, "desc") {
+		dir = "DESC"
+	}
+
+	padded := `
+	CONCAT(
+	compliance_clauses.clause_no,
+	CASE
+		WHEN (LEN(compliance_clauses.clause_no) - LEN(REPLACE(compliance_clauses.clause_no, '.', ''))) <= 3
+		THEN REPLICATE('.0', 3 - (LEN(compliance_clauses.clause_no) - LEN(REPLACE(compliance_clauses.clause_no, '.', ''))))
+		ELSE ''
+	END
+	)`
+
+	return fmt.Sprintf(`
+	TRY_CONVERT(INT, PARSENAME(%s, 4)) %s,
+	TRY_CONVERT(INT, PARSENAME(%s, 3)) %s,
+	TRY_CONVERT(INT, PARSENAME(%s, 2)) %s,
+	TRY_CONVERT(INT, PARSENAME(%s, 1)) %s,
+	compliance_requirements.id %s
+	`, padded, dir, padded, dir, padded, dir, padded, dir, dir)
 }

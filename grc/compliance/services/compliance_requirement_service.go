@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"sort"
-	"strconv"
 
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
@@ -153,44 +151,27 @@ func (crs *ComplianceRequirementService) GetRequirementsByComplianceID(complianc
 		}
 	}
 
-	// Step 6: Group into clauses
-	clauseMap := make(map[uint]*complianceDTOs.ComplianceRequirementByComplianceIDListDTO)
-	for _, r := range requirements {
-		if _, exists := clauseMap[r.ClauseID]; !exists {
-			clauseMap[r.ClauseID] = &complianceDTOs.ComplianceRequirementByComplianceIDListDTO{
+	// Step 6: Group into clauses (preserve DB order)
+	clauseIndex := make(map[uint]int)
+	clauseList := make([]*complianceDTOs.ComplianceRequirementByComplianceIDListDTO, 0, len(requirements))
+
+	for _, r := range requirements { // already ordered by SQL
+		idx, ok := clauseIndex[r.ClauseID]
+		if !ok {
+			idx = len(clauseList)
+			clauseIndex[r.ClauseID] = idx
+			clauseList = append(clauseList, &complianceDTOs.ComplianceRequirementByComplianceIDListDTO{
 				ClauseID:      r.ClauseID,
 				ClauseNo:      r.ComplianceClauseNo,
 				ClauseTitleEn: r.ComplianceClauseTitleEn,
 				ClauseTitleAr: r.ComplianceClauseTitleAr,
 				Requirements:  []*complianceDTOs.ComplianceRequirementListDTO{},
-			}
+			})
 		}
-		clauseMap[r.ClauseID].Requirements = append(clauseMap[r.ClauseID].Requirements, r)
+		clauseList[idx].Requirements = append(clauseList[idx].Requirements, r)
 	}
 
-	// Step 7: Convert map to slice
-	// Build slice
-	var clauseList []*complianceDTOs.ComplianceRequirementByComplianceIDListDTO
-	for _, v := range clauseMap {
-		clauseList = append(clauseList, v)
-	}
-	// Sort by numeric ClauseNo (then ClauseID as tie-break)
-	sort.Slice(clauseList, func(i, j int) bool {
-		ai, _ := strconv.Atoi(clauseList[i].ClauseNo)
-		aj, _ := strconv.Atoi(clauseList[j].ClauseNo)
-		if ai != aj {
-			if params.Sort == "desc" {
-				return ai > aj
-			}
-			return ai < aj
-		}
-		// fallback
-		if params.Sort == "desc" {
-			return clauseList[i].ClauseID > clauseList[j].ClauseID
-		}
-		return clauseList[i].ClauseID < clauseList[j].ClauseID
-	})
-	// Step 8: Build response with correct pagination
+	// Step 7: Build response with correct pagination
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 	return &complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO{
 		Items: clauseList,
