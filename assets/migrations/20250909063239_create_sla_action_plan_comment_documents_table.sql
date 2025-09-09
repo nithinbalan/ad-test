@@ -13,7 +13,7 @@ CREATE TABLE
         created_by_id INT,
         updated_by_id INT NULL,
         created_at DATETIME NOT NULL,
-        updated_at DATETIME NULL
+        updated_at DATETIME NULL,
         -- Foreign Key Constraints
         CONSTRAINT FK_sla_action_plan_comment_documents FOREIGN KEY (sla_action_plan_comment_id) REFERENCES sla_action_plan_comments (id) ON DELETE CASCADE ON UPDATE NO ACTION,
         CONSTRAINT FK_sla_action_plan_comment_documents_users_1 FOREIGN KEY (created_by_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
