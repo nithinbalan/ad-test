@@ -335,7 +335,7 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 		// Send notification and email to review user if assigned
 		if complianceAssessmentFormDTO.ReviewUserID != 0 {
 			// Prepare notification
-			urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d}`, id)
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
 			queryParam := ""
 			entity := "compliance-assessment"
 			action := "review-user-assign"
@@ -495,7 +495,7 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 
 		// sends notification if review user has changed
 		if oldReviewUserID != complianceAssessmentUpdateFormDTO.ReviewUserID {
-			urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d}`, id)
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
 			queryParam := ""
 			entity := "compliance-assessment"
 
