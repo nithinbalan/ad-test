@@ -1330,7 +1330,7 @@ func (repo *ProcessAssociatedItemRepository) GetAllProcessStrategicObjectives(pr
 			LEFT JOIN review_frequencies ON review_frequencies.id = strategic_objectives.review_frequency_id
 			LEFT JOIN users AS created_user ON created_user.id = strategic_objectives.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = strategic_objectives.updated_by_id
-        `).Where("strategic_objective_processes.strategic_objective_id = ?", processID)
+        `).Where("strategic_objective_processes.process_id = ?", processID)
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {
