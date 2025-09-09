@@ -32,6 +32,7 @@ type SettingsModule struct {
 	EscalationController             *controllers.EscalationController
 	EscalationLevelController        *controllers.EscalationLevelController
 	ReminderContextController        *controllers.ReminderContextController
+	RAGSettingController             *controllers.RAGSettingController
 
 	SystemPreferenceSvc       services.SystemPreferenceServiceInterface
 	OrganizationUnitSvc       services.OrganizationUnitServiceInterface
@@ -150,6 +151,10 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	escalationLevelSvc := services.NewEscalationLevelService(escalationLevelRepo, escalationSvc, sharedModule.ActivityLogService)
 	escalationLevelController := controllers.NewEscalationLevelController(escalationLevelSvc)
 
+	ragSettingRepo := repositories.NewRAGSettingRepository(db)
+	ragSettingSvc := services.NewRAGSettingService(ragSettingRepo)
+	ragSettingController := controllers.NewRAGSettingController(ragSettingSvc)
+
 	return &SettingsModule{
 		OrganizationLevelController:      organizationLevelController,
 		SystemPreferenceController:       systemPreferenceController,
@@ -174,6 +179,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		EscalationController:             escalationController,
 		EscalationLevelController:        escalationLevelController,
 		ReminderContextController:        reminderContextController,
+		RAGSettingController:             ragSettingController,
 
 		SystemPreferenceSvc:       systemPreferenceSvc,
 		OrganizationLevelSvc:      organizationLevelSvc,

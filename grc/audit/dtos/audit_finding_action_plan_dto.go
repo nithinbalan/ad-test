@@ -109,7 +109,9 @@ type AuditFindingActionPlanDetailDTO struct {
 	AuditFinding            AuditFindingDetailDTO                    `json:"audit_finding"`
 	SeverityLevel           *masterDTOs.SeverityLevelDTO             `json:"severity_level"`
 	ResponsibleUser         *organizationDTOs.UserMinimalDTO         `json:"responsible_user"`
+	ResponsibleUserID       *uint                                    `json:"responsible_user_id"`
 	ReviewUser              *organizationDTOs.UserMinimalDTO         `json:"review_user"`
+	ReviewUserID            *uint									 `josn:"review_user_id"`									
 	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO           `json:"action_plan_status"`
 	Percentage              *uint                                    `json:"percentage"`
 	Comments                *string                                  `json:"comments"`

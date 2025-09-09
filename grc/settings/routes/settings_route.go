@@ -37,6 +37,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	escalationController := app.SettingsModule.EscalationController
 	escalationLevelController := app.SettingsModule.EscalationLevelController
 	reminderContextController := app.SettingsModule.ReminderContextController
+	ragSettingController := app.SettingsModule.RAGSettingController
 
 	// Organization Level
 	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
@@ -166,4 +167,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.POST("/escalation-levels", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), escalationLevelController.CreateEscalationLevel)
 	settingRoutes.PUT("/escalation-levels/:escalationLevelId", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), escalationLevelController.UpdateEscalationLevel)
 	settingRoutes.POST("/escalation-levels/delete", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), escalationLevelController.DeleteEscalationLevels)
+
+	settingRoutes.GET("/rag-setting", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), ragSettingController.GetAllRAGSetting)
 }
