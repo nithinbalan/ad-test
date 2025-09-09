@@ -23,6 +23,12 @@ func NewReminderContextController(service services.ReminderContextServiceInterfa
 }
 
 func (rcc *ReminderContextController) GetAllReminderContexts(c *gin.Context) {
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+
+	// Allowed filters
 	allowedParams := []string{
 		"module_ids",
 	}
@@ -30,6 +36,10 @@ func (rcc *ReminderContextController) GetAllReminderContexts(c *gin.Context) {
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	queryParams := dtos.ReminderContextListQueryParamsDTO{
+		Sort:    sort,
+		SortBy:  sortBy,
+		Keyword: keyword,
+		Status:  status,
 		Filters: filters,
 	}
 
