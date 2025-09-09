@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
+	"io"
 	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/services"
 	"jethur/utility"
@@ -175,6 +177,15 @@ func (dc *DocumentController) GetDocumentDetails(c *gin.Context) {
 
 func (dc *DocumentController) CreateDocument(c *gin.Context) {
 	var documentFormDTO documentDTOs.DocumentFormDTO
+	bodyBytes, err := io.ReadAll(c.Request.Body)
+if err != nil {
+    fmt.Println("Error reading body:", err)
+    utility.SendInternalErrResp(dc.db, c, err.Error())
+    return
+}
+
+// Print raw body
+fmt.Println("Request Body:", string(bodyBytes))
 	if err := c.ShouldBindJSON(&documentFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
