@@ -39,6 +39,7 @@ type AuditModule struct {
 	AuditDocumentRequestController               *controllers.AuditDocumentRequestController
 	AuditFindingRootCauseAnalysisController      *controllers.AuditFindingRootCauseAnalysisController
 	AuditFindingActionPlanController             *controllers.AuditFindingActionPlanController
+	AuditFindingActionPlanCommentController      *controllers.AuditFindingActionPlanCommentController
 	AuditFindingActionPlanStatusUpdateController *controllers.AuditFindingActionPlanStatusUpdateController
 	AuditDocumentRequestConversationController   *controllers.AuditDocumentRequestConversationController
 	AuditChecklistController                     *controllers.AuditChecklistController
@@ -350,6 +351,10 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditFindingActionPlanStatusUpdateSvc := services.NewAuditFindingActionPlanStatusUpdateService(auditFindingActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, auditFindingActionPlanSvc, masterModule.ActionPlanStatusSvc, auditFindingSvc, organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, taskModule.TaskStatusService)
 	auditFindingActionPlanStatusUpdateController := controllers.NewAuditFindingActionPlanStatusUpdateController(auditFindingActionPlanStatusUpdateSvc)
 
+	auditFindingActionPlanCommentRepo := repositories.NewAuditFindingActionPlanCommentRepository(db)
+	auditFindingActionPlanCommentSvc := services.NewAuditFindingActionPlanCommentService(auditFindingActionPlanCommentRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, auditFindingActionPlanSvc, commonModule.NotificationService)
+	auditFindingActionPlanCommentController := controllers.NewAuditFindingActionPlanCommentController(auditFindingActionPlanCommentSvc)
+
 	auditScheduleRepo := repositories.NewAuditScheduleRepository(db)
 	auditScheduleSvc := services.NewAuditScheduleService(
 		auditScheduleRepo,
@@ -537,6 +542,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 		AuditDocumentRequestController:               auditDocumentRequestController,
 		AuditFindingRootCauseAnalysisController:      auditFindingRootCauseAnalysisController,
 		AuditFindingActionPlanController:             auditFindingActionPlanController,
+		AuditFindingActionPlanCommentController:      auditFindingActionPlanCommentController,
 		AuditFindingActionPlanStatusUpdateController: auditFindingActionPlanStatusUpdateController,
 		AuditDocumentRequestConversationController:   auditDocumentRequestConversationController,
 		AuditChecklistController:                     auditChecklistController,
