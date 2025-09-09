@@ -330,6 +330,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":  assignedBy.LastNameEn,
 			"AssignedOn":            time.Now().Format("2006-01-02"),
+			"TargetDate":            ComplianceActionPlanFormDTO.TargetDate,
 			"RedirectURL":           fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, complianceAssessmentID),
 		}
 
@@ -577,6 +578,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"TargetDate":            existingComplianceAssessmentRequirementActionPlan.TargetDate.Format("2006-01-02"),
 				"RedirectURL":           fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, complianceAssessmentID),
 			}
 
