@@ -140,7 +140,7 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 		}
 
 		url := utility.GenerateDocumentURL(
-			"incident", "incident", strconv.FormatUint(uint64(incidentID), 10),
+			"incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10),
 			"action-plans", strconv.FormatUint(uint64(actionPlanID), 10),
 			"comments", strconv.FormatUint(uint64(id), 10),
 			"documents",
@@ -534,7 +534,7 @@ func (iapc *IncidentActionPlanCommentService) Update(incidentID uint, actionPlan
 				return err
 			}
 
-			url := utility.GenerateDocumentURL("incident", "incident", strconv.FormatUint(uint64(incidentID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+			url := utility.GenerateDocumentURL("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 			document := &models.IncidentActionPlanCommentDocument{
 				IncidentActionPlanCommentID: id,
