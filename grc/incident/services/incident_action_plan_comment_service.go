@@ -270,7 +270,7 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 					EmailTo:              emailTo,
 					Subject:              subject,
-					TemplateRelativePath: "Incident/templates/email/incident_action_plan_comment.html",
+					TemplateRelativePath: "incident/templates/email/incident_action_plan_comment.html",
 					EmailData:            emailData,
 				}
 
@@ -340,7 +340,7 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 				EmailTo:              emailTo,
 				Subject:              subject,
-				TemplateRelativePath: "Incident/templates/email/incident_action_plan_comment.html",
+				TemplateRelativePath: "incident/templates/email/incident_action_plan_comment.html",
 				EmailData:            emailData,
 			}
 
@@ -410,7 +410,7 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 				EmailTo:              emailTo,
 				Subject:              subject,
-				TemplateRelativePath: "Incident/templates/email/incident_action_plan_comment.html",
+				TemplateRelativePath: "incident/templates/email/incident_action_plan_comment.html",
 				EmailData:            emailData,
 			}
 
@@ -479,7 +479,7 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 					EmailTo:              emailTo,
 					Subject:              subject,
-					TemplateRelativePath: "Incident/templates/email/incident_action_plan_comment.html",
+					TemplateRelativePath: "incident/templates/email/incident_action_plan_comment.html",
 					EmailData:            emailData,
 				}
 
