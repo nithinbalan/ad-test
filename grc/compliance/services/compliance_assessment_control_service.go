@@ -382,6 +382,7 @@ func (s *ComplianceAssessmentControlService) ApproveComplianceControl(assessment
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
+			appURL := utility.GetAppURL()
 
 			// Email Notification
 			emailNotification := &commonDTOs.EmailNotificationDTO{
@@ -397,6 +398,7 @@ func (s *ComplianceAssessmentControlService) ApproveComplianceControl(assessment
 					"Comment":         commentForm.Comment,
 					"ApprovedBy":      createdBy.FirstNameEn,
 					"ApprovalDate":    time.Now().Format("2006-01-02"),
+					"RedirectURL":     fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, assessmentID),
 				},
 			}
 
@@ -491,11 +493,13 @@ func (s *ComplianceAssessmentControlService) RevertComplianceControl(assessmentI
 				IsSystemNotification: false,
 				CreatedByID:          &currentUserID,
 			}
+			appURL := utility.GetAppURL()
 
 			emailNotification := &commonDTOs.EmailNotificationDTO{
 				EmailTo:              []string{completedUser.Email},
 				Subject:              fmt.Sprintf("Compliance Control #%d Reverted", controlID),
 				TemplateRelativePath: "compliance/templates/email/compliance_control_reverted.html",
+
 				EmailData: map[string]interface{}{
 					"FirstNameEn":     completedUser.FirstNameEn,
 					"LastNameEn":      completedUser.LastNameEn,
@@ -505,6 +509,7 @@ func (s *ComplianceAssessmentControlService) RevertComplianceControl(assessmentI
 					"Comment":         commentForm.Comment,
 					"RevertedBy":      createdBy.FirstNameEn,
 					"ReversionDate":   time.Now().Format("2006-01-02"),
+					"RedirectURL":     fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, assessmentID),
 				},
 			}
 			_ = s.notificationSvc.SendNotification(dbNotification, emailNotification, "compliance_assessment")
@@ -589,6 +594,7 @@ func (s *ComplianceAssessmentControlService) ResubmitComplianceControl(assessmen
 			IsSystemNotification: false,
 			CreatedByID:          &currentUserID,
 		}
+		appURL := utility.GetAppURL()
 
 		emailNotification := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              []string{responsibleUser.Email},
@@ -603,6 +609,7 @@ func (s *ComplianceAssessmentControlService) ResubmitComplianceControl(assessmen
 				"Comment":          commentForm.Comment,
 				"ResubmittedBy":    createdBy.FirstNameEn,
 				"ResubmissionDate": time.Now().Format("2006-01-02"),
+				"RedirectURL":      fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, assessmentID),
 			},
 		}
 		_ = s.notificationSvc.SendNotification(dbNotification, emailNotification, "compliance_assessment")

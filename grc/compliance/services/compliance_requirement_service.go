@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
+	"strconv"
 
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
@@ -167,11 +169,27 @@ func (crs *ComplianceRequirementService) GetRequirementsByComplianceID(complianc
 	}
 
 	// Step 7: Convert map to slice
+	// Build slice
 	var clauseList []*complianceDTOs.ComplianceRequirementByComplianceIDListDTO
 	for _, v := range clauseMap {
 		clauseList = append(clauseList, v)
 	}
-
+	// Sort by numeric ClauseNo (then ClauseID as tie-break)
+	sort.Slice(clauseList, func(i, j int) bool {
+		ai, _ := strconv.Atoi(clauseList[i].ClauseNo)
+		aj, _ := strconv.Atoi(clauseList[j].ClauseNo)
+		if ai != aj {
+			if params.Sort == "desc" {
+				return ai > aj
+			}
+			return ai < aj
+		}
+		// fallback
+		if params.Sort == "desc" {
+			return clauseList[i].ClauseID > clauseList[j].ClauseID
+		}
+		return clauseList[i].ClauseID < clauseList[j].ClauseID
+	})
 	// Step 8: Build response with correct pagination
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 	return &complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO{

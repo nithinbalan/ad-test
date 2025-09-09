@@ -71,6 +71,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.POST("/meetings/:id/action-plans/:meetingActionPlanId/status-updates", meetingActionPlanStatusUpdateController.CreateMeetingActionPlanStatusUpdate)
 	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId", meetingActionPlanStatusUpdateController.UpdateMeetingActionPlanStatusUpdate)
 	meetingRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "meeting_action_plan", "view"), meetingActionPlanStatusUpdateController.GetLatestMeetingActionPlanStatusUpdate)
+	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId/approve", meetingActionPlanStatusUpdateController.ApproveMeetingActionPlan)
+	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId/revert", meetingActionPlanStatusUpdateController.RevertMeetingActionPlan)
+
 	// Preview and download
 	unauthenticatedRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId/document-preview", meetingActionPlanStatusUpdateController.GetMeetingActionPlanDocumentPreview)
 	unauthenticatedRoutes.GET("/meetings/:id/action-plans/:meetingActionPlanId/status-updates/:meetingActionPlanUpdateId/document-download", meetingActionPlanStatusUpdateController.DownloadMeetingActionPlanDocument)

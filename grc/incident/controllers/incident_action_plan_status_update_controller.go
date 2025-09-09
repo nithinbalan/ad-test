@@ -1,13 +1,14 @@
 package controllers
 
 import (
+	"net/http"
+	"path/filepath"
+	"strconv"
+
 	commonDTOs "jethur/grc/common/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 	"jethur/grc/incident/services"
 	"jethur/utility"
-	"net/http"
-	"path/filepath"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -46,7 +47,6 @@ func (iasuc *IncidentActionPlanStatusUpdateController) GetAllIncidentActionPlanS
 	keyword := c.Query("keyword")
 
 	incidentStatuses, err := iasuc.service.GetAll(uint(incidentID), uint(actionPlanID), sort, sortBy, keyword)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -91,7 +91,6 @@ func (iasuc *IncidentActionPlanStatusUpdateController) CreateIncidentActionPlanS
 	}
 
 	createdID, err := iasuc.service.Create(uint(incidentID), uint(actionPlanID), currentUserID, &incidentStatusUpdateFormDTO)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -198,7 +197,6 @@ func (iasuc *IncidentActionPlanStatusUpdateController) GetLatestIncidentActionPl
 }
 
 func (iasuc *IncidentActionPlanStatusUpdateController) GetIncidentActionPlanStatusUpdateDocumentPreview(c *gin.Context) {
-
 	incidentIDStr := c.Param("incidentID")
 
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
@@ -294,4 +292,98 @@ func (iasuc *IncidentActionPlanStatusUpdateController) DownloadIncidentActionPla
 
 	// Serve the file
 	c.File(incidentActionPlanStatusUpdateDocumentPath)
+}
+
+func (iasuc *IncidentActionPlanStatusUpdateController) ApproveIncidentActionPlan(c *gin.Context) {
+	var incidentActionPlanReviewUserStatusUpdateFormDTO incidentDTOs.IncidentActionPlanReviewUserStatusUpdateFormDTO
+
+	incidentID, err := strconv.Atoi(c.Param("incidentID"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	incidentActionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&incidentActionPlanReviewUserStatusUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(iasuc.db, c, err.Error())
+		return
+	}
+
+	err = iasuc.service.Approve(uint(incidentID), uint(incidentActionPlanID), currentUserID, &incidentActionPlanReviewUserStatusUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(iasuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (iasuc *IncidentActionPlanStatusUpdateController) RevertIncidentActionPlan(c *gin.Context) {
+	var incidentActionPlanReviewUserStatusUpdateFormDTO incidentDTOs.IncidentActionPlanReviewUserStatusUpdateFormDTO
+
+	incidentID, err := strconv.Atoi(c.Param("incidentID"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	incidentActionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&incidentActionPlanReviewUserStatusUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(iasuc.db, c, err.Error())
+		return
+	}
+
+	err = iasuc.service.Revert(uint(incidentID), uint(incidentActionPlanID), currentUserID, &incidentActionPlanReviewUserStatusUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(iasuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }

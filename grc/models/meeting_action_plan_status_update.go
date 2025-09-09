@@ -10,7 +10,7 @@ type MeetingActionPlanStatusUpdate struct {
 	MeetingActionPlanID uint       `json:"meeting_action_plan_id" gorm:"not null" binding:"required"`
 	ActionPlanStatusID  uint       `json:"action_plan_status_id" gorm:"not null" binding:"required"`
 	Comment             string     `json:"comment" gorm:"type:nvarchar(max);not null" binding:"required"`
-	Percentage          uint       `json:"percentage" gorm:"default:0;not null" binding:"required"`
+	Percentage          *uint      `json:"percentage" gorm:"default:0;not null" binding:"required"`
 	CreatedAt           time.Time  `json:"created_at" gorm:"not null" binding:"required"`
 	UpdatedAt           *time.Time `json:"updated_at,omitempty" gorm:"default:null" binding:"-"`
 	CreatedByID         uint       `json:"created_by_id" gorm:"not null; column:created_by_id" binding:"required"`
