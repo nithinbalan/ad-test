@@ -15,7 +15,7 @@ type ProcessAssociatedItemRepositoryInterface interface {
 	GetAllControls(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) ([]*organizationDTOs.ProcessControlListDTO, error)
 	GetAllControlsWithPagination(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	GetAllRisks(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
-	GetAllIncidents(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
+	GetAllIncidents(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
 	GetAllDocuments(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	GetAllAssets(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemAssetListResponseDTO, error)
 	GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error)
@@ -33,6 +33,13 @@ type ProcessAssociatedItemRepositoryInterface interface {
 	GetAllProcessKPI(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateProcessKPI(kpis []*models.KPIProcess, tx ...utility.DatabaseTransaction) error
 	DeleteProcessKPI(processID uint, kpiID uint, tx ...utility.DatabaseTransaction) error
+	CreateProcessAsset(assets []*models.ProcessAsset, tx ...utility.DatabaseTransaction) error
+	DeleteProcessAsset(processID uint, assetID uint, tx ...utility.DatabaseTransaction) error
+	CreateProcessIncident(incidents []*models.IncidentProcess, tx ...utility.DatabaseTransaction) error
+	DeleteProcessIncident(processID uint, incidentID uint, tx ...utility.DatabaseTransaction) error
+	GetAllProcessStrategicObjectives(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
+	CreateProcessStrategicObjective(objectives []*models.StrategicObjectiveProcess, tx ...utility.DatabaseTransaction) error
+	DeleteProcessStrategicObjective(processID uint, strategicObjectiveID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ProcessAssociatedItemRepository struct {
@@ -343,47 +350,81 @@ func (repo *ProcessAssociatedItemRepository) GetAllRisks(processID uint, params 
 	return response, nil
 }
 
-func (repo *ProcessAssociatedItemRepository) GetAllIncidents(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error) {
-	var incidentList []*organizationDTOs.ProcessIncidentListDTO
+func (repo *ProcessAssociatedItemRepository) GetAllIncidents(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error) {
+	var incidentList []*commonDTOs.AssociatedIncidentListDTO
 	var totalCount int64
 
 	query := repo.db.Table("incident_processes").
 		Select(`
-			incident_processes.id,
+			incident_register.*,
+			incident_processes.id as id,
 			incident_processes.incident_register_id,
-			incident_processes.process_id,
-			incident_register.reference_number,
-			incident_register.title,
-			incident_register.description,
-			incident_register.incident_at,
-			incident_register.location,
-			incident_register.reported_at,
-			incident_register.quick_action,
-			incident_categories.title_en AS incident_category_title_en,
-			incident_categories.title_ar AS incident_category_title_ar,
-			incident_sub_categories.title_en AS incident_sub_category_title_en,
-			incident_sub_categories.title_ar AS incident_sub_category_title_ar,
-			incident_types.title_en AS incident_type_title_en,
-			incident_types.title_ar AS incident_type_title_ar,
+            incident_categories.title_en AS incident_category_title_en,
+            incident_categories.title_ar AS incident_category_title_ar,
+            incident_types.title_en AS incident_type_title_en,
+            incident_types.title_ar AS incident_type_title_ar,
+            incident_statuses.title_en AS incident_status_title_en,
+            incident_statuses.title_ar AS incident_status_title_ar,
+			incident_statuses.color_code AS incident_status_color_code,
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,
 			severity_levels.color_code AS severity_level_color_code,
-			incident_statuses.title_en AS incident_status_title_en,
-			incident_statuses.title_ar AS incident_status_title_ar,
-			incident_statuses.color_code AS incident_status_color_code
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+            responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            responsible_user.last_name_en AS responsible_user_last_name_en,
+            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			reported_user.id AS reported_by_id,
+            reported_user.first_name_en AS reported_user_first_name_en,
+            reported_user.first_name_ar AS reported_user_first_name_ar,
+            reported_user.last_name_en AS reported_user_last_name_en,
+            reported_user.last_name_ar AS reported_user_last_name_ar,
+			reported_user.initial AS reported_user_initial,
+            reported_user.color AS reported_user_color,
+            reported_user.email AS reported_user_email,
+            reported_user.profile_image_path AS reported_user_profile_image_path,
+			CONVERT(VARCHAR, incident_investigations.initiated_at, 23) AS investigation_initiated_at,
+			incident_investigations.description AS investigation_description,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path  
 		`).
 		Joins(`
 			LEFT JOIN incident_register ON incident_register.id = incident_processes.incident_register_id
-			LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
+		    LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
 			LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id
 			LEFT JOIN incident_types ON incident_types.id = incident_register.incident_type_id
 			LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id
 			LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id
+			LEFT JOIN organization_units ON organization_units.id = incident_register.responsible_unit_id
+		    LEFT JOIN users AS responsible_user ON responsible_user.id = incident_register.responsible_user_id
+			LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
+			LEFT JOIN incident_investigations ON incident_investigations.incident_register_id = incident_register.id
+			LEFT JOIN users AS created_user ON created_user.id = incident_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = incident_register.updated_by_id
 		`).
 		Where("incident_processes.process_id = ?", processID)
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -412,6 +453,10 @@ func (repo *ProcessAssociatedItemRepository) GetAllIncidents(processID uint, par
 		params.Sort = "asc"
 	}
 
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize
@@ -424,7 +469,7 @@ func (repo *ProcessAssociatedItemRepository) GetAllIncidents(processID uint, par
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
-	response := &organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO{
+	response := &commonDTOs.AssociatedIncidentListResponseDTO{
 		Items: incidentList,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
@@ -1185,5 +1230,167 @@ func (repo *ProcessAssociatedItemRepository) DeleteProcessKPI(processID uint, kp
 	return db.
 		Where("kpi_register_id = ? AND process_id = ?", kpiID, processID).
 		Delete(&models.KPIProcess{}).
+		Error
+}
+
+func (repo *ProcessAssociatedItemRepository) CreateProcessAsset(assets []*models.ProcessAsset, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&assets).Error
+}
+
+func (repo *ProcessAssociatedItemRepository) DeleteProcessAsset(processID uint, assetID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("asset_register_id = ? AND process_id = ?", assetID, processID).
+		Delete(&models.ProcessAsset{}).
+		Error
+}
+
+func (repo *ProcessAssociatedItemRepository) CreateProcessIncident(incidents []*models.IncidentProcess, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&incidents).Error
+}
+
+func (repo *ProcessAssociatedItemRepository) DeleteProcessIncident(processID uint, incidentID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("incident_register_id = ? AND process_id = ?", incidentID, processID).
+		Delete(&models.IncidentProcess{}).
+		Error
+}
+
+func (repo *ProcessAssociatedItemRepository) GetAllProcessStrategicObjectives(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error) {
+	var objectiveList []*commonDTOs.AssociatedStrategicObjectiveListDTO
+	var totalCount int64
+
+	query := repo.db.Table("strategic_objective_processes").
+		Select(`
+			strategic_objectives.*,
+			strategic_objective_processes.strategic_objective_id,
+			strategic_objective_categories.title_en AS strategic_objective_category_title_en,
+			strategic_objective_categories.title_ar AS strategic_objective_category_title_ar,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			review_user.first_name_en AS review_user_first_name_en,
+			review_user.first_name_ar AS review_user_first_name_ar,
+			review_user.last_name_en AS review_user_last_name_en,
+			review_user.last_name_ar AS review_user_last_name_ar,
+			review_user.initial AS review_user_initial,
+			review_user.color AS review_user_color,
+			review_user.email AS review_user_email,
+			review_user.profile_image_path AS review_user_profile_image_path,
+
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
+        `).
+		Joins(`
+			LEFT JOIN strategic_objectives ON strategic_objectives.id = strategic_objective_processes.strategic_objective_id
+			LEFT JOIN strategic_objective_categories ON strategic_objective_categories.id = strategic_objectives.strategic_objective_category_id
+			LEFT JOIN organization_units ON organization_units.id = strategic_objectives.responsible_unit_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = strategic_objectives.responsible_user_id
+			LEFT JOIN users AS review_user ON review_user.id = strategic_objectives.review_user_id
+			LEFT JOIN review_frequencies ON review_frequencies.id = strategic_objectives.review_frequency_id
+			LEFT JOIN users AS created_user ON created_user.id = strategic_objectives.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = strategic_objectives.updated_by_id
+        `).Where("strategic_objective_processes.process_id = ?", processID)
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(strategic_objectives.title_en LIKE ? OR
+			strategic_objectives.title_ar LIKE ? OR
+			strategic_objectives.status LIKE ? )`,
+			keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "strategic_objectives.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&objectiveList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO{
+		Items: objectiveList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *ProcessAssociatedItemRepository) CreateProcessStrategicObjective(objectives []*models.StrategicObjectiveProcess, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&objectives).Error
+}
+
+func (repo *ProcessAssociatedItemRepository) DeleteProcessStrategicObjective(processID uint, strategicObjectiveID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("strategic_objective_id = ? AND process_id = ?", strategicObjectiveID, processID).
+		Delete(&models.StrategicObjectiveProcess{}).
 		Error
 }

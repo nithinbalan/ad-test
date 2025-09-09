@@ -463,3 +463,479 @@ func (baic *BcpAssociatedItemController) DeleteBcpRisk(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from Bcp successfully"})
 }
+
+func (baic *BcpAssociatedItemController) GetAllBcpAssets(c *gin.Context) {
+
+	BcpIDStr := c.Param("id")
+
+	BcpID, err := strconv.ParseUint(BcpIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	valueStr := c.Query("value")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(baic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(baic.db, c, "Invalid page_size parameter")
+		return
+	}
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(baic.db, c, "Invalid value parameter")
+			return
+		}
+	}
+	allowedParams := []string{
+		"current_likelihood_ids",
+		"current_impact_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Filters:  filters,
+		Value:    value,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	assets, err := baic.service.GetAllBcpAssets(uint(BcpID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(baic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, assets)
+}
+
+func (baic *BcpAssociatedItemController) CreateBcpAsset(c *gin.Context) {
+	var input commonDTOs.AssociatedAssetMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	BcpID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(baic.db, c, err.Error())
+		return
+	}
+
+	err = baic.service.CreateBcpAsset(uint(BcpID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(baic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (baic *BcpAssociatedItemController) DeleteBcpAsset(c *gin.Context) {
+
+	BcpIDStr := c.Param("id")
+	assetIDStr := c.Param("assetId")
+	BcpID, err := strconv.ParseUint(BcpIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	assetID, err := strconv.ParseUint(assetIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = baic.service.DeleteBcpAsset(uint(BcpID), uint(assetID))
+	if err != nil {
+		utility.SendInternalErrResp(baic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Asset unmapped from Bcp successfully"})
+}
+
+func (baic *BcpAssociatedItemController) GetAllBcpIncidents(c *gin.Context) {
+
+	BcpIDStr := c.Param("id")
+
+	BcpID, err := strconv.ParseUint(BcpIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	valueStr := c.Query("value")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(baic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(baic.db, c, "Invalid page_size parameter")
+		return
+	}
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(baic.db, c, "Invalid value parameter")
+			return
+		}
+	}
+	allowedParams := []string{
+		"current_likelihood_ids",
+		"current_impact_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Filters:  filters,
+		Value:    value,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	incidents, err := baic.service.GetAllBcpIncidents(uint(BcpID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(baic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, incidents)
+}
+
+func (baic *BcpAssociatedItemController) CreateBcpIncident(c *gin.Context) {
+	var input commonDTOs.AssociatedIncidentMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	BcpID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(baic.db, c, err.Error())
+		return
+	}
+
+	err = baic.service.CreateBcpIncident(uint(BcpID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(baic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (baic *BcpAssociatedItemController) DeleteBcpIncident(c *gin.Context) {
+
+	BcpIDStr := c.Param("id")
+	incidentIDStr := c.Param("incidentId")
+	BcpID, err := strconv.ParseUint(BcpIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = baic.service.DeleteBcpIncident(uint(BcpID), uint(incidentID))
+	if err != nil {
+		utility.SendInternalErrResp(baic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Incident unmapped from Bcp successfully"})
+}
+
+func (baic *BcpAssociatedItemController) GetAllBcpStrategicObjectives(c *gin.Context) {
+
+	BcpIDStr := c.Param("id")
+
+	BcpID, err := strconv.ParseUint(BcpIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	valueStr := c.Query("value")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(baic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(baic.db, c, "Invalid page_size parameter")
+		return
+	}
+	var value int
+	if valueStr != "" {
+		value, err = strconv.Atoi(valueStr)
+		if err != nil {
+			utility.SendInternalErrResp(baic.db, c, "Invalid value parameter")
+			return
+		}
+	}
+	allowedParams := []string{
+		"current_likelihood_ids",
+		"current_impact_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Filters:  filters,
+		Value:    value,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	objectives, err := baic.service.GetAllBcpStrategicObjectives(uint(BcpID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(baic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, objectives)
+}
+
+func (baic *BcpAssociatedItemController) CreateBcpStrategicObjectives(c *gin.Context) {
+	var input commonDTOs.AssociatedStrategicObjectiveMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	BcpID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(baic.db, c, err.Error())
+		return
+	}
+
+	err = baic.service.CreateBcpStrategicObjectives(uint(BcpID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(baic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (baic *BcpAssociatedItemController) DeleteBcpStrategicObjectives(c *gin.Context) {
+
+	BcpIDStr := c.Param("id")
+	strategicObjectiveIDStr := c.Param("strategicObjectiveId")
+	BcpID, err := strconv.ParseUint(BcpIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	strategicObjectiveID, err := strconv.ParseUint(strategicObjectiveIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = baic.service.DeleteBcpStrategicObjectives(uint(BcpID), uint(strategicObjectiveID))
+	if err != nil {
+		utility.SendInternalErrResp(baic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Strategic Objective unmapped from Bcp successfully"})
+}
+func (baic *BcpAssociatedItemController) GetAllClauses(c *gin.Context) {
+	bcpIDStr := c.Param("id")
+
+	bcpID, err := strconv.ParseUint(bcpIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(baic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(baic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	clauses, err := baic.service.GetAllClauses(uint(bcpID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(baic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, clauses)
+}
+func (baic *BcpAssociatedItemController) UpdateClauses(c *gin.Context) {
+	var clauseFormDTO commonDTOs.AssociatedClauseFormDTO
+
+	bcpID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&clauseFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(baic.db, c, err.Error())
+		return
+	}
+
+	err = baic.service.UpdateClauses(uint(bcpID), currentUserID, &clauseFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(baic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Clauses against the bcp updated successfully"})
+}

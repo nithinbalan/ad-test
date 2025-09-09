@@ -543,8 +543,7 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 	tx := capus.repo.BeginTransaction()
 
 	if existingComplianceActionPlan.ActionPlanStatusID != complianceActionPlanStatusResolved.ID {
-		tx.Rollback()
-		return utility.NewForbiddenError("The compliance action plan status must be resolved.")
+		
 	}
 
 	existingComplianceActionPlan.ActionPlanStatusID = complianceActionPlanClosedStatus.ID
@@ -574,6 +573,12 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 		return err
 	}
 
+	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, existingComplianceActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, *existingComplianceActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
 	if err != nil {
 		tx.Rollback()
@@ -583,16 +588,6 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-
-	// Start a new transaction for the second update
-	tx2 := capus.repo.BeginTransaction()
-	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, existingComplianceActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx2)
-	if err != nil {
-		tx2.Rollback()
-		return err
-	}
-
-	tx2.Commit()
 
 	go func() {
 		urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, complianceID, compliaceActionPlanID)

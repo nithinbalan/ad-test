@@ -21,16 +21,6 @@ type ProcessRepositoryInterface interface {
 	Update(process *models.Process, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber() (string, error)
-
-	CreateProcessControls(controls []*models.ProcessControl, tx ...utility.DatabaseTransaction) error
-	DeleteProcessControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
-
-	CreateProcessDocuments(documents []*models.ProcessAssociatedDocument, tx ...utility.DatabaseTransaction) error
-	DeleteProcessDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
-
-	CreateProcessAssetRegister(assetRegister []*models.ProcessAsset, tx ...utility.DatabaseTransaction) error
-	DeleteProcessAssetRegister(assetRegisterIds []*uint, tx ...utility.DatabaseTransaction) error
-
 	GetDocumentByID(id uint) (*models.Document, error)
 
 	//lifecycle status
@@ -266,12 +256,6 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("LifecycleStatus").
-		Preload("Controls").
-		Preload("Controls.Control").
-		Preload("Assets").
-		Preload("Assets.Asset").
-		Preload("Documents").
-		Preload("Documents.Document").
 		Preload("Risks").
 		Preload("RiskMatrixRating").
 		Preload("RiskMatrixRatingValue").
@@ -385,80 +369,6 @@ func (repo *ProcessRepository) GenerateReferenceNumber() (string, error) {
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "PR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
-}
-
-func (repo *ProcessRepository) CreateProcessControls(controls []*models.ProcessControl, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(&controls).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *ProcessRepository) DeleteProcessControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	// Delete controls by IDs
-	if err := db.Where("id IN (?)", controlIds).Delete(&models.ProcessControl{}).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (repo *ProcessRepository) CreateProcessAssetRegister(assetRegister []*models.ProcessAsset, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(&assetRegister).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *ProcessRepository) DeleteProcessAssetRegister(AssetRegisterIds []*uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	// Delete asset register by IDs
-	if err := db.Where("id IN (?)", AssetRegisterIds).Delete(&models.ProcessAsset{}).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (repo *ProcessRepository) CreateProcessDocuments(documents []*models.ProcessAssociatedDocument, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(&documents).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *ProcessRepository) DeleteProcessDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	if err := db.Where("id IN (?)", documentIds).Delete(&models.ProcessAssociatedDocument{}).Error; err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (repo *ProcessRepository) GetDocumentByID(id uint) (*models.Document, error) {

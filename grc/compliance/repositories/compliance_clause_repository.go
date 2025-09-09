@@ -927,40 +927,73 @@ func (repo *ComplianceClauseRepository) GetAssociatedIncident(complianceID uint,
 	// Second Query: Fetch compliance requirement incidents using the compliance requirement IDs
 	query := repo.db.Table("incident_compliance_requirements").
 		Select(`
-            DISTINCT incident_compliance_requirements.incident_register_id AS incident_register_id,
-            incident_register.reference_number AS incident_reference_number,
-            incident_register.title AS incident_register_title,
-            incident_register.description AS incident_register_description,
+            incident_register.*,
+			incident_compliance_requirements.id as id,
+			incident_compliance_requirements.incident_register_id,
             incident_categories.title_en AS incident_category_title_en,
             incident_categories.title_ar AS incident_category_title_ar,
-            incident_sub_categories.title_en AS incident_sub_category_title_en,
-            incident_sub_categories.title_ar AS incident_sub_category_title_ar,
             incident_types.title_en AS incident_type_title_en,
             incident_types.title_ar AS incident_type_title_ar,
-			severity_levels.title_en AS incident_severity_level_title_en,
-			severity_levels.title_ar AS incident_severity_level_title_ar,
-			severity_levels.color_code AS incident_severity_level_color_code,
-			incident_statuses.title_en AS incident_status_title_en,
+            incident_statuses.title_en AS incident_status_title_en,
             incident_statuses.title_ar AS incident_status_title_ar,
-            incident_statuses.color_code AS incident_status_color_code,
-			reported_user.id AS incident_reported_by_id,
-            reported_user.first_name_en AS incident_reported_user_first_name_en,
-            reported_user.first_name_ar AS incident_reported_user_first_name_ar,
-            reported_user.last_name_en AS incident_reported_user_last_name_en,
-            reported_user.last_name_ar AS incident_reported_user_last_name_ar,
+			incident_statuses.color_code AS incident_status_color_code,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+            responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            responsible_user.last_name_en AS responsible_user_last_name_en,
+            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			reported_user.id AS reported_by_id,
+            reported_user.first_name_en AS reported_user_first_name_en,
+            reported_user.first_name_ar AS reported_user_first_name_ar,
+            reported_user.last_name_en AS reported_user_last_name_en,
+            reported_user.last_name_ar AS reported_user_last_name_ar,
 			reported_user.initial AS reported_user_initial,
-        	reported_user.color AS reported_user_color,
-        	reported_user.email AS reported_user_email,
-        	reported_user.profile_image_path AS reported_user_profile_image_path
+            reported_user.color AS reported_user_color,
+            reported_user.email AS reported_user_email,
+            reported_user.profile_image_path AS reported_user_profile_image_path,
+			CONVERT(VARCHAR, incident_investigations.initiated_at, 23) AS investigation_initiated_at,
+			incident_investigations.description AS investigation_description,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path  
         `).
 		Joins(`
             LEFT JOIN incident_register ON incident_register.id = incident_compliance_requirements.incident_register_id
-			LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
+			 LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
             LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id
             LEFT JOIN incident_types ON incident_types.id = incident_register.incident_type_id
             LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id
 		    LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id
-            LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
+            LEFT JOIN organization_units ON organization_units.id = incident_register.responsible_unit_id
+		    LEFT JOIN users AS responsible_user ON responsible_user.id = incident_register.responsible_user_id
+			LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
+			LEFT JOIN incident_investigations ON incident_investigations.incident_register_id = incident_register.id
+			LEFT JOIN users AS created_user ON created_user.id = incident_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = incident_register.updated_by_id
         `).Where("incident_compliance_requirements.compliance_register_id = ? AND incident_compliance_requirements.compliance_clause_id = ?", complianceID, clauseID)
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -1029,13 +1062,56 @@ func (repo *ComplianceClauseRepository) GetAssociatedStrategicObjective(complian
 
 	query := repo.db.Table("compliance_requirement_strategic_objectives").
 		Select(`
-			strategic_objectives.id AS strategic_objective_id,
-			strategic_objectives.title_en AS strategic_objective_title_en,
-			strategic_objectives.title_ar AS strategic_objective_title_ar,
-			strategic_objectives.status AS strategic_objective_status
+			strategic_objectives.*,
+			compliance_requirement_strategic_objectives.strategic_objective_id,
+			strategic_objective_categories.title_en AS strategic_objective_category_title_en,
+			strategic_objective_categories.title_ar AS strategic_objective_category_title_ar,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			review_user.first_name_en AS review_user_first_name_en,
+			review_user.first_name_ar AS review_user_first_name_ar,
+			review_user.last_name_en AS review_user_last_name_en,
+			review_user.last_name_ar AS review_user_last_name_ar,
+			review_user.initial AS review_user_initial,
+			review_user.color AS review_user_color,
+			review_user.email AS review_user_email,
+			review_user.profile_image_path AS review_user_profile_image_path,
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins(`
 			LEFT JOIN strategic_objectives ON strategic_objectives.id = compliance_requirement_strategic_objectives.strategic_objective_id
+			LEFT JOIN strategic_objective_categories ON strategic_objective_categories.id = strategic_objectives.strategic_objective_category_id
+			LEFT JOIN organization_units ON organization_units.id = strategic_objectives.responsible_unit_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = strategic_objectives.responsible_user_id
+			LEFT JOIN users AS review_user ON review_user.id = strategic_objectives.review_user_id
+			LEFT JOIN review_frequencies ON review_frequencies.id = strategic_objectives.review_frequency_id
+			LEFT JOIN users AS created_user ON created_user.id = strategic_objectives.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = strategic_objectives.updated_by_id
 		`).Where("compliance_requirement_strategic_objectives.compliance_register_id = ? AND compliance_requirement_strategic_objectives.compliance_clause_id = ?", complianceID, clauseID)
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -1110,6 +1186,7 @@ func (repo *ComplianceClauseRepository) GetAssociatedAssets(complianceID uint, c
 	query := repo.db.Table("asset_compliance_requirements").
 		Select(`
 		asset_compliance_requirements.id,
+		asset_compliance_requirements.asset_register_id,
 		asset_register.reference_number,
 		asset_register.title_en,
 		asset_register.title_ar,
@@ -1241,6 +1318,7 @@ func (repo *ComplianceClauseRepository) GetAssociatedProcesses(complianceID uint
 	query := repo.db.Table("process_compliance_requirements").
 		Select(`
 			processes.id,
+			process_compliance_requirements.process_id,
 			processes.reference_number,
 			processes.title_en,
 			processes.title_ar,

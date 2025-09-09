@@ -133,6 +133,7 @@ func NewAssetModule(db *gorm.DB,
 		organizationModule.UserSvc,
 		commonModule.NotificationService,
 		commonModule.DelegateeUserService,
+		taskModule.TaskService,
 	)
 	vulnerabilityActionPlanController := controllers.NewVulnerabilityActionPlanController(vulnerabilityActionPlanSvc)
 
@@ -142,6 +143,8 @@ func NewAssetModule(db *gorm.DB,
 		sharedModule.ActivityLogService,
 		vulnerabilityActionPlanSvc,
 		masterModule.ActionPlanStatusSvc,
+		vulnerabilitySvc,
+		taskModule.TaskService, taskModule.TaskStatusService, organizationModule.UserSvc, commonModule.NotificationService,
 	)
 	vulnerabilityActionPlanStatusUpdateController := controllers.NewVulnerabilityActionPlanStatusUpdateController(vulnerabilityActionPlanStatusUpdateSvc)
 
@@ -156,6 +159,7 @@ func NewAssetModule(db *gorm.DB,
 		organizationModule.UserSvc,
 		commonModule.NotificationService,
 		commonModule.DelegateeUserService,
+		taskModule.TaskService,
 	)
 	threatActionPlanController := controllers.NewThreatActionPlanController(threatActionPlanSvc)
 
@@ -171,6 +175,8 @@ func NewAssetModule(db *gorm.DB,
 		sharedModule.ActivityLogService,
 		threatActionPlanSvc,
 		masterModule.ActionPlanStatusSvc,
+		threatSvc,
+		taskModule.TaskService, taskModule.TaskStatusService, organizationModule.UserSvc, commonModule.NotificationService,
 	)
 	threatActionPlanStatusUpdateController := controllers.NewThreatActionPlanStatusUpdateController(threatActionPlanStatusUpdateSvc)
 

@@ -643,6 +643,8 @@ func (repo *RiskAssociatedItemRepository) GetAllIncidents(riskID uint, params *c
 	query := repo.db.Table("incident_risks").
 		Select(`
 			incident_register.*,
+			incident_risks.id as id,
+			incident_risks.incident_register_id,
             incident_categories.title_en AS incident_category_title_en,
             incident_categories.title_ar AS incident_category_title_ar,
             incident_types.title_en AS incident_type_title_en,
@@ -923,7 +925,8 @@ func (repo *RiskAssociatedItemRepository) GetAllAssets(riskID uint, params *comm
 
 	query := repo.db.Table("risk_assets").
 		Select(`
-		asset_register.id,
+		    risk_assets.id,
+			risk_assets.asset_register_id,
 			asset_register.reference_number,
 			asset_register.title_en,
 			asset_register.title_ar,

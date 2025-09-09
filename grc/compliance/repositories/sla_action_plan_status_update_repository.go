@@ -16,10 +16,11 @@ type SLAActionPlanStatusUpdateRepositoryInterface interface {
 	Update(SLAActionPlanStatusUpdate *models.SLAActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) error
 	GetLatestSLAActionPlanStatusUpdate(slaActionPlanID uint) (*complianceDTOs.SLAActionPlanStatusUpdateListDTO, error)
 
-	//Document
+	// Document
 	CreateDocuments(docs []*models.SLAActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.SLAActionPlanStatusUpdateDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	SLAActionPlanUpdateStatus(SLAActionPlan *models.SLAActionPlan, tx ...utility.DatabaseTransaction) error
 }
 
 type SLAActionPlanStatusUpdateRepository struct {
@@ -38,7 +39,6 @@ func (repo *SLAActionPlanStatusUpdateRepository) BeginTransaction() utility.Data
 }
 
 func (repo *SLAActionPlanStatusUpdateRepository) GetAll(slaActionPlanID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.SLAActionPlanStatusUpdateListDTO, error) {
-
 	var slaActionPlanUpdates []*complianceDTOs.SLAActionPlanStatusUpdateListDTO
 
 	query := repo.db.Table("sla_action_plan_status_updates").
@@ -171,7 +171,6 @@ func (repo *SLAActionPlanStatusUpdateRepository) DeleteDocuments(docIds []*uint,
 }
 
 func (repo *SLAActionPlanStatusUpdateRepository) GetLatestSLAActionPlanStatusUpdate(slaActionPlanID uint) (*complianceDTOs.SLAActionPlanStatusUpdateListDTO, error) {
-
 	var slaActionPlanUpdate *complianceDTOs.SLAActionPlanStatusUpdateListDTO
 
 	query := repo.db.Table("sla_action_plan_status_updates").
@@ -215,4 +214,15 @@ func (repo *SLAActionPlanStatusUpdateRepository) GetLatestSLAActionPlanStatusUpd
 	}
 
 	return slaActionPlanUpdate, nil
+}
+
+func (repo *SLAActionPlanStatusUpdateRepository) SLAActionPlanUpdateStatus(SLAActionPlan *models.SLAActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(SLAActionPlan).Error; err != nil {
+		return err
+	}
+	return nil
 }

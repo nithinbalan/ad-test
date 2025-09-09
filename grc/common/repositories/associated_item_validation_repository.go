@@ -27,6 +27,7 @@ type AssociatedItemValidationRepositoryInterface interface {
 	ProjectExists(id uint) (*models.Project, error)
 	IsBCPMapped(masterName string, columnName string, bcpId, masterID uint) (bool, error)
 	BCPExists(id uint) (*models.BusinessContinuityPlan, error)
+	GetClausesByIDs(ids []uint) ([]*models.ComplianceClause, error)
 }
 
 type AssociatedItemValidationRepository struct {
@@ -340,4 +341,16 @@ func (repo *AssociatedItemValidationRepository) BCPExists(id uint) (*models.Busi
 
 	return bcp, nil
 
+}
+func (repo *AssociatedItemValidationRepository) GetClausesByIDs(ids []uint) ([]*models.ComplianceClause, error) {
+	db := repo.db
+	var clauses []*models.ComplianceClause
+	if err := db.
+		Select("id, compliance_register_id").
+		Where("id IN ?", ids).
+		Find(&clauses).Error; err != nil {
+		return nil, err
+	}
+
+	return clauses, nil
 }

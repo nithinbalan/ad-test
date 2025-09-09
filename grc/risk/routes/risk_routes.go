@@ -378,4 +378,27 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/kri-register/:id/controls", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriAssociatedItemController.GetAllKRIControls)
 	riskRoutes.POST("/kri-register/:id/controls", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.CreateKRIControl)
 	riskRoutes.DELETE("/kri-register/:id/controls/:controlId", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.DeleteKRIControl)
+
+	riskRoutes.GET("/kri-register/:id/assets", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriAssociatedItemController.GetAllKRIAssets)
+	riskRoutes.POST("/kri-register/:id/assets", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.CreateKRIAsset)
+	riskRoutes.DELETE("/kri-register/:id/assets/:assetId", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.DeleteKRIAsset)
+
+	riskRoutes.GET("/kri-register/:id/incidents", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriAssociatedItemController.GetAllKRIIncidents)
+	riskRoutes.POST("/kri-register/:id/incidents", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.CreateKRIIncident)
+	riskRoutes.DELETE("/kri-register/:id/incidents/:incidentId", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.DeleteKRIIncident)
+
+	riskRoutes.GET("/kri-register/:id/risks", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriAssociatedItemController.GetAllKRIRisks)
+	riskRoutes.POST("/kri-register/:id/risks", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.CreateKRIRisk)
+	riskRoutes.DELETE("/kri-register/:id/risks/:riskId", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.DeleteKRIRisk)
+
+	riskRoutes.GET("/kri-register/:id/kpis", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriAssociatedItemController.GetAllKRIKPI)
+	riskRoutes.POST("/kri-register/:id/kpis", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.CreateKRIKPI)
+	riskRoutes.DELETE("/kri-register/:id/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.DeleteKRIKPI)
+
+	riskRoutes.GET("/kri-register/:id/processes", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriAssociatedItemController.GetAllKRIProcesses)
+	riskRoutes.POST("/kri-register/:id/processes", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.CreateKRIProcess)
+	riskRoutes.DELETE("/kri-register/:id/processes/:processId", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.DeleteKRIProcess)
+
+	riskRoutes.GET("/kri-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriAssociatedItemController.GetAllClauses)
+	riskRoutes.PUT("/kri-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.UpdateClauses)
 }

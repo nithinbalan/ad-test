@@ -134,6 +134,8 @@ func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint
 		MeetingActionPlanID:             taskDTO.MeetingActionPlanID,
 		AuditFindingActionPlanID:        taskDTO.AuditFindingActionPlanID,
 		ProjectActionPlanID:             taskDTO.ProjectActionPlanID,
+		ThreatActionPlanID:              taskDTO.ThreatActionPlanID,
+		VulnerabilityActionPlanID:       taskDTO.VulnerabilityActionPlanID,
 		DocumentID:                      taskDTO.DocumentID,
 		DocumentWorkflowID:              taskDTO.DocumentWorkflowID,
 		DocumentChangeRequestID:         taskDTO.DocumentChangeRequestID,
@@ -354,7 +356,6 @@ func (ts *TaskService) UpdateActionPlanTaskStatus(field string, value interface{
 }
 
 func (ts *TaskService) UpdateDelegateeUser(taskID uint, delegateeUserID *uint, userID uint, tx ...utility.DatabaseTransaction) (*models.Task, error) {
-
 	task, err := ts.repo.GetByID(taskID)
 	if err != nil {
 		return nil, err

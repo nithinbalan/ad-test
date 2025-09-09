@@ -85,4 +85,31 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	tprmRoutes.GET("/third-party-register/:id/strategic-objectives", middlewares.RolePermissionMiddleware(db, "third_party_register", "view"), thirdPartyAssociatedItemController.GetAllThirdPartyStrategicObjectives)
 	tprmRoutes.POST("/third-party-register/:id/strategic-objectives", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.CreateThirdPartyStrategicObjective)
 	tprmRoutes.DELETE("/third-party-register/:id/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.DeleteThirdPartyStrategicObjective)
+
+	tprmRoutes.GET("/third-party-register/:id/assets", middlewares.RolePermissionMiddleware(db, "third_party_register", "view"), thirdPartyAssociatedItemController.GetAllThirdPartyAssets)
+	tprmRoutes.POST("/third-party-register/:id/assets", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.CreateThirdPartyAsset)
+	tprmRoutes.DELETE("/third-party-register/:id/assets/:assetId", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.DeleteThirdPartyAsset)
+
+	tprmRoutes.GET("/third-party-register/:id/incidents", middlewares.RolePermissionMiddleware(db, "third_party_register", "view"), thirdPartyAssociatedItemController.GetAllThirdPartyIncidents)
+	tprmRoutes.POST("/third-party-register/:id/incidents", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.CreateThirdPartyIncident)
+	tprmRoutes.DELETE("/third-party-register/:id/incidents/:incidentId", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.DeleteThirdPartyIncident)
+
+	tprmRoutes.GET("/third-party-register/:id/documents", middlewares.RolePermissionMiddleware(db, "third_party_register", "view"), thirdPartyAssociatedItemController.GetAllThirdPartyDocuments)
+	tprmRoutes.POST("/third-party-register/:id/documents", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.CreateThirdPartyDocument)
+	tprmRoutes.DELETE("/third-party-register/:id/documents/:documentId", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.DeleteThirdPartyDocument)
+
+	tprmRoutes.GET("/third-party-register/:id/controls", middlewares.RolePermissionMiddleware(db, "third_party_register", "view"), thirdPartyAssociatedItemController.GetAllThirdPartyControls)
+	tprmRoutes.POST("/third-party-register/:id/controls", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.CreateThirdPartyControl)
+	tprmRoutes.DELETE("/third-party-register/:id/controls/:controlId", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.DeleteThirdPartyControl)
+
+	tprmRoutes.GET("/third-party-register/:id/risks", middlewares.RolePermissionMiddleware(db, "third_party_register", "view"), thirdPartyAssociatedItemController.GetAllThirdPartyRisks)
+	tprmRoutes.POST("/third-party-register/:id/risks", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.CreateThirdPartyRisk)
+	tprmRoutes.DELETE("/third-party-register/:id/risks/:riskId", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.DeleteThirdPartyRisk)
+
+	tprmRoutes.GET("/third-party-register/:id/kpis", middlewares.RolePermissionMiddleware(db, "third_party_register", "view"), thirdPartyAssociatedItemController.GetAllThirdPartyKPI)
+	tprmRoutes.POST("/third-party-register/:id/kpis", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.CreateThirdPartyKPI)
+	tprmRoutes.DELETE("/third-party-register/:id/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.DeleteThirdPartyKPI)
+
+	tprmRoutes.GET("/third-party-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "third_party_register", "view"), thirdPartyAssociatedItemController.GetAllClauses)
+	tprmRoutes.PUT("/third-party-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.UpdateClauses)
 }
