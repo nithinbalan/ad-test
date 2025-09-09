@@ -1062,13 +1062,56 @@ func (repo *ComplianceClauseRepository) GetAssociatedStrategicObjective(complian
 
 	query := repo.db.Table("compliance_requirement_strategic_objectives").
 		Select(`
-			strategic_objectives.id AS strategic_objective_id,
-			strategic_objectives.title_en AS strategic_objective_title_en,
-			strategic_objectives.title_ar AS strategic_objective_title_ar,
-			strategic_objectives.status AS strategic_objective_status
+			strategic_objectives.*,
+			compliance_requirement_strategic_objectives.strategic_objective_id,
+			strategic_objective_categories.title_en AS strategic_objective_category_title_en,
+			strategic_objective_categories.title_ar AS strategic_objective_category_title_ar,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			review_user.first_name_en AS review_user_first_name_en,
+			review_user.first_name_ar AS review_user_first_name_ar,
+			review_user.last_name_en AS review_user_last_name_en,
+			review_user.last_name_ar AS review_user_last_name_ar,
+			review_user.initial AS review_user_initial,
+			review_user.color AS review_user_color,
+			review_user.email AS review_user_email,
+			review_user.profile_image_path AS review_user_profile_image_path,
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins(`
 			LEFT JOIN strategic_objectives ON strategic_objectives.id = compliance_requirement_strategic_objectives.strategic_objective_id
+			LEFT JOIN strategic_objective_categories ON strategic_objective_categories.id = strategic_objectives.strategic_objective_category_id
+			LEFT JOIN organization_units ON organization_units.id = strategic_objectives.responsible_unit_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = strategic_objectives.responsible_user_id
+			LEFT JOIN users AS review_user ON review_user.id = strategic_objectives.review_user_id
+			LEFT JOIN review_frequencies ON review_frequencies.id = strategic_objectives.review_frequency_id
+			LEFT JOIN users AS created_user ON created_user.id = strategic_objectives.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = strategic_objectives.updated_by_id
 		`).Where("compliance_requirement_strategic_objectives.compliance_register_id = ? AND compliance_requirement_strategic_objectives.compliance_clause_id = ?", complianceID, clauseID)
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -1275,6 +1318,7 @@ func (repo *ComplianceClauseRepository) GetAssociatedProcesses(complianceID uint
 	query := repo.db.Table("process_compliance_requirements").
 		Select(`
 			processes.id,
+			process_compliance_requirements.process_id,
 			processes.reference_number,
 			processes.title_en,
 			processes.title_ar,
