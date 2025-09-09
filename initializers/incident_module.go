@@ -112,7 +112,7 @@ func NewIncidentModule(db *gorm.DB,
 	incidentActionPlanController := controllers.NewIncidentActionPlanController(incidentActionPlanSvc)
 
 	incidentActionPlanStatusUpdateRepo := repositories.NewIncidentActionPlanStatusUpdateRepository(db)
-	incidentActionPlanStatusUpdateSvc := services.NewIncidentActionPlanStatusUpdateService(incidentActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, incidentActionPlanSvc, masterModule.ActionPlanStatusSvc)
+	incidentActionPlanStatusUpdateSvc := services.NewIncidentActionPlanStatusUpdateService(incidentActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, incidentActionPlanSvc, masterModule.ActionPlanStatusSvc,  incidentRegisterSvc, taskModule.TaskService, taskModule.TaskStatusService, organizationModule.UserSvc, commonModule.NotificationService)
 	incidentActionPlanStatusUpdateController := controllers.NewIncidentActionPlanStatusUpdateController(incidentActionPlanStatusUpdateSvc)
 
 	incidentRootCauseAnalysisRepo := repositories.NewIncidentRootCauseAnalysisRepository(db)

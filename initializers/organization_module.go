@@ -69,8 +69,8 @@ func NewOrganizationModule(
 	settingsModule *SettingsModule,
 	masterModule *MasterModule,
 	taskModule *TaskModule,
-	commonModule *CommonModule) *OrganizationModule {
-
+	commonModule *CommonModule,
+) *OrganizationModule {
 	// Competency Group Setup
 	competencyGroupRepo := repositories.NewCompetencyGroupRepository(db)
 	competencyGroupSvc := services.NewCompetencyGroupService(competencyGroupRepo, sharedModule.ActivityLogService)
@@ -206,7 +206,7 @@ func NewOrganizationModule(
 	controlActionPlanController := controllers.NewControlActionPlanController(controlActionPlanSvc)
 
 	controlActionPlanStatusUpdateRepo := repositories.NewControlActionPlanStatusUpdateRepository(db)
-	controlActionPlanStatusUpdateSvc := services.NewControlActionPlanStatusUpdateService(controlActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, controlActionPlanSvc, masterModule.ActionPlanStatusSvc)
+	controlActionPlanStatusUpdateSvc := services.NewControlActionPlanStatusUpdateService(controlActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, controlActionPlanSvc, masterModule.ActionPlanStatusSvc, controlSvc, userSvc, commonModule.NotificationService, taskModule.TaskService, taskModule.TaskStatusService)
 	controlActionPlanStatusUpdateController := controllers.NewControlActionPlanStatusUpdateController(controlActionPlanStatusUpdateSvc)
 
 	processRepo := repositories.NewProcessRepository(db)

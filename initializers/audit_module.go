@@ -347,7 +347,7 @@ func NewAuditModule(db *gorm.DB, sharedModule *SharedModule, organizationModule 
 	auditFindingActionPlanController := controllers.NewAuditFindingActionPlanController(auditFindingActionPlanSvc)
 
 	auditFindingActionPlanStatusUpdateRepo := repositories.NewAuditFindingActionPlanStatusUpdateRepository(db)
-	auditFindingActionPlanStatusUpdateSvc := services.NewAuditFindingActionPlanStatusUpdateService(auditFindingActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, auditFindingActionPlanSvc, masterModule.ActionPlanStatusSvc)
+	auditFindingActionPlanStatusUpdateSvc := services.NewAuditFindingActionPlanStatusUpdateService(auditFindingActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, auditFindingActionPlanSvc, masterModule.ActionPlanStatusSvc, auditFindingSvc, organizationModule.UserSvc, commonModule.NotificationService, taskModule.TaskService, taskModule.TaskStatusService)
 	auditFindingActionPlanStatusUpdateController := controllers.NewAuditFindingActionPlanStatusUpdateController(auditFindingActionPlanStatusUpdateSvc)
 
 	auditScheduleRepo := repositories.NewAuditScheduleRepository(db)
