@@ -26,13 +26,13 @@ func NewMeetingActionPlanCommentController(service services.MeetingActionPlanCom
 }
 
 func (mapc *MeetingActionPlanCommentController) GetAllComments(c *gin.Context) {
-	meetingIDStr := c.Param("meetingId")
+	meetingIDStr := c.Param("id")
 	meetingID, err := strconv.ParseUint(meetingIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	actionPlanIDStr := c.Param("actionPlanId")
+	actionPlanIDStr := c.Param("meetingActionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -55,13 +55,13 @@ func (mapc *MeetingActionPlanCommentController) GetAllComments(c *gin.Context) {
 }
 
 func (mapc *MeetingActionPlanCommentController) GetCommentDetails(c *gin.Context) {
-	meetingIDStr := c.Param("meetingId")
+	meetingIDStr := c.Param("id")
 	meetingID, err := strconv.ParseUint(meetingIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	actionPlanIDStr := c.Param("actionPlanId")
+	actionPlanIDStr := c.Param("meetingActionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -91,13 +91,13 @@ func (mapc *MeetingActionPlanCommentController) GetCommentDetails(c *gin.Context
 }
 
 func (mapc *MeetingActionPlanCommentController) CreateComment(c *gin.Context) {
-	meetingIDStr := c.Param("meetingId")
+	meetingIDStr := c.Param("id")
 	meetingID, err := strconv.ParseUint(meetingIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	actionPlanIDStr := c.Param("actionPlanId")
+	actionPlanIDStr := c.Param("meetingActionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -132,13 +132,13 @@ func (mapc *MeetingActionPlanCommentController) CreateComment(c *gin.Context) {
 }
 
 func (mapc *MeetingActionPlanCommentController) UpdateComment(c *gin.Context) {
-	meetingIDStr := c.Param("meetingId")
+	meetingIDStr := c.Param("id")
 	meetingID, err := strconv.ParseUint(meetingIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	actionPlanIDStr := c.Param("actionPlanId")
+	actionPlanIDStr := c.Param("meetingActionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -180,13 +180,13 @@ func (mapc *MeetingActionPlanCommentController) UpdateComment(c *gin.Context) {
 }
 
 func (mapc *MeetingActionPlanCommentController) DeleteComment(c *gin.Context) {
-	meetingIDStr := c.Param("meetingId")
+	meetingIDStr := c.Param("id")
 	meetingID, err := strconv.ParseUint(meetingIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	actionPlanIDStr := c.Param("actionPlanId")
+	actionPlanIDStr := c.Param("meetingActionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -227,7 +227,7 @@ func (mapc *MeetingActionPlanCommentController) DeleteComment(c *gin.Context) {
 }
 
 func (mapc *MeetingActionPlanCommentController) GetMeetingActionPlanCommentDocumentPreview(c *gin.Context) {
-	meetingIDStr := c.Param("meetingId")
+	meetingIDStr := c.Param("id")
 
 	meetingID, err := strconv.ParseUint(meetingIDStr, 10, 64)
 	if err != nil {
@@ -235,7 +235,7 @@ func (mapc *MeetingActionPlanCommentController) GetMeetingActionPlanCommentDocum
 		return
 	}
 
-	actionPlanIDStr := c.Param("actionPlanId")
+	actionPlanIDStr := c.Param("meetingActionPlanId")
 
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
 	if err != nil {
@@ -270,7 +270,7 @@ func (mapc *MeetingActionPlanCommentController) GetMeetingActionPlanCommentDocum
 }
 
 func (mapc *MeetingActionPlanCommentController) DownloadMeetingActionPlanCommentDocument(c *gin.Context) {
-	meetingIDStr := c.Param("meetingId")
+	meetingIDStr := c.Param("id")
 
 	meetingID, err := strconv.ParseUint(meetingIDStr, 10, 64)
 	if err != nil {
@@ -278,7 +278,7 @@ func (mapc *MeetingActionPlanCommentController) DownloadMeetingActionPlanComment
 		return
 	}
 
-	actionPlanIDStr := c.Param("actionPlanId")
+	actionPlanIDStr := c.Param("meetingActionPlanId")
 
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
 	if err != nil {
