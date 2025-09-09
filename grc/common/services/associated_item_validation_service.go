@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"jethur/grc/common/repositories"
+	"jethur/grc/models"
 	"jethur/utility"
 )
 
@@ -18,6 +19,7 @@ type AssociatedItemValidationServiceInterface interface {
 	ValidateControlMapping(masterID uint, controlIds []uint, tableName string, columnName string) error
 	ValidateProjectMapping(masterID uint, projectIds []uint, tableName string, columnName string) error
 	ValidateBCPMapping(masterID uint, bcppIds []uint, tableName string, columnName string) error
+	ValidateClauseIDs(clauseIDs []uint) ([]*models.ComplianceClause, error)
 }
 
 // Service struct
@@ -356,4 +358,33 @@ func (aivs *AssociatedItemValidationService) ValidateBCPMapping(masterID uint, b
 	}
 
 	return nil
+}
+
+func (aivs *AssociatedItemValidationService) ValidateClauseIDs(clauseIDs []uint) ([]*models.ComplianceClause, error) {
+	seen := make(map[uint]bool)
+	for _, id := range clauseIDs {
+		if seen[id] {
+			return nil, utility.NewValidationError(fmt.Errorf("duplicate clause ID: %d", id), "duplicate", "clause_id")
+		}
+		seen[id] = true
+	}
+
+	clauses, err := aivs.repo.GetClausesByIDs(clauseIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch clauses: %w", err)
+	}
+
+	foundClauseIDs := make(map[uint]bool)
+	for _, clause := range clauses {
+		foundClauseIDs[clause.ID] = true
+	}
+
+	for _, id := range clauseIDs {
+		if !foundClauseIDs[id] {
+			return nil, utility.NewValidationError(
+				fmt.Errorf("clause does not exist for ID: %d", id), "not_exist", "clause_id")
+		}
+	}
+
+	return clauses, nil
 }

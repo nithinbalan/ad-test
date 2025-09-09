@@ -925,7 +925,8 @@ func (repo *RiskAssociatedItemRepository) GetAllAssets(riskID uint, params *comm
 
 	query := repo.db.Table("risk_assets").
 		Select(`
-		asset_register.id,
+		    risk_assets.id,
+			risk_assets.asset_register_id,
 			asset_register.reference_number,
 			asset_register.title_en,
 			asset_register.title_ar,

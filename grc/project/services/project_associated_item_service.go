@@ -35,6 +35,8 @@ type ProjectAssociatedItemServiceInterface interface {
 	GetAllProjectRisks(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	CreateProjectRisk(projectID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
 	DeleteProjectRisk(projectID uint, riskID uint) error
+	GetAllClauses(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	UpdateClauses(projectID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
 // Service and implementations
@@ -476,4 +478,85 @@ func (pais *ProjectAssociatedItemService) DeleteProjectRisk(projectID uint, risk
 	}
 
 	return tx.Commit()
+}
+
+func (pais *ProjectAssociatedItemService) GetAllClauses(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+	if _, err := pais.projectSvc.GetByID(projectID); err != nil {
+		return nil, err
+	}
+
+	response, err := pais.repo.GetAllClauses(projectID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (pais *ProjectAssociatedItemService) UpdateClauses(projectID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error {
+
+	if _, err := pais.projectSvc.GetByID(projectID); err != nil {
+		return err
+	}
+	tx := pais.repo.BeginTransaction()
+	clauses, err := pais.validationSvc.ValidateClauseIDs(ClauseFormDTO.ClauseIDs)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingControlClauses, err := pais.repo.GetClausesByProjectId(projectID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingClauses := make(map[uint]bool) // clauseID => exists
+	for _, clauseID := range existingControlClauses {
+		existingClauses[clauseID] = true
+	}
+
+	newClauses := make(map[uint]*models.ComplianceClause)
+	for _, clause := range clauses {
+		newClauses[clause.ID] = clause
+	}
+
+	var clausesToAdd []*models.ProjectComplianceRequirement
+	now := time.Now()
+	for id, clause := range newClauses {
+		if !existingClauses[id] {
+			clausesToAdd = append(clausesToAdd, &models.ProjectComplianceRequirement{
+				ProjectID:            projectID,
+				ComplianceRegisterID: clause.ComplianceRegisterID,
+				ComplianceClauseID:   clause.ID,
+				CreatedByID:          currentUserID,
+				CreatedAt:            now,
+			})
+		}
+	}
+
+	if len(clausesToAdd) > 0 {
+		if err := pais.repo.CreateProjectClauses(clausesToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteClauseIDs []uint
+	for existingID := range existingClauses {
+		if _, found := newClauses[existingID]; !found {
+			deleteClauseIDs = append(deleteClauseIDs, existingID)
+		}
+	}
+
+	if len(deleteClauseIDs) > 0 {
+		if err := pais.repo.DeleteProjectClauses(projectID, deleteClauseIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	return nil
 }

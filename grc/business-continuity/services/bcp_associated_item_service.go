@@ -29,6 +29,11 @@ type BcpAssociatedItemServiceInterface interface {
 	GetAllBcpIncidents(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
 	CreateBcpIncident(BcpID uint, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
 	DeleteBcpIncident(BcpID uint, incidentID uint) error
+	GetAllBcpStrategicObjectives(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
+	CreateBcpStrategicObjectives(BcpID uint, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
+	DeleteBcpStrategicObjectives(BcpID uint, strategicObjectiveID uint) error
+	GetAllClauses(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	UpdateClauses(BcpID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
 // Service and implementations
@@ -365,4 +370,136 @@ func (bais *BcpAssociatedItemService) DeleteBcpIncident(BcpID uint, incidentID u
 	}
 
 	return tx.Commit()
+}
+
+func (bais *BcpAssociatedItemService) GetAllBcpStrategicObjectives(bcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error) {
+	if _, err := bais.BcpSvc.GetByID(bcpID); err != nil {
+		return nil, err
+	}
+	return bais.repo.GetAllBcpStrategicObjectives(bcpID, params)
+}
+
+func (bais *BcpAssociatedItemService) CreateBcpStrategicObjectives(BcpID, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error {
+
+	if _, err := bais.BcpSvc.GetByID(BcpID); err != nil {
+		return err
+	}
+
+	if err := bais.validationSvc.ValidateStrtegicObjectiveMapping(BcpID, dto.StrategicObjectiveIDs, "bcp_strategic_objectives", "business_continuity_plan_id"); err != nil {
+		return err
+	}
+
+	tx := bais.repo.BeginTransaction()
+	var mappings []*models.BcpStrategicObjective
+	currentTime := time.Now()
+	for _, strategicObjectiveID := range dto.StrategicObjectiveIDs {
+		mappings = append(mappings, &models.BcpStrategicObjective{
+			StrategicObjectiveID:     strategicObjectiveID,
+			BusinessContinuityPlanID: BcpID,
+			CreatedBYID:              userID,
+			CreatedAt:                currentTime,
+		})
+	}
+
+	if err := bais.repo.CreateBcpStrategicObjectives(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (bais *BcpAssociatedItemService) DeleteBcpStrategicObjectives(BcpID uint, strategicObjectiveID uint) error {
+	// Validate control existence
+	if _, err := bais.BcpSvc.GetByID(BcpID); err != nil {
+		return err
+	}
+
+	tx := bais.repo.BeginTransaction()
+
+	if err := bais.repo.DeleteBcpStrategicObjectives(BcpID, strategicObjectiveID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+func (bais *BcpAssociatedItemService) GetAllClauses(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+	if _, err := bais.BcpSvc.GetByID(BcpID); err != nil {
+		return nil, err
+	}
+
+	response, err := bais.repo.GetAllClauses(BcpID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (bais *BcpAssociatedItemService) UpdateClauses(BcpID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error {
+
+	if _, err := bais.BcpSvc.GetByID(BcpID); err != nil {
+		return err
+	}
+	tx := bais.repo.BeginTransaction()
+	clauses, err := bais.validationSvc.ValidateClauseIDs(ClauseFormDTO.ClauseIDs)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingControlClauses, err := bais.repo.GetClausesByBcpId(BcpID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingClauses := make(map[uint]bool) // clauseID => exists
+	for _, clauseID := range existingControlClauses {
+		existingClauses[clauseID] = true
+	}
+
+	newClauses := make(map[uint]*models.ComplianceClause)
+	for _, clause := range clauses {
+		newClauses[clause.ID] = clause
+	}
+
+	var clausesToAdd []*models.BcpComplianceRequirement
+	now := time.Now()
+	for id, clause := range newClauses {
+		if !existingClauses[id] {
+			clausesToAdd = append(clausesToAdd, &models.BcpComplianceRequirement{
+				BusinessContinuityPlanID: BcpID,
+				ComplianceRegisterID:     clause.ComplianceRegisterID,
+				ComplianceClauseID:       clause.ID,
+				CreatedByID:              currentUserID,
+				CreatedAt:                now,
+			})
+		}
+	}
+
+	if len(clausesToAdd) > 0 {
+		if err := bais.repo.CreateBcpClauses(clausesToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteClauseIDs []uint
+	for existingID := range existingClauses {
+		if _, found := newClauses[existingID]; !found {
+			deleteClauseIDs = append(deleteClauseIDs, existingID)
+		}
+	}
+
+	if len(deleteClauseIDs) > 0 {
+		if err := bais.repo.DeleteBcpClauses(BcpID, deleteClauseIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	return nil
 }

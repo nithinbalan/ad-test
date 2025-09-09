@@ -3,6 +3,7 @@ package repositories
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	meetingDTOs "jethur/grc/meeting/dtos"
+	"sort"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -34,6 +35,13 @@ type MeetingAssociatedItemRepositoryInterface interface {
 	GetAllMeetingAssets(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	CreateMeetingAsset(assets []*models.MeetingAsset, tx ...utility.DatabaseTransaction) error
 	DeleteMeetingAsset(meetingID uint, assetID uint, tx ...utility.DatabaseTransaction) error
+	GetAllMeetingKPI(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateMeetingKPI(assets []*models.MeetingKpi, tx ...utility.DatabaseTransaction) error
+	DeleteMeetingKPI(meetingID uint, kpiID uint, tx ...utility.DatabaseTransaction) error
+	GetAllClauses(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	CreateMeetingClauses(clauses []*models.MeetingComplianceRequirement, tx ...utility.DatabaseTransaction) error
+	DeleteMeetingClauses(projectID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
+	GetClausesByMeetingId(projectID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 }
 
 type MeetingAssociatedItemRepository struct {
@@ -412,9 +420,8 @@ func (repo *MeetingAssociatedItemRepository) GetAllRisks(meetingID uint, params 
 
 	query := repo.db.Table("meeting_risks").
 		Select(`
-		 risk_associated_documents.id,
-		    risk_associated_documents.risk_register_id,
-		    risk_associated_documents.document_id,
+		    meeting_risks.id,
+		    meeting_risks.risk_register_id,
 			 risk_register.reference_number,
             risk_register.title,
             risk_register.description,
@@ -1210,4 +1217,287 @@ func (repo *MeetingAssociatedItemRepository) DeleteMeetingAsset(meetingID uint, 
 		Where("asset_register_id = ? AND meeting_id = ?", assetID, meetingID).
 		Delete(&models.MeetingAsset{}).
 		Error
+}
+
+func (repo *MeetingAssociatedItemRepository) GetAllMeetingKPI(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	var kpiRegister []*commonDTOs.AssociatedKPIRegisterListDTO
+	var totalCount int64
+
+	query := repo.db.Table("meeting_kpis").
+		Select(`
+            kpi_register.*,
+			meeting_kpis.kpi_register_id,
+			kpi_categories.title_en AS kpi_category_title_en,
+			kpi_categories.title_ar AS kpi_category_title_ar,
+			CONVERT(VARCHAR, kpi_register.start_date, 23) AS start_date,
+			CONVERT(VARCHAR, kpi_register.end_date, 23) AS target_date,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			kpi_statuses.title_en AS kpi_status_title_en,
+			kpi_statuses.title_ar AS kpi_status_title_ar,
+			kpi_statuses.type AS kpi_status_type,
+			kpi_statuses.color_code AS kpi_status_color_code,
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+			review_frequencies.type AS review_frequency_type,
+			calculation_types.title_en AS calculation_type_title_en,
+			calculation_types.title_ar AS calculation_type_title_ar,
+			calculation_types.type AS calculation_type_type,
+			units.title_en AS unit_title_en,
+			units.title_ar AS unit_title_ar,
+			units.code_en AS unit_code_en,
+			units.code_ar AS unit_code_ar,
+			units.color_code AS unit_color_code,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path  
+        `).
+		Joins(`
+		    LEFT JOIN kpi_register ON kpi_register.id = meeting_kpis.kpi_register_id
+			LEFT JOIN kpi_categories ON kpi_categories.id = kpi_register.kpi_category_id
+			LEFT JOIN kpi_statuses ON kpi_statuses.id = kpi_register.kpi_status_id
+			LEFT JOIN calculation_types ON calculation_types.id = kpi_register.calculation_type_id
+			LEFT JOIN review_frequencies ON review_frequencies.id = kpi_register.review_frequency_id
+			LEFT JOIN units ON units.id = kpi_register.unit_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = kpi_register.responsible_user_id
+			LEFT JOIN users AS created_user ON created_user.id = kpi_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = kpi_register.updated_by_id
+        `).Where("meeting_kpis.meeting_id = ?", meetingID)
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(kpi_register.title LIKE ? OR
+			created_user.first_name_en LIKE ? OR
+			created_user.first_name_ar LIKE ? OR
+			created_user.last_name_en LIKE ? OR
+			created_user.last_name_ar LIKE ? OR
+    		updated_user.first_name_en LIKE ? OR
+			updated_user.first_name_ar LIKE ? OR
+			updated_user.last_name_en LIKE ? OR
+			updated_user.last_name_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "kpi_register.title"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	// Apply pagination
+	offset := (params.Page - 1) * params.PageSize
+	query = query.Offset(offset).Limit(params.PageSize)
+
+	// Fetch the data
+	if err := query.Find(&kpiRegister).Error; err != nil {
+		return nil, err
+	}
+
+	// Calculate total pages
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedKPIRegisterListResponseDTO{
+		Items: kpiRegister,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *MeetingAssociatedItemRepository) CreateMeetingKPI(kpis []*models.MeetingKpi, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&kpis).Error
+}
+
+func (repo *MeetingAssociatedItemRepository) DeleteMeetingKPI(meetingID uint, kpiID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("kpi_register_id = ? AND meeting_id = ?", kpiID, meetingID).
+		Delete(&models.MeetingKpi{}).
+		Error
+}
+
+func (repo *MeetingAssociatedItemRepository) GetAllClauses(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+
+	var clauseList []commonDTOs.AssociatedClauseRowDTO
+	var totalCount int64
+	query := repo.db.Table("meeting_compliance_requirements").
+		Select(`
+			compliance_clauses.title_en AS clause_title_en,
+			compliance_clauses.title_ar AS clause_title_ar,
+			compliance_clauses.clause_no,
+			compliance_clauses.compliance_register_id,
+			compliance_clauses.id AS compliance_clause_id,
+			compliance_register.title_en AS compliance_register_title_en,
+			compliance_register.title_ar AS compliance_register_title_ar
+		`).
+		Joins(`
+			INNER JOIN compliance_clauses ON meeting_compliance_requirements.compliance_clause_id = compliance_clauses.id
+			LEFT JOIN compliance_register ON meeting_compliance_requirements.compliance_register_id = compliance_register.id
+		`).
+		Where("meeting_compliance_requirements.compliance_clause_id IS NOT NULL").
+		Where("meeting_compliance_requirements.meeting_id = ?", meetingID)
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`(
+		compliance_register.title_en LIKE ? OR
+		compliance_register.title_ar LIKE ? OR
+		compliance_clauses.clause_no LIKE ? OR
+		compliance_clauses.title_en LIKE ? OR
+		compliance_clauses.title_ar LIKE ?)`, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "compliance_register.title_en"
+	}
+
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	if err := query.Find(&clauseList).Error; err != nil {
+		return nil, err
+	}
+
+	clausesByComplianceRegister := make(map[uint]*commonDTOs.AssociatedClauseListDTO)
+	for _, row := range clauseList {
+		if _, exists := clausesByComplianceRegister[row.ComplianceRegisterID]; !exists {
+			clausesByComplianceRegister[row.ComplianceRegisterID] = &commonDTOs.AssociatedClauseListDTO{
+				ComplianceRegisterID:      row.ComplianceRegisterID,
+				ComplianceRegisterTitleEn: row.ComplianceRegisterTitleEn,
+				ComplianceRegisterTitleAr: row.ComplianceRegisterTitleAr,
+				Clauses:                   []commonDTOs.AssociatedClauseDTO{},
+			}
+		}
+		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(clausesByComplianceRegister[row.ComplianceRegisterID].Clauses, commonDTOs.AssociatedClauseDTO{
+			ComplianceClauseID: row.ComplianceClauseID,
+			ClauseNo:           row.ClauseNo,
+			ClauseTitleEn:      row.ClauseTitleEn,
+			ClauseTitleAr:      row.ClauseTitleAr,
+		})
+	}
+
+	var groupedClauses []*commonDTOs.AssociatedClauseListDTO
+	for _, v := range clausesByComplianceRegister {
+		// Sort clauses inside the group by ClauseNo
+		sort.Slice(v.Clauses, func(i, j int) bool {
+			return v.Clauses[i].ClauseNo < v.Clauses[j].ClauseNo
+		})
+		groupedClauses = append(groupedClauses, v)
+	}
+
+	if groupedClauses == nil {
+		groupedClauses = []*commonDTOs.AssociatedClauseListDTO{}
+	}
+
+	totalCount = int64(len(groupedClauses))
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	start := (params.Page - 1) * params.PageSize
+	if start > int(totalCount) {
+		start = int(totalCount)
+	}
+
+	end := start + params.PageSize
+	if end > int(totalCount) {
+		end = int(totalCount)
+	}
+
+	pagedClauses := groupedClauses[start:end]
+	response := &commonDTOs.AssociatedItemClauseListResponseDTO{
+		Items: pagedClauses,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *MeetingAssociatedItemRepository) GetClausesByMeetingId(meetingID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var clauseIDs []uint
+	if err := db.
+		Model(&models.MeetingComplianceRequirement{}).
+		Where("meeting_id = ?", meetingID).
+		Pluck("compliance_clause_id", &clauseIDs).Error; err != nil {
+		return nil, err
+	}
+
+	return clauseIDs, nil
+}
+
+func (repo *MeetingAssociatedItemRepository) CreateMeetingClauses(clauses []*models.MeetingComplianceRequirement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(&clauses).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *MeetingAssociatedItemRepository) DeleteMeetingClauses(meetingID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.
+		Where("meeting_id = ? AND compliance_clause_id IN ?", meetingID, clauseIDs).
+		Delete(&models.MeetingComplianceRequirement{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -326,9 +326,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/processes/:processId/controls", middlewares.RolePermissionMiddleware(db, "process", "modify"), processAssociatedItemController.CreateProcessControl)
 	organizationRoutes.DELETE("/processes/:processId/controls/:controlId", middlewares.RolePermissionMiddleware(db, "process", "modify"), processAssociatedItemController.DeleteProcessControl)
 
-	organizationRoutes.GET("/processes/:processId/kpis", middlewares.RolePermissionMiddleware(db, "processes", "view"), processAssociatedItemController.GetAllProcessKPI)
-	organizationRoutes.POST("/processes/:processId/kpis", middlewares.RolePermissionMiddleware(db, "processes", "modify"), processAssociatedItemController.CreateProcessKPI)
-	organizationRoutes.DELETE("/processes/:processId/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "processes", "modify"), processAssociatedItemController.DeleteProcessKPI)
+	organizationRoutes.GET("/processes/:processId/kpis", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllProcessKPI)
+	organizationRoutes.POST("/processes/:processId/kpis", middlewares.RolePermissionMiddleware(db, "process", "modify"), processAssociatedItemController.CreateProcessKPI)
+	organizationRoutes.DELETE("/processes/:processId/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "process", "modify"), processAssociatedItemController.DeleteProcessKPI)
+
+	organizationRoutes.GET("/processes/:processId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllProcessStrategicObjectives)
+	organizationRoutes.POST("/processes/:processId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "process", "modify"), processAssociatedItemController.CreateProcessStrategicObjective)
+	organizationRoutes.DELETE("/processes/:processId/strategic-objectives/:strategicObjectiveId", middlewares.RolePermissionMiddleware(db, "process", "modify"), processAssociatedItemController.DeleteProcessStrategicObjective)
 
 	organizationRoutes.GET("/processes/:processId/associated-controls", middlewares.RolePermissionMiddleware(db, "process", "view"), processAssociatedItemController.GetAllProcessAssociatedControls)
 

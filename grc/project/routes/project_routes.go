@@ -113,4 +113,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/projects/:projectId/risks", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.CreateProjectRisk)
 	projectRoutes.DELETE("/projects/:projectId/risks/:riskId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.DeleteProjectRisk)
 
+	projectRoutes.GET("/projects/:projectId/clauses", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectAssociatedItemController.GetAllClauses)
+	projectRoutes.PUT("/projects/:projectId/clauses", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.UpdateClauses)
+
 }

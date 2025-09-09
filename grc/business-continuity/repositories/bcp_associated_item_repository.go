@@ -4,6 +4,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
+	"sort"
 
 	"gorm.io/gorm"
 )
@@ -28,6 +29,13 @@ type BcpAssociatedItemRepositoryInterface interface {
 	GetAllBcpIncidents(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
 	CreateBcpIncident(incidents []*models.BcpIncident, tx ...utility.DatabaseTransaction) error
 	DeleteBcpIncident(BcpID uint, incidentID uint, tx ...utility.DatabaseTransaction) error
+	GetAllBcpStrategicObjectives(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
+	CreateBcpStrategicObjectives(objectives []*models.BcpStrategicObjective, tx ...utility.DatabaseTransaction) error
+	DeleteBcpStrategicObjectives(BcpID uint, strategicObjectiveID uint, tx ...utility.DatabaseTransaction) error
+	GetAllClauses(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	CreateBcpClauses(clauses []*models.BcpComplianceRequirement, tx ...utility.DatabaseTransaction) error
+	DeleteBcpClauses(projectID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error
+	GetClausesByBcpId(projectID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 }
 
 // implementation
@@ -813,4 +821,273 @@ func (repo *BcpAssociatedItemRepository) DeleteBcpIncident(BcpID uint, incidentI
 		Where("incident_register_id = ? AND business_continuity_plan_id = ?", incidentID, BcpID).
 		Delete(&models.BcpIncident{}).
 		Error
+}
+
+func (repo *BcpAssociatedItemRepository) GetAllBcpStrategicObjectives(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error) {
+	var objectiveList []*commonDTOs.AssociatedStrategicObjectiveListDTO
+	var totalCount int64
+
+	query := repo.db.Table("bcp_strategic_objectives").
+		Select(`
+			strategic_objectives.*,
+			bcp_strategic_objectives.strategic_objective_id,
+			strategic_objective_categories.title_en AS strategic_objective_category_title_en,
+			strategic_objective_categories.title_ar AS strategic_objective_category_title_ar,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			review_user.first_name_en AS review_user_first_name_en,
+			review_user.first_name_ar AS review_user_first_name_ar,
+			review_user.last_name_en AS review_user_last_name_en,
+			review_user.last_name_ar AS review_user_last_name_ar,
+			review_user.initial AS review_user_initial,
+			review_user.color AS review_user_color,
+			review_user.email AS review_user_email,
+			review_user.profile_image_path AS review_user_profile_image_path,
+
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
+        `).
+		Joins(`
+			LEFT JOIN strategic_objectives ON strategic_objectives.id = bcp_strategic_objectives.strategic_objective_id
+			LEFT JOIN strategic_objective_categories ON strategic_objective_categories.id = strategic_objectives.strategic_objective_category_id
+			LEFT JOIN organization_units ON organization_units.id = strategic_objectives.responsible_unit_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = strategic_objectives.responsible_user_id
+			LEFT JOIN users AS review_user ON review_user.id = strategic_objectives.review_user_id
+			LEFT JOIN review_frequencies ON review_frequencies.id = strategic_objectives.review_frequency_id
+			LEFT JOIN users AS created_user ON created_user.id = strategic_objectives.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = strategic_objectives.updated_by_id
+        `).Where("bcp_strategic_objectives.business_continuity_plan_id = ?", BcpID)
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(strategic_objectives.title_en LIKE ? OR
+			strategic_objectives.title_ar LIKE ? OR
+			strategic_objectives.status LIKE ? )`,
+			keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "strategic_objectives.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&objectiveList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO{
+		Items: objectiveList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *BcpAssociatedItemRepository) CreateBcpStrategicObjectives(objectives []*models.BcpStrategicObjective, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&objectives).Error
+}
+
+func (repo *BcpAssociatedItemRepository) DeleteBcpStrategicObjectives(BcpID uint, strategicObjectiveID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("strategic_objective_id = ? AND business_continuity_plan_id = ?", strategicObjectiveID, BcpID).
+		Delete(&models.BcpStrategicObjective{}).
+		Error
+}
+
+func (repo *BcpAssociatedItemRepository) GetAllClauses(BcpID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+
+	var clauseList []commonDTOs.AssociatedClauseRowDTO
+	var totalCount int64
+	query := repo.db.Table("bcp_compliance_requirements").
+		Select(`
+			compliance_clauses.title_en AS clause_title_en,
+			compliance_clauses.title_ar AS clause_title_ar,
+			compliance_clauses.clause_no,
+			compliance_clauses.compliance_register_id,
+			compliance_clauses.id AS compliance_clause_id,
+			compliance_register.title_en AS compliance_register_title_en,
+			compliance_register.title_ar AS compliance_register_title_ar
+		`).
+		Joins(`
+			INNER JOIN compliance_clauses ON bcp_compliance_requirements.compliance_clause_id = compliance_clauses.id
+			LEFT JOIN compliance_register ON bcp_compliance_requirements.compliance_register_id = compliance_register.id
+		`).
+		Where("bcp_compliance_requirements.compliance_clause_id IS NOT NULL").
+		Where("bcp_compliance_requirements.business_continuity_plan_id = ?", BcpID)
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`(
+		compliance_register.title_en LIKE ? OR
+		compliance_register.title_ar LIKE ? OR
+		compliance_clauses.clause_no LIKE ? OR
+		compliance_clauses.title_en LIKE ? OR
+		compliance_clauses.title_ar LIKE ?)`, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "compliance_register.title_en"
+	}
+
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	if err := query.Find(&clauseList).Error; err != nil {
+		return nil, err
+	}
+
+	clausesByComplianceRegister := make(map[uint]*commonDTOs.AssociatedClauseListDTO)
+	for _, row := range clauseList {
+		if _, exists := clausesByComplianceRegister[row.ComplianceRegisterID]; !exists {
+			clausesByComplianceRegister[row.ComplianceRegisterID] = &commonDTOs.AssociatedClauseListDTO{
+				ComplianceRegisterID:      row.ComplianceRegisterID,
+				ComplianceRegisterTitleEn: row.ComplianceRegisterTitleEn,
+				ComplianceRegisterTitleAr: row.ComplianceRegisterTitleAr,
+				Clauses:                   []commonDTOs.AssociatedClauseDTO{},
+			}
+		}
+		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(clausesByComplianceRegister[row.ComplianceRegisterID].Clauses, commonDTOs.AssociatedClauseDTO{
+			ComplianceClauseID: row.ComplianceClauseID,
+			ClauseNo:           row.ClauseNo,
+			ClauseTitleEn:      row.ClauseTitleEn,
+			ClauseTitleAr:      row.ClauseTitleAr,
+		})
+	}
+
+	var groupedClauses []*commonDTOs.AssociatedClauseListDTO
+	for _, v := range clausesByComplianceRegister {
+		// Sort clauses inside the group by ClauseNo
+		sort.Slice(v.Clauses, func(i, j int) bool {
+			return v.Clauses[i].ClauseNo < v.Clauses[j].ClauseNo
+		})
+		groupedClauses = append(groupedClauses, v)
+	}
+
+	if groupedClauses == nil {
+		groupedClauses = []*commonDTOs.AssociatedClauseListDTO{}
+	}
+
+	totalCount = int64(len(groupedClauses))
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	start := (params.Page - 1) * params.PageSize
+	if start > int(totalCount) {
+		start = int(totalCount)
+	}
+
+	end := start + params.PageSize
+	if end > int(totalCount) {
+		end = int(totalCount)
+	}
+
+	pagedClauses := groupedClauses[start:end]
+	response := &commonDTOs.AssociatedItemClauseListResponseDTO{
+		Items: pagedClauses,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *BcpAssociatedItemRepository) GetClausesByBcpId(BcpID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var clauseIDs []uint
+	if err := db.
+		Model(&models.BcpComplianceRequirement{}).
+		Where("business_continuity_plan_id = ?", BcpID).
+		Pluck("compliance_clause_id", &clauseIDs).Error; err != nil {
+		return nil, err
+	}
+
+	return clauseIDs, nil
+}
+
+func (repo *BcpAssociatedItemRepository) CreateBcpClauses(clauses []*models.BcpComplianceRequirement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(&clauses).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *BcpAssociatedItemRepository) DeleteBcpClauses(BcpID uint, clauseIDs []uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.
+		Where("business_continuity_plan_id = ? AND compliance_clause_id IN ?", BcpID, clauseIDs).
+		Delete(&models.BcpComplianceRequirement{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -33,6 +33,17 @@ type AuditFindingAssociatedItemServiceInterface interface {
 	GetAllAuditFindingIncidents(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
 	CreateAuditFindingIncident(findingID uint, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
 	DeleteAuditFindingIncident(findingID uint, incidentID uint) error
+
+	GetAllAuditFindingRisks(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
+	CreateAuditFindingRisk(findingID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	DeleteAuditFindingRisk(findingID uint, riskID uint) error
+
+	GetAllAuditFindingKPI(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateAuditFindingKPI(findingID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeleteAuditFindingKPI(findingID uint, kpiID uint) error
+
+	GetAllClauses(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	UpdateClauses(findingID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
 // Service and implementations
@@ -369,4 +380,191 @@ func (afais *AuditFindingAssociatedItemService) DeleteAuditFindingIncident(findi
 	}
 
 	return tx.Commit()
+}
+
+func (afais *AuditFindingAssociatedItemService) GetAllAuditFindingRisks(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return nil, err
+	}
+	return afais.repo.GetAllAuditFindingRisks(findingID, params)
+}
+
+func (afais *AuditFindingAssociatedItemService) CreateAuditFindingRisk(findingID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return err
+	}
+
+	if err := afais.validationSvc.ValidateRiskMapping(findingID, dto.RiskIDs, "audit_finding_Risks", "audit_finding_id"); err != nil {
+		return err
+	}
+
+	tx := afais.repo.BeginTransaction()
+	var mappings []*models.AuditFindingRisk
+	currentTime := time.Now()
+
+	for _, riskID := range dto.RiskIDs {
+		mappings = append(mappings, &models.AuditFindingRisk{
+			RiskRegisterID: riskID,
+			AuditFindingID: findingID,
+			CreatedBYID:    userID,
+			CreatedAt:      currentTime,
+		})
+	}
+
+	if err := afais.repo.CreateAuditFindingRisk(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (afais *AuditFindingAssociatedItemService) DeleteAuditFindingRisk(findingID uint, riskID uint) error {
+	// Validate control existence
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return err
+	}
+
+	tx := afais.repo.BeginTransaction()
+
+	if err := afais.repo.DeleteAuditFindingRisk(findingID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (afais *AuditFindingAssociatedItemService) GetAllAuditFindingKPI(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return nil, err
+	}
+	return afais.repo.GetAllAuditFindingKPI(findingID, params)
+}
+
+func (afais *AuditFindingAssociatedItemService) CreateAuditFindingKPI(findingID, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return err
+	}
+
+	if err := afais.validationSvc.ValidateKPIMapping(findingID, dto.KpiIDs, "audit_finding_kpis", "audit_finding_id"); err != nil {
+		return err
+	}
+
+	tx := afais.repo.BeginTransaction()
+	var mappings []*models.AuditFindingKpi
+	currentTime := time.Now()
+
+	for _, kpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.AuditFindingKpi{
+			KPIRegisterID:  kpiID,
+			AuditFindingID: findingID,
+			CreatedByID:    userID,
+			CreatedAt:      currentTime,
+		})
+	}
+
+	if err := afais.repo.CreateAuditFindingKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (afais *AuditFindingAssociatedItemService) DeleteAuditFindingKPI(findingID uint, kpiID uint) error {
+	// Validate control existence
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return err
+	}
+
+	tx := afais.repo.BeginTransaction()
+
+	if err := afais.repo.DeleteAuditFindingKPI(findingID, kpiID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (afais *AuditFindingAssociatedItemService) GetAllClauses(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return nil, err
+	}
+
+	response, err := afais.repo.GetAllClauses(findingID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (afais *AuditFindingAssociatedItemService) UpdateClauses(findingID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error {
+
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return err
+	}
+	tx := afais.repo.BeginTransaction()
+	clauses, err := afais.validationSvc.ValidateClauseIDs(ClauseFormDTO.ClauseIDs)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingControlClauses, err := afais.repo.GetClausesByFindingId(findingID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingClauses := make(map[uint]bool) // clauseID => exists
+	for _, clauseID := range existingControlClauses {
+		existingClauses[clauseID] = true
+	}
+
+	newClauses := make(map[uint]*models.ComplianceClause)
+	for _, clause := range clauses {
+		newClauses[clause.ID] = clause
+	}
+
+	var clausesToAdd []*models.AuditFindingComplianceRequirement
+	now := time.Now()
+	for id, clause := range newClauses {
+		if !existingClauses[id] {
+			clausesToAdd = append(clausesToAdd, &models.AuditFindingComplianceRequirement{
+				AuditFindingID:       findingID,
+				ComplianceRegisterID: clause.ComplianceRegisterID,
+				ComplianceClauseID:   clause.ID,
+				CreatedByID:          currentUserID,
+				CreatedAt:            now,
+			})
+		}
+	}
+
+	if len(clausesToAdd) > 0 {
+		if err := afais.repo.CreateFindingClauses(clausesToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteClauseIDs []uint
+	for existingID := range existingClauses {
+		if _, found := newClauses[existingID]; !found {
+			deleteClauseIDs = append(deleteClauseIDs, existingID)
+		}
+	}
+
+	if len(deleteClauseIDs) > 0 {
+		if err := afais.repo.DeleteFindingClauses(findingID, deleteClauseIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	return nil
 }
