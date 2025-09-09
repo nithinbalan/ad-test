@@ -136,7 +136,7 @@ func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, action
 		}
 
 		url := utility.GenerateDocumentURL(
-			"audit", "audit-finding", strconv.FormatUint(uint64(findingID), 10),
+			"audit", "audit-findings", strconv.FormatUint(uint64(findingID), 10),
 			"action-plans", strconv.FormatUint(uint64(actionPlanID), 10),
 			"comments", strconv.FormatUint(uint64(id), 10),
 			"documents",
@@ -164,7 +164,7 @@ func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, action
 
 		for _, doc := range documents {
 			storagePath := filepath.Join(
-				"audit", "audit-finding", strconv.FormatUint(uint64(findingID), 10),
+				"audit", "audit-findings", strconv.FormatUint(uint64(findingID), 10),
 				"action-plans", strconv.FormatUint(uint64(actionPlanID), 10),
 				"comments", strconv.FormatUint(uint64(id), 10),
 				"documents",
@@ -529,7 +529,7 @@ func (afaps *AuditFindingActionPlanCommentService) Update(findingID uint, action
 				return err
 			}
 
-			url := utility.GenerateDocumentURL("audit", "audit-finding", strconv.FormatUint(uint64(findingID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+			url := utility.GenerateDocumentURL("audit", "audit-findings", strconv.FormatUint(uint64(findingID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 			document := &models.AuditFindingActionPlanCommentDocument{
 				AuditFindingActionPlanCommentID: id,
@@ -574,7 +574,7 @@ func (afaps *AuditFindingActionPlanCommentService) Update(findingID uint, action
 	}
 
 	for _, doc := range newDocuments {
-		storagePath := filepath.Join("audit", "audit-finding", strconv.FormatUint(uint64(findingID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("audit", "audit-findings", strconv.FormatUint(uint64(findingID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			tx.Rollback()
