@@ -1182,10 +1182,10 @@ func (repo *ThirdPartyAssociatedItemRepository) GetAllThirdPartyKPI(ThirdPartyID
 	var kpiRegister []*commonDTOs.AssociatedKPIRegisterListDTO
 	var totalCount int64
 
-	query := repo.db.Table("kpi_risks").
+	query := repo.db.Table("kpi_third_parties").
 		Select(`
             kpi_register.*,
-			kpi_risks.kpi_register_id,
+			kpi_third_parties.kpi_register_id,
 			kpi_categories.title_en AS kpi_category_title_en,
 			kpi_categories.title_ar AS kpi_category_title_ar,
 			CONVERT(VARCHAR, kpi_register.start_date, 23) AS start_date,
@@ -1234,7 +1234,7 @@ func (repo *ThirdPartyAssociatedItemRepository) GetAllThirdPartyKPI(ThirdPartyID
             updated_user.profile_image_path AS updated_user_profile_image_path  
         `).
 		Joins(`
-		    LEFT JOIN kpi_register ON kpi_register.id = kpi_risks.kpi_register_id
+		    LEFT JOIN kpi_register ON kpi_register.id = kpi_third_parties.kpi_register_id
 			LEFT JOIN kpi_categories ON kpi_categories.id = kpi_register.kpi_category_id
 			LEFT JOIN kpi_statuses ON kpi_statuses.id = kpi_register.kpi_status_id
 			LEFT JOIN calculation_types ON calculation_types.id = kpi_register.calculation_type_id
@@ -1243,7 +1243,7 @@ func (repo *ThirdPartyAssociatedItemRepository) GetAllThirdPartyKPI(ThirdPartyID
 			LEFT JOIN users AS responsible_user ON responsible_user.id = kpi_register.responsible_user_id
 			LEFT JOIN users AS created_user ON created_user.id = kpi_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = kpi_register.updated_by_id
-        `).Where("kpi_risks.third_party_register_id = ?", ThirdPartyID)
+        `).Where("kpi_third_parties.third_party_register_id = ?", ThirdPartyID)
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {
