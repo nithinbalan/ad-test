@@ -26,9 +26,6 @@ type ComplianceRegisterRepositoryInterface interface {
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
 
-	CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
-	DeleteComplianceControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
-
 	//Document
 	CreateDocument(doc *models.ComplianceDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.ComplianceDocument, error)
@@ -181,6 +178,13 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
+	if params.IsControlAssessment != nil {
+		query = query.Where("compliance_register.is_control_assessment = ?", *params.IsControlAssessment)
+	}
+
+	if params.IsRequirementAssessment != nil {
+		query = query.Where("compliance_register.is_requirement_assessment = ?", *params.IsRequirementAssessment)
+	}
 
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
@@ -315,9 +319,9 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("DocumentAr", func(db *gorm.DB) *gorm.DB {
 			return db.Where("language = ?", "ar")
 		}).
-		Preload("Controls").
-		Preload("Controls.Control.ControlCategory").
-		Preload("Controls.Control.ControlType").
+		// Preload("Controls").
+		// Preload("Controls.Control.ControlCategory").
+		// Preload("Controls.Control.ControlType").
 		Preload("ComplianceStatusUpdates").
 		Preload("ComplianceAssessmentFramework").
 		Preload("ComplianceAssessmentFramework.AssessmentFrameworkType").
@@ -421,31 +425,6 @@ func (repo *ComplianceRegisterRepository) GenerateReferenceNumber() (string, err
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "CR", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
-}
-
-func (repo *ComplianceRegisterRepository) CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	if err := db.Create(&controls).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (repo *ComplianceRegisterRepository) DeleteComplianceControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	// Delete controls by IDs
-	if err := db.Where("id IN (?)", controlIds).Delete(&models.ComplianceControl{}).Error; err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (repo *ComplianceRegisterRepository) GetDocumentByID(id uint) (*models.ComplianceDocument, error) {

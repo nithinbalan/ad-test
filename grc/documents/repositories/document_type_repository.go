@@ -20,6 +20,8 @@ type DocumentTypeRepositoryInterface interface {
 	ExistsByTitle(titleEn string, titleAr string) (bool, error)
 	ExistsByTitleExcludingID(id uint, titleEn string, titleAr string) (bool, error)
 
+	GetByType(docType string) (*models.DocumentType, error)
+
 	//workflow
 	CreateWorkflow(workflow *models.Workflow, tx ...utility.DatabaseTransaction) error
 }
@@ -184,4 +186,16 @@ func (repo *DocumentTypeRepository) CreateWorkflow(workflow *models.Workflow, tx
 		return result.Error
 	}
 	return nil // Return nil if no error occurred
+}
+
+func (repo *DocumentTypeRepository) GetByType(status string) (*models.DocumentType, error) {
+	var documentType *models.DocumentType
+
+	result := repo.db.Where("type = ?", status).First(&documentType)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return documentType, nil
 }

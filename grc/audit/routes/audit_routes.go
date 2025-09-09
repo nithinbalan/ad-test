@@ -248,6 +248,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Audit Document  Request Status
 	// Audit Document  Request Status
+	// Audit Document  Request Status
 	auditRoutes.GET("/audit-document-request-statuses", auditDocumentRequestStatusController.GetAllAuditDocumentRequestStatuses)
 
 	// Audit Document Request
@@ -284,6 +285,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditRoutes.POST("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates", auditFindingActionPlanStatusUpdateController.CreateAuditFindingActionPlanStatusUpdate)
 	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/:id", auditFindingActionPlanStatusUpdateController.UpdateAuditFindingActionPlanStatusUpdate)
 	auditRoutes.GET("/audit-findings/:findingId/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "audit_findings", "view"), auditFindingActionPlanStatusUpdateController.GetLatestAuditFindingActionPlanStatusUpdate)
+	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId/approve", auditFindingActionPlanStatusUpdateController.ApproveAuditFindingActionPlan)
+	auditRoutes.PUT("/audit-findings/:findingId/action-plans/:actionPlanId/revert", auditFindingActionPlanStatusUpdateController.RevertAuditFindingActionPlan)
 
 	// Audit Checklist
 	auditRoutes.GET("/audits/:auditId/checklists", middlewares.RolePermissionMiddleware(db, "audits", "view"), auditChecklistController.GetAllAuditChecklists)

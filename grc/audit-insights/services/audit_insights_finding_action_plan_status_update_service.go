@@ -13,6 +13,8 @@ type AuditInsightsFindingActionPlanStatusUpdateServiceInterface interface {
 	GetLatestAuditInsightsFindingActionPlanStatusUpdate(findingID uint, actionPlanID uint, tx ...utility.DatabaseTransaction) (*auditDTOs.AuditFindingActionPlanStatusUpdateListDTO, error)
 	GetFindingIDByActionPlan(actionPlanID uint) (uint, error)
 	GetDocumentPath(findingID uint, actionPlanID uint, id uint, token string, tx ...utility.DatabaseTransaction) (string, error)
+	Approve(findingID uint, actionPlanID uint, currentUserID uint, AuditFindingActionPlanReviewUserStatusUpdateFormDTO *auditDTOs.AuditFindingActionPlanReviewUserStatusUpdateFormDTO) error
+	Revert(findingID uint, actionPlanID uint, currentUserID uint, AuditFindingActionPlanReviewUserStatusUpdateFormDTO *auditDTOs.AuditFindingActionPlanReviewUserStatusUpdateFormDTO) error
 }
 
 type AuditInsightsFindingActionPlanStatusUpdateService struct {
@@ -74,4 +76,12 @@ func (aifapsus *AuditInsightsFindingActionPlanStatusUpdateService) GetDocumentPa
 	}
 
 	return auditDocumentRequest, nil
+}
+
+func (aifapsus *AuditInsightsFindingActionPlanStatusUpdateService) Approve(findingID uint, actionPlanID uint, currentUserID uint, AuditFindingActionPlanReviewUserStatusUpdateFormDTO *auditDTOs.AuditFindingActionPlanReviewUserStatusUpdateFormDTO) error {
+	return aifapsus.auditFindingActionPlanStatusUpdateSvc.Approve(findingID, actionPlanID, currentUserID, AuditFindingActionPlanReviewUserStatusUpdateFormDTO)
+}
+
+func (aifapsus *AuditInsightsFindingActionPlanStatusUpdateService) Revert(findingID uint, actionPlanID uint, currentUserID uint, AuditFindingActionPlanReviewUserStatusUpdateFormDTO *auditDTOs.AuditFindingActionPlanReviewUserStatusUpdateFormDTO) error {
+	return aifapsus.auditFindingActionPlanStatusUpdateSvc.Revert(findingID, actionPlanID, currentUserID, AuditFindingActionPlanReviewUserStatusUpdateFormDTO)
 }

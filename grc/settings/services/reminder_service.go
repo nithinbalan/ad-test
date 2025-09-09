@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+
 	"jethur/grc/models"
 	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
@@ -36,7 +37,6 @@ func (rs *ReminderService) GetAll(params dtos.ReminderListQueryParamsDTO) ([]*mo
 
 func (rs ReminderService) GetByID(id uint) (*models.Reminder, error) {
 	reminder, err := rs.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -45,7 +45,6 @@ func (rs ReminderService) GetByID(id uint) (*models.Reminder, error) {
 	}
 
 	return reminder, nil
-
 }
 
 func (rs *ReminderService) GetByType(status string) (*models.Reminder, error) {
@@ -79,7 +78,6 @@ func (rs *ReminderService) GetAllRemindersByModuleID(moduleID uint) ([]*dtos.Gro
 		}
 
 		for _, rule := range reminder.ReminderRules {
-
 			reminderDTO.ReminderRules = append(reminderDTO.ReminderRules, dtos.ReminderRuleDetailDTO{
 				ID:                 rule.ID,
 				TitleEn:            rule.TitleEn,

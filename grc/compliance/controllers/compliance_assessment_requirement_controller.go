@@ -457,6 +457,9 @@ func (carc *ComplianceAssessmentRequirementController) MarkAsCompleted(c *gin.Co
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(carc.db, c, e.Error())
 			return

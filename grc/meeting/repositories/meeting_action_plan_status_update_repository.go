@@ -22,6 +22,7 @@ type MeetingActionPlanStatusUpdateRepositoryInterface interface {
 
 	GetLatestMeetingActionPlanStatusUpdate(meetingActionPlanID uint) (*meetingDTOs.MeetingActionPlanStatusUpdateListDTO, error)
 	CheckAllActionPlansCompletedStatusCount(meetingMinuteID uint, excludeActionPlanID uint, completedStatuses []string, tx ...utility.DatabaseTransaction) (int64, error)
+	MeetingActionPlanUpdateStatus(MeetingActionPlan *models.MeetingActionPlan, tx ...utility.DatabaseTransaction) error
 }
 
 type MeetingActionPlanStatusUpdateRepository struct {
@@ -40,7 +41,6 @@ func (repo *MeetingActionPlanStatusUpdateRepository) BeginTransaction() utility.
 }
 
 func (repo *MeetingActionPlanStatusUpdateRepository) GetAll(meetingActionPlanID uint, sort string, sortBy string, keyword string) ([]*meetingDTOs.MeetingActionPlanStatusUpdateListDTO, error) {
-
 	var meetingActionPlanUpdates []*meetingDTOs.MeetingActionPlanStatusUpdateListDTO
 
 	query := repo.db.Table("meeting_action_plan_status_updates").
@@ -173,7 +173,6 @@ func (repo *MeetingActionPlanStatusUpdateRepository) DeleteDocuments(docIds []*u
 }
 
 func (repo *MeetingActionPlanStatusUpdateRepository) GetLatestMeetingActionPlanStatusUpdate(meetingActionPlanID uint) (*meetingDTOs.MeetingActionPlanStatusUpdateListDTO, error) {
-
 	var meetingActionPlanUpdate *meetingDTOs.MeetingActionPlanStatusUpdateListDTO
 
 	query := repo.db.Table("meeting_action_plan_status_updates").
@@ -217,7 +216,6 @@ func (repo *MeetingActionPlanStatusUpdateRepository) GetLatestMeetingActionPlanS
 	}
 
 	return meetingActionPlanUpdate, nil
-
 }
 
 func (repo *MeetingActionPlanStatusUpdateRepository) CheckAllActionPlansCompletedStatusCount(meetingMinuteID uint, excludeActionPlanID uint, completedStatuses []string, tx ...utility.DatabaseTransaction) (int64, error) {
@@ -239,4 +237,15 @@ func (repo *MeetingActionPlanStatusUpdateRepository) CheckAllActionPlansComplete
 
 	// Return the count of action plans that do not have a completed or terminated status
 	return count, nil
+}
+
+func (repo *MeetingActionPlanStatusUpdateRepository) MeetingActionPlanUpdateStatus(MeetingActionPlan *models.MeetingActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(MeetingActionPlan).Error; err != nil {
+		return err
+	}
+	return nil
 }

@@ -48,7 +48,7 @@ type OrganizationModule struct {
 	UserDocumentController                  *controllers.UserDocumentController
 	UserJobDescriptionController            *controllers.UserJobDescriptionController
 	UserDelegationHistoryController         *controllers.UserDelegationController
-	OrganizationStructureController         *controllers.OrganizationStructureController
+	OrganizationUnitsController             *controllers.OrganizationUnitsController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -69,8 +69,8 @@ func NewOrganizationModule(
 	settingsModule *SettingsModule,
 	masterModule *MasterModule,
 	taskModule *TaskModule,
-	commonModule *CommonModule) *OrganizationModule {
-
+	commonModule *CommonModule,
+) *OrganizationModule {
 	// Competency Group Setup
 	competencyGroupRepo := repositories.NewCompetencyGroupRepository(db)
 	competencyGroupSvc := services.NewCompetencyGroupService(competencyGroupRepo, sharedModule.ActivityLogService)
@@ -206,7 +206,7 @@ func NewOrganizationModule(
 	controlActionPlanController := controllers.NewControlActionPlanController(controlActionPlanSvc)
 
 	controlActionPlanStatusUpdateRepo := repositories.NewControlActionPlanStatusUpdateRepository(db)
-	controlActionPlanStatusUpdateSvc := services.NewControlActionPlanStatusUpdateService(controlActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, controlActionPlanSvc, masterModule.ActionPlanStatusSvc)
+	controlActionPlanStatusUpdateSvc := services.NewControlActionPlanStatusUpdateService(controlActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, controlActionPlanSvc, masterModule.ActionPlanStatusSvc, controlSvc, userSvc, commonModule.NotificationService, taskModule.TaskService, taskModule.TaskStatusService)
 	controlActionPlanStatusUpdateController := controllers.NewControlActionPlanStatusUpdateController(controlActionPlanStatusUpdateSvc)
 
 	processRepo := repositories.NewProcessRepository(db)
@@ -268,9 +268,9 @@ func NewOrganizationModule(
 	userDelegationHistorySvc := services.NewUserDelegationService(userDelegationHistoryRepo, sharedModule.ActivityLogService, userSvc, commonModule.NotificationService, userSettingSvc, taskModule.TaskService)
 	userDelegationHistoryController := controllers.NewUserDelegationController(userDelegationHistorySvc)
 
-	organizationStructureRepo := repositories.NewOrganizationStructureRepository(db)
-	organizationStructureSvc := services.NewOrganizationStructureService(organizationStructureRepo, sharedModule.ActivityLogService, settingsModule.OrganizationLevelSvc, userRepo, userSvc)
-	organizationStructureController := controllers.NewOrganizationStructureController(organizationStructureSvc)
+	organizationUnitsRepo := repositories.NewOrganizationUnitsRepository(db)
+	organizationUnitsSvc := services.NewOrganizationUnitsService(organizationUnitsRepo, sharedModule.ActivityLogService, settingsModule.OrganizationLevelSvc, userRepo, userSvc, settingsModule.OrganizationUnitSvc)
+	organizationUnitsController := controllers.NewOrganizationUnitsController(organizationUnitsSvc)
 
 	return &OrganizationModule{
 		DesignationController:                   designationController,
@@ -312,7 +312,7 @@ func NewOrganizationModule(
 		UserDocumentController:                  userDocumentController,
 		UserJobDescriptionController:            userJobDescriptionController,
 		UserDelegationHistoryController:         userDelegationHistoryController,
-		OrganizationStructureController:         organizationStructureController,
+		OrganizationUnitsController:             organizationUnitsController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,

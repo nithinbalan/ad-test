@@ -133,7 +133,18 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 		DateTo:             dateTo,
 		Export:             export,
 	}
-
+	if isControlStr := c.Query("is_control_assessment"); isControlStr != "" {
+		val, err := strconv.ParseBool(isControlStr)
+		if err == nil {
+			queryParams.IsControlAssessment = &val
+		}
+	}
+	if isRequirementStr := c.Query("is_requirement_assessment"); isRequirementStr != "" {
+		val, err := strconv.ParseBool(isRequirementStr)
+		if err == nil {
+			queryParams.IsRequirementAssessment = &val
+		}
+	}
 	compliances, err := crc.service.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
@@ -248,6 +259,9 @@ func (crc *ComplianceRegisterController) UpdateComplianceRegister(c *gin.Context
 			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 			return
 		default:
 			utility.SendInternalErrResp(crc.db, c, e.Error())

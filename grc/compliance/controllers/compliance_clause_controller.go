@@ -214,9 +214,31 @@ func (cc *ComplianceClauseController) GetAssociatedControls(c *gin.Context) {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(cc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(cc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
 
 	// Get associated controls
-	controls, err := cc.service.GetAssociatedControls(uint(complianceID), uint(clauseID))
+	controls, err := cc.service.GetAssociatedControls(uint(complianceID), uint(clauseID), &queryParams)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -89,7 +89,7 @@ func (caps *ComplianceActionPlanService) GetAll(complianceID uint, params *compl
 			return nil, err
 		}
 	}
-	return caps.repo.GetAll(complianceID, params, uint(0))
+	return caps.repo.GetAll(complianceID, params, uint(0), nil)
 }
 
 func (caps ComplianceActionPlanService) GetByID(complianceID uint, id uint) (*models.ComplianceActionPlan, error) {
@@ -321,7 +321,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		}
 
 		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("compliance Action Plan/%s: Responsibility Assigned", ComplianceActionPlanFormDTO.Title)
+		subject := fmt.Sprintf("Compliance Action Plan/%s: Responsibility Assigned", ComplianceActionPlanFormDTO.Title)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
 			"FirstNameEn":               responsibleUser.FirstNameEn,
@@ -329,12 +329,17 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 			"ComplianceReferenceNumber": compliance.ReferenceNumber,
 			"ComplianceTitle":           compliance.TitleEn,
 			"ActionPlanTitle":           ComplianceActionPlanFormDTO.Title,
-			"ActionPlanDescription":     ComplianceActionPlanFormDTO.Description,
+			"ActionPlanDescription":     "N/A",
 			"TargetDate":                dates.TargetDate.Format("2006-01-02"),
 			"AssignedByFirstNameEn":     assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":      assignedBy.LastNameEn,
 			"AssignedOn":                time.Now().Format("2006-01-02"),
 			"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+		}
+
+		// Set description if available
+		if ComplianceActionPlanFormDTO.Description != nil {
+			emailData["ActionPlanDescription"] = *ComplianceActionPlanFormDTO.Description
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -564,8 +569,13 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 				"ComplianceReferenceNumber": compliance.ReferenceNumber,
 				"ComplianceTitle":           compliance.TitleEn,
 				"ActionPlanTitle":           existingComplianceActionPlan.Title,
-				"ActionPlanDescription":     existingComplianceActionPlan.Description,
+				"ActionPlanDescription":     "N/A",
 				"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+			}
+
+			// Set description if available
+			if oldResponsibleUserEmailData["ActionPlanDescription"] != nil {
+				oldResponsibleUserEmailData["ActionPlanDescription"] = *existingComplianceActionPlan.Description
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -584,12 +594,17 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 				"ComplianceReferenceNumber": compliance.ReferenceNumber,
 				"ComplianceTitle":           compliance.TitleEn,
 				"ActionPlanTitle":           existingComplianceActionPlan.Title,
-				"ActionPlanDescription":     existingComplianceActionPlan.Description,
+				"ActionPlanDescription":     "N/A",
 				"TargetDate":                existingComplianceActionPlan.TargetDate.Format("2006-01-02"),
 				"AssignedByFirstNameEn":     assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":      assignedBy.LastNameEn,
 				"AssignedOn":                time.Now().Format("2006-01-02"),
 				"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d/action-plans?action_plan_id=%d", appURL, complianceID, id),
+			}
+
+			// Set description if available
+			if newResponsibleUserEmailData["ActionPlanDescription"] != nil {
+				newResponsibleUserEmailData["ActionPlanDescription"] = *existingComplianceActionPlan.Description
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{

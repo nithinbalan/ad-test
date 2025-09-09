@@ -31,6 +31,7 @@ type SettingsModule struct {
 	ReminderRuleController           *controllers.ReminderRuleController
 	EscalationController             *controllers.EscalationController
 	EscalationLevelController        *controllers.EscalationLevelController
+	ReminderContextController        *controllers.ReminderContextController
 
 	SystemPreferenceSvc       services.SystemPreferenceServiceInterface
 	OrganizationUnitSvc       services.OrganizationUnitServiceInterface
@@ -133,8 +134,12 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	reminderSvc := services.NewReminderService(reminderRepo)
 	reminderController := controllers.NewReminderController(reminderSvc)
 
+	reminderContextRepo := repositories.NewReminderContextRepository(db)
+	reminderContextSvc := services.NewReminderContextService(reminderContextRepo)
+	reminderContextController := controllers.NewReminderContextController(reminderContextSvc)
+
 	reminderRuleRepo := repositories.NewReminderRuleRepository(db)
-	reminderRuleSvc := services.NewReminderRuleService(reminderRuleRepo, reminderSvc, triggerConditionSvc, sharedModule.ActivityLogService)
+	reminderRuleSvc := services.NewReminderRuleService(reminderRuleRepo, reminderSvc, triggerConditionSvc, sharedModule.ActivityLogService, reminderContextSvc)
 	reminderRuleController := controllers.NewReminderRuleController(reminderRuleSvc)
 
 	escalationRepo := repositories.NewEscalationRepository(db)
@@ -168,6 +173,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		ReminderRuleController:           reminderRuleController,
 		EscalationController:             escalationController,
 		EscalationLevelController:        escalationLevelController,
+		ReminderContextController:        reminderContextController,
 
 		SystemPreferenceSvc:       systemPreferenceSvc,
 		OrganizationLevelSvc:      organizationLevelSvc,

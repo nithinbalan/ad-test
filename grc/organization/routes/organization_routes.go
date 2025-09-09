@@ -55,7 +55,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	userDocumentController := app.OrganizationModule.UserDocumentController
 	userJobDescriptionController := app.OrganizationModule.UserJobDescriptionController
 	userDelegationHistoryController := app.OrganizationModule.UserDelegationHistoryController
-	organizationStructureController := app.OrganizationModule.OrganizationStructureController
+	organizationUnitsController := app.OrganizationModule.OrganizationUnitsController
 
 	// Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
@@ -263,6 +263,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Process Group
 	// Process Group
+	// Process Group
 	organizationRoutes.GET("/process-groups", processGroupController.GetAllProcessGroups)
 	organizationRoutes.GET("/process-groups/:id", processGroupController.GetProcessGroupDetails)
 	organizationRoutes.POST("/process-groups", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processGroupController.CreateProcessGroup)
@@ -285,6 +286,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/:controlActionPlanUpdateId", controlActionPlanStatusUpdateController.UpdateControlActionPlanStatusUpdate)
 
 	organizationRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlActionPlanStatusUpdateController.GetLatestControlActionPlanStatusUpdate)
+	organizationRoutes.PUT("/controls/:controlId/action-plans/:controlActionPlanId/approve", controlActionPlanStatusUpdateController.ApproveControlActionPlan)
+	organizationRoutes.PUT("/controls/:controlId/action-plans/:controlActionPlanId/revert", controlActionPlanStatusUpdateController.RevertControlActionPlan)
 
 	// process
 	organizationRoutes.GET("/processes/template", middlewares.RolePermissionMiddleware(db, "process", "modify"), processController.GetProcessesTemplate)
@@ -441,14 +444,18 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// user delegation
 	organizationRoutes.GET("/users/:userId/modules", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserModulesWithPermissions)
+	organizationRoutes.GET("/users/:userId/task-modules", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userController.GetUserModulesWithOpenTasks)
 	organizationRoutes.POST("/users/:userId/user-delegate", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userDelegationHistoryController.CreateUserDelegation)
 	organizationRoutes.GET("/users/:userId/user-delegate-history", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userDelegationHistoryController.GetUserDelegationHistory)
 	organizationRoutes.GET("/users/:userId/user-delegate-history/latest", middlewares.RolePermissionMiddleware(db, "user_management", "view"), userDelegationHistoryController.GetLatestUserDelegation)
 	organizationRoutes.PUT("/users/:userId/end-delegation", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userDelegationHistoryController.EndUserDelegation)
 
 	// organization structure
-	organizationRoutes.GET("/organization-structures", middlewares.RolePermissionMiddleware(db, "organization_structure", "view"), organizationStructureController.GetOrganizationStructure)
-	organizationRoutes.GET("/organization-structures/:unitId/users", middlewares.RolePermissionMiddleware(db, "organization_structure", "view"), organizationStructureController.GetUsersByOrganizationUnitID)
-	organizationRoutes.PUT("/organization-structures/:unitId/users/:userId", middlewares.RolePermissionMiddleware(db, "organization_structure", "modify"), organizationStructureController.UpdatePrimaryOrganizationUnitHead)
-	organizationRoutes.GET("/organization-structures/:unitId/summary", middlewares.RolePermissionMiddleware(db, "organization_structure", "view"), organizationStructureController.GetOrganizationUnitSummary)
+	organizationRoutes.GET("/organization-units/hierarchies", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetOrganizationUnitsHierarchies)
+	organizationRoutes.GET("/organization-units/:id/users", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetUsersByOrganizationUnitID)
+	organizationRoutes.PUT("/organization-units/:id/users/:userId", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitsController.UpdatePrimaryOrganizationUnitHead)
+	organizationRoutes.GET("/organization-units/:id/summary", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetOrganizationUnitSummary)
+	organizationRoutes.GET("/organization-units/:id/policies", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetAllPoliciesByOrganizationUnit)
+	organizationRoutes.GET("/organization-units/:id/risks", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetAllRiskByOrganizationUnit)
+	organizationRoutes.GET("/organization-units/:id/details", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetParentOrganizationUnitWithHead)
 }

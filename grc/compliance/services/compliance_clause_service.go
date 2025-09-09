@@ -26,7 +26,7 @@ type ComplianceClauseServiceInterface interface {
 	GetFullDetailsByID(clauseID uint) (*complianceDTOs.ComplianceClauseDetailDTO, error)
 
 	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
-	GetAssociatedControls(complianceID uint, clauseID uint) ([]commonDTOs.AssociatedControlListDTO, error)
+	GetAssociatedControls(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	CreateComplianceClauseControls(complianceID, clauseID, currentUserID uint, dto *complianceDTOs.ComplianceClauseControlMapDTO) error
 	DeleteComplianceClauseControl(clauseID, controlID uint) error
 	GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error)
@@ -403,9 +403,9 @@ func (ccs *ComplianceClauseService) GetAssociatedComplianceRequirements(complian
 	return requirements, nil
 }
 
-func (ccs *ComplianceClauseService) GetAssociatedControls(complianceID uint, clauseID uint) ([]commonDTOs.AssociatedControlListDTO, error) {
+func (ccs *ComplianceClauseService) GetAssociatedControls(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error) {
 	// Fetch associated controls through requirements from repository
-	controls, err := ccs.repo.GetAssociatedControls(complianceID, clauseID)
+	controls, err := ccs.repo.GetAssociatedControls(complianceID, clauseID, params)
 	if err != nil {
 		return nil, err
 	}

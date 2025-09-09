@@ -1,0 +1,35 @@
+-- +goose Up
+-- +goose StatementBegin
+ALTER TABLE compliance_assessment_requirement_comments
+DROP CONSTRAINT FK_compliance_assessment_requirement_comments_compliance_assessment_requirements;
+
+ALTER TABLE compliance_assessment_requirement_comments
+DROP COLUMN compliance_assessment_requirement_id;
+
+ALTER TABLE compliance_assessment_requirement_comments
+ADD compliance_assessment_requirement_responsible_unit_id INT NULL;
+
+ALTER TABLE compliance_assessment_requirement_comments
+ADD CONSTRAINT FK_compliance_assessment_requirement_comments_responsible_units
+FOREIGN KEY (compliance_assessment_requirement_responsible_unit_id)
+REFERENCES compliance_assessment_requirement_responsible_units(id)
+ON DELETE NO ACTION ON UPDATE NO ACTION;
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+ALTER TABLE compliance_assessment_requirement_comments
+DROP CONSTRAINT FK_compliance_assessment_requirement_comments_responsible_units;
+
+ALTER TABLE compliance_assessment_requirement_comments
+DROP COLUMN compliance_assessment_requirement_responsible_unit_id;
+
+ALTER TABLE compliance_assessment_requirement_comments
+ADD compliance_assessment_requirement_id INT NULL;
+
+ALTER TABLE compliance_assessment_requirement_comments
+ADD CONSTRAINT FK_compliance_assessment_requirement_comments_compliance_assessment_requirements
+FOREIGN KEY (compliance_assessment_requirement_id)
+REFERENCES compliance_assessment_requirements(id)
+ON DELETE CASCADE ON UPDATE CASCADE;
+-- +goose StatementEnd
