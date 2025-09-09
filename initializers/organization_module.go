@@ -24,6 +24,7 @@ type OrganizationModule struct {
 	ControlTestController                   *controllers.ControlTestController
 	ProcessGroupController                  *controllers.ProcessGroupController
 	ControlActionPlanController             *controllers.ControlActionPlanController
+	ControlActionPlanCommentController      *controllers.ControlActionPlanCommentController
 	ControlActionPlanStatusUpdateController *controllers.ControlActionPlanStatusUpdateController
 	ProcessController                       *controllers.ProcessController
 	UserTaskController                      *controllers.UserTaskController
@@ -209,6 +210,10 @@ func NewOrganizationModule(
 	controlActionPlanStatusUpdateSvc := services.NewControlActionPlanStatusUpdateService(controlActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, controlActionPlanSvc, masterModule.ActionPlanStatusSvc, controlSvc, userSvc, commonModule.NotificationService, taskModule.TaskService, taskModule.TaskStatusService)
 	controlActionPlanStatusUpdateController := controllers.NewControlActionPlanStatusUpdateController(controlActionPlanStatusUpdateSvc)
 
+	controlActionPlanCommentRepository := repositories.NewControlActionPlanCommentRepository(db)
+	controlActionPlanCommentSvc := services.NewControlActionPlanCommentService(controlActionPlanCommentRepository, userSvc, sharedModule.ActivityLogService, controlActionPlanSvc, commonModule.NotificationService)
+	controlActionPlanCommentController := controllers.NewControlActionPlanCommentController(controlActionPlanCommentSvc)
+
 	processRepo := repositories.NewProcessRepository(db)
 	processSvc := services.NewProcessService(processRepo, sharedModule.ActivityLogService, processGroupSvc, userSvc, masterModule.LifecycleStatusSvc, controlSvc, commonModule.NotificationService, userSettingSvc)
 	processController := controllers.NewProcessController(processSvc)
@@ -289,30 +294,32 @@ func NewOrganizationModule(
 		ProcessGroupController:                  processGroupController,
 		ControlActionPlanController:             controlActionPlanController,
 		ControlActionPlanStatusUpdateController: controlActionPlanStatusUpdateController,
-		ProcessController:                       processController,
-		UserTaskController:                      userTaskController,
-		StrategicProfileValueController:         strategicProfileValueController,
-		ProcessAssociatedItemController:         processAssociatedItemController,
-		ControlAssociatedItemController:         controlAssociatedItemController,
-		ControlReviewController:                 controlReviewController,
-		UserProfileController:                   userProfileController,
-		ProcessDependencyTypeController:         processDependencyTypeController,
-		ProcessDependencySubTypeController:      processDependencySubTypeController,
-		GovernanceReportController:              governanceReportController,
-		ProcessDependencyController:             processDependencyController,
-		ProcessCriticalityLevelController:       processCriticalityLevelController,
-		ProcessActivityController:               processActivityController,
-		CompetencyGroupController:               competencyGroupController,
-		CompetencyController:                    competencyController,
-		CompetencyLevelController:               competencyLevelController,
-		JobDescriptionController:                jobDescriptionController,
-		JobDescriptionCompetencyController:      jobDescriptionCompetencyController,
-		UserDocumentTypeController:              userDocumentTypeController,
-		UserDocumentSubTypeController:           userDocumentSubTypeController,
-		UserDocumentController:                  userDocumentController,
-		UserJobDescriptionController:            userJobDescriptionController,
-		UserDelegationHistoryController:         userDelegationHistoryController,
-		OrganizationUnitsController:             organizationUnitsController,
+		ControlActionPlanCommentController:      controlActionPlanCommentController,
+
+		ProcessController:                  processController,
+		UserTaskController:                 userTaskController,
+		StrategicProfileValueController:    strategicProfileValueController,
+		ProcessAssociatedItemController:    processAssociatedItemController,
+		ControlAssociatedItemController:    controlAssociatedItemController,
+		ControlReviewController:            controlReviewController,
+		UserProfileController:              userProfileController,
+		ProcessDependencyTypeController:    processDependencyTypeController,
+		ProcessDependencySubTypeController: processDependencySubTypeController,
+		GovernanceReportController:         governanceReportController,
+		ProcessDependencyController:        processDependencyController,
+		ProcessCriticalityLevelController:  processCriticalityLevelController,
+		ProcessActivityController:          processActivityController,
+		CompetencyGroupController:          competencyGroupController,
+		CompetencyController:               competencyController,
+		CompetencyLevelController:          competencyLevelController,
+		JobDescriptionController:           jobDescriptionController,
+		JobDescriptionCompetencyController: jobDescriptionCompetencyController,
+		UserDocumentTypeController:         userDocumentTypeController,
+		UserDocumentSubTypeController:      userDocumentSubTypeController,
+		UserDocumentController:             userDocumentController,
+		UserJobDescriptionController:       userJobDescriptionController,
+		UserDelegationHistoryController:    userDelegationHistoryController,
+		OrganizationUnitsController:        organizationUnitsController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,

@@ -32,6 +32,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	processGroupController := app.OrganizationModule.ProcessGroupController
 	controlActionPlanController := app.OrganizationModule.ControlActionPlanController
 	controlActionPlanStatusUpdateController := app.OrganizationModule.ControlActionPlanStatusUpdateController
+	controlActionPlanCommentController := app.OrganizationModule.ControlActionPlanCommentController
 	processController := app.OrganizationModule.ProcessController
 	userTaskController := app.OrganizationModule.UserTaskController
 	processAssociatedItemController := app.OrganizationModule.ProcessAssociatedItemController
@@ -288,6 +289,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "controls", "view"), controlActionPlanStatusUpdateController.GetLatestControlActionPlanStatusUpdate)
 	organizationRoutes.PUT("/controls/:controlId/action-plans/:controlActionPlanId/approve", controlActionPlanStatusUpdateController.ApproveControlActionPlan)
 	organizationRoutes.PUT("/controls/:controlId/action-plans/:controlActionPlanId/revert", controlActionPlanStatusUpdateController.RevertControlActionPlan)
+
+	// control Action Plan Comments
+	unauthenticatedRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/comments/:commentId/document-download", controlActionPlanCommentController.DownloadControlActionPlanCommentDocument)
+	unauthenticatedRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/comments/:commentId/document-preview", controlActionPlanCommentController.GetControlActionPlanCommentDocumentPreview)
+	organizationRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/comments", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), controlActionPlanCommentController.GetAllComments)
+	organizationRoutes.GET("/controls/:controlId/action-plans/:controlActionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), controlActionPlanCommentController.GetCommentDetails)
+	organizationRoutes.POST("/controls/:controlId/action-plans/:controlActionPlanId/comments", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), controlActionPlanCommentController.CreateComment)
+	organizationRoutes.PUT("/controls/:controlId/action-plans/:controlActionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), controlActionPlanCommentController.UpdateComment)
+	organizationRoutes.POST("/controls/:controlId/action-plans/:controlActionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), controlActionPlanCommentController.UpdateComment)
+	organizationRoutes.POST("/controls/:controlId/action-plans/:controlActionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), controlActionPlanCommentController.DeleteComment)
 
 	// process
 	organizationRoutes.GET("/processes/template", middlewares.RolePermissionMiddleware(db, "process", "modify"), processController.GetProcessesTemplate)
