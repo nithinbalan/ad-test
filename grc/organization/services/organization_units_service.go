@@ -63,9 +63,10 @@ func (s *OrganizationUnitsService) GetOrganizationUnitsHierarchies(sort string, 
 	// First pass: create all nodes
 	for _, unit := range units {
 		structure := &organizationDTOs.OrganizationUnitsDTO{
-			ID:      unit.ID,
-			TitleEn: unit.TitleEn,
-			TitleAr: unit.TitleAr,
+			ID:       unit.ID,
+			TitleEn:  unit.TitleEn,
+			TitleAr:  unit.TitleAr,
+			Children: make([]organizationDTOs.OrganizationUnitsDTO, 0), // Initialize empty slice
 		}
 
 		// Safely handle nil OrganizationLevel
@@ -77,25 +78,45 @@ func (s *OrganizationUnitsService) GetOrganizationUnitsHierarchies(sort string, 
 		}
 		unitMap[unit.ID] = structure
 
-		// If it's a root unit, add to root units
+		// If it's a root unit (no parent), add to root units
 		if unit.OrganizationUnitID == nil {
 			rootUnits = append(rootUnits, structure)
 		}
 	}
 
-	// Second pass: build the tree
+	// Second pass: build the tree by adding children to their parents
 	for _, unit := range units {
 		if unit.OrganizationUnitID != nil {
 			if parent, exists := unitMap[*unit.OrganizationUnitID]; exists {
-				parent.Children = append(parent.Children, *unitMap[unit.ID])
+				if child, childExists := unitMap[unit.ID]; childExists {
+					parent.Children = append(parent.Children, *child)
+				}
 			}
 		}
 	}
 
-	// Convert to slice of DTOs
+	// Third pass: recursively copy the complete tree structure
+	var copyTree func(*organizationDTOs.OrganizationUnitsDTO) organizationDTOs.OrganizationUnitsDTO
+	copyTree = func(node *organizationDTOs.OrganizationUnitsDTO) organizationDTOs.OrganizationUnitsDTO {
+		result := *node
+		result.Children = make([]organizationDTOs.OrganizationUnitsDTO, 0)
+		
+		// Find all direct children from unitMap
+		for _, unit := range units {
+			if unit.OrganizationUnitID != nil && *unit.OrganizationUnitID == node.ID {
+				if child, exists := unitMap[unit.ID]; exists {
+					result.Children = append(result.Children, copyTree(child))
+				}
+			}
+		}
+		
+		return result
+	}
+
+	// Convert to slice of DTOs with complete hierarchy
 	result := make([]organizationDTOs.OrganizationUnitsDTO, len(rootUnits))
 	for i, structure := range rootUnits {
-		result[i] = *structure
+		result[i] = copyTree(structure)
 	}
 
 	return result, nil
