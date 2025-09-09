@@ -232,7 +232,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		tx.Rollback()
 		return 0, err
 	}
-	urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirementt_id":%d, "action_plan_id":%d}`, complianceAssessmentID, requirementID, id)
+	urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, complianceAssessmentID, requirementID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleIdentifier:       "compliance_assessment",
 		ComplianceActionPlanID: &id,
