@@ -26,6 +26,15 @@ type ProjectAssociatedItemRepositoryInterface interface {
 	GetAllProjectKPI(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateProjectKPI(kpis []*models.KPIProject, tx ...utility.DatabaseTransaction) error
 	DeleteProjectKPI(projectID uint, kpiID uint, tx ...utility.DatabaseTransaction) error
+	GetAllProjectAssets(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	CreateProjectAsset(assets []*models.ProjectAsset, tx ...utility.DatabaseTransaction) error
+	DeleteProjectAsset(projectID uint, assetID uint, tx ...utility.DatabaseTransaction) error
+	GetAllProjectIncidents(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
+	CreateProjectIncident(incidents []*models.ProjectIncident, tx ...utility.DatabaseTransaction) error
+	DeleteProjectIncident(projectID uint, incidentID uint, tx ...utility.DatabaseTransaction) error
+	GetAllProjectRisks(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
+	CreateProjectRisk(risks []*models.ProjectRisk, tx ...utility.DatabaseTransaction) error
+	DeleteProjectRisk(projectID uint, incidentID uint, tx ...utility.DatabaseTransaction) error
 }
 
 // implementation
@@ -799,5 +808,496 @@ func (repo *ProjectAssociatedItemRepository) DeleteProjectKPI(projectID uint, kp
 	return db.
 		Where("kpi_register_id = ? AND project_id = ?", kpiRegisterID, projectID).
 		Delete(&models.KPIProject{}).
+		Error
+}
+
+func (repo *ProjectAssociatedItemRepository) GetAllProjectAssets(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	var Assets []*commonDTOs.AssociatedAssetListDTO
+	var totalCount int64
+
+	query := repo.db.Table("project_assets").
+		Select(`
+		    project_assets.id,
+			project_assets.asset_register_id,
+			asset_register.reference_number,
+			asset_register.title_en,
+			asset_register.title_ar,
+			asset_register.location,
+			asset_register.description,
+			CONVERT(VARCHAR, asset_register.acquisition_date, 23) AS acquisition_date,
+			CONVERT(VARCHAR, asset_register.assignment_date, 23) AS assignment_date,
+			CONVERT(VARCHAR, asset_register.warranty_expiry_date, 23) AS warranty_expiry_date,
+			asset_register.manufacturer,
+			asset_register.model,
+			asset_register.serial_number,
+			asset_categories.title_en AS asset_category_title_en,
+			asset_categories.title_ar AS asset_category_title_ar,
+			asset_sub_categories.title_en AS asset_sub_category_title_en,
+			asset_sub_categories.title_ar AS asset_sub_category_title_ar,
+			asset_statuses.title_en AS asset_status_title_en,
+			asset_statuses.title_ar AS asset_status_title_ar,
+			asset_statuses.color_code AS asset_status_color_code,
+			asset_register.total_score,
+			asset_criticality_matrix_rating_scales.title_en AS asset_criticality_matrix_rating_scale_title_en,
+			asset_criticality_matrix_rating_scales.title_ar AS asset_criticality_matrix_rating_scale_title_ar,
+			asset_criticality_matrix_rating_scales.color_code AS asset_criticality_matrix_rating_scale_color_code,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+			updated_user.id AS updated_user_id,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
+	`).
+		Joins("LEFT JOIN asset_register ON asset_register.id = project_assets.asset_register_id").
+		Joins("LEFT JOIN asset_categories ON asset_categories.id = asset_register.asset_category_id").
+		Joins("LEFT JOIN asset_sub_categories ON asset_sub_categories.id = asset_register.asset_sub_category_id").
+		Joins("LEFT JOIN asset_statuses ON asset_statuses.id = asset_register.asset_status_id").
+		Joins("LEFT JOIN asset_criticality_matrix_rating_scales ON asset_criticality_matrix_rating_scales.id = asset_register.asset_criticality_matrix_rating_scale_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = asset_register.responsible_unit_id").
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = asset_register.responsible_user_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = asset_register.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = asset_register.updated_by_id").
+		Where("project_assets.project_id = ?", projectID)
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		query = query.Where(`
+			(asset_register.title_en LIKE ? OR
+			asset_register.title_ar LIKE ? OR
+			asset_register.reference_number LIKE ? OR
+			asset_register.description LIKE ? OR
+			asset_categories.title_en LIKE ? OR
+			asset_categories.title_ar LIKE ? OR
+			asset_statuses.title_en LIKE ? OR
+			asset_statuses.title_ar LIKE ?)`,
+
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "asset_register.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&Assets).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedItemAssetListResponseDTO{
+		Items: Assets,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *ProjectAssociatedItemRepository) CreateProjectAsset(assets []*models.ProjectAsset, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&assets).Error
+}
+
+func (repo *ProjectAssociatedItemRepository) DeleteProjectAsset(projectID uint, assetID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("asset_register_id = ? AND project_id = ?", assetID, projectID).
+		Delete(&models.ProjectAsset{}).
+		Error
+}
+
+func (repo *ProjectAssociatedItemRepository) GetAllProjectIncidents(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error) {
+	var incidentList []*commonDTOs.AssociatedIncidentListDTO
+	var totalCount int64
+
+	query := repo.db.Table("project_incidents").
+		Select(`
+			 incident_register.*,
+			project_incidents.id as id,
+			project_incidents.incident_register_id,
+            incident_categories.title_en AS incident_category_title_en,
+            incident_categories.title_ar AS incident_category_title_ar,
+            incident_types.title_en AS incident_type_title_en,
+            incident_types.title_ar AS incident_type_title_ar,
+            incident_statuses.title_en AS incident_status_title_en,
+            incident_statuses.title_ar AS incident_status_title_ar,
+			incident_statuses.color_code AS incident_status_color_code,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+            responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            responsible_user.last_name_en AS responsible_user_last_name_en,
+            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			reported_user.id AS reported_by_id,
+            reported_user.first_name_en AS reported_user_first_name_en,
+            reported_user.first_name_ar AS reported_user_first_name_ar,
+            reported_user.last_name_en AS reported_user_last_name_en,
+            reported_user.last_name_ar AS reported_user_last_name_ar,
+			reported_user.initial AS reported_user_initial,
+            reported_user.color AS reported_user_color,
+            reported_user.email AS reported_user_email,
+            reported_user.profile_image_path AS reported_user_profile_image_path,
+			CONVERT(VARCHAR, incident_investigations.initiated_at, 23) AS investigation_initiated_at,
+			incident_investigations.description AS investigation_description,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path  
+		`).
+		Joins(`
+			LEFT JOIN incident_register ON incident_register.id = project_incidents.incident_register_id
+			LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
+            LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id
+            LEFT JOIN incident_types ON incident_types.id = incident_register.incident_type_id
+            LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id
+		    LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id
+            LEFT JOIN organization_units ON organization_units.id = incident_register.responsible_unit_id
+		    LEFT JOIN users AS responsible_user ON responsible_user.id = incident_register.responsible_user_id
+			LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
+			LEFT JOIN incident_investigations ON incident_investigations.incident_register_id = incident_register.id
+			LEFT JOIN users AS created_user ON created_user.id = incident_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = incident_register.updated_by_id
+		`).
+		Where("project_incidents.project_id = ?", projectID)
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(incident_register.reference_number LIKE ? OR
+			incident_register.title LIKE ? OR
+			incident_register.description LIKE ? OR
+			incident_register.location LIKE ? OR
+			incident_categories.title_en LIKE ? OR
+			incident_categories.title_ar LIKE ? OR
+			incident_sub_categories.title_en LIKE ? OR
+			incident_sub_categories.title_ar LIKE ? OR
+			incident_types.title_en LIKE ? OR
+			incident_types.title_ar LIKE ? OR
+			severity_levels.title_en LIKE ? OR
+			severity_levels.title_ar LIKE ? OR
+			incident_statuses.title_en LIKE ? OR
+			incident_statuses.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "incident_register.title"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&incidentList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedIncidentListResponseDTO{
+		Items: incidentList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *ProjectAssociatedItemRepository) CreateProjectIncident(incidents []*models.ProjectIncident, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&incidents).Error
+}
+
+func (repo *ProjectAssociatedItemRepository) DeleteProjectIncident(projectID uint, incidentID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("incident_register_id = ? AND project_id = ?", incidentID, projectID).
+		Delete(&models.ProjectIncident{}).
+		Error
+}
+
+func (repo *ProjectAssociatedItemRepository) GetAllProjectRisks(projectID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
+	var documentRisk []*commonDTOs.AssociatedRiskListDTO
+	var totalCount int64
+
+	query := repo.db.Table("project_risks").
+		Select(`
+		    project_risks.id,
+		    project_risks.risk_register_id,
+			 risk_register.reference_number,
+            risk_register.title,
+            risk_register.description,
+			CONVERT(VARCHAR, risk_register.reported_at, 23) AS reported_at,
+            risk_register.created_at,
+            risk_register.updated_at,
+			risk_register.current_risk_rating_value_id,
+            risk_categories.title_en AS risk_category_title_en,
+            risk_categories.title_ar AS risk_category_title_ar,
+            risk_sources.title_en AS risk_source_title_en,
+            risk_sources.title_ar AS risk_source_title_ar,
+			organization_units.id AS responsible_unit_id,
+            organization_units.title_en AS responsible_unit_title_en,
+            organization_units.title_ar AS responsible_unit_title_ar,
+			users.id AS responsible_user_id,
+            users.first_name_en AS responsible_user_first_name_en,
+            users.first_name_ar AS responsible_user_first_name_ar,
+            users.last_name_en AS responsible_user_last_name_en,
+            users.last_name_ar AS responsible_user_last_name_ar,
+			users.initial AS responsible_user_initial,
+        	users.color AS responsible_user_color,
+        	users.email AS responsible_user_email,
+        	users.profile_image_path AS responsible_user_profile_image_path,
+            risk_statuses.title_en AS risk_status_title_en,
+            risk_statuses.title_ar AS risk_status_title_ar,
+			risk_response_strategies.title_en AS risk_response_strategy_title_en,
+            risk_response_strategies.title_ar AS risk_response_strategy_title_ar,
+            risk_statuses.color_code AS risk_status_color_code,
+			risk_statuses.type AS risk_status_type,
+            review_frequencies.title_en AS review_frequency_title_en,
+            review_frequencies.title_ar AS review_frequency_title_ar,
+			CONVERT(VARCHAR, risk_register.next_review_date, 23) AS next_review_date,
+            risk_register.last_review_note,
+            created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path,
+            current_likelihood.title_en AS current_likelihood_title_en,
+            current_likelihood.title_ar AS current_likelihood_title_ar,
+            current_impact.title_en AS current_impact_title_en,
+            current_impact.title_ar AS current_impact_title_ar,
+            current_risk_rating.title_en AS current_risk_rating_title_en,
+            current_risk_rating.title_ar AS current_risk_rating_title_ar,
+            current_risk_rating_value.value AS current_risk_rating_value,
+            current_risk_rating.color_code AS current_risk_rating_color_code,
+            inherent_likelihood.title_en AS inherent_likelihood_title_en,
+            inherent_likelihood.title_ar AS inherent_likelihood_title_ar,
+            inherent_impact.title_en AS inherent_impact_title_en,
+            inherent_impact.title_ar AS inherent_impact_title_ar,
+            inherent_risk_rating.title_en AS inherent_risk_rating_title_en,
+            inherent_risk_rating.title_ar AS inherent_risk_rating_title_ar,
+            inherent_risk_rating_value.value AS inherent_risk_rating_value,
+            inherent_risk_rating.color_code AS inherent_risk_rating_color_code,
+            residual_likelihood.title_en AS residual_likelihood_title_en,
+            residual_likelihood.title_ar AS residual_likelihood_title_ar,
+            residual_impact.title_en AS residual_impact_title_en,
+            residual_impact.title_ar AS residual_impact_title_ar,
+            residual_risk_rating.title_en AS residual_risk_rating_title_en,
+            residual_risk_rating.title_ar AS residual_risk_rating_title_ar,
+            residual_risk_rating_value.value AS residual_risk_rating_value,
+            residual_risk_rating.color_code AS residual_risk_rating_color_code
+		`).
+		Joins(`
+			LEFT JOIN risk_register ON risk_register.id = project_risks.risk_register_id
+			LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
+            LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
+            LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
+            LEFT JOIN users ON users.id = risk_register.responsible_user_id
+            LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
+			LEFT JOIN risk_response_strategies ON risk_response_strategies.id = risk_register.risk_response_strategy_id
+            LEFT JOIN users AS created_user ON created_user.id = risk_register.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = risk_register.updated_by_id
+            LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
+            LEFT JOIN risk_matrix_likelihoods AS current_likelihood ON current_likelihood.id = risk_register.current_likelihood_id
+            LEFT JOIN risk_matrix_impacts AS current_impact ON current_impact.id = risk_register.current_impact_id
+            LEFT JOIN risk_matrix_risk_ratings AS current_risk_rating ON current_risk_rating.id = risk_register.current_risk_rating_id
+            LEFT JOIN risk_matrix_risk_rating_values AS current_risk_rating_value ON current_risk_rating_value.id = risk_register.current_risk_rating_value_id
+            LEFT JOIN risk_matrix_likelihoods AS inherent_likelihood ON inherent_likelihood.id = risk_register.inherent_likelihood_id
+            LEFT JOIN risk_matrix_impacts AS inherent_impact ON inherent_impact.id = risk_register.inherent_impact_id
+            LEFT JOIN risk_matrix_risk_ratings AS inherent_risk_rating ON inherent_risk_rating.id = risk_register.inherent_risk_rating_id
+            LEFT JOIN risk_matrix_risk_rating_values AS inherent_risk_rating_value ON inherent_risk_rating_value.id = risk_register.inherent_risk_rating_value_id
+            LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = risk_register.residual_likelihood_id
+            LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id
+            LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id
+            LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
+		`).
+		Where("project_risks.project_id = ?", projectID)
+
+	// Calculate total count for pagination
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(risk_register.reference_number LIKE ? OR
+			risk_register.title LIKE ? OR
+			risk_register.description LIKE ? OR
+			risk_categories.title_en LIKE ? OR
+			risk_categories.title_ar LIKE ? OR
+			risk_sources.title_en LIKE ? OR
+			risk_sources.title_ar LIKE ? OR
+			organization_units.title_en LIKE ? OR
+			organization_units.title_ar LIKE ? OR
+			users.first_name_en LIKE ? OR
+			users.first_name_ar LIKE ? OR
+			users.last_name_en LIKE ? OR
+			users.last_name_ar LIKE ? OR
+			risk_statuses.title_en LIKE ? OR
+			risk_statuses.title_ar LIKE ? OR
+			risk_statuses.color_code LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "risk_register.title"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	if params.Value != 0 {
+		query = query.Where("current_risk_rating_value.value = ?", params.Value)
+	}
+
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&documentRisk).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedRiskListResponseDTO{
+		Items: documentRisk,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *ProjectAssociatedItemRepository) CreateProjectRisk(risks []*models.ProjectRisk, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&risks).Error
+}
+
+func (repo *ProjectAssociatedItemRepository) DeleteProjectRisk(projectID uint, riskID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("risk_register_id = ? AND project_id = ?", riskID, projectID).
+		Delete(&models.ProjectRisk{}).
 		Error
 }

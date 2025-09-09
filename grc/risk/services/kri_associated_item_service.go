@@ -17,6 +17,12 @@ type KRIAssociatedItemServiceInterface interface {
 	GetAllKRIControls(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	CreateKRIControl(kriID uint, userID uint, dto *commonDTOs.AssociatedControlMapDTO) error
 	DeleteKRIControl(kriID uint, controlID uint) error
+	GetAllKRIAssets(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	CreateKRIAsset(kriID uint, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
+	DeleteKRIAsset(kriID uint, assetID uint) error
+	GetAllKRIIncidents(kriID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
+	CreateKRIIncident(kriID uint, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
+	DeleteKRIIncident(kriID uint, incidentID uint) error
 }
 
 // Service and implementations
@@ -136,6 +142,112 @@ func (pais *KRIAssociatedItemService) DeleteKRIControl(kriID uint, controlID uin
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteKRIControl(kriID, controlID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *KRIAssociatedItemService) GetAllKRIAssets(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	if _, err := pais.KRISvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+	return pais.repo.GetAllKRIAssets(assetID, params)
+}
+
+func (pais *KRIAssociatedItemService) CreateKRIAsset(kriID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
+
+	if _, err := pais.KRISvc.GetByID(kriID); err != nil {
+		return err
+	}
+
+	if err := pais.validationSvc.ValidateAssetMapping(kriID, dto.AssetIDs, "asset_kris", "kri_register_id"); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.AssetKri
+	currentTime := time.Now()
+
+	for _, AssetID := range dto.AssetIDs {
+		mappings = append(mappings, &models.AssetKri{
+			AssetRegisterID: AssetID,
+			KriRegisterID:   kriID,
+			CreatedBYID:     userID,
+			CreatedAt:       currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateKRIAsset(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *KRIAssociatedItemService) DeleteKRIAsset(kriID uint, assetID uint) error {
+
+	if _, err := pais.KRISvc.GetByID(kriID); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteKRIAsset(kriID, assetID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *KRIAssociatedItemService) GetAllKRIIncidents(assetID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error) {
+	if _, err := pais.KRISvc.GetByID(assetID); err != nil {
+		return nil, err
+	}
+	return pais.repo.GetAllKRIIncidents(assetID, params)
+}
+
+func (pais *KRIAssociatedItemService) CreateKRIIncident(kriID, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error {
+
+	if _, err := pais.KRISvc.GetByID(kriID); err != nil {
+		return err
+	}
+
+	if err := pais.validationSvc.ValidateIncidentMapping(kriID, dto.IncidentIDs, "kri_incidents", "kri_register_id"); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.KriIncident
+	currentTime := time.Now()
+
+	for _, incidentID := range dto.IncidentIDs {
+		mappings = append(mappings, &models.KriIncident{
+			IncidentRegisterID: incidentID,
+			KriRegisterID:      kriID,
+			CreatedBYID:        userID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateKRIIncident(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *KRIAssociatedItemService) DeleteKRIIncident(kriID uint, incidentID uint) error {
+
+	if _, err := pais.KRISvc.GetByID(kriID); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteKRIIncident(kriID, incidentID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

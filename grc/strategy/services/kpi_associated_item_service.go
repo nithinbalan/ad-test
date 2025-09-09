@@ -30,8 +30,8 @@ type KPIAssociatedItemServiceInterface interface {
 	CreateKPICompliances(kpiID, userID uint, dto *strategyDTOs.KPIComplianceMapDTO) error
 	DeleteKPICompliance(kpiID, compianceID uint) error
 
-	GetAllAssets(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemAssetListResponseDTO, error)
-	CreateKPIAssets(kpiID, userID uint, dto *strategyDTOs.KPIAssetMapDTO) error
+	GetAllAssets(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	CreateKPIAssets(kpiID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
 	DeleteKPIAsset(kpiID, assetID uint) error
 
 	GetAllRisks(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
@@ -52,6 +52,9 @@ type KPIAssociatedItemServiceInterface interface {
 	GetAllStrategicObjectives(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
 	CreateKPIStrategicObjective(kpiID, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
 	DeleteKPIStrategicObjective(kpiID, strategicObjectiveID uint) error
+	GetAllKPIIncidents(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
+	CreateKPIIncident(kpiID, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
+	DeleteKPIIncident(kpiID, incidentID uint) error
 }
 
 // Service and implementations
@@ -328,18 +331,22 @@ func (kais *KPIAssociatedItemService) validateComplianceIDs(kpiID uint, complian
 }
 
 // Assets
-func (kais *KPIAssociatedItemService) GetAllAssets(kpiID uint, params *strategyDTOs.KPIAssociatedItemListQueryParamsDTO) (*strategyDTOs.KPIAssociatedItemAssetListResponseDTO, error) {
+func (kais *KPIAssociatedItemService) GetAllAssets(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
 		return nil, err
 	}
 	return kais.repo.GetAllAssets(kpiID, params)
 }
 
-func (kais *KPIAssociatedItemService) CreateKPIAssets(kpiID, userID uint, dto *strategyDTOs.KPIAssetMapDTO) error {
-	if err := kais.validateAssetIDs(kpiID, dto.AssetIDs); err != nil {
+func (kais *KPIAssociatedItemService) CreateKPIAssets(kpiID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
+
+	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
 		return err
 	}
 
+	if err := kais.validationSvc.ValidateAssetMapping(kpiID, dto.AssetIDs, "kpi_assets", "kpi_register_id"); err != nil {
+		return err
+	}
 	tx := kais.repo.BeginTransaction()
 	var mappings []*models.KPIAsset
 	currentTime := time.Now()
@@ -774,6 +781,55 @@ func (kais *KPIAssociatedItemService) DeleteKPIStrategicObjective(kpiID, strateg
 	tx := kais.repo.BeginTransaction()
 
 	if err := kais.repo.DeleteKPIStrategicObjective(kpiID, strategicObjectiveID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (kais *KPIAssociatedItemService) GetAllKPIIncidents(kpiID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error) {
+	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
+		return nil, err
+	}
+	return kais.repo.GetAllKPIIncidents(kpiID, params)
+}
+
+func (kais *KPIAssociatedItemService) CreateKPIIncident(kpiID, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error {
+	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
+		return err
+	}
+	if err := kais.validationSvc.ValidateIncidentMapping(kpiID, dto.IncidentIDs, "incident_kpis", "kpi_register_id"); err != nil {
+		return err
+	}
+	tx := kais.repo.BeginTransaction()
+	var mappings []*models.IncidentKPI
+	currentTime := time.Now()
+
+	for _, incidentID := range dto.IncidentIDs {
+		mappings = append(mappings, &models.IncidentKPI{
+			KPIRegisterID:      kpiID,
+			IncidentRegisterID: incidentID,
+			CreatedByID:        userID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := kais.repo.CreateKPIIncident(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (kais *KPIAssociatedItemService) DeleteKPIIncident(kpiID, incidentID uint) error {
+	if _, err := kais.kpiRegisterSvc.GetByID(kpiID); err != nil {
+		return err
+	}
+
+	tx := kais.repo.BeginTransaction()
+
+	if err := kais.repo.DeleteKPIIncident(kpiID, incidentID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

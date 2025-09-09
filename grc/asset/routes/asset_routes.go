@@ -34,7 +34,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	vulnerabilityActionPlanController := app.AssetModule.VulnerabilityActionPlanController
 	vulnerabilityActionPlanStatusUpdateController := app.AssetModule.VulnerabilityActionPlanStatusUpdateController
 	threatActionPlanController := app.AssetModule.ThreatActionPlanController
-    threatActionPlanCommentController:=app.AssetModule.ThreatActionPlanCommentController
+	threatActionPlanCommentController := app.AssetModule.ThreatActionPlanCommentController
 
 	threatActionPlanStatusUpdateController := app.AssetModule.ThreatActionPlanStatusUpdateController
 	assetMaintenanceController := app.AssetModule.AssetMaintenanceController
@@ -197,11 +197,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/threats/:id/action-plans/:actionPlanId/comments/:commentId/document-preview", threatActionPlanCommentController.GetThreatActionPlanCommentDocumentPreview)
 	assetRoutes.GET("/threats/:id/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatActionPlanCommentController.GetAllComments)
 	assetRoutes.GET("/threats/:id/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatActionPlanCommentController.GetCommentDetails)
- 	assetRoutes.POST("/threats/:id/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatActionPlanCommentController.CreateComment)
+	assetRoutes.POST("/threats/:id/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatActionPlanCommentController.CreateComment)
 	assetRoutes.PUT("/threats/:id/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatActionPlanCommentController.UpdateComment)
 	assetRoutes.POST("/threats/:id/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatActionPlanCommentController.DeleteComment)
-
-
 
 	// Document Preview and Download for Threat Action Plan Status Update
 	unauthenticatedRoutes.GET("/threats/:id/action-plans/:actionPlanId/status-updates/:statusUpdateId/document-preview", threatActionPlanStatusUpdateController.GetDocumentPreview)
@@ -265,6 +263,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("assets/:id/kpis", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetAssociatedItemController.CreateAssetKPI)
 	assetRoutes.DELETE("assets/:id/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetAssociatedItemController.DeleteAssetKPI)
 
+	assetRoutes.POST("assets/:id/incidents", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetAssociatedItemController.CreateAssetIncident)
+	assetRoutes.DELETE("assets/:id/incidents/:incidentId", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetAssociatedItemController.DeleteAssetIncident)
+
+	//asset criticality
 	// asset criticality
 	assetRoutes.POST("/asset/criticality-recommendation/ai", assetCriticalityController.GetAIRecommendation)
 	assetRoutes.GET("assets/:id/criticality", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetCriticalityController.GetAssetCriticality)

@@ -80,26 +80,21 @@ type IncidentRegisterListDTO struct {
 }
 
 type IncidentRegisterFormDTO struct {
-	IncidentCategoryID       uint                       `json:"incident_category_id" binding:"required"`
-	IncidentTypeID           *uint                      `json:"incident_type_id"`
-	SeverityLevelID          *uint                      `json:"severity_level_id"`
-	IncidentStatusID         *uint                      `json:"incident_status_id"`
-	Title                    string                     `json:"title" binding:"required,max=255"`
-	ResponsibleUserID        uint                       `json:"responsible_user_id" binding:"required"`
-	Description              *string                    `json:"description"`
-	IncidentAt               string                     `json:"incident_at" binding:"required"`
-	Location                 *string                    `json:"location"`
-	ReportedBy               uint                       `json:"reported_by" binding:"required"`
-	ReportedAt               string                     `json:"reported_at" binding:"required"`
-	QuickAction              *string                    `json:"quick_action"`
-	Documents                []*IncidentDocumentFormDTO `json:"documents"`
-	ComplianceRequirementIds []*uint                    `json:"compliance_requirement_ids"`
-	ControlIds               []*uint                    `json:"control_ids"`
-	RiskIds                  []*uint                    `json:"risk_ids"`
-	ProcessIDs               []*uint                    `json:"process_ids"`
-	SLARegisterIDs           []*uint                    `json:"sla_register_ids"`
-	DocumentIds              []*uint                    `json:"document_ids"`
-	AssetIds                 []*uint                    `json:"asset_ids"`
+	IncidentCategoryID uint                       `json:"incident_category_id" binding:"required"`
+	IncidentTypeID     *uint                      `json:"incident_type_id"`
+	SeverityLevelID    *uint                      `json:"severity_level_id"`
+	IncidentStatusID   *uint                      `json:"incident_status_id"`
+	Title              string                     `json:"title" binding:"required,max=255"`
+	ResponsibleUserID  uint                       `json:"responsible_user_id" binding:"required"`
+	Description        *string                    `json:"description"`
+	IncidentAt         string                     `json:"incident_at" binding:"required"`
+	Location           *string                    `json:"location"`
+	ReportedBy         uint                       `json:"reported_by" binding:"required"`
+	ReportedAt         string                     `json:"reported_at" binding:"required"`
+	QuickAction        *string                    `json:"quick_action"`
+	Documents          []*IncidentDocumentFormDTO `json:"documents"`
+	ControlIds         []*uint                    `json:"control_ids"`
+	SLARegisterIDs     []*uint                    `json:"sla_register_ids"`
 }
 
 type IncidentDocumentFormDTO struct {

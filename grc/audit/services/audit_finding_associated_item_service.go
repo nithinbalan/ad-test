@@ -25,6 +25,14 @@ type AuditFindingAssociatedItemServiceInterface interface {
 	GetAllAuditFindingStrategicObjectives(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
 	CreateAuditFindingStrategicObjective(findingID uint, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
 	DeleteAuditFindingStrategicObjective(findingID uint, strategicObjectiveID uint) error
+
+	GetAllAuditFindingAssets(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	CreateAuditFindingAsset(findingID uint, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
+	DeleteAuditFindingAsset(findingID uint, assetID uint) error
+
+	GetAllAuditFindingIncidents(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
+	CreateAuditFindingIncident(findingID uint, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
+	DeleteAuditFindingIncident(findingID uint, incidentID uint) error
 }
 
 // Service and implementations
@@ -250,6 +258,112 @@ func (afais *AuditFindingAssociatedItemService) DeleteAuditFindingStrategicObjec
 	tx := afais.repo.BeginTransaction()
 
 	if err := afais.repo.DeleteAuditFindingStrategicObjective(findingID, strategicObjectiveID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (afais *AuditFindingAssociatedItemService) GetAllAuditFindingAssets(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return nil, err
+	}
+	return afais.repo.GetAllAuditFindingAssets(findingID, params)
+}
+
+func (afais *AuditFindingAssociatedItemService) CreateAuditFindingAsset(findingID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
+
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return err
+	}
+
+	if err := afais.validationSvc.ValidateAssetMapping(findingID, dto.AssetIDs, "audit_finding_assets", "audit_finding_id"); err != nil {
+		return err
+	}
+
+	tx := afais.repo.BeginTransaction()
+	var mappings []*models.AuditFindingAsset
+	currentTime := time.Now()
+
+	for _, AssetID := range dto.AssetIDs {
+		mappings = append(mappings, &models.AuditFindingAsset{
+			AssetRegisterID: AssetID,
+			AuditFindingID:  findingID,
+			CreatedBYID:     userID,
+			CreatedAt:       currentTime,
+		})
+	}
+
+	if err := afais.repo.CreateAuditFindingAsset(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (afais *AuditFindingAssociatedItemService) DeleteAuditFindingAsset(findingID uint, assetID uint) error {
+	// Validate control existence
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return err
+	}
+
+	tx := afais.repo.BeginTransaction()
+
+	if err := afais.repo.DeleteAuditFindingAsset(findingID, assetID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (afais *AuditFindingAssociatedItemService) GetAllAuditFindingIncidents(findingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error) {
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return nil, err
+	}
+	return afais.repo.GetAllAuditFindingIncidents(findingID, params)
+}
+
+func (afais *AuditFindingAssociatedItemService) CreateAuditFindingIncident(findingID, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error {
+
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return err
+	}
+
+	if err := afais.validationSvc.ValidateIncidentMapping(findingID, dto.IncidentIDs, "audit_finding_incidents", "audit_finding_id"); err != nil {
+		return err
+	}
+
+	tx := afais.repo.BeginTransaction()
+	var mappings []*models.AuditFindingIncident
+	currentTime := time.Now()
+
+	for _, incidentID := range dto.IncidentIDs {
+		mappings = append(mappings, &models.AuditFindingIncident{
+			IncidentRegisterID: incidentID,
+			AuditFindingID:     findingID,
+			CreatedBYID:        userID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := afais.repo.CreateAuditFindingIncident(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (afais *AuditFindingAssociatedItemService) DeleteAuditFindingIncident(findingID uint, incidentID uint) error {
+	// Validate control existence
+	if _, err := afais.AuditFindingSvc.GetByID(findingID); err != nil {
+		return err
+	}
+
+	tx := afais.repo.BeginTransaction()
+
+	if err := afais.repo.DeleteAuditFindingIncident(findingID, incidentID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

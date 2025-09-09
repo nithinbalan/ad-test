@@ -386,6 +386,7 @@ type AssociatedDocumentListResponseDTO struct {
 
 type AssociatedIncidentListDTO struct {
 	ID                              uint       `json:"id"`
+	IncidentRegisterID              uint       `json:"incident_register_id"`
 	ReferenceNumber                 string     `json:"reference_number"`
 	Title                           string     `json:"title"`
 	Description                     *string    `json:"description"`
@@ -524,6 +525,7 @@ type AssociatedItemStrategicObjectiveListResponseDTO struct {
 
 type AssociatedAssetListDTO struct {
 	ID                                         uint       `json:"id"`
+	AssetRegisterID                            uint       `json:"asset_register_id"`
 	ReferenceNumber                            string     `json:"reference_number"`
 	TitleEn                                    string     `json:"title_en"`
 	TitleAr                                    string     `json:"title_ar"`

@@ -88,9 +88,6 @@ func (aaic *AssetAssociatedItemController) GetAllAssetIncidents(c *gin.Context) 
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
-
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(aaic.db, c, "Invalid page parameter")
@@ -103,14 +100,12 @@ func (aaic *AssetAssociatedItemController) GetAllAssetIncidents(c *gin.Context) 
 		return
 	}
 
-	queryParams := assetDTOs.AssetAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	controls, err := aaic.service.GetAllIncidents(uint(assetID), &queryParams)
 
@@ -1156,6 +1151,68 @@ func (aaic *AssetAssociatedItemController) DeleteAssetKPI(c *gin.Context) {
 		return
 	}
 	err = aaic.service.DeleteAssetKPI(uint(assetID), uint(kpiID))
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "KPI unmapped from asset successfully"})
+}
+
+func (aaic *AssetAssociatedItemController) CreateAssetIncident(c *gin.Context) {
+	var input commonDTOs.AssociatedIncidentMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	assetID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(aaic.db, c, err.Error())
+		return
+	}
+
+	err = aaic.service.CreateAssetIncident(uint(assetID), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(aaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (aaic *AssetAssociatedItemController) DeleteAssetIncident(c *gin.Context) {
+	assetIDStr := c.Param("id")
+	incidentIDStr := c.Param("incidentId")
+	assetID, err := strconv.ParseUint(assetIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = aaic.service.DeleteAssetIncident(uint(assetID), uint(incidentID))
 	if err != nil {
 		utility.SendInternalErrResp(aaic.db, c, err.Error())
 		return
