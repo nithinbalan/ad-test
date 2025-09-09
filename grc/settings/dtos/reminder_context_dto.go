@@ -10,5 +10,9 @@ type ReminderContextDTO struct {
 }
 
 type ReminderContextListQueryParamsDTO struct {
-	Filters map[string][]string
+	Sort    string              `form:"sort" json:"sort"`
+	SortBy  string              `form:"sortBy" json:"sortBy"`
+	Keyword string              `form:"keyword" json:"keyword"`
+	Status  string              `form:"status" json:"status"`
+	Filters map[string][]string `form:"filters" json:"filters"`
 }
