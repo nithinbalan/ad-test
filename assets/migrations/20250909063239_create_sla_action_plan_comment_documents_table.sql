@@ -12,7 +12,7 @@ CREATE TABLE
         type VARCHAR(255) DEFAULT NULL,
         created_by_id INT,
         updated_by_id INT NULL,
-        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        created_at DATETIME NOT NULL,
         updated_at DATETIME NULL
         -- Foreign Key Constraints
         CONSTRAINT FK_sla_action_plan_comment_documents FOREIGN KEY (sla_action_plan_comment_id) REFERENCES sla_action_plan_comments (id) ON DELETE CASCADE ON UPDATE NO ACTION,
