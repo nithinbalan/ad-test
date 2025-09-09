@@ -1,12 +1,13 @@
 package controllers
 
 import (
+	"net/http"
+	"strconv"
+
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
 	"jethur/utility"
-	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -41,7 +42,6 @@ func (casuc *ControlActionPlanStatusUpdateController) GetAllControlActionPlanSta
 	keyword := c.Query("keyword")
 
 	controlActionPlanStatusUpdates, err := casuc.service.GetAll(uint(controlID), uint(controlActionPlanID), sort, sortBy, keyword)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -82,7 +82,6 @@ func (casuc *ControlActionPlanStatusUpdateController) CreateControlActionPlanSta
 	}
 
 	createdID, err := casuc.service.Create(uint(controlID), uint(controlActionPlanID), currentUserID, &controlActionPlanStatusUpdateFormDTO)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -213,4 +212,98 @@ func (casuc *ControlActionPlanStatusUpdateController) GetLatestControlActionPlan
 	}
 
 	c.JSON(http.StatusOK, controlActionPlanStatusUpdate)
+}
+
+func (casuc *ControlActionPlanStatusUpdateController) ApproveControlActionPlan(c *gin.Context) {
+	var controlActionPlanReviewUserStatusUpdateFormDTO organizationDTOs.ControlActionPlanReviewUserStatusUpdateFormDTO
+
+	controlID, err := strconv.Atoi(c.Param("controlId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanID, err := strconv.Atoi(c.Param("controlActionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&controlActionPlanReviewUserStatusUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(casuc.db, c, err.Error())
+		return
+	}
+
+	err = casuc.service.Approve(uint(controlID), uint(actionPlanID), currentUserID, &controlActionPlanReviewUserStatusUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(casuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (casuc *ControlActionPlanStatusUpdateController) RevertControlActionPlan(c *gin.Context) {
+	var controlActionPlanReviewUserStatusUpdateFormDTO organizationDTOs.ControlActionPlanReviewUserStatusUpdateFormDTO
+
+	controlID, err := strconv.Atoi(c.Param("controlId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanID, err := strconv.Atoi(c.Param("controlActionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&controlActionPlanReviewUserStatusUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(casuc.db, c, err.Error())
+		return
+	}
+
+	err = casuc.service.Revert(uint(controlID), uint(actionPlanID), currentUserID, &controlActionPlanReviewUserStatusUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(casuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }

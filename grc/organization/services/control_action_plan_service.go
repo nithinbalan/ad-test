@@ -175,7 +175,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 	controlActionPlanUpdate := &models.ControlActionPlanStatusUpdate{
 		ControlActionPlanID: id,
 		ActionPlanStatusID:  actionPlanStatusID,
-		Percentage:          *ControlActionPlanFormDTO.Percentage,
+		Percentage:          ControlActionPlanFormDTO.Percentage,
 		Comment:             "Initial action plan status",
 		CreatedByID:         currentUserID,
 	}

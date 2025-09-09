@@ -128,6 +128,7 @@ func (rrs *ReminderRuleService) Update(id uint, currentUserID uint, dto *setting
 	existing.TitleAr = dto.TitleAr
 	existing.DayOffset = dto.DayOffset
 	existing.UpdatedBYID = &currentUserID
+	existing.ReminderContextID= dto.ReminderContextID
 
 	err = rrs.repo.Update(existing)
 	if err != nil {

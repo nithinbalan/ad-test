@@ -219,7 +219,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	slaActionPlanController := controllers.NewSLAActionPlanController(slaActionPlanSvc)
 
 	slaActionPlanStatusUpdateRepo := repositories.NewSLAActionPlanStatusUpdateRepository(db)
-	slaActionPlanStatusUpdateSvc := services.NewSLAActionPlanStatusUpdateService(slaActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, slaActionPlanSvc, masterModule.ActionPlanStatusSvc)
+	slaActionPlanStatusUpdateSvc := services.NewSLAActionPlanStatusUpdateService(slaActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, slaActionPlanSvc, masterModule.ActionPlanStatusSvc, slaRegisterSvc, taskModule.TaskService, taskModule.TaskStatusService, organizationModule.UserSvc, commonModule.NotificationService)
 	slaActionPlanStatusUpdateController := controllers.NewSLAActionPlanStatusUpdateController(slaActionPlanStatusUpdateSvc)
 
 	complianceRequirementAssociatedItemRepo := repositories.NewComplianceRequirementAssociatedItemRepository(db)

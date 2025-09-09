@@ -21,6 +21,7 @@ type ControlActionPlanStatusUpdateRepositoryInterface interface {
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetLatestControlActionPlanStatusUpdate(controlActionPlanID uint) (*organizationDTOs.ControlActionPlanStatusUpdateListDTO, error)
+	ControlActionPlanUpdateStatus(Control *models.ControlActionPlan, tx ...utility.DatabaseTransaction) error
 }
 
 type ControlActionPlanStatusUpdateRepository struct {
@@ -39,7 +40,6 @@ func (repo *ControlActionPlanStatusUpdateRepository) BeginTransaction() utility.
 }
 
 func (repo *ControlActionPlanStatusUpdateRepository) GetAll(controlActionPlanID uint, sort string, sortBy string, keyword string) ([]*organizationDTOs.ControlActionPlanStatusUpdateListDTO, error) {
-
 	var controlActionPlanUpdates []*organizationDTOs.ControlActionPlanStatusUpdateListDTO
 
 	query := repo.db.Table("control_action_plan_status_updates").
@@ -173,7 +173,6 @@ func (repo *ControlActionPlanStatusUpdateRepository) DeleteDocuments(docIds []*u
 }
 
 func (repo *ControlActionPlanStatusUpdateRepository) GetLatestControlActionPlanStatusUpdate(controlActionPlanID uint) (*organizationDTOs.ControlActionPlanStatusUpdateListDTO, error) {
-
 	var controlActionPlanUpdate *organizationDTOs.ControlActionPlanStatusUpdateListDTO
 
 	query := repo.db.Table("control_action_plan_status_updates").
@@ -225,4 +224,15 @@ func (repo *ControlActionPlanStatusUpdateRepository) GetLatestControlActionPlanS
 	}
 
 	return controlActionPlanUpdate, nil
+}
+
+func (repo *ControlActionPlanStatusUpdateRepository) ControlActionPlanUpdateStatus(Control *models.ControlActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(Control).Error; err != nil {
+		return err
+	}
+	return nil
 }

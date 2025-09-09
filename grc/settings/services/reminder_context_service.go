@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"jethur/grc/models"
+	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
 	"jethur/utility"
 
@@ -11,7 +12,7 @@ import (
 )
 
 type ReminderContextServiceInterface interface {
-	GetAllReminderContexts() ([]*models.ReminderContext, error)
+	GetAllReminderContexts(params dtos.ReminderContextListQueryParamsDTO) ([]*models.ReminderContext, error)
 	GetByID(id uint) (*models.ReminderContext, error)
 }
 
@@ -26,8 +27,8 @@ func NewReminderContextService(repo repositories.ReminderContextRepositoryInterf
 	}
 }
 
-func (rcs *ReminderContextService) GetAllReminderContexts() ([]*models.ReminderContext, error) {
-	return rcs.repo.GetAllReminderContexts()
+func (rcs *ReminderContextService) GetAllReminderContexts(params dtos.ReminderContextListQueryParamsDTO) ([]*models.ReminderContext, error) {
+	return rcs.repo.GetAllReminderContexts(params)
 }
 
 func (rcs *ReminderContextService) GetByID(id uint) (*models.ReminderContext, error) {

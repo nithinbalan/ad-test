@@ -149,7 +149,7 @@ func (crc *ComplianceRequirementController) GetComplianceRequirementsByID(c *gin
 	}
 
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "compliance_clause_no")
+	sortBy := c.DefaultQuery("sort_by", "compliance_clauses.clause_no")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")

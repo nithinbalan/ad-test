@@ -2,13 +2,14 @@ package controllers
 
 import (
 	"fmt"
+	"net/http"
+	"path/filepath"
+	"strconv"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/services"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
-	"net/http"
-	"path/filepath"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -49,7 +50,6 @@ func (afsuc *AuditFindingActionPlanStatusUpdateController) GetAllAuditFindingAct
 	fmt.Println(auditFindingID)
 
 	auditFindingStatuses, err := afsuc.service.GetAll(uint(auditFindingID), uint(actionPlanID), sort, sortBy, keyword)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -94,7 +94,6 @@ func (afsuc *AuditFindingActionPlanStatusUpdateController) CreateAuditFindingAct
 	}
 
 	createdID, err := afsuc.service.Create(uint(auditFindingID), uint(actionPlanID), currentUserID, &auditFindingStatusUpdateFormDTO)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -296,4 +295,98 @@ func (afsuc *AuditFindingActionPlanStatusUpdateController) DownloadAuditFindingA
 
 	// Serve the file
 	c.File(auditScheduleStatusUpdateDocumentPath)
+}
+
+func (afsuc *AuditFindingActionPlanStatusUpdateController) ApproveAuditFindingActionPlan(c *gin.Context) {
+	var auditFindingActionPlanReviewUserStatusUpdateFormDTO auditDTOs.AuditFindingActionPlanReviewUserStatusUpdateFormDTO
+
+	auditFindingID, err := strconv.Atoi(c.Param("findingId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&auditFindingActionPlanReviewUserStatusUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(afsuc.db, c, err.Error())
+		return
+	}
+
+	err = afsuc.service.Approve(uint(auditFindingID), uint(actionPlanID), currentUserID, &auditFindingActionPlanReviewUserStatusUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(afsuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (afsuc *AuditFindingActionPlanStatusUpdateController) RevertAuditFindingActionPlan(c *gin.Context) {
+	var auditFindingActionPlanReviewUserStatusUpdateFormDTO auditDTOs.AuditFindingActionPlanReviewUserStatusUpdateFormDTO
+
+	auditFindingID, err := strconv.Atoi(c.Param("findingId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&auditFindingActionPlanReviewUserStatusUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(afsuc.db, c, err.Error())
+		return
+	}
+
+	err = afsuc.service.Revert(uint(auditFindingID), uint(actionPlanID), currentUserID, &auditFindingActionPlanReviewUserStatusUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(afsuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }
