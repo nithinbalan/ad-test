@@ -52,6 +52,7 @@ type DocumentModule struct {
 	DocumentWorkflowStatusSvc   services.DocumentWorkflowStatusServiceInterface
 	DocumentWorkflowSvc         services.DocumentWorkflowServiceInterface
 	DocumentReviewSvc           services.DocumentReviewServiceInterface
+	DocumentAuditLogSvc         services.DocumentAuditLogServiceInterface
 }
 
 func NewDocumentModule(db *gorm.DB,
@@ -297,5 +298,6 @@ func NewDocumentModule(db *gorm.DB,
 		DocumentWorkflowStatusSvc:   documentWorkflowStatusSvc,
 		DocumentWorkflowSvc:         documentWorkflowSvc,
 		DocumentReviewSvc:           documentReviewSvc,
+		DocumentAuditLogSvc:         documentAuditLogSvc,
 	}
 }
