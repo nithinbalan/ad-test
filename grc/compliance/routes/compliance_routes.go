@@ -36,6 +36,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	SLACheckAnswerController := app.ComplianceModule.SLACheckAnswerController
 	SLARenewController := app.ComplianceModule.SLARenewController
 	slaActionPlanController := app.ComplianceModule.SLAActionPlanController
+	slaActionPlanCommentController := app.ComplianceModule.SLAActionPlanCommentController
 	slaActionPlanStatusUpdateController := app.ComplianceModule.SLAActionPlanStatusUpdateController
 	slaAssociatedItemController := app.ComplianceModule.SLAAssociatedItemController
 	ComplianceActionPlanCommentController := app.ComplianceModule.ComplianceActionPlanCommentController
@@ -287,6 +288,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.PUT("/slas/:slaId/action-plans/:actionPlanId/approve", slaActionPlanStatusUpdateController.ApproveSLAActionPlan)
 	complianceRoutes.PUT("/slas/:slaId/action-plans/:actionPlanId/revert", slaActionPlanStatusUpdateController.RevertSLAActionPlan)
 	complianceRoutes.GET("/slas/:slaId/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"), slaActionPlanStatusUpdateController.GetLatestSLAActionPlanStatusUpdate)
+
+	// SLA Action Plan Comments
+	unauthenticatedRoutes.GET("/slas/:slaId/action-plans/:actionPlanId/comments/:commentId/document-download", slaActionPlanCommentController.DownloadSLAActionPlanCommentDocument)
+	unauthenticatedRoutes.GET("/slas/:slaId/action-plans/:actionPlanId/comments/:commentId/document-preview", slaActionPlanCommentController.GetSLAActionPlanCommentDocumentPreview)
+	complianceRoutes.GET("/slas/:slaId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"),	slaActionPlanCommentController.GetAllComments)
+	complianceRoutes.GET("/slas/:slaId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"), slaActionPlanCommentController.GetCommentDetails)
+	complianceRoutes.POST("/slas/:slaId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "sla_contracts", "modify"), slaActionPlanCommentController.CreateComment)
+	complianceRoutes.PUT("/slas/:slaId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "sla_contracts", "modify"), slaActionPlanCommentController.UpdateComment)
+	complianceRoutes.POST("/slas/:slaId/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "sla_contracts", "modify"), slaActionPlanCommentController.DeleteComment)
 
 	complianceRoutes.GET("/slas/:slaId/processes", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"), slaAssociatedItemController.GetAllSLAProcesses)
 	complianceRoutes.GET("/slas/:slaId/documents", middlewares.RolePermissionMiddleware(db, "sla_contracts", "view"), slaAssociatedItemController.GetAllSLADocuments)
