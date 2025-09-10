@@ -43,6 +43,7 @@ type AuditReportWorkflowService struct {
 	userSvc             organizationSvc.UserServiceInterface
 	auditFinalReportSvc AuditFinalReportServiceInterface
 	auditSvc            AuditServiceInterface
+	workflowContextSvc  masterSvc.WorkflowContextServiceInterface
 }
 
 func NewAuditReportWorkflowService(
@@ -52,14 +53,16 @@ func NewAuditReportWorkflowService(
 	workflowStatusSvc masterSvc.WorkflowStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
 	auditSvc AuditServiceInterface,
+	workflowContextSvc masterSvc.WorkflowContextServiceInterface,
 ) AuditReportWorkflowServiceInterface {
 	return &AuditReportWorkflowService{
-		repo:              repo,
-		activityLogSvc:    activityLogSvc,
-		workflowSvc:       workflowSvc,
-		workflowStatusSvc: workflowStatusSvc,
-		userSvc:           userSvc,
-		auditSvc:          auditSvc,
+		repo:               repo,
+		activityLogSvc:     activityLogSvc,
+		workflowSvc:        workflowSvc,
+		workflowStatusSvc:  workflowStatusSvc,
+		userSvc:            userSvc,
+		auditSvc:           auditSvc,
+		workflowContextSvc: workflowContextSvc,
 	}
 }
 
@@ -122,7 +125,13 @@ func (arws *AuditReportWorkflowService) GetAuditReportWorkflowList(auditID uint)
 }
 
 func (arws *AuditReportWorkflowService) CreateAuditReportWorkflow(auditFinalReportID uint, workflowType string, currentUserID uint, tx ...utility.DatabaseTransaction) error {
-	workflow, err := arws.workflowSvc.GetAllWorkflowsByType(workflowType, "audit")
+
+	workflowContext, err := arws.workflowContextSvc.GetByType("audit_final_report")
+	if err != nil {
+		return err
+	}
+
+	workflow, err := arws.workflowSvc.GetWorkflowByContext(workflowContext.ID)
 	if err != nil {
 		return err
 	}
@@ -130,7 +139,7 @@ func (arws *AuditReportWorkflowService) CreateAuditReportWorkflow(auditFinalRepo
 	if workflowType == "draft-report" {
 		auditReportWorkflowType = "draft"
 	}
-	workflowLevels, err := arws.workflowSvc.GetWorkflowLevels(workflow[0].ID, tx...)
+	workflowLevels, err := arws.workflowSvc.GetWorkflowLevels(workflow.ID, tx...)
 	if err != nil {
 		return err
 	}
@@ -318,15 +327,20 @@ func (arws *AuditReportWorkflowService) mapWorkflowStatusToDTO(status *models.Wo
 }
 
 func (arws *AuditReportWorkflowService) ValidateWorkflowBeforeCreate(workflowType string, tx ...utility.DatabaseTransaction) error {
-	workflows, err := arws.workflowSvc.GetAllWorkflowsByType(workflowType, "audit")
+	workflowContext, err := arws.workflowContextSvc.GetByType("audit_final_report")
 	if err != nil {
 		return err
 	}
-	if len(workflows) == 0 {
+
+	workflow, err := arws.workflowSvc.GetWorkflowByContext(workflowContext.ID)
+	if err != nil {
+		return err
+	}
+	if workflow == nil {
 		return utility.NewForbiddenError("workflow_not_configured")
 	}
 
-	workflowLevels, err := arws.workflowSvc.GetWorkflowLevels(workflows[0].ID, tx...)
+	workflowLevels, err := arws.workflowSvc.GetWorkflowLevels(workflow.ID, tx...)
 	if err != nil {
 		return err
 	}

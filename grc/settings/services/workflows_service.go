@@ -24,6 +24,7 @@ type WorkflowServiceInterface interface {
 
 	GetAllWorkflowsByType(workflowType string, moduleIdentifier string) ([]*settingsDTOs.WorkflowListDTO, error)
 	GetWorkflowByDocumentType(documentTypeId uint, workflowContextId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
+	GetWorkflowByContext(workflowContextId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
 	GetWorkflowLevels(workflowID uint, tx ...utility.DatabaseTransaction) (*settingsDTOs.WorkflowLevelListDTO, error)
 	CreateWorkFlowLevel(workflowId uint, currentUserID uint, workflowFormDTO *settingsDTOs.WorkflowLevelFormDTO) (uint, error)
 	DeleteWorkflowLevel(currentUserID, workflowLevelID uint) error
@@ -210,6 +211,18 @@ func (ws *WorkflowService) GetWorkflowByDocumentType(documentTypeId uint, workfl
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, documentTypeId)
+		}
+		return nil, err
+	}
+	return workflow, nil
+}
+
+func (ws *WorkflowService) GetWorkflowByContext(workflowContextId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error) {
+	workflow, err := ws.repo.GetWorkflowByContext(workflowContextId, tx...)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, workflowContextId)
 		}
 		return nil, err
 	}

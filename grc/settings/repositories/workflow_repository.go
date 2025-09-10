@@ -23,6 +23,7 @@ type WorkflowRepositoryInterface interface {
 
 	GetAllWorkflowsByType(workflowType string, moduleIdentifier string) ([]*settingsDTOs.WorkflowListDTO, error)
 	GetWorkflowByDocumentType(documentTypeId uint, workflowContextId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
+	GetWorkflowByContext(workflowContextId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
 	GetWorkflowLevelByID(id uint, tx ...utility.DatabaseTransaction) (*models.WorkflowLevel, error)
 	GetWorkflowLevels(workflowID uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
 	CreateWorkflowLevel(workflowLevel *models.WorkflowLevel, tx ...utility.DatabaseTransaction) (uint, error)
@@ -201,7 +202,7 @@ func (repo *WorkflowRepository) GetAllWorkflowsByType(workflowType string, modul
 		Where("modules.identifier = ?", moduleIdentifier)
 
 	if workflowType != "" {
-		query = query.Where("workflow_contexts.type = ?", workflowType)
+		query = query.Where("workflows.type = ?", workflowType)
 	}
 
 	err := query.Find(&workflows).Error
@@ -234,6 +235,33 @@ func (repo *WorkflowRepository) GetWorkflowByDocumentType(documentTypeId uint, w
 	// If no levels exist, you may decide to return nil or still return workflow with info
 	if count == 0 {
 		return nil, fmt.Errorf("no levels defined for workflow (id=%d, document_type_id=%d)", workflow.ID, documentTypeId)
+	}
+
+	return workflow, nil
+}
+
+func (repo *WorkflowRepository) GetWorkflowByContext(workflowContextId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error) {
+	var workflow *models.Workflow
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Where("workflow_context_id = ?", workflowContextId).First(&workflow)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	// Check whether levels exist for this workflow
+	var count int64
+	err := db.Model(&models.WorkflowLevel{}).Where("workflow_id = ?", workflow.ID).Count(&count).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// If no levels exist, you may decide to return nil or still return workflow with info
+	if count == 0 {
+		return nil, fmt.Errorf("no levels defined for workflow (id=%d)", workflow.ID)
 	}
 
 	return workflow, nil
