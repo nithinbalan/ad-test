@@ -39,6 +39,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskInherentEvaluationController := app.RiskModule.RiskInherentEvaluationController
 	riskActionPlanController := app.RiskModule.RiskActionPlanController
 	riskActionPlanStatusUpdateController := app.RiskModule.RiskActionPlanStatusUpdateController
+	riskActionPlanCommentController := app.RiskModule.RiskActionPlanCommentController
 	riskAssociatedItemController := app.RiskModule.RiskAssociatedItemController
 	riskResponseStrategyController := app.RiskModule.RiskResponseStrategyController
 	riskTreatmentGuidelineController := app.RiskModule.RiskTreatmentGuidelineController
@@ -260,6 +261,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "view"), riskActionPlanStatusUpdateController.GetLatestRiskActionPlanStatusUpdate)
 	riskRoutes.PUT("/risks/:riskId/action-plans/:actionPlanId/approve", riskActionPlanStatusUpdateController.ApproveRiskActionPlan)
 	riskRoutes.PUT("/risks/:riskId/action-plans/:actionPlanId/revert", riskActionPlanStatusUpdateController.RevertRiskActionPlan)
+
+	//Risk Action Plan Comment
+	unauthenticatedRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/comments/:commentId/document-download", riskActionPlanCommentController.DownloadRiskActionPlanCommentDocument)
+	unauthenticatedRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/comments/:commentId/document-preview", riskActionPlanCommentController.GetRiskActionPlanCommentDocumentPreview)
+	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "view"),riskActionPlanCommentController.GetAllComments)
+	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "view"),riskActionPlanCommentController.GetCommentDetails)
+	riskRoutes.POST("/risks/:riskId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "modify"),riskActionPlanCommentController.CreateComment)
+	riskRoutes.PUT("/risks/:riskId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "modify"),riskActionPlanCommentController.UpdateComment)
+	riskRoutes.POST("/risks/:riskId/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "modify"),riskActionPlanCommentController.DeleteComment)
 
 	// Risk Treatment Guides
 	riskRoutes.GET("/risk-treatment-guidelines", riskTreatmentGuidelineController.GetAllRiskTreatmentGuidelines)
