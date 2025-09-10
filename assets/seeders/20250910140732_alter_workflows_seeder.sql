@@ -10,8 +10,8 @@ DECLARE @procedureDocumentTypeID INT;
 SET @documentWorkflowContextID = (SELECT id FROM workflow_contexts WHERE type = 'document_register');
 SET @auditWorkflowContextID = (SELECT id FROM workflow_contexts WHERE type = 'audit_final_report');
 SET @policyWorkflowContextID = (SELECT id FROM workflow_contexts WHERE type = 'policy_register');
-SET @policyDocumentTypeID = (SELECT id FROM document_types WHERE type = 'policy');
-SET @procedureDocumentTypeID = (SELECT id FROM document_types WHERE type = 'procedure');
+SET @policyDocumentTypeID = (SELECT TOP 1 id FROM document_types WHERE type = 'policy' ORDER BY id);
+SET @procedureDocumentTypeID = (SELECT TOP 1 id FROM document_types WHERE type = 'procedure' ORDER BY id);
 
 UPDATE workflows
 SET workflow_context_id = @documentWorkflowContextID
