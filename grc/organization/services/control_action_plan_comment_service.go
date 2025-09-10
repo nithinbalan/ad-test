@@ -138,7 +138,7 @@ func (caps *ControlActionPlanCommentService) Create(controlID uint, actionPlanID
 		}
 
 		url := utility.GenerateDocumentURL(
-			"control", "control-register", strconv.FormatUint(uint64(controlID), 10),
+			"organization", "control", strconv.FormatUint(uint64(controlID), 10),
 			"action-plans", strconv.FormatUint(uint64(actionPlanID), 10),
 			"comments", strconv.FormatUint(uint64(id), 10),
 			"documents",
@@ -166,7 +166,7 @@ func (caps *ControlActionPlanCommentService) Create(controlID uint, actionPlanID
 
 		for _, doc := range documents {
 			storagePath := filepath.Join(
-				"control", "control-register", strconv.FormatUint(uint64(controlID), 10),
+				"organization", "control", strconv.FormatUint(uint64(controlID), 10),
 				"action-plans", strconv.FormatUint(uint64(actionPlanID), 10),
 				"comments", strconv.FormatUint(uint64(id), 10),
 				"documents",
@@ -531,7 +531,7 @@ func (caps *ControlActionPlanCommentService) Update(controlID uint, actionPlanID
 				return err
 			}
 
-			url := utility.GenerateDocumentURL("control", "control-register", strconv.FormatUint(uint64(controlID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+			url := utility.GenerateDocumentURL("organization", "control", strconv.FormatUint(uint64(controlID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 			document := &models.ControlActionPlanCommentDocument{
 				ControlActionPlanCommentID: id,
@@ -577,7 +577,7 @@ func (caps *ControlActionPlanCommentService) Update(controlID uint, actionPlanID
 	}
 
 	for _, doc := range newDocuments {
-		storagePath := filepath.Join("control", "control-register", strconv.FormatUint(uint64(controlID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("organization", "control", strconv.FormatUint(uint64(controlID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			tx.Rollback()
@@ -586,7 +586,7 @@ func (caps *ControlActionPlanCommentService) Update(controlID uint, actionPlanID
 	}
 
 	for _, document := range documentsToDelete {
-		storagePath := filepath.Join("control", "control-register", strconv.FormatUint(uint64(controlID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("organization", "control", strconv.FormatUint(uint64(controlID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
 			tx.Rollback()
@@ -710,7 +710,7 @@ func (caps *ControlActionPlanCommentService) GetDocumentPath(controlID, actionPl
 		return "", fmt.Errorf("resource not found")
 	}
 
-	storagePath := filepath.Join("control", "control-register", strconv.FormatUint(uint64(controlID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
+	storagePath := filepath.Join("organization", "control", strconv.FormatUint(uint64(controlID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
 	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
