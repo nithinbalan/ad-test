@@ -10,7 +10,7 @@ type Workflow struct {
 	Type              string     `json:"type" binding:"required,oneof=document risk_register audit" gorm:"type:varchar(100);not null;check:type IN ('document')"`
 	DocumentTypeID    *uint      `json:"document_type_id" gorm:"default:null"`
 	Status            string     `json:"status" binding:"required,oneof=active inactive" gorm:"type:varchar(20);not null;check:status IN ('active', 'inactive')"`
-	WorkflowContextID *uint      `json:"workflow_context_id"`
+	WorkflowContextID uint       `json:"workflow_context_id"`
 	CreatedBYID       uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID       *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt         time.Time  `json:"created_at" gorm:"type:datetime;not null"`

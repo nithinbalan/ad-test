@@ -14,7 +14,7 @@ import (
 // Interfaces
 type WorkflowRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *dtos.WorkflowListQueryParamsDTO) ([]*dtos.WorkflowListDTO, error)
+	GetAll(params *dtos.WorkflowListQueryParamsDTO, moduleIDs []string) ([]*dtos.WorkflowListDTO, error)
 	GetFullDetailsByID(id uint) (*models.Workflow, error)
 	GetByID(id uint) (*models.Workflow, error)
 	Create(workflow *models.Workflow) (uint, error)
@@ -50,7 +50,7 @@ func (repo *WorkflowRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *WorkflowRepository) GetAll(params *dtos.WorkflowListQueryParamsDTO) ([]*dtos.WorkflowListDTO, error) {
+func (repo *WorkflowRepository) GetAll(params *dtos.WorkflowListQueryParamsDTO, moduleIDs []string) ([]*dtos.WorkflowListDTO, error) {
 	var workflows []*settingsDTOs.WorkflowListDTO
 
 	query := repo.db.Table("workflows").
@@ -68,6 +68,10 @@ func (repo *WorkflowRepository) GetAll(params *dtos.WorkflowListQueryParamsDTO) 
 		if len(values) > 0 {
 			query = query.Where("workflows."+columnName+" IN (?)", values)
 		}
+	}
+
+	if moduleIDs != nil {
+		query = query.Where("modules.id IN (?) ", moduleIDs)
 	}
 
 	// Apply search keyword if exists

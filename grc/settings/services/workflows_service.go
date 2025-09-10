@@ -15,7 +15,7 @@ import (
 )
 
 type WorkflowServiceInterface interface {
-	GetAll(params *settingsDTOs.WorkflowListQueryParamsDTO) ([]*settingsDTOs.WorkflowListDTO, error)
+	GetAll(params *settingsDTOs.WorkflowListQueryParamsDTO, moduleIDs []string) ([]*settingsDTOs.WorkflowListDTO, error)
 	GetFullDetailsByID(id uint) (*settingsDTOs.WorkflowDetailDTO, error)
 	GetByID(id uint) (*models.Workflow, error)
 	Create(currentUserID uint, escalationRuleFormDTO *settingsDTOs.WorkflowFormDTO) (uint, error)
@@ -46,8 +46,8 @@ func NewWorkflowService(
 	}
 }
 
-func (ws *WorkflowService) GetAll(params *settingsDTOs.WorkflowListQueryParamsDTO) ([]*settingsDTOs.WorkflowListDTO, error) {
-	return ws.repo.GetAll(params)
+func (ws *WorkflowService) GetAll(params *settingsDTOs.WorkflowListQueryParamsDTO, moduleIDs []string) ([]*settingsDTOs.WorkflowListDTO, error) {
+	return ws.repo.GetAll(params, moduleIDs)
 }
 
 func (ws *WorkflowService) GetByID(id uint) (*models.Workflow, error) {

@@ -46,7 +46,7 @@ type WorkflowListDTO struct {
 type WorkflowFormDTO struct {
 	TitleEn           string `json:"title_en" binding:"required"`
 	TitleAr           string `json:"title_ar" binding:"required"`
-	WorkflowContextID *uint  `json:"workflow_context_id" binding:"required"`
+	WorkflowContextID uint   `json:"workflow_context_id" binding:"required"`
 	ModuleID          uint   `json:"module_id" binding:"required"`
 	Status            string `json:"status" binding:"required"`
 }

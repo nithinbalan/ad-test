@@ -30,6 +30,7 @@ func (wfc *WorkflowController) GetAllWorkflows(c *gin.Context) {
 	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	moduleIDs := c.QueryArray("module_ids")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -43,7 +44,6 @@ func (wfc *WorkflowController) GetAllWorkflows(c *gin.Context) {
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
-	fmt.Println(validSortFields)
 	dbField, valid := validSortFields[sortBy]
 	if !valid {
 		err := errors.New("invalid 'sort_by' parameter")
@@ -59,7 +59,7 @@ func (wfc *WorkflowController) GetAllWorkflows(c *gin.Context) {
 		Filters: filters,
 	}
 
-	workflows, err := wfc.service.GetAll(&queryParams)
+	workflows, err := wfc.service.GetAll(&queryParams, moduleIDs)
 	if err != nil {
 		utility.SendInternalErrResp(wfc.db, c, err.Error())
 		return
