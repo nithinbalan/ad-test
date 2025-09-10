@@ -28,6 +28,7 @@ type ComplianceModule struct {
 	SLACheckAnswerController                                        *controllers.SLACheckAnswerController
 	SLARenewController                                              *controllers.SLARenewController
 	SLAActionPlanController                                         *controllers.SLAActionPlanController
+	SLAActionPlanCommentController								    *controllers.SLAActionPlanCommentController
 	SLAActionPlanStatusUpdateController                             *controllers.SLAActionPlanStatusUpdateController
 	SLAAssociatedItemController                                     *controllers.SLAAssociatedItemController
 	CompliacneClauseController                                      *controllers.ComplianceClauseController
@@ -218,6 +219,10 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	)
 	slaActionPlanController := controllers.NewSLAActionPlanController(slaActionPlanSvc)
 
+	slaActionPlanCommentRepo := repositories.NewSLAActionPlanCommentRepository(db)
+	slaActionPlanCommentSvc := services.NewSLAActionPlanCommentService(slaActionPlanCommentRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, slaActionPlanSvc, commonModule.NotificationService)
+	slaActionPlanCommentController := controllers.NewSLAActionPlanCommentController(slaActionPlanCommentSvc)
+
 	slaActionPlanStatusUpdateRepo := repositories.NewSLAActionPlanStatusUpdateRepository(db)
 	slaActionPlanStatusUpdateSvc := services.NewSLAActionPlanStatusUpdateService(slaActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, slaActionPlanSvc, masterModule.ActionPlanStatusSvc, slaRegisterSvc, taskModule.TaskService, taskModule.TaskStatusService, organizationModule.UserSvc, commonModule.NotificationService)
 	slaActionPlanStatusUpdateController := controllers.NewSLAActionPlanStatusUpdateController(slaActionPlanStatusUpdateSvc)
@@ -354,6 +359,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		SLACheckAnswerController:                                        slaCheckAnswerController,
 		SLARenewController:                                              slaRenewController,
 		SLAActionPlanController:                                         slaActionPlanController,
+		SLAActionPlanCommentController: 				                 slaActionPlanCommentController,
 		SLAActionPlanStatusUpdateController:                             slaActionPlanStatusUpdateController,
 		SLAAssociatedItemController:                                     slaAssociatedItemController,
 		CompliacneClauseController:                                      compilanceClauseController,
