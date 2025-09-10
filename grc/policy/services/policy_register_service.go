@@ -1,8 +1,10 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	documentServices "jethur/grc/documents/services"
 	"jethur/grc/logs/services"
@@ -16,6 +18,7 @@ import (
 	"jethur/utility"
 	"log"
 	"os"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -29,24 +32,30 @@ type PolicyRegisterServiceInterface interface {
 	Update(id uint, currentUserID uint, documentFormDTO *policyDTOs.PolicyRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
+	SubmitPolicy(id uint, currentUserID uint) error
+
 	ExportPolicies(data []*policyDTOs.PolicyRegisterListDTO, currentUserID uint) (*os.File, error)
 }
 
 type PolicyRegisterService struct {
-	repo                  repositories.PolicyRegisterRepositoryInterface
-	documentCategorySvc   documentServices.DocumentCategoryServiceInterface
-	documentTypeSvc       documentServices.DocumentTypeServiceInterface
-	documentAccessTypeSvc documentServices.DocumentAccessTypeServiceInterface
-	documentStatusSvc     documentServices.DocumentStatusServiceInterface
-	userSvc               organizationSvc.UserServiceInterface
-	activityLogSvc        services.ActivityLogServiceInterface
-	userSettingSvc        organizationSvc.UserSettingServiceInterface
-	documentAccessSvc     documentServices.DocumentAccessServiceInterface
-	taskSvc               taskServices.TaskServiceInterface
-	notificationSvc       commonServices.NotificationServiceInterface
-	orgLevelSvc           settinsSvc.OrganizationLevelServiceInterface
-	reviewFrequencySvc    masterSvc.ReviewFrequencyServiceInterface
-	systemPreferenceSvc   settinsSvc.SystemPreferenceServiceInterface
+	repo                      repositories.PolicyRegisterRepositoryInterface
+	documentCategorySvc       documentServices.DocumentCategoryServiceInterface
+	documentTypeSvc           documentServices.DocumentTypeServiceInterface
+	documentAccessTypeSvc     documentServices.DocumentAccessTypeServiceInterface
+	documentStatusSvc         documentServices.DocumentStatusServiceInterface
+	userSvc                   organizationSvc.UserServiceInterface
+	activityLogSvc            services.ActivityLogServiceInterface
+	userSettingSvc            organizationSvc.UserSettingServiceInterface
+	documentAccessSvc         documentServices.DocumentAccessServiceInterface
+	taskSvc                   taskServices.TaskServiceInterface
+	notificationSvc           commonServices.NotificationServiceInterface
+	orgLevelSvc               settinsSvc.OrganizationLevelServiceInterface
+	reviewFrequencySvc        masterSvc.ReviewFrequencyServiceInterface
+	systemPreferenceSvc       settinsSvc.SystemPreferenceServiceInterface
+	policyWorkflowSvc         documentServices.DocumentWorkflowServiceInterface
+	documentWorkflowStatusSvc documentServices.DocumentWorkflowStatusServiceInterface
+	workflowContextSvc        masterSvc.WorkflowContextServiceInterface
+	workflowSvc               settinsSvc.WorkflowServiceInterface
 }
 
 func NewPolicyRegisterService(
@@ -64,22 +73,30 @@ func NewPolicyRegisterService(
 	orgLevelSvc settinsSvc.OrganizationLevelServiceInterface,
 	reviewFrequencySvc masterSvc.ReviewFrequencyServiceInterface,
 	systemPreferenceSvc settinsSvc.SystemPreferenceServiceInterface,
+	policyWorkflowSvc documentServices.DocumentWorkflowServiceInterface,
+	documentWorkflowStatusSvc documentServices.DocumentWorkflowStatusServiceInterface,
+	workflowContextSvc masterSvc.WorkflowContextServiceInterface,
+	workflowSvc settinsSvc.WorkflowServiceInterface,
 ) PolicyRegisterServiceInterface {
 	return &PolicyRegisterService{
-		repo:                  repo,
-		documentCategorySvc:   documentCategorySvc,
-		documentTypeSvc:       documentTypeSvc,
-		documentAccessTypeSvc: documentAccessTypeSvc,
-		documentStatusSvc:     documentStatusSvc,
-		userSvc:               userSvc,
-		activityLogSvc:        activityLogSvc,
-		userSettingSvc:        userSettingSvc,
-		documentAccessSvc:     documentAccessSvc,
-		taskSvc:               taskSvc,
-		notificationSvc:       notificationSvc,
-		orgLevelSvc:           orgLevelSvc,
-		reviewFrequencySvc:    reviewFrequencySvc,
-		systemPreferenceSvc:   systemPreferenceSvc,
+		repo:                      repo,
+		documentCategorySvc:       documentCategorySvc,
+		documentTypeSvc:           documentTypeSvc,
+		documentAccessTypeSvc:     documentAccessTypeSvc,
+		documentStatusSvc:         documentStatusSvc,
+		userSvc:                   userSvc,
+		activityLogSvc:            activityLogSvc,
+		userSettingSvc:            userSettingSvc,
+		documentAccessSvc:         documentAccessSvc,
+		taskSvc:                   taskSvc,
+		notificationSvc:           notificationSvc,
+		orgLevelSvc:               orgLevelSvc,
+		reviewFrequencySvc:        reviewFrequencySvc,
+		systemPreferenceSvc:       systemPreferenceSvc,
+		policyWorkflowSvc:         policyWorkflowSvc,
+		documentWorkflowStatusSvc: documentWorkflowStatusSvc,
+		workflowContextSvc:        workflowContextSvc,
+		workflowSvc:               workflowSvc,
 	}
 }
 
@@ -253,6 +270,8 @@ func (prs *PolicyRegisterService) Create(currentUserID uint, documentFormDTO *po
 		return 0, err
 	}
 
+	var docVersionId uint
+
 	documentVersion := &models.DocumentVersion{
 		DocumentID:      id,
 		Version:         documentFormDTO.DocumentVersion,
@@ -260,7 +279,13 @@ func (prs *PolicyRegisterService) Create(currentUserID uint, documentFormDTO *po
 		CreatedBYID:     currentUserID,
 	}
 
-	_, err = prs.repo.CreateDocumentVersion(documentVersion, tx)
+	docVersionId, err = prs.repo.CreateDocumentVersion(documentVersion, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	err = prs.CreatePolicyWorkflow(id, docVersionId, documentFormDTO.DocumentTypeID, currentUserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -809,4 +834,320 @@ func (prs *PolicyRegisterService) ExportPolicies(data []*policyDTOs.PolicyRegist
 
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (prs *PolicyRegisterService) SubmitPolicy(id uint, currentUserID uint) error {
+	tx := prs.repo.BeginTransaction()
+	document, err := prs.GetFullDetailsByID(id, nil)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	documentStatus, err := prs.documentStatusSvc.GetByType("in-review")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingDocument, err := prs.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingDocument.DocumentStatusID = &documentStatus.ID
+
+	err = prs.repo.Update(existingDocument, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	documentVersion, err := prs.repo.GetDocumentVersionByID(document.LatestDocumentVersion.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	var level int
+	if document.DocumentStatus.Type == "reverted" {
+		// If status is "reverted", use the NextReviewLevel for resubmission
+		if document.LatestDocumentVersion.NextReviewLevel != nil {
+			level = *document.LatestDocumentVersion.NextReviewLevel
+		} else {
+			tx.Rollback()
+			return fmt.Errorf("next review level is not set for reverted document")
+		}
+	} else {
+		// For non-reverted documents, start from level 1
+		level = 1
+	}
+
+	currentTime := time.Now()
+
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error parsing current date: %w", err)
+	}
+
+	if document.DocumentStatus.Type != "reverted" {
+		documentVersion.SubmittedBYID = &currentUserID
+		documentVersion.SubmittedAt = &currentTime
+		documentVersion.NextReviewLevel = &level
+
+		err = prs.repo.UpdateDocumentVersion(documentVersion, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Fetch the workflow level details, including participants (review users)
+	docWorkflowLevel, err := prs.policyWorkflowSvc.GetDocumentWorkflowByLevel(document.LatestDocumentVersion.ID, level, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if document.DocumentStatus.Type == "reverted" {
+		documentWorkflowStatus, err := prs.documentWorkflowStatusSvc.GetByType("resubmit")
+		if err != nil {
+			return err
+		}
+		documentWorkflowReview := &models.DocumentWorkflowReview{
+			DocumentWorkflowID:       docWorkflowLevel.ID,
+			DocumentWorkflowStatusID: documentWorkflowStatus.ID,
+			Comment:                  "Resubmitted",
+			CreatedBYID:              currentUserID,
+		}
+
+		err = prs.repo.CreatePolicyWorkflowReview(documentWorkflowReview, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+	var taskIDs []uint
+
+	for _, participant := range docWorkflowLevel.DocumentWorkflowParticipants {
+		taskDTO := commonDTOs.TaskFormDTO{
+			ModuleIdentifier:   "document_register",
+			DocumentID:         &id,
+			DocumentWorkflowID: &docWorkflowLevel.ID,
+			Title:              existingDocument.TitleEn,
+			Description:        existingDocument.DescriptionEn,
+			URLParam:           &urlParam,
+			QueryParam:         nil,
+			ResponsibleUserID:  participant.User.ID,
+		}
+
+		taskID, err := prs.taskSvc.Create(taskDTO, currentUserID)
+		if err != nil {
+			return err
+		}
+		taskIDs = append(taskIDs, taskID)
+
+	}
+
+	for _, taskID := range taskIDs {
+		relatedTaskIDs := []uint{}
+		for _, otherTaskID := range taskIDs {
+			if otherTaskID != taskID {
+				relatedTaskIDs = append(relatedTaskIDs, otherTaskID)
+			}
+		}
+
+		relatedTaskIDsJSON, err := json.Marshal(relatedTaskIDs)
+		if err != nil {
+			return err
+		}
+
+		err = prs.taskSvc.UpdateTaskWithRelatedIDs(taskID, string(relatedTaskIDsJSON))
+		if err != nil {
+			return err
+		}
+	}
+
+	// to do
+	// activity log
+
+	// Prepare notification
+	go func() {
+		urlParam = fmt.Sprintf(`{"id":%d}`, id)
+		entity := "policy"
+		action := "review-user-assign"
+
+		for _, participant := range docWorkflowLevel.DocumentWorkflowParticipants {
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{participant.User.ID},
+				ModuleIdentifier:     "policy_management",
+				NotificationType:     string(commonDTOs.ReviewType),
+				ReferenceNumber:      existingDocument.ReferenceNumber,
+				HeadingEn:            "Document Review",
+				HeadingAr:            "مراجعة الوثيقة",
+				TitleEn:              existingDocument.TitleEn,
+				TitleAr:              existingDocument.TitleAr,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			responsibleUser, err := prs.userSvc.GetByID(participant.User.ID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := prs.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			emailTo := []string{responsibleUser.Email}
+			subject := fmt.Sprintf("Document/%s: Review Assigned", existingDocument.TitleEn)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":           responsibleUser.FirstNameEn,
+				"LastNameEn":            responsibleUser.LastNameEn,
+				"DocumentTitle":         existingDocument.TitleEn,
+				"DocumentType":          document.DocumentType.TitleEn,
+				"DocumentCategory":      document.DocumentCategory.TitleEn,
+				"DocumentVersion":       document.LatestDocumentVersion.Version,
+				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%s/document/register/%d", appURL, id),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "document/templates/email/document_workflow_review_user_mail.html",
+				EmailData:            emailData,
+			}
+
+			// Send Notification and Email
+			err = prs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (prs *PolicyRegisterService) CreatePolicyWorkflow(documentId uint, documentVersionId uint, documentTypeId uint, currentUserID uint, tx ...utility.DatabaseTransaction) error {
+	workflowContext, err := prs.workflowContextSvc.GetByType("policy_register")
+	if err != nil {
+		return err
+	}
+
+	workflow, err := prs.workflowSvc.GetWorkflowByDocumentType(documentTypeId, workflowContext.ID, tx...)
+	if err != nil {
+		return err
+	}
+
+	workflowLevels, err := prs.workflowSvc.GetWorkflowLevels(workflow.ID, tx...)
+	if err != nil {
+		return err
+	}
+
+	documentWorkflowStatus, err := prs.documentWorkflowStatusSvc.GetByType("pending")
+
+	if err != nil {
+		return err
+	}
+
+	var sharedUsers []*models.DocumentSharedUser
+	uniqueUsers := make(map[uint]bool) // Map to track added users
+
+	for _, level := range workflowLevels.WorkflowLevels {
+		documentWorkflow := &models.DocumentWorkflow{
+			DocumentVersionID:        documentVersionId,
+			Level:                    level.Level,
+			WorkflowLevelTypeID:      level.WorkflowLevelType.ID,
+			ApprovalTypes:            level.ApprovalType,
+			DocumentWorkflowStatusID: documentWorkflowStatus.ID,
+			CreatedBYID:              currentUserID,
+		}
+
+		docWorkflowId, err := prs.repo.CreateDocumentWorkflow(documentWorkflow, tx...)
+		if err != nil {
+			return err
+		}
+
+		// Handle participants for each level
+		for _, participant := range level.Participants {
+			if participant.Role != nil {
+
+				userIds, err := prs.userSvc.GetUserIdsByRole(participant.Role.ID, tx...)
+				if err != nil {
+					return err
+				}
+
+				for _, userId := range userIds {
+					err = prs.policyWorkflowSvc.CreateWorkflowParticipant(userId, docWorkflowId, &participant, currentUserID, tx...)
+					if err != nil {
+						return err
+					}
+
+					if _, exists := uniqueUsers[userId]; exists {
+						continue
+					}
+
+					uniqueUsers[userId] = true
+
+					// Append to sharedUsers slice
+					sharedUsers = append(sharedUsers, &models.DocumentSharedUser{
+						DocumentID:  documentId,
+						UserID:      userId,
+						Type:        "review-user",
+						CreatedBYID: currentUserID,
+					})
+
+				}
+			} else if participant.User != nil {
+				userId := uint(participant.User.ID)
+				err = prs.policyWorkflowSvc.CreateWorkflowParticipant(userId, docWorkflowId, &participant, currentUserID, tx...)
+				if err != nil {
+					return err
+				}
+
+				if _, exists := uniqueUsers[userId]; exists {
+					continue
+				}
+
+				uniqueUsers[userId] = true
+
+				// Append to sharedUsers slice
+				sharedUsers = append(sharedUsers, &models.DocumentSharedUser{
+					DocumentID:  documentId,
+					UserID:      userId,
+					Type:        "review-user",
+					CreatedBYID: currentUserID,
+				})
+			}
+		}
+	}
+
+	if err := prs.documentAccessSvc.CreateUsers(sharedUsers, tx...); err != nil {
+		return err
+	}
+
+	return nil
 }

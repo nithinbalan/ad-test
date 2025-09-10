@@ -27,6 +27,9 @@ type PolicyRegisterRepositoryInterface interface {
 	CreateDocumentVersion(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateDocumentVersion(documentVersion *models.DocumentVersion, tx ...utility.DatabaseTransaction) error
 	DeleteDocumentVersions(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreatePolicyWorkflowReview(policyWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error
+	CreateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
 }
 
 // Implementation
@@ -485,4 +488,27 @@ func (repo *PolicyRegisterRepository) GenerateReferenceNumber() (string, error) 
 	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "DC", currentYear, lastReferenceID+1)
 
 	return newReferenceNumber, nil
+}
+
+func (repo *PolicyRegisterRepository) CreatePolicyWorkflowReview(policyWorkflowReview *models.DocumentWorkflowReview, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(policyWorkflowReview).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *PolicyRegisterRepository) CreateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(documentWorkflow).Error; err != nil {
+		return 0, err
+	}
+
+	return documentWorkflow.ID, nil
 }

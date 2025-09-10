@@ -22,7 +22,7 @@ type WorkflowRepositoryInterface interface {
 	Delete(id uint) error
 
 	GetAllWorkflowsByType(workflowType string, moduleIdentifier string) ([]*settingsDTOs.WorkflowListDTO, error)
-	GetWorkflowByDocumentType(documentTypeId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
+	GetWorkflowByDocumentType(documentTypeId uint, workflowContextId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
 	GetWorkflowLevelByID(id uint, tx ...utility.DatabaseTransaction) (*models.WorkflowLevel, error)
 	GetWorkflowLevels(workflowID uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
 	CreateWorkflowLevel(workflowLevel *models.WorkflowLevel, tx ...utility.DatabaseTransaction) (uint, error)
@@ -212,7 +212,7 @@ func (repo *WorkflowRepository) GetAllWorkflowsByType(workflowType string, modul
 	return workflows, nil
 }
 
-func (repo *WorkflowRepository) GetWorkflowByDocumentType(documentTypeId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error) {
+func (repo *WorkflowRepository) GetWorkflowByDocumentType(documentTypeId uint, workflowContextId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error) {
 	var workflow *models.Workflow
 
 	db := repo.db
@@ -220,7 +220,7 @@ func (repo *WorkflowRepository) GetWorkflowByDocumentType(documentTypeId uint, t
 		db = tx[0].DB()
 	}
 
-	result := db.Where("document_type_id = ?", documentTypeId).First(&workflow)
+	result := db.Where("document_type_id = ? AND workflow_context_id = ?", documentTypeId, workflowContextId).First(&workflow)
 	if result.Error != nil {
 		return nil, result.Error
 	}
