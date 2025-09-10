@@ -201,7 +201,7 @@ func (repo *WorkflowRepository) GetAllWorkflowsByType(workflowType string, modul
 		Where("modules.identifier = ?", moduleIdentifier)
 
 	if workflowType != "" {
-		query = query.Where("workflow_contexts.type = ?", workflowType)
+		query = query.Where("workflows.type = ?", workflowType)
 	}
 
 	err := query.Find(&workflows).Error
