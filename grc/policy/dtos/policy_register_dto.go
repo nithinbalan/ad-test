@@ -44,6 +44,7 @@ type PolicyRegisterListDTO struct {
 	DocumentType                    string     `json:"document_type"`
 	IsFolder                        *bool      `json:"is_folder"`
 	ParentDocumentID                *uint      `json:"parent_document_id"`
+	DocumentCount                   *int       `json:"document_count"`
 	CreatedUserID                   uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn          string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string     `json:"created_user_first_name_ar"`

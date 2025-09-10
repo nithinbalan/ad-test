@@ -87,7 +87,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.GET("/workflow-level-types", workflowLevelTypeController.GetAllWorkflowLevelTypes)
 	settingRoutes.GET("/workflow-level-types/:id", workflowLevelTypeController.GetWorkflowLevelTypeDetails)
 
-	settingRoutes.GET("/workflows", workflowController.GetAllWorkflows)
+	settingRoutes.GET("/workflow-lists", workflowController.GetAllWorkflows)
+	settingRoutes.GET("/workflows/:workflowId", workflowController.GetWorkflowDetails)
+	settingRoutes.POST("/workflows", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), workflowController.CreateWorkflow)
+	settingRoutes.PUT("/workflows/:workflowId", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), workflowController.UpdateWorkflow)
+	settingRoutes.POST("/workflows/delete", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), workflowController.DeleteWorkflows)
+
+	settingRoutes.GET("/workflows", workflowController.GetAllWorkflowsByType)
 	settingRoutes.GET("/workflows/:workflowId/levels", workflowController.GetWorkflowlevels)
 	settingRoutes.POST("/workflows/:workflowId/levels", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), workflowController.CreateWorkflowLevel)
 	settingRoutes.DELETE("/workflows/:workflowId/levels/:levelId", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), middlewares.RolePermissionMiddleware(db, "document_setting", "modify"), workflowController.DeleteWorkflowLevel)
