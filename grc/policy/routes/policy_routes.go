@@ -20,6 +20,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	policyFolderController := app.PolicyModule.PolicyFolderController
 	policyRegisterController := app.PolicyModule.PolicyRegisterController
 	policyClauseController := app.PolicyModule.PolicyClauseController
+	policyReviewController := app.PolicyModule.PolicyReviewController
+	policyWorkflowController := app.PolicyModule.PolicyWorkflowController
 
 	//policy folder
 	policyRoutes.GET("/policy-folders", policyFolderController.GetAllPolicyFolders)
@@ -34,6 +36,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	policyRoutes.POST("/policy-register", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), policyRegisterController.CreatePolicy)
 	policyRoutes.PUT("/policy-register/:id", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), policyRegisterController.UpdatePolicy)
 	policyRoutes.POST("/policy-register/delete", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), policyRegisterController.DeletePolicies)
+	policyRoutes.POST("/policy-register/:id/submit", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), policyRegisterController.SubmitPolicy)
+	policyRoutes.POST("/policy-register/:id/publish", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), policyRegisterController.PublishPolicy)
 
 	// clause
 	policyRoutes.GET("/policy-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), middlewares.DocumentAccessCheckingMiddleware(db), policyClauseController.GetAllPolicyClauses)
@@ -41,4 +45,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	policyRoutes.POST("/policy-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), policyClauseController.CreatePolicyClause)
 	policyRoutes.PUT("/policy-register/:id/clauses/:clauseId", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), policyClauseController.UpdatePolicyClause)
 	policyRoutes.POST("/policy-register/:id/clauses/delete", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), policyClauseController.DeletePolicyClauses)
+
+	// workflow
+	policyRoutes.GET("/policy-register/:id/comments", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), middlewares.DocumentAccessCheckingMiddleware(db), policyReviewController.GetComments)
+	policyRoutes.POST("/policy-register/:id/comments", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), policyReviewController.AddComment)
+	policyRoutes.GET("/policy-register/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), middlewares.DocumentAccessCheckingMiddleware(db), policyWorkflowController.GetWorkflowList)
 }

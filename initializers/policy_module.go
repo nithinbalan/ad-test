@@ -12,6 +12,8 @@ type PolicyModule struct {
 	PolicyFolderController   *controllers.PolicyFolderController
 	PolicyRegisterController *controllers.PolicyRegisterController
 	PolicyClauseController   *controllers.PolicyClauseController
+	PolicyReviewController   *controllers.PolicyReviewController
+	PolicyWorkflowController *controllers.PolicyWorkflowController
 
 	PolicyFolderSvc   services.PolicyFolderServiceInterface
 	PolicyRegisterSvc services.PolicyRegisterServiceInterface
@@ -26,6 +28,10 @@ func NewPolicyModule(db *gorm.DB,
 	taskModule *TaskModule,
 	commonModule *CommonModule,
 	documentModule *DocumentModule) *PolicyModule {
+
+	policyWorkflowController := controllers.NewPolicyWorkflowController(documentModule.DocumentWorkflowSvc)
+
+	policyReviewController := controllers.NewPolicyReviewController(documentModule.DocumentReviewSvc)
 
 	policyFolderRepo := repositories.NewPolicyFolderRepository(db)
 	policyFolderSvc := services.NewPolicyFolderService(policyFolderRepo, sharedModule.ActivityLogService, documentModule.DocumentAccessTypeSvc)
@@ -46,7 +52,13 @@ func NewPolicyModule(db *gorm.DB,
 		commonModule.NotificationService,
 		settingsModule.OrganizationLevelSvc,
 		masterModule.ReviewFrequencySvc,
-		settingsModule.SystemPreferenceSvc)
+		settingsModule.SystemPreferenceSvc,
+		documentModule.DocumentWorkflowSvc,
+		documentModule.DocumentWorkflowStatusSvc,
+		masterModule.WorkflowContextSvc,
+		settingsModule.WorkflowSvc,
+		documentModule.DocumentAuditLogSvc,
+	)
 	policyRegisterController := controllers.NewPolicyRegisterController(policyRegisterSvc)
 
 	policyClauseRepo := repositories.NewPolicyClauseRepository(db)
@@ -57,5 +69,7 @@ func NewPolicyModule(db *gorm.DB,
 		PolicyFolderController:   policyFolderController,
 		PolicyRegisterController: policyRegisterController,
 		PolicyClauseController:   policyClauseController,
+		PolicyWorkflowController: policyWorkflowController,
+		PolicyReviewController:   policyReviewController,
 	}
 }

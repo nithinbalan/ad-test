@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	documentDTOs "jethur/grc/documents/dtos"
 	policyDTOs "jethur/grc/policy/dtos"
 	"jethur/grc/policy/services"
 	"jethur/utility"
@@ -261,4 +262,69 @@ func (prc *PolicyRegisterController) DeletePolicies(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (prc *PolicyRegisterController) SubmitPolicy(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(prc.db, c, err.Error())
+		return
+	}
+
+	err = prc.service.SubmitPolicy(uint(id), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(prc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (prc *PolicyRegisterController) PublishPolicy(c *gin.Context) {
+
+	var documentPublishFormDTO documentDTOs.DocumentPublishFormDTO
+	if err := c.ShouldBindJSON(&documentPublishFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(prc.db, c, err.Error())
+		return
+	}
+
+	err = prc.service.PublishPolicy(uint(id), currentUserID, documentPublishFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(prc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }

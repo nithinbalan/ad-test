@@ -86,6 +86,7 @@ type DocumentService struct {
 	orgLevelSvc               settinsSvc.OrganizationLevelServiceInterface
 	reviewFrequencySvc        masterSvc.ReviewFrequencyServiceInterface
 	systemPreferenceSvc       settinsSvc.SystemPreferenceServiceInterface
+	workflowContextSvc        masterSvc.WorkflowContextServiceInterface
 }
 
 func NewDocumentService(
@@ -106,6 +107,7 @@ func NewDocumentService(
 	orgLevelSvc settinsSvc.OrganizationLevelServiceInterface,
 	reviewFrequencySvc masterSvc.ReviewFrequencyServiceInterface,
 	systemPreferenceSvc settinsSvc.SystemPreferenceServiceInterface,
+	workflowContextSvc masterSvc.WorkflowContextServiceInterface,
 ) DocumentServiceInterface {
 	return &DocumentService{
 		repo:                      repo,
@@ -125,6 +127,7 @@ func NewDocumentService(
 		orgLevelSvc:               orgLevelSvc,
 		reviewFrequencySvc:        reviewFrequencySvc,
 		systemPreferenceSvc:       systemPreferenceSvc,
+		workflowContextSvc:        workflowContextSvc,
 	}
 }
 
@@ -1344,7 +1347,12 @@ func (ds *DocumentService) validateDocumentFormDTO(documentFormDTO *documentDTOs
 		return utility.NewValidationError(fmt.Errorf("document type does not exist"), "not_exist", "document type")
 	}
 
-	if _, err := ds.workflowSvc.GetWorkflowByDocumentType(documentFormDTO.DocumentTypeID); err != nil {
+	workflowContext, err := ds.workflowContextSvc.GetByType("document_register")
+	if err != nil {
+		return err
+	}
+
+	if _, err := ds.workflowSvc.GetWorkflowByDocumentType(documentFormDTO.DocumentTypeID, workflowContext.ID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("document type workflow does not exist"), "not_exist", "document type workflow")
 	}
 

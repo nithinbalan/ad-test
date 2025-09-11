@@ -23,7 +23,8 @@ type WorkflowServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	GetAllWorkflowsByType(workflowType string, moduleIdentifier string) ([]*settingsDTOs.WorkflowListDTO, error)
-	GetWorkflowByDocumentType(documentTypeId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
+	GetWorkflowByDocumentType(documentTypeId uint, workflowContextId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
+	GetWorkflowByContext(workflowContextId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
 	GetWorkflowLevels(workflowID uint, tx ...utility.DatabaseTransaction) (*settingsDTOs.WorkflowLevelListDTO, error)
 	CreateWorkFlowLevel(workflowId uint, currentUserID uint, workflowFormDTO *settingsDTOs.WorkflowLevelFormDTO) (uint, error)
 	DeleteWorkflowLevel(currentUserID, workflowLevelID uint) error
@@ -204,12 +205,24 @@ func (ws *WorkflowService) GetAllWorkflowsByType(workflowType string, moduleIden
 	return ws.repo.GetAllWorkflowsByType(workflowType, moduleIdentifier)
 }
 
-func (ws *WorkflowService) GetWorkflowByDocumentType(documentTypeId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error) {
-	workflow, err := ws.repo.GetWorkflowByDocumentType(documentTypeId, tx...)
+func (ws *WorkflowService) GetWorkflowByDocumentType(documentTypeId uint, workflowContextId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error) {
+	workflow, err := ws.repo.GetWorkflowByDocumentType(documentTypeId, workflowContextId, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, documentTypeId)
+		}
+		return nil, err
+	}
+	return workflow, nil
+}
+
+func (ws *WorkflowService) GetWorkflowByContext(workflowContextId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error) {
+	workflow, err := ws.repo.GetWorkflowByContext(workflowContextId, tx...)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, workflowContextId)
 		}
 		return nil, err
 	}

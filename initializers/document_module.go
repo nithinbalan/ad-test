@@ -49,6 +49,10 @@ type DocumentModule struct {
 	DocumentRequirementGroupSvc services.DocumentRequirementGroupServiceInterface
 	DocumentRequirementSvc      services.DocumentRequirementServiceInterface
 	DocumentClauseSvc           services.DocumentClauseServiceInterface
+	DocumentWorkflowStatusSvc   services.DocumentWorkflowStatusServiceInterface
+	DocumentWorkflowSvc         services.DocumentWorkflowServiceInterface
+	DocumentReviewSvc           services.DocumentReviewServiceInterface
+	DocumentAuditLogSvc         services.DocumentAuditLogServiceInterface
 }
 
 func NewDocumentModule(db *gorm.DB,
@@ -95,7 +99,7 @@ func NewDocumentModule(db *gorm.DB,
 		sharedModule.ActivityLogService,
 		settingsModule.WorkflowSvc,
 		documentWorkflowStatusSvc,
-		organizationModule.UserSvc, commonModule.DelegateeUserService)
+		organizationModule.UserSvc, commonModule.DelegateeUserService, masterModule.WorkflowContextSvc)
 
 	documentSvc := services.NewDocumentService(
 		documentRepo,
@@ -114,7 +118,7 @@ func NewDocumentModule(db *gorm.DB,
 		commonModule.NotificationService,
 		settingsModule.OrganizationLevelSvc,
 		masterModule.ReviewFrequencySvc,
-		settingsModule.SystemPreferenceSvc)
+		settingsModule.SystemPreferenceSvc, masterModule.WorkflowContextSvc)
 
 	documentSvc.SetDocumentWorkflowService(documentWorkflowSvc)
 
@@ -208,6 +212,7 @@ func NewDocumentModule(db *gorm.DB,
 		organizationModule.UserSvc,
 		documentChangeRequestSvc,
 		commonModule.DelegateeUserService,
+		masterModule.WorkflowContextSvc,
 	)
 
 	documentChangeRequestWorkflowController := controllers.NewDocumentChangeRequestWorkflowController(documentChangeRequestWorkflowSvc)
@@ -290,5 +295,9 @@ func NewDocumentModule(db *gorm.DB,
 		DocumentAccessTypeSvc:       documentAccessTypeSvc,
 		DocumentStatusSvc:           documentStatusSvc,
 		DocumentAccessSvc:           documentAccessSvc,
+		DocumentWorkflowStatusSvc:   documentWorkflowStatusSvc,
+		DocumentWorkflowSvc:         documentWorkflowSvc,
+		DocumentReviewSvc:           documentReviewSvc,
+		DocumentAuditLogSvc:         documentAuditLogSvc,
 	}
 }

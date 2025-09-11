@@ -144,6 +144,7 @@ type DocumentVersionDTO struct {
 	DocumentID      uint                            `json:"document_id"`
 	Version         float64                         `json:"version"`
 	IsLatestVersion bool                            `json:"is_latest_version"`
+	NextReviewLevel *int                            `json:"next_review_level"`
 	CreatedByUser   organizationDTOs.UserMinimalDTO `json:"created_by"`
 	UpdatedByUser   organizationDTOs.UserMinimalDTO `json:"updated_by"`
 	CreatedAt       time.Time                       `json:"created_at"`
