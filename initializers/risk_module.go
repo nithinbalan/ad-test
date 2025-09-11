@@ -32,6 +32,7 @@ type RiskModule struct {
 	RiskInherentEvaluationController      *controllers.RiskInherentEvaluationController
 	RiskActionPlanController              *controllers.RiskActionPlanController
 	RiskActionPlanStatusUpdateController  *controllers.RiskActionPlanStatusUpdateController
+	RiskActionPlanCommentController       *controllers.RiskActionPlanCommentController
 	RiskAssociatedItemController          *controllers.RiskAssociatedItemController
 	RiskResponseStrategyController        *controllers.RiskResponseStrategyController
 	RiskTreatmentGuidelineController      *controllers.RiskTreatmentGuidelineController
@@ -269,6 +270,10 @@ func NewRiskModule(db *gorm.DB,
 	)
 	riskActionPlanStatusUpdateController := controllers.NewRiskActionPlanStatusUpdateController(riskActionPlanStatusUpdateSvc)
 
+	riskActionPlanCommentRepo := repositories.NewRiskActionPlanCommentRepository(db)
+	riskActionPlanCommentSvc := services.NewRiskActionPlanCommentService(riskActionPlanCommentRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, riskActionPlanSvc, commonModule.NotificationService)
+	riskActionPlanCommentController := controllers.NewRiskActionPlanCommentController(riskActionPlanCommentSvc)
+
 	riskAssociatedItemRepo := repositories.NewRiskAssociatedItemRepository(db)
 	riskAssociatedItemSvc := services.NewRiskAssociatedItemService(riskAssociatedItemRepo, riskRegisterSvc, complianceModule.ComplianceClausevc, commonModule.AssociatedItemValidationService)
 	riskAssociatedItemController := controllers.NewRiskAssociatedItemController(riskAssociatedItemSvc)
@@ -345,6 +350,7 @@ func NewRiskModule(db *gorm.DB,
 		RiskInherentEvaluationController:      riskInherentEvaluationController,
 		RiskActionPlanController:              riskActionPlanController,
 		RiskActionPlanStatusUpdateController:  riskActionPlanStatusUpdateController,
+		RiskActionPlanCommentController:       riskActionPlanCommentController,
 		RiskAssociatedItemController:          riskAssociatedItemController,
 		RiskResponseStrategyController:        riskResponseStrategyController,
 		RiskTreatmentGuidelineController:      riskTreatmentGuidelineController,
