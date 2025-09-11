@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
+	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
@@ -33,6 +35,11 @@ type ComplianceRequirementServiceInterface interface {
 	Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(complianceID uint, id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error
 	ExportComplianceRequirements(data []*complianceDTOs.ComplianceRequirementListDTO, currentUserID uint) (*os.File, error)
+
+	GenerateRequirementTemplate(complianceID uint) (*os.File, error)
+	ValidateRequirementTemplate(complianceID uint, file io.Reader) ([]map[string]interface{}, error)
+	ValidateImportRequirement(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error)
+	ImportRequirements(complianceID uint, input []map[string]interface{}, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -1567,23 +1574,23 @@ func (srs *ComplianceRequirementService) ExportComplianceRequirements(data []*co
 	return utility.GenerateExcelFile(headers, rows)
 }
 
-type ComplianceRequirementService struct {
-	clauseSvc   *ComplianceClauseService
-	categorySvc *ComplianceRequirementCategoryService
-	severitySvc *SeverityLevelService
-	statusSvc   *ComplianceStatusService
-	repo        *ComplianceRequirementRepository
-}
+// type ComplianceRequirementService struct {
+// 	clauseSvc   *ComplianceClauseService
+// 	categorySvc *ComplianceRequirementCategoryService
+// 	severitySvc *SeverityLevelService
+// 	statusSvc   *ComplianceStatusService
+// 	repo        *ComplianceRequirementRepository
+// }
 
 // Generate Excel template
-func (cs *ComplianceRequirementService) GenerateRequirementTemplate() (*os.File, error) {
+func (cs *ComplianceRequirementService) GenerateRequirementTemplate(complianceID uint) (*os.File, error) {
 	templateHeaders := []string{
 		"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "ComplianceStatus", "MarkedAsAuditableItem",
 	}
 	templateData := [][]interface{}{}
 
 	// Clauses
-	clauses, _ := cs.clauseSvc.GetAllClauses()
+	clauses, _ := cs.complianceClauseSvc.GetAll(complianceID)
 	clauseHeaders := []string{"ClauseNo", "TitleEn"}
 	clauseData := [][]interface{}{}
 	for _, c := range clauses {
@@ -1591,7 +1598,7 @@ func (cs *ComplianceRequirementService) GenerateRequirementTemplate() (*os.File,
 	}
 
 	// Categories
-	categories, _ := cs.categorySvc.GetAllActive()
+	categories, _ := cs.complianceRequirementCategorySvc.GetAll("", "", "", "active")
 	categoryHeaders := []string{"CategoryEn", "CategoryAr"}
 	categoryData := [][]interface{}{}
 	for _, cat := range categories {
@@ -1599,7 +1606,7 @@ func (cs *ComplianceRequirementService) GenerateRequirementTemplate() (*os.File,
 	}
 
 	// Severity Levels
-	severities, _ := cs.severitySvc.GetAllActive()
+	severities, _ := cs.severityLevelSvc.GetAll("", "", "", "active")
 	severityHeaders := []string{"SeverityEn", "SeverityAr"}
 	severityData := [][]interface{}{}
 	for _, sev := range severities {
@@ -1607,7 +1614,7 @@ func (cs *ComplianceRequirementService) GenerateRequirementTemplate() (*os.File,
 	}
 
 	// Compliance Statuses
-	statuses, _ := cs.statusSvc.GetAllActive()
+	statuses, _ := cs.complianceStatusSvc.GetAll("", "", "", "active")
 	statusHeaders := []string{"StatusEn", "StatusAr"}
 	statusData := [][]interface{}{}
 	for _, st := range statuses {
@@ -1630,7 +1637,7 @@ func (cs *ComplianceRequirementService) GenerateRequirementTemplate() (*os.File,
 }
 
 // Validate Excel Template
-func (cs *ComplianceRequirementService) ValidateRequirementTemplate(file io.Reader) ([]map[string]interface{}, error) {
+func (cs *ComplianceRequirementService) ValidateRequirementTemplate(complianceID uint, file io.Reader) ([]map[string]interface{}, error) {
 	rows, err := utility.ReadExcelFile(file)
 	if err != nil {
 		return nil, err
@@ -1656,17 +1663,17 @@ func (cs *ComplianceRequirementService) ValidateRequirementTemplate(file io.Read
 		input = append(input, record)
 	}
 
-	return cs.validateRequirements(input)
+	return cs.validateRequirements(complianceID, input)
 }
 
 // Validate JSON input
-func (cs *ComplianceRequirementService) ValidateImportRequirement(input []map[string]interface{}) ([]map[string]interface{}, error) {
-	return cs.validateRequirements(input)
+func (cs *ComplianceRequirementService) ValidateImportRequirement(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error) {
+	return cs.validateRequirements(complianceID, input)
 }
 
 // Import
-func (cs *ComplianceRequirementService) ImportRequirements(input []map[string]interface{}, currentUserID uint) ([]uint, error) {
-	validated, err := cs.validateRequirements(input)
+func (cs *ComplianceRequirementService) ImportRequirements(complianceID uint, input []map[string]interface{}, currentUserID uint) ([]uint, error) {
+	validated, err := cs.validateRequirements(complianceID, input)
 	if err != nil {
 		return nil, err
 	}
@@ -1685,10 +1692,10 @@ func (cs *ComplianceRequirementService) ImportRequirements(input []map[string]in
 			TitleAr:                         record["title_ar"].(string),
 			ComplianceRequirementCategoryID: utility.GetOptionalUintValue(record["category_id"]),
 			SeverityLevelID:                 utility.GetOptionalUintValue(record["severity_level_id"]),
-			Deadline:                        utility.ParseOptionalDate(record["deadline"]),
-			ComplianceStatusID:              utility.GetOptionalUintValue(record["status_id"]),
-			MarkedAsAuditableItem:           utility.ParseBool(record["marked_as_auditable_item"]),
-			CreatedByID:                     currentUserID,
+			// Deadline:                        utility.ParseOptionalDate(record["deadline"]),
+			ComplianceStatusID: utility.GetOptionalUintValue(record["status_id"]),
+			// MarkedAsAuditableItem:           utility.ParseBool(record["marked_as_auditable_item"]),
+			CreatedByID: currentUserID,
 		}
 
 		id, err := cs.repo.Create(req)
@@ -1698,4 +1705,144 @@ func (cs *ComplianceRequirementService) ImportRequirements(input []map[string]in
 		createdIDs = append(createdIDs, id)
 	}
 	return createdIDs, nil
+}
+
+func (cs *ComplianceRequirementService) validateRequirements(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error) {
+	headers := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "compliance_status", "marked_as_auditable_item"}
+
+	// --- Fetch lookup data ---
+
+	// Clauses
+	clauses, err := cs.complianceClauseSvc.GetAll(complianceID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching clauses: %v", err)
+	}
+	clauseMap := make(map[string]uint)
+	for _, cl := range clauses {
+		key := strings.TrimSpace(cl.ClauseNo + " " + cl.TitleEn)
+		clauseMap[key] = cl.ID
+	}
+
+	// Categories
+	categories, err := cs.complianceRequirementCategorySvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching categories: %v", err)
+	}
+	categoryMap := make(map[string]uint)
+	for _, cat := range categories {
+		categoryMap[strings.TrimSpace(cat.TitleEn)] = cat.ID
+	}
+
+	// Severity Levels
+	severities, err := cs.severityLevelSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching severity levels: %v", err)
+	}
+	severityMap := make(map[string]uint)
+	for _, sev := range severities {
+		severityMap[strings.TrimSpace(sev.TitleEn)] = sev.ID
+	}
+
+	// Compliance Statuses
+	statuses, err := cs.complianceStatusSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching statuses: %v", err)
+	}
+	statusMap := make(map[string]uint)
+	for _, st := range statuses {
+		statusMap[strings.TrimSpace(st.TitleEn)] = st.ID
+	}
+
+	// --- Validate each record ---
+	var validated []map[string]interface{}
+
+	for _, record := range input {
+		rowErrors := make(map[string]interface{})
+		processed := make(map[string]interface{})
+
+		// Copy original input
+		for k, v := range record {
+			processed[k] = v
+		}
+
+		// Validate Clause
+		if val, ok := record["clause"].(string); !ok || val == "" {
+			rowErrors["clause"] = "Field is required"
+		} else if id, exists := clauseMap[strings.TrimSpace(val)]; exists {
+			processed["clause_id"] = id
+		} else {
+			rowErrors["clause"] = fmt.Sprintf("Invalid clause: %s", val)
+		}
+
+		// TitleEn
+		if val, ok := record["title_en"].(string); !ok || val == "" {
+			rowErrors["title_en"] = "Field is required"
+		}
+
+		// TitleAr
+		if val, ok := record["title_ar"].(string); !ok || val == "" {
+			rowErrors["title_ar"] = "Field is required"
+		}
+
+		// Category
+		if val, ok := record["category"].(string); ok && val != "" {
+			if id, exists := categoryMap[strings.TrimSpace(val)]; exists {
+				processed["category_id"] = id
+			} else {
+				rowErrors["category"] = fmt.Sprintf("Invalid category: %s", val)
+			}
+		}
+
+		// SeverityLevel
+		if val, ok := record["severity_level"].(string); ok && val != "" {
+			if id, exists := severityMap[strings.TrimSpace(val)]; exists {
+				processed["severity_level_id"] = id
+			} else {
+				rowErrors["severity_level"] = fmt.Sprintf("Invalid severity level: %s", val)
+			}
+		}
+
+		// Deadline
+		if val, ok := record["deadline"].(string); ok && val != "" {
+			t, err := time.Parse("2006-01-02", strings.TrimSpace(val))
+			if err != nil {
+				rowErrors["deadline"] = fmt.Sprintf("Invalid date format (use YYYY-MM-DD): %s", val)
+			} else {
+				processed["deadline"] = &t
+			}
+		}
+
+		// ComplianceStatus
+		if val, ok := record["compliance_status"].(string); ok && val != "" {
+			if id, exists := statusMap[strings.TrimSpace(val)]; exists {
+				processed["status_id"] = id
+			} else {
+				rowErrors["compliance_status"] = fmt.Sprintf("Invalid status: %s", val)
+			}
+		}
+
+		// // MarkedAsAuditableItem
+		// if val, ok := record["marked_as_auditable_item"].(string); ok && val != "" {
+		// 	boolVal := utility.ParseBool(val) // you can write your own parser if needed
+		// 	processed["marked_as_auditable_item"] = boolVal
+		// } else {
+		// 	processed["marked_as_auditable_item"] = false
+		// }
+
+		// Collect errors
+		if len(rowErrors) == 0 {
+			processed["errors"] = nil
+		} else {
+			for _, h := range headers {
+				if _, exists := rowErrors[h]; !exists {
+					rowErrors[h] = "" // keep consistent structure
+				}
+			}
+			processed["errors"] = rowErrors
+		}
+
+		validated = append(validated, processed)
+	}
+
+	return validated, nil
 }

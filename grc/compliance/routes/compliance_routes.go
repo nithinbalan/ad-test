@@ -399,8 +399,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.PUT("/compliance-assessment-frameworks/:complianceAssessmentFrameworkId/values/:complianceAssessmentFrameworkValueId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceAssessmentFrameworkValueController.UpdateComplianceAssessmentFrameworkValue)
 	complianceRoutes.POST("/compliance-assessment-frameworks/:complianceAssessmentFrameworkId/values/delete", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceAssessmentFrameworkValueController.DeleteComplianceAssessmentFrameworkValues)
 
-	complianceRoutes.GET("/requirements/template", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRequirementController.GetRequirementsTemplate)
-	complianceRoutes.POST("/requirements/template/validate", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRequirementController.ValidateRequirementTemplate)
-	complianceRoutes.POST("/requirements/import/validate", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRequirementController.ValidateImportRequirement)
-	complianceRoutes.POST("/requirements/import", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRequirementController.ImportRequirements)
+	complianceRoutes.GET("/compliances/:complianceId/compliance-requirements/template", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRequirementController.GetRequirementsTemplate)
+	complianceRoutes.POST("/compliances/:complianceId/compliance-requirements/template/validate", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRequirementController.ValidateRequirementTemplate)
+	complianceRoutes.POST("/compliances/:complianceId/compliance-requirements/import/validate", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRequirementController.ValidateImportRequirement)
+	complianceRoutes.POST("/compliances/:complianceId/compliance-requirements/import", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRequirementController.ImportRequirements)
 }

@@ -398,7 +398,15 @@ func (crc *ComplianceRequirementController) GetComplianceRequirementsExport(c *g
 }
 
 func (crc *ComplianceRequirementController) GetRequirementsTemplate(c *gin.Context) {
-	file, err := crc.service.GenerateRequirementTemplate()
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	file, err := crc.service.GenerateRequirementTemplate(uint(complianceID))
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, "Failed to generate template")
 		return
@@ -411,8 +419,15 @@ func (crc *ComplianceRequirementController) GetRequirementsTemplate(c *gin.Conte
 	c.File(file.Name())
 }
 
-// POST /requirements/template/validate
 func (crc *ComplianceRequirementController) ValidateRequirementTemplate(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, "Failed to read uploaded file")
@@ -426,7 +441,7 @@ func (crc *ComplianceRequirementController) ValidateRequirementTemplate(c *gin.C
 	}
 	defer file.Close()
 
-	validationResult, err := crc.service.ValidateRequirementTemplate(file)
+	validationResult, err := crc.service.ValidateRequirementTemplate(uint(complianceID), file)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -441,8 +456,15 @@ func (crc *ComplianceRequirementController) ValidateRequirementTemplate(c *gin.C
 	c.JSON(http.StatusOK, validationResult)
 }
 
-// POST /requirements/import/validate
 func (crc *ComplianceRequirementController) ValidateImportRequirement(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	var input []map[string]interface{}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -450,7 +472,7 @@ func (crc *ComplianceRequirementController) ValidateImportRequirement(c *gin.Con
 		return
 	}
 
-	validationResult, err := crc.service.ValidateImportRequirement(input)
+	validationResult, err := crc.service.ValidateImportRequirement(uint(complianceID), input)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -465,8 +487,15 @@ func (crc *ComplianceRequirementController) ValidateImportRequirement(c *gin.Con
 	c.JSON(http.StatusOK, validationResult)
 }
 
-// POST /requirements/import
 func (crc *ComplianceRequirementController) ImportRequirements(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	var input []map[string]interface{}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -479,7 +508,7 @@ func (crc *ComplianceRequirementController) ImportRequirements(c *gin.Context) {
 		return
 	}
 
-	createdIDs, err := crc.service.ImportRequirements(input, currentUserID)
+	createdIDs, err := crc.service.ImportRequirements(uint(complianceID), input, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
