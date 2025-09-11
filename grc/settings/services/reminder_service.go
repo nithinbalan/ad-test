@@ -92,6 +92,15 @@ func (rs *ReminderService) GetAllRemindersByModuleID(moduleID uint) ([]*dtos.Gro
 					TitleAr: rule.TriggerCondition.TitleAr,
 					Type:    rule.TriggerCondition.Type,
 				},
+				ReminderContextID: rule.ReminderContextID,
+				ReminderContext: dtos.ReminderContextDTO{
+					ID:       rule.ReminderContext.ID,
+					ModuleID: rule.ReminderContext.ModuleID,
+					TitleEn:  rule.ReminderContext.TitleEn,
+					TitleAr:  rule.ReminderContext.TitleAr,
+					Type:     rule.ReminderContext.Type,
+					Status:   rule.ReminderContext.Status,
+				},
 				CreatedAt: rule.CreatedAt,
 			})
 		}
