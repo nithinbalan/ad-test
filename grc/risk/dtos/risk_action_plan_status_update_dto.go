@@ -10,6 +10,7 @@ type RiskActionPlanStatusUpdateListDTO struct {
 	ActionPlanStatusTitleEn     string                                   `json:"action_plan_status_title_en"`
 	ActionPlanStatusTitleAr     string                                   `json:"action_plan_status_title_ar"`
 	ActionPlanStatusColorCode   string                                   `json:"action_plan_status_color_code"`
+	ActionPlanStatusType        string                                   `json:"action_plan_status_type"`
 	Comment                     string                                   `json:"comment"`
 	TargetDate                  string                                   `json:"target_date"`
 	Percentage                  string                                   `json:"percentage"`
