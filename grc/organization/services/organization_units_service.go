@@ -9,6 +9,7 @@ import (
 	"jethur/grc/organization/repositories"
 	settingServices "jethur/grc/settings/services"
 	"jethur/utility"
+	"math"
 )
 
 // Interface
@@ -100,7 +101,7 @@ func (s *OrganizationUnitsService) GetOrganizationUnitsHierarchies(sort string, 
 	copyTree = func(node *organizationDTOs.OrganizationUnitsDTO) organizationDTOs.OrganizationUnitsDTO {
 		result := *node
 		result.Children = make([]organizationDTOs.OrganizationUnitsDTO, 0)
-		
+
 		// Find all direct children from unitMap
 		for _, unit := range units {
 			if unit.OrganizationUnitID != nil && *unit.OrganizationUnitID == node.ID {
@@ -109,7 +110,7 @@ func (s *OrganizationUnitsService) GetOrganizationUnitsHierarchies(sort string, 
 				}
 			}
 		}
-		
+
 		return result
 	}
 
@@ -169,7 +170,7 @@ func (s *OrganizationUnitsService) GetOrganizationUnitSummary(unitID uint) (*org
 				TitleEn:       matched.TitleEn,
 				TitleAr:       matched.TitleAr,
 				ColorCode:     matched.ColorCode,
-				CompliancePct: pct,
+				CompliancePct: math.Round(pct*100) / 100,
 			}
 		}
 	}
@@ -195,18 +196,28 @@ func (s *OrganizationUnitsService) UpdatePrimaryOrganizationUnitHead(unitID uint
 	}
 	primaryField := fmt.Sprintf("organization_unit_%d_id", primaryLevel.Level)
 
+	// Get the user first to check if they're already the head
+	user, err := s.userSvc.GetByID(userID)
+	if err != nil {
+		return err
+	}
+
+	// Check if user is already head and belongs to the same unit
+	userPrimaryUnitID, err := s.userRepo.GetUserPrimaryUnitID(primaryField, userID)
+	if err != nil {
+		return err
+	}
+
+	// If user is already head of this unit, no need to update
+	if user.IsHead && userPrimaryUnitID == unitID {
+		return nil
+	}
+
 	// Start transaction
 	tx := s.repo.BeginTransaction()
 
 	// If setting as head, first unset any existing head in this unit
 	if err := s.repo.SetAllIsLatestFalse(unitID, primaryField, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// Get the user
-	user, err := s.userSvc.GetByID(userID)
-	if err != nil {
 		tx.Rollback()
 		return err
 	}
