@@ -21,6 +21,8 @@ type PolicyClauseRepositoryInterface interface {
 	Update(documentVersionClause *models.DocumentVersionClause, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 
+	GetByDocumentVersionId(documentId uint, documentVersionId uint) ([]*policyDTOs.PolicyClauseListDTO, error)
+
 	GetNextClauseSequence(parentClauseID uint, complianceRegisterID uint, tx ...utility.DatabaseTransaction) (int, error)
 	GetNextTopLevelClauseSequence(complianceRegisterID uint, tx ...utility.DatabaseTransaction) (int, error)
 	ShiftClausesAfter(documentVersionID uint, afterClauseNo string, tx ...utility.DatabaseTransaction) error
@@ -409,4 +411,45 @@ func (repo *PolicyClauseRepository) shiftSubClauseNumberAfterDeleting(db *gorm.D
 		}
 	}
 	return nil
+}
+
+func (repo *PolicyClauseRepository) GetByDocumentVersionId(documentId uint, documentVersionId uint) ([]*policyDTOs.PolicyClauseListDTO, error) {
+	var clauses []*policyDTOs.PolicyClauseListDTO
+
+	selectClause := `
+		document_version_clauses.*,
+
+		created_user.id AS created_user_id,
+		created_user.first_name_en AS created_user_first_name_en,
+		created_user.first_name_ar AS created_user_first_name_ar,
+		created_user.last_name_en AS created_user_last_name_en,
+		created_user.last_name_ar AS created_user_last_name_ar,
+		created_user.initial AS created_user_initial,
+		created_user.color AS created_user_color,
+		created_user.email AS created_user_email,
+		created_user.profile_image_path AS created_user_profile_image_path,
+
+		updated_user.id AS updated_user_id,
+		updated_user.first_name_en AS updated_user_first_name_en,
+		updated_user.first_name_ar AS updated_user_first_name_ar,
+		updated_user.last_name_en AS updated_user_last_name_en,
+		updated_user.last_name_ar AS updated_user_last_name_ar,
+		updated_user.initial AS updated_user_initial,
+		updated_user.color AS updated_user_color,
+		updated_user.email AS updated_user_email,
+		updated_user.profile_image_path AS updated_user_profile_image_path
+	`
+
+	query := repo.db.Table("document_version_clauses").
+		Select(selectClause).
+		Joins("LEFT JOIN users AS created_user ON created_user.id = document_version_clauses.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = document_version_clauses.updated_by_id").
+		Where("document_version_clauses.document_version_id = ?", documentVersionId).
+		Order("document_version_clauses.clause_number ASC")
+
+	if err := query.Find(&clauses).Error; err != nil {
+		return nil, err
+	}
+
+	return clauses, nil
 }

@@ -20,6 +20,7 @@ import (
 	"jethur/utility"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -61,6 +62,8 @@ type PolicyRegisterService struct {
 	workflowContextSvc        masterSvc.WorkflowContextServiceInterface
 	workflowSvc               settinsSvc.WorkflowServiceInterface
 	documentAuditLogSvc       documentServices.DocumentAuditLogServiceInterface
+	clauseSvc                 PolicyClauseServiceInterface
+	fileSvc                   commonServices.FileServiceInterface
 }
 
 func NewPolicyRegisterService(
@@ -83,6 +86,8 @@ func NewPolicyRegisterService(
 	workflowContextSvc masterSvc.WorkflowContextServiceInterface,
 	workflowSvc settinsSvc.WorkflowServiceInterface,
 	documentAuditLogSvc documentServices.DocumentAuditLogServiceInterface,
+	clauseSvc PolicyClauseServiceInterface,
+	fileSvc commonServices.FileServiceInterface,
 ) PolicyRegisterServiceInterface {
 	return &PolicyRegisterService{
 		repo:                      repo,
@@ -104,6 +109,8 @@ func NewPolicyRegisterService(
 		workflowContextSvc:        workflowContextSvc,
 		workflowSvc:               workflowSvc,
 		documentAuditLogSvc:       documentAuditLogSvc,
+		clauseSvc:                 clauseSvc,
+		fileSvc:                   fileSvc,
 	}
 }
 
@@ -1224,11 +1231,69 @@ func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, pol
 	if err != nil {
 		return err
 	}
+	fmt.Println("XXXXXXXXXXXXXXXXXX")
+	clauses, err := prs.clauseSvc.GetByDocumentVersionId(id, documentVersion.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	fmt.Println("-------")
+
+	templatePaths := []string{"document/templates/pdf/policy_register.html"}
+	htmlContent, err := utility.GeneratePDFContent(clauses, templatePaths, "", "")
+	if err != nil {
+		return fmt.Errorf("failed to generate HTML content: %w", err)
+	}
+
+	fmt.Println(templatePaths)
+
+	// Convert to PDF
+	pdfFileName := fmt.Sprintf("RiskReport_%d.pdf", id)
+	if err := utility.ConvertHTMLContentToPDF(htmlContent, pdfFileName); err != nil {
+		return fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	fmt.Println(pdfFileName)
+	fmt.Println("**********")
+	// ✅ Read back PDF bytes
+	pdfBytes, err := os.ReadFile(pdfFileName)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to read generated pdf: %w", err)
+	}
+	defer os.Remove(pdfFileName)
+
+	fileDTO, err := prs.fileSvc.SaveGeneratedPDF(pdfBytes, pdfFileName)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to save pdf file: %w", err)
+	}
+
+	url := filepath.Join("document", "published", strconv.FormatUint(uint64(document.ID), 10), "documents")
+
+	dataToEncrypt := []byte(fileDTO.FileName)
+	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+	if err != nil {
+		return err
+	}
 
 	documentVersion.AcknowledgeDueDate = dates.AcknowledgeDueDate
 	documentVersion.EnableAcknowledgement = policyPublishFormDTO.EnableAcknowledgement
 	documentVersion.PublishedBYID = &currentUserID
 	documentVersion.PublishedAt = publishedAt
+
+	documentVersion.URL = url
+	documentVersion.Name = fileDTO.FileName
+	documentVersion.Size = int(fileDTO.SizeInBytes)
+	documentVersion.Token = encryptedFilename
+	documentVersion.OriginalName = &fileDTO.OriginalName
+	documentVersion.Type = fileDTO.FileType
+
+	if err := utility.StoreFile(fileDTO.FileName, url); err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	err = prs.repo.UpdateDocumentVersion(documentVersion, tx)
 	if err != nil {

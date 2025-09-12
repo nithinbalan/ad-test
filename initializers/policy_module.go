@@ -37,6 +37,10 @@ func NewPolicyModule(db *gorm.DB,
 	policyFolderSvc := services.NewPolicyFolderService(policyFolderRepo, sharedModule.ActivityLogService, documentModule.DocumentAccessTypeSvc)
 	policyFolderController := controllers.NewPolicyFolderController(policyFolderSvc)
 
+	policyClauseRepo := repositories.NewPolicyClauseRepository(db)
+	policyClauseSvc := services.NewPolicyClauseService(policyClauseRepo, documentModule.DocumentSvc, sharedModule.ActivityLogService)
+	policyClauseController := controllers.NewPolicyClauseController(policyClauseSvc)
+
 	policyRegisterRepo := repositories.NewPolicyRegisterRepository(db)
 	policyRegisterSvc := services.NewPolicyRegisterService(
 		policyRegisterRepo,
@@ -58,12 +62,10 @@ func NewPolicyModule(db *gorm.DB,
 		masterModule.WorkflowContextSvc,
 		settingsModule.WorkflowSvc,
 		documentModule.DocumentAuditLogSvc,
+		policyClauseSvc,
+		commonModule.FileService,
 	)
 	policyRegisterController := controllers.NewPolicyRegisterController(policyRegisterSvc)
-
-	policyClauseRepo := repositories.NewPolicyClauseRepository(db)
-	policyClauseSvc := services.NewPolicyClauseService(policyClauseRepo, documentModule.DocumentSvc, sharedModule.ActivityLogService)
-	policyClauseController := controllers.NewPolicyClauseController(policyClauseSvc)
 
 	return &PolicyModule{
 		PolicyFolderController:   policyFolderController,

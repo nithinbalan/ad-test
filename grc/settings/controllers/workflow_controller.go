@@ -38,6 +38,7 @@ func (wfc *WorkflowController) GetAllWorkflows(c *gin.Context) {
 	}
 
 	validSortFields := map[string]string{
+		"id":       "workflows.id",
 		"title_en": "workflows.title_en",
 		"title_ar": "workflows.title_ar",
 	}

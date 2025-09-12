@@ -16,6 +16,8 @@ import (
 type FileServiceInterface interface {
 	TempFileUpload(file *multipart.FileHeader) (*commonDtos.FileDTO, error)
 	GetFilePreview(filePreviewDTO *commonDtos.FilePreviewDTO) (string, error)
+
+	SaveGeneratedPDF(content []byte, fileName string) (*commonDtos.FileDTO, error)
 }
 
 type FileService struct {
@@ -60,4 +62,34 @@ func (service *FileService) GetFilePreview(filePreviewDTO *commonDtos.FilePrevie
 	}
 
 	return fullPath, nil
+}
+
+func (service *FileService) SaveGeneratedPDF(content []byte, fileName string) (*commonDtos.FileDTO, error) {
+	// Create a temp file to simulate upload
+	tempFile, err := os.CreateTemp("", fileName)
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(tempFile.Name())
+
+	if _, err := tempFile.Write(content); err != nil {
+		return nil, err
+	}
+	tempFile.Close()
+
+	// Reopen as multipart.FileHeader
+	f, err := os.Open(tempFile.Name())
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	fileStat, _ := f.Stat()
+	header := &multipart.FileHeader{
+		Filename: filepath.Base(fileName),
+		Size:     fileStat.Size(),
+	}
+
+	// Now reuse TempFileUpload
+	return service.TempFileUpload(header)
 }

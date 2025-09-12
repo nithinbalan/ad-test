@@ -150,6 +150,12 @@ func (prc *PolicyRegisterController) GetPolicyDetails(c *gin.Context) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(prc.db, c, e.Error())
 			return
@@ -174,8 +180,14 @@ func (prc *PolicyRegisterController) CreatePolicy(c *gin.Context) {
 	createdPolicy, err := prc.service.Create(currentUserID, &documentFormDTO)
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 			return
 		default:
 			utility.SendInternalErrResp(prc.db, c, e.Error())
@@ -281,8 +293,14 @@ func (prc *PolicyRegisterController) SubmitPolicy(c *gin.Context) {
 	err = prc.service.SubmitPolicy(uint(id), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 			return
 		default:
 			utility.SendInternalErrResp(prc.db, c, e.Error())
@@ -317,8 +335,14 @@ func (prc *PolicyRegisterController) PublishPolicy(c *gin.Context) {
 	err = prc.service.PublishPolicy(uint(id), currentUserID, documentPublishFormDTO)
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 			return
 		default:
 			utility.SendInternalErrResp(prc.db, c, e.Error())
