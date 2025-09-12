@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	documentDTOs "jethur/grc/documents/dtos"
@@ -22,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -40,6 +42,13 @@ type PolicyRegisterServiceInterface interface {
 	PublishPolicy(id uint, currentUserID uint, policyPublishFormDTO documentDTOs.DocumentPublishFormDTO) error
 
 	ExportPolicies(data []*policyDTOs.PolicyRegisterListDTO, currentUserID uint) (*os.File, error)
+
+	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
+}
+
+type PolicyPDFData struct {
+	Document *policyDTOs.PolicyRegisterDetailsDTO // or DTO with Title, Version, etc.
+	Clauses  []*policyDTOs.PolicyClauseListDTO    // whatever your clause struct is
 }
 
 type PolicyRegisterService struct {
@@ -1231,22 +1240,23 @@ func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, pol
 	if err != nil {
 		return err
 	}
-	fmt.Println("XXXXXXXXXXXXXXXXXX")
+
 	clauses, err := prs.clauseSvc.GetByDocumentVersionId(id, documentVersion.ID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	fmt.Println("-------")
+	pdfData := PolicyPDFData{
+		Document: document, // your full document struct
+		Clauses:  clauses,
+	}
 
 	templatePaths := []string{"document/templates/pdf/policy_register.html"}
-	htmlContent, err := utility.GeneratePDFContent(clauses, templatePaths, "", "")
+	htmlContent, err := utility.GeneratePDFContent(pdfData, templatePaths, "", "")
 	if err != nil {
 		return fmt.Errorf("failed to generate HTML content: %w", err)
 	}
-
-	fmt.Println(templatePaths)
 
 	// Convert to PDF
 	pdfFileName := fmt.Sprintf("RiskReport_%d.pdf", id)
@@ -1254,8 +1264,6 @@ func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, pol
 		return fmt.Errorf("failed to generate PDF: %w", err)
 	}
 
-	fmt.Println(pdfFileName)
-	fmt.Println("**********")
 	// ✅ Read back PDF bytes
 	pdfBytes, err := os.ReadFile(pdfFileName)
 	if err != nil {
@@ -1270,7 +1278,7 @@ func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, pol
 		return fmt.Errorf("failed to save pdf file: %w", err)
 	}
 
-	url := filepath.Join("document", "published", strconv.FormatUint(uint64(document.ID), 10), "documents")
+	url := utility.GenerateDocumentURL("document", "published", strconv.FormatUint(uint64(id), 10), "documents")
 
 	dataToEncrypt := []byte(fileDTO.FileName)
 	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
@@ -1534,4 +1542,44 @@ func (prs *PolicyRegisterService) notifyUsersOnPublish(document *policyDTOs.Poli
 
 		}
 	}()
+}
+
+func (prs *PolicyRegisterService) GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error) {
+	existingDocument, err := prs.GetFullDetailsByID(id, nil, tx...)
+	if err != nil {
+		return "", err
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	baseFilename := strings.TrimSuffix(decryptedFilename, filepath.Ext(decryptedFilename))
+
+	var storagePath string
+
+	if existingDocument.DocumentStatus.Type == "published" || existingDocument.DocumentStatus.Type == "archived" {
+		storagePath = filepath.Join("document", "published", strconv.FormatUint(uint64(id), 10), "documents")
+		fileType = "pdf"
+	} else {
+		storagePath = filepath.Join("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
+	}
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, baseFilename+"."+fileType)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

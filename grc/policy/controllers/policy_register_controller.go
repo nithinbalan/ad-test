@@ -7,6 +7,7 @@ import (
 	"jethur/grc/policy/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -351,4 +352,92 @@ func (prc *PolicyRegisterController) PublishPolicy(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (prc *PolicyRegisterController) DownloadDocument(c *gin.Context) {
+	fileType := "docx"
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := prc.service.GetDocumentPath(uint(id), token, fileType)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(prc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(documentPath)
+	// currentUserID, err := utility.GetCurrentUserID(c)
+	// if err != nil {
+	// 	utility.SendInternalErrResp(prc.db, c, err.Error())
+	// 	return
+	// }
+	// // Add audit log for the document
+	// if err := prc.service.DirectDocumentAuditLog(uint(id), uint(currentUserID), "downloaded"); err != nil {
+	// 	utility.SendInternalErrResp(prc.db, c, err.Error())
+	// 	return
+	// }
+
+	// Set the content type and disposition headers for the file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(documentPath)
+}
+
+func (prc *PolicyRegisterController) GetDocumentPreview(c *gin.Context) {
+	fileType := "pdf"
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := prc.service.GetDocumentPath(uint(id), token, fileType)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(prc.db, c, err.Error())
+		}
+		return
+	}
+	// currentUserID, err := utility.GetCurrentUserID(c)
+	// if err != nil {
+	// 	utility.SendInternalErrResp(prc.db, c, err.Error())
+	// 	return
+	// }
+	// // Add audit log for the document
+	// if err := prc.service.DirectDocumentAuditLog(uint(id), uint(currentUserID), "previewed"); err != nil {
+	// 	utility.SendInternalErrResp(prc.db, c, err.Error())
+	// 	return
+	// }
+	c.File(documentPath)
 }

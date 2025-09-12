@@ -65,31 +65,26 @@ func (service *FileService) GetFilePreview(filePreviewDTO *commonDtos.FilePrevie
 }
 
 func (service *FileService) SaveGeneratedPDF(content []byte, fileName string) (*commonDtos.FileDTO, error) {
-	// Create a temp file to simulate upload
-	tempFile, err := os.CreateTemp("", fileName)
-	if err != nil {
+	dst := "tmp/" + strconv.FormatInt(time.Now().UnixNano(), 10) + "_" + utility.SanitizeFileName(fileName)
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(storagePath, dst)
+
+	dir := filepath.Dir(fullPath)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return nil, err
 	}
-	defer os.Remove(tempFile.Name())
 
-	if _, err := tempFile.Write(content); err != nil {
+	// Write the generated content directly
+	if err := os.WriteFile(fullPath, content, 0644); err != nil {
 		return nil, err
 	}
-	tempFile.Close()
 
-	// Reopen as multipart.FileHeader
-	f, err := os.Open(tempFile.Name())
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	fileStat, _ := f.Stat()
-	header := &multipart.FileHeader{
-		Filename: filepath.Base(fileName),
-		Size:     fileStat.Size(),
+	fileDTO := &commonDtos.FileDTO{
+		FileName:     filepath.Base(fullPath),
+		OriginalName: fileName,
+		FileType:     filepath.Ext(fullPath),
+		SizeInBytes:  int64(len(content)),
 	}
 
-	// Now reuse TempFileUpload
-	return service.TempFileUpload(header)
+	return fileDTO, nil
 }

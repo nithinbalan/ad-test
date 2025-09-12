@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Policy Document</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 30px;
+      color: #333;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+    .meta {
+      margin-bottom: 30px;
+      font-size: 12px;
+      color: #666;
+    }
+    .meta span {
+      display: inline-block;
+      margin-right: 15px;
+    }
+    .clause {
+      margin-top: 20px;
+      padding: 10px 15px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #fafafa;
+    }
+    .clause h3 {
+      margin: 0 0 5px;
+      font-size: 16px;
+      color: #222;
+    }
+    .clause p {
+      margin: 0 0 10px;
+      font-size: 14px;
+    }
+    .sub-clauses {
+      margin-left: 20px;
+      border-left: 2px solid #ddd;
+      padding-left: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>{{.Data.Document.TitleEn}}</h1>
+  <div class="meta">
+    <span><strong>Reference No:</strong> {{.Data.Document.ReferenceNumber}}</span>
+    <span><strong>Version:</strong> {{.Data.Document.LatestDocumentVersion.Version}}</span>
+    <span><strong>Created On:</strong> {{.Data.Document.CreatedAt}}</span>
+    <span><strong>Last Modified:</strong> {{.Data.Document.UpdatedAt}}</span>
+  </div>
+
+  <div class="clauses">
+    {{range .Data.Clauses}}
+      {{template "renderClause" .}}
+    {{end}}
+  </div>
+
+  {{define "renderClause"}}
+    <div class="clause">
+      <h3>{{.ClauseNumber}} {{.ClauseTitleEn}}</h3>
+      <p>{{.Description}}</p>
+      {{if .Children}}
+        <div class="sub-clauses">
+          {{range .Children}}
+            {{template "renderClause" .}}
+          {{end}}
+        </div>
+      {{end}}
+    </div>
+  {{end}}
+
+</body>
+</html>
