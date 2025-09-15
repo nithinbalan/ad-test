@@ -95,7 +95,13 @@ func (pfc *PolicyFolderController) GetAllPolicyFolders(c *gin.Context) {
 		Export:      export,
 	}
 
-	documents, err := pfc.service.GetAll(&queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(pfc.db, c, err.Error())
+		return
+	}
+
+	documents, err := pfc.service.GetAll(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(pfc.db, c, err.Error())
 		return

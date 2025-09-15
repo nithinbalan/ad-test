@@ -5,15 +5,17 @@ import (
 	documentServices "jethur/grc/documents/services"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationSvc "jethur/grc/organization/services"
 	"jethur/grc/policy/dtos"
 	policyDTOs "jethur/grc/policy/dtos"
 	"jethur/grc/policy/repositories"
+	settingSvc "jethur/grc/settings/services"
 	"jethur/utility"
 	"log"
 )
 
 type PolicyFolderServiceInterface interface {
-	GetAll(params *policyDTOs.PolicyRegisterListQueryParamsDTO) (*policyDTOs.PolicyRegisterListResponseDTO, error)
+	GetAll(params *policyDTOs.PolicyRegisterListQueryParamsDTO, currentUserID uint) (*policyDTOs.PolicyRegisterListResponseDTO, error)
 	GetByID(id uint) (*models.Document, error)
 	Create(currentUserID uint, formDTO *dtos.PolicyFolderFormDTO) (*models.Document, error)
 	Update(id uint, currentUserID uint, formDTO *dtos.PolicyFolderFormDTO) error
@@ -25,18 +27,61 @@ type PolicyFolderService struct {
 	repo                  repositories.PolicyFolderRepositoryInterface
 	activityLogSvc        services.ActivityLogServiceInterface
 	documentAccessTypeSvc documentServices.DocumentAccessTypeServiceInterface
+	orgLevelSvc           settingSvc.OrganizationLevelServiceInterface
+	userSvc               organizationSvc.UserServiceInterface
 }
 
-func NewPolicyFolderService(repo repositories.PolicyFolderRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, documentAccessTypeSvc documentServices.DocumentAccessTypeServiceInterface) PolicyFolderServiceInterface {
+func NewPolicyFolderService(repo repositories.PolicyFolderRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, documentAccessTypeSvc documentServices.DocumentAccessTypeServiceInterface, orgLevelSvc settingSvc.OrganizationLevelServiceInterface, userSvc organizationSvc.UserServiceInterface) PolicyFolderServiceInterface {
 	return &PolicyFolderService{
 		repo:                  repo,
 		activityLogSvc:        activityLogSvc,
 		documentAccessTypeSvc: documentAccessTypeSvc,
+		orgLevelSvc:           orgLevelSvc,
+		userSvc:               userSvc,
 	}
 }
 
-func (cfs *PolicyFolderService) GetAll(params *policyDTOs.PolicyRegisterListQueryParamsDTO) (*policyDTOs.PolicyRegisterListResponseDTO, error) {
-	return cfs.repo.GetAll(params)
+func (cfs *PolicyFolderService) GetAll(params *policyDTOs.PolicyRegisterListQueryParamsDTO, currentUserID uint) (*policyDTOs.PolicyRegisterListResponseDTO, error) {
+	// Get user details to check for super admin role
+	user, err := cfs.userSvc.GetFullDetailsByID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if user has super admin role
+	isUserSuperAdmin := false
+	if user.Roles != nil {
+		for _, role := range *user.Roles {
+			if role.IsSuperAdmin {
+				isUserSuperAdmin = true
+				break
+			}
+		}
+	}
+
+	// Get primary organization unit field
+	primaryLevel, err := cfs.orgLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return nil, err
+	}
+
+	// Determine the field name based on the primary level
+	var primaryOrgUnitField string
+	switch primaryLevel.Level {
+	case 1:
+		primaryOrgUnitField = "organization_unit_1_id"
+	case 2:
+		primaryOrgUnitField = "organization_unit_2_id"
+	case 3:
+		primaryOrgUnitField = "organization_unit_3_id"
+	case 4:
+		primaryOrgUnitField = "organization_unit_4_id"
+	case 5:
+		primaryOrgUnitField = "organization_unit_5_id"
+	default:
+		return nil, fmt.Errorf("unsupported primary level")
+	}
+	return cfs.repo.GetAll(params, currentUserID, isUserSuperAdmin, primaryOrgUnitField)
 }
 
 func (cfs PolicyFolderService) GetByID(id uint) (*models.Document, error) {
