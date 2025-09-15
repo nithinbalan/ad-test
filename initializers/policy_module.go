@@ -9,11 +9,12 @@ import (
 )
 
 type PolicyModule struct {
-	PolicyFolderController   *controllers.PolicyFolderController
-	PolicyRegisterController *controllers.PolicyRegisterController
-	PolicyClauseController   *controllers.PolicyClauseController
-	PolicyReviewController   *controllers.PolicyReviewController
-	PolicyWorkflowController *controllers.PolicyWorkflowController
+	PolicyFolderController               *controllers.PolicyFolderController
+	PolicyRegisterController             *controllers.PolicyRegisterController
+	PolicyClauseController               *controllers.PolicyClauseController
+	PolicyReviewController               *controllers.PolicyReviewController
+	PolicyWorkflowController             *controllers.PolicyWorkflowController
+	PolicyVersionClauseCommentController *controllers.PolicyVersionClauseCommentController
 
 	PolicyFolderSvc   services.PolicyFolderServiceInterface
 	PolicyRegisterSvc services.PolicyRegisterServiceInterface
@@ -65,11 +66,16 @@ func NewPolicyModule(db *gorm.DB,
 	policyClauseSvc := services.NewPolicyClauseService(policyClauseRepo, documentModule.DocumentSvc, sharedModule.ActivityLogService)
 	policyClauseController := controllers.NewPolicyClauseController(policyClauseSvc)
 
+	policyVersionClauseCommentRepo := repositories.NewPolicyVersionClauseCommentRepository(db)
+	policyVersionClauseCommentSvc := services.NewPolicyVersionClauseCommentService(policyVersionClauseCommentRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, policyRegisterSvc)
+	policyVersionClauseCommentController := controllers.NewPolicyVersionClauseCommentController(policyVersionClauseCommentSvc)
+
 	return &PolicyModule{
-		PolicyFolderController:   policyFolderController,
-		PolicyRegisterController: policyRegisterController,
-		PolicyClauseController:   policyClauseController,
-		PolicyWorkflowController: policyWorkflowController,
-		PolicyReviewController:   policyReviewController,
+		PolicyFolderController:               policyFolderController,
+		PolicyRegisterController:             policyRegisterController,
+		PolicyClauseController:               policyClauseController,
+		PolicyWorkflowController:             policyWorkflowController,
+		PolicyReviewController:               policyReviewController,
+		PolicyVersionClauseCommentController: policyVersionClauseCommentController,
 	}
 }

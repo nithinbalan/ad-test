@@ -21,8 +21,8 @@ type PolicyClauseRepositoryInterface interface {
 	Update(documentVersionClause *models.DocumentVersionClause, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 
-	GetNextClauseSequence(parentClauseID uint, complianceRegisterID uint, tx ...utility.DatabaseTransaction) (int, error)
-	GetNextTopLevelClauseSequence(complianceRegisterID uint, tx ...utility.DatabaseTransaction) (int, error)
+	GetNextClauseSequence(parentClauseID uint, documentID uint, tx ...utility.DatabaseTransaction) (int, error)
+	GetNextTopLevelClauseSequence(documentID uint, tx ...utility.DatabaseTransaction) (int, error)
 	ShiftClausesAfter(documentVersionID uint, afterClauseNo string, tx ...utility.DatabaseTransaction) error
 	shiftClauseNumber(clauseNo string, parentPrefix []int, insertPos int) (string, bool)
 
