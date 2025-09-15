@@ -9,7 +9,12 @@ import (
 type PolicyVersionClauseCommentListDTO struct {
 	ID                          uint   `json:"id"`
 	Comment                     string `json:"comment" binding:"required"`
+	CommentStatusTitleEn        string `json:"comment_status_title_en"`
+	CommentStatusTitleAr        string `json:"comment_status_title_ar"`
+	CommentStatusType           string `json:"comment_status_type"`
+	CommentStatusColorCdde      string `json:"comment_status_color_code"`
 	DocumentVersionClauseID     uint   `json:"document_version_clause_id"`
+	Level                       int    `json:"level"`
 	CreatedAt                   string `json:"created_at"`
 	CreatedBYID                 uint   `json:"created_by_id"`
 	CreatedUserFirstNameEn      string `json:"created_user_first_name_en"`
@@ -32,4 +37,12 @@ type PolicyVersionClauseCommentDetailDTO struct {
 	DocumentVersionClauseID uint                            `json:"document_version_clause_id"`
 	CreatedAt               time.Time                       `json:"created_at"`
 	CreatedByUser           organizationDTOs.UserMinimalDTO `json:"created_by"`
+}
+
+type PolicyVersionClauseCommentListQueryParamsDTO struct {
+	Sort    string
+	SortBy  string
+	Keyword string
+	Status  string
+	Filters map[string][]string
 }

@@ -67,7 +67,7 @@ func NewPolicyModule(db *gorm.DB,
 	policyClauseController := controllers.NewPolicyClauseController(policyClauseSvc)
 
 	policyVersionClauseCommentRepo := repositories.NewPolicyVersionClauseCommentRepository(db)
-	policyVersionClauseCommentSvc := services.NewPolicyVersionClauseCommentService(policyVersionClauseCommentRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, policyRegisterSvc)
+	policyVersionClauseCommentSvc := services.NewPolicyVersionClauseCommentService(policyVersionClauseCommentRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, policyRegisterSvc, masterModule.CommentStatusSvc)
 	policyVersionClauseCommentController := controllers.NewPolicyVersionClauseCommentController(policyVersionClauseCommentSvc)
 
 	return &PolicyModule{

@@ -58,4 +58,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	policyRoutes.POST("/policy-register/:id/clauses/:clauseId/comments", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), policyVersionClauseCommentController.CreateComment)
 	policyRoutes.PUT("/policy-register/:id/clauses/:clauseId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), policyVersionClauseCommentController.UpdateComment)
 	policyRoutes.POST("/policy-register/:id/clauses/:clauseId/comments/delete", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), policyVersionClauseCommentController.DeleteComment)
+	policyRoutes.PUT("/policy-register/:id/clauses/:clauseId/comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), policyVersionClauseCommentController.ResolveComment)
 }

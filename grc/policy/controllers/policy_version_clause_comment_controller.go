@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -25,6 +26,42 @@ func NewPolicyVersionClauseCommentController(service services.PolicyVersionClaus
 }
 
 func (pvccc *PolicyVersionClauseCommentController) GetAllComments(c *gin.Context) {
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "comment")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"comment_status_ids",
+		"document_version_clause_ids",
+		"level",
+	}
+
+	validSortFields := map[string]string{
+		"comment":                  "document_version_clause_comments.comment",
+		"level":                    "document_version_clause_comments.level",
+		"comment_status_title_en":  "comment_statuses.title_ar",
+		"comment_status_title__ar": "comment_statuses.title_en",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	queryParams := policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO{
+		Sort:    sort,
+		SortBy:  dbField,
+		Keyword: keyword,
+		Status:  status,
+		Filters: filters,
+	}
+
 	documentIDStr := c.Param("id")
 	documentID, err := strconv.ParseUint(documentIDStr, 10, 32)
 	if err != nil {
@@ -38,7 +75,7 @@ func (pvccc *PolicyVersionClauseCommentController) GetAllComments(c *gin.Context
 		return
 	}
 
-	comments, err := pvccc.service.GetAll(uint(documentID), uint(clauseID))
+	comments, err := pvccc.service.GetAll(uint(documentID), uint(clauseID), &queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -227,4 +264,54 @@ func (pvccc *PolicyVersionClauseCommentController) DeleteComment(c *gin.Context)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (pvccc *PolicyVersionClauseCommentController) ResolveComment(c *gin.Context) {
+
+	documentIDStr := c.Param("id")
+	documentID, err := strconv.ParseUint(documentIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	clauseIDStr := c.Param("clauseId")
+	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	commentIDStr := c.Param("commentId")
+	commentID, err := strconv.ParseUint(commentIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(pvccc.db, c, err.Error())
+		return
+	}
+
+	err = pvccc.service.Resolve(uint(documentID), uint(clauseID), uint(commentID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(pvccc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }

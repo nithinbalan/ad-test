@@ -42,6 +42,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectMilestoneStatusController := app.MasterModule.ProjectMilestoneStatusController
 	licenseTypeController := app.MasterModule.LicenseTypeController
 	workflowContextController := app.MasterModule.WorkflowContextController
+	commentStatusController := app.MasterModule.CommentStatusController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -161,5 +162,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	masterRoutes.GET("/workflow-contexts", workflowContextController.GetAllWorkflowContext)
 	masterRoutes.GET("/workflow-contexts/:id", workflowContextController.GetWorkflowContextDetails)
+
+	masterRoutes.GET("/comment-statuses", commentStatusController.GetAllCommentStatuses)
+	masterRoutes.GET("/comment-statuses/:id", commentStatusController.GetCommentStatusDetails)
 
 }
