@@ -1585,16 +1585,16 @@ func (srs *ComplianceRequirementService) ExportComplianceRequirements(data []*co
 // Generate Excel template
 func (cs *ComplianceRequirementService) GenerateRequirementTemplate(complianceID uint) (*os.File, error) {
 	templateHeaders := []string{
-		"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "ComplianceStatus", "MarkedAsAuditableItem",
+		"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "ComplianceStatus",
 	}
 	templateData := [][]interface{}{}
 
 	// Clauses
 	clauses, _ := cs.complianceClauseSvc.GetAll(complianceID)
-	clauseHeaders := []string{"ClauseNo", "TitleEn"}
+	clauseHeaders := []string{"ClauseNo", "TitleEn", "TitleAr"}
 	clauseData := [][]interface{}{}
 	for _, c := range clauses {
-		clauseData = append(clauseData, []interface{}{c.ClauseNo, c.TitleEn})
+		clauseData = append(clauseData, []interface{}{c.ClauseNo, c.TitleEn, c.TitleAr})
 	}
 
 	// Categories
@@ -1643,8 +1643,8 @@ func (cs *ComplianceRequirementService) ValidateRequirementTemplate(complianceID
 		return nil, err
 	}
 
-	inputHeaders := []string{"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "ComplianceStatus", "MarkedAsAuditableItem"}
-	snakeHeaders := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "compliance_status", "marked_as_auditable_item"}
+	inputHeaders := []string{"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "ComplianceStatus"}
+	snakeHeaders := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "compliance_status"}
 
 	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
 		return nil, utility.NewValidationError(fmt.Errorf("invalid headers"), "invalid_header", "Requirement Template")
@@ -1686,19 +1686,31 @@ func (cs *ComplianceRequirementService) ImportRequirements(complianceID uint, in
 
 	var createdIDs []uint
 	for _, record := range validated {
-		req := &models.ComplianceRequirement{
+
+		var deadlineStr *string
+		if val, ok := record["deadline"].(string); ok && val != "" {
+			t, err := time.Parse("2006-01-02", strings.TrimSpace(val))
+			if err == nil {
+				formatted := t.Format("2006-01-02")
+				deadlineStr = &formatted
+			}
+		}
+
+		dto := &complianceDTOs.ComplianceRequirementFormDTO{
 			ComplianceClauseID:              record["clause_id"].(uint),
 			TitleEn:                         record["title_en"].(string),
 			TitleAr:                         record["title_ar"].(string),
 			ComplianceRequirementCategoryID: utility.GetOptionalUintValue(record["category_id"]),
 			SeverityLevelID:                 utility.GetOptionalUintValue(record["severity_level_id"]),
-			// Deadline:                        utility.ParseOptionalDate(record["deadline"]),
-			ComplianceStatusID: utility.GetOptionalUintValue(record["status_id"]),
-			// MarkedAsAuditableItem:           utility.ParseBool(record["marked_as_auditable_item"]),
-			CreatedByID: currentUserID,
+			Deadline:                        deadlineStr,
+			ControlIDs:                      []*uint{},
+			StrategicObjectiveIDs:           []*uint{},
+			DocumentIds:                     []*uint{},
+			RequiredDocumentTitleIDs:        []*uint{},
+			ResponsibleUnitIDs:              []*uint{},
 		}
 
-		id, err := cs.repo.Create(req)
+		id, err := cs.Create(complianceID, currentUserID, dto)
 		if err != nil {
 			return nil, err
 		}
@@ -1708,7 +1720,7 @@ func (cs *ComplianceRequirementService) ImportRequirements(complianceID uint, in
 }
 
 func (cs *ComplianceRequirementService) validateRequirements(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error) {
-	headers := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "compliance_status", "marked_as_auditable_item"}
+	headers := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "compliance_status"}
 
 	// --- Fetch lookup data ---
 
@@ -1808,7 +1820,8 @@ func (cs *ComplianceRequirementService) validateRequirements(complianceID uint, 
 			if err != nil {
 				rowErrors["deadline"] = fmt.Sprintf("Invalid date format (use YYYY-MM-DD): %s", val)
 			} else {
-				processed["deadline"] = &t
+				formatted := t.Format("2006-01-02")
+				processed["deadline"] = formatted
 			}
 		}
 
@@ -1820,14 +1833,6 @@ func (cs *ComplianceRequirementService) validateRequirements(complianceID uint, 
 				rowErrors["compliance_status"] = fmt.Sprintf("Invalid status: %s", val)
 			}
 		}
-
-		// // MarkedAsAuditableItem
-		// if val, ok := record["marked_as_auditable_item"].(string); ok && val != "" {
-		// 	boolVal := utility.ParseBool(val) // you can write your own parser if needed
-		// 	processed["marked_as_auditable_item"] = boolVal
-		// } else {
-		// 	processed["marked_as_auditable_item"] = false
-		// }
 
 		// Collect errors
 		if len(rowErrors) == 0 {
