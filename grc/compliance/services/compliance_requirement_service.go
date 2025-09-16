@@ -1581,7 +1581,7 @@ func (srs *ComplianceRequirementService) ExportComplianceRequirements(data []*co
 // Generate Excel template
 func (cs *ComplianceRequirementService) GenerateRequirementTemplate(complianceID uint) (*os.File, error) {
 	templateHeaders := []string{
-		"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "ComplianceStatus", "RequiredDocuments", "ResponsibleUnits",
+		"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "RequiredDocuments", "ResponsibleUnits",
 	}
 	templateData := [][]interface{}{}
 
@@ -1607,14 +1607,6 @@ func (cs *ComplianceRequirementService) GenerateRequirementTemplate(complianceID
 	severityData := [][]interface{}{}
 	for _, sev := range severities {
 		severityData = append(severityData, []interface{}{sev.TitleEn, sev.TitleAr})
-	}
-
-	// Compliance Statuses
-	statuses, _ := cs.complianceStatusSvc.GetAll("", "", "", "active")
-	statusHeaders := []string{"StatusEn", "StatusAr"}
-	statusData := [][]interface{}{}
-	for _, st := range statuses {
-		statusData = append(statusData, []interface{}{st.TitleEn, st.TitleAr})
 	}
 
 	// Responsible Units
@@ -1643,12 +1635,11 @@ func (cs *ComplianceRequirementService) GenerateRequirementTemplate(complianceID
 	// Generate file
 	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
 		"Template":          append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
-		"Clauses":           append([][]interface{}{utility.ConvertToInterfaceSlice(clauseHeaders)}, clauseData...),
-		"Categories":        append([][]interface{}{utility.ConvertToInterfaceSlice(categoryHeaders)}, categoryData...),
-		"SeverityLevels":    append([][]interface{}{utility.ConvertToInterfaceSlice(severityHeaders)}, severityData...),
-		"Statuses":          append([][]interface{}{utility.ConvertToInterfaceSlice(statusHeaders)}, statusData...),
-		"ResponsibleUnits":  append([][]interface{}{utility.ConvertToInterfaceSlice(responsibleUnitHeaders)}, responsibleUnitData...),
-		"RequiredDocuments": append([][]interface{}{utility.ConvertToInterfaceSlice(requiredDocumentTitleHeaders)}, requiredDocumentTitleData...),
+		"Clause":           append([][]interface{}{utility.ConvertToInterfaceSlice(clauseHeaders)}, clauseData...),
+		"Category":        append([][]interface{}{utility.ConvertToInterfaceSlice(categoryHeaders)}, categoryData...),
+		"SeverityLevel":    append([][]interface{}{utility.ConvertToInterfaceSlice(severityHeaders)}, severityData...),
+		"ResponsibleUnit":  append([][]interface{}{utility.ConvertToInterfaceSlice(responsibleUnitHeaders)}, responsibleUnitData...),
+		"RequiredDocument": append([][]interface{}{utility.ConvertToInterfaceSlice(requiredDocumentTitleHeaders)}, requiredDocumentTitleData...),
 	})
 	if err != nil {
 		return nil, err
@@ -1664,8 +1655,8 @@ func (cs *ComplianceRequirementService) ValidateRequirementTemplate(complianceID
 		return nil, err
 	}
 
-	inputHeaders := []string{"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "ComplianceStatus", "RequiredDocuments", "ResponsibleUnits"}
-	snakeHeaders := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "compliance_status", "required_documents", "responsible_units"}
+	inputHeaders := []string{"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "RequiredDocuments", "ResponsibleUnits"}
+	snakeHeaders := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "required_documents", "responsible_units"}
 
 	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
 		return nil, utility.NewValidationError(fmt.Errorf("invalid headers"), "invalid_header", "Requirement Template")
@@ -1755,7 +1746,7 @@ func (cs *ComplianceRequirementService) ImportRequirements(complianceID uint, in
 }
 
 func (cs *ComplianceRequirementService) validateRequirements(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error) {
-	headers := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "compliance_status", "required_documents", "responsible_units"}
+	headers := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "required_documents", "responsible_units"}
 
 	// --- Fetch lookup data ---
 
@@ -1788,16 +1779,6 @@ func (cs *ComplianceRequirementService) validateRequirements(complianceID uint, 
 	severityMap := make(map[string]uint)
 	for _, sev := range severities {
 		severityMap[strings.TrimSpace(sev.TitleEn)] = sev.ID
-	}
-
-	// Compliance Statuses
-	statuses, err := cs.complianceStatusSvc.GetAll("", "", "", "active")
-	if err != nil {
-		return nil, fmt.Errorf("error fetching statuses: %v", err)
-	}
-	statusMap := make(map[string]uint)
-	for _, st := range statuses {
-		statusMap[strings.TrimSpace(st.TitleEn)] = st.ID
 	}
 
 	// Required Documents
@@ -1934,15 +1915,6 @@ func (cs *ComplianceRequirementService) validateRequirements(complianceID uint, 
 			} else {
 				formatted := t.Format("2006-01-02")
 				processed["deadline"] = formatted
-			}
-		}
-
-		// ComplianceStatus
-		if val, ok := record["compliance_status"].(string); ok && val != "" {
-			if id, exists := statusMap[strings.TrimSpace(val)]; exists {
-				processed["status_id"] = id
-			} else {
-				rowErrors["compliance_status"] = fmt.Sprintf("Invalid status: %s", val)
 			}
 		}
 

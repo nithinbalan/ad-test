@@ -128,37 +128,6 @@ func toAlphaString(colIndex int) string {
 	return result
 }
 
-func pluralize(word string) string {
-	irregulars := map[string]string{
-		"Category": "Categories",
-		"Policy":   "Policies",
-		"Company":  "Companies",
-		"Status":   "Statuses",
-		"Class":    "Classes",
-	}
-
-	if val, ok := irregulars[word]; ok {
-		return val
-	}
-
-	for singular, plural := range irregulars {
-		if strings.HasSuffix(word, singular) {
-			return plural
-		}
-	}
-
-	if strings.HasSuffix(word, "y") && !strings.HasSuffix(word, "ay") && !strings.HasSuffix(word, "ey") {
-		return word[:len(word)-1] + "ies"
-	}
-
-	if strings.HasSuffix(word, "s") || strings.HasSuffix(word, "x") || strings.HasSuffix(word, "z") ||
-		strings.HasSuffix(word, "ch") || strings.HasSuffix(word, "sh") {
-		return word + "es"
-	}
-
-	return word + "s"
-}
-
 func createSheetWithDropDown(f *excelize.File, sheetName string, data [][]interface{}, columnToSheet map[string][][]interface{}) error {
 	if _, err := f.NewSheet(sheetName); err != nil {
 		return fmt.Errorf("failed to create sheet %s: %v", sheetName, err)
@@ -187,18 +156,16 @@ func createSheetWithDropDown(f *excelize.File, sheetName string, data [][]interf
 			continue
 		}
 
-		pluralKey := pluralize(headerStr)
-		optionsData, exists := columnToSheet[pluralKey]
+		optionsData, exists := columnToSheet[headerStr]
 		if !exists {
-			log.Printf("No data found for header %s (mapped to sheet %s)", headerStr, pluralKey)
 			continue
 		}
 
-		// Flatten dropdown values 
+		// Flatten dropdown values
 		dropList := []string{}
 		for _, row := range optionsData[1:] { // Skip header row
 			if len(row) > 0 {
-				if pluralKey == "Clauses" && len(row) > 1 {
+				if headerStr == "Clause" && len(row) > 1 {
 					clauseNo, ok1 := row[0].(string)
 					titleEn, ok2 := row[1].(string)
 					if ok1 && ok2 && clauseNo != "" && titleEn != "" {
