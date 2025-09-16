@@ -36,13 +36,14 @@ func (pvccc *PolicyVersionClauseCommentController) GetAllComments(c *gin.Context
 		"comment_status_ids",
 		"document_version_clause_ids",
 		"level",
+		"created_by_ids",
 	}
 
 	validSortFields := map[string]string{
-		"comment":                  "document_version_clause_comments.comment",
-		"level":                    "document_version_clause_comments.level",
-		"comment_status_title_en":  "comment_statuses.title_ar",
-		"comment_status_title__ar": "comment_statuses.title_en",
+		"comment":                 "document_version_clause_comments.comment",
+		"level":                   "document_version_clause_comments.level",
+		"comment_status_title_en": "comment_statuses.title_ar",
+		"comment_status_title_ar": "comment_statuses.title_en",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
