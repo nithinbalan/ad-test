@@ -113,7 +113,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 		CreatedByID:        currentUserID,
 	}
 
-	id, err := sasus.repo.Create(SLAActionPlanUpdate)
+	id, err := sasus.repo.Create(SLAActionPlanUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
