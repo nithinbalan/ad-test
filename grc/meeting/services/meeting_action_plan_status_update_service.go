@@ -121,7 +121,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 		CreatedByID:         currentUserID,
 	}
 
-	id, err := masus.repo.Create(meetingActionPlanUpdate)
+	id, err := masus.repo.Create(meetingActionPlanUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
