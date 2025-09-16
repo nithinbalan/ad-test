@@ -718,7 +718,7 @@ func (tasus *ThreatActionPlanStatusUpdateService) Revert(threatID uint, actionPl
 	}
 
 	threatActionPlanUpdate := &models.ThreatActionPlanStatusUpdate{
-		ThreatActionPlanID: threatID,
+		ThreatActionPlanID: actionPlanID,
 		ActionPlanStatusID: threatActionPlanReopenStatus.ID,
 		Comment:            ThreatActionPlanReviewUserStatusUpdateFormDTO.Comment,
 		CreatedByID:        currentUserID,

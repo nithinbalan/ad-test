@@ -717,7 +717,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Revert(incidentID uint, acti
 	}
 
 	incidentActionPlanUpdate := &models.IncidentActionPlanStatusUpdate{
-		IncidentActionPlanID: incidentID,
+		IncidentActionPlanID: actionPlanID,
 		ActionPlanStatusID:   incidentActionPlanClosedStatus.ID,
 		Comment:              IncidentActionPlanReviewUserStatusUpdateFormDTO.Comment,
 		CreatedByID:          currentUserID,

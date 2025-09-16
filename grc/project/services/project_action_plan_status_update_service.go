@@ -46,7 +46,6 @@ func NewProjectActionPlanStatusUpdateService(
 	projectActionPlanSvc ProjectActionPlanServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
-
 ) ProjectActionPlanStatusUpdateServiceInterface {
 	return &ProjectActionPlanStatusUpdateService{
 		repo:                 repo,
@@ -102,7 +101,7 @@ func (pasus *ProjectActionPlanStatusUpdateService) Create(ProjectID uint, Projec
 		CreatedByID:         currentUserID,
 	}
 
-	id, err := pasus.repo.Create(projectActionPlanUpdate)
+	id, err := pasus.repo.Create(projectActionPlanUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err

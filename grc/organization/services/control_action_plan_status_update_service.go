@@ -124,7 +124,7 @@ func (casus *ControlActionPlanStatusUpdateService) Create(controlID uint, contro
 		CreatedByID:         currentUserID,
 	}
 
-	id, err := casus.repo.Create(controlActionPlanUpdate)
+	id, err := casus.repo.Create(controlActionPlanUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err

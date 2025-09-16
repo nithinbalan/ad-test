@@ -721,7 +721,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Revert(slaID uint, actionPlanID u
 	}
 
 	SLAActionPlanUpdate := &models.SLAActionPlanStatusUpdate{
-		SLAActionPlanID:    slaID,
+		SLAActionPlanID:    actionPlanID,
 		ActionPlanStatusID: slaActionPlanReopenStatus.ID,
 		Comment:            SLAActionPlanReviewUserStatusUpdateFormDTO.Comment,
 		CreatedByID:        currentUserID,
