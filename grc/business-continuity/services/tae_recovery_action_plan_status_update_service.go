@@ -565,13 +565,13 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Approve(testAndExerciseID
 		return err
 	}
 
-	_, err = sasus.taskSvc.UpdateActionPlanTaskStatus("recovery_action_plan_id", testAndExerciseID, existingActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
+	_, err = sasus.taskSvc.UpdateActionPlanTaskStatus("recovery_action_plan_id", actionPlanID, existingActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	_, err = sasus.taskSvc.UpdateActionPlanTaskStatus("recovery_action_plan_id", testAndExerciseID, *existingActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
+	_, err = sasus.taskSvc.UpdateActionPlanTaskStatus("recovery_action_plan_id", actionPlanID, *existingActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
 	if err != nil {
 		tx.Rollback()
 		return err
