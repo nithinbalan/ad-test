@@ -25,6 +25,72 @@ func NewPolicyVersionClauseCommentController(service services.PolicyVersionClaus
 	}
 }
 
+func (pvccc *PolicyVersionClauseCommentController) GetAllDocumentComments(c *gin.Context) {
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "comment")
+	keyword := c.Query("keyword")
+	status := c.Query("status")
+
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"comment_status_ids",
+		"document_version_clause_ids",
+		"level",
+		"created_by_ids",
+	}
+
+	validSortFields := map[string]string{
+		"comment":                 "document_version_clause_comments.comment",
+		"level":                   "document_version_clause_comments.level",
+		"comment_status_title_en": "comment_statuses.title_ar",
+		"comment_status_title_ar": "comment_statuses.title_en",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	queryParams := policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO{
+		Sort:    sort,
+		SortBy:  dbField,
+		Keyword: keyword,
+		Status:  status,
+		Filters: filters,
+	}
+
+	documentIDStr := c.Param("id")
+	documentID, err := strconv.ParseUint(documentIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(pvccc.db, c, err.Error())
+		return
+	}
+
+	comments, err := pvccc.service.GetAllDocumentComments(uint(documentID), currentUserID, &queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(pvccc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, comments)
+}
+
 func (pvccc *PolicyVersionClauseCommentController) GetAllComments(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "comment")

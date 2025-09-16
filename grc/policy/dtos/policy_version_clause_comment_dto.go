@@ -27,6 +27,17 @@ type PolicyVersionClauseCommentListDTO struct {
 	CreatedUserProfileImagePath string `json:"created_user_profile_image_path"`
 }
 
+type PolicyVersionClauseCommentListResponseDTO struct {
+	Comments      []*PolicyVersionClauseCommentListDTO `json:"comments"`
+	OpenCount     int                                  `json:"open_count"`
+	ResolvedCount int                                  `json:"resolved_count"`
+}
+
+type StatusCount struct {
+	Status string
+	Count  int
+}
+
 type PolicyVersionClauseCommentFormDTO struct {
 	Comment string `json:"comment" binding:"required,max=1000"`
 }

@@ -10,12 +10,13 @@ import (
 
 type PolicyVersionClauseCommentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(actionPlanID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) ([]*policyDTOs.PolicyVersionClauseCommentListDTO, error)
+	GetAll(clauseID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) ([]*policyDTOs.PolicyVersionClauseCommentListDTO, error)
+	GetAllDocumentComments(documentID uint, versionID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) (*policyDTOs.PolicyVersionClauseCommentListResponseDTO, error)
 	GetByID(id uint) (*models.DocumentVersionClauseComment, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersionClauseComment, error)
 	Create(comment *models.DocumentVersionClauseComment, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(comment *models.DocumentVersionClauseComment, tx ...utility.DatabaseTransaction) error
-	Delete(actionPlanID uint, tx ...utility.DatabaseTransaction) error
+	Delete(commentID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type PolicyVersionClauseCommentRepository struct {
@@ -32,7 +33,7 @@ func (repo *PolicyVersionClauseCommentRepository) BeginTransaction() utility.Dat
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *PolicyVersionClauseCommentRepository) GetAll(actionPlanID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) ([]*policyDTOs.PolicyVersionClauseCommentListDTO, error) {
+func (repo *PolicyVersionClauseCommentRepository) GetAll(clauseID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) ([]*policyDTOs.PolicyVersionClauseCommentListDTO, error) {
 	var comments []*policyDTOs.PolicyVersionClauseCommentListDTO
 	query := repo.db.Table("document_version_clause_comments").
 		Select(`
@@ -57,7 +58,7 @@ func (repo *PolicyVersionClauseCommentRepository) GetAll(actionPlanID uint, para
 `).
 		Joins("LEFT JOIN users ON users.id = document_version_clause_comments.created_by_id").
 		Joins("LEFT JOIN comment_statuses ON comment_statuses.id = document_version_clause_comments.comment_status_id").
-		Where("document_version_clause_comments.document_version_clause_id = ?", actionPlanID)
+		Where("document_version_clause_comments.document_version_clause_id = ?", clauseID)
 
 		// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -99,6 +100,98 @@ func (repo *PolicyVersionClauseCommentRepository) GetAll(actionPlanID uint, para
 	}
 
 	return comments, nil
+}
+
+func (repo *PolicyVersionClauseCommentRepository) GetAllDocumentComments(documentID uint, versionID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) (*policyDTOs.PolicyVersionClauseCommentListResponseDTO, error) {
+
+	var comments []*policyDTOs.PolicyVersionClauseCommentListDTO
+	var statusCounts []policyDTOs.StatusCount
+
+	query := repo.db.
+		Table("document_version_clause_comments").
+		Joins("LEFT JOIN comment_statuses ON comment_statuses.id = document_version_clause_comments.comment_status_id").
+		Joins("LEFT JOIN document_version_clauses ON document_version_clauses.id = document_version_clause_comments.document_version_clause_id").
+		Joins("LEFT JOIN document_versions ON document_versions.id = document_version_clauses.document_version_id").
+		Joins("LEFT JOIN users ON users.id = document_version_clause_comments.created_by_id").
+		Where("document_versions.id = ? ", versionID)
+
+	// Apply filters
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where("document_version_clause_comments."+columnName+" IN (?)", values)
+		}
+	}
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where("document_version_clause_comments.comment LIKE ?", keyword)
+	}
+
+	// Select fields
+	query = query.Select(`
+		document_version_clause_comments.id,
+		document_version_clause_comments.comment,
+		document_version_clause_comments.document_version_clause_id,
+		document_version_clause_comments.level,
+		document_version_clause_comments.created_at,
+		document_version_clause_comments.created_by_id,
+		comment_statuses.title_en AS comment_status_title_en,
+		comment_statuses.title_ar AS comment_status_title_ar,
+		comment_statuses.type AS comment_status_type,
+		comment_statuses.color_code AS comment_status_color_code,
+		users.first_name_en AS created_user_first_name_en,
+		users.first_name_ar AS created_user_first_name_ar,
+		users.last_name_en AS created_user_last_name_en,
+		users.last_name_ar AS created_user_last_name_ar,
+		users.initial AS created_user_initial,
+		users.color AS created_user_color,
+		users.email AS created_user_email,
+		users.profile_image_path AS created_user_profile_image_path
+	`).Order("document_version_clause_comments.created_at DESC")
+
+	if err := query.Scan(&comments).Error; err != nil {
+		return nil, err
+	}
+
+	countQuery := repo.db.
+		Table("document_version_clause_comments").
+		Joins("LEFT JOIN comment_statuses ON comment_statuses.id = document_version_clause_comments.comment_status_id")
+
+		// Apply same filters
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			countQuery = countQuery.Where("document_version_clause_comments."+columnName+" IN (?)", values)
+		}
+	}
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		countQuery = countQuery.Where("document_version_clause_comments.comment LIKE ?", keyword)
+	}
+
+	// Group by status
+	countQuery = countQuery.
+		Select("comment_statuses.type AS status, COUNT(*) as count").
+		Group("comment_statuses.type")
+
+	if err := countQuery.Scan(&statusCounts).Error; err != nil {
+		return nil, err
+	}
+
+	openCount, resolvedCount := 0, 0
+	for _, sc := range statusCounts {
+		if sc.Status == "open" {
+			openCount = sc.Count
+		}
+		if sc.Status == "resolved" {
+			resolvedCount = sc.Count
+		}
+	}
+
+	return &policyDTOs.PolicyVersionClauseCommentListResponseDTO{
+		Comments:      comments,
+		OpenCount:     openCount,
+		ResolvedCount: resolvedCount,
+	}, nil
 }
 
 func (repo *PolicyVersionClauseCommentRepository) GetByID(id uint) (*models.DocumentVersionClauseComment, error) {
@@ -157,13 +250,13 @@ func (repo *PolicyVersionClauseCommentRepository) Update(comment *models.Documen
 	return nil
 }
 
-func (repo *PolicyVersionClauseCommentRepository) Delete(actionPlanID uint, tx ...utility.DatabaseTransaction) error {
+func (repo *PolicyVersionClauseCommentRepository) Delete(commentID uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	if err := db.Where("id = ?", actionPlanID).Delete(&models.DocumentVersionClauseComment{}).Error; err != nil {
+	if err := db.Where("id = ?", commentID).Delete(&models.DocumentVersionClauseComment{}).Error; err != nil {
 		return err
 	}
 

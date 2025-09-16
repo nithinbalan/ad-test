@@ -19,6 +19,7 @@ import (
 
 type PolicyVersionClauseCommentServiceInterface interface {
 	GetAll(documentID uint, clauseID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) ([]*policyDTOs.PolicyVersionClauseCommentListDTO, error)
+	GetAllDocumentComments(documentID uint, currentUserID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) (*policyDTOs.PolicyVersionClauseCommentListResponseDTO, error)
 	GetByID(documentID uint, clauseID uint, id uint) (*models.DocumentVersionClauseComment, error)
 	GetFullDetailsByID(documentID uint, clauseID uint, id uint, tx ...utility.DatabaseTransaction) (*policyDTOs.PolicyVersionClauseCommentDetailDTO, error)
 	Create(documentID uint, clauseID uint, currentUserID uint, dto *policyDTOs.PolicyVersionClauseCommentFormDTO) (uint, error)
@@ -55,6 +56,15 @@ func (pvccs *PolicyVersionClauseCommentService) GetAll(documentID uint, clauseID
 	}
 
 	return pvccs.repo.GetAll(clauseID, params)
+}
+
+func (pvccs *PolicyVersionClauseCommentService) GetAllDocumentComments(documentID uint, currentUserID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) (*policyDTOs.PolicyVersionClauseCommentListResponseDTO, error) {
+	policyRegister, err := pvccs.policyRegisterSvc.GetFullDetailsByID(documentID, &currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	return pvccs.repo.GetAllDocumentComments(documentID, policyRegister.LatestDocumentVersion.ID, params)
 }
 
 func (pvccs *PolicyVersionClauseCommentService) GetByID(documentID uint, clauseID uint, id uint) (*models.DocumentVersionClauseComment, error) {
