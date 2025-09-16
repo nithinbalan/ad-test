@@ -174,8 +174,14 @@ func (prc *PolicyRegisterController) CreatePolicy(c *gin.Context) {
 	createdPolicy, err := prc.service.Create(currentUserID, &documentFormDTO)
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
 			return
 		default:
 			utility.SendInternalErrResp(prc.db, c, e.Error())
