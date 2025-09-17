@@ -1615,6 +1615,7 @@ func (cs *ComplianceRequirementService) GenerateRequirementTemplate(complianceID
 		SortBy:        "",
 		Keyword:       "",
 		ParentUnitIDs: []uint{},
+		Primary:       true,
 	}
 
 	responsibleUnits, _ := cs.organizationUnitSvc.GetAll(params)
@@ -1632,15 +1633,25 @@ func (cs *ComplianceRequirementService) GenerateRequirementTemplate(complianceID
 		requiredDocumentTitleData = append(requiredDocumentTitleData, []interface{}{rdt.TitleEn, rdt.TitleAr})
 	}
 
+	dropDownConfig := map[string]bool{
+		"Clause":            true,
+		"Category":          true,
+		"SeverityLevel":     true,
+		"TitleEn":           false,
+		"TitleAr":           false,
+		"Deadline":          false,
+		"ResponsibleUnits":  false,
+		"RequiredDocuments": false,
+	}
 	// Generate file
-	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
-		"Template":          append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+	file, err := utility.GenerateExcelFileWithSheetsAndDropDown(map[string][][]interface{}{
+		"Template":         append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
 		"Clause":           append([][]interface{}{utility.ConvertToInterfaceSlice(clauseHeaders)}, clauseData...),
-		"Category":        append([][]interface{}{utility.ConvertToInterfaceSlice(categoryHeaders)}, categoryData...),
+		"Category":         append([][]interface{}{utility.ConvertToInterfaceSlice(categoryHeaders)}, categoryData...),
 		"SeverityLevel":    append([][]interface{}{utility.ConvertToInterfaceSlice(severityHeaders)}, severityData...),
 		"ResponsibleUnit":  append([][]interface{}{utility.ConvertToInterfaceSlice(responsibleUnitHeaders)}, responsibleUnitData...),
 		"RequiredDocument": append([][]interface{}{utility.ConvertToInterfaceSlice(requiredDocumentTitleHeaders)}, requiredDocumentTitleData...),
-	})
+	}, dropDownConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -1797,6 +1808,7 @@ func (cs *ComplianceRequirementService) validateRequirements(complianceID uint, 
 		SortBy:        "",
 		Keyword:       "",
 		ParentUnitIDs: []uint{},
+		Primary:       true,
 	}
 
 	responsibleUnits, err := cs.organizationUnitSvc.GetAll(params)

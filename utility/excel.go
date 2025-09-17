@@ -80,8 +80,50 @@ func GenerateExcelFileWithSheets(dataBySheet map[string][][]interface{}) (*os.Fi
 
 	// Ensure Template is created and set as the first sheet
 	if data, exists := dataBySheet["Template"]; exists {
+		if err := createSheet(f, "Template", data); err != nil {
+			return nil, err
+		}
+		sheetIndex, err := f.GetSheetIndex("Template")
+		if err != nil {
+			return nil, fmt.Errorf("failed to get Template sheet index: %v", err)
+		}
+		if sheetIndex != -1 {
+			f.SetActiveSheet(sheetIndex)
+		}
 		delete(dataBySheet, "Template") // Remove Template from the map to avoid duplicate processing
-		if err := createSheetWithDropDown(f, "Template", data, dataBySheet); err != nil {
+	}
+
+	// Create the remaining sheets
+	for sheetName, data := range dataBySheet {
+		if err := createSheet(f, sheetName, data); err != nil {
+			return nil, err
+		}
+	}
+
+	if index, err := f.GetSheetIndex("Sheet1"); err == nil && index != -1 {
+		f.DeleteSheet("Sheet1")
+	}
+
+	// Save the file
+	tempFile, err := os.CreateTemp("", "template_*.xlsx")
+	if err != nil {
+		return nil, err
+	}
+
+	if err := f.SaveAs(tempFile.Name()); err != nil {
+		return nil, err
+	}
+
+	return tempFile, nil
+}
+
+func GenerateExcelFileWithSheetsAndDropDown(dataBySheet map[string][][]interface{}, dropDownConfig map[string]bool) (*os.File, error) {
+	f := excelize.NewFile()
+
+	// Ensure Template is created and set as the first sheet
+	if data, exists := dataBySheet["Template"]; exists {
+		delete(dataBySheet, "Template") // Remove Template from the map to avoid duplicate processing
+		if err := createSheetWithDropDown(f, "Template", data, dataBySheet, dropDownConfig); err != nil {
 			return nil, err
 		}
 		sheetIndex, err := f.GetSheetIndex("Template")
@@ -128,7 +170,7 @@ func toAlphaString(colIndex int) string {
 	return result
 }
 
-func createSheetWithDropDown(f *excelize.File, sheetName string, data [][]interface{}, columnToSheet map[string][][]interface{}) error {
+func createSheetWithDropDown(f *excelize.File, sheetName string, data [][]interface{}, columnToSheet map[string][][]interface{}, dropDownConfig map[string]bool) error {
 	if _, err := f.NewSheet(sheetName); err != nil {
 		return fmt.Errorf("failed to create sheet %s: %v", sheetName, err)
 	}
@@ -156,12 +198,18 @@ func createSheetWithDropDown(f *excelize.File, sheetName string, data [][]interf
 			continue
 		}
 
-		optionsData, exists := columnToSheet[headerStr]
-		if !exists {
+		if apply, exists := dropDownConfig[headerStr]; !exists || !apply {
+			log.Printf("skipping the drop down for: %s", headerStr)
 			continue
 		}
 
-		// Flatten dropdown values
+		optionsData, exists := columnToSheet[headerStr]
+		if !exists {
+			log.Printf("No data for dropdown column: %s", headerStr)
+			continue
+		}
+
+		// Flatten dropdown values 
 		dropList := []string{}
 		for _, row := range optionsData[1:] { // Skip header row
 			if len(row) > 0 {
