@@ -32,6 +32,7 @@ type PolicyClauseListDTO struct {
 	UpdatedAt                   *time.Time             `json:"updated_at"`
 	DocumentVersionClauseID     *uint                  `json:"document_version_clause_id"`
 	Children                    []*PolicyClauseListDTO `json:"children" gorm:"-"`
+	CommentsCount               int                    `json:"comments_count"`
 }
 
 type PolicyClauseFormDTO struct {

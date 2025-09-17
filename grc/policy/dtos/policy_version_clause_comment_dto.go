@@ -14,6 +14,7 @@ type PolicyVersionClauseCommentListDTO struct {
 	CommentStatusType           string `json:"comment_status_type"`
 	CommentStatusColorCdde      string `json:"comment_status_color_code"`
 	DocumentVersionClauseID     uint   `json:"document_version_clause_id"`
+	DocumentVersionClauseNumber string `json:"document_version_clause_number"`
 	Level                       int    `json:"level"`
 	CreatedAt                   string `json:"created_at"`
 	CreatedBYID                 uint   `json:"created_by_id"`

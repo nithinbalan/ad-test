@@ -88,6 +88,7 @@ func (dcs *PolicyClauseService) GetAll(params *policyDTOs.PolicyClauseListQueryP
 			CreatedAt:                   clause.CreatedAt,
 			UpdatedAt:                   clause.UpdatedAt,
 			DocumentVersionClauseID:     clause.DocumentVersionClauseID, // important for tree building
+			CommentsCount:               clause.CommentsCount,
 		}
 
 		dtoMap[clause.ID] = dto

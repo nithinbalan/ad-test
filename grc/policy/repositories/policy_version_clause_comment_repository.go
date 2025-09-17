@@ -43,6 +43,7 @@ func (repo *PolicyVersionClauseCommentRepository) GetAll(clauseID uint, params *
 	document_version_clause_comments.level,
 	document_version_clause_comments.created_at,
 	document_version_clause_comments.created_by_id,
+	document_version_clauses.clause_number AS document_version_clause_number,
 	comment_statuses.title_en AS comment_status_title_en,
 	comment_statuses.title_ar AS comment_status_title_ar,
 	comment_statuses.type AS comment_status_type,
@@ -58,6 +59,7 @@ func (repo *PolicyVersionClauseCommentRepository) GetAll(clauseID uint, params *
 `).
 		Joins("LEFT JOIN users ON users.id = document_version_clause_comments.created_by_id").
 		Joins("LEFT JOIN comment_statuses ON comment_statuses.id = document_version_clause_comments.comment_status_id").
+		Joins("LEFT JOIN document_version_clauses ON document_version_clauses.id = document_version_clause_comments.document_version_clause_id").
 		Where("document_version_clause_comments.document_version_clause_id = ?", clauseID)
 
 		// Apply dynamic filters to the query
@@ -134,6 +136,7 @@ func (repo *PolicyVersionClauseCommentRepository) GetAllDocumentComments(documen
 		document_version_clause_comments.level,
 		document_version_clause_comments.created_at,
 		document_version_clause_comments.created_by_id,
+		document_version_clauses.clause_number AS document_version_clause_number,
 		comment_statuses.title_en AS comment_status_title_en,
 		comment_statuses.title_ar AS comment_status_title_ar,
 		comment_statuses.type AS comment_status_type,

@@ -71,7 +71,10 @@ func (repo *PolicyClauseRepository) GetAll(params *policyDTOs.PolicyClauseListQu
 		updated_user.initial AS updated_user_initial,
 		updated_user.color AS updated_user_color,
 		updated_user.email AS updated_user_email,
-		updated_user.profile_image_path AS updated_user_profile_image_path
+		updated_user.profile_image_path AS updated_user_profile_image_path,
+		(SELECT COUNT(1) 
+     FROM document_version_clause_comments c 
+     WHERE c.document_version_clause_id = document_version_clauses.id) AS comments_count
 	`
 
 	query := repo.db.Table("document_version_clauses").
