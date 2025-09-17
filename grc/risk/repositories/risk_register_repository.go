@@ -376,6 +376,7 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("SLARegisters").
 		Preload("KRIs").
 		Preload("Assets").
+		Preload("Controls").
 		Preload("CurrentLikelihood").
 		Preload("CurrentImpact").
 		Preload("CurrentRiskRating").
