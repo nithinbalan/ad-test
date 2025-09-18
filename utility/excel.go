@@ -3,6 +3,7 @@ package utility
 import (
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"os"
 	"strconv"
@@ -114,6 +115,140 @@ func GenerateExcelFileWithSheets(dataBySheet map[string][][]interface{}) (*os.Fi
 	}
 
 	return tempFile, nil
+}
+
+func GenerateExcelFileWithSheetsAndDropDown(dataBySheet map[string][][]interface{}, dropDownConfig map[string]bool) (*os.File, error) {
+	f := excelize.NewFile()
+
+	// Ensure Template is created and set as the first sheet
+	if data, exists := dataBySheet["Template"]; exists {
+		delete(dataBySheet, "Template") // Remove Template from the map to avoid duplicate processing
+		if err := createSheetWithDropDown(f, "Template", data, dataBySheet, dropDownConfig); err != nil {
+			return nil, err
+		}
+		sheetIndex, err := f.GetSheetIndex("Template")
+		if err != nil {
+			return nil, fmt.Errorf("failed to get Template sheet index: %v", err)
+		}
+		if sheetIndex != -1 {
+			f.SetActiveSheet(sheetIndex)
+		}
+	}
+
+	// Create the remaining sheets
+	for sheetName, data := range dataBySheet {
+		if err := createSheet(f, sheetName, data); err != nil {
+			return nil, err
+		}
+	}
+
+	if index, err := f.GetSheetIndex("Sheet1"); err == nil && index != -1 {
+		f.DeleteSheet("Sheet1")
+	}
+
+	// Save the file
+	tempFile, err := os.CreateTemp("", "template_*.xlsx")
+	if err != nil {
+		return nil, err
+	}
+
+	if err := f.SaveAs(tempFile.Name()); err != nil {
+		return nil, err
+	}
+
+	return tempFile, nil
+}
+
+func toAlphaString(colIndex int) string {
+	col := colIndex + 1
+	result := ""
+	for col > 0 {
+		col--
+		result = string(rune('A'+(col%26))) + result
+		col /= 26
+	}
+	return result
+}
+
+func createSheetWithDropDown(f *excelize.File, sheetName string, data [][]interface{}, columnToSheet map[string][][]interface{}, dropDownConfig map[string]bool) error {
+	if _, err := f.NewSheet(sheetName); err != nil {
+		return fmt.Errorf("failed to create sheet %s: %v", sheetName, err)
+	}
+
+	if len(data) == 0 {
+		return nil
+	}
+
+	headers := data[0]
+	boldStyle, err := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create bold style: %v", err)
+	}
+	for i, header := range headers {
+		cell := fmt.Sprintf("%s1", toAlphaString(i))
+		f.SetCellValue(sheetName, cell, header)
+		f.SetCellStyle(sheetName, cell, cell, boldStyle)
+	}
+
+	for colIndex, header := range headers {
+		headerStr, ok := header.(string)
+		if !ok {
+			continue
+		}
+
+		if apply, exists := dropDownConfig[headerStr]; !exists || !apply {
+			log.Printf("skipping the drop down for: %s", headerStr)
+			continue
+		}
+
+		optionsData, exists := columnToSheet[headerStr]
+		if !exists {
+			log.Printf("No data for dropdown column: %s", headerStr)
+			continue
+		}
+
+		// Flatten dropdown values 
+		dropList := []string{}
+		for _, row := range optionsData[1:] { // Skip header row
+			if len(row) > 0 {
+				if headerStr == "Clause" && len(row) > 1 {
+					clauseNo, ok1 := row[0].(string)
+					titleEn, ok2 := row[1].(string)
+					if ok1 && ok2 && clauseNo != "" && titleEn != "" {
+						dropList = append(dropList, clauseNo+" "+titleEn)
+					}
+				} else if val, ok := row[0].(string); ok && val != "" {
+					dropList = append(dropList, val)
+				}
+			}
+		}
+
+		if len(dropList) == 0 {
+			log.Printf("No valid dropdown values for column %s", headerStr)
+			continue // No values to create dropdown
+		}
+
+		// Convert column index to letter
+		colLetter := toAlphaString(colIndex)
+
+		// Set data validation for rows 2 to 100
+		dv := excelize.NewDataValidation(true)
+		dv.Sqref = fmt.Sprintf("%s2:%s100", colLetter, colLetter)
+		dv.SetDropList(dropList)
+		dv.ShowErrorMessage = true
+		errTitle := "Invalid Input"
+		errMsg := "Please select a value from the dropdown."
+		dv.ErrorTitle = &errTitle
+		dv.Error = &errMsg
+
+		if err := f.AddDataValidation(sheetName, dv); err != nil {
+			return fmt.Errorf("failed to add dropdown to column %s: %v", headerStr, err)
+		}
+	}
+
+	return nil
 }
 
 // Helper function to create a sheet and populate it with data

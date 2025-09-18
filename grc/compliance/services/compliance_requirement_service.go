@@ -3,7 +3,10 @@ package services
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
+	"strings"
+	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
@@ -15,6 +18,7 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	settingsDTOs "jethur/grc/settings/dtos"
+	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -32,6 +36,11 @@ type ComplianceRequirementServiceInterface interface {
 	Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(complianceID uint, id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error
 	ExportComplianceRequirements(data []*complianceDTOs.ComplianceRequirementListDTO, currentUserID uint) (*os.File, error)
+
+	GenerateRequirementTemplate(complianceID uint) (*os.File, error)
+	ValidateRequirementTemplate(complianceID uint, file io.Reader) ([]map[string]interface{}, error)
+	ValidateImportRequirement(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error)
+	ImportRequirements(complianceID uint, input []map[string]interface{}, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -49,6 +58,7 @@ type ComplianceRequirementService struct {
 	userSettingSvc                   organizationServices.UserSettingServiceInterface
 	complianceClauseSvc              ComplianceClauseServiceInterface
 	requiredDocumentTitleSvc         masterServices.RequiredDocumentTitleServiceInterface
+	organizationUnitSvc              settingsServices.OrganizationUnitServiceInterface
 }
 
 func NewComplianceRequirementService(
@@ -65,6 +75,7 @@ func NewComplianceRequirementService(
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	complianceClauseSvc ComplianceClauseServiceInterface,
 	requiredDocumentTitleSvc masterServices.RequiredDocumentTitleServiceInterface,
+	organizationUnitSvc settingsServices.OrganizationUnitServiceInterface,
 ) ComplianceRequirementServiceInterface {
 	return &ComplianceRequirementService{
 		repo:                             repo,
@@ -80,6 +91,7 @@ func NewComplianceRequirementService(
 		userSettingSvc:                   userSettingSvc,
 		complianceClauseSvc:              complianceClauseSvc,
 		requiredDocumentTitleSvc:         requiredDocumentTitleSvc,
+		organizationUnitSvc:              organizationUnitSvc,
 	}
 }
 
@@ -1550,4 +1562,374 @@ func (srs *ComplianceRequirementService) ExportComplianceRequirements(data []*co
 	}
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+// Generate Excel template
+func (cs *ComplianceRequirementService) GenerateRequirementTemplate(complianceID uint) (*os.File, error) {
+	templateHeaders := []string{
+		"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "RequiredDocuments", "ResponsibleUnits",
+	}
+	templateData := [][]interface{}{}
+
+	// Clauses
+	clauses, _ := cs.complianceClauseSvc.GetAll(complianceID)
+	clauseHeaders := []string{"ClauseNo", "TitleEn", "TitleAr"}
+	clauseData := [][]interface{}{}
+	for _, c := range clauses {
+		clauseData = append(clauseData, []interface{}{c.ClauseNo, c.TitleEn, c.TitleAr})
+	}
+
+	// Categories
+	categories, _ := cs.complianceRequirementCategorySvc.GetAll("", "", "", "active")
+	categoryHeaders := []string{"CategoryEn", "CategoryAr"}
+	categoryData := [][]interface{}{}
+	for _, cat := range categories {
+		categoryData = append(categoryData, []interface{}{cat.TitleEn, cat.TitleAr})
+	}
+
+	// Severity Levels
+	severities, _ := cs.severityLevelSvc.GetAll("", "", "", "active")
+	severityHeaders := []string{"SeverityEn", "SeverityAr"}
+	severityData := [][]interface{}{}
+	for _, sev := range severities {
+		severityData = append(severityData, []interface{}{sev.TitleEn, sev.TitleAr})
+	}
+
+	// Responsible Units
+	params := &settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Sort:          "",
+		SortBy:        "",
+		Keyword:       "",
+		ParentUnitIDs: []uint{},
+		Primary:       true,
+	}
+
+	responsibleUnits, _ := cs.organizationUnitSvc.GetAll(params)
+	responsibleUnitHeaders := []string{"ResponsibleUnitEn", "ResponsibleUnitAr"}
+	responsibleUnitData := [][]interface{}{}
+	for _, ru := range responsibleUnits {
+		responsibleUnitData = append(responsibleUnitData, []interface{}{ru.TitleEn, ru.TitleAr})
+	}
+
+	// Required Documents
+	requiredDocumentTitles, _ := cs.requiredDocumentTitleSvc.GetAll("", "", "", "active")
+	requiredDocumentTitleHeaders := []string{"RequiredDocumentTitleEn", "RequiredDocumentTitleAr"}
+	requiredDocumentTitleData := [][]interface{}{}
+	for _, rdt := range requiredDocumentTitles {
+		requiredDocumentTitleData = append(requiredDocumentTitleData, []interface{}{rdt.TitleEn, rdt.TitleAr})
+	}
+
+	dropDownConfig := map[string]bool{
+		"Clause":            true,
+		"Category":          true,
+		"SeverityLevel":     true,
+		"TitleEn":           false,
+		"TitleAr":           false,
+		"Deadline":          false,
+		"ResponsibleUnits":  false,
+		"RequiredDocuments": false,
+	}
+	// Generate file
+	file, err := utility.GenerateExcelFileWithSheetsAndDropDown(map[string][][]interface{}{
+		"Template":         append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+		"Clause":           append([][]interface{}{utility.ConvertToInterfaceSlice(clauseHeaders)}, clauseData...),
+		"Category":         append([][]interface{}{utility.ConvertToInterfaceSlice(categoryHeaders)}, categoryData...),
+		"SeverityLevel":    append([][]interface{}{utility.ConvertToInterfaceSlice(severityHeaders)}, severityData...),
+		"ResponsibleUnit":  append([][]interface{}{utility.ConvertToInterfaceSlice(responsibleUnitHeaders)}, responsibleUnitData...),
+		"RequiredDocument": append([][]interface{}{utility.ConvertToInterfaceSlice(requiredDocumentTitleHeaders)}, requiredDocumentTitleData...),
+	}, dropDownConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
+
+// Validate Excel Template
+func (cs *ComplianceRequirementService) ValidateRequirementTemplate(complianceID uint, file io.Reader) ([]map[string]interface{}, error) {
+	rows, err := utility.ReadExcelFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	inputHeaders := []string{"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "RequiredDocuments", "ResponsibleUnits"}
+	snakeHeaders := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "required_documents", "responsible_units"}
+
+	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid headers"), "invalid_header", "Requirement Template")
+	}
+
+	var input []map[string]interface{}
+	for _, row := range rows[1:] {
+		record := make(map[string]interface{})
+		for i, h := range snakeHeaders {
+			if i < len(row) {
+				record[h] = row[i]
+			} else {
+				record[h] = ""
+			}
+		}
+		input = append(input, record)
+	}
+
+	return cs.validateRequirements(complianceID, input)
+}
+
+// Validate JSON input
+func (cs *ComplianceRequirementService) ValidateImportRequirement(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error) {
+	return cs.validateRequirements(complianceID, input)
+}
+
+// Import
+func (cs *ComplianceRequirementService) ImportRequirements(complianceID uint, input []map[string]interface{}, currentUserID uint) ([]uint, error) {
+	validated, err := cs.validateRequirements(complianceID, input)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, r := range validated {
+		if errs, ok := r["errors"].(map[string]interface{}); ok && len(errs) > 0 {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid data"), "invalid_data", "Invalid Data")
+		}
+	}
+
+	var createdIDs []uint
+	for _, record := range validated {
+
+		var deadlineStr *string
+		if val, ok := record["deadline"].(string); ok && val != "" {
+			t, err := time.Parse("2006-01-02", strings.TrimSpace(val))
+			if err == nil {
+				formatted := t.Format("2006-01-02")
+				deadlineStr = &formatted
+			}
+		}
+
+		// Convert []uint to []*uint
+		var responsibleUnitIDs []*uint
+		if ids, ok := record["responsible_unit_ids"].([]uint); ok {
+			for _, id := range ids {
+				idCopy := id // prevent pointer reuse
+				responsibleUnitIDs = append(responsibleUnitIDs, &idCopy)
+			}
+		}
+
+		var requiredDocumentIDs []*uint
+		if ids, ok := record["required_document_ids"].([]uint); ok {
+			for _, id := range ids {
+				idCopy := id // prevent pointer reuse
+				requiredDocumentIDs = append(requiredDocumentIDs, &idCopy)
+			}
+		}
+
+		dto := &complianceDTOs.ComplianceRequirementFormDTO{
+			ComplianceClauseID:              record["clause_id"].(uint),
+			TitleEn:                         record["title_en"].(string),
+			TitleAr:                         record["title_ar"].(string),
+			ComplianceRequirementCategoryID: utility.GetOptionalUintValue(record["category_id"]),
+			SeverityLevelID:                 utility.GetOptionalUintValue(record["severity_level_id"]),
+			Deadline:                        deadlineStr,
+			RequiredDocumentTitleIDs:        requiredDocumentIDs,
+			ResponsibleUnitIDs:              responsibleUnitIDs,
+		}
+
+		id, err := cs.Create(complianceID, currentUserID, dto)
+		if err != nil {
+			return nil, err
+		}
+		createdIDs = append(createdIDs, id)
+	}
+	return createdIDs, nil
+}
+
+func (cs *ComplianceRequirementService) validateRequirements(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error) {
+	headers := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "required_documents", "responsible_units"}
+
+	// --- Fetch lookup data ---
+
+	// Clauses
+	clauses, err := cs.complianceClauseSvc.GetAll(complianceID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching clauses: %v", err)
+	}
+	clauseMap := make(map[string]uint)
+	for _, cl := range clauses {
+		key := strings.TrimSpace(cl.ClauseNo + " " + cl.TitleEn)
+		clauseMap[key] = cl.ID
+	}
+
+	// Categories
+	categories, err := cs.complianceRequirementCategorySvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching categories: %v", err)
+	}
+	categoryMap := make(map[string]uint)
+	for _, cat := range categories {
+		categoryMap[strings.TrimSpace(cat.TitleEn)] = cat.ID
+	}
+
+	// Severity Levels
+	severities, err := cs.severityLevelSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching severity levels: %v", err)
+	}
+	severityMap := make(map[string]uint)
+	for _, sev := range severities {
+		severityMap[strings.TrimSpace(sev.TitleEn)] = sev.ID
+	}
+
+	// Required Documents
+	requiredDocumentTitles, err := cs.requiredDocumentTitleSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching required documents titles: %v", err)
+	}
+	requiredDocumentsTitleMap := make(map[string]uint)
+	for _, rdt := range requiredDocumentTitles {
+		requiredDocumentsTitleMap[strings.TrimSpace(rdt.TitleEn)] = rdt.ID
+	}
+
+	// Responsible Units
+	params := &settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Sort:          "",
+		SortBy:        "",
+		Keyword:       "",
+		ParentUnitIDs: []uint{},
+		Primary:       true,
+	}
+
+	responsibleUnits, err := cs.organizationUnitSvc.GetAll(params)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching responsible units: %v", err)
+	}
+	responsibleUnitMap := make(map[string]uint)
+	for _, ru := range responsibleUnits {
+		responsibleUnitMap[strings.TrimSpace(ru.TitleEn)] = ru.ID
+	}
+
+	// --- Validate each record ---
+	var validated []map[string]interface{}
+
+	for _, record := range input {
+		rowErrors := make(map[string]interface{})
+		processed := make(map[string]interface{})
+
+		// Copy original input
+		for k, v := range record {
+			processed[k] = v
+		}
+
+		// Validate Clause
+		if val, ok := record["clause"].(string); !ok || val == "" {
+			rowErrors["clause"] = "Field is required"
+		} else if id, exists := clauseMap[strings.TrimSpace(val)]; exists {
+			processed["clause_id"] = id
+		} else {
+			rowErrors["clause"] = fmt.Sprintf("Invalid clause: %s", val)
+		}
+
+		// TitleEn
+		if val, ok := record["title_en"].(string); !ok || val == "" {
+			rowErrors["title_en"] = "Field is required"
+		}
+
+		// TitleAr
+		if val, ok := record["title_ar"].(string); !ok || val == "" {
+			rowErrors["title_ar"] = "Field is required"
+		}
+
+		// Category
+		if val, ok := record["category"].(string); !ok || val == "" {
+			rowErrors["category"] = "Field is required"
+		} else if id, exists := categoryMap[strings.TrimSpace(val)]; exists {
+			processed["category_id"] = id
+		} else {
+			rowErrors["category"] = fmt.Sprintf("Invalid category: %s", val)
+		}
+
+		// SeverityLevel
+		if val, ok := record["severity_level"].(string); !ok || val == "" {
+			rowErrors["severity_level"] = "Field is required"
+		} else if id, exists := severityMap[strings.TrimSpace(val)]; exists {
+			processed["severity_level_id"] = id
+		} else {
+			rowErrors["severity_level"] = fmt.Sprintf("Invalid severity level: %s", val)
+		}
+
+		// Resposible Units
+		if val, ok := record["responsible_units"].(string); !ok || val == "" {
+			rowErrors["responsible_units"] = "Field is required"
+		} else {
+			unitNames := strings.Split(val, ",")
+			var unitIDs []uint
+			var invalidUnits []string
+
+			for _, name := range unitNames {
+				trimmed := strings.TrimSpace(name)
+				if id, exists := responsibleUnitMap[trimmed]; exists {
+					unitIDs = append(unitIDs, id)
+				} else {
+					invalidUnits = append(invalidUnits, trimmed)
+				}
+			}
+
+			if len(unitIDs) > 0 {
+				processed["responsible_unit_ids"] = unitIDs
+			}
+
+			if len(invalidUnits) > 0 {
+				rowErrors["responsible_units"] = fmt.Sprintf("Invalid responsible units: %s", strings.Join(invalidUnits, ", "))
+			}
+		}
+
+		// Required Documents
+		if val, ok := record["required_documents"].(string); ok && val != "" {
+			docNames := strings.Split(val, ",")
+			var docIDs []uint
+			var invalidDocs []string
+
+			for _, name := range docNames {
+				trimmed := strings.TrimSpace(name)
+				if id, exists := requiredDocumentsTitleMap[trimmed]; exists {
+					docIDs = append(docIDs, id)
+				} else {
+					invalidDocs = append(invalidDocs, trimmed)
+				}
+			}
+
+			if len(docIDs) > 0 {
+				processed["required_document_ids"] = docIDs
+			}
+
+			if len(invalidDocs) > 0 {
+				rowErrors["required_documents"] = fmt.Sprintf("Invalid document titles: %s", strings.Join(invalidDocs, ", "))
+			}
+		}
+
+		// Deadline
+		if val, ok := record["deadline"].(string); ok && val != "" {
+			t, err := time.Parse("2006-01-02", strings.TrimSpace(val))
+			if err != nil {
+				rowErrors["deadline"] = fmt.Sprintf("Invalid date format (use YYYY-MM-DD): %s", val)
+			} else {
+				formatted := t.Format("2006-01-02")
+				processed["deadline"] = formatted
+			}
+		}
+
+		// Collect errors
+		if len(rowErrors) == 0 {
+			processed["errors"] = nil
+		} else {
+			for _, h := range headers {
+				if _, exists := rowErrors[h]; !exists {
+					rowErrors[h] = "" // keep consistent structure
+				}
+			}
+			processed["errors"] = rowErrors
+		}
+
+		validated = append(validated, processed)
+	}
+
+	return validated, nil
 }
