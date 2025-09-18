@@ -65,3 +65,22 @@ type DocumentParentClauseDTO struct {
 	ClauseTitleAr string  `json:"clause_title_ar"`
 	Description   *string `json:"description"`
 }
+
+type ClauseHistoryDTO struct {
+	ID                          *uint     `json:"id"`
+	DocumentVersionClauseID     uint      `json:"document_version_clause_id"`
+	DocumentVersionClauseNumber string    `json:"document_version_clause_number"`
+	OldValue                    *string   `json:"old_value"`
+	NewValue                    *string   `json:"new_value"`
+	ChangedField                *string   `json:"changedField"`
+	CreatedUserID               uint      `json:"created_user_id"`
+	CreatedUserFirstNameEn      string    `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr      string    `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn       string    `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr       string    `json:"created_user_last_name_ar"`
+	CreatedUserInitial          string    `json:"created_user_initial"`
+	CreatedUserColor            string    `json:"created_user_color"`
+	CreatedUserEmail            string    `json:"created_user_email"`
+	CreatedUserProfileImagePath *string   `json:"created_user_profile_image_path"`
+	CreatedAt                   time.Time `json:"created_at"`
+}
