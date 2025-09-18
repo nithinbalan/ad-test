@@ -11,3 +11,17 @@ type ERMDashboardQueryParamsDTO struct {
 	DateFrom string `json:"date_from"`
 	DateTo   string `json:"date_to"`
 }
+
+type ERMRiskDistributionDTO struct {
+	RiskCountsByRating []ERMRiskRatingCountDTO `json:"risk_counts_by_rating"`
+}
+
+type ERMRiskRatingCountDTO struct {
+	TitleEn    string  `json:"title_en"`
+	TitleAr    string  `json:"title_ar"`
+	ColorCode  string  `json:"color_code"`
+	Type       string  `json:"type"`
+	Count      int64   `json:"count"`
+	OpenCount  int64   `json:"open_count"`
+	Percentage float64 `json:"percentage"`
+}
