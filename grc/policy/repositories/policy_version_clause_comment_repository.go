@@ -11,7 +11,7 @@ import (
 type PolicyVersionClauseCommentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(clauseID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) ([]*policyDTOs.PolicyVersionClauseCommentListDTO, error)
-	GetAllDocumentComments(documentID uint, versionID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) (*policyDTOs.PolicyVersionClauseCommentListResponseDTO, error)
+	GetAllDocumentComments(documentID uint, versionID uint, currentUserID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) (*policyDTOs.PolicyVersionClauseCommentListResponseDTO, error)
 	GetByID(id uint) (*models.DocumentVersionClauseComment, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersionClauseComment, error)
 	Create(comment *models.DocumentVersionClauseComment, tx ...utility.DatabaseTransaction) (uint, error)
@@ -105,7 +105,7 @@ func (repo *PolicyVersionClauseCommentRepository) GetAll(clauseID uint, params *
 	return comments, nil
 }
 
-func (repo *PolicyVersionClauseCommentRepository) GetAllDocumentComments(documentID uint, versionID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) (*policyDTOs.PolicyVersionClauseCommentListResponseDTO, error) {
+func (repo *PolicyVersionClauseCommentRepository) GetAllDocumentComments(documentID uint, versionID uint, currentUserID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) (*policyDTOs.PolicyVersionClauseCommentListResponseDTO, error) {
 
 	var comments []*policyDTOs.PolicyVersionClauseCommentListDTO
 	var statusCounts []policyDTOs.StatusCount
@@ -127,6 +127,17 @@ func (repo *PolicyVersionClauseCommentRepository) GetAllDocumentComments(documen
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where("document_version_clause_comments.comment LIKE ?", keyword)
+	}
+
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "open":
+			query = query.Where("comment_statuses.type = ?", "open")
+		case "resolved":
+			query = query.Where("comment_statuses.type = ?", "resolved")
+		case "my_comment":
+			query = query.Where("document_version_clause_comments.created_by_id = ?", currentUserID)
+		}
 	}
 
 	// Select fields
