@@ -16,10 +16,11 @@ type SLAActionPlanStatusUpdateRepositoryInterface interface {
 	Update(SLAActionPlanStatusUpdate *models.SLAActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) error
 	GetLatestSLAActionPlanStatusUpdate(slaActionPlanID uint) (*complianceDTOs.SLAActionPlanStatusUpdateListDTO, error)
 
-	//Document
+	// Document
 	CreateDocuments(docs []*models.SLAActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.SLAActionPlanStatusUpdateDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	SLAActionPlanUpdateStatus(SLAActionPlan *models.SLAActionPlan, tx ...utility.DatabaseTransaction) error
 }
 
 type SLAActionPlanStatusUpdateRepository struct {
@@ -38,7 +39,6 @@ func (repo *SLAActionPlanStatusUpdateRepository) BeginTransaction() utility.Data
 }
 
 func (repo *SLAActionPlanStatusUpdateRepository) GetAll(slaActionPlanID uint, sort string, sortBy string, keyword string) ([]*complianceDTOs.SLAActionPlanStatusUpdateListDTO, error) {
-
 	var slaActionPlanUpdates []*complianceDTOs.SLAActionPlanStatusUpdateListDTO
 
 	query := repo.db.Table("sla_action_plan_status_updates").
@@ -48,6 +48,7 @@ func (repo *SLAActionPlanStatusUpdateRepository) GetAll(slaActionPlanID uint, so
             action_plan_statuses.title_en AS action_plan_status_title_en,
             action_plan_statuses.title_ar AS action_plan_status_title_ar,
             action_plan_statuses.color_code AS action_plan_status_color_code,
+			action_plan_statuses.type AS action_plan_status_type,
         	created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
@@ -171,7 +172,6 @@ func (repo *SLAActionPlanStatusUpdateRepository) DeleteDocuments(docIds []*uint,
 }
 
 func (repo *SLAActionPlanStatusUpdateRepository) GetLatestSLAActionPlanStatusUpdate(slaActionPlanID uint) (*complianceDTOs.SLAActionPlanStatusUpdateListDTO, error) {
-
 	var slaActionPlanUpdate *complianceDTOs.SLAActionPlanStatusUpdateListDTO
 
 	query := repo.db.Table("sla_action_plan_status_updates").
@@ -181,6 +181,7 @@ func (repo *SLAActionPlanStatusUpdateRepository) GetLatestSLAActionPlanStatusUpd
             action_plan_statuses.title_en AS action_plan_status_title_en,
             action_plan_statuses.title_ar AS action_plan_status_title_ar,
             action_plan_statuses.color_code AS action_plan_status_color_code,
+			action_plan_statuses.type AS action_plan_status_type,
         	created_user.id AS created_user_id,
         		created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
@@ -215,4 +216,15 @@ func (repo *SLAActionPlanStatusUpdateRepository) GetLatestSLAActionPlanStatusUpd
 	}
 
 	return slaActionPlanUpdate, nil
+}
+
+func (repo *SLAActionPlanStatusUpdateRepository) SLAActionPlanUpdateStatus(SLAActionPlan *models.SLAActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(SLAActionPlan).Error; err != nil {
+		return err
+	}
+	return nil
 }

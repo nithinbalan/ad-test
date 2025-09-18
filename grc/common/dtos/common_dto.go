@@ -66,6 +66,8 @@ type TaskFormDTO struct {
 	RecoveryActionPlanID            *uint      `json:"recovery_action_plan_id,omitempty"`
 	StakeholderActionPlanID         *uint      `json:"stakeholder_action_plan_id,omitempty"`
 	StrategyProfileActionPlanID     *uint      `json:"strategy_profile_action_plan_id,omitempty"`
+	ThreatActionPlanID              *uint      `json:"threat_action_plan_id,omitempty"`
+	VulnerabilityActionPlanID       *uint      `json:"vulnerability_action_plan_id,omitempty"`
 	Title                           string     `json:"title" binding:"required"`
 	Description                     *string    `json:"description,omitempty"`
 	TargetDate                      *time.Time `json:"target_date,omitempty"`
@@ -384,6 +386,7 @@ type AssociatedDocumentListResponseDTO struct {
 
 type AssociatedIncidentListDTO struct {
 	ID                              uint       `json:"id"`
+	IncidentRegisterID              uint       `json:"incident_register_id"`
 	ReferenceNumber                 string     `json:"reference_number"`
 	Title                           string     `json:"title"`
 	Description                     *string    `json:"description"`
@@ -522,6 +525,7 @@ type AssociatedItemStrategicObjectiveListResponseDTO struct {
 
 type AssociatedAssetListDTO struct {
 	ID                                         uint       `json:"id"`
+	AssetRegisterID                            uint       `json:"asset_register_id"`
 	ReferenceNumber                            string     `json:"reference_number"`
 	TitleEn                                    string     `json:"title_en"`
 	TitleAr                                    string     `json:"title_ar"`

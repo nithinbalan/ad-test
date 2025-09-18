@@ -16,10 +16,11 @@ type IncidentActionPlanStatusUpdateRepositoryInterface interface {
 	Update(IncidentActionPlanStatusUpdate *models.IncidentActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) error
 	GetLatestIncidentActionPlanStatusUpdate(incidentActionPlanID uint) (*incidentDTOs.IncidentActionPlanStatusUpdateListDTO, error)
 
-	//Document
+	// Document
 	CreateDocuments(docs []*models.IncidentActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.IncidentActionPlanStatusUpdateDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	IncidentActionPlanUpdateStatus(IncidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentActionPlanStatusUpdateRepository struct {
@@ -38,7 +39,6 @@ func (repo *IncidentActionPlanStatusUpdateRepository) BeginTransaction() utility
 }
 
 func (repo *IncidentActionPlanStatusUpdateRepository) GetAll(incidentActionPlanID uint, sort string, sortBy string, keyword string) ([]*incidentDTOs.IncidentActionPlanStatusUpdateListDTO, error) {
-
 	var incidentActionPlanUpdates []*incidentDTOs.IncidentActionPlanStatusUpdateListDTO
 
 	query := repo.db.Table("incident_action_plan_status_updates").
@@ -48,6 +48,7 @@ func (repo *IncidentActionPlanStatusUpdateRepository) GetAll(incidentActionPlanI
             action_plan_statuses.title_en AS action_plan_status_title_en,
             action_plan_statuses.title_ar AS action_plan_status_title_ar,
             action_plan_statuses.color_code AS action_plan_status_color_code,
+			action_plan_statuses.type AS action_plan_status_type,
 			created_user.id AS created_user_id,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
@@ -171,7 +172,6 @@ func (repo *IncidentActionPlanStatusUpdateRepository) DeleteDocuments(docIds []*
 }
 
 func (repo *IncidentActionPlanStatusUpdateRepository) GetLatestIncidentActionPlanStatusUpdate(incidentActionPlanID uint) (*incidentDTOs.IncidentActionPlanStatusUpdateListDTO, error) {
-
 	var incidentActionPlanUpdate *incidentDTOs.IncidentActionPlanStatusUpdateListDTO
 
 	query := repo.db.Table("incident_action_plan_status_updates").
@@ -181,6 +181,7 @@ func (repo *IncidentActionPlanStatusUpdateRepository) GetLatestIncidentActionPla
             action_plan_statuses.title_en AS action_plan_status_title_en,
             action_plan_statuses.title_ar AS action_plan_status_title_ar,
             action_plan_statuses.color_code AS action_plan_status_color_code,
+			action_plan_statuses.type AS action_plan_status_type,
         	created_user.id AS created_user_id,
         		created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
@@ -215,5 +216,15 @@ func (repo *IncidentActionPlanStatusUpdateRepository) GetLatestIncidentActionPla
 	}
 
 	return incidentActionPlanUpdate, nil
+}
 
+func (repo *IncidentActionPlanStatusUpdateRepository) IncidentActionPlanUpdateStatus(IncidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(IncidentActionPlan).Error; err != nil {
+		return err
+	}
+	return nil
 }

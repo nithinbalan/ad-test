@@ -24,6 +24,7 @@ type OrganizationModule struct {
 	ControlTestController                   *controllers.ControlTestController
 	ProcessGroupController                  *controllers.ProcessGroupController
 	ControlActionPlanController             *controllers.ControlActionPlanController
+	ControlActionPlanCommentController      *controllers.ControlActionPlanCommentController
 	ControlActionPlanStatusUpdateController *controllers.ControlActionPlanStatusUpdateController
 	ProcessController                       *controllers.ProcessController
 	UserTaskController                      *controllers.UserTaskController
@@ -48,7 +49,7 @@ type OrganizationModule struct {
 	UserDocumentController                  *controllers.UserDocumentController
 	UserJobDescriptionController            *controllers.UserJobDescriptionController
 	UserDelegationHistoryController         *controllers.UserDelegationController
-	OrganizationStructureController         *controllers.OrganizationStructureController
+	OrganizationUnitsController             *controllers.OrganizationUnitsController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -69,8 +70,8 @@ func NewOrganizationModule(
 	settingsModule *SettingsModule,
 	masterModule *MasterModule,
 	taskModule *TaskModule,
-	commonModule *CommonModule) *OrganizationModule {
-
+	commonModule *CommonModule,
+) *OrganizationModule {
 	// Competency Group Setup
 	competencyGroupRepo := repositories.NewCompetencyGroupRepository(db)
 	competencyGroupSvc := services.NewCompetencyGroupService(competencyGroupRepo, sharedModule.ActivityLogService)
@@ -206,8 +207,12 @@ func NewOrganizationModule(
 	controlActionPlanController := controllers.NewControlActionPlanController(controlActionPlanSvc)
 
 	controlActionPlanStatusUpdateRepo := repositories.NewControlActionPlanStatusUpdateRepository(db)
-	controlActionPlanStatusUpdateSvc := services.NewControlActionPlanStatusUpdateService(controlActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, controlActionPlanSvc, masterModule.ActionPlanStatusSvc)
+	controlActionPlanStatusUpdateSvc := services.NewControlActionPlanStatusUpdateService(controlActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, controlActionPlanSvc, masterModule.ActionPlanStatusSvc, controlSvc, userSvc, commonModule.NotificationService, taskModule.TaskService, taskModule.TaskStatusService)
 	controlActionPlanStatusUpdateController := controllers.NewControlActionPlanStatusUpdateController(controlActionPlanStatusUpdateSvc)
+
+	controlActionPlanCommentRepository := repositories.NewControlActionPlanCommentRepository(db)
+	controlActionPlanCommentSvc := services.NewControlActionPlanCommentService(controlActionPlanCommentRepository, userSvc, sharedModule.ActivityLogService, controlActionPlanSvc, commonModule.NotificationService)
+	controlActionPlanCommentController := controllers.NewControlActionPlanCommentController(controlActionPlanCommentSvc)
 
 	processRepo := repositories.NewProcessRepository(db)
 	processSvc := services.NewProcessService(processRepo, sharedModule.ActivityLogService, processGroupSvc, userSvc, masterModule.LifecycleStatusSvc, controlSvc, commonModule.NotificationService, userSettingSvc)
@@ -268,9 +273,9 @@ func NewOrganizationModule(
 	userDelegationHistorySvc := services.NewUserDelegationService(userDelegationHistoryRepo, sharedModule.ActivityLogService, userSvc, commonModule.NotificationService, userSettingSvc, taskModule.TaskService)
 	userDelegationHistoryController := controllers.NewUserDelegationController(userDelegationHistorySvc)
 
-	organizationStructureRepo := repositories.NewOrganizationStructureRepository(db)
-	organizationStructureSvc := services.NewOrganizationStructureService(organizationStructureRepo, sharedModule.ActivityLogService, settingsModule.OrganizationLevelSvc, userRepo, userSvc)
-	organizationStructureController := controllers.NewOrganizationStructureController(organizationStructureSvc)
+	organizationUnitsRepo := repositories.NewOrganizationUnitsRepository(db)
+	organizationUnitsSvc := services.NewOrganizationUnitsService(organizationUnitsRepo, sharedModule.ActivityLogService, settingsModule.OrganizationLevelSvc, userRepo, userSvc, settingsModule.OrganizationUnitSvc)
+	organizationUnitsController := controllers.NewOrganizationUnitsController(organizationUnitsSvc)
 
 	return &OrganizationModule{
 		DesignationController:                   designationController,
@@ -289,30 +294,32 @@ func NewOrganizationModule(
 		ProcessGroupController:                  processGroupController,
 		ControlActionPlanController:             controlActionPlanController,
 		ControlActionPlanStatusUpdateController: controlActionPlanStatusUpdateController,
-		ProcessController:                       processController,
-		UserTaskController:                      userTaskController,
-		StrategicProfileValueController:         strategicProfileValueController,
-		ProcessAssociatedItemController:         processAssociatedItemController,
-		ControlAssociatedItemController:         controlAssociatedItemController,
-		ControlReviewController:                 controlReviewController,
-		UserProfileController:                   userProfileController,
-		ProcessDependencyTypeController:         processDependencyTypeController,
-		ProcessDependencySubTypeController:      processDependencySubTypeController,
-		GovernanceReportController:              governanceReportController,
-		ProcessDependencyController:             processDependencyController,
-		ProcessCriticalityLevelController:       processCriticalityLevelController,
-		ProcessActivityController:               processActivityController,
-		CompetencyGroupController:               competencyGroupController,
-		CompetencyController:                    competencyController,
-		CompetencyLevelController:               competencyLevelController,
-		JobDescriptionController:                jobDescriptionController,
-		JobDescriptionCompetencyController:      jobDescriptionCompetencyController,
-		UserDocumentTypeController:              userDocumentTypeController,
-		UserDocumentSubTypeController:           userDocumentSubTypeController,
-		UserDocumentController:                  userDocumentController,
-		UserJobDescriptionController:            userJobDescriptionController,
-		UserDelegationHistoryController:         userDelegationHistoryController,
-		OrganizationStructureController:         organizationStructureController,
+		ControlActionPlanCommentController:      controlActionPlanCommentController,
+
+		ProcessController:                  processController,
+		UserTaskController:                 userTaskController,
+		StrategicProfileValueController:    strategicProfileValueController,
+		ProcessAssociatedItemController:    processAssociatedItemController,
+		ControlAssociatedItemController:    controlAssociatedItemController,
+		ControlReviewController:            controlReviewController,
+		UserProfileController:              userProfileController,
+		ProcessDependencyTypeController:    processDependencyTypeController,
+		ProcessDependencySubTypeController: processDependencySubTypeController,
+		GovernanceReportController:         governanceReportController,
+		ProcessDependencyController:        processDependencyController,
+		ProcessCriticalityLevelController:  processCriticalityLevelController,
+		ProcessActivityController:          processActivityController,
+		CompetencyGroupController:          competencyGroupController,
+		CompetencyController:               competencyController,
+		CompetencyLevelController:          competencyLevelController,
+		JobDescriptionController:           jobDescriptionController,
+		JobDescriptionCompetencyController: jobDescriptionCompetencyController,
+		UserDocumentTypeController:         userDocumentTypeController,
+		UserDocumentSubTypeController:      userDocumentSubTypeController,
+		UserDocumentController:             userDocumentController,
+		UserJobDescriptionController:       userJobDescriptionController,
+		UserDelegationHistoryController:    userDelegationHistoryController,
+		OrganizationUnitsController:        organizationUnitsController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,

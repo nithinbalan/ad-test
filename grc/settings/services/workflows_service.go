@@ -15,8 +15,16 @@ import (
 )
 
 type WorkflowServiceInterface interface {
+	GetAll(params *settingsDTOs.WorkflowListQueryParamsDTO, moduleIDs []string) ([]*settingsDTOs.WorkflowListDTO, error)
+	GetFullDetailsByID(id uint) (*settingsDTOs.WorkflowDetailDTO, error)
+	GetByID(id uint) (*models.Workflow, error)
+	Create(currentUserID uint, escalationRuleFormDTO *settingsDTOs.WorkflowFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, escalationRuleFormDTO *settingsDTOs.WorkflowFormDTO) error
+	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
 	GetAllWorkflowsByType(workflowType string, moduleIdentifier string) ([]*settingsDTOs.WorkflowListDTO, error)
-	GetWorkflowByDocumentType(documentTypeId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
+	GetWorkflowByDocumentType(documentTypeId uint, workflowContextId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
+	GetWorkflowByContext(workflowContextId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error)
 	GetWorkflowLevels(workflowID uint, tx ...utility.DatabaseTransaction) (*settingsDTOs.WorkflowLevelListDTO, error)
 	CreateWorkFlowLevel(workflowId uint, currentUserID uint, workflowFormDTO *settingsDTOs.WorkflowLevelFormDTO) (uint, error)
 	DeleteWorkflowLevel(currentUserID, workflowLevelID uint) error
@@ -39,16 +47,182 @@ func NewWorkflowService(
 	}
 }
 
+func (ws *WorkflowService) GetAll(params *settingsDTOs.WorkflowListQueryParamsDTO, moduleIDs []string) ([]*settingsDTOs.WorkflowListDTO, error) {
+	return ws.repo.GetAll(params, moduleIDs)
+}
+
+func (ws *WorkflowService) GetByID(id uint) (*models.Workflow, error) {
+	escalationRule, err := ws.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return escalationRule, nil
+}
+
+func (ws *WorkflowService) GetFullDetailsByID(id uint) (*settingsDTOs.WorkflowDetailDTO, error) {
+	var escalationRuleDetailDTO settingsDTOs.WorkflowDetailDTO
+
+	escalationRule, err := ws.repo.GetFullDetailsByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(escalationRule, &escalationRuleDetailDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return &escalationRuleDetailDTO, nil
+}
+
+func (ws *WorkflowService) Create(currentUserID uint, dto *settingsDTOs.WorkflowFormDTO) (uint, error) {
+
+	level := &models.Workflow{
+		WorkflowContextID: dto.WorkflowContextID,
+		TitleEn:           &dto.TitleEn,
+		TitleAr:           &dto.TitleAr,
+		Status:            dto.Status,
+		CreatedBYID:       currentUserID,
+	}
+
+	id, err := ws.repo.Create(level)
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
+}
+
+func (ws *WorkflowService) Update(id uint, currentUserID uint, dto *settingsDTOs.WorkflowFormDTO) error {
+
+	oldData, err := ws.GetFullDetailsByID(id)
+	if err != nil {
+		return err
+	}
+
+	existing, err := ws.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	existing.TitleEn = &dto.TitleEn
+	existing.TitleAr = &dto.TitleAr
+	existing.UpdatedBYID = &currentUserID
+
+	err = ws.repo.Update(existing)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		// Fetch updated full details after update
+		newData, err := ws.GetFullDetailsByID(id)
+		if err != nil {
+			return
+		}
+
+		oldFields := map[string]interface{}{
+			"title_en": oldData.TitleEn,
+			"title_ar": oldData.TitleAr,
+		}
+
+		newFields := map[string]interface{}{
+			"title_en": newData.TitleEn,
+			"title_ar": newData.TitleAr,
+		}
+
+		changedData := utility.CompareFieldChanges(oldFields, newFields)
+
+		if len(changedData) > 0 {
+			err := ws.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				models.Workflow{}.TableName(),
+				id,
+				changedData,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				utility.LogError("Failed to log escalation level update", map[string]interface{}{
+					"action":    models.UpdateAction,
+					"table":     models.Workflow{}.TableName(),
+					"record_id": id,
+					"user_id":   currentUserID,
+					"error":     err.Error(),
+				})
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (ws *WorkflowService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+
+	var failedIds []uint
+	var successfulIds []uint
+	var deletedItems []map[string]interface{}
+
+	for _, id := range ids {
+		item, err := ws.repo.GetFullDetailsByID(id)
+		if err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+		if err := ws.repo.Delete(id); err != nil {
+			failedIds = append(failedIds, id)
+		} else {
+			successfulIds = append(successfulIds, id)
+			deletedItems = append(deletedItems, map[string]interface{}{
+				"id":       id,
+				"title_en": item.TitleEn,
+				"title_ar": item.TitleAr,
+			})
+		}
+	}
+
+	if len(successfulIds) > 0 {
+		go ws.activityLogSvc.LogBulkActivities(
+			models.DeleteAction,
+			models.Workflow{}.TableName(),
+			successfulIds,
+			deletedItems,
+			currentUserID,
+			nil,
+		)
+	}
+
+	return failedIds, nil
+}
+
 func (ws *WorkflowService) GetAllWorkflowsByType(workflowType string, moduleIdentifier string) ([]*settingsDTOs.WorkflowListDTO, error) {
 	return ws.repo.GetAllWorkflowsByType(workflowType, moduleIdentifier)
 }
 
-func (ws *WorkflowService) GetWorkflowByDocumentType(documentTypeId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error) {
-	workflow, err := ws.repo.GetWorkflowByDocumentType(documentTypeId, tx...)
+func (ws *WorkflowService) GetWorkflowByDocumentType(documentTypeId uint, workflowContextId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error) {
+	workflow, err := ws.repo.GetWorkflowByDocumentType(documentTypeId, workflowContextId, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, documentTypeId)
+		}
+		return nil, err
+	}
+	return workflow, nil
+}
+
+func (ws *WorkflowService) GetWorkflowByContext(workflowContextId uint, tx ...utility.DatabaseTransaction) (*models.Workflow, error) {
+	workflow, err := ws.repo.GetWorkflowByContext(workflowContextId, tx...)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, workflowContextId)
 		}
 		return nil, err
 	}

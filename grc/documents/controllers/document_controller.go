@@ -175,6 +175,7 @@ func (dc *DocumentController) GetDocumentDetails(c *gin.Context) {
 
 func (dc *DocumentController) CreateDocument(c *gin.Context) {
 	var documentFormDTO documentDTOs.DocumentFormDTO
+
 	if err := c.ShouldBindJSON(&documentFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return

@@ -19,6 +19,7 @@ type MeetingModule struct {
 	MeetingMinuteController                 *controllers.MeetingMinuteController
 	MeetingAssociatedItemController         *controllers.MeetingAssociatedItemController
 	MeetingMinuteStatusController           *controllers.MeetingMinuteStatusController
+	MeetingActionPlanCommentController      *controllers.MeetingActionPlanCommentController
 
 	MeetingFrequencySvc    services.MeetingFrequencyServiceInterface
 	MeetingStatusSvc       services.MeetingStatusServiceInterface
@@ -75,12 +76,16 @@ func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	meetingActionPlanController := controllers.NewMeetingActionPlanController(meetingActionPlanSvc)
 
 	meetingActionPlanStatusUpdateRepo := repositories.NewMeetingActionPlanStatusUpdateRepository(db)
-	meetingActionPlanStatusUpdateSvc := services.NewMeetingActionPlanStatusUpdateService(meetingActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, meetingActionPlanSvc, masterModule.ActionPlanStatusSvc, meetingMinuteSvc, meetingMinuteStatusSvc)
+	meetingActionPlanStatusUpdateSvc := services.NewMeetingActionPlanStatusUpdateService(meetingActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, meetingActionPlanSvc, masterModule.ActionPlanStatusSvc, meetingMinuteSvc, meetingMinuteStatusSvc, meetingSvc, taskModule.TaskService, taskModule.TaskStatusService, organizationModule.UserSvc, commonModule.NotificationService)
 	meetingActionPlanStatusUpdateController := controllers.NewMeetingActionPlanStatusUpdateController(meetingActionPlanStatusUpdateSvc)
 
 	meetingAssociatedItemRepo := repositories.NewMeetingAssociatedItemRepository(db)
 	meetingAssociatedItemSvc := services.NewMeetingAssociatedItemService(meetingAssociatedItemRepo, meetingSvc, commonModule.AssociatedItemValidationService)
 	meetingAssociatedItemController := controllers.NewMeetingAssociatedItemController(meetingAssociatedItemSvc)
+
+	meetingActionPlanCommentRepository := repositories.NewMeetingActionPlanCommentRepository(db)
+	meetingActionPlanCommentSvc := services.NewMeetingActionPlanCommentService(meetingActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, meetingActionPlanSvc, commonModule.NotificationService)
+	meetingActionPlanCommentController := controllers.NewMeetingActionPlanCommentController(meetingActionPlanCommentSvc)
 
 	return &MeetingModule{
 		MeetingFrequencyController:              meetingFrequencyController,
@@ -93,6 +98,7 @@ func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 		MeetingMinuteController:                 meetingMinuteController,
 		MeetingAssociatedItemController:         meetingAssociatedItemController,
 		MeetingMinuteStatusController:           meetingMinuteStatusController,
+		MeetingActionPlanCommentController:      meetingActionPlanCommentController,
 
 		MeetingFrequencySvc:    meetingFrequencySvc,
 		MeetingStatusSvc:       meetingStatusSvc,

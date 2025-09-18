@@ -15,6 +15,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -44,6 +45,7 @@ type ThreatActionPlanService struct {
 	userSvc             organizationServices.UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
 	delegateeUserSvc    commonServices.DelegateeUserserviceInterface
+	taskSvc             taskServices.TaskServiceInterface
 }
 
 func NewThreatActionPlanService(
@@ -56,6 +58,7 @@ func NewThreatActionPlanService(
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
+	taskSvc taskServices.TaskServiceInterface,
 ) ThreatActionPlanServiceInterface {
 	return &ThreatActionPlanService{
 		repo:                repo,
@@ -67,6 +70,7 @@ func NewThreatActionPlanService(
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
 		delegateeUserSvc:    delegateeUserSvc,
+		taskSvc:             taskSvc,
 	}
 }
 
@@ -182,6 +186,24 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 	}
 	_, err = taps.repo.CreateInitialThreatActionPlanStatusUpdate(actionPlanUpdate, tx)
 	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	urlParam := fmt.Sprintf(`{"threat_id":%d, "action_plan_id":%d}`, threatID, id)
+	taskDTO := commonDTOs.TaskFormDTO{
+		ModuleIdentifier:   "threat",
+		ThreatActionPlanID: &id,
+		Title:              formDTO.Title,
+		Description:        formDTO.Description,
+		TargetDate:         dates.TargetDate,
+		URLParam:           &urlParam,
+		QueryParam:         nil,
+		SeverityLevelID:    formDTO.SeverityLevelID,
+		ResponsibleUserID:  formDTO.ResponsibleUserID,
+	}
+
+	if _, err := taps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -339,6 +361,24 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 	}
 
 	err = taps.repo.Update(existingActionPlan, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// //update task
+	urlParam := fmt.Sprintf(`{"threat_id":%d, "action_plan_id":%d}`, threatID, id)
+
+	taskUpdateDTO := commonDTOs.TaskFormDTO{
+		Title:             formDTO.Title,
+		Description:       formDTO.Description,
+		TargetDate:        dates.TargetDate,
+		URLParam:          &urlParam,
+		SeverityLevelID:   formDTO.SeverityLevelID,
+		ResponsibleUserID: formDTO.ResponsibleUserID,
+	}
+
+	err = taps.taskSvc.Update(currentUserID, taskUpdateDTO, "threat_action_plan_id", id, tx)
 	if err != nil {
 		tx.Rollback()
 		return err

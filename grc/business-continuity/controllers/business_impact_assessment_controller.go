@@ -153,8 +153,6 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessIncidents(c *gin.Co
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(biac.db, c, "Invalid page parameter")
@@ -167,11 +165,10 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessIncidents(c *gin.Co
 		return
 	}
 
-	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
 		Keyword:  keyword,
-		Status:   status,
 		Page:     page,
 		PageSize: pageSize,
 	}

@@ -98,6 +98,15 @@ func (rasus RiskActionPlanStatusUpdateService) GetByID(RiskID uint, RiskActionPl
 }
 
 func (rasus *RiskActionPlanStatusUpdateService) Create(RiskID uint, RiskActionPlanID uint, currentUserID uint, riskActionPlanStatusUpdateFormDTO *riskDTOs.RiskActionPlanStatusUpdateFormDTO) (uint, error) {
+	riskActionPlan, err := rasus.riskActionPlanSvc.GetByID(RiskID, RiskActionPlanID)
+	if err != nil {
+		return 0, err
+	}
+	actionPlanStatus, err := rasus.actionPlanStatusSvc.GetByType("completed")
+	if err != nil {
+		return 0, err
+	}
+
 	tx := rasus.repo.BeginTransaction()
 
 	if _, err := rasus.riskActionPlanSvc.GetByID(RiskID, RiskActionPlanID); err != nil {
@@ -170,6 +179,24 @@ func (rasus *RiskActionPlanStatusUpdateService) Create(RiskID uint, RiskActionPl
 				return 0, err
 			}
 
+		}
+	}
+
+	if riskActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && riskActionPlan.ReviewUserID != nil {
+		urlParam := fmt.Sprintf(`{"risk_register_id":%d, "action_plan_id":%d}`, RiskID, RiskActionPlanID)
+		taskDTO := commonDTOs.TaskFormDTO{
+			ModuleIdentifier:  "risk_register",
+			RiskActionPlanID:  &RiskActionPlanID,
+			Title:             riskActionPlan.Title,
+			Description:       riskActionPlan.Description,
+			URLParam:          &urlParam,
+			QueryParam:        nil,
+			SeverityLevelID:   riskActionPlan.SeverityLevelID,
+			ResponsibleUserID: *riskActionPlan.ReviewUserID,
+		}
+		if _, err := rasus.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
 		}
 	}
 	tx.Commit()

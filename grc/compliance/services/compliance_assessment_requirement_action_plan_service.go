@@ -78,7 +78,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) GetAll(complianc
 			return nil, err
 		}
 	}
-	return caraps.repo.GetAll(uint(0), params, requirementID)
+	return caraps.repo.GetAll(uint(0), params, requirementID, nil)
 }
 
 func (caraps ComplianceAssessmentRequirementActionPlanService) GetByID(complianceAssessmentID uint, requirementID uint, id uint) (*models.ComplianceActionPlan, error) {
@@ -232,7 +232,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		tx.Rollback()
 		return 0, err
 	}
-	urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirementt_id":%d, "action_plan_id":%d}`, complianceAssessmentID, requirementID, id)
+	urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, complianceAssessmentID, requirementID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleIdentifier:       "compliance_assessment",
 		ComplianceActionPlanID: &id,
@@ -284,7 +284,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		// prepare notification
 		urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, complianceAssessmentID, requirementID, id)
 		queryParam := ""
-		entity := "compliance-action-plan"
+		entity := "compliance-assessment-action-plan"
 		action := "responsible-user-assign"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
@@ -330,6 +330,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":  assignedBy.LastNameEn,
 			"AssignedOn":            time.Now().Format("2006-01-02"),
+			"TargetDate":            ComplianceActionPlanFormDTO.TargetDate,
 			"RedirectURL":           fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, complianceAssessmentID),
 		}
 
@@ -485,7 +486,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 		if oldResponsibleUserID != existingComplianceAssessmentRequirementActionPlan.ResponsibleUserID {
 			urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, complianceAssessmentID, requirementID, id)
 			queryParam := ""
-			entity := "compliance-action-plan"
+			entity := "compliance-assessment-action-plan"
 
 			oldResponsibleUserAction := "responsible-user-remove"
 			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
@@ -577,6 +578,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"TargetDate":            existingComplianceAssessmentRequirementActionPlan.TargetDate.Format("2006-01-02"),
 				"RedirectURL":           fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, complianceAssessmentID),
 			}
 

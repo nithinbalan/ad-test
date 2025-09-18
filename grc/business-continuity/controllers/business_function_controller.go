@@ -5,7 +5,6 @@ import (
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/services"
 	commonDTOs "jethur/grc/common/dtos"
-	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -335,9 +334,6 @@ func (bfc *BusinessFunctionController) GetProcessAssociatedIncidents(c *gin.Cont
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
-
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(bfc.db, c, "Invalid page parameter")
@@ -350,14 +346,12 @@ func (bfc *BusinessFunctionController) GetProcessAssociatedIncidents(c *gin.Cont
 		return
 	}
 
-	queryParams := organizationDTOs.ProcessAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	incidents, err := bfc.service.GetProcessAssociatedIncidents(uint(businessFunctionID), uint(processID), &queryParams)
 	if err != nil {

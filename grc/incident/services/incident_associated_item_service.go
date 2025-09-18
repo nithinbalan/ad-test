@@ -19,7 +19,7 @@ type IncidentAssociatedItemServiceInterface interface {
 	GetAllProcesses(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
 	GetAllSLAs(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemSLAListResponseDTO, error)
 	GetAllDocuments(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
-	GetAllAssets(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemAssetListResponseDTO, error)
+	GetAllAssets(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
 	GetAllClauses(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(incidentID uint, currentUserID uint, ControlClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 	CreateIncidentRisk(incidentID uint, currentUserID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
@@ -36,6 +36,8 @@ type IncidentAssociatedItemServiceInterface interface {
 	GetAllIncidentKPI(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateIncidentKPI(incidentID uint, currentUserID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
 	DeleteIncidentKPI(incidentID uint, kpiRegisterID uint) error
+	CreateIncidentAsset(incidentID uint, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
+	DeleteIncidentAsset(incidentID uint, assetID uint) error
 }
 
 // Service and implementations
@@ -103,7 +105,7 @@ func (iais *IncidentAssociatedItemService) GetAllDocuments(incidentID uint, para
 	return iais.repo.GetAllDocuments(incidentID, params)
 }
 
-func (iais *IncidentAssociatedItemService) GetAllAssets(incidentID uint, params *incidentDTOs.IncidentAssociatedItemListQueryParamsDTO) (*incidentDTOs.IncidentAssociatedItemAssetListResponseDTO, error) {
+func (iais *IncidentAssociatedItemService) GetAllAssets(incidentID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
 	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}
@@ -486,6 +488,49 @@ func (iais *IncidentAssociatedItemService) DeleteIncidentKPI(incidentID uint, kp
 	tx := iais.repo.BeginTransaction()
 
 	if err := iais.repo.DeleteIncidentKPI(incidentID, kpiRegisterID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) CreateIncidentAsset(incidentID, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return err
+	}
+	if err := iais.validationSvc.ValidateAssetMapping(incidentID, dto.AssetIDs, "incident_assets", "incident_register_id"); err != nil {
+		return err
+	}
+	tx := iais.repo.BeginTransaction()
+	var mappings []*models.IncidentAsset
+	currentTime := time.Now()
+
+	for _, assetID := range dto.AssetIDs {
+		mappings = append(mappings, &models.IncidentAsset{
+			AssetRegisterID:    assetID,
+			IncidentRegisterID: incidentID,
+			CreatedBYID:        currentUserID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := iais.repo.CreateIncidentAsset(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (iais *IncidentAssociatedItemService) DeleteIncidentAsset(incidentID uint, assetID uint) error {
+	// Validate control existence
+	if _, err := iais.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return err
+	}
+
+	tx := iais.repo.BeginTransaction()
+
+	if err := iais.repo.DeleteIncidentAsset(incidentID, assetID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

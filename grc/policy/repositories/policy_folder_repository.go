@@ -90,7 +90,8 @@ func (repo *PolicyFolderRepository) GetAll(params *policyDTOs.PolicyRegisterList
 	published_user.initial AS published_user_initial,
 	published_user.color AS published_user_color,
 	published_user.email AS published_user_email,
-	published_user.profile_image_path AS published_user_profile_image_path
+	published_user.profile_image_path AS published_user_profile_image_path,
+	(SELECT COUNT(*) FROM documents d2 WHERE d2.parent_document_id = documents.id) AS document_count
 `
 
 	query := repo.db.Table("documents").Select(selectClause).
@@ -169,7 +170,7 @@ func (repo *PolicyFolderRepository) GetAll(params *policyDTOs.PolicyRegisterList
 	}
 
 	// Apply sorting once
-	query = query.Order(params.SortBy + " " + params.Sort)
+	query = query.Order("documents.is_folder DESC").Order(params.SortBy + " " + params.Sort)
 
 	if !params.Export {
 		// Apply pagination without duplicate ordering

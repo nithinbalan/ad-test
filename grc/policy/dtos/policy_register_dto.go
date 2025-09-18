@@ -44,6 +44,7 @@ type PolicyRegisterListDTO struct {
 	DocumentType                    string     `json:"document_type"`
 	IsFolder                        *bool      `json:"is_folder"`
 	ParentDocumentID                *uint      `json:"parent_document_id"`
+	DocumentCount                   *int       `json:"document_count"`
 	CreatedUserID                   uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn          string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string     `json:"created_user_first_name_ar"`
@@ -139,12 +140,19 @@ type PolicyRegisterDetailsDTO struct {
 }
 
 type DocumentVersionDTO struct {
-	ID              uint                            `json:"id"`
-	DocumentID      uint                            `json:"document_id"`
-	Version         float64                         `json:"version"`
-	IsLatestVersion bool                            `json:"is_latest_version"`
-	CreatedByUser   organizationDTOs.UserMinimalDTO `json:"created_by"`
-	UpdatedByUser   organizationDTOs.UserMinimalDTO `json:"updated_by"`
-	CreatedAt       time.Time                       `json:"created_at"`
-	UpdatedAt       *time.Time                      `json:"updated_at"`
+	ID                    uint                             `json:"id"`
+	DocumentID            uint                             `json:"document_id"`
+	Version               float64                          `json:"version"`
+	IsLatestVersion       bool                             `json:"is_latest_version"`
+	NextReviewLevel       *int                             `json:"next_review_level"`
+	SubmittedByUser       *organizationDTOs.UserMinimalDTO `json:"submitted_by"`
+	SubmittedAt           *time.Time                       `json:"submitted_at"`
+	AcknowledgeDueDate    *time.Time                       `json:"acknowledge_due_date"`
+	EnableAcknowledgement bool                             `json:"enable_acknowledgement"`
+	CreatedByUser         organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser         organizationDTOs.UserMinimalDTO  `json:"updated_by"`
+	CreatedAt             time.Time                        `json:"created_at"`
+	UpdatedAt             *time.Time                       `json:"updated_at"`
+	PublishedAt           *time.Time                       `json:"published_at"`
+	PublishedByUser       organizationDTOs.UserMinimalDTO  `json:"published_by"`
 }

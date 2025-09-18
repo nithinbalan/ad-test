@@ -6,6 +6,7 @@ import (
 	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/repositories"
 	logSvc "jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationSvc "jethur/grc/organization/services"
@@ -21,7 +22,7 @@ type DocumentWorkflowServiceInterface interface {
 	GetDocumentWorkflowList(id uint) (*documentDTOs.DocumentVersionWorkflowListDTO, error)
 	CreateDocumentWorkflow(documentId uint, documentVersionId uint, documentTypeId uint, currentUserID uint, tx ...utility.DatabaseTransaction) error
 	UpdateDocumentWorkflow(documentWorkflow *models.DocumentWorkflow, tx ...utility.DatabaseTransaction) error
-	createWorkflowParticipant(userID uint, documentWorkflowID uint, participant *settingDTOs.WorkflowLevelParticipantDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
+	CreateWorkflowParticipant(userID uint, documentWorkflowID uint, participant *settingDTOs.WorkflowLevelParticipantDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error
 
 	GetDocumentWorkflowByLevel(docVersionId uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
 	GetDocumentWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentWorkflow, error)
@@ -42,6 +43,7 @@ type DocumentWorkflowService struct {
 	documentAccessSvc         DocumentAccessServiceInterface
 	documentSvc               DocumentServiceInterface
 	delegateeUserSvc          commonServices.DelegateeUserserviceInterface
+	workflowContextSvc        masterServices.WorkflowContextServiceInterface
 }
 
 func NewDocumentWorkflowService(
@@ -51,6 +53,7 @@ func NewDocumentWorkflowService(
 	documentWorkflowStatusSvc DocumentWorkflowStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
 	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
+	workflowContextSvc masterServices.WorkflowContextServiceInterface,
 ) DocumentWorkflowServiceInterface {
 	return &DocumentWorkflowService{
 		repo:                      repo,
@@ -59,6 +62,7 @@ func NewDocumentWorkflowService(
 		documentWorkflowStatusSvc: documentWorkflowStatusSvc,
 		userSvc:                   userSvc,
 		delegateeUserSvc:          delegateeUserSvc,
+		workflowContextSvc:        workflowContextSvc,
 	}
 }
 
@@ -120,7 +124,12 @@ func (ds *DocumentWorkflowService) GetDocumentWorkflowList(id uint) (*documentDT
 }
 
 func (dws *DocumentWorkflowService) CreateDocumentWorkflow(documentId uint, documentVersionId uint, documentTypeId uint, currentUserID uint, tx ...utility.DatabaseTransaction) error {
-	workflow, err := dws.workflowSvc.GetWorkflowByDocumentType(documentTypeId, tx...)
+	workflowContext, err := dws.workflowContextSvc.GetByType("document_register")
+	if err != nil {
+		return err
+	}
+
+	workflow, err := dws.workflowSvc.GetWorkflowByDocumentType(documentTypeId, workflowContext.ID, tx...)
 	if err != nil {
 		return err
 	}
@@ -164,7 +173,7 @@ func (dws *DocumentWorkflowService) CreateDocumentWorkflow(documentId uint, docu
 				}
 
 				for _, userId := range userIds {
-					err = dws.createWorkflowParticipant(userId, docWorkflowId, &participant, currentUserID, tx...)
+					err = dws.CreateWorkflowParticipant(userId, docWorkflowId, &participant, currentUserID, tx...)
 					if err != nil {
 						return err
 					}
@@ -186,7 +195,7 @@ func (dws *DocumentWorkflowService) CreateDocumentWorkflow(documentId uint, docu
 				}
 			} else if participant.User != nil {
 				userId := uint(participant.User.ID)
-				err = dws.createWorkflowParticipant(userId, docWorkflowId, &participant, currentUserID, tx...)
+				err = dws.CreateWorkflowParticipant(userId, docWorkflowId, &participant, currentUserID, tx...)
 				if err != nil {
 					return err
 				}
@@ -223,7 +232,7 @@ func (dws *DocumentWorkflowService) UpdateDocumentWorkflow(documentWorkflow *mod
 	return nil
 }
 
-func (dws *DocumentWorkflowService) createWorkflowParticipant(userID uint, documentWorkflowID uint, participant *settingDTOs.WorkflowLevelParticipantDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error {
+func (dws *DocumentWorkflowService) CreateWorkflowParticipant(userID uint, documentWorkflowID uint, participant *settingDTOs.WorkflowLevelParticipantDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error {
 	docWorkflowParticipant := &models.DocumentWorkflowParticipant{
 		DocumentWorkflowID: documentWorkflowID,
 		UserID:             userID,

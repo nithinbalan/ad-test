@@ -172,7 +172,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 		}
 
 		if complianceAssessment.ComplianceAssessmentStatus.ID == complianceAssessmentStatus.ID {
-			if complianceAssessment.ReviewuserID == currentUserID {
+			if complianceAssessment.ReviewUserID == currentUserID {
 				// if review user added the comment, notification for submitted user
 				// prepare notification
 				urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d}`, complianceAssessmentID, assessmentRequirementID)
@@ -181,7 +181,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 				action := "comment-added"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserIDs:              []uint{complianceAssessment.ReviewuserID},
+					UserIDs:              []uint{complianceAssessment.ReviewUserID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Comment Added For Compliance Requirement",
@@ -250,7 +250,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 				action := "comment-added"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserIDs:              []uint{complianceAssessment.ReviewuserID},
+					UserIDs:              []uint{complianceAssessment.ReviewUserID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Comment Added For Compliance Requirement",
@@ -265,7 +265,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 					CreatedByID:          &currentUserID,
 				}
 
-				reviewUser, err := caps.userSvc.GetByID(uint(complianceAssessment.ReviewuserID))
+				reviewUser, err := caps.userSvc.GetByID(uint(complianceAssessment.ReviewUserID))
 				if err != nil {
 					utility.LogError("Failed to fetch submitted user", map[string]interface{}{
 						"error": err.Error(),
@@ -320,7 +320,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 					action := "comment-added"
 
 					dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-						UserIDs:              []uint{complianceAssessment.ReviewuserID},
+						UserIDs:              []uint{complianceAssessment.ReviewUserID},
 						ModuleIdentifier:     "compliance",
 						NotificationType:     string(commonDTOs.AssignmentType),
 						HeadingEn:            "Comment Added For Compliance Requirement",
@@ -388,7 +388,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 				action := "comment-added"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserIDs:              []uint{complianceAssessment.ReviewuserID},
+					UserIDs:              []uint{complianceAssessment.ReviewUserID},
 					ModuleIdentifier:     "compliance",
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Comment Added For Compliance Requirement",
@@ -403,7 +403,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 					CreatedByID:          &currentUserID,
 				}
 
-				reviewUser, err := caps.userSvc.GetByID(uint(complianceAssessment.ReviewuserID))
+				reviewUser, err := caps.userSvc.GetByID(uint(complianceAssessment.ReviewUserID))
 				if err != nil {
 					utility.LogError("Failed to fetch submitted user", map[string]interface{}{
 						"error": err.Error(),

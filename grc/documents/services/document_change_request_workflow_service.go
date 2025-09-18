@@ -6,6 +6,7 @@ import (
 	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/repositories"
 	logSvc "jethur/grc/logs/services"
+	masterSvc "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationSvc "jethur/grc/organization/services"
@@ -41,6 +42,7 @@ type DocumentChangeRequestWorkflowService struct {
 	userSvc                                organizationSvc.UserServiceInterface
 	documentChangeRequestSvc               DocumentChangeRequestServiceInterface
 	delegateeUserSvc                       commonServices.DelegateeUserserviceInterface
+	workflowContextSvc                     masterSvc.WorkflowContextServiceInterface
 }
 
 func NewDocumentChangeRequestWorkflowService(
@@ -52,6 +54,7 @@ func NewDocumentChangeRequestWorkflowService(
 	userSvc organizationSvc.UserServiceInterface,
 	documentChangeRequestSvc DocumentChangeRequestServiceInterface,
 	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
+	workflowContextSvc masterSvc.WorkflowContextServiceInterface,
 ) *DocumentChangeRequestWorkflowService {
 	return &DocumentChangeRequestWorkflowService{
 		repo:                                   repo,
@@ -62,6 +65,7 @@ func NewDocumentChangeRequestWorkflowService(
 		userSvc:                                userSvc,
 		documentChangeRequestSvc:               documentChangeRequestSvc,
 		delegateeUserSvc:                       delegateeUserSvc,
+		workflowContextSvc:                     workflowContextSvc,
 	}
 }
 
@@ -73,7 +77,11 @@ func (dcrws *DocumentChangeRequestWorkflowService) CreateDocumentCRWorkflow(docu
 		return err
 	}
 	fmt.Println("13")
-	workflow, err := dcrws.workflowSvc.GetWorkflowByDocumentType(*document.DocumentTypeID, tx...)
+	workflowContext, err := dcrws.workflowContextSvc.GetByType("document_register")
+	if err != nil {
+		return err
+	}
+	workflow, err := dcrws.workflowSvc.GetWorkflowByDocumentType(*document.DocumentTypeID, workflowContext.ID, tx...)
 	if err != nil {
 		return err
 	}

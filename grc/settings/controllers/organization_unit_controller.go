@@ -105,7 +105,7 @@ func (ouc *OrganizationUnitController) GetOrganizationUnitDetails(c *gin.Context
 		return
 	}
 
-	organizationUnit, err := ouc.service.GetByID(uint(id))
+	organizationUnit, err := ouc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return

@@ -1,13 +1,14 @@
 package controllers
 
 import (
+	"net/http"
+	"path/filepath"
+	"strconv"
+
 	"jethur/grc/audit-insights/services"
 	auditDTOs "jethur/grc/audit/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
-	"net/http"
-	"path/filepath"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -57,7 +58,6 @@ func (aifsuc *AuditInsightsFindingActionPlanStatusUpdateController) GetAllAuditI
 		}
 	}
 	auditFindingStatuses, err := aifsuc.service.GetAll(findingID, uint(actionPlanID), sort, sortBy, keyword)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -113,7 +113,6 @@ func (aifsuc *AuditInsightsFindingActionPlanStatusUpdateController) CreateAuditI
 	}
 
 	createdID, err := aifsuc.service.Create(findingID, uint(actionPlanID), currentUserID, &auditFindingStatusUpdateFormDTO)
-
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -199,7 +198,6 @@ func (aifsuc *AuditInsightsFindingActionPlanStatusUpdateController) UpdateAuditI
 }
 
 func (aifsuc *AuditInsightsFindingActionPlanStatusUpdateController) GetLatestAuditInsightsFindingActionPlanStatusUpdate(c *gin.Context) {
-
 	actionPlanIDStr := c.Param("actionPlanId")
 
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
@@ -292,4 +290,98 @@ func (aifsuc *AuditInsightsFindingActionPlanStatusUpdateController) DownloadAudi
 
 	// Serve the file
 	c.File(documentPath)
+}
+
+func (aifsuc *AuditInsightsFindingActionPlanStatusUpdateController) ApproveAuditFindingActionPlan(c *gin.Context) {
+	var auditFindingActionPlanReviewUserStatusUpdateFormDTO auditDTOs.AuditFindingActionPlanReviewUserStatusUpdateFormDTO
+
+	auditFindingID, err := strconv.Atoi(c.Param("findingId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&auditFindingActionPlanReviewUserStatusUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(aifsuc.db, c, err.Error())
+		return
+	}
+
+	err = aifsuc.service.Approve(uint(auditFindingID), uint(actionPlanID), currentUserID, &auditFindingActionPlanReviewUserStatusUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(aifsuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (aifsuc *AuditInsightsFindingActionPlanStatusUpdateController) RevertAuditFindingActionPlan(c *gin.Context) {
+	var auditFindingActionPlanReviewUserStatusUpdateFormDTO auditDTOs.AuditFindingActionPlanReviewUserStatusUpdateFormDTO
+
+	auditFindingID, err := strconv.Atoi(c.Param("findingId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	actionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&auditFindingActionPlanReviewUserStatusUpdateFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(aifsuc.db, c, err.Error())
+		return
+	}
+
+	err = aifsuc.service.Revert(uint(auditFindingID), uint(actionPlanID), currentUserID, &auditFindingActionPlanReviewUserStatusUpdateFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(aifsuc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }

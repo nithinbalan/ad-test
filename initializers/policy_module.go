@@ -9,11 +9,16 @@ import (
 )
 
 type PolicyModule struct {
-	PolicyFolderController   *controllers.PolicyFolderController
-	PolicyRegisterController *controllers.PolicyRegisterController
+	PolicyFolderController               *controllers.PolicyFolderController
+	PolicyRegisterController             *controllers.PolicyRegisterController
+	PolicyClauseController               *controllers.PolicyClauseController
+	PolicyReviewController               *controllers.PolicyReviewController
+	PolicyWorkflowController             *controllers.PolicyWorkflowController
+	PolicyVersionClauseCommentController *controllers.PolicyVersionClauseCommentController
 
 	PolicyFolderSvc   services.PolicyFolderServiceInterface
 	PolicyRegisterSvc services.PolicyRegisterServiceInterface
+	PolicyClauseSvc   services.PolicyClauseServiceInterface
 }
 
 func NewPolicyModule(db *gorm.DB,
@@ -24,6 +29,10 @@ func NewPolicyModule(db *gorm.DB,
 	taskModule *TaskModule,
 	commonModule *CommonModule,
 	documentModule *DocumentModule) *PolicyModule {
+
+	policyWorkflowController := controllers.NewPolicyWorkflowController(documentModule.DocumentWorkflowSvc)
+
+	policyReviewController := controllers.NewPolicyReviewController(documentModule.DocumentReviewSvc)
 
 	policyFolderRepo := repositories.NewPolicyFolderRepository(db)
 	policyFolderSvc := services.NewPolicyFolderService(policyFolderRepo, sharedModule.ActivityLogService, documentModule.DocumentAccessTypeSvc)
@@ -44,11 +53,29 @@ func NewPolicyModule(db *gorm.DB,
 		commonModule.NotificationService,
 		settingsModule.OrganizationLevelSvc,
 		masterModule.ReviewFrequencySvc,
-		settingsModule.SystemPreferenceSvc)
+		settingsModule.SystemPreferenceSvc,
+		documentModule.DocumentWorkflowSvc,
+		documentModule.DocumentWorkflowStatusSvc,
+		masterModule.WorkflowContextSvc,
+		settingsModule.WorkflowSvc,
+		documentModule.DocumentAuditLogSvc,
+	)
 	policyRegisterController := controllers.NewPolicyRegisterController(policyRegisterSvc)
 
+	policyClauseRepo := repositories.NewPolicyClauseRepository(db)
+	policyClauseSvc := services.NewPolicyClauseService(policyClauseRepo, documentModule.DocumentSvc, sharedModule.ActivityLogService)
+	policyClauseController := controllers.NewPolicyClauseController(policyClauseSvc)
+
+	policyVersionClauseCommentRepo := repositories.NewPolicyVersionClauseCommentRepository(db)
+	policyVersionClauseCommentSvc := services.NewPolicyVersionClauseCommentService(policyVersionClauseCommentRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, policyRegisterSvc, masterModule.CommentStatusSvc)
+	policyVersionClauseCommentController := controllers.NewPolicyVersionClauseCommentController(policyVersionClauseCommentSvc)
+
 	return &PolicyModule{
-		PolicyFolderController:   policyFolderController,
-		PolicyRegisterController: policyRegisterController,
+		PolicyFolderController:               policyFolderController,
+		PolicyRegisterController:             policyRegisterController,
+		PolicyClauseController:               policyClauseController,
+		PolicyWorkflowController:             policyWorkflowController,
+		PolicyReviewController:               policyReviewController,
+		PolicyVersionClauseCommentController: policyVersionClauseCommentController,
 	}
 }

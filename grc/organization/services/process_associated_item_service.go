@@ -15,7 +15,7 @@ type ProcessAssociatedItemServiceInterface interface {
 	GetAllControls(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) ([]map[string]interface{}, error)
 	GetAllControlsWithPagination(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	GetAllRisks(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
-	GetAllIncidents(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error)
+	GetAllIncidents(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
 	GetAllDocuments(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	GetAllAssociatedCounts(processID uint) (*organizationDTOs.ProcessAssociatedItemsCountResponseDTO, error)
 	GetAllAssets(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemAssetListResponseDTO, error)
@@ -30,6 +30,13 @@ type ProcessAssociatedItemServiceInterface interface {
 	GetAllProcessKPI(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateProcessKPI(processID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
 	DeleteProcessKPI(processID uint, kpiID uint) error
+	CreateProcessAsset(processID uint, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
+	DeleteProcessAsset(processID uint, assetID uint) error
+	CreateProcessIncident(processID uint, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
+	DeleteProcessIncident(processID uint, incidentID uint) error
+	GetAllProcessStrategicObjectives(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
+	CreateProcessStrategicObjective(processID uint, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
+	DeleteProcessStrategicObjective(processID uint, strategicObjectiveID uint) error
 }
 
 type ProcessAssociatedItemService struct {
@@ -216,7 +223,7 @@ func (pais *ProcessAssociatedItemService) GetAllRisks(processID uint, params *co
 	return pais.repo.GetAllRisks(processID, params)
 }
 
-func (pais *ProcessAssociatedItemService) GetAllIncidents(processID uint, params *organizationDTOs.ProcessAssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessAssociatedItemIncidentListResponseDTO, error) {
+func (pais *ProcessAssociatedItemService) GetAllIncidents(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error) {
 	if _, err := pais.processSvc.GetByID(processID); err != nil {
 		return nil, err
 	}
@@ -539,6 +546,142 @@ func (pais *ProcessAssociatedItemService) DeleteProcessKPI(processID uint, kpiID
 	tx := pais.repo.BeginTransaction()
 
 	if err := pais.repo.DeleteProcessKPI(processID, kpiID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *ProcessAssociatedItemService) CreateProcessAsset(processID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return err
+	}
+	if err := pais.validationSvc.ValidateAssetMapping(processID, dto.AssetIDs, "process_assets", "process_id"); err != nil {
+		return err
+	}
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.ProcessAsset
+	currentTime := time.Now()
+
+	for _, AssetID := range dto.AssetIDs {
+		mappings = append(mappings, &models.ProcessAsset{
+			AssetRegisterID: AssetID,
+			ProcessID:       processID,
+			CreatedByID:     userID,
+			CreatedAt:       currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateProcessAsset(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *ProcessAssociatedItemService) DeleteProcessAsset(processID uint, assetID uint) error {
+	// Validate control existence
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteProcessAsset(processID, assetID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *ProcessAssociatedItemService) CreateProcessIncident(processID, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error {
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return err
+	}
+	if err := pais.validationSvc.ValidateIncidentMapping(processID, dto.IncidentIDs, "incident_processes", "process_id"); err != nil {
+		return err
+	}
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.IncidentProcess
+	currentTime := time.Now()
+
+	for _, IncidentID := range dto.IncidentIDs {
+		mappings = append(mappings, &models.IncidentProcess{
+			IncidentRegisterID: IncidentID,
+			ProcessID:          processID,
+			CreatedByID:        userID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateProcessIncident(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *ProcessAssociatedItemService) DeleteProcessIncident(processID uint, incidentID uint) error {
+	// Validate control existence
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteProcessIncident(processID, incidentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (pais *ProcessAssociatedItemService) GetAllProcessStrategicObjectives(processID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error) {
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return nil, err
+	}
+	return pais.repo.GetAllProcessStrategicObjectives(processID, params)
+}
+
+func (pais *ProcessAssociatedItemService) CreateProcessStrategicObjective(processID, userID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error {
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return err
+	}
+	if err := pais.validationSvc.ValidateStrtegicObjectiveMapping(processID, dto.StrategicObjectiveIDs, "strategic_objective_processes", "process_id"); err != nil {
+		return err
+	}
+	tx := pais.repo.BeginTransaction()
+	var mappings []*models.StrategicObjectiveProcess
+	currentTime := time.Now()
+
+	for _, strategicObjectiveID := range dto.StrategicObjectiveIDs {
+		mappings = append(mappings, &models.StrategicObjectiveProcess{
+			StrategicObjectiveID: strategicObjectiveID,
+			ProcessID:            processID,
+			CreatedByID:          userID,
+			CreatedAt:            currentTime,
+		})
+	}
+
+	if err := pais.repo.CreateProcessStrategicObjective(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (pais *ProcessAssociatedItemService) DeleteProcessStrategicObjective(processID uint, strategicObjectiveID uint) error {
+	// Validate control existence
+	if _, err := pais.processSvc.GetByID(processID); err != nil {
+		return err
+	}
+
+	tx := pais.repo.BeginTransaction()
+
+	if err := pais.repo.DeleteProcessStrategicObjective(processID, strategicObjectiveID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

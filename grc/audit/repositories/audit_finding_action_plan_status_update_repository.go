@@ -20,6 +20,7 @@ type AuditFindingActionPlanStatusUpdateRepositoryInterface interface {
 	CreateDocuments(docs []*models.AuditFindingActionPlanStatusUpdateDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.AuditFindingActionPlanStatusUpdateDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+	AuditFindingActionPlanUpdateStatus(auditFinding *models.AuditFindingActionPlan, tx ...utility.DatabaseTransaction) error
 }
 
 type AuditFindingActionPlanStatusUpdateRepository struct {
@@ -38,7 +39,6 @@ func (repo *AuditFindingActionPlanStatusUpdateRepository) BeginTransaction() uti
 }
 
 func (repo *AuditFindingActionPlanStatusUpdateRepository) GetAll(auditFindingActionPlanID uint, sort string, sortBy string, keyword string) ([]*auditDTOs.AuditFindingActionPlanStatusUpdateListDTO, error) {
-
 	var auditFindingActionPlanUpdates []*auditDTOs.AuditFindingActionPlanStatusUpdateListDTO
 
 	query := repo.db.Table("audit_finding_action_plan_status_updates").
@@ -48,6 +48,7 @@ func (repo *AuditFindingActionPlanStatusUpdateRepository) GetAll(auditFindingAct
             action_plan_statuses.title_en AS action_plan_status_title_en,
             action_plan_statuses.title_ar AS action_plan_status_title_ar,
             action_plan_statuses.color_code AS action_plan_status_color_code,
+			action_plan_statuses.type AS action_plan_status_type,
             created_user.id AS created_user_id,
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
@@ -170,7 +171,6 @@ func (repo *AuditFindingActionPlanStatusUpdateRepository) DeleteDocuments(docIds
 }
 
 func (repo *AuditFindingActionPlanStatusUpdateRepository) GetLatestAuditFindingActionPlanStatusUpdate(audit_findingActionPlanID uint) (*auditDTOs.AuditFindingActionPlanStatusUpdateListDTO, error) {
-
 	var audit_findingActionPlanUpdate *auditDTOs.AuditFindingActionPlanStatusUpdateListDTO
 
 	query := repo.db.Table("audit_finding_action_plan_status_updates").
@@ -180,6 +180,7 @@ func (repo *AuditFindingActionPlanStatusUpdateRepository) GetLatestAuditFindingA
             action_plan_statuses.title_en AS action_plan_status_title_en,
             action_plan_statuses.title_ar AS action_plan_status_title_ar,
             action_plan_statuses.color_code AS action_plan_status_color_code,
+			action_plan_statuses.type AS action_plan_status_type,
         	created_user.id AS created_user_id,
         		created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
@@ -214,7 +215,6 @@ func (repo *AuditFindingActionPlanStatusUpdateRepository) GetLatestAuditFindingA
 	}
 
 	return audit_findingActionPlanUpdate, nil
-
 }
 
 // func (repo *AuditFindingActionPlanStatusUpdateRepository) GetLatestAuditFindingActionPlanStatusUpdate(auditFindingActionPlanID uint) (*auditDTOs.AuditFindingActionPlanStatusUpdateListDTO, error) {
@@ -264,3 +264,14 @@ func (repo *AuditFindingActionPlanStatusUpdateRepository) GetLatestAuditFindingA
 // 	return auditFindingActionPlanUpdate, nil
 
 // }
+
+func (repo *AuditFindingActionPlanStatusUpdateRepository) AuditFindingActionPlanUpdateStatus(auditFinding *models.AuditFindingActionPlan, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(auditFinding).Error; err != nil {
+		return err
+	}
+	return nil
+}

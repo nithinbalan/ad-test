@@ -15,7 +15,7 @@ type ControlAssociatedItemServiceInterface interface {
 	GetAllProcesses(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
 	GetAllComplianceRequirements(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) ([]organizationDTOs.ComplianceRegisterDTO, error)
 	GetAllRisks(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
-	GetAllIncidents(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemIncidentListResponseDTO, error)
+	GetAllIncidents(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
 	GetAllAssociatedCounts(controlID uint) (*organizationDTOs.ControlAssociatedItemsCountResponseDTO, error)
 	GetAllClauses(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
 	UpdateClauses(controlID uint, currentUserID uint, formDTO *organizationDTOs.ControlClauseFormDTO) error
@@ -32,6 +32,11 @@ type ControlAssociatedItemServiceInterface interface {
 	GetAllControlKPI(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateControlKPI(controlID uint, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
 	DeleteControlKPI(controlID uint, kpiID uint) error
+	GetAllControlAssets(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	CreateControlAsset(controlID uint, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
+	DeleteControlAsset(controlID uint, assetID uint) error
+	CreateControlIncident(controlID uint, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
+	DeleteControlIncident(controlID uint, incidentID uint) error
 }
 
 type ControlAssociatedItemService struct {
@@ -127,7 +132,7 @@ func (cais *ControlAssociatedItemService) GetAllRisks(controlID uint, params *co
 	return cais.repo.GetAllRisks(controlID, params)
 }
 
-func (cais *ControlAssociatedItemService) GetAllIncidents(controlID uint, params *organizationDTOs.ControlAssociatedItemListQueryParamsDTO) (*organizationDTOs.ControlAssociatedItemIncidentListResponseDTO, error) {
+func (cais *ControlAssociatedItemService) GetAllIncidents(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error) {
 	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
 		return nil, err
 	}
@@ -485,6 +490,98 @@ func (cais *ControlAssociatedItemService) DeleteControlKPI(controlID uint, kpiID
 	tx := cais.repo.BeginTransaction()
 
 	if err := cais.repo.DeleteControlKPI(controlID, kpiID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (cais *ControlAssociatedItemService) GetAllControlAssets(controlID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return nil, err
+	}
+	return cais.repo.GetAllControlAssets(controlID, params)
+}
+func (cais *ControlAssociatedItemService) CreateControlAsset(controlID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return err
+	}
+	if err := cais.validationSvc.ValidateAssetMapping(controlID, dto.AssetIDs, "asset_controls", "control_id"); err != nil {
+		return err
+	}
+	tx := cais.repo.BeginTransaction()
+	var mappings []*models.AssetControl
+	currentTime := time.Now()
+
+	for _, AssetID := range dto.AssetIDs {
+		mappings = append(mappings, &models.AssetControl{
+			AssetRegisterID: AssetID,
+			ControlID:       controlID,
+			CreatedBYID:     userID,
+			CreatedAt:       currentTime,
+		})
+	}
+
+	if err := cais.repo.CreateControlAsset(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (cais *ControlAssociatedItemService) DeleteControlAsset(controlID uint, assetID uint) error {
+	// Validate control existence
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return err
+	}
+
+	tx := cais.repo.BeginTransaction()
+
+	if err := cais.repo.DeleteControlAsset(controlID, assetID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (cais *ControlAssociatedItemService) CreateControlIncident(controlID, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error {
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return err
+	}
+	if err := cais.validationSvc.ValidateIncidentMapping(controlID, dto.IncidentIDs, "incident_controls", "control_id"); err != nil {
+		return err
+	}
+	tx := cais.repo.BeginTransaction()
+	var mappings []*models.IncidentControl
+	currentTime := time.Now()
+
+	for _, incidentID := range dto.IncidentIDs {
+		mappings = append(mappings, &models.IncidentControl{
+			IncidentRegisterID: incidentID,
+			ControlID:          controlID,
+			CreatedByID:        userID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := cais.repo.CreateControlIncident(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (cais *ControlAssociatedItemService) DeleteControlIncident(controlID uint, incidentID uint) error {
+	// Validate control existence
+	if _, err := cais.controlSvc.GetByID(controlID); err != nil {
+		return err
+	}
+
+	tx := cais.repo.BeginTransaction()
+
+	if err := cais.repo.DeleteControlIncident(controlID, incidentID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

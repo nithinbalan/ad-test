@@ -343,8 +343,6 @@ func (kaic *KPIAssociatedItemController) GetAllKPIAssets(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	status := c.Query("status")
-	quickFilter := c.QueryArray("quick_filter")
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -358,14 +356,12 @@ func (kaic *KPIAssociatedItemController) GetAllKPIAssets(c *gin.Context) {
 		return
 	}
 
-	queryParams := strategyDTOs.KPIAssociatedItemListQueryParamsDTO{
-		Sort:        sort,
-		SortBy:      sortBy,
-		Keyword:     keyword,
-		Status:      status,
-		Page:        page,
-		PageSize:    pageSize,
-		QuickFilter: quickFilter,
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
 	}
 	assets, err := kaic.service.GetAllAssets(uint(kpiId), &queryParams)
 
@@ -386,7 +382,7 @@ func (kaic *KPIAssociatedItemController) GetAllKPIAssets(c *gin.Context) {
 }
 
 func (kaic *KPIAssociatedItemController) CreateKPIAssets(c *gin.Context) {
-	var input strategyDTOs.KPIAssetMapDTO
+	var input commonDTOs.AssociatedAssetMapDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -945,4 +941,117 @@ func (kaic *KPIAssociatedItemController) DeleteKPIStrategicObjective(c *gin.Cont
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Strategic Objective unmapped from KPI successfully"})
+}
+
+func (kaic *KPIAssociatedItemController) GetAllKPIIncidents(c *gin.Context) {
+
+	kpiIdStr := c.Param("kpiRegisterId")
+
+	kpiId, err := strconv.ParseUint(kpiIdStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(kaic.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(kaic.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   sortBy,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	incidents, err := kaic.service.GetAllKPIIncidents(uint(kpiId), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(kaic.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, incidents)
+}
+
+func (kaic *KPIAssociatedItemController) CreateKPIIncident(c *gin.Context) {
+	var input commonDTOs.AssociatedIncidentMapDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	kpiId, err := strconv.ParseUint(c.Param("kpiRegisterId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(kaic.db, c, err.Error())
+		return
+	}
+
+	err = kaic.service.CreateKPIIncident(uint(kpiId), currentUserID, &input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(kaic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusCreated)
+}
+
+func (kaic *KPIAssociatedItemController) DeleteKPIIncident(c *gin.Context) {
+	kpiIDStr := c.Param("kpiRegisterId")
+	incidentIDStr := c.Param("incidentId")
+	kpiID, err := strconv.ParseUint(kpiIDStr, 10, 64)
+
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	err = kaic.service.DeleteKPIIncident(uint(kpiID), uint(incidentID))
+	if err != nil {
+		utility.SendInternalErrResp(kaic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Incident unmapped from KPI successfully"})
 }

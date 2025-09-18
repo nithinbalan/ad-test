@@ -98,7 +98,7 @@ type SLAActionPlanParsedDates struct {
 
 type SLAActionPlanDetailDTO struct {
 	ID                      int                              `json:"id"`
-	SlaRegister             *SLAActionPlanDetailDTO          `json:"sla_register"`
+	SlaRegister             *SLARegisterDetailDTO          `json:"sla_register"`
 	ReferenceNumber         string                           `json:"reference_number"`
 	SLACheckQuestion        *SLACheckQuestionDetailDTO       `json:"sla_check_question"`
 	Title                   string                           `json:"title"`
@@ -106,6 +106,7 @@ type SLAActionPlanDetailDTO struct {
 	SeverityLevel           *masterDTOs.SeverityLevelDTO     `json:"severity_level"`
 	ResponsibleUserID       uint                             `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	ResponsibleUser         organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
+	ReviewUserID            *uint                            `json:"review_user_id"`
 	ReviewUser              organizationDTOs.UserMinimalDTO  `json:"review_user"`
 	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO   `json:"action_plan_status"`
 	Percentage              *uint                            `json:"percentage"`

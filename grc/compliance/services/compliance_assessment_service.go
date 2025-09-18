@@ -29,13 +29,14 @@ type ComplianceAssessmentServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	AssessmentCompletionRollup(assessmentID uint) (*complianceDTOs.AssessmentCompletionRollupDTO, error)
-	GetComplianceStatusSummaryByRequirement(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error)
+	GetComplianceStatusSummary(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error)
 	GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error)
 
 	SubmitComplianceAssessment(assessmentID uint, currentUserID uint) error
 	ApproveComplianceAssessment(assessmentID uint, currentUserID uint) error
 
 	GetApprovalStatus(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentApprovalStatusDTO, error)
+	GetControlApprovalStatus(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentApprovalStatusDTO, error)
 }
 
 // Service and implementations
@@ -141,6 +142,22 @@ func (cras ComplianceAssessmentService) GetFullDetailsByID(id uint, tx ...utilit
 	dto.IsCompleted = allCompleted
 	dto.IsApproved = allApproved
 
+	allControlsCompleted := true
+	allControlsApproved := true
+
+	for _, ctrlModel := range model.AssessmentControls {
+		if !ctrlModel.IsCompleted {
+			allControlsCompleted = false
+		}
+		if ctrlModel.ComplianceAssessmentRequirementStatus == nil || ctrlModel.ComplianceAssessmentRequirementStatus.Type != "approved" {
+			allControlsApproved = false
+		}
+	}
+
+	// Merge requirement + control flags
+	dto.IsCompleted = allCompleted && allControlsCompleted
+	dto.IsApproved = allApproved && allControlsApproved
+
 	dto.CreatedAt = model.CreatedAt
 	dto.UpdatedAt = model.UpdatedAt
 
@@ -185,78 +202,101 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 			tx.Rollback()
 			return err
 		}
-		for _, complianceRequirement := range clauseDetails.ComplianceRequirements {
-			requirement := &models.ComplianceAssessmentRequirement{
-				ComplianceAssessmentID:  id,
-				ComplianceRequirementID: uint(complianceRequirement.ID),
-				ComplianceStatusID:      nil,
-				CreatedBYID:             currentUserID,
-			}
-			requirementId, err := cras.repo.CreateComplianceAssessmentRequirement(requirement, tx)
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
-
-			var deadline *time.Time
-			if complianceRequirement.DeadlineString != nil {
-				parsedDeadline, err := time.Parse("2006-01-02", *complianceRequirement.DeadlineString)
+		// ====================================
+		// CASE 1: Requirement-based assessment
+		// ====================================
+		if compliance.IsRequirementAssessment {
+			fmt.Println("hiiiii")
+			for _, complianceRequirement := range clauseDetails.ComplianceRequirements {
+				requirement := &models.ComplianceAssessmentRequirement{
+					ComplianceAssessmentID:  id,
+					ComplianceRequirementID: uint(complianceRequirement.ID),
+					ComplianceStatusID:      nil,
+					CreatedBYID:             currentUserID,
+				}
+				requirementId, err := cras.repo.CreateComplianceAssessmentRequirement(requirement, tx)
 				if err != nil {
 					tx.Rollback()
 					return err
 				}
-				deadline = &parsedDeadline
-			}
 
-			applicabilityStatus, err := cras.applicablityStatusSvc.GetByType("applicable")
-			if err != nil {
-				return err
-			}
-
-			for _, ru := range complianceRequirement.ResponsibleUnits {
-				// Step 1: Create ComplianceAssessmentRequirementResponsibleUnit one-by-one
-				unit := &models.ComplianceAssessmentRequirementResponsibleUnit{
-					ComplianceAssessmentRequirementID: requirementId,
-					ResponsibleUnitID:                 uint(ru.ResponsibleUnit.ID),
-					Deadline:                          deadline,
-					CreatedBYID:                       currentUserID,
-				}
-				if err := cras.repo.CreateComplianceAssessmentRequirementResponsibleUnit(unit, tx); err != nil {
-					tx.Rollback()
-					return err
-				}
-
-				// Step 2: Create associated DocumentTitles using the created unit's ID
-				var requirementDocumentTitles []*models.ComplianceAssessmentRequirementDocumentTitle
-
-				for _, documentTitle := range complianceRequirement.RequiredDocumentTitles {
-					doc := &models.ComplianceAssessmentRequirementDocumentTitle{
-						ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
-						RequiredDocumentTitleID:                          &documentTitle.RequiredDocumentTitleID,
-						ApplicabilityStatusID:                            applicabilityStatus.ID,
-						CreatedBYID:                                      currentUserID,
-					}
-					requirementDocumentTitles = append(requirementDocumentTitles, doc)
-				}
-
-				// Add an empty document title (with nil RequiredDocumentTitleID)
-				emptyDoc := &models.ComplianceAssessmentRequirementDocumentTitle{
-					ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
-					RequiredDocumentTitleID:                          nil,
-					ApplicabilityStatusID:                            applicabilityStatus.ID,
-					CreatedBYID:                                      currentUserID,
-				}
-				requirementDocumentTitles = append(requirementDocumentTitles, emptyDoc)
-
-				// Bulk insert documents for this unit
-				if len(requirementDocumentTitles) > 0 {
-					if err := cras.repo.CreateComplianceAssessmentRequirementDocumentTitle(requirementDocumentTitles, tx); err != nil {
+				var deadline *time.Time
+				if complianceRequirement.DeadlineString != nil {
+					parsedDeadline, err := time.Parse("2006-01-02", *complianceRequirement.DeadlineString)
+					if err != nil {
 						tx.Rollback()
 						return err
 					}
+					deadline = &parsedDeadline
+				}
+
+				applicabilityStatus, err := cras.applicablityStatusSvc.GetByType("applicable")
+				if err != nil {
+					return err
+				}
+
+				for _, ru := range complianceRequirement.ResponsibleUnits {
+					// Step 1: Create ComplianceAssessmentRequirementResponsibleUnit one-by-one
+					unit := &models.ComplianceAssessmentRequirementResponsibleUnit{
+						ComplianceAssessmentRequirementID: requirementId,
+						ResponsibleUnitID:                 uint(ru.ResponsibleUnit.ID),
+						Deadline:                          deadline,
+						CreatedBYID:                       currentUserID,
+					}
+					if err := cras.repo.CreateComplianceAssessmentRequirementResponsibleUnit(unit, tx); err != nil {
+						tx.Rollback()
+						return err
+					}
+
+					// Step 2: Create associated DocumentTitles using the created unit's ID
+					var requirementDocumentTitles []*models.ComplianceAssessmentRequirementDocumentTitle
+
+					for _, documentTitle := range complianceRequirement.RequiredDocumentTitles {
+						doc := &models.ComplianceAssessmentRequirementDocumentTitle{
+							ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
+							RequiredDocumentTitleID:                          &documentTitle.RequiredDocumentTitleID,
+							ApplicabilityStatusID:                            applicabilityStatus.ID,
+							CreatedBYID:                                      currentUserID,
+						}
+						requirementDocumentTitles = append(requirementDocumentTitles, doc)
+					}
+
+					// Add an empty document title (with nil RequiredDocumentTitleID)
+					emptyDoc := &models.ComplianceAssessmentRequirementDocumentTitle{
+						ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
+						RequiredDocumentTitleID:                          nil,
+						ApplicabilityStatusID:                            applicabilityStatus.ID,
+						CreatedBYID:                                      currentUserID,
+					}
+					requirementDocumentTitles = append(requirementDocumentTitles, emptyDoc)
+
+					// Bulk insert documents for this unit
+					if len(requirementDocumentTitles) > 0 {
+						if err := cras.repo.CreateComplianceAssessmentRequirementDocumentTitle(requirementDocumentTitles, tx); err != nil {
+							tx.Rollback()
+							return err
+						}
+					}
+				}
+
+			}
+		}
+		// =================================
+		// CASE 2: Control-based assessment
+		// =================================
+		if compliance.IsControlAssessment {
+			for _, control := range clauseDetails.ComplianceControls {
+				assessmentControl := &models.ComplianceAssessmentControl{
+					ComplianceAssessmentID: id,
+					ComplianceControlID:    control.ID,
+					IsCompleted:            false,
+					CreatedBYID:            currentUserID,
+				}
+				if err := cras.repo.CreateComplianceAssessmentControl(assessmentControl, tx); err != nil {
+					tx.Rollback()
+					return err
 				}
 			}
-
 		}
 	}
 
@@ -295,7 +335,7 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 		// Send notification and email to review user if assigned
 		if complianceAssessmentFormDTO.ReviewUserID != 0 {
 			// Prepare notification
-			urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d}`, id)
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
 			queryParam := ""
 			entity := "compliance-assessment"
 			action := "review-user-assign"
@@ -451,11 +491,11 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 		}
 
 		// Get the old review user ID for comparison
-		oldReviewUserID := oldComplianceAssessment.ReviewuserID
+		oldReviewUserID := oldComplianceAssessment.ReviewUserID
 
 		// sends notification if review user has changed
 		if oldReviewUserID != complianceAssessmentUpdateFormDTO.ReviewUserID {
-			urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d}`, id)
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
 			queryParam := ""
 			entity := "compliance-assessment"
 
@@ -652,7 +692,19 @@ func (cras *ComplianceAssessmentService) Delete(ids []uint, currentUserID uint) 
 				}
 			}
 		}
+		if len(complianceAssessment.AssessmentControls) > 0 {
+			var deleteControlIds []*uint
+			for _, assmntControl := range complianceAssessment.AssessmentControls {
+				deleteControlIds = append(deleteControlIds, assmntControl.ID)
+			}
 
+			if len(deleteControlIds) > 0 {
+				if err := cras.repo.DeleteComplianceAssessmentControls(deleteControlIds); err != nil {
+					failedIds = append(failedIds, id)
+					continue
+				}
+			}
+		}
 		// Delete the Compliance Assessment itself
 		if err := cras.repo.Delete(id, tx); err != nil {
 			failedIds = append(failedIds, id)
@@ -694,7 +746,8 @@ func (cras *ComplianceAssessmentService) Delete(ids []uint, currentUserID uint) 
 }
 
 func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(complianceAssessmentFormDTO *complianceDTOs.ComplianceAssessmentFormDTO) error {
-	if _, err := cras.complianceRegisterSvc.GetByID(complianceAssessmentFormDTO.ComplianceRegisterID); err != nil {
+	complianceRegister, err := cras.complianceRegisterSvc.GetByID(complianceAssessmentFormDTO.ComplianceRegisterID)
+	if err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance register does not exist"), "not_exist", "compliance register")
 	}
 
@@ -733,17 +786,34 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(com
 	if exists {
 		return utility.NewForbiddenError("assessment_already_in_progress_for_compliance_register")
 	}
-	hasRequirement, err := cras.repo.HasRequirementForRegister(complianceAssessmentFormDTO.ComplianceRegisterID)
-	if err != nil {
-		return fmt.Errorf("failed to validate requirements: %w", err)
+
+	// validate based on register type
+	if complianceRegister.IsRequirementAssessment {
+		hasRequirement, err := cras.repo.HasRequirementForRegister(complianceAssessmentFormDTO.ComplianceRegisterID)
+		if err != nil {
+			return fmt.Errorf("failed to validate requirements: %w", err)
+		}
+		if !hasRequirement {
+			return utility.NewValidationError(
+				fmt.Errorf("no compliance requirements found for this compliance register"),
+				"requirement_not_exist",
+				"compliance requirement",
+			)
+		}
 	}
 
-	if !hasRequirement {
-		return utility.NewValidationError(
-			fmt.Errorf("no compliance requirements found for this compliance register"),
-			"reqirement_not_exist",
-			"compliance requirement",
-		)
+	if complianceRegister.IsControlAssessment {
+		hasControl, err := cras.repo.HasControlForRegister(complianceAssessmentFormDTO.ComplianceRegisterID)
+		if err != nil {
+			return fmt.Errorf("failed to validate controls: %w", err)
+		}
+		if !hasControl {
+			return utility.NewValidationError(
+				fmt.Errorf("no compliance controls found for this compliance register"),
+				"control_not_exist",
+				"compliance control",
+			)
+		}
 	}
 
 	return nil
@@ -789,26 +859,70 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentOrganizatio
 }
 
 func (cras *ComplianceAssessmentService) AssessmentCompletionRollup(assessmentID uint) (*complianceDTOs.AssessmentCompletionRollupDTO, error) {
-	if _, err := cras.GetByID(assessmentID); err != nil {
+	assessment, err := cras.repo.GetFullDetailsByID(assessmentID)
+	if err != nil {
 		return nil, err
 	}
-	return cras.repo.AssessmentCompletionRollup(assessmentID)
+	if assessment.ComplianceRegister == nil {
+		return nil, fmt.Errorf("assessment %d has no compliance register loaded", assessmentID)
+	}
+
+	switch {
+	case assessment.ComplianceRegister.IsControlAssessment:
+		return cras.repo.AssessmentControlCompletionRollup(assessmentID)
+	case assessment.ComplianceRegister.IsRequirementAssessment:
+		return cras.repo.AssessmentRequirementCompletionRollup(assessmentID)
+	default:
+		// fallback: zero summary
+		return &complianceDTOs.AssessmentCompletionRollupDTO{
+			Total:                0,
+			Completed:            0,
+			NotCompleted:         0,
+			CompletionPercentage: 0,
+		}, nil
+	}
 }
 
-func (cras *ComplianceAssessmentService) GetComplianceStatusSummaryByRequirement(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error) {
-	if _, err := cras.GetByID(assessmentID); err != nil {
+func (cras *ComplianceAssessmentService) GetComplianceStatusSummary(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error) {
+	assessment, err := cras.repo.GetFullDetailsByID(assessmentID)
+	if err != nil {
 		return nil, err
 	}
-	return cras.repo.GetComplianceStatusSummaryByRequirement(assessmentID)
+	if assessment.ComplianceRegister == nil {
+		return nil, fmt.Errorf("assessment %d has no compliance register loaded", assessmentID)
+	}
+
+	switch {
+	case assessment.ComplianceRegister.IsControlAssessment:
+		return cras.repo.GetComplianceStatusSummaryByControl(assessmentID)
+	case assessment.ComplianceRegister.IsRequirementAssessment:
+		return cras.repo.GetComplianceStatusSummaryByRequirement(assessmentID)
+	default:
+		return []complianceDTOs.ComplianceStatusCountDTO{}, nil
+	}
 }
 
 func (cras *ComplianceAssessmentService) GetComplianceScoreSummary(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error) {
-	// Optional: ensure the assessment exists (keeps behavior consistent with your other methods)
-	if _, err := cras.GetByID(assessmentID); err != nil {
+	assessment, err := cras.repo.GetFullDetailsByID(assessmentID)
+	if err != nil {
 		return nil, err
 	}
+	if assessment.ComplianceRegister == nil {
+		return nil, fmt.Errorf("assessment %d has no compliance register loaded", assessmentID)
+	}
 
-	return cras.repo.GetComplianceScoreSummary(assessmentID)
+	switch {
+	case assessment.ComplianceRegister.IsControlAssessment:
+		return cras.repo.GetComplianceScoreSummaryByControl(assessmentID)
+	case assessment.ComplianceRegister.IsRequirementAssessment:
+		return cras.repo.GetComplianceScoreSummaryByRequirement(assessmentID)
+	default:
+		// no-op: return zeros
+		return &complianceDTOs.ComplianceScoreSummaryDTO{
+			TotalRequirements: 0,
+			AverageScore:      0,
+		}, nil
+	}
 }
 
 func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID uint, currentUserID uint) error {
@@ -954,7 +1068,7 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 		return err
 	}
 
-	assessment, err := cras.GetByID(assessmentID)
+	assessment, err := cras.repo.GetByID(assessmentID)
 	if err != nil {
 		return err
 	}
@@ -981,32 +1095,45 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 		tx.Rollback()
 		return err
 	}
-
-	scores, err := cras.CalculateComplianceScores(assessmentID, tx)
+	assessmentDetails, err := cras.repo.GetMinimalDetailsByID(assessmentID, tx)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
-
-	reqEval := make(map[uint]complianceDTOs.ComplianceRequirementScoreStatusDTO)
-	for _, s := range scores {
-		if s == nil || s.ComplianceAssessmentRequirementID == 0 || s.MappedComplianceStatusID == nil {
-			continue
+	if assessmentDetails.ComplianceRegister.IsRequirementAssessment {
+		scores, err := cras.CalculateComplianceRequirementScores(assessmentID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
 		}
-		pct := s.Score
-		pctCopy := pct
-		reqEval[s.ComplianceAssessmentRequirementID] = complianceDTOs.ComplianceRequirementScoreStatusDTO{
-			ComplianceStatusID: s.MappedComplianceStatusID,
-			Score:              &pctCopy,
-		}
-	}
 
-	if err := cras.UpdateComplianceRequirementValueFromScores(assessmentID, reqEval, tx); err != nil {
-		tx.Rollback()
-		return err
+		reqEval := make(map[uint]complianceDTOs.ComplianceRequirementScoreStatusDTO)
+		for _, s := range scores {
+			if s == nil || s.ComplianceAssessmentRequirementID == 0 || s.MappedComplianceStatusID == nil {
+				continue
+			}
+			pct := s.Score
+			pctCopy := pct
+			reqEval[s.ComplianceAssessmentRequirementID] = complianceDTOs.ComplianceRequirementScoreStatusDTO{
+				ComplianceStatusID: s.MappedComplianceStatusID,
+				Score:              &pctCopy,
+			}
+		}
+
+		if err := cras.UpdateComplianceRequirementValueFromScores(assessmentID, reqEval, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	} else if assessmentDetails.ComplianceRegister.IsControlAssessment {
+		// Control-based scoring
+		_, err := cras.CalculateComplianceControlScores(assessmentID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	tx.Commit()
+
 	go func() {
 		err := cras.activityLogSvc.LogActivity(
 			models.UpdateAction,
@@ -1249,21 +1376,8 @@ func (cras *ComplianceAssessmentService) UpdateClauseStatusesFromScores(assessme
 	return nil
 }
 
-func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID uint, tx ...utility.DatabaseTransaction) ([]*complianceDTOs.ResponsibleUnitComplianceScoreDTO, error) {
+func (cras *ComplianceAssessmentService) CalculateComplianceRequirementScores(assessmentID uint, tx ...utility.DatabaseTransaction) ([]*complianceDTOs.ResponsibleUnitComplianceScoreDTO, error) {
 	assessment, err := cras.repo.GetFullDetailsByID(assessmentID, tx...)
-	if err != nil {
-		return nil, err
-	}
-	// Canonical status ids for clause roll-up
-	compliant, err := cras.complianceStatusSvc.GetByType("compliant")
-	if err != nil {
-		return nil, err
-	}
-	partial, err := cras.complianceStatusSvc.GetByType("partially_compliant")
-	if err != nil {
-		return nil, err
-	}
-	notImpl, err := cras.complianceStatusSvc.GetByType("not_implemented")
 	if err != nil {
 		return nil, err
 	}
@@ -1271,7 +1385,6 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 	if err != nil {
 		return nil, err
 	}
-	// fmt.Println("=== CalculateComplianceScores Debug ===")
 
 	frameworkType := ""
 	frameworkValuesMap := make(map[uint]int)
@@ -1292,10 +1405,6 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 		}
 	}
 
-	// fmt.Println("Framework Type:", frameworkType)
-	// fmt.Println("Framework Values Map:", frameworkValuesMap)
-	// fmt.Println("Max Value In Framework:", maxValueInFramework)
-
 	// per-requirement max (dynamic)
 	perReqMax := func() float64 {
 		switch frameworkType {
@@ -1315,7 +1424,6 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 			return 100.0
 		}
 	}()
-	// fmt.Println("Per Requirement Max:", perReqMax)
 
 	// Map to track responsibleUnit scores
 	responsibleUnitScores := make(map[uint]*complianceDTOs.ResponsibleUnitComplianceScoreDTO)
@@ -1327,14 +1435,13 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 			reqClause[req.ID] = req.ComplianceRequirement.ComplianceClauseID
 		}
 		ComplianceClauseID := req.ComplianceRequirement.ComplianceClauseID
-		// fmt.Println("ComplianceClauseID ID----:", ComplianceClauseID)
+
 		applicableFound := false
 		notApplicableCount := 0
-		for _, ru := range req.ResponsibleUnits {
 
+		for _, ru := range req.ResponsibleUnits {
 			complianceAssessmentRequirementID := ru.ComplianceAssessmentRequirementID
 
-			// fmt.Println("complianceAssessmentRequirement ID:", complianceAssessmentRequirementID)
 			if responsibleUnitScores[complianceAssessmentRequirementID] == nil {
 				responsibleUnitScores[complianceAssessmentRequirementID] = &complianceDTOs.ResponsibleUnitComplianceScoreDTO{
 					ComplianceRegisterID:              assessment.ComplianceRegisterID,
@@ -1345,20 +1452,18 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 			if responsibleUnitScores[complianceAssessmentRequirementID].ComplianceClauseID == 0 {
 				responsibleUnitScores[complianceAssessmentRequirementID].ComplianceClauseID = ComplianceClauseID
 			}
-			isApplicable := true
-			// fmt.Println("isApplicable:", ru.ComplianceAssessmentFrameworkValue.IsApplicable)
 
+			isApplicable := true
 			if ru.ComplianceAssessmentFrameworkValueID != nil {
 				isApplicable = ru.ComplianceAssessmentFrameworkValue.IsApplicable
 			}
-			// Only count applicable requirements
 			if !isApplicable {
 				notApplicableCount++
 				continue
 			}
+
 			applicableFound = true
 			responsibleUnitScores[complianceAssessmentRequirementID].TotalRequirements++
-			// totalRequirements++
 
 			switch frameworkType {
 			case "point", "maturity":
@@ -1384,8 +1489,8 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 					}
 				}
 			}
-
 		}
+
 		// If NO applicable RU and at least one NA → mark whole requirement NA
 		if !applicableFound && notApplicableCount > 0 {
 			if err := cras.repo.UpdateComplianceAssessmentRequirementStatus(
@@ -1400,18 +1505,16 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 		}
 	}
 
-	type clauseAgg struct{ total, compliant, partial, notImpl int }
+	// Clause aggregation structures
 	type clauseScoreAgg struct {
 		sum   float64
 		count int
 	}
-	clauseCounts := make(map[uint]*clauseAgg)      // clauseID -> counts
-	clauseScores := make(map[uint]*clauseScoreAgg) // clauseID -> score sum/count
+	clauseScores := make(map[uint]*clauseScoreAgg)
 
 	// Calculate final percentages and statuses for each responsibleUnit
 	var results []*complianceDTOs.ResponsibleUnitComplianceScoreDTO
 	for _, responsibleUnitScore := range responsibleUnitScores {
-		// fmt.Println("responsibleUnitScore ID:", responsibleUnitScore.ComplianceAssessmentRequirementID)
 		if responsibleUnitScore.MappedComplianceStatusID != nil &&
 			*responsibleUnitScore.MappedComplianceStatusID == notApplicable.ID {
 			results = append(results, responsibleUnitScore)
@@ -1425,140 +1528,101 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 			}
 		}
 
-		// fmt.Println("Compliance Percentage:", responsibleUnitScore.CompliancePercentage)
-		// fmt.Println("Score (Rounded):", responsibleUnitScore.Score)
-
-		// Map to framework range → status (once)
+		// Map requirement score % → status
 		if assessment.ComplianceRegister != nil && assessment.ComplianceRegister.ComplianceAssessmentFramework != nil {
 			for _, fv := range assessment.ComplianceRegister.ComplianceAssessmentFramework.Values {
 				if fv != nil && fv.ScoreMin != nil && fv.ScoreMax != nil {
 					min := float64(*fv.ScoreMin)
 					max := float64(*fv.ScoreMax)
 					score := responsibleUnitScore.CompliancePercentage
-
-					// For the top band (highest max), include equality
 					if score >= min && (score < max || (score == max && max == 100)) {
 						responsibleUnitScore.MappedFrameworkValueID = &fv.ID
 						responsibleUnitScore.MappedComplianceStatusID = &fv.ComplianceStatusID
 						break
 					}
 				}
-
 			}
 		}
 		results = append(results, responsibleUnitScore)
-		// Update register status ONCE based on responsibleUnitScore mapping
+
 		if responsibleUnitScore.MappedComplianceStatusID != nil {
-			// fmt.Printf("Updating status: ComplianceAssessmentRequirementID=%v, StatusID=%v\n", responsibleUnitScore.ComplianceAssessmentRequirementID, *responsibleUnitScore.MappedComplianceStatusID)
-			if err := cras.repo.UpdateComplianceAssessmentRequirementStatus(responsibleUnitScore.ComplianceAssessmentRequirementID, *responsibleUnitScore.MappedComplianceStatusID, responsibleUnitScore.Score, tx...); err != nil {
+			if err := cras.repo.UpdateComplianceAssessmentRequirementStatus(
+				responsibleUnitScore.ComplianceAssessmentRequirementID,
+				*responsibleUnitScore.MappedComplianceStatusID,
+				responsibleUnitScore.Score,
+				tx...,
+			); err != nil {
 				return nil, err
 			}
 		}
-		// Collect for clause roll-up
+
+		// Collect clause averages
 		if clauseID, ok := reqClause[responsibleUnitScore.ComplianceAssessmentRequirementID]; ok && clauseID != 0 {
-			if clauseCounts[clauseID] == nil {
-				clauseCounts[clauseID] = &clauseAgg{}
-			}
 			if clauseScores[clauseID] == nil {
 				clauseScores[clauseID] = &clauseScoreAgg{}
 			}
-
-			cc := clauseCounts[clauseID]
 			cs := clauseScores[clauseID]
-
-			cc.total++
-			switch {
-			case responsibleUnitScore.MappedComplianceStatusID == nil:
-				cc.notImpl++
-			case *responsibleUnitScore.MappedComplianceStatusID == compliant.ID:
-				cc.compliant++
-			case *responsibleUnitScore.MappedComplianceStatusID == partial.ID:
-				cc.partial++
-			case *responsibleUnitScore.MappedComplianceStatusID == notImpl.ID:
-				cc.notImpl++
-			default:
-				cc.partial++
-			}
-
-			// Score: use AR score (0–100). Treat missing as 0 and still count.
 			cs.count++
 			cs.sum += responsibleUnitScore.Score
 		}
 	}
 
-	// Persist clause status + average score (one update per clause)
-	// --- before clause loop: keep as-is ---
-	// clauseCounts, clauseScores already exist
-
-	// NEW: collect clause averages
+	// Persist clause status + average score
 	clauseAverages := make([]float64, 0)
-	var (
-		clausesTotal     int
-		clausesCompliant int
-		clausesPartial   int
-		clausesNotImpl   int
-	)
-	// ========= OVERALL CLAUSE SCORE(based on REQ AVERAGES) =========
-	// ---- persist clause status + average score (one update per clause) ----
-	for clauseID, cc := range clauseCounts {
-		// decide clause status (same logic)
-		var setStatusID uint
-		switch {
-		case cc.partial > 0:
-			setStatusID = partial.ID
-			clausesPartial++
-		case cc.total > 0 && cc.compliant == cc.total:
-			setStatusID = compliant.ID
-			clausesCompliant++
-		case cc.total > 0 && cc.notImpl == cc.total:
-			setStatusID = notImpl.ID
-			clausesNotImpl++
-		default:
-			setStatusID = partial.ID
-			clausesPartial++
-		}
-		clausesTotal++
-		// average score (0–100), 2 dp
-		cs := clauseScores[clauseID]
+	for clauseID, cs := range clauseScores {
 		avg := 0.0
 		if cs != nil && cs.count > 0 {
 			avg = cs.sum / float64(cs.count)
 			avg = math.Round(avg*100) / 100
 		}
 
-		// persist clause status + score
-		if err := cras.repo.UpdateClauseComplianceStatus(clauseID, setStatusID, avg, tx...); err != nil {
+		// Map clause % → status
+		var clauseStatusID uint
+		if assessment.ComplianceRegister != nil && assessment.ComplianceRegister.ComplianceAssessmentFramework != nil {
+			for _, fv := range assessment.ComplianceRegister.ComplianceAssessmentFramework.Values {
+				if fv != nil && fv.ScoreMin != nil && fv.ScoreMax != nil {
+					min := float64(*fv.ScoreMin)
+					max := float64(*fv.ScoreMax)
+					if avg >= min && (avg < max || (avg == max && max == 100)) {
+						clauseStatusID = fv.ComplianceStatusID
+						break
+					}
+				}
+			}
+		}
+
+		if err := cras.repo.UpdateClauseComplianceStatus(clauseID, clauseStatusID, avg, tx...); err != nil {
 			return nil, err
 		}
 
-		// collect avg for overall
 		clauseAverages = append(clauseAverages, avg)
 	}
 
-	// ========= OVERALL COMPLIANCE SCORE(based on CLAUSE AVERAGES) =========
-	if clausesTotal > 0 {
-		// overall score
+	// ========= OVERALL COMPLIANCE SCORE (based on CLAUSE AVERAGES) =========
+	if len(clauseAverages) > 0 {
 		var sum float64
 		for _, v := range clauseAverages {
 			sum += v
 		}
-		overallPct := sum / float64(len(clauseAverages)) // already 0–100
+		overallPct := sum / float64(len(clauseAverages))
 		if overallPct == 100 {
 			overallPct = 99.99
 		}
 		overallScore := float64(int(overallPct*100)) / 100
 
-		// overall status (mirror clause logic)
+		// Map overall % → status
 		var overallStatusID uint
-		switch {
-		case clausesPartial > 0:
-			overallStatusID = partial.ID
-		case clausesCompliant == clausesTotal:
-			overallStatusID = compliant.ID
-		case clausesNotImpl == clausesTotal:
-			overallStatusID = notImpl.ID
-		default:
-			overallStatusID = partial.ID
+		if assessment.ComplianceRegister != nil && assessment.ComplianceRegister.ComplianceAssessmentFramework != nil {
+			for _, fv := range assessment.ComplianceRegister.ComplianceAssessmentFramework.Values {
+				if fv != nil && fv.ScoreMin != nil && fv.ScoreMax != nil {
+					min := float64(*fv.ScoreMin)
+					max := float64(*fv.ScoreMax)
+					if overallPct >= min && (overallPct < max || (overallPct == max && max == 100)) {
+						overallStatusID = fv.ComplianceStatusID
+						break
+					}
+				}
+			}
 		}
 
 		if err := cras.repo.UpdateComplianceStatus(assessment.ComplianceRegisterID, overallStatusID, overallScore, tx...); err != nil {
@@ -1566,7 +1630,256 @@ func (cras *ComplianceAssessmentService) CalculateComplianceScores(assessmentID 
 		}
 	}
 
-	// fmt.Println("=== End CalculateComplianceScores ===")
+	return results, nil
+}
+
+func (cras *ComplianceAssessmentService) CalculateComplianceControlScores(assessmentID uint, tx ...utility.DatabaseTransaction) ([]*complianceDTOs.ControlComplianceScoreDTO, error) {
+	assessment, err := cras.repo.GetFullDetailsByID(assessmentID, tx...)
+	if err != nil {
+		return nil, err
+	}
+
+	// ---------------- Framework setup ----------------
+	frameworkType := ""
+	var frameworkValues []*models.ComplianceAssessmentFrameworkValue
+	frameworkValuesMap := make(map[uint]int) // framework_value_id -> numeric raw value (points/binary)
+	maxValueInFramework := 0
+
+	if reg := assessment.ComplianceRegister; reg != nil && reg.ComplianceAssessmentFramework != nil {
+		if ft := reg.ComplianceAssessmentFramework.AssessmentFrameworkType; ft != nil {
+			frameworkType = ft.Type
+		}
+		frameworkValues = assessment.ComplianceRegister.ComplianceAssessmentFramework.Values
+		for _, v := range frameworkValues {
+			if v != nil && v.ID > 0 && v.Value != nil {
+				frameworkValuesMap[v.ID] = *v.Value
+				if *v.Value > maxValueInFramework {
+					maxValueInFramework = *v.Value
+				}
+			}
+		}
+	}
+
+	// Per-control max for denominator
+	perControlMax := func() float64 {
+		switch frameworkType {
+		case "percentage":
+			return 100.0
+		case "binary":
+			return 1.0
+		case "point", "maturity":
+			if maxValueInFramework > 0 {
+				return float64(maxValueInFramework)
+			}
+			// sensible fallbacks
+			if frameworkType == "point" {
+				return 2.0
+			}
+			return 5.0
+		default:
+			return 100.0
+		}
+	}()
+	// ---- DEBUG toggle ----
+	// const DEBUG = true
+	// debugf := func(format string, args ...any) {
+	// 	if DEBUG {
+	// 		fmt.Printf(format, args...)
+	// 	}
+	// }
+	// Map % (0–100) -> framework band/status (from ScoreMin/ScoreMax ranges).
+	// IMPORTANT: For SAMA point/maturity, ScoreMin/ScoreMax are already percentages.
+	mapPctToBand := func(pct float64) (fvID *uint, statusID *uint) {
+		if assessment.ComplianceRegister == nil || assessment.ComplianceRegister.ComplianceAssessmentFramework == nil {
+			return nil, nil
+		}
+		for _, fv := range frameworkValues {
+			if fv == nil || fv.ScoreMin == nil || fv.ScoreMax == nil {
+				continue
+			}
+			min := float64(*fv.ScoreMin) // already %
+			max := float64(*fv.ScoreMax) // already %
+
+			// debugf("[mapPctToBand] pct=%.2f  fv=%d  band=[%.2f, %.2f]  status=%d\n",
+			// 	pct, fv.ID, min, max, fv.ComplianceStatusID)
+
+			if pct >= min && (pct < max || (math.Abs(pct-max) < 1e-9 && math.Abs(max-100.0) < 1e-9)) {
+				id := fv.ID
+				st := fv.ComplianceStatusID
+				return &id, &st
+			}
+		}
+		// debugf("[mapPctToBand] NO MATCH for pct=%.2f (framework=%s)\n", pct, frameworkType)
+		return nil, nil
+	}
+
+	// ---------------- Applicability + group controls by clause ----------------
+	notApplicable, err := cras.complianceStatusSvc.GetByType("not_applicable")
+	if err != nil {
+		return nil, err
+	}
+
+	type clauseStat struct {
+		total         int // total controls under clause
+		applicable    int // CAFV.IsApplicable = true
+		notApplicable int // CAFV.IsApplicable = false (explicit)
+	}
+
+	clauseControls := make(map[uint][]*models.ComplianceAssessmentControl) // applicable only (for scoring)
+	clauseStats := make(map[uint]*clauseStat)                              // applicability counters
+
+	for _, ac := range assessment.AssessmentControls {
+		if ac == nil || ac.ComplianceControl == nil || ac.ComplianceControl.ComplianceClauseID == nil {
+			continue
+		}
+		clauseID := *ac.ComplianceControl.ComplianceClauseID
+
+		if clauseStats[clauseID] == nil {
+			clauseStats[clauseID] = &clauseStat{}
+		}
+		cs := clauseStats[clauseID]
+		cs.total++
+
+		// Determine applicability
+		isApplicable := false
+		if ac.ComplianceAssessmentFrameworkValue != nil {
+			isApplicable = ac.ComplianceAssessmentFrameworkValue.IsApplicable
+		}
+		if isApplicable {
+			cs.applicable++
+			clauseControls[clauseID] = append(clauseControls[clauseID], ac)
+		} else {
+			if ac.ComplianceAssessmentFrameworkValue != nil {
+				cs.notApplicable++
+			}
+		}
+
+		// Sync control metadata + control's control status
+		var statusID *uint
+		if ac.ComplianceAssessmentFrameworkValue != nil {
+			sid := ac.ComplianceAssessmentFrameworkValue.ComplianceStatusID
+			statusID = &sid
+		}
+		dto := complianceDTOs.ControlSyncUpdateDTO{
+			ControlID:                            ac.ComplianceControl.ControlID,
+			ComplianceControlID:                  ac.ComplianceControlID,
+			ComplianceAssessmentFrameworkValueID: ac.ComplianceAssessmentFrameworkValueID,
+			CompletedByUserID:                    ac.CompletedByUserID,
+			CompletedAt:                          ac.CompletedAt,
+			ComplianceStatusID:                   statusID,
+		}
+		if err := cras.repo.UpdateControlComplianceStatus(dto, tx...); err != nil {
+			return nil, err
+		}
+		if err := cras.repo.UpdateComplianceControlMeta(dto, tx...); err != nil {
+			return nil, err
+		}
+	}
+
+	// return signature satisfaction (you don't need per-control DTOs)
+	var results []*complianceDTOs.ControlComplianceScoreDTO
+
+	// ---------------- Compute per-clause score & update ----------------
+	var (
+		clauseCount   int     // number of clauses that produced a numeric score
+		sumClauseAvgs float64 // sum of clause scores used in overall
+		totalClauses  int
+		naClauses     int
+	)
+
+	for clauseID, stat := range clauseStats {
+		totalClauses++
+
+		// All controls in clause are NA → mark clause NA and skip from overall
+		if stat.total > 0 && stat.applicable == 0 && stat.notApplicable == stat.total {
+			// debugf("[CLAUSE %d] all controls NA → set status=not_applicable, score=0\n", clauseID)
+			if err := cras.repo.UpdateClauseComplianceStatus(clauseID, notApplicable.ID, 0, tx...); err != nil {
+				return nil, err
+			}
+			naClauses++
+			continue
+		}
+
+		// Only average applicable controls
+		ctrls := clauseControls[clauseID]
+		if len(ctrls) == 0 {
+			// debugf("[CLAUSE %d] no applicable controls → skip averaging\n", clauseID)
+			continue // neither score nor status change here
+		}
+
+		var totalScore, maxPossible float64
+		for _, ac := range ctrls {
+			switch frameworkType {
+			case "point", "maturity":
+				maxPossible += perControlMax
+				if ac.ComplianceAssessmentFrameworkValueID != nil {
+					if val, ok := frameworkValuesMap[*ac.ComplianceAssessmentFrameworkValueID]; ok {
+						totalScore += float64(val)
+						// vStr = fmt.Sprintf("%d", val)
+					}
+				}
+				// debugf("  [ctrl #%d] point val=%s  maxPossible+=%.0f  totals: score=%.2f max=%.2f\n",
+				// 	ac.ID, vStr, perControlMax, totalScore, maxPossible)
+
+			case "percentage":
+				if ac.Score != nil {
+					totalScore += float64(*ac.Score)
+					maxPossible += 100.0
+				}
+			case "binary":
+				maxPossible += 1.0
+				if ac.ComplianceAssessmentFrameworkValueID != nil {
+					if raw, ok := frameworkValuesMap[*ac.ComplianceAssessmentFrameworkValueID]; ok && raw > 0 {
+						totalScore += 1.0
+					}
+				}
+			default:
+				if ac.Score != nil {
+					totalScore += float64(*ac.Score)
+					maxPossible += 100.0
+				}
+			}
+		}
+
+		if maxPossible <= 0 {
+			// debugf("[CLAUSE %d] maxPossible=0 → skip\n", clauseID)
+			continue
+		}
+
+		clausePct := (totalScore / maxPossible) * 100.0
+		clauseScore := math.Round(clausePct*100) / 100
+		// debugf("[CLAUSE %d] totalScore=%.2f max=%.2f → pct=%.2f score=%.2f\n",
+		// 	clauseID, totalScore, maxPossible, clausePct, clauseScore)
+
+		if _, stID := mapPctToBand(clausePct); stID != nil {
+			// debugf("[CLAUSE %d] mapped statusID=%d → updating DB\n", clauseID, *stID)
+			if err := cras.repo.UpdateClauseComplianceStatus(clauseID, *stID, clauseScore, tx...); err != nil {
+				// debugf("[CLAUSE %d] update ERROR: %v\n", clauseID, err)
+				return nil, err
+			}
+		}
+
+		sumClauseAvgs += clauseScore
+		clauseCount++
+	}
+
+	// ---------------- Overall (average of clause averages) ----------------
+	if clauseCount > 0 {
+		overall := math.Round((sumClauseAvgs/float64(clauseCount))*100) / 100
+		if _, stID := mapPctToBand(overall); stID != nil {
+			// debugf("[OVERALL] score=%.2f statusID=%d → updating register\n", overall, *stID)
+			if err := cras.repo.UpdateComplianceStatus(assessment.ComplianceRegisterID, *stID, overall, tx...); err != nil {
+				// debugf("[OVERALL] update ERROR: %v\n", err)
+				return nil, err
+			}
+		}
+	} else if totalClauses > 0 && naClauses == totalClauses {
+		// debugf("[OVERALL] all clauses NA → set register NA, score=0\n")
+		if err := cras.repo.UpdateComplianceStatus(assessment.ComplianceRegisterID, notApplicable.ID, 0, tx...); err != nil {
+			return nil, err
+		}
+	}
+
 	return results, nil
 }
 
@@ -1598,6 +1911,32 @@ func (cras ComplianceAssessmentService) GetApprovalStatus(id uint, tx ...utility
 
 		if !isApproved {
 			break
+		}
+	}
+
+	return &complianceDTOs.ComplianceAssessmentApprovalStatusDTO{
+		AssessmentID: id,
+		IsApproved:   isApproved,
+	}, nil
+}
+func (cras ComplianceAssessmentService) GetControlApprovalStatus(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentApprovalStatusDTO, error) {
+
+	model, err := cras.repo.GetFullDetailsByID(id, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	isApproved := true
+	if isApproved { // only check if requirements already passed
+		for _, ctrl := range model.AssessmentControls {
+			if ctrl.ComplianceAssessmentRequirementStatus == nil ||
+				ctrl.ComplianceAssessmentRequirementStatus.Type != "approved" {
+				isApproved = false
+				break
+			}
 		}
 	}
 

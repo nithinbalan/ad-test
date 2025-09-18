@@ -65,7 +65,7 @@ func (repo *RoleRepository) GetAll(sort string, sortBy string, keyword string, s
 	}
 
 	if status == "active" || status == "inactive" {
-		query = query.Where("status = ?", status)
+		query = query.Where("roles.status = ?", status)
 	}
 
 	if licenseTypeID != "" {

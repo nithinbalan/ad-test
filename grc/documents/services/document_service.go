@@ -86,6 +86,7 @@ type DocumentService struct {
 	orgLevelSvc               settinsSvc.OrganizationLevelServiceInterface
 	reviewFrequencySvc        masterSvc.ReviewFrequencyServiceInterface
 	systemPreferenceSvc       settinsSvc.SystemPreferenceServiceInterface
+	workflowContextSvc        masterSvc.WorkflowContextServiceInterface
 }
 
 func NewDocumentService(
@@ -106,6 +107,7 @@ func NewDocumentService(
 	orgLevelSvc settinsSvc.OrganizationLevelServiceInterface,
 	reviewFrequencySvc masterSvc.ReviewFrequencyServiceInterface,
 	systemPreferenceSvc settinsSvc.SystemPreferenceServiceInterface,
+	workflowContextSvc masterSvc.WorkflowContextServiceInterface,
 ) DocumentServiceInterface {
 	return &DocumentService{
 		repo:                      repo,
@@ -125,6 +127,7 @@ func NewDocumentService(
 		orgLevelSvc:               orgLevelSvc,
 		reviewFrequencySvc:        reviewFrequencySvc,
 		systemPreferenceSvc:       systemPreferenceSvc,
+		workflowContextSvc:        workflowContextSvc,
 	}
 }
 
@@ -230,7 +233,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 	}
 
 	document := &models.Document{
-		DocumentTypeID:       &documentFormDTO.DocumentTypeID,
+		DocumentTypeID:       documentFormDTO.DocumentTypeID,
 		TitleEn:              documentFormDTO.TitleEn,
 		TitleAr:              documentFormDTO.TitleAr,
 		DescriptionEn:        documentFormDTO.DescriptionEn,
@@ -426,7 +429,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		}
 	}
 
-	err = ds.documentWorkflowSvc.CreateDocumentWorkflow(id, docVersionId, documentFormDTO.DocumentTypeID, currentUserID, tx)
+	err = ds.documentWorkflowSvc.CreateDocumentWorkflow(id, docVersionId, *documentFormDTO.DocumentTypeID, currentUserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -548,13 +551,13 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	}
 
 	// Check if the document type has changed
-	documentTypeChanged := existingDocument.DocumentTypeID != &documentFormDTO.DocumentTypeID
+	documentTypeChanged := *existingDocument.DocumentTypeID != *documentFormDTO.DocumentTypeID
 	if documentTypeChanged {
 		documentStatus, err := ds.documentStatusSvc.GetByType("draft")
 		if err != nil {
 			return err
 		}
-		if existingDocument.DocumentStatusID != &documentStatus.ID {
+		if *existingDocument.DocumentStatusID != documentStatus.ID {
 			return utility.NewForbiddenError("Document type can only be changed in draft status")
 		}
 	}
@@ -564,7 +567,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		if err != nil {
 			return err
 		}
-		if existingDocument.DocumentStatusID != &documentStatus.ID {
+		if *existingDocument.DocumentStatusID != documentStatus.ID {
 			return utility.NewForbiddenError("Document can only be changed in draft status")
 		}
 	}
@@ -573,7 +576,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		return err
 	}
 
-	existingDocument.DocumentTypeID = &documentFormDTO.DocumentTypeID
+	existingDocument.DocumentTypeID = documentFormDTO.DocumentTypeID
 	existingDocument.TitleEn = documentFormDTO.TitleEn
 	existingDocument.TitleAr = documentFormDTO.TitleAr
 	existingDocument.DescriptionEn = documentFormDTO.DescriptionEn
@@ -955,8 +958,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		}
 	}
 
-	if existingDocumentTypeID != &documentFormDTO.DocumentTypeID {
-
+	if *existingDocumentTypeID != *documentFormDTO.DocumentTypeID {
 		var deleteDocumentWorkflowIds []*uint
 		var deleteDocumentWorkflowParticipantIds []*uint
 		var deleteDocumentWorkflowReviewIds []*uint
@@ -1012,7 +1014,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			return err
 		}
 
-		err = ds.documentWorkflowSvc.CreateDocumentWorkflow(id, documentFullDetails.LatestDocumentVersion.ID, documentFormDTO.DocumentTypeID, currentUserID, tx)
+		err = ds.documentWorkflowSvc.CreateDocumentWorkflow(id, documentFullDetails.LatestDocumentVersion.ID, *documentFormDTO.DocumentTypeID, currentUserID, tx)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -1340,11 +1342,16 @@ func (ds *DocumentService) validateDocumentFormDTO(documentFormDTO *documentDTOs
 		return utility.NewValidationError(fmt.Errorf("document category does not exist"), "not_exist", "document category")
 	}
 
-	if _, err := ds.documentTypeSvc.GetByID(documentFormDTO.DocumentTypeID); err != nil {
+	if _, err := ds.documentTypeSvc.GetByID(*documentFormDTO.DocumentTypeID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("document type does not exist"), "not_exist", "document type")
 	}
 
-	if _, err := ds.workflowSvc.GetWorkflowByDocumentType(documentFormDTO.DocumentTypeID); err != nil {
+	workflowContext, err := ds.workflowContextSvc.GetByType("document_register")
+	if err != nil {
+		return err
+	}
+
+	if _, err := ds.workflowSvc.GetWorkflowByDocumentType(*documentFormDTO.DocumentTypeID, workflowContext.ID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("document type workflow does not exist"), "not_exist", "document type workflow")
 	}
 

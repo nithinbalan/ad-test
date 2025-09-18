@@ -31,6 +31,7 @@ type ComplianceClause struct {
 	CreatedByUser          *User                    `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser          *User                    `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceRequirements []*ComplianceRequirement `gorm:"foreignKey:ComplianceClauseID"`
+	ComplianceControls     []*ComplianceControl     `gorm:"foreignKey:ComplianceClauseID"` // ✅ NEW relationship
 }
 
 // TableName overrides the table name used by ComplianceClause to `compliance_clauses`

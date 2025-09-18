@@ -6,13 +6,18 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"jethur/config"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	meetingDTOs "jethur/grc/meeting/dtos"
 	"jethur/grc/meeting/repositories"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
+	taskServices "jethur/grc/task/services"
 	"jethur/utility"
 
 	"gorm.io/gorm"
@@ -25,6 +30,8 @@ type MeetingActionPlanStatusUpdateServiceInterface interface {
 	Update(meetingID uint, meetingActionPlanID uint, id uint, currentUserID uint, meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO) error
 	GetLatestMeetingActionPlanStatusUpdate(meetingID uint, actionPlanID uint) (*meetingDTOs.MeetingActionPlanStatusUpdateListDTO, error)
 	GetDocumentPath(meetingID uint, meetingActionPlanID uint, id uint, token string) (string, error)
+	Approve(meetingId uint, actionPlanID uint, currentUserID uint, MeetingActionPlanReviewUserStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanReviewUserStatusUpdateFormDTO) error
+	Revert(meetingId uint, actionPlanID uint, currentUserID uint, MeetingActionPlanReviewUserStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanReviewUserStatusUpdateFormDTO) error
 }
 
 type MeetingActionPlanStatusUpdateService struct {
@@ -34,6 +41,11 @@ type MeetingActionPlanStatusUpdateService struct {
 	actionPlanStatusSvc    masterServices.ActionPlanStatusServiceInterface
 	meetingMinuteSvc       MeetingMinuteServiceInterface
 	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface
+	meetingSvc             MeetingServiceInterface
+	taskSvc                taskServices.TaskServiceInterface
+	taskStatusSvc          taskServices.TaskStatusServiceInterface
+	userSvc                organizationServices.UserServiceInterface
+	notificationSvc        commonServices.NotificationServiceInterface
 }
 
 func NewMeetingActionPlanStatusUpdateService(
@@ -43,6 +55,11 @@ func NewMeetingActionPlanStatusUpdateService(
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	meetingMinuteSvc MeetingMinuteServiceInterface,
 	meetingMinuteStatusSvc MeetingMinuteStatusServiceInterface,
+	meetingSvc MeetingServiceInterface,
+	taskSvc taskServices.TaskServiceInterface,
+	taskStatusSvc taskServices.TaskStatusServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) MeetingActionPlanStatusUpdateServiceInterface {
 	return &MeetingActionPlanStatusUpdateService{
 		repo:                   repo,
@@ -51,6 +68,11 @@ func NewMeetingActionPlanStatusUpdateService(
 		actionPlanStatusSvc:    actionPlanStatusSvc,
 		meetingMinuteSvc:       meetingMinuteSvc,
 		meetingMinuteStatusSvc: meetingMinuteStatusSvc,
+		meetingSvc:             meetingSvc,
+		taskSvc:                taskSvc,
+		taskStatusSvc:          taskStatusSvc,
+		userSvc:                userSvc,
+		notificationSvc:        notificationSvc,
 	}
 }
 
@@ -95,11 +117,11 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 		MeetingActionPlanID: meetingActionPlanID,
 		ActionPlanStatusID:  meetingActionPlanStatusUpdateFormDTO.ActionPlanStatusID,
 		Comment:             meetingActionPlanStatusUpdateFormDTO.Comment,
-		Percentage:          meetingActionPlanStatusUpdateFormDTO.Percentage,
+		Percentage:          &meetingActionPlanStatusUpdateFormDTO.Percentage,
 		CreatedByID:         currentUserID,
 	}
 
-	id, err := masus.repo.Create(meetingActionPlanUpdate)
+	id, err := masus.repo.Create(meetingActionPlanUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -192,6 +214,34 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 		}
 	}
 
+	meeting, err := masus.meetingSvc.GetByID(meetingID)
+	if err != nil {
+		return 0, err
+	}
+
+	actionPlanStatus, err := masus.actionPlanStatusSvc.GetByType("completed")
+	if err != nil {
+		return 0, err
+	}
+	if meetingActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && meetingActionPlan.ReviewUserID != nil {
+		urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, meetingID, meetingActionPlanID)
+		taskDTO := commonDTOs.TaskFormDTO{
+			ModuleIdentifier:    "meeting",
+			MeetingActionPlanID: &meetingActionPlanID,
+			Title:               meetingActionPlan.Title,
+			Description:         meetingActionPlan.Description,
+			URLParam:            &urlParam,
+			QueryParam:          nil,
+			SeverityLevelID:     meetingActionPlan.SeverityLevelID,
+			ResponsibleUserID:   *meetingActionPlan.ReviewUserID,
+		}
+
+		if _, err := masus.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	tx.Commit()
 
 	go func() {
@@ -220,6 +270,76 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		if meetingActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && meetingActionPlan.ReviewUserID != nil {
+			// prepare notification
+			urlParam := fmt.Sprintf(`{"meeting_register_id":%d, "action_plan_id":%d}`, meetingID, meetingActionPlanID)
+			queryParam := ""
+			entity := "meeting-action-plan"
+			action := "review-user"
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{*meetingActionPlan.ReviewUserID},
+				ModuleIdentifier:     "meeting",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Meeting Action Plan Status Update",
+				HeadingAr:            "تم تعيين مسؤولية خطة عمل الامتثال",
+				TitleEn:              meetingActionPlan.Title,
+				TitleAr:              meetingActionPlan.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				QueryParam:           queryParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			reviewUser, err := masus.userSvc.GetByID(*meetingActionPlan.ReviewUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+			resolvedBy, err := masus.userSvc.GetByID(meetingActionPlan.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch updated user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			emailTo := []string{reviewUser.Email}
+			subject := fmt.Sprintf("Meeting Action Plan %s: Resolved", meetingActionPlan.Title)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":            reviewUser.FirstNameEn,
+				"LastNameEn":             reviewUser.LastNameEn,
+				"MeetingReferenceNumber": meeting.ReferenceNumber,
+				"MeetingTitle":           meeting.Title,
+				"ActionPlanTitle":        meetingActionPlan.Title,
+				"ActionPlanDescription":  meetingActionPlan.Description,
+				"ResolvedByFirstNameEn":  resolvedBy.FirstNameEn,
+				"ResolvedByLastNameEn":   resolvedBy.LastNameEn,
+				"ResolvedOn":             time.Now().Format("2006-01-02"),
+				"RedirectURL":            fmt.Sprintf("%s/review-meeting/%d/action-plans?action_plan_id=%d", appURL, meetingID, id),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "meeting/templates/email/meeting_action_plan_review_user_mail.html",
+				EmailData:            emailData,
+			}
+
+			// send notification and mail
+			err = masus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "meeting_action_plan")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
 		}
 	}()
 
@@ -250,7 +370,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 	//@todo validate docuemnt form
 
 	existingMeetingActionPlanStatusUpdate.Comment = meetingActionPlanStatusUpdateFormDTO.Comment
-	existingMeetingActionPlanStatusUpdate.Percentage = meetingActionPlanStatusUpdateFormDTO.Percentage
+	existingMeetingActionPlanStatusUpdate.Percentage = &meetingActionPlanStatusUpdateFormDTO.Percentage
 	existingMeetingActionPlanStatusUpdate.UpdatedByID = &currentUserID
 
 	err = masus.repo.Update(existingMeetingActionPlanStatusUpdate, tx)
@@ -350,7 +470,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 			tx.Rollback()
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"comment":    oldActionPlanStatusUpdate.Comment,
@@ -442,4 +562,337 @@ func (masus *MeetingActionPlanStatusUpdateService) GetDocumentPath(meetingID uin
 	}
 
 	return fullPath, nil
+}
+
+func (masus *MeetingActionPlanStatusUpdateService) Approve(meetingId uint, actionPlanID uint, currentUserID uint, MeetingActionPlanReviewUserStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanReviewUserStatusUpdateFormDTO) error {
+	meeting, err := masus.meetingSvc.GetByID(meetingId)
+	if err != nil {
+		return err
+	}
+	existingMeetingActionPlan, err := masus.meetingActionPlanSvc.GetByID(meetingId, actionPlanID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, actionPlanID)
+	}
+
+	if existingMeetingActionPlan.ReviewUserID == nil {
+		return utility.NewForbiddenError("Review user is not assigned to this Meeting action plan.")
+	}
+
+	if currentUserID != *existingMeetingActionPlan.ReviewUserID {
+		return utility.NewForbiddenError("Permission denied.")
+	}
+
+	meetingActionPlanStatusResolved, err := masus.actionPlanStatusSvc.GetByType("completed")
+	if err != nil {
+		return err
+	}
+
+	meetingActionPlanClosedStatus, err := masus.actionPlanStatusSvc.GetByType("close")
+	if err != nil {
+		return err
+	}
+
+	tx := masus.repo.BeginTransaction()
+
+	if existingMeetingActionPlan.ActionPlanStatusID != meetingActionPlanStatusResolved.ID {
+		tx.Rollback()
+		return utility.NewForbiddenError("The Meeting action plan status must be resolved.")
+	}
+
+	existingMeetingActionPlan.ActionPlanStatusID = meetingActionPlanClosedStatus.ID
+
+	if err := masus.repo.MeetingActionPlanUpdateStatus(existingMeetingActionPlan); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	meetingActionPlanUpdate := &models.MeetingActionPlanStatusUpdate{
+		MeetingActionPlanID: actionPlanID,
+		ActionPlanStatusID:  meetingActionPlanClosedStatus.ID,
+		Percentage:          nil,
+		Comment:             MeetingActionPlanReviewUserStatusUpdateFormDTO.Comment,
+		CreatedByID:         currentUserID,
+	}
+
+	id, err := masus.repo.Create(meetingActionPlanUpdate)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	taskStatus, err := masus.taskStatusSvc.GetByType("closed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	_, err = masus.taskSvc.UpdateActionPlanTaskStatus("meeting_action_plan_id", actionPlanID, existingMeetingActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	_, err = masus.taskSvc.UpdateActionPlanTaskStatus("meeting_action_plan_id", actionPlanID, *existingMeetingActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	go func() {
+		urlParam := fmt.Sprintf(`{"meeting_register_id":%d, "action_plan_id":%d}`, meetingId, actionPlanID)
+		queryParam := ""
+		entity := "meeting-action-plan"
+		action := "close-meeting-action-plan"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{existingMeetingActionPlan.ResponsibleUserID},
+			ModuleIdentifier:     "meeting_action_plan",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Meeting Action Plan Status Update",
+			HeadingAr:            "تحديث حالة خطة عمل الاجتماع",
+			TitleEn:              existingMeetingActionPlan.Title,
+			TitleAr:              existingMeetingActionPlan.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := masus.userSvc.GetByID(existingMeetingActionPlan.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch review user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		resolvedBy, err := masus.userSvc.GetByID(*existingMeetingActionPlan.ReviewUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch updated user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Meeting Action Plan %s: Resolved", existingMeetingActionPlan.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":            responsibleUser.FirstNameEn,
+			"LastNameEn":             responsibleUser.LastNameEn,
+			"MeetingReferenceNumber": meeting.ReferenceNumber,
+			"MeetingTitle":           meeting.Title,
+			"ActionPlanTitle":        existingMeetingActionPlan.Title,
+			"ActionPlanDescription":  existingMeetingActionPlan.Description,
+			"ResolvedByFirstNameEn":  resolvedBy.FirstNameEn,
+			"ResolvedByLastNameEn":   resolvedBy.LastNameEn,
+			"ResolvedOn":             time.Now().Format("2006-01-02"),
+			"RedirectURL":            fmt.Sprintf("%s/review-meeting/%d/action-plans?action_plan_id=%d", appURL, meetingId, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "meeting/templates/email/meeting_action_plan_closed_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		err = masus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "meeting_action_plan")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
+		existingMeetingActionPlan, err := masus.meetingActionPlanSvc.GetByID(meetingId, actionPlanID)
+		if err != nil {
+			return
+		}
+
+		err = masus.activityLogSvc.LogActivity(
+			models.ApproveAction,
+			models.MeetingActionPlanStatusUpdate{}.TableName(),
+			id,
+			existingMeetingActionPlan,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.ApproveAction,
+				"tableName": models.MeetingActionPlanStatusUpdate{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
+}
+
+func (masus *MeetingActionPlanStatusUpdateService) Revert(meetingId uint, actionPlanID uint, currentUserID uint, MeetingActionPlanReviewUserStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanReviewUserStatusUpdateFormDTO) error {
+	meeting, err := masus.meetingSvc.GetByID(meetingId)
+	if err != nil {
+		return err
+	}
+	existingMeetingActionPlan, err := masus.meetingActionPlanSvc.GetByID(meetingId, actionPlanID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, actionPlanID)
+	}
+
+	if currentUserID != *existingMeetingActionPlan.ReviewUserID {
+		return utility.NewForbiddenError("Permission denied.")
+	}
+
+	meetingActionPlanStatusResolved, err := masus.actionPlanStatusSvc.GetByType("completed")
+	if err != nil {
+		return err
+	}
+
+	meetingActionPlanReopenStatus, err := masus.actionPlanStatusSvc.GetByType("reopen")
+	if err != nil {
+		return err
+	}
+
+	tx := masus.repo.BeginTransaction()
+
+	if existingMeetingActionPlan.ActionPlanStatusID != meetingActionPlanStatusResolved.ID {
+		tx.Rollback()
+		return utility.NewForbiddenError("The Meeting action plan status must be resolved.")
+	}
+
+	existingMeetingActionPlan.ActionPlanStatusID = meetingActionPlanReopenStatus.ID
+
+	if err := masus.repo.MeetingActionPlanUpdateStatus(existingMeetingActionPlan); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	meetingActionPlanUpdate := &models.MeetingActionPlanStatusUpdate{
+		MeetingActionPlanID: actionPlanID,
+		ActionPlanStatusID:  meetingActionPlanReopenStatus.ID,
+		Comment:             MeetingActionPlanReviewUserStatusUpdateFormDTO.Comment,
+		CreatedByID:         currentUserID,
+	}
+
+	id, err := masus.repo.Create(meetingActionPlanUpdate)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	taskStatus, err := masus.taskStatusSvc.GetByType("closed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	_, err = masus.taskSvc.UpdateActionPlanTaskStatus("meeting_action_plan_id", actionPlanID, *existingMeetingActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	go func() {
+		urlParam := fmt.Sprintf(`{"meeting_register_id":%d, "action_plan_id":%d}`, meetingId, actionPlanID)
+		queryParam := ""
+		entity := "meeting-action-plan"
+		action := "reopen-meeting-action-plan"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{existingMeetingActionPlan.ResponsibleUserID},
+			ModuleIdentifier:     "meeting_action_plan",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Meeting Action Plan Status Update",
+			HeadingAr:            "تحديث حالة خطة عمل الاجتماع",
+			TitleEn:              existingMeetingActionPlan.Title,
+			TitleAr:              existingMeetingActionPlan.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := masus.userSvc.GetByID(existingMeetingActionPlan.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch review user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		resolvedBy, err := masus.userSvc.GetByID(*existingMeetingActionPlan.ReviewUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch updated user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Meeting Action Plan %s: Reopened", existingMeetingActionPlan.Title)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":            responsibleUser.FirstNameEn,
+			"LastNameEn":             responsibleUser.LastNameEn,
+			"MeetingReferenceNumber": meeting.ReferenceNumber,
+			"MeetingTitle":           meeting.Title,
+			"ActionPlanTitle":        existingMeetingActionPlan.Title,
+			"ActionPlanDescription":  existingMeetingActionPlan.Description,
+			"ResolvedByFirstNameEn":  resolvedBy.FirstNameEn,
+			"ResolvedByLastNameEn":   resolvedBy.LastNameEn,
+			"ResolvedOn":             time.Now().Format("2006-01-02"),
+			"RedirectURL":            fmt.Sprintf("%s/review-meeting/%d/action-plans?action_plan_id=%d", appURL, meetingId, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "meeting/templates/email/meeting_action_plan_reopen_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		err = masus.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "meeting_action_plan")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
+		existingMeetingActionPlan, err := masus.meetingActionPlanSvc.GetByID(meetingId, actionPlanID)
+		if err != nil {
+			return
+		}
+
+		err = masus.activityLogSvc.LogActivity(
+			models.RejectAction,
+			models.MeetingActionPlanStatusUpdate{}.TableName(),
+			id,
+			existingMeetingActionPlan,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.ApproveAction,
+				"tableName": models.MeetingActionPlanStatusUpdate{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
 }

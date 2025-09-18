@@ -15,9 +15,9 @@ import (
 type MeetingAssociatedItemServiceInterface interface {
 	GetAllControls(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	GetAllComplianceRequirements(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemComplianceRequirementListResponseDTO, error)
-	GetAllRisks(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemRiskListResponseDTO, error)
+	GetAllRisks(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetAllProcesses(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
-	GetAllIncidents(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemIncidentListResponseDTO, error)
+	GetAllIncidents(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
 	GetAllMeetingDocuments(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	CreateMeetingDocument(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedDocumentMapDTO) error
 	DeleteMeetingDocument(meetingID uint, documentID uint) error
@@ -28,6 +28,18 @@ type MeetingAssociatedItemServiceInterface interface {
 	GetAllMeetingStrategicObjectives(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemStrategicObjectiveListResponseDTO, error)
 	CreateMeetingStrategicObjective(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedStrategicObjectiveMapDTO) error
 	DeleteMeetingStrategicObjective(meetingID uint, strategicObjectiveID uint) error
+	CreateMeetingRisk(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
+	DeleteMeetingRisk(meetingID uint, riskID uint) error
+	CreateMeetingIncident(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error
+	DeleteMeetingIncident(meetingID uint, incidentID uint) error
+	GetAllMeetingAssets(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	CreateMeetingAsset(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
+	DeleteMeetingAsset(meetingID uint, assetID uint) error
+	GetAllMeetingKPI(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateMeetingKPI(meetingID uint, currentUserID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
+	DeleteMeetingKPI(meetingID uint, kpiID uint) error
+	GetAllClauses(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error)
+	UpdateClauses(meetingID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error
 }
 
 // Service and implementations
@@ -118,7 +130,7 @@ func (mais *MeetingAssociatedItemService) GetAllComplianceRequirements(meetingID
 	return response, nil
 }
 
-func (mais *MeetingAssociatedItemService) GetAllRisks(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemRiskListResponseDTO, error) {
+func (mais *MeetingAssociatedItemService) GetAllRisks(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error) {
 	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
 		return nil, err
 	}
@@ -132,7 +144,7 @@ func (mais *MeetingAssociatedItemService) GetAllProcesses(meetingID uint, params
 	return mais.repo.GetAllProcesses(meetingID, params)
 }
 
-func (mais *MeetingAssociatedItemService) GetAllIncidents(meetingID uint, params *meetingDTOs.MeetingAssociatedItemListQueryParamsDTO) (*meetingDTOs.MeetingAssociatedItemIncidentListResponseDTO, error) {
+func (mais *MeetingAssociatedItemService) GetAllIncidents(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error) {
 	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
 		return nil, err
 	}
@@ -335,4 +347,283 @@ func (mais *MeetingAssociatedItemService) DeleteMeetingStrategicObjective(meetin
 	}
 
 	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) CreateMeetingRisk(meetingID, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
+
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("meeting does not exist for ID: %d", meetingID), "not_exist", "meeting_id")
+	}
+
+	if err := mais.validationSvc.ValidateRiskMapping(meetingID, dto.RiskIDs, "meeting_risks", "meeting_id"); err != nil {
+		return err
+	}
+
+	tx := mais.repo.BeginTransaction()
+	var mappings []*models.MeetingRisk
+	currentTime := time.Now()
+
+	for _, riskID := range dto.RiskIDs {
+		mappings = append(mappings, &models.MeetingRisk{
+			RiskRegisterID: riskID,
+			MeetingID:      meetingID,
+			CreatedBYID:    userID,
+			CreatedAt:      currentTime,
+		})
+	}
+
+	if err := mais.repo.CreateMeetingRisk(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) DeleteMeetingRisk(meetingID uint, riskID uint) error {
+	// Validate control existence
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("meeting does not exist for ID: %d", meetingID), "not_exist", "meeting_id")
+	}
+
+	tx := mais.repo.BeginTransaction()
+
+	if err := mais.repo.DeleteMeetingRisk(meetingID, riskID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) CreateMeetingIncident(meetingID, userID uint, dto *commonDTOs.AssociatedIncidentMapDTO) error {
+
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("meeting does not exist for ID: %d", meetingID), "not_exist", "meeting_id")
+	}
+
+	if err := mais.validationSvc.ValidateIncidentMapping(meetingID, dto.IncidentIDs, "meeting_incidents", "meeting_id"); err != nil {
+		return err
+	}
+
+	tx := mais.repo.BeginTransaction()
+	var mappings []*models.MeetingIncident
+	currentTime := time.Now()
+
+	for _, incidentID := range dto.IncidentIDs {
+		mappings = append(mappings, &models.MeetingIncident{
+			IncidentRegisterID: incidentID,
+			MeetingID:          meetingID,
+			CreatedBYID:        userID,
+			CreatedAt:          currentTime,
+		})
+	}
+
+	if err := mais.repo.CreateMeetingIncident(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) DeleteMeetingIncident(meetingID uint, incidentID uint) error {
+	// Validate control existence
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("meeting does not exist for ID: %d", meetingID), "not_exist", "meeting_id")
+	}
+
+	tx := mais.repo.BeginTransaction()
+
+	if err := mais.repo.DeleteMeetingIncident(meetingID, incidentID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) GetAllMeetingAssets(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return nil, err
+	}
+	return mais.repo.GetAllMeetingAssets(meetingID, params)
+}
+
+func (mais *MeetingAssociatedItemService) CreateMeetingAsset(meetingID, userID uint, dto *commonDTOs.AssociatedAssetMapDTO) error {
+
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return err
+	}
+
+	if err := mais.validationSvc.ValidateAssetMapping(meetingID, dto.AssetIDs, "meeting_assets", "meeting_id"); err != nil {
+		return err
+	}
+
+	tx := mais.repo.BeginTransaction()
+	var mappings []*models.MeetingAsset
+	currentTime := time.Now()
+
+	for _, assetID := range dto.AssetIDs {
+		mappings = append(mappings, &models.MeetingAsset{
+			AssetRegisterID: assetID,
+			MeetingID:       meetingID,
+			CreatedBYID:     userID,
+			CreatedAt:       currentTime,
+		})
+	}
+
+	if err := mais.repo.CreateMeetingAsset(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) DeleteMeetingAsset(meetingID uint, assetID uint) error {
+	// Validate control existence
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return err
+	}
+
+	tx := mais.repo.BeginTransaction()
+
+	if err := mais.repo.DeleteMeetingAsset(meetingID, assetID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) GetAllMeetingKPI(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return nil, err
+	}
+	return mais.repo.GetAllMeetingKPI(meetingID, params)
+}
+
+func (mais *MeetingAssociatedItemService) CreateMeetingKPI(meetingID, userID uint, dto *commonDTOs.AssociatedKPIMapDTO) error {
+
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return err
+	}
+
+	if err := mais.validationSvc.ValidateKPIMapping(meetingID, dto.KpiIDs, "meeting_kpis", "meeting_id"); err != nil {
+		return err
+	}
+
+	tx := mais.repo.BeginTransaction()
+	var mappings []*models.MeetingKpi
+	currentTime := time.Now()
+
+	for _, kpiID := range dto.KpiIDs {
+		mappings = append(mappings, &models.MeetingKpi{
+			KPIRegisterID: kpiID,
+			MeetingID:     meetingID,
+			CreatedByID:   userID,
+			CreatedAt:     currentTime,
+		})
+	}
+
+	if err := mais.repo.CreateMeetingKPI(mappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) DeleteMeetingKPI(meetingID uint, kpiID uint) error {
+	// Validate control existence
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return err
+	}
+
+	tx := mais.repo.BeginTransaction()
+
+	if err := mais.repo.DeleteMeetingKPI(meetingID, kpiID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (mais *MeetingAssociatedItemService) GetAllClauses(meetingID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemClauseListResponseDTO, error) {
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return nil, err
+	}
+
+	response, err := mais.repo.GetAllClauses(meetingID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (mais *MeetingAssociatedItemService) UpdateClauses(meetingID uint, currentUserID uint, ClauseFormDTO *commonDTOs.AssociatedClauseFormDTO) error {
+
+	if _, err := mais.meetingSvc.GetByID(meetingID); err != nil {
+		return err
+	}
+	tx := mais.repo.BeginTransaction()
+	clauses, err := mais.validationSvc.ValidateClauseIDs(ClauseFormDTO.ClauseIDs)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingControlClauses, err := mais.repo.GetClausesByMeetingId(meetingID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingClauses := make(map[uint]bool) // clauseID => exists
+	for _, clauseID := range existingControlClauses {
+		existingClauses[clauseID] = true
+	}
+
+	newClauses := make(map[uint]*models.ComplianceClause)
+	for _, clause := range clauses {
+		newClauses[clause.ID] = clause
+	}
+
+	var clausesToAdd []*models.MeetingComplianceRequirement
+	now := time.Now()
+	for id, clause := range newClauses {
+		if !existingClauses[id] {
+			clausesToAdd = append(clausesToAdd, &models.MeetingComplianceRequirement{
+				MeetingID:            meetingID,
+				ComplianceRegisterID: clause.ComplianceRegisterID,
+				ComplianceClauseID:   &clause.ID,
+				CreatedBYID:          currentUserID,
+				CreatedAt:            now,
+			})
+		}
+	}
+
+	if len(clausesToAdd) > 0 {
+		if err := mais.repo.CreateMeetingClauses(clausesToAdd, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	var deleteClauseIDs []uint
+	for existingID := range existingClauses {
+		if _, found := newClauses[existingID]; !found {
+			deleteClauseIDs = append(deleteClauseIDs, existingID)
+		}
+	}
+
+	if len(deleteClauseIDs) > 0 {
+		if err := mais.repo.DeleteMeetingClauses(meetingID, deleteClauseIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	return nil
 }

@@ -178,6 +178,13 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
+	if params.IsControlAssessment != nil {
+		query = query.Where("compliance_register.is_control_assessment = ?", *params.IsControlAssessment)
+	}
+
+	if params.IsRequirementAssessment != nil {
+		query = query.Where("compliance_register.is_requirement_assessment = ?", *params.IsRequirementAssessment)
+	}
 
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {

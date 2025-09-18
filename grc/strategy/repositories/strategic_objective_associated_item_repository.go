@@ -26,6 +26,15 @@ type StrategicObjectiveAssociatedItemRepositoryInterface interface {
 	GetAllStrategicObjectiveProcesses(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
 	CreateStrategicObjectiveProcess(process []*models.StrategicObjectiveProcess, tx ...utility.DatabaseTransaction) error
 	DeleteStrategicObjectiveProcess(strategicObjectiveID uint, processID uint, tx ...utility.DatabaseTransaction) error
+	GetAllStrategicObjectiveAssets(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	CreateStrategicObjectiveAsset(assets []*models.AssetStrategicObjective, tx ...utility.DatabaseTransaction) error
+	DeleteStrategicObjectiveAsset(strategicObjectiveID uint, assetID uint, tx ...utility.DatabaseTransaction) error
+	GetAllStrategicObjectiveIncidents(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error)
+	CreateStrategicObjectiveIncident(incidents []*models.IncidentStrategicObjective, tx ...utility.DatabaseTransaction) error
+	DeleteStrategicObjectiveIncident(strategicObjectiveID uint, incidentID uint, tx ...utility.DatabaseTransaction) error
+	GetAllStrategicObjectiveKPI(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+	CreateStrategicObjectiveKPI(kpis []*models.StrategicObjectiveKPI, tx ...utility.DatabaseTransaction) error
+	DeleteStrategicObjectiveKPI(strategicObjectiveID uint, kpiID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type StrategicObectiveAssociatedItemRepository struct {
@@ -877,5 +886,434 @@ func (repo *StrategicObectiveAssociatedItemRepository) DeleteStrategicObjectiveP
 	return db.
 		Where("process_id = ? AND strategic_objective_id = ?", processId, strategicObjectiveID).
 		Delete(&models.StrategicObjectiveProcess{}).
+		Error
+}
+
+func (repo *StrategicObectiveAssociatedItemRepository) GetAllStrategicObjectiveAssets(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	var Assets []*commonDTOs.AssociatedAssetListDTO
+	var totalCount int64
+
+	query := repo.db.Table("asset_strategic_objectives").
+		Select(`
+		    asset_strategic_objectives.id,
+			asset_strategic_objectives.asset_register_id,
+			asset_register.reference_number,
+			asset_register.title_en,
+			asset_register.title_ar,
+			asset_register.location,
+			asset_register.description,
+			CONVERT(VARCHAR, asset_register.acquisition_date, 23) AS acquisition_date,
+			CONVERT(VARCHAR, asset_register.assignment_date, 23) AS assignment_date,
+			CONVERT(VARCHAR, asset_register.warranty_expiry_date, 23) AS warranty_expiry_date,
+			asset_register.manufacturer,
+			asset_register.model,
+			asset_register.serial_number,
+			asset_categories.title_en AS asset_category_title_en,
+			asset_categories.title_ar AS asset_category_title_ar,
+			asset_sub_categories.title_en AS asset_sub_category_title_en,
+			asset_sub_categories.title_ar AS asset_sub_category_title_ar,
+			asset_statuses.title_en AS asset_status_title_en,
+			asset_statuses.title_ar AS asset_status_title_ar,
+			asset_statuses.color_code AS asset_status_color_code,
+			asset_register.total_score,
+			asset_criticality_matrix_rating_scales.title_en AS asset_criticality_matrix_rating_scale_title_en,
+			asset_criticality_matrix_rating_scales.title_ar AS asset_criticality_matrix_rating_scale_title_ar,
+			asset_criticality_matrix_rating_scales.color_code AS asset_criticality_matrix_rating_scale_color_code,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+			updated_user.id AS updated_user_id,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
+	`).
+		Joins("LEFT JOIN asset_register ON asset_register.id = asset_strategic_objectives.asset_register_id").
+		Joins("LEFT JOIN asset_categories ON asset_categories.id = asset_register.asset_category_id").
+		Joins("LEFT JOIN asset_sub_categories ON asset_sub_categories.id = asset_register.asset_sub_category_id").
+		Joins("LEFT JOIN asset_statuses ON asset_statuses.id = asset_register.asset_status_id").
+		Joins("LEFT JOIN asset_criticality_matrix_rating_scales ON asset_criticality_matrix_rating_scales.id = asset_register.asset_criticality_matrix_rating_scale_id").
+		Joins("LEFT JOIN organization_units ON organization_units.id = asset_register.responsible_unit_id").
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = asset_register.responsible_user_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = asset_register.created_by_id").
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = asset_register.updated_by_id").
+		Where("asset_strategic_objectives.strategic_objective_id = ?", strategicObjectiveID)
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		query = query.Where(`
+			(asset_register.title_en LIKE ? OR
+			asset_register.title_ar LIKE ? OR
+			asset_register.reference_number LIKE ? OR
+			asset_register.description LIKE ? OR
+			asset_categories.title_en LIKE ? OR
+			asset_categories.title_ar LIKE ? OR
+			asset_statuses.title_en LIKE ? OR
+			asset_statuses.title_ar LIKE ?)`,
+
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "asset_register.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&Assets).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedItemAssetListResponseDTO{
+		Items: Assets,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *StrategicObectiveAssociatedItemRepository) CreateStrategicObjectiveAsset(assets []*models.AssetStrategicObjective, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&assets).Error
+}
+
+func (repo *StrategicObectiveAssociatedItemRepository) DeleteStrategicObjectiveAsset(strategicObjectiveID uint, assetID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("asset_register_id = ? AND strategic_objective_id = ?", assetID, strategicObjectiveID).
+		Delete(&models.AssetStrategicObjective{}).
+		Error
+}
+
+func (repo *StrategicObectiveAssociatedItemRepository) GetAllStrategicObjectiveIncidents(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedIncidentListResponseDTO, error) {
+	var incidentList []*commonDTOs.AssociatedIncidentListDTO
+	var totalCount int64
+
+	query := repo.db.Table("incident_strategic_objectives").
+		Select(`
+			 incident_register.*,
+			incident_strategic_objectives.id as id,
+			incident_strategic_objectives.incident_register_id,
+            incident_categories.title_en AS incident_category_title_en,
+            incident_categories.title_ar AS incident_category_title_ar,
+            incident_types.title_en AS incident_type_title_en,
+            incident_types.title_ar AS incident_type_title_ar,
+            incident_statuses.title_en AS incident_status_title_en,
+            incident_statuses.title_ar AS incident_status_title_ar,
+			incident_statuses.color_code AS incident_status_color_code,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+            responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            responsible_user.last_name_en AS responsible_user_last_name_en,
+            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			reported_user.id AS reported_by_id,
+            reported_user.first_name_en AS reported_user_first_name_en,
+            reported_user.first_name_ar AS reported_user_first_name_ar,
+            reported_user.last_name_en AS reported_user_last_name_en,
+            reported_user.last_name_ar AS reported_user_last_name_ar,
+			reported_user.initial AS reported_user_initial,
+            reported_user.color AS reported_user_color,
+            reported_user.email AS reported_user_email,
+            reported_user.profile_image_path AS reported_user_profile_image_path,
+			CONVERT(VARCHAR, incident_investigations.initiated_at, 23) AS investigation_initiated_at,
+			incident_investigations.description AS investigation_description,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path  
+		`).
+		Joins(`
+			LEFT JOIN incident_register ON incident_register.id = incident_strategic_objectives.incident_register_id
+			 LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
+            LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id
+            LEFT JOIN incident_types ON incident_types.id = incident_register.incident_type_id
+            LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id
+		    LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id
+            LEFT JOIN organization_units ON organization_units.id = incident_register.responsible_unit_id
+		    LEFT JOIN users AS responsible_user ON responsible_user.id = incident_register.responsible_user_id
+			LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by
+			LEFT JOIN incident_investigations ON incident_investigations.incident_register_id = incident_register.id
+			LEFT JOIN users AS created_user ON created_user.id = incident_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = incident_register.updated_by_id
+		`).
+		Where("incident_strategic_objectives.strategic_objective_id = ?", strategicObjectiveID)
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(incident_register.reference_number LIKE ? OR
+			incident_register.title LIKE ? OR
+			incident_register.description LIKE ? OR
+			incident_register.location LIKE ? OR
+			incident_categories.title_en LIKE ? OR
+			incident_categories.title_ar LIKE ? OR
+			incident_sub_categories.title_en LIKE ? OR
+			incident_sub_categories.title_ar LIKE ? OR
+			incident_types.title_en LIKE ? OR
+			incident_types.title_ar LIKE ? OR
+			severity_levels.title_en LIKE ? OR
+			severity_levels.title_ar LIKE ? OR
+			incident_statuses.title_en LIKE ? OR
+			incident_statuses.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "incident_register.title"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&incidentList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedIncidentListResponseDTO{
+		Items: incidentList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *StrategicObectiveAssociatedItemRepository) CreateStrategicObjectiveIncident(incidents []*models.IncidentStrategicObjective, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&incidents).Error
+}
+
+func (repo *StrategicObectiveAssociatedItemRepository) DeleteStrategicObjectiveIncident(strategicObjectiveID uint, incidentID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("incident_register_id = ? AND strategic_objective_id = ?", incidentID, strategicObjectiveID).
+		Delete(&models.IncidentStrategicObjective{}).
+		Error
+}
+
+func (repo *StrategicObectiveAssociatedItemRepository) GetAllStrategicObjectiveKPI(strategicObjectiveID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	var kpiRegister []*commonDTOs.AssociatedKPIRegisterListDTO
+	var totalCount int64
+
+	query := repo.db.Table("strategic_objective_kpis").
+		Select(`
+            kpi_register.*,
+			strategic_objective_kpis.kpi_register_id,
+			kpi_categories.title_en AS kpi_category_title_en,
+			kpi_categories.title_ar AS kpi_category_title_ar,
+			CONVERT(VARCHAR, kpi_register.start_date, 23) AS start_date,
+			CONVERT(VARCHAR, kpi_register.end_date, 23) AS target_date,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			kpi_statuses.title_en AS kpi_status_title_en,
+			kpi_statuses.title_ar AS kpi_status_title_ar,
+			kpi_statuses.type AS kpi_status_type,
+			kpi_statuses.color_code AS kpi_status_color_code,
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+			review_frequencies.type AS review_frequency_type,
+			calculation_types.title_en AS calculation_type_title_en,
+			calculation_types.title_ar AS calculation_type_title_ar,
+			calculation_types.type AS calculation_type_type,
+			units.title_en AS unit_title_en,
+			units.title_ar AS unit_title_ar,
+			units.code_en AS unit_code_en,
+			units.code_ar AS unit_code_ar,
+			units.color_code AS unit_color_code,
+			created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+            created_user.color AS created_user_color,
+            created_user.email AS created_user_email,
+            created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+            updated_user.color AS updated_user_color,
+            updated_user.email AS updated_user_email,
+            updated_user.profile_image_path AS updated_user_profile_image_path  
+        `).
+		Joins(`
+		    LEFT JOIN kpi_register ON kpi_register.id = strategic_objective_kpis.kpi_register_id
+			LEFT JOIN kpi_categories ON kpi_categories.id = kpi_register.kpi_category_id
+			LEFT JOIN kpi_statuses ON kpi_statuses.id = kpi_register.kpi_status_id
+			LEFT JOIN calculation_types ON calculation_types.id = kpi_register.calculation_type_id
+			LEFT JOIN review_frequencies ON review_frequencies.id = kpi_register.review_frequency_id
+			LEFT JOIN units ON units.id = kpi_register.unit_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = kpi_register.responsible_user_id
+			LEFT JOIN users AS created_user ON created_user.id = kpi_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = kpi_register.updated_by_id
+        `).Where("strategic_objective_kpis.strategic_objective_id = ?", strategicObjectiveID)
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(kpi_register.title LIKE ? OR
+			created_user.first_name_en LIKE ? OR
+			created_user.first_name_ar LIKE ? OR
+			created_user.last_name_en LIKE ? OR
+			created_user.last_name_ar LIKE ? OR
+    		updated_user.first_name_en LIKE ? OR
+			updated_user.first_name_ar LIKE ? OR
+			updated_user.last_name_en LIKE ? OR
+			updated_user.last_name_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "kpi_register.title"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	// Apply pagination
+	offset := (params.Page - 1) * params.PageSize
+	query = query.Offset(offset).Limit(params.PageSize)
+
+	// Fetch the data
+	if err := query.Find(&kpiRegister).Error; err != nil {
+		return nil, err
+	}
+
+	// Calculate total pages
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedKPIRegisterListResponseDTO{
+		Items: kpiRegister,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *StrategicObectiveAssociatedItemRepository) CreateStrategicObjectiveKPI(kpis []*models.StrategicObjectiveKPI, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(&kpis).Error
+}
+
+func (repo *StrategicObectiveAssociatedItemRepository) DeleteStrategicObjectiveKPI(strategicObjectiveID uint, kpiID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.
+		Where("kpi_register_id = ? AND strategic_objective_id = ?", kpiID, strategicObjectiveID).
+		Delete(&models.StrategicObjectiveKPI{}).
 		Error
 }

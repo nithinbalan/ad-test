@@ -574,6 +574,12 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) App
 		return err
 	}
 
+	_, err = carasus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, existingComplianceActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	_, err = carasus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, *existingComplianceActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
 	if err != nil {
 		tx.Rollback()
@@ -583,16 +589,6 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) App
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-
-	// Start a new transaction for the second update
-	tx2 := carasus.repo.BeginTransaction()
-	_, err = carasus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, existingComplianceActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx2)
-	if err != nil {
-		tx2.Rollback()
-		return err
-	}
-
-	tx2.Commit()
 
 	go func() {
 		urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, assessmentID, requirementID, compliaceActionPlanID)

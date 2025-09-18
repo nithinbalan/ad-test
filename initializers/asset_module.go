@@ -26,7 +26,9 @@ type AssetModule struct {
 	ThreatController                              *controllers.ThreatController
 	VulnerabilityActionPlanController             *controllers.VulnerabilityActionPlanController
 	VulnerabilityActionPlanStatusUpdateController *controllers.VulnerabilityActionPlanStatusUpdateController
+	VulnerabilityActionPlanCommentController      *controllers.VulnerabilityActionPlanCommentController
 	ThreatActionPlanController                    *controllers.ThreatActionPlanController
+	ThreatActionPlanCommentController              *controllers.ThreatActionPlanCommentController
 	ThreatActionPlanStatusUpdateController        *controllers.ThreatActionPlanStatusUpdateController
 	AssetMaintenanceController                    *controllers.AssetMaintenanceController
 	AssetAssociatedItemController                 *controllers.AssetAssociatedItemController
@@ -132,6 +134,7 @@ func NewAssetModule(db *gorm.DB,
 		organizationModule.UserSvc,
 		commonModule.NotificationService,
 		commonModule.DelegateeUserService,
+		taskModule.TaskService,
 	)
 	vulnerabilityActionPlanController := controllers.NewVulnerabilityActionPlanController(vulnerabilityActionPlanSvc)
 
@@ -141,8 +144,15 @@ func NewAssetModule(db *gorm.DB,
 		sharedModule.ActivityLogService,
 		vulnerabilityActionPlanSvc,
 		masterModule.ActionPlanStatusSvc,
+		vulnerabilitySvc,
+		taskModule.TaskService, taskModule.TaskStatusService, organizationModule.UserSvc, commonModule.NotificationService,
 	)
 	vulnerabilityActionPlanStatusUpdateController := controllers.NewVulnerabilityActionPlanStatusUpdateController(vulnerabilityActionPlanStatusUpdateSvc)
+
+	vulnerabilityeActionPlanCommentRepository := repositories.NewVulnerabilityActionPlanCommentRepository(db)
+	vulnerabilityActionPlanCommentSvc := services.NewVulnerabilityActionPlanCommentService(vulnerabilityeActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, vulnerabilityActionPlanSvc, commonModule.NotificationService)
+	vulnerabilityActionPlanCommentController := controllers.NewVulnerabilityActionPlanCommentController(vulnerabilityActionPlanCommentSvc)
+
 
 	threatActionPlanRepo := repositories.NewThreatActionPlanRepository(db)
 	threatActionPlanSvc := services.NewThreatActionPlanService(
@@ -155,8 +165,15 @@ func NewAssetModule(db *gorm.DB,
 		organizationModule.UserSvc,
 		commonModule.NotificationService,
 		commonModule.DelegateeUserService,
+		taskModule.TaskService,
 	)
 	threatActionPlanController := controllers.NewThreatActionPlanController(threatActionPlanSvc)
+
+	
+	threatActionPlanCommentRepository := repositories.NewThreatActionPlanCommentRepository(db)
+	threatActionPlanCommentSvc := services.NewThreatActionPlanCommentService(threatActionPlanCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService,threatActionPlanSvc, commonModule.NotificationService)
+	threatActionPlanCommentController := controllers.NewThreatActionPlanCommentController(threatActionPlanCommentSvc)
+
 
 	threatActionPlanStatusUpdateRepo := repositories.NewThreatActionPlanStatusUpdateRepository(db)
 	threatActionPlanStatusUpdateSvc := services.NewThreatActionPlanStatusUpdateService(
@@ -164,6 +181,8 @@ func NewAssetModule(db *gorm.DB,
 		sharedModule.ActivityLogService,
 		threatActionPlanSvc,
 		masterModule.ActionPlanStatusSvc,
+		threatSvc,
+		taskModule.TaskService, taskModule.TaskStatusService, organizationModule.UserSvc, commonModule.NotificationService,
 	)
 	threatActionPlanStatusUpdateController := controllers.NewThreatActionPlanStatusUpdateController(threatActionPlanStatusUpdateSvc)
 
@@ -258,7 +277,9 @@ func NewAssetModule(db *gorm.DB,
 		ThreatController:                              threatController,
 		VulnerabilityActionPlanController:             vulnerabilityActionPlanController,
 		VulnerabilityActionPlanStatusUpdateController: vulnerabilityActionPlanStatusUpdateController,
+		VulnerabilityActionPlanCommentController:      vulnerabilityActionPlanCommentController,
 		ThreatActionPlanController:                    threatActionPlanController,
+		ThreatActionPlanCommentController:             threatActionPlanCommentController,
 		ThreatActionPlanStatusUpdateController:        threatActionPlanStatusUpdateController,
 		AssetMaintenanceController:                    assetMaintenanceController,
 		AssetAssociatedItemController:                 assetAssociatedItemController,

@@ -27,6 +27,7 @@ type ComplianceAssessment struct {
 	CreatedByUser              *User                              `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser              *User                              `gorm:"foreignKey:UpdatedBYID"`
 	AssessmentRequirements     []*ComplianceAssessmentRequirement `gorm:"foreignKey:ComplianceAssessmentID"`
+	AssessmentControls         []*ComplianceAssessmentControl     `gorm:"foreignKey:ComplianceAssessmentID"` // ✅ New relationship
 }
 
 // TableName overrides the table name used by ComplianceAssessment to `compliance_assessments`

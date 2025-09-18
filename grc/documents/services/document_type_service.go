@@ -70,7 +70,7 @@ func (dts *DocumentTypeService) Create(currentUserID uint, documentType *models.
 		DocumentTypeID:   &createdDocumentType.ID,
 		ModuleIdentifier: "document",
 		Type:             "document",
-		CreatedByID:      currentUserID,
+		CreatedBYID:      currentUserID,
 		Status:           "active",
 	}
 

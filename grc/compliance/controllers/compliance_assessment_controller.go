@@ -253,7 +253,7 @@ func (cac *ComplianceAssessmentController) GetComplianceStatusSummary(c *gin.Con
 		return
 	}
 
-	statusCounts, err := cac.service.GetComplianceStatusSummaryByRequirement(uint(id))
+	statusCounts, err := cac.service.GetComplianceStatusSummary(uint(id))
 	if err != nil {
 		utility.SendInternalErrResp(cac.db, c, err.Error())
 		return
@@ -357,6 +357,29 @@ func (cac *ComplianceAssessmentController) GetApprovalStatus(c *gin.Context) {
 	}
 
 	status, err := cac.service.GetApprovalStatus(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(cac.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, status)
+}
+
+func (cac *ComplianceAssessmentController) GetControlsApprovalStatus(c *gin.Context) {
+	idStr := c.Param("assessmentId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	status, err := cac.service.GetControlApprovalStatus(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

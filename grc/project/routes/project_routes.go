@@ -101,4 +101,19 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	projectRoutes.POST("/projects/:projectId/kpis", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.CreateProjectKPI)
 	projectRoutes.DELETE("/projects/:projectId/kpis/:kpiRegisterId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.DeleteProjectKPI)
 
+	projectRoutes.GET("/projects/:projectId/assets", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectAssociatedItemController.GetAllProjectAssets)
+	projectRoutes.POST("/projects/:projectId/assets", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.CreateProjectAsset)
+	projectRoutes.DELETE("/projects/:projectId/assets/:assetId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.DeleteProjectAsset)
+
+	projectRoutes.GET("/projects/:projectId/incidents", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectAssociatedItemController.GetAllProjectIncidents)
+	projectRoutes.POST("/projects/:projectId/incidents", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.CreateProjectIncident)
+	projectRoutes.DELETE("/projects/:projectId/incidents/:incidentId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.DeleteProjectIncident)
+
+	projectRoutes.GET("/projects/:projectId/risks", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectAssociatedItemController.GetAllProjectRisks)
+	projectRoutes.POST("/projects/:projectId/risks", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.CreateProjectRisk)
+	projectRoutes.DELETE("/projects/:projectId/risks/:riskId", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.DeleteProjectRisk)
+
+	projectRoutes.GET("/projects/:projectId/clauses", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), projectAssociatedItemController.GetAllClauses)
+	projectRoutes.PUT("/projects/:projectId/clauses", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), projectAssociatedItemController.UpdateClauses)
+
 }

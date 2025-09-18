@@ -2,13 +2,14 @@ package repositories
 
 import (
 	"jethur/grc/models"
+	"jethur/grc/settings/dtos"
 
 	"gorm.io/gorm"
 )
 
 // Interfaces
 type ReminderContextRepositoryInterface interface {
-	GetAllReminderContexts() ([]*models.ReminderContext, error)
+	GetAllReminderContexts(params dtos.ReminderContextListQueryParamsDTO) ([]*models.ReminderContext, error)
 	GetByID(id uint) (*models.ReminderContext, error)
 }
 
@@ -23,16 +24,40 @@ func NewReminderContextRepository(db *gorm.DB) *ReminderContextRepository {
 	}
 }
 
-func (repo *ReminderContextRepository) GetAllReminderContexts() ([]*models.ReminderContext, error) {
+func (repo *ReminderContextRepository) GetAllReminderContexts(params dtos.ReminderContextListQueryParamsDTO) ([]*models.ReminderContext, error) {
 	var contexts []*models.ReminderContext
 
-	result := repo.db.Find(&contexts)
+	query := repo.db.Model(&models.ReminderContext{})
 
-	if result.Error != nil {
-		return nil, result.Error
+	// Keyword search (title_en / title_ar)
+	if params.Keyword != "" {
+		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
-	return contexts, result.Error
+	// Status filter
+	if params.Status == "active" || params.Status == "inactive" {
+		query = query.Where("status = ?", params.Status)
+	}
+
+	// Other filters
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	// Sorting
+	if params.SortBy == "" {
+		params.SortBy = "title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	// Execute query
+	err := query.Find(&contexts).Error
+	return contexts, err
 }
 
 func (repo *ReminderContextRepository) GetByID(id uint) (*models.ReminderContext, error) {
