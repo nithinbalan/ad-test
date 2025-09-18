@@ -30,6 +30,7 @@ func (pvccc *PolicyVersionClauseCommentController) GetAllDocumentComments(c *gin
 	sortBy := c.DefaultQuery("sort_by", "comment")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -56,11 +57,12 @@ func (pvccc *PolicyVersionClauseCommentController) GetAllDocumentComments(c *gin
 	}
 
 	queryParams := policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO{
-		Sort:    sort,
-		SortBy:  dbField,
-		Keyword: keyword,
-		Status:  status,
-		Filters: filters,
+		Sort:        sort,
+		SortBy:      dbField,
+		Keyword:     keyword,
+		Status:      status,
+		Filters:     filters,
+		QuickFilter: quickFilter,
 	}
 
 	documentIDStr := c.Param("id")

@@ -115,7 +115,7 @@ func (pvccs *PolicyVersionClauseCommentService) GetAllDocumentComments(documentI
 		return nil, err
 	}
 
-	return pvccs.repo.GetAllDocumentComments(documentID, policyRegister.LatestDocumentVersion.ID, params)
+	return pvccs.repo.GetAllDocumentComments(documentID, policyRegister.LatestDocumentVersion.ID, currentUserID, params)
 }
 
 func (pvccs *PolicyVersionClauseCommentService) GetByID(documentID uint, clauseID uint, id uint) (*models.DocumentVersionClauseComment, error) {

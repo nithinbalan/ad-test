@@ -55,9 +55,10 @@ type PolicyVersionClauseCommentDetailDTO struct {
 }
 
 type PolicyVersionClauseCommentListQueryParamsDTO struct {
-	Sort    string
-	SortBy  string
-	Keyword string
-	Status  string
-	Filters map[string][]string
+	Sort        string
+	SortBy      string
+	Keyword     string
+	Status      string
+	Filters     map[string][]string
+	QuickFilter []string
 }
