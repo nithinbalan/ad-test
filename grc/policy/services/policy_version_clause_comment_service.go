@@ -55,7 +55,58 @@ func (pvccs *PolicyVersionClauseCommentService) GetAll(documentID uint, clauseID
 		return nil, err
 	}
 
-	return pvccs.repo.GetAll(clauseID, params)
+	comments, err := pvccs.repo.GetAll(clauseID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	// Map ID -> DTO
+	dtoMap := make(map[uint]*policyDTOs.PolicyVersionClauseCommentListDTO)
+	var roots []*policyDTOs.PolicyVersionClauseCommentListDTO
+
+	for _, comment := range comments {
+		// Since repo.GetAll already returns CommentListDTO with aliased fields,
+		// we can just copy it directly
+		dto := &policyDTOs.PolicyVersionClauseCommentListDTO{
+			ID:                             comment.ID,
+			Comment:                        comment.Comment,
+			CommentStatusTitleEn:           comment.CommentStatusTitleEn,
+			CommentStatusTitleAr:           comment.CommentStatusTitleAr,
+			CommentStatusType:              comment.CommentStatusType,
+			CommentStatusColorCode:         comment.CommentStatusColorCode,
+			DocumentVersionClauseID:        comment.DocumentVersionClauseID,
+			DocumentVersionClauseNumber:    comment.DocumentVersionClauseNumber,
+			Level:                          comment.Level,
+			CreatedBYID:                    comment.CreatedBYID,
+			CreatedUserFirstNameEn:         comment.CreatedUserFirstNameEn,
+			CreatedUserFirstNameAr:         comment.CreatedUserFirstNameAr,
+			CreatedUserLastNameEn:          comment.CreatedUserLastNameEn,
+			CreatedUserLastNameAr:          comment.CreatedUserLastNameAr,
+			CreatedUserInitial:             comment.CreatedUserInitial,
+			CreatedUserColor:               comment.CreatedUserColor,
+			CreatedUserEmail:               comment.CreatedUserEmail,
+			CreatedUserProfileImagePath:    comment.CreatedUserProfileImagePath,
+			CreatedAt:                      comment.CreatedAt,
+			DocumentVersionClauseCommentID: comment.DocumentVersionClauseCommentID, // important for tree building
+		}
+
+		dtoMap[comment.ID] = dto
+	}
+
+	// Build parent-child hierarchy
+	for _, comment := range comments {
+		dto := dtoMap[comment.ID]
+		if comment.DocumentVersionClauseCommentID != nil {
+			// has parent → attach to parent
+			if parent, ok := dtoMap[*comment.DocumentVersionClauseCommentID]; ok {
+				parent.Children = append(parent.Children, dto)
+			}
+		} else {
+			// no parent → root
+			roots = append(roots, dto)
+		}
+	}
+	return roots, nil
 }
 
 func (pvccs *PolicyVersionClauseCommentService) GetAllDocumentComments(documentID uint, currentUserID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) (*policyDTOs.PolicyVersionClauseCommentListResponseDTO, error) {
@@ -122,11 +173,12 @@ func (pvccs *PolicyVersionClauseCommentService) Create(documentID uint, clauseID
 	}
 
 	comment := &models.DocumentVersionClauseComment{
-		DocumentVersionClauseID: clauseID,
-		Comment:                 commentFormDTO.Comment,
-		CommentStatusID:         commentStatus.ID,
-		Level:                   *policyRegister.LatestDocumentVersion.NextReviewLevel,
-		CreatedBYID:             currentUserID,
+		DocumentVersionClauseID:        clauseID,
+		Comment:                        commentFormDTO.Comment,
+		CommentStatusID:                commentStatus.ID,
+		Level:                          *policyRegister.LatestDocumentVersion.NextReviewLevel,
+		DocumentVersionClauseCommentID: commentFormDTO.ParentCommentID,
+		CreatedBYID:                    currentUserID,
 	}
 
 	id, err := pvccs.repo.Create(comment)

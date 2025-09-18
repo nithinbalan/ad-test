@@ -41,6 +41,7 @@ func (repo *PolicyVersionClauseCommentRepository) GetAll(clauseID uint, params *
 	document_version_clause_comments.comment,
 	document_version_clause_comments.document_version_clause_id,
 	document_version_clause_comments.level,
+	document_version_clause_comments.document_version_clause_comment_id,
 	document_version_clause_comments.created_at,
 	document_version_clause_comments.created_by_id,
 	document_version_clauses.clause_number AS document_version_clause_number,

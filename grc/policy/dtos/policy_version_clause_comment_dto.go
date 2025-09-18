@@ -7,25 +7,27 @@ import (
 )
 
 type PolicyVersionClauseCommentListDTO struct {
-	ID                          uint   `json:"id"`
-	Comment                     string `json:"comment" binding:"required"`
-	CommentStatusTitleEn        string `json:"comment_status_title_en"`
-	CommentStatusTitleAr        string `json:"comment_status_title_ar"`
-	CommentStatusType           string `json:"comment_status_type"`
-	CommentStatusColorCdde      string `json:"comment_status_color_code"`
-	DocumentVersionClauseID     uint   `json:"document_version_clause_id"`
-	DocumentVersionClauseNumber string `json:"document_version_clause_number"`
-	Level                       int    `json:"level"`
-	CreatedAt                   string `json:"created_at"`
-	CreatedBYID                 uint   `json:"created_by_id"`
-	CreatedUserFirstNameEn      string `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr      string `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn       string `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr       string `json:"created_user_last_name_ar"`
-	CreatedUserInitial          string `json:"created_user_initial"`
-	CreatedUserColor            string `json:"created_user_color"`
-	CreatedUserEmail            string `json:"created_user_email"`
-	CreatedUserProfileImagePath string `json:"created_user_profile_image_path"`
+	ID                             uint                                 `json:"id"`
+	Comment                        string                               `json:"comment" binding:"required"`
+	CommentStatusTitleEn           string                               `json:"comment_status_title_en"`
+	CommentStatusTitleAr           string                               `json:"comment_status_title_ar"`
+	CommentStatusType              string                               `json:"comment_status_type"`
+	CommentStatusColorCode         string                               `json:"comment_status_color_code"`
+	DocumentVersionClauseID        uint                                 `json:"document_version_clause_id"`
+	DocumentVersionClauseNumber    string                               `json:"document_version_clause_number"`
+	Level                          int                                  `json:"level"`
+	CreatedAt                      string                               `json:"created_at"`
+	CreatedBYID                    uint                                 `json:"created_by_id"`
+	CreatedUserFirstNameEn         string                               `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr         string                               `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn          string                               `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr          string                               `json:"created_user_last_name_ar"`
+	CreatedUserInitial             string                               `json:"created_user_initial"`
+	CreatedUserColor               string                               `json:"created_user_color"`
+	CreatedUserEmail               string                               `json:"created_user_email"`
+	CreatedUserProfileImagePath    string                               `json:"created_user_profile_image_path"`
+	DocumentVersionClauseCommentID *uint                                `json:"document_version_clause_comment_id"`
+	Children                       []*PolicyVersionClauseCommentListDTO `json:"children" gorm:"-"`
 }
 
 type PolicyVersionClauseCommentListResponseDTO struct {
@@ -40,7 +42,8 @@ type StatusCount struct {
 }
 
 type PolicyVersionClauseCommentFormDTO struct {
-	Comment string `json:"comment" binding:"required,max=1000"`
+	Comment         string `json:"comment" binding:"required,max=1000"`
+	ParentCommentID *uint  `json:"parent_comment_id"`
 }
 
 type PolicyVersionClauseCommentDetailDTO struct {
