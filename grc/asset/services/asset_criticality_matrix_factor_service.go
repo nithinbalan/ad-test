@@ -3,11 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	"jethur/grc/asset/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 
 	"gorm.io/gorm"
 )
@@ -70,6 +71,9 @@ func (acmfs *AssetCriticalityMatrixFactorService) Create(matrixID uint, currentU
 			createdFactor.ID,
 			createdFactor,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -117,6 +121,9 @@ func (acmfs *AssetCriticalityMatrixFactorService) Update(matrixID uint, id uint,
 			result.ID,
 			changedDataJSON,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

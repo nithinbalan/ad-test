@@ -3,15 +3,16 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"jethur/config"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -92,7 +93,6 @@ func (acs *AuditChecklistService) GetFullDetailsByID(auditId uint, id uint) (*au
 	var auditChecklitDetailDTO auditDTOs.AuditChecklistDetailDTO
 
 	checklist, err := acs.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -105,7 +105,7 @@ func (acs *AuditChecklistService) GetFullDetailsByID(auditId uint, id uint) (*au
 		return nil, err
 	}
 
-	//todo :- also add extra fields which required in details screen
+	// todo :- also add extra fields which required in details screen
 
 	return &auditChecklitDetailDTO, nil
 }
@@ -115,7 +115,6 @@ func (acs *AuditChecklistService) GetDraftFindingsDetailsByChecklistID(auditId u
 		return nil, err
 	}
 	auditDraftFindings, err := acs.repo.GetDraftFindingsDetailsByChecklistID(checklistID)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// Return an empty array and no error if no records are found
@@ -189,9 +188,11 @@ func (acs *AuditChecklistService) Create(auditId uint, currentUserID uint, audit
 			id,
 			existingAuditChecklist,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -249,7 +250,7 @@ func (acs *AuditChecklistService) Update(auditId uint, id uint, currentUserID ui
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"auditable_item": oldAuditChecklist.AuditableItem.TitleEn,
 			"question":       oldAuditChecklist.Question,
@@ -272,9 +273,11 @@ func (acs *AuditChecklistService) Update(auditId uint, id uint, currentUserID ui
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -355,7 +358,6 @@ func (acs *AuditChecklistService) Delete(auditId uint, ids []uint, currentUserID
 	}
 	tx.Commit()
 	if len(successfulIDs) > 0 {
-
 		go func() {
 			for _, id := range successfulIDs {
 				err := acs.activityLogSvc.LogActivity(
@@ -364,9 +366,11 @@ func (acs *AuditChecklistService) Delete(auditId uint, ids []uint, currentUserID
 					id,
 					deletedAuditChecklist,
 					currentUserID,
+					"",
+					"",
+					"",
 					nil,
 				)
-
 				if err != nil {
 					fields := map[string]interface{}{
 						"action":    models.DeleteAction,
@@ -426,18 +430,16 @@ func (acs *AuditChecklistService) Answer(auditId uint, id uint, currentUserID ui
 	var documentsToDelete []*models.AuditChecklistDocument
 
 	for _, doc := range auditChecklistAnswerFormDTO.Documents {
-
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
-			//genereate URL
+			// genereate URL
 			url := utility.GenerateDocumentURL("audit", "audit-checklist", strconv.FormatUint(uint64(id), 10), "documents")
 			// Create a new Control test Document instance
 			document := &models.AuditChecklistDocument{
@@ -510,9 +512,11 @@ func (acs *AuditChecklistService) Answer(auditId uint, id uint, currentUserID ui
 			id,
 			auditChecklistAnswerFormDTO,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -597,7 +601,6 @@ func (acs *AuditChecklistService) DeleteAnswer(auditId uint, ids []uint, current
 	tx.Commit()
 
 	if len(successfulIDs) > 0 {
-
 		go func() {
 			for _, id := range successfulIDs {
 				err := acs.activityLogSvc.LogActivity(
@@ -606,9 +609,11 @@ func (acs *AuditChecklistService) DeleteAnswer(auditId uint, ids []uint, current
 					id,
 					nil,
 					currentUserID,
+					"",
+					"",
+					"",
 					nil,
 				)
-
 				if err != nil {
 					fields := map[string]interface{}{
 						"action":    models.DeleteAction,

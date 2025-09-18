@@ -237,6 +237,9 @@ func (as *AuditService) Create(currentUserID uint, auditFormDTO *auditDTOs.Audit
 			id,
 			existingAudit,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -444,6 +447,9 @@ func (as *AuditService) Update(id uint, currentUserID uint, auditFormDTO *auditD
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {
@@ -510,6 +516,9 @@ func (as *AuditService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 					id,
 					deletedAudit,
 					currentUserID,
+					"",
+					"",
+					"",
 					nil,
 				)
 				if err != nil {

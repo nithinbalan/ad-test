@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"jethur/config"
-	commonDTOs "jethur/grc/common/dtos"
-	commonServices "jethur/grc/common/services"
 	threatDTOs "jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -34,11 +34,11 @@ type ThreatActionPlanCommentServiceInterface interface {
 }
 
 type ThreatActionPlanCommentService struct {
-	repo                    repositories.ThreatActionPlanCommentRepositoryInterface
-	userSvc                 organizationServices.UserServiceInterface
-	activityLogSvc          logServices.ActivityLogServiceInterface
+	repo                repositories.ThreatActionPlanCommentRepositoryInterface
+	userSvc             organizationServices.UserServiceInterface
+	activityLogSvc      logServices.ActivityLogServiceInterface
 	threatActionPlanSvc ThreatActionPlanServiceInterface
-	notificationSvc         commonServices.NotificationServiceInterface
+	notificationSvc     commonServices.NotificationServiceInterface
 }
 
 func NewThreatActionPlanCommentService(repo repositories.ThreatActionPlanCommentRepositoryInterface, userSvc organizationServices.UserServiceInterface,
@@ -47,11 +47,11 @@ func NewThreatActionPlanCommentService(repo repositories.ThreatActionPlanComment
 	notificationSvc commonServices.NotificationServiceInterface,
 ) ThreatActionPlanCommentServiceInterface {
 	return &ThreatActionPlanCommentService{
-		repo:                    repo,
-		userSvc:                 userSvc,
-		activityLogSvc:          activityLogSvc,
-	    threatActionPlanSvc: threatActionPlanSvc,
-		notificationSvc:         notificationSvc,
+		repo:                repo,
+		userSvc:             userSvc,
+		activityLogSvc:      activityLogSvc,
+		threatActionPlanSvc: threatActionPlanSvc,
+		notificationSvc:     notificationSvc,
 	}
 }
 
@@ -112,16 +112,14 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 	}
 
 	threatActionPlan, err := tapc.threatActionPlanSvc.GetFullDetailsByID(threatID, actionPlanID)
-
-
 	if err != nil {
 		return 0, err
 	}
 
 	comment := &models.ThreatActionPlanComment{
 		ThreatActionPlanID: actionPlanID,
-		Comment:                threatActionPlanCommentFormDTO.Comment,
-		CreatedBYID:            currentUserID,
+		Comment:            threatActionPlanCommentFormDTO.Comment,
+		CreatedBYID:        currentUserID,
 	}
 
 	id, err := tapc.repo.Create(comment)
@@ -149,13 +147,13 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 
 		document := &models.ThreatActionPlanCommentDocument{
 			ThreatActionPlanCommentID: id,
-			URL:                           url,
-			Name:                          doc.FileName,
-			Size:                          doc.Size,
-			Token:                         encryptedFilename,
-			OriginalName:                  doc.OriginalName,
-			Type:                          doc.Type,
-			CreatedBYID:                   currentUserID,
+			URL:                       url,
+			Name:                      doc.FileName,
+			Size:                      doc.Size,
+			Token:                     encryptedFilename,
+			OriginalName:              doc.OriginalName,
+			Type:                      doc.Type,
+			CreatedBYID:               currentUserID,
 		}
 
 		documents = append(documents, document)
@@ -198,6 +196,9 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 			id,
 			existingComment,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -214,7 +215,6 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 		if uint(threatActionPlan.ResponsibleUser.ID) == currentUserID {
 			// if responsible user added the comment, notification for review user
 			if threatActionPlan.ReviewUser != nil {
-				   
 
 				// prepare notification
 				urlParam := fmt.Sprintf(`{"threat_id":%d, "action_plan_id":%d}`, threatID, id)
@@ -257,15 +257,15 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 				subject := fmt.Sprintf("Comment Added for Threat Action Plan:%s", threatActionPlan.Title)
 				appURL := utility.GetAppURL()
 				emailData := map[string]interface{}{
-					"FirstNameEn":               reviewUser.FirstNameEn,
-					"LastNameEn":                reviewUser.LastNameEn,
-					"ThreatTitle":           threatActionPlan.Threat.TitleEn,
-					"ActionPlanTitle":           threatActionPlan.Title,
-					"ActionPlanDescription":     threatActionPlan.Description,
-					"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
-					"CommentedByLastNameEn":     assignedBy.LastNameEn,
-					"CommentedOn":               time.Now().Format("2006-01-02"),
-					"RedirectURL":               fmt.Sprintf("%s/asset/threats/%d/action-plans?action_plan_id=%d", appURL, threatID, id),
+					"FirstNameEn":            reviewUser.FirstNameEn,
+					"LastNameEn":             reviewUser.LastNameEn,
+					"ThreatTitle":            threatActionPlan.Threat.TitleEn,
+					"ActionPlanTitle":        threatActionPlan.Title,
+					"ActionPlanDescription":  threatActionPlan.Description,
+					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
+					"CommentedByLastNameEn":  assignedBy.LastNameEn,
+					"CommentedOn":            time.Now().Format("2006-01-02"),
+					"RedirectURL":            fmt.Sprintf("%s/asset/threats/%d/action-plans?action_plan_id=%d", appURL, threatID, id),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -283,7 +283,7 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 					})
 				}
 			}
-		} else if  threatActionPlan.ReviewUser != nil && uint(threatActionPlan.ReviewUser.ID) == currentUserID {
+		} else if threatActionPlan.ReviewUser != nil && uint(threatActionPlan.ReviewUser.ID) == currentUserID {
 			// if review user added the comment, notification for responsible user
 			// prepare notification
 			urlParam := fmt.Sprintf(`{"threat_id":%d, "action_plan_id":%d}`, threatID, id)
@@ -326,15 +326,15 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 			subject := fmt.Sprintf("Comment Added for Threat Action Plan:%s", threatActionPlan.Title)
 			appURL := utility.GetAppURL()
 			emailData := map[string]interface{}{
-				"FirstNameEn":               responsibleUser.FirstNameEn,
-				"LastNameEn":                responsibleUser.LastNameEn,
-				"ThreatTitle":           threatActionPlan.Threat.TitleEn,
-				"ActionPlanTitle":           threatActionPlan.Title,
-				"ActionPlanDescription":     threatActionPlan.Description,
-				"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
-				"CommentedByLastNameEn":     assignedBy.LastNameEn,
-				"AssignedOn":                time.Now().Format("2006-01-02"),
-				"RedirectURL":               fmt.Sprintf("%s/asset/threats/%d/action-plans?action_plan_id=%d", appURL, threatID, id),
+				"FirstNameEn":            responsibleUser.FirstNameEn,
+				"LastNameEn":             responsibleUser.LastNameEn,
+				"ThreatTitle":            threatActionPlan.Threat.TitleEn,
+				"ActionPlanTitle":        threatActionPlan.Title,
+				"ActionPlanDescription":  threatActionPlan.Description,
+				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
+				"CommentedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":             time.Now().Format("2006-01-02"),
+				"RedirectURL":            fmt.Sprintf("%s/asset/threats/%d/action-plans?action_plan_id=%d", appURL, threatID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -394,15 +394,15 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 			subject := fmt.Sprintf("Comment Added for Threat Action Plan:%s", threatActionPlan.Title)
 			appURL := utility.GetAppURL()
 			emailData := map[string]interface{}{
-				"FirstNameEn":               responsibleUser.FirstNameEn,
-				"LastNameEn":                responsibleUser.LastNameEn,
-				"ThreatTitle":           threatActionPlan.Threat.TitleEn,
-				"ActionPlanTitle":           threatActionPlan.Title,
-				"ActionPlanDescription":     threatActionPlan.Description,
-				"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
-				"CommentedByLastNameEn":     assignedBy.LastNameEn,
-				"AssignedOn":                time.Now().Format("2006-01-02"),
-				"RedirectURL":               fmt.Sprintf("%s/asset/threats/%d/action-plans?action_plan_id=%d", appURL, threatID, id),
+				"FirstNameEn":            responsibleUser.FirstNameEn,
+				"LastNameEn":             responsibleUser.LastNameEn,
+				"ThreatTitle":            threatActionPlan.Threat.TitleEn,
+				"ActionPlanTitle":        threatActionPlan.Title,
+				"ActionPlanDescription":  threatActionPlan.Description,
+				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
+				"CommentedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":             time.Now().Format("2006-01-02"),
+				"RedirectURL":            fmt.Sprintf("%s/asset/threats/%d/action-plans?action_plan_id=%d", appURL, threatID, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -461,15 +461,15 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 				subject := fmt.Sprintf("Comment Added for Threat Action Plan:%s", threatActionPlan.Title)
 				appURL := utility.GetAppURL()
 				emailData := map[string]interface{}{
-					"FirstNameEn":               responsibleUser.FirstNameEn,
-					"LastNameEn":                responsibleUser.LastNameEn,
-					"ThreatTitle":           threatActionPlan.Threat.TitleEn,
-					"ActionPlanTitle":           threatActionPlan.Title,
-					"ActionPlanDescription":     threatActionPlan.Description,
-					"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
-					"CommentedByLastNameEn":     assignedBy.LastNameEn,
-					"AssignedOn":                time.Now().Format("2006-01-02"),
-					"RedirectURL":               fmt.Sprintf("%s/asset/threats/%d/action-plans?action_plan_id=%d", appURL, threatID, id),
+					"FirstNameEn":            responsibleUser.FirstNameEn,
+					"LastNameEn":             responsibleUser.LastNameEn,
+					"ThreatTitle":            threatActionPlan.Threat.TitleEn,
+					"ActionPlanTitle":        threatActionPlan.Title,
+					"ActionPlanDescription":  threatActionPlan.Description,
+					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
+					"CommentedByLastNameEn":  assignedBy.LastNameEn,
+					"AssignedOn":             time.Now().Format("2006-01-02"),
+					"RedirectURL":            fmt.Sprintf("%s/asset/threats/%d/action-plans?action_plan_id=%d", appURL, threatID, id),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -491,6 +491,7 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 	}()
 	return id, nil
 }
+
 func (tapc *ThreatActionPlanCommentService) Update(threatID uint, actionPlanID uint, id uint, currentUserID uint, threatActionPlanCommentFormDTO *threatDTOs.ThreatActionPlanCommentFormDTO) error {
 	tx := tapc.repo.BeginTransaction()
 
@@ -534,13 +535,13 @@ func (tapc *ThreatActionPlanCommentService) Update(threatID uint, actionPlanID u
 
 			document := &models.ThreatActionPlanCommentDocument{
 				ThreatActionPlanCommentID: id,
-				URL:                           url,
-				Name:                          doc.FileName,
-				Size:                          doc.Size,
-				Token:                         encryptedFileName,
-				OriginalName:                  doc.OriginalName,
-				Type:                          doc.Type,
-				CreatedBYID:                   currentUserID,
+				URL:                       url,
+				Name:                      doc.FileName,
+				Size:                      doc.Size,
+				Token:                     encryptedFileName,
+				OriginalName:              doc.OriginalName,
+				Type:                      doc.Type,
+				CreatedBYID:               currentUserID,
 			}
 
 			newDocuments = append(newDocuments, document)
@@ -622,6 +623,9 @@ func (tapc *ThreatActionPlanCommentService) Update(threatID uint, actionPlanID u
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {
@@ -656,7 +660,7 @@ func (tapc *ThreatActionPlanCommentService) Delete(threatID uint, actionPlanID u
 		}
 
 		deletedComments = append(deletedComments, map[string]interface{}{
-			"id":                id,
+			"id":            id,
 			"threat_action": actionPlanID,
 		})
 

@@ -71,7 +71,6 @@ func NewAuditDraftFindingService(
 }
 
 func (adfs *AuditDraftFindingService) GetAll(params *auditDTOs.AuditDraftFindingListQueryParamsDTO) (*auditDTOs.AuditDraftFindingListResponseDTO, error) {
-
 	return adfs.repo.GetAll(params)
 }
 
@@ -110,7 +109,7 @@ func (adfs *AuditDraftFindingService) GetFullDetailsByID(id uint, tx ...utility.
 
 func (adfs *AuditDraftFindingService) GetAllFindingsByAuditID(auditId uint, tx ...utility.DatabaseTransaction) ([]*models.AuditDraftFinding, error) {
 	// Retrieve audit findings from the repository by audit ID
-	
+
 	auditDraftFindings, err := adfs.repo.GetAllFindingsByAuditID(auditId, tx...)
 	if err != nil {
 		// If no records found, return a "not found" error
@@ -219,9 +218,11 @@ func (adfs *AuditDraftFindingService) Create(currentUserID uint, auditDraftFindi
 			id,
 			existingAuditDraftFinding,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -273,7 +274,7 @@ func (adfs *AuditDraftFindingService) Update(id uint, currentUserID uint, auditD
 		return err
 	}
 
-	//documents update
+	// documents update
 	var documents []*models.AuditDraftFindingDocument
 	var deleteDocumentIds []*uint
 	var documentsToDelete []*models.AuditDraftFindingDocument
@@ -358,7 +359,7 @@ func (adfs *AuditDraftFindingService) Update(id uint, currentUserID uint, auditD
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"auditable_item":         oldAuditDraftFinding.AuditableItem.TitleEn,
 			"title":                  oldAuditDraftFinding.Title,
@@ -391,9 +392,11 @@ func (adfs *AuditDraftFindingService) Update(id uint, currentUserID uint, auditD
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -412,7 +415,6 @@ func (adfs *AuditDraftFindingService) Update(id uint, currentUserID uint, auditD
 }
 
 func (adfs *AuditDraftFindingService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
-
 	tx := adfs.repo.BeginTransaction()
 	var failedIDs []uint
 	var successfulIDs []uint
@@ -475,7 +477,6 @@ func (adfs *AuditDraftFindingService) Delete(ids []uint, currentUserID uint) ([]
 
 	tx.Commit()
 	if len(successfulIDs) > 0 {
-
 		go func() {
 			for _, id := range successfulIDs {
 				err := adfs.activityLogSvc.LogActivity(
@@ -484,9 +485,11 @@ func (adfs *AuditDraftFindingService) Delete(ids []uint, currentUserID uint) ([]
 					id,
 					deletedAuditDraftFinding,
 					currentUserID,
+					"",
+					"",
+					"",
 					nil,
 				)
-
 				if err != nil {
 					fields := map[string]interface{}{
 						"action":    models.DeleteAction,
@@ -508,7 +511,6 @@ func (adfs *AuditDraftFindingService) Delete(ids []uint, currentUserID uint) ([]
 }
 
 func (adfs *AuditDraftFindingService) validateAuditDraftFindingFormDTO(dto *auditDTOs.AuditDraftFindingFormDTO) error {
-
 	if _, err := adfs.auditSvc.GetByID(dto.AuditID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("audit does not exist"), "not_exist", "audit")
 	}
@@ -572,13 +574,13 @@ func (adfs *AuditDraftFindingService) StatusUpdate(id uint, currentUserID uint, 
 	}
 
 	err = adfs.repo.Update(existingAuditDraftFinding, tx...)
-
 	if err != nil {
 		return err
 	}
 
 	return nil
 }
+
 func (adfs *AuditDraftFindingService) GetDocumentPath(id uint, token string) (string, error) {
 	fmt.Println("asd")
 	existingAuditDraftFinding, err := adfs.GetByID(id)

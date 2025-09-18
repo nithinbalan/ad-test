@@ -71,7 +71,6 @@ func NewAuditFindingService(
 }
 
 func (afs *AuditFindingService) GetAll(params *auditDTOs.AuditFindingListQueryParamsDTO) (*auditDTOs.AuditFindingListResponseDTO, error) {
-
 	return afs.repo.GetAll(params)
 }
 
@@ -216,9 +215,11 @@ func (afs *AuditFindingService) Create(currentUserID uint, auditFindingFormDTO *
 			id,
 			existingAuditFinding,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -267,7 +268,7 @@ func (afs *AuditFindingService) Update(id uint, currentUserID uint, auditFinding
 		return err
 	}
 
-	//documents update
+	// documents update
 	var documents []*models.AuditFindingDocument
 	var deleteDocumentIds []*uint
 	var documentsToDelete []*models.AuditFindingDocument
@@ -352,7 +353,7 @@ func (afs *AuditFindingService) Update(id uint, currentUserID uint, auditFinding
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"auditable_item":         oldAuditFinding.AuditableItem.TitleEn,
 			"audit_finding_category": oldAuditFinding.AuditFindingCategory.TitleEn,
@@ -380,9 +381,11 @@ func (afs *AuditFindingService) Update(id uint, currentUserID uint, auditFinding
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -401,7 +404,6 @@ func (afs *AuditFindingService) Update(id uint, currentUserID uint, auditFinding
 }
 
 func (afs *AuditFindingService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
-
 	tx := afs.repo.BeginTransaction()
 	var failedIDs []uint
 	var successfulIDs []uint
@@ -462,7 +464,6 @@ func (afs *AuditFindingService) Delete(ids []uint, currentUserID uint) ([]uint, 
 
 	tx.Commit()
 	if len(successfulIDs) > 0 {
-
 		go func() {
 			for _, id := range successfulIDs {
 				err := afs.activityLogSvc.LogActivity(
@@ -471,9 +472,11 @@ func (afs *AuditFindingService) Delete(ids []uint, currentUserID uint) ([]uint, 
 					id,
 					deletedAuditFinding,
 					currentUserID,
+					"",
+					"",
+					"",
 					nil,
 				)
-
 				if err != nil {
 					fields := map[string]interface{}{
 						"action":    models.DeleteAction,
@@ -495,7 +498,6 @@ func (afs *AuditFindingService) Delete(ids []uint, currentUserID uint) ([]uint, 
 }
 
 func (afs *AuditFindingService) validateAuditFindingFormDTO(dto *auditDTOs.AuditFindingFormDTO) error {
-
 	if _, err := afs.auditSvc.GetByID(dto.AuditID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("audit does not exist"), "not_exist", "audit")
 	}

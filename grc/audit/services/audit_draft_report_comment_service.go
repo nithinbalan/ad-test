@@ -3,15 +3,16 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+
 	"jethur/config"
 	"jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -62,7 +63,6 @@ func (adrcs *AuditDraftReportCommentService) GetAll(auditID uint, auditDraftRepo
 
 func (adrcs AuditDraftReportCommentService) GetByID(id uint) (*models.AuditDraftReportComment, error) {
 	auditDraftReportComment, err := adrcs.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -75,7 +75,6 @@ func (adrcs AuditDraftReportCommentService) GetByID(id uint) (*models.AuditDraft
 func (adrcs AuditDraftReportCommentService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.AuditDraftReportCommentDetailDTO, error) {
 	var auditDraftReportCommentDTO dtos.AuditDraftReportCommentDetailDTO
 	auditDraftReportComment, err := adrcs.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -93,6 +92,7 @@ func (adrcs AuditDraftReportCommentService) GetFullDetailsByID(id uint, tx ...ut
 
 	return &auditDraftReportCommentDTO, nil
 }
+
 func (adrcs *AuditDraftReportCommentService) Create(auditID uint, auditDraftReportID uint, currentUserID uint, formDTO *dtos.AuditDraftReportCommentFormDTO) (uint, error) {
 	tx := adrcs.repo.BeginTransaction()
 	if _, err := adrcs.auditSvc.GetByID(auditID); err != nil {
@@ -170,9 +170,11 @@ func (adrcs *AuditDraftReportCommentService) Create(auditID uint, auditDraftRepo
 			id,
 			existingAuditDraftReportComment,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
 				"action":    models.CreateAction,
@@ -203,7 +205,6 @@ func (adrcs *AuditDraftReportCommentService) Update(auditID uint, auditDraftRepo
 	}
 
 	existingAuditDraftReportComment, err := adrcs.GetByID(id)
-
 	if err != nil {
 		return err
 	}
@@ -219,7 +220,7 @@ func (adrcs *AuditDraftReportCommentService) Update(auditID uint, auditDraftRepo
 		return err
 	}
 
-	//update document
+	// update document
 	var documents []*models.AuditDraftReportCommentDocument
 	var deleteDocumentIds []*uint
 	var documentsToDelete []*models.AuditDraftReportCommentDocument
@@ -229,13 +230,12 @@ func (adrcs *AuditDraftReportCommentService) Update(auditID uint, auditDraftRepo
 			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
-			//genereate URL
+			// genereate URL
 			url := utility.GenerateDocumentURL("audit", "audits", strconv.FormatUint(uint64(auditID), 10), "draft-report", strconv.FormatUint(uint64(auditDraftReportID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 			// Create a new Control test Document instance
@@ -308,7 +308,7 @@ func (adrcs *AuditDraftReportCommentService) Update(auditID uint, auditDraftRepo
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"comment": oldAuditDraftReportComment.Comment,
 			"type":    oldAuditDraftReportComment.Type,
@@ -331,9 +331,11 @@ func (adrcs *AuditDraftReportCommentService) Update(auditID uint, auditDraftRepo
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -367,7 +369,6 @@ func (adrcs *AuditDraftReportCommentService) Delete(auditID uint, auditDraftRepo
 	for _, id := range ids {
 
 		auditDraftReportComment, err := adrcs.GetFullDetailsByID(id, tx)
-
 		if err != nil {
 			continue
 		}
@@ -420,7 +421,6 @@ func (adrcs *AuditDraftReportCommentService) Delete(auditID uint, auditDraftRepo
 	tx.Commit()
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := adrcs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
@@ -471,9 +471,11 @@ func (adrcs *AuditDraftReportCommentService) StatusUpdate(auditID uint, auditDra
 			id,
 			auditDraftReportCommentStatusUpdateFormDTO,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,

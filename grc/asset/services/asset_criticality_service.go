@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+
 	assetDTOs "jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"net/http"
 
 	"gorm.io/gorm"
 )
@@ -36,7 +37,8 @@ func NewAssetCriticalityService(repo repositories.AssetCriticalityRepositoryInte
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	assetRegisterSvc AssetRegisterServiceInterface,
 	assetCriticalityMatrixFactorSvc AssetCriticalityMatrixFactorServiceInterface,
-	assetCriticalityMatrixFactorRatingSvc AssetCriticalityMatrixFactorRatingServiceInterface) AssetCriticalityServiceInterface {
+	assetCriticalityMatrixFactorRatingSvc AssetCriticalityMatrixFactorRatingServiceInterface,
+) AssetCriticalityServiceInterface {
 	return &AssetCriticalityService{
 		repo:                                  repo,
 		activityLogSvc:                        activityLogSvc,
@@ -107,7 +109,6 @@ func (acs *AssetCriticalityService) Create(assetID uint, assetCriticalityFormDTO
 			CreatedByID:                          currentUserID,
 		}
 		id, err := acs.repo.Create(contribution, tx)
-
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -120,7 +121,7 @@ func (acs *AssetCriticalityService) Create(assetID uint, assetCriticalityFormDTO
 		createdIds = append(createdIds, id)
 	}
 
-	//update total score in asset register
+	// update total score in asset register
 	totalScore, err := acs.repo.CalculateTotalScore(assetID, tx)
 	if err != nil {
 		tx.Rollback()
@@ -220,7 +221,7 @@ func (acs *AssetCriticalityService) Update(assetID uint, id uint, dto assetDTOs.
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"asset_criticality_matrix_factor":        oldContribution.AssetCriticalityMatrixFactor.TitleEn,
 			"asset_criticality_matrix_factor_rating": oldContribution.AssetCriticalityMatrixFactorRating.TitleEn,
@@ -247,6 +248,9 @@ func (acs *AssetCriticalityService) Update(assetID uint, id uint, dto assetDTOs.
 				id,
 				changedData,
 				userID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {

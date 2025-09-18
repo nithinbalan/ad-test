@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
@@ -141,9 +142,11 @@ func (apses *AuditPlanStakeholderEngagementService) Create(auditPlanID uint, cur
 			id,
 			existingAuditPlanStateholderEngagement,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
 				"action":    models.CreateAction,
@@ -201,7 +204,7 @@ func (apses *AuditPlanStakeholderEngagementService) Update(id uint, auditPlanID 
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"audit_engagement": oldPlanStakeholder.AuditEngagementType.TitleEn,
 			"title":            oldPlanStakeholder.Title,
@@ -229,9 +232,11 @@ func (apses *AuditPlanStakeholderEngagementService) Update(id uint, auditPlanID 
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -293,9 +298,11 @@ func (apses *AuditPlanStakeholderEngagementService) Delete(ids []uint, currentUs
 					id,
 					deletedAuditPlanStakeholderEngagement,
 					currentUserID,
+					"",
+					"",
+					"",
 					nil,
 				)
-
 				if err != nil {
 					fields := map[string]interface{}{
 						"action":    models.DeleteAction,

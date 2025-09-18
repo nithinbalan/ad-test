@@ -2,11 +2,12 @@ package services
 
 import (
 	"fmt"
+	"log"
+
 	"jethur/grc/audit/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 )
 
 type AuditCategoryServiceInterface interface {
@@ -41,7 +42,6 @@ func (acs AuditCategoryService) GetByID(id uint) (*models.AuditCategory, error) 
 }
 
 func (acs *AuditCategoryService) Create(currentUserID uint, category *models.AuditCategory) (*models.AuditCategory, error) {
-
 	if exists, err := acs.repo.ExistsByTitle(category.TitleEn, category.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
@@ -60,9 +60,11 @@ func (acs *AuditCategoryService) Create(currentUserID uint, category *models.Aud
 			createdCategory.ID,
 			createdCategory,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			// @todo - save to log file
 			log.Printf("Failed to log activity: %v", err)
@@ -74,7 +76,6 @@ func (acs *AuditCategoryService) Create(currentUserID uint, category *models.Aud
 
 func (acs *AuditCategoryService) Update(id uint, currentUserID uint, updatedCategory *models.AuditCategory) (*models.AuditCategory, error) {
 	existingCategory, err := acs.repo.GetByID(id)
-
 	if err != nil {
 		return nil, err
 	}
@@ -85,18 +86,15 @@ func (acs *AuditCategoryService) Update(id uint, currentUserID uint, updatedCate
 		} else if exists {
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
-
 	}
 
 	result, err := acs.repo.Update(id, updatedCategory)
-
 	if err != nil {
 		return nil, err
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "Status"}
 	changes, err := utility.CompareFields(existingCategory, updatedCategory, fieldsToCompare)
-
 	if err != nil {
 		log.Println("error :", err.Error())
 	}
@@ -113,6 +111,9 @@ func (acs *AuditCategoryService) Update(id uint, currentUserID uint, updatedCate
 			result.ID,
 			changedDataJSON,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -130,7 +131,6 @@ func (acs *AuditCategoryService) Delete(ids []uint, currentUserID uint) ([]uint,
 	for _, id := range ids {
 
 		auditCategory, err := acs.repo.GetByID(id)
-
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -151,7 +151,6 @@ func (acs *AuditCategoryService) Delete(ids []uint, currentUserID uint) ([]uint,
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := acs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -175,7 +174,6 @@ func (acs *AuditCategoryService) Activate(ids []uint, currentUserID uint) error 
 	successfulIds, err := acs.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := acs.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
@@ -199,7 +197,6 @@ func (acs *AuditCategoryService) Deactivate(ids []uint, currentUserID uint) erro
 	successfulIds, err := acs.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := acs.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,

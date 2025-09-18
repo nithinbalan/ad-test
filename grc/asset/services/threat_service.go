@@ -3,6 +3,11 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
 	logServices "jethur/grc/logs/services"
@@ -10,10 +15,6 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -112,7 +113,7 @@ func (ts *ThreatService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTrans
 }
 
 func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID uint) (uint, error) {
-	var tx = ts.repo.BeginTransaction()
+	tx := ts.repo.BeginTransaction()
 
 	// Validate the DTO
 	if err := ts.validateThreatFormDTO(threatFormDTO); err != nil {
@@ -228,6 +229,9 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 			id,
 			existingThreat,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -246,7 +250,7 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 }
 
 func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, currentUserID uint) error {
-	var tx = ts.repo.BeginTransaction()
+	tx := ts.repo.BeginTransaction()
 
 	oldThreat, err := ts.GetFullDetailsByID(id, tx)
 	if err != nil {
@@ -439,7 +443,7 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"threat_type":      oldThreat.ThreatType.TitleEn,
 			"severity_level":   oldThreat.SeverityLevel.TitleEn,
@@ -478,6 +482,9 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {
@@ -494,7 +501,6 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 	}()
 
 	return nil
-
 }
 
 func (ts *ThreatService) Delete(ids []uint, currentUserID uint) ([]uint, error) {

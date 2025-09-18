@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	auditRepositories "jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
@@ -55,7 +56,6 @@ func (afrcas *AuditFindingRootCauseAnalysisService) GetByID(findingID uint, id u
 	}
 
 	auditFindingRootCauseAnalysis, err := afrcas.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -108,9 +108,11 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Create(findingID uint, curre
 			id,
 			existingAuditFindingRootCauseAnalysis,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -141,7 +143,6 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Update(findingID uint, id ui
 	}
 
 	existingAuditFindingRootCauseAnalysis, err := afrcas.GetByID(findingID, id)
-
 	if err != nil {
 		return err
 	}
@@ -152,7 +153,6 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Update(findingID uint, id ui
 	existingAuditFindingRootCauseAnalysis.UpdatedBYID = &currentUserID
 
 	err = afrcas.repo.Update(existingAuditFindingRootCauseAnalysis, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -166,7 +166,7 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Update(findingID uint, id ui
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"question": oldAuditFindingRootCauseAnalysis.Question,
 			"answer":   oldAuditFindingRootCauseAnalysis.Answer,
@@ -190,6 +190,9 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Update(findingID uint, id ui
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {
@@ -252,6 +255,9 @@ func (afrcas *AuditFindingRootCauseAnalysisService) Delete(findingID uint, id ui
 			id,
 			deletedFindingRootCauseAnalysis,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

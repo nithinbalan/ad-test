@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	auditRepositories "jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
@@ -41,7 +42,8 @@ func NewAuditableItemService(
 	auditStatusSvc AuditStatusServiceInterface,
 	auditorRiskRatingSvc AuditorRiskRatingServiceInterface,
 	organizationUnitSvc settingServices.OrganizationUnitServiceInterface,
-	userSvc organizationServices.UserServiceInterface) AuditableItemServiceInterface {
+	userSvc organizationServices.UserServiceInterface,
+) AuditableItemServiceInterface {
 	return &AuditableItemService{
 		repo:                 repo,
 		activityLogSvc:       activityLogSvc,
@@ -58,7 +60,6 @@ func (ais *AuditableItemService) GetAll(params *auditDTOs.AuditableItemListQuery
 
 func (ais AuditableItemService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.AuditableItem, error) {
 	auditableItem, err := ais.repo.GetByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -143,9 +144,11 @@ func (ais *AuditableItemService) Create(currentUserID uint, auditableItemFormDTO
 			id,
 			existingAuditableItem,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -172,7 +175,6 @@ func (ais *AuditableItemService) Update(id uint, currentUserID uint, auditableIt
 	}
 
 	existingAuditableItem, err := ais.GetByID(id)
-
 	if err != nil {
 		return err
 	}
@@ -196,7 +198,6 @@ func (ais *AuditableItemService) Update(id uint, currentUserID uint, auditableIt
 	existingAuditableItem.UpdatedBYID = &currentUserID
 
 	err = ais.repo.Update(existingAuditableItem, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -209,7 +210,7 @@ func (ais *AuditableItemService) Update(id uint, currentUserID uint, auditableIt
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title_en":            oldAuditableItem.TitleEn,
 			"title_ar":            oldAuditableItem.TitleAr,
@@ -239,6 +240,9 @@ func (ais *AuditableItemService) Update(id uint, currentUserID uint, auditableIt
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {
@@ -310,7 +314,6 @@ func (ais *AuditableItemService) Delete(ids []uint, currentUserID uint) ([]uint,
 
 func (ais *AuditableItemService) StatusUpdate(id uint, currentUserID uint, auditableItemStatusUpdateFormDTO *auditDTOs.AuditableItemStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {
 	existingAuditableItem, err := ais.GetByID(id)
-
 	if err != nil {
 		return err
 	}
@@ -319,7 +322,6 @@ func (ais *AuditableItemService) StatusUpdate(id uint, currentUserID uint, audit
 	existingAuditableItem.UpdatedBYID = &currentUserID
 
 	err = ais.repo.Update(existingAuditableItem, tx)
-
 	if err != nil {
 		return err
 	}

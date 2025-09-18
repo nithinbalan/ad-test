@@ -224,6 +224,9 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 			id,
 			existingActionPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -431,6 +434,9 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {

@@ -12,6 +12,7 @@ type ActivityLogRepositoryInteface interface {
 	GetAll(params *logDTOs.ActivityLogListQueryParamsDTO) (*logDTOs.ActivityLogListResponseDTO, error)
 	GetFullDetailsByID(id uint) (*models.ActivityLog, error)
 	SaveActivityLogs(logs []*models.ActivityLog, tx ...*gorm.DB) error
+	GetModuleIDByIdentifier(identifier string) (uint, error)
 }
 
 type ActivityLogRepository struct {
@@ -22,6 +23,14 @@ func NewActivityLogRepository(db *gorm.DB) *ActivityLogRepository {
 	return &ActivityLogRepository{
 		db: db,
 	}
+}
+
+func (repo *ActivityLogRepository) GetModuleIDByIdentifier(identifier string) (uint, error) {
+	var module models.Module
+	if err := repo.db.Where("identifier = ?", identifier).First(&module).Error; err != nil {
+		return 0, err
+	}
+	return module.ID, nil
 }
 
 func (repo *ActivityLogRepository) GetAll(params *logDTOs.ActivityLogListQueryParamsDTO) (*logDTOs.ActivityLogListResponseDTO, error) {

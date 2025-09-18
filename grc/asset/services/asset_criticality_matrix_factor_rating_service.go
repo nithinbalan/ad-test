@@ -3,11 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	"jethur/grc/asset/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 
 	"gorm.io/gorm"
 )
@@ -50,7 +51,6 @@ func (acmfrs *AssetCriticalityMatrixFactorRatingService) GetByID(matrixID uint, 
 }
 
 func (acmfrs *AssetCriticalityMatrixFactorRatingService) Create(matrixID uint, currentUserID uint, rating *models.AssetCriticalityMatrixFactorRating) (*models.AssetCriticalityMatrixFactorRating, error) {
-
 	rating.AssetCriticalityMatrixID = matrixID
 
 	// Check if title exists
@@ -72,6 +72,9 @@ func (acmfrs *AssetCriticalityMatrixFactorRatingService) Create(matrixID uint, c
 			createdRating.ID,
 			createdRating,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -120,6 +123,9 @@ func (acmfrs *AssetCriticalityMatrixFactorRatingService) Update(matrixID uint, i
 			result.ID,
 			changedDataJSON,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

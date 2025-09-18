@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
@@ -254,9 +255,11 @@ func (ams *AuditMeetingService) Create(currentUserID uint, auditMeetingFormDTO *
 			id,
 			existingAuditMeeting,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -391,7 +394,7 @@ func (ams *AuditMeetingService) Update(id uint, currentUserID uint, auditMeeting
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":              oldAuditMeeting.Title,
 			"date":               oldAuditMeeting.Date,
@@ -423,9 +426,11 @@ func (ams *AuditMeetingService) Update(id uint, currentUserID uint, auditMeeting
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
