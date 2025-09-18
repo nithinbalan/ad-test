@@ -70,6 +70,13 @@ func (pvccs *PolicyVersionClauseCommentService) GetAll(documentID uint, clauseID
 		dto := &policyDTOs.PolicyVersionClauseCommentListDTO{
 			ID:                             comment.ID,
 			Comment:                        comment.Comment,
+			CommentStatusTitleEn:           comment.CommentStatusTitleEn,
+			CommentStatusTitleAr:           comment.CommentStatusTitleAr,
+			CommentStatusType:              comment.CommentStatusType,
+			CommentStatusColorCode:         comment.CommentStatusColorCode,
+			DocumentVersionClauseID:        comment.DocumentVersionClauseID,
+			DocumentVersionClauseNumber:    comment.DocumentVersionClauseNumber,
+			Level:                          comment.Level,
 			CreatedBYID:                    comment.CreatedBYID,
 			CreatedUserFirstNameEn:         comment.CreatedUserFirstNameEn,
 			CreatedUserFirstNameAr:         comment.CreatedUserFirstNameAr,
