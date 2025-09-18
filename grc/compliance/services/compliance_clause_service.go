@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"io"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
@@ -10,6 +11,7 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"os"
 	"strconv"
 	"strings"
 
@@ -58,6 +60,12 @@ type ComplianceClauseServiceInterface interface {
 	GetAssociatedKPI(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateComplianceClausKPI(complianceID, clauseID, currentUserID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
 	DeleteComplianceClausKPI(clauseID, kpiID uint) error
+
+	GenerateClauseTemplate() (*os.File, error)
+	ValidateClauseTemplate(complianceID uint, file io.Reader) ([]map[string]interface{}, error)
+	ValidateImportClause(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error)
+	validateClauses(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error)
+	ImportClauses(complianceID uint, input []map[string]interface{}, currentUserID uint) ([]uint, error)
 }
 
 type ComplianceClauseService struct {
@@ -851,4 +859,224 @@ func (ccs *ComplianceClauseService) DeleteComplianceClausKPI(clauseID, kpiID uin
 	}
 	tx.Commit()
 	return nil
+}
+
+func (css *ComplianceClauseService) GenerateClauseTemplate() (*os.File, error) {
+	templateHeaders := []string{"ClauseNo", "TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "ScopeEn", "ScopeAr", "ObjectiveEn", "ObjectiveAr"}
+
+	templateData := [][]interface{}{}
+
+	// Generate file
+	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
+		"Template": append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
+
+func (css *ComplianceClauseService) ValidateClauseTemplate(complianceID uint, file io.Reader) ([]map[string]interface{}, error) {
+	rows, err := utility.ReadExcelFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	inputHeaders := []string{"ClauseNo", "TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "ScopeEn", "ScopeAr", "ObjectiveEn", "ObjectiveAr"}
+	snakeHeaders := []string{"clause_no", "title_en", "title_ar", "description_en", "description_ar", "scope_en", "scope_ar", "objective_en", "objective_ar"}
+
+	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid headers"), "invalid_header", "Requirement Template")
+	}
+
+	var input []map[string]interface{}
+	for _, row := range rows[1:] {
+		record := make(map[string]interface{})
+		for i, h := range snakeHeaders {
+			if i < len(row) {
+				record[h] = row[i]
+			} else {
+				record[h] = ""
+			}
+		}
+		input = append(input, record)
+	}
+
+	return css.validateClauses(complianceID, input)
+}
+
+func (css *ComplianceClauseService) ValidateImportClause(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error) {
+	return css.validateClauses(complianceID, input)
+}
+
+func (css *ComplianceClauseService) validateClauses(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error) {
+	headers := []string{"clause_no", "title_en", "title_ar", "description_en", "description_ar", "scope_en", "scope_ar", "objective_en", "objective_ar"}
+
+	// Clauses
+	clauses, err := css.GetAll(complianceID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching clauses: %v", err)
+	}
+	clauseMap := make(map[string]uint)
+	for _, cl := range clauses {
+		key := strings.TrimSpace(cl.ClauseNo)
+		clauseMap[key] = cl.ID
+	}
+
+	var validated []map[string]interface{}
+
+	for _, record := range input {
+		rowErrors := make(map[string]interface{})
+		processed := make(map[string]interface{})
+
+		// Copy original input
+		for k, v := range record {
+			processed[k] = v
+		}
+
+		// Clause
+		if val, ok := record["clause_no"].(string); ok && val != "" {
+			if _, exists := clauseMap[strings.TrimSpace(val)]; exists {
+				rowErrors["clause_no"] = fmt.Sprintf("ClauseNo already exist: %s", val)
+			} else {
+				processed["clause_no"] = val
+			}
+		}
+
+		// TitleEn
+		if val, ok := record["title_en"].(string); !ok || val == "" {
+			rowErrors["title_en"] = "Field is required"
+		}
+
+		// TitleAr
+		if val, ok := record["title_ar"].(string); !ok || val == "" {
+			rowErrors["title_ar"] = "Field is required"
+		}
+
+		// DescriptionEn
+		if val, ok := record["description_en"].(string); ok {
+			trimmed := strings.TrimSpace(val)
+			if trimmed == "" {
+				processed["description_en"] = nil
+			} else {
+				processed["description_en"] = trimmed
+			}
+		}
+
+		// DescriptionAr
+		if val, ok := record["description_ar"].(string); ok {
+			trimmed := strings.TrimSpace(val)
+			if trimmed == "" {
+				processed["description_ar"] = nil
+			} else {
+				processed["description_ar"] = trimmed
+			}
+		}
+
+		// // ScopeEn
+		if val, ok := record["scope_en"].(string); ok {
+			trimmed := strings.TrimSpace(val)
+			if trimmed == "" {
+				processed["scope_en"] = nil
+			} else {
+				processed["scope_en"] = trimmed
+			}
+		}
+
+		// // ScopeAr
+		if val, ok := record["scope_ar"].(string); ok {
+			trimmed := strings.TrimSpace(val)
+			if trimmed == "" {
+				processed["scope_ar"] = nil
+			} else {
+				processed["scope_ar"] = trimmed
+			}
+		}
+
+		// ObjectiveEn
+		if val, ok := record["objective_en"].(string); ok {
+			trimmed := strings.TrimSpace(val)
+			if trimmed == "" {
+				processed["objective_en"] = nil
+			} else {
+				processed["objective_en"] = trimmed
+			}
+		}
+
+		// ObjectiveAr
+		if val, ok := record["objective_ar"].(string); ok {
+			trimmed := strings.TrimSpace(val)
+			if trimmed == "" {
+				processed["objective_ar"] = nil
+			} else {
+				processed["objective_ar"] = trimmed
+			}
+		}
+
+		if len(rowErrors) == 0 {
+			processed["errors"] = nil
+		} else {
+			for _, h := range headers {
+				if _, exists := rowErrors[h]; !exists {
+					rowErrors[h] = ""
+				}
+			}
+			processed["errors"] = rowErrors
+		}
+
+		validated = append(validated, processed)
+	}
+	return validated, nil
+}
+
+func (css *ComplianceClauseService) ImportClauses(complianceID uint, input []map[string]interface{}, currentUserID uint) ([]uint, error) {
+	validated, err := css.validateClauses(complianceID, input)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, r := range validated {
+		if errs, ok := r["errors"].(map[string]interface{}); ok && len(errs) > 0 {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid data"), "invalid_data", "Invalid Data")
+		}
+	}
+
+	var createdIDs []uint
+	for _, record := range validated {
+
+		dto := &complianceDTOs.ComplianceClauseFormDTO{
+			ClauseNo: record["clause_no"].(string),
+			TitleEn:  record["title_en"].(string),
+		}
+
+		if v, ok := record["title_ar"].(string); ok {
+			dto.TitleAr = &v
+		}
+		if v, ok := record["description_en"].(string); ok {
+			dto.DescriptionEn = &v
+		}
+		if v, ok := record["description_ar"].(string); ok {
+			dto.DescriptionAr = &v
+		}
+		if v, ok := record["scope_en"].(string); ok {
+			dto.ScopeEn = &v
+		}
+		if v, ok := record["scope_ar"].(string); ok {
+			dto.ScopeAr = &v
+		}
+		if v, ok := record["objective_en"].(string); ok {
+			dto.ObjectiveEn = &v
+		}
+		if v, ok := record["objective_ar"].(string); ok {
+			dto.ObjectiveAr = &v
+		}
+
+		id, err := css.Create(complianceID, currentUserID, dto)
+		if err != nil {
+			return nil, err
+		}
+		createdIDs = append(createdIDs, id)
+	}
+	return createdIDs, nil
 }
