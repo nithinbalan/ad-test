@@ -142,26 +142,27 @@ func (repo *PolicyVersionClauseCommentRepository) GetAllDocumentComments(documen
 
 	// Select fields
 	query = query.Select(`
-		document_version_clause_comments.id,
-		document_version_clause_comments.comment,
-		document_version_clause_comments.document_version_clause_id,
-		document_version_clause_comments.level,
-		document_version_clause_comments.created_at,
-		document_version_clause_comments.created_by_id,
-		document_version_clauses.clause_number AS document_version_clause_number,
-		comment_statuses.title_en AS comment_status_title_en,
-		comment_statuses.title_ar AS comment_status_title_ar,
-		comment_statuses.type AS comment_status_type,
-		comment_statuses.color_code AS comment_status_color_code,
-		users.first_name_en AS created_user_first_name_en,
-		users.first_name_ar AS created_user_first_name_ar,
-		users.last_name_en AS created_user_last_name_en,
-		users.last_name_ar AS created_user_last_name_ar,
-		users.initial AS created_user_initial,
-		users.color AS created_user_color,
-		users.email AS created_user_email,
-		users.profile_image_path AS created_user_profile_image_path
-	`).Order("document_version_clause_comments.created_at DESC")
+        document_version_clause_comments.id,
+        document_version_clause_comments.comment,
+        document_version_clause_comments.document_version_clause_id,
+        document_version_clause_comments.level,
+        document_version_clause_comments.created_at,
+        document_version_clause_comments.created_by_id,
+        document_version_clauses.clause_number AS document_version_clause_number,
+        document_version_clause_comments.document_version_clause_comment_id AS document_version_clause_comment_id,
+        comment_statuses.title_en AS comment_status_title_en,
+        comment_statuses.title_ar AS comment_status_title_ar,
+        comment_statuses.type AS comment_status_type,
+        comment_statuses.color_code AS comment_status_color_code,
+        users.first_name_en AS created_user_first_name_en,
+        users.first_name_ar AS created_user_first_name_ar,
+        users.last_name_en AS created_user_last_name_en,
+        users.last_name_ar AS created_user_last_name_ar,
+        users.initial AS created_user_initial,
+        users.color AS created_user_color,
+        users.email AS created_user_email,
+        users.profile_image_path AS created_user_profile_image_path
+    `).Order("document_version_clause_comments.created_at DESC")
 
 	if err := query.Scan(&comments).Error; err != nil {
 		return nil, err

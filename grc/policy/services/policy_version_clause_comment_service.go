@@ -115,7 +115,54 @@ func (pvccs *PolicyVersionClauseCommentService) GetAllDocumentComments(documentI
 		return nil, err
 	}
 
-	return pvccs.repo.GetAllDocumentComments(documentID, policyRegister.LatestDocumentVersion.ID, currentUserID, params)
+	comments, err := pvccs.repo.GetAllDocumentComments(documentID, policyRegister.LatestDocumentVersion.ID, currentUserID, params)
+	dtoMap := make(map[uint]*policyDTOs.PolicyVersionClauseCommentListDTO)
+	var roots []*policyDTOs.PolicyVersionClauseCommentListDTO
+
+	for _, comment := range comments.Comments {
+		dto := &policyDTOs.PolicyVersionClauseCommentListDTO{
+			ID:                             comment.ID,
+			Comment:                        comment.Comment,
+			CommentStatusTitleEn:           comment.CommentStatusTitleEn,
+			CommentStatusTitleAr:           comment.CommentStatusTitleAr,
+			CommentStatusType:              comment.CommentStatusType,
+			CommentStatusColorCode:         comment.CommentStatusColorCode,
+			DocumentVersionClauseID:        comment.DocumentVersionClauseID,
+			DocumentVersionClauseNumber:    comment.DocumentVersionClauseNumber,
+			Level:                          comment.Level,
+			CreatedBYID:                    comment.CreatedBYID,
+			CreatedUserFirstNameEn:         comment.CreatedUserFirstNameEn,
+			CreatedUserFirstNameAr:         comment.CreatedUserFirstNameAr,
+			CreatedUserLastNameEn:          comment.CreatedUserLastNameEn,
+			CreatedUserLastNameAr:          comment.CreatedUserLastNameAr,
+			CreatedUserInitial:             comment.CreatedUserInitial,
+			CreatedUserColor:               comment.CreatedUserColor,
+			CreatedUserEmail:               comment.CreatedUserEmail,
+			CreatedUserProfileImagePath:    comment.CreatedUserProfileImagePath,
+			CreatedAt:                      comment.CreatedAt,
+			DocumentVersionClauseCommentID: comment.DocumentVersionClauseCommentID,
+		}
+		dtoMap[comment.ID] = dto
+	}
+
+	for _, comment := range comments.Comments {
+		dto := dtoMap[comment.ID]
+		if comment.DocumentVersionClauseCommentID != nil {
+			if parent, ok := dtoMap[*comment.DocumentVersionClauseCommentID]; ok {
+				parent.Children = append(parent.Children, dto)
+			}
+		} else {
+			roots = append(roots, dto)
+		}
+	}
+
+	response := &policyDTOs.PolicyVersionClauseCommentListResponseDTO{
+		Comments:      roots,
+		OpenCount:     comments.OpenCount,
+		ResolvedCount: comments.ResolvedCount,
+	}
+
+	return response, nil
 }
 
 func (pvccs *PolicyVersionClauseCommentService) GetByID(documentID uint, clauseID uint, id uint) (*models.DocumentVersionClauseComment, error) {
