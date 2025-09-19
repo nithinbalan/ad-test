@@ -1,9 +1,11 @@
 package repositories
 
 import (
+	"fmt"
 	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/models"
 	"math"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -11,6 +13,7 @@ import (
 type ERMDashboardRepositoryInterface interface {
 	GetERMRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskOverviewDTO, error)
 	GetERMRiskDistribution(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskDistributionDTO, error)
+	GetERMOverdueRisks(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOverdueRisksDTO, error)
 }
 
 type ERMDashboardRepository struct {
@@ -25,15 +28,18 @@ func NewERMDashboardRepository(db *gorm.DB) *ERMDashboardRepository {
 
 func (repo *ERMDashboardRepository) GetERMRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskOverviewDTO, error) {
 
-	var totalRisk, openRisks, closedRisks, unresolvedHighRisks int64
+	var totalRisks, openRisks, closedRisks, unresolvedHighRisks int64
 
-	totalRiskQuery := repo.db.Model(&models.RiskRegister{})
+	totalRiskQuery := repo.db.Model(&models.RiskRegister{}).
+		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+		Where("risk_statuses.type IN (?)", []string{"open", "closed"})
+
 	if params.DateFrom != "" && params.DateTo != "" {
 		totalRiskQuery = totalRiskQuery.Where("reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	// Total risks
-	err := totalRiskQuery.Count(&totalRisk).Error
+	err := totalRiskQuery.Count(&totalRisks).Error
 	if err != nil {
 		return nil, err
 	}
@@ -62,11 +68,23 @@ func (repo *ERMDashboardRepository) GetERMRiskOverview(params *kpiDTOs.ERMDashbo
 		return nil, err
 	}
 
-	// Unresolved high risks (high/very_high)
+	// Determine the highest available risk rating dynamically
+	var highestRating string
+	err = repo.db.Table("risk_matrix_risk_ratings").
+		Select("type").
+		Where("status = ?", "active").
+		Order("CASE type WHEN 'very_high' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 WHEN 'very_low' THEN 5 END").
+		Limit(1).
+		Pluck("type", &highestRating).Error
+	if err != nil || highestRating == "" {
+		return nil, fmt.Errorf("failed to fetch highest risk rating: %v", err)
+	}
+
+	// Unresolved high risks
 	highRiskQuery := repo.db.Model(&models.RiskRegister{}).
 		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
-		Where("risk_matrix_risk_ratings.type IN (?)", []string{"high", "very_high"}).
+		Where("risk_matrix_risk_ratings.type = ?", highestRating).
 		Where("risk_statuses.type != ?", "closed")
 	if params.DateFrom != "" && params.DateTo != "" {
 		highRiskQuery = highRiskQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -77,7 +95,7 @@ func (repo *ERMDashboardRepository) GetERMRiskOverview(params *kpiDTOs.ERMDashbo
 	}
 
 	return &kpiDTOs.ERMRiskOverviewDTO{
-		TotalRisk:           totalRisk,
+		TotalRisks:          totalRisks,
 		OpenRisks:           openRisks,
 		ClosedRisks:         closedRisks,
 		UnresolvedHighRisks: unresolvedHighRisks,
@@ -115,7 +133,6 @@ func (repo *ERMDashboardRepository) GetERMRiskDistribution(params *kpiDTOs.ERMDa
 	// Loop over risk ratings and count associated risks
 	for _, rating := range riskRatings {
 		var count, openCount int64
-		var percentage float64
 
 		// Build base query for this specific rating
 		baseQuery := repo.db.Model(&models.RiskRegister{}).
@@ -142,6 +159,7 @@ func (repo *ERMDashboardRepository) GetERMRiskDistribution(params *kpiDTOs.ERMDa
 		}
 
 		// Calculate percentage
+		var percentage float64
 		if totalRisksRegistered > 0 {
 			percentage = math.Round(float64(count) / float64(totalRisksRegistered) * 100)
 		}
@@ -161,4 +179,48 @@ func (repo *ERMDashboardRepository) GetERMRiskDistribution(params *kpiDTOs.ERMDa
 	summary.RiskCountsByRating = riskCountsByRating
 
 	return summary, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMOverdueRisks(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOverdueRisksDTO, error) {
+	currentTime := time.Now()
+
+	// Base query for overdue risks
+	overdueQuery := repo.db.Model(&models.RiskRegister{}).
+		Where("next_review_date < ?", currentTime).
+		Where("next_review_date IS NOT NULL")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		overdueQuery = overdueQuery.Where("reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	// Total overdue count
+	var totalOverdue int64
+	err := overdueQuery.Count(&totalOverdue).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Count overdue risks by risk level
+	var overdueDetails []kpiDTOs.ERMOverdueRiskDetailDTO
+	err = overdueQuery.
+		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
+		Select(`
+            CASE 
+                WHEN risk_matrix_risk_ratings.type IN ('high', 'very_high') THEN 'High'
+                WHEN risk_matrix_risk_ratings.type = 'medium' THEN 'Moderate'
+                WHEN risk_matrix_risk_ratings.type IN ('low', 'very_low') THEN 'Low'
+                ELSE 'Other'
+            END as risk_level,
+            COUNT(*) as count
+        `).
+		Group("risk_level").
+		Scan(&overdueDetails).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &kpiDTOs.ERMOverdueRisksDTO{
+		TotalOverdue:  totalOverdue,
+		OverdueByRisk: overdueDetails,
+	}, nil
 }

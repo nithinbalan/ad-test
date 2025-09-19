@@ -21,7 +21,7 @@ func NewKPIModule(db *gorm.DB, riskModule *RiskModule) *KPIModule {
 	grcDashboardSvc := services.NewGRCDashboardService(grcDashboardRepo)
 	grcDashboardController := controllers.NewGRCDashboardController(grcDashboardSvc, riskModule.RiskHeatMapSvc)
 
-	// Erm Dashboard
+	// ERM Dashboard
 	ermDashboardRepo := repositories.NewERMDashboardRepository(db)
 	ermDashboardSvc := services.NewERMDashboardService(ermDashboardRepo)
 	ermDashboardController := controllers.NewERMDashboardController(ermDashboardSvc)

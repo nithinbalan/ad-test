@@ -1,7 +1,7 @@
 package dtos
 
 type ERMRiskOverviewDTO struct {
-	TotalRisk           int64 `json:"total_risk"`
+	TotalRisks          int64 `json:"total_risk"`
 	OpenRisks           int64 `json:"open_risks"`
 	ClosedRisks         int64 `json:"closed_risks"`
 	UnresolvedHighRisks int64 `json:"unresolved_high_risks"`
@@ -24,4 +24,14 @@ type ERMRiskRatingCountDTO struct {
 	Count      int64   `json:"count"`
 	OpenCount  int64   `json:"open_count"`
 	Percentage float64 `json:"percentage"`
+}
+
+type ERMOverdueRisksDTO struct {
+	TotalOverdue  int64                     `json:"total_overdue"`
+	OverdueByRisk []ERMOverdueRiskDetailDTO `json:"overdue_by_risk"`
+}
+
+type ERMOverdueRiskDetailDTO struct {
+	RiskLevel string `json:"risk_level"`
+	Count     int64  `json:"count"`
 }
