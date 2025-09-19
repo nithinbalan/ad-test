@@ -9,6 +9,7 @@ type ERMDashboardServiceInterface interface {
 	GetERMRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskOverviewDTO, error)
 	GetERMRiskDistribution(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskDistributionDTO, error)
 	GetERMOverdueRisks(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOverdueRisksDTO, error)
+	GetERMRisksAboveAppetite(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRisksAboveAppetiteDTO, error)
 }
 
 type ERMDashboardService struct {
@@ -29,4 +30,8 @@ func (eds *ERMDashboardService) GetERMRiskDistribution(params *kpiDTOs.ERMDashbo
 
 func (eds *ERMDashboardService) GetERMOverdueRisks(parms *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOverdueRisksDTO, error) {
 	return eds.repo.GetERMOverdueRisks(parms)
+}
+
+func (eds *ERMDashboardService) GetERMRisksAboveAppetite(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRisksAboveAppetiteDTO, error) {
+	return eds.repo.GetERMRisksAboveAppetite(params)
 }

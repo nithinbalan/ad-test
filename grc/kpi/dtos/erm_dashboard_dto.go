@@ -27,11 +27,21 @@ type ERMRiskRatingCountDTO struct {
 }
 
 type ERMOverdueRisksDTO struct {
-	TotalOverdue  int64                     `json:"total_overdue"`
-	OverdueByRisk []ERMOverdueRiskDetailDTO `json:"overdue_by_risk"`
+	TotalRisksOverdue   int64                     `json:"total_risks_overdue"`
+	OverdueByRiskLevels []ERMOverdueRiskDetailDTO `json:"overdue_by_risk_levels"`
 }
 
 type ERMOverdueRiskDetailDTO struct {
+	RiskLevel string `json:"risk_level"`
+	Count     int64  `json:"count"`
+}
+
+type ERMRisksAboveAppetiteDTO struct {
+	TotalRisksAboveAppetite    int64                           `json:"total_risks_above_appetite"`
+	AboveAppetiteRisksByLevels []ERMRisksAboveAppetiteLevelDTO `json:"above_appetite_risks_by_levels"`
+}
+
+type ERMRisksAboveAppetiteLevelDTO struct {
 	RiskLevel string `json:"risk_level"`
 	Count     int64  `json:"count"`
 }
