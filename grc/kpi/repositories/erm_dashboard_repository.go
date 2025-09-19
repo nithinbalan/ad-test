@@ -33,6 +33,7 @@ func (repo *ERMDashboardRepository) GetERMRiskOverview(params *kpiDTOs.ERMDashbo
 
 	row := repo.db.Table("risk_register").
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
 		Select(`
         SUM(CASE WHEN risk_statuses.type = 'open' THEN 1 ELSE 0 END) AS open_risks,
         SUM(CASE WHEN risk_statuses.type = 'closed' THEN 1 ELSE 0 END) AS closed_risks,
@@ -69,7 +70,7 @@ func (repo *ERMDashboardRepository) GetERMRiskOverview(params *kpiDTOs.ERMDashbo
 		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 		Where("risk_matrix_risk_ratings.type = ?", highestRating).
-		Where("risk_statuses.type != ?", "closed")
+		Where("risk_statuses.type = ?", "open")
 	if params.DateFrom != "" && params.DateTo != "" {
 		highRiskQuery = highRiskQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
