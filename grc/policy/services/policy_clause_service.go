@@ -293,6 +293,7 @@ func (dcs *PolicyClauseService) Update(documentId uint, clauseId uint, currentUs
 		return err
 	}
 	if document.DocumentStatus.ID == int(inReviewStatus.ID) {
+		var clauseEdit []*models.DocumentVersionClauseHistory
 		for key, raw := range fieldChanges {
 			data := raw.(map[string]interface{})
 			oldVal := data["old"].(string)
@@ -304,12 +305,14 @@ func (dcs *PolicyClauseService) Update(documentId uint, clauseId uint, currentUs
 				ChangedField:            &key,
 				CreatedBYID:             currentUserId,
 			}
+			clauseEdit = append(clauseEdit, newClauseHistory)
+		}
 
-			err = dcs.repo.CreateClauseHistory(newClauseHistory, tx)
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
+		err = dcs.repo.CreateClauseHistory(clauseEdit, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+
 		}
 	}
 

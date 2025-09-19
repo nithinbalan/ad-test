@@ -30,7 +30,7 @@ type PolicyClauseRepositoryInterface interface {
 	ShiftClauseNumberAfterDeleting(documentVersionID uint, parentClauseID *uint, deletedClauseNumber string, tx ...utility.DatabaseTransaction) error
 	shiftSubClauseNumberAfterDeleting(db *gorm.DB, oldPrefix, newPrefix string, parentClauseID uint, documentVersionID uint) error
 
-	CreateClauseHistory(clauseHistory *models.DocumentVersionClauseHistory, tx ...utility.DatabaseTransaction) error
+	CreateClauseHistory(clauseHistory []*models.DocumentVersionClauseHistory, tx ...utility.DatabaseTransaction) error
 	GetClauseHistories(clauseID uint) ([]*policyDTOs.ClauseHistoryDTO, error)
 }
 
@@ -417,7 +417,7 @@ func (repo *PolicyClauseRepository) shiftSubClauseNumberAfterDeleting(db *gorm.D
 	return nil
 }
 
-func (repo *PolicyClauseRepository) CreateClauseHistory(clauseHistory *models.DocumentVersionClauseHistory, tx ...utility.DatabaseTransaction) error {
+func (repo *PolicyClauseRepository) CreateClauseHistory(clauseHistory []*models.DocumentVersionClauseHistory, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
