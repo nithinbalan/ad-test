@@ -64,7 +64,6 @@ type ComplianceClauseServiceInterface interface {
 	GenerateClauseTemplate() (*os.File, error)
 	ValidateClauseTemplate(complianceID uint, file io.Reader) ([]map[string]interface{}, error)
 	ValidateImportClause(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error)
-	validateClauses(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error)
 	ImportClauses(complianceID uint, input []map[string]interface{}, currentUserID uint) ([]uint, error)
 }
 
@@ -889,19 +888,8 @@ func (css *ComplianceClauseService) ValidateClauseTemplate(complianceID uint, fi
 	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
 		return nil, utility.NewValidationError(fmt.Errorf("invalid headers"), "invalid_header", "Requirement Template")
 	}
-
-	var input []map[string]interface{}
-	for _, row := range rows[1:] {
-		record := make(map[string]interface{})
-		for i, h := range snakeHeaders {
-			if i < len(row) {
-				record[h] = row[i]
-			} else {
-				record[h] = ""
-			}
-		}
-		input = append(input, record)
-	}
+	dataRows := rows[1:]
+	input := utility.MapRowsToRecords(snakeHeaders, dataRows)
 
 	return css.validateClauses(complianceID, input)
 }
@@ -1046,35 +1034,20 @@ func (css *ComplianceClauseService) ImportClauses(complianceID uint, input []map
 	for _, record := range validated {
 
 		dto := &complianceDTOs.ComplianceClauseFormDTO{
-			ClauseNo: record["clause_no"].(string),
-			TitleEn:  record["title_en"].(string),
-		}
-
-		if v, ok := record["title_ar"].(string); ok {
-			dto.TitleAr = &v
-		}
-		if v, ok := record["description_en"].(string); ok {
-			dto.DescriptionEn = &v
-		}
-		if v, ok := record["description_ar"].(string); ok {
-			dto.DescriptionAr = &v
-		}
-		if v, ok := record["scope_en"].(string); ok {
-			dto.ScopeEn = &v
-		}
-		if v, ok := record["scope_ar"].(string); ok {
-			dto.ScopeAr = &v
-		}
-		if v, ok := record["objective_en"].(string); ok {
-			dto.ObjectiveEn = &v
-		}
-		if v, ok := record["objective_ar"].(string); ok {
-			dto.ObjectiveAr = &v
+			ClauseNo:      record["clause_no"].(string),
+			TitleEn:       record["title_en"].(string),
+			TitleAr:       utility.GetOptionalStringValue(record["title_ar"]),
+			DescriptionEn: utility.GetOptionalStringValue(record["description_en"]),
+			DescriptionAr: utility.GetOptionalStringValue(record["description_ar"]),
+			ScopeEn:       utility.GetOptionalStringValue(record["scope_en"]),
+			ScopeAr:       utility.GetOptionalStringValue(record["scope_ar"]),
+			ObjectiveEn:   utility.GetOptionalStringValue(record["objective_en"]),
+			ObjectiveAr:   utility.GetOptionalStringValue(record["objective_ar"]),
 		}
 
 		id, err := css.Create(complianceID, currentUserID, dto)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to create clause for record: %+v, error: %v", record, err)
 		}
 		createdIDs = append(createdIDs, id)
 	}

@@ -427,3 +427,21 @@ func ParseOptionalString(value string) *string {
 	}
 	return &value
 }
+
+func MapRowsToRecords(headers []string, rows [][]string) []map[string]interface{} {
+	var records []map[string]interface{}
+
+	for _, row := range rows {
+		record := make(map[string]interface{})
+		for i, header := range headers {
+			if i < len(row) {
+				record[header] = row[i]
+			} else {
+				record[header] = ""
+			}
+		}
+		records = append(records, record)
+	}
+
+	return records
+}
