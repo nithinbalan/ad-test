@@ -170,7 +170,10 @@ func (repo *PolicyVersionClauseCommentRepository) GetAllDocumentComments(documen
 
 	countQuery := repo.db.
 		Table("document_version_clause_comments").
-		Joins("LEFT JOIN comment_statuses ON comment_statuses.id = document_version_clause_comments.comment_status_id")
+		Joins("LEFT JOIN comment_statuses ON comment_statuses.id = document_version_clause_comments.comment_status_id").
+		Joins("LEFT JOIN document_version_clauses ON document_version_clauses.id = document_version_clause_comments.document_version_clause_id").
+		Joins("LEFT JOIN document_versions ON document_versions.id = document_version_clauses.document_version_id").
+		Where("document_versions.id = ?", versionID)
 
 		// Apply same filters
 	for columnName, values := range params.Filters {
