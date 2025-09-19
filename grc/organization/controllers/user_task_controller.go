@@ -42,6 +42,7 @@ func (utc *UserTaskController) GetAllUserTasks(c *gin.Context) {
 		"severity_level_ids",
 		"module_ids",
 		"task_status_ids",
+		"delegatee_user_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

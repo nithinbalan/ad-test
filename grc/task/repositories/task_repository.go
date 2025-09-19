@@ -116,6 +116,8 @@ func (repo *TaskRepository) GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*ta
 		if len(values) > 0 {
 			if columnName == "module_id" {
 				query = query.Where("tasks."+columnName+" IN (?)", values)
+			} else if columnName == "responsible_user_id" {
+				query = query.Where("(tasks.responsible_user_id = ? OR tasks.delegatee_user_id = ?)", values, values)
 			} else {
 				query = query.Where(columnName+" IN (?)", values)
 			}

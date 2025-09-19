@@ -1,0 +1,45 @@
+{{ define "content" }}
+
+<p>Dear {{ .FirstNameEn }} {{ .LastNameEn }},</p>
+
+<p>
+  Some tasks have been assigned to you by <strong>{{ .AssignedByFirstNameEn }} {{ .AssignedByLastNameEn }}</strong>. Below are the assignment details:
+</p>
+
+<table style="width: 100%; background-color: #fff; border-collapse: collapse; margin: 20px 0;">
+    <tbody>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Delegated From</th>
+            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">
+                {{ .UserFirstNameEn }} {{ .UserLastNameEn }}
+            </td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Assigned Date</th>
+            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">
+                {{ .AssignedDate }}
+            </td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Number of Tasks</th>
+            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">
+                {{ .TaskCount }}
+            </td>
+        </tr>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Number of Modules</th>
+            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">
+                {{ .ModuleCounr }}
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<p>Please review your assigned tasks at your earliest convenience.</p>
+
+<div style="text-align: center;">
+    <a href="{{.RedirectURL}}" style="background-color: #165D31; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">View Tasks</a>
+</div>
+
+<p>Thank you for your dedication and commitment.</p>
+{{ end }}

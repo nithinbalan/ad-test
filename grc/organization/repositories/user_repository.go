@@ -834,11 +834,11 @@ func (repo *UserRepository) UpdateResponsibleUnits(userID, newDepartmentID uint,
 
 	var tables []string
 	query := `
-		SELECT table_name
-		FROM information_schema.columns
-		WHERE column_name IN ('responsible_user_id', 'responsible_unit_id')
-		GROUP BY table_name
-		HAVING COUNT(DISTINCT column_name) = 2;
+		SELECT TABLE_NAME
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE COLUMN_NAME IN ('responsible_user_id', 'responsible_unit_id')
+    GROUP BY TABLE_NAME
+    HAVING COUNT(DISTINCT COLUMN_NAME) = 2;
 	`
 
 	err := db.Raw(query).Scan(&tables).Error
