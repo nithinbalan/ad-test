@@ -46,6 +46,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	policyRoutes.POST("/policy-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), policyClauseController.CreatePolicyClause)
 	policyRoutes.PUT("/policy-register/:id/clauses/:clauseId", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), policyClauseController.UpdatePolicyClause)
 	policyRoutes.POST("/policy-register/:id/clauses/delete", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), policyClauseController.DeletePolicyClauses)
+	policyRoutes.GET("/policy-register/:id/clauses/:clauseId/history", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), middlewares.DocumentAccessCheckingMiddleware(db), policyClauseController.GetClauseHistories)
 
 	// workflow
 	policyRoutes.GET("/policy-register/:id/comments", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), middlewares.DocumentAccessCheckingMiddleware(db), policyReviewController.GetComments)
