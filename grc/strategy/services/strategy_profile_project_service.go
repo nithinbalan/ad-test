@@ -148,7 +148,7 @@ func (ssp *StrategyProfileProjectService) Create(strategyProfileID uint, current
 					"strategy_profile_strategic_intiative_id": strategyProfileProjectFormDTO.StrategyProfileStrategicIntiativeID,
 				},
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {
@@ -209,7 +209,7 @@ func (ssp *StrategyProfileProjectService) Delete(strategyProfileID uint, id uint
 				"strategy_profile_strategic_intiative_id": strategyProfileProject.StrategyProfileStrategicIntiativeID,
 			},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

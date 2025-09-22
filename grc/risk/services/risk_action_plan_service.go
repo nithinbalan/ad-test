@@ -298,7 +298,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 			id,
 			existingRiskActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -605,7 +605,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{

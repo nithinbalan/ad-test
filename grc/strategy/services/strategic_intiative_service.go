@@ -156,7 +156,7 @@ func (sis *StrategicIntiativeService) Create(currentUserID uint, dto *dtos.Strat
 			id,
 			fullDetails,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -231,7 +231,7 @@ func (sis *StrategicIntiativeService) Update(id uint, currentUserID uint, dto *d
 			id,
 			fullDetails,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log update activity", map[string]interface{}{

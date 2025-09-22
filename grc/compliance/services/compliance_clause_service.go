@@ -2,6 +2,9 @@ package services
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
@@ -10,8 +13,6 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"strconv"
-	"strings"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -233,7 +234,7 @@ func (ccs *ComplianceClauseService) Create(complianceID uint, currentUserID uint
 			// Ensure PreviousClauseID is a direct child of ParentClauseID
 			if previousClause.ParentClauseID == nil || *previousClause.ParentClauseID != *formDTO.ParentClauseID {
 				tx.Rollback()
-				//return 0, fmt.Errorf("previous clause %s is not a first-level child of parent clause %s", previousClause.ClauseNo, parentClause.ClauseNo)
+				// return 0, fmt.Errorf("previous clause %s is not a first-level child of parent clause %s", previousClause.ClauseNo, parentClause.ClauseNo)
 				return 0, utility.NewValidationError(fmt.Errorf("previous clause %s is not a first-level child of parent clause %s", previousClause.ClauseNo, parentClause.ClauseNo), "invalid_clause_number", "clause_sequence")
 			}
 		}
@@ -330,7 +331,7 @@ func (ccs *ComplianceClauseService) Create(complianceID uint, currentUserID uint
 			id,
 			formDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -479,6 +480,7 @@ func (ccs *ComplianceClauseService) validateControlIDs(clauseID uint, controlIDs
 	}
 	return nil
 }
+
 func (ccs *ComplianceClauseService) GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error) {
 	clauses, err := ccs.repo.GetClausesByIDs(ids, tx...)
 	if err != nil {
@@ -498,7 +500,6 @@ func (ccs *ComplianceClauseService) GetAssociatedRisks(complianceID uint, clause
 }
 
 func (ccs *ComplianceClauseService) CreateComplianceClauseRisk(complianceID, clauseID, currentUserID uint, dto *commonDTOs.AssociatedRiskMapDTO) error {
-
 	if err := ccs.validationSvc.ValidateRiskMapping(clauseID, dto.RiskIDs, "risk_compliance_requirements", "compliance_clause_id"); err != nil {
 		return err
 	}
@@ -802,7 +803,6 @@ func (ccs *ComplianceClauseService) DeleteComplianceClausProcesses(clauseID, pro
 }
 
 func (ccs *ComplianceClauseService) GetAssociatedKPI(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
-
 	kpis, err := ccs.repo.GetAssociatedKPI(complianceID, clauseID, params)
 	if err != nil {
 		return nil, err

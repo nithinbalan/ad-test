@@ -52,6 +52,28 @@ func (als *ActivityLogService) GetFullDetailsByID(id uint) (*logDTOs.ActivityLog
 		return nil, err
 	}
 
+	// Map module information
+	if activityLog.Module != nil {
+		activityLogDTO.ModuleID = &activityLog.Module.ID
+		activityLogDTO.Module = &logDTOs.ModuleMinimalDTO{
+			ID:         activityLog.Module.ID,
+			Identifier: activityLog.Module.Identifier,
+			TitleEn:    activityLog.Module.TitleEn,
+			TitleAr:    activityLog.Module.TitleAr,
+		}
+	}
+
+	// Map submodule information
+	if activityLog.SubModule != nil {
+		activityLogDTO.SubModuleID = &activityLog.SubModule.ID
+		activityLogDTO.SubModule = &logDTOs.ModuleMinimalDTO{
+			ID:         activityLog.SubModule.ID,
+			Identifier: activityLog.SubModule.Identifier,
+			TitleEn:    activityLog.SubModule.TitleEn,
+			TitleAr:    activityLog.SubModule.TitleAr,
+		}
+	}
+
 	return &activityLogDTO, nil
 }
 

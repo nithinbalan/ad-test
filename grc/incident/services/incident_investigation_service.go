@@ -3,18 +3,19 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"jethur/config"
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepositories "jethur/grc/incident/repositories"
 	logServices "jethur/grc/logs/services"
 	organizationServices "jethur/grc/organization/services"
-	"os"
-	"time"
 
 	"jethur/grc/models"
 	"jethur/utility"
-	"path/filepath"
-	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -45,7 +46,6 @@ func NewIncidentInvestigationService(
 	incidentRegisterSvc IncidentRegisterServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	incidentTimelineSvc IncidentTimelineServiceInterface,
-
 ) IncidentInvestigationServiceInterface {
 	return &IncidentInvestigationService{
 		repo:                repo,
@@ -65,7 +65,6 @@ func (iis *IncidentInvestigationService) GetAll(incidentID uint, params *inciden
 
 func (iis IncidentInvestigationService) GetByID(incidentID uint) (*models.IncidentInvestigation, error) {
 	incident, err := iis.repo.GetByID(incidentID)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, incidentID)
@@ -83,7 +82,6 @@ func (iis IncidentInvestigationService) GetFullDetailsByID(incidentID uint, tx .
 	var incidentInvestigationDTO incidentDTOs.IncidentInvestigationDetailDTO
 
 	incident, err := iis.repo.GetFullDetailsByID(incidentID, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, incidentID)
@@ -97,7 +95,7 @@ func (iis IncidentInvestigationService) GetFullDetailsByID(incidentID uint, tx .
 		return nil, err
 	}
 
-	//todo :- also add extra fields which required in details screen
+	// todo :- also add extra fields which required in details screen
 	if incident.InitiatedAt != nil {
 		initiatedAt := incident.InitiatedAt.Format("2006-01-02")
 		incidentInvestigationDTO.InitiatedAtString = &initiatedAt
@@ -122,7 +120,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 		return 0, err
 	}
 
-	//Create Incident Investigation
+	// Create Incident Investigation
 	incidentInvestigation := &models.IncidentInvestigation{
 		IncidentRegisterID:   incidentID,
 		Description:          incidentInvestigationFormDTO.Description,
@@ -216,8 +214,8 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 		}
 	}
 
-	//Update timeline
-	//todo
+	// Update timeline
+	// todo
 	timelineType, err := iis.incidentTimelineSvc.GetByType("investigating")
 	if err != nil {
 		tx.Rollback()
@@ -255,9 +253,8 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 			id,
 			existingIncidentInvestigation,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -455,7 +452,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 		}
 	}
 
-	//Save Document
+	// Save Document
 	if len(documents) > 0 {
 		if err := iis.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
@@ -469,7 +466,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 		}
 	}
 
-	//Store File
+	// Store File
 	if len(documents) > 0 {
 		for _, doc := range documents {
 			storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
@@ -480,7 +477,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 		}
 	}
 
-	//Remove File
+	// Remove File
 	if len(documentsToDelete) > 0 {
 		for _, document := range documentsToDelete {
 			storagePath := filepath.Join("incident", "incident-register", strconv.FormatUint(uint64(incidentID), 10), "investigations", strconv.FormatUint(uint64(existingIncidentInvestigation.ID), 10), "documents")
@@ -524,7 +521,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 				findingsRemoved = append(findingsRemoved, id)
 			}
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		associatedItems := make(map[string]interface{})
 
@@ -570,9 +567,8 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 				existingIncidentInvestigation.ID,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -626,8 +622,8 @@ func (iis *IncidentInvestigationService) Delete(incidentID uint, currentUserID u
 			return 0, err
 		}
 	}
-	//Delete-> update timeline performedAt as null
-	//todo
+	// Delete-> update timeline performedAt as null
+	// todo
 	timelineType, err := iis.incidentTimelineSvc.GetByType("investigating")
 	if err != nil {
 		tx.Rollback()
@@ -690,7 +686,7 @@ func (iis *IncidentInvestigationService) Delete(incidentID uint, currentUserID u
 			uint(incidentInvestigation.ID),
 			deletedIncidentInvestigation,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// Handle error if logging fails
@@ -705,7 +701,7 @@ func (iis *IncidentInvestigationService) validateIncidentInvestigationFormDTO(in
 	// if _, err := iis.incidentInvestigationStatusSvc.GetByID(uint(incidentInvestigationFormDTO.IncidentInvestigationStatusID)); err != nil {
 	// 	return utility.NewValidationError(fmt.Errorf("incident investigation status does not exist"), "not_exist", "incident investigation status")
 	// }
-	//User exist
+	// User exist
 	users := incidentInvestigationFormDTO.UserIds
 	// If no user are provided, simply return nil to exit the function
 	if len(users) == 0 {

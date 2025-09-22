@@ -196,7 +196,7 @@ func (spaps *StrategyProfileActionPlanCommentService) Create(strategyProfileID u
 			id,
 			existingComment,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -616,7 +616,7 @@ func (spaps *StrategyProfileActionPlanCommentService) Update(strategyProfileID u
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

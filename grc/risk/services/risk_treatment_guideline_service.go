@@ -89,7 +89,7 @@ func (rgs *RiskTreatmentGuidelineService) Create(currentUserID uint, guidelineDT
 			id,
 			existingRiskTreatmentGuideline,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -168,7 +168,7 @@ func (rgs *RiskTreatmentGuidelineService) Update(id uint, currentUserID uint, gu
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{

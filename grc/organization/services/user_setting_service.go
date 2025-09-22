@@ -115,7 +115,7 @@ func (uss *UserSettingService) CreateUserSetting(userID uint, currentUserID uint
 			userID, // use userID instead of id
 			existingUser,
 			user.CreatedByID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -189,7 +189,7 @@ func (uss *UserSettingService) UpdateUserSetting(userID uint, currentUserID uint
 				existingSetting.ID,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {
@@ -317,7 +317,7 @@ func (uss *UserSettingService) EnableMFA(userID uint, currentUserID uint) error 
 				oldUserSecurity.ID,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {
@@ -378,7 +378,7 @@ func (uss *UserSettingService) DisableMFA(userID uint, currentUserID uint) error
 				oldUserSecurity.ID,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {

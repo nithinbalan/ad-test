@@ -145,7 +145,7 @@ func (sppm *StrategyProfileProjectMilestoneService) Create(strategyProfileID uin
 					"project_milestone_id":        projectMilestoneID,
 				},
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -203,7 +203,7 @@ func (sppm *StrategyProfileProjectMilestoneService) Delete(strategyProfileID uin
 				"project_milestone_id":        strategyProfileProjectMilestone.ProjectMilestoneID,
 			},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

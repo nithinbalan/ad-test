@@ -3,11 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	"jethur/grc/incident/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 
 	"gorm.io/gorm"
 )
@@ -48,11 +49,9 @@ func (its IncidentTypeService) GetByID(id uint) (*models.IncidentType, error) {
 		return nil, err
 	}
 	return incidentType, nil
-
 }
 
 func (its *IncidentTypeService) Create(currentUserID uint, incidentType *models.IncidentType) (*models.IncidentType, error) {
-
 	if exists, err := its.repo.ExistsByTitle(incidentType.TitleEn, incidentType.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
@@ -71,9 +70,8 @@ func (its *IncidentTypeService) Create(currentUserID uint, incidentType *models.
 			createdType.ID,
 			createdType,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			// @todo - save to log file
 			log.Printf("Failed to log activity: %v", err)
@@ -85,7 +83,6 @@ func (its *IncidentTypeService) Create(currentUserID uint, incidentType *models.
 
 func (its *IncidentTypeService) Update(id uint, currentUserID uint, updatedType *models.IncidentType) (*models.IncidentType, error) {
 	existingType, err := its.repo.GetByID(id)
-
 	if err != nil {
 		return nil, err
 	}
@@ -96,18 +93,15 @@ func (its *IncidentTypeService) Update(id uint, currentUserID uint, updatedType 
 		} else if exists {
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
-
 	}
 
 	result, err := its.repo.Update(id, updatedType)
-
 	if err != nil {
 		return nil, err
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status"}
 	changes, err := utility.CompareFields(existingType, updatedType, fieldsToCompare)
-
 	if err != nil {
 		log.Println("error :", err.Error())
 	}
@@ -124,7 +118,7 @@ func (its *IncidentTypeService) Update(id uint, currentUserID uint, updatedType 
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
@@ -141,7 +135,6 @@ func (its *IncidentTypeService) Delete(ids []uint, currentUserID uint) ([]uint, 
 	for _, id := range ids {
 
 		incidentType, err := its.repo.GetByID(id)
-
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -161,7 +154,6 @@ func (its *IncidentTypeService) Delete(ids []uint, currentUserID uint) ([]uint, 
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := its.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -185,7 +177,6 @@ func (its *IncidentTypeService) Activate(ids []uint, currentUserID uint) error {
 	successfulIds, err := its.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := its.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
@@ -209,7 +200,6 @@ func (its *IncidentTypeService) Deactivate(ids []uint, currentUserID uint) error
 	successfulIds, err := its.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := its.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,

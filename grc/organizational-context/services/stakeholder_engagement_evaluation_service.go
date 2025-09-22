@@ -110,7 +110,7 @@ func (casus *StakeholderEngagementEvaluationService) Create(StakeholderID uint, 
 			id,
 			evaluation,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -195,7 +195,7 @@ func (casus *StakeholderEngagementEvaluationService) Update(StakeholderID uint, 
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

@@ -408,7 +408,6 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 				})
 			}
 		}
-
 	}()
 
 	return nil
@@ -477,7 +476,7 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -635,7 +634,6 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 				}
 			}
 		}
-
 	}()
 
 	return nil
@@ -972,7 +970,7 @@ func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID
 				"submitted_at": submittedAt,
 			},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -1144,7 +1142,7 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 				"approved_by": currentUserID,
 			},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -1884,7 +1882,6 @@ func (cras *ComplianceAssessmentService) CalculateComplianceControlScores(assess
 }
 
 func (cras ComplianceAssessmentService) GetApprovalStatus(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentApprovalStatusDTO, error) {
-
 	model, err := cras.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -1919,8 +1916,8 @@ func (cras ComplianceAssessmentService) GetApprovalStatus(id uint, tx ...utility
 		IsApproved:   isApproved,
 	}, nil
 }
-func (cras ComplianceAssessmentService) GetControlApprovalStatus(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentApprovalStatusDTO, error) {
 
+func (cras ComplianceAssessmentService) GetControlApprovalStatus(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentApprovalStatusDTO, error) {
 	model, err := cras.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

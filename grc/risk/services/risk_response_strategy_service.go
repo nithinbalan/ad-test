@@ -70,7 +70,7 @@ func (rrss *RiskResponseStrategyService) Create(currentUserID uint, strategy *mo
 			createdStrategy.ID,
 			createdStrategy,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -123,7 +123,7 @@ func (rrss *RiskResponseStrategyService) Update(id uint, currentUserID uint, upd
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

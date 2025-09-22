@@ -3,6 +3,11 @@ package services
 import (
 	"fmt"
 	"html/template"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
 	"jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
@@ -10,10 +15,6 @@ import (
 	"jethur/grc/models"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type ComplianceReportService struct {
@@ -194,7 +195,6 @@ func (crs *ComplianceReportService) Create(currentUserID uint, request *dtos.Com
 					}
 					clauseMap[requirementAssessment.ComplianceRequirement.ComplianceClause.ID] = &models.ComplianceReportClause{ID: clauseID}
 				}
-
 			}
 		}
 
@@ -393,7 +393,6 @@ func (crs *ComplianceReportService) GetComplianceReportDetails(complianceReportI
 
 				sectionDTO.ComplianceReportDepartments = append(sectionDTO.ComplianceReportDepartments, departmentDTO)
 			}
-
 		}
 
 		if section.Type == "compliance-status-by-standard" {
@@ -760,7 +759,7 @@ func (crs *ComplianceReportService) DeleteComplianceReport(complianceReportID ui
 			complianceReportID,
 			existingReport,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})

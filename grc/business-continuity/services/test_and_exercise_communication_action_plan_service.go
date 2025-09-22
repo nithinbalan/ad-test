@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	TestAndExerciseCommunicationActionPlanRepositories "jethur/grc/business-continuity/repositories"
 	logServices "jethur/grc/logs/services"
@@ -52,7 +53,6 @@ func (tecaps *TestAndExerciseCommunicationActionPlanService) GetAll(testAndExerc
 
 func (tecaps TestAndExerciseCommunicationActionPlanService) GetByID(testAndExerciseId uint, id uint) (*models.TestAndExerciseCommunicationActionPlan, error) {
 	TestAndExerciseCommunicationActionPlan, err := tecaps.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -68,7 +68,6 @@ func (tecaps TestAndExerciseCommunicationActionPlanService) GetFullDetailsByID(t
 	var testAndExerciseDTO businessContinuityDTOs.TestAndExerciseCommunicationActionPlanDetailDTO
 
 	testAndExercise, err := tecaps.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -138,9 +137,11 @@ func (tecaps *TestAndExerciseCommunicationActionPlanService) Create(testAndExerc
 			id,
 			existingTestAndExerciseCommunicationActionPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -155,6 +156,7 @@ func (tecaps *TestAndExerciseCommunicationActionPlanService) Create(testAndExerc
 	}()
 	return id, nil
 }
+
 func (tecaps *TestAndExerciseCommunicationActionPlanService) Update(testAndExerciseId uint, id uint, currentUserID uint, testAndExerciseFormDTO *businessContinuityDTOs.TestAndExerciseCommunicationActionPlanFormDTO) error {
 	tx := tecaps.repo.BeginTransaction()
 
@@ -203,7 +205,7 @@ func (tecaps *TestAndExerciseCommunicationActionPlanService) Update(testAndExerc
 
 		changedData := make(map[string]interface{})
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"responsible_user": fmt.Sprintf("%s %s", oldTestAndExerciseCommunicationActionPlan.ResponsibleUser.FirstNameEN, oldTestAndExerciseCommunicationActionPlan.ResponsibleUser.LastNameEN),
 			"bcp_phase":        oldTestAndExerciseCommunicationActionPlan.BcpPhase.TitleEn,
@@ -236,9 +238,11 @@ func (tecaps *TestAndExerciseCommunicationActionPlanService) Update(testAndExerc
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -304,7 +308,6 @@ func (tecaps *TestAndExerciseCommunicationActionPlanService) Delete(testAndExerc
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
-
 		}()
 	}
 

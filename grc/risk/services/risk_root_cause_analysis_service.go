@@ -140,7 +140,7 @@ func (rrcas *RiskRootCauseAnalysisService) Create(riskID uint, currentUserID uin
 			id,
 			existingRiskRootCauseAnalysis,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -274,7 +274,7 @@ func (rrcas *RiskRootCauseAnalysisService) Update(riskID uint, id uint, currentU
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {
@@ -368,7 +368,7 @@ func (rrcas *RiskRootCauseAnalysisService) Delete(riskID uint, id uint, currentU
 			id,
 			deletedRooCauseAnalysis,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// Handle error if logging fails

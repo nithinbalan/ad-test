@@ -151,7 +151,7 @@ func (pvccs *PolicyVersionClauseCommentService) Create(documentID uint, clauseID
 			id,
 			existingComment,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -223,7 +223,7 @@ func (pvccs *PolicyVersionClauseCommentService) Update(documentID uint, clauseID
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

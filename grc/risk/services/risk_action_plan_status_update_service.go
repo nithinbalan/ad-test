@@ -208,7 +208,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Create(RiskID uint, RiskActionPl
 			id,
 			riskActionPlanUpdate,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -371,7 +371,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Update(RiskID uint, RiskActionPl
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -596,7 +596,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Approve(riskID uint, riskActionP
 			id,
 			existingRiskActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -756,7 +756,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Revert(riskID uint, riskActionPl
 			id,
 			existingRiskActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

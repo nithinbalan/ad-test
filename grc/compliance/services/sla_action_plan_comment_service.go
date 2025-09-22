@@ -190,7 +190,7 @@ func (sapcs *SLAActionPlanCommentService) Create(slaID uint, actionPlanID uint, 
 			id,
 			existingComment,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -203,7 +203,6 @@ func (sapcs *SLAActionPlanCommentService) Create(slaID uint, actionPlanID uint, 
 			utility.LogError("Failed to log activity", fields)
 		}
 		if slaActionPlan.ResponsibleUserID == currentUserID {
-
 			if slaActionPlan.ReviewUserID != nil {
 				urlParam := fmt.Sprintf(`{"sla_contract_id":%d, "action_plan_id":%d}`, slaID, actionPlanID)
 				entity := "sla-register-action-plan"
@@ -316,7 +315,7 @@ func (sapcs *SLAActionPlanCommentService) Create(slaID uint, actionPlanID uint, 
 				"ActionPlanDescription":  slaActionPlan.Description,
 				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":  assignedBy.LastNameEn,
-				"CommentedOn":             time.Now().Format("2006-01-02"),
+				"CommentedOn":            time.Now().Format("2006-01-02"),
 				"RedirectURL":            fmt.Sprintf("%scompliance/sla-contracts/%d/action-plans?action_plan_id=%d", appURL, slaID, actionPlanID),
 			}
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -469,7 +468,6 @@ func (sapcs *SLAActionPlanCommentService) Create(slaID uint, actionPlanID uint, 
 				}
 			}
 		}
-
 	}()
 	return id, nil
 }
@@ -525,7 +523,7 @@ func (sapcs *SLAActionPlanCommentService) Update(slaID uint, actionPlanID uint, 
 				CreatedByID:            currentUserID,
 			}
 			newDocuments = append(newDocuments, document)
-		}else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
 			if doc.ID != nil {
 				existingDocument, err := sapcs.repo.GetDocumentByID(*doc.ID)
 				if err != nil {
@@ -547,7 +545,6 @@ func (sapcs *SLAActionPlanCommentService) Update(slaID uint, actionPlanID uint, 
 		}
 	}
 
-	
 	if len(deleteDocumentIds) > 0 {
 		if err := sapcs.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
 			tx.Rollback()
@@ -602,7 +599,7 @@ func (sapcs *SLAActionPlanCommentService) Update(slaID uint, actionPlanID uint, 
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -636,7 +633,7 @@ func (sapcs *SLAActionPlanCommentService) Delete(slaID uint, actionPlanID uint, 
 			continue
 		}
 		deletedComments = append(deletedComments, map[string]interface{}{
-			"id":                id,
+			"id":         id,
 			"sla_action": actionPlanID,
 		})
 		if err := sapcs.repo.Delete(id, tx); err != nil {

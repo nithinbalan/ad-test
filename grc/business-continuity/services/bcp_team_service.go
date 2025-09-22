@@ -129,6 +129,9 @@ func (brs *BcpTeamService) Create(bcpId uint, currentUserID uint, bcpTeamForm *b
 			id,
 			createdTeam,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -204,6 +207,9 @@ func (brs *BcpTeamService) Update(id uint, currentUserID uint, bcpTeamForm *busi
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {

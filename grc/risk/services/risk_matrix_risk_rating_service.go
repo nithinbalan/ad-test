@@ -96,7 +96,7 @@ func (rmrrs *RiskMatrixRiskRatingService) Create(currentUserID uint, riskMatrixR
 			id,
 			existingRiskRating,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -161,7 +161,7 @@ func (rmrrs *RiskMatrixRiskRatingService) Update(id uint, currentUserID uint, ri
 			id,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

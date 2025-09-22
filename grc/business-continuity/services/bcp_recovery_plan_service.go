@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	BcpRecoveryPlanRepositories "jethur/grc/business-continuity/repositories"
 	logServices "jethur/grc/logs/services"
@@ -48,7 +49,6 @@ func (brps *BcpRecoveryPlanService) GetAll(bcpId uint, params *businessContinuit
 
 func (brps BcpRecoveryPlanService) GetByID(id uint) (*models.BcpRecoveryPlan, error) {
 	BcpRecoveryPlan, err := brps.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -64,7 +64,6 @@ func (brps BcpRecoveryPlanService) GetFullDetailsByID(id uint, tx ...utility.Dat
 	var BcpRecoveryPlanDTO businessContinuityDTOs.BcpRecoveryPlanDetailDTO
 
 	BcpRecoveryPlan, err := brps.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -127,9 +126,11 @@ func (brps *BcpRecoveryPlanService) Create(bcpId uint, currentUserID uint, BcpRe
 			id,
 			existingBcpRecoveryPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -144,6 +145,7 @@ func (brps *BcpRecoveryPlanService) Create(bcpId uint, currentUserID uint, BcpRe
 	}()
 	return id, nil
 }
+
 func (brps *BcpRecoveryPlanService) Update(id uint, currentUserID uint, BcpRecoveryPlanFormDTO *businessContinuityDTOs.BcpRecoveryPlanFormDTO) error {
 	tx := brps.repo.BeginTransaction()
 
@@ -176,7 +178,6 @@ func (brps *BcpRecoveryPlanService) Update(id uint, currentUserID uint, BcpRecov
 	existingBcpRecoveryPlan.UpdatedBYID = &currentUserID
 
 	err = brps.repo.Update(existingBcpRecoveryPlan, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -192,7 +193,7 @@ func (brps *BcpRecoveryPlanService) Update(id uint, currentUserID uint, BcpRecov
 		// Prepare log data
 		changedData := make(map[string]interface{})
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"severity_level":         oldBcpRecoveryPlan.SeverityLevel.TitleEn,
 			"responsible_user":       fmt.Sprintf("%s %s", oldBcpRecoveryPlan.ResponsibleUser.FirstNameEN, oldBcpRecoveryPlan.ResponsibleUser.LastNameEN),
@@ -225,9 +226,11 @@ func (brps *BcpRecoveryPlanService) Update(id uint, currentUserID uint, BcpRecov
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -293,7 +296,6 @@ func (brps *BcpRecoveryPlanService) Delete(ids []uint, currentUserID uint) ([]ui
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
-
 		}()
 	}
 

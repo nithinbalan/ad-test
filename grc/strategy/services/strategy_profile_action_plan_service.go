@@ -222,7 +222,7 @@ func (spaps *StrategyProfileActionPlanService) Create(strategyProfileID uint, cu
 			id,
 			existingStrategyProfileActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -415,7 +415,7 @@ func (spaps *StrategyProfileActionPlanService) Update(strategyProfileID uint, id
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

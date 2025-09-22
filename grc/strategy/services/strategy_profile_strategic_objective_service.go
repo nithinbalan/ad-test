@@ -170,7 +170,7 @@ func (sps *StrategyProfileStrategicObjectiveService) Create(strategyProfileID ui
 							"score":                          strategyProfileStrategicObjectiveFormDTO.Score,
 						},
 						currentUserID,
-						nil,
+						"", "", "", nil,
 					)
 					if err != nil {
 						fields := map[string]interface{}{
@@ -198,7 +198,7 @@ func (sps *StrategyProfileStrategicObjectiveService) Create(strategyProfileID ui
 						"score":                          strategyProfileStrategicObjectiveFormDTO.Score,
 					},
 					currentUserID,
-					nil,
+					"", "", "", nil,
 				)
 				if err != nil {
 					fields := map[string]interface{}{
@@ -258,7 +258,7 @@ func (sps *StrategyProfileStrategicObjectiveService) Delete(strategyProfileID ui
 				"score":                  strategyProfileStrategicObjective.Score,
 			},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

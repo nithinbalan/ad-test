@@ -124,7 +124,7 @@ func (fas *FocusAreaService) Create(currentUserID uint, dto *dtos.FocusAreaFormD
 			id,
 			fullDetails,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -183,7 +183,7 @@ func (fas *FocusAreaService) Update(id uint, currentUserID uint, dto *dtos.Focus
 			id,
 			fullDetails,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log update activity", map[string]interface{}{

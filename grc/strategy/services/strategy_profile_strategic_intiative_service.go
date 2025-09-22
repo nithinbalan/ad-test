@@ -143,7 +143,7 @@ func (spsi *StrategyProfileStrategicIntiativeService) Create(strategyProfileID u
 					"strategic_intiative_id":                  strategicIntiativeID,
 				},
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -201,7 +201,7 @@ func (spsi *StrategyProfileStrategicIntiativeService) Delete(strategyProfileID u
 				"strategic_intiative_id":                  strategyProfileStrategicIntiative.StrategicIntiativeID,
 			},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

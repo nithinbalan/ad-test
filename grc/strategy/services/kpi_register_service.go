@@ -202,7 +202,7 @@ func (krs *KPIRegisterService) Create(currentUserID uint, kpiRegisterFormDTO *st
 			id,
 			existingKPIRegister,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -336,7 +336,7 @@ func (krs *KPIRegisterService) Update(id uint, currentUserID uint, kpiRegisterFo
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {

@@ -183,7 +183,7 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 			id,
 			existingProcess,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -387,7 +387,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{

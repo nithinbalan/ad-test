@@ -195,7 +195,7 @@ func (rapcs *RiskActionPlanCommentService) Create(riskID uint, actionPlanID uint
 			id,
 			existingComment,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -624,7 +624,7 @@ func (rapcs *RiskActionPlanCommentService) Update(riskID uint, actionPlanID uint
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

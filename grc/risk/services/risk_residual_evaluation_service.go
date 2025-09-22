@@ -287,7 +287,7 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 			id,
 			existingRiskResidualEvaluation,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -512,7 +512,7 @@ func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentU
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {
@@ -621,7 +621,7 @@ func (ries *RiskResidualEvaluationService) Delete(riskID uint, id uint, currentU
 			id,
 			deletedResidualEvaluation,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// Handle error if logging fails

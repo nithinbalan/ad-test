@@ -3,11 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	"jethur/grc/incident/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 
 	"gorm.io/gorm"
 )
@@ -51,7 +52,6 @@ func (ics IncidentCategoryService) GetByID(id uint) (*models.IncidentCategory, e
 }
 
 func (ics *IncidentCategoryService) Create(currentUserID uint, category *models.IncidentCategory) (*models.IncidentCategory, error) {
-
 	if exists, err := ics.repo.ExistsByTitle(category.TitleEn, category.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
@@ -70,9 +70,8 @@ func (ics *IncidentCategoryService) Create(currentUserID uint, category *models.
 			createdCategory.ID,
 			createdCategory,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			// @todo - save to log file
 			log.Printf("Failed to log activity: %v", err)
@@ -84,7 +83,6 @@ func (ics *IncidentCategoryService) Create(currentUserID uint, category *models.
 
 func (ics *IncidentCategoryService) Update(id uint, currentUserID uint, updatedCategory *models.IncidentCategory) (*models.IncidentCategory, error) {
 	existingCategory, err := ics.repo.GetByID(id)
-
 	if err != nil {
 		return nil, err
 	}
@@ -95,18 +93,15 @@ func (ics *IncidentCategoryService) Update(id uint, currentUserID uint, updatedC
 		} else if exists {
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
-
 	}
 
 	result, err := ics.repo.Update(id, updatedCategory)
-
 	if err != nil {
 		return nil, err
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status"}
 	changes, err := utility.CompareFields(existingCategory, updatedCategory, fieldsToCompare)
-
 	if err != nil {
 		log.Println("error :", err.Error())
 	}
@@ -123,7 +118,7 @@ func (ics *IncidentCategoryService) Update(id uint, currentUserID uint, updatedC
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
@@ -140,7 +135,6 @@ func (ics *IncidentCategoryService) Delete(ids []uint, currentUserID uint) ([]ui
 	for _, id := range ids {
 
 		incidentCategory, err := ics.repo.GetByID(id)
-
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -162,7 +156,6 @@ func (ics *IncidentCategoryService) Delete(ids []uint, currentUserID uint) ([]ui
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := ics.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -186,7 +179,6 @@ func (ics *IncidentCategoryService) Activate(ids []uint, currentUserID uint) err
 	successfulIds, err := ics.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := ics.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
@@ -210,7 +202,6 @@ func (ics *IncidentCategoryService) Deactivate(ids []uint, currentUserID uint) e
 	successfulIds, err := ics.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := ics.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,

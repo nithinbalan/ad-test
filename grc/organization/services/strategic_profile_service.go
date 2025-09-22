@@ -151,7 +151,7 @@ func (sps *StrategicProfileService) Update(currentUserID uint, strategicProfileD
 		changedData := utility.CompareFieldChanges(oldData, newData)
 
 		if len(changedData) > 0 {
-			err = sps.activityLogSvc.LogActivity(models.UpdateAction, models.StrategicProfile{}.TableName(), existingStrategicProfile.ID, changedData, currentUserID, nil)
+			err = sps.activityLogSvc.LogActivity(models.UpdateAction, models.StrategicProfile{}.TableName(), existingStrategicProfile.ID, changedData, currentUserID, "", "", "", nil)
 			if err != nil {
 				utility.LogError("Failed to log strategic profile update", map[string]interface{}{
 					"action":   models.UpdateAction,
@@ -197,7 +197,7 @@ func (sps *StrategicProfileService) UpdateVision(currentUserID uint, strategicPr
 		changedData := utility.CompareFieldChanges(oldData, newData)
 
 		if len(changedData) > 0 {
-			err = sps.activityLogSvc.LogActivity(models.UpdateAction, models.StrategicProfile{}.TableName(), existingStrategicProfile.ID, changedData, currentUserID, nil)
+			err = sps.activityLogSvc.LogActivity(models.UpdateAction, models.StrategicProfile{}.TableName(), existingStrategicProfile.ID, changedData, currentUserID, "", "", "", nil)
 			if err != nil {
 				utility.LogError("Failed to log strategic profile vision update", map[string]interface{}{
 					"action":   models.UpdateAction,
@@ -241,7 +241,7 @@ func (sps *StrategicProfileService) UpdateMission(currentUserID uint, strategicP
 		changedData := utility.CompareFieldChanges(oldData, newData)
 
 		if len(changedData) > 0 {
-			err = sps.activityLogSvc.LogActivity(models.UpdateAction, models.StrategicProfile{}.TableName(), existingStrategicProfile.ID, changedData, currentUserID, nil)
+			err = sps.activityLogSvc.LogActivity(models.UpdateAction, models.StrategicProfile{}.TableName(), existingStrategicProfile.ID, changedData, currentUserID, "", "", "", nil)
 			if err != nil {
 				utility.LogError("Failed to log strategic profile mission update", map[string]interface{}{
 					"action":   models.UpdateAction,

@@ -3,6 +3,10 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+
 	"jethur/config"
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	businessContinuityPlanRepositories "jethur/grc/business-continuity/repositories"
@@ -12,9 +16,6 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	riskServices "jethur/grc/risk/services"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -73,7 +74,6 @@ func (bcps *BusinessContinuityPlanService) GetAll(params *businessContinuityDTOs
 
 func (bcps BusinessContinuityPlanService) GetByID(id uint) (*models.BusinessContinuityPlan, error) {
 	businessContinuityPlan, err := bcps.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -88,7 +88,6 @@ func (bcps BusinessContinuityPlanService) GetFullDetailsByID(id uint, tx ...util
 	var businessContinuityPlanDTO businessContinuityDTOs.BusinessContinuityPlanDetailDTO
 
 	businessContinuityPlan, err := bcps.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -109,7 +108,6 @@ func (bcps BusinessContinuityPlanService) GetFullDetailsByID(id uint, tx ...util
 }
 
 func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessContinuityPlanFormDTO *businessContinuityDTOs.BusinessContinuityPlanFormDTO) (uint, error) {
-
 	tx := bcps.repo.BeginTransaction()
 
 	exists, err := bcps.repo.GetBusinessContinuityPlanByBusinessFunctionID(businessContinuityPlanFormDTO.BusinessFunctionID)
@@ -231,7 +229,7 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 			tx.Rollback()
 			return 0, err
 		}
-		//move file to storage
+		// move file to storage
 		for _, doc := range documents {
 			storagePath := filepath.Join("business-continuity", "business-continuity-plan", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
@@ -257,9 +255,11 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 			id,
 			existingBusinessContinuityPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -274,6 +274,7 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 	}()
 	return id, nil
 }
+
 func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, businessContinuityPlanFormDTO *businessContinuityDTOs.BusinessContinuityPlanFormDTO) error {
 	tx := bcps.repo.BeginTransaction()
 
@@ -362,7 +363,7 @@ func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, b
 			}
 		}
 
-		//update bcp status of old business function
+		// update bcp status of old business function
 
 		oldBusinessFunction, err := bcps.businessFunctionSvc.GetByID(oldBusinessContinuityPlan.BusinessFunctionID)
 		if err != nil {
@@ -377,7 +378,7 @@ func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, b
 			return err
 		}
 
-		//update bcp status of new business function
+		// update bcp status of new business function
 		newBusinessFunction, err := bcps.businessFunctionSvc.GetByID(businessContinuityPlanFormDTO.BusinessFunctionID)
 		if err != nil {
 			tx.Rollback()
@@ -397,18 +398,16 @@ func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, b
 	var documentsToDelete []*models.BcpDocument
 
 	for _, doc := range businessContinuityPlanFormDTO.Documents {
-
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
-			//genereate URL
+			// genereate URL
 			url := utility.GenerateDocumentURL("business-continuity", "business-continuity-plan", strconv.FormatUint(uint64(id), 10), "documents")
 			// Create a new Control test Document instance
 			document := &models.BcpDocument{
@@ -482,7 +481,7 @@ func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, b
 		// Prepare log data
 		changedData := make(map[string]interface{})
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"business_function": oldBusinessContinuityPlan.BusinessFunction.Title,
 			"version":           oldBusinessContinuityPlan.Version,
@@ -513,9 +512,11 @@ func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, b
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -588,7 +589,7 @@ func (bcps *BusinessContinuityPlanService) Delete(ids []uint, currentUserID uint
 			successfulIds = append(successfulIds, id)
 		}
 
-		//update bcp status of business function
+		// update bcp status of business function
 		businessFunction, err := bcps.businessFunctionSvc.GetByID(businessContinuityPlan.BusinessFunctionID)
 		if err != nil {
 			tx.Rollback()
@@ -624,7 +625,6 @@ func (bcps *BusinessContinuityPlanService) Delete(ids []uint, currentUserID uint
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
-
 		}()
 	}
 
@@ -632,7 +632,6 @@ func (bcps *BusinessContinuityPlanService) Delete(ids []uint, currentUserID uint
 }
 
 func (bfs *BusinessContinuityPlanService) UpdateRecoveryObjectives(businessContinuityPlan *models.BusinessContinuityPlan, tx utility.DatabaseTransaction) error {
-
 	err := bfs.repo.Update(businessContinuityPlan, tx)
 	if err != nil {
 		tx.Rollback()

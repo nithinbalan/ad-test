@@ -428,7 +428,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			id,
 			existingRiskRegister,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -841,7 +841,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{

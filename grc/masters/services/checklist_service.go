@@ -58,7 +58,7 @@ func (cs *ChecklistService) Create(currentUserID uint, checklist *models.Checkli
 			checklist.ID,
 			createdChecklist,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -106,7 +106,7 @@ func (cs *ChecklistService) Update(id uint, currentUserID uint, updatedChecklist
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

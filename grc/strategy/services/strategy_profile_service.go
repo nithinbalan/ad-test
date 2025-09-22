@@ -139,7 +139,7 @@ func (sps *StrategyProfileService) Create(currentUserID uint, strategyProfileFor
 			id,
 			existingStrategyProfile,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -233,7 +233,7 @@ func (sps *StrategyProfileService) Update(id uint, currentUserID uint, strategyP
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {

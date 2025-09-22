@@ -116,7 +116,7 @@ func (rs *RoleService) Create(currentUserID uint, role *models.Role) (*models.Ro
 			role.ID,
 			createdRole,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -164,7 +164,7 @@ func (rs *RoleService) Update(id uint, currentUserID uint, updatedRole *models.R
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
@@ -355,7 +355,7 @@ func (rs *RoleService) UpdateRolePermissions(roleID uint, currentUserID uint, ro
 			roleID,
 			changedData,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

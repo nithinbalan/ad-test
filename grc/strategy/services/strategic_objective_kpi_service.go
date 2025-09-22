@@ -127,7 +127,7 @@ func (soks *StrategicObjectiveKPIService) DeleteStrategicObjectiveKPI(strategicO
 			0, // no single PK, use composite in log
 			deletedMapping,
 			0, // optional: pass currentUserID if you have it in context
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log StrategicObjectiveKPI unmapping activity", map[string]interface{}{

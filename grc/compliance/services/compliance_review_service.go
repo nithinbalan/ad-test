@@ -2,15 +2,16 @@ package services
 
 import (
 	"errors"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"path/filepath"
-	"strconv"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -60,7 +61,6 @@ func (crs ComplianceReviewService) GetByID(complianceID uint, id uint) (*models.
 	}
 
 	complianceReview, err := crs.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -148,7 +148,7 @@ func (crs *ComplianceReviewService) Create(complianceID uint, currentUserID uint
 			tx.Rollback()
 			return 0, err
 		}
-		//move file to storage
+		// move file to storage
 		for _, doc := range documents {
 			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "review-documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
@@ -167,9 +167,8 @@ func (crs *ComplianceReviewService) Create(complianceID uint, currentUserID uint
 			id,
 			complianceReview,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -194,13 +193,11 @@ func (crs *ComplianceReviewService) Update(complianceID uint, id uint, currentUs
 	}
 
 	existingComplianceReview, err := crs.GetByID(complianceID, id)
-
 	if err != nil {
 		return err
 	}
 
 	oldComplianceReview, err := crs.GetByID(complianceID, id)
-
 	if err != nil {
 		return err
 	}
@@ -209,7 +206,6 @@ func (crs *ComplianceReviewService) Update(complianceID uint, id uint, currentUs
 	existingComplianceReview.UpdatedByID = &currentUserID
 
 	err = crs.repo.Update(existingComplianceReview, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -220,18 +216,16 @@ func (crs *ComplianceReviewService) Update(complianceID uint, id uint, currentUs
 	var documentsToDelete []*models.ComplianceReviewDocument
 
 	for _, doc := range complianceReviewFormDTO.Documents {
-
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
-			//genereate URL
+			// genereate URL
 			url := utility.GenerateDocumentURL("compliances", strconv.FormatUint(uint64(complianceID), 10), "reviews", encryptedFileName)
 			// Create a new Control test Document instance
 			document := &models.ComplianceReviewDocument{
@@ -302,7 +296,7 @@ func (crs *ComplianceReviewService) Update(complianceID uint, id uint, currentUs
 			tx.Rollback()
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"comment": oldComplianceReview.Comment,
@@ -324,9 +318,8 @@ func (crs *ComplianceReviewService) Update(complianceID uint, id uint, currentUs
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,

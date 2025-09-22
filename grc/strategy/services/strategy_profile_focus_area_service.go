@@ -137,7 +137,7 @@ func (sps *StrategyProfileFocusAreaService) Create(strategyProfileID uint, curre
 					"focus_area_id":       strategyProfileFocusAreaFormDTO.FocusAreaIDs[i],
 				},
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {
@@ -196,7 +196,7 @@ func (sps *StrategyProfileFocusAreaService) Delete(strategyProfileID uint, id ui
 				"focus_area_id":       strategyProfileFocusArea.FocusAreaID,
 			},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

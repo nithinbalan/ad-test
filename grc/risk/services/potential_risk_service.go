@@ -142,7 +142,7 @@ func (prs *PotentialRiskService) Create(currentUserID uint, potentialRiskFormDTO
 			id,
 			existingPotentialRisk,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -223,7 +223,7 @@ func (prs *PotentialRiskService) Update(id uint, currentUserID uint, potentialRi
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {

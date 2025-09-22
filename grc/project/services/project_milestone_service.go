@@ -145,7 +145,7 @@ func (pms *ProjectMilestoneService) Create(projectID uint, currentUserID uint, f
 			"actual_date":                 form.ActualDate,
 			"project_milestone_status_id": form.ProjectMilestoneStatusID,
 		}
-		err := pms.activityLog.LogActivity(models.CreateAction, models.ProjectMilestone{}.TableName(), id, activityData, currentUserID, nil)
+		err := pms.activityLog.LogActivity(models.CreateAction, models.ProjectMilestone{}.TableName(), id, activityData, currentUserID, "", "", "", nil)
 		if err != nil {
 			utility.LogError("Failed to log create milestone activity", map[string]interface{}{
 				"recordID": id,
@@ -209,7 +209,7 @@ func (pms *ProjectMilestoneService) Update(projectID uint, id uint, currentUserI
 		}
 		changes := utility.CompareFieldChanges(oldData, newData)
 		if len(changes) > 0 {
-			err := pms.activityLog.LogActivity(models.UpdateAction, models.ProjectMilestone{}.TableName(), id, changes, currentUserID, nil)
+			err := pms.activityLog.LogActivity(models.UpdateAction, models.ProjectMilestone{}.TableName(), id, changes, currentUserID, "", "", "", nil)
 			if err != nil {
 				utility.LogError("Failed to log update milestone activity", map[string]interface{}{
 					"recordID": id,

@@ -417,7 +417,7 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 			riskReportID,
 			riskReport,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -477,7 +477,7 @@ func (rrs *RiskReportService) UpdateSection(riskReportID uint, sectionID uint, c
 				sectionID,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -517,7 +517,7 @@ func (rrs *RiskReportService) DeleteRiskReportSection(riskReportID uint, section
 			sectionID,
 			section,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -572,7 +572,7 @@ func (rrs *RiskReportService) DeleteRiskReport(riskReportID uint, currentUserID 
 			riskReportID,
 			existingReport,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -720,7 +720,7 @@ func (rrs *RiskReportService) UploadRiskReportDocuments(riskReportID uint, curre
 			riskReportID,
 			documents,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -761,7 +761,7 @@ func (rrs *RiskReportService) DeleteRiskReportDocument(riskReportID uint, docume
 			documentID,
 			nil,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})

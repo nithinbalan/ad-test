@@ -209,7 +209,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 			id,
 			SLAActionPlanUpdate,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -440,7 +440,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -665,7 +665,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Approve(slaID uint, actionPlanID 
 			id,
 			existingSLAActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -825,7 +825,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Revert(slaID uint, actionPlanID u
 			id,
 			existingComplianceActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

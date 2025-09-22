@@ -263,7 +263,7 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 			id,
 			existingSLA,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -587,7 +587,7 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

@@ -195,7 +195,7 @@ func (caps *ControlActionPlanCommentService) Create(controlID uint, actionPlanID
 			id,
 			existingComment,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -211,7 +211,7 @@ func (caps *ControlActionPlanCommentService) Create(controlID uint, actionPlanID
 
 		if controlActionPlan.ResponsibleUserID == currentUserID {
 			// if responsible user added the comment, notification for review user
-			if controlActionPlan.ReviewUser != nil && controlActionPlan.ReviewUser.ID != 0{
+			if controlActionPlan.ReviewUser != nil && controlActionPlan.ReviewUser.ID != 0 {
 				// prepare notification
 				urlParam := fmt.Sprintf(`{"control_register_id":%d, "action_plan_id":%d}`, controlID, id)
 				queryParam := ""
@@ -623,7 +623,7 @@ func (caps *ControlActionPlanCommentService) Update(controlID uint, actionPlanID
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

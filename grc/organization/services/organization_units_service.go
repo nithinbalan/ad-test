@@ -261,7 +261,7 @@ func (s *OrganizationUnitsService) UpdatePrimaryOrganizationUnitHead(unitID uint
 				"new": newData,
 			},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

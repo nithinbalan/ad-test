@@ -150,7 +150,7 @@ func (spap *StrategyProfileProjectActionPlanService) Create(strategyProfileID ui
 					"project_action_plan_id":                projectActionPlanID,
 				},
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -208,7 +208,7 @@ func (spap *StrategyProfileProjectActionPlanService) Delete(strategyProfileID ui
 				"project_action_plan_id":      strategyProfileProjectActionPlan.ProjectActionPlanID,
 			},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

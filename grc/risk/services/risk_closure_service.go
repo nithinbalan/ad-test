@@ -212,7 +212,7 @@ func (rcs *RiskClosureService) Create(riskID uint, currentUserID uint, closureFo
 			id,
 			closure,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 	}()
 
@@ -336,7 +336,7 @@ func (rcs *RiskClosureService) Update(riskID uint, id uint, currentUserID uint, 
 			id,
 			existingClosure,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 	}()
 
@@ -419,7 +419,7 @@ func (rcs *RiskClosureService) Delete(riskID uint, id uint, currentUserID uint) 
 			id,
 			nil,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 	}()
 

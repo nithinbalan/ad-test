@@ -196,7 +196,7 @@ func (caps *StakeholderActionPlanCommentService) Create(stakeholderID uint, acti
 			id,
 			existingComment,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -688,7 +688,7 @@ func (caps *StakeholderActionPlanCommentService) Update(stakeholderID uint, acti
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

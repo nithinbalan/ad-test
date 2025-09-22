@@ -78,7 +78,7 @@ func (prsus *PotentialRiskStatusUpdateService) Create(potentialRiskID uint, curr
 			id,
 			potentialRiskUpdate,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

@@ -145,7 +145,7 @@ func (sps *StrategyProfileKpiService) Create(strategyProfileID uint, currentUser
 					"kpi_id":                 kpiID,
 				},
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -202,7 +202,7 @@ func (sps *StrategyProfileKpiService) Delete(strategyProfileID uint, id uint, cu
 				"strategic_objective_id": strategyProfileKpi.KpiID,
 			},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -280,7 +280,7 @@ func (sps *StrategyProfileKpiService) UpdateWeightage(id uint, currentUserID uin
 				"new": newData,
 			},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

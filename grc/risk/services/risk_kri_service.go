@@ -315,7 +315,7 @@ func (rks *RiskKriService) Update(riskID uint, currentUserID uint, riskKriFormDT
 				riskID,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{

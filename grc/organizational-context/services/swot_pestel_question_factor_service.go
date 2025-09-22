@@ -124,7 +124,7 @@ func (spqfs *SwotPestelQuestionFactorService) Create(questionId uint, currentUse
 			id,
 			existingSwotPestelQuestionFactor,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -200,7 +200,7 @@ func (spqfs *SwotPestelQuestionFactorService) Update(id uint, currentUserID uint
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {

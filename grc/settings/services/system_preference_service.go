@@ -170,7 +170,7 @@ func (sps *SystemPreferenceService) Update(id uint, currentUserID uint, systemPr
 			id,
 			systemPreferenceFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -369,7 +369,7 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 			existingSystemPreference.ID,
 			systemPreferenceFormDTO,
 			1,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

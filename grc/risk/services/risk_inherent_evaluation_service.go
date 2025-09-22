@@ -290,7 +290,7 @@ func (ries *RiskInherentEvaluationService) Create(
 			id,
 			existingRiskInherentEvaluation,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -512,7 +512,7 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {
@@ -613,7 +613,7 @@ func (ries *RiskInherentEvaluationService) Delete(riskID uint, id uint, currentU
 			id,
 			deletedRiskEvaluation,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// Handle error if logging fails

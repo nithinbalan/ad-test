@@ -126,7 +126,7 @@ func (ses *StakeholderEngagementService) Create(stakeholderID, currentUserID uin
 			id,
 			existingStakeholderEngagement,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -209,7 +209,7 @@ func (ses *StakeholderEngagementService) Update(stakeholderID uint, id uint, cur
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {

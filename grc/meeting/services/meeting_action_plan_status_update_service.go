@@ -258,7 +258,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Create(meetingID uint, meetin
 			id,
 			existingMeetingActionPlanStatusUpdate,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -495,7 +495,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Update(meetingID uint, meetin
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -720,7 +720,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Approve(meetingId uint, actio
 			id,
 			existingMeetingActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -880,7 +880,7 @@ func (masus *MeetingActionPlanStatusUpdateService) Revert(meetingId uint, action
 			id,
 			existingMeetingActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

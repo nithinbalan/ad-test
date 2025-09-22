@@ -169,7 +169,7 @@ func (rrs *ReminderRuleService) Update(id uint, currentUserID uint, dto *setting
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log reminder rule update", map[string]interface{}{

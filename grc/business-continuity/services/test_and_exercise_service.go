@@ -3,6 +3,10 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"strconv"
+	"time"
+
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	TestAndExerciseRepositories "jethur/grc/business-continuity/repositories"
 	commonDTOs "jethur/grc/common/dtos"
@@ -12,9 +16,6 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"os"
-	"strconv"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -78,7 +79,6 @@ func (tes *TestAndExerciseService) GetAll(params *businessContinuityDTOs.TestAnd
 
 func (tes TestAndExerciseService) GetByID(id uint) (*models.TestAndExercise, error) {
 	TestAndExercise, err := tes.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -94,7 +94,6 @@ func (tes TestAndExerciseService) GetFullDetailsByID(id uint, tx ...utility.Data
 	var testAndExerciseDTO businessContinuityDTOs.TestAndExerciseDetailDTO
 
 	testAndExercise, err := tes.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -200,12 +199,11 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 		return 0, err
 	}
 	if businessContinuityPlan.BcpRecoveryPlans != nil {
-
 		for _, bcpRecoveryPlan := range businessContinuityPlan.BcpRecoveryPlans {
 			if _, exists := processIds[bcpRecoveryPlan.BcpProcess.Process.ID]; !exists {
 				continue
 			}
-			testingDate, err := utility.ParseDate(testAndExerciseFormDTO.TestingDate) //time.Parse("2006-01-02", testAndExerciseFormDTO.TestingDate)
+			testingDate, err := utility.ParseDate(testAndExerciseFormDTO.TestingDate) // time.Parse("2006-01-02", testAndExerciseFormDTO.TestingDate)
 			if err != nil {
 				// Handle parsing error
 				continue
@@ -331,9 +329,11 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 			id,
 			existingTestAndExercise,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -348,6 +348,7 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 	}()
 	return id, nil
 }
+
 func (tes *TestAndExerciseService) Update(id uint, currentUserID uint, testAndExerciseFormDTO *businessContinuityDTOs.TestAndExerciseFormDTO) error {
 	tx := tes.repo.BeginTransaction()
 
@@ -469,7 +470,7 @@ func (tes *TestAndExerciseService) Update(id uint, currentUserID uint, testAndEx
 
 		changedData := make(map[string]interface{})
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"responsible_user":            fmt.Sprintf("%s %s", oldTestAndExercise.ResponsibleUser.FirstNameEN, oldTestAndExercise.ResponsibleUser.LastNameEN),
 			"business_continuity_plan_id": oldTestAndExercise.BusinessContinuityPlanID,
@@ -498,9 +499,11 @@ func (tes *TestAndExerciseService) Update(id uint, currentUserID uint, testAndEx
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -598,7 +601,6 @@ func (tes *TestAndExerciseService) Delete(ids []uint, currentUserID uint) ([]uin
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
-
 		}()
 	}
 
@@ -622,7 +624,6 @@ func (tes *TestAndExerciseService) parseTestAndExerciseDates(dto *businessContin
 
 func (tes TestAndExerciseService) GetTestAndExerciseProcessByID(id uint) (*models.TestAndExerciseProcess, error) {
 	TestAndExerciseProcess, err := tes.repo.GetTestAndExerciseProcessByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
