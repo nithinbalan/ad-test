@@ -120,3 +120,28 @@ func (edc *ERMDashboardController) GetERMRisksAboveAppetite(c *gin.Context) {
 
 	c.JSON(http.StatusOK, risksAboveAppetite)
 }
+
+// ERM Leadership Attention Metrics
+func (edc *ERMDashboardController) GetERMLeadershipAttentionMetrics(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.ERMDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	leadershipMetrics, err := edc.service.GetERMLeadershipAttentionMetrics(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(edc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, leadershipMetrics)
+}

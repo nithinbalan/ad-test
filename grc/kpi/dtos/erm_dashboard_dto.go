@@ -45,3 +45,10 @@ type ERMRisksAboveAppetiteLevelDTO struct {
 	RiskLevel string `json:"risk_level"`
 	Count     int64  `json:"count"`
 }
+
+type ERMLeadershipAttentionDTO struct {
+	StrategicObjectivesAtRisk int64 `json:"strategic_objectives_at_risk"`
+	CriticalRisksUncontrolled int64 `json:"critical_risks_uncontrolled"`
+	OverdueHighRiskActions    int64 `json:"overdue_high_risk_actions"`
+	ComplianceLinkedHighRisks int64 `json:"compliance_linked_high_risks"`
+}
