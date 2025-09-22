@@ -421,7 +421,6 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	existingRiskActionPlan.ResponsibleUserID = RiskActionPlanFormDTO.ResponsibleUserID
 	existingRiskActionPlan.ReviewUserID = RiskActionPlanFormDTO.ReviewUserID
 	existingRiskActionPlan.TargetDate = dates.TargetDate
-	existingRiskActionPlan.Percentage = RiskActionPlanFormDTO.Percentage
 	existingRiskActionPlan.Comments = RiskActionPlanFormDTO.Comments
 	existingRiskActionPlan.UpdatedBYID = &currentUserID
 
@@ -775,6 +774,11 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 			continue
 		}
 
+		description := ""
+		if riskActionPlan.Description != nil {
+			description = *riskActionPlan.Description
+		}
+
 		// Prepare notification data before deletion
 		notifications = append(notifications, struct {
 			OwnerID         *uint
@@ -787,7 +791,7 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 			OwnerID:         &riskActionPlan.ResponsibleUserID,
 			TitleEn:         riskActionPlan.Title,
 			TitleAr:         riskActionPlan.Title,
-			Description:     *riskActionPlan.Description,
+			Description:     description,
 			ReferenceNumber: riskActionPlan.RiskRegister.ReferenceNumber,
 			RiskTitle:       riskActionPlan.RiskRegister.Title,
 		})

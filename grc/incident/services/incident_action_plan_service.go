@@ -385,7 +385,6 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	existingIncidentActionPlan.ResponsibleUserID = IncidentActionPlanFormDTO.ResponsibleUserID
 	existingIncidentActionPlan.ReviewUserID = IncidentActionPlanFormDTO.ReviewUserID
 	existingIncidentActionPlan.TargetDate = dates.TargetDate
-	existingIncidentActionPlan.Percentage = IncidentActionPlanFormDTO.Percentage
 	existingIncidentActionPlan.Comments = IncidentActionPlanFormDTO.Comments
 	existingIncidentActionPlan.UpdatedBYID = &currentUserID
 
@@ -640,6 +639,11 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 			continue
 		}
 
+		description := ""
+		if incidentActionPlan.Description != nil {
+			description = *incidentActionPlan.Description
+		}
+
 		deletedIncidentActionPlan = append(deletedIncidentActionPlan, map[string]interface{}{
 			"id":    id,
 			"title": incidentActionPlan.Title,
@@ -657,7 +661,7 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 			OwnerID:         &incidentActionPlan.ResponsibleUserID,
 			TitleEn:         incidentActionPlan.Title,
 			TitleAr:         incidentActionPlan.Title,
-			Description:     incidentActionPlan.Description,
+			Description:     &description,
 			ReferenceNumber: incidentActionPlan.IncidentRegister.ReferenceNumber,
 			IncidentTitle:   incidentActionPlan.IncidentRegister.Title,
 		})

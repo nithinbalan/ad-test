@@ -345,7 +345,6 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 	existingActionPlan.ResponsibleUserID = formDTO.ResponsibleUserID
 	existingActionPlan.ReviewUserID = formDTO.ReviewUserID
 	existingActionPlan.TargetDate = dates.TargetDate
-	existingActionPlan.Percentage = formDTO.Percentage
 	existingActionPlan.Comments = formDTO.Comments
 	existingActionPlan.UpdatedByID = &currentUserID
 
@@ -605,6 +604,12 @@ func (taps *ThreatActionPlanService) Delete(threatID uint, ids []uint, currentUs
 		}
 
 		// Prepare notification data before deletion
+		description := ""
+		if actionPlan.Description != nil {
+			description = *actionPlan.Description
+		}
+
+		// Prepare notification data before deletion
 		notifications = append(notifications, struct {
 			UserID      uint
 			TitleEn     string
@@ -615,7 +620,7 @@ func (taps *ThreatActionPlanService) Delete(threatID uint, ids []uint, currentUs
 			UserID:      actionPlan.ResponsibleUserID,
 			TitleEn:     actionPlan.Title,
 			TitleAr:     actionPlan.Title,
-			Description: *actionPlan.Description,
+			Description: description,
 			ThreatTitle: threat.TitleEn,
 		})
 

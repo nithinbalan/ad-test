@@ -352,7 +352,6 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	existingAuditFindingActionPlan.ResponsibleUserID = AuditFindingActionPlanFormDTO.ResponsibleUserID
 	existingAuditFindingActionPlan.ReviewUserID = AuditFindingActionPlanFormDTO.ReviewUserID
 	existingAuditFindingActionPlan.TargetDate = dates.TargetDate
-	existingAuditFindingActionPlan.Percentage = AuditFindingActionPlanFormDTO.Percentage
 	existingAuditFindingActionPlan.Comments = AuditFindingActionPlanFormDTO.Comments
 	existingAuditFindingActionPlan.UpdatedBYID = &currentUserID
 
@@ -605,6 +604,10 @@ func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uin
 		if err != nil {
 			continue
 		}
+		description := ""
+		if auditFindingActionPlan.Description != nil {
+			description = *auditFindingActionPlan.Description
+		}
 
 		// Prepare notification data before deletion
 		notifications = append(notifications, struct {
@@ -618,7 +621,7 @@ func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uin
 			OwnerID:           &auditFindingActionPlan.ResponsibleUserID,
 			TitleEn:           auditFindingActionPlan.Title,
 			TitleAr:           auditFindingActionPlan.Title,
-			Description:       *auditFindingActionPlan.Description,
+			Description:       description,
 			ReferenceNumber:   auditFindingActionPlan.AuditFinding.ReferenceNumber,
 			AuditFindingTitle: auditFindingActionPlan.AuditFinding.Title,
 		})

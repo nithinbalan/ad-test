@@ -112,7 +112,6 @@ func (ts *ThreatService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTrans
 }
 
 func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID uint) (uint, error) {
-	var tx = ts.repo.BeginTransaction()
 
 	// Validate the DTO
 	if err := ts.validateThreatFormDTO(threatFormDTO); err != nil {
@@ -130,6 +129,8 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 	if err != nil {
 		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "responsible user unit")
 	}
+
+	var tx = ts.repo.BeginTransaction()
 
 	// Populate the Threat model with data from the DTO
 	threat := &models.Threat{
@@ -149,8 +150,9 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 	}
 
 	// Save the threat record in the repository
-	id, err := ts.repo.Create(threat)
+	id, err := ts.repo.Create(threat, tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 	var threatDocuments []*models.ThreatDocument
@@ -160,6 +162,7 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 		dataToEncrypt := []byte(doc.FileName)
 		encryptedFileName, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
+			tx.Rollback()
 			return 0, err
 		}
 
@@ -183,6 +186,7 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 	// Save documents to the database
 	if len(threatDocuments) > 0 {
 		if err := ts.repo.CreateDocuments(threatDocuments, tx); err != nil {
+			tx.Rollback()
 			return 0, err
 		}
 	}
@@ -191,6 +195,7 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 	for _, doc := range threatDocuments {
 		storagePath := filepath.Join("asset", "threat", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.StoreFile(*doc.Name, storagePath); err != nil {
+			tx.Rollback()
 			return 0, err
 		}
 	}
@@ -246,19 +251,6 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 }
 
 func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, currentUserID uint) error {
-	var tx = ts.repo.BeginTransaction()
-
-	oldThreat, err := ts.GetFullDetailsByID(id, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// Retrieve the existing threat record
-	existingThreat, err := ts.repo.GetByID(id)
-	if err != nil {
-		return err
-	}
 
 	// Validate the incoming DTO
 	if err := ts.validateThreatFormDTO(threatFormDTO); err != nil {
@@ -271,10 +263,26 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 		return err
 	}
 
+	var tx = ts.repo.BeginTransaction()
+
+	oldThreat, err := ts.GetFullDetailsByID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Retrieve the existing threat record
+	existingThreat, err := ts.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	// Check if ResponsibleUserID has changed and update ResponsibleUnitID if necessary
 	if existingThreat.ResponsibleUserID != threatFormDTO.ResponsibleUserID {
 		organizationUnitID, err := ts.userSvc.GetUserPrimaryUnitID(threatFormDTO.ResponsibleUserID)
 		if err != nil {
+			tx.Rollback()
 			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "responsible user unit")
 		}
 		existingThreat.ResponsibleUnitID = organizationUnitID
@@ -512,7 +520,7 @@ func (ts *ThreatService) Delete(ids []uint, currentUserID uint) ([]uint, error) 
 			return nil, err
 		}
 
-		if existingThreatDetails.Documents != nil && len(existingThreatDetails.Documents) > 0 {
+		if len(existingThreatDetails.Documents) > 0 {
 			for _, doc := range existingThreatDetails.Documents {
 				documentsToDelete[id] = append(documentsToDelete[id], doc)
 				deleteDocumentIds = append(deleteDocumentIds, doc.ID)
