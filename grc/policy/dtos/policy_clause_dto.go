@@ -72,7 +72,7 @@ type ClauseHistoryDTO struct {
 	DocumentVersionClauseNumber string    `json:"document_version_clause_number"`
 	OldValue                    *string   `json:"old_value"`
 	NewValue                    *string   `json:"new_value"`
-	ChangedField                *string   `json:"changedField"`
+	ChangedField                *string   `json:"changed_field"`
 	CreatedUserID               uint      `json:"created_user_id"`
 	CreatedUserFirstNameEn      string    `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string    `json:"created_user_first_name_ar"`
