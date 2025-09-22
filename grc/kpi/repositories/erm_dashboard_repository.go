@@ -93,7 +93,9 @@ func (repo *ERMDashboardRepository) GetERMRiskDistribution(params *kpiDTOs.ERMDa
 
 	// Query to calculate total risks registered
 	riskQuery := repo.db.Model(&models.RiskRegister{}).
-		Joins("JOIN risk_matrix_risk_ratings ON risk_register.current_risk_rating_id = risk_matrix_risk_ratings.id")
+		Joins("JOIN risk_matrix_risk_ratings ON risk_register.current_risk_rating_id = risk_matrix_risk_ratings.id").
+		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+		Where("risk_statuses.type IN ?", []string{"open", "closed"})
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		riskQuery = riskQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -293,48 +295,44 @@ func (repo *ERMDashboardRepository) GetERMRisksAboveAppetite(params *kpiDTOs.ERM
 }
 
 func (repo *ERMDashboardRepository) GetERMLeadershipAttentionMetrics(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMLeadershipAttentionDTO, error) {
-	// Strategic objectives at risk
-	var strategicObjectivesAtRisk int64
-	strategicQuery := repo.db.Model(&models.RiskRegister{}).
-		Joins("JOIN risk_strategic_objectives ON risk_strategic_objectives.risk_register_id = risk_register.id").
-		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
-		Where("risk_statuses.type = ?", "open")
+	summary := &kpiDTOs.ERMLeadershipAttentionDTO{}
 
-	if params.DateFrom != "" && params.DateTo != "" {
-		strategicQuery = strategicQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	// Base query function
+	buildBaseQuery := func() *gorm.DB {
+		query := repo.db.Model(&models.RiskRegister{}).
+			Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+			Where("risk_statuses.type = ?", "open")
+
+		if params.DateFrom != "" && params.DateTo != "" {
+			query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		}
+		return query
 	}
 
-	if err := strategicQuery.Count(&strategicObjectivesAtRisk).Error; err != nil {
+	// Strategic objectives at risk
+	strategicQuery := buildBaseQuery().
+		Joins("JOIN risk_strategic_objectives ON risk_strategic_objectives.risk_register_id = risk_register.id")
+	if err := strategicQuery.Count(&summary.StrategicObjectivesAtRisk).Error; err != nil {
 		return nil, err
 	}
 
 	// Critical risks uncontrolled
-	var criticalRisksUncontrolled int64
-	criticalQuery := repo.db.Model(&models.RiskRegister{}).
+	criticalQuery := buildBaseQuery().
 		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
-		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 		Where("risk_matrix_risk_ratings.type IN ?", []string{"high", "very_high"}).
-		Where("risk_statuses.type = ?", "open").
 		Where(`NOT EXISTS (
-            SELECT 1 FROM risk_controls
-            JOIN controls ON controls.id = risk_controls.control_id
-            JOIN control_efficiency_statuses control_efficiency_statuses ON control_efficiency_statuses.id = controls.control_efficiency_status_id
-            WHERE risk_controls.risk_register_id = risk_register.id
-            AND control_efficiency_statuses.type = 'efficient'
-        )`)
-
-	if params.DateFrom != "" && params.DateTo != "" {
-		criticalQuery = criticalQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
-	}
-
-	if err := criticalQuery.Count(&criticalRisksUncontrolled).Error; err != nil {
+			SELECT 1 FROM risk_controls
+			JOIN controls ON controls.id = rc.control_id
+			JOIN control_efficiency_statuses ON control_efficiency_statuses.id = controls.control_efficiency_status_id
+			WHERE risk_controls.risk_register_id = risk_register.id
+			AND control_efficiency_statuses.type = 'efficient'
+		)`)
+	if err := criticalQuery.Count(&summary.CriticalRisksUncontrolled).Error; err != nil {
 		return nil, err
 	}
 
 	// Overdue high-risk actions
-	var overdueHighRiskActions int64
 	currentTime := time.Now()
-
 	actionQuery := repo.db.Model(&models.RiskActionPlan{}).
 		Joins("JOIN risk_register ON risk_register.id = risk_action_plans.risk_register_id").
 		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
@@ -342,36 +340,21 @@ func (repo *ERMDashboardRepository) GetERMLeadershipAttentionMetrics(params *kpi
 		Where("risk_matrix_risk_ratings.type IN ?", []string{"high", "very_high"}).
 		Where("action_plan_statuses.type != ?", "completed").
 		Where("risk_action_plans.target_date < ?", currentTime)
-
 	if params.DateFrom != "" && params.DateTo != "" {
 		actionQuery = actionQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
-
-	if err := actionQuery.Count(&overdueHighRiskActions).Error; err != nil {
+	if err := actionQuery.Count(&summary.OverdueHighRiskActions).Error; err != nil {
 		return nil, err
 	}
 
 	// Compliance-linked high risks
-	var complianceLinkedHighRisks int64
-	complianceQuery := repo.db.Model(&models.RiskRegister{}).
+	complianceQuery := buildBaseQuery().
 		Joins("JOIN risk_compliance_requirements ON risk_compliance_requirements.risk_register_id = risk_register.id").
 		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
-		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
-		Where("risk_matrix_risk_ratings.type IN ?", []string{"high", "very_high"}).
-		Where("risk_statuses.type = ?", "open")
-
-	if params.DateFrom != "" && params.DateTo != "" {
-		complianceQuery = complianceQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
-	}
-
-	if err := complianceQuery.Count(&complianceLinkedHighRisks).Error; err != nil {
+		Where("risk_matrix_risk_ratings.type IN ?", []string{"high", "very_high"})
+	if err := complianceQuery.Count(&summary.ComplianceLinkedHighRisks).Error; err != nil {
 		return nil, err
 	}
 
-	return &kpiDTOs.ERMLeadershipAttentionDTO{
-		StrategicObjectivesAtRisk: strategicObjectivesAtRisk,
-		CriticalRisksUncontrolled: criticalRisksUncontrolled,
-		OverdueHighRiskActions:    overdueHighRiskActions,
-		ComplianceLinkedHighRisks: complianceLinkedHighRisks,
-	}, nil
+	return summary, nil
 }
