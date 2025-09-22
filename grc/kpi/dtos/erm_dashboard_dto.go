@@ -32,7 +32,11 @@ type ERMOverdueRisksDTO struct {
 }
 
 type ERMOverdueRiskDetailDTO struct {
-	RiskLevel string `json:"risk_level"`
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Type      string `json:"type"`
 	Count     int64  `json:"count"`
 }
 

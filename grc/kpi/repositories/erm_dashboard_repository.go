@@ -122,37 +122,30 @@ func (repo *ERMDashboardRepository) GetERMRiskDistribution(params *kpiDTOs.ERMDa
 	for _, rating := range riskRatings {
 		var count, openCount int64
 
-		// Build base query for this specific rating
-		baseQuery := repo.db.Model(&models.RiskRegister{}).
-			Where("current_risk_rating_id = ?", rating.ID)
+		// clone riskQuery for this iteration
+		ratingQuery := riskQuery.Session(&gorm.Session{})
 
-		if params.DateFrom != "" && params.DateTo != "" {
-			baseQuery = baseQuery.Where("reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
-		}
+		// add rating-specific condition
+		ratingQuery = ratingQuery.Where("risk_register.current_risk_rating_id = ?", rating.ID)
 
-		// Total count for this risk rating
-		err := baseQuery.Count(&count).Error
-		if err != nil {
+		// total count
+		if err := ratingQuery.Count(&count).Error; err != nil {
 			return nil, err
 		}
 
-		// Open count for this risk rating
-		openQuery := baseQuery.
-			Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
-			Where("risk_statuses.type = ?", "open")
-
-		err = openQuery.Count(&openCount).Error
-		if err != nil {
+		// open count
+		if err := ratingQuery.
+			Where("risk_statuses.type = ?", "open").
+			Count(&openCount).Error; err != nil {
 			return nil, err
 		}
 
-		// Calculate percentage
+		// Calculate Percentage
 		var percentage float64
 		if totalRisksRegistered > 0 {
 			percentage = math.Round(float64(count) / float64(totalRisksRegistered) * 100)
 		}
 
-		// Populate risk rating details
 		riskCountsByRating = append(riskCountsByRating, kpiDTOs.ERMRiskRatingCountDTO{
 			TitleEn:    rating.TitleEn,
 			TitleAr:    rating.TitleAr,
@@ -172,15 +165,28 @@ func (repo *ERMDashboardRepository) GetERMRiskDistribution(params *kpiDTOs.ERMDa
 func (repo *ERMDashboardRepository) GetERMOverdueRisks(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOverdueRisksDTO, error) {
 	currentTime := time.Now()
 
-	// Base query
+	// Base query with rating details
 	baseQuery := repo.db.Model(&models.RiskRegister{}).
-		Select("risk_matrix_risk_ratings.type AS risk_level, COUNT(*) AS count").
+		Select(`
+			risk_matrix_risk_ratings.id,
+			risk_matrix_risk_ratings.type,
+			risk_matrix_risk_ratings.title_en,
+			risk_matrix_risk_ratings.title_ar,
+			risk_matrix_risk_ratings.color_code,
+			COUNT(*) AS count
+		`).
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
 		Where("next_review_date < ?", currentTime).
 		Where("next_review_date IS NOT NULL").
 		Where("risk_statuses.type = ?", "open").
-		Group("risk_matrix_risk_ratings.type")
+		Group(`
+			risk_matrix_risk_ratings.id,
+			risk_matrix_risk_ratings.type,
+			risk_matrix_risk_ratings.title_en,
+			risk_matrix_risk_ratings.title_ar,
+			risk_matrix_risk_ratings.color_code
+		`)
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		baseQuery = baseQuery.Where(
@@ -191,11 +197,15 @@ func (repo *ERMDashboardRepository) GetERMOverdueRisks(params *kpiDTOs.ERMDashbo
 	}
 
 	type result struct {
-		RiskLevel string
+		ID        uint
+		Type      string
+		TitleEn   string
+		TitleAr   string
+		ColorCode string
 		Count     int64
 	}
-	var results []result
 
+	var results []result
 	if err := baseQuery.Scan(&results).Error; err != nil {
 		return nil, err
 	}
@@ -205,23 +215,14 @@ func (repo *ERMDashboardRepository) GetERMOverdueRisks(params *kpiDTOs.ERMDashbo
 	risksOverdueDetails := []kpiDTOs.ERMOverdueRiskDetailDTO{}
 
 	for _, r := range results {
-		var level string
-		switch r.RiskLevel {
-		case "high", "very_high":
-			level = "High"
-		case "medium":
-			level = "Moderate"
-		case "low", "very_low":
-			level = "Low"
-		default:
-			continue
-		}
-
 		risksOverdueDetails = append(risksOverdueDetails, kpiDTOs.ERMOverdueRiskDetailDTO{
-			RiskLevel: level,
+			ID:        r.ID,
+			Type:      r.Type,
+			TitleEn:   r.TitleEn,
+			TitleAr:   r.TitleAr,
+			ColorCode: r.ColorCode,
 			Count:     r.Count,
 		})
-
 		totalRisksOverdue += r.Count
 	}
 
@@ -322,7 +323,7 @@ func (repo *ERMDashboardRepository) GetERMLeadershipAttentionMetrics(params *kpi
 		Where("risk_matrix_risk_ratings.type IN ?", []string{"high", "very_high"}).
 		Where(`NOT EXISTS (
 			SELECT 1 FROM risk_controls
-			JOIN controls ON controls.id = rc.control_id
+			JOIN controls ON controls.id = risk_controls.control_id
 			JOIN control_efficiency_statuses ON control_efficiency_statuses.id = controls.control_efficiency_status_id
 			WHERE risk_controls.risk_register_id = risk_register.id
 			AND control_efficiency_statuses.type = 'efficient'
@@ -334,14 +335,17 @@ func (repo *ERMDashboardRepository) GetERMLeadershipAttentionMetrics(params *kpi
 	// Overdue high-risk actions
 	currentTime := time.Now()
 	actionQuery := repo.db.Model(&models.RiskActionPlan{}).
-		Joins("JOIN risk_register ON risk_register.id = risk_action_plans.risk_register_id").
-		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
+		Joins("JOIN severity_levels ON severity_levels.id = risk_action_plans.severity_level_id").
 		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = risk_action_plans.action_plan_status_id").
-		Where("risk_matrix_risk_ratings.type IN ?", []string{"high", "very_high"}).
+		Where("severity_levels.type = ?", "high").
+		Where("severity_levels.status = ?", "active").
 		Where("action_plan_statuses.type != ?", "completed").
 		Where("risk_action_plans.target_date < ?", currentTime)
+
+	// Add date range filtering if parameters are provided
 	if params.DateFrom != "" && params.DateTo != "" {
-		actionQuery = actionQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		actionQuery = actionQuery.Joins("JOIN risk_register ON risk_register.id = risk_action_plans.risk_register_id").
+			Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 	if err := actionQuery.Count(&summary.OverdueHighRiskActions).Error; err != nil {
 		return nil, err
@@ -349,9 +353,11 @@ func (repo *ERMDashboardRepository) GetERMLeadershipAttentionMetrics(params *kpi
 
 	// Compliance-linked high risks
 	complianceQuery := buildBaseQuery().
+		Distinct("risk_compliance_requirements.compliance_requirement_id").
 		Joins("JOIN risk_compliance_requirements ON risk_compliance_requirements.risk_register_id = risk_register.id").
 		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
 		Where("risk_matrix_risk_ratings.type IN ?", []string{"high", "very_high"})
+
 	if err := complianceQuery.Count(&summary.ComplianceLinkedHighRisks).Error; err != nil {
 		return nil, err
 	}
