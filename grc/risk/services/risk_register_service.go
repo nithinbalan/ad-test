@@ -29,6 +29,7 @@ import (
 )
 
 type RiskRegisterServiceInterface interface {
+	SetRiskWorkflowService(svc RiskWorkflowServiceInterface)
 	GetAll(params *riskDTOs.RiskRegisterListQueryParamsDTO) (*riskDTOs.RiskRegisterListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*riskDTOs.RiskRegisterDetailDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskRegister, error)
@@ -79,6 +80,7 @@ type RiskRegisterService struct {
 	riskMatrixImpactSvc       RiskMatrixImpactServiceInterface
 	riskResponseStrategySvc   RiskResponseStrategyServiceInterface
 	riskResidualEvaluationSvc RiskResidualEvaluationServiceInterface
+	riskWorkflowSvc           RiskWorkflowServiceInterface
 }
 
 func NewRiskRegisterService(
@@ -131,6 +133,10 @@ func NewRiskRegisterService(
 		riskResponseStrategySvc:   riskResponseStrategySvc,
 		riskResidualEvaluationSvc: riskResidualEvaluationSvc,
 	}
+}
+
+func (rrs *RiskRegisterService) SetRiskWorkflowService(svc RiskWorkflowServiceInterface) {
+	rrs.riskWorkflowSvc = svc
 }
 
 func (rrs *RiskRegisterService) GetAll(params *riskDTOs.RiskRegisterListQueryParamsDTO) (*riskDTOs.RiskRegisterListResponseDTO, error) {
@@ -201,6 +207,12 @@ func (rrs RiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databas
 
 func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *riskDTOs.RiskRegisterFormDTO) (uint, error) {
 	tx := rrs.repo.BeginTransaction()
+
+	err := rrs.riskWorkflowSvc.ValidateWorkflowBeforeCreate("risk_register", tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 
 	if err := rrs.validateRiskRegisterFormDTO(riskRegisterFormDTO); err != nil {
 		return 0, err
@@ -408,6 +420,13 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			tx.Rollback()
 			return 0, err
 		}
+	}
+
+	// Add workflow
+	err = rrs.riskWorkflowSvc.CreateRiskWorkflow(id, "risk_register", currentUserID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 
 	tx.Commit()
@@ -1006,6 +1025,12 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 			tx.Rollback()
 			return nil, err
 		}
+
+		riskRegister, err := rrs.repo.GetFullDetailsByID(id, tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
 		// Prepare notification data before deletion
 		notifications = append(notifications, struct {
 			OwnerID         *uint
@@ -1056,6 +1081,37 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 				continue
 			}
 
+		}
+
+		// delete workflow
+		var deleteRiskWorkflowIds []*uint
+		var deleteRiskWorkflowParticipantIds []*uint
+		var deleteRiskWorkflowReviewIds []*uint
+		if len(riskRegister.RiskWorkflows) > 0 {
+			for _, riskWorkflow := range riskRegister.RiskWorkflows {
+				deleteRiskWorkflowIds = append(deleteRiskWorkflowIds, &riskWorkflow.ID)
+
+				if len(riskWorkflow.RiskWorkflowParticipants) > 0 {
+					for _, participant := range riskWorkflow.RiskWorkflowParticipants {
+						deleteRiskWorkflowParticipantIds = append(deleteRiskWorkflowParticipantIds, &participant.ID)
+					}
+				}
+
+				if len(riskWorkflow.RiskWorkflowReviews) > 0 {
+					for _, reviews := range riskWorkflow.RiskWorkflowReviews {
+						deleteRiskWorkflowReviewIds = append(deleteRiskWorkflowReviewIds, &reviews.ID)
+					}
+				}
+			}
+		}
+		if err := rrs.riskWorkflowSvc.DeleteRiskWorkflowParticipants(deleteRiskWorkflowParticipantIds, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		if err := rrs.riskWorkflowSvc.DeleteRiskReviews(deleteRiskWorkflowReviewIds, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
 		}
 
 		// Delete the risk

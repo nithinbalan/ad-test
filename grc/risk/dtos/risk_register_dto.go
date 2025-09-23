@@ -153,6 +153,7 @@ type RiskRegisterDetailDTO struct {
 	ReviewFrequency         *masterDTOs.ReviewFrequencyDTO     `json:"review_frequency"`
 	NextReviewDateString    *string                            `json:"next_review_date"`
 	LastReviewNote          *string                            `json:"last_review_note"`
+	NextReviewLevel         *int                               `json:"next_review_level"`
 	Documents               []*RiskDocumentDTO                 `json:"documents"`
 	CreatedAt               time.Time                          `json:"created_at"`
 	UpdatedAt               *time.Time                         `json:"updated_at"`
