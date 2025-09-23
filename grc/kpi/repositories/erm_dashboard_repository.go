@@ -233,64 +233,69 @@ func (repo *ERMDashboardRepository) GetERMOverdueRisks(params *kpiDTOs.ERMDashbo
 }
 
 func (repo *ERMDashboardRepository) GetERMRisksAboveAppetite(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRisksAboveAppetiteDTO, error) {
-	// Build the base query with all necessary joins
+	// Base query with risk levels
 	baseQuery := repo.db.Model(&models.RiskRegister{}).
+		Select(`
+			risk_matrix_risk_ratings.id,
+			risk_matrix_risk_ratings.type,
+			risk_matrix_risk_ratings.title_en,
+			risk_matrix_risk_ratings.title_ar,
+			risk_matrix_risk_ratings.color_code,
+			COUNT(*) AS count
+		`).
 		Joins("JOIN risk_evaluations ON risk_evaluations.risk_register_id = risk_register.id").
 		Joins("JOIN risk_appetite_alignments ON risk_appetite_alignments.risk_evaluation_id = risk_evaluations.id").
 		Joins("JOIN risk_appetite_tolerance_levels ON risk_appetite_tolerance_levels.id = risk_appetite_alignments.risk_appetite_tolerance_level_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
-		Where("risk_appetite_tolerance_levels.type = ?", "above")
+		Where("risk_appetite_tolerance_levels.type = ?", "above").
+		Group(`
+			risk_matrix_risk_ratings.id,
+			risk_matrix_risk_ratings.type,
+			risk_matrix_risk_ratings.title_en,
+			risk_matrix_risk_ratings.title_ar,
+			risk_matrix_risk_ratings.color_code
+		`)
 
-	// Apply date filter inline if provided
+	// Apply date filter if given
 	if params.DateFrom != "" && params.DateTo != "" {
-		baseQuery = baseQuery.Where("risk_register.reported_at BETWEEN ? AND ?",
-			params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		baseQuery = baseQuery.Where(
+			"risk_register.reported_at BETWEEN ? AND ?",
+			params.DateFrom+" 00:00:00",
+			params.DateTo+" 23:59:59",
+		)
 	}
 
-	var result struct {
-		Total    int64 `gorm:"column:total"`
-		High     int64 `gorm:"column:high"`
-		Moderate int64 `gorm:"column:moderate"`
-		Low      int64 `gorm:"column:low"`
+	type result struct {
+		ID        uint
+		Type      string
+		TitleEn   string
+		TitleAr   string
+		ColorCode string
+		Count     int64
 	}
 
-	err := baseQuery.Select(`
-        COUNT(*) as total,
-        COUNT(CASE WHEN risk_matrix_risk_ratings.type IN ('high', 'very_high') THEN 1 END) as high,
-        COUNT(CASE WHEN risk_matrix_risk_ratings.type = 'medium' THEN 1 END) as moderate,
-        COUNT(CASE WHEN risk_matrix_risk_ratings.type IN ('low', 'very_low') THEN 1 END) as low
-    `).Scan(&result).Error
-
-	if err != nil {
+	var results []result
+	if err := baseQuery.Scan(&results).Error; err != nil {
 		return nil, err
 	}
 
-	// Build risks by level array
+	var totalRisksAboveAppetite int64
 	risksByLevels := []kpiDTOs.ERMRisksAboveAppetiteLevelDTO{}
 
-	if result.High > 0 {
+	for _, r := range results {
 		risksByLevels = append(risksByLevels, kpiDTOs.ERMRisksAboveAppetiteLevelDTO{
-			RiskLevel: "High",
-			Count:     result.High,
+			ID:        r.ID,
+			Type:      r.Type,
+			TitleEn:   r.TitleEn,
+			TitleAr:   r.TitleAr,
+			ColorCode: r.ColorCode,
+			Count:     r.Count,
 		})
-	}
-
-	if result.Moderate > 0 {
-		risksByLevels = append(risksByLevels, kpiDTOs.ERMRisksAboveAppetiteLevelDTO{
-			RiskLevel: "Moderate",
-			Count:     result.Moderate,
-		})
-	}
-
-	if result.Low > 0 {
-		risksByLevels = append(risksByLevels, kpiDTOs.ERMRisksAboveAppetiteLevelDTO{
-			RiskLevel: "Low",
-			Count:     result.Low,
-		})
+		totalRisksAboveAppetite += r.Count
 	}
 
 	return &kpiDTOs.ERMRisksAboveAppetiteDTO{
-		TotalRisksAboveAppetite:    result.Total,
+		TotalRisksAboveAppetite:    totalRisksAboveAppetite,
 		AboveAppetiteRisksByLevels: risksByLevels,
 	}, nil
 }
