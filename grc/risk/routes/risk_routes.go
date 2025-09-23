@@ -54,6 +54,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskCommentController := app.RiskModule.RiskCommentController
 	riskReportController := app.RiskModule.RiskReportController
 	kriAssociatedItemController := app.RiskModule.KRIAssociatedItemController
+	riskWorkflowController := app.RiskModule.RiskWorkflowController
+	riskReviewController := app.RiskModule.RiskReviewController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -265,11 +267,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Risk Action Plan Comment
 	unauthenticatedRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/comments/:commentId/document-download", riskActionPlanCommentController.DownloadRiskActionPlanCommentDocument)
 	unauthenticatedRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/comments/:commentId/document-preview", riskActionPlanCommentController.GetRiskActionPlanCommentDocumentPreview)
-	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "view"),riskActionPlanCommentController.GetAllComments)
-	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "view"),riskActionPlanCommentController.GetCommentDetails)
-	riskRoutes.POST("/risks/:riskId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "modify"),riskActionPlanCommentController.CreateComment)
-	riskRoutes.PUT("/risks/:riskId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "modify"),riskActionPlanCommentController.UpdateComment)
-	riskRoutes.POST("/risks/:riskId/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "modify"),riskActionPlanCommentController.DeleteComment)
+	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "view"), riskActionPlanCommentController.GetAllComments)
+	riskRoutes.GET("/risks/:riskId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "view"), riskActionPlanCommentController.GetCommentDetails)
+	riskRoutes.POST("/risks/:riskId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "modify"), riskActionPlanCommentController.CreateComment)
+	riskRoutes.PUT("/risks/:riskId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "modify"), riskActionPlanCommentController.UpdateComment)
+	riskRoutes.POST("/risks/:riskId/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "risk_mitigation", "modify"), riskActionPlanCommentController.DeleteComment)
 
 	// Risk Treatment Guides
 	riskRoutes.GET("/risk-treatment-guidelines", riskTreatmentGuidelineController.GetAllRiskTreatmentGuidelines)
@@ -411,4 +413,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	riskRoutes.GET("/kri-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriAssociatedItemController.GetAllClauses)
 	riskRoutes.PUT("/kri-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.UpdateClauses)
+
+	riskRoutes.POST("/risk-register/:id/submit", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskReviewController.SubmitRisk)
+	riskRoutes.POST("/risk-register/:id/approve", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskReviewController.ApproveRisk)
+	riskRoutes.POST("/risk-register/:id/reject", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskReviewController.RejectRisk)
+	riskRoutes.GET("/risk-register/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskWorkflowController.GetWorkflowList)
 }

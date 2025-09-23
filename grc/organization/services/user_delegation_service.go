@@ -142,6 +142,7 @@ func (ushs *UserDelegationService) Create(currentUserID uint, userDelegationForm
 		"project_action_plans",
 		"document_change_request_workflow_participants",
 		"document_workflow_participants",
+		"risk_workflow_participants",
 	}
 
 	if err := ushs.repo.UpdateActionPlanDelegationUser(userDelegationForm.UserID, tables, &userDelegationForm.DelegateeUserID, tx); err != nil {
@@ -293,6 +294,7 @@ func (ushs *UserDelegationService) EndUserDelegation(userID uint, currentUserID 
 		"project_action_plans",
 		"document_change_request_workflow_participants",
 		"document_workflow_participants",
+		"risk_workflow_participants",
 	}
 
 	if err := ushs.repo.UpdateActionPlanDelegationUser(userID, tables, nil, tx); err != nil {

@@ -35,6 +35,7 @@ type RiskRegister struct {
 	MarkedAsAuditableItem     bool       `json:"marked_as_auditable_item" gorm:"default:false" binding:"-"`
 	SubmittedBy               *uint      `json:"submitted_by" gorm:"default:null"`
 	SubmittedAt               *time.Time `json:"submitted_at" gorm:"default:null"`
+	NextReviewLevel           *int       `json:"next_review_level" gorm:"default:null"`
 	ReviewedBy                *uint      `json:"reviewed_by" gorm:"default:null"`
 	CreatedBYID               uint       `json:"created_by_id" binding:"required"`
 	UpdatedBYID               *uint      `json:"updated_by_id"`
@@ -77,6 +78,7 @@ type RiskRegister struct {
 	Assets                 []*RiskAsset                 `gorm:"foreignKey:RiskRegisterID"`
 	Threats                []*RiskThreat                `gorm:"foreignKey:RiskRegisterID"`
 	AuditableItems         []*AuditableItem             `gorm:"foreignKey:RiskRegisterID"`
+	RiskWorkflows          []*RiskWorkflow              `gorm:"foreignKey:RiskRegisterID"`
 }
 
 // TableName overrides the table name used by RiskRegister to `risk_register`
