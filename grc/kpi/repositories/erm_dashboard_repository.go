@@ -16,6 +16,8 @@ type ERMDashboardRepositoryInterface interface {
 	GetERMOverdueRisks(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOverdueRisksDTO, error)
 	GetERMRisksAboveAppetite(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRisksAboveAppetiteDTO, error)
 	GetERMLeadershipAttentionMetrics(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMLeadershipAttentionDTO, error)
+	GetERMControlEfficiencySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMControlEfficiencySummaryDTO, error)
+	GetERMControlsOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMControlsOverviewDTO, error)
 }
 
 type ERMDashboardRepository struct {
@@ -365,6 +367,152 @@ func (repo *ERMDashboardRepository) GetERMLeadershipAttentionMetrics(params *kpi
 
 	if err := complianceQuery.Count(&summary.ComplianceLinkedHighRisks).Error; err != nil {
 		return nil, err
+	}
+
+	return summary, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMControlEfficiencySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMControlEfficiencySummaryDTO, error) {
+	summary := &kpiDTOs.ERMControlEfficiencySummaryDTO{}
+
+	type efficiencyResult struct {
+		ID        uint
+		TitleEn   string
+		TitleAr   string
+		ColorCode string
+		Type      string
+		Count     int64
+	}
+
+	var results []efficiencyResult
+	err := repo.db.Model(&models.RiskControl{}).
+		Select(`
+			control_efficiency_statuses.id,
+			control_efficiency_statuses.title_en,
+			control_efficiency_statuses.title_ar,
+			control_efficiency_statuses.color_code,
+			control_efficiency_statuses.type,
+			COUNT(DISTINCT controls.id) AS count
+		`).
+		Joins("JOIN controls ON risk_controls.control_id = controls.id").
+		Joins("JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id").
+		Where("controls.is_applicable = ?", true).
+		Group(`
+			control_efficiency_statuses.id, 
+			control_efficiency_statuses.title_en, 
+			control_efficiency_statuses.title_ar, 
+			control_efficiency_statuses.color_code, 
+			control_efficiency_statuses.type
+		`).
+		Order("control_efficiency_statuses.id").
+		Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Build efficiency summary & calculate overall efficiency
+	var totalControls, efficientControls int64
+	summary.ControlsByEfficiency = []kpiDTOs.ERMControlEfficiencyByStatusDTO{}
+	for _, r := range results {
+		totalControls += r.Count
+		if r.Type == "efficient" {
+			efficientControls = r.Count
+		}
+		summary.ControlsByEfficiency = append(summary.ControlsByEfficiency, kpiDTOs.ERMControlEfficiencyByStatusDTO{
+			ID:        r.ID,
+			TitleEn:   r.TitleEn,
+			TitleAr:   r.TitleAr,
+			ColorCode: r.ColorCode,
+			Type:      r.Type,
+			Count:     r.Count,
+		})
+	}
+
+	// Overall efficiency = efficient controls / total controls
+	if totalControls > 0 {
+		summary.OverallControlEfficiency = math.Round((float64(efficientControls)/float64(totalControls))*100*100) / 100
+	} else {
+		summary.OverallControlEfficiency = 0
+	}
+
+	return summary, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMControlsOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMControlsOverviewDTO, error) {
+	summary := &kpiDTOs.ERMControlsOverviewDTO{}
+
+	type controlsResult struct {
+		TotalControls       int64
+		ApplicableControls  int64
+		ImplementedControls int64
+		EfficientControls   int64
+	}
+	var cr controlsResult
+
+	err := repo.db.Model(&models.RiskControl{}).
+		Joins("JOIN controls ON risk_controls.control_id = controls.id").
+		Joins("LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id").
+		Joins("LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id").
+		Select(`
+			COUNT(DISTINCT controls.id) AS total_controls,
+			COUNT(DISTINCT CASE WHEN controls.is_applicable = 1 THEN controls.id END) AS applicable_controls,
+			COUNT(DISTINCT CASE WHEN control_implementation_statuses.type = 'implemented' THEN controls.id END) AS implemented_controls,
+			COUNT(DISTINCT CASE WHEN control_efficiency_statuses.type = 'efficient' THEN controls.id END) AS efficient_controls
+		`).Scan(&cr).Error
+	if err != nil {
+		return nil, err
+	}
+
+	summary.TotalControls = cr.TotalControls
+	summary.ApplicableControls = cr.ApplicableControls
+	summary.ImplementedControls = cr.ImplementedControls
+
+	summary.TotalControlsPercent = 100.0
+	if cr.TotalControls > 0 {
+		summary.ApplicableControlsPercent = math.Round(float64(cr.ApplicableControls)/float64(cr.TotalControls)*100*100) / 100
+		summary.ImplementedControlsPercent = math.Round(float64(cr.ImplementedControls)/float64(cr.TotalControls)*100*100) / 100
+	}
+
+	if cr.ApplicableControls > 0 {
+		summary.OverallControlEfficiency = math.Round(float64(cr.EfficientControls)/float64(cr.ApplicableControls)*100*100) / 100
+	} else {
+		summary.OverallControlEfficiency = 0
+	}
+
+	// High risk metrics
+	type highRiskResult struct {
+		ControlsMitigatingHighRisks      int64
+		HighRisksWithNoControls          int64
+		HighRisksWithInefficientControls int64
+	}
+	var hr highRiskResult
+
+	err = repo.db.Table("risk_register").
+		Joins("LEFT JOIN risk_controls ON risk_controls.risk_register_id = risk_register.id").
+		Joins("LEFT JOIN risk_control_analyses ON risk_controls.id = risk_control_analyses.risk_control_id").
+		Joins("LEFT JOIN control_efficiency_statuses ON risk_control_analyses.control_efficiency_status_id = control_efficiency_statuses.id").
+		Joins("JOIN risk_matrix_risk_ratings ON risk_register.current_risk_rating_id = risk_matrix_risk_ratings.id").
+		Joins("JOIN risk_statuses ON risk_register.risk_status_id = risk_statuses.id").
+		Select(`
+			COUNT(DISTINCT CASE WHEN risk_controls.control_id IS NOT NULL THEN risk_controls.control_id END) AS controls_mitigating_high_risks,
+			COUNT(DISTINCT CASE WHEN risk_controls.id IS NULL THEN risk_register.id END) AS high_risks_with_no_controls,
+			COUNT(DISTINCT CASE WHEN control_efficiency_statuses.type = 'inefficient' THEN risk_controls.control_id END) AS high_risks_with_inefficient_controls
+		`).
+		Where("risk_matrix_risk_ratings.type IN ?", []string{"high", "very_high"}).
+		Where("risk_statuses.type = ?", "open").
+		Scan(&hr).Error
+	if err != nil {
+		return nil, err
+	}
+
+	summary.ControlsMitigatingHighRisks = hr.ControlsMitigatingHighRisks
+	summary.HighRisksWithNoControls = hr.HighRisksWithNoControls
+	summary.HighRisksWithInefficientControls = hr.HighRisksWithInefficientControls
+
+	if cr.TotalControls > 0 {
+		summary.HighRisksWithInefficientPercent = math.Round(
+			(float64(hr.HighRisksWithInefficientControls)/float64(cr.TotalControls)*100)*100,
+		) / 100
 	}
 
 	return summary, nil

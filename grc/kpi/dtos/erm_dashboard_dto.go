@@ -60,3 +60,31 @@ type ERMLeadershipAttentionDTO struct {
 	OverdueHighRiskActions    int64 `json:"overdue_high_risk_actions"`
 	ComplianceLinkedHighRisks int64 `json:"compliance_linked_high_risks"`
 }
+
+type ERMControlEfficiencySummaryDTO struct {
+	OverallControlEfficiency float64                           `json:"overall_control_efficiency"`
+	ControlsByEfficiency     []ERMControlEfficiencyByStatusDTO `json:"controls_by_efficiency"`
+}
+
+type ERMControlEfficiencyByStatusDTO struct {
+	ID        uint   `json:"id"`
+	Type      string `json:"type"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Count     int64  `json:"count"`
+}
+
+type ERMControlsOverviewDTO struct {
+	TotalControls                    int64   `json:"total_controls"`
+	TotalControlsPercent             float64 `json:"total_controls_percent"`
+	ApplicableControls               int64   `json:"applicable_controls"`
+	ApplicableControlsPercent        float64 `json:"applicable_controls_percent"`
+	ImplementedControls              int64   `json:"implemented_controls"`
+	ImplementedControlsPercent       float64 `json:"implemented_controls_percent"`
+	OverallControlEfficiency         float64 `json:"overall_control_efficiency"`
+	ControlsMitigatingHighRisks      int64   `json:"controls_mitigating_high_risks"`
+	HighRisksWithNoControls          int64   `json:"high_risks_with_no_controls"`
+	HighRisksWithInefficientControls int64   `json:"high_risks_with_inefficient_controls"`
+	HighRisksWithInefficientPercent  float64 `json:"high_risks_with_inefficient_percent"`
+}
