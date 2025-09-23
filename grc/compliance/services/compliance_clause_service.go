@@ -861,7 +861,7 @@ func (ccs *ComplianceClauseService) DeleteComplianceClausKPI(clauseID, kpiID uin
 }
 
 func (css *ComplianceClauseService) GenerateClauseTemplate() (*os.File, error) {
-	templateHeaders := []string{"ClauseNo", "TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "ScopeEn", "ScopeAr", "ObjectiveEn", "ObjectiveAr"}
+	templateHeaders := []string{"TempID", "ParentTempID", "ClauseNo", "TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "ScopeEn", "ScopeAr", "ObjectiveEn", "ObjectiveAr"}
 
 	templateData := [][]interface{}{}
 
@@ -882,8 +882,8 @@ func (css *ComplianceClauseService) ValidateClauseTemplate(complianceID uint, fi
 		return nil, err
 	}
 
-	inputHeaders := []string{"ClauseNo", "TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "ScopeEn", "ScopeAr", "ObjectiveEn", "ObjectiveAr"}
-	snakeHeaders := []string{"clause_no", "title_en", "title_ar", "description_en", "description_ar", "scope_en", "scope_ar", "objective_en", "objective_ar"}
+	inputHeaders := []string{"TempID", "ParentTempID", "ClauseNo", "TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "ScopeEn", "ScopeAr", "ObjectiveEn", "ObjectiveAr"}
+	snakeHeaders := []string{"temp_id", "parent_temp_id", "clause_no", "title_en", "title_ar", "description_en", "description_ar", "scope_en", "scope_ar", "objective_en", "objective_ar"}
 
 	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
 		return nil, utility.NewValidationError(fmt.Errorf("invalid headers"), "invalid_header", "Requirement Template")
@@ -898,8 +898,52 @@ func (css *ComplianceClauseService) ValidateImportClause(complianceID uint, inpu
 	return css.validateClauses(complianceID, input)
 }
 
+func sortClausesLevelWise(records []map[string]interface{}) []map[string]interface{} {
+	tempIdMap := make(map[string]map[string]interface{})
+	parentMap := make(map[string][]string)
+	indegree := make(map[string]int)
+
+	// Build maps
+	for _, record := range records {
+		tempID := strings.TrimSpace(record["temp_id"].(string))
+		parentID := strings.TrimSpace(record["parent_temp_id"].(string))
+
+		tempIdMap[tempID] = record
+		if parentID != "" {
+			parentMap[parentID] = append(parentMap[parentID], tempID)
+			indegree[tempID]++
+		} else {
+			indegree[tempID] = 0
+		}
+	}
+
+	queue := []string{}
+	for tempID, deg := range indegree {
+		if deg == 0 {
+			queue = append(queue, tempID)
+		}
+	}
+
+	var sorted []map[string]interface{}
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		sorted = append(sorted, tempIdMap[current])
+
+		for _, child := range parentMap[current] {
+			indegree[child]--
+			if indegree[child] == 0 {
+				queue = append(queue, child)
+			}
+		}
+	}
+
+	return sorted
+}
+
 func (css *ComplianceClauseService) validateClauses(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error) {
-	headers := []string{"clause_no", "title_en", "title_ar", "description_en", "description_ar", "scope_en", "scope_ar", "objective_en", "objective_ar"}
+	headers := []string{"temp_id", "parent_temp_id", "clause_no", "title_en", "title_ar", "description_en", "description_ar", "scope_en", "scope_ar", "objective_en", "objective_ar"}
 
 	// Clauses
 	clauses, err := css.GetAll(complianceID)
@@ -913,6 +957,27 @@ func (css *ComplianceClauseService) validateClauses(complianceID uint, input []m
 	}
 
 	var validated []map[string]interface{}
+	hasError := false
+
+	tempIDMap := map[string]int{}
+	for _, r := range input {
+		if val, ok := r["temp_id"].(string); ok && val != "" {
+			if requency, ok := tempIDMap[val]; ok && requency != 0 {
+				tempIDMap[val] = tempIDMap[val] + 1
+			} else {
+				tempIDMap[val] = 1
+			}
+		}
+	}
+
+	parentMap := map[string]string{}
+	for _, r := range input {
+		tid := strings.TrimSpace(r["temp_id"].(string))
+		ptid := strings.TrimSpace(r["parent_temp_id"].(string))
+		if tid != "" && ptid != "" {
+			parentMap[tid] = ptid
+		}
+	}
 
 	for _, record := range input {
 		rowErrors := make(map[string]interface{})
@@ -927,19 +992,56 @@ func (css *ComplianceClauseService) validateClauses(complianceID uint, input []m
 		if val, ok := record["clause_no"].(string); ok && val != "" {
 			if _, exists := clauseMap[strings.TrimSpace(val)]; exists {
 				rowErrors["clause_no"] = fmt.Sprintf("ClauseNo already exist: %s", val)
+				hasError = true
 			} else {
 				processed["clause_no"] = val
 			}
 		}
 
+		// TempId
+		if val, ok := record["temp_id"].(string); !ok || val == "" {
+			rowErrors["temp_id"] = "Field is required"
+			hasError = true
+		} else if requency := tempIDMap[val]; requency > 1 {
+			rowErrors["temp_id"] = "TempID must be unique"
+			hasError = true
+		}
+
 		// TitleEn
 		if val, ok := record["title_en"].(string); !ok || val == "" {
 			rowErrors["title_en"] = "Field is required"
+			hasError = true
 		}
 
 		// TitleAr
 		if val, ok := record["title_ar"].(string); !ok || val == "" {
 			rowErrors["title_ar"] = "Field is required"
+			hasError = true
+		}
+
+		// ParentTempId
+		if val, ok := record["parent_temp_id"].(string); ok && val != "" {
+			if frequency, ok := tempIDMap[val]; !ok || frequency < 1 {
+				rowErrors["parent_temp_id"] = "Please enter a valid ParentTempID"
+				hasError = true
+			} else {
+				processed["parent_temp_id"] = strings.TrimSpace(val)
+			}
+		}
+
+		// Check circular reference
+		if tempID, ok := record["temp_id"].(string); ok && tempID != "" {
+			visited := map[string]bool{}
+			current := tempID
+			for current != "" {
+				if visited[current] {
+					rowErrors["parent_temp_id"] = "Invalid id, causes a circular reference in the clause hierarchy."
+					hasError = true
+					break
+				}
+				visited[current] = true
+				current = parentMap[current]
+			}
 		}
 
 		// DescriptionEn
@@ -962,7 +1064,7 @@ func (css *ComplianceClauseService) validateClauses(complianceID uint, input []m
 			}
 		}
 
-		// // ScopeEn
+		// ScopeEn
 		if val, ok := record["scope_en"].(string); ok {
 			trimmed := strings.TrimSpace(val)
 			if trimmed == "" {
@@ -972,7 +1074,7 @@ func (css *ComplianceClauseService) validateClauses(complianceID uint, input []m
 			}
 		}
 
-		// // ScopeAr
+		// ScopeAr
 		if val, ok := record["scope_ar"].(string); ok {
 			trimmed := strings.TrimSpace(val)
 			if trimmed == "" {
@@ -1015,6 +1117,9 @@ func (css *ComplianceClauseService) validateClauses(complianceID uint, input []m
 
 		validated = append(validated, processed)
 	}
+	if !hasError {
+		validated = sortClausesLevelWise(validated)
+	}
 	return validated, nil
 }
 
@@ -1031,21 +1136,34 @@ func (css *ComplianceClauseService) ImportClauses(complianceID uint, input []map
 	}
 
 	var createdIDs []uint
+	var tempIdToClauseIdMap = make(map[string]uint)
 	for _, record := range validated {
 
+		parentTempID, _ := record["parent_temp_id"].(string)
+		tempID := record["temp_id"].(string)
+
+		var parentClauseID *uint
+		if parentTempID != "" {
+			if pid, ok := tempIdToClauseIdMap[parentTempID]; ok {
+				parentClauseID = &pid
+			}
+		}
+
 		dto := &complianceDTOs.ComplianceClauseFormDTO{
-			ClauseNo:      record["clause_no"].(string),
-			TitleEn:       record["title_en"].(string),
-			TitleAr:       utility.GetOptionalStringValue(record["title_ar"]),
-			DescriptionEn: utility.GetOptionalStringValue(record["description_en"]),
-			DescriptionAr: utility.GetOptionalStringValue(record["description_ar"]),
-			ScopeEn:       utility.GetOptionalStringValue(record["scope_en"]),
-			ScopeAr:       utility.GetOptionalStringValue(record["scope_ar"]),
-			ObjectiveEn:   utility.GetOptionalStringValue(record["objective_en"]),
-			ObjectiveAr:   utility.GetOptionalStringValue(record["objective_ar"]),
+			ClauseNo:       record["clause_no"].(string),
+			ParentClauseID: parentClauseID,
+			TitleEn:        record["title_en"].(string),
+			TitleAr:        utility.GetOptionalStringValue(record["title_ar"]),
+			DescriptionEn:  utility.GetOptionalStringValue(record["description_en"]),
+			DescriptionAr:  utility.GetOptionalStringValue(record["description_ar"]),
+			ScopeEn:        utility.GetOptionalStringValue(record["scope_en"]),
+			ScopeAr:        utility.GetOptionalStringValue(record["scope_ar"]),
+			ObjectiveEn:    utility.GetOptionalStringValue(record["objective_en"]),
+			ObjectiveAr:    utility.GetOptionalStringValue(record["objective_ar"]),
 		}
 
 		id, err := css.Create(complianceID, currentUserID, dto)
+		tempIdToClauseIdMap[tempID] = id
 		if err != nil {
 			return nil, fmt.Errorf("failed to create clause for record: %+v, error: %v", record, err)
 		}
