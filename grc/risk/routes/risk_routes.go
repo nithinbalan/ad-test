@@ -56,6 +56,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kriAssociatedItemController := app.RiskModule.KRIAssociatedItemController
 	riskWorkflowController := app.RiskModule.RiskWorkflowController
 	riskReviewController := app.RiskModule.RiskReviewController
+	riskReviewCommentController := app.RiskModule.RiskReviewCommentController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -418,4 +419,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("/risk-register/:id/approve", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskReviewController.ApproveRisk)
 	riskRoutes.POST("/risk-register/:id/reject", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskReviewController.RejectRisk)
 	riskRoutes.GET("/risk-register/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskWorkflowController.GetWorkflowList)
+
+	// risk review comment
+	riskRoutes.GET("/risks/:riskId/review-comments", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskReviewCommentController.GetAllComments)
+	riskRoutes.GET("/risks/:riskId/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskReviewCommentController.GetCommentDetails)
+	riskRoutes.POST("/risks/:riskId/review-comments", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskReviewCommentController.CreateComment)
+	riskRoutes.PUT("/risks/:riskId/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskReviewCommentController.UpdateComment)
+	riskRoutes.POST("/risks/:riskId/review-comments/delete", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskReviewCommentController.DeleteComment)
+	riskRoutes.PUT("/risks/:riskId/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskReviewCommentController.ResolveComment)
 }
