@@ -88,6 +88,12 @@ func (drs *DocumentReviewService) GetComments(id uint) (*documentDTOs.DocumentVe
 		return nil, err
 	}
 
+	for i, documentWorkflow := range documentVersionWorkflows.DocumentWorkflows {
+		for j, review := range documentWorkflow.DocumentWorkflowReviews {
+			documentVersionWorkflowDTO.DocumentWorkflows[i].DocumentWorkflowReviews[j].CreatedAt = review.CreatedAt
+		}
+	}
+
 	return &documentVersionWorkflowDTO, nil
 }
 

@@ -1154,3 +1154,131 @@ func (ccc *ComplianceClauseController) DeleteComplianceClausKPI(c *gin.Context) 
 
 	c.JSON(http.StatusOK, gin.H{"message": "Compliance Clause KPI  mapping deleted successfully"})
 }
+
+func (ccc *ComplianceClauseController) GetClausesTemplate(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	_, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	file, err := ccc.service.GenerateClauseTemplate()
+	if err != nil {
+		utility.SendInternalErrResp(ccc.db, c, "Failed to generate template")
+		return
+	}
+	defer file.Close()
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Disposition", `attachment; filename="ComplianceClauseTemplate.xlsx"`)
+	c.Header("Content-Type", "application/octet-stream")
+	c.File(file.Name())
+}
+
+func (ccc *ComplianceClauseController) ValidateClauseTemplate(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		utility.SendInternalErrResp(ccc.db, c, "Failed to read uploaded file")
+		return
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		utility.SendInternalErrResp(ccc.db, c, "Failed to open file")
+		return
+	}
+	defer file.Close()
+
+	validationResult, err := ccc.service.ValidateClauseTemplate(uint(complianceID), file)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ccc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, validationResult)
+}
+
+func (ccc *ComplianceClauseController) ValidateImportClause(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var input []map[string]interface{}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	validationResult, err := ccc.service.ValidateImportClause(uint(complianceID), input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ccc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, validationResult)
+}
+
+
+func (crc *ComplianceClauseController) ImportClauses(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	createdIDs, err := crc.service.ImportClauses(uint(complianceID), input, currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"created_ids": createdIDs})
+}

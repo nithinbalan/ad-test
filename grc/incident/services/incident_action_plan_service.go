@@ -134,7 +134,6 @@ func (iaps IncidentActionPlanService) GetFullDetailsByID(incidentID uint, id uin
 }
 
 func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) (uint, error) {
-	tx := iaps.repo.BeginTransaction()
 
 	incident, err := iaps.incidentRegisterSvc.GetByID(incidentID)
 	if err != nil {
@@ -155,6 +154,8 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		return 0, err
 	}
 
+	tx := iaps.repo.BeginTransaction()
+
 	incidentActionPlan := &models.IncidentActionPlan{
 		IncidentRegisterID: incidentID,
 		Title:              IncidentActionPlanFormDTO.Title,
@@ -172,6 +173,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 	if IncidentActionPlanFormDTO.ResponsibleUserID != 0 {
 		delegateeID, err := iaps.delegateeUserSvc.AssignDelegateeIfPermitted(IncidentActionPlanFormDTO.ResponsibleUserID, "incident_register")
 		if err != nil {
+			tx.Rollback()
 			return 0, err
 		}
 		if delegateeID != nil {
@@ -349,7 +351,6 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 }
 
 func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) error {
-	tx := iaps.repo.BeginTransaction()
 
 	incident, err := iaps.incidentRegisterSvc.GetByID(incidentID)
 	if err != nil {
@@ -363,7 +364,6 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 
 	oldIncidentActionPlan, err := iaps.GetFullDetailsByID(incidentID, id)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -378,6 +378,8 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 		return err
 	}
 
+	tx := iaps.repo.BeginTransaction()
+
 	// Update Incident ActionPlan
 	existingIncidentActionPlan.Title = IncidentActionPlanFormDTO.Title
 	existingIncidentActionPlan.Description = IncidentActionPlanFormDTO.Description
@@ -385,7 +387,6 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	existingIncidentActionPlan.ResponsibleUserID = IncidentActionPlanFormDTO.ResponsibleUserID
 	existingIncidentActionPlan.ReviewUserID = IncidentActionPlanFormDTO.ReviewUserID
 	existingIncidentActionPlan.TargetDate = dates.TargetDate
-	existingIncidentActionPlan.Percentage = IncidentActionPlanFormDTO.Percentage
 	existingIncidentActionPlan.Comments = IncidentActionPlanFormDTO.Comments
 	existingIncidentActionPlan.UpdatedBYID = &currentUserID
 
@@ -393,6 +394,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 		existingIncidentActionPlan.DelegateeUserID = nil
 		delegateeID, err := iaps.delegateeUserSvc.AssignDelegateeIfPermitted(IncidentActionPlanFormDTO.ResponsibleUserID, "incident_register")
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 		if delegateeID != nil {
@@ -402,6 +404,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 
 	err = iaps.repo.Update(existingIncidentActionPlan, tx)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -616,11 +619,12 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 }
 
 func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error) {
-	tx := iaps.repo.BeginTransaction()
 
 	if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
 		return nil, err
 	}
+
+	tx := iaps.repo.BeginTransaction()
 
 	var failedIds []uint
 	var successfulIds []uint
@@ -640,6 +644,11 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 			continue
 		}
 
+		description := ""
+		if incidentActionPlan.Description != nil {
+			description = *incidentActionPlan.Description
+		}
+
 		deletedIncidentActionPlan = append(deletedIncidentActionPlan, map[string]interface{}{
 			"id":    id,
 			"title": incidentActionPlan.Title,
@@ -657,7 +666,7 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 			OwnerID:         &incidentActionPlan.ResponsibleUserID,
 			TitleEn:         incidentActionPlan.Title,
 			TitleAr:         incidentActionPlan.Title,
-			Description:     incidentActionPlan.Description,
+			Description:     &description,
 			ReferenceNumber: incidentActionPlan.IncidentRegister.ReferenceNumber,
 			IncidentTitle:   incidentActionPlan.IncidentRegister.Title,
 		})
@@ -717,6 +726,11 @@ func (iaps *IncidentActionPlanService) Delete(incidentID uint, ids []uint, curre
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
+	}
+
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
 	}
 	tx.Commit()
 

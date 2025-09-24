@@ -261,7 +261,7 @@ func (repo *WorkflowRepository) GetWorkflowByContext(workflowContextId uint, tx 
 
 	// If no levels exist, you may decide to return nil or still return workflow with info
 	if count == 0 {
-		return nil, fmt.Errorf("no levels defined for workflow (id=%d)", workflow.ID)
+		return nil, utility.NewForbiddenError("No levels defined for workflow.")
 	}
 
 	return workflow, nil

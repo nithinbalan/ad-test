@@ -2,6 +2,8 @@ package services
 
 import (
 	"errors"
+	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
@@ -140,6 +142,7 @@ func (ushs *UserDelegationService) Create(currentUserID uint, userDelegationForm
 		"project_action_plans",
 		"document_change_request_workflow_participants",
 		"document_workflow_participants",
+		"risk_workflow_participants",
 	}
 
 	if err := ushs.repo.UpdateActionPlanDelegationUser(userDelegationForm.UserID, tables, &userDelegationForm.DelegateeUserID, tx); err != nil {
@@ -165,6 +168,75 @@ func (ushs *UserDelegationService) Create(currentUserID uint, userDelegationForm
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
+			})
+		}
+
+		// Prepare notification
+		urlParam := fmt.Sprintf(`{"user_id":%d, "delegatee_user_id":%d}`, userDelegationForm.UserID, userDelegationForm.DelegateeUserID)
+		queryParam := ""
+		entity := "task"
+		action := "task-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{userDelegationForm.DelegateeUserID},
+			ModuleIdentifier:     "organization",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Task Assignment",
+			HeadingAr:            "مهمة المهمة",
+			TitleEn:              oldUser.FirstNameEn + " " + oldUser.LastNameEn,
+			TitleAr:              oldUser.FirstNameAr + " " + oldUser.LastNameAr,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		delegateeUser, err := ushs.userSvc.GetByID(userDelegationForm.DelegateeUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		assignedBy, err := ushs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		emailTo := []string{delegateeUser.Email}
+		subject := fmt.Sprintf("Task Responsibility Assigned")
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":           delegateeUser.FirstNameEn,
+			"LastNameEn":            delegateeUser.LastNameEn,
+			"UserFirstNameEn":       oldUser.FirstNameEn,
+			"UserLastNameEn":        oldUser.LastNameEn,
+			"AssignedDate":          assignedDate.Format("2006-01-02"),
+			"TaskCount":             taskCount,
+			"ModuleCounr":           moduleCount,
+			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+			"AssignedByLastNameEn":  assignedBy.LastNameEn,
+			"RedirectURL":           fmt.Sprintf("%s/my-profile/tasks", appURL),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "organization/templates/email/delegatee_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		// Send Notification and Email
+		err = ushs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "user_management")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
 			})
 		}
 	}()
@@ -222,6 +294,7 @@ func (ushs *UserDelegationService) EndUserDelegation(userID uint, currentUserID 
 		"project_action_plans",
 		"document_change_request_workflow_participants",
 		"document_workflow_participants",
+		"risk_workflow_participants",
 	}
 
 	if err := ushs.repo.UpdateActionPlanDelegationUser(userID, tables, nil, tx); err != nil {

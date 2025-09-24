@@ -127,7 +127,6 @@ func (taps *ThreatActionPlanService) GetFullDetailsByID(threatID uint, id uint) 
 }
 
 func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, formDTO *assetDTOs.ThreatActionPlanFormDTO) (uint, error) {
-	tx := taps.repo.BeginTransaction()
 
 	threat, err := taps.threatSvc.GetByID(threatID)
 	if err != nil {
@@ -148,6 +147,8 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 		return 0, err
 	}
 
+	tx := taps.repo.BeginTransaction()
+
 	actionPlan := &models.ThreatActionPlan{
 		ThreatID:           threatID,
 		Title:              formDTO.Title,
@@ -165,6 +166,7 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 	if formDTO.ResponsibleUserID != 0 {
 		delegateeID, err := taps.delegateeUserSvc.AssignDelegateeIfPermitted(formDTO.ResponsibleUserID, "threat")
 		if err != nil {
+			tx.Rollback()
 			return 0, err
 		}
 		if delegateeID != nil {
@@ -174,6 +176,7 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 
 	id, err := taps.repo.Create(actionPlan)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -314,7 +317,6 @@ func (taps *ThreatActionPlanService) Create(threatID uint, currentUserID uint, f
 }
 
 func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserID uint, formDTO *assetDTOs.ThreatActionPlanFormDTO) error {
-	tx := taps.repo.BeginTransaction()
 
 	oldActionPlan, err := taps.GetFullDetailsByID(threatID, id)
 	if err != nil {
@@ -342,13 +344,14 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 		return err
 	}
 
+	tx := taps.repo.BeginTransaction()
+
 	existingActionPlan.Title = formDTO.Title
 	existingActionPlan.Description = formDTO.Description
 	existingActionPlan.SeverityLevelID = formDTO.SeverityLevelID
 	existingActionPlan.ResponsibleUserID = formDTO.ResponsibleUserID
 	existingActionPlan.ReviewUserID = formDTO.ReviewUserID
 	existingActionPlan.TargetDate = dates.TargetDate
-	existingActionPlan.Percentage = formDTO.Percentage
 	existingActionPlan.Comments = formDTO.Comments
 	existingActionPlan.UpdatedByID = &currentUserID
 
@@ -356,6 +359,7 @@ func (taps *ThreatActionPlanService) Update(threatID uint, id uint, currentUserI
 		existingActionPlan.DelegateeUserID = nil
 		delegateeID, err := taps.delegateeUserSvc.AssignDelegateeIfPermitted(formDTO.ResponsibleUserID, "threat")
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 		if delegateeID != nil {
@@ -592,6 +596,8 @@ func (taps *ThreatActionPlanService) Delete(threatID uint, ids []uint, currentUs
 		return nil, err
 	}
 
+	tx := taps.repo.BeginTransaction()
+
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedActionPlan []map[string]interface{}
@@ -611,6 +617,12 @@ func (taps *ThreatActionPlanService) Delete(threatID uint, ids []uint, currentUs
 		}
 
 		// Prepare notification data before deletion
+		description := ""
+		if actionPlan.Description != nil {
+			description = *actionPlan.Description
+		}
+
+		// Prepare notification data before deletion
 		notifications = append(notifications, struct {
 			UserID      uint
 			TitleEn     string
@@ -621,7 +633,7 @@ func (taps *ThreatActionPlanService) Delete(threatID uint, ids []uint, currentUs
 			UserID:      actionPlan.ResponsibleUserID,
 			TitleEn:     actionPlan.Title,
 			TitleAr:     actionPlan.Title,
-			Description: *actionPlan.Description,
+			Description: description,
 			ThreatTitle: threat.TitleEn,
 		})
 
@@ -648,6 +660,13 @@ func (taps *ThreatActionPlanService) Delete(threatID uint, ids []uint, currentUs
 			"title": actionPlan.Title,
 		})
 	}
+
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	tx.Commit()
 
 	if len(successfulIds) > 0 {
 		go func() {

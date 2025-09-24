@@ -123,7 +123,6 @@ func (saps *SLAActionPlanService) GetFullDetailsByID(slaID uint, id uint) (*comp
 }
 
 func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) (uint, error) {
-	tx := saps.repo.BeginTransaction()
 	sla, err := saps.slaRegisterSvc.GetByID(slaID)
 	if err != nil {
 		return 0, err
@@ -143,6 +142,8 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 		return 0, err
 	}
 
+	tx := saps.repo.BeginTransaction()
+
 	slaActionPlan := &models.SLAActionPlan{
 		SLARegisterID:      slaID,
 		SLACheckQuestionID: slaActionPlanFormDTO.SLACheckQuestionID,
@@ -161,6 +162,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 	if slaActionPlanFormDTO.ResponsibleUserID != 0 {
 		delegateeID, err := saps.delegateeUserSvc.AssignDelegateeIfPermitted(slaActionPlanFormDTO.ResponsibleUserID, "sla_contracts")
 		if err != nil {
+			tx.Rollback()
 			return 0, err
 		}
 		if delegateeID != nil {
@@ -312,7 +314,6 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 }
 
 func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint, slaActionPlanFormDTO *complianceDTOs.SLAActionPlanFormDTO) error {
-	tx := saps.repo.BeginTransaction()
 
 	sla, err := saps.slaRegisterSvc.GetByID(slaID)
 	if err != nil {
@@ -326,7 +327,6 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 
 	oldSLAActionPlan, err := saps.GetFullDetailsByID(slaID, id)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -340,6 +340,8 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 	if err != nil {
 		return err
 	}
+
+	tx := saps.repo.BeginTransaction()
 
 	// Update SLA ActionPlan
 	existingSLAActionPlan.Title = slaActionPlanFormDTO.Title
@@ -357,6 +359,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 		existingSLAActionPlan.DelegateeUserID = nil
 		delegateeID, err := saps.delegateeUserSvc.AssignDelegateeIfPermitted(slaActionPlanFormDTO.ResponsibleUserID, "sla_contracts")
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 		if delegateeID != nil {
@@ -366,6 +369,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 
 	err = saps.repo.Update(existingSLAActionPlan, tx)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -584,12 +588,13 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 }
 
 func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID uint) ([]uint, error) {
-	tx := saps.repo.BeginTransaction()
-
+	
 	sla, err := saps.slaRegisterSvc.GetByID(slaID)
 	if err != nil {
 		return nil, err
 	}
+	
+	tx := saps.repo.BeginTransaction()
 
 	var failedIds []uint
 	var successfulIds []uint

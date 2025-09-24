@@ -14,27 +14,29 @@ import (
 	"gorm.io/gorm"
 )
 
-type PolicyVersionClauseCommentController struct {
-	service services.PolicyVersionClauseCommentServiceInterface
+type PolicyClauseCommentController struct {
+	service services.PolicyClauseCommentServiceInterface
 	db      *gorm.DB
 }
 
-func NewPolicyVersionClauseCommentController(service services.PolicyVersionClauseCommentServiceInterface) *PolicyVersionClauseCommentController {
-	return &PolicyVersionClauseCommentController{
+func NewPolicyClauseCommentController(service services.PolicyClauseCommentServiceInterface) *PolicyClauseCommentController {
+	return &PolicyClauseCommentController{
 		service: service,
 	}
 }
 
-func (pvccc *PolicyVersionClauseCommentController) GetAllDocumentComments(c *gin.Context) {
+func (pvccc *PolicyClauseCommentController) GetAllDocumentComments(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "comment")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"comment_status_ids",
 		"document_version_clause_ids",
+		"document_version_ids",
 		"level",
 		"created_by_ids",
 	}
@@ -55,12 +57,13 @@ func (pvccc *PolicyVersionClauseCommentController) GetAllDocumentComments(c *gin
 		return
 	}
 
-	queryParams := policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO{
-		Sort:    sort,
-		SortBy:  dbField,
-		Keyword: keyword,
-		Status:  status,
-		Filters: filters,
+	queryParams := policyDTOs.PolicyClauseCommentListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      dbField,
+		Keyword:     keyword,
+		Status:      status,
+		Filters:     filters,
+		QuickFilter: quickFilter,
 	}
 
 	documentIDStr := c.Param("id")
@@ -91,82 +94,9 @@ func (pvccc *PolicyVersionClauseCommentController) GetAllDocumentComments(c *gin
 	c.JSON(http.StatusOK, comments)
 }
 
-func (pvccc *PolicyVersionClauseCommentController) GetAllComments(c *gin.Context) {
-	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "comment")
-	keyword := c.Query("keyword")
-	status := c.Query("status")
-
-	// Define an array of allowed parameter names
-	allowedParams := []string{
-		"comment_status_ids",
-		"document_version_clause_ids",
-		"level",
-		"created_by_ids",
-	}
-
-	validSortFields := map[string]string{
-		"comment":                 "document_version_clause_comments.comment",
-		"level":                   "document_version_clause_comments.level",
-		"comment_status_title_en": "comment_statuses.title_ar",
-		"comment_status_title_ar": "comment_statuses.title_en",
-	}
-
-	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
-
-	dbField, valid := validSortFields[sortBy]
-	if !valid {
-		err := errors.New("invalid 'sort_by' parameter")
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
-	queryParams := policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO{
-		Sort:    sort,
-		SortBy:  dbField,
-		Keyword: keyword,
-		Status:  status,
-		Filters: filters,
-	}
-
+func (pvccc *PolicyClauseCommentController) GetCommentDetails(c *gin.Context) {
 	documentIDStr := c.Param("id")
 	documentID, err := strconv.ParseUint(documentIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-	clauseIDStr := c.Param("clauseId")
-	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	comments, err := pvccc.service.GetAll(uint(documentID), uint(clauseID), &queryParams)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		default:
-			utility.SendInternalErrResp(pvccc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.JSON(http.StatusOK, comments)
-}
-
-func (pvccc *PolicyVersionClauseCommentController) GetCommentDetails(c *gin.Context) {
-	documentIDStr := c.Param("id")
-	documentID, err := strconv.ParseUint(documentIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	clauseIDStr := c.Param("clauseId")
-	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -179,7 +109,7 @@ func (pvccc *PolicyVersionClauseCommentController) GetCommentDetails(c *gin.Cont
 		return
 	}
 
-	comment, err := pvccc.service.GetFullDetailsByID(uint(documentID), uint(clauseID), uint(commentID))
+	comment, err := pvccc.service.GetFullDetailsByID(uint(documentID), uint(commentID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -194,7 +124,7 @@ func (pvccc *PolicyVersionClauseCommentController) GetCommentDetails(c *gin.Cont
 	c.JSON(http.StatusOK, comment)
 }
 
-func (pvccc *PolicyVersionClauseCommentController) CreateComment(c *gin.Context) {
+func (pvccc *PolicyClauseCommentController) CreateComment(c *gin.Context) {
 	documentIDStr := c.Param("id")
 	documentID, err := strconv.ParseUint(documentIDStr, 10, 32)
 	if err != nil {
@@ -202,14 +132,7 @@ func (pvccc *PolicyVersionClauseCommentController) CreateComment(c *gin.Context)
 		return
 	}
 
-	clauseIDStr := c.Param("clauseId")
-	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	var formDTO policyDTOs.PolicyVersionClauseCommentFormDTO
+	var formDTO policyDTOs.PolicyClauseCommentFormDTO
 	if err := c.ShouldBindJSON(&formDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -221,7 +144,7 @@ func (pvccc *PolicyVersionClauseCommentController) CreateComment(c *gin.Context)
 		return
 	}
 
-	id, err := pvccc.service.Create(uint(documentID), uint(clauseID), currentUserID, &formDTO)
+	id, err := pvccc.service.Create(uint(documentID), currentUserID, &formDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -236,16 +159,9 @@ func (pvccc *PolicyVersionClauseCommentController) CreateComment(c *gin.Context)
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-func (pvccc *PolicyVersionClauseCommentController) UpdateComment(c *gin.Context) {
+func (pvccc *PolicyClauseCommentController) UpdateComment(c *gin.Context) {
 	documentIDStr := c.Param("id")
 	documentID, err := strconv.ParseUint(documentIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	clauseIDStr := c.Param("clauseId")
-	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -258,7 +174,7 @@ func (pvccc *PolicyVersionClauseCommentController) UpdateComment(c *gin.Context)
 		return
 	}
 
-	var formDTO policyDTOs.PolicyVersionClauseCommentFormDTO
+	var formDTO policyDTOs.PolicyClauseCommentFormDTO
 	if err := c.ShouldBindJSON(&formDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -270,7 +186,7 @@ func (pvccc *PolicyVersionClauseCommentController) UpdateComment(c *gin.Context)
 		return
 	}
 
-	err = pvccc.service.Update(uint(documentID), uint(clauseID), uint(commentID), currentUserID, &formDTO)
+	err = pvccc.service.Update(uint(documentID), uint(commentID), currentUserID, &formDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -285,16 +201,9 @@ func (pvccc *PolicyVersionClauseCommentController) UpdateComment(c *gin.Context)
 	c.Status(http.StatusOK)
 }
 
-func (pvccc *PolicyVersionClauseCommentController) DeleteComment(c *gin.Context) {
+func (pvccc *PolicyClauseCommentController) DeleteComment(c *gin.Context) {
 	documentIDStr := c.Param("id")
 	documentID, err := strconv.ParseUint(documentIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	clauseIDStr := c.Param("clauseId")
-	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -315,7 +224,7 @@ func (pvccc *PolicyVersionClauseCommentController) DeleteComment(c *gin.Context)
 		return
 	}
 
-	failedIDs, err := pvccc.service.Delete(uint(documentID), uint(clauseID), request.IDs, currentUserID)
+	failedIDs, err := pvccc.service.Delete(uint(documentID), request.IDs, currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -333,17 +242,10 @@ func (pvccc *PolicyVersionClauseCommentController) DeleteComment(c *gin.Context)
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (pvccc *PolicyVersionClauseCommentController) ResolveComment(c *gin.Context) {
+func (pvccc *PolicyClauseCommentController) ResolveComment(c *gin.Context) {
 
 	documentIDStr := c.Param("id")
 	documentID, err := strconv.ParseUint(documentIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	clauseIDStr := c.Param("clauseId")
-	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -362,7 +264,7 @@ func (pvccc *PolicyVersionClauseCommentController) ResolveComment(c *gin.Context
 		return
 	}
 
-	err = pvccc.service.Resolve(uint(documentID), uint(clauseID), uint(commentID), currentUserID)
+	err = pvccc.service.Resolve(uint(documentID), uint(commentID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
