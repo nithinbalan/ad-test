@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -55,7 +56,6 @@ func (sps *StrategyProfileService) GetAll(params *strategyDTOs.StrategyProfileLi
 
 func (sps StrategyProfileService) GetByID(id uint) (*models.StrategyProfile, error) {
 	strategyProfile, err := sps.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -70,7 +70,6 @@ func (sps StrategyProfileService) GetFullDetailsByID(id uint, tx ...utility.Data
 	var strategyProfileDTO strategyDTOs.StrategyProfileDetailDTO
 
 	strategyProfile, err := sps.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -94,7 +93,6 @@ func (sps StrategyProfileService) GetFullDetailsByID(id uint, tx ...utility.Data
 }
 
 func (sps *StrategyProfileService) Create(currentUserID uint, strategyProfileFormDTO *strategyDTOs.StrategyProfileFormDTO) (uint, error) {
-
 	tx := sps.repo.BeginTransaction()
 
 	dates, err := sps.parseStrategyProfileDates(strategyProfileFormDTO)
@@ -139,9 +137,8 @@ func (sps *StrategyProfileService) Create(currentUserID uint, strategyProfileFor
 			id,
 			existingStrategyProfile,
 			currentUserID,
-			"", "", "", nil,
+			"strategy", "strategy_profile", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -156,6 +153,7 @@ func (sps *StrategyProfileService) Create(currentUserID uint, strategyProfileFor
 	}()
 	return id, nil
 }
+
 func (sps *StrategyProfileService) Update(id uint, currentUserID uint, strategyProfileFormDTO *strategyDTOs.StrategyProfileFormDTO) error {
 	tx := sps.repo.BeginTransaction()
 
@@ -200,7 +198,7 @@ func (sps *StrategyProfileService) Update(id uint, currentUserID uint, strategyP
 		// Prepare log data
 		changedData := make(map[string]interface{})
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":            oldStrategyProfile.Title,
 			"description":      oldStrategyProfile.Description,
@@ -233,9 +231,8 @@ func (sps *StrategyProfileService) Update(id uint, currentUserID uint, strategyP
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"strategy", "strategy_profile", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -301,7 +298,6 @@ func (sps *StrategyProfileService) Delete(ids []uint, currentUserID uint) ([]uin
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
-
 		}()
 	}
 

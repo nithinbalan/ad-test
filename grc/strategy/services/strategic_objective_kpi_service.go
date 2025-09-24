@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/strategy/dtos"
@@ -93,6 +94,7 @@ func (soks *StrategicObjectiveKPIService) Create(strategicObjectiveID uint, curr
 
 	return nil
 }
+
 func (soks *StrategicObjectiveKPIService) DeleteStrategicObjectiveKPI(strategicObjectiveID uint, kpiRegisterID uint) error {
 	// Ensure parent StrategicObjective exists
 	if _, err := soks.strategicObjectiveSvc.GetByID(strategicObjectiveID); err != nil {
@@ -127,7 +129,7 @@ func (soks *StrategicObjectiveKPIService) DeleteStrategicObjectiveKPI(strategicO
 			0, // no single PK, use composite in log
 			deletedMapping,
 			0, // optional: pass currentUserID if you have it in context
-			"", "", "", nil,
+			"strategy", "strategy_objective", "strategy_objective_kpi", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log StrategicObjectiveKPI unmapping activity", map[string]interface{}{

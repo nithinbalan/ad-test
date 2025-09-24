@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
@@ -13,7 +15,6 @@ import (
 	StrategyProfileActionPlanRepositories "jethur/grc/strategy/repositories"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -144,7 +145,7 @@ func (spaps *StrategyProfileActionPlanService) Create(strategyProfileID uint, cu
 		StrategyProfileID:          strategyProfileID,
 		StrategyProfileFocusAreaID: strategyProfileActionPlanFormDTO.StrategyProfileFocusAreaID,
 		StrategyProfileGoalID:      strategyProfileActionPlanFormDTO.StrategyProfileGoalID,
-		//StrategyProfileObjectiveID:  strategyProfileActionPlanFormDTO.StrategyProfileObjectiveID,
+		// StrategyProfileObjectiveID:  strategyProfileActionPlanFormDTO.StrategyProfileObjectiveID,
 		StrategyProfileInitiativeID: strategyProfileActionPlanFormDTO.StrategyProfileInitiativeID,
 		StrategyProfileProjectID:    strategyProfileActionPlanFormDTO.StrategyProfileProjectID,
 		StrategyProfileMilestoneID:  strategyProfileActionPlanFormDTO.StrategyProfileMilestoneID,
@@ -222,7 +223,7 @@ func (spaps *StrategyProfileActionPlanService) Create(strategyProfileID uint, cu
 			id,
 			existingStrategyProfileActionPlan,
 			currentUserID,
-			"", "", "", nil,
+			"strategy", "strategy_profile", "action_plan", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -415,7 +416,7 @@ func (spaps *StrategyProfileActionPlanService) Update(strategyProfileID uint, id
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"strategy", "strategy_profile", "action_plan", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

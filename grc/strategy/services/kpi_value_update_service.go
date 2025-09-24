@@ -223,7 +223,7 @@ func (kvus *KPIValueUpdateService) Create(kpiRegisterID, currentUserID uint, kpi
 			id,
 			existingKpiValueUpdate,
 			currentUserID,
-			"", "", "", nil,
+			"strategy", "kpi", "reviews", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -463,7 +463,7 @@ func (kvus *KPIValueUpdateService) Update(kpiRegisterID, updateId uint, currentU
 				updateId,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"strategy", "kpi", "reviews", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

@@ -3,12 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/strategy/dtos"
 	"jethur/grc/strategy/repositories"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -68,7 +69,6 @@ func (sos *StrategicObjectiveService) GetAll(params *dtos.StrategicObjectiveList
 
 func (sos StrategicObjectiveService) GetByID(id uint) (*models.StrategicObjective, error) {
 	strategicObjective, err := sos.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -77,7 +77,6 @@ func (sos StrategicObjectiveService) GetByID(id uint) (*models.StrategicObjectiv
 	}
 
 	return strategicObjective, nil
-
 }
 
 func (sos *StrategicObjectiveService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.StrategicObjectiveDetailDTO, error) {
@@ -206,7 +205,7 @@ func (sos *StrategicObjectiveService) Create(currentUserID uint, dto *dtos.Strat
 			id,
 			fullDetails,
 			currentUserID,
-			"", "", "", nil,
+			"strategy", "strategy_objective", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -301,7 +300,7 @@ func (sos *StrategicObjectiveService) Update(id uint, currentUserID uint, dto *d
 			id,
 			fullDetails,
 			currentUserID,
-			"", "", "", nil,
+			"strategy", "strategy_objective", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log update activity", map[string]interface{}{
@@ -323,7 +322,6 @@ func (sos *StrategicObjectiveService) Delete(ids []uint, currentUserID uint) ([]
 	for _, id := range ids {
 
 		_, err := sos.repo.GetByID(id)
-
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -338,7 +336,6 @@ func (sos *StrategicObjectiveService) Delete(ids []uint, currentUserID uint) ([]
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := sos.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -362,7 +359,6 @@ func (sos *StrategicObjectiveService) Activate(ids []uint, currentUserID uint) e
 	successfulIds, err := sos.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := sos.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
@@ -386,7 +382,6 @@ func (sos *StrategicObjectiveService) Deactivate(ids []uint, currentUserID uint)
 	successfulIds, err := sos.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := sos.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,

@@ -204,7 +204,7 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Create(StrategyProfil
 			id,
 			StrategyProfileActionPlanUpdate,
 			currentUserID,
-			"", "", "", nil,
+			"strategy", "strategy_profile", "action_plan_status_update", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -434,7 +434,7 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Update(StrategyProfil
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"strategy", "strategy_profile", "action_plan_status_update", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -652,7 +652,7 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Approve(strategyProfi
 			id,
 			existingActionPlan,
 			currentUserID,
-			"", "", "", nil,
+			"strategy", "strategy_profile", "action_plan_status_update", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -809,7 +809,7 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Revert(strategyProfil
 			id,
 			existingActionPlan,
 			currentUserID,
-			"", "", "", nil,
+			"strategy", "strategy_profile", "action_plan_status_update", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

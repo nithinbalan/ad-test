@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -66,7 +67,6 @@ func (spap *StrategyProfileProjectActionPlanService) GetAll(strategyProfileID ui
 
 func (spap *StrategyProfileProjectActionPlanService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProjectActionPlan, error) {
 	strategyProfileProjectActionPlan, err := spap.repo.GetByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -108,7 +108,6 @@ func (ssp *StrategyProfileProjectActionPlanService) GetFullDetailsByID(strategyP
 }
 
 func (spap *StrategyProfileProjectActionPlanService) Create(strategyProfileID uint, currentUserID uint, strategyProfileProjectActionPlanFormDTO *strategyDTOs.StrategyProfileProjectActionPlanFormDTO) ([]uint, error) {
-
 	if _, err := spap.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
 		return nil, err
 	}
@@ -150,7 +149,7 @@ func (spap *StrategyProfileProjectActionPlanService) Create(strategyProfileID ui
 					"project_action_plan_id":                projectActionPlanID,
 				},
 				currentUserID,
-				"", "", "", nil,
+				"strategy", "strategy_profile", "strategy_profile_action_plan", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -208,9 +207,8 @@ func (spap *StrategyProfileProjectActionPlanService) Delete(strategyProfileID ui
 				"project_action_plan_id":      strategyProfileProjectActionPlan.ProjectActionPlanID,
 			},
 			currentUserID,
-			"", "", "", nil,
+			"strategy", "strategy_profile", "strategy_profile_action_plan", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.DeleteAction,

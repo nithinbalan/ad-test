@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -63,7 +64,6 @@ func (sppm *StrategyProfileProjectMilestoneService) GetAll(strategyProfileID uin
 
 func (sppm *StrategyProfileProjectMilestoneService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileProjectMilestone, error) {
 	strategyProfileProjectMilestone, err := sppm.repo.GetByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -105,7 +105,6 @@ func (ssp *StrategyProfileProjectMilestoneService) GetFullDetailsByID(strategyPr
 }
 
 func (sppm *StrategyProfileProjectMilestoneService) Create(strategyProfileID uint, currentUserID uint, strategyProfileProjectMilestoneFormDTO *strategyDTOs.StrategyProfileProjectMilestoneFormDTO) ([]uint, error) {
-
 	if _, err := sppm.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
 		return nil, err
 	}
@@ -145,7 +144,7 @@ func (sppm *StrategyProfileProjectMilestoneService) Create(strategyProfileID uin
 					"project_milestone_id":        projectMilestoneID,
 				},
 				currentUserID,
-				"", "", "", nil,
+				"strategy", "strategy_profile", "strategy_profile_milestone", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -203,9 +202,8 @@ func (sppm *StrategyProfileProjectMilestoneService) Delete(strategyProfileID uin
 				"project_milestone_id":        strategyProfileProjectMilestone.ProjectMilestoneID,
 			},
 			currentUserID,
-			"", "", "", nil,
+			"strategy", "strategy_profile", "strategy_profile_milestone", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.DeleteAction,
