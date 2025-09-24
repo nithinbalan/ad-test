@@ -127,7 +127,7 @@ func (pvccs *RiskReviewCommentService) GetFullDetailsByID(riskID uint, commentID
 
 	var commentDetail riskDTOs.RiskReviewCommentDetailDTO
 
-	comment, err := pvccs.repo.GetFullDetailsByID(riskID)
+	comment, err := pvccs.repo.GetFullDetailsByID(commentID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, riskID)
