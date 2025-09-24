@@ -149,6 +149,8 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		return 0, err
 	}
 
+	tx := afaps.repo.BeginTransaction()
+
 	auditFindingActionPlan := &models.AuditFindingActionPlan{
 		AuditFindingID:     findingID,
 		Title:              AuditFindingActionPlanFormDTO.Title,
@@ -166,6 +168,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 	if AuditFindingActionPlanFormDTO.ResponsibleUserID != 0 {
 		delegateeID, err := afaps.delegateeUserSvc.AssignDelegateeIfPermitted(AuditFindingActionPlanFormDTO.ResponsibleUserID, "audits")
 		if err != nil {
+			tx.Rollback()
 			return 0, err
 		}
 		if delegateeID != nil {
@@ -173,7 +176,6 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		}
 	}
 
-	tx := afaps.repo.BeginTransaction()
 
 	id, err := afaps.repo.Create(auditFindingActionPlan, tx)
 	if err != nil {
@@ -359,6 +361,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 		existingAuditFindingActionPlan.DelegateeUserID = nil
 		delegateeID, err := afaps.delegateeUserSvc.AssignDelegateeIfPermitted(AuditFindingActionPlanFormDTO.ResponsibleUserID, "audits")
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 		if delegateeID != nil {
@@ -661,6 +664,12 @@ func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uin
 			"audit_finding": auditFindingActionPlan.AuditFinding.Title,
 		})
 	}
+
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+	
 	tx.Commit()
 
 	if len(successfulIds) > 0 {

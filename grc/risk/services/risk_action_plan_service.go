@@ -184,6 +184,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 	if RiskActionPlanFormDTO.ResponsibleUserID != 0 {
 		delegateeID, err := raps.delegateeUserSvc.AssignDelegateeIfPermitted(RiskActionPlanFormDTO.ResponsibleUserID, "risk_register")
 		if err != nil {
+			tx.Rollback()
 			return 0, err
 		}
 		if delegateeID != nil {
@@ -230,10 +231,12 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 
 	defaultEfficiencyStatus, err := raps.controlEfficiencyStatusSvc.GetByType("inefficient")
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 	defaultImplementationStatus, err := raps.controlImplementationStatusSvc.GetByType("not-implemented")
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -385,11 +388,9 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 }
 
 func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID uint, RiskActionPlanFormDTO *riskDTOs.RiskActionPlanFormDTO) error {
-	tx := raps.repo.BeginTransaction()
 
 	oldRiskActionPlan, err := raps.GetFullDetailsByID(riskID, id)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -414,6 +415,8 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 		return err
 	}
 
+	tx := raps.repo.BeginTransaction()
+
 	// Update Risk ActionPlan
 	existingRiskActionPlan.Title = RiskActionPlanFormDTO.Title
 	existingRiskActionPlan.Description = RiskActionPlanFormDTO.Description
@@ -428,6 +431,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 		existingRiskActionPlan.DelegateeUserID = nil
 		delegateeID, err := raps.delegateeUserSvc.AssignDelegateeIfPermitted(RiskActionPlanFormDTO.ResponsibleUserID, "risk_register")
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 		if delegateeID != nil {
@@ -502,10 +506,12 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 
 	defaultEfficiencyStatus, err := raps.controlEfficiencyStatusSvc.GetByType("inefficient")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	defaultImplementationStatus, err := raps.controlImplementationStatusSvc.GetByType("not-implemented")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -754,6 +760,8 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 		return nil, err
 	}
 
+	tx := raps.repo.BeginTransaction()
+
 	var failedIds []uint
 	var successfulIds []uint
 	var notifications []struct {
@@ -866,6 +874,13 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 			successfulIds = append(successfulIds, id)
 		}
 	}
+
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	tx.Commit()
 
 	if len(successfulIds) > 0 {
 		go func() {
