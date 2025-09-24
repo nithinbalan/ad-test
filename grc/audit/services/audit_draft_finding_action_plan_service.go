@@ -135,9 +135,9 @@ func (adfaps *AuditDraftFindingActionPlanService) Create(findingID uint, current
 			id,
 			existingAuditDraftFindingActionPlan,
 			currentUserID,
-			"",
-			"",
-			"",
+			"audit",
+			"audit_findings",
+			"audit_draft_finding_action_plan",
 			nil,
 		)
 		if err != nil {
@@ -226,9 +226,9 @@ func (adfaps *AuditDraftFindingActionPlanService) Update(findingID uint, id uint
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"audit",
+				"audit_findings",
+				"audit_draft_finding_action_plan",
 				nil,
 			)
 			if err != nil {

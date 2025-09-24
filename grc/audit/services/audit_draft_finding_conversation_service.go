@@ -556,9 +556,9 @@ func (adfcs *AuditDraftFindingConversationService) Create(auditDraftFindingID ui
 			id,
 			existingAuditDraftFindingConversation,
 			currentUserID,
-			"",
-			"",
-			"",
+			"audit",
+			"audit_findings",
+			"audit_finding_conversations",
 			nil,
 		)
 		if err != nil {
@@ -714,9 +714,9 @@ func (adfcs *AuditDraftFindingConversationService) Update(auditDraftFindingID ui
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"audit",
+				"audit_findings",
+				"audit_finding_conversations",
 				nil,
 			)
 			if err != nil {

@@ -218,8 +218,8 @@ func (adfs *AuditDraftFindingService) Create(currentUserID uint, auditDraftFindi
 			id,
 			existingAuditDraftFinding,
 			currentUserID,
-			"",
-			"",
+			"audit",
+			"audit_findings",
 			"",
 			nil,
 		)
@@ -392,8 +392,8 @@ func (adfs *AuditDraftFindingService) Update(id uint, currentUserID uint, auditD
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
+				"audit",
+				"audit_findings",
 				"",
 				nil,
 			)
@@ -485,8 +485,8 @@ func (adfs *AuditDraftFindingService) Delete(ids []uint, currentUserID uint) ([]
 					id,
 					deletedAuditDraftFinding,
 					currentUserID,
-					"",
-					"",
+					"audit",
+					"audit_findings",
 					"",
 					nil,
 				)

@@ -188,9 +188,9 @@ func (acs *AuditChecklistService) Create(auditId uint, currentUserID uint, audit
 			id,
 			existingAuditChecklist,
 			currentUserID,
-			"",
-			"",
-			"",
+			"audit",
+			"audit_plans",
+			"audit_checklist",
 			nil,
 		)
 		if err != nil {
@@ -273,9 +273,9 @@ func (acs *AuditChecklistService) Update(auditId uint, id uint, currentUserID ui
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"audit",
+				"audit_plans",
+				"audit_checklist",
 				nil,
 			)
 			if err != nil {
@@ -366,9 +366,9 @@ func (acs *AuditChecklistService) Delete(auditId uint, ids []uint, currentUserID
 					id,
 					deletedAuditChecklist,
 					currentUserID,
-					"",
-					"",
-					"",
+					"audit",
+					"audit_plans",
+					"audit_checklist",
 					nil,
 				)
 				if err != nil {
@@ -512,9 +512,9 @@ func (acs *AuditChecklistService) Answer(auditId uint, id uint, currentUserID ui
 			id,
 			auditChecklistAnswerFormDTO,
 			currentUserID,
-			"",
-			"",
-			"",
+			"audit",
+			"audit_plans",
+			"audit_checklist",
 			nil,
 		)
 		if err != nil {
@@ -609,9 +609,9 @@ func (acs *AuditChecklistService) DeleteAnswer(auditId uint, ids []uint, current
 					id,
 					nil,
 					currentUserID,
-					"",
-					"",
-					"",
+					"audit",
+					"audit_plans",
+					"audit_checklist",
 					nil,
 				)
 				if err != nil {

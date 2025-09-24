@@ -363,9 +363,9 @@ func (adrs *AuditDocumentRequestService) Update(auditID uint, id uint, currentUs
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"audit",
+				"audits",
+				"audit_document_request",
 				nil,
 			)
 			if err != nil {
@@ -451,9 +451,9 @@ func (adrs *AuditDocumentRequestService) Submit(auditID uint, id uint, currentUs
 			id,
 			nil,
 			currentUserID,
-			"",
-			"",
-			"",
+			"audit",
+			"audits",
+			"audit_document_request",
 			nil,
 		)
 		if err != nil {
@@ -594,9 +594,9 @@ func (adrs *AuditDocumentRequestService) Delete(ids []uint, currentUserID uint) 
 					id,
 					nil,
 					currentUserID,
-					"",
-					"",
-					"",
+					"audit",
+					"audits",
+					"audit_document_request",
 					nil,
 				)
 				if err != nil {

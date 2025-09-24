@@ -170,9 +170,9 @@ func (adrcs *AuditDraftReportCommentService) Create(auditID uint, auditDraftRepo
 			id,
 			existingAuditDraftReportComment,
 			currentUserID,
-			"",
-			"",
-			"",
+			"audit",
+			"audit_plans",
+			"draft_report_comments",
 			nil,
 		)
 		if err != nil {
@@ -331,9 +331,9 @@ func (adrcs *AuditDraftReportCommentService) Update(auditID uint, auditDraftRepo
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"audit",
+				"audit_plans",
+				"draft_report_comments",
 				nil,
 			)
 			if err != nil {
@@ -471,9 +471,9 @@ func (adrcs *AuditDraftReportCommentService) StatusUpdate(auditID uint, auditDra
 			id,
 			auditDraftReportCommentStatusUpdateFormDTO,
 			currentUserID,
-			"",
-			"",
-			"",
+			"audit",
+			"audit_plans",
+			"draft_report_comments",
 			nil,
 		)
 		if err != nil {
