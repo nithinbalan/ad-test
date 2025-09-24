@@ -49,6 +49,7 @@ type RiskModule struct {
 	KRIAssociatedItemController           *controllers.KRIAssociatedItemController
 	RiskWorkflowController                *controllers.RiskWorkflowController
 	RiskReviewController                  *controllers.RiskReviewController
+	RiskReviewCommentController           *controllers.RiskReviewCommentController
 
 	RiskRegisterSvc         services.RiskRegisterServiceInterface
 	RiskHeatMapSvc          services.RiskHeatmapServiceInterface
@@ -58,6 +59,7 @@ type RiskModule struct {
 	RiskResponseStrategySvc services.RiskResponseStrategyServiceInterface
 	RiskWorkflowSvc         services.RiskWorkflowServiceInterface
 	RiskReviewSvc           services.RiskReviewServiceInterface
+	RiskReviewCommentSvc    services.RiskReviewCommentServiceInterface
 }
 
 func NewRiskModule(db *gorm.DB,
@@ -240,6 +242,10 @@ func NewRiskModule(db *gorm.DB,
 		taskModule.TaskService)
 	riskReviewController := controllers.NewRiskReviewController(riskReviewSvc)
 
+	riskReviewCommentRepo := repositories.NewRiskReviewCommentRepository(db)
+	riskReviewCommentSvc := services.NewRiskReviewCommentService(riskReviewCommentRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, riskRegisterSvc, masterModule.CommentStatusSvc)
+	riskReviewCommentController := controllers.NewRiskReviewCommentController(riskReviewCommentSvc)
+
 	potentialRiskRepo := repositories.NewPotentialRiskRepository(db)
 	potentialRiskSvc := services.NewPotentialRiskService(
 		potentialRiskRepo,
@@ -398,6 +404,7 @@ func NewRiskModule(db *gorm.DB,
 		KRIAssociatedItemController:           kriAssociatedItemController,
 		RiskWorkflowController:                riskWorkflowController,
 		RiskReviewController:                  riskReviewController,
+		RiskReviewCommentController:           riskReviewCommentController,
 
 		RiskRegisterSvc:         riskRegisterSvc,
 		RiskHeatMapSvc:          riskHeatmapSvc,
@@ -407,5 +414,6 @@ func NewRiskModule(db *gorm.DB,
 		RiskResponseStrategySvc: riskResponseStrategySvc,
 		RiskWorkflowSvc:         riskWorkflowSvc,
 		RiskReviewSvc:           riskReviewSvc,
+		RiskReviewCommentSvc:    riskReviewCommentSvc,
 	}
 }
