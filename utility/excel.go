@@ -217,7 +217,7 @@ func createSheetWithDropDown(f *excelize.File, sheetName string, data [][]interf
 					clauseNo, ok1 := row[0].(string)
 					titleEn, ok2 := row[1].(string)
 					if ok1 && ok2 && clauseNo != "" && titleEn != "" {
-						dropList = append(dropList, clauseNo+" "+titleEn)
+						dropList = append(dropList, titleEn)
 					}
 				} else if val, ok := row[0].(string); ok && val != "" {
 					dropList = append(dropList, val)
@@ -444,4 +444,11 @@ func MapRowsToRecords(headers []string, rows [][]string) []map[string]interface{
 	}
 
 	return records
+}
+
+func DerefString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

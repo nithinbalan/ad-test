@@ -1571,11 +1571,11 @@ func (cs *ComplianceRequirementService) GenerateRequirementTemplate(complianceID
 	templateData := [][]interface{}{}
 
 	// Clauses
-	clauses, _ := cs.complianceClauseSvc.GetAll(complianceID)
-	clauseHeaders := []string{"ClauseNo", "TitleEn", "TitleAr"}
+	clauses, _ := cs.complianceClauseSvc.GetAllForImport(complianceID)
+	clauseHeaders := []string{"ClauseNo", "TitleEn"}
 	clauseData := [][]interface{}{}
 	for _, c := range clauses {
-		clauseData = append(clauseData, []interface{}{c.ClauseNo, c.TitleEn, c.TitleAr})
+		clauseData = append(clauseData, []interface{}{c.ClauseNo, c.TitleEn})
 	}
 
 	// Categories
@@ -1747,13 +1747,13 @@ func (cs *ComplianceRequirementService) validateRequirements(complianceID uint, 
 	// --- Fetch lookup data ---
 
 	// Clauses
-	clauses, err := cs.complianceClauseSvc.GetAll(complianceID)
+	clauses, err := cs.complianceClauseSvc.GetAllForImport(complianceID)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching clauses: %v", err)
 	}
 	clauseMap := make(map[string]uint)
 	for _, cl := range clauses {
-		key := strings.TrimSpace(cl.ClauseNo + " " + cl.TitleEn)
+		key := strings.TrimSpace(cl.TitleEn)
 		clauseMap[key] = cl.ID
 	}
 
