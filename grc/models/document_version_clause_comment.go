@@ -6,7 +6,8 @@ import (
 
 type DocumentVersionClauseComment struct {
 	ID                             uint       `json:"id" gorm:"primaryKey;autoIncrement"`
-	DocumentVersionClauseID        uint       `json:"document_version_clause_id" gorm:"not null"`
+	DocumentVersionClauseID        *uint      `json:"document_version_clause_id"`
+	DocumentVersionID              *uint      `json:"document_version_id"`
 	Comment                        string     `json:"comment" binding:"required"`
 	CommentStatusID                uint       `json:"comment_status_id"`
 	Level                          int        `json:"level"`

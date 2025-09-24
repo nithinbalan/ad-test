@@ -10,7 +10,6 @@ import (
 
 type PolicyClauseCommentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(clauseID uint, params *policyDTOs.PolicyClauseCommentListQueryParamsDTO) ([]*policyDTOs.PolicyClauseCommentListDTO, error)
 	GetAllDocumentComments(documentID uint, versionID uint, currentUserID uint, params *policyDTOs.PolicyClauseCommentListQueryParamsDTO) (*policyDTOs.PolicyClauseCommentListResponseDTO, error)
 	GetByID(id uint) (*models.DocumentVersionClauseComment, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersionClauseComment, error)
@@ -33,80 +32,7 @@ func (repo *PolicyClauseCommentRepository) BeginTransaction() utility.DatabaseTr
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *PolicyClauseCommentRepository) GetAll(clauseID uint, params *policyDTOs.PolicyClauseCommentListQueryParamsDTO) ([]*policyDTOs.PolicyClauseCommentListDTO, error) {
-	var comments []*policyDTOs.PolicyClauseCommentListDTO
-	query := repo.db.Table("document_version_clause_comments").
-		Select(`
-	document_version_clause_comments.id,
-	document_version_clause_comments.comment,
-	document_version_clause_comments.document_version_clause_id,
-	document_version_clause_comments.level,
-	document_version_clause_comments.document_version_clause_comment_id,
-	document_version_clause_comments.created_at,
-	document_version_clause_comments.created_by_id,
-	document_version_clauses.clause_number AS document_version_clause_number,
-	comment_statuses.title_en AS comment_status_title_en,
-	comment_statuses.title_ar AS comment_status_title_ar,
-	comment_statuses.type AS comment_status_type,
-	comment_statuses.color_code AS comment_status_color_code,
-	users.first_name_en AS created_user_first_name_en,
-	users.first_name_ar AS created_user_first_name_ar,
-	users.last_name_en AS created_user_last_name_en,
-	users.last_name_ar AS created_user_last_name_ar,
-	users.initial AS created_user_initial,
-	users.color AS created_user_color,
-	users.email AS created_user_email,
-	users.profile_image_path AS created_user_profile_image_path
-`).
-		Joins("LEFT JOIN users ON users.id = document_version_clause_comments.created_by_id").
-		Joins("LEFT JOIN comment_statuses ON comment_statuses.id = document_version_clause_comments.comment_status_id").
-		Joins("LEFT JOIN document_version_clauses ON document_version_clauses.id = document_version_clause_comments.document_version_clause_id").
-		Where("document_version_clause_comments.document_version_clause_id = ?", clauseID)
-
-		// Apply dynamic filters to the query
-	for columnName, values := range params.Filters {
-		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
-		}
-	}
-
-	// Apply search keyword if exists
-	if params.Keyword != "" {
-		query = query.Where(`
-				(document_version_clause_comments.comment LIKE ? OR
-				documents.title_ar LIKE ? OR
-				documents.reference_number LIKE ? OR
-				documents.description_en LIKE ? OR
-				documents.description_ar LIKE ? OR
-				document_categories.title_en LIKE ? OR
-				document_categories.title_ar LIKE ? OR
-				document_statuses.title_en LIKE ? OR
-				document_statuses.title_ar LIKE ? OR
-				document_types.title_en LIKE ? OR
-				document_types.title_ar LIKE ? OR
-				organization_units.title_en LIKE ? OR
-				organization_units.title_ar LIKE ? OR
-				responsible_user.first_name_en LIKE ? OR
-				responsible_user.first_name_ar LIKE ? OR
-				responsible_user.last_name_en LIKE ? OR
-				responsible_user.last_name_ar LIKE ? OR
-				responsible_user.email LIKE ? OR
-				responsible_user.initial LIKE ?)`,
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
-	}
-	if err := query.Find(&comments).Error; err != nil {
-		return nil, err
-	}
-
-	return comments, nil
-}
-
 func (repo *PolicyClauseCommentRepository) GetAllDocumentComments(documentID uint, versionID uint, currentUserID uint, params *policyDTOs.PolicyClauseCommentListQueryParamsDTO) (*policyDTOs.PolicyClauseCommentListResponseDTO, error) {
-
 	var comments []*policyDTOs.PolicyClauseCommentListDTO
 	var statusCounts []policyDTOs.StatusCount
 
@@ -114,7 +40,7 @@ func (repo *PolicyClauseCommentRepository) GetAllDocumentComments(documentID uin
 		Table("document_version_clause_comments").
 		Joins("LEFT JOIN comment_statuses ON comment_statuses.id = document_version_clause_comments.comment_status_id").
 		Joins("LEFT JOIN document_version_clauses ON document_version_clauses.id = document_version_clause_comments.document_version_clause_id").
-		Joins("LEFT JOIN document_versions ON document_versions.id = document_version_clauses.document_version_id").
+		Joins("LEFT JOIN document_versions ON document_versions.id = document_version_clause_comments.document_version_id").
 		Joins("LEFT JOIN users ON users.id = document_version_clause_comments.created_by_id").
 		Where("document_versions.id = ? ", versionID)
 
@@ -150,6 +76,7 @@ func (repo *PolicyClauseCommentRepository) GetAllDocumentComments(documentID uin
         document_version_clause_comments.created_by_id,
         document_version_clauses.clause_number AS document_version_clause_number,
         document_version_clause_comments.document_version_clause_comment_id AS document_version_clause_comment_id,
+		document_version_clause_comments.document_version_id,
         comment_statuses.title_en AS comment_status_title_en,
         comment_statuses.title_ar AS comment_status_title_ar,
         comment_statuses.type AS comment_status_type,
@@ -172,7 +99,7 @@ func (repo *PolicyClauseCommentRepository) GetAllDocumentComments(documentID uin
 		Table("document_version_clause_comments").
 		Joins("LEFT JOIN comment_statuses ON comment_statuses.id = document_version_clause_comments.comment_status_id").
 		Joins("LEFT JOIN document_version_clauses ON document_version_clauses.id = document_version_clause_comments.document_version_clause_id").
-		Joins("LEFT JOIN document_versions ON document_versions.id = document_version_clauses.document_version_id").
+		Joins("LEFT JOIN document_versions ON document_versions.id = document_version_clause_comments.document_version_id").
 		Where("document_versions.id = ?", versionID)
 
 		// Apply same filters

@@ -53,12 +53,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	policyRoutes.POST("/policy-register/:id/comments", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), policyReviewController.AddComment)
 	policyRoutes.GET("/policy-register/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), middlewares.DocumentAccessCheckingMiddleware(db), policyWorkflowController.GetWorkflowList)
 
-	// clause comment
-	policyRoutes.GET("/policy-register/:id/clause-comments", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), PolicyClauseCommentController.GetAllDocumentComments)
-	policyRoutes.GET("/policy-register/:id/clauses/:clauseId/comments", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), middlewares.DocumentAccessCheckingMiddleware(db), PolicyClauseCommentController.GetAllComments)
-	policyRoutes.GET("/policy-register/:id/clauses/:clauseId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), middlewares.DocumentAccessCheckingMiddleware(db), PolicyClauseCommentController.GetCommentDetails)
-	policyRoutes.POST("/policy-register/:id/clauses/:clauseId/comments", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), PolicyClauseCommentController.CreateComment)
-	policyRoutes.PUT("/policy-register/:id/clauses/:clauseId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), PolicyClauseCommentController.UpdateComment)
-	policyRoutes.POST("/policy-register/:id/clauses/:clauseId/comments/delete", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), PolicyClauseCommentController.DeleteComment)
-	policyRoutes.PUT("/policy-register/:id/clauses/:clauseId/comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), PolicyClauseCommentController.ResolveComment)
+	// review comment
+	policyRoutes.GET("/policy-register/:id/all-comments", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), PolicyClauseCommentController.GetAllDocumentComments)
+	policyRoutes.GET("/policy-register/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), middlewares.DocumentAccessCheckingMiddleware(db), PolicyClauseCommentController.GetCommentDetails)
+	policyRoutes.POST("/policy-register/:id/review-comments", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), PolicyClauseCommentController.CreateComment)
+	policyRoutes.PUT("/policy-register/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), PolicyClauseCommentController.UpdateComment)
+	policyRoutes.POST("/policy-register/:id/review-comments/delete", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), PolicyClauseCommentController.DeleteComment)
+	policyRoutes.PUT("/policy-register/:id/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), PolicyClauseCommentController.ResolveComment)
 }
