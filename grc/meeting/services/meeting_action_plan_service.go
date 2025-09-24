@@ -602,12 +602,13 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 }
 
 func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, currentUserID uint) ([]uint, error) {
-	tx := maps.repo.BeginTransaction()
 
 	meeting, err := maps.meetingSvc.GetByID(meetingID)
 	if err != nil {
 		return nil, err
 	}
+	
+	tx := maps.repo.BeginTransaction()
 
 	var failedIds []uint
 	var successfulIds []uint
