@@ -148,7 +148,7 @@ func (pvccs *RiskReviewCommentService) GetFullDetailsByID(riskID uint, commentID
 func (pvccs *RiskReviewCommentService) Create(riskID uint, currentUserID uint, commentFormDTO *riskDTOs.RiskReviewCommentFormDTO) (uint, error) {
 	tx := pvccs.repo.BeginTransaction()
 
-	_, err := pvccs.riskRegisterSvc.GetFullDetailsByID(riskID)
+	riskRegister, err := pvccs.riskRegisterSvc.GetFullDetailsByID(riskID)
 	if err != nil {
 		return 0, err
 	}
@@ -159,10 +159,10 @@ func (pvccs *RiskReviewCommentService) Create(riskID uint, currentUserID uint, c
 	}
 
 	comment := &models.RiskReviewComment{
-		RiskRegisterID:  riskID,
-		Comment:         commentFormDTO.Comment,
-		CommentStatusID: commentStatus.ID,
-		// Level:               *riskRegister.NextReviewLevel,
+		RiskRegisterID:      riskID,
+		Comment:             commentFormDTO.Comment,
+		CommentStatusID:     commentStatus.ID,
+		Level:               *riskRegister.NextReviewLevel,
 		RiskReviewCommentID: commentFormDTO.ParentCommentID,
 		CreatedBYID:         currentUserID,
 	}
