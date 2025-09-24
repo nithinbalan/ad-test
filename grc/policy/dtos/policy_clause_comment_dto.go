@@ -15,6 +15,7 @@ type PolicyClauseCommentListDTO struct {
 	CommentStatusColorCode         string                        `json:"comment_status_color_code"`
 	DocumentVersionClauseID        uint                          `json:"document_version_clause_id"`
 	DocumentVersionClauseNumber    string                        `json:"document_version_clause_number"`
+	DocumentVersionID              uint                          `json:"document_version_id"`
 	Level                          int                           `json:"level"`
 	CreatedAt                      string                        `json:"created_at"`
 	CreatedBYID                    uint                          `json:"created_by_id"`
@@ -42,6 +43,7 @@ type StatusCount struct {
 }
 
 type PolicyClauseCommentFormDTO struct {
+	ClauseID        *uint  `json:"clause_id"`
 	Comment         string `json:"comment" binding:"required,max=1000"`
 	ParentCommentID *uint  `json:"parent_comment_id"`
 }

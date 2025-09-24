@@ -18,14 +18,13 @@ import (
 )
 
 type PolicyClauseCommentServiceInterface interface {
-	GetAll(documentID uint, clauseID uint, params *policyDTOs.PolicyClauseCommentListQueryParamsDTO) ([]*policyDTOs.PolicyClauseCommentListDTO, error)
 	GetAllDocumentComments(documentID uint, currentUserID uint, params *policyDTOs.PolicyClauseCommentListQueryParamsDTO) (*policyDTOs.PolicyClauseCommentListResponseDTO, error)
-	GetByID(documentID uint, clauseID uint, id uint) (*models.DocumentVersionClauseComment, error)
-	GetFullDetailsByID(documentID uint, clauseID uint, id uint, tx ...utility.DatabaseTransaction) (*policyDTOs.PolicyClauseCommentDetailDTO, error)
-	Create(documentID uint, clauseID uint, currentUserID uint, dto *policyDTOs.PolicyClauseCommentFormDTO) (uint, error)
-	Update(documentID uint, clauseID uint, id uint, currentUserID uint, dto *policyDTOs.PolicyClauseCommentFormDTO) error
-	Delete(documentID uint, clauseID uint, ids []uint, currentUserID uint) ([]uint, error)
-	Resolve(documentID uint, clauseID uint, commentId uint, currentUserID uint) error
+	GetByID(documentID uint, id uint) (*models.DocumentVersionClauseComment, error)
+	GetFullDetailsByID(documentID uint, id uint, tx ...utility.DatabaseTransaction) (*policyDTOs.PolicyClauseCommentDetailDTO, error)
+	Create(documentID uint, currentUserID uint, dto *policyDTOs.PolicyClauseCommentFormDTO) (uint, error)
+	Update(documentID uint, id uint, currentUserID uint, dto *policyDTOs.PolicyClauseCommentFormDTO) error
+	Delete(documentID uint, ids []uint, currentUserID uint) ([]uint, error)
+	Resolve(documentID uint, commentId uint, currentUserID uint) error
 }
 
 type PolicyClauseCommentService struct {
@@ -50,65 +49,6 @@ func NewPolicyClauseCommentService(repo repositories.PolicyClauseCommentReposito
 	}
 }
 
-func (pvccs *PolicyClauseCommentService) GetAll(documentID uint, clauseID uint, params *policyDTOs.PolicyClauseCommentListQueryParamsDTO) ([]*policyDTOs.PolicyClauseCommentListDTO, error) {
-	if _, err := pvccs.policyRegisterSvc.GetByID(documentID); err != nil {
-		return nil, err
-	}
-
-	comments, err := pvccs.repo.GetAll(clauseID, params)
-	if err != nil {
-		return nil, err
-	}
-
-	// Map ID -> DTO
-	dtoMap := make(map[uint]*policyDTOs.PolicyClauseCommentListDTO)
-	var roots []*policyDTOs.PolicyClauseCommentListDTO
-
-	for _, comment := range comments {
-		// Since repo.GetAll already returns CommentListDTO with aliased fields,
-		// we can just copy it directly
-		dto := &policyDTOs.PolicyClauseCommentListDTO{
-			ID:                             comment.ID,
-			Comment:                        comment.Comment,
-			CommentStatusTitleEn:           comment.CommentStatusTitleEn,
-			CommentStatusTitleAr:           comment.CommentStatusTitleAr,
-			CommentStatusType:              comment.CommentStatusType,
-			CommentStatusColorCode:         comment.CommentStatusColorCode,
-			DocumentVersionClauseID:        comment.DocumentVersionClauseID,
-			DocumentVersionClauseNumber:    comment.DocumentVersionClauseNumber,
-			Level:                          comment.Level,
-			CreatedBYID:                    comment.CreatedBYID,
-			CreatedUserFirstNameEn:         comment.CreatedUserFirstNameEn,
-			CreatedUserFirstNameAr:         comment.CreatedUserFirstNameAr,
-			CreatedUserLastNameEn:          comment.CreatedUserLastNameEn,
-			CreatedUserLastNameAr:          comment.CreatedUserLastNameAr,
-			CreatedUserInitial:             comment.CreatedUserInitial,
-			CreatedUserColor:               comment.CreatedUserColor,
-			CreatedUserEmail:               comment.CreatedUserEmail,
-			CreatedUserProfileImagePath:    comment.CreatedUserProfileImagePath,
-			CreatedAt:                      comment.CreatedAt,
-			DocumentVersionClauseCommentID: comment.DocumentVersionClauseCommentID, // important for tree building
-		}
-
-		dtoMap[comment.ID] = dto
-	}
-
-	// Build parent-child hierarchy
-	for _, comment := range comments {
-		dto := dtoMap[comment.ID]
-		if comment.DocumentVersionClauseCommentID != nil {
-			// has parent → attach to parent
-			if parent, ok := dtoMap[*comment.DocumentVersionClauseCommentID]; ok {
-				parent.Children = append(parent.Children, dto)
-			}
-		} else {
-			// no parent → root
-			roots = append(roots, dto)
-		}
-	}
-	return roots, nil
-}
-
 func (pvccs *PolicyClauseCommentService) GetAllDocumentComments(documentID uint, currentUserID uint, params *policyDTOs.PolicyClauseCommentListQueryParamsDTO) (*policyDTOs.PolicyClauseCommentListResponseDTO, error) {
 	policyRegister, err := pvccs.policyRegisterSvc.GetFullDetailsByID(documentID, &currentUserID)
 	if err != nil {
@@ -129,6 +69,7 @@ func (pvccs *PolicyClauseCommentService) GetAllDocumentComments(documentID uint,
 			CommentStatusColorCode:         comment.CommentStatusColorCode,
 			DocumentVersionClauseID:        comment.DocumentVersionClauseID,
 			DocumentVersionClauseNumber:    comment.DocumentVersionClauseNumber,
+			DocumentVersionID:              comment.DocumentVersionID,
 			Level:                          comment.Level,
 			CreatedBYID:                    comment.CreatedBYID,
 			CreatedUserFirstNameEn:         comment.CreatedUserFirstNameEn,
@@ -165,7 +106,7 @@ func (pvccs *PolicyClauseCommentService) GetAllDocumentComments(documentID uint,
 	return response, nil
 }
 
-func (pvccs *PolicyClauseCommentService) GetByID(documentID uint, clauseID uint, id uint) (*models.DocumentVersionClauseComment, error) {
+func (pvccs *PolicyClauseCommentService) GetByID(documentID uint, id uint) (*models.DocumentVersionClauseComment, error) {
 	if _, err := pvccs.policyRegisterSvc.GetByID(documentID); err != nil {
 		return nil, err
 	}
@@ -180,9 +121,9 @@ func (pvccs *PolicyClauseCommentService) GetByID(documentID uint, clauseID uint,
 	return comment, nil
 }
 
-func (pvccs *PolicyClauseCommentService) GetFullDetailsByID(documentID uint, clauseID uint, id uint, tx ...utility.DatabaseTransaction) (*policyDTOs.PolicyClauseCommentDetailDTO, error) {
+func (pvccs *PolicyClauseCommentService) GetFullDetailsByID(documentID uint, id uint, tx ...utility.DatabaseTransaction) (*policyDTOs.PolicyClauseCommentDetailDTO, error) {
 	if _, err := pvccs.policyRegisterSvc.GetByID(documentID); err != nil {
-		fmt.Printf("PolicyClause not found for documentID %d, versionID %d\n", documentID, clauseID)
+		fmt.Printf("Policy not found for documentID %d", documentID)
 		return nil, err
 	}
 
@@ -206,7 +147,7 @@ func (pvccs *PolicyClauseCommentService) GetFullDetailsByID(documentID uint, cla
 	return &commentDetail, nil
 }
 
-func (pvccs *PolicyClauseCommentService) Create(documentID uint, clauseID uint, currentUserID uint, commentFormDTO *policyDTOs.PolicyClauseCommentFormDTO) (uint, error) {
+func (pvccs *PolicyClauseCommentService) Create(documentID uint, currentUserID uint, commentFormDTO *policyDTOs.PolicyClauseCommentFormDTO) (uint, error) {
 	tx := pvccs.repo.BeginTransaction()
 
 	policyRegister, err := pvccs.policyRegisterSvc.GetFullDetailsByID(documentID, &currentUserID)
@@ -220,7 +161,8 @@ func (pvccs *PolicyClauseCommentService) Create(documentID uint, clauseID uint, 
 	}
 
 	comment := &models.DocumentVersionClauseComment{
-		DocumentVersionClauseID:        clauseID,
+		DocumentVersionClauseID:        commentFormDTO.ClauseID,
+		DocumentVersionID:              &policyRegister.LatestDocumentVersion.ID,
 		Comment:                        commentFormDTO.Comment,
 		CommentStatusID:                commentStatus.ID,
 		Level:                          *policyRegister.LatestDocumentVersion.NextReviewLevel,
@@ -236,7 +178,7 @@ func (pvccs *PolicyClauseCommentService) Create(documentID uint, clauseID uint, 
 
 	tx.Commit()
 	go func() {
-		existingComment, err := pvccs.GetFullDetailsByID(documentID, clauseID, id)
+		existingComment, err := pvccs.GetFullDetailsByID(documentID, id)
 		if err != nil {
 			utility.LogError("Failed to fetch comment", map[string]interface{}{
 				"error": err.Error(),
@@ -268,19 +210,19 @@ func (pvccs *PolicyClauseCommentService) Create(documentID uint, clauseID uint, 
 	return id, nil
 }
 
-func (pvccs *PolicyClauseCommentService) Update(documentID uint, clauseID uint, id uint, currentUserID uint, commentFormDTO *policyDTOs.PolicyClauseCommentFormDTO) error {
+func (pvccs *PolicyClauseCommentService) Update(documentID uint, id uint, currentUserID uint, commentFormDTO *policyDTOs.PolicyClauseCommentFormDTO) error {
 	tx := pvccs.repo.BeginTransaction()
 
 	if _, err := pvccs.policyRegisterSvc.GetByID(documentID); err != nil {
 		return err
 	}
 
-	existingComment, err := pvccs.GetByID(documentID, clauseID, id)
+	existingComment, err := pvccs.GetByID(documentID, id)
 	if err != nil {
 		return err
 	}
 
-	oldComment, err := pvccs.GetFullDetailsByID(documentID, clauseID, id)
+	oldComment, err := pvccs.GetFullDetailsByID(documentID, id)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -295,7 +237,7 @@ func (pvccs *PolicyClauseCommentService) Update(documentID uint, clauseID uint, 
 
 	tx.Commit()
 	go func() {
-		existingComment, err := pvccs.GetFullDetailsByID(documentID, clauseID, id)
+		existingComment, err := pvccs.GetFullDetailsByID(documentID, id)
 		if err != nil {
 			return
 		}
@@ -340,7 +282,7 @@ func (pvccs *PolicyClauseCommentService) Update(documentID uint, clauseID uint, 
 	return nil
 }
 
-func (pvccs *PolicyClauseCommentService) Delete(documentID uint, clauseID uint, ids []uint, currentUserID uint) ([]uint, error) {
+func (pvccs *PolicyClauseCommentService) Delete(documentID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := pvccs.repo.BeginTransaction()
 	if _, err := pvccs.policyRegisterSvc.GetByID(documentID); err != nil {
 		return nil, err
@@ -356,8 +298,8 @@ func (pvccs *PolicyClauseCommentService) Delete(documentID uint, clauseID uint, 
 		}
 
 		deletedComments = append(deletedComments, map[string]interface{}{
-			"id":     id,
-			"clause": clauseID,
+			"id":       id,
+			"document": documentID,
 		})
 
 		err := pvccs.repo.Delete(id, tx)
@@ -390,7 +332,7 @@ func (pvccs *PolicyClauseCommentService) Delete(documentID uint, clauseID uint, 
 	return failedIDs, nil
 }
 
-func (pvccs *PolicyClauseCommentService) Resolve(documentID uint, clauseID uint, commentId uint, currentUserID uint) error {
+func (pvccs *PolicyClauseCommentService) Resolve(documentID uint, commentId uint, currentUserID uint) error {
 
 	tx := pvccs.repo.BeginTransaction()
 
@@ -398,7 +340,7 @@ func (pvccs *PolicyClauseCommentService) Resolve(documentID uint, clauseID uint,
 		return err
 	}
 
-	existingComment, err := pvccs.GetByID(documentID, clauseID, commentId)
+	existingComment, err := pvccs.GetByID(documentID, commentId)
 	if err != nil {
 		return err
 	}
