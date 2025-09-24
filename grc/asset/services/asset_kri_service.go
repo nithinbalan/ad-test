@@ -216,9 +216,9 @@ func (aks *AssetKriService) Update(assetID uint, currentUserID uint, form *asset
 				assetID,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"asset",
+				"asset_register",
+				"asset_kri",
 				nil,
 			)
 		}

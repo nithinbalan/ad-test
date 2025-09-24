@@ -302,9 +302,9 @@ func (acas *AssetControlAnalysisService) Update(assetID uint, id uint, currentUs
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"asset",
+				"asset_register",
+				"asset_control_analysis",
 				nil,
 			)
 			if err != nil {

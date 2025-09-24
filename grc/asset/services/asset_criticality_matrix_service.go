@@ -129,9 +129,9 @@ func (acms *AssetCriticalityMatrixService) Create(matrixFormDTO *dtos.AssetCriti
 			matrixID,
 			existingCriticalityMatrix,
 			currentUserID,
-			"",
-			"",
-			"",
+			"asset",
+			"asset_criticality_matrix",
+			"asset_criticality_matrix_create",
 			nil,
 		)
 		if err != nil {
@@ -294,9 +294,9 @@ func (acms *AssetCriticalityMatrixService) Update(id uint, matrixFormDTO *dtos.A
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"asset",
+				"asset_criticality_matrix",
+				"asset_criticality_matrix_update",
 				nil,
 			)
 			if err != nil {

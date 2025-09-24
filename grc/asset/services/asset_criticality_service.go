@@ -248,9 +248,9 @@ func (acs *AssetCriticalityService) Update(assetID uint, id uint, dto assetDTOs.
 				id,
 				changedData,
 				userID,
-				"",
-				"",
-				"",
+				"asset",
+				"asset_criticality_matrix",
+				"asset_criticality_contribution",
 				nil,
 			)
 			if err != nil {

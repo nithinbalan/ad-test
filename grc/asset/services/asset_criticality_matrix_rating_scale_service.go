@@ -74,9 +74,9 @@ func (acmrss *AssetCriticalityMatrixRatingScaleService) Create(matrixID uint, cu
 			createdScale.ID,
 			createdScale,
 			currentUserID,
-			"",
-			"",
-			"",
+			"asset",
+			"asset_criticality_matrix",
+			"asset_criticality_matrix_rating_scale",
 			nil,
 		)
 		if err != nil {
@@ -126,9 +126,9 @@ func (acmrss *AssetCriticalityMatrixRatingScaleService) Update(matrixID uint, id
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			"",
-			"",
-			"",
+			"asset",
+			"asset_criticality_matrix",
+			"asset_criticality_matrix_rating_scale",
 			nil,
 		)
 		if err != nil {

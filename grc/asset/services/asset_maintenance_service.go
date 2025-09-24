@@ -127,9 +127,9 @@ func (ams *AssetMaintenanceService) Create(maintenanceForm *dtos.AssetMaintenanc
 			id,
 			existingMaintenance,
 			currentUserID,
-			"",
-			"",
-			"",
+			"asset",
+			"asset_register",
+			"asset_maintenance",
 			nil,
 		)
 		if err != nil {
@@ -224,9 +224,9 @@ func (ams *AssetMaintenanceService) Update(id uint, maintenanceForm *dtos.AssetM
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"asset",
+				"asset_register",
+				"asset_maintenance",
 				nil,
 			)
 			if err != nil {

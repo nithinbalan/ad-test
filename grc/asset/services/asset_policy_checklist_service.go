@@ -102,8 +102,8 @@ func (apcs *AssetPolicyChecklistService) Create(formDTO *dtos.AssetPolicyCheckli
 			id,
 			checklist,
 			currentUserID,
-			"",
-			"",
+			"asset",
+			"asset_register",
 			"",
 			nil,
 		)

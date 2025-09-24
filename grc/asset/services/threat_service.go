@@ -229,9 +229,9 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 			id,
 			existingThreat,
 			currentUserID,
-			"",
-			"",
-			"",
+			"asset",
+			"threat",
+			"threat_service",
 			nil,
 		)
 		if err != nil {
@@ -482,9 +482,9 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"asset",
+				"threat",
+				"threat_service",
 				nil,
 			)
 			if err != nil {

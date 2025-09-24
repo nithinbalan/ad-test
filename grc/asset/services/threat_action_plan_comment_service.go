@@ -196,9 +196,9 @@ func (tapc *ThreatActionPlanCommentService) Create(threatID uint, actionPlanID u
 			id,
 			existingComment,
 			currentUserID,
-			"",
-			"",
-			"",
+			"asset",
+			"threat",
+			"threat_action_plan_comment",
 			nil,
 		)
 		if err != nil {
@@ -623,9 +623,9 @@ func (tapc *ThreatActionPlanCommentService) Update(threatID uint, actionPlanID u
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"asset",
+				"threat",
+				"threat_action_plan_comment",
 				nil,
 			)
 			if err != nil {

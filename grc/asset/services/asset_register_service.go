@@ -251,8 +251,8 @@ func (ars *AssetRegisterService) Create(assetRegisterFormDTO *dtos.AssetRegister
 			assetID,
 			existingAsset,
 			currentUserID,
-			"",
-			"",
+			"asset",
+			"asset_register",
 			"",
 			nil,
 		)
@@ -459,8 +459,8 @@ func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.Asse
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
+				"asset",
+				"asset_register",
 				"",
 				nil,
 			)
