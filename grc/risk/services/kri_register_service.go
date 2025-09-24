@@ -206,7 +206,7 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 			id,
 			existingKriRegister,
 			currentUserID,
-			"", "", "", nil,
+			"risk", "kri", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -394,7 +394,7 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"risk", "kri", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{

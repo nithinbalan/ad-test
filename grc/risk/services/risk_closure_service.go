@@ -179,8 +179,8 @@ func (rcs *RiskClosureService) Create(riskID uint, currentUserID uint, closureFo
 		}
 	}
 
-	//update timeline performedAt as null
-	//todo
+	// update timeline performedAt as null
+	// todo
 	timelineType, err := rcs.riskTimelineSvc.GetByType("closure")
 	if err != nil {
 		tx.Rollback()
@@ -212,7 +212,7 @@ func (rcs *RiskClosureService) Create(riskID uint, currentUserID uint, closureFo
 			id,
 			closure,
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_register", "risk_closure", nil,
 		)
 	}()
 
@@ -336,7 +336,7 @@ func (rcs *RiskClosureService) Update(riskID uint, id uint, currentUserID uint, 
 			id,
 			existingClosure,
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_register", "risk_closure", nil,
 		)
 	}()
 
@@ -419,7 +419,7 @@ func (rcs *RiskClosureService) Delete(riskID uint, id uint, currentUserID uint) 
 			id,
 			nil,
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_register", "risk_closure", nil,
 		)
 	}()
 

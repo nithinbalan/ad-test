@@ -3,12 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -100,7 +101,6 @@ func (ries *RiskResidualEvaluationService) GetByID(riskID uint, id uint) (*model
 	}
 
 	riskResidualEvaluation, err := ries.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -245,8 +245,8 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 			return 0, err
 		}
 	}
-	//Update timeline
-	//todo
+	// Update timeline
+	// todo
 	timelineType, err := ries.riskTimelineSvc.GetByType("residual_risk_analysis")
 	if err != nil {
 		transaction.Rollback()
@@ -287,9 +287,8 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 			id,
 			existingRiskResidualEvaluation,
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_register", "residual_evaluation", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -470,7 +469,7 @@ func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentU
 			return
 		}
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"risk_matrix_impact":            oldRiskEvaluation.RiskMatrixImpact.TitleEn,
 			"risk_matrix_likelihood":        oldRiskEvaluation.RiskMatrixLikelihood.TitleEn,
@@ -512,9 +511,8 @@ func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentU
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"risk", "risk_register", "residual_evaluation", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -551,8 +549,8 @@ func (ries *RiskResidualEvaluationService) Delete(riskID uint, id uint, currentU
 		failedId = id
 		return failedId, err
 	}
-	//Delete-> update timeline performedAt as null
-	//todo
+	// Delete-> update timeline performedAt as null
+	// todo
 	timelineType, err := ries.riskTimelineSvc.GetByType("residual_risk_analysis")
 	if err != nil {
 		tx.Rollback()
@@ -621,7 +619,7 @@ func (ries *RiskResidualEvaluationService) Delete(riskID uint, id uint, currentU
 			id,
 			deletedResidualEvaluation,
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_register", "residual_evaluation", nil,
 		)
 		if err != nil {
 			// Handle error if logging fails

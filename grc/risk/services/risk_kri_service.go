@@ -3,12 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -64,7 +65,6 @@ func (rks RiskKriService) GetByID(riskID uint, id uint) (*models.RiskKri, error)
 	}
 
 	riskKri, err := rks.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -82,7 +82,6 @@ func (rks RiskKriService) GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.Ri
 	}
 
 	riskKri, err := rks.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -121,13 +120,12 @@ func (rks *RiskKriService) Create(riskID uint, currentUserID uint, riskKriFormDT
 	}
 
 	ids, err := rks.repo.Create(kris, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
-	//update timeline
-	//todo
+	// update timeline
+	// todo
 	kriCount, err := rks.repo.GetCountByRiskID(riskID, tx)
 	if err != nil {
 		tx.Rollback()
@@ -166,7 +164,6 @@ func (rks *RiskKriService) Create(riskID uint, currentUserID uint, riskKriFormDT
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -234,8 +231,8 @@ func (rks *RiskKriService) Update(riskID uint, currentUserID uint, riskKriFormDT
 			return err
 		}
 	}
-	//update timeline
-	//todo
+	// update timeline
+	// todo
 	kriCount, err := rks.repo.GetCountByRiskID(riskID, tx)
 	if err != nil {
 		tx.Rollback()
@@ -262,7 +259,7 @@ func (rks *RiskKriService) Update(riskID uint, currentUserID uint, riskKriFormDT
 			tx.Rollback()
 			return err
 		}
-	} else{
+	} else {
 		timelineStatus, err := rks.riskTimelineSvc.GetByStatusType("pending")
 		if err != nil {
 			tx.Rollback()
@@ -315,7 +312,7 @@ func (rks *RiskKriService) Update(riskID uint, currentUserID uint, riskKriFormDT
 				riskID,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"risk", "risk_register", "kri", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -344,11 +341,9 @@ func (rks *RiskKriService) Delete(riskID uint, ids []uint, currentUserID uint) (
 	for _, id := range ids {
 
 		_, err := rks.repo.GetByID(id)
-
 		if err != nil {
 			continue
 		}
-
 
 		err = rks.repo.Delete(&id, tx)
 		if err != nil {
@@ -363,8 +358,8 @@ func (rks *RiskKriService) Delete(riskID uint, ids []uint, currentUserID uint) (
 			"risk_register_id": riskID,
 		})
 	}
-	//Delete-> update timeline performedAt as null
-	//todo
+	// Delete-> update timeline performedAt as null
+	// todo
 	kriCount, err := rks.repo.GetCountByRiskID(riskID, tx)
 	if err != nil {
 		tx.Rollback()
@@ -394,7 +389,6 @@ func (rks *RiskKriService) Delete(riskID uint, ids []uint, currentUserID uint) (
 	tx.Commit()
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := rks.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,

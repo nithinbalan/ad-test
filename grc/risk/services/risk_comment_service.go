@@ -129,7 +129,7 @@ func (rcs *RiskCommentService) Create(riskID uint, currentUserID uint, riskComme
 			id,
 			existingComment,
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_mitigation", "risk_comment", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -182,7 +182,7 @@ func (rcs *RiskCommentService) Update(riskID uint, id uint, currentUserID uint, 
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"risk", "risk_mitigation", "risk_comment", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -290,7 +290,7 @@ func (rcs *RiskCommentService) SubmitRisk(riskID uint, currentUserID uint) error
 				"user":   currentUserID,
 			},
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_mitigation", "risk_comment", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -475,7 +475,7 @@ func (rcs *RiskCommentService) RevertRisk(riskID uint, currentUserID uint, comme
 				"user":    currentUserID,
 			},
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_mitigation", "risk_comment", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -621,7 +621,7 @@ func (rcs *RiskCommentService) RejectRisk(riskID uint, currentUserID uint, comme
 				"user":    currentUserID,
 			},
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_mitigation", "risk_comment", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -773,7 +773,7 @@ func (rcs *RiskCommentService) ApproveRisk(riskID uint, currentUserID uint, comm
 				"user":    currentUserID,
 			},
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_mitigation", "risk_comment", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -915,7 +915,7 @@ func (rcs *RiskCommentService) ResubmitRisk(riskID uint, currentUserID uint, com
 				"user":    currentUserID,
 			},
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_mitigation", "risk_comment", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{

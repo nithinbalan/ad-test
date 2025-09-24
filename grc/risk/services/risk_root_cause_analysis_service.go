@@ -3,12 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -58,7 +59,6 @@ func (rrcas *RiskRootCauseAnalysisService) GetByID(riskID uint, id uint) (*model
 	}
 
 	riskRootCauseAnalysis, err := rrcas.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -95,8 +95,8 @@ func (rrcas *RiskRootCauseAnalysisService) Create(riskID uint, currentUserID uin
 		tx.Rollback()
 		return 0, err
 	}
-	//Update timeline
-	//todo
+	// Update timeline
+	// todo
 	rcaCount, err := rrcas.repo.GetCountByRiskID(riskID, tx)
 	if err != nil {
 		tx.Rollback()
@@ -140,9 +140,8 @@ func (rrcas *RiskRootCauseAnalysisService) Create(riskID uint, currentUserID uin
 			id,
 			existingRiskRootCauseAnalysis,
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_register", "rca", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -219,7 +218,6 @@ func (rrcas *RiskRootCauseAnalysisService) CreateMultiple(riskID uint, currentUs
 }
 
 func (rrcas *RiskRootCauseAnalysisService) Update(riskID uint, id uint, currentUserID uint, rootCauseAnalysisFormDTO *riskDTOs.RiskRootCauseAnalysisFormDTO) error {
-
 	if _, err := rrcas.riskRegisterSvc.GetByID(riskID); err != nil {
 		return err
 	}
@@ -229,7 +227,6 @@ func (rrcas *RiskRootCauseAnalysisService) Update(riskID uint, id uint, currentU
 	}
 
 	existingRiskRootCauseAnalysis, err := rrcas.GetByID(riskID, id)
-
 	if err != nil {
 		return err
 	}
@@ -240,7 +237,6 @@ func (rrcas *RiskRootCauseAnalysisService) Update(riskID uint, id uint, currentU
 	existingRiskRootCauseAnalysis.UpdatedByID = &currentUserID
 
 	err = rrcas.repo.Update(existingRiskRootCauseAnalysis)
-
 	if err != nil {
 		return err
 	}
@@ -251,7 +247,7 @@ func (rrcas *RiskRootCauseAnalysisService) Update(riskID uint, id uint, currentU
 			return
 		}
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"question": oldRootCauseAnalysis.Question,
 			"answer":   oldRootCauseAnalysis.Answer,
@@ -274,9 +270,8 @@ func (rrcas *RiskRootCauseAnalysisService) Update(riskID uint, id uint, currentU
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"risk", "risk_register", "rca", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -309,8 +304,8 @@ func (rrcas *RiskRootCauseAnalysisService) Delete(riskID uint, id uint, currentU
 	if err != nil {
 		return 0, err
 	}
-	//Delete-> update timeline performedAt as null
-	//todo
+	// Delete-> update timeline performedAt as null
+	// todo
 	rcaCount, err := rrcas.repo.GetCountByRiskID(riskID, tx)
 	if err != nil {
 		tx.Rollback()
@@ -368,7 +363,7 @@ func (rrcas *RiskRootCauseAnalysisService) Delete(riskID uint, id uint, currentU
 			id,
 			deletedRooCauseAnalysis,
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_register", "rca", nil,
 		)
 		if err != nil {
 			// Handle error if logging fails

@@ -191,7 +191,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 			id,
 			existingKriValueUpdate,
 			currentUserID,
-			"", "", "", nil,
+			"risk", "kri", "reviews", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -475,7 +475,7 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 				updateId,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"risk", "kri", "reviews", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

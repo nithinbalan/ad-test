@@ -4,6 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
 	"jethur/config"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
@@ -11,12 +18,6 @@ import (
 	"jethur/grc/risk/repositories"
 	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
-	"log"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -417,7 +418,7 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 			riskReportID,
 			riskReport,
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_report", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -477,7 +478,7 @@ func (rrs *RiskReportService) UpdateSection(riskReportID uint, sectionID uint, c
 				sectionID,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"risk", "risk_report", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -517,7 +518,7 @@ func (rrs *RiskReportService) DeleteRiskReportSection(riskReportID uint, section
 			sectionID,
 			section,
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_report", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -572,7 +573,7 @@ func (rrs *RiskReportService) DeleteRiskReport(riskReportID uint, currentUserID 
 			riskReportID,
 			existingReport,
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_report", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -720,7 +721,7 @@ func (rrs *RiskReportService) UploadRiskReportDocuments(riskReportID uint, curre
 			riskReportID,
 			documents,
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_report", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -761,7 +762,7 @@ func (rrs *RiskReportService) DeleteRiskReportDocument(riskReportID uint, docume
 			documentID,
 			nil,
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_report", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -917,10 +918,11 @@ func (rrs *RiskReportService) GetRiskReportExportZip(riskReportID uint, currentU
 	}()
 	return zipFilePath, nil
 }
+
 func copyFile(src, dst string) error {
 	input, err := os.ReadFile(src)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(dst, input, 0644)
+	return os.WriteFile(dst, input, 0o644)
 }

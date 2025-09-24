@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
@@ -10,7 +12,6 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -67,7 +68,6 @@ func (rcas *RiskResidualControlAnalysisService) GetByID(riskID uint, id uint) (*
 	}
 
 	riskControlAnalysis, err := rcas.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -76,6 +76,7 @@ func (rcas *RiskResidualControlAnalysisService) GetByID(riskID uint, id uint) (*
 	}
 	return riskControlAnalysis, nil
 }
+
 func (rcas RiskResidualControlAnalysisService) GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.RiskControlAnalysisDetailDTO, error) {
 	var riskResidualControlAnalysisDTO riskDTOs.RiskControlAnalysisDetailDTO
 
@@ -84,7 +85,6 @@ func (rcas RiskResidualControlAnalysisService) GetFullDetailsByID(riskID uint, i
 	}
 
 	riskResidualControlAnalysis, err := rcas.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -136,8 +136,8 @@ func (rcas *RiskResidualControlAnalysisService) Create(riskID uint, currentUserI
 		controlAnalysis = append(controlAnalysis, riskControlAnalysis)
 		ids = append(ids, riskControlAnalysis.ID)
 	}
-	//Update timeline
-	//todo
+	// Update timeline
+	// todo
 	timelineType, err := rcas.riskTimelineSvc.GetByType("residual_control_analysis")
 	if err != nil {
 		tx.Rollback()
@@ -161,7 +161,6 @@ func (rcas *RiskResidualControlAnalysisService) Create(riskID uint, currentUserI
 	tx.Commit()
 
 	go func() {
-
 		err = rcas.activityLogSvc.LogBulkActivities(
 			models.CreateAction,
 			models.RiskControlAnalysis{}.TableName(),
@@ -170,7 +169,6 @@ func (rcas *RiskResidualControlAnalysisService) Create(riskID uint, currentUserI
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -182,7 +180,6 @@ func (rcas *RiskResidualControlAnalysisService) Create(riskID uint, currentUserI
 
 			utility.LogError("Failed to log activity", fields)
 		}
-
 	}()
 
 	return nil
@@ -214,7 +211,7 @@ func (rcas *RiskResidualControlAnalysisService) Update(riskID uint, id uint, cur
 	existingRiskControlAnalysis.ControlImplementationStatusID = controlTestFormDTO.ControlImplementationStatusID
 	existingRiskControlAnalysis.ControlTestID = testId
 	existingRiskControlAnalysis.Score = controlTestFormDTO.Score
-	existingRiskControlAnalysis.CreatedByID = currentUserID //todo (tested_by or currentUserID)
+	existingRiskControlAnalysis.CreatedByID = currentUserID // todo (tested_by or currentUserID)
 	existingRiskControlAnalysis.CreatedAt = time.Now()
 
 	err = rcas.repo.Update(existingRiskControlAnalysis, tx)
@@ -232,7 +229,7 @@ func (rcas *RiskResidualControlAnalysisService) Update(riskID uint, id uint, cur
 
 	go func() {
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"control_efficiency_status":     oldControlAnalysis.ControlEfficiencyStatus.TitleEn,
 			"control_implementation_status": oldControlAnalysis.ControlImplementationStatus.TitleEn,
@@ -260,7 +257,7 @@ func (rcas *RiskResidualControlAnalysisService) Update(riskID uint, id uint, cur
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"risk", "risk_register", "control_analysis", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -307,8 +304,8 @@ func (rcas *RiskResidualControlAnalysisService) Delete(riskID uint, ids []uint, 
 		})
 	}
 
-	//Delete-> update timeline performedAt as null
-	//todo
+	// Delete-> update timeline performedAt as null
+	// todo
 	timelineType, err := rcas.riskTimelineSvc.GetByType("residual_control_analysis")
 	if err != nil {
 		tx.Rollback()
@@ -350,6 +347,7 @@ func (rcas *RiskResidualControlAnalysisService) Delete(riskID uint, ids []uint, 
 
 	return failedIds, nil
 }
+
 func (rcas *RiskResidualControlAnalysisService) GetControlSummary(riskID uint) (map[string]interface{}, error) {
 	riskControlAnalyses, err := rcas.repo.GetControlSummary(riskID)
 	if err != nil {

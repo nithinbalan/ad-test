@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -45,7 +46,6 @@ func (prsus *PotentialRiskStatusUpdateService) GetAll(potentialRiskID uint, sort
 }
 
 func (prsus *PotentialRiskStatusUpdateService) Create(potentialRiskID uint, currentUserID uint, potentialRiskStatusUpdateFormDTO *riskDTOs.PotentialRiskStatusUpdateFormDTO) (uint, error) {
-
 	if _, err := prsus.potentialRiskSvc.GetByID(potentialRiskID); err != nil {
 		return 0, err
 	}
@@ -78,9 +78,8 @@ func (prsus *PotentialRiskStatusUpdateService) Create(potentialRiskID uint, curr
 			id,
 			potentialRiskUpdate,
 			currentUserID,
-			"", "", "", nil,
+			"risk", "potential_risk", "status_update", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -98,7 +97,6 @@ func (prsus *PotentialRiskStatusUpdateService) Create(potentialRiskID uint, curr
 }
 
 func (prsus *PotentialRiskStatusUpdateService) validatePotentialRiskUpdateFormDTO(potentialRiskStatusUpdateFormDTO *riskDTOs.PotentialRiskStatusUpdateFormDTO) error {
-
 	if _, err := prsus.potentialRiskStatusSvc.GetByID(potentialRiskStatusUpdateFormDTO.PotentialRiskStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("potential risk status does not exist"), "not_exist", "potential risk status")
 	}

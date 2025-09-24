@@ -298,7 +298,7 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 			id,
 			existingRiskActionPlan,
 			currentUserID,
-			"", "", "", nil,
+			"risk", "risk_register", "action_plan", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -511,7 +511,6 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	}
 
 	for _, control := range RiskActionPlanFormDTO.Controls {
-
 		if control.ID == nil {
 			// Create Control
 			controlDTO := &organizationDTOs.ControlFormDTO{
@@ -605,7 +604,7 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"risk", "risk_register", "action_plan", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
