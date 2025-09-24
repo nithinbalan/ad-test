@@ -91,3 +91,29 @@ type ERMControlsOverviewDTO struct {
 	HighRisksWithInefficientControls int64   `json:"high_risks_with_inefficient_controls"`
 	HighRisksWithInefficientPercent  float64 `json:"high_risks_with_inefficient_percent"`
 }
+
+type ERMRiskAppetiteOverviewItemDTO struct {
+	Department string `json:"department"`
+	Above      int64  `json:"above"`
+	Within     int64  `json:"within"`
+	Below      int64  `json:"below"`
+	TotalRisk  int64  `json:"total_risk"`
+}
+
+type ERMRiskAppetiteOverviewDTO struct {
+	RiskAppetiteByDepartments []ERMRiskAppetiteOverviewItemDTO `json:"risk_appetite_by_departments"`
+}
+
+type ERMRiskAppetiteLevelDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Type      string `json:"type"`
+	Count     int64  `json:"count"`
+}
+
+type ERMRiskAppetiteSummarytDTO struct {
+	RiskAppetiteLevelsSummary []ERMRiskAppetiteLevelDTO `json:"risk_appetite_levels_summary"`
+	Total                     int64                     `json:"total"`
+}

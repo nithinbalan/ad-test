@@ -19,6 +19,8 @@ type ERMDashboardRepositoryInterface interface {
 	GetERMControlEfficiencySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMControlEfficiencySummaryDTO, error)
 	GetERMControlEfficiencyBreakdown(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMControlEfficiencyBreakdownDTO, error)
 	GetERMControlsOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMControlsOverviewDTO, error)
+	GetERMRiskAppetiteOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAppetiteOverviewDTO, error)
+	GetERMRiskAppetiteSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAppetiteSummarytDTO, error)
 }
 
 type ERMDashboardRepository struct {
@@ -523,4 +525,144 @@ func (repo *ERMDashboardRepository) GetERMControlsOverview(params *kpiDTOs.ERMDa
 	}
 
 	return summary, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMRiskAppetiteOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAppetiteOverviewDTO, error) {
+	var results []struct {
+		Department string `json:"department"`
+		Above      int64  `json:"above"`
+		Within     int64  `json:"within"`
+		Below      int64  `json:"below"`
+		TotalRisk  int64  `json:"total_risk"`
+	}
+
+	// Base query
+	query := repo.db.Table("risk_register").
+		Joins("LEFT JOIN organization_units ru_unit ON ru_unit.id = risk_register.responsible_unit_id").
+		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(ru_unit.organization_unit_id, ru_unit.id) = parent_unit.id").
+		Joins("JOIN organization_levels ON organization_levels.id = ru_unit.organization_level_id AND organization_levels.is_primary = ?", true).
+		Joins(`
+			JOIN risk_evaluations
+			ON risk_evaluations.id = (
+				SELECT MAX(id) 
+				FROM risk_evaluations 
+				WHERE risk_register_id = risk_register.id
+			)
+		`).
+		Joins("JOIN risk_appetite_alignments ON risk_appetite_alignments.risk_evaluation_id = risk_evaluations.id").
+		Joins("JOIN risk_appetite_tolerance_levels ON risk_appetite_tolerance_levels.id = risk_appetite_alignments.risk_appetite_tolerance_level_id AND risk_appetite_tolerance_levels.status = 'active'").
+		Where("parent_unit.status = ?", "active").
+		Select(`
+			parent_unit.title_en AS department,
+			SUM(CASE WHEN risk_appetite_tolerance_levels.type = 'above' THEN 1 ELSE 0 END) AS above,
+			SUM(CASE WHEN risk_appetite_tolerance_levels.type = 'within' THEN 1 ELSE 0 END) AS within,
+			SUM(CASE WHEN risk_appetite_tolerance_levels.type = 'below' THEN 1 ELSE 0 END) AS below,
+			COUNT(*) AS total_risk
+		`).
+		Group("parent_unit.id, parent_unit.title_en")
+
+	// Apply date filter if provided
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where(
+			"rr.reported_at BETWEEN ? AND ?",
+			params.DateFrom+" 00:00:00",
+			params.DateTo+" 23:59:59",
+		)
+	}
+
+	// Execute query
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	// Map results
+	overview := make([]kpiDTOs.ERMRiskAppetiteOverviewItemDTO, len(results))
+	for i, r := range results {
+		overview[i] = kpiDTOs.ERMRiskAppetiteOverviewItemDTO{
+			Department: r.Department,
+			Above:      r.Above,
+			Within:     r.Within,
+			Below:      r.Below,
+			TotalRisk:  r.TotalRisk,
+		}
+	}
+
+	return &kpiDTOs.ERMRiskAppetiteOverviewDTO{
+		RiskAppetiteByDepartments: overview,
+	}, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMRiskAppetiteSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAppetiteSummarytDTO, error) {
+	type result struct {
+		ID        uint
+		Type      string
+		TitleEn   string
+		TitleAr   string
+		ColorCode string
+		Count     int64
+	}
+
+	var results []result
+	var totalRisks int64
+
+	baseQuery := repo.db.Table("risk_register").
+		Joins(`
+			JOIN risk_evaluations
+			ON risk_evaluations.id = (
+				SELECT MAX(id) 
+				FROM risk_evaluations 
+				WHERE risk_register_id = risk_register.id
+			)
+		`).
+		Joins("JOIN risk_appetite_alignments ON risk_appetite_alignments.risk_evaluation_id = risk_evaluations.id").
+		Joins(`
+			JOIN risk_appetite_tolerance_levels 
+			ON risk_appetite_tolerance_levels.id = risk_appetite_alignments.risk_appetite_tolerance_level_id 
+			AND risk_appetite_tolerance_levels.status = 'active'
+		`).
+		Select(`
+			risk_appetite_tolerance_levels.id,
+			risk_appetite_tolerance_levels.type,
+			risk_appetite_tolerance_levels.title_en,
+			risk_appetite_tolerance_levels.title_ar,
+			risk_appetite_tolerance_levels.color_code,
+			COUNT(*) AS count
+		`).
+		Group(`
+			risk_appetite_tolerance_levels.id, 
+			risk_appetite_tolerance_levels.type,
+			risk_appetite_tolerance_levels.title_en,
+			risk_appetite_tolerance_levels.title_ar,
+			risk_appetite_tolerance_levels.color_code
+		`)
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		baseQuery = baseQuery.Where(
+			"rr.reported_at BETWEEN ? AND ?",
+			params.DateFrom+" 00:00:00",
+			params.DateTo+" 23:59:59",
+		)
+	}
+
+	if err := baseQuery.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	levelsSummary := make([]kpiDTOs.ERMRiskAppetiteLevelDTO, len(results))
+	for i, r := range results {
+		levelsSummary[i] = kpiDTOs.ERMRiskAppetiteLevelDTO{
+			ID:        r.ID,
+			Type:      r.Type,
+			TitleEn:   r.TitleEn,
+			TitleAr:   r.TitleAr,
+			ColorCode: r.ColorCode,
+			Count:     r.Count,
+		}
+		totalRisks += r.Count
+	}
+
+	return &kpiDTOs.ERMRiskAppetiteSummarytDTO{
+		RiskAppetiteLevelsSummary: levelsSummary,
+		Total:                     totalRisks,
+	}, nil
 }
