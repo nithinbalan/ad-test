@@ -121,7 +121,6 @@ func (caps ControlActionPlanService) GetFullDetailsByID(controlID uint, id uint)
 }
 
 func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint, ControlActionPlanFormDTO *organizationDTOs.ControlActionPlanFormDTO) (uint, error) {
-	tx := caps.repo.BeginTransaction()
 
 	control, err := caps.controlSvc.GetByID(controlID)
 	if err != nil {
@@ -142,6 +141,8 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 		return 0, err
 	}
 
+	tx := caps.repo.BeginTransaction()
+
 	controlActionPlan := &models.ControlActionPlan{
 		ControlID:          controlID,
 		Title:              ControlActionPlanFormDTO.Title,
@@ -158,6 +159,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 	if ControlActionPlanFormDTO.ResponsibleUserID != 0 {
 		delegateeID, err := caps.delegateeUserSvc.AssignDelegateeIfPermitted(ControlActionPlanFormDTO.ResponsibleUserID, "controls")
 		if err != nil {
+			tx.Rollback()
 			return 0, err
 		}
 		if delegateeID != nil {
@@ -215,7 +217,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 			id,
 			ControlActionPlanFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -303,7 +305,6 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 }
 
 func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUserID uint, ControlActionPlanFormDTO *organizationDTOs.ControlActionPlanFormDTO) error {
-	tx := caps.repo.BeginTransaction()
 	control, err := caps.controlSvc.GetByID(controlID)
 	if err != nil {
 		return err
@@ -326,6 +327,8 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 		return err
 	}
 
+	tx := caps.repo.BeginTransaction()
+
 	existingControlActionPlan.Title = ControlActionPlanFormDTO.Title
 	existingControlActionPlan.Description = ControlActionPlanFormDTO.Description
 	existingControlActionPlan.SeverityLevelID = ControlActionPlanFormDTO.SeverityLevelID
@@ -339,6 +342,7 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 		existingControlActionPlan.DelegateeUserID = nil
 		delegateeID, err := caps.delegateeUserSvc.AssignDelegateeIfPermitted(ControlActionPlanFormDTO.ResponsibleUserID, "controls")
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 		if delegateeID != nil {
@@ -511,6 +515,8 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 		return nil, err
 	}
 
+	tx := caps.repo.BeginTransaction()
+
 	var failedIds []uint
 	var successfulIds []uint
 	var notifications []struct {
@@ -578,6 +584,13 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 			successfulIds = append(successfulIds, id)
 		}
 	}
+
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	tx.Commit()
 
 	if len(successfulIds) > 0 {
 		go func() {

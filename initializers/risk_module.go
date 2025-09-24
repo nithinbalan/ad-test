@@ -32,6 +32,7 @@ type RiskModule struct {
 	RiskInherentEvaluationController      *controllers.RiskInherentEvaluationController
 	RiskActionPlanController              *controllers.RiskActionPlanController
 	RiskActionPlanStatusUpdateController  *controllers.RiskActionPlanStatusUpdateController
+	RiskActionPlanCommentController       *controllers.RiskActionPlanCommentController
 	RiskAssociatedItemController          *controllers.RiskAssociatedItemController
 	RiskResponseStrategyController        *controllers.RiskResponseStrategyController
 	RiskTreatmentGuidelineController      *controllers.RiskTreatmentGuidelineController
@@ -46,6 +47,9 @@ type RiskModule struct {
 	RiskCommentController                 *controllers.RiskCommentController
 	RiskReportController                  *controllers.RiskReportController
 	KRIAssociatedItemController           *controllers.KRIAssociatedItemController
+	RiskWorkflowController                *controllers.RiskWorkflowController
+	RiskReviewController                  *controllers.RiskReviewController
+	RiskReviewCommentController           *controllers.RiskReviewCommentController
 
 	RiskRegisterSvc         services.RiskRegisterServiceInterface
 	RiskHeatMapSvc          services.RiskHeatmapServiceInterface
@@ -53,6 +57,9 @@ type RiskModule struct {
 	RiskActionPlanSvc       services.RiskActionPlanServiceInterface
 	RiskLevelSvc            services.RiskLevelServiceInterface
 	RiskResponseStrategySvc services.RiskResponseStrategyServiceInterface
+	RiskWorkflowSvc         services.RiskWorkflowServiceInterface
+	RiskReviewSvc           services.RiskReviewServiceInterface
+	RiskReviewCommentSvc    services.RiskReviewCommentServiceInterface
 }
 
 func NewRiskModule(db *gorm.DB,
@@ -168,6 +175,16 @@ func NewRiskModule(db *gorm.DB,
 	riskStatusSvc := services.NewRiskStatusService(riskStatusRepo)
 	riskStatusController := controllers.NewRiskStatusController(riskStatusSvc)
 
+	riskWorkflowRepo := repositories.NewRiskWorkflowRepository(db)
+	riskWorkflowSvc := services.NewRiskWorkflowService(
+		riskWorkflowRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.WorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		masterModule.WorkflowContextSvc,
+	)
+
 	riskRegisterRepo := repositories.NewRiskRegisterRepository(db)
 
 	riskTimelineRepo := repositories.NewRiskTimelineRepository(db)
@@ -207,6 +224,27 @@ func NewRiskModule(db *gorm.DB,
 		riskResponseStrategySvc,
 		nil)
 	riskRegisterController := controllers.NewRiskRegisterController(riskRegisterSvc)
+
+	riskRegisterSvc.SetRiskWorkflowService(riskWorkflowSvc)
+	riskWorkflowSvc.SetRiskService(riskRegisterSvc)
+	riskWorkflowController := controllers.NewRiskWorkflowController(riskWorkflowSvc)
+
+	riskReviewRepo := repositories.NewRiskReviewRepository(db)
+	riskReviewSvc := services.NewRiskReviewService(
+		riskReviewRepo,
+		sharedModule.ActivityLogService,
+		riskRegisterSvc,
+		riskWorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		riskStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+		taskModule.TaskService)
+	riskReviewController := controllers.NewRiskReviewController(riskReviewSvc)
+
+	riskReviewCommentRepo := repositories.NewRiskReviewCommentRepository(db)
+	riskReviewCommentSvc := services.NewRiskReviewCommentService(riskReviewCommentRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, riskRegisterSvc, masterModule.CommentStatusSvc)
+	riskReviewCommentController := controllers.NewRiskReviewCommentController(riskReviewCommentSvc)
 
 	potentialRiskRepo := repositories.NewPotentialRiskRepository(db)
 	potentialRiskSvc := services.NewPotentialRiskService(
@@ -268,6 +306,10 @@ func NewRiskModule(db *gorm.DB,
 		taskModule.TaskStatusService,
 	)
 	riskActionPlanStatusUpdateController := controllers.NewRiskActionPlanStatusUpdateController(riskActionPlanStatusUpdateSvc)
+
+	riskActionPlanCommentRepo := repositories.NewRiskActionPlanCommentRepository(db)
+	riskActionPlanCommentSvc := services.NewRiskActionPlanCommentService(riskActionPlanCommentRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, riskActionPlanSvc, commonModule.NotificationService)
+	riskActionPlanCommentController := controllers.NewRiskActionPlanCommentController(riskActionPlanCommentSvc)
 
 	riskAssociatedItemRepo := repositories.NewRiskAssociatedItemRepository(db)
 	riskAssociatedItemSvc := services.NewRiskAssociatedItemService(riskAssociatedItemRepo, riskRegisterSvc, complianceModule.ComplianceClausevc, commonModule.AssociatedItemValidationService)
@@ -345,6 +387,7 @@ func NewRiskModule(db *gorm.DB,
 		RiskInherentEvaluationController:      riskInherentEvaluationController,
 		RiskActionPlanController:              riskActionPlanController,
 		RiskActionPlanStatusUpdateController:  riskActionPlanStatusUpdateController,
+		RiskActionPlanCommentController:       riskActionPlanCommentController,
 		RiskAssociatedItemController:          riskAssociatedItemController,
 		RiskResponseStrategyController:        riskResponseStrategyController,
 		RiskTreatmentGuidelineController:      riskTreatmentGuidelineController,
@@ -359,6 +402,9 @@ func NewRiskModule(db *gorm.DB,
 		RiskCommentController:                 riskCommentController,
 		RiskReportController:                  riskReportController,
 		KRIAssociatedItemController:           kriAssociatedItemController,
+		RiskWorkflowController:                riskWorkflowController,
+		RiskReviewController:                  riskReviewController,
+		RiskReviewCommentController:           riskReviewCommentController,
 
 		RiskRegisterSvc:         riskRegisterSvc,
 		RiskHeatMapSvc:          riskHeatmapSvc,
@@ -366,5 +412,8 @@ func NewRiskModule(db *gorm.DB,
 		RiskActionPlanSvc:       riskActionPlanSvc,
 		RiskLevelSvc:            riskLevelSvc,
 		RiskResponseStrategySvc: riskResponseStrategySvc,
+		RiskWorkflowSvc:         riskWorkflowSvc,
+		RiskReviewSvc:           riskReviewSvc,
+		RiskReviewCommentSvc:    riskReviewCommentSvc,
 	}
 }

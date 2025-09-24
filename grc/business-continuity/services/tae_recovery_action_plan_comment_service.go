@@ -196,6 +196,9 @@ func (caps *TaeRecoveryActionPlanCommentService) Create(testAndExerciseID uint, 
 			id,
 			existingComment,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -620,6 +623,9 @@ func (caps *TaeRecoveryActionPlanCommentService) Update(testAndExerciseID uint, 
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {

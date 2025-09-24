@@ -3,6 +3,10 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"strings"
+	"time"
+
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	businessFunctionRepositories "jethur/grc/business-continuity/repositories"
 	commonDTOs "jethur/grc/common/dtos"
@@ -11,9 +15,6 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"os"
-	"strings"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -72,7 +73,6 @@ func (bfs *BusinessFunctionService) GetAll(params *businessContinuityDTOs.Busine
 
 func (bfs BusinessFunctionService) GetByID(id uint) (*models.BusinessFunction, error) {
 	businessFunction, err := bfs.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -87,7 +87,6 @@ func (bfs BusinessFunctionService) GetFullDetailsByID(id uint, tx ...utility.Dat
 	var businessFunctionDTO businessContinuityDTOs.BusinessFunctionDetailDTO
 
 	businessFunction, err := bfs.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -141,7 +140,7 @@ func (bfs *BusinessFunctionService) Create(currentUserID uint, businessFunctionF
 		CreatedBYID:       currentUserID,
 	}
 
-	//find highest criticality level of process
+	// find highest criticality level of process
 	var highestCriticalityLevelID *uint
 	if len(businessFunctionFormDTO.ProcessIDs) > 0 {
 		criticalityMap := map[string]int{"low": 1, "medium": 2, "high": 3}
@@ -203,9 +202,11 @@ func (bfs *BusinessFunctionService) Create(currentUserID uint, businessFunctionF
 			id,
 			existingBusinessFunction,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -250,7 +251,6 @@ func (bfs *BusinessFunctionService) Update(id uint, currentUserID uint, business
 	existingBusinessFunction.UpdatedBYID = &currentUserID
 
 	err = bfs.repo.Update(existingBusinessFunction, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -377,7 +377,7 @@ func (bfs *BusinessFunctionService) Update(id uint, currentUserID uint, business
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"severity_level":   oldBusinessFunction.SeverityLevel.TitleEn,
 			"responsible_user": fmt.Sprintf("%s %s", oldBusinessFunction.ResponsibleUser.FirstNameEN, oldBusinessFunction.ResponsibleUser.LastNameEN),
@@ -410,9 +410,11 @@ func (bfs *BusinessFunctionService) Update(id uint, currentUserID uint, business
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -489,7 +491,6 @@ func (bfs *BusinessFunctionService) Delete(ids []uint, currentUserID uint) ([]ui
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
-
 		}()
 	}
 
@@ -497,7 +498,6 @@ func (bfs *BusinessFunctionService) Delete(ids []uint, currentUserID uint) ([]ui
 }
 
 func (bfs *BusinessFunctionService) UpdateBusinessFunction(businessFunction *models.BusinessFunction, tx utility.DatabaseTransaction) error {
-
 	err := bfs.repo.Update(businessFunction, tx)
 	if err != nil {
 		tx.Rollback()
@@ -672,7 +672,6 @@ func (bfs *BusinessFunctionService) GetTestResults(businessFunctionID uint) (*bu
 }
 
 func (bfs *BusinessFunctionService) CreateBusinessFunctionProcess(businessFunctionID, userID uint, dto *commonDTOs.AssociatedProcessMapDTO) error {
-
 	_, err := bfs.repo.GetByID(businessFunctionID)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, businessFunctionID)

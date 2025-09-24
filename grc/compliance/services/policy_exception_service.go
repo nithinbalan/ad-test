@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	"jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 
@@ -64,6 +65,7 @@ func NewPolicyExceptionService(repo repositories.PolicyExceptionRepositoryInterf
 		activityLogSvc:              activityLogSvc,
 	}
 }
+
 func (pes *PolicyExceptionService) GetAll(params *dtos.PolicyExceptionListQueryParamsDTO) (*dtos.PolicyExceptionListResponseDTO, error) {
 	return pes.repo.GetAll(params)
 }
@@ -111,6 +113,7 @@ func (pes PolicyExceptionService) GetFullDetailsByID(id uint, tx ...utility.Data
 
 	return &detailDTO, nil
 }
+
 func (pes *PolicyExceptionService) Create(currentUserID uint, dto *dtos.PolicyExceptionFormDTO) (uint, error) {
 	tx := pes.repo.BeginTransaction()
 
@@ -181,7 +184,7 @@ func (pes *PolicyExceptionService) Create(currentUserID uint, dto *dtos.PolicyEx
 			id,
 			fullDetails,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -259,7 +262,7 @@ func (pes *PolicyExceptionService) Update(id uint, dto *dtos.PolicyExceptionForm
 			id,
 			fullDetails,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		); err != nil {
 			utility.LogError("Failed to log activity for policy exception update", map[string]interface{}{
 				"error":    err.Error(),
@@ -378,6 +381,7 @@ func (pes *PolicyExceptionService) MapRisks(policyExceptionID uint, currentUserI
 
 	return nil
 }
+
 func (pes *PolicyExceptionService) DeletePolicyExceptionRisk(policyExceptionID uint, riskID uint) error {
 	if _, err := pes.repo.GetByID(policyExceptionID); err != nil {
 		return err
@@ -404,7 +408,7 @@ func (pes *PolicyExceptionService) DeletePolicyExceptionRisk(policyExceptionID u
 			0, // optional: use composite key if required
 			deletedMapping,
 			0, // optional: currentUserID, if available via context
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log PolicyException risk unmapping activity", map[string]interface{}{

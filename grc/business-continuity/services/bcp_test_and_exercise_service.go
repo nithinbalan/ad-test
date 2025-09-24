@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	BcpTestAndExerciseRepositories "jethur/grc/business-continuity/repositories"
 	logServices "jethur/grc/logs/services"
@@ -60,7 +61,6 @@ func (btes BcpTestAndExerciseService) GetByID(bcpId uint, id uint) (*models.BcpT
 	}
 
 	BcpTestAndExercise, err := btes.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -80,7 +80,6 @@ func (btes BcpTestAndExerciseService) GetFullDetailsByID(bcpId uint, id uint, tx
 	}
 
 	BcpTestAndExercise, err := btes.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -164,9 +163,11 @@ func (btes *BcpTestAndExerciseService) Create(bcpId uint, currentUserID uint, bc
 			id,
 			existingBcpTestAndExercise,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -181,6 +182,7 @@ func (btes *BcpTestAndExerciseService) Create(bcpId uint, currentUserID uint, bc
 	}()
 	return id, nil
 }
+
 func (btes *BcpTestAndExerciseService) Update(bcpId uint, id uint, currentUserID uint, bcpTestAndExerciseFormDTO *businessContinuityDTOs.BcpTestAndExerciseFormDTO) error {
 	tx := btes.repo.BeginTransaction()
 
@@ -216,7 +218,6 @@ func (btes *BcpTestAndExerciseService) Update(bcpId uint, id uint, currentUserID
 	existingBcpTestAndExercise.UpdatedBYID = &currentUserID
 
 	err = btes.repo.Update(existingBcpTestAndExercise, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -316,7 +317,7 @@ func (btes *BcpTestAndExerciseService) Update(bcpId uint, id uint, currentUserID
 			changedData["associated_items"] = associatedItems
 		}
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"responsible_user": fmt.Sprintf("%s %s", oldBcpTestAndExercise.ResponsibleUser.FirstNameEN, oldBcpTestAndExercise.ResponsibleUser.LastNameEN),
 			"title":            oldBcpTestAndExercise.Title,
@@ -347,9 +348,11 @@ func (btes *BcpTestAndExerciseService) Update(bcpId uint, id uint, currentUserID
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -429,7 +432,6 @@ func (btes *BcpTestAndExerciseService) Delete(bcpId uint, ids []uint, currentUse
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
-
 		}()
 	}
 

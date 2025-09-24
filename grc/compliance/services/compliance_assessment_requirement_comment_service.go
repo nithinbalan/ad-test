@@ -157,7 +157,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 			id,
 			existingComment,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -508,7 +508,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Update(complianceAsse
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

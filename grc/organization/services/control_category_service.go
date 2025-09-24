@@ -3,11 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/organization/repositories"
 	"jethur/utility"
-	"log"
 
 	"gorm.io/gorm"
 )
@@ -41,7 +42,6 @@ func (ccs *ControlCategoryService) GetAll(sort string, sortBy string, keyword st
 
 func (ccs *ControlCategoryService) GetByID(id uint) (*models.ControlCategory, error) {
 	controlCategory, err := ccs.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -71,9 +71,8 @@ func (ccs *ControlCategoryService) Create(currentUserID uint, controlCategory *m
 			createdControlCategory.ID,
 			createdControlCategory,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			// @todo - save to log file
 			log.Printf("Failed to log activity: %v", err)
@@ -85,7 +84,6 @@ func (ccs *ControlCategoryService) Create(currentUserID uint, controlCategory *m
 
 func (ccs *ControlCategoryService) Update(id uint, currentUserID uint, updatedControlCategory *models.ControlCategory) (*models.ControlCategory, error) {
 	existingControlCategory, err := ccs.GetByID(id)
-
 	if err != nil {
 		return nil, err
 	}
@@ -96,18 +94,15 @@ func (ccs *ControlCategoryService) Update(id uint, currentUserID uint, updatedCo
 		} else if exists {
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
-
 	}
 
 	result, err := ccs.repo.Update(id, updatedControlCategory)
-
 	if err != nil {
 		return nil, err
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status"}
 	changes, err := utility.CompareFields(existingControlCategory, updatedControlCategory, fieldsToCompare)
-
 	if err != nil {
 		log.Println("error :", err.Error())
 	}
@@ -124,7 +119,7 @@ func (ccs *ControlCategoryService) Update(id uint, currentUserID uint, updatedCo
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
@@ -140,7 +135,6 @@ func (ccs *ControlCategoryService) Delete(ids []uint, currentUserID uint) ([]uin
 	for _, id := range ids {
 
 		_, err := ccs.repo.GetByID(id)
-
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -155,7 +149,6 @@ func (ccs *ControlCategoryService) Delete(ids []uint, currentUserID uint) ([]uin
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := ccs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -179,7 +172,6 @@ func (ccs *ControlCategoryService) Activate(ids []uint, currentUserID uint) erro
 	successfulIds, err := ccs.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := ccs.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
@@ -203,7 +195,6 @@ func (ccs *ControlCategoryService) Deactivate(ids []uint, currentUserID uint) er
 	successfulIds, err := ccs.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := ccs.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,

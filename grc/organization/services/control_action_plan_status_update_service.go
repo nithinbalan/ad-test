@@ -124,7 +124,7 @@ func (casus *ControlActionPlanStatusUpdateService) Create(controlID uint, contro
 		CreatedByID:         currentUserID,
 	}
 
-	id, err := casus.repo.Create(controlActionPlanUpdate)
+	id, err := casus.repo.Create(controlActionPlanUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -207,7 +207,7 @@ func (casus *ControlActionPlanStatusUpdateService) Create(controlID uint, contro
 			id,
 			controlActionPlanUpdate,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -572,7 +572,7 @@ func (casus *ControlActionPlanStatusUpdateService) Approve(controlID uint, actio
 			id,
 			existingControlActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -732,7 +732,7 @@ func (casus *ControlActionPlanStatusUpdateService) Revert(controlID uint, action
 			id,
 			existingControlActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

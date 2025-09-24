@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -64,7 +65,6 @@ func (sps *StrategyProfileKpiService) GetAll(strategyProfileID uint, params *str
 
 func (sps StrategyProfileKpiService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileKpi, error) {
 	strategyProfileKpi, err := sps.repo.GetByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -106,7 +106,6 @@ func (sps *StrategyProfileKpiService) GetFullDetailsByID(strategyProfileID uint,
 }
 
 func (sps *StrategyProfileKpiService) Create(strategyProfileID uint, currentUserID uint, strategyProfileKpiFormDTO *strategyDTOs.StrategyProfileKpiFormDTO) ([]uint, error) {
-
 	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
 		return nil, err
 	}
@@ -145,7 +144,7 @@ func (sps *StrategyProfileKpiService) Create(strategyProfileID uint, currentUser
 					"kpi_id":                 kpiID,
 				},
 				currentUserID,
-				nil,
+				"strategy", "strategy_profile", "strategy_profile_kpi", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -202,9 +201,8 @@ func (sps *StrategyProfileKpiService) Delete(strategyProfileID uint, id uint, cu
 				"strategic_objective_id": strategyProfileKpi.KpiID,
 			},
 			currentUserID,
-			nil,
+			"strategy", "strategy_profile", "strategy_profile_kpi", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.DeleteAction,
@@ -280,7 +278,7 @@ func (sps *StrategyProfileKpiService) UpdateWeightage(id uint, currentUserID uin
 				"new": newData,
 			},
 			currentUserID,
-			nil,
+			"strategy", "strategy_profile", "strategy_profile_kpi", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

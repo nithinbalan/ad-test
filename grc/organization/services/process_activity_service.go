@@ -135,7 +135,7 @@ func (pas *ProcessActivityService) Create(processID uint, currentUserID uint, fo
 			id,
 			existingActivity,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -228,7 +228,7 @@ func (pas *ProcessActivityService) Update(processID uint, id uint, currentUserID
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log update activity", map[string]interface{}{
@@ -534,7 +534,7 @@ func (pas *ProcessActivityService) UpdateProcessActivityUsers(processID, activit
 				activityID,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log update activity", map[string]interface{}{
@@ -605,7 +605,7 @@ func (pas *ProcessActivityService) DeleteActivityUser(activityUserID, processID,
 				activityID,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log update activity", map[string]interface{}{

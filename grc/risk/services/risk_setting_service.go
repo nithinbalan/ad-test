@@ -2,12 +2,13 @@ package services
 
 import (
 	"fmt"
+	"log"
+
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
 	"jethur/utility"
-	"log"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -75,7 +76,7 @@ func (rss *RiskSettingsService) Update(currentUserID uint, updatedSetting *model
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fmt.Printf("Failed to log update activity: %v\n", err)

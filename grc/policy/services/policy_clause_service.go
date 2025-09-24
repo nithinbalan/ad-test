@@ -23,22 +23,27 @@ type PolicyClauseServiceInterface interface {
 	Update(documentId uint, clauseId uint, currentUserId uint, policyClauseFormDTO *policyDTOs.PolicyClauseFormDTO) error
 	Delete(clauseIDs []uint, currentUserID uint) ([]uint, error)
 	GetByDocumentVersionId(documentId uint, documentVersionId uint, tx ...utility.DatabaseTransaction) ([]*policyDTOs.PolicyClauseListDTO, error)
+
+	GetDocumentClauseHistories(documentId uint, clauseId uint) ([]*policyDTOs.ClauseHistoryDTO, error)
 }
 
 type PolicyClauseService struct {
-	repo           repositories.PolicyClauseRepositoryInterface
-	documentSvc    documentServices.DocumentServiceInterface
-	activityLogSvc services.ActivityLogServiceInterface
+	repo              repositories.PolicyClauseRepositoryInterface
+	documentSvc       documentServices.DocumentServiceInterface
+	documentStatusSvc documentServices.DocumentStatusServiceInterface
+	activityLogSvc    services.ActivityLogServiceInterface
 }
 
 func NewPolicyClauseService(
 	repo repositories.PolicyClauseRepositoryInterface,
 	documentSvc documentServices.DocumentServiceInterface,
+	documentStatusSvc documentServices.DocumentStatusServiceInterface,
 	activityLogSvc services.ActivityLogServiceInterface) PolicyClauseServiceInterface {
 	return &PolicyClauseService{
-		repo:           repo,
-		documentSvc:    documentSvc,
-		activityLogSvc: activityLogSvc,
+		repo:              repo,
+		documentSvc:       documentSvc,
+		documentStatusSvc: documentStatusSvc,
+		activityLogSvc:    activityLogSvc,
 	}
 }
 
@@ -89,6 +94,7 @@ func (dcs *PolicyClauseService) GetAll(params *policyDTOs.PolicyClauseListQueryP
 			CreatedAt:                   clause.CreatedAt,
 			UpdatedAt:                   clause.UpdatedAt,
 			DocumentVersionClauseID:     clause.DocumentVersionClauseID, // important for tree building
+			CommentsCount:               clause.CommentsCount,
 		}
 
 		dtoMap[clause.ID] = dto
@@ -261,42 +267,58 @@ func (dcs *PolicyClauseService) Update(documentId uint, clauseId uint, currentUs
 		return err
 	}
 
-	// Initialize control maps
-	existingControlIDs := make(map[uint]bool)
-	if existingClauseFullDetails.DocumentControls != nil {
-		for _, ctrl := range existingClauseFullDetails.DocumentControls {
-			existingControlIDs[*ctrl.ControlID] = true
+	// Prepare log data
+	changedData := make(map[string]interface{})
+
+	//log changes
+	oldData := map[string]interface{}{
+		"clause_number": oldPolicyClause.ClauseNumber,
+		"title_en":      oldPolicyClause.ClauseTitleEn,
+		"title_ar":      oldPolicyClause.ClauseTitleAr,
+		"description":   oldPolicyClause.Description,
+	}
+
+	newData := map[string]interface{}{
+		"clause_number": existingClauseFullDetails.ClauseNumber,
+		"title_en":      existingClauseFullDetails.ClauseTitleEn,
+		"title_ar":      existingClauseFullDetails.ClauseTitleAr,
+		"description":   existingClauseFullDetails.Description,
+	}
+	// Compare other fields and add them to changedData
+	fieldChanges := utility.CompareFieldChanges(oldData, newData)
+	for k, v := range fieldChanges {
+		changedData[k] = v
+	}
+	inReviewStatus, err := dcs.documentStatusSvc.GetByType("in-review")
+	if err != nil {
+		return err
+	}
+	if document.DocumentStatus.ID == int(inReviewStatus.ID) {
+		var clauseEdit []*models.DocumentVersionClauseHistory
+		for key, raw := range fieldChanges {
+			data := raw.(map[string]interface{})
+			oldVal := data["old"].(string)
+			newVal := data["new"].(string)
+			newClauseHistory := &models.DocumentVersionClauseHistory{
+				DocumentVersionClauseID: clauseId,
+				OldValue:                &oldVal,
+				NewValue:                &newVal,
+				ChangedField:            &key,
+				CreatedBYID:             currentUserId,
+			}
+			clauseEdit = append(clauseEdit, newClauseHistory)
+		}
+
+		err = dcs.repo.CreateClauseHistory(clauseEdit, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+
 		}
 	}
 
 	tx.Commit()
 	go func() {
-		existingPolicyClause, err := dcs.GetFullDetailsByID(documentId, clauseId)
-		if err != nil {
-			return
-		}
-		// Prepare log data
-		changedData := make(map[string]interface{})
-
-		//log changes
-		oldData := map[string]interface{}{
-			"clause_number": oldPolicyClause.ClauseNumber,
-			"title_en":      oldPolicyClause.ClauseTitleEn,
-			"title_ar":      oldPolicyClause.ClauseTitleAr,
-			"description":   oldPolicyClause.Description,
-		}
-
-		newData := map[string]interface{}{
-			"clause_number": existingPolicyClause.ClauseNumber,
-			"title_en":      existingPolicyClause.ClauseTitleEn,
-			"title_ar":      existingPolicyClause.ClauseTitleAr,
-			"description":   existingPolicyClause.Description,
-		}
-		// Compare other fields and add them to changedData
-		fieldChanges := utility.CompareFieldChanges(oldData, newData)
-		for k, v := range fieldChanges {
-			changedData[k] = v
-		}
 
 		// Log activity if there are any changes
 		if len(changedData) > 0 {
@@ -306,7 +328,7 @@ func (dcs *PolicyClauseService) Update(documentId uint, clauseId uint, currentUs
 				clauseId,
 				changedData,
 				currentUserId,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {
@@ -465,4 +487,8 @@ func (dcs *PolicyClauseService) GetByDocumentVersionId(documentId uint, document
 	}
 
 	return roots, nil
+}
+
+func (pcs *PolicyClauseService) GetDocumentClauseHistories(documentId uint, clauseId uint) ([]*policyDTOs.ClauseHistoryDTO, error) {
+	return pcs.repo.GetClauseHistories(clauseId)
 }

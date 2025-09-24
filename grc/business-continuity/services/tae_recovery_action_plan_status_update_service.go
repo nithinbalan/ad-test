@@ -3,6 +3,11 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"jethur/config"
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/repositories"
@@ -14,10 +19,6 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -83,7 +84,6 @@ func (sasus TaeRecoveryActionPlanStatusUpdateService) GetByID(TestAndExerciseID 
 	}
 
 	TaeRecoveryActionPlanStatusUpdate, err := sasus.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -159,7 +159,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Create(TestAndExerciseID 
 			tx.Rollback()
 			return 0, err
 		}
-		//move file to storage
+		// move file to storage
 		for _, doc := range documents {
 			storagePath := filepath.Join("business-continuity", "test-and-exercise", strconv.FormatUint(uint64(TestAndExerciseID), 10), "recovery-action-plans", strconv.FormatUint(uint64(TaeRecoveryActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
@@ -207,9 +207,11 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Create(TestAndExerciseID 
 			id,
 			TaeRecoveryActionPlanUpdate,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -308,13 +310,11 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Update(TestAndExerciseID 
 	}
 
 	oldTaeRecoveryActionPlanStatusUpdate, err := sasus.GetByID(TestAndExerciseID, TaeRecoveryActionPlanID, id)
-
 	if err != nil {
 		return err
 	}
 
 	existingTaeRecoveryActionPlanStatusUpdate, err := sasus.GetByID(TestAndExerciseID, TaeRecoveryActionPlanID, id)
-
 	if err != nil {
 		return err
 	}
@@ -341,18 +341,16 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Update(TestAndExerciseID 
 	var documentsToDelete []*models.TaeRecoveryActionPlanStatusUpdateDocument
 
 	for _, doc := range TaeRecoveryActionPlanStatusUpdateFormDTO.Documents {
-
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
-			//genereate URL
+			// genereate URL
 			url := utility.GenerateDocumentURL("business-continuity", "test-and-exercise", strconv.FormatUint(uint64(TestAndExerciseID), 10), "recovery-action-plans", strconv.FormatUint(uint64(TaeRecoveryActionPlanID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			// Create a new Control test Document instance
 			document := &models.TaeRecoveryActionPlanStatusUpdateDocument{
@@ -423,7 +421,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Update(TestAndExerciseID 
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"comment":    oldTaeRecoveryActionPlanStatusUpdate.Comment,
@@ -447,9 +445,11 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Update(TestAndExerciseID 
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -468,7 +468,6 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Update(TestAndExerciseID 
 }
 
 func (sasus *TaeRecoveryActionPlanStatusUpdateService) validateTaeRecoveryActionPlanStatusUpdateFormDTO(TaeRecoveryActionPlanStatusUpdateFormDTO *businessContinuityDTOs.TaeRecoveryActionPlanStatusUpdateFormDTO) error {
-
 	if _, err := sasus.actionPlanStatusSvc.GetByID(TaeRecoveryActionPlanStatusUpdateFormDTO.ActionPlanStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("action plan status does not exist"), "not_exist", "action plan status")
 	}
@@ -485,7 +484,6 @@ func (sasus TaeRecoveryActionPlanStatusUpdateService) GetLatestTaeRecoveryAction
 }
 
 func (sasus *TaeRecoveryActionPlanStatusUpdateService) GetDocumentPath(testAndExerciseID, ActionPlanID, id uint, token string) (string, error) {
-
 	existingTaeRecoveryActionplanStatusUpdate, err := sasus.GetByID(testAndExerciseID, ActionPlanID, id)
 	if err != nil {
 		return "", err
@@ -573,6 +571,12 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Approve(testAndExerciseID
 		return err
 	}
 
+	_, err = sasus.taskSvc.UpdateActionPlanTaskStatus("recovery_action_plan_id", actionPlanID, existingActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	_, err = sasus.taskSvc.UpdateActionPlanTaskStatus("recovery_action_plan_id", actionPlanID, *existingActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
 	if err != nil {
 		tx.Rollback()
@@ -582,16 +586,6 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Approve(testAndExerciseID
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-
-	// Start a new transaction for the second update
-	tx2 := sasus.repo.BeginTransaction()
-	_, err = sasus.taskSvc.UpdateActionPlanTaskStatus("recovery_action_plan_id", actionPlanID, existingActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx2)
-	if err != nil {
-		tx2.Rollback()
-		return err
-	}
-
-	tx2.Commit()
 
 	go func() {
 		var notificationHeadingEn, notificationHeadingAr string
@@ -613,7 +607,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Approve(testAndExerciseID
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{existingActionPlan.ResponsibleUserID},
-			ModuleIdentifier:     "test-and-exercise",
+			ModuleIdentifier:     "business_continuity",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            notificationHeadingEn,
 			HeadingAr:            notificationHeadingAr,
@@ -679,6 +673,9 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Approve(testAndExerciseID
 			id,
 			existingActionPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -777,7 +774,7 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Revert(testAndExerciseID 
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{existingActionPlan.ResponsibleUserID},
-			ModuleIdentifier:     "test-and-exercise",
+			ModuleIdentifier:     "business_continuity",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            notificationHeadingEn,
 			HeadingAr:            notificationHeadingAr,
@@ -843,6 +840,9 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Revert(testAndExerciseID 
 			id,
 			existingActionPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

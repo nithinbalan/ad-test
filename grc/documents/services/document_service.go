@@ -233,7 +233,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 	}
 
 	document := &models.Document{
-		DocumentTypeID:       &documentFormDTO.DocumentTypeID,
+		DocumentTypeID:       documentFormDTO.DocumentTypeID,
 		TitleEn:              documentFormDTO.TitleEn,
 		TitleAr:              documentFormDTO.TitleAr,
 		DescriptionEn:        documentFormDTO.DescriptionEn,
@@ -429,7 +429,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		}
 	}
 
-	err = ds.documentWorkflowSvc.CreateDocumentWorkflow(id, docVersionId, documentFormDTO.DocumentTypeID, currentUserID, tx)
+	err = ds.documentWorkflowSvc.CreateDocumentWorkflow(id, docVersionId, *documentFormDTO.DocumentTypeID, currentUserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -460,7 +460,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			id,
 			existingDocument,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -516,7 +516,6 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		} else {
 			log.Printf("Skipping document parsing as AI is not enabled in system preferences")
 		}
-
 	}(fileNameCopy)
 
 	return id, nil
@@ -551,13 +550,13 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 	}
 
 	// Check if the document type has changed
-	documentTypeChanged := existingDocument.DocumentTypeID != &documentFormDTO.DocumentTypeID
+	documentTypeChanged := *existingDocument.DocumentTypeID != *documentFormDTO.DocumentTypeID
 	if documentTypeChanged {
 		documentStatus, err := ds.documentStatusSvc.GetByType("draft")
 		if err != nil {
 			return err
 		}
-		if existingDocument.DocumentStatusID != &documentStatus.ID {
+		if *existingDocument.DocumentStatusID != documentStatus.ID {
 			return utility.NewForbiddenError("Document type can only be changed in draft status")
 		}
 	}
@@ -567,7 +566,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		if err != nil {
 			return err
 		}
-		if existingDocument.DocumentStatusID != &documentStatus.ID {
+		if *existingDocument.DocumentStatusID != documentStatus.ID {
 			return utility.NewForbiddenError("Document can only be changed in draft status")
 		}
 	}
@@ -576,7 +575,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		return err
 	}
 
-	existingDocument.DocumentTypeID = &documentFormDTO.DocumentTypeID
+	existingDocument.DocumentTypeID = documentFormDTO.DocumentTypeID
 	existingDocument.TitleEn = documentFormDTO.TitleEn
 	existingDocument.TitleAr = documentFormDTO.TitleAr
 	existingDocument.DescriptionEn = documentFormDTO.DescriptionEn
@@ -958,8 +957,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 		}
 	}
 
-	if existingDocumentTypeID != &documentFormDTO.DocumentTypeID {
-
+	if *existingDocumentTypeID != *documentFormDTO.DocumentTypeID {
 		var deleteDocumentWorkflowIds []*uint
 		var deleteDocumentWorkflowParticipantIds []*uint
 		var deleteDocumentWorkflowReviewIds []*uint
@@ -1015,7 +1013,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 			return err
 		}
 
-		err = ds.documentWorkflowSvc.CreateDocumentWorkflow(id, documentFullDetails.LatestDocumentVersion.ID, documentFormDTO.DocumentTypeID, currentUserID, tx)
+		err = ds.documentWorkflowSvc.CreateDocumentWorkflow(id, documentFullDetails.LatestDocumentVersion.ID, *documentFormDTO.DocumentTypeID, currentUserID, tx)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -1079,7 +1077,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -1343,7 +1341,7 @@ func (ds *DocumentService) validateDocumentFormDTO(documentFormDTO *documentDTOs
 		return utility.NewValidationError(fmt.Errorf("document category does not exist"), "not_exist", "document category")
 	}
 
-	if _, err := ds.documentTypeSvc.GetByID(documentFormDTO.DocumentTypeID); err != nil {
+	if _, err := ds.documentTypeSvc.GetByID(*documentFormDTO.DocumentTypeID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("document type does not exist"), "not_exist", "document type")
 	}
 
@@ -1352,7 +1350,7 @@ func (ds *DocumentService) validateDocumentFormDTO(documentFormDTO *documentDTOs
 		return err
 	}
 
-	if _, err := ds.workflowSvc.GetWorkflowByDocumentType(documentFormDTO.DocumentTypeID, workflowContext.ID); err != nil {
+	if _, err := ds.workflowSvc.GetWorkflowByDocumentType(*documentFormDTO.DocumentTypeID, workflowContext.ID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("document type workflow does not exist"), "not_exist", "document type workflow")
 	}
 
@@ -1675,7 +1673,6 @@ func (ds *DocumentService) CheckinDocument(id uint, currentUserID uint, document
 		} else {
 			log.Printf("Skipping document parsing as AI is not enabled in system preferences")
 		}
-
 	}()
 
 	return nil

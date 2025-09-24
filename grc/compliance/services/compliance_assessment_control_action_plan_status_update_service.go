@@ -210,6 +210,9 @@ func (carasus *ComplianceAssessmentControlActionPlanStatusUpdateService) Create(
 			id,
 			complianceActionPlanUpdate,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -446,6 +449,9 @@ func (carasus *ComplianceAssessmentControlActionPlanStatusUpdateService) Update(
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {
@@ -671,6 +677,9 @@ func (carasus *ComplianceAssessmentControlActionPlanStatusUpdateService) Approve
 			id,
 			existingComplianceActionPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -831,6 +840,9 @@ func (carasus *ComplianceAssessmentControlActionPlanStatusUpdateService) Revert(
 			id,
 			existingComplianceActionPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

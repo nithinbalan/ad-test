@@ -258,6 +258,9 @@ func (cacaps *ComplianceAssessmentControlActionPlanService) Create(complianceAss
 			id,
 			existingComplianceAssessmentControlActionPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -458,6 +461,9 @@ func (cacaps *ComplianceAssessmentControlActionPlanService) Update(complianceAss
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {

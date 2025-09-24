@@ -23,14 +23,17 @@ type PolicyClauseRepositoryInterface interface {
 
 	GetByDocumentVersionId(documentId uint, documentVersionId uint) ([]*policyDTOs.PolicyClauseListDTO, error)
 
-	GetNextClauseSequence(parentClauseID uint, complianceRegisterID uint, tx ...utility.DatabaseTransaction) (int, error)
-	GetNextTopLevelClauseSequence(complianceRegisterID uint, tx ...utility.DatabaseTransaction) (int, error)
+	GetNextClauseSequence(parentClauseID uint, documentID uint, tx ...utility.DatabaseTransaction) (int, error)
+	GetNextTopLevelClauseSequence(documentID uint, tx ...utility.DatabaseTransaction) (int, error)
 	ShiftClausesAfter(documentVersionID uint, afterClauseNo string, tx ...utility.DatabaseTransaction) error
 	shiftClauseNumber(clauseNo string, parentPrefix []int, insertPos int) (string, bool)
 
 	HasSubClauses(clauseID uint, tx ...utility.DatabaseTransaction) (bool, error)
 	ShiftClauseNumberAfterDeleting(documentVersionID uint, parentClauseID *uint, deletedClauseNumber string, tx ...utility.DatabaseTransaction) error
 	shiftSubClauseNumberAfterDeleting(db *gorm.DB, oldPrefix, newPrefix string, parentClauseID uint, documentVersionID uint) error
+
+	CreateClauseHistory(clauseHistory []*models.DocumentVersionClauseHistory, tx ...utility.DatabaseTransaction) error
+	GetClauseHistories(clauseID uint) ([]*policyDTOs.ClauseHistoryDTO, error)
 }
 
 // Repository implementation
@@ -73,7 +76,10 @@ func (repo *PolicyClauseRepository) GetAll(params *policyDTOs.PolicyClauseListQu
 		updated_user.initial AS updated_user_initial,
 		updated_user.color AS updated_user_color,
 		updated_user.email AS updated_user_email,
-		updated_user.profile_image_path AS updated_user_profile_image_path
+		updated_user.profile_image_path AS updated_user_profile_image_path,
+		(SELECT COUNT(1) 
+     FROM document_version_clause_comments c 
+     WHERE c.document_version_clause_id = document_version_clauses.id) AS comments_count
 	`
 
 	query := repo.db.Table("document_version_clauses").
@@ -452,4 +458,46 @@ func (repo *PolicyClauseRepository) GetByDocumentVersionId(documentId uint, docu
 	}
 
 	return clauses, nil
+}
+
+func (repo *PolicyClauseRepository) CreateClauseHistory(clauseHistory []*models.DocumentVersionClauseHistory, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(clauseHistory).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *PolicyClauseRepository) GetClauseHistories(clauseID uint) ([]*policyDTOs.ClauseHistoryDTO, error) {
+	var histories []*policyDTOs.ClauseHistoryDTO
+	selectClause := `
+		document_version_clause_histories.*,
+
+		document_version_clauses.clause_number AS document_version_clause_number,
+		created_user.id AS created_user_id,
+		created_user.first_name_en AS created_user_first_name_en,
+		created_user.first_name_ar AS created_user_first_name_ar,
+		created_user.last_name_en AS created_user_last_name_en,
+		created_user.last_name_ar AS created_user_last_name_ar,
+		created_user.initial AS created_user_initial,
+		created_user.color AS created_user_color,
+		created_user.email AS created_user_email,
+		created_user.profile_image_path AS created_user_profile_image_path
+	`
+
+	query := repo.db.Table("document_version_clause_histories").
+		Select(selectClause).
+		Joins("LEFT JOIN users AS created_user ON created_user.id = document_version_clause_histories.created_by_id").
+		Joins("LEFT JOIN document_version_clauses ON document_version_clauses.id = document_version_clause_histories.document_version_clause_id").
+		Where("document_version_clause_histories.document_version_clause_id = ?", clauseID)
+
+	if err := query.Find(&histories).Error; err != nil {
+		return nil, err
+	}
+
+	return histories, nil
 }

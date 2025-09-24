@@ -3,13 +3,14 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepositories "jethur/grc/incident/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -30,7 +31,7 @@ type IncidentCommunicationLogService struct {
 	activityLogSvc      logServices.ActivityLogServiceInterface
 	incidentRegisterSvc IncidentRegisterServiceInterface
 	incidentTimelineSvc IncidentTimelineServiceInterface
-	userSvc                  organizationServices.UserServiceInterface
+	userSvc             organizationServices.UserServiceInterface
 }
 
 func NewIncidentCommunicationLogService(
@@ -38,14 +39,14 @@ func NewIncidentCommunicationLogService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	incidentRegisterSvc IncidentRegisterServiceInterface,
 	incidentTimelineSvc IncidentTimelineServiceInterface,
-	userSvc                  organizationServices.UserServiceInterface,
+	userSvc organizationServices.UserServiceInterface,
 ) IncidentCommunicationLogServiceInterface {
 	return &IncidentCommunicationLogService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
 		incidentRegisterSvc: incidentRegisterSvc,
 		incidentTimelineSvc: incidentTimelineSvc,
-		userSvc: userSvc,
+		userSvc:             userSvc,
 	}
 }
 
@@ -62,7 +63,6 @@ func (icls IncidentCommunicationLogService) GetByID(incidentID uint, id uint) (*
 	}
 
 	incidentCommunicationLog, err := icls.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -80,7 +80,6 @@ func (icls IncidentCommunicationLogService) GetFullDetailsByID(incidentID uint, 
 	}
 
 	incidentCommunicationLog, err := icls.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -92,11 +91,11 @@ func (icls IncidentCommunicationLogService) GetFullDetailsByID(incidentID uint, 
 	if err != nil {
 		return nil, err
 	}
-	//todo :- also add extra fields which required in details screen
+	// todo :- also add extra fields which required in details screen
 
 	incidentCommunicationLogDTO.CreatedAt = incidentCommunicationLog.CreatedAt
 	incidentCommunicationLogDTO.UpdatedAt = incidentCommunicationLog.UpdatedAt
-	//todo :- also add extra fields which required in details screen
+	// todo :- also add extra fields which required in details screen
 
 	return &incidentCommunicationLogDTO, nil
 }
@@ -128,8 +127,8 @@ func (icls *IncidentCommunicationLogService) Create(incidentID uint, currentUser
 		tx.Rollback()
 		return 0, err
 	}
-	//Update timeline
-	//todo
+	// Update timeline
+	// todo
 	communicationLogCount, err := icls.repo.GetCountByRiskID(incidentID, tx)
 	if err != nil {
 		tx.Rollback()
@@ -174,9 +173,8 @@ func (icls *IncidentCommunicationLogService) Create(incidentID uint, currentUser
 			id,
 			existingIncidentCommunicationLog,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -223,7 +221,6 @@ func (icls *IncidentCommunicationLogService) Update(incidentID uint, id uint, cu
 	existingIncidentCommunicationLog.UpdatedByID = &currentUserID
 
 	err = icls.repo.Update(existingIncidentCommunicationLog, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -236,7 +233,7 @@ func (icls *IncidentCommunicationLogService) Update(incidentID uint, id uint, cu
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"communicated_at":      oldIncidentCommunicationLog.CommunicatedAt,
@@ -266,9 +263,8 @@ func (icls *IncidentCommunicationLogService) Update(incidentID uint, id uint, cu
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -299,12 +295,11 @@ func (icls *IncidentCommunicationLogService) Delete(incidentID uint, ids []uint,
 	for _, id := range ids {
 
 		_, err := icls.repo.GetByID(id)
-
 		if err != nil {
 			continue
 		}
-		//Delete-> update timeline performedAt as null
-		//todo
+		// Delete-> update timeline performedAt as null
+		// todo
 		communicationLogCount, err := icls.repo.GetCountByRiskID(incidentID, tx)
 		if err != nil {
 			tx.Rollback()
@@ -345,7 +340,6 @@ func (icls *IncidentCommunicationLogService) Delete(incidentID uint, ids []uint,
 	tx.Commit()
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := icls.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
@@ -382,7 +376,6 @@ func (icls *IncidentCommunicationLogService) parseIncidentCommunicationLogDates(
 			return nil, utility.NewValidationError(fmt.Errorf("invalid communicated date: %w", err), "invalid_date", "communicated at")
 		}
 	}
-
 
 	return parsed, nil
 }

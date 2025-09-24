@@ -221,7 +221,7 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, riskID
 			id,
 			controlTestFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

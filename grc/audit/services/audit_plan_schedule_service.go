@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
@@ -170,9 +171,11 @@ func (apss *AuditPlanScheduleService) Create(auditPlanID uint, currentUserID uin
 			id,
 			existingAuditPlanSchedule,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -320,7 +323,7 @@ func (apss *AuditPlanScheduleService) Update(id uint, auditPlanID uint, currentU
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"audit_activity_type": oldAuditPlanSchedule.AuditActivityType.TitleEn,
 			"title":               oldAuditPlanSchedule.Title,
@@ -351,9 +354,11 @@ func (apss *AuditPlanScheduleService) Update(id uint, auditPlanID uint, currentU
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -423,9 +428,11 @@ func (apss *AuditPlanScheduleService) Delete(ids []uint, currentUserID uint) ([]
 					id,
 					deletedAuditPlanSchedule,
 					currentUserID,
+					"",
+					"",
+					"",
 					nil,
 				)
-
 				if err != nil {
 					fields := map[string]interface{}{
 						"action":    models.DeleteAction,

@@ -196,6 +196,9 @@ func (carapcs *ComplianceAssessmentControlActionPlanCommentService) Create(asses
 			id,
 			existingComment,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -624,6 +627,9 @@ func (carapcs *ComplianceAssessmentControlActionPlanCommentService) Update(asses
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {

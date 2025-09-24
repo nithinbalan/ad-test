@@ -210,7 +210,7 @@ func (casus *StakeholderActionPlanStatusUpdateService) Create(StakeholderID uint
 			id,
 			stakeholderActionPlanUpdate,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -446,7 +446,7 @@ func (casus *StakeholderActionPlanStatusUpdateService) Update(StakeholderID uint
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -573,7 +573,13 @@ func (capus *StakeholderActionPlanStatusUpdateService) Approve(stakeholderID uin
 		return err
 	}
 
-	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("stakeholder_action_plan_id", stakeholderActionPlanID, *existingStakeholderActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
+	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("stakeholder_action_plan_id", stakeholderID, existingStakeholderActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("stakeholder_action_plan_id", stakeholderID, *existingStakeholderActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -582,16 +588,6 @@ func (capus *StakeholderActionPlanStatusUpdateService) Approve(stakeholderID uin
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-
-	// Start a new transaction for the second update
-	tx2 := capus.repo.BeginTransaction()
-	_, err = capus.taskSvc.UpdateActionPlanTaskStatus("stakeholder_action_plan_id", stakeholderActionPlanID, existingStakeholderActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx2)
-	if err != nil {
-		tx2.Rollback()
-		return err
-	}
-
-	tx2.Commit()
 
 	go func() {
 		urlParam := fmt.Sprintf(`{"stakeholder_id":%d, "action_plan_id":%d}`, stakeholderID, stakeholderActionPlanID)
@@ -670,7 +666,7 @@ func (capus *StakeholderActionPlanStatusUpdateService) Approve(stakeholderID uin
 			id,
 			existingStakeholderActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -829,7 +825,7 @@ func (capus *StakeholderActionPlanStatusUpdateService) Revert(stakeholderID uint
 			id,
 			existingStakeholderActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

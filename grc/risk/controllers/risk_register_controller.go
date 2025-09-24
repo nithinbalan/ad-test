@@ -229,8 +229,14 @@ func (rrc *RiskRegisterController) CreateRiskRegister(c *gin.Context) {
 	id, err := rrc.service.Create(currentUserID, &riskRegisterFormDTO)
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 			return
 		default:
 			utility.SendInternalErrResp(rrc.db, c, e.Error())

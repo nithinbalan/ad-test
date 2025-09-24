@@ -2,11 +2,12 @@ package services
 
 import (
 	"fmt"
+	"log"
+
 	"jethur/grc/logs/services"
 	"jethur/grc/masters/repositories"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 )
 
 type ToolTypeServiceInterface interface {
@@ -41,7 +42,6 @@ func (tts ToolTypeService) GetByID(id uint) (*models.ToolType, error) {
 }
 
 func (tts *ToolTypeService) Create(currentUserID uint, toolType *models.ToolType) (*models.ToolType, error) {
-
 	if err := tts.validateToolTypeForm(toolType, nil); err != nil {
 		return nil, err
 	}
@@ -58,9 +58,8 @@ func (tts *ToolTypeService) Create(currentUserID uint, toolType *models.ToolType
 			toolType.ID,
 			createdToolType,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			// @todo - save to log file
 			log.Printf("Failed to log activity: %v", err)
@@ -72,7 +71,6 @@ func (tts *ToolTypeService) Create(currentUserID uint, toolType *models.ToolType
 
 func (tts *ToolTypeService) Update(id uint, currentUserID uint, updatedToolType *models.ToolType) (*models.ToolType, error) {
 	existingToolType, err := tts.repo.GetByID(id)
-
 	if err != nil {
 		return nil, err
 	}
@@ -82,14 +80,12 @@ func (tts *ToolTypeService) Update(id uint, currentUserID uint, updatedToolType 
 	}
 
 	result, err := tts.repo.Update(id, updatedToolType)
-
 	if err != nil {
 		return nil, err
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "status"}
 	changes, err := utility.CompareFields(existingToolType, updatedToolType, fieldsToCompare)
-
 	if err != nil {
 		log.Println("error :", err.Error())
 	}
@@ -106,7 +102,7 @@ func (tts *ToolTypeService) Update(id uint, currentUserID uint, updatedToolType 
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
@@ -122,7 +118,6 @@ func (tts *ToolTypeService) Delete(ids []uint, currentUserID uint) ([]uint, erro
 	for _, id := range ids {
 
 		_, err := tts.repo.GetByID(id)
-
 		if err != nil {
 			continue
 		}
@@ -136,7 +131,6 @@ func (tts *ToolTypeService) Delete(ids []uint, currentUserID uint) ([]uint, erro
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := tts.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -160,7 +154,6 @@ func (tts *ToolTypeService) Activate(ids []uint, currentUserID uint) error {
 	successfulIds, err := tts.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := tts.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
@@ -184,7 +177,6 @@ func (tts *ToolTypeService) Deactivate(ids []uint, currentUserID uint) error {
 	successfulIds, err := tts.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := tts.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,
@@ -206,21 +198,18 @@ func (tts *ToolTypeService) Deactivate(ids []uint, currentUserID uint) error {
 }
 
 func (tts *ToolTypeService) validateToolTypeForm(toolTypeForm *models.ToolType, id *uint) error {
-
 	if id == nil {
 		if exists, err := tts.repo.ExistsByTitle(toolTypeForm.TitleEn, toolTypeForm.TitleAr); err != nil {
 			return err
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
-
 	} else {
 		if exists, err := tts.repo.ExistsByTitleExcludingID(*id, toolTypeForm.TitleEn, toolTypeForm.TitleAr); err != nil {
 			return err
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
-
 	}
 
 	return nil

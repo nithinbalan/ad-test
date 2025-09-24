@@ -3,13 +3,14 @@ package services
 import (
 	"errors"
 	"fmt"
+	"strings"
+
 	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
-	"strings"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -32,7 +33,8 @@ type DocumentClauseService struct {
 func NewDocumentClauseService(
 	repo repositories.DocumentClauseRepositoryInterface,
 	documentSvc DocumentServiceInterface,
-	activityLogSvc services.ActivityLogServiceInterface) DocumentClauseServiceInterface {
+	activityLogSvc services.ActivityLogServiceInterface,
+) DocumentClauseServiceInterface {
 	return &DocumentClauseService{
 		repo:           repo,
 		documentSvc:    documentSvc,
@@ -210,9 +212,8 @@ func (dcs *DocumentClauseService) Create(documentId uint, currentUserId uint, do
 			id,
 			existingDocumentClause,
 			currentUserId,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -398,7 +399,7 @@ func (dcs *DocumentClauseService) Update(documentId uint, clauseId uint, current
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"clause_number": oldDocumentClause.ClauseNumber,
 			"title_en":      oldDocumentClause.ClauseTitleEn,
@@ -426,9 +427,8 @@ func (dcs *DocumentClauseService) Update(documentId uint, clauseId uint, current
 				clauseId,
 				changedData,
 				currentUserId,
-				nil,
+				"", "", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,

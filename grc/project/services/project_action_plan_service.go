@@ -210,7 +210,7 @@ func (paps *ProjectActionPlanService) Create(projectID uint, currentUserID uint,
 			"percentage":           ProjectActionPlanFormDTO.Percentage,
 			"project_milestone_id": ProjectActionPlanFormDTO.ProjectMilestoneID,
 		}
-		err := paps.activityLogSvc.LogActivity(models.CreateAction, models.ProjectActionPlan{}.TableName(), id, activityData, currentUserID, nil)
+		err := paps.activityLogSvc.LogActivity(models.CreateAction, models.ProjectActionPlan{}.TableName(), id, activityData, currentUserID, "", "", "", nil)
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -425,7 +425,7 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

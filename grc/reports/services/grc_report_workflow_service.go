@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
@@ -59,7 +60,6 @@ func (grws GRCReportWorkflowService) GetFullDetailsByID(id uint, tx ...utility.D
 	var stakeholderDTO dtos.GRCReportWorkflowDetailDTO
 
 	grcReportWorkflow, err := grws.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -81,7 +81,6 @@ func (grws GRCReportWorkflowService) GetFullDetailsByID(id uint, tx ...utility.D
 
 func (grws *GRCReportWorkflowService) GetByType(id uint, status string) (*models.GRCReportWorkflow, error) {
 	workflow, err := grws.repo.GetByType(id, status)
-
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +89,6 @@ func (grws *GRCReportWorkflowService) GetByType(id uint, status string) (*models
 }
 
 func (grws *GRCReportWorkflowService) UpdateGRCReportSectionWorkflowReviewUser(reportID uint, currentUserID uint, grcReportWorkflowFormDTO *dtos.GRCReportWorkflowFormDTO) (uint, error) {
-
 	tx := grws.repo.BeginTransaction()
 
 	grcReportWorkflow, err := grws.GetByType(reportID, grcReportWorkflowFormDTO.Type)
@@ -111,7 +109,6 @@ func (grws *GRCReportWorkflowService) UpdateGRCReportSectionWorkflowReviewUser(r
 }
 
 func (grws *GRCReportWorkflowService) UpdateGRCReportSectionWorkflowApproveUser(reportID uint, currentUserID uint, grcReportWorkflowFormDTO *dtos.GRCReportWorkflowFormDTO) (uint, error) {
-
 	tx := grws.repo.BeginTransaction()
 
 	grcReportWorkflow, err := grws.GetByType(reportID, grcReportWorkflowFormDTO.Type)
@@ -171,7 +168,7 @@ func (grws *GRCReportWorkflowService) GRCReportSectionSubmit(grcReportID uint, c
 			grcReportID,
 			nil,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

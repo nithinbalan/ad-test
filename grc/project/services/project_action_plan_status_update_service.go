@@ -46,7 +46,6 @@ func NewProjectActionPlanStatusUpdateService(
 	projectActionPlanSvc ProjectActionPlanServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
-
 ) ProjectActionPlanStatusUpdateServiceInterface {
 	return &ProjectActionPlanStatusUpdateService{
 		repo:                 repo,
@@ -102,7 +101,7 @@ func (pasus *ProjectActionPlanStatusUpdateService) Create(ProjectID uint, Projec
 		CreatedByID:         currentUserID,
 	}
 
-	id, err := pasus.repo.Create(projectActionPlanUpdate)
+	id, err := pasus.repo.Create(projectActionPlanUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -166,7 +165,7 @@ func (pasus *ProjectActionPlanStatusUpdateService) Create(ProjectID uint, Projec
 			id,
 			projectActionPlanUpdate,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -334,7 +333,7 @@ func (pasus *ProjectActionPlanStatusUpdateService) Update(ProjectID uint, Projec
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -462,7 +461,7 @@ func (pasus *ProjectActionPlanStatusUpdateService) Approve(projectID uint, proje
 			id,
 			existingProjectActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -535,7 +534,7 @@ func (pasus *ProjectActionPlanStatusUpdateService) Revert(projectID uint, projec
 			id,
 			existingProjectActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

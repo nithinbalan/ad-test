@@ -115,7 +115,7 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Create(StrategyProfil
 		CreatedByID:                 currentUserID,
 	}
 
-	id, err := sasus.repo.Create(StrategyProfileActionPlanUpdate)
+	id, err := sasus.repo.Create(StrategyProfileActionPlanUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -204,7 +204,7 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Create(StrategyProfil
 			id,
 			StrategyProfileActionPlanUpdate,
 			currentUserID,
-			nil,
+			"strategy", "strategy_profile", "action_plan_status_update", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -434,7 +434,7 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Update(StrategyProfil
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"strategy", "strategy_profile", "action_plan_status_update", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -557,6 +557,12 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Approve(strategyProfi
 		return err
 	}
 
+	_, err = sasus.taskSvc.UpdateActionPlanTaskStatus("strategy_profile_action_plan_id", actionPlanID, *existingActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	_, err = sasus.taskSvc.UpdateActionPlanTaskStatus("strategy_profile_action_plan_id", actionPlanID, *existingActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
 	if err != nil {
 		tx.Rollback()
@@ -566,16 +572,6 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Approve(strategyProfi
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-
-	// Start a new transaction for the second update
-	tx2 := sasus.repo.BeginTransaction()
-	_, err = sasus.taskSvc.UpdateActionPlanTaskStatus("strategy_profile_action_plan_id", actionPlanID, *existingActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx2)
-	if err != nil {
-		tx2.Rollback()
-		return err
-	}
-
-	tx2.Commit()
 
 	go func() {
 		var notificationHeadingEn, notificationHeadingAr string
@@ -590,7 +586,7 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Approve(strategyProfi
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{*existingActionPlan.ResponsibleUserID},
-			ModuleIdentifier:     "strategy-profile",
+			ModuleIdentifier:     "strategy",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            notificationHeadingEn,
 			HeadingAr:            notificationHeadingAr,
@@ -656,7 +652,7 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Approve(strategyProfi
 			id,
 			existingActionPlan,
 			currentUserID,
-			nil,
+			"strategy", "strategy_profile", "action_plan_status_update", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -747,7 +743,7 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Revert(strategyProfil
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{*existingActionPlan.ResponsibleUserID},
-			ModuleIdentifier:     "strategy-profile",
+			ModuleIdentifier:     "strategy",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            notificationHeadingEn,
 			HeadingAr:            notificationHeadingAr,
@@ -813,7 +809,7 @@ func (sasus *StrategyProfileActionPlanStatusUpdateService) Revert(strategyProfil
 			id,
 			existingActionPlan,
 			currentUserID,
-			nil,
+			"strategy", "strategy_profile", "action_plan_status_update", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

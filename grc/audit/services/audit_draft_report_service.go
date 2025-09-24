@@ -712,6 +712,9 @@ func (adrs *AuditDraftReportService) Create(auditID uint, currentUserID uint, au
 			id,
 			existingAuditDraftReport,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -789,6 +792,9 @@ func (adrs *AuditDraftReportService) Update(auditID uint, id uint, currentUserID
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {
@@ -839,6 +845,9 @@ func (adrs *AuditDraftReportService) Delete(auditID uint, currentUserID uint) er
 			auditDraftReport.ID,
 			deletedAuditDraftReport,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -977,6 +986,9 @@ func (adrs *AuditDraftReportService) Submit(auditID uint, id uint, currentUserID
 			id,
 			nil,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -1120,6 +1132,9 @@ func (adrs *AuditDraftReportService) Complete(auditID uint, id uint, currentUser
 			id,
 			nil,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

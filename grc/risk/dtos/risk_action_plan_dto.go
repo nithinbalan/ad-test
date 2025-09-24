@@ -115,7 +115,9 @@ type RiskActionPlanDetailDTO struct {
 	RiskRegister            RiskRegisterDetailDTO            `json:"risk_register"`
 	SeverityLevel           *masterDTOs.SeverityLevelDTO     `json:"severity_level"`
 	ResponsibleUser         organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
+	ResponsibleUserID       uint                             `json:"responsible_user_id"`
 	ReviewUser              *UserMinimalDTO                  `json:"review_user"`
+	ReviewUserID            *uint                             `json:"review_user_id"`
 	ActionPlanStatus        masterDTOs.ActionPlanStatusDTO   `json:"action_plan_status"`
 	Percentage              *uint                            `json:"percentage"`
 	Comments                *string                          `json:"comments"`

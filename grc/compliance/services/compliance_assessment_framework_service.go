@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
@@ -45,7 +46,6 @@ func (casf *ComplianceAssessmentFrameworkService) GetAll(params *complianceDTOs.
 
 func (casf *ComplianceAssessmentFrameworkService) GetByID(id uint) (*models.ComplianceAssessmentFramework, error) {
 	complianceAssessmentFramework, err := casf.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -60,7 +60,6 @@ func (casf *ComplianceAssessmentFrameworkService) GetFullDetailsByID(id uint, tx
 	var complianceAssessmentFrameworkDTO complianceDTOs.ComplianceAssessmentFrameworkDetailResponseDTO
 
 	complianceAssessmentFramework, err := casf.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -112,9 +111,8 @@ func (casf *ComplianceAssessmentFrameworkService) Create(currentUserID uint, com
 				"assessment_framework_type_id": complianceAssessmentFramework.AssessmentFrameworkTypeID,
 			},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -171,7 +169,7 @@ func (casf *ComplianceAssessmentFrameworkService) Update(id uint, currentUserID 
 		// Prepare log data
 		changedData := make(map[string]interface{})
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title_en":                     oldComplianceAssessmentFramework.TitleEn,
 			"title_ar":                     oldComplianceAssessmentFramework.TitleAr,
@@ -200,9 +198,8 @@ func (casf *ComplianceAssessmentFrameworkService) Update(id uint, currentUserID 
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -271,12 +268,12 @@ func (casf *ComplianceAssessmentFrameworkService) Delete(ids []uint, currentUser
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
-
 		}()
 	}
 
 	return failedIds, nil
 }
+
 func (casf *ComplianceAssessmentFrameworkService) GetByFrameworkValueID(id uint) (*models.ComplianceAssessmentFrameworkValue, error) {
 	return casf.repo.GetByFrameworkValueID(id)
 }

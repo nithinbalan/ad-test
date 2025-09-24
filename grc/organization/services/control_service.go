@@ -307,7 +307,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 			id,
 			controlFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

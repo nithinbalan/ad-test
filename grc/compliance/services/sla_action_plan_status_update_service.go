@@ -113,7 +113,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 		CreatedByID:        currentUserID,
 	}
 
-	id, err := sasus.repo.Create(SLAActionPlanUpdate)
+	id, err := sasus.repo.Create(SLAActionPlanUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -209,7 +209,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Create(SLAID uint, SLAActionPlanI
 			id,
 			SLAActionPlanUpdate,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -440,7 +440,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Update(SLAID uint, SLAActionPlanI
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -665,7 +665,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Approve(slaID uint, actionPlanID 
 			id,
 			existingSLAActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -721,7 +721,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Revert(slaID uint, actionPlanID u
 	}
 
 	SLAActionPlanUpdate := &models.SLAActionPlanStatusUpdate{
-		SLAActionPlanID:    slaID,
+		SLAActionPlanID:    actionPlanID,
 		ActionPlanStatusID: slaActionPlanReopenStatus.ID,
 		Comment:            SLAActionPlanReviewUserStatusUpdateFormDTO.Comment,
 		CreatedByID:        currentUserID,
@@ -825,7 +825,7 @@ func (sasus *SLAActionPlanStatusUpdateService) Revert(slaID uint, actionPlanID u
 			id,
 			existingComplianceActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

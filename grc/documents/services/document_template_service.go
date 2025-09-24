@@ -3,14 +3,15 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
+	"path/filepath"
+	"strconv"
+
 	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
-	"path/filepath"
-	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -36,7 +37,8 @@ type DocumentTemplateService struct {
 func NewDocumentTemplateService(
 	repo repositories.DocumentTemplateRepositoryInterface,
 	activityLogSvc services.ActivityLogServiceInterface,
-	documentTypeSvc DocumentTypeServiceInterface) DocumentTemplateServiceInterface {
+	documentTypeSvc DocumentTypeServiceInterface,
+) DocumentTemplateServiceInterface {
 	return &DocumentTemplateService{
 		repo:            repo,
 		activityLogSvc:  activityLogSvc,
@@ -100,14 +102,14 @@ func (dts *DocumentTemplateService) Create(currentUserID uint, documentTemplateF
 		return 0, err
 	}
 
-	//generate token
+	// generate token
 	dataToEncrypt := []byte(documentTemplateFormDTO.Document.FileName)
 	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 	if err != nil {
 		return 0, err
 	}
 
-	//genereate URL
+	// genereate URL
 	url := utility.GenerateDocumentURL("document", "document-template", strconv.FormatUint(uint64(id), 10), "documents")
 
 	documentTemplateDocument := &models.DocumentTemplateDocument{
@@ -152,9 +154,8 @@ func (dts *DocumentTemplateService) Create(currentUserID uint, documentTemplateF
 			id,
 			existingDocumentTemplate,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			log.Printf("Failed to log activity: %v", err)
 		}
@@ -187,7 +188,6 @@ func (dts *DocumentTemplateService) Update(id uint, currentUserID uint, document
 	existingTemplate.UpdatedByID = &currentUserID
 
 	err = dts.repo.Update(existingTemplate, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -201,7 +201,7 @@ func (dts *DocumentTemplateService) Update(id uint, currentUserID uint, document
 	if documentTemplateFormDTO.Document.IsNewFile != nil && *documentTemplateFormDTO.Document.IsNewFile {
 		existingTemplateDocumentFileName := existingTemplateDocument.Name
 
-		//generate token
+		// generate token
 		dataToEncrypt := []byte(documentTemplateFormDTO.Document.FileName)
 		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 		if err != nil {
@@ -209,7 +209,7 @@ func (dts *DocumentTemplateService) Update(id uint, currentUserID uint, document
 			return err
 		}
 
-		//genereate URL
+		// genereate URL
 		url := utility.GenerateDocumentURL("document", "document-template", strconv.FormatUint(uint64(id), 10), "documents")
 
 		existingTemplateDocument.URL = url
@@ -240,7 +240,6 @@ func (dts *DocumentTemplateService) Update(id uint, currentUserID uint, document
 
 	tx.Commit()
 	go func() {
-
 		existingDocumentTemplate, err := dts.repo.GetFullDetailsByID(id, nil)
 		if err != nil {
 			return
@@ -248,7 +247,7 @@ func (dts *DocumentTemplateService) Update(id uint, currentUserID uint, document
 
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title_en":      oldTemplate.TitleEn,
 			"title_ar":      oldTemplate.TitleAr,
@@ -276,9 +275,8 @@ func (dts *DocumentTemplateService) Update(id uint, currentUserID uint, document
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -291,7 +289,6 @@ func (dts *DocumentTemplateService) Update(id uint, currentUserID uint, document
 				utility.LogError("Failed to log activity", fields)
 			}
 		}
-
 	}()
 	return nil
 }
@@ -341,7 +338,7 @@ func (dts *DocumentTemplateService) Delete(ids []uint, currentUserID uint) ([]ui
 			for _, doc := range documents {
 				storagePath := filepath.Join("document", "document-template", strconv.FormatUint(uint64(documentTemplateID), 10), "documents")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
-					//tx.Rollback()
+					// tx.Rollback()
 					fmt.Printf("Failed to delete file at URL %s: %v\n", doc.URL, err)
 				}
 			}

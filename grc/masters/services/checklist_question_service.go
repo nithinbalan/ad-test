@@ -72,7 +72,7 @@ func (cqs *ChecklistQuestionService) Create(currentUserID uint, checklistQuestio
 			id,
 			checklistQuestionFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

@@ -221,7 +221,7 @@ func (pds *ProcessDependencyService) logDependencyCreation(processID, id, userID
 		id,
 		created,
 		userID,
-		nil,
+		"", "", "", nil,
 	)
 }
 
@@ -294,7 +294,7 @@ func (pds *ProcessDependencyService) Update(processID uint, id uint, currentUser
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log process dependency update", map[string]interface{}{

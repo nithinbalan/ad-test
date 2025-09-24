@@ -58,7 +58,7 @@ func (ecs *ExpenseCategoryService) Create(currentUserID uint, toolType *models.E
 			toolType.ID,
 			createdExpenseCategory,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -106,7 +106,7 @@ func (ecs *ExpenseCategoryService) Update(id uint, currentUserID uint, updatedEx
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

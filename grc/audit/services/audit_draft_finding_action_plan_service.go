@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	auditFindingDTOs "jethur/grc/audit/dtos"
 	auditFindingRepositories "jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
@@ -54,7 +55,6 @@ func (adfaps AuditDraftFindingActionPlanService) GetByID(findingID uint, id uint
 	}
 
 	auditDraftFindingActionPlan, err := adfaps.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -72,7 +72,6 @@ func (adfaps AuditDraftFindingActionPlanService) GetFullDetailsByID(findingID ui
 	}
 
 	auditDraftFindingActionPlan, err := adfaps.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -122,7 +121,6 @@ func (adfaps *AuditDraftFindingActionPlanService) Create(findingID uint, current
 	}
 
 	go func() {
-
 		existingAuditDraftFindingActionPlan, err := adfaps.GetFullDetailsByID(findingID, id)
 		if err != nil {
 			utility.LogError("Failed to fetch audit draft finding", map[string]interface{}{
@@ -137,9 +135,11 @@ func (adfaps *AuditDraftFindingActionPlanService) Create(findingID uint, current
 			id,
 			existingAuditDraftFindingActionPlan,
 			currentUserID,
+			"audit",
+			"audit_findings",
+			"audit_draft_finding_action_plan",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -170,7 +170,6 @@ func (adfaps *AuditDraftFindingActionPlanService) Update(findingID uint, id uint
 	}
 
 	existingAuditDraftFindingActionPlan, err := adfaps.GetByID(findingID, id)
-
 	if err != nil {
 		return err
 	}
@@ -188,7 +187,6 @@ func (adfaps *AuditDraftFindingActionPlanService) Update(findingID uint, id uint
 	existingAuditDraftFindingActionPlan.UpdatedBYID = &currentUserID
 
 	err = adfaps.repo.Update(existingAuditDraftFindingActionPlan, tx)
-
 	if err != nil {
 		return err
 	}
@@ -201,7 +199,7 @@ func (adfaps *AuditDraftFindingActionPlanService) Update(findingID uint, id uint
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":            oldAuditDraftFindingActionPlan.Title,
 			"description":      oldAuditDraftFindingActionPlan.Description,
@@ -228,9 +226,11 @@ func (adfaps *AuditDraftFindingActionPlanService) Update(findingID uint, id uint
 				id,
 				changedData,
 				currentUserID,
+				"audit",
+				"audit_findings",
+				"audit_draft_finding_action_plan",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -261,7 +261,6 @@ func (adfaps *AuditDraftFindingActionPlanService) Delete(findingID uint, ids []u
 	for _, id := range ids {
 
 		auditDraftFindingActionPlan, err := adfaps.GetFullDetailsByID(findingID, id)
-
 		if err != nil {
 			continue
 		}
@@ -281,7 +280,6 @@ func (adfaps *AuditDraftFindingActionPlanService) Delete(findingID uint, ids []u
 	tx.Commit()
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := adfaps.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,

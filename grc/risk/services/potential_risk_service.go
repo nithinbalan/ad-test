@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -10,7 +12,6 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
-	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -46,7 +47,8 @@ func NewPotentialRiskService(
 	riskCategorySvc RiskCategoryServiceInterface,
 	potentialRiskStatusSvc PotentialRiskStatusServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
-	riskRegisterSvc RiskRegisterServiceInterface) PotentialRiskServiceInterface {
+	riskRegisterSvc RiskRegisterServiceInterface,
+) PotentialRiskServiceInterface {
 	return &PotentialRiskService{
 		repo:                   repo,
 		activityLogSvc:         activityLogSvc,
@@ -64,7 +66,6 @@ func (prs *PotentialRiskService) GetAll(params *riskDTOs.PotentialRiskListQueryP
 
 func (prs PotentialRiskService) GetByID(id uint) (*models.PotentialRisk, error) {
 	potentialRisk, err := prs.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -75,11 +76,9 @@ func (prs PotentialRiskService) GetByID(id uint) (*models.PotentialRisk, error) 
 }
 
 func (prs PotentialRiskService) GetFullDetailsByID(id uint) (*riskDTOs.PotentialRiskDetailsDTO, error) {
-
 	var potentialRiskDTO riskDTOs.PotentialRiskDetailsDTO
 
 	potentialRisk, err := prs.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -94,13 +93,12 @@ func (prs PotentialRiskService) GetFullDetailsByID(id uint) (*riskDTOs.Potential
 	potentialRiskDTO.CreatedAt = potentialRisk.CreatedAt
 	potentialRiskDTO.UpdatedAt = potentialRisk.UpdatedAt
 
-	//todo :- also add extra fields which required in details screen
+	// todo :- also add extra fields which required in details screen
 
 	return &potentialRiskDTO, nil
 }
 
 func (prs *PotentialRiskService) Create(currentUserID uint, potentialRiskFormDTO *riskDTOs.PotentialRiskFormDTO) (uint, error) {
-
 	if err := prs.validatePotentialRiskFormDTO(potentialRiskFormDTO, nil); err != nil {
 		return 0, err
 	}
@@ -127,7 +125,6 @@ func (prs *PotentialRiskService) Create(currentUserID uint, potentialRiskFormDTO
 	}
 
 	go func() {
-
 		existingPotentialRisk, err := prs.GetFullDetailsByID(potentialRisk.ID)
 		if err != nil {
 			utility.LogError("Failed to fetch potential risk", map[string]interface{}{
@@ -142,9 +139,8 @@ func (prs *PotentialRiskService) Create(currentUserID uint, potentialRiskFormDTO
 			id,
 			existingPotentialRisk,
 			currentUserID,
-			nil,
+			"risk", "potential_risk", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -162,9 +158,7 @@ func (prs *PotentialRiskService) Create(currentUserID uint, potentialRiskFormDTO
 }
 
 func (prs *PotentialRiskService) Update(id uint, currentUserID uint, potentialRiskFormDTO *riskDTOs.PotentialRiskFormDTO) error {
-
 	existingPotentialRisk, err := prs.GetByID(id)
-
 	if err != nil {
 		return err
 	}
@@ -185,7 +179,6 @@ func (prs *PotentialRiskService) Update(id uint, currentUserID uint, potentialRi
 	existingPotentialRisk.UpdatedBYID = &currentUserID
 
 	err = prs.repo.Update(existingPotentialRisk)
-
 	if err != nil {
 		return err
 	}
@@ -196,7 +189,7 @@ func (prs *PotentialRiskService) Update(id uint, currentUserID uint, potentialRi
 			return
 		}
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":          oldPotentialRisk.Title,
 			"description":    oldPotentialRisk.Description,
@@ -223,9 +216,8 @@ func (prs *PotentialRiskService) Update(id uint, currentUserID uint, potentialRi
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"risk", "potential_risk", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -252,7 +244,6 @@ func (prs *PotentialRiskService) Delete(ids []uint, currentUserID uint) ([]uint,
 	for _, id := range ids {
 
 		_, err := prs.repo.GetByID(id)
-
 		if err != nil {
 			continue
 		}
@@ -276,7 +267,6 @@ func (prs *PotentialRiskService) Delete(ids []uint, currentUserID uint) ([]uint,
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := prs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -298,7 +288,6 @@ func (prs *PotentialRiskService) Delete(ids []uint, currentUserID uint) ([]uint,
 
 func (prs *PotentialRiskService) StatusUpdate(id uint, currentUserID uint, potentialRiskStatusID uint) error {
 	existingPotentialRisk, err := prs.GetByID(id)
-
 	if err != nil {
 		return err
 	}
@@ -350,7 +339,6 @@ func (prs *PotentialRiskService) validatePotentialRiskFormDTO(potentialRiskFormD
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
-
 	} else {
 		if exists, err := prs.repo.ExistsByTitleExcludingID(*id, potentialRiskFormDTO.Title, potentialRiskFormDTO.RiskCategoryID); err != nil {
 			return err

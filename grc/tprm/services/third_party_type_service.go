@@ -71,7 +71,7 @@ func (tpts *ThirdPartyTypeService) Create(currentUserID uint, thirdPartyType *mo
 			createdType.ID,
 			createdType,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -124,7 +124,7 @@ func (tpts *ThirdPartyTypeService) Update(id uint, currentUserID uint, updatedTy
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

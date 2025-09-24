@@ -3,6 +3,10 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+
 	"jethur/config"
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
@@ -10,9 +14,6 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -250,6 +251,9 @@ func (ars *AssetRegisterService) Create(assetRegisterFormDTO *dtos.AssetRegister
 			assetID,
 			existingAsset,
 			currentUserID,
+			"asset",
+			"asset_register",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -269,7 +273,7 @@ func (ars *AssetRegisterService) Create(assetRegisterFormDTO *dtos.AssetRegister
 }
 
 func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.AssetRegisterFormDTO, currentUserID uint) error {
-	var tx = ars.repo.BeginTransaction()
+	tx := ars.repo.BeginTransaction()
 	existingAsset, err := ars.repo.GetByID(id)
 	if err != nil {
 		return err
@@ -281,7 +285,7 @@ func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.Asse
 		return err
 	}
 
-	//oldResponsibleUserID := existingAsset.ResponsibleUserID
+	// oldResponsibleUserID := existingAsset.ResponsibleUserID
 
 	if err := ars.validateAssetRegisterFormDTO(assetRegisterFormDTO); err != nil {
 		return err
@@ -418,7 +422,7 @@ func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.Asse
 		// Prepare log data
 		changedData := make(map[string]interface{})
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"asset_category":     oldAssetRegister.AssetCategory.TitleEn,
 			"asset_sub_category": oldAssetRegister.AssetSubCategory.TitleEn,
@@ -455,9 +459,11 @@ func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.Asse
 				id,
 				changedData,
 				currentUserID,
+				"asset",
+				"asset_register",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -593,7 +599,6 @@ func (ars *AssetRegisterService) UpdateTotalScore(assetID uint, totalScore float
 }
 
 func (ars *AssetRegisterService) validateAssetRegisterFormDTO(assetRegisterFormDTO *dtos.AssetRegisterFormDTO) error {
-
 	if _, err := ars.assetCategorySvc.GetByID(uint(assetRegisterFormDTO.AssetCategoryID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("asset category does not exist"), "not_exist", "asset category")
 	}
@@ -727,7 +732,6 @@ func (ars *AssetRegisterService) GetControlSummary(assetID uint) (map[string]int
 }
 
 func (ars *AssetRegisterService) UpdateAssetRecoveryObjective(assetRegister *models.AssetRegister, tx utility.DatabaseTransaction) error {
-
 	err := ars.repo.Update(assetRegister, tx)
 	if err != nil {
 		tx.Rollback()

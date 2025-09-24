@@ -112,7 +112,6 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 	}
 
 	incidentActionPlan, err := iapc.incidentActionPlanSvc.GetFullDetailsByID(incidentID, actionPlanID)
-
 	if err != nil {
 		return 0, err
 	}
@@ -197,7 +196,7 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 			id,
 			existingComment,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -495,6 +494,7 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 	}()
 	return id, nil
 }
+
 func (iapc *IncidentActionPlanCommentService) Update(incidentID uint, actionPlanID uint, id uint, currentUserID uint, incidentActionPlanCommentFormDTO *incidentDTOs.IncidentActionPlanCommentFormDTO) error {
 	tx := iapc.repo.BeginTransaction()
 
@@ -626,7 +626,7 @@ func (iapc *IncidentActionPlanCommentService) Update(incidentID uint, actionPlan
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

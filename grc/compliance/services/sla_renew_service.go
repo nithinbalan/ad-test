@@ -2,14 +2,15 @@ package services
 
 import (
 	"fmt"
+	"path/filepath"
+	"strconv"
+
 	slaDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"path/filepath"
-	"strconv"
 )
 
 type SLARenewServiceInterface interface {
@@ -30,7 +31,8 @@ func NewSLARenewService(
 	repo repositories.SLARenewRepositoryInterface,
 	slaRegRepo repositories.SLARegisterRepositoryInterface,
 	lifecycleStatusSvc masterServices.LifecycleStatusServiceInterface,
-	activityLogSvc logServices.ActivityLogServiceInterface) SLARenewServiceInterface {
+	activityLogSvc logServices.ActivityLogServiceInterface,
+) SLARenewServiceInterface {
 	return &SLARenewService{
 		repo:               repo,
 		slaRegRepo:         slaRegRepo,
@@ -71,7 +73,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 	if err != nil {
 		return err
 	}
-	//Encrypt FileName
+	// Encrypt FileName
 	dataToEncrypt := []byte(slaRenewFormDTO.Document.FileName)
 	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
 	if err != nil {
@@ -89,7 +91,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 	newVersion := currentVersion + 1
 	newVersionStr := strconv.Itoa(newVersion)
 
-	//renew document
+	// renew document
 	slaDocument := &models.SLADocument{
 		SLARegisterID: existingSLADocument.SLARegisterID,
 		Version:       newVersionStr, //@review, Need to increment version
@@ -133,9 +135,8 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 			slaId,
 			slaRenewFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -151,6 +152,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 
 	return nil
 }
+
 func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 	tx := srs.repo.BeginTransaction()
 
@@ -202,9 +204,8 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 			previousSLADocument.ID,
 			previousSLADocument,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -220,6 +221,7 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 
 	return nil
 }
+
 func (srs *SLARenewService) parseSLARenewDates(slaRenewForm *slaDTOs.SLARenewFormDTO) (*slaDTOs.ParsedSLARenewDates, error) {
 	parsed := &slaDTOs.ParsedSLARenewDates{}
 	var err error

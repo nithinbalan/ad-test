@@ -133,7 +133,7 @@ func (s *ProjectService) Create(currentUserID uint, form *dtos.ProjectFormDTO) (
 			"project_type_id":     form.ProjectTypeID,
 			"project_status_id":   form.ProjectStatusID,
 		}
-		err := s.activityLog.LogActivity(models.CreateAction, models.Project{}.TableName(), id, activityData, currentUserID, nil)
+		err := s.activityLog.LogActivity(models.CreateAction, models.Project{}.TableName(), id, activityData, currentUserID, "", "", "", nil)
 		if err != nil {
 			utility.LogError("Failed to log create activity", map[string]interface{}{
 				"recordID": id,
@@ -201,7 +201,7 @@ func (s *ProjectService) Update(id uint, currentUserID uint, form *dtos.ProjectF
 		}
 		changes := utility.CompareFieldChanges(oldData, newData)
 		if len(changes) > 0 {
-			err := s.activityLog.LogActivity(models.UpdateAction, models.Project{}.TableName(), id, changes, currentUserID, nil)
+			err := s.activityLog.LogActivity(models.UpdateAction, models.Project{}.TableName(), id, changes, currentUserID, "", "", "", nil)
 			if err != nil {
 				utility.LogError("Failed to log update activity", map[string]interface{}{
 					"recordID": id,
@@ -325,7 +325,7 @@ func (s *ProjectService) UpdateStatus(id uint, currentUserID uint, projectStatus
 				"new": newData,
 			},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

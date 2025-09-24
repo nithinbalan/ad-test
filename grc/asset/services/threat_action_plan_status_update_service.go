@@ -207,6 +207,9 @@ func (tasus *ThreatActionPlanStatusUpdateService) Create(ThreatID uint, ThreatAc
 			id,
 			threatActionPlanUpdate,
 			currentUserID,
+			"asset",
+			"threat",
+			"threat_action_plan_status_update",
 			nil,
 		)
 		if err != nil {
@@ -430,6 +433,9 @@ func (tasus *ThreatActionPlanStatusUpdateService) Update(ThreatID uint, ThreatAc
 				id,
 				changedData,
 				currentUserID,
+				"asset",
+				"threat",
+				"threat_action_plan_status_update",
 				nil,
 			)
 			if err != nil {
@@ -662,6 +668,9 @@ func (tasus *ThreatActionPlanStatusUpdateService) Approve(threatID uint, actionP
 			id,
 			existingThreatActionPlan,
 			currentUserID,
+			"asset",
+			"threat",
+			"threat_action_plan_status_update",
 			nil,
 		)
 		if err != nil {
@@ -718,7 +727,7 @@ func (tasus *ThreatActionPlanStatusUpdateService) Revert(threatID uint, actionPl
 	}
 
 	threatActionPlanUpdate := &models.ThreatActionPlanStatusUpdate{
-		ThreatActionPlanID: threatID,
+		ThreatActionPlanID: actionPlanID,
 		ActionPlanStatusID: threatActionPlanReopenStatus.ID,
 		Comment:            ThreatActionPlanReviewUserStatusUpdateFormDTO.Comment,
 		CreatedByID:        currentUserID,
@@ -822,6 +831,9 @@ func (tasus *ThreatActionPlanStatusUpdateService) Revert(threatID uint, actionPl
 			id,
 			existingThreatActionPlan,
 			currentUserID,
+			"asset",
+			"threat",
+			"threat_action_plan_status_update",
 			nil,
 		)
 		if err != nil {

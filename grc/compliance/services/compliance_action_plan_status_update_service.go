@@ -114,7 +114,7 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 		CreatedByID:            currentUserID,
 	}
 
-	id, err := casus.repo.Create(complianceActionPlanUpdate)
+	id, err := casus.repo.Create(complianceActionPlanUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -210,6 +210,9 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 			id,
 			complianceActionPlanUpdate,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -447,6 +450,9 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {
@@ -543,7 +549,6 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 	tx := capus.repo.BeginTransaction()
 
 	if existingComplianceActionPlan.ActionPlanStatusID != complianceActionPlanStatusResolved.ID {
-		
 	}
 
 	existingComplianceActionPlan.ActionPlanStatusID = complianceActionPlanClosedStatus.ID
@@ -667,6 +672,9 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 			id,
 			existingComplianceActionPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -827,6 +835,9 @@ func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, 
 			id,
 			existingComplianceActionPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

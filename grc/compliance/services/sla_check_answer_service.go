@@ -3,13 +3,14 @@ package services
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
+	"strconv"
+
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"path/filepath"
-	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -55,7 +56,6 @@ func (scas SLACheckAnswerService) GetByID(slaID uint, questionID uint, answerID 
 	}
 
 	slaCheckAnswer, err := scas.repo.GetByID(answerID)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, answerID)
@@ -63,7 +63,6 @@ func (scas SLACheckAnswerService) GetByID(slaID uint, questionID uint, answerID 
 		return nil, err
 	}
 	return slaCheckAnswer, nil
-
 }
 
 func (scas SLACheckAnswerService) GetFullDetailsByID(slaID uint, questionID uint, answerID uint) (*complianceDTOs.SLACheckAnswerDetailDTO, error) {
@@ -74,7 +73,6 @@ func (scas SLACheckAnswerService) GetFullDetailsByID(slaID uint, questionID uint
 	var slaCheckAnswerDTO complianceDTOs.SLACheckAnswerDetailDTO
 
 	answer, err := scas.repo.GetFullDetailsByID(answerID)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, answerID)
@@ -152,7 +150,7 @@ func (scas *SLACheckAnswerService) CreateAnswer(slaID uint, questionID uint, cur
 			tx.Rollback()
 			return 0, err
 		}
-		//move file to storage
+		// move file to storage
 		for _, doc := range documents {
 			storagePath := filepath.Join("compliance", "sla-register", strconv.FormatUint(uint64(slaID), 10), "questions", strconv.FormatUint(uint64(questionID), 10), "answers", strconv.FormatUint(uint64(answer.ID), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
@@ -179,9 +177,8 @@ func (scas *SLACheckAnswerService) CreateAnswer(slaID uint, questionID uint, cur
 			answer.ID,
 			answer,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -210,7 +207,6 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 	}
 
 	oldCheckAnswer, err := scas.GetByID(slaID, questionID, answerID)
-
 	if err != nil {
 		return err
 	}
@@ -235,18 +231,16 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 	var documentsToDelete []*models.SLACheckAnswerDocument
 
 	for _, doc := range slaCheckAnswerFormDTO.Documents {
-
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
-			//genereate URL
+			// genereate URL
 			url := utility.GenerateDocumentURL("sla-register", strconv.FormatUint(uint64(slaID), 10), "questions", strconv.FormatUint(uint64(questionID), 10), "answers", encryptedFileName)
 			// Create a new Control test Document instance
 			document := &models.SLACheckAnswerDocument{
@@ -316,7 +310,7 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"compliance_status": oldCheckAnswer.ComplianceStatus.TitleEn,
@@ -340,9 +334,8 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 				existingAnswer.ID,
 				existingAnswer,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -432,7 +425,7 @@ func (scas *SLACheckAnswerService) DeleteAnswer(slaID uint, questionID uint, ans
 			successfulId,
 			deletedCheckAnswer,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
@@ -443,7 +436,6 @@ func (scas *SLACheckAnswerService) DeleteAnswer(slaID uint, questionID uint, ans
 }
 
 func (scas *SLACheckAnswerService) validateSlaCheckAnswerFormDTO(slaCheckAnswerFormDTO *complianceDTOs.SLACheckAnswerFormDTO) error {
-
 	if _, err := scas.complianceStatusSvc.GetByID(slaCheckAnswerFormDTO.ComplianceStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
 	}
@@ -457,7 +449,6 @@ func (scas SLACheckAnswerService) AssessmentSummary(slaID uint) (*complianceDTOs
 	}
 
 	assessmentSummary, err := scas.repo.AssessmentSummary(slaID)
-
 	if err != nil {
 		return nil, err
 	}

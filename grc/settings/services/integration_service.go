@@ -123,7 +123,7 @@ func (is *IntegrationService) EnableIntegration(integrationID uint, currentUserI
 			integrationCredential.ID,
 			integrationCredential,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -177,7 +177,7 @@ func (is *IntegrationService) UpdateCredential(id uint, currentUserID uint, cred
 			id,
 			credentialFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
@@ -223,7 +223,7 @@ func (is *IntegrationService) DisableIntegration(integrationID uint, currentUser
 			id,
 			nil,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

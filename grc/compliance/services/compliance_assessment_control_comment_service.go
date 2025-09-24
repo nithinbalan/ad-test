@@ -100,7 +100,6 @@ func (s *ComplianceAssessmentControlCommentService) GetFullDetailsByID(assessmen
 }
 
 func (s *ComplianceAssessmentControlCommentService) Create(assessmentID uint, controlID uint, currentUserID uint, dto *complianceDTOs.ComplianceAssessmentControlCommentFormDTO) (uint, error) {
-
 	control, err := s.complianceAssessmentControlSvc.GetFullDetailsByID(assessmentID, controlID)
 	if err != nil {
 		return 0, err
@@ -132,6 +131,9 @@ func (s *ComplianceAssessmentControlCommentService) Create(assessmentID uint, co
 			id,
 			detail,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 
@@ -225,6 +227,9 @@ func (s *ComplianceAssessmentControlCommentService) Update(assessmentID uint, co
 				id,
 				changes,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 		}

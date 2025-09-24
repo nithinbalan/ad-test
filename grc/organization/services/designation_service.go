@@ -90,7 +90,7 @@ func (ds *DesignationService) Create(currentUserID uint, designation *models.Des
 			createdDesignation.ID,
 			createdDesignation,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -147,7 +147,7 @@ func (ds *DesignationService) Update(id uint, currentUserID uint, updatedDesigna
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

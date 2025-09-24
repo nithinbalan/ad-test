@@ -134,7 +134,6 @@ func (maps MeetingActionPlanService) GetFullDetailsByID(meetingID uint, id uint)
 }
 
 func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) (uint, error) {
-	tx := maps.repo.BeginTransaction()
 
 	meeting, err := maps.meetingSvc.GetByID(meetingID)
 	if err != nil {
@@ -151,6 +150,11 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 	}
 
 	actionPlanStatus, err := maps.actionPlanStatusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
+	meetingMinuteStatus, err := maps.meetingMinuteStatusSvc.GetByType("open")
 	if err != nil {
 		return 0, err
 	}
@@ -179,15 +183,14 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 		}
 	}
 
+	tx := maps.repo.BeginTransaction()
+
 	id, err := maps.repo.Create(meetingActionPlan, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
-	meetingMinuteStatus, err := maps.meetingMinuteStatusSvc.GetByType("open")
-	if err != nil {
-		return 0, err
-	}
+
 	if err := maps.meetingMinuteSvc.StatusUpdate(*MeetingActionPlanFormDTO.MeetingMinuteID, currentUserID, uint(meetingMinuteStatus.ID), tx); err != nil {
 		tx.Rollback()
 		return 0, err
@@ -242,7 +245,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 			id,
 			existingMeetingActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -330,7 +333,6 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 }
 
 func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) error {
-	tx := maps.repo.BeginTransaction()
 
 	meeting, err := maps.meetingSvc.GetByID(meetingID)
 	if err != nil {
@@ -344,7 +346,6 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 
 	oldMeetingActionPlan, err := maps.GetFullDetailsByID(meetingID, id)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -366,7 +367,6 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 	existingMeetingActionPlan.ResponsibleUserID = MeetingActionPlanFormDTO.ResponsibleUserID
 	existingMeetingActionPlan.ReviewUserID = MeetingActionPlanFormDTO.ReviewUserID
 	existingMeetingActionPlan.TargetDate = dates.TargetDate
-	existingMeetingActionPlan.Percentage = MeetingActionPlanFormDTO.Percentage
 	existingMeetingActionPlan.MeetingMinuteID = MeetingActionPlanFormDTO.MeetingMinuteID
 	existingMeetingActionPlan.UpdatedByID = &currentUserID
 
@@ -381,8 +381,11 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 		}
 	}
 
-	err = maps.repo.Update(existingMeetingActionPlan)
+	tx := maps.repo.BeginTransaction()
+
+	err = maps.repo.Update(existingMeetingActionPlan, tx)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -449,7 +452,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -599,12 +602,13 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 }
 
 func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, currentUserID uint) ([]uint, error) {
-	tx := maps.repo.BeginTransaction()
 
 	meeting, err := maps.meetingSvc.GetByID(meetingID)
 	if err != nil {
 		return nil, err
 	}
+	
+	tx := maps.repo.BeginTransaction()
 
 	var failedIds []uint
 	var successfulIds []uint
@@ -624,6 +628,11 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 			continue
 		}
 
+		description := ""
+		if meetingActionPlan.Description != nil {
+			description = *meetingActionPlan.Description
+		}
+
 		// Prepare notification data before deletion
 		notifications = append(notifications, struct {
 			OwnerID         *uint
@@ -636,7 +645,7 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 			OwnerID:         &meetingActionPlan.ResponsibleUserID,
 			TitleEn:         meetingActionPlan.Title,
 			TitleAr:         meetingActionPlan.Title,
-			Description:     *meetingActionPlan.Description,
+			Description:     description,
 			ReferenceNumber: meeting.ReferenceNumber,
 			MeetingTitle:    meeting.Title,
 		})
@@ -803,6 +812,12 @@ func (maps *MeetingActionPlanService) validateMeetingActionPlanFormDTO(meetingAc
 
 	if _, err := maps.meetingMinuteSvc.GetByID(*meetingActionPlanFormDTO.MeetingMinuteID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("meeting minute does not exist"), "not_exist", "meeting minute")
+	}
+
+	if meetingActionPlanFormDTO.ReviewUserID != nil {
+		if _, err := maps.userSvc.GetByID(uint(*meetingActionPlanFormDTO.ReviewUserID)); err != nil {
+			return utility.NewValidationError(fmt.Errorf("review user does not exist"), "not_exist", "review user")
+		}
 	}
 
 	return nil

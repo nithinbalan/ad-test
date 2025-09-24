@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	bcpBiaMatrixRepositories "jethur/grc/business-continuity/repositories"
 	logServices "jethur/grc/logs/services"
@@ -53,7 +54,6 @@ func (bbms BcpBiaMatrixService) GetFullDetailsByID(id uint, tx ...utility.Databa
 	var businessContinuityPlanDTO businessContinuityDTOs.BcpBiaMatrixDetailDTO
 
 	businessContinuityPlan, err := bbms.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -93,7 +93,6 @@ func (bbms *BcpBiaMatrixService) Update(bcpId uint, currentUserID uint, bcpProce
 	existingBusinessContinuityPlan.UpdatedBYID = &currentUserID
 
 	err = bbms.businessContinuityPlanSvc.UpdateRecoveryObjectives(existingBusinessContinuityPlan, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -113,7 +112,6 @@ func (bbms *BcpBiaMatrixService) Update(bcpId uint, currentUserID uint, bcpProce
 	existingBusinessFunction.UpdatedBYID = &currentUserID
 
 	err = bbms.businessFunctionSvc.UpdateBusinessFunction(existingBusinessFunction, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -152,7 +150,7 @@ func (bbms *BcpBiaMatrixService) Update(bcpId uint, currentUserID uint, bcpProce
 		// Prepare log data
 		changedData := make(map[string]interface{})
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"rto":       oldBusinessContinuityPlan.Rto,
 			"rto_unit":  utility.GetFieldValue(oldBusinessContinuityPlan.RtoUnit),
@@ -183,9 +181,11 @@ func (bbms *BcpBiaMatrixService) Update(bcpId uint, currentUserID uint, bcpProce
 				bcpId,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,

@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	"jethur/grc/models"
 	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
@@ -72,7 +73,6 @@ func (ms ModuleService) GetFullDetailsByID(moduleId uint) (*dtos.ModuleDetailDTO
 	var moduleDTO dtos.ModuleDetailDTO
 
 	module, err := ms.repo.GetFullDetailsByID(moduleId)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, moduleId)
@@ -125,7 +125,7 @@ func (ms *ModuleService) EnableModule(id uint) (*models.Module, error) {
 		// Check if the module identifier is allowed in the license
 		isAllowed := false
 		for _, allowedModule := range allowedModules {
-			if module.ModuleID == nil {
+			if module.ParentID == nil {
 				if allowedModule == moduleDetail.Identifier {
 					isAllowed = true
 					break
@@ -151,13 +151,11 @@ func (ms *ModuleService) EnableModule(id uint) (*models.Module, error) {
 	}
 
 	// Enable submodules if it's a parent module
-	if module.ModuleID == nil {
+	if module.ParentID == nil {
 		if len(moduleDetail.SubModules) > 0 {
-
 			// enabling all sub modules
 			for _, subModule := range moduleDetail.SubModules {
 				existingSubModule, err := ms.GetByID(subModule.ID)
-
 				if err != nil {
 					return nil, err
 				}
@@ -168,11 +166,9 @@ func (ms *ModuleService) EnableModule(id uint) (*models.Module, error) {
 				}
 			}
 		}
-
 	} else {
 		// enabling main module
-		existingModule, err := ms.GetByID(*module.ModuleID)
-
+		existingModule, err := ms.GetByID(*module.ParentID)
 		if err != nil {
 			return nil, err
 		}
@@ -203,12 +199,11 @@ func (ms *ModuleService) DisableModule(id uint) (*models.Module, error) {
 		return nil, err
 	}
 
-	if module.ModuleID == nil {
+	if module.ParentID == nil {
 		if len(moduleDetail.SubModules) > 0 {
 			// disabling all sub modules
 			for _, subModule := range moduleDetail.SubModules {
 				existingSubModule, err := ms.GetByID(subModule.ID)
-
 				if err != nil {
 					return nil, err
 				}
@@ -220,7 +215,7 @@ func (ms *ModuleService) DisableModule(id uint) (*models.Module, error) {
 			}
 		}
 	} else {
-		mainModuleDetail, err := ms.GetFullDetailsByID(*module.ModuleID)
+		mainModuleDetail, err := ms.GetFullDetailsByID(*module.ParentID)
 		if err != nil {
 			return nil, err
 		}
@@ -235,8 +230,7 @@ func (ms *ModuleService) DisableModule(id uint) (*models.Module, error) {
 
 		// Disable parent module if all sub-modules are disabled
 		if allDisabled {
-			existingModule, err := ms.GetByID(*module.ModuleID)
-
+			existingModule, err := ms.GetByID(*module.ParentID)
 			if err != nil {
 				return nil, err
 			}
@@ -253,7 +247,6 @@ func (ms *ModuleService) DisableModule(id uint) (*models.Module, error) {
 func (ms *ModuleService) ReorderModule(modules []dtos.ModuleReorderDTO) error {
 	for _, module := range modules {
 		existingModule, err := ms.GetByIdentifier(module.Identifier)
-
 		if err != nil {
 			return nil
 		}
@@ -271,7 +264,6 @@ func (ms *ModuleService) ReorderModule(modules []dtos.ModuleReorderDTO) error {
 func (ms *ModuleService) ReorderSubModule(modules []dtos.ModuleReorderDTO) error {
 	for _, module := range modules {
 		existingModule, err := ms.GetByIdentifier(module.Identifier)
-
 		if err != nil {
 			return nil
 		}
@@ -288,7 +280,6 @@ func (ms *ModuleService) ReorderSubModule(modules []dtos.ModuleReorderDTO) error
 
 func (ms *ModuleService) UpdateModule(id uint, moduleFormDTO dtos.ModuleFormDTO) error {
 	existingModule, err := ms.GetByID(id)
-
 	if err != nil {
 		return nil
 	}
@@ -304,7 +295,6 @@ func (ms *ModuleService) UpdateModule(id uint, moduleFormDTO dtos.ModuleFormDTO)
 
 func (ms *ModuleService) UpdateSubModule(id uint, subModuleFormDTO dtos.SubModuleFormDTO) error {
 	existingModule, err := ms.GetByID(id)
-
 	if err != nil {
 		return nil
 	}

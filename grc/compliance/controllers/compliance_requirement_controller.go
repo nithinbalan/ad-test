@@ -396,3 +396,130 @@ func (crc *ComplianceRequirementController) GetComplianceRequirementsExport(c *g
 
 	crc.GetAllComplianceRequirements(c)
 }
+
+func (crc *ComplianceRequirementController) GetRequirementsTemplate(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	file, err := crc.service.GenerateRequirementTemplate(uint(complianceID))
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Failed to generate template")
+		return
+	}
+	defer file.Close()
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Disposition", `attachment; filename="ComplianceRequirementTemplate.xlsx"`)
+	c.Header("Content-Type", "application/octet-stream")
+	c.File(file.Name())
+}
+
+func (crc *ComplianceRequirementController) ValidateRequirementTemplate(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Failed to read uploaded file")
+		return
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, "Failed to open file")
+		return
+	}
+	defer file.Close()
+
+	validationResult, err := crc.service.ValidateRequirementTemplate(uint(complianceID), file)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, validationResult)
+}
+
+func (crc *ComplianceRequirementController) ValidateImportRequirement(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var input []map[string]interface{}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	validationResult, err := crc.service.ValidateImportRequirement(uint(complianceID), input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, validationResult)
+}
+
+func (crc *ComplianceRequirementController) ImportRequirements(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
+
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	createdIDs, err := crc.service.ImportRequirements(uint(complianceID), input, currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"created_ids": createdIDs})
+}

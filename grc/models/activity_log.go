@@ -11,9 +11,14 @@ type ActivityLog struct {
 	RecordID    uint      `json:"record_id"`
 	ChangedData string    `json:"changed_data" gorm:"type:nvarchar(max)"`
 	UserID      uint      `json:"user_id"`
+	ModuleID    *uint     `json:"module_id"`
+	SubModuleID *uint     `json:"sub_module_id"`
+	Section     *string   `json:"section" gorm:"type:nvarchar(255)"`
 	CreatedAt   time.Time `json:"created_at" gorm:"type:datetime;not null;default:GETDATE()"`
 
-	User *User `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	User      *User   `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Module    *Module `gorm:"foreignKey:ModuleID;references:ID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	SubModule *Module `gorm:"foreignKey:SubModuleID;references:ID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 type Action string

@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	auditRepositories "jethur/grc/audit/repositories"
 	commonDTOs "jethur/grc/common/dtos"
@@ -11,7 +13,6 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -36,7 +37,8 @@ type AuditTeamService struct {
 func NewAuditTeamService(
 	repo auditRepositories.AuditTeamRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
-	userSvc organizationServices.UserServiceInterface) AuditTeamServiceInterface {
+	userSvc organizationServices.UserServiceInterface,
+) AuditTeamServiceInterface {
 	return &AuditTeamService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
@@ -132,7 +134,6 @@ func (ats *AuditTeamService) GetAll(params *auditDTOs.AuditTeamListQueryParamsDT
 
 func (ats AuditTeamService) GetByID(id uint) (*models.AuditTeam, error) {
 	auditTeam, err := ats.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -221,9 +222,11 @@ func (ats *AuditTeamService) Create(currentUserID uint, auditTeamFormDTO *auditD
 			id,
 			existingAuditTeam,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -250,7 +253,6 @@ func (ats *AuditTeamService) Update(id uint, currentUserID uint, auditTeamFormDT
 	}
 
 	existingAuditTeam, err := ats.GetByID(id)
-
 	if err != nil {
 		return err
 	}
@@ -266,7 +268,6 @@ func (ats *AuditTeamService) Update(id uint, currentUserID uint, auditTeamFormDT
 	existingAuditTeam.UpdatedBYID = &currentUserID
 
 	err = ats.repo.Update(existingAuditTeam, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -353,7 +354,7 @@ func (ats *AuditTeamService) Update(id uint, currentUserID uint, auditTeamFormDT
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title_en":  oldAuditTeam.TitleEn,
 			"title_ar":  oldAuditTeam.TitleAr,
@@ -378,9 +379,11 @@ func (ats *AuditTeamService) Update(id uint, currentUserID uint, auditTeamFormDT
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -441,7 +444,6 @@ func (ats *AuditTeamService) Delete(ids []uint, currentUserID uint) ([]uint, err
 	tx.Commit()
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := ats.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,

@@ -9,11 +9,12 @@ import (
 )
 
 type PolicyModule struct {
-	PolicyFolderController   *controllers.PolicyFolderController
-	PolicyRegisterController *controllers.PolicyRegisterController
-	PolicyClauseController   *controllers.PolicyClauseController
-	PolicyReviewController   *controllers.PolicyReviewController
-	PolicyWorkflowController *controllers.PolicyWorkflowController
+	PolicyFolderController        *controllers.PolicyFolderController
+	PolicyRegisterController      *controllers.PolicyRegisterController
+	PolicyClauseController        *controllers.PolicyClauseController
+	PolicyReviewController        *controllers.PolicyReviewController
+	PolicyWorkflowController      *controllers.PolicyWorkflowController
+	PolicyClauseCommentController *controllers.PolicyClauseCommentController
 
 	PolicyFolderSvc   services.PolicyFolderServiceInterface
 	PolicyRegisterSvc services.PolicyRegisterServiceInterface
@@ -38,7 +39,7 @@ func NewPolicyModule(db *gorm.DB,
 	policyFolderController := controllers.NewPolicyFolderController(policyFolderSvc)
 
 	policyClauseRepo := repositories.NewPolicyClauseRepository(db)
-	policyClauseSvc := services.NewPolicyClauseService(policyClauseRepo, documentModule.DocumentSvc, sharedModule.ActivityLogService)
+	policyClauseSvc := services.NewPolicyClauseService(policyClauseRepo, documentModule.DocumentSvc, documentModule.DocumentStatusSvc, sharedModule.ActivityLogService)
 	policyClauseController := controllers.NewPolicyClauseController(policyClauseSvc)
 
 	policyRegisterRepo := repositories.NewPolicyRegisterRepository(db)
@@ -67,11 +68,16 @@ func NewPolicyModule(db *gorm.DB,
 	)
 	policyRegisterController := controllers.NewPolicyRegisterController(policyRegisterSvc)
 
+	PolicyClauseCommentRepo := repositories.NewPolicyClauseCommentRepository(db)
+	PolicyClauseCommentSvc := services.NewPolicyClauseCommentService(PolicyClauseCommentRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, policyRegisterSvc, masterModule.CommentStatusSvc)
+	PolicyClauseCommentController := controllers.NewPolicyClauseCommentController(PolicyClauseCommentSvc)
+
 	return &PolicyModule{
-		PolicyFolderController:   policyFolderController,
-		PolicyRegisterController: policyRegisterController,
-		PolicyClauseController:   policyClauseController,
-		PolicyWorkflowController: policyWorkflowController,
-		PolicyReviewController:   policyReviewController,
+		PolicyFolderController:        policyFolderController,
+		PolicyRegisterController:      policyRegisterController,
+		PolicyClauseController:        policyClauseController,
+		PolicyWorkflowController:      policyWorkflowController,
+		PolicyReviewController:        policyReviewController,
+		PolicyClauseCommentController: PolicyClauseCommentController,
 	}
 }

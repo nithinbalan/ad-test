@@ -2,11 +2,12 @@ package services
 
 import (
 	"fmt"
+	"log"
+
 	"jethur/grc/logs/services"
 	"jethur/grc/masters/repositories"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 )
 
 type RequiredDocumentTitleServiceInterface interface {
@@ -59,9 +60,8 @@ func (rdts *RequiredDocumentTitleService) Create(currentUserID uint, document *m
 			document.ID,
 			createdDocument,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			// @todo - save to log file
 			log.Printf("Failed to log activity: %v", err)
@@ -73,7 +73,6 @@ func (rdts *RequiredDocumentTitleService) Create(currentUserID uint, document *m
 
 func (rdts *RequiredDocumentTitleService) Update(id uint, currentUserID uint, updatedDocument *models.RequiredDocumentTitle) (*models.RequiredDocumentTitle, error) {
 	existingDocument, err := rdts.repo.GetByID(id)
-
 	if err != nil {
 		return nil, err
 	}
@@ -87,14 +86,12 @@ func (rdts *RequiredDocumentTitleService) Update(id uint, currentUserID uint, up
 	}
 
 	result, err := rdts.repo.Update(id, updatedDocument)
-
 	if err != nil {
 		return nil, err
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status"}
 	changes, err := utility.CompareFields(existingDocument, updatedDocument, fieldsToCompare)
-
 	if err != nil {
 		log.Println("error :", err.Error())
 	}
@@ -111,7 +108,7 @@ func (rdts *RequiredDocumentTitleService) Update(id uint, currentUserID uint, up
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

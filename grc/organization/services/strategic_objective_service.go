@@ -95,7 +95,7 @@ func (sos *StrategicObjectiveService) Create(currentUserID uint, strategicObject
 			createdStrategicObjectiveID,
 			strategicObjectiveFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

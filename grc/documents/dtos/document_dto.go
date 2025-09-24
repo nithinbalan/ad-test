@@ -97,7 +97,7 @@ type DocumentListResponseDTO struct {
 }
 
 type DocumentFormDTO struct {
-	DocumentTypeID       uint                        `json:"document_type_id" binding:"required"`
+	DocumentTypeID       *uint                       `json:"document_type_id" binding:"required"`
 	TitleEn              string                      `json:"title_en" binding:"required"`
 	TitleAr              string                      `json:"title_ar" binding:"required"`
 	DescriptionEn        *string                     `json:"description_en"`

@@ -3,14 +3,15 @@ package services
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
+	"strconv"
+
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"path/filepath"
-	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -301,6 +302,9 @@ func (acas *AssetControlAnalysisService) Update(assetID uint, id uint, currentUs
 				id,
 				changedData,
 				currentUserID,
+				"asset",
+				"asset_register",
+				"asset_control_analysis",
 				nil,
 			)
 			if err != nil {
@@ -366,7 +370,6 @@ func (acas *AssetControlAnalysisService) Delete(assetID uint, ids []uint, curren
 }
 
 func (acas *AssetControlAnalysisService) validateAssetControlFormDTO(assetControlFormDTO *dtos.AssetControlFormDTO) error {
-
 	controlIds := assetControlFormDTO.ControlIds
 
 	controlIDs := make(map[uint]bool)
@@ -387,7 +390,6 @@ func (acas *AssetControlAnalysisService) validateAssetControlFormDTO(assetContro
 }
 
 func (acas *AssetControlAnalysisService) validateAssetControlUpdateFormDTO(assetControlUpdateFormDTO *dtos.AssetControlUpdateFormDTO) error {
-
 	if _, err := acas.controlImplementationStatusSvc.GetByID(uint(assetControlUpdateFormDTO.ControlImplementationStatusID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("control implementation status does not exist"), "not_exist", "control implementation status")
 	}

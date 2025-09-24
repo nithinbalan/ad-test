@@ -331,7 +331,7 @@ func (prs *PolicyRegisterService) Create(currentUserID uint, documentFormDTO *po
 			id,
 			existingDocument,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -665,7 +665,7 @@ func (prs *PolicyRegisterService) Update(id uint, currentUserID uint, documentFo
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -1082,12 +1082,12 @@ func (prs *PolicyRegisterService) CreatePolicyWorkflow(documentId uint, document
 
 	workflow, err := prs.workflowSvc.GetWorkflowByDocumentType(documentTypeId, workflowContext.ID, tx...)
 	if err != nil {
-		return err
+		return utility.NewForbiddenError("No levels defined for workflow of this document type.")
 	}
 
 	workflowLevels, err := prs.workflowSvc.GetWorkflowLevels(workflow.ID, tx...)
 	if err != nil {
-		return err
+		return utility.NewForbiddenError("No levels defined for workflow of this document type.")
 	}
 
 	documentWorkflowStatus, err := prs.documentWorkflowStatusSvc.GetByType("pending")

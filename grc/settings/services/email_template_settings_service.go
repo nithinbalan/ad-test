@@ -59,7 +59,7 @@ func (ets *EmailTemplateSettingsService) Update(id uint, currentUserID uint, ema
 			id,
 			emailTemplateSettingsFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

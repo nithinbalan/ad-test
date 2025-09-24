@@ -205,6 +205,9 @@ func (adrcs *AuditDocumentRequestConversationService) Create(auditID uint, audit
 			id,
 			conversation,
 			currentUserID,
+			"audit",
+			"audits",
+			"audit_document_request_conversation",
 			nil,
 		)
 		if err != nil {

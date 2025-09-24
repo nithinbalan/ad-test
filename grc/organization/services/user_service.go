@@ -430,7 +430,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 			userID, // use userID instead of id
 			existingUser,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -614,7 +614,7 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {

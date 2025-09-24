@@ -3,11 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	"jethur/grc/asset/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 
 	"gorm.io/gorm"
 )
@@ -69,9 +70,11 @@ func (ats *AssetTypeService) Create(currentUserID uint, assetType *models.AssetT
 			createdType.ID,
 			createdType,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			log.Printf("Failed to log activity: %v", err)
 		}
@@ -117,6 +120,9 @@ func (ats *AssetTypeService) Update(id uint, currentUserID uint, updatedType *mo
 			result.ID,
 			changedDataJSON,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

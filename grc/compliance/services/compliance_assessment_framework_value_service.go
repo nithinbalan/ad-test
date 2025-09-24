@@ -153,7 +153,7 @@ func (cavs *ComplianceAssessmentFrameworkValueService) Create(complianceAssessme
 			"is_applicable":                      form.IsApplicable,
 			"compliance_status_id":               form.ComplianceStatusID,
 		}
-		err := cavs.activityLog.LogActivity(models.CreateAction, models.ComplianceAssessmentFrameworkValue{}.TableName(), id, activityData, currentUserID, nil)
+		err := cavs.activityLog.LogActivity(models.CreateAction, models.ComplianceAssessmentFrameworkValue{}.TableName(), id, activityData, currentUserID, "", "", "", nil)
 		if err != nil {
 			utility.LogError("Failed to log create compliance assessment framework value activity", map[string]interface{}{
 				"recordID": id,
@@ -231,7 +231,7 @@ func (cavs *ComplianceAssessmentFrameworkValueService) Update(complianceAssessme
 		}
 		changes := utility.CompareFieldChanges(oldData, newData)
 		if len(changes) > 0 {
-			err := cavs.activityLog.LogActivity(models.UpdateAction, models.ComplianceAssessmentFrameworkValue{}.TableName(), id, changes, currentUserID, nil)
+			err := cavs.activityLog.LogActivity(models.UpdateAction, models.ComplianceAssessmentFrameworkValue{}.TableName(), id, changes, currentUserID, "", "", "", nil)
 			if err != nil {
 				utility.LogError("Failed to log update compliance assessment framework value activity", map[string]interface{}{
 					"recordID": id,
@@ -302,7 +302,6 @@ func timePtr(t time.Time) *time.Time {
 
 // validateComplianceAssessmentFrameworkValue validates the form data according to business rules
 func (cavs *ComplianceAssessmentFrameworkValueService) validateComplianceAssessmentFrameworkValue(form *dtos.ComplianceAssessmentFrameworkValueFormDTO) error {
-
 	// IsApplicable-based validation
 	if form.IsApplicable {
 		// If IsApplicable is true, value, score_min, and score_max are required

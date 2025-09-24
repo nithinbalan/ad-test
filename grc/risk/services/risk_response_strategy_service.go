@@ -3,11 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/risk/repositories"
 	"jethur/utility"
-	"log"
 
 	"gorm.io/gorm"
 )
@@ -51,7 +52,6 @@ func (rrss RiskResponseStrategyService) GetByID(id uint) (*models.RiskResponseSt
 }
 
 func (rrss *RiskResponseStrategyService) Create(currentUserID uint, strategy *models.RiskResponseStrategy) (*models.RiskResponseStrategy, error) {
-
 	if exists, err := rrss.repo.ExistsByTitle(strategy.TitleEn, strategy.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
@@ -70,9 +70,8 @@ func (rrss *RiskResponseStrategyService) Create(currentUserID uint, strategy *mo
 			createdStrategy.ID,
 			createdStrategy,
 			currentUserID,
-			nil,
+			"risk", "risk_register", "response_strategy", nil,
 		)
-
 		if err != nil {
 			// @todo - save to log file
 			log.Printf("Failed to log activity: %v", err)
@@ -84,7 +83,6 @@ func (rrss *RiskResponseStrategyService) Create(currentUserID uint, strategy *mo
 
 func (rrss *RiskResponseStrategyService) Update(id uint, currentUserID uint, updatedStrategy *models.RiskResponseStrategy) (*models.RiskResponseStrategy, error) {
 	existingStrategy, err := rrss.repo.GetByID(id)
-
 	if err != nil {
 		return nil, err
 	}
@@ -95,18 +93,15 @@ func (rrss *RiskResponseStrategyService) Update(id uint, currentUserID uint, upd
 		} else if exists {
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
-
 	}
 
 	result, err := rrss.repo.Update(id, updatedStrategy)
-
 	if err != nil {
 		return nil, err
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "Status"}
 	changes, err := utility.CompareFields(existingStrategy, updatedStrategy, fieldsToCompare)
-
 	if err != nil {
 		log.Println("error :", err.Error())
 	}
@@ -123,7 +118,7 @@ func (rrss *RiskResponseStrategyService) Update(id uint, currentUserID uint, upd
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"risk", "risk_register", "response_strategy", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
@@ -140,7 +135,6 @@ func (rrss *RiskResponseStrategyService) Delete(ids []uint, currentUserID uint) 
 	for _, id := range ids {
 
 		responseStrategy, err := rrss.repo.GetByID(id)
-
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -160,7 +154,6 @@ func (rrss *RiskResponseStrategyService) Delete(ids []uint, currentUserID uint) 
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := rrss.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -184,7 +177,6 @@ func (rrss *RiskResponseStrategyService) Activate(ids []uint, currentUserID uint
 	successfulIds, err := rrss.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := rrss.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
@@ -208,7 +200,6 @@ func (rrss *RiskResponseStrategyService) Deactivate(ids []uint, currentUserID ui
 	successfulIds, err := rrss.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := rrss.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,

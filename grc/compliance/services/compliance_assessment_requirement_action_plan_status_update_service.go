@@ -210,7 +210,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Cre
 			id,
 			complianceActionPlanUpdate,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -446,7 +446,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Upd
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -574,6 +574,12 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) App
 		return err
 	}
 
+	_, err = carasus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, existingComplianceActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	_, err = carasus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, *existingComplianceActionPlan.ReviewUserID, uint(taskStatus.ID), tx)
 	if err != nil {
 		tx.Rollback()
@@ -583,16 +589,6 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) App
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-
-	// Start a new transaction for the second update
-	tx2 := carasus.repo.BeginTransaction()
-	_, err = carasus.taskSvc.UpdateActionPlanTaskStatus("compliance_action_plan_id", compliaceActionPlanID, existingComplianceActionPlan.ResponsibleUserID, uint(taskStatus.ID), tx2)
-	if err != nil {
-		tx2.Rollback()
-		return err
-	}
-
-	tx2.Commit()
 
 	go func() {
 		urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, assessmentID, requirementID, compliaceActionPlanID)
@@ -671,7 +667,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) App
 			id,
 			existingComplianceActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -831,7 +827,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Rev
 			id,
 			existingComplianceActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

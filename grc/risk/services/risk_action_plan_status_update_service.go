@@ -98,6 +98,15 @@ func (rasus RiskActionPlanStatusUpdateService) GetByID(RiskID uint, RiskActionPl
 }
 
 func (rasus *RiskActionPlanStatusUpdateService) Create(RiskID uint, RiskActionPlanID uint, currentUserID uint, riskActionPlanStatusUpdateFormDTO *riskDTOs.RiskActionPlanStatusUpdateFormDTO) (uint, error) {
+	riskActionPlan, err := rasus.riskActionPlanSvc.GetByID(RiskID, RiskActionPlanID)
+	if err != nil {
+		return 0, err
+	}
+	actionPlanStatus, err := rasus.actionPlanStatusSvc.GetByType("completed")
+	if err != nil {
+		return 0, err
+	}
+
 	tx := rasus.repo.BeginTransaction()
 
 	if _, err := rasus.riskActionPlanSvc.GetByID(RiskID, RiskActionPlanID); err != nil {
@@ -172,6 +181,24 @@ func (rasus *RiskActionPlanStatusUpdateService) Create(RiskID uint, RiskActionPl
 
 		}
 	}
+
+	if riskActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && riskActionPlan.ReviewUserID != nil {
+		urlParam := fmt.Sprintf(`{"risk_register_id":%d, "action_plan_id":%d}`, RiskID, RiskActionPlanID)
+		taskDTO := commonDTOs.TaskFormDTO{
+			ModuleIdentifier:  "risk_register",
+			RiskActionPlanID:  &RiskActionPlanID,
+			Title:             riskActionPlan.Title,
+			Description:       riskActionPlan.Description,
+			URLParam:          &urlParam,
+			QueryParam:        nil,
+			SeverityLevelID:   riskActionPlan.SeverityLevelID,
+			ResponsibleUserID: *riskActionPlan.ReviewUserID,
+		}
+		if _, err := rasus.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
 	tx.Commit()
 
 	go func() {
@@ -181,7 +208,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Create(RiskID uint, RiskActionPl
 			id,
 			riskActionPlanUpdate,
 			currentUserID,
-			nil,
+			"risk", "risk_register", "action_plan_status_update", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -319,7 +346,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Update(RiskID uint, RiskActionPl
 		// Prepare log data
 		changedData := make(map[string]interface{})
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"comment":    oldActionPlanStatusUpdate.Comment,
 			"percentage": oldActionPlanStatusUpdate.Percentage,
@@ -344,7 +371,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Update(RiskID uint, RiskActionPl
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"risk", "risk_register", "action_plan_status_update", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -569,7 +596,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Approve(riskID uint, riskActionP
 			id,
 			existingRiskActionPlan,
 			currentUserID,
-			nil,
+			"risk", "risk_register", "action_plan_status_update", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -729,7 +756,7 @@ func (rasus *RiskActionPlanStatusUpdateService) Revert(riskID uint, riskActionPl
 			id,
 			existingRiskActionPlan,
 			currentUserID,
-			nil,
+			"risk", "risk_register", "action_plan_status_update", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

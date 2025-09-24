@@ -69,7 +69,7 @@ func (qls *QuestionLibraryService) Create(currentUserID uint, questionLibraryFor
 			id,
 			questionLibraryForm,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -130,7 +130,7 @@ func (qls *QuestionLibraryService) Update(id uint, currentUserID uint, updatedQu
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

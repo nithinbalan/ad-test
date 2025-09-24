@@ -149,6 +149,8 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		return 0, err
 	}
 
+	tx := afaps.repo.BeginTransaction()
+
 	auditFindingActionPlan := &models.AuditFindingActionPlan{
 		AuditFindingID:     findingID,
 		Title:              AuditFindingActionPlanFormDTO.Title,
@@ -166,6 +168,7 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 	if AuditFindingActionPlanFormDTO.ResponsibleUserID != 0 {
 		delegateeID, err := afaps.delegateeUserSvc.AssignDelegateeIfPermitted(AuditFindingActionPlanFormDTO.ResponsibleUserID, "audits")
 		if err != nil {
+			tx.Rollback()
 			return 0, err
 		}
 		if delegateeID != nil {
@@ -173,7 +176,6 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 		}
 	}
 
-	tx := afaps.repo.BeginTransaction()
 
 	id, err := afaps.repo.Create(auditFindingActionPlan, tx)
 	if err != nil {
@@ -230,6 +232,9 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 			id,
 			existingAuditFindingActionPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -352,7 +357,6 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 	existingAuditFindingActionPlan.ResponsibleUserID = AuditFindingActionPlanFormDTO.ResponsibleUserID
 	existingAuditFindingActionPlan.ReviewUserID = AuditFindingActionPlanFormDTO.ReviewUserID
 	existingAuditFindingActionPlan.TargetDate = dates.TargetDate
-	existingAuditFindingActionPlan.Percentage = AuditFindingActionPlanFormDTO.Percentage
 	existingAuditFindingActionPlan.Comments = AuditFindingActionPlanFormDTO.Comments
 	existingAuditFindingActionPlan.UpdatedBYID = &currentUserID
 
@@ -360,6 +364,7 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 		existingAuditFindingActionPlan.DelegateeUserID = nil
 		delegateeID, err := afaps.delegateeUserSvc.AssignDelegateeIfPermitted(AuditFindingActionPlanFormDTO.ResponsibleUserID, "audits")
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 		if delegateeID != nil {
@@ -437,6 +442,9 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {
@@ -605,6 +613,10 @@ func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uin
 		if err != nil {
 			continue
 		}
+		description := ""
+		if auditFindingActionPlan.Description != nil {
+			description = *auditFindingActionPlan.Description
+		}
 
 		// Prepare notification data before deletion
 		notifications = append(notifications, struct {
@@ -618,7 +630,7 @@ func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uin
 			OwnerID:           &auditFindingActionPlan.ResponsibleUserID,
 			TitleEn:           auditFindingActionPlan.Title,
 			TitleAr:           auditFindingActionPlan.Title,
-			Description:       *auditFindingActionPlan.Description,
+			Description:       description,
 			ReferenceNumber:   auditFindingActionPlan.AuditFinding.ReferenceNumber,
 			AuditFindingTitle: auditFindingActionPlan.AuditFinding.Title,
 		})
@@ -658,6 +670,12 @@ func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uin
 			"audit_finding": auditFindingActionPlan.AuditFinding.Title,
 		})
 	}
+
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+	
 	tx.Commit()
 
 	if len(successfulIds) > 0 {

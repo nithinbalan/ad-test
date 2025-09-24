@@ -169,7 +169,6 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 }
 
 func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) (uint, error) {
-	tx := caps.repo.BeginTransaction()
 
 	compliance, err := caps.complianceRegisterSvc.GetByID(complianceID)
 	if err != nil {
@@ -190,6 +189,8 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 		return 0, err
 	}
 
+	tx := caps.repo.BeginTransaction()
+
 	complianceActionPlan := &models.ComplianceActionPlan{
 		ComplianceRegisterID:    &complianceID,
 		ComplianceRequirementID: ComplianceActionPlanFormDTO.ComplianceRequirementID,
@@ -208,6 +209,7 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 	if ComplianceActionPlanFormDTO.ResponsibleUserID != 0 {
 		delegateeID, err := caps.delegateeUserSvc.AssignDelegateeIfPermitted(ComplianceActionPlanFormDTO.ResponsibleUserID, "compliance_register")
 		if err != nil {
+			tx.Rollback()
 			return 0, err
 		}
 		if delegateeID != nil {
@@ -269,6 +271,9 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 			id,
 			existingComplianceActionPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -362,7 +367,6 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 }
 
 func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) error {
-	tx := caps.repo.BeginTransaction()
 
 	compliance, err := caps.complianceRegisterSvc.GetByID(complianceID)
 	if err != nil {
@@ -376,7 +380,6 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 
 	oldComplianceActionPlan, err := caps.GetFullDetailsByID(complianceID, id)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -390,6 +393,8 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 	if err != nil {
 		return err
 	}
+
+	tx := caps.repo.BeginTransaction()
 
 	// Update Compliance ActionPlan
 	existingComplianceActionPlan.Title = ComplianceActionPlanFormDTO.Title
@@ -406,6 +411,7 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 		existingComplianceActionPlan.DelegateeUserID = nil
 		delegateeID, err := caps.delegateeUserSvc.AssignDelegateeIfPermitted(ComplianceActionPlanFormDTO.ResponsibleUserID, "compliance_register")
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 		if delegateeID != nil {
@@ -480,6 +486,9 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {
@@ -642,6 +651,8 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 		return nil, err
 	}
 
+	tx := caps.repo.BeginTransaction()
+
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedComplianceActionPlan []map[string]interface{}
@@ -715,8 +726,11 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 	}
 
 	if len(failedIds) > 0 {
+		tx.Rollback()
 		return failedIds, nil
 	}
+	
+	tx.Commit()
 
 	if len(successfulIds) > 0 {
 		go func() {
