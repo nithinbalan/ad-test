@@ -84,7 +84,7 @@ func (s *JobDescriptionService) Create(currentUserID uint, jobDesc *models.JobDe
 	}
 
 	go func() {
-		err := s.activityLogSvc.LogActivity(models.CreateAction, jobDesc.TableName(), created.ID, created, currentUserID, nil)
+		err := s.activityLogSvc.LogActivity(models.CreateAction, jobDesc.TableName(), created.ID, created, currentUserID, "", "", "", nil)
 		if err != nil {
 			log.Printf("Failed to log create activity: %v", err)
 		}
@@ -126,7 +126,7 @@ func (s *JobDescriptionService) Update(id uint, currentUserID uint, updated *mod
 	}
 
 	go func() {
-		err := s.activityLogSvc.LogActivity(models.UpdateAction, updated.TableName(), result.ID, changedDataJSON, currentUserID, nil)
+		err := s.activityLogSvc.LogActivity(models.UpdateAction, updated.TableName(), result.ID, changedDataJSON, currentUserID, "", "", "", nil)
 		if err != nil {
 			log.Printf("Failed to log update activity: %v", err)
 		}

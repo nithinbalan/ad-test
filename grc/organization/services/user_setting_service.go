@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	"sort"
+
 	commonDTOs "jethur/grc/common/dtos"
 	commonService "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
@@ -12,7 +14,6 @@ import (
 	settingDTOs "jethur/grc/settings/dtos"
 	settingService "jethur/grc/settings/services"
 	"jethur/utility"
-	"sort"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -52,7 +53,8 @@ func NewUserSettingService(
 	repo organizationRepositories.UserSettingRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	notificationSvc commonService.NotificationServiceInterface,
-	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface) UserSettingServiceInterface {
+	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface,
+) UserSettingServiceInterface {
 	return &UserSettingService{
 		repo:                     repo,
 		activityLogSvc:           activityLogSvc,
@@ -67,7 +69,6 @@ func (uss *UserSettingService) SetUserService(svc UserServiceInterface) {
 
 func (uss *UserSettingService) GetUserSetting(userID uint) (*userDTOs.UserPreferenceSettingDTO, error) {
 	userSettingDTO, err := uss.repo.GetUserSettingsWithMfaByUserID(userID)
-
 	if err != nil {
 		return nil, utility.NewResourceNotFoundError(err, userID)
 	}
@@ -77,7 +78,6 @@ func (uss *UserSettingService) GetUserSetting(userID uint) (*userDTOs.UserPrefer
 
 func (uss *UserSettingService) GetUserSettingsByUserID(userID uint) (*models.UserSetting, error) {
 	userSetting, err := uss.repo.GetUserSettingsByUserID(userID)
-
 	if err != nil {
 		return nil, utility.NewResourceNotFoundError(err, userID)
 	}
@@ -115,9 +115,8 @@ func (uss *UserSettingService) CreateUserSetting(userID uint, currentUserID uint
 			userID, // use userID instead of id
 			existingUser,
 			user.CreatedByID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -136,7 +135,6 @@ func (uss *UserSettingService) CreateUserSetting(userID uint, currentUserID uint
 
 func (uss *UserSettingService) UpdateUserSetting(userID uint, currentUserID uint, userSettingFormDTO *userDTOs.UserSettingFormDTO) error {
 	existingUserSetting, err := uss.repo.GetUserSettingsByUserID(userID)
-
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, nil)
 	}
@@ -146,7 +144,7 @@ func (uss *UserSettingService) UpdateUserSetting(userID uint, currentUserID uint
 		return nil
 	}
 	// @review
-	//do we need to validate timezone
+	// do we need to validate timezone
 	existingUserSetting.Language = userSettingFormDTO.Language
 	existingUserSetting.TimezoneID = userSettingFormDTO.TimezoneID
 	existingUserSetting.Timeout = userSettingFormDTO.Timeout
@@ -164,7 +162,7 @@ func (uss *UserSettingService) UpdateUserSetting(userID uint, currentUserID uint
 
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"language": oldSetting.Language,
 			"timezone": oldSetting.Timezone.Name,
@@ -189,9 +187,8 @@ func (uss *UserSettingService) UpdateUserSetting(userID uint, currentUserID uint
 				existingSetting.ID,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -245,7 +242,6 @@ func (uss *UserSettingService) DisableMainNotification(userID uint) error {
 
 func (uss *UserSettingService) GetUserSecurityByUserID(userId uint) (*models.UserSecurity, error) {
 	userSecurity, err := uss.repo.GetUserSecurityByUserID(userId)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, userId)
@@ -296,7 +292,7 @@ func (uss *UserSettingService) EnableMFA(userID uint, currentUserID uint) error 
 	go func() {
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"is_mfa": oldUserSecurity.IsMFA,
 		}
@@ -317,9 +313,8 @@ func (uss *UserSettingService) EnableMFA(userID uint, currentUserID uint) error 
 				oldUserSecurity.ID,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -357,7 +352,7 @@ func (uss *UserSettingService) DisableMFA(userID uint, currentUserID uint) error
 	go func() {
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"is_mfa": oldUserSecurity.IsMFA,
 		}
@@ -378,9 +373,8 @@ func (uss *UserSettingService) DisableMFA(userID uint, currentUserID uint) error
 				oldUserSecurity.ID,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -458,7 +452,6 @@ func (uss *UserSettingService) ResetPassword(userID uint) error {
 	templateRelativePath := "organization/templates/email/send_new_password.html"
 
 	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, emailTemplateAndSocialDTO, nil)
-
 	if err != nil {
 		return err
 	}
@@ -487,7 +480,7 @@ func (uss *UserSettingService) GetNotificationSettings(userID uint) ([]userDTOs.
 
 	// Only add parent modules if user has permission
 	for _, module := range modules {
-		if module.ModuleID == nil && permittedModules[module.Identifier] {
+		if module.ParentID == nil && permittedModules[module.Identifier] {
 			// This is a parent module and user has permission
 			parentModulesMap[module.ID] = &userDTOs.NotificationSettingListResponseDTO{
 				ModuleID:      module.ID,
@@ -563,8 +556,8 @@ func (uss *UserSettingService) GetNotificationSettings(userID uint) ([]userDTOs.
 		// Only add notifications to permitted parent modules
 		if parentModule, exists := parentModulesMap[module.ID]; exists {
 			*parentModule.Notifications = append(*parentModule.Notifications, notifications...)
-		} else if module.ModuleID != nil {
-			if parentModule, exists := parentModulesMap[*module.ModuleID]; exists {
+		} else if module.ParentID != nil {
+			if parentModule, exists := parentModulesMap[*module.ParentID]; exists {
 				*parentModule.Notifications = append(*parentModule.Notifications, notifications...)
 			}
 		}
@@ -672,7 +665,6 @@ func (uss *UserSettingService) ChangePassword(userID uint, oldPassword, newPassw
 	templateRelativePath := "organization/templates/email/change_password.html"
 
 	err = utility.SendTemplatedEmail(to, subject, templateRelativePath, emailData, emailTemplateAndSocialDTO, nil)
-
 	if err != nil {
 		return err
 	}

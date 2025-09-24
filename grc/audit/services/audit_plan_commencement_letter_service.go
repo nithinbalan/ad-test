@@ -242,6 +242,9 @@ func (aps *AuditPlanCommencementLetterService) Update(auditPlanID uint, letterID
 				letterID,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {
@@ -296,6 +299,9 @@ func (aps *AuditPlanCommencementLetterService) Delete(auditPlanID uint, letterID
 			letterID,
 			deletedAuditPlanCommecementLetter,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

@@ -58,7 +58,7 @@ func (kcs *KRICategoryService) Create(currentUserID uint, category *models.KRICa
 			category.ID,
 			createdCategory,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -106,7 +106,7 @@ func (kcs *KRICategoryService) Update(id uint, currentUserID uint, updatedCatego
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

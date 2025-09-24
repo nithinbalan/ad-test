@@ -3,12 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepositories "jethur/grc/incident/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -56,7 +57,6 @@ func (ircas *IncidentRootCauseAnalysisService) GetByID(incidentID uint, id uint)
 	}
 
 	incidentRootCauseAnalysis, err := ircas.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -98,8 +98,8 @@ func (ircas *IncidentRootCauseAnalysisService) Create(incidentID uint, currentUs
 		return 0, err
 	}
 	if rcaCount == 1 {
-		//Update timeline
-		//todo
+		// Update timeline
+		// todo
 		timelineType, err := ircas.incidentTimelineSvc.GetByType("rca")
 		if err != nil {
 			tx.Rollback()
@@ -134,9 +134,8 @@ func (ircas *IncidentRootCauseAnalysisService) Create(incidentID uint, currentUs
 			id,
 			existingIncidentRootCauseAnalysis,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -165,7 +164,6 @@ func (ircas *IncidentRootCauseAnalysisService) Update(incidentID uint, id uint, 
 	}
 
 	existingIncidentRootCauseAnalysis, err := ircas.GetByID(incidentID, id)
-
 	if err != nil {
 		return err
 	}
@@ -176,7 +174,6 @@ func (ircas *IncidentRootCauseAnalysisService) Update(incidentID uint, id uint, 
 	existingIncidentRootCauseAnalysis.UpdatedByID = &currentUserID
 
 	err = ircas.repo.Update(existingIncidentRootCauseAnalysis, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -189,7 +186,7 @@ func (ircas *IncidentRootCauseAnalysisService) Update(incidentID uint, id uint, 
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"question": oldIncidentRootCauseAnalysis.Question,
@@ -213,9 +210,8 @@ func (ircas *IncidentRootCauseAnalysisService) Update(incidentID uint, id uint, 
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -247,8 +243,8 @@ func (ircas *IncidentRootCauseAnalysisService) Delete(incidentID uint, id uint, 
 	if err != nil {
 		return 0, err
 	}
-	//Delete-> update timeline performedAt as null
-	//todo
+	// Delete-> update timeline performedAt as null
+	// todo
 	rcaCount, err := ircas.repo.GetCountByRiskID(incidentID, tx)
 	if err != nil {
 		tx.Rollback()
@@ -302,7 +298,7 @@ func (ircas *IncidentRootCauseAnalysisService) Delete(incidentID uint, id uint, 
 			id,
 			deletedIncidentRootCauseAnalysis,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// Handle error if logging fails

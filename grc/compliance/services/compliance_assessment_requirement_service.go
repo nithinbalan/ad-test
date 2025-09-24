@@ -95,8 +95,8 @@ func (cars *ComplianceAssessmentRequirementService) GetAllClauses(assessmentID u
 		return nil, err
 	}
 	return cars.buildHierarchicalClauseStructure(clauses, countsMap)
-
 }
+
 func (cars *ComplianceAssessmentRequirementService) buildHierarchicalClauseStructure(clauses []*models.ComplianceClause, countMap map[uint]complianceDTOs.ClauseRequirementCountDTO) ([]*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO, error) {
 	// Build a proper hierarchy by filtering out child clauses from the root level
 	var rootClauses []*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO
@@ -132,6 +132,7 @@ func (cars *ComplianceAssessmentRequirementService) buildHierarchicalClauseStruc
 
 	return rootClauses, nil
 }
+
 func (cars *ComplianceAssessmentRequirementService) GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentRequirementListResponseDTO, error) {
 	if _, err := cars.complianceAssessmentSvc.GetByID(assessmentID); err != nil {
 		return nil, err
@@ -313,7 +314,7 @@ func (cars ComplianceAssessmentRequirementService) Update(complianceAssessmentId
 				requirementId,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -380,7 +381,6 @@ func (cars *ComplianceAssessmentRequirementService) CreateDocument(complianceAss
 }
 
 func (cars *ComplianceAssessmentRequirementService) DeleteDocuments(complianceAssessmentID uint, requirementID uint, requiredDocumentID uint, ids []uint, currentUserID uint) ([]uint, error) {
-
 	tx := cars.repo.BeginTransaction()
 	var failedIds []uint
 	var successfulIds []uint
@@ -580,7 +580,7 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 				requirementId,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -666,7 +666,7 @@ func (cars ComplianceAssessmentRequirementService) MarkAsOpen(complianceAssessme
 				requirementId,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -794,7 +794,7 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 				"user":    currentUserID,
 			},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -881,7 +881,6 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 }
 
 func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(assessmentID uint, requirementID uint, currentUserID uint, commentForm *complianceDTOs.ComplianceAssessmentRequirementCommentFormDTO) error {
-
 	revertedStatus, err := cars.complianceAssessmentRequirementStatusSvc.GetByType("reverted")
 	if err != nil {
 		return err
@@ -959,7 +958,7 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 				"user":    currentUserID,
 			},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -1116,7 +1115,7 @@ func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequiremen
 				"user":    currentUserID,
 			},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{

@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -59,7 +60,6 @@ func (sps *StrategyProfileFocusAreaService) GetAll(strategyProfileID uint, param
 
 func (sps StrategyProfileFocusAreaService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileFocusArea, error) {
 	strategyProfileFocusArea, err := sps.repo.GetByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -101,7 +101,6 @@ func (sps *StrategyProfileFocusAreaService) GetFullDetailsByID(strategyProfileID
 }
 
 func (sps *StrategyProfileFocusAreaService) Create(strategyProfileID uint, currentUserID uint, strategyProfileFocusAreaFormDTO *strategyDTOs.StrategyProfileFocusAreaFormDTO) ([]uint, error) {
-
 	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
 		return nil, err
 	}
@@ -137,9 +136,8 @@ func (sps *StrategyProfileFocusAreaService) Create(strategyProfileID uint, curre
 					"focus_area_id":       strategyProfileFocusAreaFormDTO.FocusAreaIDs[i],
 				},
 				currentUserID,
-				nil,
+				"strategy", "strategy_profile", "strategy_profile_focus_area", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.CreateAction,
@@ -196,9 +194,8 @@ func (sps *StrategyProfileFocusAreaService) Delete(strategyProfileID uint, id ui
 				"focus_area_id":       strategyProfileFocusArea.FocusAreaID,
 			},
 			currentUserID,
-			nil,
+			"strategy", "strategy_profile", "strategy_profile_focus_area", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.DeleteAction,

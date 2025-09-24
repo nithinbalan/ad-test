@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	assetDTOs "jethur/grc/asset/dtos"
 	assetRepositories "jethur/grc/asset/repositories"
 	logServices "jethur/grc/logs/services"
@@ -215,6 +216,9 @@ func (aks *AssetKriService) Update(assetID uint, currentUserID uint, form *asset
 				assetID,
 				changedData,
 				currentUserID,
+				"asset",
+				"asset_register",
+				"asset_kri",
 				nil,
 			)
 		}

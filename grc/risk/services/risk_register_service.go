@@ -383,7 +383,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		}
 	}
 
-	//update evaluation
+	// update evaluation
 	if riskRegisterFormDTO.InherentRiskMatrixLikelihoodID != nil && riskRegisterFormDTO.InherentRiskMatrixImpactID != nil {
 		inherentEvaluationFormDTO := &riskDTOs.RiskInherentEvaluationFormDTO{
 			RiskMatrixLikelihoodID: *riskRegisterFormDTO.InherentRiskMatrixLikelihoodID,
@@ -447,7 +447,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			id,
 			existingRiskRegister,
 			currentUserID,
-			nil,
+			"risk", "risk_register", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -605,7 +605,6 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 				"user_emails": reviewEmailTo,
 			})
 		}
-
 	}()
 
 	return id, nil
@@ -860,7 +859,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"risk", "risk_register", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -2010,8 +2009,10 @@ func (rs *RiskRegisterService) ImportRisks(input []map[string]interface{}, curre
 }
 
 func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]map[string]interface{}, error) {
-	headers := []string{"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at", "review_frequency", "next_review_date", "inherent_likelihood", "inherent_impact",
-		"risk_response_strategy", "residual_likelihood", "residual_impact"}
+	headers := []string{
+		"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at", "review_frequency", "next_review_date", "inherent_likelihood", "inherent_impact",
+		"risk_response_strategy", "residual_likelihood", "residual_impact",
+	}
 
 	// Fetch risk categories
 	riskCategories, err := rs.riskCategorySvc.GetAll("", "", "", "active")
@@ -2084,7 +2085,7 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 		strategyTitles[strings.TrimSpace(s.TitleEn)] = s.ID
 	}
 
-	//for checking unique risks
+	// for checking unique risks
 	// 1. Fetch existing titles from DB
 	existingRisks, err := rs.repo.GetAllRiskTitles() // Implement this function to return []string
 	if err != nil {

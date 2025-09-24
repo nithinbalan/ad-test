@@ -126,7 +126,7 @@ func (ss *StakeholderService) Create(currentUserID uint, stakeholderFormDTO *org
 			id,
 			existingStakeholder,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -210,7 +210,7 @@ func (ss *StakeholderService) Update(id uint, currentUserID uint, stakeholderFor
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {

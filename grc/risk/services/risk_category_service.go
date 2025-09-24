@@ -70,7 +70,7 @@ func (rcs *RiskCategoryService) Create(currentUserID uint, category *models.Risk
 			createdCategory.ID,
 			createdCategory,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -123,7 +123,7 @@ func (rcs *RiskCategoryService) Update(id uint, currentUserID uint, updatedCateg
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

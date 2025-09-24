@@ -109,7 +109,7 @@ func (ous *OrganizationUnitService) Create(currentUserID uint, orgUnitFormDTO *s
 			id,
 			orgUnitFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -152,7 +152,7 @@ func (ous *OrganizationUnitService) Update(id uint, currentUserID uint, orgUnitF
 			id,
 			orgUnitFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

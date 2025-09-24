@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
@@ -121,7 +122,7 @@ func (apais *AuditPlanAuditableItemService) Create(auditPlanID uint, currentUser
 		}
 	}
 
-	//var auditPlanAuditableItems []*models.AuditPlanAuditableItem
+	// var auditPlanAuditableItems []*models.AuditPlanAuditableItem
 	for _, itemID := range auditPlanFormDTO.AuditableItemIds {
 		auditableItem, err := apais.auditableItemSvc.GetByID(*itemID)
 		if err != nil {
@@ -191,7 +192,7 @@ func (apais *AuditPlanAuditableItemService) Create(auditPlanID uint, currentUser
 
 		}
 
-		existingAuditableItem, err := apais.GetFullDetailsByID(auditPlanAuditableItemID,tx)
+		existingAuditableItem, err := apais.GetFullDetailsByID(auditPlanAuditableItemID, tx)
 		if err != nil {
 			utility.LogError("Failed to fetch audit", map[string]interface{}{
 				"error": err.Error(),
@@ -214,17 +215,16 @@ func (apais *AuditPlanAuditableItemService) Create(auditPlanID uint, currentUser
 		err := apais.activityLogSvc.LogBulkActivities(
 			models.CreateAction,
 			models.AuditPlanAuditableItem{}.TableName(),
-			createdIds, //todo
+			createdIds, // todo
 			addedAuditPlanAuditableItem,
 			currentUserID,
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
 				"tableName": models.AuditPlanAuditableItem{}.TableName(),
-				"recordID":  auditPlanID, //todo
+				"recordID":  auditPlanID, // todo
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			}
@@ -280,9 +280,11 @@ func (apais *AuditPlanAuditableItemService) Delete(auditPlanID uint, ids []uint,
 					id,
 					deletedAuditPlanAuditableItem,
 					currentUserID,
+					"",
+					"",
+					"",
 					nil,
 				)
-
 				if err != nil {
 					fields := map[string]interface{}{
 						"action":    models.DeleteAction,

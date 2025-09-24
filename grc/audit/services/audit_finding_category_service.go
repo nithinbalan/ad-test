@@ -2,11 +2,12 @@ package services
 
 import (
 	"fmt"
+	"log"
+
 	"jethur/grc/audit/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 )
 
 type AuditFindingCategoryServiceInterface interface {
@@ -73,6 +74,9 @@ func (afcs *AuditFindingCategoryService) Update(id uint, currentUserID uint, upd
 			result.ID,
 			changedDataJSON,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

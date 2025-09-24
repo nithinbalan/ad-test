@@ -992,7 +992,7 @@ func (grs *GRCReportService) Create(currentUserID uint, grcReportFormDTO *dtos.G
 			grcReportID,
 			grcReport,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -1054,7 +1054,7 @@ func (grs *GRCReportService) UpdateSection(grcReportID uint, sectionID uint, cur
 				sectionID,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -1094,7 +1094,7 @@ func (grs *GRCReportService) DeleteGRCReportSection(grcReportID uint, sectionID 
 			sectionID,
 			section,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -1176,7 +1176,7 @@ func (grs *GRCReportService) DeleteGRCReport(grcReportID uint, currentUserID uin
 			grcReportID,
 			existingReport,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -1588,7 +1588,7 @@ func (grs *GRCReportService) GRCReportSubmit(grcReportID uint, currentUserID uin
 			grcReportID,
 			nil,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -1691,7 +1691,7 @@ func (grs *GRCReportService) GRCReportReviewed(grcReportID uint, currentUserID u
 			grcReportID,
 			nil,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

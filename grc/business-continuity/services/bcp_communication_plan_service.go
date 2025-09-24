@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	BcpCommunicationPlanRepositories "jethur/grc/business-continuity/repositories"
 	logServices "jethur/grc/logs/services"
@@ -48,7 +49,6 @@ func (bcps *BcpCommunicationPlanService) GetAll(bcpId uint, params *businessCont
 
 func (bcps BcpCommunicationPlanService) GetByID(id uint) (*models.BcpCommunicationPlan, error) {
 	BcpCommunicationPlan, err := bcps.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -64,7 +64,6 @@ func (bcps BcpCommunicationPlanService) GetFullDetailsByID(id uint, tx ...utilit
 	var BcpCommunicationPlanDTO businessContinuityDTOs.BcpCommunicationPlanDetailDTO
 
 	BcpCommunicationPlan, err := bcps.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -127,9 +126,11 @@ func (bcps *BcpCommunicationPlanService) Create(bcpId uint, currentUserID uint, 
 			id,
 			existingBcpCommunicationPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -144,6 +145,7 @@ func (bcps *BcpCommunicationPlanService) Create(bcpId uint, currentUserID uint, 
 	}()
 	return id, nil
 }
+
 func (bcps *BcpCommunicationPlanService) Update(id uint, currentUserID uint, BcpCommunicationPlanFormDTO *businessContinuityDTOs.BcpCommunicationPlanFormDTO) error {
 	tx := bcps.repo.BeginTransaction()
 
@@ -176,7 +178,6 @@ func (bcps *BcpCommunicationPlanService) Update(id uint, currentUserID uint, Bcp
 	existingBcpCommunicationPlan.UpdatedBYID = &currentUserID
 
 	err = bcps.repo.Update(existingBcpCommunicationPlan, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -192,7 +193,7 @@ func (bcps *BcpCommunicationPlanService) Update(id uint, currentUserID uint, Bcp
 		// Prepare log data
 		changedData := make(map[string]interface{})
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"responsible_user": fmt.Sprintf("%s %s", oldBcpCommunicationPlan.ResponsibleUser.FirstNameEN, oldBcpCommunicationPlan.ResponsibleUser.LastNameEN),
 			"title":            oldBcpCommunicationPlan.Title,
@@ -225,9 +226,11 @@ func (bcps *BcpCommunicationPlanService) Update(id uint, currentUserID uint, Bcp
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -293,7 +296,6 @@ func (bcps *BcpCommunicationPlanService) Delete(ids []uint, currentUserID uint) 
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
-
 		}()
 	}
 

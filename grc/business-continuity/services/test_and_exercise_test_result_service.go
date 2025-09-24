@@ -3,6 +3,10 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+
 	"jethur/config"
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	TestAndExerciseTestResultRepositories "jethur/grc/business-continuity/repositories"
@@ -10,9 +14,6 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -52,7 +53,6 @@ func NewTestAndExerciseTestResultService(
 
 func (tetrs TestAndExerciseTestResultService) GetByID(testAndExerciseId uint) (*models.TestAndExerciseTestResult, error) {
 	TestAndExerciseTestResult, err := tetrs.repo.GetByID(testAndExerciseId)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, testAndExerciseId)
@@ -68,7 +68,6 @@ func (tetrs TestAndExerciseTestResultService) GetFullDetailsByID(testAndExercise
 	var testAndExerciseTestResultDTO businessContinuityDTOs.TestAndExerciseTestResultDetailDTO
 
 	testAndExerciseTestResult, err := tetrs.repo.GetFullDetailsByID(testAndExerciseId, tx...)
-
 	if err != nil {
 		return nil, nil
 	}
@@ -182,7 +181,7 @@ func (tetrs *TestAndExerciseTestResultService) Create(testAndExerciseId uint, cu
 			tx.Rollback()
 			return 0, err
 		}
-		//move file to storage
+		// move file to storage
 		for _, doc := range documents {
 			storagePath := filepath.Join("business-continuity", "test-and-exercise", strconv.FormatUint(uint64(testAndExerciseId), 10), "test-result", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
@@ -209,9 +208,11 @@ func (tetrs *TestAndExerciseTestResultService) Create(testAndExerciseId uint, cu
 			id,
 			existingTestAndExerciseTestResult,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -226,6 +227,7 @@ func (tetrs *TestAndExerciseTestResultService) Create(testAndExerciseId uint, cu
 	}()
 	return id, nil
 }
+
 func (tetrs *TestAndExerciseTestResultService) Update(testAndExerciseId uint, currentUserID uint, testAndExerciseTestResultFormDTO *businessContinuityDTOs.TestAndExerciseTestResultFormDTO) error {
 	tx := tetrs.repo.BeginTransaction()
 
@@ -291,18 +293,16 @@ func (tetrs *TestAndExerciseTestResultService) Update(testAndExerciseId uint, cu
 	var documentsToDelete []*models.TestAndExerciseTestResultDocument
 
 	for _, doc := range testAndExerciseTestResultFormDTO.Documents {
-
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
-			//genereate URL
+			// genereate URL
 			url := utility.GenerateDocumentURL("business-continuity", "test-and-exercise", strconv.FormatUint(uint64(testAndExerciseId), 10), "test-result", strconv.FormatUint(uint64(existingTestAndExerciseTestResult.ID), 10), "documents")
 			// Create a new Control test Document instance
 			document := &models.TestAndExerciseTestResultDocument{
@@ -375,7 +375,7 @@ func (tetrs *TestAndExerciseTestResultService) Update(testAndExerciseId uint, cu
 
 		changedData := make(map[string]interface{})
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"communication_feedback_option": oldTestAndExerciseTestResult.CommunicationFeedbackOption.TitleEn,
 			"recovery_feedback_option":      oldTestAndExerciseTestResult.RecoveryFeedbackOption.TitleEn,
@@ -408,9 +408,11 @@ func (tetrs *TestAndExerciseTestResultService) Update(testAndExerciseId uint, cu
 				existingTestAndExerciseTestResult.ID,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -445,7 +447,7 @@ func (tetrs *TestAndExerciseTestResultService) Delete(testAndExerciseId uint, cu
 		return 0, err
 	}
 
-	//Delete-> update testAndExerciseProcess
+	// Delete-> update testAndExerciseProcess
 
 	for _, testAndExerciseProcess := range testAndExercise.TestAndExerciseProcesses {
 
@@ -514,6 +516,9 @@ func (tetrs *TestAndExerciseTestResultService) Delete(testAndExerciseId uint, cu
 			uint(testResult.ID),
 			deletedTestResult,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

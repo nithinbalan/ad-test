@@ -315,7 +315,7 @@ func (prs *PolicyRegisterService) Create(currentUserID uint, documentFormDTO *po
 			id,
 			existingDocument,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -649,7 +649,7 @@ func (prs *PolicyRegisterService) Update(id uint, currentUserID uint, documentFo
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

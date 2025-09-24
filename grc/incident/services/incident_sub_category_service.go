@@ -3,12 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	incidentDTOs "jethur/grc/incident/dtos"
 	"jethur/grc/incident/repositories"
 	activityLogServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 
 	"gorm.io/gorm"
 )
@@ -81,9 +82,8 @@ func (iscs *IncidentSubCategoryService) Create(currentUserID uint, incidentSubCa
 			id,
 			createdSubCategory,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -98,7 +98,6 @@ func (iscs *IncidentSubCategoryService) Create(currentUserID uint, incidentSubCa
 	}()
 
 	return id, nil
-
 }
 
 func (iscs *IncidentSubCategoryService) Update(id uint, currentUserID uint, incidentSubCategoryFormDTO *incidentDTOs.IncidentSubCategoryFormDTO) error {
@@ -122,14 +121,12 @@ func (iscs *IncidentSubCategoryService) Update(id uint, currentUserID uint, inci
 	existingIncidentSubCategory.Status = incidentSubCategoryFormDTO.Status
 
 	err = iscs.repo.Update(existingIncidentSubCategory)
-
 	if err != nil {
 		return err
 	}
 
 	fieldsToCompare := []string{"IncidentCategoryID", "TitleEn", "TitleAr", "Status"}
 	changes, err := utility.CompareFields(incidentSubCategory, existingIncidentSubCategory, fieldsToCompare)
-
 	if err != nil {
 		log.Println("error :", err.Error())
 	}
@@ -145,7 +142,7 @@ func (iscs *IncidentSubCategoryService) Update(id uint, currentUserID uint, inci
 			id,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
@@ -154,7 +151,6 @@ func (iscs *IncidentSubCategoryService) Update(id uint, currentUserID uint, inci
 	}()
 
 	return nil
-
 }
 
 func (iscs *IncidentSubCategoryService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
@@ -164,7 +160,6 @@ func (iscs *IncidentSubCategoryService) Delete(ids []uint, currentUserID uint) (
 	for _, id := range ids {
 
 		subCategory, err := iscs.repo.GetByID(id)
-
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -184,7 +179,6 @@ func (iscs *IncidentSubCategoryService) Delete(ids []uint, currentUserID uint) (
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := iscs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -208,7 +202,6 @@ func (iscs *IncidentSubCategoryService) Activate(ids []uint, currentUserID uint)
 	successfulIds, err := iscs.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := iscs.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
@@ -232,7 +225,6 @@ func (iscs *IncidentSubCategoryService) Deactivate(ids []uint, currentUserID uin
 	successfulIds, err := iscs.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := iscs.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,
@@ -264,7 +256,6 @@ func (iscs *IncidentSubCategoryService) validateIncidentSubCategoryFormDTO(incid
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
-
 	} else {
 		if exists, err := iscs.repo.ExistsByTitleExcludingID(*id, incidentSubCategoryFormDTO.TitleEn, incidentSubCategoryFormDTO.TitleAr, incidentSubCategoryFormDTO.IncidentCategoryID); err != nil {
 			return err

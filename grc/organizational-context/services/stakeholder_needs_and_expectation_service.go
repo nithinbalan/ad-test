@@ -123,7 +123,7 @@ func (snes *StakeholderNeedsAndExpectationService) Create(stakeholderID, current
 			id,
 			existingStakeholderNeedsAndExpectation,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -206,7 +206,7 @@ func (snes *StakeholderNeedsAndExpectationService) Update(stakeholderID uint, id
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {

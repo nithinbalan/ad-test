@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -49,7 +50,6 @@ func NewKPIRegisterService(
 	kpiStatusSvc KPIStatusServiceInterface,
 	entryTypeSvc EntryTypeServiceInterface,
 	dataSourceSvc DataSourceServiceInterface,
-
 ) KPIRegisterServiceInterface {
 	return &KPIRegisterService{
 		repo:                repo,
@@ -69,7 +69,6 @@ func (krs *KPIRegisterService) GetAll(params *strategyDTOs.KPIRegisterListQueryP
 
 func (krs KPIRegisterService) GetByID(id uint) (*models.KPIRegister, error) {
 	kpiRegister, err := krs.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -84,7 +83,6 @@ func (krs KPIRegisterService) GetFullDetailsByID(id uint, tx ...utility.Database
 	var kpiRegisterDTO strategyDTOs.KPIRegisterDetailDTO
 
 	kpiRegister, err := krs.repo.GetFullDetailsByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -114,7 +112,6 @@ func (krs KPIRegisterService) GetFullDetailsByID(id uint, tx ...utility.Database
 }
 
 func (krs *KPIRegisterService) Create(currentUserID uint, kpiRegisterFormDTO *strategyDTOs.KPIRegisterFormDTO) (uint, error) {
-
 	tx := krs.repo.BeginTransaction()
 
 	dates, err := krs.parseKPIRegisterDates(kpiRegisterFormDTO)
@@ -202,9 +199,8 @@ func (krs *KPIRegisterService) Create(currentUserID uint, kpiRegisterFormDTO *st
 			id,
 			existingKPIRegister,
 			currentUserID,
-			nil,
+			"strategy", "kpi", "kpi_register", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -219,6 +215,7 @@ func (krs *KPIRegisterService) Create(currentUserID uint, kpiRegisterFormDTO *st
 	}()
 	return id, nil
 }
+
 func (krs *KPIRegisterService) Update(id uint, currentUserID uint, kpiRegisterFormDTO *strategyDTOs.KPIRegisterFormDTO) error {
 	tx := krs.repo.BeginTransaction()
 
@@ -293,7 +290,7 @@ func (krs *KPIRegisterService) Update(id uint, currentUserID uint, kpiRegisterFo
 		// Prepare log data
 		changedData := make(map[string]interface{})
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":            oldKPIRegister.Title,
 			"description":      oldKPIRegister.Description,
@@ -336,9 +333,8 @@ func (krs *KPIRegisterService) Update(id uint, currentUserID uint, kpiRegisterFo
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"strategy", "kpi", "kpi_register", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -404,7 +400,6 @@ func (krs *KPIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
-
 		}()
 	}
 

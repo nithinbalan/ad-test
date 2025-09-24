@@ -235,6 +235,9 @@ func (aidfs *AuditInsightsDraftFindingService) Accept(auditDraftFindingID uint, 
 			auditDraftFindingID,
 			auditInsightsDraftFindingApproveFormDTO,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -417,6 +420,9 @@ func (aidfs *AuditInsightsDraftFindingService) Challenge(auditDraftFindingID uin
 			auditDraftFindingID,
 			auditInsightsDraftFindingChallengeFormDTO,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

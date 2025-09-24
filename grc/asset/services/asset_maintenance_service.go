@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
 	logServices "jethur/grc/logs/services"
@@ -126,6 +127,9 @@ func (ams *AssetMaintenanceService) Create(maintenanceForm *dtos.AssetMaintenanc
 			id,
 			existingMaintenance,
 			currentUserID,
+			"asset",
+			"asset_register",
+			"asset_maintenance",
 			nil,
 		)
 		if err != nil {
@@ -189,7 +193,7 @@ func (ams *AssetMaintenanceService) Update(id uint, maintenanceForm *dtos.AssetM
 		// Prepare log data
 		changedData := make(map[string]interface{})
 
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"type":           oldAssetMaintenance.Type,
 			"performed_date": oldAssetMaintenance.PerformedDateString,
@@ -220,9 +224,11 @@ func (ams *AssetMaintenanceService) Update(id uint, maintenanceForm *dtos.AssetM
 				id,
 				changedData,
 				currentUserID,
+				"asset",
+				"asset_register",
+				"asset_maintenance",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,

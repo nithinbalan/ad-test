@@ -3,11 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	"jethur/grc/asset/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 
 	"gorm.io/gorm"
 )
@@ -73,6 +74,9 @@ func (acmrss *AssetCriticalityMatrixRatingScaleService) Create(matrixID uint, cu
 			createdScale.ID,
 			createdScale,
 			currentUserID,
+			"asset",
+			"asset_criticality_matrix",
+			"asset_criticality_matrix_rating_scale",
 			nil,
 		)
 		if err != nil {
@@ -122,6 +126,9 @@ func (acmrss *AssetCriticalityMatrixRatingScaleService) Update(matrixID uint, id
 			result.ID,
 			changedDataJSON,
 			currentUserID,
+			"asset",
+			"asset_criticality_matrix",
+			"asset_criticality_matrix_rating_scale",
 			nil,
 		)
 		if err != nil {

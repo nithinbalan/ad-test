@@ -263,7 +263,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 			id,
 			existingIncidentActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -470,7 +470,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

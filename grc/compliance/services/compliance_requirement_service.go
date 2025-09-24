@@ -105,7 +105,6 @@ func (crs *ComplianceRequirementService) GetAll(complianceID uint, params *compl
 }
 
 func (crs *ComplianceRequirementService) GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error) {
-
 	// Step 1: Fetch paged requirements + total count
 	requirements, totalCount, err := crs.repo.GetRequirementsByComplianceID(complianceID, params)
 	if err != nil {
@@ -424,7 +423,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 			id,
 			existingComplianceRequirement,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -964,7 +963,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{

@@ -217,7 +217,7 @@ func (caps *ControlActionPlanService) Create(controlID uint, currentUserID uint,
 			id,
 			ControlActionPlanFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

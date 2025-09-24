@@ -60,7 +60,7 @@ func (rics *RiskImpactCategoryService) Create(currentUserID uint, category *mode
 			createdCategory.ID,
 			createdCategory,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -113,7 +113,7 @@ func (rics *RiskImpactCategoryService) Update(id uint, currentUserID uint, updat
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

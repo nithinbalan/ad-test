@@ -3,12 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	"jethur/grc/documents/dtos"
 	"jethur/grc/documents/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 
 	"gorm.io/gorm"
 )
@@ -131,7 +132,7 @@ func (drgs *DocumentRequirementGroupService) Create(documentId uint, currentUser
 			id,
 			requirementGroup,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			log.Printf("Failed to log activity: %v", err)
@@ -188,7 +189,7 @@ func (drgs *DocumentRequirementGroupService) Update(documentId uint, id uint, cu
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fmt.Printf("Failed to log activity: %v\n", err)

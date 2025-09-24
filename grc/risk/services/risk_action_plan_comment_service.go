@@ -195,9 +195,8 @@ func (rapcs *RiskActionPlanCommentService) Create(riskID uint, actionPlanID uint
 			id,
 			existingComment,
 			currentUserID,
-			nil,
+			"risk", "risk_register", "action_plan_comment", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -254,16 +253,16 @@ func (rapcs *RiskActionPlanCommentService) Create(riskID uint, actionPlanID uint
 				subject := fmt.Sprintf("Comment Added for Risk Action Plan:%s", riskActionPlan.Title)
 				appURL := utility.GetAppURL()
 				emailData := map[string]interface{}{
-					"FirstNameEn":               reviewUser.FirstNameEn,
-					"LastNameEn":                reviewUser.LastNameEn,
-					"RiskReferenceNumber": riskActionPlan.RiskRegister.ReferenceNumber,
-					"RiskTitle":           riskActionPlan.RiskRegister.Title,
-					"ActionPlanTitle":           riskActionPlan.Title,
-					"ActionPlanDescription":     riskActionPlan.Description,
-					"CommentedByFirstNameEn":    assignedBy.FirstNameEn,
-					"CommentedByLastNameEn":     assignedBy.LastNameEn,
-					"CommentedOn":               time.Now().Format("2006-01-02"),
-					"RedirectURL":               fmt.Sprintf("%srisk/risk-register/%d/risk-response", appURL, riskID),
+					"FirstNameEn":            reviewUser.FirstNameEn,
+					"LastNameEn":             reviewUser.LastNameEn,
+					"RiskReferenceNumber":    riskActionPlan.RiskRegister.ReferenceNumber,
+					"RiskTitle":              riskActionPlan.RiskRegister.Title,
+					"ActionPlanTitle":        riskActionPlan.Title,
+					"ActionPlanDescription":  riskActionPlan.Description,
+					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
+					"CommentedByLastNameEn":  assignedBy.LastNameEn,
+					"CommentedOn":            time.Now().Format("2006-01-02"),
+					"RedirectURL":            fmt.Sprintf("%srisk/risk-register/%d/risk-response", appURL, riskID),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -333,7 +332,7 @@ func (rapcs *RiskActionPlanCommentService) Create(riskID uint, actionPlanID uint
 				"ActionPlanDescription":  riskActionPlan.Description,
 				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":  assignedBy.LastNameEn,
-				"CommentedOn":             time.Now().Format("2006-01-02"),
+				"CommentedOn":            time.Now().Format("2006-01-02"),
 				"RedirectURL":            fmt.Sprintf("%srisk/risk-register/%d/risk-response", appURL, riskID),
 			}
 
@@ -402,7 +401,7 @@ func (rapcs *RiskActionPlanCommentService) Create(riskID uint, actionPlanID uint
 				"ActionPlanDescription":  riskActionPlan.Description,
 				"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":  assignedBy.LastNameEn,
-				"CommentedOn":             time.Now().Format("2006-01-02"),
+				"CommentedOn":            time.Now().Format("2006-01-02"),
 				"RedirectURL":            fmt.Sprintf("%srisk/risk-register/%d/risk-response", appURL, riskID),
 			}
 
@@ -470,7 +469,7 @@ func (rapcs *RiskActionPlanCommentService) Create(riskID uint, actionPlanID uint
 					"ActionPlanDescription":  riskActionPlan.Description,
 					"CommentedByFirstNameEn": assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":  assignedBy.LastNameEn,
-					"CommentedOn":             time.Now().Format("2006-01-02"),
+					"CommentedOn":            time.Now().Format("2006-01-02"),
 					"RedirectURL":            fmt.Sprintf("%srisk/risk-register/%d/risk-response", appURL, riskID),
 				}
 
@@ -537,13 +536,13 @@ func (rapcs *RiskActionPlanCommentService) Update(riskID uint, actionPlanID uint
 
 			document := &models.RiskActionPlanCommentDocument{
 				RiskActionPlanCommentID: id,
-				URL:                           url,
-				Name:                          doc.FileName,
-				Size:                          doc.Size,
-				Token:                         encryptedFileName,
-				OriginalName:                  doc.OriginalName,
-				Type:                          doc.Type,
-				CreatedByID:                   currentUserID,
+				URL:                     url,
+				Name:                    doc.FileName,
+				Size:                    doc.Size,
+				Token:                   encryptedFileName,
+				OriginalName:            doc.OriginalName,
+				Type:                    doc.Type,
+				CreatedByID:             currentUserID,
 			}
 
 			newDocuments = append(newDocuments, document)
@@ -577,7 +576,7 @@ func (rapcs *RiskActionPlanCommentService) Update(riskID uint, actionPlanID uint
 		}
 	}
 
-		for _, doc := range newDocuments {
+	for _, doc := range newDocuments {
 		storagePath := filepath.Join("risk", "risk-register", strconv.FormatUint(uint64(riskID), 10), "action-plans", strconv.FormatUint(uint64(actionPlanID), 10), "comments", strconv.FormatUint(uint64(id), 10), "documents")
 
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
@@ -624,7 +623,7 @@ func (rapcs *RiskActionPlanCommentService) Update(riskID uint, actionPlanID uint
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"risk", "risk_register", "action_plan_comment", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

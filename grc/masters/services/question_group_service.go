@@ -2,11 +2,12 @@ package services
 
 import (
 	"fmt"
+	"log"
+
 	"jethur/grc/logs/services"
 	"jethur/grc/masters/repositories"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 )
 
 type QuestionGroupServiceInterface interface {
@@ -41,7 +42,6 @@ func (qgs QuestionGroupService) GetByID(id uint) (*models.QuestionGroup, error) 
 }
 
 func (qgs *QuestionGroupService) Create(currentUserID uint, questionGroup *models.QuestionGroup) (*models.QuestionGroup, error) {
-
 	if err := qgs.validateQuestionGroupForm(questionGroup, nil); err != nil {
 		return nil, err
 	}
@@ -58,9 +58,8 @@ func (qgs *QuestionGroupService) Create(currentUserID uint, questionGroup *model
 			questionGroup.ID,
 			createdQuestionGroup,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			// @todo - save to log file
 			log.Printf("Failed to log activity: %v", err)
@@ -72,7 +71,6 @@ func (qgs *QuestionGroupService) Create(currentUserID uint, questionGroup *model
 
 func (qgs *QuestionGroupService) Update(id uint, currentUserID uint, updatedQuestionGroup *models.QuestionGroup) (*models.QuestionGroup, error) {
 	existingQuestionGroup, err := qgs.repo.GetByID(id)
-
 	if err != nil {
 		return nil, err
 	}
@@ -82,14 +80,12 @@ func (qgs *QuestionGroupService) Update(id uint, currentUserID uint, updatedQues
 	}
 
 	result, err := qgs.repo.Update(id, updatedQuestionGroup)
-
 	if err != nil {
 		return nil, err
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status"}
 	changes, err := utility.CompareFields(existingQuestionGroup, updatedQuestionGroup, fieldsToCompare)
-
 	if err != nil {
 		log.Println("error :", err.Error())
 	}
@@ -106,7 +102,7 @@ func (qgs *QuestionGroupService) Update(id uint, currentUserID uint, updatedQues
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
@@ -122,7 +118,6 @@ func (qgs *QuestionGroupService) Delete(ids []uint, currentUserID uint) ([]uint,
 	for _, id := range ids {
 
 		_, err := qgs.repo.GetByID(id)
-
 		if err != nil {
 			continue
 		}
@@ -136,7 +131,6 @@ func (qgs *QuestionGroupService) Delete(ids []uint, currentUserID uint) ([]uint,
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := qgs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -160,7 +154,6 @@ func (qgs *QuestionGroupService) Activate(ids []uint, currentUserID uint) error 
 	successfulIds, err := qgs.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := qgs.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
@@ -184,7 +177,6 @@ func (qgs *QuestionGroupService) Deactivate(ids []uint, currentUserID uint) erro
 	successfulIds, err := qgs.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := qgs.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,
@@ -206,23 +198,18 @@ func (qgs *QuestionGroupService) Deactivate(ids []uint, currentUserID uint) erro
 }
 
 func (qgs *QuestionGroupService) validateQuestionGroupForm(questionGroup *models.QuestionGroup, id *uint) error {
-
 	if id == nil {
-
 		if exists, err := qgs.repo.ExistsByTitle(questionGroup.TitleEn, questionGroup.TitleAr); err != nil {
 			return err
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
-
 	} else {
-
 		if exists, err := qgs.repo.ExistsByTitleExcludingID(*id, questionGroup.TitleEn, questionGroup.TitleAr); err != nil {
 			return err
 		} else if exists {
 			return utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
-
 	}
 
 	return nil

@@ -1003,6 +1003,9 @@ func (afrs *AuditFinalReportService) Create(auditID uint, currentUserID uint) (u
 			id,
 			existingAuditFinalReport,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -1210,6 +1213,9 @@ func (afrs *AuditFinalReportService) Delete(auditID uint, currentUserID uint) er
 			auditFinalReport.ID,
 			deletedAuditFinalReport,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -1522,9 +1528,11 @@ func (afrs *AuditFinalReportService) Publish(auditID uint, currentUserID uint, a
 			existingAuditFinalReport.ID,
 			auditFinalReportPublishFormDTO,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.SubmitAction,

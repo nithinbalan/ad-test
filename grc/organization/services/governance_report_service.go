@@ -259,7 +259,7 @@ func (grs *GovernanceReportService) Create(currentUserID uint, governanceReportF
 			governanceReportID,
 			governanceReport,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -320,7 +320,7 @@ func (grs *GovernanceReportService) UpdateSection(governanceReportID uint, secti
 				sectionID,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -360,7 +360,7 @@ func (grs *GovernanceReportService) DeleteGovernanceReportSection(governanceRepo
 			sectionID,
 			section,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
@@ -410,7 +410,7 @@ func (grs *GovernanceReportService) DeleteGovernanceReport(governanceReportID ui
 			governanceReportID,
 			existingReport,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})

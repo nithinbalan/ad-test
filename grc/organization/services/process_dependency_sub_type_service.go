@@ -83,7 +83,7 @@ func (svc *ProcessDependencySubTypeService) Create(currentUserID uint, dto *orgD
 			id,
 			created,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 	}()
 
@@ -129,7 +129,7 @@ func (svc *ProcessDependencySubTypeService) Update(id uint, currentUserID uint, 
 			id,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 	}()
 

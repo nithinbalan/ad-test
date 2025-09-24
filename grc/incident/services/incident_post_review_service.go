@@ -3,13 +3,14 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepositories "jethur/grc/incident/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -57,7 +58,6 @@ func (iprs IncidentPostReviewService) GetByID(incidentID uint) (*models.Incident
 	}
 
 	incidentPostReview, err := iprs.repo.GetByID(incidentID)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, incidentID)
@@ -75,7 +75,6 @@ func (iprs IncidentPostReviewService) GetFullDetailsByID(incidentID uint, tx ...
 	}
 
 	incidentPostReview, err := iprs.repo.GetFullDetailsByID(incidentID, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, incidentID)
@@ -88,7 +87,7 @@ func (iprs IncidentPostReviewService) GetFullDetailsByID(incidentID uint, tx ...
 		return nil, err
 	}
 
-	//todo :- also add extra fields which required in details screen
+	// todo :- also add extra fields which required in details screen
 	if incidentPostReview.PostReviewDate != nil {
 		postReviewDate := incidentPostReview.PostReviewDate.Format("2006-01-02")
 		incidentPostReviewDTO.PostReviewDateString = &postReviewDate
@@ -180,8 +179,8 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 			return 0, err
 		}
 	}
-	//Update timeline
-	//todo
+	// Update timeline
+	// todo
 	timelineType, err := iprs.incidentTimelineSvc.GetByType("pir")
 	if err != nil {
 		tx.Rollback()
@@ -218,9 +217,8 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 			id,
 			existingIncidentPostReview,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -266,19 +264,17 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, currentUserID uin
 	existingIncidentPostReview.UpdatedByID = &currentUserID
 
 	err = iprs.repo.Update(existingIncidentPostReview, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	existingIncidentPostReviewDetail, err := iprs.GetFullDetailsByID(incidentID, tx)
-
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	//Update participants
+	// Update participants
 	existingUserIDs := make(map[uint]bool)
 	for _, user := range existingIncidentPostReviewDetail.Users {
 		existingUserIDs[user.ID] = true
@@ -324,7 +320,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, currentUserID uin
 			return err
 		}
 	}
-	//Update Lessons
+	// Update Lessons
 	// Collect Existing Lesson Lessons
 	existingClosureLessons := make(map[string]bool)
 	for _, lesson := range existingIncidentPostReviewDetail.Lessons {
@@ -375,7 +371,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, currentUserID uin
 			return err
 		}
 	}
-	//Update Reccomendations
+	// Update Reccomendations
 	// Collect Existing Recommendations
 	existingRecommendations := make(map[string]bool)
 	for _, recommendation := range existingIncidentPostReviewDetail.Recommendations {
@@ -474,7 +470,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, currentUserID uin
 			}
 		}
 
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		associatedItems := make(map[string]interface{})
 
@@ -527,9 +523,8 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, currentUserID uin
 				existingIncidentPostReview.ID,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -594,14 +589,14 @@ func (iprs *IncidentPostReviewService) Delete(incidentID uint, currentUserID uin
 		failedId = uint(incidentPostReview.ID)
 		return failedId, err
 	}
-	//Delete-> update timeline performedAt as null
-	//todo
+	// Delete-> update timeline performedAt as null
+	// todo
 	timelineType, err := iprs.incidentTimelineSvc.GetByType("pir")
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
-	//todo
+	// todo
 	timelineStatus, err := iprs.incidentTimelineSvc.GetByStatusType("pending")
 	if err != nil {
 		tx.Rollback()
@@ -629,7 +624,7 @@ func (iprs *IncidentPostReviewService) Delete(incidentID uint, currentUserID uin
 			uint(incidentPostReview.ID),
 			deletedIncidentPostReview,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// Handle error if logging fails
@@ -639,6 +634,7 @@ func (iprs *IncidentPostReviewService) Delete(incidentID uint, currentUserID uin
 
 	return failedId, nil
 }
+
 func (iprs *IncidentPostReviewService) parseIncidentPostReviewDates(dto *incidentDTOs.IncidentPostReviewFormDTO) (*incidentDTOs.IncidentPostReviewParsedDates, error) {
 	parsed := &incidentDTOs.IncidentPostReviewParsedDates{}
 
@@ -657,7 +653,7 @@ func (iprs *IncidentPostReviewService) validateIncidentPostReviewFormDTO(inciden
 	if _, err := iprs.incidentPostReviewEffectivenessSvc.GetByID(uint(incidentPostReviewFormDTO.IncidentPostReviewEffectivenessID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("incident incident post review effectiveness id does not exist"), "not_exist", "incident post review effectiveness")
 	}
-	//User exist
+	// User exist
 	users := incidentPostReviewFormDTO.UserIds
 	// If no user are provided, simply return nil to exit the function
 	if len(users) == 0 {

@@ -70,7 +70,7 @@ func (socs *StrategicObjectiveCategoryService) Create(currentUserID uint, catego
 			createdCategory.ID,
 			createdCategory,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -123,7 +123,7 @@ func (socs *StrategicObjectiveCategoryService) Update(id uint, currentUserID uin
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

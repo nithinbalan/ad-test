@@ -137,7 +137,7 @@ func (atss *AuditTemplateSettingService) Update(id uint, currentUserID uint, upd
 			id,
 			updatedTemplateSettingDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

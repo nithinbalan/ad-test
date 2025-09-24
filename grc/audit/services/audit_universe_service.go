@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+
 	"jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	complianceServices "jethur/grc/compliance/services"
@@ -48,7 +49,6 @@ func NewAuditUniverseService(
 	riskRegisterSvc riskServices.RiskRegisterServiceInterface,
 	incidentRegisterSvc incidentServices.IncidentRegisterServiceInterface,
 	documentSvc documentServices.DocumentServiceInterface,
-
 ) AuditUniverseServiceInterface {
 	return &AuditUniverseService{
 		repo:                     repo,
@@ -258,17 +258,19 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 		err := aus.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.AuditableItem{}.TableName(),
-			0, //todo
+			0, // todo
 			auditUniverseFormDTO,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
 				"tableName": models.AuditableItem{}.TableName(),
-				"recordID":  0, //todo
+				"recordID":  0, // todo
 				"userID":    currentUserID,
 				"error":     err.Error(),
 			}
@@ -442,9 +444,11 @@ func (aus *AuditUniverseService) Delete(currentUserID uint, auditUniverseFormDTO
 			0, // No specific item to log for delete
 			auditUniverseFormDTO,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.DeleteAction,

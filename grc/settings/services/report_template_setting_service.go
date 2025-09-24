@@ -129,7 +129,7 @@ func (rtss *ReportTemplateSettingService) Update(id uint, currentUserID uint, up
 			id,
 			updatedTemplateSettingDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

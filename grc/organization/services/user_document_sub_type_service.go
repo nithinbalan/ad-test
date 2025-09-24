@@ -80,7 +80,7 @@ func (udsts *UserDocumentSubTypeService) Create(currentUserID uint, dto *orgDTOs
 			id,
 			created,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 	}()
 
@@ -124,7 +124,7 @@ func (udsts *UserDocumentSubTypeService) Update(id uint, currentUserID uint, dto
 			id,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 	}()
 

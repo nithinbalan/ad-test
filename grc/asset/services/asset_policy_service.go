@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
 	complianceServices "jethur/grc/compliance/services"
@@ -63,6 +64,7 @@ func (aps *AssetPolicyService) GetAll(params *dtos.AssetPolicyListQueryParamsDTO
 	}
 	return aps.repo.GetAll(params, assetRegisterID)
 }
+
 func (aps *AssetPolicyService) GetByID(id uint) (*models.AssetPolicy, error) {
 	policy, err := aps.repo.GetByID(id)
 	if err != nil {
@@ -73,6 +75,7 @@ func (aps *AssetPolicyService) GetByID(id uint) (*models.AssetPolicy, error) {
 	}
 	return policy, nil
 }
+
 func (aps *AssetPolicyService) GetByAssetID(assetId uint, tx ...utility.DatabaseTransaction) ([]*models.AssetPolicy, error) {
 	policies, err := aps.repo.GetByAssetID(assetId, tx...)
 	if err != nil {
@@ -183,6 +186,9 @@ func (aps *AssetPolicyService) Create(assetPolicyForm *dtos.AssetPolicyFormDTO, 
 				policyID,
 				policy,
 				currentUserID,
+				"asset",
+				"asset_register",
+				"asset_policy",
 				nil,
 			); err != nil {
 				utility.LogError("Failed to log asset policy activity", map[string]interface{}{
@@ -196,7 +202,6 @@ func (aps *AssetPolicyService) Create(assetPolicyForm *dtos.AssetPolicyFormDTO, 
 }
 
 func (aps *AssetPolicyService) Update(assetPolicyForm *dtos.AssetPolicyFormDTO, currentUserID uint, assetId uint) ([]uint, error) {
-
 	notImplementedStatus, err := aps.complianceStatusSvc.GetByType("not_implemented")
 	if err != nil {
 		return nil, err
@@ -319,6 +324,9 @@ func (aps *AssetPolicyService) Update(assetPolicyForm *dtos.AssetPolicyFormDTO, 
 				policyID,
 				existingPolicy,
 				currentUserID,
+				"asset",
+				"asset_register",
+				"asset_policy",
 				nil,
 			)
 			if err != nil {

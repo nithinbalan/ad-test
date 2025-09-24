@@ -114,7 +114,7 @@ func (snees *StakeholderNeedsAndExpectationEvaluationService) Create(Stakeholder
 			id,
 			evaluation,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -203,7 +203,7 @@ func (snees *StakeholderNeedsAndExpectationEvaluationService) Update(Stakeholder
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

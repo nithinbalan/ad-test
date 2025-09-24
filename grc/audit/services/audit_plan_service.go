@@ -207,6 +207,9 @@ func (aps *AuditPlanService) Create(currentUserID uint, auditPlanFormDTO *auditD
 			id,
 			existingAuditPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -463,6 +466,9 @@ func (aps *AuditPlanService) Update(id uint, currentUserID uint, auditPlanFormDT
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {
@@ -546,6 +552,9 @@ func (aps *AuditPlanService) Delete(ids []uint, currentUserID uint) ([]uint, err
 					id,
 					deletedAuditPlan,
 					currentUserID,
+					"",
+					"",
+					"",
 					nil,
 				)
 				if err != nil {
@@ -629,6 +638,9 @@ func (aps *AuditPlanService) Publish(id uint, currentUserID uint) error {
 			id,
 			nil,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

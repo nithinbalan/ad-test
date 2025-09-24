@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -61,7 +62,6 @@ func (sps *StrategyProfileStrategicIntiativeService) GetAll(strategyProfileID ui
 
 func (sps StrategyProfileStrategicIntiativeService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileStrategicIntiative, error) {
 	strategyProfileKpi, err := sps.repo.GetByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -103,7 +103,6 @@ func (spsi *StrategyProfileStrategicIntiativeService) GetFullDetailsByID(strateg
 }
 
 func (spsi *StrategyProfileStrategicIntiativeService) Create(strategyProfileID uint, currentUserID uint, strategyProfileStrategicIntiativeFormDTO *strategyDTOs.StrategyProfileStrategicIntiativeFormDTO) ([]uint, error) {
-
 	if _, err := spsi.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
 		return nil, err
 	}
@@ -143,7 +142,7 @@ func (spsi *StrategyProfileStrategicIntiativeService) Create(strategyProfileID u
 					"strategic_intiative_id":                  strategicIntiativeID,
 				},
 				currentUserID,
-				nil,
+				"strategy", "strategy_profile", "strategic_profile_strategic_objective", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -201,9 +200,8 @@ func (spsi *StrategyProfileStrategicIntiativeService) Delete(strategyProfileID u
 				"strategic_intiative_id":                  strategyProfileStrategicIntiative.StrategicIntiativeID,
 			},
 			currentUserID,
-			nil,
+			"strategy", "strategy_profile", "strategic_profile_strategic_objective", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.DeleteAction,

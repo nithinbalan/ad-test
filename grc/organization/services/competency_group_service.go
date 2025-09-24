@@ -3,11 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/organization/repositories"
 	"jethur/utility"
-	"log"
 
 	"gorm.io/gorm"
 )
@@ -41,7 +42,6 @@ func (pgs *CompetencyGroupService) GetAll(sort string, sortBy string, keyword st
 
 func (pgs *CompetencyGroupService) GetByID(id uint) (*models.CompetencyGroup, error) {
 	competencyGroup, err := pgs.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -71,9 +71,8 @@ func (pgs *CompetencyGroupService) Create(currentUserID uint, competencyGroup *m
 			createdCompetencyGroup.ID,
 			createdCompetencyGroup,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			// @todo - save to log file
 			log.Printf("Failed to log activity: %v", err)
@@ -85,7 +84,6 @@ func (pgs *CompetencyGroupService) Create(currentUserID uint, competencyGroup *m
 
 func (pgs *CompetencyGroupService) Update(id uint, currentUserID uint, updatedCompetencyGroup *models.CompetencyGroup) (*models.CompetencyGroup, error) {
 	existingCompetencyGroup, err := pgs.GetByID(id)
-
 	if err != nil {
 		return nil, err
 	}
@@ -96,18 +94,15 @@ func (pgs *CompetencyGroupService) Update(id uint, currentUserID uint, updatedCo
 		} else if exists {
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
-
 	}
 
 	result, err := pgs.repo.Update(id, updatedCompetencyGroup)
-
 	if err != nil {
 		return nil, err
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status"}
 	changes, err := utility.CompareFields(existingCompetencyGroup, updatedCompetencyGroup, fieldsToCompare)
-
 	if err != nil {
 		log.Println("error :", err.Error())
 	}
@@ -124,7 +119,7 @@ func (pgs *CompetencyGroupService) Update(id uint, currentUserID uint, updatedCo
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
@@ -140,7 +135,6 @@ func (pgs *CompetencyGroupService) Delete(ids []uint, currentUserID uint) ([]uin
 	for _, id := range ids {
 
 		_, err := pgs.repo.GetByID(id)
-
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -155,7 +149,6 @@ func (pgs *CompetencyGroupService) Delete(ids []uint, currentUserID uint) ([]uin
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := pgs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -179,7 +172,6 @@ func (pgs *CompetencyGroupService) Activate(ids []uint, currentUserID uint) erro
 	successfulIds, err := pgs.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := pgs.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
@@ -203,7 +195,6 @@ func (pgs *CompetencyGroupService) Deactivate(ids []uint, currentUserID uint) er
 	successfulIds, err := pgs.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := pgs.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,

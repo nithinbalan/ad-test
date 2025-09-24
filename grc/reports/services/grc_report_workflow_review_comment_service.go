@@ -145,7 +145,7 @@ func (grwrcs *GRCReportWorkflowReviewCommentService) Create(grcReportID uint, cu
 			id,
 			existingComment,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -197,7 +197,7 @@ func (grwrcs *GRCReportWorkflowReviewCommentService) Update(grcReportID uint, id
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -261,7 +261,6 @@ func (grwrcs *GRCReportWorkflowReviewCommentService) Delete(grcReportID uint, id
 }
 
 func (grwrcs *GRCReportWorkflowReviewCommentService) GRCReportSectionCommentResolve(grcReportID uint, id uint, currentUserID uint) error {
-
 	tx := grwrcs.repo.BeginTransaction()
 
 	commentStatus, err := grwrcs.grcReportCommentStatusSvc.GetByType("resolved")
@@ -308,7 +307,7 @@ func (grwrcs *GRCReportWorkflowReviewCommentService) GRCReportSectionCommentReso
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -318,11 +317,9 @@ func (grwrcs *GRCReportWorkflowReviewCommentService) GRCReportSectionCommentReso
 		}
 	}()
 	return nil
-
 }
 
 func (grwrcs *GRCReportWorkflowReviewCommentService) GRCReportSectionCommentClose(grcReportID uint, id uint, currentUserID uint) error {
-
 	tx := grwrcs.repo.BeginTransaction()
 
 	commentStatus, err := grwrcs.grcReportCommentStatusSvc.GetByType("closed")
@@ -368,7 +365,7 @@ func (grwrcs *GRCReportWorkflowReviewCommentService) GRCReportSectionCommentClos
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -378,7 +375,6 @@ func (grwrcs *GRCReportWorkflowReviewCommentService) GRCReportSectionCommentClos
 		}
 	}()
 	return nil
-
 }
 
 func (grwrcs *GRCReportWorkflowReviewCommentService) GRCReportSectionReviewed(grcReportID uint, currentUserID uint, commentActionForm *dtos.GRCReportWorkflowReviewCommentFormDTO) error {
@@ -448,7 +444,7 @@ func (grwrcs *GRCReportWorkflowReviewCommentService) GRCReportSectionReviewed(gr
 			grcReportID,
 			nil,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

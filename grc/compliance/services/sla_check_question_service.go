@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
@@ -110,9 +111,8 @@ func (scqs *SLACheckQuestionService) CreateQuestionGroup(slaID uint, checkID uin
 			groupID,
 			slaCheckQuestionGroup,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -135,7 +135,6 @@ func (scqs *SLACheckQuestionService) UpdateQuestionGroup(slaID uint, checkID uin
 	}
 
 	oldGroup, err := scqs.GetQuestionGroupByID(slaID, checkID, groupID)
-
 	if err != nil {
 		return err
 	}
@@ -163,11 +162,10 @@ func (scqs *SLACheckQuestionService) UpdateQuestionGroup(slaID uint, checkID uin
 	// Log the activity
 	go func() {
 		existingGroup, err := scqs.GetQuestionGroupByID(slaID, checkID, groupID)
-
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"title_en": oldGroup.TitleEn,
@@ -190,9 +188,8 @@ func (scqs *SLACheckQuestionService) UpdateQuestionGroup(slaID uint, checkID uin
 				groupID,
 				group,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -284,7 +281,7 @@ func (scqs *SLACheckQuestionService) DeleteQuestionGroup(slaID uint, checkID uin
 				successfulGroupID,
 				deletedCheckQuestion,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fmt.Printf("Failed to log activity: %v\n", err)
@@ -320,7 +317,6 @@ func (scqs *SLACheckQuestionService) GetQuestionsByGroupID(slaID uint, checkID u
 
 func (scqs SLACheckQuestionService) GetQuestionByID(slaID uint, id uint) (*models.SLACheckQuestion, error) {
 	slaCheckQuestion, err := scqs.repo.GetQuestionByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -453,9 +449,8 @@ func (scqs *SLACheckQuestionService) CreateQuestion(slaID uint, checkID uint, qu
 			slaCheckQuestionId,
 			slaCheckQuestion,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -478,7 +473,6 @@ func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, qu
 	}
 	// Fetch the SLACheckQuestion by ID
 	existingQuestion, err := scqs.GetQuestionByID(slaID, questionID)
-
 	if err != nil {
 		return err
 	}
@@ -503,9 +497,8 @@ func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, qu
 			questionID,
 			existingQuestion,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -554,7 +547,7 @@ func (scqs *SLACheckQuestionService) DeleteQuestion(slaID uint, checkId uint, qu
 				successfulId,
 				question,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fmt.Printf("Failed to log activity: %v\n", err)

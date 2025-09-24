@@ -113,7 +113,7 @@ func (ols *OrganizationLevelService) CreateOrganizationLevels(currentUserID uint
 				level.ID,
 				level,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {
@@ -146,7 +146,7 @@ func (ols *OrganizationLevelService) CreateOrganizationLevels(currentUserID uint
 						level.ID,
 						changes,
 						currentUserID,
-						nil,
+						"", "", "", nil,
 					)
 
 					if err != nil {
@@ -170,7 +170,7 @@ func (ols *OrganizationLevelService) CreateOrganizationLevels(currentUserID uint
 					level.ID,
 					level,
 					currentUserID,
-					nil,
+					"", "", "", nil,
 				)
 
 				if err != nil {
@@ -205,7 +205,7 @@ func (ols *OrganizationLevelService) Create(currentUserID uint, orgLevel *models
 			orgLevel.ID,
 			createdOrgLevel,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -249,7 +249,7 @@ func (ols *OrganizationLevelService) Update(id uint, currentUserID uint, updated
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fmt.Printf("Failed to log activity: %v\n", err)
@@ -306,7 +306,7 @@ func (ols *OrganizationLevelService) Delete(id uint, currentUserID uint) error {
 			id,
 			nil,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fmt.Printf("Failed to log activity: %v\n", err)

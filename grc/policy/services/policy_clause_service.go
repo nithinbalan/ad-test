@@ -327,7 +327,7 @@ func (dcs *PolicyClauseService) Update(documentId uint, clauseId uint, currentUs
 				clauseId,
 				changedData,
 				currentUserId,
-				nil,
+				"", "", "", nil,
 			)
 
 			if err != nil {

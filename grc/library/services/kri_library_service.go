@@ -83,7 +83,7 @@ func (kls *KRILibraryService) Create(currentUserID uint, kriLibraryFormDTO *libr
 			id,
 			kriLibraryFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -127,7 +127,7 @@ func (kls *KRILibraryService) Update(id uint, currentUserID uint, kriLibraryForm
 			id,
 			kriLibraryFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -235,7 +235,6 @@ func (svc *KRILibraryService) GetKRICategoryCounts() ([]libraryDTOs.KRICategoryC
 }
 
 func (svc *KRILibraryService) ExportKRILibrary(data []*libraryDTOs.KRILibraryDTO, userID uint) (*os.File, error) {
-
 	// Headers
 	headers := []string{
 		"SL No.",

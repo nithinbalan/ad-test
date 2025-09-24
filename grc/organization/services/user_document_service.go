@@ -312,7 +312,7 @@ func (uds *UserDocumentService) Update(userID uint, id uint, currentUserID uint,
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log process dependency update", map[string]interface{}{

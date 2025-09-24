@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+
 	documentDTOs "jethur/grc/documents/dtos"
 	"jethur/grc/documents/repositories"
 	logServices "jethur/grc/logs/services"
@@ -32,7 +33,8 @@ func NewDocumentAcknowledgeUserService(repo repositories.DocumentAcknowledgeUser
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	documentSvc DocumentServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
-	organizationLevelSvc settingServices.OrganizationLevelServiceInterface) DocumentAcknowledgeUserServiceInterface {
+	organizationLevelSvc settingServices.OrganizationLevelServiceInterface,
+) DocumentAcknowledgeUserServiceInterface {
 	return &DocumentAcknowledgeUserService{
 		repo:                 repo,
 		activityLogSvc:       activityLogSvc,
@@ -45,7 +47,6 @@ func NewDocumentAcknowledgeUserService(repo repositories.DocumentAcknowledgeUser
 func (daus *DocumentAcknowledgeUserService) GetAll(documentID uint, versionId uint, params *documentDTOs.DocumentAcknowledgeListQueryParamsDTO) (*documentDTOs.DocumentAcknowledgementListResponseDTO, error) {
 	document, err := daus.documentSvc.GetFullDetailsByID(documentID, nil)
 	if err != nil {
-
 		return nil, err
 	}
 
@@ -75,7 +76,6 @@ func (daus *DocumentAcknowledgeUserService) GetAll(documentID uint, versionId ui
 		return daus.repo.GetAllForPublicDocument(documentID, versionId, primaryOrgUnitField, params)
 	}
 	return daus.repo.GetAll(documentID, versionId, primaryOrgUnitField, params)
-
 }
 
 func (daus *DocumentAcknowledgeUserService) Create(docuemntID uint, versionId uint, currentUserID uint, documentAcknowledgeFormDTO *documentDTOs.DocumentAcknowledgeFormDTO) (uint, error) {
@@ -116,7 +116,7 @@ func (daus *DocumentAcknowledgeUserService) Create(docuemntID uint, versionId ui
 		tx.Rollback()
 		return 0, err
 	}
-	//Add Audit logs
+	// Add Audit logs
 	if err := daus.documentSvc.CreateDocumentAuditLog(uint(docuemntID), document.LatestDocumentVersion.ID, currentUserID, "acknowledged", tx); err != nil {
 		tx.Rollback()
 		return 0, err
@@ -131,9 +131,8 @@ func (daus *DocumentAcknowledgeUserService) Create(docuemntID uint, versionId ui
 			documentAcknowledgeUser.ID,
 			documentAcknowledgeUser,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -186,7 +185,7 @@ func (daus *DocumentAcknowledgeUserService) Delete(docuemntID uint, versionId ui
 			uint(docuemntID),
 			deletedUser,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// Handle error if logging fails

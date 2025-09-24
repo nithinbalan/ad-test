@@ -3,15 +3,16 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+
 	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -63,7 +64,6 @@ func (csus ComplianceStatusUpdateService) GetByID(complianceID uint, id uint) (*
 	}
 
 	complianceStatusUpdate, err := csus.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -81,7 +81,6 @@ func (csus ComplianceStatusUpdateService) GetFullDetailsByID(complianceID uint, 
 	}
 
 	complianceStatusUpdate, err := csus.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -94,7 +93,7 @@ func (csus ComplianceStatusUpdateService) GetFullDetailsByID(complianceID uint, 
 		return nil, err
 	}
 
-	//todo :- also add extra fields which required in details screen
+	// todo :- also add extra fields which required in details screen
 
 	return &complianceStatusUpdateDTO, nil
 }
@@ -159,7 +158,7 @@ func (csus *ComplianceStatusUpdateService) Create(complianceID uint, currentUser
 			tx.Rollback()
 			return 0, err
 		}
-		//move file to storage
+		// move file to storage
 		for _, doc := range documents {
 			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
@@ -179,9 +178,8 @@ func (csus *ComplianceStatusUpdateService) Create(complianceID uint, currentUser
 			id,
 			complianceUpdate,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -205,13 +203,11 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 	}
 
 	existingComplianceStatusUpdate, err := csus.GetByID(complianceID, id)
-
 	if err != nil {
 		return err
 	}
 
 	oldComplianceStatusUpdate, err := csus.GetFullDetailsByID(complianceID, id)
-
 	if err != nil {
 		return err
 	}
@@ -221,7 +217,6 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 	existingComplianceStatusUpdate.UpdatedByID = &currentUserID
 
 	err = csus.repo.Update(existingComplianceStatusUpdate)
-
 	if err != nil {
 		return err
 	}
@@ -231,18 +226,16 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 	var documentsToDelete []*models.ComplianceStatusUpdateDocument
 
 	for _, doc := range complianceStatusUpdateFormDTO.Documents {
-
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
-			//genereate URL
+			// genereate URL
 			url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			// Create a new Control test Document instance
 			document := &models.ComplianceStatusUpdateDocument{
@@ -312,7 +305,7 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 			tx.Rollback()
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		fmt.Println(oldComplianceStatusUpdate.ComplianceStatus.TitleEn)
 		oldData := map[string]interface{}{
@@ -336,9 +329,8 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -357,7 +349,6 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 }
 
 func (csus *ComplianceStatusUpdateService) validateComplianceStatusUpdateFormDTO(complianceStatusUpdateFormDTO *complianceDTOs.ComplianceStatusUpdateFormDTO) error {
-
 	if _, err := csus.complianceStatusSvc.GetByID(complianceStatusUpdateFormDTO.ComplianceStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
 	}
@@ -374,7 +365,6 @@ func (csus ComplianceStatusUpdateService) GetLatestComplianceStatusUpdate(compli
 }
 
 func (csus *ComplianceStatusUpdateService) GetDocumentPath(complianceID, id uint, token string) (string, error) {
-
 	existingComplianceStatusUpdate, err := csus.GetByID(complianceID, id)
 	if err != nil {
 		return "", err

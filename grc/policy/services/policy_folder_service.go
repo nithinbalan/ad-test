@@ -76,7 +76,7 @@ func (cfs *PolicyFolderService) Create(currentUserID uint, formDTO *dtos.PolicyF
 			folder.ID,
 			createdFolder,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -130,7 +130,7 @@ func (cfs *PolicyFolderService) Update(id uint, currentUserID uint, formDTO *dto
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

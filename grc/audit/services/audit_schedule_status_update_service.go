@@ -3,15 +3,16 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+
 	"jethur/config"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -55,7 +56,6 @@ func (asus AuditScheduleStatusUpdateService) GetByID(auditID uint, auditSchedule
 	}
 
 	auditScheduleStatusUpdate, err := asus.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -123,7 +123,7 @@ func (asus *AuditScheduleStatusUpdateService) Create(auditScheduleID uint, curre
 			return 0, err
 		}
 
-		//move file to storage
+		// move file to storage
 		for _, doc := range documents {
 			storagePath := filepath.Join("audit", "audits", strconv.FormatUint(uint64(auditSchedule.AuditID), 10), "audit-schedules", strconv.FormatUint(uint64(auditScheduleID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
@@ -152,9 +152,11 @@ func (asus *AuditScheduleStatusUpdateService) Create(auditScheduleID uint, curre
 			id,
 			existingAuditScheduleStatusUpdate,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -206,7 +208,6 @@ func (asus *AuditScheduleStatusUpdateService) Update(auditScheduleID uint, id ui
 	var documentsToDelete []*models.AuditScheduleStatusUpdateDocument
 
 	for _, doc := range auditScheduleStatusUpdateFormDTO.Documents {
-
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
@@ -282,7 +283,7 @@ func (asus *AuditScheduleStatusUpdateService) Update(auditScheduleID uint, id ui
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"comment":    oldScheduleUpdate.Comment,
 			"percentage": oldScheduleUpdate.Percentage,
@@ -306,6 +307,9 @@ func (asus *AuditScheduleStatusUpdateService) Update(auditScheduleID uint, id ui
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {
@@ -332,7 +336,6 @@ func (asus *AuditScheduleStatusUpdateService) GetLatestAuditScheduleStatusUpdate
 }
 
 func (asus *AuditScheduleStatusUpdateService) GetDocumentPath(auditID uint, auditScheduleID uint, id uint, token string) (string, error) {
-
 	auditSchedule, err := asus.auditScheduleSvc.GetByID(auditScheduleID)
 	if err != nil {
 		return "", err

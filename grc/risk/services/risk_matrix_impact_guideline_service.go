@@ -195,7 +195,7 @@ func (rmigs *RiskMatrixImpactGuidelineService) Update(id uint, currentUserID uin
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{

@@ -76,7 +76,7 @@ func (udts *UserDocumentTypeService) Create(currentUserID uint, dto *orgDTOs.Use
 			id,
 			created,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 	}()
 
@@ -119,7 +119,7 @@ func (udts *UserDocumentTypeService) Update(id uint, currentUserID uint, dto *or
 			id,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 	}()
 

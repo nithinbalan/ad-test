@@ -88,7 +88,7 @@ func (sqgs *SwotPestelQuestionGroupService) Create(currentUserID uint, swotPeste
 			createdSwotPestelQuestionGroup.ID,
 			createdSwotPestelQuestionGroup,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -140,7 +140,7 @@ func (sqgs *SwotPestelQuestionGroupService) Update(id uint, currentUserID uint, 
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

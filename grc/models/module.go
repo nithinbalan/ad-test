@@ -5,15 +5,15 @@ type Module struct {
 	Identifier string `json:"identifier" gorm:"size:45;not null" binding:"required"`
 	TitleEn    string `json:"title_en" gorm:"size:100;not null" binding:"required"`
 	TitleAr    string `json:"title_ar" gorm:"size:100;not null" binding:"required"`
-	ModuleID   *uint  `json:"module_id,omitempty" binding:"omitempty"`
+	ParentID   *uint  `json:"parent_id,omitempty" binding:"omitempty" gorm:"column:module_id"`
 	Order      int    `json:"order" gorm:"not null" binding:"required"`
 	Icon       string `json:"icon" gorm:"size:45" binding:"required"`
 	Route      string `json:"route" gorm:"size:255" binding:"required"`
 	IsEnable   bool   `json:"is_enable"`
 
 	// Self-referencing relationship
-	Parent     *Module   `json:"parent,omitempty" gorm:"foreignKey:ModuleID"`
-	SubModules *[]Module `json:"sub_modules,omitempty" gorm:"foreignKey:ModuleID"`
+	Parent     *Module   `json:"parent,omitempty" gorm:"foreignKey:ParentID"`
+	SubModules *[]Module `json:"sub_modules,omitempty" gorm:"foreignKey:ParentID"`
 
 	// One-to-many relationship
 	NotificationMasters *[]NotificationMaster `json:"notification_masters,omitempty" gorm:"foreignKey:ModuleID"`

@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
@@ -111,7 +112,6 @@ func (apts *AuditPlanToolService) Create(auditPlanID uint, currentUserID uint, a
 	tx.Commit()
 
 	go func() {
-
 		existingAuditPlanTool, err := apts.GetFullDetailsByID(id)
 		if err != nil {
 			utility.LogError("Failed to fetch audit plan tool", map[string]interface{}{
@@ -126,9 +126,11 @@ func (apts *AuditPlanToolService) Create(auditPlanID uint, currentUserID uint, a
 			id,
 			existingAuditPlanTool,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -187,7 +189,7 @@ func (apts *AuditPlanToolService) Update(id uint, auditPlanID uint, currentUserI
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"tool_type":  oldAuditPlanTool.ToolType.TitleEn,
 			"title":      oldAuditPlanTool.Title,
@@ -213,9 +215,11 @@ func (apts *AuditPlanToolService) Update(id uint, auditPlanID uint, currentUserI
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -279,9 +283,11 @@ func (apts *AuditPlanToolService) Delete(ids []uint, currentUserID uint) ([]uint
 					id,
 					deletedAuditPlanTool,
 					currentUserID,
+					"",
+					"",
+					"",
 					nil,
 				)
-
 				if err != nil {
 					fields := map[string]interface{}{
 						"action":    models.DeleteAction,

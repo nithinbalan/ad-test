@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	settingsSvc "jethur/grc/settings/services"
@@ -37,7 +38,6 @@ func NewStrategicIntiativeService(repo repositories.StrategicIntiativeRepository
 	activityLogSvc services.ActivityLogServiceInterface,
 	organizationUnitSvc settingsSvc.OrganizationUnitServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
-
 ) StrategicIntiativeServiceInterface {
 	return &StrategicIntiativeService{
 		repo:                repo,
@@ -53,7 +53,6 @@ func (sis *StrategicIntiativeService) GetAll(params *dtos.StrategicIntiativeList
 
 func (sis StrategicIntiativeService) GetByID(id uint) (*models.StrategicIntiative, error) {
 	strategicIntiative, err := sis.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -62,7 +61,6 @@ func (sis StrategicIntiativeService) GetByID(id uint) (*models.StrategicIntiativ
 	}
 
 	return strategicIntiative, nil
-
 }
 
 func (sis *StrategicIntiativeService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.StrategicIntiativeDetailDTO, error) {
@@ -156,7 +154,7 @@ func (sis *StrategicIntiativeService) Create(currentUserID uint, dto *dtos.Strat
 			id,
 			fullDetails,
 			currentUserID,
-			nil,
+			"strategy", "strategy_intiative", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -184,7 +182,7 @@ func (sis *StrategicIntiativeService) Update(id uint, currentUserID uint, dto *d
 		return err
 	}
 
-	//Parse dates
+	// Parse dates
 	dates, err := sis.parseStrategicIntiativeDates(dto)
 	if err != nil {
 		return err
@@ -231,7 +229,7 @@ func (sis *StrategicIntiativeService) Update(id uint, currentUserID uint, dto *d
 			id,
 			fullDetails,
 			currentUserID,
-			nil,
+			"strategy", "strategy_intiative", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log update activity", map[string]interface{}{
@@ -253,7 +251,6 @@ func (sis *StrategicIntiativeService) Delete(ids []uint, currentUserID uint) ([]
 	for _, id := range ids {
 
 		_, err := sis.repo.GetByID(id)
-
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -268,7 +265,6 @@ func (sis *StrategicIntiativeService) Delete(ids []uint, currentUserID uint) ([]
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := sis.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -307,5 +303,4 @@ func (sis *StrategicIntiativeService) parseStrategicIntiativeDates(dto *dtos.Str
 	}
 
 	return parsed, nil
-
 }

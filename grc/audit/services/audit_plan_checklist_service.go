@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
@@ -70,7 +71,6 @@ func (aps *AuditPlanChecklistService) GetFullDetailsByID(auditPlanId uint, id ui
 	var auditPlanChecklitDetailDTO auditDTOs.AuditPlanChecklistDetailDTO
 
 	checklist, err := aps.repo.GetFullDetailsByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -83,7 +83,7 @@ func (aps *AuditPlanChecklistService) GetFullDetailsByID(auditPlanId uint, id ui
 		return nil, err
 	}
 
-	//todo :- also add extra fields which required in details screen
+	// todo :- also add extra fields which required in details screen
 
 	return &auditPlanChecklitDetailDTO, nil
 }
@@ -130,9 +130,11 @@ func (aps *AuditPlanChecklistService) Create(auditPlanId uint, currentUserID uin
 			id,
 			existingAuditPlanChecklist,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -191,7 +193,7 @@ func (aps *AuditPlanChecklistService) Update(auditPlanId uint, id uint, currentU
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"auditable_item": oldAuditPlanChecklist.AuditableItem.TitleEn,
 			"question":       oldAuditPlanChecklist.Question,
@@ -215,9 +217,11 @@ func (aps *AuditPlanChecklistService) Update(auditPlanId uint, id uint, currentU
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -276,9 +280,11 @@ func (aps *AuditPlanChecklistService) Delete(auditPlanId uint, ids []uint, curre
 					id,
 					deletedAuditPlanChecklist,
 					currentUserID,
+					"",
+					"",
+					"",
 					nil,
 				)
-
 				if err != nil {
 					fields := map[string]interface{}{
 						"action":    models.DeleteAction,
