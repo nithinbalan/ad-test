@@ -3,12 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
-	"time"
 
 	"jethur/utility"
 
@@ -49,7 +50,6 @@ func (sps SystemPreferenceService) GetSystemPreference() (*dtos.SystemPreference
 	var systemPreferenceDetailDTO dtos.SystemPreferenceDTO
 
 	systemPreference, err := sps.repo.GetSystemPreference()
-
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,6 @@ func (sps SystemPreferenceService) GetSystemPreference() (*dtos.SystemPreference
 
 func (sps SystemPreferenceService) GetByID(id uint) (*models.SystemPreference, error) {
 	systemPreference, err := sps.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -172,7 +171,6 @@ func (sps *SystemPreferenceService) Update(id uint, currentUserID uint, systemPr
 			currentUserID,
 			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -314,13 +312,11 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 
 		enableModule.IsEnable = true
 		enableModules = append(enableModules, *enableModule)
-		if enableModule.ModuleID == nil {
+		if enableModule.ParentID == nil {
 			if len(moduleDetail.SubModules) > 0 {
-
 				// enabling all sub modules
 				for _, subModule := range moduleDetail.SubModules {
 					existingSubModule, err := sps.moduleSvc.GetByID(subModule.ID)
-
 					if err != nil {
 						return err
 					}
@@ -328,7 +324,6 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 					enableModules = append(enableModules, *existingSubModule)
 				}
 			}
-
 		}
 	}
 
@@ -371,7 +366,6 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 			1,
 			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -389,7 +383,6 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 }
 
 func (sps *SystemPreferenceService) UpdateBalanceUserCount(systemPreference *models.SystemPreference, tx utility.DatabaseTransaction) error {
-
 	err := sps.repo.Update(systemPreference)
 	if err != nil {
 		tx.Rollback()
