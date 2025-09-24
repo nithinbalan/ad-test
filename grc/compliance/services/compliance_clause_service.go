@@ -67,6 +67,7 @@ type ComplianceClauseServiceInterface interface {
 	ValidateClauseTemplate(complianceID uint, file io.Reader) ([]map[string]interface{}, error)
 	ValidateImportClause(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error)
 	ImportClauses(complianceID uint, input []map[string]interface{}, currentUserID uint) ([]uint, error)
+	GetAllForImport(complianceID uint) ([]*complianceDTOs.ComplianceClauseListDTO, error)
 }
 
 type ComplianceClauseService struct {
