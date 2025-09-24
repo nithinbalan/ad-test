@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/kpi/services"
 	"jethur/utility"
@@ -156,6 +157,30 @@ func (edc *ERMDashboardController) GetERMControlEfficiencySummary(c *gin.Context
 		DateTo:   dateTo,
 	}
 	summary, err := edc.service.GetERMControlEfficiencySummary(&queryParams)
+	fmt.Println(summary)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(edc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}
+
+// ERM Control Efficiency Breakdown
+func (edc *ERMDashboardController) GetERMControlEfficiencyBreakdown(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.ERMDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	summary, err := edc.service.GetERMControlEfficiencyBreakdown(&queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

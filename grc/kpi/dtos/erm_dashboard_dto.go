@@ -62,8 +62,11 @@ type ERMLeadershipAttentionDTO struct {
 }
 
 type ERMControlEfficiencySummaryDTO struct {
-	OverallControlEfficiency float64                           `json:"overall_control_efficiency"`
-	ControlsByEfficiency     []ERMControlEfficiencyByStatusDTO `json:"controls_by_efficiency"`
+	OverallControlEfficiency float64 `json:"overall_control_efficiency"`
+}
+
+type ERMControlEfficiencyBreakdownDTO struct {
+	ControlsByEfficiency []ERMControlEfficiencyByStatusDTO `json:"controls_by_efficiency"`
 }
 
 type ERMControlEfficiencyByStatusDTO struct {

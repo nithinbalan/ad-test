@@ -17,6 +17,7 @@ type ERMDashboardRepositoryInterface interface {
 	GetERMRisksAboveAppetite(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRisksAboveAppetiteDTO, error)
 	GetERMLeadershipAttentionMetrics(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMLeadershipAttentionDTO, error)
 	GetERMControlEfficiencySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMControlEfficiencySummaryDTO, error)
+	GetERMControlEfficiencyBreakdown(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMControlEfficiencyBreakdownDTO, error)
 	GetERMControlsOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMControlsOverviewDTO, error)
 }
 
@@ -142,7 +143,6 @@ func (repo *ERMDashboardRepository) GetERMRiskDistribution(params *kpiDTOs.ERMDa
 			return nil, err
 		}
 
-		// Calculate Percentage
 		var percentage float64
 		if totalRisksRegistered > 0 {
 			percentage = math.Round(float64(count) / float64(totalRisksRegistered) * 100)
@@ -373,19 +373,45 @@ func (repo *ERMDashboardRepository) GetERMLeadershipAttentionMetrics(params *kpi
 }
 
 func (repo *ERMDashboardRepository) GetERMControlEfficiencySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMControlEfficiencySummaryDTO, error) {
-	summary := &kpiDTOs.ERMControlEfficiencySummaryDTO{}
-
-	type efficiencyResult struct {
-		ID        uint
-		TitleEn   string
-		TitleAr   string
-		ColorCode string
-		Type      string
-		Count     int64
+	type result struct {
+		TotalControls     int64
+		EfficientControls int64
 	}
 
-	var results []efficiencyResult
-	err := repo.db.Model(&models.RiskControl{}).
+	var res result
+	query := repo.db.Table("controls").
+		Select(`
+            COUNT(DISTINCT CASE WHEN controls.is_applicable = 1 THEN controls.id END) AS total_controls,
+            COUNT(DISTINCT CASE WHEN controls.is_applicable = 1 AND control_efficiency_statuses.type = 'efficient' THEN controls.id END) AS efficient_controls
+        `).
+		Joins("JOIN risk_controls ON risk_controls.control_id = controls.id").
+		Joins("JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id").
+		Where("controls.is_applicable = ?", true)
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Joins("JOIN risk_register ON risk_register.id = risk_controls.risk_register_id").
+			Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&res).Error
+	if err != nil {
+		return nil, err
+	}
+
+	summary := &kpiDTOs.ERMControlEfficiencySummaryDTO{}
+	if res.TotalControls > 0 {
+		summary.OverallControlEfficiency = math.Round((float64(res.EfficientControls)/float64(res.TotalControls))*100*100) / 100
+	} else {
+		summary.OverallControlEfficiency = 0
+	}
+
+	return summary, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMControlEfficiencyBreakdown(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMControlEfficiencyBreakdownDTO, error) {
+	summary := &kpiDTOs.ERMControlEfficiencyBreakdownDTO{}
+
+	query := repo.db.Model(&models.RiskControl{}).
 		Select(`
 			control_efficiency_statuses.id,
 			control_efficiency_statuses.title_en,
@@ -398,41 +424,22 @@ func (repo *ERMDashboardRepository) GetERMControlEfficiencySummary(params *kpiDT
 		Joins("JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id").
 		Where("controls.is_applicable = ?", true).
 		Group(`
-			control_efficiency_statuses.id, 
-			control_efficiency_statuses.title_en, 
-			control_efficiency_statuses.title_ar, 
-			control_efficiency_statuses.color_code, 
-			control_efficiency_statuses.type
-		`).
-		Order("control_efficiency_statuses.id").
-		Scan(&results).Error
+        control_efficiency_statuses.id,
+        control_efficiency_statuses.title_en,
+        control_efficiency_statuses.title_ar,
+        control_efficiency_statuses.color_code,
+        control_efficiency_statuses.type
+    `).
+		Order("control_efficiency_statuses.id")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Joins("JOIN risk_register ON risk_register.id = risk_controls.risk_register_id").
+			Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&summary.ControlsByEfficiency).Error
 	if err != nil {
 		return nil, err
-	}
-
-	// Build efficiency summary & calculate overall efficiency
-	var totalControls, efficientControls int64
-	summary.ControlsByEfficiency = []kpiDTOs.ERMControlEfficiencyByStatusDTO{}
-	for _, r := range results {
-		totalControls += r.Count
-		if r.Type == "efficient" {
-			efficientControls = r.Count
-		}
-		summary.ControlsByEfficiency = append(summary.ControlsByEfficiency, kpiDTOs.ERMControlEfficiencyByStatusDTO{
-			ID:        r.ID,
-			TitleEn:   r.TitleEn,
-			TitleAr:   r.TitleAr,
-			ColorCode: r.ColorCode,
-			Type:      r.Type,
-			Count:     r.Count,
-		})
-	}
-
-	// Overall efficiency = efficient controls / total controls
-	if totalControls > 0 {
-		summary.OverallControlEfficiency = math.Round((float64(efficientControls)/float64(totalControls))*100*100) / 100
-	} else {
-		summary.OverallControlEfficiency = 0
 	}
 
 	return summary, nil
