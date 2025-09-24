@@ -63,7 +63,7 @@ func (rrcc *RiskReviewCommentController) GetAllComments(c *gin.Context) {
 		Filters: filters,
 	}
 
-	riskIDStr := c.Param("id")
+	riskIDStr := c.Param("riskId")
 	riskID, err := strconv.ParseUint(riskIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -92,7 +92,7 @@ func (rrcc *RiskReviewCommentController) GetAllComments(c *gin.Context) {
 }
 
 func (rrcc *RiskReviewCommentController) GetCommentDetails(c *gin.Context) {
-	riskIDStr := c.Param("id")
+	riskIDStr := c.Param("riskId")
 	riskID, err := strconv.ParseUint(riskIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -122,7 +122,7 @@ func (rrcc *RiskReviewCommentController) GetCommentDetails(c *gin.Context) {
 }
 
 func (rrcc *RiskReviewCommentController) CreateComment(c *gin.Context) {
-	riskIDStr := c.Param("id")
+	riskIDStr := c.Param("riskId")
 	riskID, err := strconv.ParseUint(riskIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -157,7 +157,7 @@ func (rrcc *RiskReviewCommentController) CreateComment(c *gin.Context) {
 }
 
 func (rrcc *RiskReviewCommentController) UpdateComment(c *gin.Context) {
-	riskIDStr := c.Param("id")
+	riskIDStr := c.Param("riskId")
 	riskID, err := strconv.ParseUint(riskIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -199,7 +199,7 @@ func (rrcc *RiskReviewCommentController) UpdateComment(c *gin.Context) {
 }
 
 func (rrcc *RiskReviewCommentController) DeleteComment(c *gin.Context) {
-	riskIDStr := c.Param("id")
+	riskIDStr := c.Param("riskId")
 	riskID, err := strconv.ParseUint(riskIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
@@ -241,7 +241,7 @@ func (rrcc *RiskReviewCommentController) DeleteComment(c *gin.Context) {
 
 func (rrcc *RiskReviewCommentController) ResolveComment(c *gin.Context) {
 
-	riskIDStr := c.Param("id")
+	riskIDStr := c.Param("riskId")
 	riskID, err := strconv.ParseUint(riskIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
