@@ -421,10 +421,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/risk-register/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskWorkflowController.GetWorkflowList)
 
 	// risk comment
-	riskRoutes.GET("/risk-register/:id/comments", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskReviewCommentController.GetAllComments)
-	riskRoutes.GET("/risk-register/:id/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskReviewCommentController.GetCommentDetails)
-	riskRoutes.POST("/risk-register/:id/comments", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskReviewCommentController.CreateComment)
-	riskRoutes.PUT("/risk-register/:id/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskReviewCommentController.UpdateComment)
-	riskRoutes.POST("/risk-register/:id/comments/delete", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskReviewCommentController.DeleteComment)
-	riskRoutes.PUT("/risk-register/:id/comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskReviewCommentController.ResolveComment)
+	riskRoutes.GET("/risks/:id/comments", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskReviewCommentController.GetAllComments)
+	riskRoutes.GET("/risks/:id/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskReviewCommentController.GetCommentDetails)
+	riskRoutes.POST("/risks/:id/comments", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskReviewCommentController.CreateComment)
+	riskRoutes.PUT("/risks/:id/comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskReviewCommentController.UpdateComment)
+	riskRoutes.POST("/risks/:id/comments/delete", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskReviewCommentController.DeleteComment)
+	riskRoutes.PUT("/risks/:id/comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskReviewCommentController.ResolveComment)
 }
