@@ -8,10 +8,10 @@ import (
 	"gorm.io/gorm"
 )
 
-type PolicyVersionClauseCommentRepositoryInterface interface {
+type PolicyClauseCommentRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(clauseID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) ([]*policyDTOs.PolicyVersionClauseCommentListDTO, error)
-	GetAllDocumentComments(documentID uint, versionID uint, currentUserID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) (*policyDTOs.PolicyVersionClauseCommentListResponseDTO, error)
+	GetAll(clauseID uint, params *policyDTOs.PolicyClauseCommentListQueryParamsDTO) ([]*policyDTOs.PolicyClauseCommentListDTO, error)
+	GetAllDocumentComments(documentID uint, versionID uint, currentUserID uint, params *policyDTOs.PolicyClauseCommentListQueryParamsDTO) (*policyDTOs.PolicyClauseCommentListResponseDTO, error)
 	GetByID(id uint) (*models.DocumentVersionClauseComment, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersionClauseComment, error)
 	Create(comment *models.DocumentVersionClauseComment, tx ...utility.DatabaseTransaction) (uint, error)
@@ -19,22 +19,22 @@ type PolicyVersionClauseCommentRepositoryInterface interface {
 	Delete(commentID uint, tx ...utility.DatabaseTransaction) error
 }
 
-type PolicyVersionClauseCommentRepository struct {
+type PolicyClauseCommentRepository struct {
 	db *gorm.DB
 }
 
-func NewPolicyVersionClauseCommentRepository(db *gorm.DB) PolicyVersionClauseCommentRepositoryInterface {
-	return &PolicyVersionClauseCommentRepository{
+func NewPolicyClauseCommentRepository(db *gorm.DB) PolicyClauseCommentRepositoryInterface {
+	return &PolicyClauseCommentRepository{
 		db: db,
 	}
 }
 
-func (repo *PolicyVersionClauseCommentRepository) BeginTransaction() utility.DatabaseTransaction {
+func (repo *PolicyClauseCommentRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *PolicyVersionClauseCommentRepository) GetAll(clauseID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) ([]*policyDTOs.PolicyVersionClauseCommentListDTO, error) {
-	var comments []*policyDTOs.PolicyVersionClauseCommentListDTO
+func (repo *PolicyClauseCommentRepository) GetAll(clauseID uint, params *policyDTOs.PolicyClauseCommentListQueryParamsDTO) ([]*policyDTOs.PolicyClauseCommentListDTO, error) {
+	var comments []*policyDTOs.PolicyClauseCommentListDTO
 	query := repo.db.Table("document_version_clause_comments").
 		Select(`
 	document_version_clause_comments.id,
@@ -105,9 +105,9 @@ func (repo *PolicyVersionClauseCommentRepository) GetAll(clauseID uint, params *
 	return comments, nil
 }
 
-func (repo *PolicyVersionClauseCommentRepository) GetAllDocumentComments(documentID uint, versionID uint, currentUserID uint, params *policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO) (*policyDTOs.PolicyVersionClauseCommentListResponseDTO, error) {
+func (repo *PolicyClauseCommentRepository) GetAllDocumentComments(documentID uint, versionID uint, currentUserID uint, params *policyDTOs.PolicyClauseCommentListQueryParamsDTO) (*policyDTOs.PolicyClauseCommentListResponseDTO, error) {
 
-	var comments []*policyDTOs.PolicyVersionClauseCommentListDTO
+	var comments []*policyDTOs.PolicyClauseCommentListDTO
 	var statusCounts []policyDTOs.StatusCount
 
 	query := repo.db.
@@ -206,25 +206,25 @@ func (repo *PolicyVersionClauseCommentRepository) GetAllDocumentComments(documen
 		}
 	}
 
-	return &policyDTOs.PolicyVersionClauseCommentListResponseDTO{
+	return &policyDTOs.PolicyClauseCommentListResponseDTO{
 		Comments:      comments,
 		OpenCount:     openCount,
 		ResolvedCount: resolvedCount,
 	}, nil
 }
 
-func (repo *PolicyVersionClauseCommentRepository) GetByID(id uint) (*models.DocumentVersionClauseComment, error) {
-	var PolicyVersionClauseComment *models.DocumentVersionClauseComment
-	result := repo.db.First(&PolicyVersionClauseComment, id)
+func (repo *PolicyClauseCommentRepository) GetByID(id uint) (*models.DocumentVersionClauseComment, error) {
+	var PolicyClauseComment *models.DocumentVersionClauseComment
+	result := repo.db.First(&PolicyClauseComment, id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return PolicyVersionClauseComment, nil
+	return PolicyClauseComment, nil
 }
 
-func (repo *PolicyVersionClauseCommentRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersionClauseComment, error) {
+func (repo *PolicyClauseCommentRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.DocumentVersionClauseComment, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -244,7 +244,7 @@ func (repo *PolicyVersionClauseCommentRepository) GetFullDetailsByID(id uint, tx
 	return &comment, nil
 }
 
-func (repo *PolicyVersionClauseCommentRepository) Create(comment *models.DocumentVersionClauseComment, tx ...utility.DatabaseTransaction) (uint, error) {
+func (repo *PolicyClauseCommentRepository) Create(comment *models.DocumentVersionClauseComment, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -256,7 +256,7 @@ func (repo *PolicyVersionClauseCommentRepository) Create(comment *models.Documen
 	return comment.ID, nil
 }
 
-func (repo *PolicyVersionClauseCommentRepository) Update(comment *models.DocumentVersionClauseComment, tx ...utility.DatabaseTransaction) error {
+func (repo *PolicyClauseCommentRepository) Update(comment *models.DocumentVersionClauseComment, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
@@ -269,7 +269,7 @@ func (repo *PolicyVersionClauseCommentRepository) Update(comment *models.Documen
 	return nil
 }
 
-func (repo *PolicyVersionClauseCommentRepository) Delete(commentID uint, tx ...utility.DatabaseTransaction) error {
+func (repo *PolicyClauseCommentRepository) Delete(commentID uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()

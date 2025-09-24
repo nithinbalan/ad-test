@@ -14,18 +14,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type PolicyVersionClauseCommentController struct {
-	service services.PolicyVersionClauseCommentServiceInterface
+type PolicyClauseCommentController struct {
+	service services.PolicyClauseCommentServiceInterface
 	db      *gorm.DB
 }
 
-func NewPolicyVersionClauseCommentController(service services.PolicyVersionClauseCommentServiceInterface) *PolicyVersionClauseCommentController {
-	return &PolicyVersionClauseCommentController{
+func NewPolicyClauseCommentController(service services.PolicyClauseCommentServiceInterface) *PolicyClauseCommentController {
+	return &PolicyClauseCommentController{
 		service: service,
 	}
 }
 
-func (pvccc *PolicyVersionClauseCommentController) GetAllDocumentComments(c *gin.Context) {
+func (pvccc *PolicyClauseCommentController) GetAllDocumentComments(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "comment")
 	keyword := c.Query("keyword")
@@ -56,7 +56,7 @@ func (pvccc *PolicyVersionClauseCommentController) GetAllDocumentComments(c *gin
 		return
 	}
 
-	queryParams := policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO{
+	queryParams := policyDTOs.PolicyClauseCommentListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      dbField,
 		Keyword:     keyword,
@@ -93,7 +93,7 @@ func (pvccc *PolicyVersionClauseCommentController) GetAllDocumentComments(c *gin
 	c.JSON(http.StatusOK, comments)
 }
 
-func (pvccc *PolicyVersionClauseCommentController) GetAllComments(c *gin.Context) {
+func (pvccc *PolicyClauseCommentController) GetAllComments(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "comment")
 	keyword := c.Query("keyword")
@@ -123,7 +123,7 @@ func (pvccc *PolicyVersionClauseCommentController) GetAllComments(c *gin.Context
 		return
 	}
 
-	queryParams := policyDTOs.PolicyVersionClauseCommentListQueryParamsDTO{
+	queryParams := policyDTOs.PolicyClauseCommentListQueryParamsDTO{
 		Sort:    sort,
 		SortBy:  dbField,
 		Keyword: keyword,
@@ -159,7 +159,7 @@ func (pvccc *PolicyVersionClauseCommentController) GetAllComments(c *gin.Context
 	c.JSON(http.StatusOK, comments)
 }
 
-func (pvccc *PolicyVersionClauseCommentController) GetCommentDetails(c *gin.Context) {
+func (pvccc *PolicyClauseCommentController) GetCommentDetails(c *gin.Context) {
 	documentIDStr := c.Param("id")
 	documentID, err := strconv.ParseUint(documentIDStr, 10, 32)
 	if err != nil {
@@ -196,7 +196,7 @@ func (pvccc *PolicyVersionClauseCommentController) GetCommentDetails(c *gin.Cont
 	c.JSON(http.StatusOK, comment)
 }
 
-func (pvccc *PolicyVersionClauseCommentController) CreateComment(c *gin.Context) {
+func (pvccc *PolicyClauseCommentController) CreateComment(c *gin.Context) {
 	documentIDStr := c.Param("id")
 	documentID, err := strconv.ParseUint(documentIDStr, 10, 32)
 	if err != nil {
@@ -211,7 +211,7 @@ func (pvccc *PolicyVersionClauseCommentController) CreateComment(c *gin.Context)
 		return
 	}
 
-	var formDTO policyDTOs.PolicyVersionClauseCommentFormDTO
+	var formDTO policyDTOs.PolicyClauseCommentFormDTO
 	if err := c.ShouldBindJSON(&formDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -238,7 +238,7 @@ func (pvccc *PolicyVersionClauseCommentController) CreateComment(c *gin.Context)
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-func (pvccc *PolicyVersionClauseCommentController) UpdateComment(c *gin.Context) {
+func (pvccc *PolicyClauseCommentController) UpdateComment(c *gin.Context) {
 	documentIDStr := c.Param("id")
 	documentID, err := strconv.ParseUint(documentIDStr, 10, 32)
 	if err != nil {
@@ -260,7 +260,7 @@ func (pvccc *PolicyVersionClauseCommentController) UpdateComment(c *gin.Context)
 		return
 	}
 
-	var formDTO policyDTOs.PolicyVersionClauseCommentFormDTO
+	var formDTO policyDTOs.PolicyClauseCommentFormDTO
 	if err := c.ShouldBindJSON(&formDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -287,7 +287,7 @@ func (pvccc *PolicyVersionClauseCommentController) UpdateComment(c *gin.Context)
 	c.Status(http.StatusOK)
 }
 
-func (pvccc *PolicyVersionClauseCommentController) DeleteComment(c *gin.Context) {
+func (pvccc *PolicyClauseCommentController) DeleteComment(c *gin.Context) {
 	documentIDStr := c.Param("id")
 	documentID, err := strconv.ParseUint(documentIDStr, 10, 32)
 	if err != nil {
@@ -335,7 +335,7 @@ func (pvccc *PolicyVersionClauseCommentController) DeleteComment(c *gin.Context)
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (pvccc *PolicyVersionClauseCommentController) ResolveComment(c *gin.Context) {
+func (pvccc *PolicyClauseCommentController) ResolveComment(c *gin.Context) {
 
 	documentIDStr := c.Param("id")
 	documentID, err := strconv.ParseUint(documentIDStr, 10, 32)
