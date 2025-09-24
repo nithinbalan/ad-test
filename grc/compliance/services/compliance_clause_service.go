@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"io"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
@@ -10,6 +11,8 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
+	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -58,6 +61,11 @@ type ComplianceClauseServiceInterface interface {
 	GetAssociatedKPI(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
 	CreateComplianceClausKPI(complianceID, clauseID, currentUserID uint, dto *commonDTOs.AssociatedKPIMapDTO) error
 	DeleteComplianceClausKPI(clauseID, kpiID uint) error
+
+	GenerateClauseTemplate() (*os.File, error)
+	ValidateClauseTemplate(complianceID uint, file io.Reader) ([]map[string]interface{}, error)
+	ValidateImportClause(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error)
+	ImportClauses(complianceID uint, input []map[string]interface{}, currentUserID uint) ([]uint, error)
 }
 
 type ComplianceClauseService struct {
@@ -126,6 +134,34 @@ func (ccs *ComplianceClauseService) GetAll(complianceID uint) ([]*complianceDTOs
 	}
 
 	return rootClauses, nil
+}
+
+func (ccs *ComplianceClauseService) GetAllForImport(complianceID uint) ([]*complianceDTOs.ComplianceClauseListDTO, error) {
+
+	clauses, err := ccs.repo.GetAll(complianceID)
+	if err != nil {
+		return nil, err
+	}
+
+	var flatList []*complianceDTOs.ComplianceClauseListDTO
+	for _, clause := range clauses {
+		dto := &complianceDTOs.ComplianceClauseListDTO{
+			ID:                   clause.ID,
+			ClauseNo:             clause.ClauseNo,
+			ComplianceRegisterID: clause.ComplianceRegisterID,
+			ParentClauseID:       clause.ParentClauseID,
+			TitleEn:              clause.TitleEn,
+			TitleAr:              clause.TitleAr,
+			ScopeEn:              clause.ScopeEn,
+			ScopeAr:              clause.ScopeAr,
+			ObjectiveEn:          clause.ObjectiveEn,
+			ObjectiveAr:          clause.ObjectiveAr,
+			ChildClauses:         nil,
+		}
+		flatList = append(flatList, dto)
+	}
+
+	return flatList, nil
 }
 
 // Directly map child clauses (recursive)
@@ -344,6 +380,75 @@ func (ccs *ComplianceClauseService) Create(complianceID uint, currentUserID uint
 			utility.LogError("Failed to log control activity", fields)
 		}
 	}()
+	return id, nil
+}
+
+func (ccs *ComplianceClauseService) ImportCreate(complianceID uint, currentUserID uint, formDTO *complianceDTOs.ComplianceClauseFormDTO) (uint, error) {
+	tx := ccs.repo.BeginTransaction()
+
+	clauseNo := strings.TrimSpace(formDTO.ClauseNo)
+	if clauseNo == "" {
+		tx.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("clause_no is required"), "required", "clause_no")
+	}
+
+	existingClause, _ := ccs.repo.GetByClauseNo(clauseNo, complianceID, tx)
+	if existingClause != nil {
+		tx.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("clause number '%s' already exists", clauseNo), "duplicate", "clause_no")
+	}
+
+	if formDTO.ParentClauseID != nil {
+		parentClause, err := ccs.repo.GetByID(*formDTO.ParentClauseID, tx)
+		if err != nil || parentClause == nil {
+			tx.Rollback()
+			return 0, utility.NewValidationError(fmt.Errorf("invalid or missing parent clause"), "invalid", "parent_clause_id")
+		}
+	}
+
+	complianceClause := &models.ComplianceClause{
+		ComplianceRegisterID: complianceID,
+		ParentClauseID:       formDTO.ParentClauseID,
+		ClauseNo:             clauseNo,
+		TitleEn:              formDTO.TitleEn,
+		TitleAr:              formDTO.TitleAr,
+		DescriptionEn:        formDTO.DescriptionEn,
+		DescriptionAr:        formDTO.DescriptionAr,
+		ScopeEn:              formDTO.ScopeEn,
+		ScopeAr:              formDTO.ScopeAr,
+		ObjectiveEn:          formDTO.ObjectiveEn,
+		ObjectiveAr:          formDTO.ObjectiveAr,
+		CreatedBYID:          currentUserID,
+	}
+
+	id, err := ccs.repo.Create(complianceClause, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to create compliance clause: %v", err)
+	}
+
+	tx.Commit()
+
+	go func() {
+		err := ccs.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.ComplianceClause{}.TableName(),
+			id,
+			formDTO,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log control activity", map[string]interface{}{
+				"action":    models.CreateAction,
+				"tableName": models.ComplianceClause{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+	}()
+
 	return id, nil
 }
 
@@ -851,4 +956,284 @@ func (ccs *ComplianceClauseService) DeleteComplianceClausKPI(clauseID, kpiID uin
 	}
 	tx.Commit()
 	return nil
+}
+
+func (css *ComplianceClauseService) GenerateClauseTemplate() (*os.File, error) {
+	templateHeaders := []string{"ClauseNo", "TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "ScopeEn", "ScopeAr", "ObjectiveEn", "ObjectiveAr"}
+
+	templateData := [][]interface{}{}
+
+	// Generate file
+	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
+		"Template": append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
+
+func (css *ComplianceClauseService) ValidateClauseTemplate(complianceID uint, file io.Reader) ([]map[string]interface{}, error) {
+	rows, err := utility.ReadExcelFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	inputHeaders := []string{"ClauseNo", "TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "ScopeEn", "ScopeAr", "ObjectiveEn", "ObjectiveAr"}
+	snakeHeaders := []string{"clause_no", "title_en", "title_ar", "description_en", "description_ar", "scope_en", "scope_ar", "objective_en", "objective_ar"}
+
+	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid headers"), "invalid_header", "Requirement Template")
+	}
+	dataRows := rows[1:]
+	input := utility.MapRowsToRecords(snakeHeaders, dataRows)
+
+	return css.validateClauses(complianceID, input)
+}
+
+func (css *ComplianceClauseService) ValidateImportClause(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error) {
+	return css.validateClauses(complianceID, input)
+}
+
+func sortClauses(data []map[string]interface{}) []map[string]interface{} {
+	sort.SliceStable(data, func(i, j int) bool {
+		a := strings.TrimSpace(data[i]["clause_no"].(string))
+		b := strings.TrimSpace(data[j]["clause_no"].(string))
+
+		partsA := strings.Split(a, ".")
+		partsB := strings.Split(b, ".")
+
+		for x := 0; x < len(partsA) || x < len(partsB); x++ {
+			var numA, numB int
+
+			if x < len(partsA) {
+				numA, _ = strconv.Atoi(partsA[x])
+			}
+			if x < len(partsB) {
+				numB, _ = strconv.Atoi(partsB[x])
+			}
+
+			if numA != numB {
+				return numA < numB
+			}
+		}
+		return false
+	})
+	return data
+}
+
+func (css *ComplianceClauseService) validateClauses(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error) {
+	headers := []string{"clause_no", "title_en", "title_ar", "description_en", "description_ar", "scope_en", "scope_ar", "objective_en", "objective_ar"}
+
+	// Clauses
+	clauses, err := css.GetAllForImport(complianceID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching clauses: %v", err)
+	}
+
+	clauseMap := make(map[string]uint)
+	for _, cl := range clauses {
+		key := strings.TrimSpace(cl.ClauseNo)
+		clauseMap[key] = cl.ID
+	}
+
+	clauseNoCount := map[string]int{}
+	for _, record := range input {
+		if val, ok := record["clause_no"].(string); ok {
+			val = strings.TrimSpace(val)
+			if val != "" {
+				clauseNoCount[val]++
+			}
+		}
+	}
+
+	var validated []map[string]interface{}
+	hasError := false
+
+	for _, record := range input {
+		rowErrors := make(map[string]interface{})
+		processed := make(map[string]interface{})
+
+		// Copy original input
+		for k, v := range record {
+			processed[k] = v
+		}
+
+		// Clause
+		val, ok := record["clause_no"].(string)
+		val = strings.TrimSpace(val)
+		if !ok || val == "" {
+			rowErrors["clause_no"] = "Field is required"
+			hasError = true
+		} else if _, exists := clauseMap[val]; exists {
+			rowErrors["clause_no"] = fmt.Sprintf("ClauseNo already exists: %s", val)
+			hasError = true
+		} else if clauseNoCount[val] > 1 {
+			rowErrors["clause_no"] = fmt.Sprintf("Duplicate ClauseNo: %s", val)
+			hasError = true
+		} else {
+			parts := strings.Split(val, ".")
+			if len(parts) > 1 {
+				for i := 1; i < len(parts); i++ {
+					parentClause := strings.Join(parts[:i], ".")
+					if _, exists := clauseMap[parentClause]; !exists && clauseNoCount[parentClause] == 0 {
+						rowErrors["clause_no"] = fmt.Sprintf("Parent clause %s not found for %s", parentClause, val)
+						hasError = true
+						break
+					}
+				}
+			}
+		}
+
+		// TitleEn
+		if val, ok := record["title_en"].(string); !ok || val == "" {
+			rowErrors["title_en"] = "Field is required"
+			hasError = true
+		}
+
+		// TitleAr
+		if val, ok := record["title_ar"].(string); !ok || val == "" {
+			rowErrors["title_ar"] = "Field is required"
+			hasError = true
+		}
+
+		// DescriptionEn
+		if val, ok := record["description_en"].(string); ok {
+			trimmed := strings.TrimSpace(val)
+			if trimmed == "" {
+				processed["description_en"] = nil
+			} else {
+				processed["description_en"] = trimmed
+			}
+		}
+
+		// DescriptionAr
+		if val, ok := record["description_ar"].(string); ok {
+			trimmed := strings.TrimSpace(val)
+			if trimmed == "" {
+				processed["description_ar"] = nil
+			} else {
+				processed["description_ar"] = trimmed
+			}
+		}
+
+		// ScopeEn
+		if val, ok := record["scope_en"].(string); ok {
+			trimmed := strings.TrimSpace(val)
+			if trimmed == "" {
+				processed["scope_en"] = nil
+			} else {
+				processed["scope_en"] = trimmed
+			}
+		}
+
+		// ScopeAr
+		if val, ok := record["scope_ar"].(string); ok {
+			trimmed := strings.TrimSpace(val)
+			if trimmed == "" {
+				processed["scope_ar"] = nil
+			} else {
+				processed["scope_ar"] = trimmed
+			}
+		}
+
+		// ObjectiveEn
+		if val, ok := record["objective_en"].(string); ok {
+			trimmed := strings.TrimSpace(val)
+			if trimmed == "" {
+				processed["objective_en"] = nil
+			} else {
+				processed["objective_en"] = trimmed
+			}
+		}
+
+		// ObjectiveAr
+		if val, ok := record["objective_ar"].(string); ok {
+			trimmed := strings.TrimSpace(val)
+			if trimmed == "" {
+				processed["objective_ar"] = nil
+			} else {
+				processed["objective_ar"] = trimmed
+			}
+		}
+
+		if len(rowErrors) == 0 {
+			processed["errors"] = nil
+		} else {
+			for _, h := range headers {
+				if _, exists := rowErrors[h]; !exists {
+					rowErrors[h] = ""
+				}
+			}
+			processed["errors"] = rowErrors
+		}
+
+		validated = append(validated, processed)
+	}
+	if !hasError {
+		validated = sortClauses(validated)
+	}
+	return validated, nil
+}
+
+func (css *ComplianceClauseService) ImportClauses(complianceID uint, input []map[string]interface{}, currentUserID uint) ([]uint, error) {
+	validated, err := css.validateClauses(complianceID, input)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, r := range validated {
+		if errs, ok := r["errors"].(map[string]interface{}); ok && len(errs) > 0 {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid data"), "invalid_data", "Invalid Data")
+		}
+	}
+
+	existingClauses, err := css.GetAllForImport(complianceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch existing clauses: %v", err)
+	}
+
+	clauseNoToID := map[string]uint{}
+	for _, c := range existingClauses {
+		clauseNoToID[strings.TrimSpace(c.ClauseNo)] = c.ID
+	}
+
+	var createdIDs []uint
+
+	for _, record := range validated {
+
+		clauseNo := strings.TrimSpace(record["clause_no"].(string))
+
+		var parentClauseID *uint
+		if parts := strings.Split(clauseNo, "."); len(parts) > 1 {
+			parentClauseNo := strings.Join(parts[:len(parts)-1], ".")
+			if parentID, ok := clauseNoToID[parentClauseNo]; ok {
+				parentClauseID = &parentID
+			} else {
+				return nil, fmt.Errorf("parent clause '%s' not found for '%s'", parentClauseNo, clauseNo)
+			}
+		}
+
+		dto := &complianceDTOs.ComplianceClauseFormDTO{
+			ClauseNo:       record["clause_no"].(string),
+			ParentClauseID: parentClauseID,
+			TitleEn:        record["title_en"].(string),
+			TitleAr:        utility.GetOptionalStringValue(record["title_ar"]),
+			DescriptionEn:  utility.GetOptionalStringValue(record["description_en"]),
+			DescriptionAr:  utility.GetOptionalStringValue(record["description_ar"]),
+			ScopeEn:        utility.GetOptionalStringValue(record["scope_en"]),
+			ScopeAr:        utility.GetOptionalStringValue(record["scope_ar"]),
+			ObjectiveEn:    utility.GetOptionalStringValue(record["objective_en"]),
+			ObjectiveAr:    utility.GetOptionalStringValue(record["objective_ar"]),
+		}
+
+		id, err := css.ImportCreate(complianceID, currentUserID, dto)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create clause for record: %+v, error: %v", record, err)
+		}
+		createdIDs = append(createdIDs, id)
+		clauseNoToID[clauseNo] = id
+	}
+	return createdIDs, nil
 }

@@ -157,6 +157,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/compliances/:complianceId/clause/:clauseId/controls", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.CreateComplianceClauseControls)
 	complianceRoutes.DELETE("/compliances/:complianceId/clause/:clauseId/controls/:controlId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.DeleteComplianceClauseControl)
 
+	// compliance clause import
+	complianceRoutes.GET("/compliances/:complianceId/clause/template", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.GetClausesTemplate)
+	complianceRoutes.POST("/compliances/:complianceId/clause/template/validate", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.ValidateClauseTemplate)
+	complianceRoutes.POST("/compliances/:complianceId/clause/import/validate", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.ValidateImportClause)
+	complianceRoutes.POST("/compliances/:complianceId/clause/import", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.ImportClauses)
+
 	complianceRoutes.GET("/compliances/:complianceId/clause/:clauseId/associated-requirements", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.GetAssociatedComplianceRequirement)
 	complianceRoutes.GET("/compliances/:complianceId/clause/:clauseId/controls", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceClauseController.GetAssociatedControls)
 
