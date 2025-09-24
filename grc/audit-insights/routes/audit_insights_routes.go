@@ -27,6 +27,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightsFindingActionPlanController := app.AuditInsightsModule.AuditInsightsFindingActionPlanController
 	auditInsightsFindingActionPlanStatusUpdateController := app.AuditInsightsModule.AuditInsightsFindingActionPlanStatusUpdateController
 	auditInsightsFinalReportController := app.AuditInsightsModule.AuditInsightsFinalReportController
+	auditInsightFindingActionPlanCommentController := app.AuditInsightsModule.AuditInsightsFindingActionPlanCommentController
 
 	// Audit Insights Audit plans
 	auditInsightsRoutes.GET("/audit-insights/audit-plans", middlewares.RolePermissionMiddleware(db, "audit_insight_plans", "view"), auditInsightsAuditPlanController.GetAllAuditInsightsAuditPlans)
@@ -115,4 +116,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightsRoutes.GET("/audit-insights/final-reports", middlewares.RolePermissionMiddleware(db, "final_report", "view"), auditInsightsFinalReportController.GetAllAuditInsightsFinalReports)
 	auditInsightsRoutes.GET("/audit-insights/final-reports/export", middlewares.RolePermissionMiddleware(db, "final_report", "view"), auditInsightsFinalReportController.GetAuditInsightsFinalReportExport)
 	auditInsightsRoutes.GET("/audit-insights/final-reports/:id", middlewares.RolePermissionMiddleware(db, "final_report", "view"), auditInsightsFinalReportController.GetAuditInsightsFinalReportDetails)
+
+	// Audit Finding Action Plan Comment
+	unauthenticatedRoutes.GET("/audit-insights/audit-findings/:findingId/action-plans/:actionPlanId/comments/:commentId/document-download", auditInsightFindingActionPlanCommentController.DownloadAuditFindingActionPlanCommentDocument)
+	unauthenticatedRoutes.GET("/audit-insights/audit-findings/:findingId/action-plans/:actionPlanId/comments/:commentId/document-preview", auditInsightFindingActionPlanCommentController.GetAuditFindingActionPlanCommentDocumentPreview)
+	auditInsightsRoutes.GET("/audit-insights/audit-findings/:findingId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightFindingActionPlanCommentController.GetAllComments)
+	auditInsightsRoutes.GET("/audit-insights/audit-findings/:findingId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "view"), auditInsightFindingActionPlanCommentController.GetCommentDetails)
+	auditInsightsRoutes.POST("/audit-insights/audit-findings/:findingId/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightFindingActionPlanCommentController.CreateComment)
+	auditInsightsRoutes.PUT("/audit-insights/audit-findings/:findingId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightFindingActionPlanCommentController.UpdateComment)
+	auditInsightsRoutes.POST("/audit-insights/audit-findings/:findingId/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "audit_insight_audits", "modify"), auditInsightFindingActionPlanCommentController.DeleteComment)
 }
