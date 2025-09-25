@@ -23,7 +23,8 @@ type ERMDashboardRepositoryInterface interface {
 	GetERMRiskAppetiteSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAppetiteSummarytDTO, error)
 	GetERMRiskAgingStatus(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAgingStatusDTO, error)
 	GetERMRiskTreatmentPlanProgress(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskTreatmentPlanProgressDTO, error)
-	GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.StrategicObjectiveRiskOverviewDTO, error)
+	GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error)
+	GetERMStrategicObjectivesRiskSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectivesRiskSummaryDTO, error)
 }
 
 type ERMDashboardRepository struct {
@@ -546,11 +547,8 @@ func (repo *ERMDashboardRepository) GetERMRiskAppetiteOverview(params *kpiDTOs.E
 		Joins("JOIN organization_levels ON organization_levels.id = ru_unit.organization_level_id AND organization_levels.is_primary = ?", true).
 		Joins(`
 			JOIN risk_evaluations
-			ON risk_evaluations.id = (
-				SELECT MAX(id) 
-				FROM risk_evaluations 
-				WHERE risk_register_id = risk_register.id
-			)
+			ON risk_evaluations.risk_register_id = risk_register.id
+			AND risk_evaluations.type = 'residual'
 		`).
 		Joins("JOIN risk_appetite_alignments ON risk_appetite_alignments.risk_evaluation_id = risk_evaluations.id").
 		Joins("JOIN risk_appetite_tolerance_levels ON risk_appetite_tolerance_levels.id = risk_appetite_alignments.risk_appetite_tolerance_level_id AND risk_appetite_tolerance_levels.status = 'active'").
@@ -611,11 +609,8 @@ func (repo *ERMDashboardRepository) GetERMRiskAppetiteSummary(params *kpiDTOs.ER
 	baseQuery := repo.db.Table("risk_register").
 		Joins(`
 			JOIN risk_evaluations
-			ON risk_evaluations.id = (
-				SELECT MAX(id) 
-				FROM risk_evaluations 
-				WHERE risk_register_id = risk_register.id
-			)
+			ON risk_evaluations.risk_register_id = risk_register.id
+			AND risk_evaluations.type = 'residual'
 		`).
 		Joins("JOIN risk_appetite_alignments ON risk_appetite_alignments.risk_evaluation_id = risk_evaluations.id").
 		Joins(`
@@ -836,14 +831,20 @@ func (repo *ERMDashboardRepository) GetERMRiskTreatmentPlanProgress(params *kpiD
 	}, nil
 }
 
-func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.StrategicObjectiveRiskOverviewDTO, error) {
-
-	summary := &kpiDTOs.StrategicObjectiveRiskOverviewDTO{}
+func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error) {
+	summary := &kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO{}
 
 	baseQuery := repo.db.Table("strategic_objectives so").
 		Select(`
             so.title_en as strategic_objective,
-            STRING_AGG(rr.reference_number, ', ') as linked_risks,
+            (
+				SELECT STRING_AGG(rr.reference_number, ', ')
+				WITHIN GROUP (ORDER BY rr.reference_number)
+				FROM risk_register rr
+				JOIN risk_strategic_objectives rso
+				ON rr.id = rso.risk_register_id
+				WHERE rso.strategic_objective_id = so.id
+			) as linked_risks,
             COUNT(CASE WHEN rmrr.type IN ('high', 'very_high') THEN 1 END) as high_risk_count,
             CASE 
                 WHEN MAX(CASE WHEN rmrr.type = 'very_high' THEN 5 
@@ -883,13 +884,17 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params
                 ELSE 'No'
             END as appetite_breach
         `).
-		Joins("LEFT JOIN risk_strategic_objectives rso ON so.id = rso.strategic_objective_id").
+		Joins("JOIN risk_strategic_objectives rso ON so.id = rso.strategic_objective_id").
 		Joins("LEFT JOIN risk_register rr ON rr.id = rso.risk_register_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings rmrr ON rmrr.id = rr.current_risk_rating_id").
-		Joins("LEFT JOIN risk_evaluations re ON re.risk_register_id = rr.id AND re.type = 'residual'").
+		Joins(`
+            LEFT JOIN risk_evaluations re
+            ON re.risk_register_id = rr.id
+            AND re.type = 'residual'
+        `).
 		Joins("LEFT JOIN risk_appetite_alignments raa ON raa.risk_evaluation_id = re.id").
-		Joins("LEFT JOIN risk_appetite_tolerance_levels ratl ON ratl.id = raa.risk_appetite_tolerance_level_id").
-		Where("so.status = ?", "active")
+		Joins("LEFT JOIN risk_appetite_tolerance_levels ratl ON ratl.id = raa.risk_appetite_tolerance_level_id AND ratl.status = 'active'").
+		Where("so.status = ? AND rso.strategic_objective_id IS NOT NULL", "active")
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		baseQuery = baseQuery.Where(
@@ -899,8 +904,45 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params
 		)
 	}
 
-	// Group by strategic objective
+	// Group by strategic objective - only include objectives that have linked risks
 	err := baseQuery.Group("so.id, so.title_en").Scan(&summary.StrategicObjectiveRisks).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return summary, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectivesRiskSummaryDTO, error) {
+
+	summary := &kpiDTOs.ERMStrategicObjectivesRiskSummaryDTO{}
+
+	baseQuery := repo.db.Table("strategic_objectives so")
+
+	// Apply date filters if provided
+	if params.DateFrom != "" && params.DateTo != "" {
+		baseQuery = baseQuery.Where(
+			"so.created_at BETWEEN ? AND ?",
+			params.DateFrom+" 00:00:00",
+			params.DateTo+" 23:59:59",
+		)
+	}
+
+	row := baseQuery.Select(`
+        COUNT(DISTINCT CASE WHEN rso.strategic_objective_id IS NOT NULL THEN so.id END) as objectives_with_linked_risks,
+        COUNT(DISTINCT CASE WHEN rmrr.type IN ('high', 'very_high') THEN so.id END) as objectives_with_high_rated_risks,
+        COUNT(DISTINCT CASE WHEN rso.strategic_objective_id IS NULL THEN so.id END) as objectives_with_no_risk_linked
+    `).
+		Joins("LEFT JOIN risk_strategic_objectives rso ON so.id = rso.strategic_objective_id").
+		Joins("LEFT JOIN risk_register rr ON rr.id = rso.risk_register_id").
+		Joins("LEFT JOIN risk_matrix_risk_ratings rmrr ON rmrr.id = rr.current_risk_rating_id").
+		Where("so.status = ?", "active")
+
+	err := row.Row().Scan(
+		&summary.ObjectivesWithLinkedRisks,
+		&summary.ObjectivesWithHighRatedRisks,
+		&summary.ObjectivesWithNoRiskLinked,
+	)
 	if err != nil {
 		return nil, err
 	}

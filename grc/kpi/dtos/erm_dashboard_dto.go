@@ -151,6 +151,12 @@ type ERMStregicObjectiveRiskItemDTO struct {
 	AppetiteBreach     string `json:"appetite_breach"`
 }
 
-type StrategicObjectiveRiskOverviewDTO struct {
+type ERMStrategicObjectiveRiskOverviewDTO struct {
 	StrategicObjectiveRisks []ERMStregicObjectiveRiskItemDTO `json:"strategic_objective_risks"`
+}
+
+type ERMStrategicObjectivesRiskSummaryDTO struct {
+	ObjectivesWithLinkedRisks    int64 `json:"objectives_with_linked_risks"`
+	ObjectivesWithHighRatedRisks int64 `json:"objectives_with_high_rated_risks"`
+	ObjectivesWithNoRiskLinked   int64 `json:"objectives_with_no_risk_linked"`
 }
