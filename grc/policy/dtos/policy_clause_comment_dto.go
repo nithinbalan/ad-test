@@ -13,7 +13,7 @@ type PolicyClauseCommentListDTO struct {
 	CommentStatusTitleAr           string                        `json:"comment_status_title_ar"`
 	CommentStatusType              string                        `json:"comment_status_type"`
 	CommentStatusColorCode         string                        `json:"comment_status_color_code"`
-	DocumentVersionClauseID        uint                          `json:"document_version_clause_id"`
+	DocumentVersionClauseID        *uint                         `json:"document_version_clause_id"`
 	DocumentVersionClauseNumber    string                        `json:"document_version_clause_number"`
 	DocumentVersionID              uint                          `json:"document_version_id"`
 	Level                          int                           `json:"level"`
