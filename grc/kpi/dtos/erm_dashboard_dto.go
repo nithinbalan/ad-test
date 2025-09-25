@@ -142,3 +142,15 @@ type ERMRiskTreatmentPlanProgressItemDTO struct {
 type ERMRiskTreatmentPlanProgressDTO struct {
 	RiskTreatmentPlanProgress []ERMRiskTreatmentPlanProgressItemDTO `json:"risk_treatment_plan_progress"`
 }
+
+type ERMStregicObjectiveRiskItemDTO struct {
+	StrategicObjective string `json:"strategic_objective"`
+	LinkedRisks        string `json:"linked_risks"`
+	HighRiskCount      int64  `json:"high_risk_count"`
+	RiskRating         string `json:"risk_rating"`
+	AppetiteBreach     string `json:"appetite_breach"`
+}
+
+type StrategicObjectiveRiskOverviewDTO struct {
+	StrategicObjectiveRisks []ERMStregicObjectiveRiskItemDTO `json:"strategic_objective_risks"`
+}

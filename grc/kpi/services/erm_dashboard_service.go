@@ -18,6 +18,7 @@ type ERMDashboardServiceInterface interface {
 	GetERMRiskAppetiteSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAppetiteSummarytDTO, error)
 	GetERMRiskAgingStatus(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAgingStatusDTO, error)
 	GetERMRiskTreatmentPlanProgress(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskTreatmentPlanProgressDTO, error)
+	GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.StrategicObjectiveRiskOverviewDTO, error)
 }
 
 type ERMDashboardService struct {
@@ -74,4 +75,8 @@ func (eds *ERMDashboardService) GetERMRiskAgingStatus(params *kpiDTOs.ERMDashboa
 
 func (eds *ERMDashboardService) GetERMRiskTreatmentPlanProgress(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskTreatmentPlanProgressDTO, error) {
 	return eds.repo.GetERMRiskTreatmentPlanProgress(params)
+}
+
+func (eds *ERMDashboardService) GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.StrategicObjectiveRiskOverviewDTO, error) {
+	return eds.repo.GetERMStrategicObjectivesRiskOverview(params)
 }

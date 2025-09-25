@@ -23,6 +23,7 @@ type ERMDashboardRepositoryInterface interface {
 	GetERMRiskAppetiteSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAppetiteSummarytDTO, error)
 	GetERMRiskAgingStatus(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAgingStatusDTO, error)
 	GetERMRiskTreatmentPlanProgress(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskTreatmentPlanProgressDTO, error)
+	GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.StrategicObjectiveRiskOverviewDTO, error)
 }
 
 type ERMDashboardRepository struct {
@@ -833,4 +834,76 @@ func (repo *ERMDashboardRepository) GetERMRiskTreatmentPlanProgress(params *kpiD
 	return &kpiDTOs.ERMRiskTreatmentPlanProgressDTO{
 		RiskTreatmentPlanProgress: treatmentPlanProgress,
 	}, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.StrategicObjectiveRiskOverviewDTO, error) {
+
+	summary := &kpiDTOs.StrategicObjectiveRiskOverviewDTO{}
+
+	baseQuery := repo.db.Table("strategic_objectives so").
+		Select(`
+            so.title_en as strategic_objective,
+            STRING_AGG(rr.reference_number, ', ') as linked_risks,
+            COUNT(CASE WHEN rmrr.type IN ('high', 'very_high') THEN 1 END) as high_risk_count,
+            CASE 
+                WHEN MAX(CASE WHEN rmrr.type = 'very_high' THEN 5 
+                             WHEN rmrr.type = 'high' THEN 4 
+                             WHEN rmrr.type = 'medium' THEN 3 
+                             WHEN rmrr.type = 'low' THEN 2 
+                             WHEN rmrr.type = 'very_low' THEN 1 
+                             ELSE 0 END) = 5 THEN 'Very High'
+                WHEN MAX(CASE WHEN rmrr.type = 'very_high' THEN 5 
+                             WHEN rmrr.type = 'high' THEN 4 
+                             WHEN rmrr.type = 'medium' THEN 3 
+                             WHEN rmrr.type = 'low' THEN 2 
+                             WHEN rmrr.type = 'very_low' THEN 1 
+                             ELSE 0 END) = 4 THEN 'High'
+                WHEN MAX(CASE WHEN rmrr.type = 'very_high' THEN 5 
+                             WHEN rmrr.type = 'high' THEN 4 
+                             WHEN rmrr.type = 'medium' THEN 3 
+                             WHEN rmrr.type = 'low' THEN 2 
+                             WHEN rmrr.type = 'very_low' THEN 1 
+                             ELSE 0 END) = 3 THEN 'Medium'
+                WHEN MAX(CASE WHEN rmrr.type = 'very_high' THEN 5 
+                             WHEN rmrr.type = 'high' THEN 4 
+                             WHEN rmrr.type = 'medium' THEN 3 
+                             WHEN rmrr.type = 'low' THEN 2 
+                             WHEN rmrr.type = 'very_low' THEN 1 
+                             ELSE 0 END) = 2 THEN 'Low'
+                WHEN MAX(CASE WHEN rmrr.type = 'very_high' THEN 5 
+                             WHEN rmrr.type = 'high' THEN 4 
+                             WHEN rmrr.type = 'medium' THEN 3 
+                             WHEN rmrr.type = 'low' THEN 2 
+                             WHEN rmrr.type = 'very_low' THEN 1 
+                             ELSE 0 END) = 1 THEN 'Very Low'
+                ELSE 'No Rating'
+            END as risk_rating,
+            CASE 
+                WHEN COUNT(CASE WHEN ratl.type IN ('above', 'significantly_above') THEN 1 END) > 0 THEN 'Yes'
+                ELSE 'No'
+            END as appetite_breach
+        `).
+		Joins("LEFT JOIN risk_strategic_objectives rso ON so.id = rso.strategic_objective_id").
+		Joins("LEFT JOIN risk_register rr ON rr.id = rso.risk_register_id").
+		Joins("LEFT JOIN risk_matrix_risk_ratings rmrr ON rmrr.id = rr.current_risk_rating_id").
+		Joins("LEFT JOIN risk_evaluations re ON re.risk_register_id = rr.id AND re.type = 'residual'").
+		Joins("LEFT JOIN risk_appetite_alignments raa ON raa.risk_evaluation_id = re.id").
+		Joins("LEFT JOIN risk_appetite_tolerance_levels ratl ON ratl.id = raa.risk_appetite_tolerance_level_id").
+		Where("so.status = ?", "active")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		baseQuery = baseQuery.Where(
+			"rr.reported_at BETWEEN ? AND ?",
+			params.DateFrom+" 00:00:00",
+			params.DateTo+" 23:59:59",
+		)
+	}
+
+	// Group by strategic objective
+	err := baseQuery.Group("so.id, so.title_en").Scan(&summary.StrategicObjectiveRisks).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return summary, nil
 }
