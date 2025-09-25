@@ -1285,19 +1285,12 @@ func (crc *ComplianceClauseController) ImportClauses(c *gin.Context) {
 
 func (ccc *ComplianceClauseController) GetControlMappingTemplate(c *gin.Context) {
 	complianceIDStr := c.Param("complianceId")
-	// clauseIDStr := c.Param("clauseId")
 
 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-
-	// _, err = strconv.ParseUint(clauseIDStr, 10, 64)
-	// if err != nil {
-	// 	utility.SendNotFoundErrResp(c)
-	// 	return
-	// }
 
 	file, err := ccc.service.GenerateComplianceClauseControlTemplate(uint(complianceID))
 	if err != nil {
@@ -1313,84 +1306,72 @@ func (ccc *ComplianceClauseController) GetControlMappingTemplate(c *gin.Context)
 
 }
 
-// func (ccc *ComplianceClauseController) ValidateControlMappingTemplate(c *gin.Context) {
-// 	complianceIDStr := c.Param("complianceId")
-// 	clauseIDStr := c.Param("clauseId")
+func (ccc *ComplianceClauseController) ValidateControlMappingTemplate(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
 
-// 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
-// 	if err != nil {
-// 		utility.SendNotFoundErrResp(c)
-// 		return
-// 	}
-// 	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 64)
-// 	if err != nil {
-// 		utility.SendNotFoundErrResp(c)
-// 		return
-// 	}
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
-// 	fileHeader, err := c.FormFile("file")
-// 	if err != nil {
-// 		utility.SendInternalErrResp(ccc.db, c, "Failed to read uploaded file")
-// 		return
-// 	}
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		utility.SendInternalErrResp(ccc.db, c, "Failed to read uploaded file")
+		return
+	}
 
-// 	file, err := fileHeader.Open()
-// 	if err != nil {
-// 		utility.SendInternalErrResp(ccc.db, c, "Failed to open file")
-// 		return
-// 	}
-// 	defer file.Close()
+	file, err := fileHeader.Open()
+	if err != nil {
+		utility.SendInternalErrResp(ccc.db, c, "Failed to open file")
+		return
+	}
+	defer file.Close()
 
-// 	validationResult, err := ccc.service.ValidateControlMappingTemplate(uint(complianceID), uint(clauseID), file)
-// 	if err != nil {
-// 		switch e := err.(type) {
-// 		case *utility.ValidationError:
-// 			utility.SendInvalidErrResp(c, e)
-// 			return
-// 		default:
-// 			utility.SendInternalErrResp(ccc.db, c, e.Error())
-// 			return
-// 		}
-// 	}
+	validationResult, err := ccc.service.ValidateControlMappingTemplate(uint(complianceID), file)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ccc.db, c, e.Error())
+			return
+		}
+	}
 
-// 	c.JSON(http.StatusOK, validationResult)
-// }
+	c.JSON(http.StatusOK, validationResult)
+}
 
-// func (ccc *ComplianceClauseController) ValidateImportControlMapping(c *gin.Context) {
-// 	complianceIDStr := c.Param("complianceId")
-// 	clauseIDStr := c.Param("clauseId")
+func (ccc *ComplianceClauseController) ValidateImportControlMapping(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
 
-// 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
-// 	if err != nil {
-// 		utility.SendNotFoundErrResp(c)
-// 		return
-// 	}
-// 	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 64)
-// 	if err != nil {
-// 		utility.SendNotFoundErrResp(c)
-// 		return
-// 	}
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
-// 	var input []map[string]interface{}
-// 	if err := c.ShouldBindJSON(&input); err != nil {
-// 		utility.SendInvalidErrResp(c, err)
-// 		return
-// 	}
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 
-// 	validationResult, err := ccc.service.ValidateImportControlMapping(uint(complianceID), uint(clauseID), input)
-// 	if err != nil {
-// 		switch e := err.(type) {
-// 		case *utility.ValidationError:
-// 			utility.SendInvalidErrResp(c, e)
-// 			return
-// 		default:
-// 			utility.SendInternalErrResp(ccc.db, c, e.Error())
-// 			return
-// 		}
-// 	}
+	validationResult, err := ccc.service.ValidateImportControlMapping(uint(complianceID), input)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ccc.db, c, e.Error())
+			return
+		}
+	}
 
-// 	c.JSON(http.StatusOK, validationResult)
-// }
+	c.JSON(http.StatusOK, validationResult)
+}
 
 // func (ccc *ComplianceClauseController) ImportControlMapping(c *gin.Context) {
 // 	complianceIDStr := c.Param("complianceId")

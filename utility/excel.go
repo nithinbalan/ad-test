@@ -446,10 +446,3 @@ func MapRowsToRecords(headers []string, rows [][]string) []map[string]interface{
 
 	return records
 }
-
-func DerefString(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
-}

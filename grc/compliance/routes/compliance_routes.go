@@ -475,7 +475,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Compliance Clause Control Maping Import
 	complianceRoutes.GET("/compliances/:complianceId/controls/template", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.GetControlMappingTemplate)
-	complianceRoutes.POST("/compliances/:complianceId/controls/template/validate")
+	complianceRoutes.POST("/compliances/:complianceId/controls/template/validate", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.ValidateControlMappingTemplate)
 	complianceRoutes.POST("/compliances/:complianceId/controls/import/validate")
 	complianceRoutes.POST("/compliances/:complianceId/controls/import")
 
