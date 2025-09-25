@@ -21,6 +21,7 @@ type ERMDashboardRepositoryInterface interface {
 	GetERMControlsOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMControlsOverviewDTO, error)
 	GetERMRiskAppetiteOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAppetiteOverviewDTO, error)
 	GetERMRiskAppetiteSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAppetiteSummarytDTO, error)
+	GetERMRiskAgingStatus(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAgingStatusDTO, error)
 }
 
 type ERMDashboardRepository struct {
@@ -665,4 +666,91 @@ func (repo *ERMDashboardRepository) GetERMRiskAppetiteSummary(params *kpiDTOs.ER
 		RiskAppetiteLevelsSummary: levelsSummary,
 		Total:                     totalRisks,
 	}, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMRiskAgingStatus(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAgingStatusDTO, error) {
+
+	var risks0To90Open, risks0To90Closed int64
+	var risks91To180Open, risks91To180Closed int64
+	var risks181To365Open, risks181To365Closed int64
+	var risks1To2YearsOpen, risks1To2YearsClosed int64
+	var risksAbove2YearsOpen, risksAbove2YearsClosed int64
+
+	// Base query
+	baseQuery := repo.db.Table("risk_register").
+		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+		Where("risk_statuses.type IN ?", []string{"open", "closed"})
+
+	// Apply date filters if provided
+	if params.DateFrom != "" && params.DateTo != "" {
+		baseQuery = baseQuery.Where(
+			"risk_register.reported_at BETWEEN ? AND ?",
+			params.DateFrom+" 00:00:00",
+			params.DateTo+" 23:59:59",
+		)
+	}
+
+	// Calculate aging periods using DATEDIFF from reported_at to current date
+	row := baseQuery.Select(`
+        SUM(CASE WHEN risk_statuses.type = 'open' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 0 AND 90 THEN 1 ELSE 0 END) AS risks_0_to_90_open,
+        SUM(CASE WHEN risk_statuses.type = 'closed' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 0 AND 90 THEN 1 ELSE 0 END) AS risks_0_to_90_closed,
+        SUM(CASE WHEN risk_statuses.type = 'open' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 91 AND 180 THEN 1 ELSE 0 END) AS risks_91_to_180_open,
+        SUM(CASE WHEN risk_statuses.type = 'closed' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 91 AND 180 THEN 1 ELSE 0 END) AS risks_91_to_180_closed,
+        SUM(CASE WHEN risk_statuses.type = 'open' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 181 AND 365 THEN 1 ELSE 0 END) AS risks_181_to_365_open,
+        SUM(CASE WHEN risk_statuses.type = 'closed' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 181 AND 365 THEN 1 ELSE 0 END) AS risks_181_to_365_closed,
+        SUM(CASE WHEN risk_statuses.type = 'open' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 366 AND 730 THEN 1 ELSE 0 END) AS risks_1_to_2_years_open,
+        SUM(CASE WHEN risk_statuses.type = 'closed' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 366 AND 730 THEN 1 ELSE 0 END) AS risks_1_to_2_years_closed,
+        SUM(CASE WHEN risk_statuses.type = 'open' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) > 730 THEN 1 ELSE 0 END) AS risks_above_2_years_open,
+        SUM(CASE WHEN risk_statuses.type = 'closed' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) > 730 THEN 1 ELSE 0 END) AS risks_above_2_years_closed
+    `)
+
+	err := row.Row().Scan(
+		&risks0To90Open, &risks0To90Closed,
+		&risks91To180Open, &risks91To180Closed,
+		&risks181To365Open, &risks181To365Closed,
+		&risks1To2YearsOpen, &risks1To2YearsClosed,
+		&risksAbove2YearsOpen, &risksAbove2YearsClosed,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	agingPeriods := []kpiDTOs.RiskAgingPeriodDTO{
+		{
+			RiskAging: "0-90 Days",
+			Open:      risks0To90Open,
+			Closed:    risks0To90Closed,
+			Total:     risks0To90Open + risks0To90Closed,
+		},
+		{
+			RiskAging: "91-180 Days",
+			Open:      risks91To180Open,
+			Closed:    risks91To180Closed,
+			Total:     risks91To180Open + risks91To180Closed,
+		},
+		{
+			RiskAging: "181-365 Days",
+			Open:      risks181To365Open,
+			Closed:    risks181To365Closed,
+			Total:     risks181To365Open + risks181To365Closed,
+		},
+		{
+			RiskAging: "1-2 Years",
+			Open:      risks1To2YearsOpen,
+			Closed:    risks1To2YearsClosed,
+			Total:     risks1To2YearsOpen + risks1To2YearsClosed,
+		},
+		{
+			RiskAging: "Above 2 Years",
+			Open:      risksAbove2YearsOpen,
+			Closed:    risksAbove2YearsClosed,
+			Total:     risksAbove2YearsOpen + risksAbove2YearsClosed,
+		},
+	}
+
+	summary := &kpiDTOs.ERMRiskAgingStatusDTO{
+		RiskAgingPeriods: agingPeriods,
+	}
+
+	return summary, nil
 }

@@ -267,3 +267,28 @@ func (edc *ERMDashboardController) GetERMRiskAppetiteSummary(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, summary)
 }
+
+// ERM Risk Aging Status
+func (edc *ERMDashboardController) GetERMRiskAgingStatus(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.ERMDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	summary, err := edc.service.GetERMRiskAgingStatus(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(edc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, summary)
+}

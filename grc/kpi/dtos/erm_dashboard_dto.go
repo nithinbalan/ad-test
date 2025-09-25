@@ -117,3 +117,14 @@ type ERMRiskAppetiteSummarytDTO struct {
 	RiskAppetiteLevelsSummary []ERMRiskAppetiteLevelDTO `json:"risk_appetite_levels_summary"`
 	Total                     int64                     `json:"total"`
 }
+
+type ERMRiskAgingStatusDTO struct {
+	RiskAgingPeriods []RiskAgingPeriodDTO `json:"risk_aging_periods"`
+}
+
+type RiskAgingPeriodDTO struct {
+	RiskAging string `json:"risk_aging"`
+	Open      int64  `json:"open"`
+	Closed    int64  `json:"closed"`
+	Total     int64  `json:"total"`
+}
