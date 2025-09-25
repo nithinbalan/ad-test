@@ -128,3 +128,17 @@ type RiskAgingPeriodDTO struct {
 	Closed    int64  `json:"closed"`
 	Total     int64  `json:"total"`
 }
+
+type ERMRiskTreatmentPlanProgressItemDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Type      string `json:"type"`
+	OnTime    int64  `json:"on_time"`
+	Overdue   int64  `json:"overdue"`
+}
+
+type ERMRiskTreatmentPlanProgressDTO struct {
+	RiskTreatmentPlanProgress []ERMRiskTreatmentPlanProgressItemDTO `json:"risk_treatment_plan_progress"`
+}

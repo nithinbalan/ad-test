@@ -22,6 +22,7 @@ type ERMDashboardRepositoryInterface interface {
 	GetERMRiskAppetiteOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAppetiteOverviewDTO, error)
 	GetERMRiskAppetiteSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAppetiteSummarytDTO, error)
 	GetERMRiskAgingStatus(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAgingStatusDTO, error)
+	GetERMRiskTreatmentPlanProgress(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskTreatmentPlanProgressDTO, error)
 }
 
 type ERMDashboardRepository struct {
@@ -753,4 +754,83 @@ func (repo *ERMDashboardRepository) GetERMRiskAgingStatus(params *kpiDTOs.ERMDas
 	}
 
 	return summary, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMRiskTreatmentPlanProgress(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskTreatmentPlanProgressDTO, error) {
+	var results []struct {
+		ID        uint   `json:"id"`
+		TitleEn   string `json:"title_en"`
+		TitleAr   string `json:"title_ar"`
+		ColorCode string `json:"color_code"`
+		Type      string `json:"type"`
+		OnTime    int64  `json:"on_time"`
+		Overdue   int64  `json:"overdue"`
+	}
+
+	query := repo.db.Table("risk_action_plans").
+		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = risk_action_plans.action_plan_status_id").
+		Where("action_plan_statuses.status = ?", "active").
+		Select(`
+			action_plan_statuses.id,
+			action_plan_statuses.title_en,
+			action_plan_statuses.title_ar,
+			action_plan_statuses.color_code,
+			action_plan_statuses.type,
+			SUM(CASE 
+				WHEN risk_action_plans.target_date IS NULL OR risk_action_plans.target_date >= GETDATE() OR action_plan_statuses.is_closed = 1 
+				THEN 1 
+				ELSE 0 
+			END) as on_time,
+			SUM(CASE 
+				WHEN risk_action_plans.target_date IS NOT NULL AND risk_action_plans.target_date < GETDATE() AND action_plan_statuses.is_closed = 0 
+				THEN 1 
+				ELSE 0 
+			END) as overdue
+		`).
+		Group(`
+			action_plan_statuses.id,
+			action_plan_statuses.title_en,
+			action_plan_statuses.title_ar,
+			action_plan_statuses.color_code,
+			action_plan_statuses.type
+		`).
+		Order(`
+			CASE action_plan_statuses.type
+				WHEN 'new' THEN 1
+				WHEN 'in_progress' THEN 2  
+				WHEN 'completed' THEN 3
+				WHEN 'close' THEN 4
+				ELSE 5
+			END
+		`)
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where(
+			"risk_action_plans.created_at BETWEEN ? AND ?",
+			params.DateFrom+" 00:00:00",
+			params.DateTo+" 23:59:59",
+		)
+	}
+
+	err := query.Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	treatmentPlanProgress := make([]kpiDTOs.ERMRiskTreatmentPlanProgressItemDTO, len(results))
+	for i, result := range results {
+		treatmentPlanProgress[i] = kpiDTOs.ERMRiskTreatmentPlanProgressItemDTO{
+			ID:        result.ID,
+			TitleEn:   result.TitleEn,
+			TitleAr:   result.TitleAr,
+			ColorCode: result.ColorCode,
+			Type:      result.Type,
+			OnTime:    result.OnTime,
+			Overdue:   result.Overdue,
+		}
+	}
+
+	return &kpiDTOs.ERMRiskTreatmentPlanProgressDTO{
+		RiskTreatmentPlanProgress: treatmentPlanProgress,
+	}, nil
 }
