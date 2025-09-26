@@ -33,6 +33,7 @@ type RiskRegisterRepositoryInterface interface {
 	GetControlSummary(riskID uint, controlType string) ([]models.RiskControlAnalysis, error)
 
 	GetAllRiskTitles() ([]string, error)
+	GetAllIdentifiedRisks(params *riskDTOs.RiskRegisterListQueryParamsDTO) (*riskDTOs.RiskRegisterListResponseDTO, error)
 }
 
 type RiskRegisterRepository struct {
@@ -154,7 +155,7 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
             LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id
             LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id
             LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
-        `)
+        `).Where("risk_statuses.type NOT IN (?)", []string{"identified", "submitted", "rejected"})
 
 	if params.RiskAppetiteToleranceLevelID != 0 {
 		query = query.Joins(`
@@ -558,4 +559,295 @@ func (repo *RiskRegisterRepository) GetAllRiskTitles() ([]string, error) {
 		Table("risk_register").
 		Pluck("title", &titles).Error
 	return titles, err
+}
+
+func (repo *RiskRegisterRepository) GetAllIdentifiedRisks(params *riskDTOs.RiskRegisterListQueryParamsDTO) (*riskDTOs.RiskRegisterListResponseDTO, error) {
+	var riskRegisters []*riskDTOs.RiskRegisterListDTO
+	var totalCount int64
+
+	query := repo.db.Table("risk_register").
+		Select(`
+            risk_register.id,
+            risk_register.reference_number,
+            risk_register.title,
+            risk_register.description,
+			CONVERT(VARCHAR, risk_register.reported_at, 23) AS reported_at,
+            risk_register.created_at,
+            risk_register.updated_at,
+			risk_register.current_risk_rating_value_id,
+            risk_categories.title_en AS risk_category_title_en,
+            risk_categories.title_ar AS risk_category_title_ar,
+            risk_sources.title_en AS risk_source_title_en,
+            risk_sources.title_ar AS risk_source_title_ar,
+			organization_units.id AS responsible_unit_id,
+            organization_units.title_en AS responsible_unit_title_en,
+            organization_units.title_ar AS responsible_unit_title_ar,
+			users.id AS responsible_user_id,
+            users.first_name_en AS responsible_user_first_name_en,
+            users.first_name_ar AS responsible_user_first_name_ar,
+            users.last_name_en AS responsible_user_last_name_en,
+            users.last_name_ar AS responsible_user_last_name_ar,
+			users.initial AS responsible_user_initial,
+        	users.color AS responsible_user_color,
+        	users.email AS responsible_user_email,
+        	users.profile_image_path AS responsible_user_profile_image_path,
+            risk_statuses.title_en AS risk_status_title_en,
+            risk_statuses.title_ar AS risk_status_title_ar,
+			risk_response_strategies.title_en AS risk_response_strategy_title_en,
+            risk_response_strategies.title_ar AS risk_response_strategy_title_ar,
+            risk_statuses.color_code AS risk_status_color_code,
+			risk_statuses.type AS risk_status_type,
+            review_frequencies.title_en AS review_frequency_title_en,
+            review_frequencies.title_ar AS review_frequency_title_ar,
+			CONVERT(VARCHAR, risk_register.next_review_date, 23) AS next_review_date,
+            risk_register.last_review_note,
+            created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path,
+            current_likelihood.title_en AS current_likelihood_title_en,
+            current_likelihood.title_ar AS current_likelihood_title_ar,
+            current_impact.title_en AS current_impact_title_en,
+            current_impact.title_ar AS current_impact_title_ar,
+            current_risk_rating.title_en AS current_risk_rating_title_en,
+            current_risk_rating.title_ar AS current_risk_rating_title_ar,
+            current_risk_rating_value.value AS current_risk_rating_value,
+            current_risk_rating.color_code AS current_risk_rating_color_code,
+            inherent_likelihood.title_en AS inherent_likelihood_title_en,
+            inherent_likelihood.title_ar AS inherent_likelihood_title_ar,
+            inherent_impact.title_en AS inherent_impact_title_en,
+            inherent_impact.title_ar AS inherent_impact_title_ar,
+            inherent_risk_rating.title_en AS inherent_risk_rating_title_en,
+            inherent_risk_rating.title_ar AS inherent_risk_rating_title_ar,
+            inherent_risk_rating_value.value AS inherent_risk_rating_value,
+            inherent_risk_rating.color_code AS inherent_risk_rating_color_code,
+            residual_likelihood.title_en AS residual_likelihood_title_en,
+            residual_likelihood.title_ar AS residual_likelihood_title_ar,
+            residual_impact.title_en AS residual_impact_title_en,
+            residual_impact.title_ar AS residual_impact_title_ar,
+            residual_risk_rating.title_en AS residual_risk_rating_title_en,
+            residual_risk_rating.title_ar AS residual_risk_rating_title_ar,
+            residual_risk_rating_value.value AS residual_risk_rating_value,
+            residual_risk_rating.color_code AS residual_risk_rating_color_code
+        `).
+		Joins(`
+            LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
+            LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
+            LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
+            LEFT JOIN users ON users.id = risk_register.responsible_user_id
+            LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
+			LEFT JOIN risk_response_strategies ON risk_response_strategies.id = risk_register.risk_response_strategy_id
+            LEFT JOIN users AS created_user ON created_user.id = risk_register.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = risk_register.updated_by_id
+            LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
+            LEFT JOIN risk_matrix_likelihoods AS current_likelihood ON current_likelihood.id = risk_register.current_likelihood_id
+            LEFT JOIN risk_matrix_impacts AS current_impact ON current_impact.id = risk_register.current_impact_id
+            LEFT JOIN risk_matrix_risk_ratings AS current_risk_rating ON current_risk_rating.id = risk_register.current_risk_rating_id
+            LEFT JOIN risk_matrix_risk_rating_values AS current_risk_rating_value ON current_risk_rating_value.id = risk_register.current_risk_rating_value_id
+            LEFT JOIN risk_matrix_likelihoods AS inherent_likelihood ON inherent_likelihood.id = risk_register.inherent_likelihood_id
+            LEFT JOIN risk_matrix_impacts AS inherent_impact ON inherent_impact.id = risk_register.inherent_impact_id
+            LEFT JOIN risk_matrix_risk_ratings AS inherent_risk_rating ON inherent_risk_rating.id = risk_register.inherent_risk_rating_id
+            LEFT JOIN risk_matrix_risk_rating_values AS inherent_risk_rating_value ON inherent_risk_rating_value.id = risk_register.inherent_risk_rating_value_id
+            LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = risk_register.residual_likelihood_id
+            LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id
+            LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id
+            LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
+        `).Where("risk_statuses.type IN (?)", []string{"identified", "submitted", "rejected"})
+
+	if params.RiskAppetiteToleranceLevelID != 0 {
+		query = query.Joins(`
+				LEFT JOIN risk_evaluations ON risk_evaluations.risk_register_id = risk_register.id
+				LEFT JOIN risk_appetite_alignments ON risk_appetite_alignments.risk_evaluation_id = risk_evaluations.id
+			`).Where("risk_appetite_alignments.risk_appetite_tolerance_level_id = ?", params.RiskAppetiteToleranceLevelID)
+	}
+	// Apply dynamic filters to the query
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	if params.ReportedAtFrom != "" {
+		query = query.Where("reported_at >= ?", params.ReportedAtFrom)
+	}
+
+	if params.ReportedAtTo != "" {
+		query = query.Where("reported_at <= ?", params.ReportedAtTo)
+	}
+
+	if params.NextReviewDateFrom != "" {
+		query = query.Where("next_review_date >= ?", params.NextReviewDateFrom)
+	}
+
+	if params.NextReviewDateTo != "" {
+		query = query.Where("next_review_date <= ?", params.NextReviewDateTo)
+	}
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "open":
+			query = query.Where("risk_statuses.type = ? ", "open")
+		case "identified":
+			query = query.Where("risk_statuses.type = ? ", "identified")
+		case "critical_risk":
+			// Fetch the highest available risk rating dynamically
+			var highestRating string
+			err := repo.db.Table("risk_matrix_risk_ratings").
+				Select("type").
+				Where("status = ?", "active").
+				Order("CASE type WHEN 'very_high' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 WHEN 'very_low' THEN 5 END").
+				Limit(1).Pluck("type", &highestRating).Error
+			if err != nil || highestRating == "" {
+				return nil, fmt.Errorf("failed to fetch highest risk rating: %v", err)
+			}
+			query = query.Where("current_risk_rating.type = ?", highestRating)
+
+		case "open_actions":
+			query = query.Joins(`
+				LEFT JOIN (
+					SELECT DISTINCT risk_register_id
+					FROM risk_action_plans
+					JOIN action_plan_statuses ON action_plan_statuses.id = risk_action_plans.action_plan_status_id
+					WHERE action_plan_statuses.is_closed = 0
+				) AS open_actions ON open_actions.risk_register_id = risk_register.id
+			`).
+				Where("open_actions.risk_register_id IS NOT NULL")
+
+		case "newly_identified":
+			twoWeeksAgo := time.Now().AddDate(0, 0, -14).Format("2006-01-02 00:00:00")
+			query = query.Where("risk_register.created_at >= ?", twoWeeksAgo)
+
+		case "strategic_risks":
+			query = query.Joins(`
+				LEFT JOIN (
+					SELECT DISTINCT risk_register_id
+					FROM risk_strategic_objectives
+				) AS strategic_objectives ON strategic_objectives.risk_register_id = risk_register.id
+			`).Where("strategic_objectives.risk_register_id IS NOT NULL")
+
+		case "high_financial_impact":
+			query = query.Where("risk_categories.title_en = ? ", "Financial Risk")
+
+		case "closed_resolved":
+			query = query.Where("risk_statuses.type IN (?)", []string{"closed", "resolved"})
+		case "kri_enabled":
+			query = query.Joins(`
+				LEFT JOIN (
+					SELECT DISTINCT risk_register_id
+					FROM risk_kris
+				) AS kri_enabled ON kri_enabled.risk_register_id = risk_register.id
+			`).Where("kri_enabled.risk_register_id IS NOT NULL")
+
+		case "kri_not_enabled":
+			query = query.Joins(`
+				LEFT JOIN (
+					SELECT DISTINCT risk_register_id
+					FROM risk_kris
+				) AS kri_risks ON kri_risks.risk_register_id = risk_register.id
+			`).Where("kri_risks.risk_register_id IS NULL")
+
+		}
+
+	}
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(risk_register.title LIKE ? OR
+			risk_register.description LIKE ? OR
+			risk_register.reference_number LIKE ? OR
+			risk_categories.title_en LIKE ? OR
+			risk_categories.title_ar LIKE ? OR
+			risk_sources.title_en LIKE ? OR
+			risk_sources.title_ar LIKE ? OR
+			users.first_name_en LIKE ? OR
+			users.first_name_ar LIKE ? OR
+			users.last_name_en LIKE ? OR
+			users.last_name_ar LIKE ? OR
+			risk_statuses.title_en LIKE ? OR
+			risk_statuses.title_ar LIKE ? OR
+			organization_units.title_en LIKE ? OR
+			organization_units.title_ar LIKE ? OR
+			current_risk_rating.title_en LIKE ? OR
+			current_risk_rating.title_ar LIKE ? OR
+			current_impact.title_en LIKE ? OR
+			current_impact.title_ar LIKE ? OR
+			current_likelihood.title_en LIKE ? OR
+			current_likelihood.title_ar LIKE ? OR
+			reported_at LIKE ? OR
+			created_user.first_name_en LIKE ? OR
+			created_user.first_name_ar LIKE ? OR
+			created_user.last_name_en LIKE ? OR
+			created_user.last_name_ar LIKE ? OR
+    		updated_user.first_name_en LIKE ? OR
+			updated_user.first_name_ar LIKE ? OR
+			updated_user.last_name_en LIKE ? OR
+			updated_user.last_name_ar LIKE ? OR
+			review_frequencies.title_en LIKE ? OR
+			review_frequencies.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	if params.Value != 0 {
+		query = query.Where("current_risk_rating_value.value = ?", params.Value)
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	// Count total results
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Apply pagination only if not exporting
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	if err := query.Debug().Find(&riskRegisters).Error; err != nil {
+		return nil, err
+	}
+
+	if params.Export {
+		return &riskDTOs.RiskRegisterListResponseDTO{
+			Items: riskRegisters,
+		}, nil
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &riskDTOs.RiskRegisterListResponseDTO{
+		Items: riskRegisters,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
 }
