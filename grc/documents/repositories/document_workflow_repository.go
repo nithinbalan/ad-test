@@ -42,6 +42,7 @@ func (repo *DocumentWorkflowRepository) GetWorkflowList(docVersionId uint) (*mod
 		Preload("DocumentWorkflows.DocumentWorkflowParticipants.User").
 		Preload("DocumentWorkflows.DocumentWorkflowParticipants.Role").
 		Preload("DocumentWorkflows.DocumentWorkflowReviews", "document_workflow_status_id IN (?)", repo.db.Model(&models.DocumentWorkflowStatus{}).Select("id").Where("type IN (?)", []string{"approve", "reject"})).
+		Preload("DocumentWorkflows.DocumentWorkflowReviews.DocumentWorkflowStatus").
 		Preload("DocumentWorkflows.DocumentWorkflowReviews.CreatedByUser").
 		Where("id = ?", docVersionId).
 		Find(&documentVersion)

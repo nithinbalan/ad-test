@@ -106,13 +106,13 @@ func (ds *DocumentWorkflowService) GetDocumentWorkflowList(id uint) (*documentDT
 		var lastRejectedAt time.Time
 		for _, review := range workflow.DocumentWorkflowReviews {
 			userDTO := mapUserToDTO(review.CreatedByUser)
-			if workflow.DocumentWorkflowStatus.Type == "approve" {
+			if review.DocumentWorkflowStatus.Type == "approve" {
 				workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, userDTO)
 				if review.CreatedAt.After(lastApprovedAt) {
 					lastApprovedAt = review.CreatedAt
 				}
 			}
-			if workflow.DocumentWorkflowStatus.Type == "reject" {
+			if review.DocumentWorkflowStatus.Type == "reject" {
 				workflowDTO.RejectedUser = userDTO
 				if review.CreatedAt.After(lastRejectedAt) {
 					lastRejectedAt = review.CreatedAt
