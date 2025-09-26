@@ -243,7 +243,7 @@ func (rrs *RiskReviewService) Approve(riskID uint, currentUserID uint) error {
 		}
 
 		if nextRiskWorkflowLevel == nil {
-			riskStatus, err := rrs.riskStatusSvc.GetByType("approved")
+			riskStatus, err := rrs.riskStatusSvc.GetByType("open")
 			if err != nil {
 				tx.Rollback()
 				return err
@@ -337,7 +337,7 @@ func (rrs *RiskReviewService) Approve(riskID uint, currentUserID uint) error {
 		}
 
 		if nextRiskWorkflowLevel == nil {
-			riskStatus, err := rrs.riskStatusSvc.GetByType("approved")
+			riskStatus, err := rrs.riskStatusSvc.GetByType("open")
 			if err != nil {
 				tx.Rollback()
 				return err

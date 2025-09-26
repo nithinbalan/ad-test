@@ -53,6 +53,8 @@ type RiskRegisterServiceInterface interface {
 	ValidateRiskTemplate(file io.Reader) ([]map[string]interface{}, error)
 	ValidateImportRisks(input []map[string]interface{}) ([]map[string]interface{}, error)
 	ImportRisks(input []map[string]interface{}, currentUserID uint) ([]uint, error)
+
+	GetAllIdentifiedRisks(params *riskDTOs.RiskRegisterListQueryParamsDTO) (*riskDTOs.RiskRegisterListResponseDTO, error)
 }
 
 // Service and implementations
@@ -257,6 +259,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		ReviewFrequencyID: riskRegisterFormDTO.ReviewFrequencyID,
 		NextReviewDate:    dates.NextReviewDate,
 		LastReviewNote:    riskRegisterFormDTO.LastReviewNote,
+		SeverityLevelID:   riskRegisterFormDTO.SeverityLevelID,
 		CreatedBYID:       currentUserID,
 	}
 
@@ -2249,4 +2252,8 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 	}
 
 	return validatedData, nil
+}
+
+func (rrs *RiskRegisterService) GetAllIdentifiedRisks(params *riskDTOs.RiskRegisterListQueryParamsDTO) (*riskDTOs.RiskRegisterListResponseDTO, error) {
+	return rrs.repo.GetAllIdentifiedRisks(params)
 }
