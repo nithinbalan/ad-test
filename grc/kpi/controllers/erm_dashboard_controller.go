@@ -4,6 +4,8 @@ import (
 	"fmt"
 	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/kpi/services"
+	riskDTOs "jethur/grc/risk/dtos"
+	riskServices "jethur/grc/risk/services"
 	"jethur/utility"
 	"net/http"
 
@@ -12,13 +14,16 @@ import (
 )
 
 type ERMDashboardController struct {
-	service services.ERMDashboardServiceInterface
-	db      *gorm.DB
+	service        services.ERMDashboardServiceInterface
+	riskHeatMapSvc riskServices.RiskHeatmapServiceInterface
+	db             *gorm.DB
 }
 
-func NewERMDashboardController(service services.ERMDashboardServiceInterface) *ERMDashboardController {
+func NewERMDashboardController(service services.ERMDashboardServiceInterface,
+	riskHeatMapSvc riskServices.RiskHeatmapServiceInterface) *ERMDashboardController {
 	return &ERMDashboardController{
-		service: service,
+		service:        service,
+		riskHeatMapSvc: riskHeatMapSvc,
 	}
 }
 
@@ -386,4 +391,31 @@ func (edc *ERMDashboardController) GetERMRiskSummaryByDepartment(c *gin.Context)
 		}
 	}
 	c.JSON(http.StatusOK, summary)
+}
+
+// ERM Risk Heat Map
+func (edc *ERMDashboardController) GetERMRiskHeatMap(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := riskDTOs.RiskHeatmapQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	riskHeatmap, err := edc.riskHeatMapSvc.GetRiskHeatmapByRiskMatrix(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(edc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, riskHeatmap)
 }
