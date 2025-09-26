@@ -32,6 +32,7 @@ type ComplianceClauseRepositoryInterface interface {
 	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
 	GetAssociatedControls(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
 	CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
+	CreateComplianceControlsForImport(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) ([]uint, error)
 	DeleteComplianceControlByClauseAndControl(clauseID, controlID uint, tx ...utility.DatabaseTransaction) error
 
 	IsControlMappedToClause(clauseID, controlID uint) (bool, error)
@@ -527,6 +528,22 @@ func (repo *ComplianceClauseRepository) CreateComplianceControls(controls []*mod
 		return err
 	}
 	return nil
+}
+
+func (repo *ComplianceClauseRepository) CreateComplianceControlsForImport(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) ([]uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var createdIDs []uint
+	for _, control := range controls {
+		if err := db.Create(control).Error; err != nil {
+			return nil, err
+		}
+		createdIDs = append(createdIDs, control.ID)
+	}
+	return createdIDs, nil
 }
 
 func (repo *ComplianceClauseRepository) DeleteComplianceControlByClauseAndControl(clauseID, controlID uint, tx ...utility.DatabaseTransaction) error {

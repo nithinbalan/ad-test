@@ -1373,46 +1373,40 @@ func (ccc *ComplianceClauseController) ValidateImportControlMapping(c *gin.Conte
 	c.JSON(http.StatusOK, validationResult)
 }
 
-// func (ccc *ComplianceClauseController) ImportControlMapping(c *gin.Context) {
-// 	complianceIDStr := c.Param("complianceId")
-// 	clauseIDStr := c.Param("clauseId")
+func (ccc *ComplianceClauseController) ImportControlMapping(c *gin.Context) {
+	complianceIDStr := c.Param("complianceId")
 
-// 	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
-// 	if err != nil {
-// 		utility.SendNotFoundErrResp(c)
-// 		return
-// 	}
-// 	clauseID, err := strconv.ParseUint(clauseIDStr, 10, 64)
-// 	if err != nil {
-// 		utility.SendNotFoundErrResp(c)
-// 		return
-// 	}
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
 
-// 	var input []map[string]interface{}
-// 	if err := c.ShouldBindJSON(&input); err != nil {
-// 		utility.SendInvalidErrResp(c, err)
-// 		return
-// 	}
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 
-// 	currentUserID, err := utility.GetCurrentUserID(c)
-// 	if err != nil {
-// 		utility.SendInternalErrResp(ccc.db, c, err.Error())
-// 		return
-// 	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(ccc.db, c, err.Error())
+		return
+	}
 
-// 	createdIDs, err := ccc.service.ImportControlMapping(uint(complianceID), uint(clauseID), input, currentUserID)
-// 	if err != nil {
-// 		switch e := err.(type) {
-// 		case *utility.ValidationError:
-// 			utility.SendInvalidErrResp(c, e)
-// 			return
-// 		default:
-// 			utility.SendInternalErrResp(ccc.db, c, e.Error())
-// 			return
-// 		}
-// 	}
+	createdIDs, err := ccc.service.ImportControlMapping(uint(complianceID), input, currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(ccc.db, c, e.Error())
+			return
+		}
+	}
 
-// 	c.JSON(http.StatusOK, map[string]interface{}{
-// 		"created_ids": createdIDs,
-// 	})
-// }
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"created_ids": createdIDs,
+	})
+}
