@@ -41,7 +41,8 @@ func (repo *RiskWorkflowRepository) GetWorkflowList(docVersionId uint) (*models.
 		Preload("RiskWorkflows.RiskWorkflowParticipants").
 		Preload("RiskWorkflows.RiskWorkflowParticipants.User").
 		Preload("RiskWorkflows.RiskWorkflowParticipants.Role").
-		Preload("RiskWorkflows.RiskWorkflowReviews", "workflow_status_id IN (?)", repo.db.Model(&models.WorkflowStatus{}).Select("id").Where("type = ?", "approve")).
+		Preload("RiskWorkflows.RiskWorkflowReviews", "workflow_status_id IN (?)", repo.db.Model(&models.WorkflowStatus{}).Select("id").Where("type IN (?)", []string{"approve", "reject"})).
+		Preload("RiskWorkflows.RiskWorkflowReviews.WorkflowStatus").
 		Preload("RiskWorkflows.RiskWorkflowReviews.CreatedByUser").
 		Where("id = ?", docVersionId).
 		Find(&risk)

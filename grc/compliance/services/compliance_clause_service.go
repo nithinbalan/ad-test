@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -67,6 +68,7 @@ type ComplianceClauseServiceInterface interface {
 	ValidateClauseTemplate(complianceID uint, file io.Reader) ([]map[string]interface{}, error)
 	ValidateImportClause(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error)
 	ImportClauses(complianceID uint, input []map[string]interface{}, currentUserID uint) ([]uint, error)
+	GetAllForImport(complianceID uint) ([]*complianceDTOs.ComplianceClauseListDTO, error)
 }
 
 type ComplianceClauseService struct {
@@ -1065,21 +1067,27 @@ func (css *ComplianceClauseService) validateClauses(complianceID uint, input []m
 		if !ok || val == "" {
 			rowErrors["clause_no"] = "Field is required"
 			hasError = true
-		} else if _, exists := clauseMap[val]; exists {
-			rowErrors["clause_no"] = fmt.Sprintf("ClauseNo already exists: %s", val)
-			hasError = true
-		} else if clauseNoCount[val] > 1 {
-			rowErrors["clause_no"] = fmt.Sprintf("Duplicate ClauseNo: %s", val)
-			hasError = true
 		} else {
-			parts := strings.Split(val, ".")
-			if len(parts) > 1 {
-				for i := 1; i < len(parts); i++ {
-					parentClause := strings.Join(parts[:i], ".")
-					if _, exists := clauseMap[parentClause]; !exists && clauseNoCount[parentClause] == 0 {
-						rowErrors["clause_no"] = fmt.Sprintf("Parent clause %s not found for %s", parentClause, val)
-						hasError = true
-						break
+			validClauseNoRegex := regexp.MustCompile(`^\d+(\.\d+)*$`)
+			if !validClauseNoRegex.MatchString(val) {
+				rowErrors["clause_no"] = fmt.Sprintf("Invalid ClauseNo format: %s. Only numbers allowed", val)
+				hasError = true
+			} else if _, exists := clauseMap[val]; exists {
+				rowErrors["clause_no"] = fmt.Sprintf("ClauseNo already exists: %s", val)
+				hasError = true
+			} else if clauseNoCount[val] > 1 {
+				rowErrors["clause_no"] = fmt.Sprintf("Duplicate ClauseNo: %s", val)
+				hasError = true
+			} else {
+				parts := strings.Split(val, ".")
+				if len(parts) > 1 {
+					for i := 1; i < len(parts); i++ {
+						parentClause := strings.Join(parts[:i], ".")
+						if _, exists := clauseMap[parentClause]; !exists && clauseNoCount[parentClause] == 0 {
+							rowErrors["clause_no"] = fmt.Sprintf("Parent clause %s not found for %s", parentClause, val)
+							hasError = true
+							break
+						}
 					}
 				}
 			}

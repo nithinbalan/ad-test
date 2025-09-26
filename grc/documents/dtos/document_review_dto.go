@@ -18,7 +18,9 @@ type DocumentWorkflowListDTO struct {
 	ApprovalType  string                             `json:"approval_type"`
 	ReviewUsers   []*organizationDTOs.UserMinimalDTO `json:"review_users"`
 	ApprovedUsers []*organizationDTOs.UserMinimalDTO `json:"approved_users"`
+	RejectedUser  *organizationDTOs.UserMinimalDTO   `json:"rejected_user"`
 	ApprovedAt    time.Time                          `json:"approved_at,omitempty"`
+	RejectedAt    time.Time                          `json:"rejected_at,omitempty"`
 	CurrentStatus DocumentStatusDTO                  `json:"current_status"`
 }
 
