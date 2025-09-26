@@ -278,6 +278,7 @@ type RiskRegisterFormDTO struct {
 	Documents         []*commonDTOs.DocumentFormDTO `json:"documents"`
 	SLARegisterIDs    []*uint                       `json:"sla_register_ids"`
 	AssetIds          []*uint                       `json:"asset_ids"`
+	SeverityLevelID   *uint                         `json:"severity_level_id"`
 
 	InherentRiskMatrixLikelihoodID *uint `json:"inherent_risk_matrix_likelihood_id"`
 	InherentRiskMatrixImpactID     *uint `json:"inherent_risk_matrix_impact_id"`

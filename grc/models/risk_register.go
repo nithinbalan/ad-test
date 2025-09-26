@@ -37,6 +37,7 @@ type RiskRegister struct {
 	SubmittedAt               *time.Time `json:"submitted_at" gorm:"default:null"`
 	NextReviewLevel           *int       `json:"next_review_level" gorm:"default:null"`
 	ReviewedBy                *uint      `json:"reviewed_by" gorm:"default:null"`
+	SeverityLevelID           *uint      `json:"severity_level_id"`
 	CreatedBYID               uint       `json:"created_by_id" binding:"required"`
 	UpdatedBYID               *uint      `json:"updated_by_id"`
 	CreatedAt                 time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`

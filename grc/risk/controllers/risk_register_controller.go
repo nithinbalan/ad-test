@@ -570,7 +570,6 @@ func (rrc *RiskRegisterController) GetAllIdentifiedRisks(c *gin.Context) {
 		return
 	}
 
-	quickFilter = append(quickFilter, "identified")
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"risk_category_ids",
@@ -690,7 +689,7 @@ func (rrc *RiskRegisterController) GetAllIdentifiedRisks(c *gin.Context) {
 		RiskAppetiteToleranceLevelID: riskAppetiteToleranceLevelID,
 	}
 
-	risks, err := rrc.service.GetAll(&queryParams)
+	risks, err := rrc.service.GetAllIdentifiedRisks(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(rrc.db, c, err.Error())
 		return
