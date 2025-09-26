@@ -33,6 +33,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentAssociatedItemController := app.IncidentModule.IncidentAssociatedItemController
 	incidentTimelineController := app.IncidentModule.IncidentTimelineController
 	incidentActionPlanCommentController := app.IncidentModule.IncidentActionPlanCommentController
+	IncidentReportController :=app.IncidentModule.IncidentReportController
 
 	// Incident Category
 	incidentRoutes.GET("/incident-categories", incidentCategoryController.GetAllIncidentCategories)
@@ -179,4 +180,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Incident timelines
 	incidentRoutes.GET("/incidents/:incidentID/timelines", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), incidentTimelineController.GetAllIncidentTimelines)
+
+	incidentRoutes.GET("/incidents-reports/:incidentID/export-pdf", IncidentReportController.ExportIncidentReportReportToPDF)
+
 }
