@@ -155,6 +155,7 @@ type RiskRegisterDetailDTO struct {
 	LastReviewNote          *string                            `json:"last_review_note"`
 	NextReviewLevel         *int                               `json:"next_review_level"`
 	Documents               []*RiskDocumentDTO                 `json:"documents"`
+	SeverityLevel           masterDTOs.SeverityLevelDTO        `json:"severity_level"`
 	CreatedAt               time.Time                          `json:"created_at"`
 	UpdatedAt               *time.Time                         `json:"updated_at"`
 	CreatedByUser           organizationDTOs.UserMinimalDTO    `json:"created_by"`
