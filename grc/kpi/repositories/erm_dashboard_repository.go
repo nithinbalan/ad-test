@@ -26,6 +26,14 @@ type ERMDashboardRepositoryInterface interface {
 	GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error)
 	GetERMStrategicObjectivesRiskSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectivesRiskSummaryDTO, error)
 	GetERMRiskSummaryByDepartment(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskDepartmentSummaryDTO, error)
+
+	// ERM Risk Details
+	GetERMRiskCategorySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskCategorySummaryDTO, error)
+	GetERMRiskSourceSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskSourceSummaryDTO, error)
+	GetERMRiskStatusSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskStatusSummaryDTO, error)
+	GetERMRiskDepartmentSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskSummaryByDepartmentDTO, error)
+	GetERMRisksIdentifiedSummary() (*kpiDTOs.ERMRisksIdentifiedSummaryDTO, error)
+	GetERMRiskResponseStrategySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskResponseStrategySummaryDTO, error)
 }
 
 type ERMDashboardRepository struct {
@@ -542,7 +550,7 @@ func (repo *ERMDashboardRepository) GetERMRiskAppetiteOverview(params *kpiDTOs.E
 	}
 
 	// Base query
-	query := repo.db.Table("risk_register").
+	query := repo.db.Model(&models.RiskRegister{}).
 		Joins("LEFT JOIN organization_units ru_unit ON ru_unit.id = risk_register.responsible_unit_id").
 		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(ru_unit.organization_unit_id, ru_unit.id) = parent_unit.id").
 		Joins("JOIN organization_levels ON organization_levels.id = ru_unit.organization_level_id AND organization_levels.is_primary = ?", true).
@@ -968,7 +976,7 @@ func (repo *ERMDashboardRepository) GetERMRiskSummaryByDepartment(params *kpiDTO
 		Joins("JOIN organization_levels ol ON ol.id = ru.organization_level_id AND ol.is_primary = ?", true).
 		Joins("LEFT JOIN risk_matrix_risk_ratings current_rmrr ON current_rmrr.id = rr.current_risk_rating_id AND current_rmrr.status = 'active'").
 		Joins("LEFT JOIN risk_matrix_risk_ratings residual_rmrr ON residual_rmrr.id = rr.residual_risk_rating_id AND residual_rmrr.status = 'active'").
-		Joins("LEFT JOIN risk_statuses rs ON rs.id = rr.risk_status_id AND rs.status = 'active'").
+		Joins("LEFT JOIN risk_statuses rs ON rs.id = rr.risk_status_id AND rs.status = ?", "active").
 		Joins(`LEFT JOIN (
 			SELECT rap.risk_register_id, COUNT(*) AS count
 			FROM risk_action_plans rap
@@ -977,7 +985,7 @@ func (repo *ERMDashboardRepository) GetERMRiskSummaryByDepartment(params *kpiDTO
 			GROUP BY rap.risk_register_id
 		) overdue_ap ON overdue_ap.risk_register_id = rr.id`).
 		Where("ru.status = ?", "active").
-		Where("rs.type IN ('open', 'closed')")
+		Where("rs.type IN ?", []string{"open", "closed"})
 
 	// Date filtering
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -1041,5 +1049,164 @@ func (repo *ERMDashboardRepository) GetERMRiskSummaryByDepartment(params *kpiDTO
 
 	return &kpiDTOs.ERMRiskDepartmentSummaryDTO{
 		RiskSummaryByDepartments: overview,
+	}, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMRiskCategorySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskCategorySummaryDTO, error) {
+	results := []kpiDTOs.ERMRiskCategorySummaryItemDTO{}
+
+	query := repo.db.Model(&models.RiskRegister{}).
+		Select("rc.title_en AS category, COUNT(risk_register.id) AS count").
+		Joins("JOIN risk_categories rc ON rc.id = risk_register.risk_category_id AND rc.status = ?", "active").
+		Joins("JOIN risk_statuses rs ON rs.id = risk_register.risk_status_id AND rs.status = ?", "active").
+		Where("rs.type IN ?", []string{"open", "closed"}).
+		Group("rc.id, rc.title_en")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return &kpiDTOs.ERMRiskCategorySummaryDTO{
+		RisksByCategory: results,
+	}, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMRiskSourceSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskSourceSummaryDTO, error) {
+	results := []kpiDTOs.ERMRiskSourceSummaryItemDTO{}
+
+	query := repo.db.Model(&models.RiskRegister{}).
+		Select("rs.title_en AS source, COUNT(risk_register.id) AS count").
+		Joins("JOIN risk_sources rs ON rs.id = risk_register.risk_source_id AND rs.status = ?", "active").
+		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id AND risk_statuses.status = ?", "active").
+		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
+		Group("rs.id, rs.title_en")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return &kpiDTOs.ERMRiskSourceSummaryDTO{
+		RisksBySource: results,
+	}, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMRiskStatusSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskStatusSummaryDTO, error) {
+	result := kpiDTOs.ERMRiskStatusSummaryDTO{}
+
+	query := repo.db.Model(&models.RiskRegister{}).
+		Select("risk_statuses.title_en AS title, COUNT(risk_register.id) AS count").
+		Joins(`
+			JOIN risk_statuses
+			ON risk_statuses.id = risk_register.risk_status_id
+			AND risk_statuses.status = ?
+			AND risk_statuses.type IN ?`, "active", []string{"open", "closed"})
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	query = query.Group("risk_statuses.id, risk_statuses.title_en")
+
+	var statuses []struct {
+		Title string
+		Count int64
+	}
+
+	if err := query.Scan(&statuses).Error; err != nil {
+		return nil, err
+	}
+
+	var total int64
+	for _, s := range statuses {
+		total += s.Count
+		result.RisksByStatus = append(result.RisksByStatus, kpiDTOs.ERMRiskStatusSummaryItemDTO{
+			Status: s.Title,
+			Count:  s.Count,
+		})
+	}
+	result.Total = total
+
+	return &result, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMRiskDepartmentSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskSummaryByDepartmentDTO, error) {
+	results := []kpiDTOs.ERMRiskSummaryByDepartmentItemDTO{}
+
+	query := repo.db.Model(&models.RiskRegister{}).
+		Joins("LEFT JOIN organization_units ru ON ru.id = risk_register.responsible_unit_id").
+		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(ru.organization_unit_id, ru.id) = parent_unit.id").
+		Joins("JOIN organization_levels ol ON ol.id = ru.organization_level_id AND ol.is_primary = ?", true).
+		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id AND risk_statuses.status = ?", "active").
+		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
+		Where("parent_unit.status = ?", "active").
+		Select("parent_unit.title_en AS department, COUNT(risk_register.id) AS count").
+		Group("parent_unit.id, parent_unit.title_en")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return &kpiDTOs.ERMRiskSummaryByDepartmentDTO{
+		RisksByDepartment: results,
+	}, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMRisksIdentifiedSummary() (*kpiDTOs.ERMRisksIdentifiedSummaryDTO, error) {
+	results := []kpiDTOs.ERMRisksIdentifiedSummaryItemDTO{}
+
+	currentYear := time.Now().Year()
+	startYear := currentYear - 6
+
+	query := repo.db.Model(&models.RiskRegister{}).
+		Joins("JOIN risk_statuses rs ON rs.id = risk_register.risk_status_id AND rs.status = ?", "active").
+		Where("rs.type IN ?", []string{"open", "closed"}).
+		Where("reported_at IS NOT NULL").
+		Where("YEAR(reported_at) BETWEEN ? AND ?", startYear, currentYear).
+		Select("YEAR(reported_at) AS year, COUNT(*) AS count").
+		Group("YEAR(reported_at)").
+		Order("YEAR(reported_at) ASC")
+
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return &kpiDTOs.ERMRisksIdentifiedSummaryDTO{
+		RisksIdentifiedOverYears: results,
+	}, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMRiskResponseStrategySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskResponseStrategySummaryDTO, error) {
+	results := []kpiDTOs.ERMRiskResponseStrategySummaryItemDTO{}
+
+	query := repo.db.Model(&models.RiskRegister{}).
+		Joins("JOIN risk_statuses rs ON rs.id = risk_register.risk_status_id AND rs.status = ?", "active").
+		Joins("JOIN risk_response_strategies rrs ON rrs.id = risk_register.risk_response_strategy_id AND rrs.status = ?", "active").
+		Where("rs.type IN ?", []string{"open", "closed"}).
+		Select("rrs.title_en AS strategy, COUNT(risk_register.id) AS count").
+		Group("rrs.id, rrs.title_en").
+		Order("count DESC")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return &kpiDTOs.ERMRiskResponseStrategySummaryDTO{
+		RisksResponseStrategySummary: results,
 	}, nil
 }

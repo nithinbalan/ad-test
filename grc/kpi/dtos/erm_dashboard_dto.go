@@ -174,3 +174,59 @@ type ERMRiskDepartmentSummaryItemDTO struct {
 type ERMRiskDepartmentSummaryDTO struct {
 	RiskSummaryByDepartments []ERMRiskDepartmentSummaryItemDTO `json:"risk_summary_by_departments"`
 }
+
+// ERM Risk Details
+type ERMRiskCategorySummaryItemDTO struct {
+	Category string `json:"category"`
+	Count    int64  `json:"count"`
+}
+
+type ERMRiskCategorySummaryDTO struct {
+	RisksByCategory []ERMRiskCategorySummaryItemDTO `json:"risks_by_category"`
+}
+
+type ERMRiskSourceSummaryItemDTO struct {
+	Source string `json:"source"`
+	Count  int64  `json:"count"`
+}
+
+type ERMRiskSourceSummaryDTO struct {
+	RisksBySource []ERMRiskSourceSummaryItemDTO `json:"risks_by_source"`
+}
+
+type ERMRiskStatusSummaryItemDTO struct {
+	Status string `json:"status"`
+	Count  int64  `json:"count"`
+}
+
+type ERMRiskStatusSummaryDTO struct {
+	RisksByStatus []ERMRiskStatusSummaryItemDTO `json:"risks_by_status"`
+	Total         int64                         `json:"total"`
+}
+
+type ERMRiskSummaryByDepartmentItemDTO struct {
+	Department string `json:"department"`
+	Count      int64  `json:"count"`
+}
+
+type ERMRiskSummaryByDepartmentDTO struct {
+	RisksByDepartment []ERMRiskSummaryByDepartmentItemDTO `json:"risks_by_department"`
+}
+
+type ERMRisksIdentifiedSummaryItemDTO struct {
+	Year  int64 `json:"year"`
+	Count int64 `json:"count"`
+}
+
+type ERMRisksIdentifiedSummaryDTO struct {
+	RisksIdentifiedOverYears []ERMRisksIdentifiedSummaryItemDTO `json:"risks_identified_over_years"`
+}
+
+type ERMRiskResponseStrategySummaryItemDTO struct {
+	ResponseStrategy string `json:"response_strategy"`
+	Count            int64  `json:"count"`
+}
+
+type ERMRiskResponseStrategySummaryDTO struct {
+	RisksResponseStrategySummary []ERMRiskResponseStrategySummaryItemDTO `json:"risks_by_response_strategy"`
+}
