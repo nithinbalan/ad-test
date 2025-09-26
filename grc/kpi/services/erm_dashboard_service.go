@@ -20,6 +20,7 @@ type ERMDashboardServiceInterface interface {
 	GetERMRiskTreatmentPlanProgress(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskTreatmentPlanProgressDTO, error)
 	GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error)
 	GetERMStrategicObjectivesRiskSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectivesRiskSummaryDTO, error)
+	GetERMRiskSummaryByDepartment(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskDepartmentSummaryDTO, error)
 }
 
 type ERMDashboardService struct {
@@ -84,4 +85,8 @@ func (eds *ERMDashboardService) GetERMStrategicObjectivesRiskOverview(params *kp
 
 func (eds *ERMDashboardService) GetERMStrategicObjectivesRiskSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectivesRiskSummaryDTO, error) {
 	return eds.repo.GetERMStrategicObjectivesRiskSummary(params)
+}
+
+func (eds *ERMDashboardService) GetERMRiskSummaryByDepartment(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskDepartmentSummaryDTO, error) {
+	return eds.repo.GetERMRiskSummaryByDepartment(params)
 }

@@ -53,4 +53,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/erm/risk-treatment-plan-progress", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMRiskTreatmentPlanProgress)
 	kpiRoutes.GET("/kpis/erm/strategic-objectives-risk-overview", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMStrategicObjectivesRiskOverview)
 	kpiRoutes.GET("/kpis/erm/strategic-objectives-risk-summary", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMStrategicObjectivesRiskSummary)
+	kpiRoutes.GET("/kpis/erm/risk-summary-by-department", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMRiskSummaryByDepartment)
 }

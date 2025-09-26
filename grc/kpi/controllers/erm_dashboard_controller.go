@@ -364,3 +364,26 @@ func (edc *ERMDashboardController) GetERMStrategicObjectivesRiskSummary(c *gin.C
 	}
 	c.JSON(http.StatusOK, summary)
 }
+
+// ERM Risk Summary By Department
+func (edc *ERMDashboardController) GetERMRiskSummaryByDepartment(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.ERMDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	summary, err := edc.service.GetERMRiskSummaryByDepartment(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(edc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}

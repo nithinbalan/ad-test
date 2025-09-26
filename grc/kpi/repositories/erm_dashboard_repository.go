@@ -25,6 +25,7 @@ type ERMDashboardRepositoryInterface interface {
 	GetERMRiskTreatmentPlanProgress(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskTreatmentPlanProgressDTO, error)
 	GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error)
 	GetERMStrategicObjectivesRiskSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectivesRiskSummaryDTO, error)
+	GetERMRiskSummaryByDepartment(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskDepartmentSummaryDTO, error)
 }
 
 type ERMDashboardRepository struct {
@@ -948,4 +949,97 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskSummary(params 
 	}
 
 	return summary, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMRiskSummaryByDepartment(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskDepartmentSummaryDTO, error) {
+	var results []struct {
+		Department         string
+		TotalRisks         int64
+		HighRisks          int64
+		OpenRisks          int64
+		ClosedRisks        int64
+		OverdueActionPlans int64
+		ResidualRiskLevel  string
+	}
+
+	query := repo.db.Table("risk_register rr").
+		Joins("LEFT JOIN organization_units ru ON ru.id = rr.responsible_unit_id").
+		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(ru.organization_unit_id, ru.id) = parent_unit.id").
+		Joins("JOIN organization_levels ol ON ol.id = ru.organization_level_id AND ol.is_primary = ?", true).
+		Joins("LEFT JOIN risk_matrix_risk_ratings current_rmrr ON current_rmrr.id = rr.current_risk_rating_id AND current_rmrr.status = 'active'").
+		Joins("LEFT JOIN risk_matrix_risk_ratings residual_rmrr ON residual_rmrr.id = rr.residual_risk_rating_id AND residual_rmrr.status = 'active'").
+		Joins("LEFT JOIN risk_statuses rs ON rs.id = rr.risk_status_id AND rs.status = 'active'").
+		Joins(`LEFT JOIN (
+			SELECT rap.risk_register_id, COUNT(*) AS count
+			FROM risk_action_plans rap
+			JOIN action_plan_statuses aps ON aps.id = rap.action_plan_status_id AND aps.status = 'active'
+			WHERE rap.target_date < GETDATE() AND aps.is_closed = 0
+			GROUP BY rap.risk_register_id
+		) overdue_ap ON overdue_ap.risk_register_id = rr.id`).
+		Where("ru.status = ?", "active").
+		Where("rs.type IN ('open', 'closed')")
+
+	// Date filtering
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where(
+			"rr.reported_at BETWEEN ? AND ?",
+			params.DateFrom+" 00:00:00",
+			params.DateTo+" 23:59:59",
+		)
+	}
+
+	// Select aggregated data
+	query = query.Select(`
+		parent_unit.title_en AS department,
+		COUNT(*) AS total_risks,
+		-- High risks based on current risk rating
+		COUNT(CASE WHEN current_rmrr.type IN ('high', 'very_high') THEN 1 END) AS high_risks,
+		COUNT(CASE WHEN rs.type = 'open' THEN 1 END) AS open_risks,
+		COUNT(CASE WHEN rs.type = 'closed' THEN 1 END) AS closed_risks,
+		COALESCE(SUM(overdue_ap.count), 0) AS overdue_action_plans,
+		-- Residual risk level based on residual risk rating (only for risks that have residual rating)
+		CASE MAX(
+				CASE 
+					WHEN residual_rmrr.type IS NOT NULL THEN
+						CASE residual_rmrr.type
+							WHEN 'very_high' THEN 5
+							WHEN 'high' THEN 4
+							WHEN 'medium' THEN 3
+							WHEN 'low' THEN 2
+							WHEN 'very_low' THEN 1
+							ELSE 0
+						END
+					ELSE NULL
+				END
+			)
+			WHEN 5 THEN 'Very High'
+			WHEN 4 THEN 'High'
+			WHEN 3 THEN 'Medium'
+			WHEN 2 THEN 'Low'
+			WHEN 1 THEN 'Very Low'
+			ELSE 'N/A'
+		END AS residual_risk_level
+	`).
+		Group("parent_unit.id, parent_unit.title_en")
+
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	overview := make([]kpiDTOs.ERMRiskDepartmentSummaryItemDTO, len(results))
+	for i, r := range results {
+		overview[i] = kpiDTOs.ERMRiskDepartmentSummaryItemDTO{
+			Department:         r.Department,
+			TotalRisks:         r.TotalRisks,
+			HighRisks:          r.HighRisks,
+			OpenRisks:          r.OpenRisks,
+			ClosedRisks:        r.ClosedRisks,
+			OverdueActionPlans: r.OverdueActionPlans,
+			ResidualRiskLevel:  r.ResidualRiskLevel,
+		}
+	}
+
+	return &kpiDTOs.ERMRiskDepartmentSummaryDTO{
+		RiskSummaryByDepartments: overview,
+	}, nil
 }

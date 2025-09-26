@@ -160,3 +160,17 @@ type ERMStrategicObjectivesRiskSummaryDTO struct {
 	ObjectivesWithHighRatedRisks int64 `json:"objectives_with_high_rated_risks"`
 	ObjectivesWithNoRiskLinked   int64 `json:"objectives_with_no_risk_linked"`
 }
+
+type ERMRiskDepartmentSummaryItemDTO struct {
+	Department         string `json:"department"`
+	TotalRisks         int64  `json:"total_risks"`
+	HighRisks          int64  `json:"high_risks"`
+	OpenRisks          int64  `json:"open_risks"`
+	ClosedRisks        int64  `json:"closed_risks"`
+	OverdueActionPlans int64  `json:"overdue_action_plans"`
+	ResidualRiskLevel  string `json:"residual_risk_level"`
+}
+
+type ERMRiskDepartmentSummaryDTO struct {
+	RiskSummaryByDepartments []ERMRiskDepartmentSummaryItemDTO `json:"risk_summary_by_departments"`
+}
