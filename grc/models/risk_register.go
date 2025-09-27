@@ -65,6 +65,7 @@ type RiskRegister struct {
 	ResidualRiskRating      *RiskMatrixRiskRating      `gorm:"foreignKey:ResidualRiskRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResidualRiskRatingValue *RiskMatrixRiskRatingValue `gorm:"foreignKey:ResidualRiskRatingValueID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskStatus              *RiskStatus                `gorm:"foreignKey:RiskStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	SeverityLevel           *SeverityLevel             `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	CreatedByUser           *User                      `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	UpdatedByUser           *User                      `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 
