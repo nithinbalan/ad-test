@@ -271,9 +271,9 @@ func (caps *ComplianceActionPlanService) Create(complianceID uint, currentUserID
 			id,
 			existingComplianceActionPlan,
 			currentUserID,
-			"",
-			"",
-			"",
+			"compliance",
+			"compliance_register",
+			"action_plan",
 			nil,
 		)
 		if err != nil {
@@ -486,9 +486,9 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"compliance",
+				"compliance_register",
+				"action_plan",
 				nil,
 			)
 			if err != nil {

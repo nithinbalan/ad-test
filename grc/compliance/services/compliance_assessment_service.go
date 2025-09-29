@@ -476,7 +476,7 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"compliance", "compliance_assessment", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -970,7 +970,7 @@ func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID
 				"submitted_at": submittedAt,
 			},
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_assessment", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -1142,7 +1142,7 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 				"approved_by": currentUserID,
 			},
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_assessment", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{

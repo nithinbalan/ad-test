@@ -157,7 +157,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 			id,
 			complianceRequirementUpdate,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_register", "requirement_status_update", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -310,7 +310,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"compliance", "compliance_register", "requirement_status_update", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

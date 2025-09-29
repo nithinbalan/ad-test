@@ -111,7 +111,7 @@ func (scqs *SLACheckQuestionService) CreateQuestionGroup(slaID uint, checkID uin
 			groupID,
 			slaCheckQuestionGroup,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "sla_contracts", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -188,7 +188,7 @@ func (scqs *SLACheckQuestionService) UpdateQuestionGroup(slaID uint, checkID uin
 				groupID,
 				group,
 				currentUserID,
-				"", "", "", nil,
+				"compliance", "sla_contracts", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -281,7 +281,7 @@ func (scqs *SLACheckQuestionService) DeleteQuestionGroup(slaID uint, checkID uin
 				successfulGroupID,
 				deletedCheckQuestion,
 				currentUserID,
-				"", "", "", nil,
+				"compliance", "sla_contracts", "", nil,
 			)
 			if err != nil {
 				fmt.Printf("Failed to log activity: %v\n", err)
@@ -449,7 +449,7 @@ func (scqs *SLACheckQuestionService) CreateQuestion(slaID uint, checkID uint, qu
 			slaCheckQuestionId,
 			slaCheckQuestion,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "sla_contracts", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -497,7 +497,7 @@ func (scqs *SLACheckQuestionService) UpdateQuestion(slaID uint, checkID uint, qu
 			questionID,
 			existingQuestion,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "sla_contracts", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -547,7 +547,7 @@ func (scqs *SLACheckQuestionService) DeleteQuestion(slaID uint, checkId uint, qu
 				successfulId,
 				question,
 				currentUserID,
-				"", "", "", nil,
+				"compliance", "sla_contracts", "", nil,
 			)
 			if err != nil {
 				fmt.Printf("Failed to log activity: %v\n", err)
