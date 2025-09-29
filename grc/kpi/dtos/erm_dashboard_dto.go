@@ -229,10 +229,24 @@ type ERMRiskResponseStrategySummaryDTO struct {
 	RisksResponseStrategySummary []ERMRiskResponseStrategySummaryItemDTO `json:"risks_by_response_strategy"`
 }
 
-type RiskControlEfficiencySummaryItemDTO struct {
+type ERMRiskControlEfficiencySummaryItemDTO struct {
 	EfficiencyRange string  `json:"efficiency_range"`
 	Percentage      float64 `json:"percentage"`
 }
-type RiskControlEfficiencySummaryDTO struct {
-	RiskControlEfficiency []RiskControlEfficiencySummaryItemDTO `json:"risk_control_efficiency"`
+type ERMRiskControlEfficiencySummaryDTO struct {
+	RiskControlEfficiencies []ERMRiskControlEfficiencySummaryItemDTO `json:"risk_control_efficiencies"`
+}
+
+type ERMRiskMitigationPlanStatusSummaryItemDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Type      string `json:"type"`
+	Count     int64  `json:"count"`
+}
+
+type ERMRiskMitigationPlanStatusSummaryDTO struct {
+	Total                  int64                                       `json:"total"`
+	MitigationPlanStatuses []ERMRiskMitigationPlanStatusSummaryItemDTO `json:"mitigation_plan_statuses"`
 }

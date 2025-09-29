@@ -553,8 +553,38 @@ func (edc *ERMDashboardController) GetERMRiskResponseStrategySummary(c *gin.Cont
 }
 
 func (edc *ERMDashboardController) GetERMRiskControlEfficiencySummary(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 
-	summary, err := edc.service.GetERMRiskControlEfficiencySummary()
+	queryParams := kpiDTOs.ERMDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	summary, err := edc.service.GetERMRiskControlEfficiencySummary(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(edc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}
+
+func (edc *ERMDashboardController) GetERMRiskMitigationPlanStatusSummary(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.ERMDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	summary, err := edc.service.GetERMRiskMitigationPlanStatusSummary(&queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

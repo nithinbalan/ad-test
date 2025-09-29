@@ -34,7 +34,8 @@ type ERMDashboardRepositoryInterface interface {
 	GetERMRiskDepartmentSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskSummaryByDepartmentDTO, error)
 	GetERMRisksIdentifiedSummary() (*kpiDTOs.ERMRisksIdentifiedSummaryDTO, error)
 	GetERMRiskResponseStrategySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskResponseStrategySummaryDTO, error)
-	GetERMRiskControlEfficiencySummary() (*kpiDTOs.RiskControlEfficiencySummaryDTO, error)
+	GetERMRiskControlEfficiencySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskControlEfficiencySummaryDTO, error)
+	GetERMRiskMitigationPlanStatusSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskMitigationPlanStatusSummaryDTO, error)
 }
 
 type ERMDashboardRepository struct {
@@ -1219,7 +1220,7 @@ func (repo *ERMDashboardRepository) GetERMRiskResponseStrategySummary(params *kp
 	}, nil
 }
 
-func (repo *ERMDashboardRepository) GetERMRiskControlEfficiencySummary() (*kpiDTOs.RiskControlEfficiencySummaryDTO, error) {
+func (repo *ERMDashboardRepository) GetERMRiskControlEfficiencySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskControlEfficiencySummaryDTO, error) {
 	var totalControls int64
 	type ResultItem struct {
 		EfficiencyRange string
@@ -1227,15 +1228,21 @@ func (repo *ERMDashboardRepository) GetERMRiskControlEfficiencySummary() (*kpiDT
 	}
 	var results []ResultItem
 
-	// Get total number of residual control analyses with a recorded efficiency score
-	err := repo.db.Model(&models.RiskControlAnalysis{}).
-		Where("type = ?", "residual").
-		Count(&totalControls).Error
-	if err != nil {
+	// Base query for total count
+	totalQuery := repo.db.Model(&models.RiskControlAnalysis{}).
+		Joins("JOIN risk_controls rc ON rc.id = risk_control_analyses.risk_control_id").
+		Joins("JOIN risk_register rr ON rr.id = rc.risk_register_id").
+		Where("risk_control_analyses.type = ?", "residual")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		totalQuery = totalQuery.Where("rr.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	if err := totalQuery.Count(&totalControls).Error; err != nil {
 		return nil, err
 	}
 
-	// Group by efficiency score
+	// Query grouped by efficiency ranges
 	query := repo.db.Table("risk_control_analyses rca").
 		Select(`
             CASE
@@ -1245,26 +1252,89 @@ func (repo *ERMDashboardRepository) GetERMRiskControlEfficiencySummary() (*kpiDT
             END AS efficiency_range,
             COUNT(*) as count
         `).
-		Where("rca.type = ?", "residual").
-		Group("CASE WHEN rca.score >= 80 THEN '> 80% Efficiency' WHEN rca.score >= 50 THEN '50% - 80% Efficiency' ELSE '< 50% Efficiency' END")
+		Joins("JOIN risk_controls rc ON rc.id = rca.risk_control_id").
+		Joins("JOIN risk_register rr ON rr.id = rc.risk_register_id").
+		Where("rca.type = ?", "residual")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("rr.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	query = query.Group("CASE WHEN rca.score >= 80 THEN '> 80% Efficiency' WHEN rca.score >= 50 THEN '50% - 80% Efficiency' ELSE '< 50% Efficiency' END")
 
 	if err := query.Scan(&results).Error; err != nil {
 		return nil, err
 	}
 
-	summary := make([]kpiDTOs.RiskControlEfficiencySummaryItemDTO, len(results))
+	// Map results
+	summary := make([]kpiDTOs.ERMRiskControlEfficiencySummaryItemDTO, len(results))
 	for i, r := range results {
 		percent := 0.0
 		if totalControls > 0 {
 			percent = (float64(r.Count) / float64(totalControls)) * 100
 		}
-		summary[i] = kpiDTOs.RiskControlEfficiencySummaryItemDTO{
+		summary[i] = kpiDTOs.ERMRiskControlEfficiencySummaryItemDTO{
 			EfficiencyRange: r.EfficiencyRange,
 			Percentage:      percent,
 		}
 	}
 
-	return &kpiDTOs.RiskControlEfficiencySummaryDTO{
-		RiskControlEfficiency: summary,
+	return &kpiDTOs.ERMRiskControlEfficiencySummaryDTO{
+		RiskControlEfficiencies: summary,
+	}, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMRiskMitigationPlanStatusSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskMitigationPlanStatusSummaryDTO, error) {
+	var results []struct {
+		ID        uint
+		TitleEn   string
+		TitleAr   string
+		ColorCode string
+		Type      string
+		Count     int64
+		Total     int64
+	}
+
+	query := repo.db.Table("risk_action_plans rap").
+		Select(`
+			aps.id,
+			aps.title_en,
+			aps.title_ar,
+			aps.color_code,
+			aps.type,
+			COUNT(rap.id) AS count,
+			SUM(COUNT(rap.id)) OVER() AS total
+		`).
+		Joins("JOIN action_plan_statuses aps ON aps.id = rap.action_plan_status_id AND aps.status = 'active'")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	query = query.Group("aps.id, aps.title_en, aps.title_ar, aps.color_code, aps.type").
+		Order("count DESC")
+
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	// Map results to DTO
+	summary := make([]kpiDTOs.ERMRiskMitigationPlanStatusSummaryItemDTO, len(results))
+	var total int64
+	for i, r := range results {
+		summary[i] = kpiDTOs.ERMRiskMitigationPlanStatusSummaryItemDTO{
+			ID:        r.ID,
+			TitleEn:   r.TitleEn,
+			TitleAr:   r.TitleAr,
+			ColorCode: r.ColorCode,
+			Type:      r.Type,
+			Count:     r.Count,
+		}
+		total = r.Total
+	}
+
+	return &kpiDTOs.ERMRiskMitigationPlanStatusSummaryDTO{
+		Total:                  total,
+		MitigationPlanStatuses: summary,
 	}, nil
 }
