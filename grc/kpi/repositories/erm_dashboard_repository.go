@@ -34,6 +34,7 @@ type ERMDashboardRepositoryInterface interface {
 	GetERMRiskDepartmentSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskSummaryByDepartmentDTO, error)
 	GetERMRisksIdentifiedSummary() (*kpiDTOs.ERMRisksIdentifiedSummaryDTO, error)
 	GetERMRiskResponseStrategySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskResponseStrategySummaryDTO, error)
+	GetERMRiskControlEfficiencySummary() (*kpiDTOs.RiskControlEfficiencySummaryDTO, error)
 }
 
 type ERMDashboardRepository struct {
@@ -1208,5 +1209,55 @@ func (repo *ERMDashboardRepository) GetERMRiskResponseStrategySummary(params *kp
 
 	return &kpiDTOs.ERMRiskResponseStrategySummaryDTO{
 		RisksResponseStrategySummary: results,
+	}, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMRiskControlEfficiencySummary() (*kpiDTOs.RiskControlEfficiencySummaryDTO, error) {
+	var totalControls int64
+	type ResultItem struct {
+		EfficiencyRange string
+		Count           int64
+	}
+	var results []ResultItem
+
+	// Get total number of residual control analyses with a recorded efficiency score
+	err := repo.db.Model(&models.RiskControlAnalysis{}).
+		Where("type = ?", "residual").
+		Count(&totalControls).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Group by efficiency score
+	query := repo.db.Table("risk_control_analyses rca").
+		Select(`
+            CASE
+                WHEN rca.score >= 80 THEN '> 80% Efficiency'
+                WHEN rca.score >= 50 THEN '50% - 80% Efficiency'
+                ELSE '< 50% Efficiency'
+            END AS efficiency_range,
+            COUNT(*) as count
+        `).
+		Where("rca.type = ?", "residual").
+		Group("CASE WHEN rca.score >= 80 THEN '> 80% Efficiency' WHEN rca.score >= 50 THEN '50% - 80% Efficiency' ELSE '< 50% Efficiency' END")
+
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	summary := make([]kpiDTOs.RiskControlEfficiencySummaryItemDTO, len(results))
+	for i, r := range results {
+		percent := 0.0
+		if totalControls > 0 {
+			percent = (float64(r.Count) / float64(totalControls)) * 100
+		}
+		summary[i] = kpiDTOs.RiskControlEfficiencySummaryItemDTO{
+			EfficiencyRange: r.EfficiencyRange,
+			Percentage:      percent,
+		}
+	}
+
+	return &kpiDTOs.RiskControlEfficiencySummaryDTO{
+		RiskControlEfficiency: summary,
 	}, nil
 }

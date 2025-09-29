@@ -551,3 +551,19 @@ func (edc *ERMDashboardController) GetERMRiskResponseStrategySummary(c *gin.Cont
 	}
 	c.JSON(http.StatusOK, summary)
 }
+
+func (edc *ERMDashboardController) GetERMRiskControlEfficiencySummary(c *gin.Context) {
+
+	summary, err := edc.service.GetERMRiskControlEfficiencySummary()
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(edc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}

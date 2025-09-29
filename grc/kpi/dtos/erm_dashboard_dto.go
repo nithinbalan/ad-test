@@ -230,3 +230,11 @@ type ERMRiskResponseStrategySummaryItemDTO struct {
 type ERMRiskResponseStrategySummaryDTO struct {
 	RisksResponseStrategySummary []ERMRiskResponseStrategySummaryItemDTO `json:"risks_by_response_strategy"`
 }
+
+type RiskControlEfficiencySummaryItemDTO struct {
+	EfficiencyRange string  `json:"efficiency_range"`
+	Percentage      float64 `json:"percentage"`
+}
+type RiskControlEfficiencySummaryDTO struct {
+	RiskControlEfficiency []RiskControlEfficiencySummaryItemDTO `json:"risk_control_efficiency"`
+}
