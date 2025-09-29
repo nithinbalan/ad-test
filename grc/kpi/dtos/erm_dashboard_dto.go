@@ -250,3 +250,19 @@ type ERMRiskMitigationPlanStatusSummaryDTO struct {
 	Total                  int64                                       `json:"total"`
 	MitigationPlanStatuses []ERMRiskMitigationPlanStatusSummaryItemDTO `json:"mitigation_plan_statuses"`
 }
+
+type ERMOpenRiskSummaryItemDTO struct {
+	RiskTitle         string `json:"risk_title"`
+	Category          string `json:"category"`
+	Department        string `json:"department"`
+	NumControls       int64  `json:"no_of_controls"`
+	ControlEfficiency string `json:"control_efficiency"`
+	InherentRating    string `json:"inherent_rating"`
+	CurrentRating     string `json:"current_rating"`
+	RiskBySource      string `json:"risk_by_source"`
+	DaysOpen          int64  `json:"days_open"`
+}
+
+type ERMOpenRisksSummaryDTO struct {
+	OpenRisks []ERMOpenRiskSummaryItemDTO `json:"open_risks"`
+}

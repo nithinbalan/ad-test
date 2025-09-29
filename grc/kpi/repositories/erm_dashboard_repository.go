@@ -36,6 +36,7 @@ type ERMDashboardRepositoryInterface interface {
 	GetERMRiskResponseStrategySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskResponseStrategySummaryDTO, error)
 	GetERMRiskControlEfficiencySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskControlEfficiencySummaryDTO, error)
 	GetERMRiskMitigationPlanStatusSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskMitigationPlanStatusSummaryDTO, error)
+	GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error)
 }
 
 type ERMDashboardRepository struct {
@@ -1336,5 +1337,73 @@ func (repo *ERMDashboardRepository) GetERMRiskMitigationPlanStatusSummary(params
 	return &kpiDTOs.ERMRiskMitigationPlanStatusSummaryDTO{
 		Total:                  total,
 		MitigationPlanStatuses: summary,
+	}, nil
+}
+
+func (repo *ERMDashboardRepository) GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error) {
+	results := []kpiDTOs.ERMOpenRiskSummaryItemDTO{}
+
+	query := repo.db.Table("risk_register rr").
+		Select(`
+            rr.title AS risk_title,
+            rc.title_en AS category,
+            parent_unit.title_en AS department,
+            COUNT(DISTINCT rc_control.id) AS num_controls,
+            CASE
+                WHEN AVG(COALESCE(rca.score, 0)) >= 80 THEN 'Efficient'
+                WHEN AVG(COALESCE(rca.score, 0)) >= 50 THEN 'Moderate'
+                ELSE 'Inefficient'
+            END AS control_efficiency,
+            CONCAT(irms.title_en, ' (', iein.value, ')') AS inherent_rating,
+            CONCAT(rms.title_en, ' (', cein.value, ')') AS current_rating,
+            -- Get the most restrictive risk appetite level
+            -- Priority: significantly_above > above > approaching > within > marginally_below > below
+            CASE 
+                WHEN MAX(CASE WHEN ratl.type = 'significantly_above' THEN 1 ELSE 0 END) = 1 THEN 
+                    MAX(CASE WHEN ratl.type = 'significantly_above' THEN ratl.title_en END)
+                WHEN MAX(CASE WHEN ratl.type = 'above' THEN 1 ELSE 0 END) = 1 THEN 
+                    MAX(CASE WHEN ratl.type = 'above' THEN ratl.title_en END)
+                WHEN MAX(CASE WHEN ratl.type = 'approaching' THEN 1 ELSE 0 END) = 1 THEN 
+                    MAX(CASE WHEN ratl.type = 'approaching' THEN ratl.title_en END)
+                WHEN MAX(CASE WHEN ratl.type = 'within' THEN 1 ELSE 0 END) = 1 THEN 
+                    MAX(CASE WHEN ratl.type = 'within' THEN ratl.title_en END)
+                WHEN MAX(CASE WHEN ratl.type = 'marginally_below' THEN 1 ELSE 0 END) = 1 THEN 
+                    MAX(CASE WHEN ratl.type = 'marginally_below' THEN ratl.title_en END)
+                WHEN MAX(CASE WHEN ratl.type = 'below' THEN 1 ELSE 0 END) = 1 THEN 
+                    MAX(CASE WHEN ratl.type = 'below' THEN ratl.title_en END)
+                ELSE MAX(ratl.title_en)
+            END AS risk_by_source,
+            DATEDIFF(day, rr.reported_at, GETDATE()) AS days_open
+        `).
+		Joins("JOIN risk_statuses rs ON rs.id = rr.risk_status_id AND rs.status = ?", "active").
+		Joins("LEFT JOIN risk_categories rc ON rc.id = rr.risk_category_id AND rc.status = ?", "active").
+		Joins("LEFT JOIN organization_units ru ON ru.id = rr.responsible_unit_id").
+		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(ru.organization_unit_id, ru.id) = parent_unit.id").
+		Joins("JOIN organization_levels ol ON ol.id = ru.organization_level_id AND ol.is_primary = ?", true).
+		Joins("LEFT JOIN risk_controls rc_control ON rc_control.risk_register_id = rr.id").
+		Joins("LEFT JOIN risk_control_analyses rca ON rca.risk_control_id = rc_control.id AND rca.type = ?", "residual").
+		Joins("LEFT JOIN control_efficiency_statuses ces ON ces.id = rca.control_efficiency_status_id AND ces.status = ?", "active").
+		Joins("LEFT JOIN risk_evaluations re ON re.risk_register_id = rr.id AND re.type = ?", "residual").
+		Joins("LEFT JOIN risk_matrix_risk_ratings irms ON irms.id = rr.inherent_risk_rating_id AND irms.status = ?", "active").
+		Joins("LEFT JOIN risk_matrix_risk_rating_values iein ON iein.id = rr.inherent_risk_rating_value_id").
+		Joins("LEFT JOIN risk_matrix_risk_ratings rms ON rms.id = re.risk_matrix_risk_rating_id AND rms.status = ?", "active").
+		Joins("LEFT JOIN risk_matrix_risk_rating_values cein ON cein.id = re.risk_matrix_risk_rating_value_id").
+		Joins("LEFT JOIN risk_appetite_alignments raa ON raa.risk_evaluation_id = re.id").
+		Joins("LEFT JOIN risk_appetite_tolerance_levels ratl ON ratl.id = raa.risk_appetite_tolerance_level_id AND ratl.status = ?", "active").
+		Where("rs.type = ?", "open").
+		Where("parent_unit.status = ?", "active").
+		Group("rr.id, rr.title, rc.title_en, parent_unit.title_en, irms.title_en, iein.value, rms.title_en, cein.value, rr.reported_at").
+		Having("COUNT(DISTINCT rc_control.id) > 0")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("rr.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return &kpiDTOs.ERMOpenRisksSummaryDTO{
+		OpenRisks: results,
 	}, nil
 }

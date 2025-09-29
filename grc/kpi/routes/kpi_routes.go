@@ -65,4 +65,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/erm-details/response-strategy", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMRiskResponseStrategySummary)
 	kpiRoutes.GET("/kpis/erm-details/control-efficiency", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMRiskControlEfficiencySummary)
 	kpiRoutes.GET("/kpis/erm-details/mitigation-plan-status", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMRiskMitigationPlanStatusSummary)
+	kpiRoutes.GET("/kpis/erm-details/open-risks", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMOpenRisksSummary)
 }
