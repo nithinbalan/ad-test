@@ -93,11 +93,9 @@ type ERMControlsOverviewDTO struct {
 }
 
 type ERMRiskAppetiteOverviewItemDTO struct {
-	Department string `json:"department"`
-	Above      int64  `json:"above"`
-	Within     int64  `json:"within"`
-	Below      int64  `json:"below"`
-	TotalRisk  int64  `json:"total_risk"`
+	Department         string                    `json:"department"`
+	RiskAppetiteLevels []ERMRiskAppetiteLevelDTO `json:"risk_appetite_levels"`
+	TotalRisk          int64                     `json:"total_risk"`
 }
 
 type ERMRiskAppetiteOverviewDTO struct {

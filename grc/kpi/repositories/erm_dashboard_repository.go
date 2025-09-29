@@ -543,59 +543,66 @@ func (repo *ERMDashboardRepository) GetERMControlsOverview(params *kpiDTOs.ERMDa
 
 func (repo *ERMDashboardRepository) GetERMRiskAppetiteOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAppetiteOverviewDTO, error) {
 	var results []struct {
-		Department string `json:"department"`
-		Above      int64  `json:"above"`
-		Within     int64  `json:"within"`
-		Below      int64  `json:"below"`
-		TotalRisk  int64  `json:"total_risk"`
+		Department string
+		LevelID    uint
+		TitleEn    string
+		TitleAr    string
+		ColorCode  string
+		Type       string
+		Count      int64
 	}
 
-	// Base query
 	query := repo.db.Model(&models.RiskRegister{}).
-		Joins("LEFT JOIN organization_units ru_unit ON ru_unit.id = risk_register.responsible_unit_id").
-		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(ru_unit.organization_unit_id, ru_unit.id) = parent_unit.id").
-		Joins("JOIN organization_levels ON organization_levels.id = ru_unit.organization_level_id AND organization_levels.is_primary = ?", true).
-		Joins(`
-			JOIN risk_evaluations
-			ON risk_evaluations.risk_register_id = risk_register.id
-			AND risk_evaluations.type = 'residual'
-		`).
-		Joins("JOIN risk_appetite_alignments ON risk_appetite_alignments.risk_evaluation_id = risk_evaluations.id").
-		Joins("JOIN risk_appetite_tolerance_levels ON risk_appetite_tolerance_levels.id = risk_appetite_alignments.risk_appetite_tolerance_level_id AND risk_appetite_tolerance_levels.status = 'active'").
+		Joins("LEFT JOIN organization_units ru ON ru.id = risk_register.responsible_unit_id").
+		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(ru.organization_unit_id, ru.id) = parent_unit.id").
+		Joins("JOIN organization_levels ol ON ol.id = ru.organization_level_id AND ol.is_primary = ?", true).
+		Joins("JOIN risk_evaluations re ON re.risk_register_id = risk_register.id AND re.type = 'residual'").
+		Joins("JOIN risk_appetite_alignments raa ON raa.risk_evaluation_id = re.id").
+		Joins("JOIN risk_appetite_tolerance_levels tl ON tl.id = raa.risk_appetite_tolerance_level_id AND tl.status = 'active'").
 		Where("parent_unit.status = ?", "active").
 		Select(`
 			parent_unit.title_en AS department,
-			SUM(CASE WHEN risk_appetite_tolerance_levels.type = 'above' THEN 1 ELSE 0 END) AS above,
-			SUM(CASE WHEN risk_appetite_tolerance_levels.type = 'within' THEN 1 ELSE 0 END) AS within,
-			SUM(CASE WHEN risk_appetite_tolerance_levels.type = 'below' THEN 1 ELSE 0 END) AS below,
-			COUNT(*) AS total_risk
+			tl.id AS level_id, tl.title_en, tl.title_ar, tl.color_code, tl.type,
+			COUNT(*) AS count
 		`).
-		Group("parent_unit.id, parent_unit.title_en")
+		Group("parent_unit.id, parent_unit.title_en, tl.id, tl.title_en, tl.title_ar, tl.color_code, tl.type")
 
-	// Apply date filter if provided
 	if params.DateFrom != "" && params.DateTo != "" {
-		query = query.Where(
-			"rr.reported_at BETWEEN ? AND ?",
-			params.DateFrom+" 00:00:00",
-			params.DateTo+" 23:59:59",
-		)
+		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
-	// Execute query
 	if err := query.Scan(&results).Error; err != nil {
 		return nil, err
 	}
 
-	// Map results
-	overview := make([]kpiDTOs.ERMRiskAppetiteOverviewItemDTO, len(results))
-	for i, r := range results {
-		overview[i] = kpiDTOs.ERMRiskAppetiteOverviewItemDTO{
-			Department: r.Department,
-			Above:      r.Above,
-			Within:     r.Within,
-			Below:      r.Below,
-			TotalRisk:  r.TotalRisk,
+	// Step 3: Map results → Department with dynamic levels
+	deptMap := make(map[string]*kpiDTOs.ERMRiskAppetiteOverviewItemDTO)
+
+	for _, r := range results {
+		if _, exists := deptMap[r.Department]; !exists {
+			deptMap[r.Department] = &kpiDTOs.ERMRiskAppetiteOverviewItemDTO{
+				Department:         r.Department,
+				RiskAppetiteLevels: []kpiDTOs.ERMRiskAppetiteLevelDTO{},
+				TotalRisk:          0,
+			}
 		}
+
+		dept := deptMap[r.Department]
+		dept.RiskAppetiteLevels = append(dept.RiskAppetiteLevels, kpiDTOs.ERMRiskAppetiteLevelDTO{
+			ID:        r.LevelID,
+			TitleEn:   r.TitleEn,
+			TitleAr:   r.TitleAr,
+			ColorCode: r.ColorCode,
+			Type:      r.Type,
+			Count:     r.Count,
+		})
+		dept.TotalRisk += r.Count
+	}
+
+	// Convert map → slice
+	overview := make([]kpiDTOs.ERMRiskAppetiteOverviewItemDTO, 0, len(deptMap))
+	for _, dept := range deptMap {
+		overview = append(overview, *dept)
 	}
 
 	return &kpiDTOs.ERMRiskAppetiteOverviewDTO{
