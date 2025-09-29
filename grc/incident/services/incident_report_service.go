@@ -152,30 +152,6 @@ func (irs IncidentReportService) GetFullReportDetailsByID(id uint, tx ...utility
 	return &incidentDTO, nil
 }
 
-// func (irs IncidentReportService) ExportIncidentReport(id uint, currentUserID uint, tx ...utility.DatabaseTransaction) (string, error) {
-
-// 	incidentDTO, err := irs.GetFullReportDetailsByID(id, tx...)
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	incidentDTO.GeneratedAt = time.Now().Format("2006-01-02 03:04 PM")
-
-// 	templatePaths := []string{"incident/templates/pdf/incident_report.html"}
-// 	htmlContent, err := utility.GeneratePDFContent(incidentDTO, templatePaths, "", "")
-// 	if err != nil {
-// 		return "", fmt.Errorf("failed to generate HTML content: %w", err)
-// 	}
-
-// 	// 4. Convert HTML → PDF
-// 	pdfFileName := fmt.Sprintf("IncidentReport_%d.pdf", id)
-// 	if err := utility.ConvertHTMLContentToPDF(htmlContent, pdfFileName); err != nil {
-// 		return "", fmt.Errorf("failed to generate PDF: %w", err)
-// 	}
-
-// 	return pdfFileName, nil
-// }
-
 func (irs IncidentReportService) ExportIncidentReport(id uint, currentUserID uint, tx ...utility.DatabaseTransaction) (string, error) {
 	incidentDTO, err := irs.GetFullReportDetailsByID(id, tx...)
 	if err != nil {
