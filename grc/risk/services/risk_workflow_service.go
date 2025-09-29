@@ -322,6 +322,7 @@ func (arws *RiskWorkflowService) mapWorkflowStatusToDTO(status *models.WorkflowS
 		TitleAr:   status.TitleAr,
 		ColorCode: status.ColorCode,
 		Status:    status.Status,
+		Type:      status.Type,
 	}
 }
 
