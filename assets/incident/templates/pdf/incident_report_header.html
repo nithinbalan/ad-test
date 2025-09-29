@@ -5,10 +5,25 @@
 </head>
 <body>
    <div class="heade" style="border-bottom: 1px solid #DEDEDE;">
-    <div style="padding: 0 32px; text-align: right;">
+    <div style="padding: 15px 32px 0 32px; text-align: right;">
         <img id="header-logo" src="{{.ApiPath}}/report-template-settings/image-preview?type=logo" />
     </div>
 </div>
-
 </body>
+<script>
+        // Hide header only on first page
+        var vars = {};
+        var query_strings = document.location.search.substring(1).split('&');
+        for (var i in query_strings) {
+            if (query_strings.hasOwnProperty(i)) {
+                var pair = query_strings[i].split('=', 2);
+                vars[pair[0]] = decodeURIComponent(pair[1]);
+            }
+        }
+
+        if (vars.page && parseInt(vars.page) === 1) {
+            var header = document.querySelector('.heade');
+            if (header) header.style.display = 'none';
+        }
+    </script>
 </html>

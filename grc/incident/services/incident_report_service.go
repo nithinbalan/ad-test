@@ -162,21 +162,21 @@ func (irs IncidentReportService) ExportIncidentReport(id uint, currentUserID uin
 
 	// Main content template
 	templatePaths := []string{"incident/templates/pdf/incident_report.html"}
-	htmlContent, err := utility.GeneratePDFContent(incidentDTO, templatePaths, "", "")
+	htmlContent, err := utility.GeneratePDFContentWithAdd(incidentDTO, templatePaths, "", "")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate HTML content: %w", err)
 	}
 
 	// Header template - process with data to resolve template variables
 	headerTemplatePaths := []string{"incident/templates/pdf/incident_report_header.html"}
-	headerContent, err := utility.GeneratePDFContent(incidentDTO, headerTemplatePaths, "", "")
+	headerContent, err := utility.GeneratePDFContentWithAdd(incidentDTO, headerTemplatePaths, "", "")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate header content: %w", err)
 	}
 
 	// Footer template - process with data to resolve template variables
 	footerTemplatePaths := []string{"incident/templates/pdf/incident_report_footer.html"}
-	footerContent, err := utility.GeneratePDFContent(incidentDTO, footerTemplatePaths, "", "")
+	footerContent, err := utility.GeneratePDFContentWithAdd(incidentDTO, footerTemplatePaths, "", "")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate footer content: %w", err)
 	}

@@ -621,23 +621,7 @@ func (repo *IncidentReportRepository) GetAllIncidentRisks(incidentID uint) ([]*c
             current_risk_rating.title_en AS current_risk_rating_title_en,
             current_risk_rating.title_ar AS current_risk_rating_title_ar,
             current_risk_rating_value.value AS current_risk_rating_value,
-            current_risk_rating.color_code AS current_risk_rating_color_code,
-            inherent_likelihood.title_en AS inherent_likelihood_title_en,
-            inherent_likelihood.title_ar AS inherent_likelihood_title_ar,
-            inherent_impact.title_en AS inherent_impact_title_en,
-            inherent_impact.title_ar AS inherent_impact_title_ar,
-            inherent_risk_rating.title_en AS inherent_risk_rating_title_en,
-            inherent_risk_rating.title_ar AS inherent_risk_rating_title_ar,
-            inherent_risk_rating_value.value AS inherent_risk_rating_value,
-            inherent_risk_rating.color_code AS inherent_risk_rating_color_code,
-            residual_likelihood.title_en AS residual_likelihood_title_en,
-            residual_likelihood.title_ar AS residual_likelihood_title_ar,
-            residual_impact.title_en AS residual_impact_title_en,
-            residual_impact.title_ar AS residual_impact_title_ar,
-            residual_risk_rating.title_en AS residual_risk_rating_title_en,
-            residual_risk_rating.title_ar AS residual_risk_rating_title_ar,
-            residual_risk_rating_value.value AS residual_risk_rating_value,
-            residual_risk_rating.color_code AS residual_risk_rating_color_code
+            current_risk_rating.color_code AS current_risk_rating_color_code
 		`).
 		Joins(`
 			LEFT JOIN risk_register ON risk_register.id = incident_risks.risk_register_id
@@ -653,16 +637,7 @@ func (repo *IncidentReportRepository) GetAllIncidentRisks(incidentID uint) ([]*c
             LEFT JOIN risk_matrix_likelihoods AS current_likelihood ON current_likelihood.id = risk_register.current_likelihood_id
             LEFT JOIN risk_matrix_impacts AS current_impact ON current_impact.id = risk_register.current_impact_id
             LEFT JOIN risk_matrix_risk_ratings AS current_risk_rating ON current_risk_rating.id = risk_register.current_risk_rating_id
-            LEFT JOIN risk_matrix_risk_rating_values AS current_risk_rating_value ON current_risk_rating_value.id = risk_register.current_risk_rating_value_id
-            LEFT JOIN risk_matrix_likelihoods AS inherent_likelihood ON inherent_likelihood.id = risk_register.inherent_likelihood_id
-            LEFT JOIN risk_matrix_impacts AS inherent_impact ON inherent_impact.id = risk_register.inherent_impact_id
-            LEFT JOIN risk_matrix_risk_ratings AS inherent_risk_rating ON inherent_risk_rating.id = risk_register.inherent_risk_rating_id
-            LEFT JOIN risk_matrix_risk_rating_values AS inherent_risk_rating_value ON inherent_risk_rating_value.id = risk_register.inherent_risk_rating_value_id
-            LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = risk_register.residual_likelihood_id
-            LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id
-            LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id
-            LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
-		`).
+            LEFT JOIN risk_matrix_risk_rating_values AS current_risk_rating_value ON current_risk_rating_value.id = risk_register.current_risk_rating_value_id`).
 		Where("incident_risks.incident_register_id = ?", incidentID)
 
 	err := query.Scan(&incidentRisk).Error

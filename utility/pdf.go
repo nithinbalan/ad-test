@@ -210,3 +210,39 @@ func ConvertHTMLContentToPDFWithHeaderAndFooter(htmlContent, pdfFileName, header
 
 	return nil
 }
+
+func GeneratePDFContentWithAdd(dto interface{}, templatePaths []string, logoImagePath string, coverBGImagePath string) (string, error) {
+	// Prepare the data to include image paths
+	data := map[string]interface{}{
+		"LogoImagePath":    template.HTML(logoImagePath),
+		"CoverBGImagePath": template.HTML(coverBGImagePath),
+		"Data":             dto,
+		"ApiPath":          config.GetEnv("API_URL", ""),
+	}
+
+	templates := template.New("pdf").Funcs(template.FuncMap{
+		"formatDate": func(date string) string { return date },
+		"safeHTML":   func(content string) template.HTML { return template.HTML(content) },
+		"add": func(a, b int) int { return a + b },
+	})
+
+	// Parse all templates at once
+	for _, path := range templatePaths {
+		content, err := assets.FS.ReadFile(path)
+		if err != nil {
+			return "", fmt.Errorf("failed to read template %s: %w", path, err)
+		}
+		_, err = templates.Parse(string(content))
+		if err != nil {
+			return "", fmt.Errorf("failed to parse template %s: %w", path, err)
+		}
+	}
+
+	// Render the template into a buffer
+	var renderedHTML bytes.Buffer
+	if err := templates.Execute(&renderedHTML, data); err != nil {
+		return "", fmt.Errorf("failed to execute template: %w", err)
+	}
+
+	return renderedHTML.String(), nil
+}

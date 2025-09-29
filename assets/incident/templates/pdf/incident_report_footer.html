@@ -21,6 +21,11 @@
         }
         document.querySelector('.page').textContent = vars.page || '';
         document.querySelector('.topage').textContent = vars.topage || '';
+
+         if (vars.page && parseInt(vars.page) === 1) {
+          var footer = document.querySelector('.heade');
+          if (footer) footer.style.display = 'none';
+      }
     </script>
 </body>
 </html>
