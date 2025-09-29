@@ -1370,7 +1370,7 @@ func (css *ComplianceClauseService) validateControlMappings(complianceID uint, i
 	}
 	clauseMap := make(map[string]uint)
 	for _, cl := range clauses {
-		key := strings.TrimSpace(cl.ClauseNo + " " + cl.TitleEn)
+		key := strings.TrimSpace(cl.TitleEn)
 		clauseMap[key] = cl.ID
 	}
 
