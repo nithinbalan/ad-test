@@ -27,11 +27,11 @@ type ERMRiskRatingCountDTO struct {
 }
 
 type ERMOverdueRisksDTO struct {
-	TotalRisksOverdue   int64                     `json:"total_risks_overdue"`
-	OverdueByRiskLevels []ERMOverdueRiskDetailDTO `json:"overdue_by_risk_levels"`
+	TotalRisksOverdue   int64                   `json:"total_risks_overdue"`
+	OverdueByRiskLevels []ERMRiskSummaryItemDTO `json:"overdue_by_risk_levels"`
 }
 
-type ERMOverdueRiskDetailDTO struct {
+type ERMRiskSummaryItemDTO struct {
 	ID        uint   `json:"id"`
 	TitleEn   string `json:"title_en"`
 	TitleAr   string `json:"title_ar"`
@@ -41,17 +41,8 @@ type ERMOverdueRiskDetailDTO struct {
 }
 
 type ERMRisksAboveAppetiteDTO struct {
-	TotalRisksAboveAppetite    int64                           `json:"total_risks_above_appetite"`
-	AboveAppetiteRisksByLevels []ERMRisksAboveAppetiteLevelDTO `json:"above_appetite_risks_by_levels"`
-}
-
-type ERMRisksAboveAppetiteLevelDTO struct {
-	ID        uint   `json:"id"`
-	TitleEn   string `json:"title_en"`
-	TitleAr   string `json:"title_ar"`
-	ColorCode string `json:"color_code"`
-	Type      string `json:"type"`
-	Count     int64  `json:"count"`
+	TotalRisksAboveAppetite    int64                   `json:"total_risks_above_appetite"`
+	AboveAppetiteRisksByLevels []ERMRiskSummaryItemDTO `json:"above_appetite_risks_by_levels"`
 }
 
 type ERMLeadershipAttentionDTO struct {
@@ -66,16 +57,20 @@ type ERMControlEfficiencySummaryDTO struct {
 }
 
 type ERMControlEfficiencyBreakdownDTO struct {
-	ControlsByEfficiency []ERMControlEfficiencyByStatusDTO `json:"controls_by_efficiency"`
+	ControlsByEfficiency []ERMRiskSummaryItemDTO `json:"controls_by_efficiency"`
 }
 
-type ERMControlEfficiencyByStatusDTO struct {
-	ID        uint   `json:"id"`
-	Type      string `json:"type"`
-	TitleEn   string `json:"title_en"`
-	TitleAr   string `json:"title_ar"`
-	ColorCode string `json:"color_code"`
-	Count     int64  `json:"count"`
+type ERMControlsResultDTO struct {
+	TotalControls       int64
+	ApplicableControls  int64
+	ImplementedControls int64
+	EfficientControls   int64
+}
+
+type ERMHighRiskControlsResultDTO struct {
+	ControlsMitigatingHighRisks      int64
+	HighRisksWithNoControls          int64
+	HighRisksWithInefficientControls int64
 }
 
 type ERMControlsOverviewDTO struct {
@@ -93,27 +88,41 @@ type ERMControlsOverviewDTO struct {
 }
 
 type ERMRiskAppetiteOverviewItemDTO struct {
-	Department         string                    `json:"department"`
-	RiskAppetiteLevels []ERMRiskAppetiteLevelDTO `json:"risk_appetite_levels"`
-	TotalRisk          int64                     `json:"total_risk"`
+	Department         string                  `json:"department"`
+	RiskAppetiteLevels []ERMRiskSummaryItemDTO `json:"risk_appetite_levels"`
+	TotalRisk          int64                   `json:"total_risk"`
 }
 
 type ERMRiskAppetiteOverviewDTO struct {
 	RiskAppetiteByDepartments []ERMRiskAppetiteOverviewItemDTO `json:"risk_appetite_by_departments"`
 }
 
-type ERMRiskAppetiteLevelDTO struct {
-	ID        uint   `json:"id"`
-	TitleEn   string `json:"title_en"`
-	TitleAr   string `json:"title_ar"`
-	ColorCode string `json:"color_code"`
-	Type      string `json:"type"`
-	Count     int64  `json:"count"`
+type ERMRiskAppetiteOverviewQueryResultDTO struct {
+	Department string `json:"department"`
+	LevelID    uint   `json:"level_id"`
+	TitleEn    string `json:"title_en"`
+	TitleAr    string `json:"title_ar"`
+	ColorCode  string `json:"color_code"`
+	Type       string `json:"type"`
+	Count      int64  `json:"count"`
 }
 
 type ERMRiskAppetiteSummarytDTO struct {
-	RiskAppetiteLevelsSummary []ERMRiskAppetiteLevelDTO `json:"risk_appetite_levels_summary"`
-	Total                     int64                     `json:"total"`
+	RiskAppetiteLevelsSummary []ERMRiskSummaryItemDTO `json:"risk_appetite_levels_summary"`
+	Total                     int64                   `json:"total"`
+}
+
+type ERMRiskAgingStatusQuereyResultDTO struct {
+	Risks0To90Open         int64 `gorm:"column:risks_0_to_90_open"`
+	Risks0To90Closed       int64 `gorm:"column:risks_0_to_90_closed"`
+	Risks91To180Open       int64 `gorm:"column:risks_91_to_180_open"`
+	Risks91To180Closed     int64 `gorm:"column:risks_91_to_180_closed"`
+	Risks181To365Open      int64 `gorm:"column:risks_181_to_365_open"`
+	Risks181To365Closed    int64 `gorm:"column:risks_181_to_365_closed"`
+	Risks1To2YearsOpen     int64 `gorm:"column:risks_1_to_2_years_open"`
+	Risks1To2YearsClosed   int64 `gorm:"column:risks_1_to_2_years_closed"`
+	RisksAbove2YearsOpen   int64 `gorm:"column:risks_above_2_years_open"`
+	RisksAbove2YearsClosed int64 `gorm:"column:risks_above_2_years_closed"`
 }
 
 type ERMRiskAgingStatusDTO struct {
@@ -192,14 +201,9 @@ type ERMRiskSourceSummaryDTO struct {
 	RisksBySource []ERMRiskSourceSummaryItemDTO `json:"risks_by_source"`
 }
 
-type ERMRiskStatusSummaryItemDTO struct {
-	Status string `json:"status"`
-	Count  int64  `json:"count"`
-}
-
 type ERMRiskStatusSummaryDTO struct {
-	RisksByStatus []ERMRiskStatusSummaryItemDTO `json:"risks_by_status"`
-	Total         int64                         `json:"total"`
+	RisksByStatus []ERMRiskSummaryItemDTO `json:"risks_by_status"`
+	Total         int64                   `json:"total"`
 }
 
 type ERMRiskSummaryByDepartmentItemDTO struct {
@@ -238,17 +242,13 @@ type ERMRiskControlEfficiencySummaryDTO struct {
 }
 
 type ERMRiskMitigationPlanStatusSummaryItemDTO struct {
-	ID        uint   `json:"id"`
-	TitleEn   string `json:"title_en"`
-	TitleAr   string `json:"title_ar"`
-	ColorCode string `json:"color_code"`
-	Type      string `json:"type"`
-	Count     int64  `json:"count"`
+	ERMRiskSummaryItemDTO
+	Total int64 `json:"total"`
 }
 
 type ERMRiskMitigationPlanStatusSummaryDTO struct {
-	Total                  int64                                       `json:"total"`
-	MitigationPlanStatuses []ERMRiskMitigationPlanStatusSummaryItemDTO `json:"mitigation_plan_statuses"`
+	Total                  int64                   `json:"total"`
+	MitigationPlanStatuses []ERMRiskSummaryItemDTO `json:"mitigation_plan_statuses"`
 }
 
 type ERMOpenRiskSummaryItemDTO struct {
