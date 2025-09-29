@@ -33,7 +33,7 @@ type ComplianceClauseServiceInterface interface {
 
 	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
 	GetAssociatedControls(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
-	CreateComplianceClauseControls(complianceID, clauseID, currentUserID uint, dto *complianceDTOs.ComplianceClauseControlMapDTO) error
+	CreateComplianceClauseControls(complianceID, clauseID, currentUserID uint, dto *complianceDTOs.ComplianceClauseControlMapDTO) ([]uint, error)
 	DeleteComplianceClauseControl(clauseID, controlID uint) error
 	GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error)
 
@@ -526,33 +526,7 @@ func (ccs *ComplianceClauseService) GetAssociatedControls(complianceID uint, cla
 	return controls, nil
 }
 
-func (ccs *ComplianceClauseService) CreateComplianceClauseControls(complianceID, clauseID, currentUserID uint, dto *complianceDTOs.ComplianceClauseControlMapDTO) error {
-	if err := ccs.validateControlIDs(clauseID, dto.ControlIDs); err != nil {
-		return err
-	}
-
-	tx := ccs.repo.BeginTransaction()
-
-	var controlMappings []*models.ComplianceControl
-
-	for _, controlID := range dto.ControlIDs {
-		controlMappings = append(controlMappings, &models.ComplianceControl{
-			ComplianceRegisterID: complianceID,
-			ComplianceClauseID:   &clauseID,
-			ControlID:            controlID,
-			CreatedByID:          currentUserID,
-		})
-	}
-
-	if err := ccs.repo.CreateComplianceControls(controlMappings, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	return tx.Commit()
-}
-
-func (ccs *ComplianceClauseService) CreateComplianceClauseControlsForImport(complianceID, clauseID, currentUserID uint, dto *complianceDTOs.ComplianceClauseControlMapDTO) ([]uint, error) {
+func (ccs *ComplianceClauseService) CreateComplianceClauseControls(complianceID, clauseID, currentUserID uint, dto *complianceDTOs.ComplianceClauseControlMapDTO) ([]uint, error) {
 	if err := ccs.validateControlIDs(clauseID, dto.ControlIDs); err != nil {
 		return nil, err
 	}
@@ -570,7 +544,7 @@ func (ccs *ComplianceClauseService) CreateComplianceClauseControlsForImport(comp
 		})
 	}
 
-	createdIDs, err := ccs.repo.CreateComplianceControlsForImport(controlMappings, tx)
+	createdIDs, err := ccs.repo.CreateComplianceControls(controlMappings, tx)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
@@ -1513,7 +1487,7 @@ func (css *ComplianceClauseService) ImportControlMapping(complianceID uint, inpu
 			ControlIDs: controlIDs,
 		}
 
-		ids, err := css.CreateComplianceClauseControlsForImport(complianceID, clauseID, currentUserID, dto)
+		ids, err := css.CreateComplianceClauseControls(complianceID, clauseID, currentUserID, dto)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create clause-control mappings: %v", err)
 		}

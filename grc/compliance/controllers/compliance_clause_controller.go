@@ -275,7 +275,7 @@ func (ccc *ComplianceClauseController) CreateComplianceClauseControls(c *gin.Con
 		return
 	}
 
-	err = ccc.service.CreateComplianceClauseControls(uint(complianceID), uint(clauseID), currentUserID, &input)
+	_, err = ccc.service.CreateComplianceClauseControls(uint(complianceID), uint(clauseID), currentUserID, &input)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
