@@ -83,6 +83,7 @@ type RiskRegisterService struct {
 	riskResponseStrategySvc   RiskResponseStrategyServiceInterface
 	riskResidualEvaluationSvc RiskResidualEvaluationServiceInterface
 	riskWorkflowSvc           RiskWorkflowServiceInterface
+	severityLevelSvc          masterServices.SeverityLevelServiceInterface
 }
 
 func NewRiskRegisterService(
@@ -109,6 +110,7 @@ func NewRiskRegisterService(
 	riskMatrixImpactSvc RiskMatrixImpactServiceInterface,
 	riskResponseStrategySvc RiskResponseStrategyServiceInterface,
 	riskResidualEvaluationSvc RiskResidualEvaluationServiceInterface,
+	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 ) RiskRegisterServiceInterface {
 	return &RiskRegisterService{
 		repo:                      repo,
@@ -134,6 +136,7 @@ func NewRiskRegisterService(
 		riskMatrixImpactSvc:       riskMatrixImpactSvc,
 		riskResponseStrategySvc:   riskResponseStrategySvc,
 		riskResidualEvaluationSvc: riskResidualEvaluationSvc,
+		severityLevelSvc:          severityLevelSvc,
 	}
 }
 
@@ -264,6 +267,13 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 	}
 
 	id, err := rrs.repo.Create(riskRegister, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	// Add workflow
+	err = rrs.riskWorkflowSvc.CreateRiskWorkflow(id, "risk_register", currentUserID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -423,13 +433,6 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			tx.Rollback()
 			return 0, err
 		}
-	}
-
-	// Add workflow
-	err = rrs.riskWorkflowSvc.CreateRiskWorkflow(id, "risk_register", currentUserID, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
 	}
 
 	tx.Commit()
@@ -1108,17 +1111,26 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 		}
 		if err := rrs.riskWorkflowSvc.DeleteRiskWorkflowParticipants(deleteRiskWorkflowParticipantIds, tx); err != nil {
 			failedIds = append(failedIds, id)
+			fmt.Println("1")
 			continue
 		}
 
 		if err := rrs.riskWorkflowSvc.DeleteRiskReviews(deleteRiskWorkflowReviewIds, tx); err != nil {
 			failedIds = append(failedIds, id)
+			fmt.Println("2")
 			continue
 		}
 
+		if err := rrs.riskWorkflowSvc.DeleteRiskWorkflows(deleteRiskWorkflowIds, tx); err != nil {
+			failedIds = append(failedIds, id)
+			fmt.Println("3")
+			continue
+		}
+		fmt.Println("4")
 		// Delete the risk
 		if err := rrs.repo.Delete(id, tx); err != nil {
 			failedIds = append(failedIds, id)
+			fmt.Println("5")
 			continue
 		} else {
 			successfulIds = append(successfulIds, id)
@@ -1711,6 +1723,7 @@ func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterL
 			"Reported At",
 			"Review Frequency",
 			"Next Review Date",
+			"Severity Level",
 		}
 	} else {
 		headers = []string{
@@ -1733,6 +1746,7 @@ func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterL
 			"Reported At",
 			"Review Frequency",
 			"Next Review Date",
+			"Severity Level",
 		}
 	}
 	// Prepare the data rows
@@ -1740,7 +1754,7 @@ func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterL
 	for i, risk := range data {
 		// Initialize data variables with default values
 		var riskTitle, riskCategory, responsibleUnit, responsibleUser, riskSource, riskStatus string
-		var riskResponse, residualLikelihood, residualImpact, residualRiskRating string
+		var riskResponse, residualLikelihood, residualImpact, residualRiskRating, severityLevel string
 		var description, likelihood, impact, riskRating string
 		var reviewFrequency, nextReviewDate, reportedAt string
 
@@ -1759,6 +1773,7 @@ func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterL
 			residualImpact = utility.GetStringValue(risk.ResidualImpactTitleAr)
 			residualRiskRating = utility.GetStringValue(risk.ResidualRiskRatingTitleAr)
 			reviewFrequency = utility.GetStringValue(risk.ReviewFrequencyTitleAr)
+			severityLevel = utility.GetStringValue(risk.SeverityLevelTitleAr)
 		} else {
 			riskCategory = risk.RiskCategoryTitleEn
 			responsibleUnit = risk.ResponsibleUnitTitleEn
@@ -1773,6 +1788,7 @@ func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterL
 			residualImpact = utility.GetStringValue(risk.ResidualImpactTitleEn)
 			residualRiskRating = utility.GetStringValue(risk.ResidualRiskRatingTitleEn)
 			reviewFrequency = utility.GetStringValue(risk.ReviewFrequencyTitleEn)
+			severityLevel = utility.GetStringValue(risk.SeverityLevelTitleEn)
 		}
 
 		riskTitle = risk.Title
@@ -1800,6 +1816,7 @@ func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterL
 			reportedAt,
 			reviewFrequency,
 			nextReviewDate,
+			severityLevel,
 		}
 	}
 
@@ -1819,7 +1836,7 @@ func (rrs *RiskRegisterService) GenerateRiskTemplate() (*os.File, error) {
 	templateHeaders := []string{
 		"RiskCategory", "RiskSource", "ResponsibleUser", "Title", "Description", "ReportedAt",
 		"ReviewFrequency", "NextReviewDate", "InherentLikelihood", "InherentImpact",
-		"RiskResponseStrategy", "ResidualLikelihood", "ResidualImpact",
+		"RiskResponseStrategy", "ResidualLikelihood", "ResidualImpact", "SeverityLevel",
 	}
 
 	templateData := [][]interface{}{}
@@ -1842,6 +1859,16 @@ func (rrs *RiskRegisterService) GenerateRiskTemplate() (*os.File, error) {
 	sourceData := [][]interface{}{{"RiskSource"}}
 	for _, src := range sources {
 		sourceData = append(sourceData, []interface{}{src.TitleEn})
+	}
+
+	// Fetch Severity Level
+	severityLevels, err := rrs.severityLevelSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch severity level: %v", err)
+	}
+	severityLevelData := [][]interface{}{{"SeverityLevel"}}
+	for _, src := range severityLevels {
+		severityLevelData = append(severityLevelData, []interface{}{src.TitleEn})
 	}
 
 	// Fetch Users
@@ -1905,6 +1932,7 @@ func (rrs *RiskRegisterService) GenerateRiskTemplate() (*os.File, error) {
 		"Likelihood":           likelihoodData,
 		"Impact":               impactData,
 		"RiskResponseStrategy": strategyData,
+		"SeverityLevel":        severityLevelData,
 	})
 	if err != nil {
 		return nil, err
@@ -1922,13 +1950,13 @@ func (rrs *RiskRegisterService) ValidateRiskTemplate(file io.Reader) ([]map[stri
 	headers := []string{
 		"RiskCategory", "RiskSource", "ResponsibleUser", "Title", "Description", "ReportedAt",
 		"ReviewFrequency", "NextReviewDate", "InherentLikelihood", "InherentImpact",
-		"RiskResponseStrategy", "ResidualLikelihood", "ResidualImpact",
+		"RiskResponseStrategy", "ResidualLikelihood", "ResidualImpact", "SeverityLevel",
 	}
 
 	snakeHeaders := []string{
 		"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at",
 		"review_frequency", "next_review_date", "inherent_likelihood", "inherent_impact",
-		"risk_response_strategy", "residual_likelihood", "residual_impact",
+		"risk_response_strategy", "residual_likelihood", "residual_impact", "severity_level",
 	}
 
 	if len(rows) == 0 {
@@ -1999,8 +2027,10 @@ func (rs *RiskRegisterService) ImportRisks(input []map[string]interface{}, curre
 			RiskResponseStrategyID:         utility.GetOptionalUintValue(record["risk_response_strategy_id"]),
 			ResidualRiskMatrixLikelihoodID: utility.GetOptionalUintValue(record["residual_likelihood_id"]),
 			ResidualRiskMatrixImpactID:     utility.GetOptionalUintValue(record["residual_impact_id"]),
+			SeverityLevelID:                utility.GetOptionalUintValue(record["severity_level_id"]),
 		}
 
+		fmt.Println(dto)
 		id, err := rs.Create(currentUserID, dto)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create risk for record: %+v, error: %v", record, err)
@@ -2014,7 +2044,7 @@ func (rs *RiskRegisterService) ImportRisks(input []map[string]interface{}, curre
 func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]map[string]interface{}, error) {
 	headers := []string{
 		"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at", "review_frequency", "next_review_date", "inherent_likelihood", "inherent_impact",
-		"risk_response_strategy", "residual_likelihood", "residual_impact",
+		"risk_response_strategy", "residual_likelihood", "residual_impact", "severity_level",
 	}
 
 	// Fetch risk categories
@@ -2035,6 +2065,16 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 	riskSourceTitles := make(map[string]uint)
 	for _, src := range riskSources {
 		riskSourceTitles[strings.TrimSpace(src.TitleEn)] = src.ID
+	}
+
+	// Fetch Severity Level
+	severityLevels, err := rs.severityLevelSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch severity level: %v", err)
+	}
+	severityLevelTitles := make(map[string]uint)
+	for _, src := range severityLevels {
+		severityLevelTitles[strings.TrimSpace(src.TitleEn)] = src.ID
 	}
 
 	// Fetch users
@@ -2132,6 +2172,15 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 					rowErrors[header] = fmt.Sprintf("Invalid risk source: %s", value)
 				} else {
 					riskRecord["risk_source_id"] = id
+				}
+			case "severity_level":
+				if value == "" {
+					// Allow empty severity level, set to nil in the record
+					riskRecord["severity_level_id"] = nil
+				} else if id, exists := severityLevelTitles[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid severity level: %s", value)
+				} else {
+					riskRecord["severity_level_id"] = id
 				}
 
 			case "responsible_user":

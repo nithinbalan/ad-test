@@ -88,6 +88,8 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 			risk_statuses.type AS risk_status_type,
             review_frequencies.title_en AS review_frequency_title_en,
             review_frequencies.title_ar AS review_frequency_title_ar,
+			severity_levels.title_en AS severity_level_title_en,
+            severity_levels.title_ar AS severity_level_title_ar,
 			CONVERT(VARCHAR, risk_register.next_review_date, 23) AS next_review_date,
             risk_register.last_review_note,
             created_user.id AS created_user_id,
@@ -143,6 +145,7 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
             LEFT JOIN users AS created_user ON created_user.id = risk_register.created_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = risk_register.updated_by_id
             LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
+			LEFT JOIN severity_levels ON severity_levels.id = risk_register.severity_level_id
             LEFT JOIN risk_matrix_likelihoods AS current_likelihood ON current_likelihood.id = risk_register.current_likelihood_id
             LEFT JOIN risk_matrix_impacts AS current_impact ON current_impact.id = risk_register.current_impact_id
             LEFT JOIN risk_matrix_risk_ratings AS current_risk_rating ON current_risk_rating.id = risk_register.current_risk_rating_id
@@ -396,6 +399,9 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("UpdatedByUser").
 		Preload("SubmittedByUser").
 		Preload("ReviewedByUser").
+		Preload("RiskWorkflows").
+		Preload("RiskWorkflows.RiskWorkflowParticipants").
+		Preload("RiskWorkflows.RiskWorkflowReviews").
 		Preload("AuditableItems", func(db *gorm.DB) *gorm.DB {
 			return db.Order("created_at DESC").Limit(5) // Fetch the latest 5 auditable items
 		}).

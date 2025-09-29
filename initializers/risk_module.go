@@ -222,7 +222,7 @@ func NewRiskModule(db *gorm.DB,
 		riskMatrixLikelihoodSvc,
 		riskMatrixImpactSvc,
 		riskResponseStrategySvc,
-		nil)
+		nil, masterModule.SeverityLevelSvc)
 	riskRegisterController := controllers.NewRiskRegisterController(riskRegisterSvc)
 
 	riskRegisterSvc.SetRiskWorkflowService(riskWorkflowSvc)
