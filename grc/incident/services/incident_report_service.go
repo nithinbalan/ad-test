@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
-	commonDTOs "jethur/grc/common/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepo "jethur/grc/incident/repositories"
-	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/utility"
 	"time"
 )
@@ -58,6 +56,60 @@ func (irs IncidentReportService) GetFullReportDetailsByID(id uint, tx ...utility
 		return nil, err
 	}
 
+	kpis, err := irs.repo.GetAllIncidentKPI(id)
+	if err != nil {
+		return nil, err
+	}
+	incidentDTO.KPIs = kpis
+
+	strategicObjectives, err := irs.repo.GetAllIncidentStrategicObjectives(id)
+	if err != nil {
+		return nil, err
+	}
+	incidentDTO.StrategicObjectives = strategicObjectives
+
+	actionPlans, err := irs.repo.GetAllIncidentActionPlan(id)
+	if err != nil {
+		return nil, err
+	}
+	incidentDTO.ActionPlans = actionPlans
+
+	assets, err := irs.repo.GetAllIncidentAssets(id)
+	if err != nil {
+		return nil, err
+	}
+	incidentDTO.Assets = assets
+
+	associatedDocuments, err := irs.repo.GetAllIncidentAssociatedDocuments(id)
+	if err != nil {
+		return nil, err
+	}
+	incidentDTO.AssociatedDocuments = associatedDocuments
+
+	controls, err := irs.repo.GetAllIncidentControls(id)
+	if err != nil {
+		return nil, err
+	}
+	incidentDTO.Controls = controls
+
+	risks, err := irs.repo.GetAllIncidentRisks(id)
+	if err != nil {
+		return nil, err
+	}
+	incidentDTO.Risks = risks
+
+	process, err := irs.repo.GetAllIncidentProcesses(id)
+	if err != nil {
+		return nil, err
+	}
+	incidentDTO.Processes = process
+
+	complianceRequirements, err := irs.repo.GetAllIncidentComplianceRequirements(id)
+	if err != nil {
+		return nil, err
+	}
+	incidentDTO.ComplianceRequirements = complianceRequirements
+
 	if incident.IncidentClosure != nil && incident.IncidentClosure.CompletionDate != nil {
 		dateStr := incident.IncidentClosure.CompletionDate.Format("2006-01-02")
 		incidentDTO.IncidentClosure.CompletionDateString = &dateStr
@@ -94,55 +146,37 @@ func (irs IncidentReportService) GetFullReportDetailsByID(id uint, tx ...utility
 		}
 	}
 
-	for _, so := range incident.StrategicObjectives {
-		if so.StrategicObjective != nil {
-			incidentDTO.StrategicObjectives = append(incidentDTO.StrategicObjectives, &organizationDTOs.StrategicObjectiveDTO{
-				ID:      so.StrategicObjective.ID,
-				TitleEn: so.StrategicObjective.TitleEn,
-				TitleAr: so.StrategicObjective.TitleAr,
-				Status:  so.StrategicObjective.Status,
-			})
-		}
-	}
-
-	for _, so := range incident.StrategicObjectives {
-		if so.StrategicObjective != nil {
-			incidentDTO.StrategicObjectives = append(incidentDTO.StrategicObjectives, &organizationDTOs.StrategicObjectiveDTO{
-				ID:      so.StrategicObjective.ID,
-				TitleEn: so.StrategicObjective.TitleEn,
-				TitleAr: so.StrategicObjective.TitleAr,
-				Status:  so.StrategicObjective.Status,
-			})
-		}
-	}
-	
-	incidentDTO.KPIs = []*commonDTOs.AssociatedKPIRegisterListDTO{}
-	for _, kpi := range incident.KPIs {
-		if kpi.KPIRegister != nil {
-			incidentDTO.KPIs = append(incidentDTO.KPIs, &commonDTOs.AssociatedKPIRegisterListDTO{
-				ID:                 int(kpi.ID),
-				KPIRegisterID:      kpi.KPIRegister.ID,
-				Title:              kpi.KPIRegister.Title,
-				KPICategoryID:      kpi.KPIRegister.KPICategoryID,
-				KPICategoryTitleEn: kpi.KPIRegister.KPICategory.TitleEn,
-				KPICategoryTitleAr: kpi.KPIRegister.KPICategory.TitleAr,
-				KPIStatusID:        kpi.KPIRegister.KPIStatusID,
-				KPIStatusTitleEn:   kpi.KPIRegister.KPIStatus.TitleEn,
-				KPIStatusTitleAr:   kpi.KPIRegister.KPIStatus.TitleAr,
-				KPIStatusColorCode: kpi.KPIRegister.KPIStatus.ColorCode,
-				KPIStatusType:      kpi.KPIRegister.KPIStatus.Type,
-			})
-		}
-	}
-
 	incidentDTO.CreatedAt = incident.CreatedAt
 	incidentDTO.UpdatedAt = incident.UpdatedAt
 
 	return &incidentDTO, nil
 }
 
-func (irs IncidentReportService) ExportIncidentReport(id uint, currentUserID uint, tx ...utility.DatabaseTransaction) (string, error) {
+// func (irs IncidentReportService) ExportIncidentReport(id uint, currentUserID uint, tx ...utility.DatabaseTransaction) (string, error) {
 
+// 	incidentDTO, err := irs.GetFullReportDetailsByID(id, tx...)
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	incidentDTO.GeneratedAt = time.Now().Format("2006-01-02 03:04 PM")
+
+// 	templatePaths := []string{"incident/templates/pdf/incident_report.html"}
+// 	htmlContent, err := utility.GeneratePDFContent(incidentDTO, templatePaths, "", "")
+// 	if err != nil {
+// 		return "", fmt.Errorf("failed to generate HTML content: %w", err)
+// 	}
+
+// 	// 4. Convert HTML → PDF
+// 	pdfFileName := fmt.Sprintf("IncidentReport_%d.pdf", id)
+// 	if err := utility.ConvertHTMLContentToPDF(htmlContent, pdfFileName); err != nil {
+// 		return "", fmt.Errorf("failed to generate PDF: %w", err)
+// 	}
+
+// 	return pdfFileName, nil
+// }
+
+func (irs IncidentReportService) ExportIncidentReport(id uint, currentUserID uint, tx ...utility.DatabaseTransaction) (string, error) {
 	incidentDTO, err := irs.GetFullReportDetailsByID(id, tx...)
 	if err != nil {
 		return "", err
@@ -150,15 +184,30 @@ func (irs IncidentReportService) ExportIncidentReport(id uint, currentUserID uin
 
 	incidentDTO.GeneratedAt = time.Now().Format("2006-01-02 03:04 PM")
 
+	// Main content template
 	templatePaths := []string{"incident/templates/pdf/incident_report.html"}
 	htmlContent, err := utility.GeneratePDFContent(incidentDTO, templatePaths, "", "")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate HTML content: %w", err)
 	}
 
-	// 4. Convert HTML → PDF
+	// Header template - process with data to resolve template variables
+	headerTemplatePaths := []string{"incident/templates/pdf/incident_report_header.html"}
+	headerContent, err := utility.GeneratePDFContent(incidentDTO, headerTemplatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate header content: %w", err)
+	}
+
+	// Footer template - process with data to resolve template variables
+	footerTemplatePaths := []string{"incident/templates/pdf/incident_report_footer.html"}
+	footerContent, err := utility.GeneratePDFContent(incidentDTO, footerTemplatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate footer content: %w", err)
+	}
+
+	// Convert HTML → PDF with header and footer
 	pdfFileName := fmt.Sprintf("IncidentReport_%d.pdf", id)
-	if err := utility.ConvertHTMLContentToPDF(htmlContent, pdfFileName); err != nil {
+	if err := utility.ConvertHTMLContentToPDFWithHeaderAndFooter(htmlContent, pdfFileName, headerContent, footerContent); err != nil {
 		return "", fmt.Errorf("failed to generate PDF: %w", err)
 	}
 

@@ -139,3 +139,74 @@ func AddFileToZip(zipWriter *zip.Writer, filename string) error {
 	_, err = io.Copy(writer, fileToZip)
 	return err
 }
+
+func ConvertHTMLContentToPDFWithHeaderAndFooter(htmlContent, pdfFileName, headerContent, footerContent string) error {
+	wkhtmltopdfPath := os.Getenv("WKHTMLTOPDF_PATH")
+	if wkhtmltopdfPath == "" {
+		wkhtmltopdfPath = "C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe"
+	}
+
+	if _, err := os.Stat(wkhtmltopdfPath); os.IsNotExist(err) {
+		return fmt.Errorf("wkhtmltopdf executable not found at %s", wkhtmltopdfPath)
+	}
+
+	// Create temporary HTML file for main content
+	tempHTMLFile, err := os.CreateTemp("", "export_pdf_*.html")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary HTML file: %w", err)
+	}
+	defer os.Remove(tempHTMLFile.Name())
+
+	if _, err := tempHTMLFile.Write([]byte(htmlContent)); err != nil {
+		return fmt.Errorf("failed to write HTML content to file: %w", err)
+	}
+	tempHTMLFile.Close()
+
+	// Create temporary HTML file for header
+	tempHeaderFile, err := os.CreateTemp("", "export_pdf_header_*.html")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary header file: %w", err)
+	}
+	defer os.Remove(tempHeaderFile.Name())
+
+	if _, err := tempHeaderFile.Write([]byte(headerContent)); err != nil {
+		return fmt.Errorf("failed to write header content to file: %w", err)
+	}
+	tempHeaderFile.Close()
+
+	// Create temporary HTML file for footer
+	tempFooterFile, err := os.CreateTemp("", "export_pdf_footer_*.html")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary footer file: %w", err)
+	}
+	defer os.Remove(tempFooterFile.Name())
+
+	if _, err := tempFooterFile.Write([]byte(footerContent)); err != nil {
+		return fmt.Errorf("failed to write footer content to file: %w", err)
+	}
+	tempFooterFile.Close()
+
+	// Execute wkhtmltopdf with header and footer
+	cmd := exec.Command(
+		wkhtmltopdfPath,
+		"--enable-local-file-access",
+		"--header-html", tempHeaderFile.Name(),
+		"--footer-html", tempFooterFile.Name(),
+		"--margin-top", "20mm", // Adjust based on your header height
+		"--margin-bottom", "20mm", // Adjust based on your footer height
+		"--header-spacing", "5", // Space between header and content
+		"--footer-spacing", "5", // Space between footer and content
+		"--margin-left", "0mm", // remove left margin
+		"--margin-right", "0mm", // remove right margin
+		tempHTMLFile.Name(),
+		pdfFileName,
+	)
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to convert HTML to PDF: %s: %w", stderr.String(), err)
+	}
+
+	return nil
+}

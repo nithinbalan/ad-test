@@ -8,7 +8,6 @@
    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
    <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&display=swap" rel="stylesheet">
 
-
 </head>
 <style>
    .keep-together {
@@ -35,10 +34,10 @@
 </style>
 
 <body
-   style="font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; background-color: #f8fafc; color: #000; height: 100%; hyphens: auto; line-height: 1.4; margin: 0; -moz-hyphens: auto; -ms-word-break: break-all; width: 100% !important; -webkit-hyphens: auto; -webkit-text-size-adjust: none; word-break: break-word;">
-   <div class="page" style="width: 1000px; margin: 20px auto; background: #fff;">
+   style="font-family: 'Lexend Deca', sans-serif; box-sizing: border-box;color: #000; height: 100%; hyphens: auto; line-height: 1.4; margin: 0; -moz-hyphens: auto; -ms-word-break: break-all; width: 100% !important; -webkit-hyphens: auto; -webkit-text-size-adjust: none; word-break: break-word;">
+   <div class="page" style="width: 100%; ">
       <div
-         style="min-height: 700px;  background: url({{.ApiPath}}/report-template-settings/image-preview?type=cover-page-bg) 0 0 no-repeat; background-size: 100% 100%; padding: 20px 32px; position: relative;">
+         style="min-height: 1000px;  background: url({{.ApiPath}}/report-template-settings/image-preview?type=cover-page-bg) 0 0 no-repeat;  background-size: 100% 100%; padding: 20px 32px; position: relative;">
          <div>
             <img src="{{.ApiPath}}/report-template-settings/image-preview?type=logo"
                style="font-family: 'Lexend Deca', sans-serif; box-sizing: border-box;  padding: 5px 0; ">
@@ -109,9 +108,7 @@
    <div class="page" style="width: 1000px; margin: 20px auto; background: #fff;">
 
       <div style="padding: 20px 32px; ">
-         <div class="heade" style="border-bottom: 1px solid #DEDEDE; padding-bottom: 20px; text-align: right;">
-            <img src="jethur-logo-black.png" />
-         </div>
+
 
          <div class="keep-together" style="padding-top: 20px;">
             <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;"> 1. Incident Overview
@@ -248,69 +245,71 @@
                {{end}} </p>
             </div>
          </div>
-   
-
-   <div class="page" style="width: 1000px; margin: 20px auto; background: #fff;">
 
 
-      <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;"> 2. Incident Timeline
-      </h4>
-      <!-- timelines -->
-      <div style="margin-top: 30px;">
-         {{range .Data.Timelines}}
-         <div style="border-left:1px solid #BC8E48; min-height: 50px; page-break-inside: avoid;">
+         <div class="page" style="width: 1000px; margin: 20px auto; background: #fff;">
 
-            <div style="width: 1%; padding-right: 1%; display: inline-block; vertical-align: top;">
-               <span
-                  style="background: #BC8E48; width: 6px; height: 6px; border-radius: 10px; display: block; margin-left: -3px;"></span>
+
+            <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;"> 2. Incident Timeline
+            </h4>
+            <!-- timelines -->
+            <div style="margin-top: 30px;">
+               {{range .Data.Timelines}}
+               <div style="border-left:1px solid #BC8E48; min-height: 50px; page-break-inside: avoid;">
+
+                  <div style="width: 1%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                     <span
+                        style="background: #BC8E48; width: 6px; height: 6px; border-radius: 10px; display: block; margin-left: -3px;"></span>
+                  </div>
+
+                  <div
+                     style="width: 15%; padding-right: 1%; margin-top: -7px; display: inline-block; vertical-align: top;">
+                     <p style="margin:0; font-size:14px; font-weight:400;">{{.IncidentTimelineTypeTitleEn}}</p>
+                  </div>
+
+                  <div style="width: 25%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                     <p style="margin:0; font-size:13px; font-weight:300;">Reported by:</p>
+                     <p style="margin:0; font-size:14px; font-weight:400;">
+                        {{if .PerformedByFirstNameEn}}{{.PerformedByFirstNameEn}}
+                        {{.PerformedByLastNameEn}}{{else}}-{{end}}
+                     </p>
+                  </div>
+
+                  <div style="width: 25%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                     <p style="margin:0; font-size:13px; font-weight:300;">Date:</p>
+                     <p style="margin:0; font-size:14px; font-weight:400;">
+                        {{if .PerformedAt}}{{.PerformedAt.Format "Jan 02, 2006, 03:04 PM"}}{{else}}-{{end}}
+                     </p>
+                  </div>
+
+                  <div style="width: 25%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                     <p style="margin:0; font-size:13px; font-weight:300;">Status:</p>
+                     <p style="margin:0; font-size:14px; font-weight:400;">
+                        {{if .TimelineStatusTitleEn}}
+                        <span
+                           style="background:#E5F4F0; color:#0E7B61; padding:4px 8px; border-radius:5px; font-size:12px; display:inline-block; border:1px solid #AFD6CC;">
+                           {{.TimelineStatusTitleEn}}
+                        </span>
+                        {{else}}-{{end}}
+                     </p>
+                  </div>
+
+               </div>
+               {{end}}
             </div>
 
-            <div style="width: 15%; padding-right: 1%; margin-top: -7px; display: inline-block; vertical-align: top;">
-               <p style="margin:0; font-size:14px; font-weight:400;">{{.IncidentTimelineTypeTitleEn}}</p>
-            </div>
+            <!-- Associated Items -->
+            <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;"> 3. Associated Items
+            </h4>
 
-            <div style="width: 25%; padding-right: 1%; display: inline-block; vertical-align: top;">
-               <p style="margin:0; font-size:13px; font-weight:300;">Reported by:</p>
-               <p style="margin:0; font-size:14px; font-weight:400;">
-                  {{if .PerformedByFirstNameEn}}{{.PerformedByFirstNameEn}}
-                  {{.PerformedByLastNameEn}}{{else}}-{{end}}
+            <!-- Strategic Objectives -->
+            <div style="margin-top: 30px; margin-right: 40px;">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                  <span>Strategic Objectives</span>
                </p>
-            </div>
 
-            <div style="width: 25%; padding-right: 1%; display: inline-block; vertical-align: top;">
-               <p style="margin:0; font-size:13px; font-weight:300;">Date:</p>
-               <p style="margin:0; font-size:14px; font-weight:400;">
-                  {{if .PerformedAt}}{{.PerformedAt.Format "Jan 02, 2006, 03:04 PM"}}{{else}}-{{end}}
-               </p>
-            </div>
-
-            <div style="width: 25%; padding-right: 1%; display: inline-block; vertical-align: top;">
-               <p style="margin:0; font-size:13px; font-weight:300;">Status:</p>
-               <p style="margin:0; font-size:14px; font-weight:400;">
-                  {{if .TimelineStatusTitleEn}}
-                  <span
-                     style="background:#E5F4F0; color:#0E7B61; padding:4px 8px; border-radius:5px; font-size:12px; display:inline-block; border:1px solid #AFD6CC;">
-                     {{.TimelineStatusTitleEn}}
-                  </span>
-                  {{else}}-{{end}}
-               </p>
-            </div>
-
-         </div>
-         {{end}}
-      </div>
-
-      <!-- Associated Items -->
-      <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;"> 3. Associated Items </h4>
-
-      <!-- Strategic Objectives -->
-      <div style="margin-top: 30px; ">
-         <p
-            style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
-            <span>Strategic Objectives</span>
-         </p>
-
-         <table style="
+               <table style="
             font-family: -apple-system, BlinkMacSystemFont,
             'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
             'Apple Color Emoji', 'Segoe UI Emoji',
@@ -326,9 +325,9 @@
             border-collapse: collapse;
             margin-bottom: 20px;
             ">
-            <tbody>
-               <tr style="border: 1px solid #EAEDF2;">
-                  <th style="
+                  <tbody>
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -343,7 +342,7 @@
                        text-align: left; background: #F9FBFC; font-weight: 500; width: 3%;
                        "># </th>
 
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -360,7 +359,7 @@
 
 
 
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -374,16 +373,16 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Status
-                  </th>
+                           Status
+                        </th>
 
-               </tr>
-               {{range $index, $item := .Data.StrategicObjectives}}
-               <tr style="border: 1px solid #EAEDF2;">
+                     </tr>
+                     {{range $index, $item := .Data.StrategicObjectives}}
+                     <tr style="border: 1px solid #EAEDF2;">
 
 
 
-                  <td style="
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -396,8 +395,8 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">{{$index}}
-                  </td>
-                  <td style="
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -410,9 +409,9 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{$item.TitleEn}}
-                  </td>
-                  <td style="
+                           {{$item.TitleEn}}
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -425,7 +424,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     <span style="background: #E5F4F0;
+                           <span style="background: #E5F4F0;
                     color: #0E7B61;
                     padding: 4px 8px;
                     border-radius: 5px;
@@ -434,21 +433,21 @@
                     display: inline-block;
                     border: 1px solid #AFD6CC;
                     font-weight: 400;"> {{$item.Status}}</span>
-                  </td>
-               </tr>
-               {{end}}
-            </tbody>
-         </table>
-      </div>
+                        </td>
+                     </tr>
+                     {{end}}
+                  </tbody>
+               </table>
+            </div>
 
-      <!-- KPIs -->
-      <div style="margin-top: 30px; ">
-         <p
-            style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
-            <span> KPIs</span>
-         </p>
+            <!-- KPIs -->
+            <div style="margin-top: 30px; margin-right: 40px; ">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                  <span> KPIs</span>
+               </p>
 
-         <table style="
+               <table style="
             font-family: -apple-system, BlinkMacSystemFont,
             'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
             'Apple Color Emoji', 'Segoe UI Emoji',
@@ -464,9 +463,9 @@
             border-collapse: collapse;
             margin-bottom: 20px;
             ">
-            <tbody>
-               <tr style="border: 1px solid #EAEDF2;">
-                  <th style="
+                  <tbody>
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -481,7 +480,7 @@
                        text-align: left; background: #F9FBFC; font-weight: 500; width: 3%;
                        "># </th>
 
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -498,7 +497,7 @@
 
 
 
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -512,9 +511,9 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Category
-                  </th>
-                  <th style="
+                           Category
+                        </th>
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -528,13 +527,13 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Status
-                  </th>
+                           Status
+                        </th>
 
-               </tr>
-               {{range $index, $item := .Data.KPIs}}
-               <tr style="border: 1px solid #EAEDF2;">
-                  <td style="
+                     </tr>
+                     {{range $index, $item := .Data.KPIs}}
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -547,8 +546,8 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">{{$index}}
-                  </td>
-                  <td style="
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -561,9 +560,9 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{$item.Title}}
-                  </td>
-                  <td style="
+                           {{$item.Title}}
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -576,9 +575,9 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{if $item.KPICategoryTitleEn}}{{ $item.KPICategoryTitleEn }}{{else}}--{{end}}
-                  </td>
-                  <td style="
+                           {{if $item.KPICategoryTitleEn}}{{ $item.KPICategoryTitleEn }}{{else}}--{{end}}
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -591,7 +590,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     <span style="background: #E5F4F0;
+                           <span style="background: #E5F4F0;
                     color: #0E7B61;
                     padding: 4px 8px;
                     border-radius: 5px;
@@ -600,23 +599,23 @@
                     display: inline-block;
                     border: 1px solid #AFD6CC;
                     font-weight: 400;">
-                        {{if $item.KPIStatusTitleEn}}{{ $item.KPIStatusTitleEn }}{{else}}--{{end}}
-                     </span>
-                  </td>
-               </tr>
-               {{end}}
-            </tbody>
-         </table>
-      </div>
+                              {{if $item.KPIStatusTitleEn}}{{ $item.KPIStatusTitleEn }}{{else}}--{{end}}
+                           </span>
+                        </td>
+                     </tr>
+                     {{end}}
+                  </tbody>
+               </table>
+            </div>
 
-      <!-- compliance table -->
-      <div style="margin-top: 30px; ">
-         <p
-            style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
-            <span> Compliance</span>
-         </p>
+            <!-- compliance table -->
+            <div style="margin-top: 30px; margin-right: 40px; ">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                  <span> Compliance</span>
+               </p>
 
-         <table style="
+               <table style="
             font-family: -apple-system, BlinkMacSystemFont,
             'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
             'Apple Color Emoji', 'Segoe UI Emoji',
@@ -632,9 +631,9 @@
             border-collapse: collapse;
             margin-bottom: 20px;
             ">
-            <tbody>
-               <tr style="border: 1px solid #EAEDF2;">
-                  <th style="
+                  <tbody>
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -649,7 +648,7 @@
                        text-align: left; background: #F9FBFC; font-weight: 500; width: 3%;
                        "># </th>
 
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -663,7 +662,7 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC; font-weight: 500; width: 70%;
                        "> Standard/Requirement </th>
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -677,14 +676,14 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     status
-                  </th>
+                           status
+                        </th>
 
 
-               </tr>
-               {{range $index, $item := .Data.ComplianceRequirements}}
-               <tr style="border: 1px solid #EAEDF2;">
-                  <td style="
+                     </tr>
+                     {{range $index, $item := .Data.ComplianceRequirements}}
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -697,8 +696,8 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">{{$index}}
-                  </td>
-                  <td style="
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -711,9 +710,9 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{$item.ComplianceRequirement.TitleEn}}
-                  </td>
-                  <td style="
+                           {{$item.ComplianceRequirementTitle}}
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -726,7 +725,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     <span style="background: #E5F4F0;
+                           <span style="background: #E5F4F0;
                     color: #0E7B61;
                     padding: 4px 8px;
                     border-radius: 5px;
@@ -735,26 +734,26 @@
                     display: inline-block;
                     border: 1px solid #AFD6CC;
                     font-weight: 400;">
-                        {{if $item.ComplianceRequirement.ComplianceStatus.TitleEn}}
-                        {{$item.ComplianceRequirement.ComplianceStatus.TitleEn}}
-                        {{else}}--{{end}}
+                              {{if $item.ComplianceStatusTitleEn}}
+                              {{$item.ComplianceStatusTitleEn}}
+                              {{else}}--{{end}}
 
-                     </span>
-                  </td>
+                           </span>
+                        </td>
 
-               </tr>
-               {{end}}
-            </tbody>
-         </table>
-      </div>
+                     </tr>
+                     {{end}}
+                  </tbody>
+               </table>
+            </div>
 
-      <!-- processes -->
-      <div style="margin-top: 30px; ">
-         <p
-            style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
-            <span> Processes </span>
-         </p>
-         <table style="
+            <!-- processes -->
+            <div style="margin-top: 30px; margin-right: 40px; ">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                  <span> Processes </span>
+               </p>
+               <table style="
             font-family: -apple-system, BlinkMacSystemFont,
             'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
             'Apple Color Emoji', 'Segoe UI Emoji',
@@ -770,9 +769,9 @@
             border-collapse: collapse;
             margin-bottom: 20px;
             ">
-            <tbody>
-               <tr style="border: 1px solid #EAEDF2;">
-                  <th style="
+                  <tbody>
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -787,7 +786,7 @@
                        text-align: left; background: #F9FBFC; font-weight: 500; width: 3%;
                        "># </th>
 
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -804,7 +803,7 @@
 
 
 
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -818,9 +817,9 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Owner
-                  </th>
-                  <th style="
+                           Owner
+                        </th>
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -834,13 +833,13 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Status
-                  </th>
+                           Status
+                        </th>
 
-               </tr>
-               {{range $index, $item := .Data.Processes}}
-               <tr style="border: 1px solid #EAEDF2;">
-                  <td style="
+                     </tr>
+                     {{range $index, $item := .Data.Processes}}
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -853,8 +852,8 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">{{$index}}
-                  </td>
-                  <td style="
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -867,9 +866,9 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{$item.Process.TitleEn}}
-                  </td>
-                  <td style="
+                           {{$item.TitleEn}}
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -882,10 +881,11 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{$item.Process.ResponsibleUser.FirstNameEN}}
-                     {{$item.Process.ResponsibleUser.LastNameEN}}
-                  </td>
-                  <td style="
+                           {{if $item.OwnerFirstNameEn}}{{$item.OwnerFirstNameEn}}{{end}} {{if
+                           $item.OwnerLastNameEn}}{{$item.OwnerLastNameEn}}{{end}}
+
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -898,7 +898,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     <span style="background: #E5F4F0;
+                           <span style="background: #E5F4F0;
                     color: #0E7B61;
                     padding: 4px 8px;
                     border-radius: 5px;
@@ -907,25 +907,25 @@
                     display: inline-block;
                     border: 1px solid #AFD6CC;
                     font-weight: 400;">
-                        {{if $item.Process.LifecycleStatus.TitleEn}}
-                        {{$item.Process.LifecycleStatus.TitleEn}}
-                        {{else}}--{{end}}
-                     </span>
-                  </td>
-               </tr>
-               {{end}}
-            </tbody>
-         </table>
-      </div>
+                              {{if $item.LifecycleStatusTitleEn}}
+                              {{$item.LifecycleStatusTitleEn}}
+                              {{else}}--{{end}}
+                           </span>
+                        </td>
+                     </tr>
+                     {{end}}
+                  </tbody>
+               </table>
+            </div>
 
-      <!-- risk tables -->
-      <div style="margin-top: 30px; ">
-         <p
-            style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
-            <span> Risks </span>
-         </p>
+            <!-- risk tables -->
+            <div style="margin-top: 30px; margin-right: 40px; ">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                  <span> Risks </span>
+               </p>
 
-         <table style="
+               <table style="
             font-family: -apple-system, BlinkMacSystemFont,
             'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
             'Apple Color Emoji', 'Segoe UI Emoji',
@@ -941,9 +941,9 @@
             border-collapse: collapse;
             margin-bottom: 20px;
             ">
-            <tbody>
-               <tr style="border: 1px solid #EAEDF2;">
-                  <th style="
+                  <tbody>
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -958,7 +958,7 @@
                        text-align: left; background: #F9FBFC; font-weight: 500; width: 3%;
                        "># </th>
 
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -975,7 +975,7 @@
 
 
 
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -989,9 +989,9 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Risk Category
-                  </th>
-                  <th style="
+                           Risk Category
+                        </th>
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1005,9 +1005,9 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Status
-                  </th>
-                  <th style="
+                           Status
+                        </th>
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1021,9 +1021,9 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Likelihood
-                  </th>
-                  <th style="
+                           Likelihood
+                        </th>
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1037,9 +1037,9 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Impact
-                  </th>
-                  <th style="
+                           Impact
+                        </th>
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1053,13 +1053,13 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Risk Rating
-                  </th>
+                           Risk Rating
+                        </th>
 
-               </tr>
-               {{range $index, $item := .Data.Risks}}
-               <tr style="border: 1px solid #EAEDF2;">
-                  <td style="
+                     </tr>
+                     {{range $index, $item := .Data.Risks}}
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1072,8 +1072,8 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">{{$index}}
-                  </td>
-                  <td style="
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1086,9 +1086,9 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{$item.RiskRegister.Title}}
-                  </td>
-                  <td style="
+                           {{$item.Title}}
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1101,9 +1101,9 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{$item.RiskRegister.RiskCategory.TitleEn}}
-                  </td>
-                  <td style="
+                           {{$item.RiskCategoryTitleEn}}
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1116,7 +1116,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     <span style="background: #E5F4F0;
+                           <span style="background: #E5F4F0;
                     color: #0E7B61;
                     padding: 4px 8px;
                     border-radius: 5px;
@@ -1124,9 +1124,10 @@
                     line-height: normal;
                     display: inline-block;
                     border: 1px solid #AFD6CC;
-                    font-weight: 400;"> {{$item.RiskRegister.RiskStatus.TitleEn}}</span>
-                  </td>
-                  <td style="
+                    font-weight: 400;"> {{$item.RiskStatusTitleEn}}
+                           </span>
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1139,7 +1140,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     <span style="background: #E5F4F0;
+                           <span style="background: #E5F4F0;
                     color: #0E7B61;
                     padding: 4px 8px;
                     border-radius: 5px;
@@ -1147,9 +1148,11 @@
                     line-height: normal;
                     display: inline-block;
                     border: 1px solid #AFD6CC;
-                    font-weight: 400;"> {{$item.RiskRegister.CurrentLikelihood.Status}}</span>
-                  </td>
-                  <td style="
+                    font-weight: 400;"> {{if
+                              $item.CurrentLikelihoodTitleEn}}{{$item.CurrentLikelihoodTitleEn}}{{else}}--{{end}}
+                           </span>
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1162,7 +1165,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     <span style="background: #E5F4F0;
+                           <span style="background: #E5F4F0;
                     color: #0E7B61;
                     padding: 4px 8px;
                     border-radius: 5px;
@@ -1170,9 +1173,10 @@
                     line-height: normal;
                     display: inline-block;
                     border: 1px solid #AFD6CC;
-                    font-weight: 400;"> {{$item.Risks.RiskRegister.CurrentImpact.status}}</span>
-                  </td>
-                  <td style="
+                    font-weight: 400;"> {{if
+                              $item.CurrentImpactTitleEn}}{{$item.CurrentImpactTitleEn}}{{else}}--{{end}}</span>
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1185,7 +1189,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     <span style="background: #E5F4F0;
+                           <span style="background: #E5F4F0;
                     color: #0E7B61;
                     padding: 4px 8px;
                     border-radius: 5px;
@@ -1194,21 +1198,21 @@
                     display: inline-block;
                     border: 1px solid #AFD6CC;
                     font-weight: 400;"> {{$item.Risks.RiskRegister.CurrentRiskRating.Type}}</span>
-                  </td>
-               </tr>
-               {{end}}
-            </tbody>
-         </table>
-      </div>
+                        </td>
+                     </tr>
+                     {{end}}
+                  </tbody>
+               </table>
+            </div>
 
-      <!-- controlls tables -->
-      <div style="margin-top: 30px; ">
-         <p
-            style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
-            <span> Controlls </span>
-         </p>
+            <!-- controlls tables -->
+            <div style="margin-top: 30px; margin-right: 40px;">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                  <span> Controlls </span>
+               </p>
 
-         <table style="
+               <table style="
             font-family: -apple-system, BlinkMacSystemFont,
             'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
             'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1224,9 +1228,9 @@
             border-collapse: collapse;
             margin-bottom: 20px;
             ">
-            <tbody>
-               <tr style="border: 1px solid #EAEDF2;">
-                  <th style="
+                  <tbody>
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1241,7 +1245,7 @@
                        text-align: left; background: #F9FBFC; font-weight: 500; width: 3%;
                        "># </th>
 
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1258,7 +1262,7 @@
 
 
 
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1272,9 +1276,9 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Implementation Status
-                  </th>
-                  <th style="
+                           Implementation Status
+                        </th>
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1288,12 +1292,12 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Efficiency Status
-                  </th>
-               </tr>
-               {{range $index, $item := .Data.Controls}}
-               <tr style="border: 1px solid #EAEDF2;">
-                  <td style="
+                           Efficiency Status
+                        </th>
+                     </tr>
+                     {{range $index, $item := .Data.Controls}}
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1306,8 +1310,8 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">{{$index}}
-                  </td>
-                  <td style="
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1320,9 +1324,9 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{$item.Control.TitleEn}}
-                  </td>
-                  <td style="
+                           {{if $item.TitleEn}}{{$item.TitleEn}}{{else}}--{{end}}
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1335,7 +1339,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     <span style="background: #E5F4F0;
+                           <span style="background: #E5F4F0;
                     color: #0E7B61;
                     padding: 4px 8px;
                     border-radius: 5px;
@@ -1344,13 +1348,13 @@
                     display: inline-block;
                     border: 1px solid #AFD6CC;
                     font-weight: 400;">
-                        {{if $item.Control.ControlImplementationStatus}}
-                        {{$item.Control.ControlImplementationStatus.TitleEn}}
-                        {{else}}--{{end}}
-                     </span>
-                  </td>
+                              {{if
+                              $item.ControlImplementationStatusTitleEn}}{{$item.ControlImplementationStatusTitleEn}}{{else}}--{{end}}
 
-                  <td style="
+                           </span>
+                        </td>
+
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1363,7 +1367,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     <span style="background: #E5F4F0;
+                           <span style="background: #E5F4F0;
                     color: #0E7B61;
                     padding: 4px 8px;
                     border-radius: 5px;
@@ -1372,25 +1376,24 @@
                     display: inline-block;
                     border: 1px solid #AFD6CC;
                     font-weight: 400;">
-                        {{if $item.Control.ControlEfficiencyStatus}}
-                        {{$item.Control.ControlEfficiencyStatus.TitleEn}}
-                        {{else}}--{{end}}
-                     </span>
-                  </td>
-               </tr>
-               {{end}}
-            </tbody>
-         </table>
-      </div>
+                              {{if
+                              $item.ControlEfficiencyStatusTitleEn}}{{$item.ControlEfficiencyStatusTitleEn}}{{else}}--{{end}}
+                           </span>
+                        </td>
+                     </tr>
+                     {{end}}
+                  </tbody>
+               </table>
+            </div>
 
-      <!-- documents table -->
-      <div style="margin-top: 30px; ">
-         <p
-            style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
-            <span> Documents</span>
-         </p>
+            <!-- documents table -->
+            <div style="margin-top: 30px; margin-right: 40px;">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                  <span> Documents</span>
+               </p>
 
-         <table style="
+               <table style="
             font-family: -apple-system, BlinkMacSystemFont,
             'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
             'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1406,9 +1409,9 @@
             border-collapse: collapse;
             margin-bottom: 20px;
             ">
-            <tbody>
-               <tr style="border: 1px solid #EAEDF2;">
-                  <th style="
+                  <tbody>
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1423,7 +1426,7 @@
                        text-align: left; background: #F9FBFC; font-weight: 500; width: 3%;
                        "># </th>
 
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1437,7 +1440,7 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC; font-weight: 500; width: 70%;
                        "> Document </th>
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1451,9 +1454,9 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Type
-                  </th>
-                  <th style="
+                           Type
+                        </th>
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1467,13 +1470,13 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Status
-                  </th>
+                           Status
+                        </th>
 
-               </tr>
-               {{range $index, $item := .Data.Documents}}
-               <tr style="border: 1px solid #EAEDF2;">
-                  <td style="
+                     </tr>
+                     {{range $index, $item := .Data.AssociatedDocuments}}
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1486,8 +1489,8 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">{{$index}}
-                  </td>
-                  <td style="
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1499,31 +1502,10 @@
                     border: 1px solid #EAEDF2;
                     padding: 10px 10px;
                     text-align: left;
-                    ">
-                     {{if $item.TitleEn }}
-                     {{$item.TitleEn}}
-                     {{else}}--{{end}}
-                  </td>
-                  <td style="
-                    font-family: -apple-system, BlinkMacSystemFont,
-                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
-                    'Apple Color Emoji', 'Segoe UI Emoji',
-                    'Segoe UI Symbol';
-                    box-sizing: border-box;
-                    color: #1a1a1a;
-                    font-size: 14px;
-                    line-height: 1.3em;
-                    border: 1px solid #EAEDF2;
-                    padding: 10px 10px;
-                    text-align: left;
-                    ">
-                     {{if $item.DocumentTypeTitleEn }}
-                     {{$item.DocumentTypeTitleEn}}
-                     {{else}}--{{end}}
+                    "> {{if $item.TitleEn}}{{$item.TitleEn}}{{else}}--{{end}}
 
-                  </td>
-
-                  <td style="
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1536,7 +1518,23 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     <span style="background: #E5F4F0;
+                           {{if $item.DocumentStatusTitleEn}}{{$item.DocumentStatusTitleEn}}{{else}}--{{end}}
+                        </td>
+
+                        <td style="
+                    font-family: -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                    'Apple Color Emoji', 'Segoe UI Emoji',
+                    'Segoe UI Symbol';
+                    box-sizing: border-box;
+                    color: #1a1a1a;
+                    font-size: 14px;
+                    line-height: 1.3em;
+                    border: 1px solid #EAEDF2;
+                    padding: 10px 10px;
+                    text-align: left;
+                    ">
+                           <span style="background: #E5F4F0;
                     color: #0E7B61;
                     padding: 4px 8px;
                     border-radius: 5px;
@@ -1545,26 +1543,26 @@
                     display: inline-block;
                     border: 1px solid #AFD6CC;
                     font-weight: 400;">
-                        {{if $item.DocumentStatusTitleEn}}
-                        {{$item.DocumentStatusTitleEn}}
-                        {{else}}--{{end}}
+                              {{if $item.DocumentStatusTitleEn}}
+                              {{$item.DocumentStatusTitleEn}}
+                              {{else}}--{{end}}
 
-                     </span>
-                  </td>
-               </tr>
-               {{end}}
-            </tbody>
-         </table>
-      </div>
+                           </span>
+                        </td>
+                     </tr>
+                     {{end}}
+                  </tbody>
+               </table>
+            </div>
 
-      <!-- asset table -->
-      <div style="margin-top: 30px; ">
-         <p
-            style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
-            <span> Assets</span>
-         </p>
+            <!-- asset table -->
+            <div style="margin-top: 30px; margin-right: 40px;">
+               <p
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                  <span> Assets</span>
+               </p>
 
-         <table style="
+               <table style="
             font-family: -apple-system, BlinkMacSystemFont,
             'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
             'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1580,9 +1578,9 @@
             border-collapse: collapse;
             margin-bottom: 20px;
             ">
-            <tbody>
-               <tr style="border: 1px solid #EAEDF2;">
-                  <th style="
+                  <tbody>
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1597,7 +1595,7 @@
                        text-align: left; background: #F9FBFC; font-weight: 500; width: 3%;
                        "># </th>
 
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1611,7 +1609,7 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC; font-weight: 500; width: 70%;
                        "> Asset Name </th>
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1625,9 +1623,9 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Type
-                  </th>
-                  <th style="
+                           Type
+                        </th>
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1641,13 +1639,13 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Status
-                  </th>
+                           Status
+                        </th>
 
-               </tr>
-               {{range $index, $item := .Data.Assets}}
-               <tr style="border: 1px solid #EAEDF2;">
-                  <td style="
+                     </tr>
+                     {{range $index, $item := .Data.Assets}}
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1660,8 +1658,8 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">{{$index}}
-                  </td>
-                  <td style="
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1674,12 +1672,10 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{if $item.AssetRegister.TitleEn}}
-                     {{$item.AssetRegister.TitleEn}}
-                     {{else}} --
-                     {{end}}
-                  </td>
-                  <td style="
+                           {{if $item.TitleEn}}{{$item.TitleEn}}{{else}}--{{end}}
+
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1692,11 +1688,9 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{if $item.AssetRegister.AssetCategory}}
-                     {{$item.AssetRegister.AssetCategory.TitleEn}}
-                     {{else}} --
-                     {{end}}
-                  <td style="
+                           {{if $item.AssetCategoryTitleEn}}{{$item.AssetCategoryTitleEn}}{{else}}--{{end}}
+
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1709,7 +1703,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     <span style="background: #E5F4F0;
+                           <span style="background: #E5F4F0;
                     color: #0E7B61;
                     padding: 4px 8px;
                     border-radius: 5px;
@@ -1718,159 +1712,155 @@
                     display: inline-block;
                     border: 1px solid #AFD6CC;
                     font-weight: 400;">
-                        {{if $item.AssetRegister.AssetStatus}}
-                        {{$item.AssetRegister.AssetStatus.TitleEn}}
-                        {{else}} --
+                              {{if $item.AssetStatusTitleEn}}{{$item.AssetStatusTitleEn}}{{else}}--{{end}}
+                           </span>
+                        </td>
+                     </tr>
+                     {{end}}
+                  </tbody>
+               </table>
+            </div>
+
+            <!-- investigation -->
+            <div class="keep-together" style="padding-top: 20px;">
+               <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;"> 4. Investigation
+               </h4>
+               <div style="margin-top: 10px; ">
+                  <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                        Start Date: </p>
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                        {{ .Data.Investigation.InitiatedAtString }} </p>
+                  </div>
+                  <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                        Team Lead: </p>
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                        {{ .Data.Investigation.TeamLead.FirstNameEN }} {{ .Data.Investigation.TeamLead.LastNameEN }}
+                     </p>
+                  </div>
+                  <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; font-weight: 300;">
+                        Team Members:
+                     </p>
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 14px; font-weight: 400;">
+                        {{if gt (len .Data.Investigation.Users) 0}}
+                        {{range $item := .Data.Investigation.Users}}
+                        {{$item.User.FirstNameEn}} {{$item.User.LastNameEn}}
+                        {{if $item.User.Designation}} ({{$item.User.Designation.NameEn}}){{end}}
+                        {{end}}
+                        {{else}}
+                        --
                         {{end}}
 
-                     </span>
-                  </td>
-               </tr>
-               {{end}}
-            </tbody>
-         </table>
-      </div>
-
-      <!-- investigation -->
-      <div class="keep-together" style="padding-top: 20px;">
-         <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;"> 4. Investigation
-         </h4>
-         <div style="margin-top: 10px; ">
-            <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
-                  Start Date: </p>
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
-                  {{ .Data.Investigation.InitiatedAtString }} </p>
-            </div>
-            <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
-                  Team Lead: </p>
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
-                  {{ .Data.Investigation.TeamLead.FirstNameEN }} {{ .Data.Investigation.TeamLead.LastNameEN }}
-               </p>
-            </div>
-            <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; font-weight: 300;">
-                  Team Members:
-               </p>
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 14px; font-weight: 400;">
-                  {{if gt (len .Data.Investigation.Users) 0}}
-                  {{range $item := .Data.Investigation.Users}}
-                  {{$item.User.FirstNameEn}} {{$item.User.LastNameEn}}
-                  {{if $item.User.Designation}} ({{$item.User.Designation.NameEn}}){{end}}
-                  {{end}}
-                  {{else}}
-                  --
-                  {{end}}
-
-               </p>
-            </div>
+                     </p>
+                  </div>
 
 
-            <div style="width: 100%; display: inline-block; vertical-align: top;">
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; font-weight: 300;">
-                  Investigation Details:
-               </p>
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 14px; font-weight: 400;">
-                  {{if .Data.Investigation.Description}}
-                  {{.Data.Investigation.Description}}
-                  {{else}}
-                  --
-                  {{end}}
-               </p>
-            </div>
+                  <div style="width: 100%; display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; font-weight: 300;">
+                        Investigation Details:
+                     </p>
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 14px; font-weight: 400;">
+                        {{if .Data.Investigation.Description}}
+                        {{.Data.Investigation.Description}}
+                        {{else}}
+                        --
+                        {{end}}
+                     </p>
+                  </div>
 
-            <div style="width: 100%;">
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; font-weight: 300;">
-                  Incident Findings
-               </p>
-               <ul style="padding: 0 0 0 20px; font-weight: 400; font-size: 14px;">
-                  {{if gt (len .Data.Investigation.Findings) 0}}
-                  {{range $item := .Data.Investigation.Findings}}
-                  <li>{{$item.Title}}</li>
-                  {{end}}
-                  {{else}}
-                  <li>--</li>
-                  {{end}}
+                  <div style="width: 100%;">
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; font-weight: 300;">
+                        Incident Findings
+                     </p>
+                     <ul style="padding: 0 0 0 20px; font-weight: 400; font-size: 14px;">
+                        {{if gt (len .Data.Investigation.Findings) 0}}
+                        {{range $item := .Data.Investigation.Findings}}
+                        <li>{{$item.Title}}</li>
+                        {{end}}
+                        {{else}}
+                        <li>--</li>
+                        {{end}}
 
-               </ul>
+                     </ul>
+                  </div>
+
+                  <div style="width: 100%;">
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; font-weight: 300;">
+                        Recommendation for Action
+                     </p>
+                     <ul style="padding: 0 0 0 20px; font-weight: 400; font-size: 14px;">
+
+                        {{if .Data.Investigation.ActionRecommendation}}
+                        <li>{{.Data.Investigation.ActionRecommendation}}</li>
+                        {{else}}
+                        <li>--</li>
+                        {{end}}
+                     </ul>
+                  </div>
+
+                  <div style="width: 100%; display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; font-weight: 300;">
+                        Attachments:
+                     </p>
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 14px; font-weight: 400;">
+                        {{if gt (len .Data.Investigation.Documents) 0}}
+                        {{range $item := .Data.Investigation.Documents}}
+                        {{$item.Name}}
+                        {{end}}
+                        {{else}}
+                        --
+                        {{end}}
+                     </p>
+                  </div>
+
+
+               </div>
             </div>
 
-            <div style="width: 100%;">
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; font-weight: 300;">
-                  Recommendation for Action
-               </p>
-               <ul style="padding: 0 0 0 20px; font-weight: 400; font-size: 14px;">
+            <!-- RCA -->
+            <div class="keep-together" style="padding-top: 20px;">
+               <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;">
+                  5. Root Cause Analysis (RCA)
+               </h4>
 
-                  {{if .Data.Investigation.ActionRecommendation}}
-                  <li>{{.Data.Investigation.ActionRecommendation}}</li>
-                  {{else}}
-                  <li>--</li>
-                  {{end}}
-               </ul>
+               <div style="margin-top: 10px;">
+                  <div style="width: 100%;">
+                     {{range $index, $item := .Data.RootCauseAnalyses}}
+                     <p
+                        style="margin: 0 0 10px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; line-height: 1.5em; font-weight: 300;">
+                        Why {{$item.Why}}: {{$item.Question}}
+                     </p>
+                     <ul style="padding: 0 0 0 20px; font-weight: 400; font-size: 14px; list-style-type: none;">
+                        {{if $item.Answer}}
+                        <li>Root Cause: {{$item.Answer}}</li>
+                        {{else}}--{{end}}
+                     </ul>
+                     {{end}}
+                  </div>
+               </div>
             </div>
 
-            <div style="width: 100%; display: inline-block; vertical-align: top;">
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; font-weight: 300;">
-                  Attachments:
-               </p>
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 14px; font-weight: 400;">
-                  {{if gt (len .Data.Investigation.Documents) 0}}
-                  {{range $item := .Data.Investigation.Documents}}
-                  {{$item.Name}}
-                  {{end}}
-                  {{else}}
-                  --
-                  {{end}}
-               </p>
-            </div>
+            <!-- communication log table  -->
+            <div style="margin-top: 30px; margin-right: 40px; ">
+               <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;">
+                  6. Communication Log
+               </h4>
 
-
-         </div>
-      </div>
-
-      <!-- RCA -->
-      <div class="keep-together" style="padding-top: 20px;">
-         <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;">
-            5. Root Cause Analysis (RCA)
-         </h4>
-
-         <div style="margin-top: 10px;">
-            <div style="width: 100%;">
-               {{range $index, $item := .Data.RootCauseAnalyses}}
-               <p
-                  style="margin: 0 0 10px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; line-height: 1.5em; font-weight: 300;">
-                  Why {{$item.Why}}: {{$item.Question}}
-               </p>
-               <ul style="padding: 0 0 0 20px; font-weight: 400; font-size: 14px; list-style-type: none;">
-                  {{if $item.Answer}}
-                  <li>Root Cause: {{$item.Answer}}</li>
-                  {{else}}--{{end}}
-               </ul>
-               {{end}}
-            </div>
-         </div>
-      </div>
-
-      <!-- communication log table  -->
-      <div style="margin-top: 30px; ">
-         <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;">
-            6. Communication Log
-         </h4>
-
-         <table style="
+               <table style="
             font-family: -apple-system, BlinkMacSystemFont,
             'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
             'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1886,9 +1876,9 @@
             border-collapse: collapse;
             margin-bottom: 20px;
             ">
-            <tbody>
-               <tr style="border: 1px solid #EAEDF2;">
-                  <th style="
+                  <tbody>
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1903,7 +1893,7 @@
                        text-align: left; background: #F9FBFC; font-weight: 500; width: 3%;
                        "># </th>
 
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1920,7 +1910,7 @@
 
 
 
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1934,9 +1924,9 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Method
-                  </th>
-                  <th style="
+                           Method
+                        </th>
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1950,9 +1940,9 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Communicated By
-                  </th>
-                  <th style="
+                           Communicated By
+                        </th>
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1966,9 +1956,9 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Communicated To
-                  </th>
-                  <th style="
+                           Communicated To
+                        </th>
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -1982,12 +1972,12 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Summary of Communication
-                  </th>
-               </tr>
-               {{range $index,$item:= .Data.CommunicationLogs}}
-               <tr style="border: 1px solid #EAEDF2;">
-                  <td style="
+                           Summary of Communication
+                        </th>
+                     </tr>
+                     {{range $index,$item:= .Data.CommunicationLogs}}
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2000,8 +1990,8 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">{{$index }}
-                  </td>
-                  <td style="
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2014,9 +2004,9 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                      {{$item.CommunicatedAt.Format "Jan 02, 2006, 03:04 PM"}}
-                  </td>
-                  <td style="
+                           {{$item.CommunicatedAt.Format "Jan 02, 2006, 03:04 PM"}}
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2029,9 +2019,9 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{$item.CommunicationMethod}}
-                  </td>
-                  <td style="
+                           {{$item.CommunicationMethod}}
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2044,9 +2034,9 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{$item.CommunicatedBy}}
-                  </td>
-                  <td style="
+                           {{$item.CommunicatedBy}}
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2059,9 +2049,9 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{$item.CommunicatedTo}}
-                  </td>
-                  <td style="
+                           {{$item.CommunicatedTo}}
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2074,23 +2064,23 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{$item.Summary}}
-                  </td>
+                           {{$item.Summary}}
+                        </td>
 
 
-               </tr>
-               {{end}}
-            </tbody>
-         </table>
-      </div>
+                     </tr>
+                     {{end}}
+                  </tbody>
+               </table>
+            </div>
 
-      <!-- action plan table -->
-      <div style="margin-top: 30px; ">
-         <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;">
-            7. Action Plans
-         </h4>
+            <!-- action plan table -->
+            <div style="margin-top: 30px;margin-right: 40px; ">
+               <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;">
+                  7. Action Plans
+               </h4>
 
-         <table style="
+               <table style="
             font-family: -apple-system, BlinkMacSystemFont,
             'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
             'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2106,9 +2096,9 @@
             border-collapse: collapse;
             margin-bottom: 20px;
             ">
-            <tbody>
-               <tr style="border: 1px solid #EAEDF2;">
-                  <th style="
+                  <tbody>
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2123,7 +2113,7 @@
                        text-align: left; background: #F9FBFC; font-weight: 500; width: 3%;
                        "># </th>
 
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2140,7 +2130,7 @@
 
 
 
-                  <th style="
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2154,9 +2144,9 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Severity
-                  </th>
-                  <th style="
+                           Severity
+                        </th>
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2170,9 +2160,9 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Responsible User
-                  </th>
-                  <th style="
+                           Responsible User
+                        </th>
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2186,9 +2176,9 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Target Date
-                  </th>
-                  <th style="
+                           Target Date
+                        </th>
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2202,9 +2192,9 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Progress %
-                  </th>
-                  <th style="
+                           Progress %
+                        </th>
+                        <th style="
                        font-family: -apple-system, BlinkMacSystemFont,
                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                        'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2218,12 +2208,12 @@
                        padding: 11px 10px;
                        text-align: left; background: #F9FBFC;width: 17%;
                        ">
-                     Status
-                  </th>
-               </tr>
-               {{range $index, $item := .Data.ActionPlans}}
-               <tr style="border: 1px solid #EAEDF2;">
-                  <td style="
+                           Status
+                        </th>
+                     </tr>
+                     {{range $index, $item := .Data.ActionPlans}}
+                     <tr style="border: 1px solid #EAEDF2;">
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2236,8 +2226,8 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">{{$index}}
-                  </td>
-                  <td style="
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2250,9 +2240,9 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{$item.Title}}
-                  </td>
-                  <td style="
+                           {{if $item.Title}}{{$item.Title}}{{else}}--{{end}}
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2265,7 +2255,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     <span style="background: #E5F4F0;
+                           <span style="background: #E5F4F0;
                     color: #0E7B61;
                     padding: 4px 8px;
                     border-radius: 5px;
@@ -2273,10 +2263,11 @@
                     line-height: normal;
                     display: inline-block;
                     border: 1px solid #AFD6CC;
-                    font-weight: 400;"> {{$item.SeverityLevel.TitleEn}}
-                     </span>
-                  </td>
-                  <td style="
+                    font-weight: 400;"> {{if
+                              $item.SeverityLevelTitleEn}}{{$item.SeverityLevelTitleEn}}{{else}}--{{end}}
+                           </span>
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2289,9 +2280,9 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{$item.ResponsibleUser.FirstNameEN}} {{$item.ResponsibleUser.LastNameEN}}
-                  </td>
-                  <td style="
+                           {{if $item.ResponsibleUserFirstNameEn}}{{$item.ResponsibleUserFirstNameEn}}{{else}}--{{end}}
+                           {{if $item.ResponsibleUserLastNameEn}}{{$item.ResponsibleUserLastNameEn}}{{end}} </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2304,11 +2295,9 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{if $item.TargetDateString}}
-                     {{$item.TargetDateString}}
-                     {{else}}--{{end}}
-                  </td>
-                  <td style="
+                           {{if $item.TargetDate}}{{$item.TargetDate}}{{else}}--{{end}}
+                        </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2321,9 +2310,8 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     {{$item.Percentage}}%
-                  </td>
-                  <td style="
+                           {{if $item.Percentage}}{{$item.Percentage}}%{{else}}--{{end}} </td>
+                        <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
                     'Apple Color Emoji', 'Segoe UI Emoji',
@@ -2336,7 +2324,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                     <span style="background: #E5F4F0;
+                           <span style="background: #E5F4F0;
                     color: #0E7B61;
                     padding: 4px 8px;
                     border-radius: 5px;
@@ -2344,211 +2332,198 @@
                     line-height: normal;
                     display: inline-block;
                     border: 1px solid #AFD6CC;
-                    font-weight: 400;"> {{$item.ActionPlanStatus.TitleEn}}
-                     </span>
-                  </td>
+                    font-weight: 400;">{{if
+                              $item.ActionPlanStatusTitleEn}}{{$item.ActionPlanStatusTitleEn}}{{else}}--{{end}}
+                           </span>
+                        </td>
 
 
-               </tr>
-               {{end}}
-            </tbody>
-         </table>
-      </div>
-
-      <!-- Incident Closure -->
-      <div class="keep-together" style="padding-top: 20px;">
-         <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;"> 8. Incident Closure
-            (planned)
-         </h4>
-         <div style="margin-top: 10px; ">
-
-
-            <div style="width: 100%;  display: inline-block; vertical-align: top;">
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
-                  Completion Date: </p>
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
-                  {{.Data.IncidentClosure.CompletionDateString}} </p>
+                     </tr>
+                     {{end}}
+                  </tbody>
+               </table>
             </div>
 
-            <div style="width: 100%;  display: inline-block; vertical-align: top;">
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
-                  Resolution Summary:</p>
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
-                  {{.Data.IncidentClosure.ResolutionSummary}} </p>
-            </div>
-            {{- if and .Data.IncidentClosure.Lessons (gt (len .Data.IncidentClosure.Lessons) 0) }}
-            <div style="width: 100%; display: inline-block; vertical-align: top;">
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
-                  Lessons Learned:
-               </p>
-               <ul style="padding: 0 0 0 20px; font-weight: 400; font-size: 14px; list-style-type: disc;">
-                  {{- range .Data.IncidentClosure.Lessons }}
-                  <li>{{ .Lessons }}</li>
+            <!-- Incident Closure -->
+            <div class="keep-together" style="padding-top: 20px;">
+               <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;"> 8. Incident Closure
+                  (planned)
+               </h4>
+               <div style="margin-top: 10px; ">
+
+
+                  <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                        Completion Date: </p>
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                        {{.Data.IncidentClosure.CompletionDateString}} </p>
+                  </div>
+
+                  <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                        Resolution Summary:</p>
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                        {{.Data.IncidentClosure.ResolutionSummary}} </p>
+                  </div>
+                  {{- if and .Data.IncidentClosure.Lessons (gt (len .Data.IncidentClosure.Lessons) 0) }}
+                  <div style="width: 100%; display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                        Lessons Learned:
+                     </p>
+                     <ul style="padding: 0 0 0 20px; font-weight: 400; font-size: 14px; list-style-type: disc;">
+                        {{- range .Data.IncidentClosure.Lessons }}
+                        <li>{{ .Lessons }}</li>
+                        {{- end }}
+                     </ul>
+                  </div>
                   {{- end }}
-               </ul>
+
+                  {{if .Data.IncidentClosure.Notes}}
+                  <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                        Notes</p>
+                     <p
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
+                        {{.Data.IncidentClosure.Notes}} </p>
+                  </div>
+                  {{end}}
+               </div>
             </div>
-            {{- end }}
 
-            {{if .Data.IncidentClosure.Notes}}
-            <div style="width: 100%;  display: inline-block; vertical-align: top;">
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
-                  Notes</p>
-               <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
-                  {{.Data.IncidentClosure.Notes}} </p>
-            </div>
-            {{end}}
-         </div>
-      </div>
+            <!-- PIR -->
+            <div class="keep-together" style="padding-top: 20px;">
+               <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;">
+                  9. Post Implementation Review (PIR)
+               </h4>
+               <div style="margin-top: 10px; ">
 
-      <!-- PIR -->
-      <div class="keep-together" style="padding-top: 20px;">
-         <h4 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;">
-            9. Post Implementation Review (PIR)
-         </h4>
-         <div style="margin-top: 10px; ">
-
-            {{- if .Data.IncidentPostReview.PostReviewDateString }}
-            <div style="width: 100%;  display: inline-block; vertical-align: top;">
-               <p
-                  style="margin: 0 0 2px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; line-height: 1.5em; font-weight: 300;">
-                  Completion Date:
-               </p>
-               <p
-                  style="margin: 0 0 13px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 14px; line-height: 1.5em; font-weight: 400;">
-                  {{.Data.IncidentPostReview.PostReviewDateString}}
-               </p>
-            </div>
-            {{- end }}
-
-            {{- if and .Data.IncidentPostReview.Users (gt (len .Data.IncidentPostReview.Users) 0) }}
-            <div style="width: 100%;  display: inline-block; vertical-align: top;">
-               <p
-                  style="margin: 0 0 2px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; line-height: 1.5em; font-weight: 300;">
-                  Participants:
-               </p>
-               <p
-                  style="margin: 0 0 13px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 14px; line-height: 1.5em; font-weight: 400;">
-                  {{- range $index, $item := .Data.IncidentPostReview.Users }}
-                  {{- if $index}}, {{end}}{{ $item.User.FirstNameEn }} {{ $item.User.LastNameEn }}
+                  {{- if .Data.IncidentPostReview.PostReviewDateString }}
+                  <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 2px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; line-height: 1.5em; font-weight: 300;">
+                        Completion Date:
+                     </p>
+                     <p
+                        style="margin: 0 0 13px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 14px; line-height: 1.5em; font-weight: 400;">
+                        {{.Data.IncidentPostReview.PostReviewDateString}}
+                     </p>
+                  </div>
                   {{- end }}
-               </p>
-            </div>
-            {{- end }}
 
-            {{- if .Data.IncidentPostReview.IncidentPostReviewEffectiveness }}
-            <div style="width: 100%;  display: inline-block; vertical-align: top;">
-               <p
-                  style="margin: 0 0 2px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; line-height: 1.5em; font-weight: 300;">
-                  Response Effectiveness:
-               </p>
-               <p
-                  style="margin: 0 0 13px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 14px; line-height: 1.5em; font-weight: 400;">
-                  {{.Data.IncidentPostReview.IncidentPostReviewEffectiveness.TitleEn}}
-               </p>
-            </div>
-            {{- end }}
-
-            {{- if .Data.IncidentPostReview.Summary }}
-            <div style="width: 100%;  display: inline-block; vertical-align: top;">
-               <p
-                  style="margin: 0 0 2px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; line-height: 1.5em; font-weight: 300;">
-                  Incident Summary:
-               </p>
-               <p
-                  style="margin: 0 0 13px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 14px; line-height: 1.5em; font-weight: 400;">
-                  {{.Data.IncidentPostReview.Summary}}
-               </p>
-            </div>
-            {{- end }}
-
-            {{- if and .Data.IncidentPostReview.Lessons (gt (len .Data.IncidentPostReview.Lessons) 0) }}
-            <div style="width: 100%;  display: inline-block; vertical-align: top;">
-               <p
-                  style="margin: 0 0 2px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; line-height: 1.5em; font-weight: 300;">
-                  Lessons Learned:
-               </p>
-               <ul style="padding-left: 20px; font-weight: 400; font-size: 14px; list-style-type: disc;">
-                  {{- range .Data.IncidentPostReview.Lessons }}
-                  <li>{{ .Lesson }}</li>
+                  {{- if and .Data.IncidentPostReview.Users (gt (len .Data.IncidentPostReview.Users) 0) }}
+                  <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 2px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; line-height: 1.5em; font-weight: 300;">
+                        Participants:
+                     </p>
+                     <p
+                        style="margin: 0 0 13px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 14px; line-height: 1.5em; font-weight: 400;">
+                        {{- range $index, $item := .Data.IncidentPostReview.Users }}
+                        {{- if $index}}, {{end}}{{ $item.User.FirstNameEn }} {{ $item.User.LastNameEn }}
+                        {{- end }}
+                     </p>
+                  </div>
                   {{- end }}
-               </ul>
-            </div>
-            {{- end }}
 
-            {{- if and .Data.IncidentPostReview.Recommendations (gt (len .Data.IncidentPostReview.Recommendations) 0) }}
-            <div style="width: 100%;  display: inline-block; vertical-align: top;">
-               <p
-                  style="margin: 0 0 2px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; line-height: 1.5em; font-weight: 300;">
-                  Improvement Recommendations:
-               </p>
-               <ul style="padding-left: 20px; font-weight: 400; font-size: 14px; list-style-type: disc;">
-                  {{- range .Data.IncidentPostReview.Recommendations }}
-                  <li>{{ .Recommendation }}</li>
+                  {{- if .Data.IncidentPostReview.IncidentPostReviewEffectiveness }}
+                  <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 2px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; line-height: 1.5em; font-weight: 300;">
+                        Response Effectiveness:
+                     </p>
+                     <p
+                        style="margin: 0 0 13px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 14px; line-height: 1.5em; font-weight: 400;">
+                        {{.Data.IncidentPostReview.IncidentPostReviewEffectiveness.TitleEn}}
+                     </p>
+                  </div>
                   {{- end }}
-               </ul>
+
+                  {{- if .Data.IncidentPostReview.Summary }}
+                  <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 2px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; line-height: 1.5em; font-weight: 300;">
+                        Incident Summary:
+                     </p>
+                     <p
+                        style="margin: 0 0 13px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 14px; line-height: 1.5em; font-weight: 400;">
+                        {{.Data.IncidentPostReview.Summary}}
+                     </p>
+                  </div>
+                  {{- end }}
+
+                  {{- if and .Data.IncidentPostReview.Lessons (gt (len .Data.IncidentPostReview.Lessons) 0) }}
+                  <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 2px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; line-height: 1.5em; font-weight: 300;">
+                        Lessons Learned:
+                     </p>
+                     <ul style="padding-left: 20px; font-weight: 400; font-size: 14px; list-style-type: disc;">
+                        {{- range .Data.IncidentPostReview.Lessons }}
+                        <li>{{ .Lesson }}</li>
+                        {{- end }}
+                     </ul>
+                  </div>
+                  {{- end }}
+
+                  {{- if and .Data.IncidentPostReview.Recommendations (gt (len .Data.IncidentPostReview.Recommendations)
+                  0) }}
+                  <div style="width: 100%;  display: inline-block; vertical-align: top;">
+                     <p
+                        style="margin: 0 0 2px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; line-height: 1.5em; font-weight: 300;">
+                        Improvement Recommendations:
+                     </p>
+                     <ul style="padding-left: 20px; font-weight: 400; font-size: 14px; list-style-type: disc;">
+                        {{- range .Data.IncidentPostReview.Recommendations }}
+                        <li>{{ .Recommendation }}</li>
+                        {{- end }}
+                     </ul>
+                  </div>
+                  {{- end }}
+
+               </div>
             </div>
-            {{- end }}
-
-         </div>
-      </div>
-   </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-   </div>
-   <div style="padding: 20px 32px; ">
-      <div class="heade"
-         style="border-top: 1px solid #DEDEDE; padding-top: 20px; padding-bottom: 20px; text-align: right;">
-         <div>
-            <div style="float:left; font-size: 13px;"> www.jethur.com</div>
-            <div style="float:right;">
-               <div style="float:left; font-size: 13px;"> Page No</div>
-            </div>
-
          </div>
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
 
-   </div>
-   </div>
 
 
-   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
-      integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
-      crossorigin="anonymous"></script>
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
-      integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
-      crossorigin="anonymous"></script>
-   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
-      integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
-      crossorigin="anonymous"></script>
+      <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+         integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+         crossorigin="anonymous"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+         integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+         crossorigin="anonymous"></script>
+      <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+         integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+         crossorigin="anonymous"></script>
 </body>
 
 </html>
