@@ -1349,11 +1349,16 @@ func (repo *ERMDashboardRepository) GetERMOpenRisksSummary(params *kpiDTOs.ERMDa
             rc.title_en AS category,
             parent_unit.title_en AS department,
             COUNT(DISTINCT rc_control.id) AS num_controls,
-            CASE
-                WHEN AVG(COALESCE(rca.score, 0)) >= 80 THEN 'Efficient'
-                WHEN AVG(COALESCE(rca.score, 0)) >= 50 THEN 'Moderate'
-                ELSE 'Inefficient'
-            END AS control_efficiency,
+            CONCAT(
+                CAST(ROUND(AVG(COALESCE(rca.score, 0)), 0) AS VARCHAR), 
+                '% (', 
+                CASE
+                    WHEN AVG(COALESCE(rca.score, 0)) >= 80 THEN 'Efficient'
+                    WHEN AVG(COALESCE(rca.score, 0)) >= 50 THEN 'Moderate'
+                    ELSE 'Inefficient'
+                END,
+                ')'
+            ) AS control_efficiency,
             CONCAT(irms.title_en, ' (', iein.value, ')') AS inherent_rating,
             CONCAT(rms.title_en, ' (', cein.value, ')') AS current_rating,
             -- Get the most restrictive risk appetite level
