@@ -92,7 +92,7 @@ func (rmis *RiskMatrixImpactService) Create(currentUserID uint, riskMatrixImpact
 			id,
 			existingRiskMatrixImpact,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -160,7 +160,7 @@ func (rmis *RiskMatrixImpactService) Update(id uint, currentUserID uint, riskMat
 			id,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

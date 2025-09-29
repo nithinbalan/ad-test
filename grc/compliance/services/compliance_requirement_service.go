@@ -105,7 +105,6 @@ func (crs *ComplianceRequirementService) GetAll(complianceID uint, params *compl
 }
 
 func (crs *ComplianceRequirementService) GetRequirementsByComplianceID(complianceID uint, params *complianceDTOs.ComplianceRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceRequirementByComplianceIDListResponseDTO, error) {
-
 	// Step 1: Fetch paged requirements + total count
 	requirements, totalCount, err := crs.repo.GetRequirementsByComplianceID(complianceID, params)
 	if err != nil {
@@ -424,7 +423,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 			id,
 			existingComplianceRequirement,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -964,7 +963,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -1572,11 +1571,11 @@ func (cs *ComplianceRequirementService) GenerateRequirementTemplate(complianceID
 	templateData := [][]interface{}{}
 
 	// Clauses
-	clauses, _ := cs.complianceClauseSvc.GetAll(complianceID)
-	clauseHeaders := []string{"ClauseNo", "TitleEn", "TitleAr"}
+	clauses, _ := cs.complianceClauseSvc.GetAllForImport(complianceID)
+	clauseHeaders := []string{"ClauseNo", "TitleEn"}
 	clauseData := [][]interface{}{}
 	for _, c := range clauses {
-		clauseData = append(clauseData, []interface{}{c.ClauseNo, c.TitleEn, c.TitleAr})
+		clauseData = append(clauseData, []interface{}{c.ClauseNo, c.TitleEn})
 	}
 
 	// Categories
@@ -1748,13 +1747,13 @@ func (cs *ComplianceRequirementService) validateRequirements(complianceID uint, 
 	// --- Fetch lookup data ---
 
 	// Clauses
-	clauses, err := cs.complianceClauseSvc.GetAll(complianceID)
+	clauses, err := cs.complianceClauseSvc.GetAllForImport(complianceID)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching clauses: %v", err)
 	}
 	clauseMap := make(map[string]uint)
 	for _, cl := range clauses {
-		key := strings.TrimSpace(cl.ClauseNo + " " + cl.TitleEn)
+		key := strings.TrimSpace(cl.TitleEn)
 		clauseMap[key] = cl.ID
 	}
 

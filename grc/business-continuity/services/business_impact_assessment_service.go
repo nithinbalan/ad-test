@@ -245,6 +245,9 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {
@@ -279,7 +282,6 @@ func (bias *BusinessImpactAssessmentService) UpdateRecoveryObjectives(businessIm
 		}
 
 		for _, recoveryObjective := range businessImpactAssessmentRecoveryObjectiveFormDTO.RecoveryObjectives {
-
 			if recoveryObjective.ProcessDependencyID != nil {
 				existingDependency, err := bias.processDependencySvc.GetByID(*businessImpactAssessmentRecoveryObjectiveFormDTO.ProcessID, *recoveryObjective.ProcessDependencyID)
 				if err != nil {
@@ -321,7 +323,6 @@ func (bias *BusinessImpactAssessmentService) UpdateRecoveryObjectives(businessIm
 				// 	}
 				// }
 			}
-
 		}
 
 		existingProcess, err := bias.processSvc.GetByID(*businessImpactAssessmentRecoveryObjectiveFormDTO.ProcessID, tx)
@@ -364,6 +365,9 @@ func (bias *BusinessImpactAssessmentService) UpdateRecoveryObjectives(businessIm
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {
@@ -478,7 +482,6 @@ func (bias *BusinessImpactAssessmentService) Delete(ids []uint, currentUserID ui
 				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
-
 		}()
 	}
 

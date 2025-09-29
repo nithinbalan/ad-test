@@ -3,11 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	"jethur/grc/documents/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 
 	"gorm.io/gorm"
 )
@@ -89,9 +90,8 @@ func (dts *DocumentTypeService) Create(currentUserID uint, documentType *models.
 			createdDocumentType.ID,
 			createdDocumentType,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			log.Printf("Failed to log activity: %v", err)
 		}
@@ -137,7 +137,7 @@ func (dts *DocumentTypeService) Update(id uint, currentUserID uint, updatedDocum
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fmt.Printf("Failed to log activity: %v\n", err)
@@ -232,7 +232,6 @@ func (dts *DocumentTypeService) Deactivate(ids []uint, currentUserID uint) error
 
 func (dts *DocumentTypeService) GetByType(documentType string) (*models.DocumentType, error) {
 	docType, err := dts.repo.GetByType(documentType)
-
 	if err != nil {
 		return nil, err
 	}

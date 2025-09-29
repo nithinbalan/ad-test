@@ -3,12 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -122,6 +123,9 @@ func (apcs *AssetPolicyCommentService) Create(assetID uint, assetPolicyID uint, 
 			id,
 			existingComment,
 			currentUserID,
+			"asset",
+			"asset_register",
+			"asset_policy_comment",
 			nil,
 		)
 		if err != nil {
@@ -185,6 +189,9 @@ func (apcs *AssetPolicyCommentService) Update(assetID uint, assetPolicyID uint, 
 				id,
 				changedData,
 				currentUserID,
+				"asset",
+				"asset_register",
+				"asset_policy_comment",
 				nil,
 			)
 			if err != nil {

@@ -71,7 +71,7 @@ func (pgs *ProcessGroupService) Create(currentUserID uint, processGroup *models.
 			createdProcessGroup.ID,
 			createdProcessGroup,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -124,7 +124,7 @@ func (pgs *ProcessGroupService) Update(id uint, currentUserID uint, updatedProce
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

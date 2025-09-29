@@ -2,11 +2,12 @@ package services
 
 import (
 	"fmt"
+	"log"
+
 	"jethur/grc/compliance/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 )
 
 type ComplianceRequirementCategoryServiceInterface interface {
@@ -41,7 +42,6 @@ func (crcs ComplianceRequirementCategoryService) GetByID(id uint) (*models.Compl
 }
 
 func (crcs *ComplianceRequirementCategoryService) Create(currentUserID uint, complianceRequirementCategory *models.ComplianceRequirementCategory) (*models.ComplianceRequirementCategory, error) {
-
 	if exists, err := crcs.repo.ExistsByTitle(complianceRequirementCategory.TitleEn, complianceRequirementCategory.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
@@ -60,9 +60,8 @@ func (crcs *ComplianceRequirementCategoryService) Create(currentUserID uint, com
 			createdRequirementCategory.ID,
 			createdRequirementCategory,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			// @todo - save to log file
 			log.Printf("Failed to log activity: %v", err)
@@ -74,7 +73,6 @@ func (crcs *ComplianceRequirementCategoryService) Create(currentUserID uint, com
 
 func (crcs *ComplianceRequirementCategoryService) Update(id uint, currentUserID uint, updatedRequirementCategory *models.ComplianceRequirementCategory) (*models.ComplianceRequirementCategory, error) {
 	existingRequirementCategory, err := crcs.repo.GetByID(id)
-
 	if err != nil {
 		return nil, err
 	}
@@ -85,18 +83,15 @@ func (crcs *ComplianceRequirementCategoryService) Update(id uint, currentUserID 
 		} else if exists {
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
-
 	}
 
 	result, err := crcs.repo.Update(id, updatedRequirementCategory)
-
 	if err != nil {
 		return nil, err
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status"}
 	changes, err := utility.CompareFields(existingRequirementCategory, updatedRequirementCategory, fieldsToCompare)
-
 	if err != nil {
 		log.Println("error :", err.Error())
 	}
@@ -113,7 +108,7 @@ func (crcs *ComplianceRequirementCategoryService) Update(id uint, currentUserID 
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
@@ -130,7 +125,6 @@ func (crcs *ComplianceRequirementCategoryService) Delete(ids []uint, currentUser
 	for _, id := range ids {
 
 		complianceRequirementCategory, err := crcs.repo.GetByID(id)
-
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -150,7 +144,6 @@ func (crcs *ComplianceRequirementCategoryService) Delete(ids []uint, currentUser
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := crcs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -174,7 +167,6 @@ func (crcs *ComplianceRequirementCategoryService) Activate(ids []uint, currentUs
 	successfulIds, err := crcs.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := crcs.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
@@ -198,7 +190,6 @@ func (crcs *ComplianceRequirementCategoryService) Deactivate(ids []uint, current
 	successfulIds, err := crcs.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := crcs.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,

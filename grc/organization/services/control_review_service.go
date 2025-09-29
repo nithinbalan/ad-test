@@ -166,7 +166,7 @@ func (crs *ControlReviewService) Create(controlID uint, currentUserID uint, cont
 			id,
 			controlReview,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

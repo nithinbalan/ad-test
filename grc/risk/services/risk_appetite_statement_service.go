@@ -125,7 +125,7 @@ func (rass *RiskAppetiteStatementService) Create(currentUserID uint, riskAppetit
 			id,
 			riskAppetiteStatementFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -209,7 +209,7 @@ func (rass *RiskAppetiteStatementService) Update(id uint, currentUserID uint, ri
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{

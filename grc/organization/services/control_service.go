@@ -307,7 +307,7 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 			id,
 			controlFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -1139,8 +1139,17 @@ func (cs *ControlService) GenerateControlTemplate() (*os.File, error) {
 		})
 	}
 
-	// Generate the Excel file with multiple sheets
-	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
+	dropDownConfig := map[string]bool{
+		"ControlType":          true,
+		"ControlCategory":      true,
+		"Owner":                true,
+		"ImplementationStatus": true,
+		"EfficiencyStatus":     true,
+		"TestResponsibleUser":  true,
+	}
+
+	// Generate the Excel file with multiple sheets and dropdown
+	file, err := utility.GenerateExcelFileWithSheetsAndDropDown(map[string][][]interface{}{
 		"Template":             append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
 		"ControlType":          append([][]interface{}{utility.ConvertToInterfaceSlice(controlTypeHeaders)}, controlTypeData...),
 		"ControlCategory":      append([][]interface{}{utility.ConvertToInterfaceSlice(controlCategoryHeaders)}, controlCategoryData...),
@@ -1148,7 +1157,7 @@ func (cs *ControlService) GenerateControlTemplate() (*os.File, error) {
 		"ImplementationStatus": append([][]interface{}{utility.ConvertToInterfaceSlice(implementationStatusHeaders)}, implementationStatusData...),
 		"EfficiencyStatus":     append([][]interface{}{utility.ConvertToInterfaceSlice(efficiencyStatusHeaders)}, efficiencyStatusData...),
 		"TestResponsibleUser":  append([][]interface{}{utility.ConvertToInterfaceSlice(testResponsibleUserHeaders)}, testResponsibleUserData...),
-	})
+	}, dropDownConfig)
 	if err != nil {
 		return nil, err
 	}

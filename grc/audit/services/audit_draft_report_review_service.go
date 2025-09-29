@@ -249,6 +249,9 @@ func (adrrs *AuditDraftReportReviewService) Submit(auditID uint, auditDraftRepor
 			id,
 			auditReportWorkflowFormDTO,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -455,6 +458,9 @@ func (adrrs *AuditDraftReportReviewService) Approve(auditID uint, auditDraftRepo
 			id,
 			auditReportWorkflowFormDTO,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -656,6 +662,9 @@ func (adrrs *AuditDraftReportReviewService) Revert(auditID uint, auditDraftRepor
 			id,
 			auditReportWorkflowFormDTO,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -886,6 +895,9 @@ func (adrrs *AuditDraftReportReviewService) ReSubmit(auditID uint, auditDraftRep
 			id,
 			auditReportWorkflowFormDTO,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

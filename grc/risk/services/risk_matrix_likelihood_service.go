@@ -93,7 +93,7 @@ func (rmls *RiskMatrixLikelihoodService) Create(currentUserID uint, riskMatrixLi
 			id,
 			existingRiskLikelihood,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -162,7 +162,7 @@ func (rmls *RiskMatrixLikelihoodService) Update(id uint, currentUserID uint, ris
 			id,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

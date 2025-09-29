@@ -209,7 +209,7 @@ func createSheetWithDropDown(f *excelize.File, sheetName string, data [][]interf
 			continue
 		}
 
-		// Flatten dropdown values 
+		// Flatten dropdown values
 		dropList := []string{}
 		for _, row := range optionsData[1:] { // Skip header row
 			if len(row) > 0 {
@@ -217,8 +217,7 @@ func createSheetWithDropDown(f *excelize.File, sheetName string, data [][]interf
 					clauseNo, ok1 := row[0].(string)
 					titleEn, ok2 := row[1].(string)
 					if ok1 && ok2 && clauseNo != "" && titleEn != "" {
-						clauseNoStr := fmt.Sprintf("%v", clauseNo)
-						dropList = append(dropList, clauseNoStr+" "+titleEn)
+						dropList = append(dropList, titleEn)
 					}
 				} else if val, ok := row[0].(string); ok && val != "" {
 					dropList = append(dropList, val)

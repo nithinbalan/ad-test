@@ -121,7 +121,7 @@ func (sqs *SwotPestelQuestionService) Create(currentUserID uint, swotPestelQuest
 			createdSwotPestelQuestion.ID,
 			createdSwotPestelQuestion,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -173,7 +173,7 @@ func (sqs *SwotPestelQuestionService) Update(id uint, currentUserID uint, update
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
@@ -348,7 +348,7 @@ func (sqs *SwotPestelQuestionService) UpdateAnswer(id uint, currentUserID uint, 
 				result.ID,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				// @todo - save to log file

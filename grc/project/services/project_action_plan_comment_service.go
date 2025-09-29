@@ -186,7 +186,7 @@ func (caps *ProjectActionPlanCommentService) Create(projectID uint, actionPlanID
 			id,
 			existingComment,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -199,7 +199,6 @@ func (caps *ProjectActionPlanCommentService) Create(projectID uint, actionPlanID
 
 			utility.LogError("Failed to log activity", fields)
 		}
-
 	}()
 	return id, nil
 }
@@ -335,7 +334,7 @@ func (caps *ProjectActionPlanCommentService) Update(projectID uint, actionPlanID
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

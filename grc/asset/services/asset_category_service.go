@@ -3,12 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	assetDTOs "jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
 	activityLogServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 
 	"gorm.io/gorm"
 )
@@ -81,9 +82,11 @@ func (acs *AssetCategoryService) Create(currentUserID uint, assetCategoryFormDTO
 			id,
 			createdAssetCategory,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -98,7 +101,6 @@ func (acs *AssetCategoryService) Create(currentUserID uint, assetCategoryFormDTO
 	}()
 
 	return id, nil
-
 }
 
 func (acs *AssetCategoryService) Update(id uint, currentUserID uint, assetCategoryFormDTO *assetDTOs.AssetCategoryFormDTO) error {
@@ -127,7 +129,6 @@ func (acs *AssetCategoryService) Update(id uint, currentUserID uint, assetCatego
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status"}
 	changes, err := utility.CompareFields(oldAssetCategory, existingAssetCategory, fieldsToCompare)
-
 	if err != nil {
 		log.Println("error :", err.Error())
 	}
@@ -144,6 +145,9 @@ func (acs *AssetCategoryService) Update(id uint, currentUserID uint, assetCatego
 			id,
 			changedDataJSON,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

@@ -216,6 +216,9 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Create(auditFindingID uint
 			id,
 			existingAuditFindingActionPlanStatusUpdate,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -446,6 +449,9 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Update(auditFindingID uint
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {
@@ -665,6 +671,9 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Approve(AuditFindingID uin
 			id,
 			existingAuditFindingActionPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -825,6 +834,9 @@ func (afs *AuditFindingActionPlanStatusUpdateService) Revert(AuditFindingID uint
 			id,
 			existingAuditFindingActionPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

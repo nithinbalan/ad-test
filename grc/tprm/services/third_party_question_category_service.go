@@ -71,7 +71,7 @@ func (tpqcs *ThirdPartyQuestionCategoryService) Create(currentUserID uint, third
 			createdType.ID,
 			createdType,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -124,7 +124,7 @@ func (tpqcs *ThirdPartyQuestionCategoryService) Update(id uint, currentUserID ui
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

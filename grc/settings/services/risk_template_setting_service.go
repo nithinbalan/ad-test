@@ -129,7 +129,7 @@ func (rtss *RiskTemplateSettingService) Update(id uint, currentUserID uint, upda
 			id,
 			updatedTemplateSettingDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

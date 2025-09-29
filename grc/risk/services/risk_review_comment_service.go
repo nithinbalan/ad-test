@@ -189,7 +189,7 @@ func (pvccs *RiskReviewCommentService) Create(riskID uint, currentUserID uint, c
 			id,
 			existingComment,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -202,7 +202,6 @@ func (pvccs *RiskReviewCommentService) Create(riskID uint, currentUserID uint, c
 
 			utility.LogError("Failed to log activity", fields)
 		}
-
 	}()
 	return id, nil
 }
@@ -261,7 +260,7 @@ func (pvccs *RiskReviewCommentService) Update(riskID uint, id uint, currentUserI
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -330,7 +329,6 @@ func (pvccs *RiskReviewCommentService) Delete(riskID uint, ids []uint, currentUs
 }
 
 func (pvccs *RiskReviewCommentService) Resolve(riskID uint, commentId uint, currentUserID uint) error {
-
 	tx := pvccs.repo.BeginTransaction()
 
 	if _, err := pvccs.riskRegisterSvc.GetByID(riskID); err != nil {

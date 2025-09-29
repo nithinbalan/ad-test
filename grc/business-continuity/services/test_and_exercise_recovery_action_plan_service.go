@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	TestAndExerciseRecoveryActionPlanRepositories "jethur/grc/business-continuity/repositories"
 	commonDTOs "jethur/grc/common/dtos"
@@ -13,7 +15,6 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	taskServices "jethur/grc/task/services"
 	"jethur/utility"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -224,6 +225,9 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 			id,
 			existingTestAndExerciseRecoveryActionPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -437,6 +441,9 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {

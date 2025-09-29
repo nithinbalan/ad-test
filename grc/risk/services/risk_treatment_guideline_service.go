@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -47,7 +48,6 @@ func (rgs *RiskTreatmentGuidelineService) GetAll(params *riskDTOs.RiskTreatmentG
 
 func (rgs *RiskTreatmentGuidelineService) GetByID(id uint) (*models.RiskTreatmentGuideline, error) {
 	guideline, err := rgs.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -89,9 +89,8 @@ func (rgs *RiskTreatmentGuidelineService) Create(currentUserID uint, guidelineDT
 			id,
 			existingRiskTreatmentGuideline,
 			currentUserID,
-			nil,
+			"risk", "risk_matrix", "risk_treatment_guidelines", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -115,7 +114,6 @@ func (rgs *RiskTreatmentGuidelineService) Update(id uint, currentUserID uint, gu
 	}
 
 	existingGuideline, err := rgs.GetByID(id)
-
 	if err != nil {
 		return err
 	}
@@ -139,7 +137,7 @@ func (rgs *RiskTreatmentGuidelineService) Update(id uint, currentUserID uint, gu
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"risk_matrix_risk_rating": oldGuideline.RiskMatrixRiskRating.ID,
@@ -168,7 +166,7 @@ func (rgs *RiskTreatmentGuidelineService) Update(id uint, currentUserID uint, gu
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"risk", "risk_matrix", "risk_treatment_guidelines", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -178,7 +176,6 @@ func (rgs *RiskTreatmentGuidelineService) Update(id uint, currentUserID uint, gu
 				})
 			}
 		}
-
 	}()
 
 	return nil
@@ -191,7 +188,6 @@ func (rgs *RiskTreatmentGuidelineService) Delete(ids []uint, currentUserID uint)
 	for _, id := range ids {
 
 		_, err := rgs.repo.GetByID(id)
-
 		if err != nil {
 			continue
 		}
@@ -209,7 +205,6 @@ func (rgs *RiskTreatmentGuidelineService) Delete(ids []uint, currentUserID uint)
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := rgs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
@@ -233,7 +228,6 @@ func (rgs *RiskTreatmentGuidelineService) Activate(ids []uint, currentUserID uin
 	successfulIds, err := rgs.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := rgs.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
@@ -256,7 +250,6 @@ func (rgs *RiskTreatmentGuidelineService) Deactivate(ids []uint, currentUserID u
 	successfulIds, err := rgs.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := rgs.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,

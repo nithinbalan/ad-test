@@ -210,7 +210,7 @@ func (casus *StakeholderActionPlanStatusUpdateService) Create(StakeholderID uint
 			id,
 			stakeholderActionPlanUpdate,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -446,7 +446,7 @@ func (casus *StakeholderActionPlanStatusUpdateService) Update(StakeholderID uint
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -666,7 +666,7 @@ func (capus *StakeholderActionPlanStatusUpdateService) Approve(stakeholderID uin
 			id,
 			existingStakeholderActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -825,7 +825,7 @@ func (capus *StakeholderActionPlanStatusUpdateService) Revert(stakeholderID uint
 			id,
 			existingStakeholderActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

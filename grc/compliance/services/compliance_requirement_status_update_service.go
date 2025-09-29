@@ -3,15 +3,16 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+
 	"jethur/config"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -60,7 +61,6 @@ func (crsus ComplianceRequirementStatusUpdateService) GetByID(ComplianceID uint,
 	}
 
 	complianceRequirementStatusUpdate, err := crsus.repo.GetByID(id)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -138,7 +138,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 			tx.Rollback()
 			return 0, err
 		}
-		//move file to storage
+		// move file to storage
 		for _, doc := range documents {
 			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
@@ -157,9 +157,8 @@ func (crsus *ComplianceRequirementStatusUpdateService) Create(ComplianceID uint,
 			id,
 			complianceRequirementUpdate,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -184,13 +183,11 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 	}
 
 	existingComplianceRequirementStatusUpdate, err := crsus.GetByID(ComplianceID, ComplianceRequirementID, id)
-
 	if err != nil {
 		return err
 	}
 
 	oldComplianceRequirementStatusUpdate, err := crsus.GetByID(ComplianceID, ComplianceRequirementID, id)
-
 	if err != nil {
 		return err
 	}
@@ -211,18 +208,16 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 	var documentsToDelete []*models.ComplianceRequirementStatusUpdateDocument
 
 	for _, doc := range ComplianceRequirementStatusUpdateFormDTO.Documents {
-
 		if doc.IsNewFile != nil && *doc.IsNewFile {
 			// Encrypt the filename
 			dataToEncrypt := []byte(doc.FileName)
 			encryptedFileName, err := utility.EncryptData(dataToEncrypt)
-
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
-			//genereate URL
+			// genereate URL
 			url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(ComplianceID), 10), "requirements", strconv.FormatUint(uint64(ComplianceRequirementID), 10), "updates", strconv.FormatUint(uint64(id), 10), "documents")
 			// Create a new Control test Document instance
 			document := &models.ComplianceRequirementStatusUpdateDocument{
@@ -293,7 +288,7 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 			tx.Rollback()
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"comment": oldComplianceRequirementStatusUpdate.Comment,
@@ -315,9 +310,8 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -336,7 +330,6 @@ func (crsus *ComplianceRequirementStatusUpdateService) Update(ComplianceID uint,
 }
 
 func (crsus *ComplianceRequirementStatusUpdateService) validateComplianceRequirementStatusUpdateFormDTO(complianceRequirementStatusUpdateFormDTO *complianceDTOs.ComplianceRequirementStatusUpdateFormDTO) error {
-
 	if _, err := crsus.complianceStatusSvc.GetByID(complianceRequirementStatusUpdateFormDTO.ComplianceStatusID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
 	}
@@ -353,7 +346,6 @@ func (crsus ComplianceRequirementStatusUpdateService) GetLatestComplianceRequire
 }
 
 func (crsus *ComplianceRequirementStatusUpdateService) GetDocumentPath(ComplianceID, requirementID, id uint, token string) (string, error) {
-
 	existingComplianceRequirementStatusUpdate, err := crsus.GetByID(ComplianceID, requirementID, id)
 	if err != nil {
 		return "", err

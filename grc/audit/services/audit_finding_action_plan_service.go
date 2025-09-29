@@ -232,6 +232,9 @@ func (afaps *AuditFindingActionPlanService) Create(findingID uint, currentUserID
 			id,
 			existingAuditFindingActionPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -439,6 +442,9 @@ func (afaps *AuditFindingActionPlanService) Update(findingID uint, id uint, curr
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {

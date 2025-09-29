@@ -70,7 +70,7 @@ func (rss *RiskSourceService) Create(currentUserID uint, source *models.RiskSour
 			createdSource.ID,
 			createdSource,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -123,7 +123,7 @@ func (rss *RiskSourceService) Update(id uint, currentUserID uint, updatedSource 
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

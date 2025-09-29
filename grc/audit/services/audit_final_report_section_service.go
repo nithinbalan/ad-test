@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
@@ -82,9 +83,11 @@ func (afrss *AuditFinalReportSectionService) Update(auditID uint, id uint, curre
 			id,
 			auditFinalReportSectionFormDTO,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -150,7 +153,7 @@ func (afrss *AuditFinalReportSectionService) Delete(auditID uint, id uint, curre
 		for i, section := range subSections {
 			// Set new order based on parent's order + index increment
 			newOrder := baseOrder + float64(i+1)*0.1 // This ensures distinct ordering
-			section.Order = float64Ptr(newOrder) // Use the helper function to create a pointer
+			section.Order = float64Ptr(newOrder)     // Use the helper function to create a pointer
 			if err := afrss.repo.Update(&section, tx); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -167,6 +170,9 @@ func (afrss *AuditFinalReportSectionService) Delete(auditID uint, id uint, curre
 			id,
 			nil,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

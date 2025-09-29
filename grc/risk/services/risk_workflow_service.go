@@ -97,11 +97,20 @@ func (arws *RiskWorkflowService) GetRiskWorkflowList(riskID uint) (*riskDTOs.Ris
 		}
 
 		var lastApprovedAt time.Time
+		var lastRejectedAt time.Time
 		for _, review := range workflow.RiskWorkflowReviews {
 			userDTO := arws.mapUserToDTO(review.CreatedByUser)
-			workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, userDTO)
-			if review.CreatedAt.After(lastApprovedAt) {
-				lastApprovedAt = review.CreatedAt
+			if review.WorkflowStatus.Type == "approve" {
+				workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, userDTO)
+				if review.CreatedAt.After(lastApprovedAt) {
+					lastApprovedAt = review.CreatedAt
+				}
+			}
+			if review.WorkflowStatus.Type == "reject" {
+				workflowDTO.RejectedUser = userDTO
+				if review.CreatedAt.After(lastRejectedAt) {
+					lastRejectedAt = review.CreatedAt
+				}
 			}
 		}
 
@@ -111,6 +120,7 @@ func (arws *RiskWorkflowService) GetRiskWorkflowList(riskID uint) (*riskDTOs.Ris
 		}
 
 		workflowDTO.ApprovedAt = lastApprovedAt
+		workflowDTO.RejectedAt = lastRejectedAt
 		dto.RiskWorkflows = append(dto.RiskWorkflows, workflowDTO)
 	}
 

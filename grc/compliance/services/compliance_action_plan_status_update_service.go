@@ -210,6 +210,9 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 			id,
 			complianceActionPlanUpdate,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -447,6 +450,9 @@ func (casus *ComplianceActionPlanStatusUpdateService) Update(ComplianceID uint, 
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {
@@ -666,6 +672,9 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 			id,
 			existingComplianceActionPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -826,6 +835,9 @@ func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, 
 			id,
 			existingComplianceActionPlan,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {

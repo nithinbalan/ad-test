@@ -3,6 +3,11 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"jethur/config"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
@@ -12,10 +17,6 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -124,7 +125,7 @@ func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, action
 		tx.Rollback()
 		return 0, err
 	}
-    fmt.Println(id)
+	fmt.Println(id)
 	var documents []*models.AuditFindingActionPlanCommentDocument
 
 	for _, doc := range auditFindingActionPlanCommentFromDTO.Documents {
@@ -176,7 +177,7 @@ func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, action
 			}
 		}
 	}
-	
+
 	tx.Commit()
 	go func() {
 		existingComment, err := afaps.GetFullDetailsByID(findingID, actionPlanID, id)
@@ -191,9 +192,11 @@ func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, action
 			id,
 			existingComment,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -207,7 +210,6 @@ func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, action
 		}
 
 		if *auditFindingActionPlan.ResponsibleUserID == currentUserID {
-
 			if auditFindingActionPlan.ReviewUserID != nil {
 				// prepare notification
 				urlParam := fmt.Sprintf(`{"audit_finding_id":%d, "action_plan_id":%d}`, findingID, actionPlanID)
@@ -327,7 +329,7 @@ func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, action
 				"ActionPlanDescription":       auditFindingActionPlan.Description,
 				"CommentedByFirstNameEn":      assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":       assignedBy.LastNameEn,
-				"CommentedOn":                  time.Now().Format("2006-01-02"),
+				"CommentedOn":                 time.Now().Format("2006-01-02"),
 				"RedirectURL":                 fmt.Sprintf("%saudit/audit-findigs/%d/action-plans?action_plan_id=%d", appURL, findingID, actionPlanID),
 			}
 
@@ -395,7 +397,7 @@ func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, action
 				"ActionPlanDescription":       auditFindingActionPlan.Description,
 				"CommentedByFirstNameEn":      assignedBy.FirstNameEn,
 				"CommentedByLastNameEn":       assignedBy.LastNameEn,
-				"CommentedOn":                  time.Now().Format("2006-01-02"),
+				"CommentedOn":                 time.Now().Format("2006-01-02"),
 				"RedirectURL":                 fmt.Sprintf("%saudit/audit-findigs/%d/action-plans?action_plan_id=%d", appURL, findingID, actionPlanID),
 			}
 
@@ -464,7 +466,7 @@ func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, action
 					"ActionPlanDescription":       auditFindingActionPlan.Description,
 					"CommentedByFirstNameEn":      assignedBy.FirstNameEn,
 					"CommentedByLastNameEn":       assignedBy.LastNameEn,
-					"CommentedOn":                  time.Now().Format("2006-01-02"),
+					"CommentedOn":                 time.Now().Format("2006-01-02"),
 					"RedirectURL":                 fmt.Sprintf("%saudit/audit-findigs/%d/action-plans?action_plan_id=%d", appURL, findingID, actionPlanID),
 				}
 
@@ -485,7 +487,6 @@ func (afaps *AuditFindingActionPlanCommentService) Create(findingID uint, action
 			}
 
 		}
-
 	}()
 	return id, nil
 }
@@ -620,6 +621,9 @@ func (afaps *AuditFindingActionPlanCommentService) Update(findingID uint, action
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
 			if err != nil {

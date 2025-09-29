@@ -3,6 +3,11 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
 	logServices "jethur/grc/logs/services"
@@ -10,10 +15,6 @@ import (
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -233,6 +234,9 @@ func (ts *ThreatService) Create(threatFormDTO *dtos.ThreatFormDTO, currentUserID
 			id,
 			existingThreat,
 			currentUserID,
+			"asset",
+			"threat",
+			"threat_service",
 			nil,
 		)
 		if err != nil {
@@ -447,7 +451,7 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"threat_type":      oldThreat.ThreatType.TitleEn,
 			"severity_level":   oldThreat.SeverityLevel.TitleEn,
@@ -486,6 +490,9 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 				id,
 				changedData,
 				currentUserID,
+				"asset",
+				"threat",
+				"threat_service",
 				nil,
 			)
 			if err != nil {
@@ -502,7 +509,6 @@ func (ts *ThreatService) Update(id uint, threatFormDTO *dtos.ThreatFormDTO, curr
 	}()
 
 	return nil
-
 }
 
 func (ts *ThreatService) Delete(ids []uint, currentUserID uint) ([]uint, error) {

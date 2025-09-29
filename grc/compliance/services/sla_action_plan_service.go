@@ -226,7 +226,7 @@ func (saps *SLAActionPlanService) Create(slaID uint, currentUserID uint, slaActi
 			id,
 			existingSlaActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -441,7 +441,7 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

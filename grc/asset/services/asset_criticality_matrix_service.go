@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
 	logServices "jethur/grc/logs/services"
@@ -128,6 +129,9 @@ func (acms *AssetCriticalityMatrixService) Create(matrixFormDTO *dtos.AssetCriti
 			matrixID,
 			existingCriticalityMatrix,
 			currentUserID,
+			"asset",
+			"asset_criticality_matrix",
+			"asset_criticality_matrix_create",
 			nil,
 		)
 		if err != nil {
@@ -265,7 +269,7 @@ func (acms *AssetCriticalityMatrixService) Update(id uint, matrixFormDTO *dtos.A
 		if len(associatedItems) > 0 {
 			changedData["associated_items"] = associatedItems
 		}
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title_en": oldCriticalityMatrix.TitleEn,
 			"title_ar": oldCriticalityMatrix.TitleAr,
@@ -290,9 +294,11 @@ func (acms *AssetCriticalityMatrixService) Update(id uint, matrixFormDTO *dtos.A
 				id,
 				changedData,
 				currentUserID,
+				"asset",
+				"asset_criticality_matrix",
+				"asset_criticality_matrix_update",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -310,7 +316,6 @@ func (acms *AssetCriticalityMatrixService) Update(id uint, matrixFormDTO *dtos.A
 }
 
 func (acms *AssetCriticalityMatrixService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
-
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedCriticalityMatrix []map[string]interface{}

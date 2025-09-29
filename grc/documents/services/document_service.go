@@ -460,7 +460,7 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 			id,
 			existingDocument,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -516,7 +516,6 @@ func (ds *DocumentService) Create(currentUserID uint, documentFormDTO *documentD
 		} else {
 			log.Printf("Skipping document parsing as AI is not enabled in system preferences")
 		}
-
 	}(fileNameCopy)
 
 	return id, nil
@@ -1078,7 +1077,7 @@ func (ds *DocumentService) Update(id uint, currentUserID uint, documentFormDTO *
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -1674,7 +1673,6 @@ func (ds *DocumentService) CheckinDocument(id uint, currentUserID uint, document
 		} else {
 			log.Printf("Skipping document parsing as AI is not enabled in system preferences")
 		}
-
 	}()
 
 	return nil

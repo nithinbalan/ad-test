@@ -155,7 +155,7 @@ func (els *EscalationLevelService) Update(id uint, currentUserID uint, dto *sett
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log escalation level update", map[string]interface{}{

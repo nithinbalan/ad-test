@@ -3,21 +3,22 @@ package services
 import (
 	"encoding/json"
 	"errors"
+	"time"
+
 	logDTOs "jethur/grc/logs/dtos"
 	"jethur/grc/logs/repositories"
 	"jethur/grc/models"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type ActivityLogServiceInterface interface {
+	GetModuleIDByIdentifier(identifier string) (uint, error)
 	GetAll(params *logDTOs.ActivityLogListQueryParamsDTO) (*logDTOs.ActivityLogListResponseDTO, error)
 	GetFullDetailsByID(id uint) (*logDTOs.ActivityLogDetailDTO, error)
-	LogActivity(action models.Action, tableName string, recordID uint, changedData interface{}, userID uint, tx *gorm.DB) error
+	LogActivity(action models.Action, tableName string, recordID uint, changedData interface{}, userID uint, moduleIdentifier string, subModuleIdentifier string, section string, tx *gorm.DB) error
 	LogBulkActivities(action models.Action, tableName string, recordIDs []uint, changedData interface{}, userID uint, tx *gorm.DB) error // Simplified signature
-
 }
 
 type ActivityLogService struct {
@@ -26,6 +27,10 @@ type ActivityLogService struct {
 
 func NewActivityLogService(repo repositories.ActivityLogRepositoryInteface) ActivityLogServiceInterface {
 	return &ActivityLogService{repo: repo}
+}
+
+func (als *ActivityLogService) GetModuleIDByIdentifier(identifier string) (uint, error) {
+	return als.repo.GetModuleIDByIdentifier(identifier)
 }
 
 func (als *ActivityLogService) GetAll(params *logDTOs.ActivityLogListQueryParamsDTO) (*logDTOs.ActivityLogListResponseDTO, error) {
@@ -47,15 +52,39 @@ func (als *ActivityLogService) GetFullDetailsByID(id uint) (*logDTOs.ActivityLog
 		return nil, err
 	}
 
+	// Map module information
+	if activityLog.Module != nil {
+		activityLogDTO.ModuleID = &activityLog.Module.ID
+		activityLogDTO.Module = &logDTOs.ModuleMinimalDTO{
+			ID:         activityLog.Module.ID,
+			Identifier: activityLog.Module.Identifier,
+			TitleEn:    activityLog.Module.TitleEn,
+			TitleAr:    activityLog.Module.TitleAr,
+		}
+	}
+
+	// Map submodule information
+	if activityLog.SubModule != nil {
+		activityLogDTO.SubModuleID = &activityLog.SubModule.ID
+		activityLogDTO.SubModule = &logDTOs.ModuleMinimalDTO{
+			ID:         activityLog.SubModule.ID,
+			Identifier: activityLog.SubModule.Identifier,
+			TitleEn:    activityLog.SubModule.TitleEn,
+			TitleAr:    activityLog.SubModule.TitleAr,
+		}
+	}
+
 	return &activityLogDTO, nil
 }
 
-func (als *ActivityLogService) LogActivity(action models.Action, tableName string, recordID uint, changedData interface{}, userID uint, tx *gorm.DB) error {
-
+func (als *ActivityLogService) LogActivity(action models.Action, tableName string, recordID uint, changedData interface{}, userID uint, moduleIdentifier string, subModuleIdentifier string, section string, tx *gorm.DB) error {
 	changedDataJSON, err := json.Marshal(changedData)
 	if err != nil {
 		return err
 	}
+
+	moduleID, err := als.GetModuleIDByIdentifier(moduleIdentifier)
+	subModuleID, err := als.GetModuleIDByIdentifier(subModuleIdentifier)
 
 	activityLog := models.ActivityLog{
 		Action:      action,
@@ -63,6 +92,9 @@ func (als *ActivityLogService) LogActivity(action models.Action, tableName strin
 		RecordID:    recordID,
 		ChangedData: string(changedDataJSON),
 		UserID:      userID,
+		ModuleID:    &moduleID,
+		SubModuleID: &subModuleID,
+		Section:     &section,
 		CreatedAt:   time.Now(),
 	}
 	if tx != nil {

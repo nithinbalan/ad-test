@@ -184,6 +184,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/risk-register/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRegisterController.UpdateRiskRegister)
 	riskRoutes.POST("/risk-register/delete", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRegisterController.DeleteRiskRegisters)
 
+	unauthenticatedRoutes.GET("/identified-risks/:id/document-preview", riskRegisterController.GetRiskRegisterDocumentPreview)
+	unauthenticatedRoutes.GET("/identified-risks/:id/document-download", riskRegisterController.DownloadRiskRegisterDocument)
+	riskRoutes.GET("/identified-risks/export", middlewares.RolePermissionMiddleware(db, "identified_risk", "view"), riskRegisterController.GetRiskRegisterExport)
+	riskRoutes.GET("/identified-risks", middlewares.RolePermissionMiddleware(db, "identified_risk", "view"), riskRegisterController.GetAllIdentifiedRisks)
+	riskRoutes.GET("/identified-risks/:id", middlewares.RolePermissionMiddleware(db, "identified_risk", "view"), riskRegisterController.GetRiskRegisterDetails)
+	riskRoutes.POST("/identified-risks", middlewares.RolePermissionMiddleware(db, "identified_risk", "modify"), riskRegisterController.CreateRiskRegister)
+	riskRoutes.PUT("/identified-risks/:id", middlewares.RolePermissionMiddleware(db, "identified_risk", "modify"), riskRegisterController.UpdateRiskRegister)
+	riskRoutes.POST("/identified-risks/delete", middlewares.RolePermissionMiddleware(db, "identified_risk", "modify"), riskRegisterController.DeleteRiskRegisters)
+
 	riskRoutes.GET("risks/:riskId/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskRootCauseAnalysisController.GetAllRiskRootCauseAnalyses)
 	riskRoutes.POST("risks/:riskId/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRootCauseAnalysisController.CreateRiskRootCauseAnalysis)
 	riskRoutes.POST("risks/:riskId/root-cause-analyses", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRootCauseAnalysisController.CreateRiskRootCauseAnalyses)

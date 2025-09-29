@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	logServices "jethur/grc/logs/services"
 	meetingDTOs "jethur/grc/meeting/dtos"
 	meetingRepositories "jethur/grc/meeting/repositories"
@@ -116,9 +117,8 @@ func (mas *MeetingAgendaService) Create(meetingID uint, currentUserID uint, meet
 			id,
 			existingMeetingAgenda,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -167,7 +167,7 @@ func (mas *MeetingAgendaService) Update(meetingID uint, id uint, currentUserID u
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"title": oldMeetingAgenda.Title,
@@ -191,9 +191,8 @@ func (mas *MeetingAgendaService) Update(meetingID uint, id uint, currentUserID u
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -265,7 +264,6 @@ func (mas *MeetingAgendaService) Delete(meetingID uint, ids []uint, currentUserI
 }
 
 func (mas *MeetingAgendaService) validateMeetingAgendaFormDTO(agendaForm *meetingDTOs.MeetingAgendaFormDTO) error {
-
 	// Validate title length (max 500 characters)
 	if len(agendaForm.Title) > 500 {
 		return utility.NewValidationError(fmt.Errorf("title cannot exceed 500 characters"), "field_max_length", "title")

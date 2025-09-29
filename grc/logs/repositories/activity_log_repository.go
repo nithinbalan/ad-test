@@ -12,6 +12,7 @@ type ActivityLogRepositoryInteface interface {
 	GetAll(params *logDTOs.ActivityLogListQueryParamsDTO) (*logDTOs.ActivityLogListResponseDTO, error)
 	GetFullDetailsByID(id uint) (*models.ActivityLog, error)
 	SaveActivityLogs(logs []*models.ActivityLog, tx ...*gorm.DB) error
+	GetModuleIDByIdentifier(identifier string) (uint, error)
 }
 
 type ActivityLogRepository struct {
@@ -22,6 +23,14 @@ func NewActivityLogRepository(db *gorm.DB) *ActivityLogRepository {
 	return &ActivityLogRepository{
 		db: db,
 	}
+}
+
+func (repo *ActivityLogRepository) GetModuleIDByIdentifier(identifier string) (uint, error) {
+	var module models.Module
+	if err := repo.db.Where("identifier = ?", identifier).First(&module).Error; err != nil {
+		return 0, err
+	}
+	return module.ID, nil
 }
 
 func (repo *ActivityLogRepository) GetAll(params *logDTOs.ActivityLogListQueryParamsDTO) (*logDTOs.ActivityLogListResponseDTO, error) {
@@ -40,16 +49,38 @@ func (repo *ActivityLogRepository) GetAll(params *logDTOs.ActivityLogListQueryPa
 			users.email AS user_email,
 			users.profile_image_path AS user_profile_image_path,
 			users.initial AS user_initial,
-			users.color AS user_color
+			users.color AS user_color,
+			modules.id AS module_id,
+			modules.identifier AS module_identifier,
+			modules.title_en AS module_title_en,
+			modules.title_ar AS module_title_ar,
+			sub_modules.id AS sub_module_id,
+			sub_modules.identifier AS sub_module_identifier,
+			sub_modules.title_en AS sub_module_title_en,
+			sub_modules.title_ar AS sub_module_title_ar
 		`).
 		Joins(`
 			LEFT JOIN users ON users.id = activity_logs.user_id
+		`).
+		Joins(`
+			LEFT JOIN modules ON modules.id = activity_logs.module_id
+		`).
+		Joins(`
+			LEFT JOIN modules AS sub_modules ON sub_modules.id = activity_logs.sub_module_id
 		`)
 
 	// Apply filters for keyword search
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
-		query = query.Where("table_name LIKE ? OR changed_data LIKE ?", keyword, keyword)
+		query = query.Where(`
+			table_name LIKE ? OR 
+			changed_data LIKE ? OR 
+			modules.title_en LIKE ? OR 
+			modules.title_ar LIKE ? OR 
+			sub_modules.title_en LIKE ? OR 
+			sub_modules.title_ar LIKE ? OR
+			activity_logs.section LIKE ?
+		`, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Count total records for pagination
@@ -94,6 +125,8 @@ func (repo *ActivityLogRepository) GetFullDetailsByID(id uint) (*models.Activity
 
 	result := repo.db.
 		Preload("User").
+		Preload("Module").
+		Preload("SubModule").
 		First(&activityLog, id)
 
 	if result.Error != nil {

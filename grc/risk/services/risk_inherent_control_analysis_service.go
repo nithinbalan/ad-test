@@ -261,7 +261,7 @@ func (rcas *RiskInherentControlAnalysisService) Update(riskID uint, id uint, cur
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{

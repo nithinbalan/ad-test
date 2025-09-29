@@ -165,7 +165,7 @@ func (pasus *ProjectActionPlanStatusUpdateService) Create(ProjectID uint, Projec
 			id,
 			projectActionPlanUpdate,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -333,7 +333,7 @@ func (pasus *ProjectActionPlanStatusUpdateService) Update(ProjectID uint, Projec
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -461,7 +461,7 @@ func (pasus *ProjectActionPlanStatusUpdateService) Approve(projectID uint, proje
 			id,
 			existingProjectActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -534,7 +534,7 @@ func (pasus *ProjectActionPlanStatusUpdateService) Revert(projectID uint, projec
 			id,
 			existingProjectActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

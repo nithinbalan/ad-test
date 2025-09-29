@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
 	complianceServices "jethur/grc/compliance/services"
@@ -10,7 +12,6 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -101,6 +102,9 @@ func (apcs *AssetPolicyChecklistService) Create(formDTO *dtos.AssetPolicyCheckli
 			id,
 			checklist,
 			currentUserID,
+			"asset",
+			"asset_register",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -117,6 +121,7 @@ func (apcs *AssetPolicyChecklistService) Create(formDTO *dtos.AssetPolicyCheckli
 	}()
 	return id, nil
 }
+
 func (apcs *AssetPolicyChecklistService) Update(id uint, formDTO *dtos.AssetPolicyChecklistUpdateDTO, currentUserID uint) error {
 	tx := apcs.repo.BeginTransaction()
 

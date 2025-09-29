@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
 	logServices "jethur/grc/logs/services"
@@ -126,9 +127,11 @@ func (apbs *AuditPlanBudgetService) Create(auditPlanID uint, currentUserID uint,
 			id,
 			existingAuditPlanBudget,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -187,7 +190,7 @@ func (apbs *AuditPlanBudgetService) Update(id uint, auditPlanID uint, currentUse
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"expense_category": oldAuditPlanBudget.ExpenseCategory.TitleEn,
 			"title":            oldAuditPlanBudget.Title,
@@ -214,9 +217,11 @@ func (apbs *AuditPlanBudgetService) Update(id uint, auditPlanID uint, currentUse
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -274,9 +279,11 @@ func (apbs *AuditPlanBudgetService) Delete(ids []uint, currentUserID uint) ([]ui
 					id,
 					deletedAuditPlanBudget,
 					currentUserID,
+					"",
+					"",
+					"",
 					nil,
 				)
-
 				if err != nil {
 					fields := map[string]interface{}{
 						"action":    models.DeleteAction,

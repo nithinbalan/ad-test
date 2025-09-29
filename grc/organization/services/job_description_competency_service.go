@@ -164,7 +164,7 @@ func (jdcs *JobDescriptionCompetencyService) UpdateCompetencyDetails(jdcID uint,
 	})
 	go func() {
 		if len(changed) > 0 {
-			_ = jdcs.activityLogSvc.LogActivity(models.UpdateAction, models.JobDescriptionCompetency{}.TableName(), jdcID, changed, currentUserID, nil)
+			_ = jdcs.activityLogSvc.LogActivity(models.UpdateAction, models.JobDescriptionCompetency{}.TableName(), jdcID, changed, currentUserID, "", "", "", nil)
 		}
 	}()
 	return nil
@@ -187,7 +187,7 @@ func (jdcs *JobDescriptionCompetencyService) DeleteCompetency(jdcID uint, curren
 			jdcID,
 			existing,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 	}()
 	// Then delete the competency

@@ -155,6 +155,7 @@ type RiskRegisterDetailDTO struct {
 	LastReviewNote          *string                            `json:"last_review_note"`
 	NextReviewLevel         *int                               `json:"next_review_level"`
 	Documents               []*RiskDocumentDTO                 `json:"documents"`
+	SeverityLevel           masterDTOs.SeverityLevelDTO        `json:"severity_level"`
 	CreatedAt               time.Time                          `json:"created_at"`
 	UpdatedAt               *time.Time                         `json:"updated_at"`
 	CreatedByUser           organizationDTOs.UserMinimalDTO    `json:"created_by"`
@@ -278,6 +279,7 @@ type RiskRegisterFormDTO struct {
 	Documents         []*commonDTOs.DocumentFormDTO `json:"documents"`
 	SLARegisterIDs    []*uint                       `json:"sla_register_ids"`
 	AssetIds          []*uint                       `json:"asset_ids"`
+	SeverityLevelID   *uint                         `json:"severity_level_id"`
 
 	InherentRiskMatrixLikelihoodID *uint `json:"inherent_risk_matrix_likelihood_id"`
 	InherentRiskMatrixImpactID     *uint `json:"inherent_risk_matrix_impact_id"`

@@ -60,7 +60,7 @@ func (pts *ProjectTypeService) Create(currentUserID uint, pt *models.ProjectType
 			created.ID,
 			created,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			log.Printf("Failed to log activity: %v", err)
@@ -107,7 +107,7 @@ func (pts *ProjectTypeService) Update(id uint, currentUserID uint, updated *mode
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			log.Printf("Failed to log update activity: %v", err)

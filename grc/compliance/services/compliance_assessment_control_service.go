@@ -116,12 +116,14 @@ func (s *ComplianceAssessmentControlService) buildHierarchicalClauseStructure(cl
 
 	return rootClauses, nil
 }
+
 func (s *ComplianceAssessmentControlService) GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentControlListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentControlListResponseDTO, error) {
 	if _, err := s.complianceAssessmentSvc.GetByID(assessmentID); err != nil {
 		return nil, err
 	}
 	return s.repo.GetAll(assessmentID, params)
 }
+
 func (s *ComplianceAssessmentControlService) GetByID(id uint) (*models.ComplianceAssessmentControl, error) {
 	control, err := s.repo.GetByID(id)
 	if err != nil {
@@ -132,6 +134,7 @@ func (s *ComplianceAssessmentControlService) GetByID(id uint) (*models.Complianc
 	}
 	return control, nil
 }
+
 func (s *ComplianceAssessmentControlService) GetFullDetailsByID(assessmentId uint, controlId uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentControlDetailDTO, error) {
 	var dto complianceDTOs.ComplianceAssessmentControlDetailDTO
 
@@ -199,6 +202,7 @@ func (s *ComplianceAssessmentControlService) GetFullDetailsByID(assessmentId uin
 	dto.UpdatedAt = control.UpdatedAt
 	return &dto, nil
 }
+
 func (s *ComplianceAssessmentControlService) Update(complianceAssessmentId uint, controlId uint, currentUserID uint, updateForm *complianceDTOs.ComplianceAssessmentControlUpdateFormDTO) error {
 	control, err := s.GetByID(controlId)
 	if err != nil {
@@ -259,11 +263,12 @@ func (s *ComplianceAssessmentControlService) Update(complianceAssessmentId uint,
 			"score":   updateForm.Score,
 			"comment": updateForm.Comments,
 		}
-		_ = s.activityLogSvc.LogActivity(models.UpdateAction, models.ComplianceAssessmentControl{}.TableName(), controlId, changedData, currentUserID, nil)
+		_ = s.activityLogSvc.LogActivity(models.UpdateAction, models.ComplianceAssessmentControl{}.TableName(), controlId, changedData, currentUserID, "", "", "", nil)
 	}()
 
 	return nil
 }
+
 func (s *ComplianceAssessmentControlService) MarkAsCompleted(complianceAssessmentId uint, controlId uint, currentUserID uint) error {
 	tx := s.repo.BeginTransaction()
 
@@ -287,6 +292,7 @@ func (s *ComplianceAssessmentControlService) MarkAsCompleted(complianceAssessmen
 	tx.Commit()
 	return nil
 }
+
 func (s *ComplianceAssessmentControlService) MarkAsOpen(complianceAssessmentId uint, controlId uint, currentUserID uint) error {
 	tx := s.repo.BeginTransaction()
 
@@ -305,6 +311,7 @@ func (s *ComplianceAssessmentControlService) MarkAsOpen(complianceAssessmentId u
 	tx.Commit()
 	return nil
 }
+
 func (s *ComplianceAssessmentControlService) ApproveComplianceControl(assessmentID uint, controlID uint, currentUserID uint, commentForm *complianceDTOs.ComplianceAssessmentControlCommentFormDTO) error {
 	tx := s.repo.BeginTransaction()
 
@@ -353,7 +360,7 @@ func (s *ComplianceAssessmentControlService) ApproveComplianceControl(assessment
 			controlID,
 			map[string]interface{}{"status": "approved", "comment": commentForm.Comment},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		assessment, _ := s.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)
@@ -408,6 +415,7 @@ func (s *ComplianceAssessmentControlService) ApproveComplianceControl(assessment
 
 	return nil
 }
+
 func (s *ComplianceAssessmentControlService) RevertComplianceControl(assessmentID uint, controlID uint, currentUserID uint, commentForm *complianceDTOs.ComplianceAssessmentControlCommentFormDTO) error {
 	tx := s.repo.BeginTransaction()
 
@@ -467,7 +475,7 @@ func (s *ComplianceAssessmentControlService) RevertComplianceControl(assessmentI
 			controlID,
 			map[string]interface{}{"status": "reverted", "comment": commentForm.Comment},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		createdBy, _ := s.userSvc.GetByID(currentUserID)
@@ -517,6 +525,7 @@ func (s *ComplianceAssessmentControlService) RevertComplianceControl(assessmentI
 	}()
 	return nil
 }
+
 func (s *ComplianceAssessmentControlService) ResubmitComplianceControl(assessmentID uint, controlID uint, currentUserID uint, commentForm *complianceDTOs.ComplianceAssessmentControlCommentFormDTO) error {
 	tx := s.repo.BeginTransaction()
 
@@ -568,7 +577,7 @@ func (s *ComplianceAssessmentControlService) ResubmitComplianceControl(assessmen
 			controlID,
 			map[string]interface{}{"status": "resubmitted", "comment": commentForm.Comment},
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		assessmentDetails, _ := s.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)

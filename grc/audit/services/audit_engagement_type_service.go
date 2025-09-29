@@ -2,11 +2,12 @@ package services
 
 import (
 	"fmt"
+	"log"
+
 	"jethur/grc/audit/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 )
 
 type AuditEngagementTypeServiceInterface interface {
@@ -41,7 +42,6 @@ func (aets AuditEngagementTypeService) GetByID(id uint) (*models.AuditEngagement
 }
 
 func (aets *AuditEngagementTypeService) Create(currentUserID uint, auditEngagementType *models.AuditEngagementType) (*models.AuditEngagementType, error) {
-
 	if exists, err := aets.repo.ExistsByTitle(auditEngagementType.TitleEn, auditEngagementType.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
@@ -60,9 +60,11 @@ func (aets *AuditEngagementTypeService) Create(currentUserID uint, auditEngageme
 			createdEngagementType.ID,
 			createdEngagementType,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
-
 		if err != nil {
 			// @todo - save to log file
 			log.Printf("Failed to log activity: %v", err)
@@ -74,7 +76,6 @@ func (aets *AuditEngagementTypeService) Create(currentUserID uint, auditEngageme
 
 func (aets *AuditEngagementTypeService) Update(id uint, currentUserID uint, updatedEngagementType *models.AuditEngagementType) (*models.AuditEngagementType, error) {
 	existingEngagementType, err := aets.repo.GetByID(id)
-
 	if err != nil {
 		return nil, err
 	}
@@ -85,18 +86,15 @@ func (aets *AuditEngagementTypeService) Update(id uint, currentUserID uint, upda
 		} else if exists {
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
-
 	}
 
 	result, err := aets.repo.Update(id, updatedEngagementType)
-
 	if err != nil {
 		return nil, err
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "Status"}
 	changes, err := utility.CompareFields(existingEngagementType, updatedEngagementType, fieldsToCompare)
-
 	if err != nil {
 		log.Println("error :", err.Error())
 	}
@@ -113,6 +111,9 @@ func (aets *AuditEngagementTypeService) Update(id uint, currentUserID uint, upda
 			result.ID,
 			changedDataJSON,
 			currentUserID,
+			"",
+			"",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -130,7 +131,6 @@ func (aets *AuditEngagementTypeService) Delete(ids []uint, currentUserID uint) (
 	for _, id := range ids {
 
 		engagementType, err := aets.repo.GetByID(id)
-
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -150,7 +150,6 @@ func (aets *AuditEngagementTypeService) Delete(ids []uint, currentUserID uint) (
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := aets.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -174,7 +173,6 @@ func (aets *AuditEngagementTypeService) Activate(ids []uint, currentUserID uint)
 	successfulIds, err := aets.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := aets.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
@@ -198,7 +196,6 @@ func (aets *AuditEngagementTypeService) Deactivate(ids []uint, currentUserID uin
 	successfulIds, err := aets.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := aets.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,

@@ -2,11 +2,12 @@ package services
 
 import (
 	"fmt"
+	"log"
+
 	"jethur/grc/logs/services"
 	"jethur/grc/masters/repositories"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 )
 
 type UnitServiceInterface interface {
@@ -41,7 +42,6 @@ func (us UnitService) GetByID(id uint) (*models.Unit, error) {
 }
 
 func (us *UnitService) Create(currentUserID uint, unit *models.Unit) (*models.Unit, error) {
-
 	if err := us.validateUnitForm(unit, nil); err != nil {
 		return nil, err
 	}
@@ -58,9 +58,8 @@ func (us *UnitService) Create(currentUserID uint, unit *models.Unit) (*models.Un
 			unit.ID,
 			createdUnit,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			// @todo - save to log file
 			log.Printf("Failed to log activity: %v", err)
@@ -72,7 +71,6 @@ func (us *UnitService) Create(currentUserID uint, unit *models.Unit) (*models.Un
 
 func (us *UnitService) Update(id uint, currentUserID uint, updatedUnit *models.Unit) (*models.Unit, error) {
 	existingUnit, err := us.repo.GetByID(id)
-
 	if err != nil {
 		return nil, err
 	}
@@ -82,14 +80,12 @@ func (us *UnitService) Update(id uint, currentUserID uint, updatedUnit *models.U
 	}
 
 	result, err := us.repo.Update(id, updatedUnit)
-
 	if err != nil {
 		return nil, err
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "CodeEn", "CodeAr", "Type", "Status"}
 	changes, err := utility.CompareFields(existingUnit, updatedUnit, fieldsToCompare)
-
 	if err != nil {
 		log.Println("error :", err.Error())
 	}
@@ -106,7 +102,7 @@ func (us *UnitService) Update(id uint, currentUserID uint, updatedUnit *models.U
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
@@ -122,7 +118,6 @@ func (us *UnitService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	for _, id := range ids {
 
 		_, err := us.repo.GetByID(id)
-
 		if err != nil {
 			continue
 		}
@@ -136,7 +131,6 @@ func (us *UnitService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := us.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -160,7 +154,6 @@ func (us *UnitService) Activate(ids []uint, currentUserID uint) error {
 	successfulIds, err := us.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := us.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
@@ -184,7 +177,6 @@ func (us *UnitService) Deactivate(ids []uint, currentUserID uint) error {
 	successfulIds, err := us.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := us.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,
@@ -206,7 +198,6 @@ func (us *UnitService) Deactivate(ids []uint, currentUserID uint) error {
 }
 
 func (us *UnitService) validateUnitForm(unitForm *models.Unit, id *uint) error {
-
 	if id == nil {
 		if exists, err := us.repo.ExistsByTitle(unitForm.TitleEn, unitForm.TitleAr); err != nil {
 			return err

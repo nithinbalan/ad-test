@@ -187,7 +187,7 @@ func (ujds *UserJobDescriptionService) Delete(userID, jobDescriptionID, currentU
 			userJD.ID,
 			userJD,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 	}()
 
@@ -413,7 +413,7 @@ func (ujds *UserJobDescriptionService) DeleteUserJDFromDesignation(userID uint, 
 			userJD.ID,
 			userJD,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 	}()
 

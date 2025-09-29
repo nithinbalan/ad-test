@@ -112,7 +112,7 @@ func (spvs *StrategicProfileValueService) Create(currentUserID uint, strategicPr
 			createdStrategicProfileValueID,
 			strategicProfileValueFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

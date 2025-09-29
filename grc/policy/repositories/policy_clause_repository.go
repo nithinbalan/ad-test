@@ -77,7 +77,8 @@ func (repo *PolicyClauseRepository) GetAll(params *policyDTOs.PolicyClauseListQu
 		updated_user.profile_image_path AS updated_user_profile_image_path,
 		(SELECT COUNT(1) 
      FROM document_version_clause_comments c 
-     WHERE c.document_version_clause_id = document_version_clauses.id) AS comments_count
+	 JOIN comment_statuses ON comment_statuses.id = c.comment_status_id
+     WHERE c.document_version_clause_id = document_version_clauses.id AND c.document_version_clause_comment_id IS NULL AND comment_statuses.type IN ('open')) AS comments_count
 	`
 
 	query := repo.db.Table("document_version_clauses").

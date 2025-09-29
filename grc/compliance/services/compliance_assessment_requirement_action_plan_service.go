@@ -267,7 +267,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 			id,
 			existingComplianceAssessmentRequirementActionPlan,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -468,7 +468,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

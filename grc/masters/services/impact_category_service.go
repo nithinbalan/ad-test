@@ -70,7 +70,7 @@ func (ics *ImpactCategoryService) Create(currentUserID uint, category *models.Im
 			createdCategory.ID,
 			createdCategory,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -123,7 +123,7 @@ func (ics *ImpactCategoryService) Update(id uint, currentUserID uint, updatedCat
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

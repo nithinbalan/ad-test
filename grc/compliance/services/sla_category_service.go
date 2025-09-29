@@ -2,11 +2,12 @@ package services
 
 import (
 	"fmt"
+	"log"
+
 	"jethur/grc/compliance/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 )
 
 type SLACategoryServiceInterface interface {
@@ -41,7 +42,6 @@ func (scs SLACategoryService) GetByID(id uint) (*models.SLACategory, error) {
 }
 
 func (scs *SLACategoryService) Create(currentUserID uint, category *models.SLACategory) (*models.SLACategory, error) {
-
 	if exists, err := scs.repo.ExistsByTitle(category.TitleEn, category.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
@@ -60,9 +60,8 @@ func (scs *SLACategoryService) Create(currentUserID uint, category *models.SLACa
 			category.ID,
 			createdCategory,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			// @todo - save to log file
 			log.Printf("Failed to log activity: %v", err)
@@ -74,7 +73,6 @@ func (scs *SLACategoryService) Create(currentUserID uint, category *models.SLACa
 
 func (scs *SLACategoryService) Update(id uint, currentUserID uint, updatedCategory *models.SLACategory) (*models.SLACategory, error) {
 	existingCategory, err := scs.repo.GetByID(id)
-
 	if err != nil {
 		return nil, err
 	}
@@ -85,18 +83,15 @@ func (scs *SLACategoryService) Update(id uint, currentUserID uint, updatedCatego
 		} else if exists {
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
-
 	}
 
 	result, err := scs.repo.Update(id, updatedCategory)
-
 	if err != nil {
 		return nil, err
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status"}
 	changes, err := utility.CompareFields(existingCategory, updatedCategory, fieldsToCompare)
-
 	if err != nil {
 		log.Println("error :", err.Error())
 	}
@@ -113,7 +108,7 @@ func (scs *SLACategoryService) Update(id uint, currentUserID uint, updatedCatego
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
@@ -130,7 +125,6 @@ func (scs *SLACategoryService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	for _, id := range ids {
 
 		SLACategory, err := scs.repo.GetByID(id)
-
 		if err != nil {
 			continue
 		}
@@ -150,7 +144,6 @@ func (scs *SLACategoryService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := scs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
@@ -174,7 +167,6 @@ func (scs *SLACategoryService) Activate(ids []uint, currentUserID uint) error {
 	successfulIds, err := scs.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := scs.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
@@ -198,7 +190,6 @@ func (scs *SLACategoryService) Deactivate(ids []uint, currentUserID uint) error 
 	successfulIds, err := scs.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := scs.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,

@@ -146,7 +146,7 @@ func (ws *WorkflowService) Update(id uint, currentUserID uint, dto *settingsDTOs
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log escalation level update", map[string]interface{}{
@@ -350,7 +350,7 @@ func (ws *WorkflowService) CreateWorkFlowLevel(workflowId uint, currentUserID ui
 			id,
 			workflowLevelDetail,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {
@@ -424,7 +424,7 @@ func (ws *WorkflowService) DeleteWorkflowLevel(currentUserID, workflowLevelID ui
 			workflowLevelID,
 			deletedWorkflowLevel, // You can define a struct or map that describes the change
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// Optionally handle logging error, e.g., log to a file or another system

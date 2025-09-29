@@ -3,6 +3,10 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+
 	"jethur/config"
 	auditDTOs "jethur/grc/audit/dtos"
 	"jethur/grc/audit/repositories"
@@ -10,9 +14,6 @@ import (
 	mastersServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"os"
-	"path/filepath"
-	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -269,7 +270,7 @@ func (aws *AuditWorkpaperService) Update(id uint, auditID uint, currentUserID ui
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
-		//log changes
+		// log changes
 		oldData := map[string]interface{}{
 			"title":       oldAuditWorkpaper.Title,
 			"description": oldAuditWorkpaper.Description,
@@ -292,9 +293,11 @@ func (aws *AuditWorkpaperService) Update(id uint, auditID uint, currentUserID ui
 				id,
 				changedData,
 				currentUserID,
+				"",
+				"",
+				"",
 				nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -354,9 +357,11 @@ func (aws *AuditWorkpaperService) Delete(ids []uint, currentUserID uint) ([]uint
 					id,
 					deletedAuditWorkpaper,
 					currentUserID,
+					"",
+					"",
+					"",
 					nil,
 				)
-
 				if err != nil {
 					fields := map[string]interface{}{
 						"action":    models.DeleteAction,

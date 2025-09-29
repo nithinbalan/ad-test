@@ -159,7 +159,7 @@ func (ushs *UserDelegationService) Create(currentUserID uint, userDelegationForm
 			id,
 			userDelegation,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{

@@ -55,7 +55,7 @@ func (lss *LogSettingsService) Update(currentUserID uint, logSettingsFormDTO *dt
 			existingLogSettings.ID,
 			logSettingsFormDTO,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 
 		if err != nil {

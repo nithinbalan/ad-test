@@ -3,12 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	activityLogServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/grc/risk/repositories"
 	"jethur/utility"
-	"log"
 
 	"gorm.io/gorm"
 )
@@ -96,9 +97,8 @@ func (rmrrs *RiskMatrixRiskRatingService) Create(currentUserID uint, riskMatrixR
 			id,
 			existingRiskRating,
 			currentUserID,
-			nil,
+			"risk", "risk_matrix", "risk_rating", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -113,7 +113,6 @@ func (rmrrs *RiskMatrixRiskRatingService) Create(currentUserID uint, riskMatrixR
 	}()
 
 	return id, nil
-
 }
 
 func (rmrrs *RiskMatrixRiskRatingService) Update(id uint, currentUserID uint, riskMatrixRiskRatingFormDTO *riskDTOs.RiskMatrixRiskRatingFormDTO) error {
@@ -137,14 +136,12 @@ func (rmrrs *RiskMatrixRiskRatingService) Update(id uint, currentUserID uint, ri
 	existingRiskRating.Status = riskMatrixRiskRatingFormDTO.Status
 
 	err = rmrrs.repo.Update(existingRiskRating)
-
 	if err != nil {
 		return err
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "Type", "ColorCode", "Status"}
 	changes, err := utility.CompareFields(oldRiskRating, existingRiskRating, fieldsToCompare)
-
 	if err != nil {
 		log.Println("error :", err.Error())
 	}
@@ -161,7 +158,7 @@ func (rmrrs *RiskMatrixRiskRatingService) Update(id uint, currentUserID uint, ri
 			id,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"risk", "risk_matrix", "risk_rating", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
@@ -170,7 +167,6 @@ func (rmrrs *RiskMatrixRiskRatingService) Update(id uint, currentUserID uint, ri
 	}()
 
 	return nil
-
 }
 
 func (rmrrs *RiskMatrixRiskRatingService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
@@ -180,7 +176,6 @@ func (rmrrs *RiskMatrixRiskRatingService) Delete(ids []uint, currentUserID uint)
 	for _, id := range ids {
 
 		riskRating, err := rmrrs.repo.GetByID(id)
-
 		if err != nil {
 			fmt.Print(err)
 			continue
@@ -201,7 +196,6 @@ func (rmrrs *RiskMatrixRiskRatingService) Delete(ids []uint, currentUserID uint)
 	}
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := rmrrs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction, // Make sure this action constant is defined appropriately
@@ -225,7 +219,6 @@ func (rmrrs *RiskMatrixRiskRatingService) Activate(ids []uint, currentUserID uin
 	successfulIds, err := rmrrs.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := rmrrs.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
@@ -249,7 +242,6 @@ func (rmrrs *RiskMatrixRiskRatingService) Deactivate(ids []uint, currentUserID u
 	successfulIds, err := rmrrs.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
-
 		go func() {
 			err := rmrrs.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,

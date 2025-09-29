@@ -522,5 +522,5 @@ func (cc *ControlController) ImportControls(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"imported_ids": importedIDs})
+	c.JSON(http.StatusOK, gin.H{"created_ids": importedIDs})
 }

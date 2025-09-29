@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	logServices "jethur/grc/logs/services"
 	meetingDTOs "jethur/grc/meeting/dtos"
 	meetingRepositories "jethur/grc/meeting/repositories"
@@ -128,9 +129,8 @@ func (mms *MeetingMinuteService) Create(meetingID uint, currentUserID uint, meet
 			id,
 			existingMeetingMinute,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
@@ -179,7 +179,7 @@ func (mms *MeetingMinuteService) Update(meetingID uint, id uint, currentUserID u
 		if err != nil {
 			return
 		}
-		//log changes
+		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
 			"meeting_agenda": utility.GetFieldValue(oldMeetingMinute.MeetingAgenda).(string),
@@ -205,9 +205,8 @@ func (mms *MeetingMinuteService) Update(meetingID uint, id uint, currentUserID u
 				id,
 				changedData,
 				currentUserID,
-				nil,
+				"", "", "", nil,
 			)
-
 			if err != nil {
 				fields := map[string]interface{}{
 					"action":    models.UpdateAction,
@@ -288,7 +287,6 @@ func (mms *MeetingMinuteService) validateMeetingMinuteFormDTO(meetingMinuteFormD
 
 func (mms *MeetingMinuteService) StatusUpdate(id uint, currentUserID uint, meetingMinuteStatusID uint, tx ...utility.DatabaseTransaction) error {
 	existingMeetingMinute, err := mms.GetByID(id)
-
 	if err != nil {
 		return err
 	}
@@ -297,7 +295,6 @@ func (mms *MeetingMinuteService) StatusUpdate(id uint, currentUserID uint, meeti
 	existingMeetingMinute.UpdatedBYID = &currentUserID
 
 	err = mms.repo.Update(existingMeetingMinute, tx...)
-
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -65,7 +66,6 @@ func (sps *StrategyProfileStrategicObjectiveService) GetAll(strategyProfileID ui
 
 func (sps StrategyProfileStrategicObjectiveService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.StrategyProfileStrategicObjective, error) {
 	strategyProfileStrategicObjective, err := sps.repo.GetByID(id, tx...)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -105,7 +105,6 @@ func (sps *StrategyProfileStrategicObjectiveService) GetFullDetailsByID(strategy
 }
 
 func (sps *StrategyProfileStrategicObjectiveService) Create(strategyProfileID uint, currentUserID uint, strategyProfileStrategicObjectiveFormDTO *strategyDTOs.StrategyProfileStrategicObjectiveFormDTO) ([]uint, error) {
-
 	if _, err := sps.strategyProfileSvc.GetByID(strategyProfileID); err != nil {
 		return nil, err
 	}
@@ -170,7 +169,7 @@ func (sps *StrategyProfileStrategicObjectiveService) Create(strategyProfileID ui
 							"score":                          strategyProfileStrategicObjectiveFormDTO.Score,
 						},
 						currentUserID,
-						nil,
+						"strategy", "strategy_profile", "", nil,
 					)
 					if err != nil {
 						fields := map[string]interface{}{
@@ -198,7 +197,7 @@ func (sps *StrategyProfileStrategicObjectiveService) Create(strategyProfileID ui
 						"score":                          strategyProfileStrategicObjectiveFormDTO.Score,
 					},
 					currentUserID,
-					nil,
+					"strategy", "strategy_profile", "", nil,
 				)
 				if err != nil {
 					fields := map[string]interface{}{
@@ -258,9 +257,8 @@ func (sps *StrategyProfileStrategicObjectiveService) Delete(strategyProfileID ui
 				"score":                  strategyProfileStrategicObjective.Score,
 			},
 			currentUserID,
-			nil,
+			"strategy", "strategy_profile", "", nil,
 		)
-
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.DeleteAction,

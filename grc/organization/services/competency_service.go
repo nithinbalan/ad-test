@@ -3,12 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	logservice "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/organization/dtos"
 	"jethur/grc/organization/repositories"
 	"jethur/utility"
-	"log"
 
 	"gorm.io/gorm"
 )
@@ -76,7 +77,7 @@ func (cs *CompetencyService) Create(currentUserID uint, dto *dtos.CompetencyForm
 			createdCompetency.ID,
 			createdCompetency,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			log.Printf("Failed to log activity: %v", err)
@@ -123,7 +124,7 @@ func (cs *CompetencyService) Update(id uint, currentUserID uint, updatedCompeten
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			log.Printf("Failed to log update activity: %v", err)

@@ -2,12 +2,13 @@ package services
 
 import (
 	"fmt"
+	"log"
+
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/utility"
-	"log"
 )
 
 type ComplianceFolderServiceInterface interface {
@@ -63,9 +64,8 @@ func (cfs *ComplianceFolderService) Create(currentUserID uint, folder *models.Co
 			folder.ID,
 			createdFolder,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
-
 		if err != nil {
 			// @todo - save to log file
 			log.Printf("Failed to log activity: %v", err)
@@ -77,7 +77,6 @@ func (cfs *ComplianceFolderService) Create(currentUserID uint, folder *models.Co
 
 func (cfs *ComplianceFolderService) Update(id uint, currentUserID uint, updatedFolder *models.ComplianceFolder) (*models.ComplianceFolder, error) {
 	existingFolder, err := cfs.repo.GetByID(id)
-
 	if err != nil {
 		return nil, err
 	}
@@ -93,14 +92,12 @@ func (cfs *ComplianceFolderService) Update(id uint, currentUserID uint, updatedF
 	updatedFolder.UpdatedBYID = &currentUserID
 
 	result, err := cfs.repo.Update(id, updatedFolder)
-
 	if err != nil {
 		return nil, err
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status"}
 	changes, err := utility.CompareFields(existingFolder, updatedFolder, fieldsToCompare)
-
 	if err != nil {
 		log.Println("error :", err.Error())
 	}
@@ -117,7 +114,7 @@ func (cfs *ComplianceFolderService) Update(id uint, currentUserID uint, updatedF
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
