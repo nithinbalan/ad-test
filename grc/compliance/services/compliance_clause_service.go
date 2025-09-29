@@ -1301,7 +1301,7 @@ func (css *ComplianceClauseService) GenerateComplianceClauseControlTemplate(comp
 		return nil, fmt.Errorf("error fetching controls: %v", err)
 	}
 
-	controlHeaders := []string{"ReferenceNo","Code", "TitleEn"}
+	controlHeaders := []string{"TitleEn","Code", "ReferenceNo"}
 	controlData := [][]interface{}{}
 	for _, c := range controls.Items {
 		var code string
@@ -1310,8 +1310,7 @@ func (css *ComplianceClauseService) GenerateComplianceClauseControlTemplate(comp
 		} else {
 			code = ""
 		}
-		fmt.Println(c.ReferenceNumber, code, c.TitleEn)
-		controlData = append(controlData, []interface{}{c.ReferenceNumber,code, c.TitleEn})
+		controlData = append(controlData, []interface{}{c.TitleEn,code, c.ReferenceNumber})
 	}
 
 	dropDownConfig := map[string]bool{
@@ -1382,7 +1381,7 @@ func (css *ComplianceClauseService) validateControlMappings(complianceID uint, i
 	}
 	controlMap := make(map[string]uint)
 	for _, c := range controls.Items {
-		key := strings.TrimSpace(c.ReferenceNumber)
+		key := strings.TrimSpace(c.TitleEn)
 		controlMap[key] = c.ID
 	}
 
