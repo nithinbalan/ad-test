@@ -115,6 +115,7 @@ func (irs IncidentReportService) GetFullReportDetailsByID(id uint, tx ...utility
 			})
 		}
 	}
+	
 	incidentDTO.KPIs = []*commonDTOs.AssociatedKPIRegisterListDTO{}
 	for _, kpi := range incident.KPIs {
 		if kpi.KPIRegister != nil {
@@ -146,6 +147,7 @@ func (irs IncidentReportService) ExportIncidentReport(id uint, currentUserID uin
 	if err != nil {
 		return "", err
 	}
+
 	incidentDTO.GeneratedAt = time.Now().Format("2006-01-02 03:04 PM")
 
 	templatePaths := []string{"incident/templates/pdf/incident_report.html"}
