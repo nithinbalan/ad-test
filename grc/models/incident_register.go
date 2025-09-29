@@ -27,23 +27,32 @@ type IncidentRegister struct {
 	UpdatedAt             *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
-	IncidentCategory       *IncidentCategory                `gorm:"foreignKey:IncidentCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	IncidentType           *IncidentType                    `gorm:"foreignKey:IncidentTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel          *SeverityLevel                   `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	IncidentStatus         *IncidentStatus                  `gorm:"foreignKey:IncidentStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUnit        *OrganizationUnit                `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser        *User                            `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Documents              []*IncidentDocument              `gorm:"foreignKey:IncidentRegisterID"`
-	Controls               []*IncidentControl               `gorm:"foreignKey:IncidentRegisterID"`
-	ComplianceRequirements []*IncidentComplianceRequirement `gorm:"foreignKey:IncidentRegisterID"`
-	Risks                  []*IncidentRisk                  `gorm:"foreignKey:IncidentRegisterID"`
-	Processes              []*IncidentProcess               `gorm:"foreignKey:IncidentRegisterID"`
-	SLARegisters           []*IncidentSLA                   `gorm:"foreignKey:IncidentRegisterID"`
-	AssociatedDocuments    []*IncidentAssociatedDocument    `gorm:"foreignKey:IncidentRegisterID"`
-	Assets                 []*IncidentAsset                 `gorm:"foreignKey:IncidentRegisterID"`
-	ReportedByUser         *User                            `gorm:"foreignKey:ReportedBy"`
-	CreatedByUser          *User                            `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser          *User                            `gorm:"foreignKey:UpdatedByID"`
+	IncidentCategory          *IncidentCategory                `gorm:"foreignKey:IncidentCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	IncidentType              *IncidentType                    `gorm:"foreignKey:IncidentTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel             *SeverityLevel                   `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	IncidentStatus            *IncidentStatus                  `gorm:"foreignKey:IncidentStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit           *OrganizationUnit                `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser           *User                            `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Documents                 []*IncidentDocument              `gorm:"foreignKey:IncidentRegisterID"`
+	Controls                  []*IncidentControl               `gorm:"foreignKey:IncidentRegisterID"`
+	ComplianceRequirements    []*IncidentComplianceRequirement `gorm:"foreignKey:IncidentRegisterID"`
+	Risks                     []*IncidentRisk                  `gorm:"foreignKey:IncidentRegisterID"`
+	Processes                 []*IncidentProcess               `gorm:"foreignKey:IncidentRegisterID"`
+	SLARegisters              []*IncidentSLA                   `gorm:"foreignKey:IncidentRegisterID"`
+	AssociatedDocuments       []*IncidentAssociatedDocument    `gorm:"foreignKey:IncidentRegisterID"`
+	Assets                    []*IncidentAsset                 `gorm:"foreignKey:IncidentRegisterID"`
+	Timelines                 []*IncidentTimeline              `gorm:"foreignKey:IncidentRegisterID"`
+	CommunicationLogs         []*IncidentCommunicationLog      `gorm:"foreignKey:IncidentRegisterID"`
+	ActionPlans               []*IncidentActionPlan            `gorm:"foreignKey:IncidentRegisterID"`
+	IncidentClosure           *IncidentClosure                 `gorm:"foreignKey:IncidentRegisterID"`
+	IncidentPostReview        *IncidentPostReview              `gorm:"foreignKey:IncidentRegisterID"`
+	IncidentRootCauseAnalyses []*IncidentRootCauseAnalysis     `gorm:"foreignKey:IncidentRegisterID"`
+	StrategicObjectives       []*IncidentStrategicObjective    `gorm:"foreignKey:IncidentRegisterID"`
+	KPIs                      []*IncidentKPI                   `gorm:"foreignKey:IncidentRegisterID"`
+	Investigation             *IncidentInvestigation         `gorm:"foreignKey:IncidentRegisterID"`
+	ReportedByUser            *User                            `gorm:"foreignKey:ReportedBy"`
+	CreatedByUser             *User                            `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser             *User                            `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by IncidentRegister to `incident_register`

@@ -158,7 +158,7 @@ func NewIncidentModule(db *gorm.DB,
     incidentInvestigationSvc, 
     incidentClosureSvc,       
     incidentPostReviewSvc,    )
-	incidentReportController :=controllers.NewIncidentReportReportController(incidentReportSvc)
+	incidentReportController :=controllers.NewIncidentReportController(incidentReportSvc)
 
 	return &IncidentModule{
 		IncidentCategoryController:                incidentCategoryController,

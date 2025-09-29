@@ -5,7 +5,6 @@ import (
 	"os"
 	"strconv"
 	"time"
-
 	"jethur/grc/incident/services"
 	"jethur/utility"
 
@@ -18,13 +17,13 @@ type IncidentReportController struct {
 	db      *gorm.DB
 }
 
-func NewIncidentReportReportController(service services.IncidentReportServiceInterface) *IncidentReportController {
+func NewIncidentReportController(service services.IncidentReportServiceInterface) *IncidentReportController {
 	return &IncidentReportController{
 		service: service,
 	}
 }
 
-func (irc *IncidentReportController) ExportIncidentReportReportToPDF(c *gin.Context) {
+func (irc *IncidentReportController) ExportIncidentReportToPDF(c *gin.Context) {
 	incidentIDStr := c.Param("incidentID")
 	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 32)
 	if err != nil {
@@ -39,7 +38,7 @@ func (irc *IncidentReportController) ExportIncidentReportReportToPDF(c *gin.Cont
 	}
 
 	// Delegate to service to handle PDF generation
-	fileName, err := irc.service.ExportIncidentReportReport(uint(incidentID), uint(currentUserID))
+	fileName, err := irc.service.ExportIncidentReport(uint(incidentID), uint(currentUserID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
