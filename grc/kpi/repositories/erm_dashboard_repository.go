@@ -1263,41 +1263,37 @@ func (repo *ERMDashboardRepository) GetERMOpenRisksSummary(params *kpiDTOs.ERMDa
 
 	query := repo.db.Table("risk_register rr").
 		Select(`
-            rr.title AS risk_title,
-            rc.title_en AS category,
-            parent_unit.title_en AS department,
-            COUNT(DISTINCT rc_control.id) AS num_controls,
-            CONCAT(
-                CAST(ROUND(AVG(COALESCE(rca.score, 0)), 0) AS VARCHAR), 
-                '% (', 
-                CASE
-                    WHEN AVG(COALESCE(rca.score, 0)) >= 80 THEN 'Efficient'
-                    WHEN AVG(COALESCE(rca.score, 0)) >= 50 THEN 'Moderate'
-                    ELSE 'Inefficient'
-                END,
-                ')'
-            ) AS control_efficiency,
-            CONCAT(irms.title_en, ' (', iein.value, ')') AS inherent_rating,
-            CONCAT(rms.title_en, ' (', cein.value, ')') AS current_rating,
-            -- Get the most restrictive risk appetite level
-            -- Priority: significantly_above > above > approaching > within > marginally_below > below
-            CASE 
-                WHEN MAX(CASE WHEN ratl.type = 'significantly_above' THEN 1 ELSE 0 END) = 1 THEN 
-                    MAX(CASE WHEN ratl.type = 'significantly_above' THEN ratl.title_en END)
-                WHEN MAX(CASE WHEN ratl.type = 'above' THEN 1 ELSE 0 END) = 1 THEN 
-                    MAX(CASE WHEN ratl.type = 'above' THEN ratl.title_en END)
-                WHEN MAX(CASE WHEN ratl.type = 'approaching' THEN 1 ELSE 0 END) = 1 THEN 
-                    MAX(CASE WHEN ratl.type = 'approaching' THEN ratl.title_en END)
-                WHEN MAX(CASE WHEN ratl.type = 'within' THEN 1 ELSE 0 END) = 1 THEN 
-                    MAX(CASE WHEN ratl.type = 'within' THEN ratl.title_en END)
-                WHEN MAX(CASE WHEN ratl.type = 'marginally_below' THEN 1 ELSE 0 END) = 1 THEN 
-                    MAX(CASE WHEN ratl.type = 'marginally_below' THEN ratl.title_en END)
-                WHEN MAX(CASE WHEN ratl.type = 'below' THEN 1 ELSE 0 END) = 1 THEN 
-                    MAX(CASE WHEN ratl.type = 'below' THEN ratl.title_en END)
-                ELSE MAX(ratl.title_en)
-            END AS risk_by_source,
-            DATEDIFF(day, rr.reported_at, GETDATE()) AS days_open
-        `).
+			rr.title AS risk_title,
+			rc.title_en AS category,
+			parent_unit.title_en AS department,
+			COUNT(DISTINCT rc_control.id) AS num_controls,
+			AVG(COALESCE(rca.score, 0)) AS control_efficiency_percent,
+			CASE
+				WHEN AVG(COALESCE(rca.score, 0)) >= 80 THEN 'Efficient'
+				WHEN AVG(COALESCE(rca.score, 0)) >= 50 THEN 'Moderate'
+				ELSE 'Inefficient'
+			END AS control_efficiency,
+			irms.title_en AS inherent_rating,
+			iein.value AS inherent_rating_value,
+			rms.title_en AS current_rating,
+			cein.value AS current_rating_value,
+			CASE 
+				WHEN MAX(CASE WHEN ratl.type = 'significantly_above' THEN 1 ELSE 0 END) = 1 THEN 
+					MAX(CASE WHEN ratl.type = 'significantly_above' THEN ratl.title_en END)
+				WHEN MAX(CASE WHEN ratl.type = 'above' THEN 1 ELSE 0 END) = 1 THEN 
+					MAX(CASE WHEN ratl.type = 'above' THEN ratl.title_en END)
+				WHEN MAX(CASE WHEN ratl.type = 'approaching' THEN 1 ELSE 0 END) = 1 THEN 
+					MAX(CASE WHEN ratl.type = 'approaching' THEN ratl.title_en END)
+				WHEN MAX(CASE WHEN ratl.type = 'within' THEN 1 ELSE 0 END) = 1 THEN 
+					MAX(CASE WHEN ratl.type = 'within' THEN ratl.title_en END)
+				WHEN MAX(CASE WHEN ratl.type = 'marginally_below' THEN 1 ELSE 0 END) = 1 THEN 
+					MAX(CASE WHEN ratl.type = 'marginally_below' THEN ratl.title_en END)
+				WHEN MAX(CASE WHEN ratl.type = 'below' THEN 1 ELSE 0 END) = 1 THEN 
+					MAX(CASE WHEN ratl.type = 'below' THEN ratl.title_en END)
+				ELSE MAX(ratl.title_en)
+			END AS risk_by_source,
+			DATEDIFF(day, rr.reported_at, GETDATE()) AS days_open
+		`).
 		Joins("JOIN risk_statuses rs ON rs.id = rr.risk_status_id AND rs.status = ?", "active").
 		Joins("LEFT JOIN risk_categories rc ON rc.id = rr.risk_category_id AND rc.status = ?", "active").
 		Joins("LEFT JOIN organization_units ru ON ru.id = rr.responsible_unit_id").
