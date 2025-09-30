@@ -55,13 +55,13 @@ func (dtc *DocumentTypeController) GetDocumentTypeDetails(c *gin.Context) {
 }
 
 func (dtc *DocumentTypeController) CreateDocumentType(c *gin.Context) {
-	var request struct {
-		TitleEn string `json:"title_en" binding:"required"`
-		TitleAr string `json:"title_ar" binding:"required"`
-		Status  string `json:"status" binding:"required"`
+	var documentType *models.DocumentType
+
+	documentType = &models.DocumentType{
+		Type: "others",
 	}
 
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := c.ShouldBindJSON(&documentType); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -72,12 +72,6 @@ func (dtc *DocumentTypeController) CreateDocumentType(c *gin.Context) {
 		return
 	}
 
-	documentType := &models.DocumentType{
-		TitleEn: request.TitleEn,
-		TitleAr: request.TitleAr,
-		Status:  request.Status,
-		Type:    "others",
-	}
 	createdDocumentType, err := dtc.service.Create(currentUserID, documentType)
 	if err != nil {
 		switch e := err.(type) {
