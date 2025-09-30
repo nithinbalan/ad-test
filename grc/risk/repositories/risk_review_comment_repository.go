@@ -95,7 +95,7 @@ func (repo *RiskReviewCommentRepository) GetAll(riskID uint, currentUserID uint,
 	countQuery := repo.db.
 		Table("risk_review_comments").
 		Joins("LEFT JOIN comment_statuses ON comment_statuses.id = risk_review_comments.comment_status_id").
-		Where("risk_review_comments.risk_register_id = ?", riskID)
+		Where("risk_review_comments.risk_register_id = ? AND risk_review_comment_id IS NULL", riskID)
 
 		// Apply same filters
 	for columnName, values := range params.Filters {
