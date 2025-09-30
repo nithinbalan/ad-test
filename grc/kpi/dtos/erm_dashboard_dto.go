@@ -184,13 +184,16 @@ type ERMStrategicObjectivesRiskSummaryDTO struct {
 }
 
 type ERMRiskOrganizationUnitSummaryItemDTO struct {
-	OrganizationUnit   string `json:"organization_unit"`
-	TotalRisks         int64  `json:"total_risks"`
-	HighRisks          int64  `json:"high_risks"`
-	OpenRisks          int64  `json:"open_risks"`
-	ClosedRisks        int64  `json:"closed_risks"`
-	OverdueActionPlans int64  `json:"overdue_action_plans"`
-	ResidualRiskLevel  string `json:"residual_risk_level"`
+	OrganizationUnitTitleEn     string `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr     string `json:"organization_unit_title_ar"`
+	TotalRisks                  int64  `json:"total_risks"`
+	HighRisks                   int64  `json:"high_risks"`
+	OpenRisks                   int64  `json:"open_risks"`
+	ClosedRisks                 int64  `json:"closed_risks"`
+	OverdueActionPlans          int64  `json:"overdue_action_plans"`
+	ResidualRiskRatingTitleEn   string `json:"residual_risk_rating_title_en"`
+	ResidualRiskRatingTitleAr   string `json:"residual_risk_rating_title_ar"`
+	ResidualRiskRatingColorCode string `json:"residual_risk_rating_color_code"`
 }
 
 type ERMRiskOrganizationUnitSummaryDTO struct {

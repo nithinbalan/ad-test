@@ -250,25 +250,28 @@ func (repo *ERMDashboardRepository) GetERMRisksAboveAppetite(params *kpiDTOs.ERM
 	// Base query with risk levels
 	baseQuery := repo.db.Model(&models.RiskRegister{}).
 		Select(`
-			risk_matrix_risk_ratings.id,
-			risk_matrix_risk_ratings.type,
-			risk_matrix_risk_ratings.title_en,
-			risk_matrix_risk_ratings.title_ar,
-			risk_matrix_risk_ratings.color_code,
-			COUNT(*) AS count
-		`).
+        risk_matrix_risk_ratings.id,
+        risk_matrix_risk_ratings.type,
+        risk_matrix_risk_ratings.title_en,
+        risk_matrix_risk_ratings.title_ar,
+        risk_matrix_risk_ratings.color_code,
+        COUNT(DISTINCT risk_register.id) AS count
+    `).
 		Joins("JOIN risk_evaluations ON risk_evaluations.risk_register_id = risk_register.id").
+		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 		Joins("JOIN risk_appetite_alignments ON risk_appetite_alignments.risk_evaluation_id = risk_evaluations.id").
 		Joins("JOIN risk_appetite_tolerance_levels ON risk_appetite_tolerance_levels.id = risk_appetite_alignments.risk_appetite_tolerance_level_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
+		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
 		Where("risk_appetite_tolerance_levels.type = ?", "above").
+		Where("risk_evaluations.type = ?", "inherent").
 		Group(`
-			risk_matrix_risk_ratings.id,
-			risk_matrix_risk_ratings.type,
-			risk_matrix_risk_ratings.title_en,
-			risk_matrix_risk_ratings.title_ar,
-			risk_matrix_risk_ratings.color_code
-		`)
+        risk_matrix_risk_ratings.id,
+        risk_matrix_risk_ratings.type,
+        risk_matrix_risk_ratings.title_en,
+        risk_matrix_risk_ratings.title_ar,
+        risk_matrix_risk_ratings.color_code
+    `)
 
 	// Apply date filter if given
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -326,10 +329,22 @@ func (repo *ERMDashboardRepository) GetERMLeadershipAttentionMetrics(params *kpi
 		return nil, err
 	}
 
+	// Determine the highest available risk rating dynamically
+	var highestRating string
+	err := repo.db.Table("risk_matrix_risk_ratings").
+		Select("type").
+		Where("status = ?", "active").
+		Order("CASE type WHEN 'very_high' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 WHEN 'very_low' THEN 5 END").
+		Limit(1).
+		Pluck("type", &highestRating).Error
+	if err != nil || highestRating == "" {
+		return nil, fmt.Errorf("failed to fetch highest risk rating: %v", err)
+	}
+
 	// Critical risks uncontrolled
 	criticalQuery := buildBaseQuery().
 		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
-		Where("risk_matrix_risk_ratings.type IN ?", []string{"high", "very_high"}).
+		Where("risk_matrix_risk_ratings.type = ?", highestRating).
 		Where(`NOT EXISTS (
 			SELECT 1 FROM risk_controls
 			JOIN controls ON controls.id = risk_controls.control_id
@@ -337,7 +352,7 @@ func (repo *ERMDashboardRepository) GetERMLeadershipAttentionMetrics(params *kpi
 			WHERE risk_controls.risk_register_id = risk_register.id
 			AND control_efficiency_statuses.type = 'efficient'
 		)`)
-	if err := criticalQuery.Count(&summary.CriticalRisksUncontrolled).Error; err != nil {
+	if err = criticalQuery.Count(&summary.CriticalRisksUncontrolled).Error; err != nil {
 		return nil, err
 	}
 
@@ -516,11 +531,13 @@ func (repo *ERMDashboardRepository) GetERMRiskAppetiteOverview(params *kpiDTOs.E
 
 	query := repo.db.Model(&models.RiskRegister{}).
 		Joins("LEFT JOIN organization_units ru ON ru.id = risk_register.responsible_unit_id").
+		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(ru.organization_unit_id, ru.id) = parent_unit.id").
 		Joins("JOIN organization_levels ol ON ol.id = ru.organization_level_id AND ol.is_primary = ?", true).
-		Joins("JOIN risk_evaluations re ON re.risk_register_id = risk_register.id AND re.type = 'residual'").
+		Joins("JOIN risk_evaluations re ON re.risk_register_id = risk_register.id AND re.type = 'inherent'").
 		Joins("JOIN risk_appetite_alignments raa ON raa.risk_evaluation_id = re.id").
 		Joins("JOIN risk_appetite_tolerance_levels tl ON tl.id = raa.risk_appetite_tolerance_level_id AND tl.status = 'active'").
+		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
 		Where("parent_unit.status = ?", "active").
 		Select(`
 			parent_unit.title_en AS organization_unit,
@@ -980,7 +997,8 @@ func (repo *ERMDashboardRepository) GetERMRiskSummaryByOrganizationUnit(params *
 
 	// Select aggregated data
 	query = query.Select(`
-		parent_unit.title_en AS organization_unit,
+		parent_unit.title_en AS organization_unit_title_en,
+		parent_unit.title_ar AS organization_unit_title_ar,
 		COUNT(*) AS total_risks,
 		-- High risks based on current risk rating
 		COUNT(CASE WHEN current_rmrr.type IN ('high', 'very_high') THEN 1 END) AS high_risks,
@@ -988,29 +1006,40 @@ func (repo *ERMDashboardRepository) GetERMRiskSummaryByOrganizationUnit(params *
 		COUNT(CASE WHEN rs.type = 'closed' THEN 1 END) AS closed_risks,
 		COALESCE(SUM(overdue_ap.count), 0) AS overdue_action_plans,
 		-- Residual risk level based on residual risk rating (only for risks that have residual rating)
-		CASE MAX(
-				CASE 
-					WHEN residual_rmrr.type IS NOT NULL THEN
-						CASE residual_rmrr.type
-							WHEN 'very_high' THEN 5
-							WHEN 'high' THEN 4
-							WHEN 'medium' THEN 3
-							WHEN 'low' THEN 2
-							WHEN 'very_low' THEN 1
-							ELSE 0
-						END
-					ELSE NULL
-				END
-			)
-			WHEN 5 THEN 'Very High'
-			WHEN 4 THEN 'High'
-			WHEN 3 THEN 'Medium'
-			WHEN 2 THEN 'Low'
-			WHEN 1 THEN 'Very Low'
-			ELSE 'N/A'
-		END AS residual_risk_level
+		MAX(
+			CASE 
+				WHEN residual_rmrr.type = 'very_high' THEN 5
+				WHEN residual_rmrr.type = 'high' THEN 4
+				WHEN residual_rmrr.type = 'medium' THEN 3
+				WHEN residual_rmrr.type = 'low' THEN 2
+				WHEN residual_rmrr.type = 'very_low' THEN 1
+				ELSE 0
+			END
+		) AS residual_risk_score,
+
+		-- pick corresponding fields using the same numeric logic
+		MAX(CASE WHEN residual_rmrr.type = 'very_high' THEN residual_rmrr.title_en
+				WHEN residual_rmrr.type = 'high' THEN residual_rmrr.title_en
+				WHEN residual_rmrr.type = 'medium' THEN residual_rmrr.title_en
+				WHEN residual_rmrr.type = 'low' THEN residual_rmrr.title_en
+				WHEN residual_rmrr.type = 'very_low' THEN residual_rmrr.title_en
+			END) AS residual_risk_rating_title_en,
+
+		MAX(CASE WHEN residual_rmrr.type = 'very_high' THEN residual_rmrr.title_ar
+				WHEN residual_rmrr.type = 'high' THEN residual_rmrr.title_ar
+				WHEN residual_rmrr.type = 'medium' THEN residual_rmrr.title_ar
+				WHEN residual_rmrr.type = 'low' THEN residual_rmrr.title_ar
+				WHEN residual_rmrr.type = 'very_low' THEN residual_rmrr.title_ar
+			END) AS residual_risk_rating_title_ar,
+
+		MAX(CASE WHEN residual_rmrr.type = 'very_high' THEN residual_rmrr.color_code
+				WHEN residual_rmrr.type = 'high' THEN residual_rmrr.color_code
+				WHEN residual_rmrr.type = 'medium' THEN residual_rmrr.color_code
+				WHEN residual_rmrr.type = 'low' THEN residual_rmrr.color_code
+				WHEN residual_rmrr.type = 'very_low' THEN residual_rmrr.color_code
+			END) AS residual_risk_rating_color_code
 	`).
-		Group("parent_unit.id, parent_unit.title_en")
+		Group("parent_unit.id, parent_unit.title_en, parent_unit.title_ar")
 
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
@@ -1028,13 +1057,16 @@ func (repo *ERMDashboardRepository) GetERMRiskSummaryByOrganizationUnit(params *
 	overview := make([]kpiDTOs.ERMRiskOrganizationUnitSummaryItemDTO, len(results))
 	for i, r := range results {
 		overview[i] = kpiDTOs.ERMRiskOrganizationUnitSummaryItemDTO{
-			OrganizationUnit:   r.OrganizationUnit,
-			TotalRisks:         r.TotalRisks,
-			HighRisks:          r.HighRisks,
-			OpenRisks:          r.OpenRisks,
-			ClosedRisks:        r.ClosedRisks,
-			OverdueActionPlans: r.OverdueActionPlans,
-			ResidualRiskLevel:  r.ResidualRiskLevel,
+			OrganizationUnitTitleEn:     r.OrganizationUnitTitleEn,
+			OrganizationUnitTitleAr:     r.OrganizationUnitTitleAr,
+			TotalRisks:                  r.TotalRisks,
+			HighRisks:                   r.HighRisks,
+			OpenRisks:                   r.OpenRisks,
+			ClosedRisks:                 r.ClosedRisks,
+			OverdueActionPlans:          r.OverdueActionPlans,
+			ResidualRiskRatingTitleEn:   r.ResidualRiskRatingTitleEn,
+			ResidualRiskRatingTitleAr:   r.ResidualRiskRatingTitleAr,
+			ResidualRiskRatingColorCode: r.ResidualRiskRatingColorCode,
 		}
 	}
 
