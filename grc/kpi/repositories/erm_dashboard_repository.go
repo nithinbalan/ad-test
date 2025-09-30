@@ -38,7 +38,7 @@ type ERMDashboardRepositoryInterface interface {
 	GetERMRiskResponseStrategySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskResponseStrategySummaryDTO, error)
 	GetERMRiskControlEfficiencySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskControlEfficiencySummaryDTO, error)
 	GetERMRiskMitigationPlanStatusSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskMitigationPlanStatusSummaryDTO, error)
-	GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error)
+	GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error)
 
 	GetTopRiskRegisters(params *kpiDTOs.ERMDashboardQueryParamsDTO) ([]*riskDTOs.RiskRegisterListDTO, error)
 }
@@ -1326,8 +1326,9 @@ func (repo *ERMDashboardRepository) GetERMRiskMitigationPlanStatusSummary(params
 	}, nil
 }
 
-func (repo *ERMDashboardRepository) GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error) {
+func (repo *ERMDashboardRepository) GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error) {
 	results := []kpiDTOs.ERMOpenRiskSummaryItemDTO{}
+	var totalCount int64
 
 	query := repo.db.Table("risk_register rr").
 		Select(`
@@ -1386,13 +1387,30 @@ func (repo *ERMDashboardRepository) GetERMOpenRisksSummary(params *kpiDTOs.ERMDa
 		query = query.Where("rr.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
-	if err := query.Scan(&results).Error; err != nil {
+	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
-	return &kpiDTOs.ERMOpenRisksSummaryDTO{
-		OpenRisks: results,
-	}, nil
+	offset := (params.Page - 1) * params.PageSize
+
+	err := query.Offset(offset).Limit(params.PageSize).Find(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &kpiDTOs.ERMOpenRisksSummaryDTO{
+		Items: results,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
 }
 
 func (repo *ERMDashboardRepository) GetTopRiskRegisters(params *kpiDTOs.ERMDashboardQueryParamsDTO) ([]*riskDTOs.RiskRegisterListDTO, error) {

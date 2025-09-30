@@ -631,9 +631,23 @@ func (edc *ERMDashboardController) GetERMOpenRisksSummary(c *gin.Context) {
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
-	queryParams := kpiDTOs.ERMDashboardQueryParamsDTO{
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(edc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(edc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := kpiDTOs.ERMDashboardListQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
+		Page:     page,
+		PageSize: pageSize,
 	}
 
 	summary, err := edc.service.GetERMOpenRisksSummary(&queryParams)

@@ -32,7 +32,7 @@ type ERMDashboardServiceInterface interface {
 	GetERMRiskResponseStrategySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskResponseStrategySummaryDTO, error)
 	GetERMRiskControlEfficiencySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskControlEfficiencySummaryDTO, error)
 	GetERMRiskMitigationPlanStatusSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskMitigationPlanStatusSummaryDTO, error)
-	GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error)
+	GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error)
 
 	GetTopRiskRegisters(params *kpiDTOs.ERMDashboardQueryParamsDTO) ([]*riskDTOs.RiskRegisterListDTO, error)
 }
@@ -137,7 +137,7 @@ func (eds *ERMDashboardService) GetERMRiskMitigationPlanStatusSummary(params *kp
 	return eds.repo.GetERMRiskMitigationPlanStatusSummary(params)
 }
 
-func (eds *ERMDashboardService) GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error) {
+func (eds *ERMDashboardService) GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error) {
 	return eds.repo.GetERMOpenRisksSummary(params)
 }
 

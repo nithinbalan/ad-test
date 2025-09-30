@@ -283,5 +283,6 @@ type ERMOpenRiskSummaryItemDTO struct {
 }
 
 type ERMOpenRisksSummaryDTO struct {
-	OpenRisks []ERMOpenRiskSummaryItemDTO `json:"open_risks"`
+	Items      []ERMOpenRiskSummaryItemDTO  `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }

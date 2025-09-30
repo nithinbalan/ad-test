@@ -53,14 +53,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/erm/risk-treatment-plan-progress", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMRiskTreatmentPlanProgress)
 	kpiRoutes.GET("/kpis/erm/strategic-objectives-risk-overview", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMStrategicObjectivesRiskOverview)
 	kpiRoutes.GET("/kpis/erm/strategic-objectives-risk-summary", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMStrategicObjectivesRiskSummary)
-	kpiRoutes.GET("/kpis/erm/risk-summary-by-department", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMRiskSummaryByOrganizationUnit)
+	kpiRoutes.GET("/kpis/erm/risk-summary-by-organization-unit", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMRiskSummaryByOrganizationUnit)
 	kpiRoutes.GET("/kpis/erm/risk-heat-map", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMRiskHeatMap)
 
 	// ERM Dashbaord Risk Details
 	kpiRoutes.GET("/kpis/erm-details/category", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMRiskCategorySummary)
 	kpiRoutes.GET("/kpis/erm-details/source", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMRiskSourceSummary)
 	kpiRoutes.GET("/kpis/erm-details/status", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMRiskStatusSummary)
-	kpiRoutes.GET("/kpis/erm-details/department", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMRiskOrganizationUnitSummary)
+	kpiRoutes.GET("/kpis/erm-details/organization-unit", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMRiskOrganizationUnitSummary)
 	kpiRoutes.GET("/kpis/erm-details/identified", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMRisksIdentifiedSummary)
 	kpiRoutes.GET("/kpis/erm-details/response-strategy", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMRiskResponseStrategySummary)
 	kpiRoutes.GET("/kpis/erm-details/control-efficiency", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMRiskControlEfficiencySummary)
