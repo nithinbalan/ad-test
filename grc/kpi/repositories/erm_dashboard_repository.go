@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -24,9 +25,9 @@ type ERMDashboardRepositoryInterface interface {
 	GetERMRiskAppetiteSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAppetiteSummarytDTO, error)
 	GetERMRiskAgingStatus(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAgingStatusDTO, error)
 	GetERMRiskTreatmentPlanProgress(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskTreatmentPlanProgressDTO, error)
-	GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error)
+	GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error)
 	GetERMStrategicObjectivesRiskSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectivesRiskSummaryDTO, error)
-	GetERMRiskSummaryByDepartment(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskDepartmentSummaryDTO, error)
+	GetERMRiskSummaryByDepartment(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMRiskDepartmentSummaryDTO, error)
 
 	// ERM Risk Details
 	GetERMRiskCategorySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskCategorySummaryDTO, error)
@@ -782,12 +783,14 @@ func (repo *ERMDashboardRepository) GetERMRiskTreatmentPlanProgress(params *kpiD
 	}, nil
 }
 
-func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error) {
-	summary := &kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO{}
+func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error) {
+	strategicObjectiveRisks := []kpiDTOs.ERMStregicObjectiveRiskItemDTO{}
+	var totalCount int64
 
 	baseQuery := repo.db.Table("strategic_objectives so").
 		Select(`
-            so.title_en as strategic_objective,
+            so.title_en as strategic_objective_title_en,
+			so.title_ar as strategic_objective_title_ar,
             (
 				SELECT STRING_AGG(rr.reference_number, ', ')
 				WITHIN GROUP (ORDER BY rr.reference_number)
@@ -797,39 +800,63 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params
 				WHERE rso.strategic_objective_id = so.id
 			) as linked_risks,
             COUNT(CASE WHEN rmrr.type IN ('high', 'very_high') THEN 1 END) as high_risk_count,
-            CASE 
-                WHEN MAX(CASE WHEN rmrr.type = 'very_high' THEN 5 
-                             WHEN rmrr.type = 'high' THEN 4 
-                             WHEN rmrr.type = 'medium' THEN 3 
-                             WHEN rmrr.type = 'low' THEN 2 
-                             WHEN rmrr.type = 'very_low' THEN 1 
-                             ELSE 0 END) = 5 THEN 'Very High'
-                WHEN MAX(CASE WHEN rmrr.type = 'very_high' THEN 5 
-                             WHEN rmrr.type = 'high' THEN 4 
-                             WHEN rmrr.type = 'medium' THEN 3 
-                             WHEN rmrr.type = 'low' THEN 2 
-                             WHEN rmrr.type = 'very_low' THEN 1 
-                             ELSE 0 END) = 4 THEN 'High'
-                WHEN MAX(CASE WHEN rmrr.type = 'very_high' THEN 5 
-                             WHEN rmrr.type = 'high' THEN 4 
-                             WHEN rmrr.type = 'medium' THEN 3 
-                             WHEN rmrr.type = 'low' THEN 2 
-                             WHEN rmrr.type = 'very_low' THEN 1 
-                             ELSE 0 END) = 3 THEN 'Medium'
-                WHEN MAX(CASE WHEN rmrr.type = 'very_high' THEN 5 
-                             WHEN rmrr.type = 'high' THEN 4 
-                             WHEN rmrr.type = 'medium' THEN 3 
-                             WHEN rmrr.type = 'low' THEN 2 
-                             WHEN rmrr.type = 'very_low' THEN 1 
-                             ELSE 0 END) = 2 THEN 'Low'
-                WHEN MAX(CASE WHEN rmrr.type = 'very_high' THEN 5 
-                             WHEN rmrr.type = 'high' THEN 4 
-                             WHEN rmrr.type = 'medium' THEN 3 
-                             WHEN rmrr.type = 'low' THEN 2 
-                             WHEN rmrr.type = 'very_low' THEN 1 
-                             ELSE 0 END) = 1 THEN 'Very Low'
-                ELSE 'No Rating'
-            END as risk_rating,
+            COALESCE(
+                (SELECT TOP 1 title_en FROM risk_matrix_risk_ratings 
+                 WHERE CASE 
+                     WHEN type = 'very_high' THEN 5
+                     WHEN type = 'high' THEN 4
+                     WHEN type = 'medium' THEN 3
+                     WHEN type = 'low' THEN 2
+                     WHEN type = 'very_low' THEN 1
+                     ELSE 0 
+                 END = MAX(CASE 
+                     WHEN rmrr.type = 'very_high' THEN 5
+                     WHEN rmrr.type = 'high' THEN 4
+                     WHEN rmrr.type = 'medium' THEN 3
+                     WHEN rmrr.type = 'low' THEN 2
+                     WHEN rmrr.type = 'very_low' THEN 1
+                     ELSE 0 
+                 END)),
+                'No Rating'
+            ) AS risk_rating_title_en,
+            COALESCE(
+                (SELECT TOP 1 title_ar FROM risk_matrix_risk_ratings 
+                 WHERE CASE 
+                     WHEN type = 'very_high' THEN 5
+                     WHEN type = 'high' THEN 4
+                     WHEN type = 'medium' THEN 3
+                     WHEN type = 'low' THEN 2
+                     WHEN type = 'very_low' THEN 1
+                     ELSE 0 
+                 END = MAX(CASE 
+                     WHEN rmrr.type = 'very_high' THEN 5
+                     WHEN rmrr.type = 'high' THEN 4
+                     WHEN rmrr.type = 'medium' THEN 3
+                     WHEN rmrr.type = 'low' THEN 2
+                     WHEN rmrr.type = 'very_low' THEN 1
+                     ELSE 0 
+                 END)),
+                'No Rating'
+            ) AS risk_rating_title_ar,
+			 COALESCE(
+                (SELECT TOP 1 color_code FROM risk_matrix_risk_ratings 
+                 WHERE CASE 
+                     WHEN type = 'very_high' THEN 5
+                     WHEN type = 'high' THEN 4
+                     WHEN type = 'medium' THEN 3
+                     WHEN type = 'low' THEN 2
+                     WHEN type = 'very_low' THEN 1
+                     ELSE 0 
+                 END = MAX(CASE 
+                     WHEN rmrr.type = 'very_high' THEN 5
+                     WHEN rmrr.type = 'high' THEN 4
+                     WHEN rmrr.type = 'medium' THEN 3
+                     WHEN rmrr.type = 'low' THEN 2
+                     WHEN rmrr.type = 'very_low' THEN 1
+                     ELSE 0 
+                 END)),
+                ''
+            ) AS risk_rating_color_code,
             CASE 
                 WHEN COUNT(CASE WHEN ratl.type IN ('above', 'significantly_above') THEN 1 END) > 0 THEN 'Yes'
                 ELSE 'No'
@@ -856,12 +883,32 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params
 	}
 
 	// Group by strategic objective - only include objectives that have linked risks
-	err := baseQuery.Group("so.id, so.title_en").Scan(&summary.StrategicObjectiveRisks).Error
+	baseQuery = baseQuery.Group("so.id, so.title_en, so.title_ar")
+
+	if err := baseQuery.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	offset := (params.Page - 1) * params.PageSize
+
+	err := baseQuery.Offset(offset).Limit(params.PageSize).Find(&strategicObjectiveRisks).Error
 	if err != nil {
 		return nil, err
 	}
 
-	return summary, nil
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO{
+		Items: strategicObjectiveRisks,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
 }
 
 func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectivesRiskSummaryDTO, error) {
@@ -901,8 +948,9 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskSummary(params 
 	return summary, nil
 }
 
-func (repo *ERMDashboardRepository) GetERMRiskSummaryByDepartment(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskDepartmentSummaryDTO, error) {
+func (repo *ERMDashboardRepository) GetERMRiskSummaryByDepartment(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMRiskDepartmentSummaryDTO, error) {
 	results := []kpiDTOs.ERMRiskDepartmentSummaryItemDTO{}
+	var totalCount int64
 
 	query := repo.db.Table("risk_register rr").
 		Joins("LEFT JOIN organization_units ru ON ru.id = rr.responsible_unit_id").
@@ -964,9 +1012,18 @@ func (repo *ERMDashboardRepository) GetERMRiskSummaryByDepartment(params *kpiDTO
 	`).
 		Group("parent_unit.id, parent_unit.title_en")
 
-	if err := query.Scan(&results).Error; err != nil {
+	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
+
+	offset := (params.Page - 1) * params.PageSize
+
+	err := query.Offset(offset).Limit(params.PageSize).Find(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
 	overview := make([]kpiDTOs.ERMRiskDepartmentSummaryItemDTO, len(results))
 	for i, r := range results {
@@ -981,9 +1038,17 @@ func (repo *ERMDashboardRepository) GetERMRiskSummaryByDepartment(params *kpiDTO
 		}
 	}
 
-	return &kpiDTOs.ERMRiskDepartmentSummaryDTO{
-		RiskSummaryByDepartments: overview,
-	}, nil
+	response := &kpiDTOs.ERMRiskDepartmentSummaryDTO{
+		Items: overview,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
 }
 
 func (repo *ERMDashboardRepository) GetERMRiskCategorySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskCategorySummaryDTO, error) {

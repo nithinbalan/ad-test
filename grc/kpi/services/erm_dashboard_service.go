@@ -19,9 +19,9 @@ type ERMDashboardServiceInterface interface {
 	GetERMRiskAppetiteSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAppetiteSummarytDTO, error)
 	GetERMRiskAgingStatus(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAgingStatusDTO, error)
 	GetERMRiskTreatmentPlanProgress(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskTreatmentPlanProgressDTO, error)
-	GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error)
+	GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error)
 	GetERMStrategicObjectivesRiskSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectivesRiskSummaryDTO, error)
-	GetERMRiskSummaryByDepartment(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskDepartmentSummaryDTO, error)
+	GetERMRiskSummaryByDepartment(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMRiskDepartmentSummaryDTO, error)
 
 	// ERM Risk Details
 	GetERMRiskCategorySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskCategorySummaryDTO, error)
@@ -93,7 +93,7 @@ func (eds *ERMDashboardService) GetERMRiskTreatmentPlanProgress(params *kpiDTOs.
 	return eds.repo.GetERMRiskTreatmentPlanProgress(params)
 }
 
-func (eds *ERMDashboardService) GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error) {
+func (eds *ERMDashboardService) GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error) {
 	return eds.repo.GetERMStrategicObjectivesRiskOverview(params)
 }
 
@@ -101,7 +101,7 @@ func (eds *ERMDashboardService) GetERMStrategicObjectivesRiskSummary(params *kpi
 	return eds.repo.GetERMStrategicObjectivesRiskSummary(params)
 }
 
-func (eds *ERMDashboardService) GetERMRiskSummaryByDepartment(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskDepartmentSummaryDTO, error) {
+func (eds *ERMDashboardService) GetERMRiskSummaryByDepartment(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMRiskDepartmentSummaryDTO, error) {
 	return eds.repo.GetERMRiskSummaryByDepartment(params)
 }
 

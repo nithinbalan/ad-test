@@ -1,5 +1,9 @@
 package dtos
 
+import (
+	commonDTOs "jethur/grc/common/dtos"
+)
+
 type ERMRiskOverviewDTO struct {
 	TotalRisks          int64 `json:"total_risk"`
 	OpenRisks           int64 `json:"open_risks"`
@@ -10,6 +14,13 @@ type ERMRiskOverviewDTO struct {
 type ERMDashboardQueryParamsDTO struct {
 	DateFrom string `json:"date_from"`
 	DateTo   string `json:"date_to"`
+}
+
+type ERMDashboardListQueryParamsDTO struct {
+	DateFrom string `json:"date_from"`
+	DateTo   string `json:"date_to"`
+	Page     int
+	PageSize int
 }
 
 type ERMRiskDistributionDTO struct {
@@ -151,15 +162,19 @@ type ERMRiskTreatmentPlanProgressDTO struct {
 }
 
 type ERMStregicObjectiveRiskItemDTO struct {
-	StrategicObjective string `json:"strategic_objective"`
-	LinkedRisks        string `json:"linked_risks"`
-	HighRiskCount      int64  `json:"high_risk_count"`
-	RiskRating         string `json:"risk_rating"`
-	AppetiteBreach     string `json:"appetite_breach"`
+	StrategicObjectiveTitleEn string `json:"strategic_objective_en"`
+	StrategicObjectiveTitleAr string `json:"strategic_objective_ar"`
+	LinkedRisks               string `json:"linked_risks"`
+	HighRiskCount             int64  `json:"high_risk_count"`
+	RiskRatingTitleEn         string `json:"risk_rating_title_en"`
+	RiskRatingTitleAr         string `json:"risk_rating_title_ar"`
+	RiskRatingColorCode       string `json:"risk_rating_color_code"`
+	AppetiteBreach            string `json:"appetite_breach"`
 }
 
 type ERMStrategicObjectiveRiskOverviewDTO struct {
-	StrategicObjectiveRisks []ERMStregicObjectiveRiskItemDTO `json:"strategic_objective_risks"`
+	Items      []ERMStregicObjectiveRiskItemDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO     `json:"pagination"`
 }
 
 type ERMStrategicObjectivesRiskSummaryDTO struct {
@@ -179,7 +194,8 @@ type ERMRiskDepartmentSummaryItemDTO struct {
 }
 
 type ERMRiskDepartmentSummaryDTO struct {
-	RiskSummaryByDepartments []ERMRiskDepartmentSummaryItemDTO `json:"risk_summary_by_departments"`
+	Items      []ERMRiskDepartmentSummaryItemDTO `json:"risk_summary_by_departments"`
+	Pagination commonDTOs.PaginationInfoDTO      `json:"pagination"`
 }
 
 // ERM Risk Details
