@@ -597,7 +597,7 @@ func (repo *ERMDashboardRepository) GetERMRiskAppetiteSummary(params *kpiDTOs.ER
 		Joins(`
 			JOIN risk_evaluations
 			ON risk_evaluations.risk_register_id = risk_register.id
-			AND risk_evaluations.type = 'residual'
+			AND risk_evaluations.type = 'inherent'
 		`).
 		Joins("JOIN risk_appetite_alignments ON risk_appetite_alignments.risk_evaluation_id = risk_evaluations.id").
 		Joins(`
@@ -885,7 +885,7 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params
 		Joins(`
             LEFT JOIN risk_evaluations re
             ON re.risk_register_id = rr.id
-            AND re.type = 'residual'
+            AND re.type = 'inherent'
         `).
 		Joins("LEFT JOIN risk_appetite_alignments raa ON raa.risk_evaluation_id = re.id").
 		Joins("LEFT JOIN risk_appetite_tolerance_levels ratl ON ratl.id = raa.risk_appetite_tolerance_level_id AND ratl.status = 'active'").
@@ -1259,7 +1259,7 @@ func (repo *ERMDashboardRepository) GetERMRiskControlEfficiencySummary(params *k
 	totalQuery := repo.db.Model(&models.RiskControlAnalysis{}).
 		Joins("JOIN risk_controls rc ON rc.id = risk_control_analyses.risk_control_id").
 		Joins("JOIN risk_register rr ON rr.id = rc.risk_register_id").
-		Where("risk_control_analyses.type = ?", "residual")
+		Where("risk_control_analyses.type = ?", "inherent")
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		totalQuery = totalQuery.Where("rr.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -1281,7 +1281,7 @@ func (repo *ERMDashboardRepository) GetERMRiskControlEfficiencySummary(params *k
         `).
 		Joins("JOIN risk_controls rc ON rc.id = rca.risk_control_id").
 		Joins("JOIN risk_register rr ON rr.id = rc.risk_register_id").
-		Where("rca.type = ?", "residual")
+		Where("rca.type = ?", "inherent")
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("rr.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -1401,9 +1401,9 @@ func (repo *ERMDashboardRepository) GetERMOpenRisksSummary(params *kpiDTOs.ERMDa
 		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(ru.organization_unit_id, ru.id) = parent_unit.id").
 		Joins("JOIN organization_levels ol ON ol.id = ru.organization_level_id AND ol.is_primary = ?", true).
 		Joins("LEFT JOIN risk_controls rc_control ON rc_control.risk_register_id = rr.id").
-		Joins("LEFT JOIN risk_control_analyses rca ON rca.risk_control_id = rc_control.id AND rca.type = ?", "residual").
+		Joins("LEFT JOIN risk_control_analyses rca ON rca.risk_control_id = rc_control.id AND rca.type = ?", "inherent").
 		Joins("LEFT JOIN control_efficiency_statuses ces ON ces.id = rca.control_efficiency_status_id AND ces.status = ?", "active").
-		Joins("LEFT JOIN risk_evaluations re ON re.risk_register_id = rr.id AND re.type = ?", "residual").
+		Joins("LEFT JOIN risk_evaluations re ON re.risk_register_id = rr.id AND re.type = ?", "inherent").
 		Joins("LEFT JOIN risk_matrix_risk_ratings irms ON irms.id = rr.inherent_risk_rating_id AND irms.status = ?", "active").
 		Joins("LEFT JOIN risk_matrix_risk_rating_values iein ON iein.id = rr.inherent_risk_rating_value_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings rms ON rms.id = re.risk_matrix_risk_rating_id AND rms.status = ?", "active").
