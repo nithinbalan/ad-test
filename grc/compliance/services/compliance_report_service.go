@@ -759,7 +759,7 @@ func (crs *ComplianceReportService) DeleteComplianceReport(complianceReportID ui
 			complianceReportID,
 			existingReport,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_report", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})

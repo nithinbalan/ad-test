@@ -374,7 +374,7 @@ func (ccs *ComplianceClauseService) Create(complianceID uint, currentUserID uint
 			id,
 			formDTO,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_register", "clause", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -444,7 +444,7 @@ func (ccs *ComplianceClauseService) ImportCreate(complianceID uint, currentUserI
 			id,
 			formDTO,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_register", "clause", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log control activity", map[string]interface{}{

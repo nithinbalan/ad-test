@@ -64,7 +64,7 @@ func (cfs *ComplianceFolderService) Create(currentUserID uint, folder *models.Co
 			folder.ID,
 			createdFolder,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_register", "folder", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
@@ -114,7 +114,7 @@ func (cfs *ComplianceFolderService) Update(id uint, currentUserID uint, updatedF
 			result.ID,
 			changedDataJSON,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_register", "folder", nil,
 		)
 		if err != nil {
 			// @todo - save to log file

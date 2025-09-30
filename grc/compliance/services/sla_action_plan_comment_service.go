@@ -190,7 +190,7 @@ func (sapcs *SLAActionPlanCommentService) Create(slaID uint, actionPlanID uint, 
 			id,
 			existingComment,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "sla_contracts", "action_Plan_comment", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -599,7 +599,7 @@ func (sapcs *SLAActionPlanCommentService) Update(slaID uint, actionPlanID uint, 
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"compliance", "sla_contracts", "action_Plan_comment", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

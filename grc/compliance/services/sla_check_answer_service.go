@@ -177,7 +177,7 @@ func (scas *SLACheckAnswerService) CreateAnswer(slaID uint, questionID uint, cur
 			answer.ID,
 			answer,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "sla_contracts", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -334,7 +334,7 @@ func (scas *SLACheckAnswerService) UpdateAnswer(slaID uint, questionID uint, ans
 				existingAnswer.ID,
 				existingAnswer,
 				currentUserID,
-				"", "", "", nil,
+				"compliance", "sla_contracts", "", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -425,7 +425,7 @@ func (scas *SLACheckAnswerService) DeleteAnswer(slaID uint, questionID uint, ans
 			successfulId,
 			deletedCheckAnswer,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "sla_contracts", "", nil,
 		)
 		if err != nil {
 			fmt.Printf("Failed to log bulk delete activity: %v\n", err)

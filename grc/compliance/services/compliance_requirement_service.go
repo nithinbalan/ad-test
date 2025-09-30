@@ -423,7 +423,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 			id,
 			existingComplianceRequirement,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_register", "requirement", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -963,7 +963,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"compliance", "compliance_register", "requirement", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{

@@ -570,7 +570,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"compliance", "compliance_register", "", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{

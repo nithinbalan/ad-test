@@ -210,7 +210,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Cre
 			id,
 			complianceActionPlanUpdate,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_assessment", "action_plan_status_update", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -446,7 +446,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Upd
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"compliance", "compliance_assessment", "action_plan_status_update", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -667,7 +667,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) App
 			id,
 			existingComplianceActionPlan,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_assessment", "action_plan_status_update", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -827,7 +827,7 @@ func (carasus *ComplianceAssessmentRequirementActionPlanStatusUpdateService) Rev
 			id,
 			existingComplianceActionPlan,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_assessment", "action_plan_status_update", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
