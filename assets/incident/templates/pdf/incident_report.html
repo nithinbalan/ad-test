@@ -1197,7 +1197,7 @@
                     line-height: normal;
                     display: inline-block;
                     border: 1px solid #AFD6CC;
-                    font-weight: 400;"> {{$item.Risks.RiskRegister.CurrentRiskRating.Type}}</span>
+                    font-weight: 400;"> {{$item.CurrentRiskRatingTitleEn}}</span>
                         </td>
                      </tr>
                      {{end}}
@@ -1753,7 +1753,7 @@
                         {{if gt (len .Data.Investigation.Users) 0}}
                         {{range $item := .Data.Investigation.Users}}
                         {{$item.User.FirstNameEn}} {{$item.User.LastNameEn}}
-                        {{if $item.User.Designation}} ({{$item.User.Designation.NameEn}}){{end}}
+                        {{if $item.User.Designation}} ({{$item.User.Designation.TitleEn}}){{end}}
                         {{end}}
                         {{else}}
                         --
