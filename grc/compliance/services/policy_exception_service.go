@@ -184,7 +184,7 @@ func (pes *PolicyExceptionService) Create(currentUserID uint, dto *dtos.PolicyEx
 			id,
 			fullDetails,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "policy_exception", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -262,7 +262,7 @@ func (pes *PolicyExceptionService) Update(id uint, dto *dtos.PolicyExceptionForm
 			id,
 			fullDetails,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "policy_exception", "", nil,
 		); err != nil {
 			utility.LogError("Failed to log activity for policy exception update", map[string]interface{}{
 				"error":    err.Error(),
@@ -408,7 +408,7 @@ func (pes *PolicyExceptionService) DeletePolicyExceptionRisk(policyExceptionID u
 			0, // optional: use composite key if required
 			deletedMapping,
 			0, // optional: currentUserID, if available via context
-			"", "", "", nil,
+			"compliance", "policy_exception", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log PolicyException risk unmapping activity", map[string]interface{}{

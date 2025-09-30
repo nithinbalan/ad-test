@@ -31,7 +31,7 @@ type ComplianceClauseRepositoryInterface interface {
 
 	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
 	GetAssociatedControls(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
-	CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
+	CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) ([]uint, error)
 	DeleteComplianceControlByClauseAndControl(clauseID, controlID uint, tx ...utility.DatabaseTransaction) error
 
 	IsControlMappedToClause(clauseID, controlID uint) (bool, error)
@@ -518,15 +518,20 @@ func sortChildClauses(clause *models.ComplianceClause) {
 	}
 }
 
-func (repo *ComplianceClauseRepository) CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error {
+func (repo *ComplianceClauseRepository) CreateComplianceControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) ([]uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	if err := db.Create(&controls).Error; err != nil {
-		return err
+
+	var createdIDs []uint
+	for _, control := range controls {
+		if err := db.Create(control).Error; err != nil {
+			return nil, err
+		}
+		createdIDs = append(createdIDs, control.ID)
 	}
-	return nil
+	return createdIDs, nil
 }
 
 func (repo *ComplianceClauseRepository) DeleteComplianceControlByClauseAndControl(clauseID, controlID uint, tx ...utility.DatabaseTransaction) error {

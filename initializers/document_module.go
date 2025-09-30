@@ -68,7 +68,7 @@ func NewDocumentModule(db *gorm.DB,
 	documentCategoryController := controllers.NewDocumentCategoryController(documentCategorySvc)
 
 	documentTypeRepo := repositories.NewDocumentTypeRepository(db)
-	documentTypeSvc := services.NewDocumentTypeService(documentTypeRepo, sharedModule.ActivityLogService)
+	documentTypeSvc := services.NewDocumentTypeService(documentTypeRepo, sharedModule.ActivityLogService, masterModule.WorkflowContextSvc)
 	documentTypeController := controllers.NewDocumentTypeController(documentTypeSvc)
 
 	documentTemplateRepo := repositories.NewDocumentTemplateRepository(db)

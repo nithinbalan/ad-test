@@ -263,7 +263,7 @@ func (s *ComplianceAssessmentControlService) Update(complianceAssessmentId uint,
 			"score":   updateForm.Score,
 			"comment": updateForm.Comments,
 		}
-		_ = s.activityLogSvc.LogActivity(models.UpdateAction, models.ComplianceAssessmentControl{}.TableName(), controlId, changedData, currentUserID, "", "", "", nil)
+		_ = s.activityLogSvc.LogActivity(models.UpdateAction, models.ComplianceAssessmentControl{}.TableName(), controlId, changedData, currentUserID, "compliance", "compliance_assessment", "", nil)
 	}()
 
 	return nil
@@ -360,7 +360,7 @@ func (s *ComplianceAssessmentControlService) ApproveComplianceControl(assessment
 			controlID,
 			map[string]interface{}{"status": "approved", "comment": commentForm.Comment},
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_assessment", "", nil,
 		)
 
 		assessment, _ := s.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)
@@ -475,7 +475,7 @@ func (s *ComplianceAssessmentControlService) RevertComplianceControl(assessmentI
 			controlID,
 			map[string]interface{}{"status": "reverted", "comment": commentForm.Comment},
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_assessment", "", nil,
 		)
 
 		createdBy, _ := s.userSvc.GetByID(currentUserID)
@@ -577,7 +577,7 @@ func (s *ComplianceAssessmentControlService) ResubmitComplianceControl(assessmen
 			controlID,
 			map[string]interface{}{"status": "resubmitted", "comment": commentForm.Comment},
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_assessment", "", nil,
 		)
 
 		assessmentDetails, _ := s.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)

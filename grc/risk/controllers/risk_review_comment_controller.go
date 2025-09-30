@@ -30,6 +30,7 @@ func (rrcc *RiskReviewCommentController) GetAllComments(c *gin.Context) {
 	sortBy := c.DefaultQuery("sort_by", "comment")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	quickFilter := c.QueryArray("quick_filter")
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -56,11 +57,12 @@ func (rrcc *RiskReviewCommentController) GetAllComments(c *gin.Context) {
 	}
 
 	queryParams := riskDTOs.RiskReviewCommentListQueryParamsDTO{
-		Sort:    sort,
-		SortBy:  dbField,
-		Keyword: keyword,
-		Status:  status,
-		Filters: filters,
+		Sort:        sort,
+		SortBy:      dbField,
+		Keyword:     keyword,
+		Status:      status,
+		Filters:     filters,
+		QuickFilter: quickFilter,
 	}
 
 	riskIDStr := c.Param("id")

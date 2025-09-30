@@ -178,7 +178,7 @@ func (csus *ComplianceStatusUpdateService) Create(complianceID uint, currentUser
 			id,
 			complianceUpdate,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_register", "status_update", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -329,7 +329,7 @@ func (csus *ComplianceStatusUpdateService) Update(complianceID uint, id uint, cu
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"compliance", "compliance_register", "status_update", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

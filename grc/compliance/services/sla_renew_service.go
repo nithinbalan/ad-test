@@ -135,7 +135,7 @@ func (srs *SLARenewService) Renew(slaId uint, currentUserID uint, slaRenewFormDT
 			slaId,
 			slaRenewFormDTO,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "sla_contracts", "sla_contracts", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -204,7 +204,7 @@ func (srs *SLARenewService) Revert(slaId uint, currentUserID uint) error {
 			previousSLADocument.ID,
 			previousSLADocument,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "sla_contracts", "sla_contracts", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

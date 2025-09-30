@@ -473,4 +473,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.PUT("/compliance-assessments/:assessmentId/controls/:controlId/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentControlActionPlanCommentController.UpdateComment)
 	complianceRoutes.POST("/compliance-assessments/:assessmentId/controls/:controlId/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentControlActionPlanCommentController.DeleteComment)
 
+	// Compliance Clause Control Maping Import
+	complianceRoutes.GET("/compliances/:complianceId/controls/template", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.GetControlMappingTemplate)
+	complianceRoutes.POST("/compliances/:complianceId/controls/template/validate", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.ValidateControlMappingTemplate)
+	complianceRoutes.POST("/compliances/:complianceId/controls/import/validate", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.ValidateImportControlMapping)
+	complianceRoutes.POST("/compliances/:complianceId/controls/import", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.ImportControlMapping)
+
 }

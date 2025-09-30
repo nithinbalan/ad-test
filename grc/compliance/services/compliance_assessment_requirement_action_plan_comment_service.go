@@ -196,7 +196,7 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Create(a
 			id,
 			existingComment,
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_assessment", "action_plan_comment", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -624,7 +624,7 @@ func (carapcs *ComplianceAssessmentRequirementActionPlanCommentService) Update(a
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"compliance", "compliance_assessment", "action_plan_comment", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

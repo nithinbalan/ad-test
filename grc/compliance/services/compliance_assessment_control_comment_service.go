@@ -131,9 +131,9 @@ func (s *ComplianceAssessmentControlCommentService) Create(assessmentID uint, co
 			id,
 			detail,
 			currentUserID,
-			"",
-			"",
-			"",
+			"compliance",
+			"compliance_assessment",
+			"comment",
 			nil,
 		)
 
@@ -227,9 +227,9 @@ func (s *ComplianceAssessmentControlCommentService) Update(assessmentID uint, co
 				id,
 				changes,
 				currentUserID,
-				"",
-				"",
-				"",
+				"compliance",
+				"compliance_assessment",
+				"comment",
 				nil,
 			)
 		}

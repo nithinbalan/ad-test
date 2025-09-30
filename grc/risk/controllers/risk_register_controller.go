@@ -482,6 +482,12 @@ func (rrc *RiskRegisterController) GetRiskRegisterExport(c *gin.Context) {
 	rrc.GetAllRiskRegisters(c)
 }
 
+func (rrc *RiskRegisterController) GetIdentifiedRiskRegisterExport(c *gin.Context) {
+	c.Request.URL.RawQuery += "&export=true"
+
+	rrc.GetAllIdentifiedRisks(c)
+}
+
 func (rc *RiskRegisterController) GenerateRiskTemplate(c *gin.Context) {
 	file, err := rc.service.GenerateRiskTemplate()
 	if err != nil {

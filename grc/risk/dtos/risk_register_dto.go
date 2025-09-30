@@ -44,6 +44,8 @@ type RiskRegisterListDTO struct {
 	NextReviewDate                  *string `json:"next_review_date"`
 	CurrentRiskRatingValueID        *uint   `json:"current_risk_rating_value_id"`
 	Comments                        *string `json:"comments"`
+	SeverityLevelTitleEn            *string `json:"severity_level_title_en"`
+	SeverityLevelTitleAr            *string `json:"severity_level_title_ar"`
 	CreatedAt                       string  `json:"created_at"`
 	UpdatedAt                       *string `json:"updated_at"`
 	CreatedUserID                   uint    `json:"created_user_id"`

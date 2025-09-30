@@ -10,6 +10,8 @@ import (
 	"jethur/grc/models"
 	"jethur/utility"
 
+	masterServices "jethur/grc/masters/services"
+
 	"gorm.io/gorm"
 )
 
@@ -26,14 +28,16 @@ type DocumentTypeServiceInterface interface {
 }
 
 type DocumentTypeService struct {
-	repo           repositories.DocumentTypeRepositoryInterface
-	activityLogSvc services.ActivityLogServiceInterface
+	repo               repositories.DocumentTypeRepositoryInterface
+	activityLogSvc     services.ActivityLogServiceInterface
+	workflowContextSvc masterServices.WorkflowContextServiceInterface
 }
 
-func NewDocumentTypeService(repo repositories.DocumentTypeRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) DocumentTypeServiceInterface {
+func NewDocumentTypeService(repo repositories.DocumentTypeRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, workflowContextSvc masterServices.WorkflowContextServiceInterface) DocumentTypeServiceInterface {
 	return &DocumentTypeService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
+		repo:               repo,
+		activityLogSvc:     activityLogSvc,
+		workflowContextSvc: workflowContextSvc,
 	}
 }
 
@@ -61,18 +65,29 @@ func (dts *DocumentTypeService) Create(currentUserID uint, documentType *models.
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
+	if documentType.Type == "" {
+		documentType.Type = "others"
+	}
+
 	createdDocumentType, err := dts.repo.Create(documentType)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
+	workflowContext, err := dts.workflowContextSvc.GetByType("document_register")
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(workflowContext.ID)
 	workflow := &models.Workflow{
-		DocumentTypeID:   &createdDocumentType.ID,
-		ModuleIdentifier: "document",
-		Type:             "document",
-		CreatedBYID:      currentUserID,
-		Status:           "active",
+		DocumentTypeID:    &createdDocumentType.ID,
+		ModuleIdentifier:  "document",
+		Type:              "document",
+		WorkflowContextID: workflowContext.ID,
+		CreatedBYID:       currentUserID,
+		Status:            "active",
 	}
 
 	err = dts.repo.CreateWorkflow(workflow, tx) // Create the workflow passing the transaction

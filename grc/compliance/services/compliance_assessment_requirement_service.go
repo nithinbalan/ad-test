@@ -314,7 +314,7 @@ func (cars ComplianceAssessmentRequirementService) Update(complianceAssessmentId
 				requirementId,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"compliance", "compliance_assessment", "requirement", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -580,7 +580,7 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 				requirementId,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"compliance", "compliance_assessment", "requirement", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -666,7 +666,7 @@ func (cars ComplianceAssessmentRequirementService) MarkAsOpen(complianceAssessme
 				requirementId,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"compliance", "compliance_assessment", "requirement", nil,
 			)
 			if err != nil {
 				utility.LogError("Failed to log activity", map[string]interface{}{
@@ -794,7 +794,7 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 				"user":    currentUserID,
 			},
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_assessment", "requirement", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -958,7 +958,7 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 				"user":    currentUserID,
 			},
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_assessment", "requirement", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -1115,7 +1115,7 @@ func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequiremen
 				"user":    currentUserID,
 			},
 			currentUserID,
-			"", "", "", nil,
+			"compliance", "compliance_assessment", "requirement", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
