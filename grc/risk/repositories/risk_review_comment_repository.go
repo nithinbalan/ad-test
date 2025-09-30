@@ -109,6 +109,17 @@ func (repo *RiskReviewCommentRepository) GetAll(riskID uint, currentUserID uint,
 		countQuery = countQuery.Where("risk_review_comments.comment LIKE ?", keyword)
 	}
 
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "open":
+			countQuery = countQuery.Where("comment_statuses.type = ?", "open")
+		case "resolved":
+			countQuery = countQuery.Where("comment_statuses.type = ?", "resolved")
+		case "my_comment":
+			countQuery = countQuery.Where("risk_review_comments.created_by_id = ?", currentUserID)
+		}
+	}
+
 	// Group by status
 	countQuery = countQuery.
 		Select("comment_statuses.type AS status, COUNT(*) as count").

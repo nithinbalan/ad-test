@@ -340,6 +340,7 @@ func (prs *PolicyRegisterService) Update(id uint, currentUserID uint, documentFo
 	if err != nil {
 		return err
 	}
+	existingDocumentTypeID := existingDocument.DocumentTypeID
 	existingDocumentAccessTypeID := existingDocument.DocumentAccessTypeID
 	documentAccessType, err := prs.documentAccessTypeSvc.GetByID(documentFormDTO.DocumentAccessTypeID)
 	if err != nil {
@@ -399,6 +400,69 @@ func (prs *PolicyRegisterService) Update(id uint, currentUserID uint, documentFo
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	if *existingDocumentTypeID != documentFormDTO.DocumentTypeID {
+		var deleteDocumentWorkflowIds []*uint
+		var deleteDocumentWorkflowParticipantIds []*uint
+		var deleteDocumentWorkflowReviewIds []*uint
+
+		if len(documentFullDetails.LatestDocumentVersion.DocumentWorkflows) > 0 {
+			for _, docWorkflow := range documentFullDetails.LatestDocumentVersion.DocumentWorkflows {
+				deleteDocumentWorkflowIds = append(deleteDocumentWorkflowIds, &docWorkflow.ID)
+
+				if len(docWorkflow.DocumentWorkflowParticipants) > 0 {
+					for _, participant := range docWorkflow.DocumentWorkflowParticipants {
+						deleteDocumentWorkflowParticipantIds = append(deleteDocumentWorkflowParticipantIds, &participant.ID)
+					}
+				}
+
+				if len(docWorkflow.DocumentWorkflowReviews) > 0 {
+					for _, reviews := range docWorkflow.DocumentWorkflowReviews {
+						deleteDocumentWorkflowReviewIds = append(deleteDocumentWorkflowReviewIds, &reviews.ID)
+					}
+				}
+			}
+		}
+
+		if err := prs.policyWorkflowSvc.DeleteDocumentWorkflowParticipants(deleteDocumentWorkflowParticipantIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		if err := prs.policyWorkflowSvc.DeleteDocumentWorkflowReviews(deleteDocumentWorkflowReviewIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		if err := prs.policyWorkflowSvc.DeleteDocumentWorkflows(deleteDocumentWorkflowIds, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		existingReviewUsers, err := prs.documentAccessSvc.GetReviewUsers(id, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		userIDsToDelete := make([]uint, 0)
+		for _, user := range existingReviewUsers {
+			userID := uint(user.ID)
+			userIDsToDelete = append(userIDsToDelete, userID)
+		}
+
+		err = prs.documentAccessSvc.DeleteReviewUsers(id, userIDsToDelete, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		err = prs.CreatePolicyWorkflow(id, documentFullDetails.LatestDocumentVersion.ID, documentFormDTO.DocumentTypeID, currentUserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
 	}
 
 	var sharedUsers []*models.DocumentSharedUser
@@ -713,10 +777,44 @@ func (prs *PolicyRegisterService) Delete(ids []uint, currentUserID uint) ([]uint
 
 		if len(document.DocumentVersions) > 0 {
 			var deleteDocumentIds []*uint
+			var deleteDocumentWorkflowIds []*uint
+			var deleteDocumentWorkflowParticipantIds []*uint
+			var deleteDocumentWorkflowReviewIds []*uint
+
 			for _, doc := range document.DocumentVersions {
 				documentsToDelete[id] = append(documentsToDelete[id], doc)
 				deleteDocumentIds = append(deleteDocumentIds, &doc.ID)
+				if len(doc.DocumentWorkflows) > 0 {
+					for _, docWorkflow := range doc.DocumentWorkflows {
+						deleteDocumentWorkflowIds = append(deleteDocumentWorkflowIds, &docWorkflow.ID)
 
+						if len(docWorkflow.DocumentWorkflowParticipants) > 0 {
+							for _, participant := range docWorkflow.DocumentWorkflowParticipants {
+								deleteDocumentWorkflowParticipantIds = append(deleteDocumentWorkflowParticipantIds, &participant.ID)
+							}
+						}
+
+						if len(docWorkflow.DocumentWorkflowReviews) > 0 {
+							for _, reviews := range docWorkflow.DocumentWorkflowReviews {
+								deleteDocumentWorkflowReviewIds = append(deleteDocumentWorkflowReviewIds, &reviews.ID)
+							}
+						}
+					}
+				}
+			}
+
+			if err := prs.policyWorkflowSvc.DeleteDocumentWorkflowParticipants(deleteDocumentWorkflowParticipantIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+
+			if err := prs.policyWorkflowSvc.DeleteDocumentWorkflowReviews(deleteDocumentWorkflowReviewIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+			if err := prs.policyWorkflowSvc.DeleteDocumentWorkflows(deleteDocumentWorkflowIds, tx); err != nil {
+				tx.Rollback()
+				return nil, err
 			}
 
 			if err := prs.repo.DeleteDocumentVersions(deleteDocumentIds, tx); err != nil {

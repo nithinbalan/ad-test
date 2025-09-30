@@ -342,11 +342,19 @@ func (repo *PolicyRegisterRepository) GetFullDetailsByID(id uint, currentUserID 
 		Preload("LatestDocumentVersion.UpdatedByUser").
 		Preload("LatestDocumentVersion.SubmittedByUser").
 		Preload("LatestDocumentVersion.PublishedByUser").
+		Preload("LatestDocumentVersion.DocumentWorkflows").
+		Preload("LatestDocumentVersion.DocumentWorkflows.DocumentWorkflowParticipants").
+		Preload("LatestDocumentVersion.DocumentWorkflows.DocumentWorkflowReviews").
 		Preload("DocumentVersions").
 		Preload("ReviewFrequency").
 		Preload("DocumentVersions.CreatedByUser").
 		Preload("DocumentVersions.UpdatedByUser").
 		Preload("DocumentVersions.PublishedByUser").
+		Preload("DocumentVersions.DocumentWorkflows").
+		Preload("DocumentVersions.DocumentWorkflows.DocumentWorkflowParticipants").
+		Preload("DocumentVersions.DocumentWorkflows.DocumentWorkflowParticipants.User").
+		Preload("DocumentVersions.DocumentWorkflows.DocumentWorkflowReviews").
+		Preload("DocumentVersions.DocumentWorkflows.DocumentWorkflowReviews.DocumentWorkflowStatus").
 		Preload("DocumentSharedUsers").
 		Preload("DocumentSharedUsers.User").
 		Preload("DocumentSharedUsers.CreatedByUser").
