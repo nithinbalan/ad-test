@@ -29,6 +29,9 @@ type ERMDashboardServiceInterface interface {
 	GetERMRiskDepartmentSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskSummaryByDepartmentDTO, error)
 	GetERMRisksIdentifiedSummary() (*kpiDTOs.ERMRisksIdentifiedSummaryDTO, error)
 	GetERMRiskResponseStrategySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskResponseStrategySummaryDTO, error)
+	GetERMRiskControlEfficiencySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskControlEfficiencySummaryDTO, error)
+	GetERMRiskMitigationPlanStatusSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskMitigationPlanStatusSummaryDTO, error)
+	GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error)
 }
 
 type ERMDashboardService struct {
@@ -121,4 +124,16 @@ func (eds *ERMDashboardService) GetERMRisksIdentifiedSummary() (*kpiDTOs.ERMRisk
 
 func (eds *ERMDashboardService) GetERMRiskResponseStrategySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskResponseStrategySummaryDTO, error) {
 	return eds.repo.GetERMRiskResponseStrategySummary(params)
+}
+
+func (eds *ERMDashboardService) GetERMRiskControlEfficiencySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskControlEfficiencySummaryDTO, error) {
+	return eds.repo.GetERMRiskControlEfficiencySummary(params)
+}
+
+func (eds *ERMDashboardService) GetERMRiskMitigationPlanStatusSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskMitigationPlanStatusSummaryDTO, error) {
+	return eds.repo.GetERMRiskMitigationPlanStatusSummary(params)
+}
+
+func (eds *ERMDashboardService) GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error) {
+	return eds.repo.GetERMOpenRisksSummary(params)
 }
