@@ -153,11 +153,7 @@ func NewIncidentModule(db *gorm.DB,
 	incidentAssociatedItemController := controllers.NewIncidentAssociatedItemController(incidentAssociatedItemSvc)
 
 	incidentReportrepo:= repositories.NewIncidentReportRepository(db)
-	incidentReportSvc:= services.NewIncidentReportService( incidentReportrepo, 
-    incidentRegisterSvc,     
-    incidentInvestigationSvc, 
-    incidentClosureSvc,       
-    incidentPostReviewSvc,    )
+	incidentReportSvc:= services.NewIncidentReportService( incidentReportrepo,)
 	incidentReportController :=controllers.NewIncidentReportController(incidentReportSvc)
 
 	return &IncidentModule{

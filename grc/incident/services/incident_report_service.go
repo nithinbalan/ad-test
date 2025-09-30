@@ -18,25 +18,15 @@ type IncidentReportServiceInterface interface {
 
 // Service and implementations
 type IncidentReportService struct {
-	incidentRegisterSvc   IncidentRegisterServiceInterface
 	repo                  incidentRepo.IncidentReportRepositoryInterface
-	investigationSvc      IncidentInvestigationServiceInterface
-	incidentClosureSvc    IncidentClosureServiceInterface
-	incidentPostReviewSvc IncidentPostReviewServiceInterface
 }
 
 func NewIncidentReportService(
 	repo incidentRepo.IncidentReportRepositoryInterface,
-	incidentRegisterSvc IncidentRegisterServiceInterface,
-	investigationSvc IncidentInvestigationServiceInterface,
-	incidentClosureSvc IncidentClosureServiceInterface,
-	incidentPostReviewSvc IncidentPostReviewServiceInterface) IncidentReportServiceInterface {
+	) IncidentReportServiceInterface {
 	return &IncidentReportService{
 		repo:                  repo,
-		incidentRegisterSvc:   incidentRegisterSvc,
-		investigationSvc:      investigationSvc,
-		incidentClosureSvc:    incidentClosureSvc,
-		incidentPostReviewSvc: incidentPostReviewSvc,
+		
 	}
 }
 
