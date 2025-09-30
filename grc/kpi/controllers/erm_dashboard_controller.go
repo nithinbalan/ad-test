@@ -327,9 +327,23 @@ func (edc *ERMDashboardController) GetERMStrategicObjectivesRiskOverview(c *gin.
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
-	queryParams := kpiDTOs.ERMDashboardQueryParamsDTO{
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(edc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(edc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := kpiDTOs.ERMDashboardListQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
+		Page:     page,
+		PageSize: pageSize,
 	}
 
 	summary, err := edc.service.GetERMStrategicObjectivesRiskOverview(&queryParams)
@@ -371,15 +385,30 @@ func (edc *ERMDashboardController) GetERMStrategicObjectivesRiskSummary(c *gin.C
 }
 
 // ERM Risk Summary By Department
-func (edc *ERMDashboardController) GetERMRiskSummaryByDepartment(c *gin.Context) {
+func (edc *ERMDashboardController) GetERMRiskSummaryByOrganizationUnit(c *gin.Context) {
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
-	queryParams := kpiDTOs.ERMDashboardQueryParamsDTO{
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(edc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(edc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := kpiDTOs.ERMDashboardListQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
+		Page:     page,
+		PageSize: pageSize,
 	}
-	summary, err := edc.service.GetERMRiskSummaryByDepartment(&queryParams)
+
+	summary, err := edc.service.GetERMRiskSummaryByOrganizationUnit(&queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -490,7 +519,7 @@ func (edc *ERMDashboardController) GetERMRiskStatusSummary(c *gin.Context) {
 	c.JSON(http.StatusOK, summary)
 }
 
-func (edc *ERMDashboardController) GetERMRiskDepartmentSummary(c *gin.Context) {
+func (edc *ERMDashboardController) GetERMRiskOrganizationUnitSummary(c *gin.Context) {
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
@@ -499,7 +528,7 @@ func (edc *ERMDashboardController) GetERMRiskDepartmentSummary(c *gin.Context) {
 		DateTo:   dateTo,
 	}
 
-	summary, err := edc.service.GetERMRiskDepartmentSummary(&queryParams)
+	summary, err := edc.service.GetERMRiskOrganizationUnitSummary(&queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -602,9 +631,23 @@ func (edc *ERMDashboardController) GetERMOpenRisksSummary(c *gin.Context) {
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
-	queryParams := kpiDTOs.ERMDashboardQueryParamsDTO{
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(edc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(edc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := kpiDTOs.ERMDashboardListQueryParamsDTO{
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
+		Page:     page,
+		PageSize: pageSize,
 	}
 
 	summary, err := edc.service.GetERMOpenRisksSummary(&queryParams)
@@ -618,5 +661,29 @@ func (edc *ERMDashboardController) GetERMOpenRisksSummary(c *gin.Context) {
 			return
 		}
 	}
+	c.JSON(http.StatusOK, summary)
+}
+
+func (edc *ERMDashboardController) GetTopRiskRegisters(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.ERMDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	summary, err := edc.service.GetTopRiskRegisters(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(edc.db, c, e.Error())
+			return
+		}
+	}
+
 	c.JSON(http.StatusOK, summary)
 }

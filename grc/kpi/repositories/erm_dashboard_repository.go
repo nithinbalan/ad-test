@@ -2,8 +2,10 @@ package repositories
 
 import (
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/models"
+	riskDTOs "jethur/grc/risk/dtos"
 	"math"
 	"time"
 
@@ -23,20 +25,22 @@ type ERMDashboardRepositoryInterface interface {
 	GetERMRiskAppetiteSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAppetiteSummarytDTO, error)
 	GetERMRiskAgingStatus(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskAgingStatusDTO, error)
 	GetERMRiskTreatmentPlanProgress(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskTreatmentPlanProgressDTO, error)
-	GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error)
+	GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error)
 	GetERMStrategicObjectivesRiskSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectivesRiskSummaryDTO, error)
-	GetERMRiskSummaryByDepartment(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskDepartmentSummaryDTO, error)
+	GetERMRiskSummaryByOrganizationUnit(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMRiskOrganizationUnitSummaryDTO, error)
 
 	// ERM Risk Details
 	GetERMRiskCategorySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskCategorySummaryDTO, error)
 	GetERMRiskSourceSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskSourceSummaryDTO, error)
 	GetERMRiskStatusSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskStatusSummaryDTO, error)
-	GetERMRiskDepartmentSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskSummaryByDepartmentDTO, error)
+	GetERMRiskOrganizationUnitSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskSummaryByOrganizationUnitDTO, error)
 	GetERMRisksIdentifiedSummary() (*kpiDTOs.ERMRisksIdentifiedSummaryDTO, error)
 	GetERMRiskResponseStrategySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskResponseStrategySummaryDTO, error)
 	GetERMRiskControlEfficiencySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskControlEfficiencySummaryDTO, error)
 	GetERMRiskMitigationPlanStatusSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskMitigationPlanStatusSummaryDTO, error)
-	GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error)
+	GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error)
+
+	GetTopRiskRegisters(params *kpiDTOs.ERMDashboardQueryParamsDTO) ([]*riskDTOs.RiskRegisterListDTO, error)
 }
 
 type ERMDashboardRepository struct {
@@ -519,7 +523,7 @@ func (repo *ERMDashboardRepository) GetERMRiskAppetiteOverview(params *kpiDTOs.E
 		Joins("JOIN risk_appetite_tolerance_levels tl ON tl.id = raa.risk_appetite_tolerance_level_id AND tl.status = 'active'").
 		Where("parent_unit.status = ?", "active").
 		Select(`
-			parent_unit.title_en AS department,
+			parent_unit.title_en AS organization_unit,
 			tl.id AS level_id, tl.title_en, tl.title_ar, tl.color_code, tl.type,
 			COUNT(*) AS count
 		`).
@@ -533,19 +537,19 @@ func (repo *ERMDashboardRepository) GetERMRiskAppetiteOverview(params *kpiDTOs.E
 		return nil, err
 	}
 
-	// Step 3: Map results → Department with dynamic levels
+	// Step 3: Map results → Organization units with dynamic levels
 	deptMap := make(map[string]*kpiDTOs.ERMRiskAppetiteOverviewItemDTO)
 
 	for _, r := range results {
-		if _, exists := deptMap[r.Department]; !exists {
-			deptMap[r.Department] = &kpiDTOs.ERMRiskAppetiteOverviewItemDTO{
-				Department:         r.Department,
+		if _, exists := deptMap[r.OrganizationUnit]; !exists {
+			deptMap[r.OrganizationUnit] = &kpiDTOs.ERMRiskAppetiteOverviewItemDTO{
+				OrganizationUnit:   r.OrganizationUnit,
 				RiskAppetiteLevels: []kpiDTOs.ERMRiskSummaryItemDTO{},
 				TotalRisk:          0,
 			}
 		}
 
-		dept := deptMap[r.Department]
+		dept := deptMap[r.OrganizationUnit]
 		dept.RiskAppetiteLevels = append(dept.RiskAppetiteLevels, kpiDTOs.ERMRiskSummaryItemDTO{
 			ID:        r.LevelID,
 			TitleEn:   r.TitleEn,
@@ -564,7 +568,7 @@ func (repo *ERMDashboardRepository) GetERMRiskAppetiteOverview(params *kpiDTOs.E
 	}
 
 	return &kpiDTOs.ERMRiskAppetiteOverviewDTO{
-		RiskAppetiteByDepartments: overview,
+		RiskAppetiteByOrganizationUnits: overview,
 	}, nil
 }
 
@@ -779,12 +783,14 @@ func (repo *ERMDashboardRepository) GetERMRiskTreatmentPlanProgress(params *kpiD
 	}, nil
 }
 
-func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error) {
-	summary := &kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO{}
+func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error) {
+	strategicObjectiveRisks := []kpiDTOs.ERMStregicObjectiveRiskItemDTO{}
+	var totalCount int64
 
 	baseQuery := repo.db.Table("strategic_objectives so").
 		Select(`
-            so.title_en as strategic_objective,
+            so.title_en as strategic_objective_title_en,
+			so.title_ar as strategic_objective_title_ar,
             (
 				SELECT STRING_AGG(rr.reference_number, ', ')
 				WITHIN GROUP (ORDER BY rr.reference_number)
@@ -794,39 +800,63 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params
 				WHERE rso.strategic_objective_id = so.id
 			) as linked_risks,
             COUNT(CASE WHEN rmrr.type IN ('high', 'very_high') THEN 1 END) as high_risk_count,
-            CASE 
-                WHEN MAX(CASE WHEN rmrr.type = 'very_high' THEN 5 
-                             WHEN rmrr.type = 'high' THEN 4 
-                             WHEN rmrr.type = 'medium' THEN 3 
-                             WHEN rmrr.type = 'low' THEN 2 
-                             WHEN rmrr.type = 'very_low' THEN 1 
-                             ELSE 0 END) = 5 THEN 'Very High'
-                WHEN MAX(CASE WHEN rmrr.type = 'very_high' THEN 5 
-                             WHEN rmrr.type = 'high' THEN 4 
-                             WHEN rmrr.type = 'medium' THEN 3 
-                             WHEN rmrr.type = 'low' THEN 2 
-                             WHEN rmrr.type = 'very_low' THEN 1 
-                             ELSE 0 END) = 4 THEN 'High'
-                WHEN MAX(CASE WHEN rmrr.type = 'very_high' THEN 5 
-                             WHEN rmrr.type = 'high' THEN 4 
-                             WHEN rmrr.type = 'medium' THEN 3 
-                             WHEN rmrr.type = 'low' THEN 2 
-                             WHEN rmrr.type = 'very_low' THEN 1 
-                             ELSE 0 END) = 3 THEN 'Medium'
-                WHEN MAX(CASE WHEN rmrr.type = 'very_high' THEN 5 
-                             WHEN rmrr.type = 'high' THEN 4 
-                             WHEN rmrr.type = 'medium' THEN 3 
-                             WHEN rmrr.type = 'low' THEN 2 
-                             WHEN rmrr.type = 'very_low' THEN 1 
-                             ELSE 0 END) = 2 THEN 'Low'
-                WHEN MAX(CASE WHEN rmrr.type = 'very_high' THEN 5 
-                             WHEN rmrr.type = 'high' THEN 4 
-                             WHEN rmrr.type = 'medium' THEN 3 
-                             WHEN rmrr.type = 'low' THEN 2 
-                             WHEN rmrr.type = 'very_low' THEN 1 
-                             ELSE 0 END) = 1 THEN 'Very Low'
-                ELSE 'No Rating'
-            END as risk_rating,
+            COALESCE(
+                (SELECT TOP 1 title_en FROM risk_matrix_risk_ratings 
+                 WHERE CASE 
+                     WHEN type = 'very_high' THEN 5
+                     WHEN type = 'high' THEN 4
+                     WHEN type = 'medium' THEN 3
+                     WHEN type = 'low' THEN 2
+                     WHEN type = 'very_low' THEN 1
+                     ELSE 0 
+                 END = MAX(CASE 
+                     WHEN rmrr.type = 'very_high' THEN 5
+                     WHEN rmrr.type = 'high' THEN 4
+                     WHEN rmrr.type = 'medium' THEN 3
+                     WHEN rmrr.type = 'low' THEN 2
+                     WHEN rmrr.type = 'very_low' THEN 1
+                     ELSE 0 
+                 END)),
+                'No Rating'
+            ) AS risk_rating_title_en,
+            COALESCE(
+                (SELECT TOP 1 title_ar FROM risk_matrix_risk_ratings 
+                 WHERE CASE 
+                     WHEN type = 'very_high' THEN 5
+                     WHEN type = 'high' THEN 4
+                     WHEN type = 'medium' THEN 3
+                     WHEN type = 'low' THEN 2
+                     WHEN type = 'very_low' THEN 1
+                     ELSE 0 
+                 END = MAX(CASE 
+                     WHEN rmrr.type = 'very_high' THEN 5
+                     WHEN rmrr.type = 'high' THEN 4
+                     WHEN rmrr.type = 'medium' THEN 3
+                     WHEN rmrr.type = 'low' THEN 2
+                     WHEN rmrr.type = 'very_low' THEN 1
+                     ELSE 0 
+                 END)),
+                'No Rating'
+            ) AS risk_rating_title_ar,
+			 COALESCE(
+                (SELECT TOP 1 color_code FROM risk_matrix_risk_ratings 
+                 WHERE CASE 
+                     WHEN type = 'very_high' THEN 5
+                     WHEN type = 'high' THEN 4
+                     WHEN type = 'medium' THEN 3
+                     WHEN type = 'low' THEN 2
+                     WHEN type = 'very_low' THEN 1
+                     ELSE 0 
+                 END = MAX(CASE 
+                     WHEN rmrr.type = 'very_high' THEN 5
+                     WHEN rmrr.type = 'high' THEN 4
+                     WHEN rmrr.type = 'medium' THEN 3
+                     WHEN rmrr.type = 'low' THEN 2
+                     WHEN rmrr.type = 'very_low' THEN 1
+                     ELSE 0 
+                 END)),
+                ''
+            ) AS risk_rating_color_code,
             CASE 
                 WHEN COUNT(CASE WHEN ratl.type IN ('above', 'significantly_above') THEN 1 END) > 0 THEN 'Yes'
                 ELSE 'No'
@@ -853,12 +883,32 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params
 	}
 
 	// Group by strategic objective - only include objectives that have linked risks
-	err := baseQuery.Group("so.id, so.title_en").Scan(&summary.StrategicObjectiveRisks).Error
+	baseQuery = baseQuery.Group("so.id, so.title_en, so.title_ar")
+
+	if err := baseQuery.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	offset := (params.Page - 1) * params.PageSize
+
+	err := baseQuery.Offset(offset).Limit(params.PageSize).Find(&strategicObjectiveRisks).Error
 	if err != nil {
 		return nil, err
 	}
 
-	return summary, nil
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO{
+		Items: strategicObjectiveRisks,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
 }
 
 func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectivesRiskSummaryDTO, error) {
@@ -898,8 +948,9 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskSummary(params 
 	return summary, nil
 }
 
-func (repo *ERMDashboardRepository) GetERMRiskSummaryByDepartment(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskDepartmentSummaryDTO, error) {
-	results := []kpiDTOs.ERMRiskDepartmentSummaryItemDTO{}
+func (repo *ERMDashboardRepository) GetERMRiskSummaryByOrganizationUnit(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMRiskOrganizationUnitSummaryDTO, error) {
+	results := []kpiDTOs.ERMRiskOrganizationUnitSummaryItemDTO{}
+	var totalCount int64
 
 	query := repo.db.Table("risk_register rr").
 		Joins("LEFT JOIN organization_units ru ON ru.id = rr.responsible_unit_id").
@@ -929,7 +980,7 @@ func (repo *ERMDashboardRepository) GetERMRiskSummaryByDepartment(params *kpiDTO
 
 	// Select aggregated data
 	query = query.Select(`
-		parent_unit.title_en AS department,
+		parent_unit.title_en AS organization_unit,
 		COUNT(*) AS total_risks,
 		-- High risks based on current risk rating
 		COUNT(CASE WHEN current_rmrr.type IN ('high', 'very_high') THEN 1 END) AS high_risks,
@@ -961,14 +1012,23 @@ func (repo *ERMDashboardRepository) GetERMRiskSummaryByDepartment(params *kpiDTO
 	`).
 		Group("parent_unit.id, parent_unit.title_en")
 
-	if err := query.Scan(&results).Error; err != nil {
+	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
-	overview := make([]kpiDTOs.ERMRiskDepartmentSummaryItemDTO, len(results))
+	offset := (params.Page - 1) * params.PageSize
+
+	err := query.Offset(offset).Limit(params.PageSize).Find(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	overview := make([]kpiDTOs.ERMRiskOrganizationUnitSummaryItemDTO, len(results))
 	for i, r := range results {
-		overview[i] = kpiDTOs.ERMRiskDepartmentSummaryItemDTO{
-			Department:         r.Department,
+		overview[i] = kpiDTOs.ERMRiskOrganizationUnitSummaryItemDTO{
+			OrganizationUnit:   r.OrganizationUnit,
 			TotalRisks:         r.TotalRisks,
 			HighRisks:          r.HighRisks,
 			OpenRisks:          r.OpenRisks,
@@ -978,9 +1038,17 @@ func (repo *ERMDashboardRepository) GetERMRiskSummaryByDepartment(params *kpiDTO
 		}
 	}
 
-	return &kpiDTOs.ERMRiskDepartmentSummaryDTO{
-		RiskSummaryByDepartments: overview,
-	}, nil
+	response := &kpiDTOs.ERMRiskOrganizationUnitSummaryDTO{
+		Items: overview,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
 }
 
 func (repo *ERMDashboardRepository) GetERMRiskCategorySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskCategorySummaryDTO, error) {
@@ -1076,8 +1144,8 @@ func (repo *ERMDashboardRepository) GetERMRiskStatusSummary(params *kpiDTOs.ERMD
 	return &result, nil
 }
 
-func (repo *ERMDashboardRepository) GetERMRiskDepartmentSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskSummaryByDepartmentDTO, error) {
-	results := []kpiDTOs.ERMRiskSummaryByDepartmentItemDTO{}
+func (repo *ERMDashboardRepository) GetERMRiskOrganizationUnitSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskSummaryByOrganizationUnitDTO, error) {
+	results := []kpiDTOs.ERMRiskSummaryByOrganizationUnitItemDTO{}
 
 	query := repo.db.Model(&models.RiskRegister{}).
 		Joins("LEFT JOIN organization_units ru ON ru.id = risk_register.responsible_unit_id").
@@ -1086,7 +1154,7 @@ func (repo *ERMDashboardRepository) GetERMRiskDepartmentSummary(params *kpiDTOs.
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id AND risk_statuses.status = ?", "active").
 		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
 		Where("parent_unit.status = ?", "active").
-		Select("parent_unit.title_en AS department, COUNT(risk_register.id) AS count").
+		Select("parent_unit.title_en AS organization_unit, COUNT(risk_register.id) AS count").
 		Group("parent_unit.id, parent_unit.title_en")
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -1097,8 +1165,8 @@ func (repo *ERMDashboardRepository) GetERMRiskDepartmentSummary(params *kpiDTOs.
 		return nil, err
 	}
 
-	return &kpiDTOs.ERMRiskSummaryByDepartmentDTO{
-		RisksByDepartment: results,
+	return &kpiDTOs.ERMRiskSummaryByOrganizationUnitDTO{
+		RisksByOrganizationUnit: results,
 	}, nil
 }
 
@@ -1258,14 +1326,15 @@ func (repo *ERMDashboardRepository) GetERMRiskMitigationPlanStatusSummary(params
 	}, nil
 }
 
-func (repo *ERMDashboardRepository) GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error) {
+func (repo *ERMDashboardRepository) GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error) {
 	results := []kpiDTOs.ERMOpenRiskSummaryItemDTO{}
+	var totalCount int64
 
 	query := repo.db.Table("risk_register rr").
 		Select(`
 			rr.title AS risk_title,
 			rc.title_en AS category,
-			parent_unit.title_en AS department,
+			parent_unit.title_en AS organization_unit,
 			COUNT(DISTINCT rc_control.id) AS num_controls,
 			AVG(COALESCE(rca.score, 0)) AS control_efficiency_percent,
 			CASE
@@ -1318,11 +1387,148 @@ func (repo *ERMDashboardRepository) GetERMOpenRisksSummary(params *kpiDTOs.ERMDa
 		query = query.Where("rr.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
-	if err := query.Scan(&results).Error; err != nil {
+	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
-	return &kpiDTOs.ERMOpenRisksSummaryDTO{
-		OpenRisks: results,
-	}, nil
+	offset := (params.Page - 1) * params.PageSize
+
+	err := query.Offset(offset).Limit(params.PageSize).Find(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &kpiDTOs.ERMOpenRisksSummaryDTO{
+		Items: results,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *ERMDashboardRepository) GetTopRiskRegisters(params *kpiDTOs.ERMDashboardQueryParamsDTO) ([]*riskDTOs.RiskRegisterListDTO, error) {
+	topRiskRegisters := []*riskDTOs.RiskRegisterListDTO{}
+
+	query := repo.db.Table("risk_register").
+		Select(`
+            risk_register.id,
+            risk_register.reference_number,
+            risk_register.title,
+            risk_register.description,
+			CONVERT(VARCHAR, risk_register.reported_at, 23) AS reported_at,
+            risk_register.created_at,
+            risk_register.updated_at,
+			risk_register.current_risk_rating_value_id,
+            risk_categories.title_en AS risk_category_title_en,
+            risk_categories.title_ar AS risk_category_title_ar,
+            risk_sources.title_en AS risk_source_title_en,
+            risk_sources.title_ar AS risk_source_title_ar,
+			organization_units.id AS responsible_unit_id,
+            organization_units.title_en AS responsible_unit_title_en,
+            organization_units.title_ar AS responsible_unit_title_ar,
+			users.id AS responsible_user_id,
+            users.first_name_en AS responsible_user_first_name_en,
+            users.first_name_ar AS responsible_user_first_name_ar,
+            users.last_name_en AS responsible_user_last_name_en,
+            users.last_name_ar AS responsible_user_last_name_ar,
+			users.initial AS responsible_user_initial,
+        	users.color AS responsible_user_color,
+        	users.email AS responsible_user_email,
+        	users.profile_image_path AS responsible_user_profile_image_path,
+            risk_statuses.title_en AS risk_status_title_en,
+            risk_statuses.title_ar AS risk_status_title_ar,
+			risk_response_strategies.title_en AS risk_response_strategy_title_en,
+            risk_response_strategies.title_ar AS risk_response_strategy_title_ar,
+            risk_statuses.color_code AS risk_status_color_code,
+			risk_statuses.type AS risk_status_type,
+            review_frequencies.title_en AS review_frequency_title_en,
+            review_frequencies.title_ar AS review_frequency_title_ar,
+			CONVERT(VARCHAR, risk_register.next_review_date, 23) AS next_review_date,
+            risk_register.last_review_note,
+            created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+            created_user.first_name_ar AS created_user_first_name_ar,
+            created_user.last_name_en AS created_user_last_name_en,
+            created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+            updated_user.first_name_ar AS updated_user_first_name_ar,
+            updated_user.last_name_en AS updated_user_last_name_en,
+            updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path,
+            current_likelihood.title_en AS current_likelihood_title_en,
+            current_likelihood.title_ar AS current_likelihood_title_ar,
+            current_impact.title_en AS current_impact_title_en,
+            current_impact.title_ar AS current_impact_title_ar,
+            current_risk_rating.title_en AS current_risk_rating_title_en,
+            current_risk_rating.title_ar AS current_risk_rating_title_ar,
+            current_risk_rating_value.value AS current_risk_rating_value,
+            current_risk_rating.color_code AS current_risk_rating_color_code,
+            inherent_likelihood.title_en AS inherent_likelihood_title_en,
+            inherent_likelihood.title_ar AS inherent_likelihood_title_ar,
+            inherent_impact.title_en AS inherent_impact_title_en,
+            inherent_impact.title_ar AS inherent_impact_title_ar,
+            inherent_risk_rating.title_en AS inherent_risk_rating_title_en,
+            inherent_risk_rating.title_ar AS inherent_risk_rating_title_ar,
+            inherent_risk_rating_value.value AS inherent_risk_rating_value,
+            inherent_risk_rating.color_code AS inherent_risk_rating_color_code,
+            residual_likelihood.title_en AS residual_likelihood_title_en,
+            residual_likelihood.title_ar AS residual_likelihood_title_ar,
+            residual_impact.title_en AS residual_impact_title_en,
+            residual_impact.title_ar AS residual_impact_title_ar,
+            residual_risk_rating.title_en AS residual_risk_rating_title_en,
+            residual_risk_rating.title_ar AS residual_risk_rating_title_ar,
+            residual_risk_rating_value.value AS residual_risk_rating_value,
+            residual_risk_rating.color_code AS residual_risk_rating_color_code
+        `).
+		Joins(`
+            LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
+            LEFT JOIN risk_sources ON risk_sources.id = risk_register.risk_source_id
+            LEFT JOIN organization_units ON organization_units.id = risk_register.responsible_unit_id
+            LEFT JOIN users ON users.id = risk_register.responsible_user_id
+            LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
+			LEFT JOIN risk_response_strategies ON risk_response_strategies.id = risk_register.risk_response_strategy_id
+            LEFT JOIN users AS created_user ON created_user.id = risk_register.created_by_id
+            LEFT JOIN users AS updated_user ON updated_user.id = risk_register.updated_by_id
+            LEFT JOIN review_frequencies ON review_frequencies.id = risk_register.review_frequency_id
+            LEFT JOIN risk_matrix_likelihoods AS current_likelihood ON current_likelihood.id = risk_register.current_likelihood_id
+            LEFT JOIN risk_matrix_impacts AS current_impact ON current_impact.id = risk_register.current_impact_id
+            LEFT JOIN risk_matrix_risk_ratings AS current_risk_rating ON current_risk_rating.id = risk_register.current_risk_rating_id
+            LEFT JOIN risk_matrix_risk_rating_values AS current_risk_rating_value ON current_risk_rating_value.id = risk_register.current_risk_rating_value_id
+            LEFT JOIN risk_matrix_likelihoods AS inherent_likelihood ON inherent_likelihood.id = risk_register.inherent_likelihood_id
+            LEFT JOIN risk_matrix_impacts AS inherent_impact ON inherent_impact.id = risk_register.inherent_impact_id
+            LEFT JOIN risk_matrix_risk_ratings AS inherent_risk_rating ON inherent_risk_rating.id = risk_register.inherent_risk_rating_id
+            LEFT JOIN risk_matrix_risk_rating_values AS inherent_risk_rating_value ON inherent_risk_rating_value.id = risk_register.inherent_risk_rating_value_id
+            LEFT JOIN risk_matrix_likelihoods AS residual_likelihood ON residual_likelihood.id = risk_register.residual_likelihood_id
+            LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id
+            LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id
+            LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
+        `).
+		Order("current_risk_rating_value DESC")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	query = query.Limit(20)
+
+	if err := query.Find(&topRiskRegisters).Error; err != nil {
+		return nil, err
+	}
+
+	return topRiskRegisters, nil
 }
