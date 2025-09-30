@@ -3,6 +3,7 @@ package services
 import (
 	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/kpi/repositories"
+	riskDTOs "jethur/grc/risk/dtos"
 )
 
 type ERMDashboardServiceInterface interface {
@@ -32,6 +33,8 @@ type ERMDashboardServiceInterface interface {
 	GetERMRiskControlEfficiencySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskControlEfficiencySummaryDTO, error)
 	GetERMRiskMitigationPlanStatusSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskMitigationPlanStatusSummaryDTO, error)
 	GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error)
+
+	GetTopRiskRegisters(params *kpiDTOs.ERMDashboardQueryParamsDTO) ([]*riskDTOs.RiskRegisterListDTO, error)
 }
 
 type ERMDashboardService struct {
@@ -136,4 +139,8 @@ func (eds *ERMDashboardService) GetERMRiskMitigationPlanStatusSummary(params *kp
 
 func (eds *ERMDashboardService) GetERMOpenRisksSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMOpenRisksSummaryDTO, error) {
 	return eds.repo.GetERMOpenRisksSummary(params)
+}
+
+func (eds *ERMDashboardService) GetTopRiskRegisters(params *kpiDTOs.ERMDashboardQueryParamsDTO) ([]*riskDTOs.RiskRegisterListDTO, error) {
+	return eds.repo.GetTopRiskRegisters(params)
 }
