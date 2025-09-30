@@ -162,3 +162,11 @@ type DocumentVersionDTO struct {
 	PublishedAt           *time.Time                       `json:"published_at"`
 	PublishedByUser       organizationDTOs.UserMinimalDTO  `json:"published_by"`
 }
+
+type PolicyPDFData struct {
+	Document          *PolicyRegisterDetailsDTO                     `json:"document"`
+	Workflow          *documentsDTOs.DocumentVersionWorkflowListDTO `json:"workflow"`
+	Clauses           []*PolicyClauseListDTO                        `json:"clauses"`
+	CreatedAtString   string                                        `json:"created_at"`
+	PublishedAtString string                                        `json:"published_at"`
+}

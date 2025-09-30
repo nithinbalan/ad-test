@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: 'Lexend Deca', sans-serif;
+      font-size: 13px;
+      margin-top: 0px;
+      margin-bottom: 10px;
+      padding: 20px 25px;
+    }
+
+    h2 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="keep-together break-before" style="padding-top: 0px;">
+               {{define "RenderClause"}}
+                  {{if not .DocumentVersionClauseID}}
+                     <!-- Main Clause -->
+                     <h4 id="clause-{{.ClauseNumber}}" class="toc-item" style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;">
+                        {{.ClauseNumber}}. {{.ClauseTitleEn}}
+                     </h4>
+                     <div style="margin-top: 10px;">
+                        <div style="width: 100%; display: inline-block; vertical-align: top;">
+                           <p style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; 
+                                 color: #000; font-size: 14px; line-height: 1.5em; 
+                                 text-align: left; margin-bottom: 13px; margin-top: 0px; 
+                                 font-weight: 400;">
+                              {{.Description}}
+                           </p>
+                        </div>
+                     </div>
+                  {{else}}
+                     <!-- Sub Clause -->
+                     <h5 class="no-toc" style="margin: 0 0 8px 0; padding-left: 5px; font-size: 15px; 
+                                 color: #050505; font-weight: 400;">
+                        {{.ClauseNumber}}. {{.ClauseTitleEn}}
+                     </h5>
+                  {{end}}
+
+                  <!-- Render children recursively -->
+                  {{if .Children}}
+                     {{range .Children}}
+                     <div style="padding-left: 30px;">
+                        {{template "RenderClause" .}}
+                        </div>
+                     {{end}}
+                  {{end}}
+               {{end}}
+
+
+               {{range .Data.Clauses}}
+                {{template "RenderClause" .}}
+               {{end}}
+               
+            </div>
+</body>
+</html>

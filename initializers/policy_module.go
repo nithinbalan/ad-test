@@ -65,6 +65,7 @@ func NewPolicyModule(db *gorm.DB,
 		documentModule.DocumentAuditLogSvc,
 		policyClauseSvc,
 		commonModule.FileService,
+		settingsModule.ReportTemplateSettingSvc,
 	)
 	policyRegisterController := controllers.NewPolicyRegisterController(policyRegisterSvc)
 
