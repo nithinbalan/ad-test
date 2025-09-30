@@ -65,10 +65,6 @@ func (dts *DocumentTypeService) Create(currentUserID uint, documentType *models.
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
 
-	if documentType.Type == "" {
-		documentType.Type = "others"
-	}
-
 	createdDocumentType, err := dts.repo.Create(documentType)
 	if err != nil {
 		tx.Rollback()

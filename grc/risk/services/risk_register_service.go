@@ -1111,26 +1111,21 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 		}
 		if err := rrs.riskWorkflowSvc.DeleteRiskWorkflowParticipants(deleteRiskWorkflowParticipantIds, tx); err != nil {
 			failedIds = append(failedIds, id)
-			fmt.Println("1")
 			continue
 		}
 
 		if err := rrs.riskWorkflowSvc.DeleteRiskReviews(deleteRiskWorkflowReviewIds, tx); err != nil {
 			failedIds = append(failedIds, id)
-			fmt.Println("2")
 			continue
 		}
 
 		if err := rrs.riskWorkflowSvc.DeleteRiskWorkflows(deleteRiskWorkflowIds, tx); err != nil {
 			failedIds = append(failedIds, id)
-			fmt.Println("3")
 			continue
 		}
-		fmt.Println("4")
 		// Delete the risk
 		if err := rrs.repo.Delete(id, tx); err != nil {
 			failedIds = append(failedIds, id)
-			fmt.Println("5")
 			continue
 		} else {
 			successfulIds = append(successfulIds, id)
@@ -2030,7 +2025,6 @@ func (rs *RiskRegisterService) ImportRisks(input []map[string]interface{}, curre
 			SeverityLevelID:                utility.GetOptionalUintValue(record["severity_level_id"]),
 		}
 
-		fmt.Println(dto)
 		id, err := rs.Create(currentUserID, dto)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create risk for record: %+v, error: %v", record, err)
