@@ -21,13 +21,13 @@ type ERMDashboardServiceInterface interface {
 	GetERMRiskTreatmentPlanProgress(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskTreatmentPlanProgressDTO, error)
 	GetERMStrategicObjectivesRiskOverview(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectiveRiskOverviewDTO, error)
 	GetERMStrategicObjectivesRiskSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMStrategicObjectivesRiskSummaryDTO, error)
-	GetERMRiskSummaryByDepartment(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMRiskDepartmentSummaryDTO, error)
+	GetERMRiskSummaryByOrganizationUnit(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMRiskOrganizationUnitSummaryDTO, error)
 
 	// ERM Risk Details
 	GetERMRiskCategorySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskCategorySummaryDTO, error)
 	GetERMRiskSourceSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskSourceSummaryDTO, error)
 	GetERMRiskStatusSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskStatusSummaryDTO, error)
-	GetERMRiskDepartmentSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskSummaryByDepartmentDTO, error)
+	GetERMRiskOrganizationUnitSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskSummaryByOrganizationUnitDTO, error)
 	GetERMRisksIdentifiedSummary() (*kpiDTOs.ERMRisksIdentifiedSummaryDTO, error)
 	GetERMRiskResponseStrategySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskResponseStrategySummaryDTO, error)
 	GetERMRiskControlEfficiencySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskControlEfficiencySummaryDTO, error)
@@ -101,8 +101,8 @@ func (eds *ERMDashboardService) GetERMStrategicObjectivesRiskSummary(params *kpi
 	return eds.repo.GetERMStrategicObjectivesRiskSummary(params)
 }
 
-func (eds *ERMDashboardService) GetERMRiskSummaryByDepartment(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMRiskDepartmentSummaryDTO, error) {
-	return eds.repo.GetERMRiskSummaryByDepartment(params)
+func (eds *ERMDashboardService) GetERMRiskSummaryByOrganizationUnit(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMRiskOrganizationUnitSummaryDTO, error) {
+	return eds.repo.GetERMRiskSummaryByOrganizationUnit(params)
 }
 
 func (eds *ERMDashboardService) GetERMRiskCategorySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskCategorySummaryDTO, error) {
@@ -117,8 +117,8 @@ func (eds *ERMDashboardService) GetERMRiskStatusSummary(params *kpiDTOs.ERMDashb
 	return eds.repo.GetERMRiskStatusSummary(params)
 }
 
-func (eds *ERMDashboardService) GetERMRiskDepartmentSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskSummaryByDepartmentDTO, error) {
-	return eds.repo.GetERMRiskDepartmentSummary(params)
+func (eds *ERMDashboardService) GetERMRiskOrganizationUnitSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskSummaryByOrganizationUnitDTO, error) {
+	return eds.repo.GetERMRiskOrganizationUnitSummary(params)
 }
 
 func (eds *ERMDashboardService) GetERMRisksIdentifiedSummary() (*kpiDTOs.ERMRisksIdentifiedSummaryDTO, error) {

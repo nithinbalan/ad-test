@@ -385,7 +385,7 @@ func (edc *ERMDashboardController) GetERMStrategicObjectivesRiskSummary(c *gin.C
 }
 
 // ERM Risk Summary By Department
-func (edc *ERMDashboardController) GetERMRiskSummaryByDepartment(c *gin.Context) {
+func (edc *ERMDashboardController) GetERMRiskSummaryByOrganizationUnit(c *gin.Context) {
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
@@ -408,7 +408,7 @@ func (edc *ERMDashboardController) GetERMRiskSummaryByDepartment(c *gin.Context)
 		PageSize: pageSize,
 	}
 
-	summary, err := edc.service.GetERMRiskSummaryByDepartment(&queryParams)
+	summary, err := edc.service.GetERMRiskSummaryByOrganizationUnit(&queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -519,7 +519,7 @@ func (edc *ERMDashboardController) GetERMRiskStatusSummary(c *gin.Context) {
 	c.JSON(http.StatusOK, summary)
 }
 
-func (edc *ERMDashboardController) GetERMRiskDepartmentSummary(c *gin.Context) {
+func (edc *ERMDashboardController) GetERMRiskOrganizationUnitSummary(c *gin.Context) {
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
@@ -528,7 +528,7 @@ func (edc *ERMDashboardController) GetERMRiskDepartmentSummary(c *gin.Context) {
 		DateTo:   dateTo,
 	}
 
-	summary, err := edc.service.GetERMRiskDepartmentSummary(&queryParams)
+	summary, err := edc.service.GetERMRiskOrganizationUnitSummary(&queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

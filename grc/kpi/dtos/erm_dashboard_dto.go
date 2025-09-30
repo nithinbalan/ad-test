@@ -99,23 +99,23 @@ type ERMControlsOverviewDTO struct {
 }
 
 type ERMRiskAppetiteOverviewItemDTO struct {
-	Department         string                  `json:"department"`
+	OrganizationUnit   string                  `json:"organization_unit"`
 	RiskAppetiteLevels []ERMRiskSummaryItemDTO `json:"risk_appetite_levels"`
 	TotalRisk          int64                   `json:"total_risk"`
 }
 
 type ERMRiskAppetiteOverviewDTO struct {
-	RiskAppetiteByDepartments []ERMRiskAppetiteOverviewItemDTO `json:"risk_appetite_by_departments"`
+	RiskAppetiteByOrganizationUnits []ERMRiskAppetiteOverviewItemDTO `json:"risk_appetite_by_organization_units"`
 }
 
 type ERMRiskAppetiteOverviewQueryResultDTO struct {
-	Department string `json:"department"`
-	LevelID    uint   `json:"level_id"`
-	TitleEn    string `json:"title_en"`
-	TitleAr    string `json:"title_ar"`
-	ColorCode  string `json:"color_code"`
-	Type       string `json:"type"`
-	Count      int64  `json:"count"`
+	OrganizationUnit string `json:"organization_unit"`
+	LevelID          uint   `json:"level_id"`
+	TitleEn          string `json:"title_en"`
+	TitleAr          string `json:"title_ar"`
+	ColorCode        string `json:"color_code"`
+	Type             string `json:"type"`
+	Count            int64  `json:"count"`
 }
 
 type ERMRiskAppetiteSummarytDTO struct {
@@ -183,8 +183,8 @@ type ERMStrategicObjectivesRiskSummaryDTO struct {
 	ObjectivesWithNoRiskLinked   int64 `json:"objectives_with_no_risk_linked"`
 }
 
-type ERMRiskDepartmentSummaryItemDTO struct {
-	Department         string `json:"department"`
+type ERMRiskOrganizationUnitSummaryItemDTO struct {
+	OrganizationUnit   string `json:"organization_unit"`
 	TotalRisks         int64  `json:"total_risks"`
 	HighRisks          int64  `json:"high_risks"`
 	OpenRisks          int64  `json:"open_risks"`
@@ -193,9 +193,9 @@ type ERMRiskDepartmentSummaryItemDTO struct {
 	ResidualRiskLevel  string `json:"residual_risk_level"`
 }
 
-type ERMRiskDepartmentSummaryDTO struct {
-	Items      []ERMRiskDepartmentSummaryItemDTO `json:"risk_summary_by_departments"`
-	Pagination commonDTOs.PaginationInfoDTO      `json:"pagination"`
+type ERMRiskOrganizationUnitSummaryDTO struct {
+	Items      []ERMRiskOrganizationUnitSummaryItemDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO            `json:"pagination"`
 }
 
 // ERM Risk Details
@@ -222,13 +222,13 @@ type ERMRiskStatusSummaryDTO struct {
 	Total         int64                   `json:"total"`
 }
 
-type ERMRiskSummaryByDepartmentItemDTO struct {
-	Department string `json:"department"`
-	Count      int64  `json:"count"`
+type ERMRiskSummaryByOrganizationUnitItemDTO struct {
+	OrganizationUnit string `json:"organization_unit"`
+	Count            int64  `json:"count"`
 }
 
-type ERMRiskSummaryByDepartmentDTO struct {
-	RisksByDepartment []ERMRiskSummaryByDepartmentItemDTO `json:"risks_by_department"`
+type ERMRiskSummaryByOrganizationUnitDTO struct {
+	RisksByOrganizationUnit []ERMRiskSummaryByOrganizationUnitItemDTO `json:"risks_by_organization_unit"`
 }
 
 type ERMRisksIdentifiedSummaryItemDTO struct {
@@ -270,7 +270,7 @@ type ERMRiskMitigationPlanStatusSummaryDTO struct {
 type ERMOpenRiskSummaryItemDTO struct {
 	RiskTitle                string  `json:"risk_title"`
 	Category                 string  `json:"category"`
-	Department               string  `json:"department"`
+	OrganizationUnit         string  `json:"organization_unit"`
 	NumControls              int64   `json:"no_of_controls"`
 	ControlEfficiency        string  `json:"control_efficiency"`
 	ControlEfficiencyPercent float64 `json:"control_efficiency_percent"`
