@@ -209,7 +209,7 @@ func createSheetWithDropDown(f *excelize.File, sheetName string, data [][]interf
 			continue
 		}
 
-		// Flatten dropdown values 
+		// Flatten dropdown values
 		dropList := []string{}
 		for _, row := range optionsData[1:] { // Skip header row
 			if len(row) > 0 {

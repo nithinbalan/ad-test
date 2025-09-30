@@ -15,6 +15,7 @@ import (
 	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 
@@ -32,7 +33,7 @@ type ComplianceClauseServiceInterface interface {
 
 	GetAssociatedComplianceRequirements(complianceID uint, clauseID uint) ([]complianceDTOs.ComplianceRequirementListDTO, error)
 	GetAssociatedControls(complianceID uint, clauseID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedControlListResponseDTO, error)
-	CreateComplianceClauseControls(complianceID, clauseID, currentUserID uint, dto *complianceDTOs.ComplianceClauseControlMapDTO) error
+	CreateComplianceClauseControls(complianceID, clauseID, currentUserID uint, dto *complianceDTOs.ComplianceClauseControlMapDTO) ([]uint, error)
 	DeleteComplianceClauseControl(clauseID, controlID uint) error
 	GetClausesByIDs(ids []uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceClause, error)
 
@@ -68,6 +69,11 @@ type ComplianceClauseServiceInterface interface {
 	ValidateClauseTemplate(complianceID uint, file io.Reader) ([]map[string]interface{}, error)
 	ValidateImportClause(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error)
 	ImportClauses(complianceID uint, input []map[string]interface{}, currentUserID uint) ([]uint, error)
+
+	GenerateComplianceClauseControlTemplate(complianceID uint) (*os.File, error)
+	ValidateControlMappingTemplate(complianceID uint, file io.Reader) ([]map[string]interface{}, error)
+	ValidateImportControlMapping(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error)
+	ImportControlMapping(complianceID uint, input []map[string]interface{}, currentUserID uint) ([]uint, error)
 	GetAllForImport(complianceID uint) ([]*complianceDTOs.ComplianceClauseListDTO, error)
 }
 
@@ -520,9 +526,9 @@ func (ccs *ComplianceClauseService) GetAssociatedControls(complianceID uint, cla
 	return controls, nil
 }
 
-func (ccs *ComplianceClauseService) CreateComplianceClauseControls(complianceID, clauseID, currentUserID uint, dto *complianceDTOs.ComplianceClauseControlMapDTO) error {
+func (ccs *ComplianceClauseService) CreateComplianceClauseControls(complianceID, clauseID, currentUserID uint, dto *complianceDTOs.ComplianceClauseControlMapDTO) ([]uint, error) {
 	if err := ccs.validateControlIDs(clauseID, dto.ControlIDs); err != nil {
-		return err
+		return nil, err
 	}
 
 	tx := ccs.repo.BeginTransaction()
@@ -538,12 +544,15 @@ func (ccs *ComplianceClauseService) CreateComplianceClauseControls(complianceID,
 		})
 	}
 
-	if err := ccs.repo.CreateComplianceControls(controlMappings, tx); err != nil {
+	createdIDs, err := ccs.repo.CreateComplianceControls(controlMappings, tx)
+	if err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
-	return tx.Commit()
+	tx.Commit()
+
+	return createdIDs, nil
 }
 
 func (ccs *ComplianceClauseService) DeleteComplianceClauseControl(clauseID, controlID uint) error {
@@ -1241,6 +1250,248 @@ func (css *ComplianceClauseService) ImportClauses(complianceID uint, input []map
 		}
 		createdIDs = append(createdIDs, id)
 		clauseNoToID[clauseNo] = id
+	}
+	return createdIDs, nil
+}
+
+func (css *ComplianceClauseService) GenerateComplianceClauseControlTemplate(complianceID uint) (*os.File, error) {
+	templateHeaders := []string{"Clause", "Control"}
+
+	templateData := [][]interface{}{}
+
+	// Clauses
+	clauses, err := css.GetAllForImport(complianceID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching clauses: %v", err)
+	}
+	clauseHeaders := []string{"ClauseNo", "TitleEn"}
+	clauseData := [][]interface{}{}
+	for _, c := range clauses {
+		clauseData = append(clauseData, []interface{}{c.ClauseNo, c.TitleEn})
+	}
+
+	queryParams := organizationDTOs.ControlListQueryParamsDTO{
+		Sort:     "asc",
+		SortBy:   "controls.title_en",
+		Page:     1,
+		PageSize: 1000,
+	}
+	// Contorls
+	controls, err := css.controlSvc.GetAll(&queryParams)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching controls: %v", err)
+	}
+
+	controlHeaders := []string{"TitleEn", "Code", "ReferenceNo"}
+	controlData := [][]interface{}{}
+	for _, c := range controls.Items {
+		var code string
+		if c.Code != nil {
+			code = *c.Code
+		} else {
+			code = ""
+		}
+		controlData = append(controlData, []interface{}{c.TitleEn, code, c.ReferenceNumber})
+	}
+
+	dropDownConfig := map[string]bool{
+		"Clause":  true,
+		"Control": true,
+	}
+
+	file, err := utility.GenerateExcelFileWithSheetsAndDropDown(map[string][][]interface{}{
+		"Template": append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+		"Clause":   append([][]interface{}{utility.ConvertToInterfaceSlice(clauseHeaders)}, clauseData...),
+		"Control":  append([][]interface{}{utility.ConvertToInterfaceSlice(controlHeaders)}, controlData...),
+	}, dropDownConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
+
+func (css *ComplianceClauseService) ValidateControlMappingTemplate(complianceID uint, file io.Reader) ([]map[string]interface{}, error) {
+	rows, err := utility.ReadExcelFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	inputHeaders := []string{"Clause", "Control"}
+	snakeHeaders := []string{"clause", "control"}
+
+	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid headers"), "invalid_header", "Control Mapping Template")
+	}
+
+	dataRows := rows[1:]
+	input := utility.MapRowsToRecords(snakeHeaders, dataRows)
+
+	return css.validateControlMappings(complianceID, input)
+}
+
+func (css *ComplianceClauseService) ValidateImportControlMapping(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error) {
+	return css.validateControlMappings(complianceID, input)
+}
+
+func (css *ComplianceClauseService) validateControlMappings(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error) {
+	headers := []string{"clause", "control"}
+
+	// Clauses
+	clauses, err := css.GetAllForImport(complianceID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching clauses: %v", err)
+	}
+	clauseMap := make(map[string]uint)
+	for _, cl := range clauses {
+		key := strings.TrimSpace(cl.TitleEn)
+		clauseMap[key] = cl.ID
+	}
+
+	queryParams := organizationDTOs.ControlListQueryParamsDTO{
+		Sort:     "asc",
+		SortBy:   "controls.title_en",
+		Page:     1,
+		PageSize: 1000,
+	}
+
+	// Controls
+	controls, err := css.controlSvc.GetAll(&queryParams)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching controls: %v", err)
+	}
+	controlMap := make(map[string]uint)
+	for _, c := range controls.Items {
+		key := strings.TrimSpace(c.TitleEn)
+		controlMap[key] = c.ID
+	}
+
+	existing := make(map[string]bool)
+	params := &commonDTOs.AssociatedItemListQueryParamsDTO{
+		Page:     1,
+		PageSize: 10000,
+	}
+
+	for _, cl := range clauses {
+		controlsResp, err := css.GetAssociatedControls(complianceID, cl.ID, params)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching associated controls: %v", err)
+		}
+		for _, ctrl := range controlsResp.Items {
+			key := fmt.Sprintf("%d-%d", cl.ID, ctrl.ID)
+			existing[key] = true
+		}
+	}
+
+	var validated []map[string]interface{}
+	seen := make(map[string]bool)
+
+	for _, record := range input {
+		rowErrors := make(map[string]interface{})
+		processed := make(map[string]interface{})
+
+		for k, v := range record {
+			processed[k] = v
+		}
+
+		var clauseID, controlID uint
+		var clauseOK, controlOK bool
+
+		// Validate Clause
+		if val, ok := record["clause"].(string); !ok || val == "" {
+			rowErrors["clause"] = "Field is required"
+		} else if id, exists := clauseMap[strings.TrimSpace(val)]; exists {
+			processed["clause_id"] = id
+			clauseID = id
+			clauseOK = true
+		} else {
+			rowErrors["clause"] = fmt.Sprintf("Invalid clause: %s", val)
+		}
+
+		// Validate Control
+		if val, ok := record["control"].(string); !ok || val == "" {
+			rowErrors["control"] = "Field is required"
+		} else if id, exists := controlMap[strings.TrimSpace(val)]; exists {
+			processed["control_id"] = id
+			controlID = id
+			controlOK = true
+		} else {
+			rowErrors["control"] = fmt.Sprintf("Invalid control: %s", val)
+		}
+
+		if clauseOK && controlOK {
+			key := fmt.Sprintf("%d-%d", clauseID, controlID)
+			if seen[key] {
+				rowErrors["clause"] = "Duplicate clause-control mapping"
+				rowErrors["control"] = "Duplicate clause-control mapping"
+			} else if existing[key] {
+				rowErrors["clause"] = "This clause-control mapping already exists"
+				rowErrors["control"] = "This clause-control mapping already exists"
+			} else {
+				seen[key] = true
+			}
+		}
+
+		if len(rowErrors) == 0 {
+			processed["errors"] = nil
+		} else {
+			for _, h := range headers {
+				if _, exists := rowErrors[h]; !exists {
+					rowErrors[h] = ""
+				}
+			}
+			processed["errors"] = rowErrors
+		}
+
+		validated = append(validated, processed)
+	}
+
+	return validated, nil
+}
+
+func (css *ComplianceClauseService) ImportControlMapping(complianceID uint, input []map[string]interface{}, currentUserID uint) ([]uint, error) {
+	validated, err := css.validateControlMappings(complianceID, input)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, r := range validated {
+		if errs, ok := r["errors"].(map[string]interface{}); ok && len(errs) > 0 {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid data"), "invalid_data", "Invalid Data")
+		}
+	}
+
+	grouped := make(map[uint][]uint)
+
+	for _, row := range validated {
+		clauseID, ok1 := row["clause_id"].(uint)
+		controlID, ok2 := row["control_id"].(uint)
+
+		if ok1 && ok2 {
+			exists := false
+			for _, cid := range grouped[clauseID] {
+				if cid == controlID {
+					exists = true
+					break
+				}
+			}
+			if !exists {
+				grouped[clauseID] = append(grouped[clauseID], controlID)
+			}
+		}
+	}
+
+	var createdIDs []uint
+	for clauseID, controlIDs := range grouped {
+		dto := &complianceDTOs.ComplianceClauseControlMapDTO{
+			ControlIDs: controlIDs,
+		}
+
+		ids, err := css.CreateComplianceClauseControls(complianceID, clauseID, currentUserID, dto)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create clause-control mappings: %v", err)
+		}
+		createdIDs = append(createdIDs, ids...)
 	}
 	return createdIDs, nil
 }
