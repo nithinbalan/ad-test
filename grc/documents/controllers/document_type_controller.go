@@ -56,6 +56,11 @@ func (dtc *DocumentTypeController) GetDocumentTypeDetails(c *gin.Context) {
 
 func (dtc *DocumentTypeController) CreateDocumentType(c *gin.Context) {
 	var documentType *models.DocumentType
+
+	documentType = &models.DocumentType{
+		Type: "others",
+	}
+
 	if err := c.ShouldBindJSON(&documentType); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
