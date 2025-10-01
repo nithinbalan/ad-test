@@ -89,7 +89,7 @@ func ConvertHTMLContentToPDF(htmlContent, pdfFileName string) error {
 	return nil
 }
 
-func ConvertPolicyHTMLContentToPDF(headerHTML, coverHTML, disclaimerHTML, contentHTML, pdfFileName string) error {
+func ConvertPolicyHTMLContentToPDF(headerHTML, footerHTML, coverHTML, disclaimerHTML, contentHTML, pdfFileName string) error {
 	wkhtmltopdfPath := os.Getenv("WKHTMLTOPDF_PATH")
 	if wkhtmltopdfPath == "" {
 		wkhtmltopdfPath = "C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe"
@@ -97,8 +97,6 @@ func ConvertPolicyHTMLContentToPDF(headerHTML, coverHTML, disclaimerHTML, conten
 	if _, err := os.Stat(wkhtmltopdfPath); os.IsNotExist(err) {
 		return fmt.Errorf("wkhtmltopdf executable not found at %s", wkhtmltopdfPath)
 	}
-
-	appURL := GetAppURL()
 
 	// Helper to create temp HTML files
 	createTempHTML := func(content, prefix string) (string, error) {
@@ -119,6 +117,17 @@ func ConvertPolicyHTMLContentToPDF(headerHTML, coverHTML, disclaimerHTML, conten
 		return err
 	}
 	defer os.Remove(headerPath)
+
+	tempFooterFile, err := os.CreateTemp("", "export_pdf_footer_*.html")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary footer file: %w", err)
+	}
+	defer os.Remove(tempFooterFile.Name())
+
+	if _, err := tempFooterFile.Write([]byte(footerHTML)); err != nil {
+		return fmt.Errorf("failed to write footer content to file: %w", err)
+	}
+	tempFooterFile.Close()
 
 	coverPath, err := createTempHTML(coverHTML, "cover_")
 	if err != nil {
@@ -154,11 +163,12 @@ func ConvertPolicyHTMLContentToPDF(headerHTML, coverHTML, disclaimerHTML, conten
 			"--margin-right", right,
 			"--header-html", headerPath,
 			"--header-spacing", "5",
-			"--footer-left", appURL,
-			"--footer-right", "[page]",
-			"--footer-font-size", "8",
-			"--footer-spacing", "5",
-			"--footer-line",
+			"--footer-html", tempFooterFile.Name(),
+			// "--footer-left", appURL,
+			// "--footer-right", "[page]",
+			// "--footer-font-size", "8",
+			// "--footer-spacing", "5",
+			// "--footer-line",
 		}
 
 		if addTOC {

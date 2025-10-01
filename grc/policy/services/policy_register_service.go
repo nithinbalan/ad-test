@@ -1283,7 +1283,7 @@ func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, pol
 	}
 
 	for _, documentWorkflow := range workflow.DocumentWorkflows {
-		documentWorkflow.ApprovedAtString = documentWorkflow.ApprovedAt.Format("2006-01-02")
+		documentWorkflow.ApprovedAtString = documentWorkflow.ApprovedAt.Format("02/01/2006")
 	}
 
 	template, err := prs.settingSvc.GetFirst()
@@ -1296,6 +1296,9 @@ func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, pol
 	}
 
 	tx := prs.repo.BeginTransaction()
+
+	appURL := utility.GetAppURL()
+
 	referenceNumber, err := prs.repo.GenerateReferenceNumber()
 	if err != nil {
 		return err
@@ -1374,11 +1377,13 @@ func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, pol
 	}
 
 	pdfData := policyDTOs.PolicyPDFData{
+		AppUrl:            appURL,
 		Document:          policyRegister, // your full document struct
 		Workflow:          workflow,
 		Clauses:           clauses,
-		CreatedAtString:   policyRegister.CreatedAt.Format("2006-01-02"),
-		PublishedAtString: policyRegister.LatestDocumentVersion.PublishedAt.Format("2006-01-02"),
+		CreatedAtString:   policyRegister.CreatedAt.Format("02/01/2006"),
+		PublishedAtString: policyRegister.LatestDocumentVersion.PublishedAt.Format("02/01/2006"),
+		NextReviewDate:    policyRegister.NextReviewDate.Format("02/01/2006"),
 	}
 
 	// Generate cover page HTML
@@ -1404,9 +1409,14 @@ func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, pol
 		return fmt.Errorf("failed to generate header page: %w", err)
 	}
 
+	footerHTML, err := utility.GeneratePDFContent(pdfData, []string{"document/templates/pdf/footer.html"}, "", "")
+	if err != nil {
+		return fmt.Errorf("failed to generate footer content: %w", err)
+	}
+
 	// Convert to PDF (cover + content + footer)
 	pdfFileName := fmt.Sprintf("RiskReport_%d.pdf", id)
-	if err := utility.ConvertPolicyHTMLContentToPDF(headerHTML, coverHTML, disclaimerHTML, contentHTML, pdfFileName); err != nil {
+	if err := utility.ConvertPolicyHTMLContentToPDF(headerHTML, footerHTML, coverHTML, disclaimerHTML, contentHTML, pdfFileName); err != nil {
 		return fmt.Errorf("failed to generate PDF: %w", err)
 	}
 

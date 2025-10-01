@@ -17,8 +17,8 @@
       height: 100%;
     }
     .cover-page {
-      min-height: 1250px;
-      padding: 20px 32px;
+      min-height: 1299px;
+      /* padding: 10px 32px; */
       position: relative;
       background: url({{.ApiPath}}/report-template-settings/image-preview?type=cover-page-bg) no-repeat 0 0;
       background-size: 100% 100%;
@@ -38,7 +38,9 @@
     .document-info {
       padding: 20px 40px;
       width: 1000px;
-      margin: 0 auto;
+      /* margin: 0 auto; */
+      margin-top: 24px; /* space from title/image */
+      padding-bottom: 24px;
     }
     .info-row {
       margin-top: 0px;
@@ -49,24 +51,14 @@
       margin-bottom: 10px;
     }
     .info-label {
-      font-size: 13px;
+      font-size: 15px;
       font-weight: 300;
       margin: 0 0 2px 0;
     }
     .info-value {
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 400;
       margin: 0 0 13px 0;
-    }
-    .page {
-      width: 1000px;
-      margin: 20px auto;
-      background: #fff;
-    }
-    .header {
-      border-bottom: 1px solid #DEDEDE;
-      padding-bottom: 20px;
-      text-align: right;
     }
   </style>
 </head>
@@ -74,11 +66,11 @@
 
   <!-- Cover Page -->
   <div class="cover-page">
-    <div>
+    <!-- <div>
       <img src="{{.ApiPath}}/report-template-settings/image-preview?type=logo" class="cover-logo" alt="Logo">
-    </div>
+    </div> -->
     <h1 class="cover-title">
-      Policy Document  <br/> {{.Data.Document.TitleEn}}
+      Policy Document Jethur<br/> {{.Data.Document.TitleEn}}
     </h1>
   </div>
 
@@ -100,7 +92,7 @@
         <p class="info-value">{{.Data.CreatedAtString}}</p>
       </div>
       <div class="info-block" style="width: 30%;">
-        <p class="info-label">Organizer</p>
+        <p class="info-label">Responsible User</p>
         <p class="info-value">{{.Data.Document.ResponsibleUser.FirstNameEN}} {{.Data.Document.ResponsibleUser.LastNameEN}}</p>
       </div>
       <div class="info-block" style="width: 30%;">

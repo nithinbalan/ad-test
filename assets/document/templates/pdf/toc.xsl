@@ -23,13 +23,13 @@
           span {float: right;}
           li {
             list-style: none;
-            line-height: 1.6;
+            line-height: 3.0em;
             }
           ul {
             font-size: 14px;  /* same size for all */
             font-family: Lexend Deca, sans-serif;
             padding-left: 0em;
-            line-height: 1.6;
+            line-height: 3.0em;
           }
           /* remove ul ul or set it to same size */
           ul ul {font-size: 14px; padding-left: 1em;}

@@ -164,9 +164,11 @@ type DocumentVersionDTO struct {
 }
 
 type PolicyPDFData struct {
+	AppUrl            string                                        `json:"app_url"`
 	Document          *PolicyRegisterDetailsDTO                     `json:"document"`
 	Workflow          *documentsDTOs.DocumentVersionWorkflowListDTO `json:"workflow"`
 	Clauses           []*PolicyClauseListDTO                        `json:"clauses"`
 	CreatedAtString   string                                        `json:"created_at"`
 	PublishedAtString string                                        `json:"published_at"`
+	NextReviewDate    string                                        `json:"next_review_date"`
 }
