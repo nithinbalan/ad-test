@@ -487,6 +487,18 @@ func (repo *ERMDashboardRepository) GetERMControlsOverview(params *kpiDTOs.ERMDa
 		summary.OverallControlEfficiency = 0
 	}
 
+	// Determine the highest available risk rating dynamically
+	var highestRating string
+	err = repo.db.Table("risk_matrix_risk_ratings").
+		Select("type").
+		Where("status = ?", "active").
+		Order("CASE type WHEN 'very_high' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 WHEN 'very_low' THEN 5 END").
+		Limit(1).
+		Pluck("type", &highestRating).Error
+	if err != nil || highestRating == "" {
+		return nil, fmt.Errorf("failed to fetch highest risk rating: %v", err)
+	}
+
 	err = repo.db.Table("risk_register").
 		Joins("LEFT JOIN risk_controls ON risk_controls.risk_register_id = risk_register.id").
 		Joins("LEFT JOIN risk_control_analyses ON risk_controls.id = risk_control_analyses.risk_control_id").
@@ -498,7 +510,7 @@ func (repo *ERMDashboardRepository) GetERMControlsOverview(params *kpiDTOs.ERMDa
 			COUNT(DISTINCT CASE WHEN risk_controls.id IS NULL THEN risk_register.id END) AS high_risks_with_no_controls,
 			COUNT(DISTINCT CASE WHEN control_efficiency_statuses.type = 'inefficient' THEN risk_controls.control_id END) AS high_risks_with_inefficient_controls
 		`).
-		Where("risk_matrix_risk_ratings.type IN ?", []string{"high", "very_high"}).
+		Where("risk_matrix_risk_ratings.type = ?", highestRating).
 		Where("risk_statuses.type = ?", "open").
 		Scan(&highRiskControlResult).Error
 	if err != nil {
@@ -822,8 +834,20 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params
 	strategicObjectiveRisks := []kpiDTOs.ERMStregicObjectiveRiskItemDTO{}
 	var totalCount int64
 
-	baseQuery := repo.db.Table("strategic_objectives so").
-		Select(`
+	// Determine the highest available risk rating dynamically
+	var highestRating string
+	err := repo.db.Table("risk_matrix_risk_ratings").
+		Select("type").
+		Where("status = ?", "active").
+		Order("CASE type WHEN 'very_high' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 WHEN 'very_low' THEN 5 END").
+		Limit(1).
+		Pluck("type", &highestRating).Error
+	if err != nil || highestRating == "" {
+		return nil, fmt.Errorf("failed to fetch highest risk rating: %v", err)
+	}
+
+	// Format the SQL query with the highest rating
+	selectQuery := fmt.Sprintf(`
             so.title_en as strategic_objective_title_en,
 			so.title_ar as strategic_objective_title_ar,
             (
@@ -834,7 +858,7 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params
 				ON rr.id = rso.risk_register_id
 				WHERE rso.strategic_objective_id = so.id
 			) as linked_risks,
-            COUNT(CASE WHEN rmrr.type IN ('high', 'very_high') THEN 1 END) as high_risk_count,
+            COUNT(CASE WHEN rmrr.type = '%s' THEN 1 END) as high_risk_count,
             COALESCE(
                 (SELECT TOP 1 title_en FROM risk_matrix_risk_ratings 
                  WHERE CASE 
@@ -896,7 +920,10 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params
                 WHEN COUNT(CASE WHEN ratl.type IN ('above', 'significantly_above') THEN 1 END) > 0 THEN 'Yes'
                 ELSE 'No'
             END as appetite_breach
-        `).
+        `, highestRating)
+
+	baseQuery := repo.db.Table("strategic_objectives so").
+		Select(selectQuery).
 		Joins("JOIN risk_strategic_objectives rso ON so.id = rso.strategic_objective_id").
 		Joins("LEFT JOIN risk_register rr ON rr.id = rso.risk_register_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings rmrr ON rmrr.id = rr.current_risk_rating_id").
@@ -917,7 +944,6 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params
 		)
 	}
 
-	// Group by strategic objective - only include objectives that have linked risks
 	baseQuery = baseQuery.Group("so.id, so.title_en, so.title_ar")
 
 	if err := baseQuery.Count(&totalCount).Error; err != nil {
@@ -926,7 +952,7 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params
 
 	offset := (params.Page - 1) * params.PageSize
 
-	err := baseQuery.Offset(offset).Limit(params.PageSize).Find(&strategicObjectiveRisks).Error
+	err = baseQuery.Offset(offset).Limit(params.PageSize).Find(&strategicObjectiveRisks).Error
 	if err != nil {
 		return nil, err
 	}
