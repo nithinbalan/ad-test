@@ -134,7 +134,7 @@ func (ircas *IncidentRootCauseAnalysisService) Create(incidentID uint, currentUs
 			id,
 			existingIncidentRootCauseAnalysis,
 			currentUserID,
-			"", "", "", nil,
+			"incident", "incident_register", "root_cause_analysis", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -210,7 +210,7 @@ func (ircas *IncidentRootCauseAnalysisService) Update(incidentID uint, id uint, 
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"incident", "incident_register", "root_cause_analysis", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -298,7 +298,7 @@ func (ircas *IncidentRootCauseAnalysisService) Delete(incidentID uint, id uint, 
 			id,
 			deletedIncidentRootCauseAnalysis,
 			currentUserID,
-			"", "", "", nil,
+			"incident", "incident_register", "root_cause_analysis", nil,
 		)
 		if err != nil {
 			// Handle error if logging fails

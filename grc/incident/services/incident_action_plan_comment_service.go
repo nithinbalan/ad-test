@@ -196,7 +196,7 @@ func (iapc *IncidentActionPlanCommentService) Create(incidentID uint, actionPlan
 			id,
 			existingComment,
 			currentUserID,
-			"", "", "", nil,
+			"incident", "incident_register", "action_plan_comment", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -626,7 +626,7 @@ func (iapc *IncidentActionPlanCommentService) Update(incidentID uint, actionPlan
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"incident", "incident_register", "action_plan_comment", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

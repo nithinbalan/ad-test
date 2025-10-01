@@ -187,7 +187,7 @@ func (ics *IncidentClosureService) Create(incidentID uint, currentUserID uint, i
 			id,
 			existingIncidentClosure,
 			currentUserID,
-			"", "", "", nil,
+			"incident", "incident_register", "closure", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -351,7 +351,7 @@ func (ics *IncidentClosureService) Update(incidentID uint, currentUserID uint, i
 				existingIncidentClosure.ID,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"incident", "incident_register", "closure", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -447,7 +447,7 @@ func (ics *IncidentClosureService) Delete(incidentID uint, currentUserID uint) (
 			uint(incidentClosure.ID),
 			deletedIncidentClosure,
 			currentUserID,
-			"", "", "", nil,
+			"incident", "incident_register", "closure", nil,
 		)
 		if err != nil {
 			// Handle error if logging fails

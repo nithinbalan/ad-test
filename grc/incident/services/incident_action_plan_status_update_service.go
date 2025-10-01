@@ -206,7 +206,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Create(IncidentID uint, Inci
 			id,
 			incidentActionPlanUpdate,
 			currentUserID,
-			"", "", "", nil,
+			"incident", "incident_register", "action_plan_status_update", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -435,7 +435,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Update(IncidentID uint, Inci
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"incident", "incident_register", "action_plan_status_update", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -661,7 +661,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Approve(incidentID uint, act
 			id,
 			existingIncidentActionPlan,
 			currentUserID,
-			"", "", "", nil,
+			"incident", "incident_register", "action_plan_status_update", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -821,7 +821,7 @@ func (iasus *IncidentActionPlanStatusUpdateService) Revert(incidentID uint, acti
 			id,
 			existingIncidentActionPlan,
 			currentUserID,
-			"", "", "", nil,
+			"incident", "incident_register", "action_plan_status_update", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{

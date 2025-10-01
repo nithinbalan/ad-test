@@ -333,7 +333,7 @@ func (irs *IncidentRegisterService) Create(currentUserID uint, incidentRegisterF
 			id,
 			existingIncident,
 			currentUserID,
-			"", "", "", nil,
+			"incident", "incident_register", "register", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -683,7 +683,7 @@ func (irs *IncidentRegisterService) Update(id uint, currentUserID uint, incident
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"incident", "incident_register", "register", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
