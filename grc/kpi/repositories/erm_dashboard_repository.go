@@ -385,14 +385,16 @@ func (repo *ERMDashboardRepository) GetERMControlEfficiencySummary(params *kpiDT
 
 	var totalControls, efficientControls int64
 
-	query := repo.db.Table("controls").
+	query := repo.db.Table("risk_controls").
+		Joins("JOIN controls ON risk_controls.control_id = controls.id").
+		Joins("JOIN risk_register ON risk_register.id = risk_controls.risk_register_id").
+		Joins("JOIN risk_statuses ON risk_register.risk_status_id = risk_statuses.id").
+		Joins("LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id").
+		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
 		Select(`
-            COUNT(DISTINCT CASE WHEN controls.is_applicable = 1 THEN controls.id END) AS total_controls,
-            COUNT(DISTINCT CASE WHEN controls.is_applicable = 1 AND control_efficiency_statuses.type = 'efficient' THEN controls.id END) AS efficient_controls
-        `).
-		Joins("JOIN risk_controls ON risk_controls.control_id = controls.id").
-		Joins("JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id").
-		Where("controls.is_applicable = ?", true)
+			COUNT(DISTINCT controls.id) AS total_controls,
+			COUNT(DISTINCT CASE WHEN control_efficiency_statuses.type = 'efficient' THEN controls.id END) AS efficient_controls
+		`)
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Joins("JOIN risk_register ON risk_register.id = risk_controls.risk_register_id").
@@ -428,7 +430,6 @@ func (repo *ERMDashboardRepository) GetERMControlEfficiencyBreakdown(params *kpi
 		`).
 		Joins("JOIN controls ON risk_controls.control_id = controls.id").
 		Joins("JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id").
-		Where("controls.is_applicable = ?", true).
 		Group(`
         control_efficiency_statuses.id,
         control_efficiency_statuses.title_en,
@@ -475,10 +476,14 @@ func (repo *ERMDashboardRepository) GetERMControlsOverview(params *kpiDTOs.ERMDa
 
 	summary.TotalControls = controlsResult.TotalControls
 	summary.ImplementedControls = controlsResult.ImplementedControls
+	summary.EfficientControls = controlsResult.EfficientControls
 
-	summary.TotalControlsPercent = 100.0
 	if controlsResult.TotalControls > 0 {
 		summary.ImplementedControlsPercent = math.Round(float64(controlsResult.ImplementedControls)/float64(controlsResult.TotalControls)*100*100) / 100
+	}
+
+	if controlsResult.TotalControls > 0 {
+		summary.EfficientControlsPercent = math.Round(float64(controlsResult.EfficientControls)/float64(controlsResult.TotalControls)*100*100) / 100
 	}
 
 	if controlsResult.TotalControls > 0 {
@@ -501,8 +506,8 @@ func (repo *ERMDashboardRepository) GetERMControlsOverview(params *kpiDTOs.ERMDa
 
 	err = repo.db.Table("risk_register").
 		Joins("LEFT JOIN risk_controls ON risk_controls.risk_register_id = risk_register.id").
-		Joins("LEFT JOIN risk_control_analyses ON risk_controls.id = risk_control_analyses.risk_control_id").
-		Joins("LEFT JOIN control_efficiency_statuses ON risk_control_analyses.control_efficiency_status_id = control_efficiency_statuses.id").
+		Joins("LEFT JOIN controls ON risk_controls.control_id = controls.id").
+		Joins("LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id").
 		Joins("JOIN risk_matrix_risk_ratings ON risk_register.current_risk_rating_id = risk_matrix_risk_ratings.id").
 		Joins("JOIN risk_statuses ON risk_register.risk_status_id = risk_statuses.id").
 		Select(`

@@ -86,7 +86,8 @@ type ERMHighRiskControlsResultDTO struct {
 
 type ERMControlsOverviewDTO struct {
 	TotalControls                           int64   `json:"total_controls"`
-	TotalControlsPercent                    float64 `json:"total_controls_percent"`
+	EfficientControls                       int64   `json:"efficient_controls"`
+	EfficientControlsPercent                float64 `json:"efficient_controls_percent"`
 	ImplementedControls                     int64   `json:"implemented_controls"`
 	ImplementedControlsPercent              float64 `json:"implemented_controls_percent"`
 	OverallControlEfficiency                float64 `json:"overall_control_efficiency"`
