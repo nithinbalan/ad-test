@@ -554,20 +554,47 @@ func (repo *ERMDashboardRepository) GetERMRiskAppetiteOverview(params *kpiDTOs.E
 		return nil, err
 	}
 
-	// Step 3: Map results → Organization units with dynamic levels
-	deptMap := make(map[string]*kpiDTOs.ERMRiskAppetiteOverviewItemDTO)
+	// Fetch total risks per organization unit
+	totalRisksMap := make(map[string]int64)
+	totalQuery := repo.db.Model(&models.RiskRegister{}).
+		Joins("LEFT JOIN organization_units ru ON ru.id = risk_register.responsible_unit_id").
+		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(ru.organization_unit_id, ru.id) = parent_unit.id").
+		Joins("JOIN organization_levels ol ON ol.id = ru.organization_level_id AND ol.is_primary = ?", true).
+		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
+		Where("parent_unit.status = ?", "active")
 
+	if params.DateFrom != "" && params.DateTo != "" {
+		totalQuery = totalQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	var totalResults []struct {
+		OrganizationUnit string
+		TotalRisk        int64
+	}
+
+	if err := totalQuery.Select("parent_unit.title_en AS organization_unit, COUNT(DISTINCT risk_register.id) AS total_risk").
+		Group("parent_unit.id, parent_unit.title_en").
+		Scan(&totalResults).Error; err != nil {
+		return nil, err
+	}
+
+	for _, tr := range totalResults {
+		totalRisksMap[tr.OrganizationUnit] = tr.TotalRisk
+	}
+
+	// Step 3: Map results → Organization units with dynamic levels
+	orgMap := make(map[string]*kpiDTOs.ERMRiskAppetiteOverviewItemDTO)
 	for _, r := range results {
-		if _, exists := deptMap[r.OrganizationUnit]; !exists {
-			deptMap[r.OrganizationUnit] = &kpiDTOs.ERMRiskAppetiteOverviewItemDTO{
+		if _, exists := orgMap[r.OrganizationUnit]; !exists {
+			orgMap[r.OrganizationUnit] = &kpiDTOs.ERMRiskAppetiteOverviewItemDTO{
 				OrganizationUnit:   r.OrganizationUnit,
 				RiskAppetiteLevels: []kpiDTOs.ERMRiskSummaryItemDTO{},
-				TotalRisk:          0,
+				TotalRisk:          totalRisksMap[r.OrganizationUnit],
 			}
 		}
-
-		dept := deptMap[r.OrganizationUnit]
-		dept.RiskAppetiteLevels = append(dept.RiskAppetiteLevels, kpiDTOs.ERMRiskSummaryItemDTO{
+		org := orgMap[r.OrganizationUnit]
+		org.RiskAppetiteLevels = append(org.RiskAppetiteLevels, kpiDTOs.ERMRiskSummaryItemDTO{
 			ID:        r.LevelID,
 			TitleEn:   r.TitleEn,
 			TitleAr:   r.TitleAr,
@@ -575,13 +602,12 @@ func (repo *ERMDashboardRepository) GetERMRiskAppetiteOverview(params *kpiDTOs.E
 			Type:      r.Type,
 			Count:     r.Count,
 		})
-		dept.TotalRisk += r.Count
 	}
 
 	// Convert map → slice
-	overview := make([]kpiDTOs.ERMRiskAppetiteOverviewItemDTO, 0, len(deptMap))
-	for _, dept := range deptMap {
-		overview = append(overview, *dept)
+	overview := make([]kpiDTOs.ERMRiskAppetiteOverviewItemDTO, 0, len(orgMap))
+	for _, org := range orgMap {
+		overview = append(overview, *org)
 	}
 
 	return &kpiDTOs.ERMRiskAppetiteOverviewDTO{
