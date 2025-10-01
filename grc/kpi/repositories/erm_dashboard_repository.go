@@ -459,11 +459,13 @@ func (repo *ERMDashboardRepository) GetERMControlsOverview(params *kpiDTOs.ERMDa
 
 	err := repo.db.Model(&models.RiskControl{}).
 		Joins("JOIN controls ON risk_controls.control_id = controls.id").
+		Joins("JOIN risk_register ON risk_controls.risk_register_id = risk_register.id").
+		Joins("JOIN risk_statuses ON risk_register.risk_status_id = risk_statuses.id").
 		Joins("LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id").
 		Joins("LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id").
+		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
 		Select(`
 			COUNT(DISTINCT controls.id) AS total_controls,
-			COUNT(DISTINCT CASE WHEN controls.is_applicable = 1 THEN controls.id END) AS applicable_controls,
 			COUNT(DISTINCT CASE WHEN control_implementation_statuses.type = 'implemented' THEN controls.id END) AS implemented_controls,
 			COUNT(DISTINCT CASE WHEN control_efficiency_statuses.type = 'efficient' THEN controls.id END) AS efficient_controls
 		`).Scan(&controlsResult).Error
@@ -472,17 +474,15 @@ func (repo *ERMDashboardRepository) GetERMControlsOverview(params *kpiDTOs.ERMDa
 	}
 
 	summary.TotalControls = controlsResult.TotalControls
-	summary.ApplicableControls = controlsResult.ApplicableControls
 	summary.ImplementedControls = controlsResult.ImplementedControls
 
 	summary.TotalControlsPercent = 100.0
 	if controlsResult.TotalControls > 0 {
-		summary.ApplicableControlsPercent = math.Round(float64(controlsResult.ApplicableControls)/float64(controlsResult.TotalControls)*100*100) / 100
 		summary.ImplementedControlsPercent = math.Round(float64(controlsResult.ImplementedControls)/float64(controlsResult.TotalControls)*100*100) / 100
 	}
 
-	if controlsResult.ApplicableControls > 0 {
-		summary.OverallControlEfficiency = math.Round(float64(controlsResult.EfficientControls)/float64(controlsResult.ApplicableControls)*100*100) / 100
+	if controlsResult.TotalControls > 0 {
+		summary.OverallControlEfficiency = math.Round(float64(controlsResult.EfficientControls)/float64(controlsResult.TotalControls)*100*100) / 100
 	} else {
 		summary.OverallControlEfficiency = 0
 	}
@@ -510,7 +510,7 @@ func (repo *ERMDashboardRepository) GetERMControlsOverview(params *kpiDTOs.ERMDa
 	summary.HighRisksWithInefficientControls = highRiskControlResult.HighRisksWithInefficientControls
 
 	if controlsResult.TotalControls > 0 {
-		summary.HighRisksWithInefficientPercent = math.Round(
+		summary.HighRisksWithInefficientControlsPercent = math.Round(
 			(float64(highRiskControlResult.HighRisksWithInefficientControls)/float64(controlsResult.TotalControls)*100)*100,
 		) / 100
 	}

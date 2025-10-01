@@ -85,17 +85,15 @@ type ERMHighRiskControlsResultDTO struct {
 }
 
 type ERMControlsOverviewDTO struct {
-	TotalControls                    int64   `json:"total_controls"`
-	TotalControlsPercent             float64 `json:"total_controls_percent"`
-	ApplicableControls               int64   `json:"applicable_controls"`
-	ApplicableControlsPercent        float64 `json:"applicable_controls_percent"`
-	ImplementedControls              int64   `json:"implemented_controls"`
-	ImplementedControlsPercent       float64 `json:"implemented_controls_percent"`
-	OverallControlEfficiency         float64 `json:"overall_control_efficiency"`
-	ControlsMitigatingHighRisks      int64   `json:"controls_mitigating_high_risks"`
-	HighRisksWithNoControls          int64   `json:"high_risks_with_no_controls"`
-	HighRisksWithInefficientControls int64   `json:"high_risks_with_inefficient_controls"`
-	HighRisksWithInefficientPercent  float64 `json:"high_risks_with_inefficient_percent"`
+	TotalControls                           int64   `json:"total_controls"`
+	TotalControlsPercent                    float64 `json:"total_controls_percent"`
+	ImplementedControls                     int64   `json:"implemented_controls"`
+	ImplementedControlsPercent              float64 `json:"implemented_controls_percent"`
+	OverallControlEfficiency                float64 `json:"overall_control_efficiency"`
+	ControlsMitigatingHighRisks             int64   `json:"controls_mitigating_high_risks"`
+	HighRisksWithNoControls                 int64   `json:"high_risks_with_no_controls"`
+	HighRisksWithInefficientControls        int64   `json:"high_risks_with_inefficient_controls"`
+	HighRisksWithInefficientControlsPercent float64 `json:"high_risks_with_inefficient_controls_percent"`
 }
 
 type ERMRiskAppetiteOverviewItemDTO struct {
