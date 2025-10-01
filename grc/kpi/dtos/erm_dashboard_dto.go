@@ -271,18 +271,20 @@ type ERMRiskMitigationPlanStatusSummaryDTO struct {
 }
 
 type ERMOpenRiskSummaryItemDTO struct {
-	RiskTitle                string  `json:"risk_title"`
-	Category                 string  `json:"category"`
-	OrganizationUnit         string  `json:"organization_unit"`
-	NumControls              int64   `json:"no_of_controls"`
-	ControlEfficiency        string  `json:"control_efficiency"`
-	ControlEfficiencyPercent float64 `json:"control_efficiency_percent"`
-	InherentRating           string  `json:"inherent_rating"`
-	InherentRatingValue      int64   `json:"inherent_rating_value"`
-	CurrentRating            string  `json:"current_rating"`
-	CurrentRatingValue       int64   `json:"current_rating_value"`
-	RiskBySource             string  `json:"risk_by_source"`
-	DaysOpen                 int64   `json:"days_open"`
+	RiskTitle                  string  `json:"risk_title"`
+	Category                   string  `json:"category"`
+	OrganizationUnit           string  `json:"organization_unit"`
+	NumControls                int64   `json:"no_of_controls"`
+	ControlEfficiency          string  `json:"control_efficiency"`
+	ControlEfficiencyPercent   float64 `json:"control_efficiency_percent"`
+	InherentRating             string  `json:"inherent_rating"`
+	InherentRatingValue        int64   `json:"inherent_rating_value"`
+	CurrentRating              string  `json:"current_rating"`
+	CurrentRatingValue         int64   `json:"current_rating_value"`
+	RiskAppetiteLevelTitleEn   string  `json:"risk_appetite_level_title_en"`
+	RiskAppetiteLevelTitleAr   string  `json:"risk_appetite_level_title_ar"`
+	RiskAppetiteLevelColorCode string  `json:"risk_appetite_level_color_code"`
+	DaysOpen                   int64   `json:"days_open"`
 }
 
 type ERMOpenRisksSummaryDTO struct {
