@@ -9,6 +9,7 @@ import (
 	incidentRepo "jethur/grc/incident/repositories"
 	"jethur/utility"
 	"time"
+	"os"
 )
 
 type IncidentReportServiceInterface interface {
@@ -136,6 +137,7 @@ func (irs IncidentReportService) GetFullReportDetailsByID(id uint, tx ...utility
 		}
 	}
 
+	incidentDTO.AppUrl = os.Getenv("APP_URL")
 	incidentDTO.CreatedAt = incident.CreatedAt
 	incidentDTO.UpdatedAt = incident.UpdatedAt
 
@@ -152,28 +154,33 @@ func (irs IncidentReportService) ExportIncidentReport(id uint, currentUserID uin
 
 	// Main content template
 	templatePaths := []string{"incident/templates/pdf/incident_report.html"}
-	htmlContent, err := utility.GeneratePDFContentWithAdd(incidentDTO, templatePaths, "", "")
+	htmlContent, err := utility.GeneratePDFContent(incidentDTO, templatePaths, "", "")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate HTML content: %w", err)
 	}
 
 	// Header template - process with data to resolve template variables
 	headerTemplatePaths := []string{"incident/templates/pdf/incident_report_header.html"}
-	headerContent, err := utility.GeneratePDFContentWithAdd(incidentDTO, headerTemplatePaths, "", "")
+	headerContent, err := utility.GeneratePDFContent(incidentDTO, headerTemplatePaths, "", "")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate header content: %w", err)
 	}
 
 	// Footer template - process with data to resolve template variables
 	footerTemplatePaths := []string{"incident/templates/pdf/incident_report_footer.html"}
-	footerContent, err := utility.GeneratePDFContentWithAdd(incidentDTO, footerTemplatePaths, "", "")
+	footerContent, err := utility.GeneratePDFContent(incidentDTO, footerTemplatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate footer content: %w", err)
+	}
+	fcoverTemplatePaths := []string{"incident/templates/pdf/incident_report_cover.html"}
+	coverContent, err := utility.GeneratePDFContent(incidentDTO, fcoverTemplatePaths, "", "")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate footer content: %w", err)
 	}
 
 	// Convert HTML → PDF with header and footer
 	pdfFileName := fmt.Sprintf("IncidentReport_%d.pdf", id)
-	if err := utility.ConvertHTMLContentToPDFWithHeaderAndFooter(htmlContent, pdfFileName, headerContent, footerContent); err != nil {
+	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent,htmlContent,pdfFileName, headerContent, footerContent); err != nil {
 		return "", fmt.Errorf("failed to generate PDF: %w", err)
 	}
 

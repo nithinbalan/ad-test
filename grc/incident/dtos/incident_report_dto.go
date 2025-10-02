@@ -23,9 +23,9 @@ type IncidentReportDetailDTO struct {
 	ReportedByUser         organizationDTOs.UserMinimalDTO                   `json:"reported_by"`
 	Documents              []*IncidentDocumentDTO                            `json:"documents"`
 	Controls               []*commonDTOs.AssociatedControlListDTO            `json:"controls"`
-	Risks                  []*commonDTOs.AssociatedRiskListDTO                                `json:"risks"`
+	Risks                  []*commonDTOs.AssociatedRiskListDTO               `json:"risks"`
 	Assets                 []*commonDTOs.AssociatedAssetListDTO              `json:"assets"`
-	Processes              []*commonDTOs.AssociatedProcessListDTO                             `json:"processes"`
+	Processes              []*commonDTOs.AssociatedProcessListDTO            `json:"processes"`
 	Timelines              []*IncidentTimelineListDTO                        `json:"timelines"`
 	ResponsibleUnit        settingsDTOs.OrganizationUnitDTO                  `json:"responsible_unit"`
 	ResponsibleUser        organizationDTOs.UserMinimalDTO                   `json:"responsible_user"`
@@ -44,6 +44,7 @@ type IncidentReportDetailDTO struct {
 	RootCauseAnalyses      []*IncidentRootCauseAnalysisListDTO               `json:"root_cause_analysis"`
 	StrategicObjectives    []*commonDTOs.AssociatedStrategicObjectiveListDTO `json:"strategic_objectives"`
 	KPIs                   []*commonDTOs.AssociatedKPIRegisterListDTO        `json:"kpi"`
-	ComplianceRequirements []*IncidentComplianceRequirementListDTO              `json:"compliance_requirements"`
+	ComplianceRequirements []*IncidentComplianceRequirementListDTO           `json:"compliance_requirements"`
 	Investigation          *IncidentInvestigationDetailDTO                   `json:"investigation"`
+	AppUrl                 string                                            `json:"url"`
 }
