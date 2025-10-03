@@ -75,4 +75,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/compliance/breakdown", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetComplianceBreakdown)
 	kpiRoutes.GET("/kpis/compliance/high-performance", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetHighPerformanceCompliances)
 	kpiRoutes.GET("/kpis/compliance/least-performance", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetLeastPerformanceCompliances)
+	kpiRoutes.GET("/kpis/compliance/control-summary", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetComplianceControlSummary)
+	kpiRoutes.GET("/kpis/compliance/efficiency-summary", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetComplianceEfficiencySummary)
 }

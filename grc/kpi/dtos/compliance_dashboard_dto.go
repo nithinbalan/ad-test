@@ -35,3 +35,29 @@ type CompliancePerformanceItemDTO struct {
 type CompliancePerformanceRadarDTO struct {
 	Items []CompliancePerformanceItemDTO `json:"items"`
 }
+
+type ComplianceControlSummaryDTO struct {
+	TotalControls          int64                      `json:"total_controls"`
+	ImplementationStatuses []ComplianceSummaryItemDTO `json:"implementation_statuses"`
+	EfficiencyChart        []ComplianceSummaryItemDTO `json:"efficiency_chart"`
+	OverallEfficiency      float64                    `json:"overall_efficiency"`
+}
+
+type ComplianceEfficiencySummaryQueryResultDTO struct {
+	ComplianceStandardCode string
+	StatusID               uint
+	TitleEn                string
+	TitleAr                string
+	ColorCode              string
+	Type                   string
+	Count                  int64
+}
+
+type ComplianceEfficiencySummaryItemDTO struct {
+	ComplianceStandardCode string                     `json:"compliance_standard_code"`
+	EfficiencyStatuses     []ComplianceSummaryItemDTO `json:"efficiency_statuses"`
+}
+
+type ComplianceEfficiencySummaryDTO struct {
+	Items []ComplianceEfficiencySummaryItemDTO `json:"items"`
+}

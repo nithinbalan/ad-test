@@ -10,6 +10,8 @@ type ComplianceDashboardServiceInterface interface {
 	GetComplianceBreakdown(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceBreakdownDTO, error)
 	GetHighPerformanceCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.CompliancePerformanceRadarDTO, error)
 	GetLeastPerformanceCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.CompliancePerformanceRadarDTO, error)
+	GetComplianceControlSummary(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceControlSummaryDTO, error)
+	GetComplianceEfficiencySummary(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceEfficiencySummaryDTO, error)
 }
 
 type ComplianceDashboardService struct {
@@ -34,4 +36,12 @@ func (cds *ComplianceDashboardService) GetHighPerformanceCompliances(params *kpi
 
 func (cds *ComplianceDashboardService) GetLeastPerformanceCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.CompliancePerformanceRadarDTO, error) {
 	return cds.repo.GetLeastPerformanceCompliances(params)
+}
+
+func (cds *ComplianceDashboardService) GetComplianceControlSummary(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceControlSummaryDTO, error) {
+	return cds.repo.GetComplianceControlSummary(params)
+}
+
+func (cds *ComplianceDashboardService) GetComplianceEfficiencySummary(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceEfficiencySummaryDTO, error) {
+	return cds.repo.GetComplianceEfficiencySummary(params)
 }
