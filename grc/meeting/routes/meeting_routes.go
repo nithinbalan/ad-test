@@ -143,5 +143,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	meetingRoutes.PUT("/meetings/:id/action-plans/:meetingActionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingActionPlanCommentController.UpdateComment)
 	meetingRoutes.POST("/meetings/:id/action-plans/:meetingActionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "meeting", "modify"), meetingActionPlanCommentController.DeleteComment)
 
-	meetingRoutes.GET("/meeting-reports/:id/export-pdf", meetingReportController.ExportMeetingReportToPDF)
+	meetingRoutes.GET("/meetings/:id/export-pdf", meetingReportController.ExportMeetingReportToPDF)
 }

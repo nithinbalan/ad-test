@@ -3,16 +3,13 @@ package repositories
 import (
 	meetingDTOs "jethur/grc/meeting/dtos"
 	"jethur/grc/models"
-	"jethur/utility"
-	// "strconv"
-	// "time"
 	commonDTOs "jethur/grc/common/dtos"
 
 	"gorm.io/gorm"
 )
 
 type MeetingReportRepositoryInterface interface {
-	GetFullReportDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Meeting, error)
+	GetFullReportDetailsByID(id uint) (*models.Meeting, error)
 	GetAllMeetingStrategicObjectives(meetingID uint) ([]*commonDTOs.AssociatedStrategicObjectiveListDTO, error)
 	GetAllMeetingKPI(meetingID uint) ([]*commonDTOs.AssociatedKPIRegisterListDTO, error)
 	GetAllMeetingComplianceRequirements(meetingID uint) ([]meetingDTOs.MeetingComplianceRequirementListDTO, error)
@@ -34,11 +31,9 @@ func NewMeetingReportRepository(db *gorm.DB) *MeetingReportRepository {
 	}
 }
 
-func (repo *MeetingReportRepository) GetFullReportDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.Meeting, error) {
+func (repo *MeetingReportRepository) GetFullReportDetailsByID(id uint) (*models.Meeting, error) {
 	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
+
 	var meeting *models.Meeting
 
 	result := db.
@@ -55,14 +50,9 @@ func (repo *MeetingReportRepository) GetFullReportDetailsByID(id uint, tx ...uti
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("Agendas").
-		// Preload("Agendas.MeetingMinutes").
 		Preload("Participants").
 		Preload("Participants.User").
-		// Preload("Controls").
 		Preload("ComplianceRequirements").
-		// Preload("Risks").
-		// Preload("Processes").
-		// Preload("Incidents").
 		Preload("Documents").
 		Preload("MeetingMinutes").
 		Preload("MeetingMinutes.MeetingAgenda").

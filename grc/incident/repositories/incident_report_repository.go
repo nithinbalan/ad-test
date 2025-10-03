@@ -3,7 +3,6 @@ package repositories
 import (
 	"gorm.io/gorm"
 	"jethur/grc/models"
-	"jethur/utility"
 	commonDTOs "jethur/grc/common/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 
@@ -11,7 +10,7 @@ import (
 )
 
 type IncidentReportRepositoryInterface interface {
-	GetFullReportDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.IncidentRegister, error)
+	GetFullReportDetailsByID(id uint) (*models.IncidentRegister, error)
 	GetAllIncidentKPI(incidentID uint) ([]*commonDTOs.AssociatedKPIRegisterListDTO, error) 
 	 GetAllIncidentStrategicObjectives(incidentID uint) ([]*commonDTOs.AssociatedStrategicObjectiveListDTO, error)
 	 GetAllIncidentActionPlan(incidentID uint) ([]*incidentDTOs.IncidentActionPlanListDTO, error)
@@ -33,11 +32,8 @@ func NewIncidentReportRepository(db *gorm.DB) *IncidentReportRepository {
 	}
 }
 
-func (repo *IncidentReportRepository) GetFullReportDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.IncidentRegister, error) {
+func (repo *IncidentReportRepository) GetFullReportDetailsByID(id uint) (*models.IncidentRegister, error) {
 	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
 	var incident *models.IncidentRegister
 
 	result := db.

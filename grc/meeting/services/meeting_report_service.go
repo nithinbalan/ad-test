@@ -13,8 +13,8 @@ import (
 )
 
 type MeetingReportServiceInterface interface {
-	ExportMeetingReport(id uint, currentUserID uint, tx ...utility.DatabaseTransaction) (string, error)
-	GetFullReportDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*meetingDTOs.MeetingReportDetailDTO, error)
+	ExportMeetingReport(id uint, currentUserID uint) (string, error)
+	GetFullReportDetailsByID(id uint) (*meetingDTOs.MeetingReportDetailDTO, error)
 }
 
 // Service and implementations
@@ -30,10 +30,10 @@ func NewIncidentReportService(
 	}
 }
 
-func (mrs MeetingReportService) GetFullReportDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*meetingDTOs.MeetingReportDetailDTO, error) {
+func (mrs MeetingReportService) GetFullReportDetailsByID(id uint) (*meetingDTOs.MeetingReportDetailDTO, error) {
 	// Initialize your DTO
 	var meetingDTO meetingDTOs.MeetingReportDetailDTO
-	meeting, err := mrs.repo.GetFullReportDetailsByID(id, tx...)
+	meeting, err := mrs.repo.GetFullReportDetailsByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -108,8 +108,8 @@ func (mrs MeetingReportService) GetFullReportDetailsByID(id uint, tx ...utility.
 	return &meetingDTO, nil
 }
 
-func (irs MeetingReportService) ExportMeetingReport(id uint, currentUserID uint, tx ...utility.DatabaseTransaction) (string, error) {
-	meetingDTO, err := irs.GetFullReportDetailsByID(id, tx...)
+func (irs MeetingReportService) ExportMeetingReport(id uint, currentUserID uint) (string, error) {
+	meetingDTO, err := irs.GetFullReportDetailsByID(id)
 	if err != nil {
 		return "", err
 	}
