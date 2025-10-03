@@ -384,7 +384,7 @@ func (edc *ERMDashboardController) GetERMStrategicObjectivesRiskSummary(c *gin.C
 	c.JSON(http.StatusOK, summary)
 }
 
-// ERM Risk Summary By Department
+// ERM Risk Summary By Organization Unit
 func (edc *ERMDashboardController) GetERMRiskSummaryByOrganizationUnit(c *gin.Context) {
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")

@@ -85,17 +85,16 @@ type ERMHighRiskControlsResultDTO struct {
 }
 
 type ERMControlsOverviewDTO struct {
-	TotalControls                    int64   `json:"total_controls"`
-	TotalControlsPercent             float64 `json:"total_controls_percent"`
-	ApplicableControls               int64   `json:"applicable_controls"`
-	ApplicableControlsPercent        float64 `json:"applicable_controls_percent"`
-	ImplementedControls              int64   `json:"implemented_controls"`
-	ImplementedControlsPercent       float64 `json:"implemented_controls_percent"`
-	OverallControlEfficiency         float64 `json:"overall_control_efficiency"`
-	ControlsMitigatingHighRisks      int64   `json:"controls_mitigating_high_risks"`
-	HighRisksWithNoControls          int64   `json:"high_risks_with_no_controls"`
-	HighRisksWithInefficientControls int64   `json:"high_risks_with_inefficient_controls"`
-	HighRisksWithInefficientPercent  float64 `json:"high_risks_with_inefficient_percent"`
+	TotalControls                           int64   `json:"total_controls"`
+	EfficientControls                       int64   `json:"efficient_controls"`
+	EfficientControlsPercent                float64 `json:"efficient_controls_percent"`
+	ImplementedControls                     int64   `json:"implemented_controls"`
+	ImplementedControlsPercent              float64 `json:"implemented_controls_percent"`
+	OverallControlEfficiency                float64 `json:"overall_control_efficiency"`
+	ControlsMitigatingHighRisks             int64   `json:"controls_mitigating_high_risks"`
+	HighRisksWithNoControls                 int64   `json:"high_risks_with_no_controls"`
+	HighRisksWithInefficientControls        int64   `json:"high_risks_with_inefficient_controls"`
+	HighRisksWithInefficientControlsPercent float64 `json:"high_risks_with_inefficient_controls_percent"`
 }
 
 type ERMRiskAppetiteOverviewItemDTO struct {
@@ -184,13 +183,16 @@ type ERMStrategicObjectivesRiskSummaryDTO struct {
 }
 
 type ERMRiskOrganizationUnitSummaryItemDTO struct {
-	OrganizationUnit   string `json:"organization_unit"`
-	TotalRisks         int64  `json:"total_risks"`
-	HighRisks          int64  `json:"high_risks"`
-	OpenRisks          int64  `json:"open_risks"`
-	ClosedRisks        int64  `json:"closed_risks"`
-	OverdueActionPlans int64  `json:"overdue_action_plans"`
-	ResidualRiskLevel  string `json:"residual_risk_level"`
+	OrganizationUnitTitleEn     string `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr     string `json:"organization_unit_title_ar"`
+	TotalRisks                  int64  `json:"total_risks"`
+	HighRisks                   int64  `json:"high_risks"`
+	OpenRisks                   int64  `json:"open_risks"`
+	ClosedRisks                 int64  `json:"closed_risks"`
+	OverdueActionPlans          int64  `json:"overdue_action_plans"`
+	ResidualRiskRatingTitleEn   string `json:"residual_risk_rating_title_en"`
+	ResidualRiskRatingTitleAr   string `json:"residual_risk_rating_title_ar"`
+	ResidualRiskRatingColorCode string `json:"residual_risk_rating_color_code"`
 }
 
 type ERMRiskOrganizationUnitSummaryDTO struct {
@@ -268,18 +270,20 @@ type ERMRiskMitigationPlanStatusSummaryDTO struct {
 }
 
 type ERMOpenRiskSummaryItemDTO struct {
-	RiskTitle                string  `json:"risk_title"`
-	Category                 string  `json:"category"`
-	OrganizationUnit         string  `json:"organization_unit"`
-	NumControls              int64   `json:"no_of_controls"`
-	ControlEfficiency        string  `json:"control_efficiency"`
-	ControlEfficiencyPercent float64 `json:"control_efficiency_percent"`
-	InherentRating           string  `json:"inherent_rating"`
-	InherentRatingValue      int64   `json:"inherent_rating_value"`
-	CurrentRating            string  `json:"current_rating"`
-	CurrentRatingValue       int64   `json:"current_rating_value"`
-	RiskBySource             string  `json:"risk_by_source"`
-	DaysOpen                 int64   `json:"days_open"`
+	RiskTitle                  string  `json:"risk_title"`
+	Category                   string  `json:"category"`
+	OrganizationUnit           string  `json:"organization_unit"`
+	NumControls                int64   `json:"no_of_controls"`
+	ControlEfficiency          string  `json:"control_efficiency"`
+	ControlEfficiencyPercent   float64 `json:"control_efficiency_percent"`
+	InherentRating             string  `json:"inherent_rating"`
+	InherentRatingValue        int64   `json:"inherent_rating_value"`
+	CurrentRating              string  `json:"current_rating"`
+	CurrentRatingValue         int64   `json:"current_rating_value"`
+	RiskAppetiteLevelTitleEn   string  `json:"risk_appetite_level_title_en"`
+	RiskAppetiteLevelTitleAr   string  `json:"risk_appetite_level_title_ar"`
+	RiskAppetiteLevelColorCode string  `json:"risk_appetite_level_color_code"`
+	DaysOpen                   int64   `json:"days_open"`
 }
 
 type ERMOpenRisksSummaryDTO struct {
