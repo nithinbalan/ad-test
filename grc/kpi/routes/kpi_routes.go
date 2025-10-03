@@ -68,4 +68,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/erm-details/open-risks", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMOpenRisksSummary)
 
 	kpiRoutes.GET("/kpis/erm/top-twenty-risks", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetTopRiskRegisters)
+
+	// Compliance Dashboard
+	kpiRoutes.GET("/kpis/compliance/overview", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), app.KPIModule.ComplianceDashboardController.GetComplianceOverview)
 }

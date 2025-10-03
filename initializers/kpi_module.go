@@ -9,8 +9,9 @@ import (
 )
 
 type KPIModule struct {
-	GRCDashboardController *controllers.GRCDashboardController
-	ERMDashboardController *controllers.ERMDashboardController
+	GRCDashboardController        *controllers.GRCDashboardController
+	ERMDashboardController        *controllers.ERMDashboardController
+	ComplianceDashboardController *controllers.ComplianceDashboardController
 
 	GrcDashboardSvc services.GRCDashboardServiceInterface
 }
@@ -26,9 +27,15 @@ func NewKPIModule(db *gorm.DB, riskModule *RiskModule) *KPIModule {
 	ermDashboardSvc := services.NewERMDashboardService(ermDashboardRepo)
 	ermDashboardController := controllers.NewERMDashboardController(ermDashboardSvc, riskModule.RiskHeatMapSvc)
 
+	// Compliance Dashboard
+	complianceDashboardRepo := repositories.NewComplianceDashboardRepository(db)
+	complianceDashboardSvc := services.NewComplianceDashboardService(complianceDashboardRepo)
+	complianceDashboardController := controllers.NewComplianceDashboardController(complianceDashboardSvc)
+
 	return &KPIModule{
-		GRCDashboardController: grcDashboardController,
-		ERMDashboardController: ermDashboardController,
+		GRCDashboardController:        grcDashboardController,
+		ERMDashboardController:        ermDashboardController,
+		ComplianceDashboardController: complianceDashboardController,
 
 		GrcDashboardSvc: grcDashboardSvc,
 	}
