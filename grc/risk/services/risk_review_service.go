@@ -496,7 +496,7 @@ func (rrs *RiskReviewService) sendApprovalNotification(id uint, currentUserID ui
 		emailTo := []string{riskDetail.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Risk %s: Approval Notification", riskDetail.Title)
 		urlParam = fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, riskDetail.ID)
-		fmt.Println(riskDetail.RiskStatus.Type)
+
 		if riskDetail.RiskStatus.Type == "open" {
 			urlParam = fmt.Sprintf("%s/risk/risk-register/%d/overview", appURL, id)
 		}
