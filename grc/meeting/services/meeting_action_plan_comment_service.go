@@ -196,7 +196,7 @@ func (mapc *MeetingActionPlanCommentService) Create(meetingID uint, actionPlanID
 			id,
 			existingComment,
 			currentUserID,
-			"", "", "", nil,
+			"management_review", "meeting", "action_plan_comment", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -624,7 +624,7 @@ func (mapc *MeetingActionPlanCommentService) Update(meetingID uint, actionPlanID
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"management_review", "meeting", "action_plan_comment", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

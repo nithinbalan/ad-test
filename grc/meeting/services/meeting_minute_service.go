@@ -129,7 +129,7 @@ func (mms *MeetingMinuteService) Create(meetingID uint, currentUserID uint, meet
 			id,
 			existingMeetingMinute,
 			currentUserID,
-			"", "", "", nil,
+			"management_review", "meeting", "mom", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -205,7 +205,7 @@ func (mms *MeetingMinuteService) Update(meetingID uint, id uint, currentUserID u
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"management_review", "meeting", "mom", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
