@@ -104,6 +104,7 @@ func (cfs *PolicyFolderService) Create(currentUserID uint, formDTO *dtos.PolicyF
 		TitleEn:              formDTO.TitleEn,
 		TitleAr:              formDTO.TitleEn,
 		IsFolder:             true,
+		IsInternal:           true,
 		ParentDocumentID:     formDTO.ParentDocumentID,
 		DocumentAccessTypeID: uint(accessType.ID),
 		CreatedBYID:          currentUserID,
@@ -148,6 +149,8 @@ func (cfs *PolicyFolderService) Update(id uint, currentUserID uint, formDTO *dto
 		}
 	}
 
+	existingFolder.TitleEn = formDTO.TitleEn
+	existingFolder.TitleAr = formDTO.TitleAr
 	existingFolder.UpdatedBYID = &currentUserID
 
 	result, err := cfs.repo.Update(id, existingFolder)

@@ -182,7 +182,7 @@ func (repo *DocumentRepository) GetAll(params *documentDTOs.DocumentListQueryPar
 			LEFT JOIN users AS created_user ON created_user.id = documents.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = documents.updated_by_id
 			LEFT JOIN users AS published_user ON published_user.id = documents.published_by_id
-		`)
+		`).Where("documents.is_internal = ?", false)
 
 	if joinAcknowledge {
 		query = query.Joins("LEFT JOIN document_acknowledge_users ON document_acknowledge_users.document_version_id = document_versions.id AND document_acknowledge_users.user_id = ?", currentUserID)

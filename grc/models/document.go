@@ -41,6 +41,7 @@ type Document struct {
 	PolicyFolderID        *uint      `json:"policy_folder_id" binding:"omitempty" gorm:"default:null"`
 	ParentDocumentID      *uint      `json:"parent_document_id"`
 	IsFolder              bool       `json:"is_folder"`
+	IsInternal            bool       `json:"is_internal"`
 
 	// Relations
 	DocumentType       *DocumentType       `gorm:"foreignKey:DocumentTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

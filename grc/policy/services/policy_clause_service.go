@@ -441,7 +441,7 @@ func (dcs *PolicyClauseService) GetByDocumentVersionId(documentId uint, document
 		// Since repo.GetAll already returns PolicyClauseListDTO with aliased fields,
 		// we can just copy it directly
 
-		if *clause.Description == "" {
+		if clause.Description == nil {
 			clause.Description = nil
 		}
 

@@ -121,6 +121,7 @@ type DocumentDetailsDTO struct {
 	DescriptionEn             *string                          `json:"description_en"`
 	DescriptionAr             *string                          `json:"description_ar"`
 	IsLocked                  bool                             `json:"is_locked"`
+	IsInternal                bool                             `json:"is_internal"`
 	DocumentType              DocumentTypeDTO                  `json:"document_type"`
 	DocumentCategory          DocumentCategoryDTO              `json:"document_category"`
 	DocumentAccessType        DocumentAccessTypeDTO            `json:"document_access_type"`

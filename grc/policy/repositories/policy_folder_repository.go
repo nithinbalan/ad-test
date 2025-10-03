@@ -129,7 +129,7 @@ func (repo *PolicyFolderRepository) GetAll(params *policyDTOs.PolicyRegisterList
 		),
 		''
 	) AS user_access_types,
-	 (SELECT COUNT(*) FROM documents d2 WHERE d2.parent_document_id = documents.id) AS document_count
+	(SELECT COUNT(*) FROM documents d2 WHERE d2.parent_document_id = documents.id) AS document_count
 `
 
 	query := repo.db.Table("documents").Select(selectClause,
@@ -155,7 +155,7 @@ func (repo *PolicyFolderRepository) GetAll(params *policyDTOs.PolicyRegisterList
 			LEFT JOIN users AS created_user ON created_user.id = documents.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = documents.updated_by_id
 			LEFT JOIN users AS published_user ON published_user.id = documents.published_by_id
-		`).Where("document_types.type IN (?) OR documents.is_folder = ?", []string{"policy", "procedure"}, true)
+		`).Where("documents.is_internal = ? AND (document_types.type IN (?) OR documents.is_folder = ?)", true, []string{"policy", "procedure"}, true)
 
 	_, ok := params.Filters["parent_document_id"]
 	if !ok {
