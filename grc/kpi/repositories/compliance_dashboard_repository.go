@@ -11,6 +11,8 @@ import (
 type ComplianceDashboardRepositoryInterface interface {
 	GetComplianceOverview(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceOverviewDTO, error)
 	GetComplianceBreakdown(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceBreakdownDTO, error)
+	GetHighPerformanceCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.CompliancePerformanceRadarDTO, error)
+	GetLeastPerformanceCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.CompliancePerformanceRadarDTO, error)
 }
 
 type ComplianceDashboardRepository struct {
@@ -60,7 +62,7 @@ func (repo *ComplianceDashboardRepository) GetComplianceOverview(params *kpiDTOs
 }
 
 func (repo *ComplianceDashboardRepository) GetComplianceBreakdown(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceBreakdownDTO, error) {
-	complainceStatuses := []kpiDTOs.ComplianceStatusItemDTO{}
+	complianceStatuses := []kpiDTOs.ComplianceSummaryItemDTO{}
 	var total int64
 
 	query := repo.db.Model(&models.ComplianceRegister{}).
@@ -74,19 +76,19 @@ func (repo *ComplianceDashboardRepository) GetComplianceBreakdown(params *kpiDTO
         `).
 		Joins("JOIN compliance_statuses ON compliance_statuses.id = compliance_register.compliance_status_id").
 		Group(`
-			compliance_statuses.id, 
-			compliance_statuses.title_en, 
-			compliance_statuses.title_ar, 
-			compliance_statuses.color_code, 
-			compliance_statuses.type
-		`).
+            compliance_statuses.id, 
+            compliance_statuses.title_en, 
+            compliance_statuses.title_ar, 
+            compliance_statuses.color_code, 
+            compliance_statuses.type
+        `).
 		Order("compliance_statuses.id")
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
-	if err := query.Scan(&complainceStatuses).Error; err != nil {
+	if err := query.Scan(&complianceStatuses).Error; err != nil {
 		return nil, err
 	}
 
@@ -94,10 +96,74 @@ func (repo *ComplianceDashboardRepository) GetComplianceBreakdown(params *kpiDTO
 		return nil, err
 	}
 
+	// percentage
+	for i := range complianceStatuses {
+		if total > 0 {
+			complianceStatuses[i].Percent = (float64(complianceStatuses[i].Count) / float64(total)) * 100
+		} else {
+			complianceStatuses[i].Percent = 0
+		}
+	}
+
 	result := &kpiDTOs.ComplianceBreakdownDTO{
-		CommplainceStatuses: complainceStatuses,
-		Total:               total,
+		ComplianceStatuses: complianceStatuses,
+		Total:              total,
 	}
 
 	return result, nil
+}
+
+func (repo *ComplianceDashboardRepository) GetHighPerformanceCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.CompliancePerformanceRadarDTO, error) {
+	results := []kpiDTOs.CompliancePerformanceItemDTO{}
+
+	query := repo.db.Model(&models.ComplianceRegister{}).
+		Select(`
+            compliance_register.standard_code as framework_name,
+            AVG(COALESCE(compliance_register.score, 0)) as score
+        `).
+		Where("compliance_register.score IS NOT NULL").
+		Group("compliance_register.standard_code").
+		Having("AVG(compliance_register.score) > ?", 75).
+		Order("score DESC")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+	summary := &kpiDTOs.CompliancePerformanceRadarDTO{
+		Items: results,
+	}
+
+	return summary, nil
+}
+
+func (repo *ComplianceDashboardRepository) GetLeastPerformanceCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.CompliancePerformanceRadarDTO, error) {
+	results := []kpiDTOs.CompliancePerformanceItemDTO{}
+
+	query := repo.db.Model(&models.ComplianceRegister{}).
+		Select(`
+            compliance_register.standard_code as framework_name,
+            AVG(COALESCE(compliance_register.score, 0)) as score
+        `).
+		Where("compliance_register.score IS NOT NULL").
+		Group("compliance_register.standard_code").
+		Having("AVG(compliance_register.score) <= ?", 75).
+		Order("score ASC")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	summary := &kpiDTOs.CompliancePerformanceRadarDTO{
+		Items: results,
+	}
+
+	return summary, nil
 }

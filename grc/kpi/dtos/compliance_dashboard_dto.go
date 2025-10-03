@@ -12,16 +12,26 @@ type ComplianceOverviewDTO struct {
 	TotalAssessments            int64   `json:"total_assessments"`
 }
 
-type ComplianceStatusItemDTO struct {
-	ID        uint   `json:"id"`
-	TitleEn   string `json:"title_en"`
-	TitleAr   string `json:"title_ar"`
-	ColorCode string `json:"color_code"`
-	Type      string `json:"type"`
-	Count     int64  `json:"count"`
+type ComplianceSummaryItemDTO struct {
+	ID        uint    `json:"id"`
+	TitleEn   string  `json:"title_en"`
+	TitleAr   string  `json:"title_ar"`
+	ColorCode string  `json:"color_code"`
+	Type      string  `json:"type"`
+	Count     int64   `json:"count"`
+	Percent   float64 `json:"percent"`
 }
 
 type ComplianceBreakdownDTO struct {
-	CommplainceStatuses []ComplianceStatusItemDTO `json:"compliance_statuses"`
-	Total               int64                     `json:"total"`
+	ComplianceStatuses []ComplianceSummaryItemDTO `json:"compliance_statuses"`
+	Total              int64                      `json:"total"`
+}
+
+type CompliancePerformanceItemDTO struct {
+	ComplianceStandardCode string  `json:"compliance_standard_code"`
+	Score                  float64 `json:"score"`
+}
+
+type CompliancePerformanceRadarDTO struct {
+	Items []CompliancePerformanceItemDTO `json:"items"`
 }

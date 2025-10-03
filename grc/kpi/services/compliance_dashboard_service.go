@@ -8,6 +8,8 @@ import (
 type ComplianceDashboardServiceInterface interface {
 	GetComplianceOverview(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceOverviewDTO, error)
 	GetComplianceBreakdown(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceBreakdownDTO, error)
+	GetHighPerformanceCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.CompliancePerformanceRadarDTO, error)
+	GetLeastPerformanceCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.CompliancePerformanceRadarDTO, error)
 }
 
 type ComplianceDashboardService struct {
@@ -24,4 +26,12 @@ func (cds *ComplianceDashboardService) GetComplianceOverview(params *kpiDTOs.Com
 
 func (cds *ComplianceDashboardService) GetComplianceBreakdown(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceBreakdownDTO, error) {
 	return cds.repo.GetComplianceBreakdown(params)
+}
+
+func (cds *ComplianceDashboardService) GetHighPerformanceCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.CompliancePerformanceRadarDTO, error) {
+	return cds.repo.GetHighPerformanceCompliances(params)
+}
+
+func (cds *ComplianceDashboardService) GetLeastPerformanceCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.CompliancePerformanceRadarDTO, error) {
+	return cds.repo.GetLeastPerformanceCompliances(params)
 }
