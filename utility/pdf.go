@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
-	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"html/template"
 	"io"
 	"jethur/assets"
