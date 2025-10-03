@@ -170,7 +170,7 @@ func (repo *PolicyRegisterRepository) GetAll(params *policyDTOs.PolicyRegisterLi
 			LEFT JOIN users AS created_user ON created_user.id = documents.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = documents.updated_by_id
 			LEFT JOIN users AS published_user ON published_user.id = documents.published_by_id
-		`).Where("documents.is_folder = ?", false)
+		`).Where("documents.is_folder = ? AND documents.is_internal = ?", false, true)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {

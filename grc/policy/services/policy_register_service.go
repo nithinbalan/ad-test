@@ -234,6 +234,7 @@ func (prs *PolicyRegisterService) Create(currentUserID uint, documentFormDTO *po
 		DocumentStatusID:     &documentStatus.ID,
 		PolicyFolderID:       documentFormDTO.PolicyFolderID,
 		ParentDocumentID:     documentFormDTO.ParentDocumentID,
+		IsInternal:           true,
 		CreatedBYID:          currentUserID,
 	}
 
@@ -346,6 +347,66 @@ func (prs *PolicyRegisterService) Create(currentUserID uint, documentFormDTO *po
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		entity := "policy"
+		action := "responsible-user-assign"
+		appURL := utility.GetAppURL()
+		subject := fmt.Sprintf("Document %s: Responsibility Assigned", document.TitleEn)
+		redirectURL := fmt.Sprintf("%s/policies/policy-register/%d/edit", appURL, id)
+
+		// Prepare database notification DTO
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{uint(existingDocument.ResponsibleUser.ID)},
+			ModuleIdentifier:     "document",
+			NotificationType:     string(commonDTOs.ReviewType),
+			HeadingEn:            "Document Review",
+			HeadingAr:            "مراجعة الوثيقة",
+			ReferenceNumber:      document.ReferenceNumber,
+			TitleEn:              document.TitleEn,
+			TitleAr:              document.TitleAr,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             redirectURL,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		// Prepare email notification DTO
+		emailTo := []string{existingDocument.ResponsibleUser.Email}
+		assignedBy, err := prs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		emailData := map[string]interface{}{
+			"FirstNameEn":           existingDocument.ResponsibleUser.FirstNameEN,
+			"LastNameEn":            existingDocument.ResponsibleUser.LastNameEN,
+			"DocumentTitle":         document.TitleEn,
+			"DocumentType":          existingDocument.DocumentType.TitleEn,
+			"DocumentCategory":      existingDocument.DocumentCategory.TitleEn,
+			"DocumentVersion":       existingDocument.LatestDocumentVersion.Version,
+			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+			"AssignedByLastNameEn":  assignedBy.LastNameEn,
+			"AssignedOn":            time.Now().Format("2006-01-02"),
+			"RedirectURL":           redirectURL,
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "document/templates/email/document_workflow_review_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		// Send both database and email notifications
+		err = prs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "document")
+		if err != nil {
+			utility.LogError("Failed to send next level review notification", map[string]interface{}{
+				"error": err.Error(),
+			})
 		}
 
 	}()
@@ -1152,7 +1213,7 @@ func (prs *PolicyRegisterService) SubmitPolicy(id uint, currentUserID uint) erro
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/document/register/%d", appURL, id),
+				"RedirectURL":           fmt.Sprintf("%s/policies/policy-register/%d/edit", appURL, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -1304,7 +1365,7 @@ func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, pol
 		return err
 	}
 
-	policyRegister, err := prs.GetFullDetailsByID(id, nil, tx)
+	policy, err := prs.GetFullDetailsByID(id, nil, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -1331,8 +1392,8 @@ func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, pol
 
 	// Calculate next review date based on review frequency
 	var nextReviewDate *time.Time
-	if policyRegister.ReviewFrequency != nil && policyRegister.ReviewFrequency.ID != 0 {
-		reviewFrequency, err := prs.reviewFrequencySvc.GetByID(policyRegister.ReviewFrequency.ID)
+	if policy.ReviewFrequency != nil && policy.ReviewFrequency.ID != 0 {
+		reviewFrequency, err := prs.reviewFrequencySvc.GetByID(policy.ReviewFrequency.ID)
 		if err != nil {
 			tx.Rollback()
 			return fmt.Errorf("error fetching review frequency: %w", err)
@@ -1353,7 +1414,7 @@ func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, pol
 		return err
 	}
 
-	documentVersion, err := prs.repo.GetDocumentVersionByID(policyRegister.LatestDocumentVersion.ID, tx)
+	documentVersion, err := prs.repo.GetDocumentVersionByID(policy.LatestDocumentVersion.ID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -1364,7 +1425,7 @@ func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, pol
 		return err
 	}
 
-	_, err = prs.repo.GetDocumentVersionByID(policyRegister.LatestDocumentVersion.ID, tx)
+	_, err = prs.repo.GetDocumentVersionByID(policy.LatestDocumentVersion.ID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -1376,14 +1437,25 @@ func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, pol
 		return err
 	}
 
+	nxtReview := ""
+	if policy.NextReviewDate != nil {
+		nxtReview = policy.NextReviewDate.Format("02/01/2006")
+	}
+
+	policyRegister, err := prs.GetFullDetailsByID(id, nil, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	pdfData := policyDTOs.PolicyPDFData{
 		AppUrl:            appURL,
 		Document:          policyRegister, // your full document struct
 		Workflow:          workflow,
 		Clauses:           clauses,
 		CreatedAtString:   policyRegister.CreatedAt.Format("02/01/2006"),
-		PublishedAtString: policyRegister.LatestDocumentVersion.PublishedAt.Format("02/01/2006"),
-		NextReviewDate:    policyRegister.NextReviewDate.Format("02/01/2006"),
+		PublishedAtString: publishedAt.Format("02/01/2006"),
+		NextReviewDate:    nxtReview,
 	}
 
 	// Generate cover page HTML
@@ -1539,11 +1611,11 @@ func (prs *PolicyRegisterService) CreateDocumentAuditLog(documentID uint, docume
 
 func (prs *PolicyRegisterService) notifyUsersOnPublish(document *policyDTOs.PolicyRegisterDetailsDTO, documentID uint, publishedBy uint) {
 	go func() {
-		entity := "document"
+		entity := "policy"
 		action := "published"
 		appURL := utility.GetAppURL()
 		subject := fmt.Sprintf("Document/%s: Published Notification", document.TitleEn)
-		redirectURL := fmt.Sprintf("%s/document/register/%d", appURL, documentID)
+		redirectURL := fmt.Sprintf("%s/policies/policy-register/%d/overview", appURL, documentID)
 
 		publishedUser, _ := prs.userSvc.GetByID(publishedBy)
 

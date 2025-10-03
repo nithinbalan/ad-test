@@ -592,6 +592,9 @@ func (drs *DocumentReviewService) sendApprovalNotification(id uint, currentUserI
 		emailTo := []string{document.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Document/%s: Approval Notification", document.TitleEn)
 		urlParam = fmt.Sprintf("%s/document/register/%d/overview", appURL, id)
+		if document.IsInternal {
+			urlParam = fmt.Sprintf("%s/policies/policy-register/%d/edit", appURL, id)
+		}
 
 		emailData := map[string]interface{}{
 			"FirstNameEn":           document.ResponsibleUser.FirstNameEN,
@@ -661,6 +664,10 @@ func (drs *DocumentReviewService) notifyNextLevelUsers(id uint, nextDocWorkflowL
 			emailTo := []string{responsibleUser.Email}
 			subject := fmt.Sprintf("Document/%s: Review Assigned", document.TitleEn)
 			appURL := utility.GetAppURL()
+			urlParam = fmt.Sprintf("%s/document/register/%d", appURL, id)
+			if document.IsInternal {
+				urlParam = fmt.Sprintf("%s/policies/policy-register/%d/edit", appURL, id)
+			}
 
 			emailData := map[string]interface{}{
 				"FirstNameEn":           responsibleUser.FirstNameEn,
@@ -672,7 +679,7 @@ func (drs *DocumentReviewService) notifyNextLevelUsers(id uint, nextDocWorkflowL
 				"AssignedByFirstNameEn": document.ResponsibleUser.FirstNameEN,
 				"AssignedByLastNameEn":  document.ResponsibleUser.LastNameEN,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/document/register/%d", appURL, id),
+				"RedirectURL":           urlParam,
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -780,6 +787,10 @@ func (drs *DocumentReviewService) sendRejectedNotification(id uint, currentUserI
 		subject := fmt.Sprintf("Document/%s: Rejected Notification", document.TitleEn)
 		urlParam = fmt.Sprintf("%s/document/register/%d/overview", appURL, id)
 
+		if document.IsInternal {
+			urlParam = fmt.Sprintf("%s/policies/policy-register/%d/edit", appURL, id)
+		}
+
 		emailData := map[string]interface{}{
 			"FirstNameEn":           document.ResponsibleUser.FirstNameEN,
 			"LastNameEn":            document.ResponsibleUser.LastNameEN,
@@ -789,7 +800,7 @@ func (drs *DocumentReviewService) sendRejectedNotification(id uint, currentUserI
 			"DocumentVersion":       document.LatestDocumentVersion.Version,
 			"RejectedByFirstNameEn": rejectedByUser.FirstNameEn,
 			"RejectedByLastNameEn":  rejectedByUser.LastNameEn,
-			"ApprovedAt":            time.Now().Format("2006-01-02"),
+			"RejectedAt":            time.Now().Format("2006-01-02"),
 			"RedirectURL":           urlParam,
 		}
 
@@ -849,6 +860,9 @@ func (drs *DocumentReviewService) sendRevertedNotification(id uint, currentUserI
 		emailTo := []string{document.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Document/%s: Reverted Notification", document.TitleEn)
 		urlParam = fmt.Sprintf("%s/document/register/%d/overview", appURL, id)
+		if document.IsInternal {
+			urlParam = fmt.Sprintf("%s/policies/policy-register/%d/edit", appURL, id)
+		}
 
 		emailData := map[string]interface{}{
 			"FirstNameEn":           document.ResponsibleUser.FirstNameEN,
@@ -953,6 +967,9 @@ func (drs *DocumentReviewService) sendCommentNotification(id uint, currentUserID
 			appURL := utility.GetAppURL()
 			subject := fmt.Sprintf("Document/%s: New Comment Notification", document.TitleEn)
 			urlParam = fmt.Sprintf("%s/document/register/%d/overview", appURL, id)
+			if document.IsInternal {
+				urlParam = fmt.Sprintf("%s/policies/policy-register/%d/edit", appURL, id)
+			}
 
 			emailData := map[string]interface{}{
 				"FirstNameEn":          user.FirstNameEn,

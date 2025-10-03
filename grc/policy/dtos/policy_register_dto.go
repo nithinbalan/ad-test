@@ -43,6 +43,7 @@ type PolicyRegisterListDTO struct {
 	DocumentOriginalName            *string    `json:"document_original_name"`
 	DocumentType                    string     `json:"document_type"`
 	IsFolder                        *bool      `json:"is_folder"`
+	IsInternal                      *bool      `json:"is_internal"`
 	ParentDocumentID                *uint      `json:"parent_document_id"`
 	DocumentCount                   *int       `json:"document_count"`
 	CreatedUserID                   uint       `json:"created_user_id"`
@@ -120,6 +121,7 @@ type PolicyRegisterDetailsDTO struct {
 	DescriptionEn         *string                                `json:"description_en"`
 	DescriptionAr         *string                                `json:"description_ar"`
 	IsLocked              bool                                   `json:"is_locked"`
+	IsInternal            *bool                                  `json:"is_internal"`
 	DocumentType          documentsDTOs.DocumentTypeDTO          `json:"document_type"`
 	DocumentCategory      documentsDTOs.DocumentCategoryDTO      `json:"document_category"`
 	DocumentAccessType    documentsDTOs.DocumentAccessTypeDTO    `json:"document_access_type"`
