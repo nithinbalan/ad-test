@@ -12,6 +12,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+
+	"github.com/pdfcpu/pdfcpu/pkg/api"
 )
 
 func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath string, coverBGImagePath string) (string, error) {
@@ -83,6 +85,135 @@ func ConvertHTMLContentToPDF(htmlContent, pdfFileName string) error {
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to convert HTML to PDF: %s: %w", stderr.String(), err)
 	}
+
+	return nil
+}
+
+func ConvertPolicyHTMLContentToPDF(headerHTML, footerHTML, coverHTML, disclaimerHTML, contentHTML, pdfFileName string) error {
+	wkhtmltopdfPath := os.Getenv("WKHTMLTOPDF_PATH")
+	if wkhtmltopdfPath == "" {
+		wkhtmltopdfPath = "C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe"
+	}
+	if _, err := os.Stat(wkhtmltopdfPath); os.IsNotExist(err) {
+		return fmt.Errorf("wkhtmltopdf executable not found at %s", wkhtmltopdfPath)
+	}
+
+	// Helper to create temp HTML files
+	createTempHTML := func(content, prefix string) (string, error) {
+		f, err := os.CreateTemp("", prefix+"*.html")
+		if err != nil {
+			return "", err
+		}
+		if _, err := f.Write([]byte(content)); err != nil {
+			f.Close()
+			return "", err
+		}
+		f.Close()
+		return f.Name(), nil
+	}
+
+	headerPath, err := createTempHTML(headerHTML, "header_")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(headerPath)
+
+	tempFooterFile, err := os.CreateTemp("", "export_pdf_footer_*.html")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary footer file: %w", err)
+	}
+	defer os.Remove(tempFooterFile.Name())
+
+	if _, err := tempFooterFile.Write([]byte(footerHTML)); err != nil {
+		return fmt.Errorf("failed to write footer content to file: %w", err)
+	}
+	tempFooterFile.Close()
+
+	coverPath, err := createTempHTML(coverHTML, "cover_")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(coverPath)
+
+	contentPath, err := createTempHTML(contentHTML, "content_")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(contentPath)
+
+	disclaimerPath, err := createTempHTML(disclaimerHTML, "disclaimer_")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(disclaimerPath)
+
+	tocPath, err := filepath.Abs("assets/document/templates/pdf/toc.xsl")
+	if err != nil {
+		return err
+	}
+	tocPath = filepath.ToSlash(tocPath)
+
+	// Helper to generate PDF
+	generatePDF := func(htmlPaths []string, outPDF string, top, bottom, left, right string, addTOC bool) error {
+		args := []string{
+			"--enable-local-file-access",
+			"--margin-top", top,
+			"--margin-bottom", bottom,
+			"--margin-left", left,
+			"--margin-right", right,
+			"--header-html", headerPath,
+			"--header-spacing", "5",
+			"--footer-html", tempFooterFile.Name(),
+			// "--footer-left", appURL,
+			// "--footer-right", "[page]",
+			// "--footer-font-size", "8",
+			// "--footer-spacing", "5",
+			// "--footer-line",
+		}
+
+		if addTOC {
+			args = append(args,
+				"toc",
+				"--xsl-style-sheet", tocPath,
+				"--toc-header-text", "Table of Contents",
+				"--toc-level-indentation", "0",
+			)
+		}
+
+		args = append(args, htmlPaths...)
+		args = append(args, outPDF)
+
+		cmd := exec.Command(wkhtmltopdfPath, args...)
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("wkhtmltopdf error: %s: %w", stderr.String(), err)
+		}
+		return nil
+	}
+
+	// Temporary PDFs
+	coverPDF := "cover.pdf"
+	bodyPDF := "body.pdf"
+
+	// 1. Cover without header/footer
+	if err := generatePDF([]string{coverPath}, coverPDF, "0", "0", "0", "0", false); err != nil {
+		return err
+	}
+
+	// 2. TOC + Content + Disclaimer as a single PDF with header/footer
+	if err := generatePDF([]string{contentPath, disclaimerPath}, bodyPDF, "25", "18", "10", "10", true); err != nil {
+		return err
+	}
+
+	// 3. Merge cover + body
+	if err := api.MergeCreateFile([]string{coverPDF, bodyPDF}, pdfFileName, false, nil); err != nil {
+		return err
+	}
+
+	// Cleanup
+	os.Remove(coverPDF)
+	os.Remove(bodyPDF)
 
 	return nil
 }

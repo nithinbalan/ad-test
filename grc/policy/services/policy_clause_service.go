@@ -22,6 +22,7 @@ type PolicyClauseServiceInterface interface {
 	Create(documentId uint, currentUserId uint, policyClauseFormDTO *policyDTOs.PolicyClauseFormDTO) (uint, error)
 	Update(documentId uint, clauseId uint, currentUserId uint, policyClauseFormDTO *policyDTOs.PolicyClauseFormDTO) error
 	Delete(clauseIDs []uint, currentUserID uint) ([]uint, error)
+	GetByDocumentVersionId(documentId uint, documentVersionId uint, tx ...utility.DatabaseTransaction) ([]*policyDTOs.PolicyClauseListDTO, error)
 
 	GetDocumentClauseHistories(documentId uint, clauseId uint) ([]*policyDTOs.ClauseHistoryDTO, error)
 }
@@ -417,6 +418,80 @@ func (dcs *PolicyClauseService) Delete(clauseIDs []uint, currentUserID uint) ([]
 	}
 
 	return failedIds, nil
+}
+
+func (dcs *PolicyClauseService) GetByDocumentVersionId(documentId uint, documentVersionId uint, tx ...utility.DatabaseTransaction) ([]*policyDTOs.PolicyClauseListDTO, error) {
+	// Get full document details (to know latest version ID)
+	_, err := dcs.documentSvc.GetFullDetailsByID(documentId, nil, tx...)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch all clauses (flattened DTOs with user info)
+	clauses, err := dcs.repo.GetByDocumentVersionId(documentId, documentVersionId)
+	if err != nil {
+		return nil, err
+	}
+
+	// Map ID -> DTO
+	dtoMap := make(map[uint]*policyDTOs.PolicyClauseListDTO)
+	var roots []*policyDTOs.PolicyClauseListDTO
+
+	for _, clause := range clauses {
+		// Since repo.GetAll already returns PolicyClauseListDTO with aliased fields,
+		// we can just copy it directly
+
+		if *clause.Description == "" {
+			clause.Description = nil
+		}
+
+		dto := &policyDTOs.PolicyClauseListDTO{
+			ID:                          clause.ID,
+			ClauseNumber:                clause.ClauseNumber,
+			ClauseTitleEn:               clause.ClauseTitleEn,
+			ClauseTitleAr:               clause.ClauseTitleAr,
+			Description:                 clause.Description,
+			CreatedUserID:               clause.CreatedUserID,
+			CreatedUserFirstNameEn:      clause.CreatedUserFirstNameEn,
+			CreatedUserFirstNameAr:      clause.CreatedUserFirstNameAr,
+			CreatedUserLastNameEn:       clause.CreatedUserLastNameEn,
+			CreatedUserLastNameAr:       clause.CreatedUserLastNameAr,
+			CreatedUserInitial:          clause.CreatedUserInitial,
+			CreatedUserColor:            clause.CreatedUserColor,
+			CreatedUserEmail:            clause.CreatedUserEmail,
+			CreatedUserProfileImagePath: clause.CreatedUserProfileImagePath,
+			UpdatedUserID:               clause.UpdatedUserID,
+			UpdatedUserFirstNameEn:      clause.UpdatedUserFirstNameEn,
+			UpdatedUserFirstNameAr:      clause.UpdatedUserFirstNameAr,
+			UpdatedUserLastNameEn:       clause.UpdatedUserLastNameEn,
+			UpdatedUserLastNameAr:       clause.UpdatedUserLastNameAr,
+			UpdatedUserInitial:          clause.UpdatedUserInitial,
+			UpdatedUserColor:            clause.UpdatedUserColor,
+			UpdatedUserEmail:            clause.UpdatedUserEmail,
+			UpdatedUserProfileImagePath: clause.UpdatedUserProfileImagePath,
+			CreatedAt:                   clause.CreatedAt,
+			UpdatedAt:                   clause.UpdatedAt,
+			DocumentVersionClauseID:     clause.DocumentVersionClauseID, // important for tree building
+		}
+
+		dtoMap[clause.ID] = dto
+	}
+
+	// Build parent-child hierarchy
+	for _, clause := range clauses {
+		dto := dtoMap[clause.ID]
+		if clause.DocumentVersionClauseID != nil {
+			// has parent → attach to parent
+			if parent, ok := dtoMap[*clause.DocumentVersionClauseID]; ok {
+				parent.Children = append(parent.Children, dto)
+			}
+		} else {
+			// no parent → root
+			roots = append(roots, dto)
+		}
+	}
+
+	return roots, nil
 }
 
 func (pcs *PolicyClauseService) GetDocumentClauseHistories(documentId uint, clauseId uint) ([]*policyDTOs.ClauseHistoryDTO, error) {

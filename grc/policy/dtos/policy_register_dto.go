@@ -144,6 +144,12 @@ type DocumentVersionDTO struct {
 	DocumentID            uint                             `json:"document_id"`
 	Version               float64                          `json:"version"`
 	IsLatestVersion       bool                             `json:"is_latest_version"`
+	URL                   string                           `json:"url"`
+	Name                  string                           `json:"name"`
+	Size                  int                              `json:"size"`
+	Token                 string                           `json:"token"`
+	OriginalName          *string                          `json:"original_name,omitempty"`
+	Type                  string                           `json:"type"`
 	NextReviewLevel       *int                             `json:"next_review_level"`
 	SubmittedByUser       *organizationDTOs.UserMinimalDTO `json:"submitted_by"`
 	SubmittedAt           *time.Time                       `json:"submitted_at"`
@@ -155,4 +161,14 @@ type DocumentVersionDTO struct {
 	UpdatedAt             *time.Time                       `json:"updated_at"`
 	PublishedAt           *time.Time                       `json:"published_at"`
 	PublishedByUser       organizationDTOs.UserMinimalDTO  `json:"published_by"`
+}
+
+type PolicyPDFData struct {
+	AppUrl            string                                        `json:"app_url"`
+	Document          *PolicyRegisterDetailsDTO                     `json:"document"`
+	Workflow          *documentsDTOs.DocumentVersionWorkflowListDTO `json:"workflow"`
+	Clauses           []*PolicyClauseListDTO                        `json:"clauses"`
+	CreatedAtString   string                                        `json:"created_at"`
+	PublishedAtString string                                        `json:"published_at"`
+	NextReviewDate    string                                        `json:"next_review_date"`
 }

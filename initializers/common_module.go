@@ -12,6 +12,7 @@ type CommonModule struct {
 	FileRepo                        commonRepositories.FileRepositoryInterface
 	AssociatedItemValidationService commonServices.AssociatedItemValidationServiceInterface
 	DelegateeUserService            commonServices.DelegateeUserserviceInterface
+	FileService                     commonServices.FileServiceInterface
 }
 
 func NewCommonModule(db *gorm.DB, settingsModule *SettingsModule) *CommonModule {
@@ -24,11 +25,12 @@ func NewCommonModule(db *gorm.DB, settingsModule *SettingsModule) *CommonModule 
 	DelegateeUserSvc := commonServices.NewDelegateeUserservice(DelegateeUserRepo, settingsModule.ModuleSvc)
 
 	fileRepo := commonRepositories.NewFileRepository()
-
+	fileSvc := commonServices.NewFileService(fileRepo)
 	return &CommonModule{
 		NotificationService:             notificationSvc,
 		FileRepo:                        fileRepo,
 		AssociatedItemValidationService: associatedItemValidationSvc,
 		DelegateeUserService:            DelegateeUserSvc,
+		FileService:                     fileSvc,
 	}
 }

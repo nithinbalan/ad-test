@@ -11,7 +11,7 @@ import (
 
 // Interfaces
 type PolicyFolderRepositoryInterface interface {
-	GetAll(params *policyDTOs.PolicyRegisterListQueryParamsDTO) (*policyDTOs.PolicyRegisterListResponseDTO, error)
+	GetAll(params *policyDTOs.PolicyRegisterListQueryParamsDTO, currentUserID uint, isUserSuperAdmin bool, primaryOrgUnitField string) (*policyDTOs.PolicyRegisterListResponseDTO, error)
 	GetByID(id uint) (*models.Document, error)
 	Create(folder *models.Document) (*models.Document, error)
 	Update(id uint, folder *models.Document) (*models.Document, error)
@@ -31,7 +31,7 @@ func NewPolicyFolderRepository(db *gorm.DB) *PolicyFolderRepository {
 	}
 }
 
-func (repo *PolicyFolderRepository) GetAll(params *policyDTOs.PolicyRegisterListQueryParamsDTO) (*policyDTOs.PolicyRegisterListResponseDTO, error) {
+func (repo *PolicyFolderRepository) GetAll(params *policyDTOs.PolicyRegisterListQueryParamsDTO, currentUserID uint, isUserSuperAdmin bool, primaryOrgUnitField string) (*policyDTOs.PolicyRegisterListResponseDTO, error) {
 	var documents []*policyDTOs.PolicyRegisterListDTO
 	var totalCount int64
 
@@ -42,7 +42,7 @@ func (repo *PolicyFolderRepository) GetAll(params *policyDTOs.PolicyRegisterList
 	document_types.title_en AS document_type_title_en,
 	document_types.title_ar AS document_type_title_ar,
 	document_access_types.title_en AS document_access_type_title_en,
-	document_access_types.title_ar AS document_type_access_title_ar,
+	document_access_types.title_ar AS document_access_type_title_ar,
 	organization_units.title_en AS responsible_unit_title_en,
 	organization_units.title_ar AS responsible_unit_title_ar,
 	responsible_user.id AS responsible_user_id,
@@ -91,10 +91,59 @@ func (repo *PolicyFolderRepository) GetAll(params *policyDTOs.PolicyRegisterList
 	published_user.color AS published_user_color,
 	published_user.email AS published_user_email,
 	published_user.profile_image_path AS published_user_profile_image_path,
-	(SELECT COUNT(*) FROM documents d2 WHERE d2.parent_document_id = documents.id) AS document_count
+	ISNULL(
+		(
+			SELECT STRING_AGG(access_type, ',')
+			FROM (
+				SELECT 'created user' as access_type WHERE documents.created_by_id = ?
+				UNION ALL
+				SELECT 'responsible' WHERE documents.responsible_user_id = ?
+				UNION ALL
+				SELECT 'review user' WHERE EXISTS (
+					SELECT 1 FROM document_shared_users 
+					WHERE document_shared_users.document_id = documents.id 
+					AND document_shared_users.user_id = ? 
+					AND document_shared_users.type = 'review-user'
+				)
+				UNION ALL
+				SELECT 'shared user' WHERE EXISTS (
+					SELECT 1 FROM document_shared_users 
+					WHERE document_shared_users.document_id = documents.id 
+					AND document_shared_users.user_id = ? 
+					AND document_shared_users.type = 'shared-user'
+				)
+				UNION ALL
+				SELECT 'shared unit user' WHERE EXISTS (
+					SELECT 1 FROM document_shared_units dsu
+					JOIN organization_units shared_unit ON shared_unit.id = dsu.organization_unit_id
+					JOIN users u ON u.id = ?
+					WHERE dsu.document_id = documents.id 
+					AND shared_unit.id = (
+						SELECT ou.id FROM organization_units ou 
+						WHERE ou.id = u.` + primaryOrgUnitField + `
+					)
+				)
+				UNION ALL
+				SELECT 'public' WHERE documents.document_access_type_id = (SELECT id FROM document_access_types WHERE type = 'public')
+			) AS access_types
+		),
+		''
+	) AS user_access_types,
+	 (SELECT COUNT(*) FROM documents d2 WHERE d2.parent_document_id = documents.id) AS document_count
 `
 
-	query := repo.db.Table("documents").Select(selectClause).
+	query := repo.db.Table("documents").Select(selectClause,
+		currentUserID, // for creator check in array
+		currentUserID, // for responsible check in array
+		currentUserID, // for review-user check in array
+		currentUserID, // for shared-user check in array
+		currentUserID, // for unit access check in array
+		currentUserID, // for creator check in single
+		currentUserID, // for responsible check in single
+		currentUserID, // for review-user check in single
+		currentUserID, // for shared-user check in single
+		currentUserID, // for unit access check in single
+	).
 		Joins(`
 			LEFT JOIN document_categories ON document_categories.id = documents.document_category_id
 			LEFT JOIN document_types ON document_types.id = documents.document_type_id
@@ -135,6 +184,52 @@ func (repo *PolicyFolderRepository) GetAll(params *policyDTOs.PolicyRegisterList
 		}
 	}
 
+	// Apply access control restrictions if not super admin
+	if !isUserSuperAdmin {
+		query = query.Where(`
+			(documents.document_status_id = (SELECT id FROM document_statuses WHERE type = 'in-review') 
+				AND (documents.created_by_id = ? OR documents.responsible_user_id = ? 
+					OR EXISTS (
+						SELECT 1 FROM document_shared_users 
+						WHERE document_shared_users.document_id = documents.id 
+						AND document_shared_users.user_id = ? 
+						AND document_shared_users.type = 'review-user'
+					)
+				)
+			)
+			OR (documents.document_status_id = (SELECT id FROM document_statuses WHERE type = 'published') 
+				AND (
+					(documents.document_access_type_id = (SELECT id FROM document_access_types WHERE type = 'public'))
+					OR EXISTS (
+						SELECT 1 FROM document_shared_users 
+						WHERE document_shared_users.document_id = documents.id 
+						AND document_shared_users.user_id = ? 
+						AND document_shared_users.type IN ('shared-user', 'review-user')
+					)
+					OR EXISTS (
+						SELECT 1 FROM document_shared_units dsu
+						JOIN organization_units shared_unit ON shared_unit.id = dsu.organization_unit_id
+						JOIN users u ON u.id = ?
+						JOIN organization_units user_unit ON user_unit.id = u.organization_unit_2_id
+						WHERE dsu.document_id = documents.id 
+						AND shared_unit.id = (
+							SELECT ou.id FROM organization_units ou 
+							WHERE ou.id = u.`+primaryOrgUnitField+`
+						)
+					)
+				)
+			)
+			OR (
+				documents.document_status_id NOT IN (
+					SELECT id FROM document_statuses WHERE type IN ('in-review', 'published')
+				)
+				AND (documents.created_by_id = ? OR documents.responsible_user_id = ?)
+			)
+		`, currentUserID, currentUserID, currentUserID, // in-review access
+			currentUserID, currentUserID, // published access
+			currentUserID, currentUserID) // all other statuses access
+	}
+
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		query = query.Where(`
@@ -170,7 +265,11 @@ func (repo *PolicyFolderRepository) GetAll(params *policyDTOs.PolicyRegisterList
 	}
 
 	// Apply sorting once
-	query = query.Order("documents.is_folder DESC").Order(params.SortBy + " " + params.Sort)
+	if params.SortBy == "" {
+		query = query.Order("documents.id DESC")
+	} else {
+		query = query.Order("documents.is_folder DESC").Order(params.SortBy + " " + params.Sort)
+	}
 
 	if !params.Export {
 		// Apply pagination without duplicate ordering

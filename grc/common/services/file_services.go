@@ -16,6 +16,8 @@ import (
 type FileServiceInterface interface {
 	TempFileUpload(file *multipart.FileHeader) (*commonDtos.FileDTO, error)
 	GetFilePreview(filePreviewDTO *commonDtos.FilePreviewDTO) (string, error)
+
+	SaveGeneratedPDF(content []byte, fileName string) (*commonDtos.FileDTO, error)
 }
 
 type FileService struct {
@@ -60,4 +62,29 @@ func (service *FileService) GetFilePreview(filePreviewDTO *commonDtos.FilePrevie
 	}
 
 	return fullPath, nil
+}
+
+func (service *FileService) SaveGeneratedPDF(content []byte, fileName string) (*commonDtos.FileDTO, error) {
+	dst := "tmp/" + strconv.FormatInt(time.Now().UnixNano(), 10) + "_" + utility.SanitizeFileName(fileName)
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(storagePath, dst)
+
+	dir := filepath.Dir(fullPath)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return nil, err
+	}
+
+	// Write the generated content directly
+	if err := os.WriteFile(fullPath, content, 0644); err != nil {
+		return nil, err
+	}
+
+	fileDTO := &commonDtos.FileDTO{
+		FileName:     filepath.Base(fullPath),
+		OriginalName: fileName,
+		FileType:     filepath.Ext(fullPath),
+		SizeInBytes:  int64(len(content)),
+	}
+
+	return fileDTO, nil
 }

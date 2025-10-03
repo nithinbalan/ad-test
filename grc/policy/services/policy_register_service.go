@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"jethur/config"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	documentDTOs "jethur/grc/documents/dtos"
@@ -20,7 +21,9 @@ import (
 	"jethur/utility"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -39,6 +42,13 @@ type PolicyRegisterServiceInterface interface {
 	PublishPolicy(id uint, currentUserID uint, policyPublishFormDTO documentDTOs.DocumentPublishFormDTO) error
 
 	ExportPolicies(data []*policyDTOs.PolicyRegisterListDTO, currentUserID uint) (*os.File, error)
+
+	GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error)
+}
+
+type PolicyPDFData struct {
+	Document *policyDTOs.PolicyRegisterDetailsDTO // or DTO with Title, Version, etc.
+	Clauses  []*policyDTOs.PolicyClauseListDTO    // whatever your clause struct is
 }
 
 type PolicyRegisterService struct {
@@ -61,6 +71,9 @@ type PolicyRegisterService struct {
 	workflowContextSvc        masterSvc.WorkflowContextServiceInterface
 	workflowSvc               settinsSvc.WorkflowServiceInterface
 	documentAuditLogSvc       documentServices.DocumentAuditLogServiceInterface
+	clauseSvc                 PolicyClauseServiceInterface
+	fileSvc                   commonServices.FileServiceInterface
+	settingSvc                settinsSvc.ReportTemplateSettingServiceInterface
 }
 
 func NewPolicyRegisterService(
@@ -83,6 +96,9 @@ func NewPolicyRegisterService(
 	workflowContextSvc masterSvc.WorkflowContextServiceInterface,
 	workflowSvc settinsSvc.WorkflowServiceInterface,
 	documentAuditLogSvc documentServices.DocumentAuditLogServiceInterface,
+	clauseSvc PolicyClauseServiceInterface,
+	fileSvc commonServices.FileServiceInterface,
+	settingSvc settinsSvc.ReportTemplateSettingServiceInterface,
 ) PolicyRegisterServiceInterface {
 	return &PolicyRegisterService{
 		repo:                      repo,
@@ -104,6 +120,9 @@ func NewPolicyRegisterService(
 		workflowContextSvc:        workflowContextSvc,
 		workflowSvc:               workflowSvc,
 		documentAuditLogSvc:       documentAuditLogSvc,
+		clauseSvc:                 clauseSvc,
+		fileSvc:                   fileSvc,
+		settingSvc:                settingSvc,
 	}
 }
 
@@ -1258,12 +1277,34 @@ func (prs *PolicyRegisterService) CreatePolicyWorkflow(documentId uint, document
 }
 
 func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, policyPublishFormDTO documentDTOs.DocumentPublishFormDTO) error {
+	workflow, err := prs.policyWorkflowSvc.GetDocumentWorkflowList(id)
+	if err != nil {
+		return err
+	}
+
+	for _, documentWorkflow := range workflow.DocumentWorkflows {
+		documentWorkflow.ApprovedAtString = documentWorkflow.ApprovedAt.Format("02/01/2006")
+	}
+
+	template, err := prs.settingSvc.GetFirst()
+	if err != nil {
+		return err
+	}
+
+	if template.CoverPageBGImagePath == nil || template.LogoImagePath == nil {
+		return utility.NewForbiddenError("Logo and Background Image not added.")
+	}
+
 	tx := prs.repo.BeginTransaction()
+
+	appURL := utility.GetAppURL()
+
 	referenceNumber, err := prs.repo.GenerateReferenceNumber()
 	if err != nil {
 		return err
 	}
-	document, err := prs.GetFullDetailsByID(id, nil, tx)
+
+	policyRegister, err := prs.GetFullDetailsByID(id, nil, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -1290,8 +1331,8 @@ func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, pol
 
 	// Calculate next review date based on review frequency
 	var nextReviewDate *time.Time
-	if document.ReviewFrequency != nil && document.ReviewFrequency.ID != 0 {
-		reviewFrequency, err := prs.reviewFrequencySvc.GetByID(document.ReviewFrequency.ID)
+	if policyRegister.ReviewFrequency != nil && policyRegister.ReviewFrequency.ID != 0 {
+		reviewFrequency, err := prs.reviewFrequencySvc.GetByID(policyRegister.ReviewFrequency.ID)
 		if err != nil {
 			tx.Rollback()
 			return fmt.Errorf("error fetching review frequency: %w", err)
@@ -1312,7 +1353,7 @@ func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, pol
 		return err
 	}
 
-	documentVersion, err := prs.repo.GetDocumentVersionByID(document.LatestDocumentVersion.ID, tx)
+	documentVersion, err := prs.repo.GetDocumentVersionByID(policyRegister.LatestDocumentVersion.ID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -1323,10 +1364,100 @@ func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, pol
 		return err
 	}
 
+	_, err = prs.repo.GetDocumentVersionByID(policyRegister.LatestDocumentVersion.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	clauses, err := prs.clauseSvc.GetByDocumentVersionId(id, documentVersion.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	pdfData := policyDTOs.PolicyPDFData{
+		AppUrl:            appURL,
+		Document:          policyRegister, // your full document struct
+		Workflow:          workflow,
+		Clauses:           clauses,
+		CreatedAtString:   policyRegister.CreatedAt.Format("02/01/2006"),
+		PublishedAtString: policyRegister.LatestDocumentVersion.PublishedAt.Format("02/01/2006"),
+		NextReviewDate:    policyRegister.NextReviewDate.Format("02/01/2006"),
+	}
+
+	// Generate cover page HTML
+	coverHTML, err := utility.GeneratePDFContent(pdfData, []string{"document/templates/pdf/cover.html"}, "", "")
+	if err != nil {
+		return fmt.Errorf("failed to generate cover page: %w", err)
+	}
+
+	// Generate disclaimer page HTML
+	disclaimerHTML, err := utility.GeneratePDFContent(pdfData, []string{"document/templates/pdf/disclaimer.html"}, "", "")
+	if err != nil {
+		return fmt.Errorf("failed to generate disclaimer page: %w", err)
+	}
+
+	// Generate content page HTML
+	contentHTML, err := utility.GeneratePDFContent(pdfData, []string{"document/templates/pdf/content.html"}, "", "")
+	if err != nil {
+		return fmt.Errorf("failed to generate content page: %w", err)
+	}
+
+	headerHTML, err := utility.GeneratePDFContent(pdfData, []string{"document/templates/pdf/header.html"}, "", "")
+	if err != nil {
+		return fmt.Errorf("failed to generate header page: %w", err)
+	}
+
+	footerHTML, err := utility.GeneratePDFContent(pdfData, []string{"document/templates/pdf/footer.html"}, "", "")
+	if err != nil {
+		return fmt.Errorf("failed to generate footer content: %w", err)
+	}
+
+	// Convert to PDF (cover + content + footer)
+	pdfFileName := fmt.Sprintf("RiskReport_%d.pdf", id)
+	if err := utility.ConvertPolicyHTMLContentToPDF(headerHTML, footerHTML, coverHTML, disclaimerHTML, contentHTML, pdfFileName); err != nil {
+		return fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	// ✅ Read back PDF bytes
+	pdfBytes, err := os.ReadFile(pdfFileName)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to read generated pdf: %w", err)
+	}
+	defer os.Remove(pdfFileName)
+
+	fileDTO, err := prs.fileSvc.SaveGeneratedPDF(pdfBytes, pdfFileName)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to save pdf file: %w", err)
+	}
+
+	url := utility.GenerateDocumentURL("document", "published", strconv.FormatUint(uint64(id), 10), "documents")
+
+	dataToEncrypt := []byte(fileDTO.FileName)
+	encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+	if err != nil {
+		return err
+	}
+
 	documentVersion.AcknowledgeDueDate = dates.AcknowledgeDueDate
 	documentVersion.EnableAcknowledgement = policyPublishFormDTO.EnableAcknowledgement
 	documentVersion.PublishedBYID = &currentUserID
 	documentVersion.PublishedAt = publishedAt
+
+	documentVersion.URL = url
+	documentVersion.Name = fileDTO.FileName
+	documentVersion.Size = int(fileDTO.SizeInBytes)
+	documentVersion.Token = encryptedFilename
+	documentVersion.OriginalName = &fileDTO.OriginalName
+	documentVersion.Type = fileDTO.FileType
+
+	if err := utility.StoreFile(fileDTO.FileName, url); err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	err = prs.repo.UpdateDocumentVersion(documentVersion, tx)
 	if err != nil {
@@ -1341,7 +1472,7 @@ func (prs *PolicyRegisterService) PublishPolicy(id uint, currentUserID uint, pol
 
 	tx.Commit()
 
-	prs.notifyUsersOnPublish(document, id, currentUserID)
+	prs.notifyUsersOnPublish(policyRegister, id, currentUserID)
 
 	// to do
 	// activity log
@@ -1567,4 +1698,44 @@ func (prs *PolicyRegisterService) notifyUsersOnPublish(document *policyDTOs.Poli
 
 		}
 	}()
+}
+
+func (prs *PolicyRegisterService) GetDocumentPath(id uint, token string, fileType string, tx ...utility.DatabaseTransaction) (string, error) {
+	existingDocument, err := prs.GetFullDetailsByID(id, nil, tx...)
+	if err != nil {
+		return "", err
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	baseFilename := strings.TrimSuffix(decryptedFilename, filepath.Ext(decryptedFilename))
+
+	var storagePath string
+
+	if existingDocument.DocumentStatus.Type == "published" || existingDocument.DocumentStatus.Type == "archived" {
+		storagePath = filepath.Join("document", "published", strconv.FormatUint(uint64(id), 10), "documents")
+		fileType = "pdf"
+	} else {
+		storagePath = filepath.Join("document", "draft", strconv.FormatUint(uint64(id), 10), "documents")
+	}
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, baseFilename+"."+fileType)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }
