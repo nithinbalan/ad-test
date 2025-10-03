@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
+	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"html/template"
 	"io"
 	"jethur/assets"
@@ -28,6 +29,7 @@ func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath s
 	templates := template.New("pdf").Funcs(template.FuncMap{
 		"formatDate": func(date string) string { return date },
 		"safeHTML":   func(content string) template.HTML { return template.HTML(content) },
+		"add":        func(a, b int) int { return a + b },
 	})
 
 	// Parse all templates at once
@@ -269,4 +271,109 @@ func AddFileToZip(zipWriter *zip.Writer, filename string) error {
 
 	_, err = io.Copy(writer, fileToZip)
 	return err
+}
+
+func GeneratePDFWithCoverHeaderFooter(coverContent, htmlContent, pdfFileName, headerContent, footerContent string) error {
+	wkhtmltopdfPath := os.Getenv("WKHTMLTOPDF_PATH")
+	if wkhtmltopdfPath == "" {
+		wkhtmltopdfPath = "C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe"
+	}
+	if _, err := os.Stat(wkhtmltopdfPath); os.IsNotExist(err) {
+		return fmt.Errorf("wkhtmltopdf executable not found at %s", wkhtmltopdfPath)
+	}
+
+	// Helper to create temp HTML files
+	createTempHTML := func(content, prefix string) (string, error) {
+		f, err := os.CreateTemp("", prefix+"*.html")
+		if err != nil {
+			return "", err
+		}
+		if _, err := f.Write([]byte(content)); err != nil {
+			f.Close()
+			return "", err
+		}
+		f.Close()
+		return f.Name(), nil
+	}
+
+	// Create temp files
+	coverPath, err := createTempHTML(coverContent, "cover_")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(coverPath)
+
+	contentPath, err := createTempHTML(htmlContent, "content_")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(contentPath)
+
+	headerPath, err := createTempHTML(headerContent, "header_")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(headerPath)
+
+	footerPath, err := createTempHTML(footerContent, "footer_")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(footerPath)
+
+	// Helper to generate PDF
+	generatePDF := func(htmlPaths []string, outPDF string, top, bottom, left, right string, addHeaderFooter bool) error {
+		args := []string{
+			"--enable-local-file-access",
+			"--margin-top", top,
+			"--margin-bottom", bottom,
+			"--margin-left", left,
+			"--margin-right", right,
+		}
+
+		if addHeaderFooter {
+			args = append(args,
+				"--header-html", headerPath,
+				"--header-spacing", "5",
+				"--footer-html", footerPath,
+				"--footer-spacing", "5",
+			)
+		}
+
+		args = append(args, htmlPaths...)
+		args = append(args, outPDF)
+
+		cmd := exec.Command(wkhtmltopdfPath, args...)
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("wkhtmltopdf error: %s: %w", stderr.String(), err)
+		}
+		return nil
+	}
+
+	// Temporary PDFs
+	coverPDF := "cover.pdf"
+	bodyPDF := "body.pdf"
+
+	// 1. Cover (no header/footer, no margins)
+	if err := generatePDF([]string{coverPath}, coverPDF, "0", "0", "0", "0", false); err != nil {
+		return err
+	}
+
+	// 2. Body (content with header/footer and margins)
+	if err := generatePDF([]string{contentPath}, bodyPDF, "20", "20", "0", "0", true); err != nil {
+		return err
+	}
+
+	// 3. Merge cover + body
+	if err := api.MergeCreateFile([]string{coverPDF, bodyPDF}, pdfFileName, false, nil); err != nil {
+		return err
+	}
+
+	// Cleanup
+	os.Remove(coverPDF)
+	os.Remove(bodyPDF)
+
+	return nil
 }
