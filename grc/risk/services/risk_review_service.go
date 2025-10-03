@@ -160,7 +160,7 @@ func (rrs *RiskReviewService) Submit(riskID uint, currentUserID uint) error {
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/risk/risk-register/%d/overview", appURL, riskID),
+				"RedirectURL":           fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, riskID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -234,8 +234,6 @@ func (rrs *RiskReviewService) Approve(riskID uint, currentUserID uint) error {
 			return err
 		}
 
-		rrs.sendApprovalNotification(riskID, currentUserID, riskRegister)
-
 		nextRiskWorkflowLevel, err := rrs.riskWorkflowSvc.GetNextLevel(uint(riskRegister.ID), *currentApprovalLevel, tx)
 		if err != nil {
 			tx.Rollback()
@@ -281,6 +279,13 @@ func (rrs *RiskReviewService) Approve(riskID uint, currentUserID uint) error {
 			rrs.notifyNextLevelUsers(riskID, nextWorkflow, riskRegister)
 		}
 
+		riskDetails, err := rrs.riskSvc.GetFullDetailsByID(riskID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		rrs.sendApprovalNotification(riskID, currentUserID, riskDetails)
+
 	case "multiple-users", "role":
 		allowed := false
 		for _, participant := range currentRiskWorkflow.RiskWorkflowParticipants {
@@ -303,8 +308,6 @@ func (rrs *RiskReviewService) Approve(riskID uint, currentUserID uint) error {
 			tx.Rollback()
 			return err
 		}
-
-		rrs.sendApprovalNotification(riskID, currentUserID, riskRegister)
 
 		if currentRiskWorkflow.ApprovalTypes == "all" {
 			allApproved, err := rrs.riskWorkflowSvc.CheckAllParticipantsApproved(currentRiskWorkflow.ID, currentRiskWorkflow.RiskWorkflowParticipants, tx)
@@ -371,6 +374,14 @@ func (rrs *RiskReviewService) Approve(riskID uint, currentUserID uint) error {
 			}
 			rrs.notifyNextLevelUsers(uint(riskRegister.ID), nextWorkflow, riskRegister)
 		}
+
+		riskDetails, err := rrs.riskSvc.GetFullDetailsByID(riskID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		rrs.sendApprovalNotification(riskID, currentUserID, riskDetails)
 	}
 
 	// ✅ Only commit once at the end
@@ -484,7 +495,11 @@ func (rrs *RiskReviewService) sendApprovalNotification(id uint, currentUserID ui
 		appURL := utility.GetAppURL()
 		emailTo := []string{riskDetail.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Risk %s: Approval Notification", riskDetail.Title)
-		urlParam = fmt.Sprintf("%s/risk/risk-register/%d/overview", appURL, riskDetail.ID)
+		urlParam = fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, riskDetail.ID)
+
+		if riskDetail.RiskStatus.Type == "open" {
+			urlParam = fmt.Sprintf("%s/risk/risk-register/%d/overview", appURL, id)
+		}
 
 		emailData := map[string]interface{}{
 			"Title":                 riskDetail.Title,
@@ -552,7 +567,7 @@ func (rrs *RiskReviewService) notifyNextLevelUsers(id uint, nextRiskWorkflowLeve
 			emailTo := []string{responsibleUser.Email}
 			subject := fmt.Sprintf("Risk %s: Review Assigned", riskDetail.Title)
 			appURL := utility.GetAppURL()
-			urlParam = fmt.Sprintf("%s/risk/risk-register/%d/overview", appURL, riskDetail.ID)
+			urlParam = fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, riskDetail.ID)
 
 			emailData := map[string]interface{}{
 				"FirstNameEn":           responsibleUser.FirstNameEn,
@@ -620,7 +635,7 @@ func (rrs *RiskReviewService) sendRejectedNotification(id uint, currentUserID ui
 		appURL := utility.GetAppURL()
 		emailTo := []string{risk.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Risk %s: Rejected Notification", risk.Title)
-		urlParam = fmt.Sprintf("%s/risk/risk-register/%d/overview", appURL, risk.ID)
+		urlParam = fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, risk.ID)
 
 		emailData := map[string]interface{}{
 			"FirstNameEn":           risk.ResponsibleUser.FirstNameEN,

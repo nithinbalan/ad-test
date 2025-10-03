@@ -308,12 +308,13 @@ func (dcs *PolicyClauseService) Update(documentId uint, clauseId uint, currentUs
 			}
 			clauseEdit = append(clauseEdit, newClauseHistory)
 		}
+		if len(clauseEdit) > 0 {
+			err = dcs.repo.CreateClauseHistory(clauseEdit, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
 
-		err = dcs.repo.CreateClauseHistory(clauseEdit, tx)
-		if err != nil {
-			tx.Rollback()
-			return err
-
+			}
 		}
 	}
 

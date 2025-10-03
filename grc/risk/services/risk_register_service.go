@@ -507,11 +507,11 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			"LastNameEn":           responsibleUser.LastNameEn,
 			"RiskReferenceNumber":  existingRiskRegister.ReferenceNumber,
 			"RiskTitle":            existingRiskRegister.Title,
-			"RiskDescription":      existingRiskRegister.Description,
+			"RiskDescription":      utility.GetStringValue(existingRiskRegister.Description),
 			"CreatedByFirstNameEn": createdBy.FirstNameEn,
 			"CreatedByLastNameEn":  createdBy.LastNameEn,
 			"AssignedOn":           time.Now().Format("2006-01-02"),
-			"RedirectURL":          fmt.Sprintf("%s/risk/risk-register/%d/overview", appURL, id),
+			"RedirectURL":          fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, id),
 		}
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
@@ -596,11 +596,11 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 				"FirstNameEn":          riskSetting.ReviewRole.TitleEn,
 				"RiskReferenceNumber":  existingRiskRegister.ReferenceNumber,
 				"RiskTitle":            existingRiskRegister.Title,
-				"RiskDescription":      existingRiskRegister.Description,
+				"RiskDescription":      utility.GetStringValue(existingRiskRegister.Description),
 				"CreatedByFirstNameEn": createdBy.FirstNameEn,
 				"CreatedByLastNameEn":  createdBy.LastNameEn,
 				"AssignedOn":           time.Now().Format("2006-01-02"),
-				"RedirectURL":          fmt.Sprintf("%s/risk/risk-register/%d/overview", utility.GetAppURL(), riskRegister.ID),
+				"RedirectURL":          fmt.Sprintf("%s/risk/identified-risk/%d/workflow", utility.GetAppURL(), riskRegister.ID),
 			},
 		}
 
@@ -952,10 +952,10 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 				"LastNameEn":           oldResponsibleUser.LastNameEn,
 				"RiskReferenceNumber":  existingRiskRegister.ReferenceNumber,
 				"RiskTitle":            existingRiskRegister.Title,
-				"RiskDescription":      existingRiskRegister.Description,
+				"RiskDescription":      utility.GetStringValue(existingRiskRegister.Description),
 				"UpdatedByFirstNameEn": updatedByUser.FirstNameEn,
 				"UpdatedByLastNameEn":  updatedByUser.LastNameEn,
-				"RedirectURL":          fmt.Sprintf("%s/risk/risk-register/%d/overview", appURL, id),
+				"RedirectURL":          fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, id),
 			}
 
 			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -973,11 +973,11 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 				"LastNameEn":            newResponsibleUser.LastNameEn,
 				"RiskReferenceNumber":   existingRiskRegister.ReferenceNumber,
 				"RiskTitle":             existingRiskRegister.Title,
-				"RiskDescription":       existingRiskRegister.Description,
+				"RiskDescription":       utility.GetStringValue(existingRiskRegister.Description),
 				"AssignedByFirstNameEn": updatedByUser.FirstNameEn,
 				"AssignedByLastNameEn":  updatedByUser.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/risk/risk-register/%d/overview", appURL, id),
+				"RedirectURL":           fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, id),
 			}
 
 			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
