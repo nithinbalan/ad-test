@@ -207,9 +207,9 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Create(TestAndExerciseID 
 			id,
 			TaeRecoveryActionPlanUpdate,
 			currentUserID,
-			"",
-			"",
-			"",
+			"business_continuity",
+			"test_and_exercise",
+			"recovery_action_plan_status_update",
 			nil,
 		)
 		if err != nil {
@@ -445,9 +445,9 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Update(TestAndExerciseID 
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"business_continuity",
+				"test_and_exercise",
+				"recovery_action_plan_status_update",
 				nil,
 			)
 			if err != nil {
@@ -673,9 +673,9 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Approve(testAndExerciseID
 			id,
 			existingActionPlan,
 			currentUserID,
-			"",
-			"",
-			"",
+			"business_continuity",
+			"test_and_exercise",
+			"recovery_action_plan_status_update",
 			nil,
 		)
 		if err != nil {
@@ -840,9 +840,9 @@ func (sasus *TaeRecoveryActionPlanStatusUpdateService) Revert(testAndExerciseID 
 			id,
 			existingActionPlan,
 			currentUserID,
-			"",
-			"",
-			"",
+			"business_continuity",
+			"test_and_exercise",
+			"recovery_action_plan_status_update",
 			nil,
 		)
 		if err != nil {

@@ -163,9 +163,9 @@ func (btes *BcpTestAndExerciseService) Create(bcpId uint, currentUserID uint, bc
 			id,
 			existingBcpTestAndExercise,
 			currentUserID,
-			"",
-			"",
-			"",
+			"business_continuity",
+			"bcp",
+			"test_and_exercise",
 			nil,
 		)
 		if err != nil {
@@ -348,9 +348,9 @@ func (btes *BcpTestAndExerciseService) Update(bcpId uint, id uint, currentUserID
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"business_continuity",
+				"bcp",
+				"test_and_exercise",
 				nil,
 			)
 			if err != nil {

@@ -255,9 +255,9 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 			id,
 			existingBusinessContinuityPlan,
 			currentUserID,
-			"",
-			"",
-			"",
+			"business_continuity",
+			"bcp",
+			"business_continuity_plan",
 			nil,
 		)
 		if err != nil {
@@ -512,9 +512,9 @@ func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, b
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"business_continuity",
+				"bcp",
+				"business_continuity_plan",
 				nil,
 			)
 			if err != nil {

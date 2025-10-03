@@ -126,9 +126,9 @@ func (brps *BcpRecoveryPlanService) Create(bcpId uint, currentUserID uint, BcpRe
 			id,
 			existingBcpRecoveryPlan,
 			currentUserID,
-			"",
-			"",
-			"",
+			"business_continuity",
+			"bcp",
+			"recovery_plan",
 			nil,
 		)
 		if err != nil {
@@ -226,9 +226,9 @@ func (brps *BcpRecoveryPlanService) Update(id uint, currentUserID uint, BcpRecov
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"business_continuity",
+				"bcp",
+				"recovery_plan",
 				nil,
 			)
 			if err != nil {
