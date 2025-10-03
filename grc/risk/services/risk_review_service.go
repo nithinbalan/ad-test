@@ -309,8 +309,6 @@ func (rrs *RiskReviewService) Approve(riskID uint, currentUserID uint) error {
 			return err
 		}
 
-		rrs.sendApprovalNotification(riskID, currentUserID, riskRegister)
-
 		if currentRiskWorkflow.ApprovalTypes == "all" {
 			allApproved, err := rrs.riskWorkflowSvc.CheckAllParticipantsApproved(currentRiskWorkflow.ID, currentRiskWorkflow.RiskWorkflowParticipants, tx)
 			if err != nil {
@@ -376,6 +374,14 @@ func (rrs *RiskReviewService) Approve(riskID uint, currentUserID uint) error {
 			}
 			rrs.notifyNextLevelUsers(uint(riskRegister.ID), nextWorkflow, riskRegister)
 		}
+
+		riskDetails, err := rrs.riskSvc.GetFullDetailsByID(riskID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		rrs.sendApprovalNotification(riskID, currentUserID, riskDetails)
 	}
 
 	// ✅ Only commit once at the end
@@ -490,6 +496,7 @@ func (rrs *RiskReviewService) sendApprovalNotification(id uint, currentUserID ui
 		emailTo := []string{riskDetail.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Risk %s: Approval Notification", riskDetail.Title)
 		urlParam = fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, riskDetail.ID)
+		fmt.Println(riskDetail.RiskStatus.Type)
 		if riskDetail.RiskStatus.Type == "open" {
 			urlParam = fmt.Sprintf("%s/risk/risk-register/%d/overview", appURL, id)
 		}
