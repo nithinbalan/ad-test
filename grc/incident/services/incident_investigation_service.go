@@ -253,7 +253,7 @@ func (iis *IncidentInvestigationService) Create(incidentID uint, currentUserID u
 			id,
 			existingIncidentInvestigation,
 			currentUserID,
-			"", "", "", nil,
+			"incident", "incident_register", "investigation", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -567,7 +567,7 @@ func (iis *IncidentInvestigationService) Update(incidentID uint, currentUserID u
 				existingIncidentInvestigation.ID,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"incident", "incident_register", "investigation", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -686,7 +686,7 @@ func (iis *IncidentInvestigationService) Delete(incidentID uint, currentUserID u
 			uint(incidentInvestigation.ID),
 			deletedIncidentInvestigation,
 			currentUserID,
-			"", "", "", nil,
+			"incident", "incident_register", "investigation", nil,
 		)
 		if err != nil {
 			// Handle error if logging fails

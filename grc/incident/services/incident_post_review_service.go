@@ -217,7 +217,7 @@ func (iprs *IncidentPostReviewService) Create(incidentID uint, currentUserID uin
 			id,
 			existingIncidentPostReview,
 			currentUserID,
-			"", "", "", nil,
+			"incident", "incident_register", "post_review", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -523,7 +523,7 @@ func (iprs *IncidentPostReviewService) Update(incidentID uint, currentUserID uin
 				existingIncidentPostReview.ID,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"incident", "incident_register", "post_review", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -624,7 +624,7 @@ func (iprs *IncidentPostReviewService) Delete(incidentID uint, currentUserID uin
 			uint(incidentPostReview.ID),
 			deletedIncidentPostReview,
 			currentUserID,
-			"", "", "", nil,
+			"incident", "incident_register", "post_review", nil,
 		)
 		if err != nil {
 			// Handle error if logging fails

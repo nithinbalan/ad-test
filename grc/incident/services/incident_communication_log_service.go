@@ -173,7 +173,7 @@ func (icls *IncidentCommunicationLogService) Create(incidentID uint, currentUser
 			id,
 			existingIncidentCommunicationLog,
 			currentUserID,
-			"", "", "", nil,
+			"incident", "incident_register", "communication_log", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -263,7 +263,7 @@ func (icls *IncidentCommunicationLogService) Update(incidentID uint, id uint, cu
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"incident", "incident_register", "communication_log", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
