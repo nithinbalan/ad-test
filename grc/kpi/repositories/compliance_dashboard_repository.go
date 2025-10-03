@@ -10,6 +10,7 @@ import (
 
 type ComplianceDashboardRepositoryInterface interface {
 	GetComplianceOverview(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceOverviewDTO, error)
+	GetComplianceBreakdown(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceBreakdownDTO, error)
 }
 
 type ComplianceDashboardRepository struct {
@@ -56,4 +57,47 @@ func (repo *ComplianceDashboardRepository) GetComplianceOverview(params *kpiDTOs
 	}
 
 	return overview, nil
+}
+
+func (repo *ComplianceDashboardRepository) GetComplianceBreakdown(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceBreakdownDTO, error) {
+	complainceStatuses := []kpiDTOs.ComplianceStatusItemDTO{}
+	var total int64
+
+	query := repo.db.Model(&models.ComplianceRegister{}).
+		Select(`
+            compliance_statuses.id,
+            compliance_statuses.title_en,
+            compliance_statuses.title_ar,
+            compliance_statuses.color_code,
+            compliance_statuses.type,
+            COUNT(*) AS count
+        `).
+		Joins("JOIN compliance_statuses ON compliance_statuses.id = compliance_register.compliance_status_id").
+		Group(`
+			compliance_statuses.id, 
+			compliance_statuses.title_en, 
+			compliance_statuses.title_ar, 
+			compliance_statuses.color_code, 
+			compliance_statuses.type
+		`).
+		Order("compliance_statuses.id")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	if err := query.Scan(&complainceStatuses).Error; err != nil {
+		return nil, err
+	}
+
+	if err := repo.db.Model(&models.ComplianceRegister{}).Count(&total).Error; err != nil {
+		return nil, err
+	}
+
+	result := &kpiDTOs.ComplianceBreakdownDTO{
+		CommplainceStatuses: complainceStatuses,
+		Total:               total,
+	}
+
+	return result, nil
 }

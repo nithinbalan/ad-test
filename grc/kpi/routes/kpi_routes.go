@@ -17,6 +17,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	grcDashboardController := app.KPIModule.GRCDashboardController
 	ermDashboardController := app.KPIModule.ERMDashboardController
+	complianceDashboardController := app.KPIModule.ComplianceDashboardController
 
 	//GRCDashboard Summary
 	kpiRoutes.GET("/kpis/grc-summary/compliance", middlewares.RolePermissionMiddleware(db, "grc_dashboard", "view"), grcDashboardController.GetGRCComplianceSummary)
@@ -70,5 +71,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/erm/top-twenty-risks", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetTopRiskRegisters)
 
 	// Compliance Dashboard
-	kpiRoutes.GET("/kpis/compliance/overview", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), app.KPIModule.ComplianceDashboardController.GetComplianceOverview)
+	kpiRoutes.GET("/kpis/compliance/overview", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetComplianceOverview)
+	kpiRoutes.GET("/kpis/compliance/breakdown", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetComplianceBreakdown)
 }

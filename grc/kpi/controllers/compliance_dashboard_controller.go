@@ -29,7 +29,7 @@ func (cdc *ComplianceDashboardController) GetComplianceOverview(c *gin.Context) 
 		DateFrom: dateFrom,
 		DateTo:   dateTo,
 	}
-	summary, err := cdc.service.GetComplianceOverview(&queryParams)
+	overview, err := cdc.service.GetComplianceOverview(&queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -41,5 +41,29 @@ func (cdc *ComplianceDashboardController) GetComplianceOverview(c *gin.Context) 
 			return
 		}
 	}
-	c.JSON(http.StatusOK, summary)
+	c.JSON(http.StatusOK, overview)
+}
+
+func (cdc *ComplianceDashboardController) GetComplianceBreakdown(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	breakdown, err := cdc.service.GetComplianceBreakdown(&queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(cdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, breakdown)
 }
