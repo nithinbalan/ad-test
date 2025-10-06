@@ -46,10 +46,10 @@ func (mrs MeetingReportService) GetFullReportDetailsByID(id uint) (*meetingDTOs.
 		return nil, err
 	}
 	if _, err := mrs.settigSvc.GetImagePath("logo"); err != nil {
-		return nil, utility.NewForbiddenError("logo image missing")
+		return nil, utility.NewForbiddenError("logo_image_missing")
 	}
 	if _, err := mrs.settigSvc.GetImagePath("cover-page-bg"); err != nil {
-		return nil, utility.NewForbiddenError("cover image missing")
+		return nil, utility.NewForbiddenError("cover_image_missing")
 	}
 
 	err = mapstructure.Decode(meeting, &meetingDTO)
