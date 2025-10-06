@@ -36,6 +36,16 @@ type CompliancePerformanceRadarDTO struct {
 	Items []CompliancePerformanceItemDTO `json:"items"`
 }
 
+type ComplianceClausePerformanceItemDTO struct {
+	ClauseNumber string  `json:"clause_number"`
+	TitleEn      string  `json:"title_en"`
+	Score        float64 `json:"score"`
+}
+
+type ComplianceClausePerformanceDTO struct {
+	Items []ComplianceClausePerformanceItemDTO `json:"items"`
+}
+
 type ComplianceControlSummaryDTO struct {
 	TotalControls          int64                      `json:"total_controls"`
 	ImplementationStatuses []ComplianceSummaryItemDTO `json:"implementation_statuses"`

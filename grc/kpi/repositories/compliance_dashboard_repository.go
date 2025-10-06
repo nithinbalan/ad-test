@@ -13,6 +13,8 @@ type ComplianceDashboardRepositoryInterface interface {
 	GetComplianceBreakdown(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceBreakdownDTO, error)
 	GetHighPerformanceCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.CompliancePerformanceRadarDTO, error)
 	GetLeastPerformanceCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.CompliancePerformanceRadarDTO, error)
+	GetHighPerformanceComplianceClauses(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceClausePerformanceDTO, error)
+	GetLowPerformanceComplianceClauses(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceClausePerformanceDTO, error)
 	GetComplianceControlSummary(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceControlSummaryDTO, error)
 	GetComplianceEfficiencySummary(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceEfficiencySummaryDTO, error)
 }
@@ -120,7 +122,7 @@ func (repo *ComplianceDashboardRepository) GetHighPerformanceCompliances(params 
 
 	query := repo.db.Model(&models.ComplianceRegister{}).
 		Select(`
-            compliance_register.standard_code as framework_name,
+            compliance_register.standard_code as compliance_standard_code,
             AVG(COALESCE(compliance_register.score, 0)) as score
         `).
 		Where("compliance_register.score IS NOT NULL").
@@ -168,6 +170,50 @@ func (repo *ComplianceDashboardRepository) GetLeastPerformanceCompliances(params
 	}
 
 	return summary, nil
+}
+
+func (repo *ComplianceDashboardRepository) GetHighPerformanceComplianceClauses(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceClausePerformanceDTO, error) {
+	result := &kpiDTOs.ComplianceClausePerformanceDTO{}
+
+	query := repo.db.Model(&models.ComplianceClause{}).
+		Select(`compliance_clauses.clause_no, compliance_clauses.title_en, AVG(compliance_clauses.score) AS score`).
+		Where("compliance_clauses.score IS NOT NULL").
+		Group("compliance_clauses.clause_no, compliance_clauses.title_en").
+		Having("AVG(compliance_clauses.score) >= ?", 75.0).
+		Order("AVG(compliance_clauses.score) DESC").
+		Limit(5)
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("compliance_clauses.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&result.Items).Error
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (repo *ComplianceDashboardRepository) GetLowPerformanceComplianceClauses(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceClausePerformanceDTO, error) {
+	result := &kpiDTOs.ComplianceClausePerformanceDTO{}
+
+	query := repo.db.Model(&models.ComplianceClause{}).
+		Select(`compliance_clauses.clause_no, compliance_clauses.title_en, AVG(compliance_clauses.score) AS score`).
+		Where("compliance_clauses.score IS NOT NULL").
+		Group("compliance_clauses.clause_no, compliance_clauses.title_en").
+		Having("AVG(compliance_clauses.score) < ?", 75.0).
+		Order("AVG(compliance_clauses.score) ASC").
+		Limit(5)
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("compliance_clauses.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&result.Items).Error
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (repo *ComplianceDashboardRepository) GetComplianceControlSummary(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceControlSummaryDTO, error) {
