@@ -133,6 +133,7 @@ type ComplianceRegisterFormDTO struct {
 	ComplianceAssessmentFrameworkID uint                      `json:"compliance_assessment_framework_id" binding:"required"`
 	LastReviewNote                  *string                   `json:"last_review_note"`
 	StandardCode                    *string                   `json:"standard_code" binding:"omitempty,max=45"`
+	ParentComplianceRegisterID      *uint                     `json:"parent_compliance_register_id"`
 	DocumentEn                      ComplianceDocumentFormDTO `json:"document_en" binding:"required"`
 	DocumentAr                      ComplianceDocumentFormDTO `json:"document_ar" binding:"required"`
 	ComplianceFolderID              *uint                     `json:"compliance_folder_id"`
@@ -210,6 +211,8 @@ type ComplianceRegisterDetailDTO struct {
 	ComplianceAssessmentFramework   *ComplianceAssessmentFrameworkDetailResponseDTO `json:"compliance_assessment_framework"`
 	IsControlAssessment             bool                                            `json:"is_control_assessment"`
 	IsRequirementAssessment         bool                                            `json:"is_requirement_assessment"`
+	ParentComplianceRegister        *ComplianceRegisterDetailDTO                    `json:"parent" gorm:"-"`
+	ChildComplianceRegister         []*ComplianceRegisterDetailDTO                  `json:"child_version" gorm:"-"`
 }
 
 type ComplianceControlDTO struct {
