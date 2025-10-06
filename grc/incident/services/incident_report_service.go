@@ -7,9 +7,12 @@ import (
 	"gorm.io/gorm"
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepo "jethur/grc/incident/repositories"
+	settingSvc "jethur/grc/settings/services"
 	"jethur/utility"
-	"time"
 	"os"
+	"time"
+		"log"
+
 )
 
 type IncidentReportServiceInterface interface {
@@ -19,15 +22,18 @@ type IncidentReportServiceInterface interface {
 
 // Service and implementations
 type IncidentReportService struct {
-	repo                  incidentRepo.IncidentReportRepositoryInterface
+	repo      incidentRepo.IncidentReportRepositoryInterface
+	settigSvc settingSvc.ReportTemplateSettingServiceInterface
 }
 
 func NewIncidentReportService(
 	repo incidentRepo.IncidentReportRepositoryInterface,
-	) IncidentReportServiceInterface {
+	settigSvc settingSvc.ReportTemplateSettingServiceInterface,
+
+) IncidentReportServiceInterface {
 	return &IncidentReportService{
-		repo:                  repo,
-		
+		repo:      repo,
+		settigSvc: settigSvc,
 	}
 }
 
@@ -40,6 +46,14 @@ func (irs IncidentReportService) GetFullReportDetailsByID(id uint) (*incidentDTO
 			return nil, utility.NewResourceNotFoundError(err, id)
 		}
 		return nil, err
+	}
+	if _, err := irs.settigSvc.GetImagePath("logo"); err != nil {
+		 log.Printf("Error: logo image missing: %v", err) 
+		return nil, utility.NewResourceNotFoundError(fmt.Errorf("logo image missing: %w", err), "logo")
+	}
+	if _, err := irs.settigSvc.GetImagePath("cover-page-bg"); err != nil {
+		log.Printf("Error: cover-page-bg image missing: %v", err)
+		return nil, utility.NewResourceNotFoundError(fmt.Errorf("cover image missing: %w", err), "cover-page-bg")
 	}
 
 	err = mapstructure.Decode(incident, &incidentDTO)
@@ -180,7 +194,7 @@ func (irs IncidentReportService) ExportIncidentReport(id uint, currentUserID uin
 
 	// Convert HTML → PDF with header and footer
 	pdfFileName := fmt.Sprintf("IncidentReport_%d.pdf", id)
-	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent,htmlContent,pdfFileName, headerContent, footerContent); err != nil {
+	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent, htmlContent, pdfFileName, headerContent, footerContent); err != nil {
 		return "", fmt.Errorf("failed to generate PDF: %w", err)
 	}
 
