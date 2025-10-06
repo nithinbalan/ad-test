@@ -31,6 +31,7 @@ func NewIncidentReportService(
 ) MeetingReportServiceInterface {
 	return &MeetingReportService{
 		repo: repo,
+		settigSvc :settigSvc,
 	}
 }
 
