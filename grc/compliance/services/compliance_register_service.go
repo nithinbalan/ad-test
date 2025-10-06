@@ -199,6 +199,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		SeverityLevelID:                 complianceRegisterFormDTO.SeverityLevelID,
 		ReferenceNumber:                 referenceNumber,
 		StandardCode:                    complianceRegisterFormDTO.StandardCode,
+		ComplianceRegisterID:            complianceRegisterFormDTO.ParentComplianceRegisterID,
 		TitleEn:                         complianceRegisterFormDTO.TitleEn,
 		TitleAr:                         complianceRegisterFormDTO.TitleAr,
 		DescriptionEn:                   complianceRegisterFormDTO.DescriptionEn,
@@ -217,6 +218,32 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		ComplianceAssessmentFrameworkID: complianceRegisterFormDTO.ComplianceAssessmentFrameworkID,
 		IsControlAssessment:             complianceRegisterFormDTO.IsControlAssessment,
 		IsRequirementAssessment:         complianceRegisterFormDTO.IsRequirementAssessment,
+		IsLatest:                        true,
+	}
+
+	if complianceRegisterFormDTO.ParentComplianceRegisterID != nil {
+
+		parentComplianceRegister, err := crs.GetFullDetailsByID(*complianceRegisterFormDTO.ParentComplianceRegisterID)
+		if err != nil {
+			return 0, err
+		}
+
+		for _, version := range parentComplianceRegister.ChildComplianceRegister {
+			versionDetails, err := crs.GetByID(uint(version.ID))
+			if err != nil {
+				return 0, err
+			}
+
+			versionDetails.IsLatest = false
+
+			err = crs.repo.Update(versionDetails, tx)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+
+		complianceRegister.StandardCode = &parentComplianceRegister.StandardCode
 	}
 
 	id, err := crs.repo.Create(complianceRegister, tx)
@@ -448,6 +475,23 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	existingComplianceRegister.ComplianceAssessmentFrameworkID = complianceRegisterFormDTO.ComplianceAssessmentFrameworkID
 	existingComplianceRegister.IsControlAssessment = complianceRegisterFormDTO.IsControlAssessment
 	existingComplianceRegister.IsRequirementAssessment = complianceRegisterFormDTO.IsRequirementAssessment
+
+	if complianceRegisterFormDTO.ParentComplianceRegisterID != nil {
+		parentComplianceRegister, err := crs.GetByID(*complianceRegisterFormDTO.ParentComplianceRegisterID)
+		if err != nil {
+			return err
+		}
+
+		parentComplianceRegister.IsLatest = false
+
+		err = crs.repo.Update(parentComplianceRegister, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		existingComplianceRegister.IsLatest = true
+		existingComplianceRegister.StandardCode = parentComplianceRegister.StandardCode
+	}
 
 	err = crs.repo.Update(existingComplianceRegister, tx)
 	if err != nil {

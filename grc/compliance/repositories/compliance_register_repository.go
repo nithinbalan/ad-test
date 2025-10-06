@@ -134,7 +134,7 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = compliance_register.lifecycle_status_id
 			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by_id
-		`)
+		`).Where("compliance_register.is_latest = ?", true)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -313,6 +313,8 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("SeverityLevel").
 		Preload("LifecycleStatus").
 		Preload("ComplianceFolder").
+		Preload("ParentComplianceRegister").
+		Preload("ChildComplianceRegister").
 		Preload("DocumentEn", func(db *gorm.DB) *gorm.DB {
 			return db.Where("language = ?", "en")
 		}).
