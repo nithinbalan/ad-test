@@ -222,20 +222,28 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 	}
 
 	if complianceRegisterFormDTO.ParentComplianceRegisterID != nil {
-		parentComplianceRegister, err := crs.GetByID(*complianceRegisterFormDTO.ParentComplianceRegisterID)
+
+		parentComplianceRegister, err := crs.GetFullDetailsByID(*complianceRegisterFormDTO.ParentComplianceRegisterID)
 		if err != nil {
 			return 0, err
 		}
 
-		parentComplianceRegister.IsLatest = false
+		for _, version := range parentComplianceRegister.ChildComplianceRegister {
+			versionDetails, err := crs.GetByID(uint(version.ID))
+			if err != nil {
+				return 0, err
+			}
 
-		err = crs.repo.Update(parentComplianceRegister, tx)
-		if err != nil {
-			tx.Rollback()
-			return 0, err
+			versionDetails.IsLatest = false
+
+			err = crs.repo.Update(versionDetails, tx)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
 		}
 
-		complianceRegister.StandardCode = parentComplianceRegister.StandardCode
+		complianceRegister.StandardCode = &parentComplianceRegister.StandardCode
 	}
 
 	id, err := crs.repo.Create(complianceRegister, tx)
