@@ -59,6 +59,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceAssessmentControlActionPlanController := app.ComplianceModule.ComplianceAssessmentControlActionPlanController
 	complianceAssessmentControlActionPlanStatusUpdateController := app.ComplianceModule.ComplianceAssessmentControlActionPlanStatusUpdateController
 	complianceAssessmentControlActionPlanCommentController := app.ComplianceModule.ComplianceAssessmentControlActionPlanCommentController
+	complianceDetailDashboardController := app.ComplianceModule.ComplianceDetailDashboardController
 
 	// Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -479,4 +480,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/compliances/:complianceId/controls/import/validate", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.ValidateImportControlMapping)
 	complianceRoutes.POST("/compliances/:complianceId/controls/import", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceClauseController.ImportControlMapping)
 
+	// Compliance Detail Dashboard
+	complianceRoutes.GET("/compliances/:complianceId/dashboard/summary", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetComplianceDetailSummary)
 }
