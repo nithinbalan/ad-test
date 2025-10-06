@@ -21,3 +21,13 @@ type ComplianceDashboardClauseSummaryDTO struct {
 	HighRiskClauses                  int64   `json:"high_risk_clauses"`
 	HighRiskClausesPercent           float64 `json:"high_risk_clauses_percent"`
 }
+
+type ComplianceDashboardClausePerformanceItemDTO struct {
+	ComplianceClauseTitleEn string  `json:"compliance_clause_title_en"`
+	ComplianceClauseTitleAr string  `json:"compliance_clause_title_ar"`
+	ComplianceClauseScore   float64 `json:"compliance_clause_score"`
+}
+
+type ComplianceDashboardClausePerformanceDTO struct {
+	Items []ComplianceDashboardClausePerformanceItemDTO `json:"items"`
+}

@@ -12,6 +12,8 @@ import (
 type ComplianceDetailDashboardRepositoryInterface interface {
 	GetComplianceDetailSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardDetailSummaryDTO, error)
 	GetComplianceClauseSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardClauseSummaryDTO, error)
+	GetTop5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardClausePerformanceDTO, error)
+	GetBottom5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardClausePerformanceDTO, error)
 }
 
 type ComplianceDetailDashboardRepository struct {
@@ -165,4 +167,55 @@ func (repo *ComplianceDetailDashboardRepository) GetComplianceClauseSummary(comp
 	}
 
 	return res, nil
+}
+
+func (repo *ComplianceDetailDashboardRepository) GetTop5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardClausePerformanceDTO, error) {
+	results := []complianceDTOs.ComplianceDashboardClausePerformanceItemDTO{}
+
+	// first level clauses
+	err := repo.db.Table("compliance_clauses AS child").
+		Select(`
+            parent.title_en AS compliance_clause_title_en,
+			parent.title_ar as compliance_clause_title_ar,
+            AVG(CAST(child.score AS FLOAT)) AS compliance_clause_score
+        `).
+		Joins("JOIN compliance_clauses AS parent ON parent.id = child.compliance_clause_id").
+		Where("child.compliance_register_id = ?", complianceRegisterID).
+		Where("child.compliance_clause_id IS NOT NULL").
+		Where("child.score IS NOT NULL").
+		Group("parent.title_en, parent.title_ar").
+		Order("compliance_clause_score DESC").
+		Limit(5).
+		Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+	return &complianceDTOs.ComplianceDashboardClausePerformanceDTO{
+		Items: results,
+	}, nil
+}
+
+func (repo *ComplianceDetailDashboardRepository) GetBottom5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardClausePerformanceDTO, error) {
+	results := []complianceDTOs.ComplianceDashboardClausePerformanceItemDTO{}
+
+	err := repo.db.Table("compliance_clauses AS child").
+		Select(`
+            parent.title_en AS compliance_clause_title_en,
+			parent.title_ar as compliance_clause_title_ar,
+            AVG(CAST(child.score AS FLOAT)) AS compliance_clause_score
+        `).
+		Joins("JOIN compliance_clauses AS parent ON parent.id = child.compliance_clause_id").
+		Where("child.compliance_register_id = ?", complianceRegisterID).
+		Where("child.compliance_clause_id IS NOT NULL").
+		Where("child.score IS NOT NULL").
+		Group("parent.title_en, parent.title_ar").
+		Order("compliance_clause_score ASC").
+		Limit(5).
+		Scan(&results).Error
+	if err != nil {
+		return nil, err
+	}
+	return &complianceDTOs.ComplianceDashboardClausePerformanceDTO{
+		Items: results,
+	}, nil
 }
