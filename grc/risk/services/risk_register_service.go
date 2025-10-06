@@ -658,6 +658,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 	existingRiskRegister.ReviewFrequencyID = riskRegisterFormDTO.ReviewFrequencyID
 	existingRiskRegister.NextReviewDate = dates.NextReviewDate
 	existingRiskRegister.LastReviewNote = riskRegisterFormDTO.LastReviewNote
+	existingRiskRegister.SeverityLevelID = riskRegisterFormDTO.SeverityLevelID
 	existingRiskRegister.UpdatedBYID = &currentUserID
 
 	if err := rrs.repo.Update(existingRiskRegister, tx); err != nil {
@@ -669,6 +670,31 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	if riskRegisterFormDTO.InherentRiskMatrixLikelihoodID != nil && riskRegisterFormDTO.InherentRiskMatrixImpactID != nil {
+		inherentEvaluationFormDTO := &riskDTOs.RiskInherentEvaluationFormDTO{
+			RiskMatrixLikelihoodID: *riskRegisterFormDTO.InherentRiskMatrixLikelihoodID,
+			RiskMatrixImpactID:     *riskRegisterFormDTO.InherentRiskMatrixImpactID,
+		}
+
+		existingRiskEvaluation, err := rrs.riskInherentEvaluationSvc.GetFullDetailsByID(id, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		_, err = rrs.riskInherentEvaluationSvc.Delete(id, existingRiskEvaluation.ID, currentUserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		_, err = rrs.riskInherentEvaluationSvc.Create(id, currentUserID, inherentEvaluationFormDTO, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	existingSLARegisterIDs := make(map[uint]bool)
@@ -1534,7 +1560,7 @@ func (rrs *RiskRegisterService) UpdateControlRiskRating(riskID uint, tx utility.
 }
 
 func (rrs *RiskRegisterService) ClearRiskRating(riskID uint, updateDTO *riskDTOs.RiskRegisterRiskRatingUpdateDTO, tx utility.DatabaseTransaction) error {
-	riskRegister, err := rrs.GetByID(riskID)
+	riskRegister, err := rrs.GetByID(riskID, tx)
 	if err != nil {
 		return err
 	}

@@ -104,6 +104,8 @@ type ComplianceRegisterListQueryParamsDTO struct {
 	Export                  bool
 	IsControlAssessment     *bool
 	IsRequirementAssessment *bool
+	IsLatest                *bool
+	IsParent                *bool
 }
 
 type ComplianceRegisterListResponseDTO struct {

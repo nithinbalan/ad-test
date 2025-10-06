@@ -145,6 +145,18 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 			queryParams.IsRequirementAssessment = &val
 		}
 	}
+	if isRequirementStr := c.Query("is_latest"); isRequirementStr != "" {
+		val, err := strconv.ParseBool(isRequirementStr)
+		if err == nil {
+			queryParams.IsLatest = &val
+		}
+	}
+	if isRequirementStr := c.Query("is_parent"); isRequirementStr != "" {
+		val, err := strconv.ParseBool(isRequirementStr)
+		if err == nil {
+			queryParams.IsParent = &val
+		}
+	}
 	compliances, err := crc.service.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
@@ -417,4 +429,26 @@ func (crc *ComplianceRegisterController) GetComplianceRegisterExport(c *gin.Cont
 	c.Request.URL.RawQuery += "&export=true"
 
 	crc.GetAllComplianceRegisters(c)
+}
+
+func (crc *ComplianceRegisterController) GetAllVersions(c *gin.Context) {
+	complianceID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	compliance, err := crc.service.GetAllVersions(uint(complianceID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, compliance)
+
 }
