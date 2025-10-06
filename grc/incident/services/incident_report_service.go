@@ -49,11 +49,11 @@ func (irs IncidentReportService) GetFullReportDetailsByID(id uint) (*incidentDTO
 	}
 	if _, err := irs.settigSvc.GetImagePath("logo"); err != nil {
 		 log.Printf("Error: logo image missing: %v", err) 
-		return nil, utility.NewResourceNotFoundError(fmt.Errorf("logo image missing: %w", err), "logo")
+		return nil, utility.NewForbiddenError("logo image missing")
 	}
 	if _, err := irs.settigSvc.GetImagePath("cover-page-bg"); err != nil {
 		log.Printf("Error: cover-page-bg image missing: %v", err)
-		return nil, utility.NewResourceNotFoundError(fmt.Errorf("cover image missing: %w", err), "cover-page-bg")
+		return nil, utility.NewForbiddenError("cover image missing")
 	}
 
 	err = mapstructure.Decode(incident, &incidentDTO)
