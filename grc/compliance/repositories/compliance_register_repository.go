@@ -37,6 +37,7 @@ type ComplianceRegisterRepositoryInterface interface {
 
 	UpdateComplianceTotalScore(complianceRegisterID uint, totalScore float64, tx utility.DatabaseTransaction) error
 	HasComplianceAssessments(registerID uint, tx ...utility.DatabaseTransaction) (bool, error)
+	GetAllVersions(parentID uint) ([]*models.ComplianceRegister, error)
 }
 
 type ComplianceRegisterRepository struct {
@@ -134,7 +135,7 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = compliance_register.lifecycle_status_id
 			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by_id
-		`).Where("compliance_register.is_latest = ?", true)
+		`)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -184,6 +185,14 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 
 	if params.IsRequirementAssessment != nil {
 		query = query.Where("compliance_register.is_requirement_assessment = ?", *params.IsRequirementAssessment)
+	}
+
+	if params.IsLatest != nil {
+		query = query.Where("compliance_register.is_latest = ?", true)
+	}
+
+	if params.IsParent != nil {
+		query = query.Where("compliance_register.compliance_register_id IS NULL")
 	}
 
 	// Apply quick filters
@@ -519,4 +528,43 @@ func (repo *ComplianceRegisterRepository) HasComplianceAssessments(registerID ui
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (repo *ComplianceRegisterRepository) GetAllVersions(parentID uint) ([]*models.ComplianceRegister, error) {
+	var children []*models.ComplianceRegister
+	err := repo.db.Preload("ComplianceCategory").
+		Preload("ComplianceStatus").
+		Preload("ResponsibleUnit").
+		Preload("ResponsibleUser").
+		Preload("ReviewFrequency").
+		Preload("ReviewResponsibleUser").
+		Preload("SeverityLevel").
+		Preload("LifecycleStatus").
+		Preload("LastReviewedUser").
+		Preload("ComplianceReviewStatus").
+		Preload("ComplianceFolder").
+		Preload("ComplianceAssessmentFramework").
+		Preload("DocumentEn").
+		Preload("DocumentAr").
+		Preload("Controls").
+		Preload("ComplianceStatusUpdates").
+		Preload("ComplianceClauses").
+		Preload("ParentComplianceRegister").
+		Where("compliance_register_id = ?", parentID).
+		Find(&children).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Recursively fetch sub-children
+	for _, child := range children {
+		subChildren, err := repo.GetAllVersions(child.ID)
+		if err != nil {
+			return nil, err
+		}
+		child.ChildComplianceRegister = subChildren
+	}
+
+	return children, nil
 }

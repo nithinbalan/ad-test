@@ -115,6 +115,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/compliance-register/delete", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterController.DeleteComplianceRegisters)
 	complianceRoutes.PUT("/compliance-register/archive", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterController.ArchiveComplianceRegisters)
 	complianceRoutes.PUT("/compliance-register/restore", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterController.RestoreComplianceRegisters)
+	complianceRoutes.GET("/compliance-register/:id/versions", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceRegisterController.GetAllVersions)
 
 	// Compliance Associated Items
 	complianceRoutes.GET("/compliances/:complianceId/controls", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceAssociatedItemController.GetAllComplianceControls)

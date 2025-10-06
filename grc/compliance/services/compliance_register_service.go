@@ -42,6 +42,8 @@ type ComplianceRegisterServiceInterface interface {
 	GetDocumentPath(id uint, token string) (string, error)
 
 	ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO, currentUserID uint) (*os.File, error)
+
+	GetAllVersions(id uint) ([]*complianceDTOs.ComplianceRegisterDetailDTO, error)
 }
 
 // Service and implementations
@@ -1324,4 +1326,33 @@ func (crs *ComplianceRegisterService) handleDocument(currentUserID uint, complia
 	}
 
 	return nil
+}
+
+func (crs ComplianceRegisterService) GetAllVersions(id uint) ([]*complianceDTOs.ComplianceRegisterDetailDTO, error) {
+	var complianceDTO []*complianceDTOs.ComplianceRegisterDetailDTO
+
+	existingComplianceRegister, err := crs.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	complianceRegisterID := id
+	if existingComplianceRegister.ComplianceRegisterID != nil {
+		complianceRegisterID = *existingComplianceRegister.ComplianceRegisterID
+	}
+
+	compliance, err := crs.repo.GetAllVersions(complianceRegisterID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	err = mapstructure.Decode(compliance, &complianceDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	return complianceDTO, nil
 }
