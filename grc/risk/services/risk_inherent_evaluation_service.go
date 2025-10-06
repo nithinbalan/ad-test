@@ -19,7 +19,7 @@ type RiskInherentEvaluationServiceInterface interface {
 	GetByID(riskID uint, id uint) (*models.RiskEvaluation, error)
 	Create(riskID uint, currentUserID uint, inherentEvaluationFormDTO *riskDTOs.RiskInherentEvaluationFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskID uint, id uint, currentUserID uint, inherentEvaluationFormDTO *riskDTOs.RiskInherentEvaluationFormDTO) error
-	Delete(riskID uint, id uint, currentUserID uint) (uint, error)
+	Delete(riskID uint, id uint, currentUserID uint, tx ...utility.DatabaseTransaction) (uint, error)
 }
 
 // Service and implementations
@@ -67,7 +67,7 @@ func NewRiskInherentEvaluationService(
 
 func (ries RiskInherentEvaluationService) GetFullDetailsByID(riskID uint, tx ...utility.DatabaseTransaction) (*riskDTOs.RiskInherentEvaluationDetailsDTO, error) {
 	// Check if risk register exists
-	if _, err := ries.riskRegisterSvc.GetByID(riskID); err != nil {
+	if _, err := ries.riskRegisterSvc.GetByID(riskID, tx...); err != nil {
 		return nil, err
 	}
 
@@ -532,31 +532,51 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 	return nil
 }
 
-func (ries *RiskInherentEvaluationService) Delete(riskID uint, id uint, currentUserID uint) (uint, error) {
-	tx := ries.repo.BeginTransaction()
+func (ries *RiskInherentEvaluationService) Delete(riskID uint, id uint, currentUserID uint, tx ...utility.DatabaseTransaction) (uint, error) {
+	var transaction utility.DatabaseTransaction
+
+	timelineType, err := ries.riskTimelineSvc.GetByType("risk_analysis")
+	if err != nil {
+		return 0, err
+	}
+	timelineStatus, err := ries.riskTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		return 0, err
+	}
+
+	if len(tx) > 0 && tx[0] != nil {
+		transaction = tx[0]
+	} else {
+		transaction = ries.repo.BeginTransaction()
+		defer func() {
+			if r := recover(); r != nil {
+				transaction.Rollback()
+			}
+		}()
+	}
 
 	var deletedRiskEvaluation []map[string]interface{}
 
-	if _, err := ries.riskRegisterSvc.GetByID(riskID); err != nil {
+	if _, err := ries.riskRegisterSvc.GetByID(riskID, tx...); err != nil {
 		return 0, err
 	}
 
 	var failedId uint
 
-	if err := ries.repo.DeleteRiskImpactAnalysesByRiskEvaluationID(id, tx); err != nil {
-		tx.Rollback()
+	if err := ries.repo.DeleteRiskImpactAnalysesByRiskEvaluationID(id, transaction); err != nil {
+		transaction.Rollback()
 		failedId = id
 		return failedId, err
 	}
 
-	if err := ries.repo.DeleteRiskAppetiteAlignmentsByRiskEvaluationID(id, tx); err != nil {
-		tx.Rollback()
+	if err := ries.repo.DeleteRiskAppetiteAlignmentsByRiskEvaluationID(id, transaction); err != nil {
+		transaction.Rollback()
 		failedId = id
 		return failedId, err
 	}
 
-	if err := ries.repo.Delete(id, tx); err != nil {
-		tx.Rollback()
+	if err := ries.repo.Delete(id, transaction); err != nil {
+		transaction.Rollback()
 		failedId = id
 		return failedId, err
 	}
@@ -571,34 +591,29 @@ func (ries *RiskInherentEvaluationService) Delete(riskID uint, id uint, currentU
 		CurrentRiskRatingID:       nil,
 		CurrentRiskRatingValueID:  nil,
 	}
-	err := ries.riskRegisterSvc.ClearRiskRating(riskID, updateDTO, tx)
+
+	err = ries.riskRegisterSvc.ClearRiskRating(riskID, updateDTO, transaction)
 	if err != nil {
-		tx.Rollback()
+		transaction.Rollback()
 		return 0, err
 	}
 	//Delete-> update timeline performedAt as null
 	//todo
-	timelineType, err := ries.riskTimelineSvc.GetByType("risk_analysis")
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-	timelineStatus, err := ries.riskTimelineSvc.GetByStatusType("pending")
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
+
 	timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
 		PerformedByID:    nil,
 		TimelineStatusID: timelineStatus.ID,
 		PerformedAt:      nil,
 	}
-	if err := ries.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, tx); err != nil {
-		tx.Rollback()
+
+	if err := ries.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, transaction); err != nil {
+		transaction.Rollback()
 		return 0, err
 	}
 
-	tx.Commit()
+	if len(tx) == 0 {
+		transaction.Rollback()
+	}
 
 	// Log activity
 	go func() {
