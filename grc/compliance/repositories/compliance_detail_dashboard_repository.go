@@ -1,14 +1,17 @@
 package repositories
 
 import (
+	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
+	"time"
 
 	"gorm.io/gorm"
 )
 
 type ComplianceDetailDashboardRepositoryInterface interface {
 	GetComplianceDetailSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardDetailSummaryDTO, error)
+	GetComplianceClauseSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardClauseSummaryDTO, error)
 }
 
 type ComplianceDetailDashboardRepository struct {
@@ -79,4 +82,87 @@ func (repo *ComplianceDetailDashboardRepository) GetComplianceDetailSummary(comp
 	}
 
 	return result, nil
+}
+
+func (repo *ComplianceDetailDashboardRepository) GetComplianceClauseSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardClauseSummaryDTO, error) {
+	res := &complianceDTOs.ComplianceDashboardClauseSummaryDTO{}
+
+	// Total Clauses
+	if err := repo.db.Model(&models.ComplianceClause{}).
+		Where("compliance_register_id = ?", complianceRegisterID).
+		Count(&res.TotalClauses).Error; err != nil {
+		return nil, err
+	}
+
+	// Fully Compliant
+	if err := repo.db.Model(&models.ComplianceClause{}).
+		Joins("JOIN compliance_statuses ON compliance_statuses.id = compliance_clauses.compliance_status_id").
+		Where("compliance_clauses.compliance_register_id = ?", complianceRegisterID).
+		Where("compliance_statuses.type = ?", "compliant").
+		Count(&res.FullyCompliantClauses).Error; err != nil {
+		return nil, err
+	}
+
+	// Partially Compliant
+	if err := repo.db.Model(&models.ComplianceClause{}).
+		Joins("JOIN compliance_statuses ON compliance_statuses.id = compliance_clauses.compliance_status_id").
+		Where("compliance_clauses.compliance_register_id = ?", complianceRegisterID).
+		Where("compliance_statuses.type = ?", "partially_compliant").
+		Count(&res.PartiallyCompliantClauses).Error; err != nil {
+		return nil, err
+	}
+
+	// Not Assessed (score IS NULL)
+	if err := repo.db.Model(&models.ComplianceClause{}).
+		Where("compliance_register_id = ?", complianceRegisterID).
+		Where("score IS NULL").
+		Count(&res.NotAssessedClauses).Error; err != nil {
+		return nil, err
+	}
+
+	// Overdue Review clauses
+	currentTime := time.Now()
+	if err := repo.db.Model(&models.ComplianceClause{}).
+		Joins("JOIN compliance_register ON compliance_register.id = compliance_clauses.compliance_register_id").
+		Where("compliance_clauses.compliance_register_id = ?", complianceRegisterID).
+		Where("compliance_register.next_review_date IS NOT NULL").
+		Where("compliance_register.next_review_date < ?", currentTime).
+		Count(&res.OverdueReviewClauses).Error; err != nil {
+		return nil, err
+	}
+
+	// Determine the highest available risk rating dynamically
+	var highestRating string
+	err := repo.db.Table("risk_matrix_risk_ratings").
+		Select("type").
+		Where("status = ?", "active").
+		Order("CASE type WHEN 'very_high' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 WHEN 'very_low' THEN 5 END").
+		Limit(1).
+		Pluck("type", &highestRating).Error
+	if err != nil || highestRating == "" {
+		return nil, fmt.Errorf("failed to fetch highest risk rating: %v", err)
+	}
+
+	if err := repo.db.Model(&models.RiskComplianceRequirement{}).
+		Joins("JOIN risk_register ON risk_register.id = risk_compliance_requirements.risk_register_id").
+		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
+		Where("risk_compliance_requirements.compliance_register_id = ?", complianceRegisterID).
+		Where("risk_compliance_requirements.compliance_clause_id IS NOT NULL").
+		Where("risk_matrix_risk_ratings.type = ?", highestRating).
+		Distinct("risk_compliance_requirements.compliance_clause_id").
+		Count(&res.HighRiskClauses).Error; err != nil {
+		return nil, err
+	}
+
+	// Percents
+	denom := float64(res.TotalClauses)
+	if res.TotalClauses > 0 {
+		res.FullyCompliantClausesPercent = float64(res.FullyCompliantClauses) / denom * 100
+		res.PartiallyCompliantClausesPercent = float64(res.PartiallyCompliantClauses) / denom * 100
+		res.NotAssessedClausesPercent = float64(res.NotAssessedClauses) / denom * 100
+		res.OverdueReviewClausesPercent = float64(res.OverdueReviewClauses) / denom * 100
+		res.HighRiskClausesPercent = float64(res.HighRiskClauses) / denom * 100
+	}
+
+	return res, nil
 }

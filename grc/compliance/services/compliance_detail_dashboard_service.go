@@ -7,6 +7,7 @@ import (
 
 type ComplianceDetailDashboardServiceInterface interface {
 	GetComplianceDetailSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardDetailSummaryDTO, error)
+	GetComplianceClauseSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardClauseSummaryDTO, error)
 }
 
 type ComplianceDetailDashboardService struct {
@@ -21,4 +22,8 @@ func NewComplianceDetailDashboardService(repo repositories.ComplianceDetailDashb
 
 func (cdds *ComplianceDetailDashboardService) GetComplianceDetailSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardDetailSummaryDTO, error) {
 	return cdds.repo.GetComplianceDetailSummary(complianceRegisterID)
+}
+
+func (cdds *ComplianceDetailDashboardService) GetComplianceClauseSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardClauseSummaryDTO, error) {
+	return cdds.repo.GetComplianceClauseSummary(complianceRegisterID)
 }
