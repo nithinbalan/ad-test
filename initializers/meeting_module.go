@@ -30,7 +30,8 @@ type MeetingModule struct {
 	MeetingActionPlanSvc   services.MeetingActionPlanServiceInterface
 }
 
-func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, taskModule *TaskModule) *MeetingModule {
+func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModule *OrganizationModule, masterModule *MasterModule, commonModule *CommonModule, complianceModule *ComplianceModule, riskModule *RiskModule, incidentModule *IncidentModule, taskModule *TaskModule,	settingsModule *SettingsModule,
+) *MeetingModule {
 	// Meeting Frequency
 	meetingFrequencyRepo := repositories.NewMeetingFrequencyRepository(db)
 	meetingFrequencySvc := services.NewMeetingFrequencyService(meetingFrequencyRepo)
@@ -89,7 +90,7 @@ func NewMeetingModule(db *gorm.DB, sharedModule *SharedModule, organizationModul
 	meetingActionPlanCommentController := controllers.NewMeetingActionPlanCommentController(meetingActionPlanCommentSvc)
 
 	meetingReportrepo := repositories.NewMeetingReportRepository(db)
-	meetingReportSvc := services.NewIncidentReportService(meetingReportrepo)
+	meetingReportSvc := services.NewIncidentReportService(meetingReportrepo,settingsModule.ReportTemplateSettingSvc)
 	meetingReportController := controllers.NewMeetingReportController(meetingReportSvc)
 
 	return &MeetingModule{

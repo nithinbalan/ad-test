@@ -11,8 +11,6 @@ import (
 	"jethur/utility"
 	"os"
 	"time"
-		"log"
-
 )
 
 type IncidentReportServiceInterface interface {
@@ -48,11 +46,9 @@ func (irs IncidentReportService) GetFullReportDetailsByID(id uint) (*incidentDTO
 		return nil, err
 	}
 	if _, err := irs.settigSvc.GetImagePath("logo"); err != nil {
-		 log.Printf("Error: logo image missing: %v", err) 
 		return nil, utility.NewForbiddenError("logo image missing")
 	}
 	if _, err := irs.settigSvc.GetImagePath("cover-page-bg"); err != nil {
-		log.Printf("Error: cover-page-bg image missing: %v", err)
 		return nil, utility.NewForbiddenError("cover image missing")
 	}
 

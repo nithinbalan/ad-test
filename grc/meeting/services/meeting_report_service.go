@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 	meetingDTOs "jethur/grc/meeting/dtos"
 	meetingRepo "jethur/grc/meeting/repositories"
+	settingSvc "jethur/grc/settings/services"
 	"jethur/utility"
 	"os"
 	"time"
@@ -19,11 +20,14 @@ type MeetingReportServiceInterface interface {
 
 // Service and implementations
 type MeetingReportService struct {
-	repo meetingRepo.MeetingReportRepositoryInterface
+	repo      meetingRepo.MeetingReportRepositoryInterface
+	settigSvc settingSvc.ReportTemplateSettingServiceInterface
 }
 
 func NewIncidentReportService(
 	repo meetingRepo.MeetingReportRepositoryInterface,
+	settigSvc settingSvc.ReportTemplateSettingServiceInterface,
+
 ) MeetingReportServiceInterface {
 	return &MeetingReportService{
 		repo: repo,
@@ -39,6 +43,12 @@ func (mrs MeetingReportService) GetFullReportDetailsByID(id uint) (*meetingDTOs.
 			return nil, utility.NewResourceNotFoundError(err, id)
 		}
 		return nil, err
+	}
+	if _, err := mrs.settigSvc.GetImagePath("logo"); err != nil {
+		return nil, utility.NewForbiddenError("logo image missing")
+	}
+	if _, err := mrs.settigSvc.GetImagePath("cover-page-bg"); err != nil {
+		return nil, utility.NewForbiddenError("cover image missing")
 	}
 
 	err = mapstructure.Decode(meeting, &meetingDTO)
@@ -146,7 +156,7 @@ func (irs MeetingReportService) ExportMeetingReport(id uint, currentUserID uint)
 
 	//Convert HTML → PDF with header and footer
 	pdfFileName := fmt.Sprintf("MeetingReport_%d.pdf", id)
-	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent,htmlContent, pdfFileName, headerContent, footerContent); err != nil {
+	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent, htmlContent, pdfFileName, headerContent, footerContent); err != nil {
 		return "", fmt.Errorf("failed to generate PDF: %w", err)
 	}
 
