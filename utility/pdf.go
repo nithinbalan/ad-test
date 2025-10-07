@@ -148,14 +148,24 @@ func ConvertPolicyHTMLContentToPDF(headerHTML, footerHTML, coverHTML, disclaimer
 	}
 	defer os.Remove(disclaimerPath)
 
-	tocPath, err := filepath.Abs("assets/document/templates/pdf/toc.xsl")
-	if err != nil {
-		return err
-	}
+	// tocPath, err := filepath.Abs("assets/document/templates/pdf/toc.xsl")
+	// if err != nil {
+	// 	return err
+	// }
+	// tocPath = filepath.ToSlash(tocPath)
+
+	basePath, _ := os.Getwd()
+	tocPath := filepath.Join(basePath, "assets", "document", "templates", "pdf", "toc.xsl")
 	tocPath = filepath.ToSlash(tocPath)
 
+	addTOC := true
+	if _, err := os.Stat(tocPath); os.IsNotExist(err) {
+		addTOC = false
+		fmt.Printf("TOC XSL not found at %s, skipping TOC generation\n", tocPath)
+	}
+
 	// Helper to generate PDF
-	generatePDF := func(htmlPaths []string, outPDF string, top, bottom, left, right string, addTOC bool) error {
+	generatePDF := func(htmlPaths []string, outPDF string, top, bottom, left, right string, withTOC bool) error {
 		args := []string{
 			"--enable-local-file-access",
 			"--margin-top", top,
@@ -172,7 +182,16 @@ func ConvertPolicyHTMLContentToPDF(headerHTML, footerHTML, coverHTML, disclaimer
 			// "--footer-line",
 		}
 
-		if addTOC {
+		// if addTOC {
+		// 	args = append(args,
+		// 		"toc",
+		// 		"--xsl-style-sheet", tocPath,
+		// 		"--toc-header-text", "Table of Contents",
+		// 		"--toc-level-indentation", "0",
+		// 	)
+		// }
+
+		if withTOC && addTOC {
 			args = append(args,
 				"toc",
 				"--xsl-style-sheet", tocPath,
