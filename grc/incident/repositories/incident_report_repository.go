@@ -2,23 +2,21 @@ package repositories
 
 import (
 	"gorm.io/gorm"
-	"jethur/grc/models"
 	commonDTOs "jethur/grc/common/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
-
-
+	"jethur/grc/models"
 )
 
 type IncidentReportRepositoryInterface interface {
 	GetFullReportDetailsByID(id uint) (*models.IncidentRegister, error)
-	GetAllIncidentKPI(incidentID uint) ([]*commonDTOs.AssociatedKPIRegisterListDTO, error) 
-	 GetAllIncidentStrategicObjectives(incidentID uint) ([]*commonDTOs.AssociatedStrategicObjectiveListDTO, error)
-	 GetAllIncidentActionPlan(incidentID uint) ([]*incidentDTOs.IncidentActionPlanListDTO, error)
-	 GetAllIncidentAssets(incidentID uint) ([]*commonDTOs.AssociatedAssetListDTO, error)
-	 GetAllIncidentAssociatedDocuments(incidentID uint) ([]*commonDTOs.AssociatedDocumentListDTO, error)
-	 GetAllIncidentControls(incidentID uint) ([]*commonDTOs.AssociatedControlListDTO, error) 
-	 GetAllIncidentRisks(incidentID uint) ([]*commonDTOs.AssociatedRiskListDTO, error)
-	 GetAllIncidentProcesses(incidentID uint) ([]*commonDTOs.AssociatedProcessListDTO, error)
+	GetAllIncidentKPI(incidentID uint) ([]*commonDTOs.AssociatedKPIRegisterListDTO, error)
+	GetAllIncidentStrategicObjectives(incidentID uint) ([]*commonDTOs.AssociatedStrategicObjectiveListDTO, error)
+	GetAllIncidentActionPlan(incidentID uint) ([]*incidentDTOs.IncidentActionPlanListDTO, error)
+	GetAllIncidentAssets(incidentID uint) ([]*commonDTOs.AssociatedAssetListDTO, error)
+	GetAllIncidentAssociatedDocuments(incidentID uint) ([]*commonDTOs.AssociatedDocumentListDTO, error)
+	GetAllIncidentControls(incidentID uint) ([]*commonDTOs.AssociatedControlListDTO, error)
+	GetAllIncidentRisks(incidentID uint) ([]*commonDTOs.AssociatedRiskListDTO, error)
+	GetAllIncidentProcesses(incidentID uint) ([]*commonDTOs.AssociatedProcessListDTO, error)
 	GetAllIncidentComplianceRequirements(incidentID uint) ([]*incidentDTOs.IncidentComplianceRequirementListDTO, error)
 }
 
@@ -51,12 +49,13 @@ func (repo *IncidentReportRepository) GetFullReportDetailsByID(id uint) (*models
 		Preload("Investigation.TeamLead").
 		Preload("Investigation.Users").
 		Preload("Investigation.Users.User").
-		Preload("Investigation.Users.User.Designation"). 
+		Preload("Investigation.Users.User.Designation").
 		Preload("Investigation.Documents").
 		Preload("Investigation.Findings").
 		Preload("Documents").
-		Preload("Timelines").
-		Preload("Timelines.PerformedBy").
+		Preload("Timelines", func(db *gorm.DB) *gorm.DB {
+			return db.Order("performed_at ASC")
+		}).Preload("Timelines.PerformedBy").
 		Preload("Timelines.TimelineStatus").
 		Preload("Timelines.IncidentTimelineType").
 		Preload("CommunicationLogs").
@@ -70,7 +69,6 @@ func (repo *IncidentReportRepository) GetFullReportDetailsByID(id uint) (*models
 		Preload("IncidentPostReview.Lessons").
 		Preload("IncidentPostReview.IncidentPostReviewEffectiveness").
 		Preload("IncidentRootCauseAnalyses").
-
 		First(&incident, id)
 
 	if result.Error != nil {
@@ -281,7 +279,7 @@ func (repo *IncidentReportRepository) GetAllIncidentActionPlan(incidentID uint) 
 		LEFT JOIN users AS review_user ON review_user.id = incident_action_plans.review_user_id
         LEFT JOIN users AS created_user ON created_user.id = incident_action_plans.created_by_id
         LEFT JOIN users AS updated_user ON updated_user.id = incident_action_plans.updated_by_id
-    `)
+    `). Where("incident_action_plans.incident_register_id = ?", incidentID) 
 	err := query.Scan(&incidentActionPlans).Error
 	if err != nil {
 		return nil, err
@@ -753,7 +751,6 @@ func (repo *IncidentReportRepository) GetAllIncidentProcesses(incidentID uint) (
 	return processList, nil
 }
 
-
 func (repo *IncidentReportRepository) GetAllIncidentComplianceRequirements(incidentID uint) ([]*incidentDTOs.IncidentComplianceRequirementListDTO, error) {
 	var complianceRequirementList []*incidentDTOs.IncidentComplianceRequirementListDTO
 
@@ -784,4 +781,3 @@ func (repo *IncidentReportRepository) GetAllIncidentComplianceRequirements(incid
 	return complianceRequirementList, nil
 
 }
-
