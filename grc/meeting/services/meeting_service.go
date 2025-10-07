@@ -315,7 +315,7 @@ func (ms *MeetingService) Create(currentUserID uint, meetingFormDTO *meetingDTOs
 			id,
 			existingMeeting,
 			currentUserID,
-			"", "", "", nil,
+			"management_review", "meeting", "meeting", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -695,7 +695,7 @@ func (ms *MeetingService) Update(id uint, currentUserID uint, meetingFormDTO *me
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"management_review", "meeting", "meeting", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

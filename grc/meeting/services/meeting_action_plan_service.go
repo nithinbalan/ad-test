@@ -245,7 +245,7 @@ func (maps *MeetingActionPlanService) Create(meetingID uint, currentUserID uint,
 			id,
 			existingMeetingActionPlan,
 			currentUserID,
-			"", "", "", nil,
+			"management_review", "meeting", "action_plan", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -452,7 +452,7 @@ func (maps *MeetingActionPlanService) Update(meetingID uint, id uint, currentUse
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"management_review", "meeting", "action_plan", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

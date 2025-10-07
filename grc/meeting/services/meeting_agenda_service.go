@@ -117,7 +117,7 @@ func (mas *MeetingAgendaService) Create(meetingID uint, currentUserID uint, meet
 			id,
 			existingMeetingAgenda,
 			currentUserID,
-			"", "", "", nil,
+			"management_review", "meeting", "meeting_agenda", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -191,7 +191,7 @@ func (mas *MeetingAgendaService) Update(meetingID uint, id uint, currentUserID u
 				id,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"management_review", "meeting", "meeting_agenda", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
