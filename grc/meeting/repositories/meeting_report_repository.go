@@ -777,7 +777,7 @@ func (repo *MeetingReportRepository) GetAllMeetingActionPlans(meetingID uint) ([
 		LEFT JOIN users AS review_user ON review_user.id = meeting_action_plans.review_user_id
         LEFT JOIN users AS created_user ON created_user.id = meeting_action_plans.created_by_id
         LEFT JOIN users AS updated_user ON updated_user.id = meeting_action_plans.updated_by_id
-    `). Where("meeting_action_plans.meeting_register_id = ?", meetingID) 
+    `). Where("meeting_action_plans.meeting_id = ?", meetingID) 
 		err := query.Scan(&meetingActionPlans).Error
 	if err != nil {
 		return nil, err

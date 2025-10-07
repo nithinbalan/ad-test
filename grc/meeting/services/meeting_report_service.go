@@ -30,8 +30,8 @@ func NewIncidentReportService(
 
 ) MeetingReportServiceInterface {
 	return &MeetingReportService{
-		repo: repo,
-		settigSvc :settigSvc,
+		repo:      repo,
+		settigSvc: settigSvc,
 	}
 }
 
@@ -45,6 +45,7 @@ func (mrs MeetingReportService) GetFullReportDetailsByID(id uint) (*meetingDTOs.
 		}
 		return nil, err
 	}
+
 	if _, err := mrs.settigSvc.GetImagePath("logo"); err != nil {
 		return nil, utility.NewForbiddenError("logo_image_missing")
 	}
@@ -113,6 +114,8 @@ func (mrs MeetingReportService) GetFullReportDetailsByID(id uint) (*meetingDTOs.
 	meetingDTO.ComplianceRequirements = complianceRequirements
 
 	meetingDTO.AppUrl = os.Getenv("APP_URL")
+	formattedDate := meeting.Date.Format("01-02-2006 03:04 PM")
+	meetingDTO.DateString = &formattedDate
 	meetingDTO.CreatedAt = meeting.CreatedAt
 	meetingDTO.UpdatedAt = meeting.UpdatedAt
 
