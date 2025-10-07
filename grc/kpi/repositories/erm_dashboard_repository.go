@@ -1136,11 +1136,15 @@ func (repo *ERMDashboardRepository) GetERMRiskCategorySummary(params *kpiDTOs.ER
 	results := []kpiDTOs.ERMRiskCategorySummaryItemDTO{}
 
 	query := repo.db.Model(&models.RiskRegister{}).
-		Select("rc.title_en AS category, COUNT(risk_register.id) AS count").
+		Select(`
+			rc.title_en AS category_title_en,
+			rc.title_ar AS category_title_ar, 
+			COUNT(risk_register.id) AS count
+		`).
 		Joins("JOIN risk_categories rc ON rc.id = risk_register.risk_category_id AND rc.status = ?", "active").
 		Joins("JOIN risk_statuses rs ON rs.id = risk_register.risk_status_id AND rs.status = ?", "active").
 		Where("rs.type IN ?", []string{"open", "closed"}).
-		Group("rc.id, rc.title_en")
+		Group("rc.id, rc.title_en, rc.title_ar")
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -1159,11 +1163,15 @@ func (repo *ERMDashboardRepository) GetERMRiskSourceSummary(params *kpiDTOs.ERMD
 	results := []kpiDTOs.ERMRiskSourceSummaryItemDTO{}
 
 	query := repo.db.Model(&models.RiskRegister{}).
-		Select("rs.title_en AS source, COUNT(risk_register.id) AS count").
+		Select(`
+			rs.title_en AS source_title_en,
+			rs.title_ar AS source_title_ar, 
+			COUNT(risk_register.id) AS count
+		`).
 		Joins("JOIN risk_sources rs ON rs.id = risk_register.risk_source_id AND rs.status = ?", "active").
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id AND risk_statuses.status = ?", "active").
 		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
-		Group("rs.id, rs.title_en")
+		Group("rs.id, rs.title_en, rs.title_ar")
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -1235,8 +1243,13 @@ func (repo *ERMDashboardRepository) GetERMRiskOrganizationUnitSummary(params *kp
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id AND risk_statuses.status = ?", "active").
 		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
 		Where("parent_unit.status = ?", "active").
-		Select("parent_unit.title_en AS organization_unit, COUNT(risk_register.id) AS count").
-		Group("parent_unit.id, parent_unit.title_en")
+		Select(`
+			parent_unit.title_en AS organization_unit_title_en,
+			parent_unit.title_ar AS organization_unit_title_ar, 
+			parent_unit.color_code As organization_unit_color_code,
+			COUNT(risk_register.id) AS count
+		`).
+		Group("parent_unit.id, parent_unit.title_en, parent_unit.title_ar, parent_unit.color_code")
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -1282,8 +1295,12 @@ func (repo *ERMDashboardRepository) GetERMRiskResponseStrategySummary(params *kp
 		Joins("JOIN risk_statuses rs ON rs.id = risk_register.risk_status_id AND rs.status = ?", "active").
 		Joins("JOIN risk_response_strategies rrs ON rrs.id = risk_register.risk_response_strategy_id AND rrs.status = ?", "active").
 		Where("rs.type IN ?", []string{"open", "closed"}).
-		Select("rrs.title_en AS strategy, COUNT(risk_register.id) AS count").
-		Group("rrs.id, rrs.title_en").
+		Select(`
+			rrs.title_en AS response_strategy_title_en,
+			rrs.title_ar AS response_strategy_title_ar, 
+			COUNT(risk_register.id) AS count
+		`).
+		Group("rrs.id, rrs.title_en, rrs.title_ar").
 		Order("count DESC")
 
 	if params.DateFrom != "" && params.DateTo != "" {

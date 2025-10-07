@@ -202,8 +202,9 @@ type ERMRiskOrganizationUnitSummaryDTO struct {
 
 // ERM Risk Details
 type ERMRiskCategorySummaryItemDTO struct {
-	Category string `json:"category"`
-	Count    int64  `json:"count"`
+	CategoryTitleEn string `json:"category_title_en"`
+	CategoryTitleAr string `json:"category_title_ar"`
+	Count           int64  `json:"count"`
 }
 
 type ERMRiskCategorySummaryDTO struct {
@@ -211,8 +212,9 @@ type ERMRiskCategorySummaryDTO struct {
 }
 
 type ERMRiskSourceSummaryItemDTO struct {
-	Source string `json:"source"`
-	Count  int64  `json:"count"`
+	SourceTitleEn string `json:"source_title_en"`
+	SourceTitleAR string `json:"source_title_ar"`
+	Count         int64  `json:"count"`
 }
 
 type ERMRiskSourceSummaryDTO struct {
@@ -225,8 +227,10 @@ type ERMRiskStatusSummaryDTO struct {
 }
 
 type ERMRiskSummaryByOrganizationUnitItemDTO struct {
-	OrganizationUnit string `json:"organization_unit"`
-	Count            int64  `json:"count"`
+	OrganizationUnitTitleEn   string `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr   string `json:"organization_unit_title_ar"`
+	OrganizationUnitColorCode string `json:"organization_unit_color_code"`
+	Count                     int64  `json:"count"`
 }
 
 type ERMRiskSummaryByOrganizationUnitDTO struct {
@@ -243,8 +247,9 @@ type ERMRisksIdentifiedSummaryDTO struct {
 }
 
 type ERMRiskResponseStrategySummaryItemDTO struct {
-	ResponseStrategy string `json:"response_strategy"`
-	Count            int64  `json:"count"`
+	ResponseStrategyTitleEn string `json:"response_strategy_title_en"`
+	ResponseStrategyTitleAr string `json:"response_strategy_title_ar"`
+	Count                   int64  `json:"count"`
 }
 
 type ERMRiskResponseStrategySummaryDTO struct {
