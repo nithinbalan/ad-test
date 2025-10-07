@@ -241,6 +241,8 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 
 		case "closed_resolved":
 			query = query.Where("risk_statuses.type IN (?)", []string{"closed", "resolved"})
+		case "open_close":
+			query = query.Where("risk_statuses.type IN (?)", []string{"closed", "open"})
 		case "kri_enabled":
 			query = query.Joins(`
 				LEFT JOIN (
