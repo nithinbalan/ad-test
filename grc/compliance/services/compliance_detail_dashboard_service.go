@@ -8,9 +8,10 @@ import (
 type ComplianceDetailDashboardServiceInterface interface {
 	GetComplianceDetailSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceDetailSummaryDTO, error)
 	GetComplianceClauseSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceClauseSummaryDTO, error)
-	GetTop5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceClausePerformanceDTO, error)
-	GetBottom5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceClausePerformanceDTO, error)
+	GetTop5ClausePerformance(complianceRegisterID uint) ([]complianceDTOs.ComplianceClausePerformanceDTO, error)
+	GetBottom5ClausePerformance(complianceRegisterID uint) ([]complianceDTOs.ComplianceClausePerformanceDTO, error)
 	GetComplianceDomainWiseOverview(params *complianceDTOs.ComplianceDashboardQueryParamsDTO, complianceRegisterID uint) (*complianceDTOs.ComplianceDomainWiseOverviewDTO, error)
+	GetPolicyByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyByOrganizationUnitDTO, error)
 }
 
 type ComplianceDetailDashboardService struct {
@@ -31,14 +32,18 @@ func (cdds *ComplianceDetailDashboardService) GetComplianceClauseSummary(complia
 	return cdds.repo.GetComplianceClauseSummary(complianceRegisterID)
 }
 
-func (cdds *ComplianceDetailDashboardService) GetTop5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceClausePerformanceDTO, error) {
+func (cdds *ComplianceDetailDashboardService) GetTop5ClausePerformance(complianceRegisterID uint) ([]complianceDTOs.ComplianceClausePerformanceDTO, error) {
 	return cdds.repo.GetTop5ClausePerformance(complianceRegisterID)
 }
 
-func (cdds *ComplianceDetailDashboardService) GetBottom5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceClausePerformanceDTO, error) {
+func (cdds *ComplianceDetailDashboardService) GetBottom5ClausePerformance(complianceRegisterID uint) ([]complianceDTOs.ComplianceClausePerformanceDTO, error) {
 	return cdds.repo.GetBottom5ClausePerformance(complianceRegisterID)
 }
 
 func (cdds *ComplianceDetailDashboardService) GetComplianceDomainWiseOverview(params *complianceDTOs.ComplianceDashboardQueryParamsDTO, complianceRegisterID uint) (*complianceDTOs.ComplianceDomainWiseOverviewDTO, error) {
 	return cdds.repo.GetComplianceDomainWiseOverview(params, complianceRegisterID)
+}
+
+func (cdds *ComplianceDetailDashboardService) GetPolicyByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyByOrganizationUnitDTO, error) {
+	return cdds.repo.GetPolicyByOrganizationUnit(complianceRegisterID)
 }

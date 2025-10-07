@@ -33,14 +33,10 @@ type ComplianceClauseSummaryDTO struct {
 	HighRiskClausesPercent           float64 `json:"high_risk_clauses_percent"`
 }
 
-type ComplianceClausePerformanceItemDTO struct {
+type ComplianceClausePerformanceDTO struct {
 	ComplianceClauseTitleEn string  `json:"compliance_clause_title_en"`
 	ComplianceClauseTitleAr string  `json:"compliance_clause_title_ar"`
 	ComplianceClauseScore   float64 `json:"compliance_clause_score"`
-}
-
-type ComplianceClausePerformanceDTO struct {
-	Items []ComplianceClausePerformanceItemDTO `json:"items"`
 }
 
 type ComplianceDomainWiseOverviewItemDTO struct {
@@ -55,4 +51,10 @@ type ComplianceDomainWiseOverviewItemDTO struct {
 type ComplianceDomainWiseOverviewDTO struct {
 	Items      []ComplianceDomainWiseOverviewItemDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO
+}
+
+type CompliancePolicyByOrganizationUnitDTO struct {
+	OrganizationUnitTitleEn string `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr string `json:"organization_unit_title_ar"`
+	TotalPolicies           int64  `json:"total_policies"`
 }

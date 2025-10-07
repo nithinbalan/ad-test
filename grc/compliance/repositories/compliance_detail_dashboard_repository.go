@@ -13,9 +13,10 @@ import (
 type ComplianceDetailDashboardRepositoryInterface interface {
 	GetComplianceDetailSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceDetailSummaryDTO, error)
 	GetComplianceClauseSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceClauseSummaryDTO, error)
-	GetTop5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceClausePerformanceDTO, error)
-	GetBottom5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceClausePerformanceDTO, error)
+	GetTop5ClausePerformance(complianceRegisterID uint) ([]complianceDTOs.ComplianceClausePerformanceDTO, error)
+	GetBottom5ClausePerformance(complianceRegisterID uint) ([]complianceDTOs.ComplianceClausePerformanceDTO, error)
 	GetComplianceDomainWiseOverview(params *complianceDTOs.ComplianceDashboardQueryParamsDTO, complianceRegisterID uint) (*complianceDTOs.ComplianceDomainWiseOverviewDTO, error)
+	GetPolicyByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyByOrganizationUnitDTO, error)
 }
 
 type ComplianceDetailDashboardRepository struct {
@@ -171,8 +172,8 @@ func (repo *ComplianceDetailDashboardRepository) GetComplianceClauseSummary(comp
 	return res, nil
 }
 
-func (repo *ComplianceDetailDashboardRepository) GetTop5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceClausePerformanceDTO, error) {
-	results := []complianceDTOs.ComplianceClausePerformanceItemDTO{}
+func (repo *ComplianceDetailDashboardRepository) GetTop5ClausePerformance(complianceRegisterID uint) ([]complianceDTOs.ComplianceClausePerformanceDTO, error) {
+	results := []complianceDTOs.ComplianceClausePerformanceDTO{}
 
 	// first level clauses
 	err := repo.db.Table("compliance_clauses AS child").
@@ -192,13 +193,11 @@ func (repo *ComplianceDetailDashboardRepository) GetTop5ClausePerformance(compli
 	if err != nil {
 		return nil, err
 	}
-	return &complianceDTOs.ComplianceClausePerformanceDTO{
-		Items: results,
-	}, nil
+	return results, nil
 }
 
-func (repo *ComplianceDetailDashboardRepository) GetBottom5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceClausePerformanceDTO, error) {
-	results := []complianceDTOs.ComplianceClausePerformanceItemDTO{}
+func (repo *ComplianceDetailDashboardRepository) GetBottom5ClausePerformance(complianceRegisterID uint) ([]complianceDTOs.ComplianceClausePerformanceDTO, error) {
+	results := []complianceDTOs.ComplianceClausePerformanceDTO{}
 
 	err := repo.db.Table("compliance_clauses AS child").
 		Select(`
@@ -217,9 +216,7 @@ func (repo *ComplianceDetailDashboardRepository) GetBottom5ClausePerformance(com
 	if err != nil {
 		return nil, err
 	}
-	return &complianceDTOs.ComplianceClausePerformanceDTO{
-		Items: results,
-	}, nil
+	return results, nil
 }
 
 func (repo *ComplianceDetailDashboardRepository) GetComplianceDomainWiseOverview(params *complianceDTOs.ComplianceDashboardQueryParamsDTO, complianceRegisterID uint) (*complianceDTOs.ComplianceDomainWiseOverviewDTO, error) {
@@ -266,4 +263,30 @@ func (repo *ComplianceDetailDashboardRepository) GetComplianceDomainWiseOverview
 	}
 
 	return respnose, nil
+}
+
+func (repo *ComplianceDetailDashboardRepository) GetPolicyByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyByOrganizationUnitDTO, error) {
+	results := []complianceDTOs.CompliancePolicyByOrganizationUnitDTO{}
+
+	err := repo.db.Table("document_compliance_requirements AS dcr").
+		Select(`
+            parent_unit.title_en AS organization_unit_title_en,
+            parent_unit.title_ar AS organization_unit_title_ar,
+            COUNT(DISTINCT dcr.document_id) AS total_policies
+        `).
+		Joins("JOIN documents doc ON doc.id = dcr.document_id").
+		Joins("LEFT JOIN organization_units child_unit ON child_unit.id = doc.responsible_unit_id").
+		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(child_unit.organization_unit_id, child_unit.id) = parent_unit.id").
+		Joins("JOIN organization_levels ol ON ol.id = parent_unit.organization_level_id AND ol.is_primary = ?", true).
+		Where("dcr.compliance_register_id = ?", complianceRegisterID).
+		Where("parent_unit.organization_unit_id IS NULL").
+		Group("parent_unit.title_en, parent_unit.title_ar").
+		Order("total_policies DESC").
+		Scan(&results).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
