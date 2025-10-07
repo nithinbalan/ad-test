@@ -12,6 +12,10 @@ type ComplianceDetailDashboardServiceInterface interface {
 	GetBottom5ClausePerformance(complianceRegisterID uint) ([]complianceDTOs.ComplianceClausePerformanceDTO, error)
 	GetComplianceDomainWiseOverview(params *complianceDTOs.ComplianceDashboardQueryParamsDTO, complianceRegisterID uint) (*complianceDTOs.ComplianceDomainWiseOverviewDTO, error)
 	GetPolicyByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyByOrganizationUnitDTO, error)
+	GetControlEffectivenessSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlEffectivenessDTO, error)
+	GetControlImplementationSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlImplementationSummaryDTO, error)
+	GetControlSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlSummaryDTO, error)
+	GetControlEfficiencySummary(complianceRegisterID uint) ([]complianceDTOs.ComplianceSummaryItemDTO, error)
 }
 
 type ComplianceDetailDashboardService struct {
@@ -46,4 +50,20 @@ func (cdds *ComplianceDetailDashboardService) GetComplianceDomainWiseOverview(pa
 
 func (cdds *ComplianceDetailDashboardService) GetPolicyByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyByOrganizationUnitDTO, error) {
 	return cdds.repo.GetPolicyByOrganizationUnit(complianceRegisterID)
+}
+
+func (cdds *ComplianceDetailDashboardService) GetControlEffectivenessSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlEffectivenessDTO, error) {
+	return cdds.repo.GetControlEffectivenessSummary(complianceRegisterID)
+}
+
+func (cdds *ComplianceDetailDashboardService) GetControlImplementationSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlImplementationSummaryDTO, error) {
+	return cdds.repo.GetControlImplementationSummary(complianceRegisterID)
+}
+
+func (cdds *ComplianceDetailDashboardService) GetControlSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlSummaryDTO, error) {
+	return cdds.repo.GetControlSummary(complianceRegisterID)
+}
+
+func (cdds *ComplianceDetailDashboardService) GetControlEfficiencySummary(complianceRegisterID uint) ([]complianceDTOs.ComplianceSummaryItemDTO, error) {
+	return cdds.repo.GetControlEfficiencySummary(complianceRegisterID)
 }

@@ -58,3 +58,28 @@ type CompliancePolicyByOrganizationUnitDTO struct {
 	OrganizationUnitTitleAr string `json:"organization_unit_title_ar"`
 	TotalPolicies           int64  `json:"total_policies"`
 }
+
+type ComplianceControlEffectivenessDTO struct {
+	OverallEfficiency float64 `json:"overall_efficiency"`
+}
+
+type ComplianceSummaryItemDTO struct {
+	TitleEn   string  `json:"title_en"`
+	TitleAr   string  `json:"title_ar"`
+	ColorCode string  `json:"color_code"`
+	Type      string  `json:"type"`
+	Count     int64   `json:"count"`
+	Percent   float64 `json:"percent"`
+}
+
+type ComplianceControlImplementationSummaryDTO struct {
+	TotalControls          int64                      `json:"total_controls"`
+	ImplementationStatuses []ComplianceSummaryItemDTO `json:"implementation_statuses"`
+}
+
+type ComplianceControlSummaryDTO struct {
+	TotalControls                int64 `json:"total_controls"`
+	OverdueImplementedControls   int64 `json:"overdue_implemented_controls"`
+	PartiallyImplementedControls int64 `json:"partially_implemented_controls"`
+	NotImplementedControls       int64 `json:"not_implemented_controls"`
+}

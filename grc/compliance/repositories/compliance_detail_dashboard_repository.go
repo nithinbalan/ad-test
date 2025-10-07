@@ -17,6 +17,10 @@ type ComplianceDetailDashboardRepositoryInterface interface {
 	GetBottom5ClausePerformance(complianceRegisterID uint) ([]complianceDTOs.ComplianceClausePerformanceDTO, error)
 	GetComplianceDomainWiseOverview(params *complianceDTOs.ComplianceDashboardQueryParamsDTO, complianceRegisterID uint) (*complianceDTOs.ComplianceDomainWiseOverviewDTO, error)
 	GetPolicyByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyByOrganizationUnitDTO, error)
+	GetControlEffectivenessSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlEffectivenessDTO, error)
+	GetControlImplementationSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlImplementationSummaryDTO, error)
+	GetControlSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlSummaryDTO, error)
+	GetControlEfficiencySummary(complianceRegisterID uint) ([]complianceDTOs.ComplianceSummaryItemDTO, error)
 }
 
 type ComplianceDetailDashboardRepository struct {
@@ -289,4 +293,168 @@ func (repo *ComplianceDetailDashboardRepository) GetPolicyByOrganizationUnit(com
 	}
 
 	return results, nil
+}
+
+func (repo *ComplianceDetailDashboardRepository) GetControlEffectivenessSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlEffectivenessDTO, error) {
+	result := &complianceDTOs.ComplianceControlEffectivenessDTO{}
+
+	var totalControls int64
+	var efficientControls int64
+
+	query := repo.db.
+		Table("compliance_controls AS cc").
+		Select(`
+        COUNT(DISTINCT cc.control_id) AS total_controls,
+        COUNT(DISTINCT CASE WHEN es.type = 'efficient' THEN cc.control_id END) AS efficient_controls
+    `).
+		Joins("LEFT JOIN controls c ON c.id = cc.control_id").
+		Joins("LEFT JOIN control_efficiency_statuses es ON es.id = c.control_efficiency_status_id").
+		Where("cc.compliance_register_id = ?", complianceRegisterID).
+		Row()
+
+	if err := query.Scan(&totalControls, &efficientControls); err != nil {
+		return nil, err
+	}
+
+	if totalControls > 0 {
+		result.OverallEfficiency = float64(efficientControls) / float64(totalControls) * 100
+	} else {
+		result.OverallEfficiency = 0
+	}
+
+	return result, nil
+}
+
+func (repo *ComplianceDetailDashboardRepository) GetControlImplementationSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlImplementationSummaryDTO, error) {
+	result := &complianceDTOs.ComplianceControlImplementationSummaryDTO{}
+
+	err := repo.db.
+		Model(&models.ComplianceControl{}).
+		Where("compliance_register_id = ?", complianceRegisterID).
+		Distinct("control_id").
+		Count(&result.TotalControls).Error
+	if err != nil {
+		return nil, err
+	}
+
+	implementationStatuses := []complianceDTOs.ComplianceSummaryItemDTO{}
+
+	err = repo.db.
+		Model(&models.ComplianceControl{}).
+		Select(`
+			cis.id,
+			cis.title_en,
+			cis.title_ar,
+			cis.color_code,
+			cis.type AS status_type,
+			COUNT(DISTINCT compliance_controls.control_id) AS count
+		`).
+		Joins("JOIN controls ON controls.id = compliance_controls.control_id").
+		Joins("JOIN control_implementation_statuses cis ON cis.id = controls.control_implementation_status_id").
+		Where("compliance_controls.compliance_register_id = ?", complianceRegisterID).
+		Group(`
+			cis.id, 
+			cis.title_en, 
+			cis.title_ar, 
+			cis.color_code, 
+			cis.type
+		`).
+		Order("cis.id").
+		Scan(&implementationStatuses).Error
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range implementationStatuses {
+		if result.TotalControls > 0 {
+			implementationStatuses[i].Percent = float64(implementationStatuses[i].Count) / float64(result.TotalControls) * 100
+		} else {
+			implementationStatuses[i].Percent = 0
+		}
+	}
+
+	result.ImplementationStatuses = implementationStatuses
+	return result, nil
+}
+
+func (repo *ComplianceDetailDashboardRepository) GetControlSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlSummaryDTO, error) {
+	result := &complianceDTOs.ComplianceControlSummaryDTO{}
+
+	err := repo.db.
+		Table("compliance_controls AS cc").
+		Select(`
+			COUNT(DISTINCT cc.control_id) AS total_controls,
+			COUNT(DISTINCT CASE 
+				WHEN cc.completed_at IS NOT NULL 
+				AND cc.completed_at < CAST(GETDATE() AS date) 
+				THEN cc.control_id 
+			END) AS overdue_implemented_controls,
+			COUNT(DISTINCT CASE 
+				WHEN cis.type = 'partially-implemented' 
+				THEN cc.control_id 
+			END) AS partially_implemented_controls,
+			COUNT(DISTINCT CASE 
+				WHEN cis.type = 'not-implemented' 
+				THEN cc.control_id 
+			END) AS not_implemented_controls
+		`).
+		Joins("LEFT JOIN controls c ON c.id = cc.control_id").
+		Joins("LEFT JOIN control_implementation_statuses cis ON cis.id = c.control_implementation_status_id").
+		Where("cc.compliance_register_id = ?", complianceRegisterID).
+		Scan(result).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (repo *ComplianceDetailDashboardRepository) GetControlEfficiencySummary(complianceRegisterID uint) ([]complianceDTOs.ComplianceSummaryItemDTO, error) {
+	summary := []complianceDTOs.ComplianceSummaryItemDTO{}
+
+	var totalControls int64
+	err := repo.db.
+		Model(&models.ComplianceControl{}).
+		Where("compliance_register_id = ?", complianceRegisterID).
+		Distinct("control_id").
+		Count(&totalControls).Error
+	if err != nil {
+		return nil, err
+	}
+
+	err = repo.db.Model(&models.ComplianceControl{}).
+		Select(`
+			ces.id,
+			ces.title_en,
+			ces.title_ar,
+			ces.color_code,
+			ces.type AS status_type,
+			COUNT(DISTINCT compliance_controls.control_id) AS count
+		`).
+		Joins("JOIN controls ON controls.id = compliance_controls.control_id").
+		Joins("JOIN control_efficiency_statuses ces ON ces.id = controls.control_efficiency_status_id").
+		Where("compliance_controls.compliance_register_id = ?", complianceRegisterID).
+		Group(`
+			ces.id,
+			ces.title_en,
+			ces.title_ar,
+			ces.color_code,
+			ces.type
+		`).
+		Order("ces.id").
+		Scan(&summary).Error
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range summary {
+		if totalControls > 0 {
+			summary[i].Percent = float64(summary[i].Count) / float64(totalControls) * 100
+		} else {
+			summary[i].Percent = 0
+		}
+	}
+
+	return summary, nil
 }
