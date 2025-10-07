@@ -1294,7 +1294,7 @@
                     line-height: normal;
                     display: inline-block;
                     border: 1px solid #AFD6CC;
-                    font-weight: 400;"> {{$item.CurrentRiskRatingTitleEn}}</span>
+                    font-weight: 400;"> {{if $item.CurrentRiskRatingTitleEn}} {{$item.CurrentRiskRatingTitleEn}}{{else}}--{{end}}</span>
                   </td>
                </tr>
                {{end}}
@@ -1878,7 +1878,7 @@
                        font-weight: 500;
                        border: 1px solid #EAEDF2;
                        padding: 11px 10px;
-                       text-align: left; background: #F9FBFC;width: 17%;
+                       text-align: left; background: #F9FBFC;width: 22%;
                        "> Title </th>
 
 
@@ -1895,7 +1895,7 @@
                        font-weight: 500;
                        border: 1px solid #EAEDF2;
                        padding: 11px 10px;
-                       text-align: left; background: #F9FBFC;width: 17%;
+                       text-align: left; background: #F9FBFC;width: 15%;
                        ">
                      Severity
                   </th>
@@ -1927,7 +1927,7 @@
                        font-weight: 500;
                        border: 1px solid #EAEDF2;
                        padding: 11px 10px;
-                       text-align: left; background: #F9FBFC;width: 17%;
+                       text-align: left; background: #F9FBFC;width: 16%;
                        ">
                      Target Date
                   </th>
@@ -1943,7 +1943,7 @@
                        font-weight: 500;
                        border: 1px solid #EAEDF2;
                        padding: 11px 10px;
-                       text-align: left; background: #F9FBFC;width: 17%;
+                       text-align: left; background: #F9FBFC;width: 13%;
                        ">
                      Progress %
                   </th>

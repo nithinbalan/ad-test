@@ -7,9 +7,10 @@ import (
 	"gorm.io/gorm"
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepo "jethur/grc/incident/repositories"
+	settingSvc "jethur/grc/settings/services"
 	"jethur/utility"
-	"time"
 	"os"
+	"time"
 )
 
 type IncidentReportServiceInterface interface {
@@ -19,15 +20,18 @@ type IncidentReportServiceInterface interface {
 
 // Service and implementations
 type IncidentReportService struct {
-	repo                  incidentRepo.IncidentReportRepositoryInterface
+	repo      incidentRepo.IncidentReportRepositoryInterface
+	settigSvc settingSvc.ReportTemplateSettingServiceInterface
 }
 
 func NewIncidentReportService(
 	repo incidentRepo.IncidentReportRepositoryInterface,
-	) IncidentReportServiceInterface {
+	settigSvc settingSvc.ReportTemplateSettingServiceInterface,
+
+) IncidentReportServiceInterface {
 	return &IncidentReportService{
-		repo:                  repo,
-		
+		repo:      repo,
+		settigSvc: settigSvc,
 	}
 }
 
@@ -40,6 +44,12 @@ func (irs IncidentReportService) GetFullReportDetailsByID(id uint) (*incidentDTO
 			return nil, utility.NewResourceNotFoundError(err, id)
 		}
 		return nil, err
+	}
+	if _, err := irs.settigSvc.GetImagePath("logo"); err != nil {
+		return nil, utility.NewForbiddenError("logo_image_missing")
+	}
+	if _, err := irs.settigSvc.GetImagePath("cover-page-bg"); err != nil {
+		return nil, utility.NewForbiddenError("cover_image_missing")
 	}
 
 	err = mapstructure.Decode(incident, &incidentDTO)
@@ -180,7 +190,7 @@ func (irs IncidentReportService) ExportIncidentReport(id uint, currentUserID uin
 
 	// Convert HTML → PDF with header and footer
 	pdfFileName := fmt.Sprintf("IncidentReport_%d.pdf", id)
-	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent,htmlContent,pdfFileName, headerContent, footerContent); err != nil {
+	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent, htmlContent, pdfFileName, headerContent, footerContent); err != nil {
 		return "", fmt.Errorf("failed to generate PDF: %w", err)
 	}
 

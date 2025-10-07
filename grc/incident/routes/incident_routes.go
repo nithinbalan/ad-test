@@ -33,7 +33,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentAssociatedItemController := app.IncidentModule.IncidentAssociatedItemController
 	incidentTimelineController := app.IncidentModule.IncidentTimelineController
 	incidentActionPlanCommentController := app.IncidentModule.IncidentActionPlanCommentController
-	IncidentReportController :=app.IncidentModule.IncidentReportController
+	IncidentReportController := app.IncidentModule.IncidentReportController
 
 	// Incident Category
 	incidentRoutes.GET("/incident-categories", incidentCategoryController.GetAllIncidentCategories)
