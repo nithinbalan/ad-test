@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"time"
@@ -10,10 +11,11 @@ import (
 )
 
 type ComplianceDetailDashboardRepositoryInterface interface {
-	GetComplianceDetailSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardDetailSummaryDTO, error)
-	GetComplianceClauseSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardClauseSummaryDTO, error)
-	GetTop5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardClausePerformanceDTO, error)
-	GetBottom5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardClausePerformanceDTO, error)
+	GetComplianceDetailSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceDetailSummaryDTO, error)
+	GetComplianceClauseSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceClauseSummaryDTO, error)
+	GetTop5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceClausePerformanceDTO, error)
+	GetBottom5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceClausePerformanceDTO, error)
+	GetComplianceDomainWiseOverview(params *complianceDTOs.ComplianceDashboardQueryParamsDTO, complianceRegisterID uint) (*complianceDTOs.ComplianceDomainWiseOverviewDTO, error)
 }
 
 type ComplianceDetailDashboardRepository struct {
@@ -26,8 +28,8 @@ func NewComplianceDetailDashboardRepository(db *gorm.DB) *ComplianceDetailDashbo
 	}
 }
 
-func (repo *ComplianceDetailDashboardRepository) GetComplianceDetailSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardDetailSummaryDTO, error) {
-	result := &complianceDTOs.ComplianceDashboardDetailSummaryDTO{}
+func (repo *ComplianceDetailDashboardRepository) GetComplianceDetailSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceDetailSummaryDTO, error) {
+	result := &complianceDTOs.ComplianceDetailSummaryDTO{}
 
 	// Overall Compliance Score
 	var complianceRegister models.ComplianceRegister
@@ -86,8 +88,8 @@ func (repo *ComplianceDetailDashboardRepository) GetComplianceDetailSummary(comp
 	return result, nil
 }
 
-func (repo *ComplianceDetailDashboardRepository) GetComplianceClauseSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardClauseSummaryDTO, error) {
-	res := &complianceDTOs.ComplianceDashboardClauseSummaryDTO{}
+func (repo *ComplianceDetailDashboardRepository) GetComplianceClauseSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceClauseSummaryDTO, error) {
+	res := &complianceDTOs.ComplianceClauseSummaryDTO{}
 
 	// Total Clauses
 	if err := repo.db.Model(&models.ComplianceClause{}).
@@ -169,8 +171,8 @@ func (repo *ComplianceDetailDashboardRepository) GetComplianceClauseSummary(comp
 	return res, nil
 }
 
-func (repo *ComplianceDetailDashboardRepository) GetTop5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardClausePerformanceDTO, error) {
-	results := []complianceDTOs.ComplianceDashboardClausePerformanceItemDTO{}
+func (repo *ComplianceDetailDashboardRepository) GetTop5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceClausePerformanceDTO, error) {
+	results := []complianceDTOs.ComplianceClausePerformanceItemDTO{}
 
 	// first level clauses
 	err := repo.db.Table("compliance_clauses AS child").
@@ -190,13 +192,13 @@ func (repo *ComplianceDetailDashboardRepository) GetTop5ClausePerformance(compli
 	if err != nil {
 		return nil, err
 	}
-	return &complianceDTOs.ComplianceDashboardClausePerformanceDTO{
+	return &complianceDTOs.ComplianceClausePerformanceDTO{
 		Items: results,
 	}, nil
 }
 
-func (repo *ComplianceDetailDashboardRepository) GetBottom5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceDashboardClausePerformanceDTO, error) {
-	results := []complianceDTOs.ComplianceDashboardClausePerformanceItemDTO{}
+func (repo *ComplianceDetailDashboardRepository) GetBottom5ClausePerformance(complianceRegisterID uint) (*complianceDTOs.ComplianceClausePerformanceDTO, error) {
+	results := []complianceDTOs.ComplianceClausePerformanceItemDTO{}
 
 	err := repo.db.Table("compliance_clauses AS child").
 		Select(`
@@ -215,7 +217,53 @@ func (repo *ComplianceDetailDashboardRepository) GetBottom5ClausePerformance(com
 	if err != nil {
 		return nil, err
 	}
-	return &complianceDTOs.ComplianceDashboardClausePerformanceDTO{
+	return &complianceDTOs.ComplianceClausePerformanceDTO{
 		Items: results,
 	}, nil
+}
+
+func (repo *ComplianceDetailDashboardRepository) GetComplianceDomainWiseOverview(params *complianceDTOs.ComplianceDashboardQueryParamsDTO, complianceRegisterID uint) (*complianceDTOs.ComplianceDomainWiseOverviewDTO, error) {
+	results := []complianceDTOs.ComplianceDomainWiseOverviewItemDTO{}
+	var totalCount int64
+
+	query := repo.db.Table("compliance_clauses AS parent").
+		Select(`
+            parent.title_en AS domain_title_en,
+            parent.title_ar AS domain_title_ar,
+            SUM(CASE WHEN cs.type = 'compliant' THEN 1 ELSE 0 END) AS compliant,
+            SUM(CASE WHEN cs.type = 'partially_compliant' THEN 1 ELSE 0 END) AS partial,
+            SUM(CASE WHEN cs.type = 'not-implemented' THEN 1 ELSE 0 END) AS non_compliant,
+            SUM(CASE WHEN cs.type = 'in_progress' THEN 1 ELSE 0 END) AS pending
+        `).
+		Joins("LEFT JOIN compliance_statuses AS cs ON cs.id = parent.compliance_status_id").
+		Where("parent.compliance_register_id = ?", complianceRegisterID).
+		Where("parent.compliance_clause_id IS NULL").
+		Group("parent.title_en, parent.title_ar")
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	err := query.Offset(offset).Limit(params.PageSize).Find(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	respnose := &complianceDTOs.ComplianceDomainWiseOverviewDTO{
+		Items: results,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return respnose, nil
 }
