@@ -164,6 +164,9 @@ func ConvertPolicyHTMLContentToPDF(headerHTML, footerHTML, coverHTML, disclaimer
 		fmt.Printf("TOC XSL not found at %s, skipping TOC generation\n", tocPath)
 	}
 
+	fmt.Println(basePath)
+	fmt.Println(tocPath)
+
 	// Helper to generate PDF
 	generatePDF := func(htmlPaths []string, outPDF string, top, bottom, left, right string, withTOC bool) error {
 		args := []string{
