@@ -225,9 +225,9 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 			id,
 			existingTestAndExerciseRecoveryActionPlan,
 			currentUserID,
-			"",
-			"",
-			"",
+			"business_continuity",
+			"test_and_exercise",
+			"recovery_action_plan",
 			nil,
 		)
 		if err != nil {
@@ -441,9 +441,9 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"business_continuity",
+				"test_and_exercise",
+				"recovery_action_plan",
 				nil,
 			)
 			if err != nil {

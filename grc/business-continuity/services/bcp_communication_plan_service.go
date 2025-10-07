@@ -126,9 +126,9 @@ func (bcps *BcpCommunicationPlanService) Create(bcpId uint, currentUserID uint, 
 			id,
 			existingBcpCommunicationPlan,
 			currentUserID,
-			"",
-			"",
-			"",
+			"business_continuity",
+			"bcp",
+			"communication_plan",
 			nil,
 		)
 		if err != nil {
@@ -226,9 +226,9 @@ func (bcps *BcpCommunicationPlanService) Update(id uint, currentUserID uint, Bcp
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"business_continuity",
+				"bcp",
+				"communication_plan",
 				nil,
 			)
 			if err != nil {

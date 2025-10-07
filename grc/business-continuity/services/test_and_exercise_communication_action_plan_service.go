@@ -137,9 +137,9 @@ func (tecaps *TestAndExerciseCommunicationActionPlanService) Create(testAndExerc
 			id,
 			existingTestAndExerciseCommunicationActionPlan,
 			currentUserID,
-			"",
-			"",
-			"",
+			"business_continuity",
+			"test_and_exercise",
+			"action_plan",
 			nil,
 		)
 		if err != nil {
@@ -238,9 +238,9 @@ func (tecaps *TestAndExerciseCommunicationActionPlanService) Update(testAndExerc
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"business_continuity",
+				"test_and_exercise",
+				"action_plan",
 				nil,
 			)
 			if err != nil {

@@ -181,9 +181,9 @@ func (bbms *BcpBiaMatrixService) Update(bcpId uint, currentUserID uint, bcpProce
 				bcpId,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"business_continuity",
+				"bcp",
+				"bia_matrix",
 				nil,
 			)
 			if err != nil {

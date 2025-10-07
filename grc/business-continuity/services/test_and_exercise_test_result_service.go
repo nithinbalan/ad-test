@@ -208,9 +208,9 @@ func (tetrs *TestAndExerciseTestResultService) Create(testAndExerciseId uint, cu
 			id,
 			existingTestAndExerciseTestResult,
 			currentUserID,
-			"",
-			"",
-			"",
+			"business_continuity",
+			"test_and_exercise",
+			"test_result",
 			nil,
 		)
 		if err != nil {
@@ -408,9 +408,9 @@ func (tetrs *TestAndExerciseTestResultService) Update(testAndExerciseId uint, cu
 				existingTestAndExerciseTestResult.ID,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"business_continuity",
+				"test_and_exercise",
+				"test_result",
 				nil,
 			)
 			if err != nil {
@@ -516,9 +516,9 @@ func (tetrs *TestAndExerciseTestResultService) Delete(testAndExerciseId uint, cu
 			uint(testResult.ID),
 			deletedTestResult,
 			currentUserID,
-			"",
-			"",
-			"",
+			"business_continuity",
+			"test_and_exercise",
+			"test_result",
 			nil,
 		)
 		if err != nil {

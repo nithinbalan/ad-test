@@ -329,9 +329,9 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 			id,
 			existingTestAndExercise,
 			currentUserID,
-			"",
-			"",
-			"",
+			"business_continuity",
+			"test_and_exercise",
+			"test_and_exercise",
 			nil,
 		)
 		if err != nil {
@@ -499,9 +499,9 @@ func (tes *TestAndExerciseService) Update(id uint, currentUserID uint, testAndEx
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"business_continuity",
+				"test_and_exercise",
+				"test_and_exercise",
 				nil,
 			)
 			if err != nil {

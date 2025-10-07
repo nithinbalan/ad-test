@@ -202,9 +202,9 @@ func (bfs *BusinessFunctionService) Create(currentUserID uint, businessFunctionF
 			id,
 			existingBusinessFunction,
 			currentUserID,
-			"",
-			"",
-			"",
+			"business_continuity",
+			"business_functions",
+			"business_functions",
 			nil,
 		)
 		if err != nil {
@@ -410,9 +410,9 @@ func (bfs *BusinessFunctionService) Update(id uint, currentUserID uint, business
 				id,
 				changedData,
 				currentUserID,
-				"",
-				"",
-				"",
+				"business_continuity",
+				"business_functions",
+				"business_functions",
 				nil,
 			)
 			if err != nil {
