@@ -13,7 +13,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	policyRoutes.Use(middlewares.AuthMiddleware())
 
-	// unauthenticatedRoutes := router.Group("/")
+	unauthenticatedRoutes := router.Group("/")
 
 	db := app.DB
 
@@ -32,6 +32,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	policyRoutes.POST("/policy-folders/delete", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), policyFolderController.DeletePolicyFolders)
 
 	//policy
+	unauthenticatedRoutes.GET("/policy-register/:id/document-preview", policyRegisterController.GetDocumentPreview)
+	unauthenticatedRoutes.GET("/policy-register/:id/document-download", policyRegisterController.DownloadDocument)
 	policyRoutes.GET("/policy-register", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), policyRegisterController.GetAllPolicies)
 	policyRoutes.GET("/policy-register/:id", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), policyRegisterController.GetPolicyDetails)
 	policyRoutes.POST("/policy-register", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), policyRegisterController.CreatePolicy)
