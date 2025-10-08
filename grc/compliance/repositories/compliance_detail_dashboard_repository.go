@@ -25,6 +25,8 @@ type ComplianceDetailDashboardRepositoryInterface interface {
 	GetCompliancePolicySummary(complianceRegisterID uint) (*complianceDTOs.CompliancePolicySummaryDTO, error)
 	GetPolicyAcknowledgementByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyAcknowledgementOrganizationUnitDTO, error)
 	GetActionPlanOverview(complianceRegisterID uint) (*complianceDTOs.ComplianceActionPlanOverviewDTO, error)
+	GetActionPlanStatusSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceActionPlanStatusSummaryDTO, error)
+	GetActionPlansByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.ComplianceActionPlanByOrganizationUnitDTO, error)
 }
 
 type ComplianceDetailDashboardRepository struct {
@@ -583,4 +585,83 @@ func (repo *ComplianceDetailDashboardRepository) GetActionPlanOverview(complianc
 	}
 
 	return result, nil
+}
+
+func (repo *ComplianceDetailDashboardRepository) GetActionPlanStatusSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceActionPlanStatusSummaryDTO, error) {
+	summary := &complianceDTOs.ComplianceActionPlanStatusSummaryDTO{}
+	actionPlanStatuses := []complianceDTOs.ComplianceSummaryItemDTO{}
+
+	if err := repo.db.Model(&models.ComplianceActionPlan{}).
+		Where("compliance_register_id = ?", complianceRegisterID).
+		Count(&summary.TotalActionPlans).Error; err != nil {
+		return nil, err
+	}
+
+	if err := repo.db.Table("compliance_action_plans cap").
+		Select(`
+            aps.title_en AS title_en,
+            aps.title_ar AS title_ar,
+            aps.color_code AS color_code,
+            aps.type AS type,
+            COUNT(*) AS count
+        `).
+		Joins("JOIN action_plan_statuses aps ON aps.id = cap.action_plan_status_id").
+		Where("cap.compliance_register_id = ?", complianceRegisterID).
+		Group("aps.title_en, aps.title_ar, aps.color_code, aps.type").
+		Order("aps.title_en ASC").
+		Scan(&actionPlanStatuses).Error; err != nil {
+		return nil, err
+	}
+
+	for i := range actionPlanStatuses {
+		if summary.TotalActionPlans > 0 {
+			actionPlanStatuses[i].Percent = float64(actionPlanStatuses[i].Count) / float64(summary.TotalActionPlans) * 100
+		} else {
+			actionPlanStatuses[i].Percent = 0
+		}
+
+	}
+	summary.ActionPlanStatuses = actionPlanStatuses
+
+	return summary, nil
+}
+
+func (repo *ComplianceDetailDashboardRepository) GetActionPlansByOrganizationUnit(
+	complianceRegisterID uint,
+) ([]complianceDTOs.ComplianceActionPlanByOrganizationUnitDTO, error) {
+
+	results := []complianceDTOs.ComplianceActionPlanByOrganizationUnitDTO{}
+
+	err := repo.db.Table("compliance_action_plans AS cap").
+		Select(`
+			ou.title_en AS organization_unit_title_en,
+			ou.title_ar AS organization_unit_title_ar,
+			ou.color_code AS organization_unit_color_code,
+			COUNT(DISTINCT cap.id) AS total_action_plans
+		`).
+		Joins(`
+			JOIN users u ON u.id = cap.responsible_user_id
+			OUTER APPLY (
+				SELECT TOP 1 ou_sub.*
+				FROM organization_units ou_sub
+				JOIN organization_levels ol_sub ON ol_sub.id = ou_sub.organization_level_id
+				WHERE ou_sub.id IN (
+					u.organization_unit_1_id,
+					u.organization_unit_2_id,
+					u.organization_unit_3_id,
+					u.organization_unit_4_id,
+					u.organization_unit_5_id
+				)
+				AND ol_sub.is_primary = 1
+			) AS ou
+		`).
+		Where("cap.compliance_register_id = ?", complianceRegisterID).
+		Group("ou.title_en, ou.title_ar, ou.color_code").
+		Order("total_action_plans DESC").
+		Scan(&results).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
 }

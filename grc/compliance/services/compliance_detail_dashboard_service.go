@@ -20,6 +20,8 @@ type ComplianceDetailDashboardServiceInterface interface {
 	GetCompliancePolicySummary(complianceRegisterID uint) (*complianceDTOs.CompliancePolicySummaryDTO, error)
 	GetPolicyAcknowledgementByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyAcknowledgementOrganizationUnitDTO, error)
 	GetActionPlanOverview(complianceRegisterID uint) (*complianceDTOs.ComplianceActionPlanOverviewDTO, error)
+	GetActionPlanStatusSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceActionPlanStatusSummaryDTO, error)
+	GetActionPlansByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.ComplianceActionPlanByOrganizationUnitDTO, error)
 }
 
 type ComplianceDetailDashboardService struct {
@@ -86,4 +88,12 @@ func (cdds *ComplianceDetailDashboardService) GetPolicyAcknowledgementByOrganiza
 
 func (cdds *ComplianceDetailDashboardService) GetActionPlanOverview(complianceRegisterID uint) (*complianceDTOs.ComplianceActionPlanOverviewDTO, error) {
 	return cdds.repo.GetActionPlanOverview(complianceRegisterID)
+}
+
+func (cdds *ComplianceDetailDashboardService) GetActionPlanStatusSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceActionPlanStatusSummaryDTO, error) {
+	return cdds.repo.GetActionPlanStatusSummary(complianceRegisterID)
+}
+
+func (cdds *ComplianceDetailDashboardService) GetActionPlansByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.ComplianceActionPlanByOrganizationUnitDTO, error) {
+	return cdds.repo.GetActionPlansByOrganizationUnit(complianceRegisterID)
 }

@@ -114,3 +114,15 @@ type ComplianceActionPlanOverviewDTO struct {
 	HighPriorityPlans    int64   `json:"high_priority_plans"`
 	AvgCompletionPercent float64 `json:"avg_completion_percent"`
 }
+
+type ComplianceActionPlanStatusSummaryDTO struct {
+	ActionPlanStatuses []ComplianceSummaryItemDTO `json:"action_plan_statuses"`
+	TotalActionPlans   int64                      `json:"total_action_plans"`
+}
+
+type ComplianceActionPlanByOrganizationUnitDTO struct {
+	OrganizationUnitTitleEn   string `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr   string `json:"organization_unit_title_ar"`
+	OrganizationUnitColorCode string `json:"organization_unit_color_code"`
+	TotalActionPlans          int64  `json:"total_action_plans"`
+}

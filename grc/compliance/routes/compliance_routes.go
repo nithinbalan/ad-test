@@ -486,7 +486,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliances/:complianceId/dashboard/overview/top-5-clauses", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetTop5ClausePerformance)
 	complianceRoutes.GET("/compliances/:complianceId/dashboard/overview/bottom-5-clauses", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetBottom5ClausePerformance)
 	complianceRoutes.GET("/compliances/:complianceId/dashboard/overview/domains", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetComplianceDomainWiseOverview)
-	complianceRoutes.GET("/compliances/:complianceId/dashboard/summary/policy-organizations", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetPolicyByOrganizationUnit)
+	complianceRoutes.GET("/compliances/:complianceId/dashboard/summary/policy-organization-units", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetPolicyByOrganizationUnit)
 	complianceRoutes.GET("/compliances/:complianceId/dashboard/summary/control-effectiveness", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetControlEffectivenessSummary)
 	complianceRoutes.GET("/compliances/:complianceId/dashboard/summary/control-implementations", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetControlImplementationSummary)
 	complianceRoutes.GET("/compliances/:complianceId/dashboard/summary/controls", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetControlSummary)
@@ -495,5 +495,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliances/:complianceId/dashboard/summary/policies", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetCompliancePolicySummary)
 	complianceRoutes.GET("/compliances/:complianceId/dashboard/summary/policy-acknowledgements", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetPolicyAcknowledgementByOrganizationUnit)
 	complianceRoutes.GET("/compliances/:complianceId/dashboard/overview/action-plans", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetActionPlanOverview)
-
+	complianceRoutes.GET("/compliances/:complianceId/dashboard/summary/action-plan-statuses", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetActionPlanStatusSummary)
+	complianceRoutes.GET("/compliances/:complianceId/dashboard/summary/action-plan-organization-units", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetActionPlansByOrganizationUnit)
 }
