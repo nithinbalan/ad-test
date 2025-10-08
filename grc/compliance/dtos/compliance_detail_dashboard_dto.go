@@ -54,9 +54,10 @@ type ComplianceDomainWiseOverviewDTO struct {
 }
 
 type CompliancePolicyByOrganizationUnitDTO struct {
-	OrganizationUnitTitleEn string `json:"organization_unit_title_en"`
-	OrganizationUnitTitleAr string `json:"organization_unit_title_ar"`
-	TotalPolicies           int64  `json:"total_policies"`
+	OrganizationUnitTitleEn   string `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr   string `json:"organization_unit_title_ar"`
+	OrganizationUnitColorCode string `json:"organization_unit_color_code"`
+	TotalPolicies             int64  `json:"total_policies"`
 }
 
 type ComplianceControlEffectivenessDTO struct {
@@ -94,4 +95,13 @@ type CompliancePolicySummaryDTO struct {
 	TotalPolicies     int64 `json:"total_policies"`
 	MappedToClause    int64 `json:"mapped_to_clause"`
 	NotMappedToClause int64 `json:"not_mapped_to_clause"`
+}
+
+type CompliancePolicyAcknowledgementOrganizationUnitDTO struct {
+	OrganizationUnitTitleEn   string  `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr   string  `json:"organization_unit_title_ar"`
+	OrganizationUnitColorCode string  `json:"organization_unit_color_code"`
+	TotalPolicies             int64   `json:"total_policies"`
+	AcknowledgedPolicies      int64   `json:"acknowledged_policies"`
+	AcknowledgementPercent    float64 `json:"acknowledgement_percent"`
 }

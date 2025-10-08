@@ -23,6 +23,7 @@ type ComplianceDetailDashboardRepositoryInterface interface {
 	GetControlEfficiencySummary(complianceRegisterID uint) ([]complianceDTOs.ComplianceSummaryItemDTO, error)
 	GetControlCoverageByDomain(complianceRegisterID uint) ([]complianceDTOs.ComplianceControlCoverageByDomainDTO, error)
 	GetCompliancePolicySummary(complianceRegisterID uint) (*complianceDTOs.CompliancePolicySummaryDTO, error)
+	GetPolicyAcknowledgementByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyAcknowledgementOrganizationUnitDTO, error)
 }
 
 type ComplianceDetailDashboardRepository struct {
@@ -55,12 +56,15 @@ func (repo *ComplianceDetailDashboardRepository) GetComplianceDetailSummary(comp
 	}
 
 	// Total Requirements
+	var totalRequirements int64
 	err = repo.db.Model(&models.ComplianceRequirement{}).
-		Where("compliance_register_id = ?", complianceRegisterID).
-		Count(&result.TotalRequirements).Error
+		Joins("JOIN compliance_clauses cc ON cc.id = compliance_requirements.compliance_clause_id").
+		Where("cc.compliance_register_id = ?", complianceRegisterID).
+		Count(&totalRequirements).Error
 	if err != nil {
 		return nil, err
 	}
+	result.TotalRequirements = totalRequirements
 
 	// Total Controls
 	var efficientControls int64
@@ -278,6 +282,7 @@ func (repo *ComplianceDetailDashboardRepository) GetPolicyByOrganizationUnit(com
 		Select(`
             parent_unit.title_en AS organization_unit_title_en,
             parent_unit.title_ar AS organization_unit_title_ar,
+			parent_unit.color_code AS organization_unit_color_code,
             COUNT(DISTINCT dcr.document_id) AS total_policies
         `).
 		Joins("JOIN documents doc ON doc.id = dcr.document_id").
@@ -286,7 +291,7 @@ func (repo *ComplianceDetailDashboardRepository) GetPolicyByOrganizationUnit(com
 		Joins("JOIN organization_levels ol ON ol.id = parent_unit.organization_level_id AND ol.is_primary = ?", true).
 		Where("dcr.compliance_register_id = ?", complianceRegisterID).
 		Where("parent_unit.organization_unit_id IS NULL").
-		Group("parent_unit.title_en, parent_unit.title_ar").
+		Group("parent_unit.title_en, parent_unit.title_ar, parent_unit.color_code").
 		Order("total_policies DESC").
 		Scan(&results).Error
 
@@ -504,4 +509,41 @@ func (repo *ComplianceDetailDashboardRepository) GetCompliancePolicySummary(comp
 	}
 
 	return result, nil
+}
+
+func (repo *ComplianceDetailDashboardRepository) GetPolicyAcknowledgementByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyAcknowledgementOrganizationUnitDTO, error) {
+	results := []complianceDTOs.CompliancePolicyAcknowledgementOrganizationUnitDTO{}
+
+	err := repo.db.Table("document_compliance_requirements AS dcr").
+		Select(`
+            parent_unit.title_en AS organization_unit_title_en,
+            parent_unit.title_ar AS organization_unit_title_ar,
+			parent_unit.color_code AS organization_unit_color_code,
+            COUNT(DISTINCT dcr.document_id) AS total_policies,
+            COUNT(DISTINCT CASE WHEN doc.acknowledged = 1 THEN dcr.document_id END) AS acknowledged_policies
+        `).
+		Joins("JOIN documents doc ON doc.id = dcr.document_id").
+		Joins("LEFT JOIN organization_units child_unit ON child_unit.id = doc.responsible_unit_id").
+		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(child_unit.organization_unit_id, child_unit.id) = parent_unit.id").
+		Joins("JOIN organization_levels ol ON ol.id = parent_unit.organization_level_id AND ol.is_primary = ?", true).
+		Where("dcr.compliance_register_id = ?", complianceRegisterID).
+		Where("parent_unit.organization_unit_id IS NULL").
+		Group("parent_unit.title_en, parent_unit.title_ar, parent_unit.color_code").
+		Order("total_policies DESC").
+		Scan(&results).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Percentage per organization unit
+	for i := range results {
+		if results[i].TotalPolicies > 0 {
+			results[i].AcknowledgementPercent = float64(results[i].AcknowledgedPolicies) / float64(results[i].TotalPolicies) * 100
+		} else {
+			results[i].AcknowledgementPercent = 0
+		}
+	}
+
+	return results, nil
 }
