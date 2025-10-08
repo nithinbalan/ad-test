@@ -105,3 +105,12 @@ type CompliancePolicyAcknowledgementOrganizationUnitDTO struct {
 	AcknowledgedPolicies      int64   `json:"acknowledged_policies"`
 	AcknowledgementPercent    float64 `json:"acknowledgement_percent"`
 }
+
+type ComplianceActionPlanOverviewDTO struct {
+	TotalActionPlans     int64   `json:"total_action_plans"`
+	CompletedPlans       int64   `json:"completed_plans"`
+	PendingPlans         int64   `json:"pending_plans"`
+	OverduePlans         int64   `json:"overdue_plans"`
+	HighPriorityPlans    int64   `json:"high_priority_plans"`
+	AvgCompletionPercent float64 `json:"avg_completion_percent"`
+}

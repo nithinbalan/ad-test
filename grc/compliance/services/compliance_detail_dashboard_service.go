@@ -19,6 +19,7 @@ type ComplianceDetailDashboardServiceInterface interface {
 	GetControlCoverageByDomain(complianceRegisterID uint) ([]complianceDTOs.ComplianceControlCoverageByDomainDTO, error)
 	GetCompliancePolicySummary(complianceRegisterID uint) (*complianceDTOs.CompliancePolicySummaryDTO, error)
 	GetPolicyAcknowledgementByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyAcknowledgementOrganizationUnitDTO, error)
+	GetActionPlanOverview(complianceRegisterID uint) (*complianceDTOs.ComplianceActionPlanOverviewDTO, error)
 }
 
 type ComplianceDetailDashboardService struct {
@@ -81,4 +82,8 @@ func (cdds *ComplianceDetailDashboardService) GetCompliancePolicySummary(complia
 
 func (cdds *ComplianceDetailDashboardService) GetPolicyAcknowledgementByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyAcknowledgementOrganizationUnitDTO, error) {
 	return cdds.repo.GetPolicyAcknowledgementByOrganizationUnit(complianceRegisterID)
+}
+
+func (cdds *ComplianceDetailDashboardService) GetActionPlanOverview(complianceRegisterID uint) (*complianceDTOs.ComplianceActionPlanOverviewDTO, error) {
+	return cdds.repo.GetActionPlanOverview(complianceRegisterID)
 }

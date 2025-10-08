@@ -494,5 +494,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliances/:complianceId/dashboard/summary/domain-controls", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetControlCoverageByDomain)
 	complianceRoutes.GET("/compliances/:complianceId/dashboard/summary/policies", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetCompliancePolicySummary)
 	complianceRoutes.GET("/compliances/:complianceId/dashboard/summary/policy-acknowledgements", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetPolicyAcknowledgementByOrganizationUnit)
+	complianceRoutes.GET("/compliances/:complianceId/dashboard/overview/action-plans", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetActionPlanOverview)
 
 }

@@ -24,6 +24,7 @@ type ComplianceDetailDashboardRepositoryInterface interface {
 	GetControlCoverageByDomain(complianceRegisterID uint) ([]complianceDTOs.ComplianceControlCoverageByDomainDTO, error)
 	GetCompliancePolicySummary(complianceRegisterID uint) (*complianceDTOs.CompliancePolicySummaryDTO, error)
 	GetPolicyAcknowledgementByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyAcknowledgementOrganizationUnitDTO, error)
+	GetActionPlanOverview(complianceRegisterID uint) (*complianceDTOs.ComplianceActionPlanOverviewDTO, error)
 }
 
 type ComplianceDetailDashboardRepository struct {
@@ -546,4 +547,40 @@ func (repo *ComplianceDetailDashboardRepository) GetPolicyAcknowledgementByOrgan
 	}
 
 	return results, nil
+}
+
+func (repo *ComplianceDetailDashboardRepository) GetActionPlanOverview(complianceRegisterID uint) (*complianceDTOs.ComplianceActionPlanOverviewDTO, error) {
+	result := &complianceDTOs.ComplianceActionPlanOverviewDTO{}
+
+	err := repo.db.Model(&models.ComplianceActionPlan{}).
+		Joins("LEFT JOIN action_plan_statuses aps ON aps.id = compliance_action_plans.action_plan_status_id").
+		Joins("LEFT JOIN severity_levels sl ON sl.id = compliance_action_plans.severity_level_id").
+		Where("compliance_action_plans.compliance_register_id = ?", complianceRegisterID).
+		Select(`
+			COUNT(*) AS total_action_plans,
+			SUM(CASE WHEN aps.type = 'completed' OR aps.is_closed = 1 THEN 1 ELSE 0 END) AS completed_plans,
+			SUM(CASE WHEN aps.is_closed = 0 AND aps.type IN ('new', 'in_progress', 'on_hold', 'reopen') THEN 1 ELSE 0 END) AS pending_plans,
+			SUM(
+				CASE 
+					WHEN aps.is_closed = 0 
+						AND aps.type IN ('new', 'in_progress', 'on_hold', 'reopen') 
+						AND compliance_action_plans.target_date IS NOT NULL 
+						AND compliance_action_plans.target_date < CAST(GETDATE() AS date)
+					THEN 1 
+					ELSE 0 
+				END
+			) AS overdue_plans,
+			SUM(CASE WHEN sl.type = 'high' THEN 1 ELSE 0 END) AS high_priority_plans
+		`).Scan(result).Error
+	if err != nil {
+		return nil, err
+	}
+
+	if result.TotalActionPlans > 0 {
+		result.AvgCompletionPercent = float64(result.CompletedPlans) / float64(result.TotalActionPlans) * 100
+	} else {
+		result.AvgCompletionPercent = 0
+	}
+
+	return result, nil
 }
