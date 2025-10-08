@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 )
@@ -156,7 +157,10 @@ func ConvertPolicyHTMLContentToPDF(headerHTML, footerHTML, coverHTML, disclaimer
 
 	basePath, _ := os.Getwd()
 	tocPath := filepath.Join(basePath, "assets", "document", "templates", "pdf", "toc.xsl")
+	println(tocPath)
 	tocPath = filepath.ToSlash(tocPath)
+
+	tocPath = strings.ReplaceAll(tocPath, "/", "//")
 
 	addTOC := true
 	if _, err := os.Stat(tocPath); os.IsNotExist(err) {
