@@ -83,3 +83,9 @@ type ComplianceControlSummaryDTO struct {
 	PartiallyImplementedControls int64 `json:"partially_implemented_controls"`
 	NotImplementedControls       int64 `json:"not_implemented_controls"`
 }
+
+type ComplianceControlCoverageByDomainDTO struct {
+	DomainTitleEn string `json:"domain_title_en"`
+	DomainTitleAr string `json:"domain_title_ar"`
+	TotalControls int64  `json:"total_controls"`
+}

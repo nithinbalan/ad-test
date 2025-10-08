@@ -21,6 +21,7 @@ type ComplianceDetailDashboardRepositoryInterface interface {
 	GetControlImplementationSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlImplementationSummaryDTO, error)
 	GetControlSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlSummaryDTO, error)
 	GetControlEfficiencySummary(complianceRegisterID uint) ([]complianceDTOs.ComplianceSummaryItemDTO, error)
+	GetControlCoverageByDomain(complianceRegisterID uint) ([]complianceDTOs.ComplianceControlCoverageByDomainDTO, error)
 }
 
 type ComplianceDetailDashboardRepository struct {
@@ -457,4 +458,31 @@ func (repo *ComplianceDetailDashboardRepository) GetControlEfficiencySummary(com
 	}
 
 	return summary, nil
+}
+
+func (repo *ComplianceDetailDashboardRepository) GetControlCoverageByDomain(complianceRegisterID uint) ([]complianceDTOs.ComplianceControlCoverageByDomainDTO, error) {
+	results := []complianceDTOs.ComplianceControlCoverageByDomainDTO{}
+
+	err := repo.db.Table("compliance_clauses AS parent").
+		Select(`
+            parent.title_en AS domain_title_en,
+            parent.title_ar AS domain_title_ar,
+            COUNT(DISTINCT cc.control_id) AS total_controls
+        `).
+		Joins(`
+            LEFT JOIN compliance_controls AS cc
+               ON cc.compliance_register_id = parent.compliance_register_id
+              AND cc.compliance_clause_id = parent.id
+        `).
+		Where("parent.compliance_register_id = ?", complianceRegisterID).
+		Where("parent.compliance_clause_id IS NULL").
+		Group("parent.title_en, parent.title_ar").
+		Order("total_controls DESC").
+		Scan(&results).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
