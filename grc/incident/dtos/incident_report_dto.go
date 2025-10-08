@@ -44,7 +44,7 @@ type IncidentReportDetailDTO struct {
 	RootCauseAnalyses      []*IncidentRootCauseAnalysisListDTO               `json:"root_cause_analysis"`
 	StrategicObjectives    []*commonDTOs.AssociatedStrategicObjectiveListDTO `json:"strategic_objectives"`
 	KPIs                   []*commonDTOs.AssociatedKPIRegisterListDTO        `json:"kpi"`
-	ComplianceRequirements []*IncidentComplianceRequirementListDTO           `json:"compliance_requirements"`
+	ComplianceRequirements []*commonDTOs.AssociatedClauseListDTO             `json:"compliance_clause"`
 	Investigation          *IncidentInvestigationDetailDTO                   `json:"investigation"`
 	AppUrl                 string                                            `json:"url"`
 }
