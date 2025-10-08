@@ -89,3 +89,9 @@ type ComplianceControlCoverageByDomainDTO struct {
 	DomainTitleAr string `json:"domain_title_ar"`
 	TotalControls int64  `json:"total_controls"`
 }
+
+type CompliancePolicySummaryDTO struct {
+	TotalPolicies     int64 `json:"total_policies"`
+	MappedToClause    int64 `json:"mapped_to_clause"`
+	NotMappedToClause int64 `json:"not_mapped_to_clause"`
+}

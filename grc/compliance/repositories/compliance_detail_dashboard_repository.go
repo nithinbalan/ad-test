@@ -22,6 +22,7 @@ type ComplianceDetailDashboardRepositoryInterface interface {
 	GetControlSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlSummaryDTO, error)
 	GetControlEfficiencySummary(complianceRegisterID uint) ([]complianceDTOs.ComplianceSummaryItemDTO, error)
 	GetControlCoverageByDomain(complianceRegisterID uint) ([]complianceDTOs.ComplianceControlCoverageByDomainDTO, error)
+	GetCompliancePolicySummary(complianceRegisterID uint) (*complianceDTOs.CompliancePolicySummaryDTO, error)
 }
 
 type ComplianceDetailDashboardRepository struct {
@@ -485,4 +486,22 @@ func (repo *ComplianceDetailDashboardRepository) GetControlCoverageByDomain(comp
 	}
 
 	return results, nil
+}
+
+func (repo *ComplianceDetailDashboardRepository) GetCompliancePolicySummary(complianceRegisterID uint) (*complianceDTOs.CompliancePolicySummaryDTO, error) {
+	result := &complianceDTOs.CompliancePolicySummaryDTO{}
+
+	err := repo.db.Model(&models.DocumentComplianceRequirement{}).
+		Select(`
+			COUNT(DISTINCT document_id) AS total_policies,
+			COUNT(DISTINCT CASE WHEN compliance_clause_id IS NOT NULL THEN document_id END) AS mapped_to_clause,
+			COUNT(DISTINCT CASE WHEN compliance_clause_id IS NULL THEN document_id END) AS not_mapped_to_clause
+		`).
+		Where("compliance_register_id = ?", complianceRegisterID).
+		Scan(result).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
