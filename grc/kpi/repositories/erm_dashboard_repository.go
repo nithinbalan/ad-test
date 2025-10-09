@@ -1412,10 +1412,10 @@ func (repo *ERMDashboardRepository) GetERMOpenRisksSummary(params *kpiDTOs.ERMDa
 				WHEN AVG(COALESCE(rca.score, 0)) >= 50 THEN 'Moderate'
 				ELSE 'Inefficient'
 			END AS control_efficiency,
-			irms.title_en AS inherent_rating,
-			iein.value AS inherent_rating_value,
-			rms.title_en AS current_rating,
-			cein.value AS current_rating_value,
+			COALESCE(irms.title_en, 'N/A') AS inherent_rating,
+			COALESCE(iein.value, 0) AS inherent_rating_value,
+			COALESCE(rms.title_en, 'N/A') AS current_rating,
+			COALESCE(cein.value, 0) AS current_rating_value,
 			CASE 
 				WHEN MAX(CASE WHEN ratl.type = 'significantly_above' THEN 1 ELSE 0 END) = 1 THEN 
 					MAX(CASE WHEN ratl.type = 'significantly_above' THEN ratl.title_en END)
@@ -1429,7 +1429,7 @@ func (repo *ERMDashboardRepository) GetERMOpenRisksSummary(params *kpiDTOs.ERMDa
 					MAX(CASE WHEN ratl.type = 'marginally_below' THEN ratl.title_en END)
 				WHEN MAX(CASE WHEN ratl.type = 'below' THEN 1 ELSE 0 END) = 1 THEN 
 					MAX(CASE WHEN ratl.type = 'below' THEN ratl.title_en END)
-				ELSE MAX(ratl.title_en)
+				ELSE MAX(COALESCE(ratl.title_en, 'N/A'))
 			END AS risk_appetite_level_title_en,
 			CASE 
 				WHEN MAX(CASE WHEN ratl.type = 'significantly_above' THEN 1 ELSE 0 END) = 1 THEN 
@@ -1444,7 +1444,7 @@ func (repo *ERMDashboardRepository) GetERMOpenRisksSummary(params *kpiDTOs.ERMDa
 					MAX(CASE WHEN ratl.type = 'marginally_below' THEN ratl.title_ar END)
 				WHEN MAX(CASE WHEN ratl.type = 'below' THEN 1 ELSE 0 END) = 1 THEN 
 					MAX(CASE WHEN ratl.type = 'below' THEN ratl.title_ar END)
-				ELSE MAX(ratl.title_ar)
+				ELSE MAX(COALESCE(ratl.title_ar, 'N/A'))
 			END AS risk_appetite_level_title_ar,
 			CASE 
 				WHEN MAX(CASE WHEN ratl.type = 'significantly_above' THEN 1 ELSE 0 END) = 1 THEN 
@@ -1459,7 +1459,7 @@ func (repo *ERMDashboardRepository) GetERMOpenRisksSummary(params *kpiDTOs.ERMDa
 					MAX(CASE WHEN ratl.type = 'marginally_below' THEN ratl.color_code END)
 				WHEN MAX(CASE WHEN ratl.type = 'below' THEN 1 ELSE 0 END) = 1 THEN 
 					MAX(CASE WHEN ratl.type = 'below' THEN ratl.color_code END)
-				ELSE MAX(ratl.color_code)
+				ELSE MAX(COALESCE(ratl.color_code, '#808080'))
 			END AS risk_appetite_level_color_code,
 			DATEDIFF(day, rr.reported_at, GETDATE()) AS days_open
 		`).
