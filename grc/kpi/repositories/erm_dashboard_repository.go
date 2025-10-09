@@ -30,7 +30,7 @@ type ERMDashboardRepositoryInterface interface {
 	GetERMRiskSummaryByOrganizationUnit(params *kpiDTOs.ERMDashboardListQueryParamsDTO) (*kpiDTOs.ERMRiskOrganizationUnitSummaryDTO, error)
 
 	// ERM Risk Details
-	GetERMRiskCategorySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) ([]kpiDTOs.ERMRiskCategorySummaryDTO, error)
+	GetERMRiskCategorySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskCategorySummaryDTO, error)
 	GetERMRiskSourceSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) ([]kpiDTOs.ERMRiskSourceSummaryDTO, error)
 	GetERMRiskStatusSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskStatusSummaryDTO, error)
 	GetERMRiskOrganizationUnitSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) ([]kpiDTOs.ERMRiskSummaryByOrganizationUnitDTO, error)
@@ -1108,13 +1108,13 @@ func (repo *ERMDashboardRepository) GetERMRiskSummaryByOrganizationUnit(params *
 	return response, nil
 }
 
-func (repo *ERMDashboardRepository) GetERMRiskCategorySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) ([]kpiDTOs.ERMRiskCategorySummaryDTO, error) {
-	results := []kpiDTOs.ERMRiskCategorySummaryDTO{}
+func (repo *ERMDashboardRepository) GetERMRiskCategorySummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskCategorySummaryDTO, error) {
+	results := []kpiDTOs.ERMRiskCategorySummaryItemDTO{}
 
 	query := repo.db.Model(&models.RiskRegister{}).
 		Select(`
 			rc.title_en AS category_title_en,
-			rc.title_ar AS category_title_ar, 
+			rc.title_ar AS category_title_ar,
 			COUNT(risk_register.id) AS count
 		`).
 		Joins("JOIN risk_categories rc ON rc.id = risk_register.risk_category_id AND rc.status = ?", "active").
@@ -1130,7 +1130,15 @@ func (repo *ERMDashboardRepository) GetERMRiskCategorySummary(params *kpiDTOs.ER
 		return nil, err
 	}
 
-	return results, nil
+	var total int64
+	for _, r := range results {
+		total += r.Count
+	}
+
+	return &kpiDTOs.ERMRiskCategorySummaryDTO{
+		RisksByCategory: results,
+		Total:           total,
+	}, nil
 }
 
 func (repo *ERMDashboardRepository) GetERMRiskSourceSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) ([]kpiDTOs.ERMRiskSourceSummaryDTO, error) {
@@ -1159,7 +1167,7 @@ func (repo *ERMDashboardRepository) GetERMRiskSourceSummary(params *kpiDTOs.ERMD
 }
 
 func (repo *ERMDashboardRepository) GetERMRiskStatusSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) (*kpiDTOs.ERMRiskStatusSummaryDTO, error) {
-	result := kpiDTOs.ERMRiskStatusSummaryDTO{}
+	result := &kpiDTOs.ERMRiskStatusSummaryDTO{}
 
 	query := repo.db.Model(&models.RiskRegister{}).
 		Select(`
@@ -1202,7 +1210,7 @@ func (repo *ERMDashboardRepository) GetERMRiskStatusSummary(params *kpiDTOs.ERMD
 	}
 	result.Total = total
 
-	return &result, nil
+	return result, nil
 }
 
 func (repo *ERMDashboardRepository) GetERMRiskOrganizationUnitSummary(params *kpiDTOs.ERMDashboardQueryParamsDTO) ([]kpiDTOs.ERMRiskSummaryByOrganizationUnitDTO, error) {

@@ -181,10 +181,15 @@ type ERMRiskOrganizationUnitSummaryDTO struct {
 }
 
 // ERM Risk Details
-type ERMRiskCategorySummaryDTO struct {
+type ERMRiskCategorySummaryItemDTO struct {
 	CategoryTitleEn string `json:"category_title_en"`
 	CategoryTitleAr string `json:"category_title_ar"`
 	Count           int64  `json:"count"`
+}
+
+type ERMRiskCategorySummaryDTO struct {
+	RisksByCategory []ERMRiskCategorySummaryItemDTO `json:"risks_by_category"`
+	Total           int64                           `json:"total"`
 }
 
 type ERMRiskSourceSummaryDTO struct {
