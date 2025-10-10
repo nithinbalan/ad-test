@@ -274,14 +274,12 @@ func (dcs *PolicyClauseService) Update(documentId uint, clauseId uint, currentUs
 	oldData := map[string]interface{}{
 		"clause_number": oldPolicyClause.ClauseNumber,
 		"title_en":      oldPolicyClause.ClauseTitleEn,
-		"title_ar":      oldPolicyClause.ClauseTitleAr,
 		"description":   oldPolicyClause.Description,
 	}
 
 	newData := map[string]interface{}{
 		"clause_number": existingClauseFullDetails.ClauseNumber,
 		"title_en":      existingClauseFullDetails.ClauseTitleEn,
-		"title_ar":      existingClauseFullDetails.ClauseTitleAr,
 		"description":   existingClauseFullDetails.Description,
 	}
 	// Compare other fields and add them to changedData
