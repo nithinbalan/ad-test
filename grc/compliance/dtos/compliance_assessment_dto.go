@@ -298,3 +298,7 @@ type ControlSyncUpdateDTO struct {
 	CompletedAt                          *time.Time
 	ComplianceStatusID                   *uint
 }
+
+type ComplianceAssessmentScoreSummaryQueryParamsDTO struct {
+	Filters map[string][]string `json:"filters"`
+}
