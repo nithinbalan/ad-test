@@ -135,7 +135,6 @@ type ComplianceRegisterFormDTO struct {
 	ComplianceAssessmentFrameworkID uint                      `json:"compliance_assessment_framework_id" binding:"required"`
 	LastReviewNote                  *string                   `json:"last_review_note"`
 	StandardCode                    *string                   `json:"standard_code" binding:"omitempty,max=45"`
-	ParentComplianceRegisterID      *uint                     `json:"parent_compliance_register_id"`
 	DocumentEn                      ComplianceDocumentFormDTO `json:"document_en" binding:"required"`
 	DocumentAr                      ComplianceDocumentFormDTO `json:"document_ar" binding:"required"`
 	ComplianceFolderID              *uint                     `json:"compliance_folder_id"`
@@ -152,6 +151,15 @@ type ComplianceDocumentFormDTO struct {
 	Type         string `json:"type"`
 	Size         int    `json:"size"`
 	IsNewFile    *bool  `json:"is_new_file,omitempty"` // Optional field for indicating if the file is new or updated
+}
+
+type ComplianceVersionFormDTO struct {
+	ParentComplianceRegisterID *uint                     `json:"parent_compliance_register_id" binding:"required"`
+	Version                    *string                   `json:"version" binding:"omitempty,max=45"`
+	DescriptionEn              *string                   `json:"description_en"`
+	DescriptionAr              *string                   `json:"description_ar"`
+	DocumentEn                 ComplianceDocumentFormDTO `json:"document_en" binding:"required"`
+	DocumentAr                 ComplianceDocumentFormDTO `json:"document_ar" binding:"required"`
 }
 
 type ComplianceDocumentDTO struct {
