@@ -335,7 +335,6 @@ func (caps *ControlActionPlanService) Update(controlID uint, id uint, currentUse
 	existingControlActionPlan.ResponsibleUserID = ControlActionPlanFormDTO.ResponsibleUserID
 	existingControlActionPlan.ReviewUserID = ControlActionPlanFormDTO.ReviewUserID
 	existingControlActionPlan.TargetDate = dates.TargetDate
-	existingControlActionPlan.Percentage = *ControlActionPlanFormDTO.Percentage
 	existingControlActionPlan.UpdatedByID = &currentUserID
 
 	if ControlActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != ControlActionPlanFormDTO.ResponsibleUserID {
@@ -523,7 +522,7 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 		OwnerID         *uint
 		TitleEn         string
 		TitleAr         string
-		Description     string
+		Description     *string
 		ReferenceNumber string
 		ControlTitle    string
 	}
@@ -540,14 +539,14 @@ func (caps *ControlActionPlanService) Delete(controlID uint, ids []uint, current
 			OwnerID         *uint
 			TitleEn         string
 			TitleAr         string
-			Description     string
+			Description     *string
 			ReferenceNumber string
 			ControlTitle    string
 		}{
 			OwnerID:         &controlActionPlan.ResponsibleUserID,
 			TitleEn:         controlActionPlan.Title,
 			TitleAr:         controlActionPlan.Title,
-			Description:     controlActionPlan.Description,
+			Description:     &controlActionPlan.Description,
 			ReferenceNumber: controlActionPlan.Control.ReferenceNumber,
 			ControlTitle:    controlActionPlan.Control.TitleEn,
 		})

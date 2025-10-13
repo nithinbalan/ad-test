@@ -341,7 +341,6 @@ func (paps *ProjectActionPlanService) Update(projectID uint, id uint, currentUse
 	existingProjectActionPlan.SeverityLevelID = ProjectActionPlanFormDTO.SeverityLevelID
 	existingProjectActionPlan.ReviewUserID = ProjectActionPlanFormDTO.ReviewUserID
 	existingProjectActionPlan.TargetDate = dates.TargetDate
-	existingProjectActionPlan.Percentage = &ProjectActionPlanFormDTO.Percentage
 	existingProjectActionPlan.UpdatedBYID = &currentUserID
 
 	if ProjectActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != ProjectActionPlanFormDTO.ResponsibleUserID {

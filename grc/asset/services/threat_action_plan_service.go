@@ -605,7 +605,7 @@ func (taps *ThreatActionPlanService) Delete(threatID uint, ids []uint, currentUs
 		UserID      uint
 		TitleEn     string
 		TitleAr     string
-		Description string
+		Description *string
 		ThreatTitle string
 	}
 
@@ -627,13 +627,13 @@ func (taps *ThreatActionPlanService) Delete(threatID uint, ids []uint, currentUs
 			UserID      uint
 			TitleEn     string
 			TitleAr     string
-			Description string
+			Description *string
 			ThreatTitle string
 		}{
 			UserID:      actionPlan.ResponsibleUserID,
 			TitleEn:     actionPlan.Title,
 			TitleAr:     actionPlan.Title,
-			Description: description,
+			Description: &description,
 			ThreatTitle: threat.TitleEn,
 		})
 
