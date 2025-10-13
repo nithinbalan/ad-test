@@ -351,7 +351,6 @@ func (saps *SLAActionPlanService) Update(slaID uint, id uint, currentUserID uint
 	existingSLAActionPlan.ResponsibleUserID = slaActionPlanFormDTO.ResponsibleUserID
 	existingSLAActionPlan.ReviewUserID = slaActionPlanFormDTO.ReviewUserID
 	existingSLAActionPlan.TargetDate = dates.TargetDate
-	existingSLAActionPlan.Percentage = slaActionPlanFormDTO.Percentage
 	existingSLAActionPlan.Comments = slaActionPlanFormDTO.Comments
 	existingSLAActionPlan.UpdatedByID = &currentUserID
 
@@ -603,7 +602,7 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 		OwnerID         *uint
 		TitleEn         string
 		TitleAr         string
-		Description     string
+		Description     *string
 		ReferenceNumber string
 		SlaTitle        string
 	}
@@ -619,14 +618,14 @@ func (saps *SLAActionPlanService) Delete(slaID uint, ids []uint, currentUserID u
 			OwnerID         *uint
 			TitleEn         string
 			TitleAr         string
-			Description     string
+			Description     *string
 			ReferenceNumber string
 			SlaTitle        string
 		}{
 			OwnerID:         &slaActionPlan.ResponsibleUserID,
 			TitleEn:         slaActionPlan.Title,
 			TitleAr:         slaActionPlan.Title,
-			Description:     slaActionPlan.Description,
+			Description:     &slaActionPlan.Description,
 			ReferenceNumber: sla.ReferenceNumber,
 			SlaTitle:        slaActionPlan.Title,
 		})
