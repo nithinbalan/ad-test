@@ -624,7 +624,7 @@ func (caps *StakeholderActionPlanService) Delete(stakeholderID uint, ids []uint,
 		OwnerID          *uint
 		TitleEn          string
 		TitleAr          string
-		Description      string
+		Description      *string
 		ReferenceNumber  string
 		StakeholderTitle string
 	}
@@ -640,14 +640,14 @@ func (caps *StakeholderActionPlanService) Delete(stakeholderID uint, ids []uint,
 			OwnerID          *uint
 			TitleEn          string
 			TitleAr          string
-			Description      string
+			Description      *string
 			ReferenceNumber  string
 			StakeholderTitle string
 		}{
 			OwnerID:          &stakeholderActionPlan.ResponsibleUserID,
 			TitleEn:          stakeholderActionPlan.Title,
 			TitleAr:          stakeholderActionPlan.Title,
-			Description:      *stakeholderActionPlan.Description,
+			Description:      stakeholderActionPlan.Description,
 			StakeholderTitle: stakeholderActionPlan.Stakeholder.TitleEn,
 		})
 

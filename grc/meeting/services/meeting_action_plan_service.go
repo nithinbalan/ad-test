@@ -617,7 +617,7 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 		OwnerID         *uint
 		TitleEn         string
 		TitleAr         string
-		Description     string
+		Description     *string
 		ReferenceNumber string
 		MeetingTitle    string
 	}
@@ -638,14 +638,14 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 			OwnerID         *uint
 			TitleEn         string
 			TitleAr         string
-			Description     string
+			Description     *string
 			ReferenceNumber string
 			MeetingTitle    string
 		}{
 			OwnerID:         &meetingActionPlan.ResponsibleUserID,
 			TitleEn:         meetingActionPlan.Title,
 			TitleAr:         meetingActionPlan.Title,
-			Description:     description,
+			Description:     &description,
 			ReferenceNumber: meeting.ReferenceNumber,
 			MeetingTitle:    meeting.Title,
 		})

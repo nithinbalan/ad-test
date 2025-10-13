@@ -603,7 +603,7 @@ func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uin
 		OwnerID           *uint
 		TitleEn           string
 		TitleAr           string
-		Description       string
+		Description       *string
 		ReferenceNumber   string
 		AuditFindingTitle string
 	}
@@ -623,14 +623,14 @@ func (afaps *AuditFindingActionPlanService) Delete(ids []uint, currentUserID uin
 			OwnerID           *uint
 			TitleEn           string
 			TitleAr           string
-			Description       string
+			Description       *string
 			ReferenceNumber   string
 			AuditFindingTitle string
 		}{
 			OwnerID:           &auditFindingActionPlan.ResponsibleUserID,
 			TitleEn:           auditFindingActionPlan.Title,
 			TitleAr:           auditFindingActionPlan.Title,
-			Description:       description,
+			Description:       &description,
 			ReferenceNumber:   auditFindingActionPlan.AuditFinding.ReferenceNumber,
 			AuditFindingTitle: auditFindingActionPlan.AuditFinding.Title,
 		})

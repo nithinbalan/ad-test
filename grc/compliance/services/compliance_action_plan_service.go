@@ -403,7 +403,6 @@ func (caps *ComplianceActionPlanService) Update(complianceID uint, id uint, curr
 	existingComplianceActionPlan.ResponsibleUserID = ComplianceActionPlanFormDTO.ResponsibleUserID
 	existingComplianceActionPlan.ReviewUserID = ComplianceActionPlanFormDTO.ReviewUserID
 	existingComplianceActionPlan.TargetDate = dates.TargetDate
-	existingComplianceActionPlan.Percentage = ComplianceActionPlanFormDTO.Percentage
 	existingComplianceActionPlan.Comments = ComplianceActionPlanFormDTO.Comments
 	existingComplianceActionPlan.UpdatedByID = &currentUserID
 
@@ -660,7 +659,7 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 		OwnerID         *uint
 		TitleEn         string
 		TitleAr         string
-		Description     string
+		Description     *string
 		ReferenceNumber string
 		ComplianceTitle string
 	}
@@ -676,14 +675,14 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 			OwnerID         *uint
 			TitleEn         string
 			TitleAr         string
-			Description     string
+			Description     *string
 			ReferenceNumber string
 			ComplianceTitle string
 		}{
 			OwnerID:         &complianceActionPlan.ResponsibleUserID,
 			TitleEn:         complianceActionPlan.Title,
 			TitleAr:         complianceActionPlan.Title,
-			Description:     complianceActionPlan.Description,
+			Description:     &complianceActionPlan.Description,
 			ReferenceNumber: complianceActionPlan.ComplianceRegister.ReferenceNumber,
 			ComplianceTitle: complianceActionPlan.ComplianceRegister.TitleEn,
 		})

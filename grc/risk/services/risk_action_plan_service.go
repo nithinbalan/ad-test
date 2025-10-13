@@ -767,7 +767,7 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 		OwnerID         *uint
 		TitleEn         string
 		TitleAr         string
-		Description     string
+		Description     *string
 		ReferenceNumber string
 		RiskTitle       string
 	}
@@ -791,14 +791,14 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 			OwnerID         *uint
 			TitleEn         string
 			TitleAr         string
-			Description     string
+			Description     *string
 			ReferenceNumber string
 			RiskTitle       string
 		}{
 			OwnerID:         &riskActionPlan.ResponsibleUserID,
 			TitleEn:         riskActionPlan.Title,
 			TitleAr:         riskActionPlan.Title,
-			Description:     description,
+			Description:     &description,
 			ReferenceNumber: riskActionPlan.RiskRegister.ReferenceNumber,
 			RiskTitle:       riskActionPlan.RiskRegister.Title,
 		})
