@@ -43,6 +43,7 @@ type ComplianceRegisterServiceInterface interface {
 
 	ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO, currentUserID uint) (*os.File, error)
 
+	CreateComplianceVersion(currentUserID uint, complianceRegisterFormDTO *complianceDTOs.ComplianceVersionFormDTO) (uint, error)
 	GetAllVersions(id uint) ([]*complianceDTOs.ComplianceRegisterDetailDTO, error)
 }
 
@@ -201,7 +202,6 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		SeverityLevelID:                 complianceRegisterFormDTO.SeverityLevelID,
 		ReferenceNumber:                 referenceNumber,
 		StandardCode:                    complianceRegisterFormDTO.StandardCode,
-		ComplianceRegisterID:            complianceRegisterFormDTO.ParentComplianceRegisterID,
 		TitleEn:                         complianceRegisterFormDTO.TitleEn,
 		TitleAr:                         complianceRegisterFormDTO.TitleAr,
 		DescriptionEn:                   complianceRegisterFormDTO.DescriptionEn,
@@ -221,44 +221,6 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		IsControlAssessment:             complianceRegisterFormDTO.IsControlAssessment,
 		IsRequirementAssessment:         complianceRegisterFormDTO.IsRequirementAssessment,
 		IsLatest:                        true,
-	}
-
-	if complianceRegisterFormDTO.ParentComplianceRegisterID != nil {
-
-		parentComplianceRegister, err := crs.GetFullDetailsByID(*complianceRegisterFormDTO.ParentComplianceRegisterID)
-		if err != nil {
-			return 0, err
-		}
-
-		parentRegister, err := crs.GetByID(*complianceRegisterFormDTO.ParentComplianceRegisterID)
-		if err != nil {
-			return 0, err
-		}
-
-		for _, version := range parentComplianceRegister.ChildComplianceRegister {
-			versionDetails, err := crs.GetByID(uint(version.ID))
-			if err != nil {
-				return 0, err
-			}
-
-			versionDetails.IsLatest = false
-
-			err = crs.repo.Update(versionDetails, tx)
-			if err != nil {
-				tx.Rollback()
-				return 0, err
-			}
-		}
-
-		parentRegister.IsLatest = false
-
-		err = crs.repo.Update(parentRegister, tx)
-		if err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-
-		complianceRegister.StandardCode = &parentComplianceRegister.StandardCode
 	}
 
 	id, err := crs.repo.Create(complianceRegister, tx)
@@ -1324,6 +1286,244 @@ func (crs *ComplianceRegisterService) handleDocument(currentUserID uint, complia
 	return nil
 }
 
+func (crs *ComplianceRegisterService) CreateComplianceVersion(currentUserID uint, complianceRegisterFormDTO *complianceDTOs.ComplianceVersionFormDTO) (uint, error) {
+	parentCompliance, err := crs.GetByID(*complianceRegisterFormDTO.ParentComplianceRegisterID)
+	if err != nil {
+		return 0, err
+	}
+
+	tx := crs.repo.BeginTransaction()
+
+	referenceNumber, err := crs.repo.GenerateReferenceNumber()
+	if err != nil {
+		return 0, err
+	}
+
+	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByType("active")
+	if err != nil {
+		return 0, err
+	}
+
+	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentEn); err != nil {
+		return 0, err
+	}
+
+	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentAr); err != nil {
+		return 0, err
+	}
+
+	responsibleUnitID, err := crs.userSvc.GetUserPrimaryUnitID(uint(parentCompliance.ResponsibleUserID))
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "bcp communication plan responsible unit")
+	}
+
+	complianceRegister := &models.ComplianceRegister{
+		ComplianceCategoryID:            parentCompliance.ComplianceCategoryID,
+		ComplianceStatusID:              parentCompliance.ComplianceStatusID,
+		ResponsibleUnitID:               responsibleUnitID,
+		ResponsibleUserID:               parentCompliance.ResponsibleUserID,
+		ReviewFrequencyID:               parentCompliance.ReviewFrequencyID,
+		LastReviewNote:                  parentCompliance.LastReviewNote,
+		ReviewResponsibleUserID:         parentCompliance.ReviewResponsibleUserID,
+		SeverityLevelID:                 parentCompliance.SeverityLevelID,
+		ReferenceNumber:                 referenceNumber,
+		StandardCode:                    parentCompliance.StandardCode,
+		ParentComplianceRegisterID:      complianceRegisterFormDTO.ParentComplianceRegisterID,
+		TitleEn:                         parentCompliance.TitleEn,
+		TitleAr:                         parentCompliance.TitleAr,
+		DescriptionEn:                   complianceRegisterFormDTO.DescriptionEn,
+		DescriptionAr:                   complianceRegisterFormDTO.DescriptionAr,
+		Version:                         complianceRegisterFormDTO.Version,
+		Deadline:                        parentCompliance.Deadline,
+		IssueDate:                       parentCompliance.IssueDate,
+		ExpiryDate:                      parentCompliance.ExpiryDate,
+		NextReviewDate:                  parentCompliance.NextReviewDate,
+		LastReviewedDate:                parentCompliance.LastReviewedDate,
+		LastReviewedUserID:              parentCompliance.LastReviewedUserID,
+		ComplianceReviewStatusID:        parentCompliance.ComplianceReviewStatusID,
+		CreatedBYID:                     currentUserID,
+		LifecycleStatusID:               lifecycleStatus.ID,
+		ComplianceFolderID:              parentCompliance.ComplianceFolderID,
+		ComplianceAssessmentFrameworkID: parentCompliance.ComplianceAssessmentFrameworkID,
+		IsControlAssessment:             parentCompliance.IsControlAssessment,
+		IsRequirementAssessment:         parentCompliance.IsRequirementAssessment,
+		IsLatest:                        true,
+	}
+
+	parentComplianceRegister, err := crs.GetFullDetailsByID(*complianceRegisterFormDTO.ParentComplianceRegisterID)
+	if err != nil {
+		return 0, err
+	}
+
+	for _, version := range parentComplianceRegister.ChildComplianceRegister {
+		versionDetails, err := crs.GetByID(uint(version.ID))
+		if err != nil {
+			return 0, err
+		}
+
+		versionDetails.IsLatest = false
+
+		err = crs.repo.Update(versionDetails, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	parentCompliance.IsLatest = false
+
+	err = crs.repo.Update(parentCompliance, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	complianceRegister.StandardCode = &parentComplianceRegister.StandardCode
+
+	id, err := crs.repo.Create(complianceRegister, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	complianceStatusID := parentCompliance.ComplianceStatusID
+	complianceStatusUpdate := &models.ComplianceStatusUpdate{
+		ComplianceRegisterID: id,
+		ComplianceStatusID:   complianceStatusID,
+		Comment:              "Initial compliance status",
+		CreatedByID:          currentUserID,
+	}
+
+	_, err = crs.repo.CreateInitialComplianceStatusUpdate(complianceStatusUpdate, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentEn, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentAr, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	tx.Commit()
+
+	go func() {
+		existingCompliance, err := crs.GetFullDetailsByID(complianceRegister.ID)
+		if err != nil {
+			utility.LogError("Failed to fetch compliance register", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		err = crs.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.ComplianceRegister{}.TableName(),
+			id,
+			existingCompliance,
+			currentUserID,
+			"compliance", "compliance_register", "create compliance", nil,
+		)
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.CreateAction,
+				"tableName": models.ComplianceRegister{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+
+		// Prepare notification and email
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "compliance-register"
+		action := "responsible-user-assign"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{parentCompliance.ResponsibleUserID},
+			ModuleIdentifier:     "compliance",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Compliance Register Responsibility Assigned",
+			HeadingAr:            "تم تعيين مسؤولية سجل الامتثال",
+			TitleEn:              parentCompliance.TitleEn,
+			TitleAr:              parentCompliance.TitleAr,
+			ReferenceNumber:      complianceRegister.ReferenceNumber,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		responsibleUser, err := crs.userSvc.GetByID(parentCompliance.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		createdBy, err := crs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		// Assuming GetByID returns only an error and no severity level
+		severityLevel, err := crs.severityLevelSvc.GetByID(*complianceRegister.SeverityLevelID)
+		if err != nil {
+			utility.LogError("Failed to fetch severity level", map[string]interface{}{
+				"error":   err.Error(),
+				"levelID": complianceRegister.SeverityLevelID,
+			})
+			return
+		}
+
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Compliance Register/%s: Responsibility Assigned", complianceRegister.TitleEn)
+		appURL := utility.GetAppURL()
+
+		emailData := map[string]interface{}{
+			"FirstNameEn":               responsibleUser.FirstNameEn,
+			"LastNameEn":                responsibleUser.LastNameEn,
+			"ComplianceReferenceNumber": complianceRegister.ReferenceNumber,
+			"ComplianceTitleEn":         complianceRegister.TitleEn,
+			"ComplianceTitleAr":         complianceRegister.TitleAr,
+			"ComplianceDescription":     complianceRegister.DescriptionEn,
+			"SeverityLevel":             severityLevel.TitleEn,
+			"CreatedByFirstNameEn":      createdBy.FirstNameEn,
+			"CreatedByLastNameEn":       createdBy.LastNameEn,
+			"AssignedOn":                time.Now().Format("2006-01-02"),
+			"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d", appURL, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "compliance/templates/email/compliance_register_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
+
+		err = crs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_register")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}()
+
+	return id, nil
+}
+
 func (crs ComplianceRegisterService) GetAllVersions(id uint) ([]*complianceDTOs.ComplianceRegisterDetailDTO, error) {
 	var complianceDTO []*complianceDTOs.ComplianceRegisterDetailDTO
 	filteredCompliance := make([]*models.ComplianceRegister, 0)
@@ -1334,8 +1534,8 @@ func (crs ComplianceRegisterService) GetAllVersions(id uint) ([]*complianceDTOs.
 	}
 
 	complianceRegisterID := id
-	if existingComplianceRegister.ComplianceRegisterID != nil {
-		complianceRegisterID = *existingComplianceRegister.ComplianceRegisterID
+	if existingComplianceRegister.ParentComplianceRegisterID != nil {
+		complianceRegisterID = *existingComplianceRegister.ParentComplianceRegisterID
 		parentRegister, err := crs.GetByID(complianceRegisterID)
 		if err != nil {
 			return nil, err

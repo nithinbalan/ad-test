@@ -28,7 +28,7 @@ type ComplianceRegister struct {
 	LastReviewedUserID              *uint      `json:"last_reviewed_user_id" gorm:"default:null"`
 	LastReviewNote                  *string    `json:"last_review_note" gorm:"type:varchar(max)"`
 	IsLatest                        bool       `json:"is_latest"`
-	ComplianceRegisterID            *uint      `json:"compliance_register_id"`
+	ParentComplianceRegisterID      *uint      `json:"parent_compliance_register_id" gorm:"column:compliance_register_id"`
 	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                       *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBYID                     uint       `json:"created_by_id" gorm:"not null"`
@@ -55,8 +55,8 @@ type ComplianceRegister struct {
 	ComplianceReviewStatus        *ComplianceReviewStatus        `gorm:"foreignKey:ComplianceReviewStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	DocumentEn                    *ComplianceDocument            `gorm:"foreignKey:ComplianceRegisterID"`
 	DocumentAr                    *ComplianceDocument            `gorm:"foreignKey:ComplianceRegisterID"`
-	ParentComplianceRegister      *ComplianceRegister            `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ChildComplianceRegister       []*ComplianceRegister          `gorm:"foreignKey:ComplianceRegisterID"` // Recursive relationship
+	ParentComplianceRegister      *ComplianceRegister            `gorm:"foreignKey:ParentComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ChildComplianceRegister       []*ComplianceRegister          `gorm:"foreignKey:ParentComplianceRegisterID"` // Recursive relationship
 	CreatedByUser                 *User                          `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser                 *User                          `gorm:"foreignKey:UpdatedBYID"`
 	Controls                      []*ComplianceControl           `gorm:"foreignKey:ComplianceRegisterID"`

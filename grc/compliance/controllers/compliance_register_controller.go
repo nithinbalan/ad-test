@@ -452,3 +452,33 @@ func (crc *ComplianceRegisterController) GetAllVersions(c *gin.Context) {
 	c.JSON(http.StatusOK, compliance)
 
 }
+
+func (crc *ComplianceRegisterController) CreateComplianceVersion(c *gin.Context) {
+	var complianceRegisterFormDTO complianceDTOs.ComplianceVersionFormDTO
+
+	if err := c.ShouldBindJSON(&complianceRegisterFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	id, err := crc.service.CreateComplianceVersion(currentUserID, &complianceRegisterFormDTO)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
+}
