@@ -3,6 +3,7 @@ package repositories
 import (
 	"jethur/grc/models"
 	"jethur/grc/settings/dtos"
+	"jethur/utility"
 	"sort"
 
 	"gorm.io/gorm"
@@ -10,7 +11,7 @@ import (
 
 // Interfaces
 type ModuleRepositoryInterface interface {
-	GetModuleIDByIdentifier(identifier string) (uint, error)
+	GetModuleIDByIdentifier(identifier string, tx ...utility.DatabaseTransaction) (uint, error)
 	GetByID(id uint) (*models.Module, error)
 	GetByIdentifier(identifier string) (*models.Module, error)
 	GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]dtos.ModuleListDTO, error)
@@ -132,9 +133,14 @@ func (repo *ModuleRepository) GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]
 	return &moduleList, nil
 }
 
-func (repo *ModuleRepository) GetModuleIDByIdentifier(identifier string) (uint, error) {
+func (repo *ModuleRepository) GetModuleIDByIdentifier(identifier string, tx ...utility.DatabaseTransaction) (uint, error) {
 	var module models.Module
-	if err := repo.db.Where("identifier = ?", identifier).First(&module).Error; err != nil {
+	
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Where("identifier = ?", identifier).First(&module).Error; err != nil {
 		return 0, err
 	}
 	return module.ID, nil

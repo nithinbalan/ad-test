@@ -16,14 +16,14 @@ type TaskRepositoryInteface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
 	GetByID(id uint) (*models.Task, error)
-	GetByFieldID(field string, value interface{}) (*models.Task, error)
+	GetByFieldID(field string, value interface{}, tx ...utility.DatabaseTransaction) (*models.Task, error)
 	GetByResponsibleUserID(field string, value interface{}, responsibleuserID uint) (*models.Task, error)
 	GetAllTasksByResponsibleUserID(responsibleuserID uint, delegateeUserID uint) ([]*models.Task, error)
 	GetModuleCountByTaskIDs(taskIDs []uint) (int, error)
 	Create(task *models.Task, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(task *models.Task, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
-	GenerateReferenceNumber() (string, error)
+	GenerateReferenceNumber(tx ...utility.DatabaseTransaction) (string, error)
 
 	UpdateTaskRelatedIDs(taskID uint, relatedTaskIDsJSON string, tx ...utility.DatabaseTransaction) error
 	UpdateDocumentTaskStatus(documentID uint, userID uint, documentWorkflowID uint, status uint) (*models.Task, error)
@@ -213,10 +213,14 @@ func (repo *TaskRepository) GetByID(id uint) (*models.Task, error) {
 
 }
 
-func (repo *TaskRepository) GetByFieldID(field string, value interface{}) (*models.Task, error) {
+func (repo *TaskRepository) GetByFieldID(field string, value interface{}, tx ...utility.DatabaseTransaction) (*models.Task, error) {
 	var task models.Task
 
-	result := repo.db.Where(field+" = ?", value).First(&task)
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	result := db.Where(field+" = ?", value).First(&task)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -269,9 +273,13 @@ func (repo *TaskRepository) Create(task *models.Task, tx ...utility.DatabaseTran
 	return task.ID, nil
 }
 
-func (repo *TaskRepository) GenerateReferenceNumber() (string, error) {
+func (repo *TaskRepository) GenerateReferenceNumber(tx ...utility.DatabaseTransaction) (string, error) {
 	var lastReferenceNumber string
-	err := repo.db.Model(&models.Task{}).
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	err := db.Model(&models.Task{}).
 		Select("reference_number").
 		Order("reference_number desc").
 		Limit(1).
