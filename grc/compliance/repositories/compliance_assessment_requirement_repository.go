@@ -30,6 +30,9 @@ type ComplianceAssessmentRequirementRepositoryInterface interface {
 	GetComplianceAssessmentRequirementResponsibleUnitByID(id uint) (*models.ComplianceAssessmentRequirementResponsibleUnit, error)
 	UpdateComplianceAssessmentRequirementResponsibleUnit(complianceAssessmentRequirementResponsibleUnit *models.ComplianceAssessmentRequirementResponsibleUnit, tx ...utility.DatabaseTransaction) error
 	ComplianceAssessmentUpdateStatus(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error
+	UpdateComplianceStatus(complianceRegisterID uint, complianceStatusID uint, score float64, tx ...utility.DatabaseTransaction) error
+	UpdateComplianceAssessmentRequirementStatus(assessmentReqID uint, complianceStatusID uint, score float64, tx ...utility.DatabaseTransaction) error
+	UpdateClauseComplianceStatus(clauseID uint, statusID uint, score float64, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceAssessmentRequirementRepository struct {
@@ -356,5 +359,45 @@ func (repo *ComplianceAssessmentRequirementRepository) ComplianceAssessmentUpdat
 	if err := db.Save(complianceAssessment).Error; err != nil {
 		return err
 	}
+	return nil
+}
+
+func (repo *ComplianceAssessmentRequirementRepository) UpdateComplianceStatus(complianceRegisterID uint, complianceStatusID uint, score float64, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Model(&models.ComplianceRegister{}).
+		Where("id = ?", complianceRegisterID).
+		Update("compliance_status_id", complianceStatusID).Update("score", score).Error
+}
+func (repo *ComplianceAssessmentRequirementRepository) UpdateComplianceAssessmentRequirementStatus(assessmentReqID uint, complianceStatusID uint, score float64, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Model(&models.ComplianceAssessmentRequirement{}).
+		Where("id = ?", assessmentReqID).
+		Update("compliance_status_id", complianceStatusID).Update("score", score).Error
+}
+func (repo *ComplianceAssessmentRequirementRepository) UpdateClauseComplianceStatus(clauseID uint, statusID uint, score float64, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	res := db.Model(&models.ComplianceClause{}).
+		Where("id = ?", clauseID).
+		Updates(map[string]interface{}{
+			"compliance_status_id": statusID,
+			"score":                score,
+		})
+
+	if res.Error != nil {
+		return res.Error
+	}
+
 	return nil
 }

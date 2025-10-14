@@ -104,7 +104,7 @@ func (cac *ComplianceAssessmentController) GetComplianceAssessmentDetails(c *gin
 		return
 	}
 
-	complianceAssessment, err := cac.service.GetFullDetailsByID(uint(id))
+	complianceAssessment, err := cac.service.GetFullDetailsByIDOptimized(uint(id))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -271,7 +271,14 @@ func (cac *ComplianceAssessmentController) GetComplianceScoreSummary(c *gin.Cont
 		return
 	}
 
-	statusCounts, err := cac.service.GetComplianceScoreSummary(uint(id))
+	allowedParams := []string{
+		"responsible_unit_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+	queryParams := complianceDTOs.ComplianceAssessmentScoreSummaryQueryParamsDTO{
+		Filters: filters,
+	}
+	statusCounts, err := cac.service.GetComplianceScoreSummary(uint(id), &queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(cac.db, c, err.Error())
 		return

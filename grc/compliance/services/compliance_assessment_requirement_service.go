@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -55,6 +56,7 @@ type ComplianceAssessmentRequirementService struct {
 	notificationSvc                          commonServices.NotificationServiceInterface
 	complianceAssessmentFrameworkSvc         ComplianceAssessmentFrameworkServiceInterface
 	complianceAssessmentStatusSvc            ComplianceAssessmentStatusServiceInterface
+	complianceStatusSvc                      ComplianceStatusServiceInterface
 }
 
 func NewComplianceAssessmentRequirementService(
@@ -67,6 +69,7 @@ func NewComplianceAssessmentRequirementService(
 	notificationSvc commonServices.NotificationServiceInterface,
 	complianceAssessmentFrameworkSvc ComplianceAssessmentFrameworkServiceInterface,
 	complianceAssessmentStatusSvc ComplianceAssessmentStatusServiceInterface,
+	complianceStatusSvc ComplianceStatusServiceInterface,
 ) ComplianceAssessmentRequirementServiceInterface {
 	return &ComplianceAssessmentRequirementService{
 		repo:                                     repo,
@@ -78,6 +81,7 @@ func NewComplianceAssessmentRequirementService(
 		notificationSvc:                          notificationSvc,
 		complianceAssessmentFrameworkSvc:         complianceAssessmentFrameworkSvc,
 		complianceAssessmentStatusSvc:            complianceAssessmentStatusSvc,
+		complianceStatusSvc:                      complianceStatusSvc,
 	}
 }
 
@@ -98,11 +102,9 @@ func (cars *ComplianceAssessmentRequirementService) GetAllClauses(assessmentID u
 }
 
 func (cars *ComplianceAssessmentRequirementService) buildHierarchicalClauseStructure(clauses []*models.ComplianceClause, countMap map[uint]complianceDTOs.ClauseRequirementCountDTO) ([]*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO, error) {
-	// Build a proper hierarchy by filtering out child clauses from the root level
-	var rootClauses []*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO
-	clauseMap := make(map[uint]*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO)
 
-	// Convert all clauses into DTOs and map them by ID
+	// 1) Create DTOs and index by ID
+	clauseMap := make(map[uint]*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO, len(clauses))
 	for _, clause := range clauses {
 		dto := &complianceDTOs.ComplianceAssessmentRequirementClausesListDTO{
 			ID:                    clause.ID,
@@ -113,24 +115,50 @@ func (cars *ComplianceAssessmentRequirementService) buildHierarchicalClauseStruc
 			TotalRequirements:     0,
 			CompletedRequirements: 0,
 		}
-		if counts, ok := countMap[clause.ID]; ok {
-			dto.TotalRequirements = counts.TotalRequirements
-			dto.CompletedRequirements = counts.CompletedRequirements
+		// seed leaf/self counts from DB (direct counts)
+		if c, ok := countMap[clause.ID]; ok {
+			dto.TotalRequirements = c.TotalRequirements
+			dto.CompletedRequirements = c.CompletedRequirements
 		}
 		clauseMap[clause.ID] = dto
 	}
 
-	// Build hierarchy by linking children to their parent
+	// 2) Wire up the hierarchy
+	var roots []*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO
 	for _, clause := range clauses {
 		if clause.ParentClauseID != nil {
 			parent := clauseMap[*clause.ParentClauseID]
 			parent.ChildClauses = append(parent.ChildClauses, clauseMap[clause.ID])
 		} else {
-			rootClauses = append(rootClauses, clauseMap[clause.ID])
+			roots = append(roots, clauseMap[clause.ID])
 		}
 	}
 
-	return rootClauses, nil
+	// 3) Roll-up: post-order sum of children into parent
+	var rollup func(n *complianceDTOs.ComplianceAssessmentRequirementClausesListDTO) (tot, done int)
+	rollup = func(n *complianceDTOs.ComplianceAssessmentRequirementClausesListDTO) (int, int) {
+		// start from self (direct counts)
+		total := n.TotalRequirements
+		completed := n.CompletedRequirements
+
+		// add children recursively
+		for _, ch := range n.ChildClauses {
+			ct, cd := rollup(ch)
+			total += ct
+			completed += cd
+		}
+
+		// write rolled-up numbers back to the node
+		n.TotalRequirements = total
+		n.CompletedRequirements = completed
+		return total, completed
+	}
+
+	for _, r := range roots {
+		rollup(r)
+	}
+
+	return roots, nil
 }
 
 func (cars *ComplianceAssessmentRequirementService) GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentRequirementListResponseDTO, error) {
@@ -779,7 +807,10 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 		tx.Rollback()
 		return err
 	}
-
+	if err := cars.CalculateComplianceRequirementScores(assessmentID, requirementID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
 	tx.Commit()
 
 	// Log the action
@@ -1206,4 +1237,447 @@ func (cars ComplianceAssessmentRequirementService) GetComplianceAssessmentRequir
 		return nil, err
 	}
 	return complianceAssessmentRequirementResponsibleUnit, nil
+}
+
+func (cars *ComplianceAssessmentRequirementService) CalculateComplianceRequirementScores(assessmentID uint, changedRequirementID uint, tx ...utility.DatabaseTransaction) error {
+	assessment, err := cars.complianceAssessmentSvc.GetFullDetailsByIDOptimized(assessmentID, tx...)
+	if err != nil {
+		return err
+	}
+	if assessment == nil || assessment.ComplianceRegister == nil {
+		return fmt.Errorf("assessment/register not found")
+	}
+	register := assessment.ComplianceRegister
+
+	// ---------- Framework setup ----------
+	frameworkType := ""
+	fvMap := make(map[uint]int) // frameworkValueID -> numeric value
+	maxFV := 0
+
+	if f := register.ComplianceAssessmentFramework; f != nil {
+		if f.AssessmentFrameworkType != nil {
+			frameworkType = f.AssessmentFrameworkType.Type
+		}
+		for _, v := range f.Values {
+			if v == nil || v.Value == nil {
+				continue
+			}
+			fvMap[uint(v.ID)] = *v.Value
+			if *v.Value > maxFV {
+				maxFV = *v.Value
+			}
+		}
+	}
+
+	perReqMax := func() float64 {
+		switch frameworkType {
+		case "percentage":
+			return 100.0
+		case "binary":
+			return 1.0
+		case "point", "maturity":
+			if maxFV > 0 {
+				return float64(maxFV)
+			}
+			if frameworkType == "point" {
+				return 2.0
+			}
+			return 5.0
+		default:
+			return 100.0
+		}
+	}()
+
+	// ---------- Find the changed requirement ----------
+	var changedReq *complianceDTOs.ComplianceAssessmentRequirementDTO
+	for _, r := range assessment.AssessmentRequirements {
+		if r != nil && r.ID != nil && *r.ID == changedRequirementID {
+			changedReq = r
+			break
+		}
+	}
+	if changedReq == nil || changedReq.ComplianceRequirementID == 0 || changedReq.ComplianceRequirement.ID == 0 {
+		return fmt.Errorf("requirement not found in assessment detail")
+	}
+
+	// Helper: does this applicable RU contribute to MaxPossible?
+	// Your new rule: count MaxPossible **only if** the RU has a value/score.
+	ruContributesMax := func(ru *complianceDTOs.ComplianceAssessmentRequirementResponsibleUnitDTO) bool {
+		// must be applicable
+		isApplicable := true
+		if ru.ComplianceAssessmentFrameworkValue != nil && ru.ComplianceAssessmentFrameworkValue.IsApplicable != nil {
+			isApplicable = *ru.ComplianceAssessmentFrameworkValue.IsApplicable
+		}
+		if !isApplicable {
+			return false
+		}
+		switch frameworkType {
+		case "point", "maturity", "binary":
+			return ru.ComplianceAssessmentFrameworkValue != nil // has a band/value id
+		case "percentage":
+			return ru.Score != nil // has an explicit number
+		default:
+			return ru.Score != nil
+		}
+	}
+
+	// ---------- (A) Recompute the CHANGED requirement status/score ----------
+	var total, maxPossible float64
+	applicableSeen := false
+	naCount := 0
+
+	for _, ru := range changedReq.ResponsibleUnits {
+		if ru == nil {
+			continue
+		}
+		// applicability
+		isApplicable := true
+		if ru.ComplianceAssessmentFrameworkValue != nil && ru.ComplianceAssessmentFrameworkValue.IsApplicable != nil {
+			isApplicable = *ru.ComplianceAssessmentFrameworkValue.IsApplicable
+		}
+		if !isApplicable {
+			naCount++
+			continue
+		}
+		applicableSeen = true
+
+		// Max only if value/score present
+		if ruContributesMax(ru) {
+			maxPossible += perReqMax
+		}
+
+		// Score contribution
+		switch frameworkType {
+		case "point", "maturity":
+			if ru.ComplianceAssessmentFrameworkValue != nil {
+				if val, ok := fvMap[uint(ru.ComplianceAssessmentFrameworkValue.ID)]; ok {
+					total += float64(val)
+				}
+			}
+		case "percentage":
+			if ru.Score != nil {
+				total += float64(*ru.Score)
+			}
+		case "binary":
+			if ru.ComplianceAssessmentFrameworkValue != nil {
+				if raw, ok := fvMap[uint(ru.ComplianceAssessmentFrameworkValue.ID)]; ok && raw > 0 {
+					total += 1.0
+				}
+			}
+		default:
+			if ru.Score != nil {
+				total += float64(*ru.Score)
+			}
+		}
+	}
+
+	// All NA → mark requirement NA
+	if !applicableSeen && naCount > 0 {
+		notApplicable, err := cars.complianceStatusSvc.GetByType("not_applicable")
+		if err != nil {
+			return err
+		}
+		if err := cars.repo.UpdateComplianceAssessmentRequirementStatus(*changedReq.ID, notApplicable.ID, 0, tx...); err != nil {
+			return err
+		}
+	} else {
+		reqPct := 0.0
+		if maxPossible > 0 {
+			reqPct = (total / maxPossible) * 100.0
+			// if reqPct == 100 {
+			// 	reqPct = 99.99
+			// }
+		}
+		reqScore := float64(int(reqPct*100)) / 100
+
+		var reqStatusID uint
+		if f := register.ComplianceAssessmentFramework; f != nil {
+			for _, fv := range f.Values {
+				if fv == nil || fv.ScoreMin == nil || fv.ScoreMax == nil {
+					continue
+				}
+				min := float64(*fv.ScoreMin)
+				max := float64(*fv.ScoreMax)
+				if reqPct >= min && (reqPct < max || (reqPct == max && max == 100)) {
+					reqStatusID = fv.ComplianceStatusID
+					break
+				}
+			}
+		}
+		if err := cars.repo.UpdateComplianceAssessmentRequirementStatus(*changedReq.ID, reqStatusID, reqScore, tx...); err != nil {
+			return err
+		}
+	}
+
+	// ---------- (B) Single-pass compute ALL requirement scores (cache) ----------
+	type reqScore struct {
+		score   float64 // % rounded (0..100]
+		counted bool    // counted in clause average
+		clause  uint
+	}
+	reqScores := make(map[uint]reqScore) // reqID -> reqScore
+
+	for _, r := range assessment.AssessmentRequirements {
+		if r == nil || r.ComplianceRequirement.ID == 0 || r.ID == nil {
+			continue
+		}
+		var s, m float64
+		var anyApplicable bool
+		na := 0
+
+		for _, ru := range r.ResponsibleUnits {
+			if ru == nil {
+				continue
+			}
+			// applicability
+			isApplicable := true
+			if ru.ComplianceAssessmentFrameworkValue != nil && ru.ComplianceAssessmentFrameworkValue.IsApplicable != nil {
+				isApplicable = *ru.ComplianceAssessmentFrameworkValue.IsApplicable
+			}
+			if !isApplicable {
+				na++
+				continue
+			}
+			anyApplicable = true
+
+			// Max only if value/score present
+			if ruContributesMax(ru) {
+				m += perReqMax
+			}
+
+			// score
+			switch frameworkType {
+			case "point", "maturity":
+				if ru.ComplianceAssessmentFrameworkValue != nil {
+					if val, ok := fvMap[uint(ru.ComplianceAssessmentFrameworkValue.ID)]; ok {
+						s += float64(val)
+					}
+				}
+			case "percentage":
+				if ru.Score != nil {
+					s += float64(*ru.Score)
+				}
+			case "binary":
+				if ru.ComplianceAssessmentFrameworkValue != nil {
+					if raw, ok := fvMap[uint(ru.ComplianceAssessmentFrameworkValue.ID)]; ok && raw > 0 {
+						s += 1.0
+					}
+				}
+			default:
+				if ru.Score != nil {
+					s += float64(*ru.Score)
+				}
+			}
+		}
+
+		out := reqScore{clause: r.ComplianceRequirement.ComplianceClause.ID}
+		// If all NA → exclude from averages
+		if !anyApplicable && na > 0 {
+			out.counted = false
+			reqScores[*r.ID] = out
+			continue
+		}
+		if m == 0 {
+			// Applicable but no values yet → don’t count in averages
+			out.counted = false
+			reqScores[*r.ID] = out
+			continue
+		}
+		pct := (s / m) * 100.0
+		// if pct == 100 {
+		// 	pct = 99.99
+		// }
+		out.score = float64(int(pct*100)) / 100
+		out.counted = true
+		reqScores[*r.ID] = out
+	}
+	// ---------- (C) Build clause graph & seed with SELF (direct) requirement scores ----------
+	type cAgg struct {
+		selfSum  float64 // sum of direct req scores under this clause
+		selfCnt  int     // number of counted direct reqs
+		final    float64 // computed final for this clause (after roll-up)
+		hasFinal bool    // whether final is valid
+	}
+
+	agg := map[uint]*cAgg{}           // clauseID -> aggregates
+	parentOf := map[uint]*uint{}      // childID -> parentID
+	children := map[uint][]uint{}     // parentID -> []childIDs
+	seenClause := map[uint]struct{}{} // all clauses present
+
+	// Collect nodes + parent relations
+	for _, r := range assessment.AssessmentRequirements {
+		if r == nil || r.ComplianceRequirement.ID == 0 {
+			continue
+		}
+		cl := r.ComplianceRequirement.ComplianceClause
+		cid := cl.ID
+		seenClause[cid] = struct{}{}
+		if agg[cid] == nil {
+			agg[cid] = &cAgg{}
+		}
+		if cl.ParentClauseID != nil {
+			parentOf[cid] = cl.ParentClauseID
+			children[*cl.ParentClauseID] = append(children[*cl.ParentClauseID], cid)
+			seenClause[*cl.ParentClauseID] = struct{}{}
+			if agg[*cl.ParentClauseID] == nil {
+				agg[*cl.ParentClauseID] = &cAgg{}
+			}
+		} else {
+			parentOf[cid] = nil
+		}
+	}
+
+	// Seed SELF sums/counts from cached requirement scores (reqScores)
+	for _, r := range assessment.AssessmentRequirements {
+		if r == nil || r.ID == nil {
+			continue
+		}
+		rs, ok := reqScores[*r.ID]
+		if !ok || !rs.counted {
+			continue
+		}
+		a := agg[rs.clause]
+		a.selfSum += rs.score
+		a.selfCnt++
+	}
+
+	// ---------- (D) Bottom-up roll-up with SIMPLE (non-weighted) child avg ----------
+	var round2 = func(x float64) float64 {
+		return math.Round(x*100) / 100
+	}
+
+	// find root clauses (no parent)
+	roots := make([]uint, 0)
+	for cid := range seenClause {
+		if parentOf[cid] == nil {
+			roots = append(roots, cid)
+		}
+	}
+
+	visited := map[uint]bool{}
+	var postOrder func(uint)
+	postOrder = func(cid uint) {
+		if visited[cid] {
+			return
+		}
+		visited[cid] = true
+
+		// process children first
+		childSum := 0.0
+		childCnt := 0
+		for _, ch := range children[cid] {
+			postOrder(ch)
+			if agg[ch] != nil && agg[ch].hasFinal {
+				childSum += agg[ch].final
+				childCnt++
+			}
+		}
+
+		// self average (if any)
+		var (
+			selfAvg  float64
+			hasSelf  bool
+			childAvg float64
+			hasChild bool
+		)
+
+		if a := agg[cid]; a != nil {
+			if a.selfCnt > 0 {
+				selfAvg = round2(a.selfSum / float64(a.selfCnt))
+				hasSelf = true
+			}
+		}
+		if childCnt > 0 {
+			childAvg = round2(childSum / float64(childCnt)) // SIMPLE average of direct children
+			hasChild = true
+		}
+
+		// combine per your rule
+		switch {
+		case hasSelf && hasChild:
+			agg[cid].final = round2((selfAvg + childAvg) / 2.0)
+			agg[cid].hasFinal = true
+		case hasSelf:
+			agg[cid].final = selfAvg
+			agg[cid].hasFinal = true
+		case hasChild:
+			agg[cid].final = childAvg
+			agg[cid].hasFinal = true
+		default:
+			agg[cid].hasFinal = false
+		}
+	}
+
+	// run post-order from each root
+	for _, root := range roots {
+		postOrder(root)
+	}
+
+	// Persist every clause that has a final
+	for cid, a := range agg {
+		var avg float64
+		if a != nil && a.hasFinal {
+			avg = a.final
+		} else {
+			avg = 0 // or skip entirely if you prefer not to touch empty clauses
+		}
+
+		var clauseStatusID uint
+		if f := register.ComplianceAssessmentFramework; f != nil {
+			for _, fv := range f.Values {
+				if fv == nil || fv.ScoreMin == nil || fv.ScoreMax == nil {
+					continue
+				}
+				min := float64(*fv.ScoreMin)
+				max := float64(*fv.ScoreMax)
+				if avg >= min && (avg < max || (avg == max && max == 100)) {
+					clauseStatusID = fv.ComplianceStatusID
+					break
+				}
+			}
+		}
+		if a != nil && a.hasFinal {
+			if err := cars.repo.UpdateClauseComplianceStatus(cid, clauseStatusID, avg, tx...); err != nil {
+				return err
+			}
+		}
+	}
+
+	// ---------- (E) Overall = SIMPLE average of root clause finals ----------
+	var (
+		overallSum float64
+		overallCnt int
+	)
+	for _, root := range roots {
+		if a := agg[root]; a != nil && a.hasFinal {
+			overallSum += a.final
+			overallCnt++
+		}
+	}
+	overallPct := 0.0
+	if overallCnt > 0 {
+		overallPct = overallSum / float64(overallCnt)
+	}
+	overallScore := round2(overallPct)
+
+	// Persist register
+	var overallStatusID uint
+	if f := register.ComplianceAssessmentFramework; f != nil {
+		for _, fv := range f.Values {
+			if fv == nil || fv.ScoreMin == nil || fv.ScoreMax == nil {
+				continue
+			}
+			min := float64(*fv.ScoreMin)
+			max := float64(*fv.ScoreMax)
+			if overallPct >= min && (overallPct < max || (overallPct == max && max == 100)) {
+				overallStatusID = fv.ComplianceStatusID
+				break
+			}
+		}
+	}
+	if err := cars.repo.UpdateComplianceStatus(uint(register.ID), overallStatusID, overallScore, tx...); err != nil {
+		return err
+	}
+
+	return nil
 }

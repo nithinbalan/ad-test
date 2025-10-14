@@ -54,6 +54,8 @@ type ComplianceAssessmentRepositoryInterface interface {
 	AssessmentControlCompletionRollup(assessmentID uint) (*complianceDTOs.AssessmentCompletionRollupDTO, error)
 	GetComplianceStatusSummaryByControl(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error)
 	GetComplianceScoreSummaryByControl(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error)
+	GetFullDetailsByIDOptimized(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessment, error)
+	ComputeFlagsFast(assessmentID uint, tx ...utility.DatabaseTransaction) (isCompleted, isApproved bool, err error)
 }
 
 type ComplianceAssessmentRepository struct {
@@ -206,13 +208,14 @@ func (repo *ComplianceAssessmentRepository) GetByID(id uint) (*models.Compliance
 }
 
 func (repo *ComplianceAssessmentRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessment, error) {
+
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	var complianceAssessment *models.ComplianceAssessment
+	var m models.ComplianceAssessment
 
-	result := db.
+	if err := db.
 		Preload("ComplianceRegister").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType").
@@ -242,13 +245,11 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("ReviewedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
-		First(&complianceAssessment, id)
-
-	if result.Error != nil {
-		return nil, result.Error
+		First(&m, id).Error; err != nil {
+		return nil, err
 	}
 
-	return complianceAssessment, nil
+	return &m, nil
 }
 
 func (repo *ComplianceAssessmentRepository) GetMinimalDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessment, error) {
@@ -256,6 +257,7 @@ func (repo *ComplianceAssessmentRepository) GetMinimalDetailsByID(id uint, tx ..
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
+
 	var complianceAssessment *models.ComplianceAssessment
 
 	result := db.
@@ -277,7 +279,6 @@ func (repo *ComplianceAssessmentRepository) GetMinimalDetailsByID(id uint, tx ..
 	if result.Error != nil {
 		return nil, result.Error
 	}
-
 	return complianceAssessment, nil
 }
 func (repo *ComplianceAssessmentRepository) Create(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) (uint, error) {
@@ -462,7 +463,6 @@ func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummaryByRequirem
 			LEFT JOIN compliance_assessment_framework_values cafv
 				ON cafv.id = carru.compliance_assessment_framework_value_id
 			WHERE car.compliance_assessment_id = ?
-			  AND cas.type = 'approved'
 			GROUP BY cafv.compliance_status_id
 		) agg
 			ON agg.compliance_status_id = cs.id
@@ -802,4 +802,607 @@ func (repo *ComplianceAssessmentRepository) GetComplianceScoreSummaryByControl(a
 		return nil, err
 	}
 	return &result, nil
+}
+
+const chunkSize = 800 // < 2100 SQL Server parameter limit safe margin
+
+func (repo *ComplianceAssessmentRepository) GetFullDetailsByIDOptimized(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessment, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	db = db.Session(&gorm.Session{
+		QueryFields: true,
+		PrepareStmt: true,
+	})
+	// 1) Load light header only
+	var a *models.ComplianceAssessment
+	if err := db.
+		Preload("ComplianceRegister").
+		Preload("ComplianceRegister.ComplianceAssessmentFramework").
+		Preload("ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType").
+		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values").
+		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values.ComplianceStatus").
+		Preload("ComplianceRegister.ResponsibleUser").
+		Preload("ReviewUser").
+		Preload("ComplianceAssessmentStatus").
+		Preload("SubmittedByUser").
+		Preload("ReviewedByUser").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&a, id).
+		Error; err != nil {
+		return nil, err
+	}
+
+	// 2) Collect requirement IDs first
+	var reqIDs []uint
+	if err := db.
+		Model(&models.ComplianceAssessmentRequirement{}).
+		Where("compliance_assessment_id = ?", id).
+		Order("id ASC").
+		Pluck("id", &reqIDs).Error; err != nil {
+		return nil, err
+	}
+	if len(reqIDs) == 0 {
+		a.AssessmentRequirements = []*models.ComplianceAssessmentRequirement{}
+		// (Optional) Still load controls page-by-page if needed
+		return a, nil
+	}
+
+	// 3) Hydrate requirements (lean) in chunks (no heavy preloads)
+	var reqs []*models.ComplianceAssessmentRequirement
+	{
+		var tmp []models.ComplianceAssessmentRequirement
+		for i := 0; i < len(reqIDs); i += chunkSize {
+			end := min(i+chunkSize, len(reqIDs))
+			var chunk []models.ComplianceAssessmentRequirement
+			if err := db.
+				Where("id IN ?", reqIDs[i:end]).
+				Find(&chunk).Error; err != nil {
+				return nil, err
+			}
+			tmp = append(tmp, chunk...)
+		}
+		reqs = make([]*models.ComplianceAssessmentRequirement, 0, len(tmp))
+		for i := range tmp {
+			reqs = append(reqs, &tmp[i])
+		}
+		a.AssessmentRequirements = reqs
+	}
+
+	// 4) Collect foreign keys to batch-load their relations
+	var complianceReqIDs []uint
+	for _, r := range reqs {
+		complianceReqIDs = append(complianceReqIDs, r.ComplianceRequirementID)
+	}
+
+	// 4a) Batch load ComplianceRequirement (+Clause, +Status) for all reqs
+	var allCR []models.ComplianceRequirement
+	for i := 0; i < len(complianceReqIDs); i += chunkSize {
+		end := min(i+chunkSize, len(complianceReqIDs))
+		var chunk []models.ComplianceRequirement
+		if err := db.
+			Where("id IN ?", complianceReqIDs[i:end]).
+			Find(&chunk).Error; err != nil {
+			return nil, err
+		}
+		allCR = append(allCR, chunk...)
+	}
+	crByID := make(map[uint]*models.ComplianceRequirement, len(allCR))
+	for i := range allCR {
+		crByID[allCR[i].ID] = &allCR[i]
+	}
+	// Attach CR now (clause/status will be stitched next)
+	for _, r := range reqs {
+		r.ComplianceRequirement = crByID[r.ComplianceRequirementID]
+	}
+
+	// 4b) Load Clauses for those CRs
+	var clauseIDs []uint
+	for _, cr := range crByID {
+		if cr != nil && cr.ComplianceClauseID != 0 {
+			clauseIDs = append(clauseIDs, cr.ComplianceClauseID)
+		}
+	}
+	var allClauses []models.ComplianceClause
+	for i := 0; i < len(clauseIDs); i += chunkSize {
+		end := min(i+chunkSize, len(clauseIDs))
+		var chunk []models.ComplianceClause
+		if err := db.Where("id IN ?", clauseIDs[i:end]).Find(&chunk).Error; err != nil {
+			return nil, err
+		}
+		allClauses = append(allClauses, chunk...)
+	}
+	byClauseID := make(map[uint]*models.ComplianceClause, len(allClauses))
+	for i := range allClauses {
+		byClauseID[allClauses[i].ID] = &allClauses[i]
+	}
+	for _, cr := range crByID {
+		if cr != nil && cr.ComplianceClauseID != 0 {
+			cr.ComplianceClause = byClauseID[cr.ComplianceClauseID]
+		}
+	}
+
+	// 4c) Load CR.ComplianceStatus (if used in UI)
+	var crStatusIDs []uint
+	for _, cr := range crByID {
+		if cr != nil && cr.ComplianceStatusID != nil {
+			crStatusIDs = append(crStatusIDs, *cr.ComplianceStatusID)
+		}
+	}
+	if len(crStatusIDs) > 0 {
+		var allSt []models.ComplianceStatus
+		for i := 0; i < len(crStatusIDs); i += chunkSize {
+			end := min(i+chunkSize, len(crStatusIDs))
+			var chunk []models.ComplianceStatus
+			if err := db.Where("id IN ?", crStatusIDs[i:end]).Find(&chunk).Error; err != nil {
+				return nil, err
+			}
+			allSt = append(allSt, chunk...)
+		}
+		byStID := make(map[uint]*models.ComplianceStatus, len(allSt))
+		for i := range allSt {
+			byStID[allSt[i].ID] = &allSt[i]
+		}
+		for _, cr := range crByID {
+			if cr != nil && cr.ComplianceStatusID != nil {
+				cr.ComplianceStatus = byStID[*cr.ComplianceStatusID]
+			}
+		}
+	}
+
+	// 5) Load RUs for all requirement IDs in chunks (lean)
+	var allRUs []models.ComplianceAssessmentRequirementResponsibleUnit
+	for i := 0; i < len(reqIDs); i += chunkSize {
+		end := min(i+chunkSize, len(reqIDs))
+		var chunk []models.ComplianceAssessmentRequirementResponsibleUnit
+		if err := db.
+			Where("compliance_assessment_requirement_id IN ?", reqIDs[i:end]).
+			Find(&chunk).Error; err != nil {
+			return nil, err
+		}
+		allRUs = append(allRUs, chunk...)
+	}
+	// Group RUs by requirement
+	ruByReq := make(map[uint][]*models.ComplianceAssessmentRequirementResponsibleUnit, len(reqIDs))
+	for _, r := range reqIDs {
+		ruByReq[r] = make([]*models.ComplianceAssessmentRequirementResponsibleUnit, 0, 2)
+	}
+	for i := range allRUs {
+		rid := allRUs[i].ComplianceAssessmentRequirementID
+		ruByReq[rid] = append(ruByReq[rid], &allRUs[i])
+	}
+	// Attach to requirements
+	for _, r := range reqs {
+		r.ResponsibleUnits = ruByReq[r.ID]
+	}
+
+	// 6) Batch-load RU relations: ResponsibleUnit, RequiredDocumentTitles, FrameworkValue, Status, CompletedByUser (if any)
+	var respUnitIDs []uint
+	var ruIDs []uint
+	var fvIDs []uint
+	var stIDs []uint
+	var userIDs []uint
+
+	for i := range allRUs {
+		ruIDs = append(ruIDs, allRUs[i].ID)
+		respUnitIDs = append(respUnitIDs, allRUs[i].ResponsibleUnitID)
+		if allRUs[i].ComplianceAssessmentFrameworkValueID != nil {
+			fvIDs = append(fvIDs, *allRUs[i].ComplianceAssessmentFrameworkValueID)
+		}
+		if allRUs[i].ComplianceAssessmentRequirementStatusID != nil {
+			stIDs = append(stIDs, *allRUs[i].ComplianceAssessmentRequirementStatusID)
+		}
+		if allRUs[i].CompletedByUserID != nil {
+			userIDs = append(userIDs, *allRUs[i].CompletedByUserID)
+		}
+	}
+	// De-dup helpers
+	respUnitIDs = uniq(respUnitIDs)
+	fvIDs = uniq(fvIDs)
+	stIDs = uniq(stIDs)
+	userIDs = uniq(userIDs)
+
+	// 6a) RequiredDocumentTitles (by RU)
+	var allDocTitles []models.ComplianceAssessmentRequirementDocumentTitle
+	for i := 0; i < len(ruIDs); i += chunkSize {
+		end := min(i+chunkSize, len(ruIDs))
+		var chunk []models.ComplianceAssessmentRequirementDocumentTitle
+		if err := db.
+			Where("compliance_assessment_requirement_responsible_unit_id IN ?", ruIDs[i:end]).
+			Find(&chunk).Error; err != nil {
+			return nil, err
+		}
+		allDocTitles = append(allDocTitles, chunk...)
+	}
+	docByRU := make(map[uint][]*models.ComplianceAssessmentRequirementDocumentTitle, len(ruIDs))
+	for _, id := range ruIDs {
+		docByRU[id] = make([]*models.ComplianceAssessmentRequirementDocumentTitle, 0, 2)
+	}
+	for i := range allDocTitles {
+		id := allDocTitles[i].ComplianceAssessmentRequirementResponsibleUnitID
+		docByRU[id] = append(docByRU[id], &allDocTitles[i])
+	}
+
+	// 6b) ResponsibleUnit (org unit)
+	var allOrgUnits []models.OrganizationUnit
+	for i := 0; i < len(respUnitIDs); i += chunkSize {
+		end := min(i+chunkSize, len(respUnitIDs))
+		var chunk []models.OrganizationUnit
+		if err := db.Where("id IN ?", respUnitIDs[i:end]).Find(&chunk).Error; err != nil {
+			return nil, err
+		}
+		allOrgUnits = append(allOrgUnits, chunk...)
+	}
+	byOrgUnit := make(map[uint]*models.OrganizationUnit, len(allOrgUnits))
+	for i := range allOrgUnits {
+		byOrgUnit[allOrgUnits[i].ID] = &allOrgUnits[i]
+	}
+
+	// 6c) Framework values
+	var allFVs []models.ComplianceAssessmentFrameworkValue
+	for i := 0; i < len(fvIDs); i += chunkSize {
+		end := min(i+chunkSize, len(fvIDs))
+		var chunk []models.ComplianceAssessmentFrameworkValue
+		if err := db.Where("id IN ?", fvIDs[i:end]).Find(&chunk).Error; err != nil {
+			return nil, err
+		}
+		allFVs = append(allFVs, chunk...)
+	}
+	byFV := make(map[uint]*models.ComplianceAssessmentFrameworkValue, len(allFVs))
+	for i := range allFVs {
+		byFV[allFVs[i].ID] = &allFVs[i]
+	}
+
+	// 6d) RU Status
+	var allRUStatus []models.ComplianceAssessmentRequirementStatus
+	for i := 0; i < len(stIDs); i += chunkSize {
+		end := min(i+chunkSize, len(stIDs))
+		var chunk []models.ComplianceAssessmentRequirementStatus
+		if err := db.Where("id IN ?", stIDs[i:end]).Find(&chunk).Error; err != nil {
+			return nil, err
+		}
+		allRUStatus = append(allRUStatus, chunk...)
+	}
+	byRUStatus := make(map[uint]*models.ComplianceAssessmentRequirementStatus, len(allRUStatus))
+	for i := range allRUStatus {
+		byRUStatus[allRUStatus[i].ID] = &allRUStatus[i]
+	}
+
+	// 6e) Users (CompletedBy)
+	var allUsers []models.User
+	for i := 0; i < len(userIDs); i += chunkSize {
+		end := min(i+chunkSize, len(userIDs))
+		var chunk []models.User
+		if err := db.Where("id IN ?", userIDs[i:end]).Find(&chunk).Error; err != nil {
+			return nil, err
+		}
+		allUsers = append(allUsers, chunk...)
+	}
+	byUser := make(map[uint]*models.User, len(allUsers))
+	for i := range allUsers {
+		byUser[allUsers[i].ID] = &allUsers[i]
+	}
+
+	// 6f) Stitch RU relations
+	for i := range allRUs {
+		ru := &allRUs[i]
+		ru.ResponsibleUnit = byOrgUnit[ru.ResponsibleUnitID]
+		if ru.ComplianceAssessmentFrameworkValueID != nil {
+			ru.ComplianceAssessmentFrameworkValue = byFV[*ru.ComplianceAssessmentFrameworkValueID]
+		}
+		if ru.ComplianceAssessmentRequirementStatusID != nil {
+			ru.ComplianceAssessmentRequirementStatus = byRUStatus[*ru.ComplianceAssessmentRequirementStatusID]
+		}
+		if ru.CompletedByUserID != nil {
+			ru.CompletedByUser = byUser[*ru.CompletedByUserID]
+		}
+		ru.RequiredDocumentTitles = docByRU[ru.ID]
+	}
+
+	// === Controls (optimized)
+	controls, err := repo.loadControlsOptimized(db, id)
+	if err != nil {
+		return nil, err
+	}
+	a.AssessmentControls = controls
+
+	return a, nil
+}
+
+// Loads AssessmentControls and all their relations in chunks and stitches them.
+func (repo *ComplianceAssessmentRepository) loadControlsOptimized(db *gorm.DB, assessmentID uint) ([]*models.ComplianceAssessmentControl, error) {
+	// 1) Collect control row IDs (stable order)
+	var ctrlIDs []uint
+	if err := db.
+		Model(&models.ComplianceAssessmentControl{}).
+		Where("compliance_assessment_id = ?", assessmentID).
+		Order("id ASC").
+		Pluck("id", &ctrlIDs).Error; err != nil {
+		return nil, err
+	}
+	if len(ctrlIDs) == 0 {
+		return []*models.ComplianceAssessmentControl{}, nil
+	}
+
+	// 2) Hydrate control rows (lean) in chunks
+	var rows []models.ComplianceAssessmentControl
+	for i := 0; i < len(ctrlIDs); i += chunkSize {
+		end := min(i+chunkSize, len(ctrlIDs))
+		var chunk []models.ComplianceAssessmentControl
+		if err := db.Where("id IN ?", ctrlIDs[i:end]).Find(&chunk).Error; err != nil {
+			return nil, err
+		}
+		rows = append(rows, chunk...)
+	}
+	// pointer slice
+	controls := make([]*models.ComplianceAssessmentControl, 0, len(rows))
+	for i := range rows {
+		controls = append(controls, &rows[i])
+	}
+
+	// 3) Collect FKs for batch loads
+	var (
+		complianceControlIDs []uint
+		fvIDs                []uint
+		statusIDs            []uint
+		userIDs              []uint
+	)
+	for _, c := range controls {
+		complianceControlIDs = append(complianceControlIDs, c.ComplianceControlID)
+		if c.ComplianceAssessmentFrameworkValueID != nil {
+			fvIDs = append(fvIDs, *c.ComplianceAssessmentFrameworkValueID)
+		}
+		if c.ComplianceAssessmentRequirementStatusID != nil {
+			statusIDs = append(statusIDs, *c.ComplianceAssessmentRequirementStatusID)
+		}
+		if c.CompletedByUserID != nil {
+			userIDs = append(userIDs, *c.CompletedByUserID)
+		}
+	}
+	complianceControlIDs = uniq(complianceControlIDs)
+	fvIDs = uniq(fvIDs)
+	statusIDs = uniq(statusIDs)
+	userIDs = uniq(userIDs)
+
+	// 4) Load ComplianceControl (+ Control, + Clause)
+	var ccRows []models.ComplianceControl
+	for i := 0; i < len(complianceControlIDs); i += chunkSize {
+		end := min(i+chunkSize, len(complianceControlIDs))
+		var chunk []models.ComplianceControl
+		if err := db.Where("id IN ?", complianceControlIDs[i:end]).Find(&chunk).Error; err != nil {
+			return nil, err
+		}
+		ccRows = append(ccRows, chunk...)
+	}
+	ccByID := make(map[uint]*models.ComplianceControl, len(ccRows))
+	for i := range ccRows {
+		ccByID[ccRows[i].ID] = &ccRows[i]
+	}
+
+	// 4a) Load nested Control for those ComplianceControls
+	var ctrlMasterIDs []uint
+	for _, cc := range ccByID {
+		if cc.ControlID != 0 {
+			ctrlMasterIDs = append(ctrlMasterIDs, cc.ControlID)
+		}
+	}
+	ctrlMasterIDs = uniq(ctrlMasterIDs)
+
+	if len(ctrlMasterIDs) > 0 {
+		var masters []models.Control
+		for i := 0; i < len(ctrlMasterIDs); i += chunkSize {
+			end := min(i+chunkSize, len(ctrlMasterIDs))
+			var chunk []models.Control
+			if err := db.Where("id IN ?", ctrlMasterIDs[i:end]).Find(&chunk).Error; err != nil {
+				return nil, err
+			}
+			masters = append(masters, chunk...)
+		}
+		masterByID := make(map[uint]*models.Control, len(masters))
+		for i := range masters {
+			masterByID[masters[i].ID] = &masters[i]
+		}
+		for _, cc := range ccByID {
+			if cc.ControlID != 0 {
+				cc.Control = masterByID[cc.ControlID]
+			}
+		}
+	}
+
+	// 4b) Load Clause for those ComplianceControls
+	var clauseIDs []uint
+	for _, cc := range ccByID {
+		if cc.ComplianceClause != nil {
+			clauseIDs = append(clauseIDs, cc.ComplianceClause.ID)
+		}
+	}
+	clauseIDs = uniq(clauseIDs)
+
+	if len(clauseIDs) > 0 {
+		var clauseRows []models.ComplianceClause
+		for i := 0; i < len(clauseIDs); i += chunkSize {
+			end := min(i+chunkSize, len(clauseIDs))
+			var chunk []models.ComplianceClause
+			if err := db.Where("id IN ?", clauseIDs[i:end]).Find(&chunk).Error; err != nil {
+				return nil, err
+			}
+			clauseRows = append(clauseRows, chunk...)
+		}
+		clauseByID := make(map[uint]*models.ComplianceClause, len(clauseRows))
+		for i := range clauseRows {
+			clauseByID[clauseRows[i].ID] = &clauseRows[i]
+		}
+		for _, cc := range ccByID {
+			if cc.ComplianceClause != nil {
+				cc.ComplianceClause = clauseByID[cc.ComplianceClause.ID]
+			}
+		}
+	}
+
+	// 5) Load RU-like relations on control row: FrameworkValue, Status, CompletedByUser
+	// 5a) Framework values
+	if len(fvIDs) > 0 {
+		var fvRows []models.ComplianceAssessmentFrameworkValue
+		for i := 0; i < len(fvIDs); i += chunkSize {
+			end := min(i+chunkSize, len(fvIDs))
+			var chunk []models.ComplianceAssessmentFrameworkValue
+			if err := db.Where("id IN ?", fvIDs[i:end]).Find(&chunk).Error; err != nil {
+				return nil, err
+			}
+			fvRows = append(fvRows, chunk...)
+		}
+		fvByID := make(map[uint]*models.ComplianceAssessmentFrameworkValue, len(fvRows))
+		for i := range fvRows {
+			fvByID[fvRows[i].ID] = &fvRows[i]
+		}
+		for _, c := range controls {
+			if c.ComplianceAssessmentFrameworkValueID != nil {
+				c.ComplianceAssessmentFrameworkValue = fvByID[*c.ComplianceAssessmentFrameworkValueID]
+			}
+		}
+	}
+
+	// 5b) Statuses
+	if len(statusIDs) > 0 {
+		var stRows []models.ComplianceAssessmentRequirementStatus
+		for i := 0; i < len(statusIDs); i += chunkSize {
+			end := min(i+chunkSize, len(statusIDs))
+			var chunk []models.ComplianceAssessmentRequirementStatus
+			if err := db.Where("id IN ?", statusIDs[i:end]).Find(&chunk).Error; err != nil {
+				return nil, err
+			}
+			stRows = append(stRows, chunk...)
+		}
+		stByID := make(map[uint]*models.ComplianceAssessmentRequirementStatus, len(stRows))
+		for i := range stRows {
+			stByID[stRows[i].ID] = &stRows[i]
+		}
+		for _, c := range controls {
+			if c.ComplianceAssessmentRequirementStatusID != nil {
+				c.ComplianceAssessmentRequirementStatus = stByID[*c.ComplianceAssessmentRequirementStatusID]
+			}
+		}
+	}
+
+	// 5c) Users
+	if len(userIDs) > 0 {
+		var users []models.User
+		for i := 0; i < len(userIDs); i += chunkSize {
+			end := min(i+chunkSize, len(userIDs))
+			var chunk []models.User
+			if err := db.Where("id IN ?", userIDs[i:end]).Find(&chunk).Error; err != nil {
+				return nil, err
+			}
+			users = append(users, chunk...)
+		}
+		userByID := make(map[uint]*models.User, len(users))
+		for i := range users {
+			userByID[users[i].ID] = &users[i]
+		}
+		for _, c := range controls {
+			if c.CompletedByUserID != nil {
+				c.CompletedByUser = userByID[*c.CompletedByUserID]
+			}
+		}
+	}
+
+	// 6) Stitch ComplianceControl onto each AssessmentControl
+	for _, c := range controls {
+		c.ComplianceControl = ccByID[c.ComplianceControlID]
+	}
+
+	return controls, nil
+}
+
+func (repo *ComplianceAssessmentRepository) ComputeFlagsFast(assessmentID uint, tx ...utility.DatabaseTransaction) (isCompleted bool, isApproved bool, err error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// helper: run SELECT CASE WHEN EXISTS (<inner SQL>) THEN 1 ELSE 0 END
+	exists := func(innerSQL string, args ...any) (bool, error) {
+		var flag int
+		// No ORDER BY / LIMIT here; MSSQL will be happy.
+		q := "SELECT CASE WHEN EXISTS (" + innerSQL + ") THEN 1 ELSE 0 END"
+		if err := db.Raw(q, args...).Scan(&flag).Error; err != nil {
+			return false, err
+		}
+		return flag == 1, nil
+	}
+
+	// Any RU not completed?
+	ruIncomplete, err := exists(`
+        SELECT 1
+        FROM compliance_assessment_requirement_responsible_units AS ru
+        JOIN compliance_assessment_requirements AS r
+             ON r.id = ru.compliance_assessment_requirement_id
+        WHERE r.compliance_assessment_id = ? AND ru.is_completed = 0
+    `, assessmentID)
+	if err != nil {
+		return
+	}
+
+	// Any RU not approved? (NULL status is treated as not approved)
+	ruNotApproved, err := exists(`
+        SELECT 1
+        FROM compliance_assessment_requirement_responsible_units AS ru
+        JOIN compliance_assessment_requirements AS r
+             ON r.id = ru.compliance_assessment_requirement_id
+        LEFT JOIN compliance_assessment_requirement_statuses AS s
+               ON s.id = ru.compliance_assessment_requirement_status_id
+        WHERE r.compliance_assessment_id = ?
+          AND (s.id IS NULL OR s.type <> 'approved')
+    `, assessmentID)
+	if err != nil {
+		return
+	}
+
+	// Any Control not completed?
+	ctrlIncomplete, err := exists(`
+        SELECT 1
+        FROM compliance_assessment_controls AS ac
+        WHERE ac.compliance_assessment_id = ? AND ac.is_completed = 0
+    `, assessmentID)
+	if err != nil {
+		return
+	}
+
+	// Any Control not approved? (NULL status counts as not approved)
+	ctrlNotApproved, err := exists(`
+        SELECT 1
+        FROM compliance_assessment_controls AS ac
+        LEFT JOIN compliance_assessment_requirement_statuses AS s
+               ON s.id = ac.compliance_assessment_requirement_status_id
+        WHERE ac.compliance_assessment_id = ?
+          AND (s.id IS NULL OR s.type <> 'approved')
+    `, assessmentID)
+	if err != nil {
+		return
+	}
+
+	isCompleted = !(ruIncomplete || ctrlIncomplete)
+	isApproved = !(ruNotApproved || ctrlNotApproved)
+	return
+}
+
+func uniq(xs []uint) []uint {
+	m := make(map[uint]struct{}, len(xs))
+	out := make([]uint, 0, len(xs))
+	for _, v := range xs {
+		if _, ok := m[v]; !ok {
+			m[v] = struct{}{}
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
