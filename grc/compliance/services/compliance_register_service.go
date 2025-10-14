@@ -1536,7 +1536,7 @@ func (crs ComplianceRegisterService) GetAllVersions(id uint) ([]*complianceDTOs.
 	complianceRegisterID := id
 	if existingComplianceRegister.ParentComplianceRegisterID != nil {
 		complianceRegisterID = *existingComplianceRegister.ParentComplianceRegisterID
-		parentRegister, err := crs.GetByID(complianceRegisterID)
+		parentRegister, err := crs.repo.GetFullDetailsByID(complianceRegisterID)
 		if err != nil {
 			return nil, err
 		}
