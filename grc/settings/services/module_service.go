@@ -15,7 +15,7 @@ import (
 
 type ModuleServiceInterface interface {
 	GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]dtos.ModuleListDTO, error)
-	GetModuleIDByIdentifier(identifier string) (uint, error)
+	GetModuleIDByIdentifier(identifier string, tx ...utility.DatabaseTransaction) (uint, error)
 	GetByID(id uint) (*models.Module, error)
 	GetFullDetailsByID(id uint) (*dtos.ModuleDetailDTO, error)
 	EnableModule(id uint) (*models.Module, error)
@@ -38,8 +38,8 @@ func NewModuleService(repo repositories.ModuleRepositoryInterface) ModuleService
 	}
 }
 
-func (ms *ModuleService) GetModuleIDByIdentifier(identifier string) (uint, error) {
-	return ms.repo.GetModuleIDByIdentifier(identifier)
+func (ms *ModuleService) GetModuleIDByIdentifier(identifier string, tx ...utility.DatabaseTransaction) (uint, error) {
+	return ms.repo.GetModuleIDByIdentifier(identifier, tx...)
 }
 
 func (ms *ModuleService) GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]dtos.ModuleListDTO, error) {

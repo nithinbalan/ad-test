@@ -13,9 +13,9 @@ import (
 type IncidentTimelineServiceInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentTimelineListQueryParamsDTO) (*incidentDTOs.IncidentTimelineListResponseDTO, error)
 	GetAllTypes() ([]models.IncidentTimelineType, error)
-	GetByID(incidentID uint, timelineTypeID uint) (*models.IncidentTimeline, error)
-	GetByType(timelineType string) (*models.IncidentTimelineType, error)
-	GetByStatusType(status string) (*models.TimelineStatus, error)
+	GetByID(incidentID uint, timelineTypeID uint, tx ...utility.DatabaseTransaction) (*models.IncidentTimeline, error)
+	GetByType(timelineType string, tx ...utility.DatabaseTransaction) (*models.IncidentTimelineType, error)
+	GetByStatusType(status string, tx ...utility.DatabaseTransaction) (*models.TimelineStatus, error)
 	Create(timelineFormDTOs []*incidentDTOs.IncidentTimelineFormDTO, tx ...utility.DatabaseTransaction) error
 	Update(incidentID uint, incidentTimelineFormDTO *incidentDTOs.IncidentTimelineFormDTO, timelineTypeID uint, tx ...utility.DatabaseTransaction) error
 	Delete(incidentID uint, tx ...utility.DatabaseTransaction) error
@@ -45,8 +45,8 @@ func (its *IncidentTimelineService) GetAllTypes() ([]models.IncidentTimelineType
 	return its.repo.GetAllTypes()
 }
 
-func (its *IncidentTimelineService) GetByID(incidentID uint, timelineTypeID uint) (*models.IncidentTimeline, error) {
-	incidentTimeline, err := its.repo.GetByID(incidentID, timelineTypeID)
+func (its *IncidentTimelineService) GetByID(incidentID uint, timelineTypeID uint, tx ...utility.DatabaseTransaction) (*models.IncidentTimeline, error) {
+	incidentTimeline, err := its.repo.GetByID(incidentID, timelineTypeID, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, incidentID)
@@ -56,8 +56,8 @@ func (its *IncidentTimelineService) GetByID(incidentID uint, timelineTypeID uint
 	return incidentTimeline, nil
 }
 
-func (its *IncidentTimelineService) GetByType(timelineType string) (*models.IncidentTimelineType, error) {
-	typeResult, err := its.repo.GetByType(timelineType)
+func (its *IncidentTimelineService) GetByType(timelineType string, tx ...utility.DatabaseTransaction) (*models.IncidentTimelineType, error) {
+	typeResult, err := its.repo.GetByType(timelineType, tx...)
 	if err != nil {
 		// Handle error appropriately
 		return nil, err
@@ -66,8 +66,8 @@ func (its *IncidentTimelineService) GetByType(timelineType string) (*models.Inci
 	return typeResult, nil
 }
 
-func (its *IncidentTimelineService) GetByStatusType(status string) (*models.TimelineStatus, error) {
-	statusResult, err := its.repo.GetByStatusType(status)
+func (its *IncidentTimelineService) GetByStatusType(status string, tx ...utility.DatabaseTransaction) (*models.TimelineStatus, error) {
+	statusResult, err := its.repo.GetByStatusType(status, tx...)
 	if err != nil {
 		// Handle error appropriately
 		return nil, err
@@ -96,7 +96,7 @@ func (its *IncidentTimelineService) Create(timelineFormDTOs []*incidentDTOs.Inci
 }
 
 func (its *IncidentTimelineService) Update(incidentID uint, incidentTimelineFormDTO *incidentDTOs.IncidentTimelineFormDTO, timelineTypeID uint, tx ...utility.DatabaseTransaction) error {
-	existingTimeline, err := its.GetByID(incidentID, timelineTypeID)
+	existingTimeline, err := its.GetByID(incidentID, timelineTypeID, tx...)
 	if err != nil {
 		return err
 	}
