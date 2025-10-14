@@ -213,26 +213,10 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByID(id uint, tx ...ut
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	db = db.Session(&gorm.Session{QueryFields: true, PrepareStmt: true})
-
 	var m models.ComplianceAssessment
 
-	// Keep recursion-heavy relations off when loading the register
-	regScope := func(d *gorm.DB) *gorm.DB {
-		return d.Omit(
-			"ParentComplianceRegister",
-			"ChildComplianceRegister", "ChildComplianceRegister.*",
-		)
-	}
-
-	// 1) Load the assessment row with all needed preloads (including register).
-	//    We keep a LEFT JOIN on the register id to help MSSQL/GORM resolve FK context,
-	//    but preloads still run as separate queries.
 	if err := db.
-		Select("compliance_assessments.*").
-		Joins(`LEFT JOIN compliance_register 
-			   ON compliance_register.id = compliance_assessments.compliance_register_id`).
-		Preload("ComplianceRegister", regScope).
+		Preload("ComplianceRegister").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values").
@@ -265,26 +249,6 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByID(id uint, tx ...ut
 		return nil, err
 	}
 
-	// 2) Fallback: on some MSSQL setups, ComplianceRegister may still be nil
-	//    even though FK is present; explicitly fetch and then preload the minimal
-	//    nested graph you need.
-	if m.ComplianceRegister == nil && m.ComplianceRegisterID != 0 {
-		var reg models.ComplianceRegister
-		if err := db.Scopes(regScope).First(&reg, m.ComplianceRegisterID).Error; err == nil {
-			// attach the register
-			m.ComplianceRegister = &reg
-
-			// preload only what UI/DTO needs (no recursion)
-			_ = db.
-				Preload("ComplianceAssessmentFramework").
-				Preload("ComplianceAssessmentFramework.AssessmentFrameworkType").
-				Preload("ComplianceAssessmentFramework.Values").
-				Preload("ComplianceAssessmentFramework.Values.ComplianceStatus").
-				Preload("ResponsibleUser").
-				First(&reg, reg.ID).Error
-		}
-	}
-
 	return &m, nil
 }
 
@@ -293,23 +257,11 @@ func (repo *ComplianceAssessmentRepository) GetMinimalDetailsByID(id uint, tx ..
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	db = db.Session(&gorm.Session{QueryFields: true, PrepareStmt: true})
 
 	var complianceAssessment *models.ComplianceAssessment
 
-	// Keep recursion-heavy relations off when loading the register
-	regScope := func(d *gorm.DB) *gorm.DB {
-		return d.Omit(
-			"ParentComplianceRegister",
-			"ChildComplianceRegister", "ChildComplianceRegister.*",
-		)
-	}
-
 	result := db.
-		Select("compliance_assessments.*").
-		Joins(`LEFT JOIN compliance_register 
-			   ON compliance_register.id = compliance_assessments.compliance_register_id`).
-		Preload("ComplianceRegister", regScope).
+		Preload("ComplianceRegister").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values").
@@ -326,22 +278,6 @@ func (repo *ComplianceAssessmentRepository) GetMinimalDetailsByID(id uint, tx ..
 
 	if result.Error != nil {
 		return nil, result.Error
-	}
-	if complianceAssessment.ComplianceRegister == nil && complianceAssessment.ComplianceRegisterID != 0 {
-		var reg models.ComplianceRegister
-		if err := db.Scopes(regScope).First(&reg, complianceAssessment.ComplianceRegisterID).Error; err == nil {
-			// attach the register
-			complianceAssessment.ComplianceRegister = &reg
-
-			// preload only what UI/DTO needs (no recursion)
-			_ = db.
-				Preload("ComplianceAssessmentFramework").
-				Preload("ComplianceAssessmentFramework.AssessmentFrameworkType").
-				Preload("ComplianceAssessmentFramework.Values").
-				Preload("ComplianceAssessmentFramework.Values.ComplianceStatus").
-				Preload("ResponsibleUser").
-				First(&reg, reg.ID).Error
-		}
 	}
 	return complianceAssessment, nil
 }
@@ -879,20 +815,10 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByIDOptimized(id uint,
 		QueryFields: true,
 		PrepareStmt: true,
 	})
-	// Keep recursion-heavy relations off when loading the register
-	regScope := func(d *gorm.DB) *gorm.DB {
-		return d.Omit(
-			"ParentComplianceRegister",
-			"ChildComplianceRegister", "ChildComplianceRegister.*",
-		)
-	}
 	// 1) Load light header only
 	var a *models.ComplianceAssessment
 	if err := db.
-		Select("compliance_assessments.*").
-		Joins(`LEFT JOIN compliance_register 
-			   ON compliance_register.id = compliance_assessments.compliance_register_id`).
-		Preload("ComplianceRegister", regScope).
+		Preload("ComplianceRegister").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values").
@@ -908,21 +834,7 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByIDOptimized(id uint,
 		Error; err != nil {
 		return nil, err
 	}
-	// Fallback: explicitly fetch register if still nil
-	if a.ComplianceRegister == nil && a.ComplianceRegisterID != 0 {
-		var reg models.ComplianceRegister
-		if err := db.Scopes(regScope).First(&reg, a.ComplianceRegisterID).Error; err == nil {
-			a.ComplianceRegister = &reg
-			// load only the minimal nested graph you need
-			_ = db.
-				Preload("ComplianceAssessmentFramework").
-				Preload("ComplianceAssessmentFramework.AssessmentFrameworkType").
-				Preload("ComplianceAssessmentFramework.Values").
-				Preload("ComplianceAssessmentFramework.Values.ComplianceStatus").
-				Preload("ResponsibleUser").
-				First(&reg, reg.ID).Error
-		}
-	}
+
 	// 2) Collect requirement IDs first
 	var reqIDs []uint
 	if err := db.
