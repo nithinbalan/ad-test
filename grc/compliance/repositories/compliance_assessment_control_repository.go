@@ -26,6 +26,8 @@ type ComplianceAssessmentControlRepositoryInterface interface {
 	CreateComment(comment *models.ComplianceAssessmentControlComment, tx ...utility.DatabaseTransaction) error
 	Delete(controlID uint, tx ...utility.DatabaseTransaction) error
 	ComplianceAssessmentUpdateStatus(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error
+	UpdateClauseComplianceStatus(clauseID uint, statusID uint, score float64, tx ...utility.DatabaseTransaction) error
+	UpdateComplianceStatus(complianceRegisterID uint, complianceStatusID uint, score float64, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceAssessmentControlRepository struct {
@@ -274,4 +276,35 @@ func (repo *ComplianceAssessmentControlRepository) ComplianceAssessmentUpdateSta
 		return err
 	}
 	return nil
+}
+
+func (repo *ComplianceAssessmentControlRepository) UpdateClauseComplianceStatus(clauseID uint, statusID uint, score float64, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	res := db.Model(&models.ComplianceClause{}).
+		Where("id = ?", clauseID).
+		Updates(map[string]interface{}{
+			"compliance_status_id": statusID,
+			"score":                score,
+		})
+
+	if res.Error != nil {
+		return res.Error
+	}
+
+	return nil
+}
+
+func (repo *ComplianceAssessmentControlRepository) UpdateComplianceStatus(complianceRegisterID uint, complianceStatusID uint, score float64, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Model(&models.ComplianceRegister{}).
+		Where("id = ?", complianceRegisterID).
+		Update("compliance_status_id", complianceStatusID).Update("score", score).Error
 }

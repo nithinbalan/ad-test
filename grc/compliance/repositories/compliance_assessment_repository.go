@@ -846,8 +846,6 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByIDOptimized(id uint,
 	}
 	if len(reqIDs) == 0 {
 		a.AssessmentRequirements = []*models.ComplianceAssessmentRequirement{}
-		// (Optional) Still load controls page-by-page if needed
-		return a, nil
 	}
 
 	// 3) Hydrate requirements (lean) in chunks (no heavy preloads)
@@ -1106,6 +1104,9 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByIDOptimized(id uint,
 	if err != nil {
 		return nil, err
 	}
+	if len(controls) == 0 {
+		a.AssessmentControls = []*models.ComplianceAssessmentControl{}
+	}
 	a.AssessmentControls = controls
 
 	return a, nil
@@ -1212,10 +1213,11 @@ func (repo *ComplianceAssessmentRepository) loadControlsOptimized(db *gorm.DB, a
 	}
 
 	// 4b) Load Clause for those ComplianceControls
+	// 4b) Load Clause for those ComplianceControls
 	var clauseIDs []uint
 	for _, cc := range ccByID {
-		if cc.ComplianceClause != nil {
-			clauseIDs = append(clauseIDs, cc.ComplianceClause.ID)
+		if cc.ComplianceClauseID != nil && *cc.ComplianceClauseID != 0 {
+			clauseIDs = append(clauseIDs, *cc.ComplianceClauseID)
 		}
 	}
 	clauseIDs = uniq(clauseIDs)
@@ -1235,8 +1237,8 @@ func (repo *ComplianceAssessmentRepository) loadControlsOptimized(db *gorm.DB, a
 			clauseByID[clauseRows[i].ID] = &clauseRows[i]
 		}
 		for _, cc := range ccByID {
-			if cc.ComplianceClause != nil {
-				cc.ComplianceClause = clauseByID[cc.ComplianceClause.ID]
+			if cc.ComplianceClauseID != nil {
+				cc.ComplianceClause = clauseByID[*cc.ComplianceClauseID]
 			}
 		}
 	}
