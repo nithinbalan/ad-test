@@ -119,6 +119,27 @@ func (tes TestAndExerciseService) GetFullDetailsByID(id uint, tx ...utility.Data
 }
 
 func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFormDTO *businessContinuityDTOs.TestAndExerciseFormDTO) (uint, error) {
+
+	responsibleUnitID, err := tes.userSvc.GetUserPrimaryUnitID(testAndExerciseFormDTO.ResponsibleUserID)
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "test and exercise responsible unit")
+	}
+
+	testAndExerciseStatus, err := tes.testAndExerciseStatusSvc.GetByType("scheduled")
+	if err != nil {
+		return 0, err
+	}
+
+	actionPlanStatus, err := tes.actionPlanSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
+
+	communicationActionPlanStatus, err := tes.communicationActionPlanStatusSvc.GetByType("pending")
+	if err != nil {
+		return 0, err
+	}
+
 	tx := tes.repo.BeginTransaction()
 
 	referenceNumber, err := tes.repo.GenerateReferenceNumber()
@@ -126,17 +147,7 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 		return 0, err
 	}
 
-	responsibleUnitID, err := tes.userSvc.GetUserPrimaryUnitID(testAndExerciseFormDTO.ResponsibleUserID)
-	if err != nil {
-		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "test and exercise responsible unit")
-	}
-
 	dates, err := tes.parseTestAndExerciseDates(testAndExerciseFormDTO)
-	if err != nil {
-		return 0, err
-	}
-
-	testAndExerciseStatus, err := tes.testAndExerciseStatusSvc.GetByType("scheduled")
 	if err != nil {
 		return 0, err
 	}
@@ -161,7 +172,7 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 
 	// Save Processes
 
-	bcpTestAndExercise, err := tes.bcpTestAndExerciseSvc.GetFullDetailsByID(testAndExerciseFormDTO.BusinessContinuityPlanID, testAndExerciseFormDTO.BcpTestAndExerciseID)
+	bcpTestAndExercise, err := tes.bcpTestAndExerciseSvc.GetFullDetailsByID(testAndExerciseFormDTO.BusinessContinuityPlanID, testAndExerciseFormDTO.BcpTestAndExerciseID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -193,7 +204,7 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 
 	//  save recovery action plan
 
-	businessContinuityPlan, err := tes.businessContinuityPlanSvc.GetFullDetailsByID(testAndExerciseFormDTO.BusinessContinuityPlanID)
+	businessContinuityPlan, err := tes.businessContinuityPlanSvc.GetFullDetailsByID(testAndExerciseFormDTO.BusinessContinuityPlanID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -234,10 +245,6 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 				targetDate = *testingDate
 			}
 
-			actionPlanStatus, err := tes.actionPlanSvc.GetByType("new")
-			if err != nil {
-				return 0, err
-			}
 			process := &models.TestAndExerciseRecoveryActionPlan{
 				TestAndExerciseID:  id,
 				ProcessID:          bcpRecoveryPlan.BcpProcess.Process.ID,
@@ -283,10 +290,6 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 		for _, bcpCommunicationPlan := range businessContinuityPlan.BcpCommunicationPlans {
 			if _, exists := processIds[bcpCommunicationPlan.BcpProcess.ProcessID]; !exists {
 				continue
-			}
-			communicationActionPlanStatus, err := tes.communicationActionPlanStatusSvc.GetByType("pending")
-			if err != nil {
-				return 0, err
 			}
 
 			process := &models.TestAndExerciseCommunicationActionPlan{

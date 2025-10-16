@@ -17,7 +17,7 @@ import (
 type TaskServiceInterface interface {
 	GetAll(params *taskDTOs.TaskListQueryParamsDTO) (*taskDTOs.TaskListResponseDTO, error)
 	GetByID(id uint) (*models.Task, error)
-	GetByFieldID(field string, value interface{}) (*models.Task, error)
+	GetByFieldID(field string, value interface{}, tx ...utility.DatabaseTransaction) (*models.Task, error)
 	GetByResponsibleUserID(field string, value interface{}, responsibleUserID uint) (*models.Task, error)
 	GetAllTasksByResponsibleUserID(responsibleuserID uint, delegateeUserID uint) ([]*models.Task, error)
 	GetModuleCountByTaskIDs(taskIDs []uint) (int, error)
@@ -73,8 +73,8 @@ func (ts TaskService) GetByID(id uint) (*models.Task, error) {
 	return task, nil
 }
 
-func (ts TaskService) GetByFieldID(field string, value interface{}) (*models.Task, error) {
-	task, err := ts.repo.GetByFieldID(field, value)
+func (ts TaskService) GetByFieldID(field string, value interface{}, tx ...utility.DatabaseTransaction) (*models.Task, error) {
+	task, err := ts.repo.GetByFieldID(field, value, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, value)
@@ -111,15 +111,15 @@ func (ts *TaskService) GetModuleCountByTaskIDs(taskIDs []uint) (int, error) {
 }
 
 func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint, tx ...utility.DatabaseTransaction) (uint, error) {
-	taskStatus, err := ts.taskStatusSvc.GetByType("open")
+	taskStatus, err := ts.taskStatusSvc.GetByType("open", tx...)
 	if err != nil {
 		return 0, err
 	}
-	referenceNumber, err := ts.repo.GenerateReferenceNumber()
+	referenceNumber, err := ts.repo.GenerateReferenceNumber(tx...)
 	if err != nil {
 		return 0, err
 	}
-	moduleID, err := ts.moduleSvc.GetModuleIDByIdentifier(taskDTO.ModuleIdentifier)
+	moduleID, err := ts.moduleSvc.GetModuleIDByIdentifier(taskDTO.ModuleIdentifier, tx...)
 	if err != nil {
 		return 0, err
 	}
@@ -166,7 +166,7 @@ func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint
 }
 
 func (ts *TaskService) Update(currentUserID uint, taskDTO commonDTOs.TaskFormDTO, fieldName string, id uint, tx ...utility.DatabaseTransaction) error {
-	existingTask, err := ts.GetByFieldID(fieldName, id)
+	existingTask, err := ts.GetByFieldID(fieldName, id, tx...)
 	if err != nil {
 		return err
 	}

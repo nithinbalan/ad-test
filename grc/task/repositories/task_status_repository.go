@@ -12,7 +12,7 @@ import (
 type TaskStatusRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.TaskStatus, error)
 	GetByID(id uint) (*models.TaskStatus, error)
-	GetByType(status string) (*models.TaskStatus, error)
+	GetByType(status string, tx ...utility.DatabaseTransaction) (*models.TaskStatus, error)
 }
 
 // implementation
@@ -63,10 +63,14 @@ func (repo *TaskStatusRepository) GetByID(id uint) (*models.TaskStatus, error) {
 	return status, nil
 }
 
-func (repo *TaskStatusRepository) GetByType(status string) (*models.TaskStatus, error) {
+func (repo *TaskStatusRepository) GetByType(status string, tx ...utility.DatabaseTransaction) (*models.TaskStatus, error) {
 	var taskStatus *models.TaskStatus
 
-	result := repo.db.Where("type = ?", status).First(&taskStatus)
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	result := db.Where("type = ?", status).First(&taskStatus)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, "Task Status with status "+status)

@@ -12,7 +12,7 @@ import (
 type TaskStatusServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.TaskStatus, error)
 	GetByID(id uint) (*models.TaskStatus, error)
-	GetByType(status string) (*models.TaskStatus, error)
+	GetByType(status string, tx ...utility.DatabaseTransaction) (*models.TaskStatus, error)
 }
 
 // Service and implementations
@@ -41,9 +41,9 @@ func (tss TaskStatusService) GetByID(id uint) (*models.TaskStatus, error) {
 	return taskStatus, nil
 }
 
-func (tss *TaskStatusService) GetByType(status string) (*models.TaskStatus, error) {
+func (tss *TaskStatusService) GetByType(status string, tx ...utility.DatabaseTransaction) (*models.TaskStatus, error) {
 	// Fetch the task status by its status
-	statusResult, err := tss.repo.GetByType(status)
+	statusResult, err := tss.repo.GetByType(status, tx...)
 	if err != nil {
 		// Handle error appropriately
 		return nil, err

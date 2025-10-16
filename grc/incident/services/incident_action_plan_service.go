@@ -154,8 +154,6 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		return 0, err
 	}
 
-	tx := iaps.repo.BeginTransaction()
-
 	incidentActionPlan := &models.IncidentActionPlan{
 		IncidentRegisterID: incidentID,
 		Title:              IncidentActionPlanFormDTO.Title,
@@ -173,13 +171,13 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 	if IncidentActionPlanFormDTO.ResponsibleUserID != 0 {
 		delegateeID, err := iaps.delegateeUserSvc.AssignDelegateeIfPermitted(IncidentActionPlanFormDTO.ResponsibleUserID, "incident_register")
 		if err != nil {
-			tx.Rollback()
 			return 0, err
 		}
 		if delegateeID != nil {
 			incidentActionPlan.DelegateeUserID = delegateeID
 		}
 	}
+	tx := iaps.repo.BeginTransaction()
 
 	id, err := iaps.repo.Create(incidentActionPlan, tx)
 	if err != nil {
@@ -207,12 +205,12 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		return 0, err
 	}
 	if actinPlanCount == 1 {
-		timelineType, err := iaps.incidentTimelineSvc.GetByType("action-plans")
+		timelineType, err := iaps.incidentTimelineSvc.GetByType("action-plans", tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
 		}
-		timelineStatus, err := iaps.incidentTimelineSvc.GetByStatusType("completed")
+		timelineStatus, err := iaps.incidentTimelineSvc.GetByStatusType("completed", tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -378,8 +376,6 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 		return err
 	}
 
-	tx := iaps.repo.BeginTransaction()
-
 	// Update Incident ActionPlan
 	existingIncidentActionPlan.Title = IncidentActionPlanFormDTO.Title
 	existingIncidentActionPlan.Description = IncidentActionPlanFormDTO.Description
@@ -394,13 +390,13 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 		existingIncidentActionPlan.DelegateeUserID = nil
 		delegateeID, err := iaps.delegateeUserSvc.AssignDelegateeIfPermitted(IncidentActionPlanFormDTO.ResponsibleUserID, "incident_register")
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 		if delegateeID != nil {
 			existingIncidentActionPlan.DelegateeUserID = delegateeID
 		}
 	}
+	tx := iaps.repo.BeginTransaction()
 
 	err = iaps.repo.Update(existingIncidentActionPlan, tx)
 	if err != nil {

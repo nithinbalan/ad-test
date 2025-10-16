@@ -12,9 +12,9 @@ import (
 type IncidentTimelineRepositoryInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentTimelineListQueryParamsDTO) (*incidentDTOs.IncidentTimelineListResponseDTO, error)
 	GetAllTypes() ([]models.IncidentTimelineType, error)
-	GetByID(incidentID uint, timelineTypeID uint) (*models.IncidentTimeline, error)
-	GetByType(timelineType string) (*models.IncidentTimelineType, error)
-	GetByStatusType(status string) (*models.TimelineStatus, error)
+	GetByID(incidentID uint, timelineTypeID uint, tx ...utility.DatabaseTransaction) (*models.IncidentTimeline, error)
+	GetByType(timelineType string, tx ...utility.DatabaseTransaction) (*models.IncidentTimelineType, error)
+	GetByStatusType(status string, tx ...utility.DatabaseTransaction) (*models.TimelineStatus, error)
 	Create(timelines []models.IncidentTimeline, tx ...utility.DatabaseTransaction) error
 	Update(incidentTimeline *models.IncidentTimeline, tx ...utility.DatabaseTransaction) error
 	Delete(incidentID uint, tx ...utility.DatabaseTransaction) error
@@ -112,10 +112,14 @@ func (repo *IncidentTimelineRepository) GetAllTypes() ([]models.IncidentTimeline
 	return timelineTypes, nil
 }
 
-func (repo *IncidentTimelineRepository) GetByID(incidentID uint, timelineTypeID uint) (*models.IncidentTimeline, error) {
+func (repo *IncidentTimelineRepository) GetByID(incidentID uint, timelineTypeID uint, tx ...utility.DatabaseTransaction) (*models.IncidentTimeline, error) {
 	var incidentTimeline models.IncidentTimeline
 
-	result := repo.db.Where("incident_register_id = ? AND incident_timeline_type_id = ?", incidentID, timelineTypeID).First(&incidentTimeline)
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	result := db.Where("incident_register_id = ? AND incident_timeline_type_id = ?", incidentID, timelineTypeID).First(&incidentTimeline)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -123,10 +127,14 @@ func (repo *IncidentTimelineRepository) GetByID(incidentID uint, timelineTypeID 
 	return &incidentTimeline, nil
 }
 
-func (repo *IncidentTimelineRepository) GetByType(timelineType string) (*models.IncidentTimelineType, error) {
+func (repo *IncidentTimelineRepository) GetByType(timelineType string, tx ...utility.DatabaseTransaction) (*models.IncidentTimelineType, error) {
 	var incidentTimelineType *models.IncidentTimelineType
 
-	result := repo.db.Where("type = ?", timelineType).First(&incidentTimelineType)
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	result := db.Where("type = ?", timelineType).First(&incidentTimelineType)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, "Incident type with type "+timelineType)
@@ -137,10 +145,14 @@ func (repo *IncidentTimelineRepository) GetByType(timelineType string) (*models.
 	return incidentTimelineType, nil
 }
 
-func (repo *IncidentTimelineRepository) GetByStatusType(status string) (*models.TimelineStatus, error) {
+func (repo *IncidentTimelineRepository) GetByStatusType(status string, tx ...utility.DatabaseTransaction) (*models.TimelineStatus, error) {
 	var timelineStatus *models.TimelineStatus
 
-	result := repo.db.Where("type = ?", status).First(&timelineStatus)
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	} 
+	result := db.Where("type = ?", status).First(&timelineStatus)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, "Timeline Status with status "+status)

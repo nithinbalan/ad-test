@@ -11,7 +11,7 @@ import (
 type MeetingMinuteRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingMinuteListQueryParamsDTO) ([]*meetingDTOs.MeetingMinuteListDTO, error)
-	GetByID(id uint) (*models.MeetingMinute, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.MeetingMinute, error)
 	GetFullDetailsByID(id uint) (*models.MeetingMinute, error)
 	Create(meetingMinute *models.MeetingMinute) (uint, error)
 	Update(meetingMinute *models.MeetingMinute, tx ...utility.DatabaseTransaction) error
@@ -120,10 +120,15 @@ func (repo *MeetingMinuteRepository) GetAll(meetingID uint, currentUserID uint, 
 	return meetingMinutes, nil
 }
 
-func (repo *MeetingMinuteRepository) GetByID(id uint) (*models.MeetingMinute, error) {
+func (repo *MeetingMinuteRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.MeetingMinute, error) {
 	var meetingMinute *models.MeetingMinute
 
-	result := repo.db.First(&meetingMinute, id)
+	db := repo.db
+
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	result := db.First(&meetingMinute, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}

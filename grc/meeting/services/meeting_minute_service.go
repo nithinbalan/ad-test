@@ -18,7 +18,7 @@ import (
 type MeetingMinuteServiceInterface interface {
 	GetAll(meetingID uint, currentUserID uint, params *meetingDTOs.MeetingMinuteListQueryParamsDTO) ([]*meetingDTOs.MeetingMinuteListDTO, error)
 	GetFullDetailsByID(meetingID uint, id uint) (*meetingDTOs.MeetingMinuteDetailDTO, error)
-	GetByID(id uint) (*models.MeetingMinute, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.MeetingMinute, error)
 	Create(meetingID uint, currentUserID uint, meetingMinuteFormDTO *meetingDTOs.MeetingMinuteFormDTO) (uint, error)
 	Update(meetingID uint, id uint, currentUserID uint, meetingMinuteFormDTO *meetingDTOs.MeetingMinuteFormDTO) error
 	Delete(meetingID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -56,8 +56,8 @@ func (mms *MeetingMinuteService) GetAll(meetingID uint, currentUserID uint, para
 	return mms.repo.GetAll(meetingID, currentUserID, params)
 }
 
-func (mms MeetingMinuteService) GetByID(id uint) (*models.MeetingMinute, error) {
-	meetingMinute, err := mms.repo.GetByID(id)
+func (mms MeetingMinuteService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.MeetingMinute, error) {
+	meetingMinute, err := mms.repo.GetByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -286,7 +286,7 @@ func (mms *MeetingMinuteService) validateMeetingMinuteFormDTO(meetingMinuteFormD
 }
 
 func (mms *MeetingMinuteService) StatusUpdate(id uint, currentUserID uint, meetingMinuteStatusID uint, tx ...utility.DatabaseTransaction) error {
-	existingMeetingMinute, err := mms.GetByID(id)
+	existingMeetingMinute, err := mms.GetByID(id, tx...)
 	if err != nil {
 		return err
 	}
