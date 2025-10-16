@@ -288,7 +288,9 @@ func (repo *UserRepository) GetFullDetailsByID(id uint) (*models.User, error) {
 func (repo *UserRepository) GetByEmail(email string) (*models.User, error) {
 	var user *models.User
 
-	result := repo.db.Where("email = ?", email).First(&user)
+	result := repo.db.
+		Where("LOWER(email) = LOWER(?)", email).
+		First(&user)
 
 	if result.Error != nil {
 		return nil, result.Error
