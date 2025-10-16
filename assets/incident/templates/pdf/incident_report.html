@@ -68,7 +68,7 @@
                      Category: </p>
                   <p
                      style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
-                     {{ .Data.IncidentCategory }} </p>
+                     {{ .Data.IncidentCategory.TitleEn }} </p>
                </div>
                <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
                   <p
@@ -84,7 +84,7 @@
                               line-height: normal;
                               display: inline-block;
                               border: 1px solid #AFD6CC;
-                              font-weight: 400;"> {{ .Data.SeverityLevel.Status }} </span>
+                              font-weight: 400;"> {{ .Data.SeverityLevel.TitleEn }} </span>
                   </p>
                </div>
                <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
@@ -151,7 +151,7 @@
                      Location: </p>
                   <p
                      style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
-                     {{.Data.Location}} </p>
+                     {{if .Data.Location}} {{.Data.Location}}{{else}}NA{{end}} </p>
                </div>
             </div>
             <!-- <div style="width: 100%;  display: inline-block; vertical-align: top;">
@@ -180,55 +180,57 @@
 
          <div class="page" style="width: 1000px; margin-top: 32px ; background: #fff;">
 
-
             <h4 style="margin: 0 0 0px 0; font-size: 18px; color: #050505; font-weight: 400;"> 2. Incident Timeline
             </h4>
             <!-- timelines -->
-            <div style="margin-top: 32px;">
+            <div style="margin-top: 32px; padding-left: 10px;">
                {{ $total := len .Data.Timelines }}
                {{range $i, $timeline := .Data.Timelines}}
                {{if eq (add $i 1) $total}}
                <!-- Last timeline item (without border-left) -->
-               <div style="min-height: 50px; page-break-inside: avoid;">
+               <div style="min-height: 50px; page-break-inside: avoid; position: relative;">
                   {{else}}
                   <!-- All other timeline items (with border-left) -->
-                  <div style="border-left:1px solid #BC8E48; min-height: 60px; page-break-inside: avoid;">
+                  <div
+                     style="border-left:1px solid #BC8E48; min-height: 60px; page-break-inside: avoid; position: relative; margin-left: 2.5px;">
                      {{end}}
-                     <div style="width: 1%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                     <div style="position: absolute; left: -3.5px; top: 0;">
                         <span
-                           style="background: #BC8E48; width: 6px; height: 6px; border-radius: 10px; display: block; margin-left: -3px;"></span>
+                           style="background: #BC8E48; width: 6px; height: 6px; border-radius: 10px; display: block;"></span>
                      </div>
 
-                     <div
-                        style="width: 15%; padding-right: 1%; margin-top: -7px; display: inline-block; vertical-align: top;">
-                        <p style="margin:0; font-size:14px; font-weight:400;">{{.IncidentTimelineTypeTitleEn}}</p>
-                     </div>
+                     <div style="padding-left: 20px;">
+                        <div
+                           style="width: 15%; padding-right: 1%; margin-top: -7px; display: inline-block; vertical-align: top;">
+                           <p style="margin:0; font-size:14px; font-weight:400;">{{.IncidentTimelineTypeTitleEn}}</p>
+                        </div>
 
-                     <div style="width: 25%; padding-right: 1%; display: inline-block; vertical-align: top;">
-                        <p style="margin:0; font-size:13px; font-weight:300;">Reported by:</p>
-                        <p style="margin:0; font-size:14px; font-weight:400;">
-                           {{if .PerformedByFirstNameEn}}{{.PerformedByFirstNameEn}}
-                           {{.PerformedByLastNameEn}}{{else}}-{{end}}
-                        </p>
-                     </div>
+                        <div style="width: 25%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                           <p style="margin:0; font-size:13px; font-weight:300;">Reported by:</p>
+                           <p style="margin:0; font-size:14px; font-weight:400;">
+                              {{if .PerformedByFirstNameEn}}{{.PerformedByFirstNameEn}}
+                              {{.PerformedByLastNameEn}}{{else}}-{{end}}
+                           </p>
+                        </div>
 
-                     <div style="width: 25%; padding-right: 1%; display: inline-block; vertical-align: top;">
-                        <p style="margin:0; font-size:13px; font-weight:300;">Date:</p>
-                        <p style="margin:0; font-size:14px; font-weight:400;">
-                           {{if .PerformedAt}}{{.PerformedAt.Format "Jan 02, 2006, 03:04 PM"}}{{else}}-{{end}}
-                        </p>
-                     </div>
+                        <div style="width: 25%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                           <p style="margin:0; font-size:13px; font-weight:300;">Date:</p>
+                           <p style="margin:0; font-size:14px; font-weight:400;">
+                              {{if .PerformedAt}}{{.PerformedAt.Format "Jan 02, 2006, 03:04 PM"}}{{else}}-{{end}}
+                           </p>
+                        </div>
 
-                     <div style="width: 25%; padding-right: 1%; display: inline-block; vertical-align: top;">
-                        <p style="margin:0; font-size:13px; font-weight:300;">Status:</p>
-                        <p style="margin:0; font-size:14px; font-weight:400;">
-                           {{if .TimelineStatusTitleEn}}
-                           <span
-                              style="background:#E5F4F0;color: '{{.TimelineStatusColorCode}}'; padding:4px 8px; border-radius:5px; font-size:12px; display:inline-block; border:1px solid #AFD6CC;">
-                              {{.TimelineStatusTitleEn}}
-                           </span>
-                           {{else}}-{{end}}
-                        </p>
+                        <div style="width: 25%; padding-right: 1%; display: inline-block; vertical-align: top;">
+                           <p style="margin:0; font-size:13px; font-weight:300;">Status:</p>
+                           <p style="margin:0; font-size:14px; font-weight:400;">
+                              {{if .TimelineStatusTitleEn}}
+                              <span
+                                 style="background:#E5F4F0;color: '{{.TimelineStatusColorCode}}'; padding:4px 8px; border-radius:5px; font-size:12px; display:inline-block; border:1px solid #AFD6CC;">
+                                 {{.TimelineStatusTitleEn}}
+                              </span>
+                              {{else}}-{{end}}
+                           </p>
+                        </div>
                      </div>
 
                   </div>
@@ -242,10 +244,18 @@
          <div style=" padding: 0;">
 
             <!-- Associated Items -->
-            <h4 style=" font-size: 18px; color: #050505; font-weight: 400;  margin-top: 32;"> 3.
-               Associated Items
+            {{if or (gt (len .Data.StrategicObjectives) 0)
+            (gt (len .Data.KPIs) 0)
+            (gt (len .Data.ComplianceRequirements) 0)
+            (gt (len .Data.Processes) 0)
+            (gt (len .Data.Risks) 0)
+            (gt (len .Data.AssociatedDocuments) 0)
+            (gt (len .Data.Assets) 0)
+            }}
+            <h4 style="font-size: 18px; color: #050505; font-weight: 400; margin-top: 32px;">
+               3. Associated Items
             </h4>
-
+            {{end}}
             <!-- Strategic Objectives -->
             {{if gt (len .Data.StrategicObjectives) 0}}
 
@@ -525,7 +535,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                           {{if $item.KPICategoryTitleEn}}{{ $item.KPICategoryTitleEn }}{{else}}--{{end}}
+                           {{if $item.KPICategoryTitleEn}}{{ $item.KPICategoryTitleEn }}{{else}}NA{{end}}
                         </td>
                         <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
@@ -549,7 +559,7 @@
                     display: inline-block;
                     border: 1px solid #AFD6CC;
                     font-weight: 400;">
-                              {{if $item.KPIStatusTitleEn}}{{ $item.KPIStatusTitleEn }}{{else}}--{{end}}
+                              {{if $item.KPIStatusTitleEn}}{{ $item.KPIStatusTitleEn }}{{else}}NA{{end}}
                            </span>
                         </td>
                      </tr>
@@ -560,146 +570,38 @@
             {{end}}
 
             <!-- compliance table -->
-            {{if gt (len .Data.ComplianceRequirements) 0}}
-            <div style="margin-top: 24px; ">
+            {{if gt (len .Data.ComplianceRequirements) 0}} <div style="margin-top: 24px;">
                <p
                   style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 400;">
-                  <span> Compliance</span>
-               </p>
-
-               <table style="
-                        font-family: -apple-system, BlinkMacSystemFont,
-                        'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
-                        'Apple Color Emoji', 'Segoe UI Emoji',
-                        'Segoe UI Symbol';
-                        box-sizing: border-box;
-                        background: #fff;
-                        padding: 0;
-                        text-align: center;
-                        width: 100%;
-                        margin: 0 auto;
-                        border-radius: 10px;
-                        margin-top: 16px;
-                        margin-bottom: 15px;
-                        border-collapse: collapse;
-                        margin-bottom: 20px;
-                        ">
+                  <span>Compliance</span> </p>
+               <table
+                  style=" font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; background: #fff; padding: 0; text-align: center; width: 100%; margin: 0 auto; border-radius: 10px; margin-top: 16px; margin-bottom: 15px; border-collapse: collapse; margin-bottom: 20px;">
                   <tbody>
                      <tr style="border: 1px solid #EAEDF2;">
-                        <th style="
-                       font-family: -apple-system, BlinkMacSystemFont,
-                       'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
-                       'Apple Color Emoji', 'Segoe UI Emoji',
-                       'Segoe UI Symbol';
-                       box-sizing: border-box;
-                       color: #1a1a1a;
-                       font-size: 14px;
-                       line-height: 1.3em;
-                       font-weight: bold;
-                       border: 1px solid #EAEDF2;
-                       padding: 11px 10px;
-                       text-align: left; background: #F9FBFC; font-weight: 500; width: 5%;
-                       "># </th>
-
-                        <th style="
-                       font-family: -apple-system, BlinkMacSystemFont,
-                       'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
-                       'Apple Color Emoji', 'Segoe UI Emoji',
-                       'Segoe UI Symbol';
-                       box-sizing: border-box;
-                       color: #1a1a1a;
-                       font-size: 14px;
-                       line-height: 1.3em;
-                       font-weight: bold;
-                       border: 1px solid #EAEDF2;
-                       padding: 11px 10px;
-                       text-align: left; background: #F9FBFC; font-weight: 500; width: 60%;
-                       "> Standard/Requirement </th>
-                        <th style="
-                       font-family: -apple-system, BlinkMacSystemFont,
-                       'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
-                       'Apple Color Emoji', 'Segoe UI Emoji',
-                       'Segoe UI Symbol';
-                       box-sizing: border-box;
-                       color: #1a1a1a;
-                       font-size: 14px;
-                       line-height: 1.3em;
-                       font-weight: 500;
-                       border: 1px solid #EAEDF2;
-                       padding: 11px 10px;
-                       text-align: left; background: #F9FBFC;width: 22%;
-                       ">
-                           status
-                        </th>
-
-
-                     </tr>
-                     {{range $index, $item := .Data.ComplianceRequirements}}
-                     <tr style="border: 1px solid #EAEDF2;">
-                        <td style="
-                    font-family: -apple-system, BlinkMacSystemFont,
-                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
-                    'Apple Color Emoji', 'Segoe UI Emoji',
-                    'Segoe UI Symbol';
-                    box-sizing: border-box;
-                    color: #1a1a1a;
-                    font-size: 14px;
-                    line-height: 1.3em;
-                    border: 1px solid #EAEDF2;
-                    padding: 10px 10px;
-                    text-align: left;
-                    ">{{add $index 1}}
-                        </td>
-                        <td style="
-                    font-family: -apple-system, BlinkMacSystemFont,
-                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
-                    'Apple Color Emoji', 'Segoe UI Emoji',
-                    'Segoe UI Symbol';
-                    box-sizing: border-box;
-                    color: #1a1a1a;
-                    font-size: 14px;
-                    line-height: 1.3em;
-                    border: 1px solid #EAEDF2;
-                    padding: 10px 10px;
-                    text-align: left;
-                    ">
-                           {{$item.ComplianceRequirementTitle}}
-                        </td>
-                        <td style="
-                    font-family: -apple-system, BlinkMacSystemFont,
-                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
-                    'Apple Color Emoji', 'Segoe UI Emoji',
-                    'Segoe UI Symbol';
-                    box-sizing: border-box;
-                    color: #1a1a1a;
-                    font-size: 14px;
-                    line-height: 1.3em;
-                    border: 1px solid #EAEDF2;
-                    padding: 10px 10px;
-                    text-align: left;
-                    ">
-                           <span style="background: #E5F4F0;
-                   color: '{{$item.ComplianceStatusColorCode}}';
-                    padding: 4px 8px;
-                    border-radius: 5px;
-                    font-size: 12px;
-                    line-height: normal;
-                    display: inline-block;
-                    border: 1px solid #AFD6CC;
-                    font-weight: 400;">
-                              {{if $item.ComplianceStatusTitleEn}}
-                              {{$item.ComplianceStatusTitleEn}}
-                              {{else}}--{{end}}
-
-                           </span>
-                        </td>
-
-                     </tr>
-                     {{end}}
+                        <th
+                           style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #1a1a1a; font-size: 14px; line-height: 1.3em; font-weight: bold; border: 1px solid #EAEDF2; padding: 11px 10px; text-align: left; background: #F9FBFC; font-weight: 500; width: 5%;">
+                           #</th>
+                        <th
+                           style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #1a1a1a; font-size: 14px; line-height: 1.3em; font-weight: bold; border: 1px solid #EAEDF2; padding: 11px 10px; text-align: left; background: #F9FBFC; font-weight: 500; width: 60%;">
+                           Compliance Register</th>
+                        <th
+                           style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; box-sizing: border-box; color: #1a1a1a; font-size: 14px; line-height: 1.3em; font-weight: 500; border: 1px solid #EAEDF2; padding: 11px 10px; text-align: left; background: #F9FBFC;width: 22%;">
+                           Clause No / Title </th>
+                     </tr> {{range $rIndex, $register := .Data.ComplianceRequirements}} {{range $cIndex, $clause :=
+                     $register.Clauses}} <tr style="border: 1px solid #EAEDF2;"> {{if eq $cIndex 0}} <td
+                           rowspan="{{len $register.Clauses}}"
+                           style=" font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-sizing: border-box; color: #1a1a1a; font-size: 14px; line-height: 1.3em; border: 1px solid #EAEDF2; padding: 10px 10px; text-align: left;">
+                           {{add $rIndex 1}}</td>
+                        <td rowspan="{{len $register.Clauses}}"
+                           style=" font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-sizing: border-box; color: #1a1a1a; font-size: 14px; line-height: 1.3em; border: 1px solid #EAEDF2; padding: 10px 10px; text-align: left;">
+                           {{$register.ComplianceRegisterTitleEn}} </td> {{end}} <td
+                           style=" font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-sizing: border-box; color: #1a1a1a; font-size: 14px; line-height: 1.3em; border: 1px solid #EAEDF2; padding: 10px 10px; text-align: left;">
+                           {{$clause.ClauseNo}} - {{$clause.ClauseTitleEn}} </td>
+                     </tr> {{end}} {{end}}
                   </tbody>
                </table>
-            </div>
-            {{end}}
+            </div> {{end}}
+
             <!-- processes -->
             {{if gt (len .Data.Processes) 0}}
             <div style="margin-top: 24px;; " class="keep-together">
@@ -864,7 +766,7 @@
                     font-weight: 400;">
                               {{if $item.LifecycleStatusTitleEn}}
                               {{$item.LifecycleStatusTitleEn}}
-                              {{else}}--{{end}}
+                              {{else}}NA{{end}}
                            </span>
                         </td>
                      </tr>
@@ -878,7 +780,7 @@
             {{if gt (len .Data.Risks) 0}}
             <div style="margin-top: 24px; ">
                <p
-                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
+                  style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 400;">
                   <span> Risks </span>
                </p>
 
@@ -1099,7 +1001,7 @@
                     text-align: left;
                     ">
                            {{if
-                           $item.CurrentLikelihoodTitleEn}}{{$item.CurrentLikelihoodTitleEn}}{{else}}--{{end}}
+                           $item.CurrentLikelihoodTitleEn}}{{$item.CurrentLikelihoodTitleEn}}{{else}}NA{{end}}
                         </td>
                         <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
@@ -1115,7 +1017,7 @@
                     text-align: left;
                     ">
                            {{if
-                           $item.CurrentImpactTitleEn}}{{$item.CurrentImpactTitleEn}}{{else}}--{{end}}
+                           $item.CurrentImpactTitleEn}}{{$item.CurrentImpactTitleEn}}{{else}}NA{{end}}
                         </td>
                         <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
@@ -1138,7 +1040,8 @@
                     line-height: normal;
                     display: inline-block;
                     border: 1px solid #AFD6CC;
-                    font-weight: 400;"> {{if $item.CurrentRiskRatingTitleEn}} {{$item.CurrentRiskRatingTitleEn}}{{else}}--{{end}}</span>
+                    font-weight: 400;"> {{if $item.CurrentRiskRatingTitleEn}}
+                              {{$item.CurrentRiskRatingTitleEn}}{{else}}NA{{end}}</span>
                         </td>
                      </tr>
                      {{end}}
@@ -1152,7 +1055,7 @@
             <div style="margin-top: 24px; ">
                <p
                   style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 400;">
-                  <span> Controlls </span>
+                  <span> Controls </span>
                </p>
 
                <table style="
@@ -1267,7 +1170,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                           {{if $item.TitleEn}}{{$item.TitleEn}}{{else}}--{{end}}
+                           {{if $item.TitleEn}}{{$item.TitleEn}}{{else}}NA{{end}}
                         </td>
                         <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
@@ -1292,7 +1195,7 @@
                     border: 1px solid #AFD6CC;
                     font-weight: 400;">
                               {{if
-                              $item.ControlImplementationStatusTitleEn}}{{$item.ControlImplementationStatusTitleEn}}{{else}}--{{end}}
+                              $item.ControlImplementationStatusTitleEn}}{{$item.ControlImplementationStatusTitleEn}}{{else}}NA{{end}}
 
                            </span>
                         </td>
@@ -1320,7 +1223,7 @@
                     border: 1px solid #AFD6CC;
                     font-weight: 400;">
                               {{if
-                              $item.ControlEfficiencyStatusTitleEn}}{{$item.ControlEfficiencyStatusTitleEn}}{{else}}--{{end}}
+                              $item.ControlEfficiencyStatusTitleEn}}{{$item.ControlEfficiencyStatusTitleEn}}{{else}}NA{{end}}
                            </span>
                         </td>
                      </tr>
@@ -1448,7 +1351,7 @@
                     border: 1px solid #EAEDF2;
                     padding: 10px 10px;
                     text-align: left;
-                    "> {{if $item.TitleEn}}{{$item.TitleEn}}{{else}}--{{end}}
+                    "> {{if $item.TitleEn}}{{$item.TitleEn}}{{else}}NA{{end}}
 
                         </td>
                         <td style="
@@ -1464,7 +1367,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                           {{if $item.DocumentTypeTitleEn}}{{$item.DocumentTypeTitleEn}}{{else}}--{{end}}
+                           {{if $item.DocumentTypeTitleEn}}{{$item.DocumentTypeTitleEn}}{{else}}NA{{end}}
                         </td>
 
                         <td style="
@@ -1491,7 +1394,7 @@
                     font-weight: 400;">
                               {{if $item.DocumentStatusTitleEn}}
                               {{$item.DocumentStatusTitleEn}}
-                              {{else}}--{{end}}
+                              {{else}}NA{{end}}
 
                            </span>
                         </td>
@@ -1621,7 +1524,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                           {{if $item.TitleEn}}{{$item.TitleEn}}{{else}}--{{end}}
+                           {{if $item.TitleEn}}{{$item.TitleEn}}{{else}}NA{{end}}
 
                         </td>
                         <td style="
@@ -1637,7 +1540,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                           {{if $item.AssetCategoryTitleEn}}{{$item.AssetCategoryTitleEn}}{{else}}--{{end}}
+                           {{if $item.AssetCategoryTitleEn}}{{$item.AssetCategoryTitleEn}}{{else}}NA{{end}}
 
                         <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
@@ -1662,7 +1565,7 @@
                     display: inline-block;
                     border: 1px solid #AFD6CC;
                     font-weight: 400;">
-                              {{if $item.AssetStatusTitleEn}}{{$item.AssetStatusTitleEn}}{{else}}--{{end}}
+                              {{if $item.AssetStatusTitleEn}}{{$item.AssetStatusTitleEn}}{{else}}NA{{end}}
                            </span>
                         </td>
                      </tr>
@@ -1701,11 +1604,11 @@
                   </div>
                   <div style="width: 22%; padding-right: 1%; display: inline-block; vertical-align: top;">
                      <p
-                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; font-weight: 300;">
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; font-weight: 300; ">
                         Team Members:
                      </p>
                      <p
-                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 14px; font-weight: 400;">
+                        style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px; font-weight: 400;">
                         {{if gt (len .Data.Investigation.Users) 0}}
                         {{range $item := .Data.Investigation.Users}}
                         {{$item.User.FirstNameEn}} {{$item.User.LastNameEn}}
@@ -1802,7 +1705,7 @@
                         style="margin: 0 0 10px 0; font-family: 'Lexend Deca', sans-serif; color: #000; font-size: 13px; line-height: 1.5em; font-weight: 400;">
                         Why {{$item.Why}}: {{$item.Question}} </p>
                      <ul style="padding: 0 0 0 20px; font-weight: 400; font-size: 14px; list-style-type: none;"> {{if
-                        $item.Answer}} <li>Root Cause: {{$item.Answer}}</li> {{else}}--{{end}} </ul> {{end}}
+                        $item.Answer}} <li>Root Cause: {{$item.Answer}}</li> {{else}}NA{{end}} </ul> {{end}}
                   </div>
 
                </div>
@@ -2201,7 +2104,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                           {{if $item.Title}}{{$item.Title}}{{else}}--{{end}}
+                           {{if $item.Title}}{{$item.Title}}{{else}}NA{{end}}
                         </td>
                         <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
@@ -2226,7 +2129,7 @@
                     display: inline-block;
                     border: 1px solid #AFD6CC;
                     font-weight: 400;"> {{if
-                              $item.SeverityLevelTitleEn}}{{$item.SeverityLevelTitleEn}}{{else}}--{{end}}
+                              $item.SeverityLevelTitleEn}}{{$item.SeverityLevelTitleEn}}{{else}}NA{{end}}
                            </span>
                         </td>
                         <td style="
@@ -2243,7 +2146,7 @@
                     text-align: left;
                     ">
                            {{if
-                           $item.ResponsibleUserFirstNameEn}}{{$item.ResponsibleUserFirstNameEn}}{{else}}--{{end}}
+                           $item.ResponsibleUserFirstNameEn}}{{$item.ResponsibleUserFirstNameEn}}{{else}}NA{{end}}
                            {{if $item.ResponsibleUserLastNameEn}}{{$item.ResponsibleUserLastNameEn}}{{end}} </td>
                         <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
@@ -2258,7 +2161,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                           {{if $item.TargetDate}}{{$item.TargetDate}}{{else}}--{{end}}
+                           {{if $item.TargetDate}}{{$item.TargetDate}}{{else}}NA{{end}}
                         </td>
                         <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
@@ -2273,7 +2176,7 @@
                     padding: 10px 10px;
                     text-align: left;
                     ">
-                           {{if $item.Percentage}}{{$item.Percentage}}%{{else}}--{{end}} </td>
+                           {{if $item.Percentage}}{{$item.Percentage}}%{{else}}NA{{end}} </td>
                         <td style="
                     font-family: -apple-system, BlinkMacSystemFont,
                     'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
@@ -2296,7 +2199,7 @@
                     display: inline-block;
                     border: 1px solid #AFD6CC;
                     font-weight: 400;">{{if
-                              $item.ActionPlanStatusTitleEn}}{{$item.ActionPlanStatusTitleEn}}{{else}}--{{end}}
+                              $item.ActionPlanStatusTitleEn}}{{$item.ActionPlanStatusTitleEn}}{{else}}NA{{end}}
                            </span>
                         </td>
 

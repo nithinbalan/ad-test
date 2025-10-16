@@ -2,10 +2,7 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
-	// complianceDTOs "jethur/grc/compliance/dtos"
-	// incidentDTOs "jethur/grc/incident/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
-	// riskDTOs "jethur/grc/risk/dtos"
 	"time"
 )
 
@@ -35,7 +32,7 @@ type MeetingReportDetailDTO struct {
 	Agendas                []*MeetingAgendaDetailDTO                         `json:"agendas"`
 	Participants           []*MeetingParticipantDTO                          `json:"participants"`
 	Controls               []*commonDTOs.AssociatedControlListDTO            `json:"controls"`
-	ComplianceRequirements []MeetingComplianceRequirementListDTO             `json:"compliance_requirements"`
+	ComplianceRequirements []*commonDTOs.AssociatedClauseListDTO             `json:"compliance_requirements"`
 	Risks                  []*commonDTOs.AssociatedRiskListDTO               `json:"risks"`
 	Processes              []*commonDTOs.AssociatedProcessListDTO            `json:"processes"`
 	Incidents              []*MeetingIncidentDTO                             `json:"incidents"`

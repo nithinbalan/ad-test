@@ -2,24 +2,22 @@ package repositories
 
 import (
 	"gorm.io/gorm"
-	"jethur/grc/models"
 	commonDTOs "jethur/grc/common/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
-
-
+	"jethur/grc/models"
 )
 
 type IncidentReportRepositoryInterface interface {
 	GetFullReportDetailsByID(id uint) (*models.IncidentRegister, error)
-	GetAllIncidentKPI(incidentID uint) ([]*commonDTOs.AssociatedKPIRegisterListDTO, error) 
-	 GetAllIncidentStrategicObjectives(incidentID uint) ([]*commonDTOs.AssociatedStrategicObjectiveListDTO, error)
-	 GetAllIncidentActionPlan(incidentID uint) ([]*incidentDTOs.IncidentActionPlanListDTO, error)
-	 GetAllIncidentAssets(incidentID uint) ([]*commonDTOs.AssociatedAssetListDTO, error)
-	 GetAllIncidentAssociatedDocuments(incidentID uint) ([]*commonDTOs.AssociatedDocumentListDTO, error)
-	 GetAllIncidentControls(incidentID uint) ([]*commonDTOs.AssociatedControlListDTO, error) 
-	 GetAllIncidentRisks(incidentID uint) ([]*commonDTOs.AssociatedRiskListDTO, error)
-	 GetAllIncidentProcesses(incidentID uint) ([]*commonDTOs.AssociatedProcessListDTO, error)
-	GetAllIncidentComplianceRequirements(incidentID uint) ([]*incidentDTOs.IncidentComplianceRequirementListDTO, error)
+	GetAllIncidentKPI(incidentID uint) ([]*commonDTOs.AssociatedKPIRegisterListDTO, error)
+	GetAllIncidentStrategicObjectives(incidentID uint) ([]*commonDTOs.AssociatedStrategicObjectiveListDTO, error)
+	GetAllIncidentActionPlan(incidentID uint) ([]*incidentDTOs.IncidentActionPlanListDTO, error)
+	GetAllIncidentAssets(incidentID uint) ([]*commonDTOs.AssociatedAssetListDTO, error)
+	GetAllIncidentAssociatedDocuments(incidentID uint) ([]*commonDTOs.AssociatedDocumentListDTO, error)
+	GetAllIncidentControls(incidentID uint) ([]*commonDTOs.AssociatedControlListDTO, error)
+	GetAllIncidentRisks(incidentID uint) ([]*commonDTOs.AssociatedRiskListDTO, error)
+	GetAllIncidentProcesses(incidentID uint) ([]*commonDTOs.AssociatedProcessListDTO, error)
+	GetAllIncidentComplianceRequirements(incidentID uint) ([]*commonDTOs.AssociatedClauseListDTO, error)
 }
 
 type IncidentReportRepository struct {
@@ -34,6 +32,7 @@ func NewIncidentReportRepository(db *gorm.DB) *IncidentReportRepository {
 
 func (repo *IncidentReportRepository) GetFullReportDetailsByID(id uint) (*models.IncidentRegister, error) {
 	db := repo.db
+
 	var incident *models.IncidentRegister
 
 	result := db.
@@ -51,11 +50,13 @@ func (repo *IncidentReportRepository) GetFullReportDetailsByID(id uint) (*models
 		Preload("Investigation.TeamLead").
 		Preload("Investigation.Users").
 		Preload("Investigation.Users.User").
-		Preload("Investigation.Users.User.Designation"). 
+		Preload("Investigation.Users.User.Designation").
 		Preload("Investigation.Documents").
 		Preload("Investigation.Findings").
 		Preload("Documents").
-		Preload("Timelines").
+		Preload("Timelines", func(db *gorm.DB) *gorm.DB {
+			return db.Order("performed_at ASC")
+		}).
 		Preload("Timelines.PerformedBy").
 		Preload("Timelines.TimelineStatus").
 		Preload("Timelines.IncidentTimelineType").
@@ -70,7 +71,6 @@ func (repo *IncidentReportRepository) GetFullReportDetailsByID(id uint) (*models
 		Preload("IncidentPostReview.Lessons").
 		Preload("IncidentPostReview.IncidentPostReviewEffectiveness").
 		Preload("IncidentRootCauseAnalyses").
-
 		First(&incident, id)
 
 	if result.Error != nil {
@@ -281,7 +281,7 @@ func (repo *IncidentReportRepository) GetAllIncidentActionPlan(incidentID uint) 
 		LEFT JOIN users AS review_user ON review_user.id = incident_action_plans.review_user_id
         LEFT JOIN users AS created_user ON created_user.id = incident_action_plans.created_by_id
         LEFT JOIN users AS updated_user ON updated_user.id = incident_action_plans.updated_by_id
-    `)
+    `).Where("incident_action_plans.incident_register_id = ?", incidentID)
 	err := query.Scan(&incidentActionPlans).Error
 	if err != nil {
 		return nil, err
@@ -753,35 +753,89 @@ func (repo *IncidentReportRepository) GetAllIncidentProcesses(incidentID uint) (
 	return processList, nil
 }
 
+// func (repo *IncidentReportRepository) GetAllIncidentComplianceRequirements(incidentID uint) ([]*incidentDTOs.IncidentComplianceRequirementListDTO, error) {
+// 	var complianceRequirementList []*incidentDTOs.IncidentComplianceRequirementListDTO
 
-func (repo *IncidentReportRepository) GetAllIncidentComplianceRequirements(incidentID uint) ([]*incidentDTOs.IncidentComplianceRequirementListDTO, error) {
-	var complianceRequirementList []*incidentDTOs.IncidentComplianceRequirementListDTO
+// 	query := repo.db.Table("incident_compliance_requirements").
+// 		Select(`
+// 			incident_compliance_requirements.compliance_requirement_id AS compliance_requirement_id,
+//             compliance_clauses.title_en AS compliance_clause_title,
+//             compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
+//             compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
+//             compliance_requirements.title_en AS compliance_requirement_title,
+//             compliance_statuses.title_en AS compliance_status_title_en,
+//             compliance_statuses.title_ar AS compliance_status_title_ar,
+// 			compliance_statuses.color_code AS compliance_status_color_code
+//         `).
+// 		Joins(`
+// 			LEFT JOIN compliance_requirements ON compliance_requirements.id = incident_compliance_requirements.compliance_requirement_id
+//             LEFT JOIN compliance_clauses ON compliance_requirements.compliance_clause_id = compliance_clauses.id
+//             LEFT JOIN compliance_statuses ON compliance_requirements.compliance_status_id = compliance_statuses.id
+//             LEFT JOIN compliance_requirement_categories ON compliance_requirements.compliance_requirement_category_id = compliance_requirement_categories.id
+//         `).
+// 		Where("incident_compliance_requirements.incident_register_id = ?", incidentID)
+
+// 	err := query.Scan(&complianceRequirementList).Error
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return complianceRequirementList, nil
+
+// }
+
+func (repo *IncidentReportRepository) GetAllIncidentComplianceRequirements(incidentID uint) ([]*commonDTOs.AssociatedClauseListDTO, error) {
+	var clauseList []commonDTOs.AssociatedClauseRowDTO
 
 	query := repo.db.Table("incident_compliance_requirements").
 		Select(`
-			incident_compliance_requirements.compliance_requirement_id AS compliance_requirement_id,
-            compliance_clauses.title_en AS compliance_clause_title,
-            compliance_requirement_categories.title_en AS compliance_requirement_category_title_en,
-            compliance_requirement_categories.title_ar AS compliance_requirement_category_title_ar,
-            compliance_requirements.title_en AS compliance_requirement_title,
-            compliance_statuses.title_en AS compliance_status_title_en,
-            compliance_statuses.title_ar AS compliance_status_title_ar,
-			compliance_statuses.color_code AS compliance_status_color_code
-        `).
+			compliance_clauses.title_en AS clause_title_en,
+			compliance_clauses.title_ar AS clause_title_ar,
+			compliance_clauses.clause_no,
+			compliance_clauses.compliance_register_id,
+			compliance_clauses.id AS compliance_clause_id,
+			compliance_register.title_en AS compliance_register_title_en,
+			compliance_register.title_ar AS compliance_register_title_ar
+		`).
 		Joins(`
-			LEFT JOIN compliance_requirements ON compliance_requirements.id = incident_compliance_requirements.compliance_requirement_id
-            LEFT JOIN compliance_clauses ON compliance_requirements.compliance_clause_id = compliance_clauses.id
-            LEFT JOIN compliance_statuses ON compliance_requirements.compliance_status_id = compliance_statuses.id
-            LEFT JOIN compliance_requirement_categories ON compliance_requirements.compliance_requirement_category_id = compliance_requirement_categories.id
-        `).
+			LEFT JOIN compliance_clauses ON incident_compliance_requirements.compliance_clause_id = compliance_clauses.id
+			LEFT JOIN compliance_register ON incident_compliance_requirements.compliance_register_id = compliance_register.id
+		`).
 		Where("incident_compliance_requirements.incident_register_id = ?", incidentID)
 
-	err := query.Scan(&complianceRequirementList).Error
-	if err != nil {
+	if err := query.Find(&clauseList).Error; err != nil {
 		return nil, err
 	}
 
-	return complianceRequirementList, nil
+	clausesByComplianceRegister := make(map[uint]*commonDTOs.AssociatedClauseListDTO)
+	for _, row := range clauseList {
+		if _, exists := clausesByComplianceRegister[row.ComplianceRegisterID]; !exists {
+			clausesByComplianceRegister[row.ComplianceRegisterID] = &commonDTOs.AssociatedClauseListDTO{
+				ComplianceRegisterID:      row.ComplianceRegisterID,
+				ComplianceRegisterTitleEn: row.ComplianceRegisterTitleEn,
+				ComplianceRegisterTitleAr: row.ComplianceRegisterTitleAr,
+				Clauses:                   []commonDTOs.AssociatedClauseDTO{},
+			}
+		}
+		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(
+			clausesByComplianceRegister[row.ComplianceRegisterID].Clauses,
+			commonDTOs.AssociatedClauseDTO{
+				ComplianceClauseID: row.ComplianceClauseID,
+				ClauseNo:           row.ClauseNo,
+				ClauseTitleEn:      row.ClauseTitleEn,
+				ClauseTitleAr:      row.ClauseTitleAr,
+			},
+		)
+	}
 
+	var groupedClauses []*commonDTOs.AssociatedClauseListDTO
+	for _, v := range clausesByComplianceRegister {
+		groupedClauses = append(groupedClauses, v)
+	}
+
+	if groupedClauses == nil {
+		groupedClauses = []*commonDTOs.AssociatedClauseListDTO{}
+	}
+
+	return groupedClauses, nil
 }
-

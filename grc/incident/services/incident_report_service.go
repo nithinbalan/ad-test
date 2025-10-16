@@ -45,6 +45,7 @@ func (irs IncidentReportService) GetFullReportDetailsByID(id uint) (*incidentDTO
 		}
 		return nil, err
 	}
+	
 	if _, err := irs.settigSvc.GetImagePath("logo"); err != nil {
 		return nil, utility.NewForbiddenError("logo_image_missing")
 	}
@@ -121,8 +122,8 @@ func (irs IncidentReportService) GetFullReportDetailsByID(id uint) (*incidentDTO
 		incidentDTO.Investigation.InitiatedAtString = &dateStr
 	}
 
-	incidentDTO.IncidentAtFormatted = incident.IncidentAt.Format("Jan 02, 2006, 03:04 PM")
-	incidentDTO.ReportedAtFormatted = incident.ReportedAt.Format("Jan 02, 2006, 03:04 PM")
+	incidentDTO.IncidentAtFormatted = incident.IncidentAt.Format("01 02, 2006, 03:04 PM")
+	incidentDTO.ReportedAtFormatted = incident.ReportedAt.Format("01 02, 2006, 03:04 PM")
 
 	incidentDTO.Timelines = []*incidentDTOs.IncidentTimelineListDTO{}
 	for _, t := range incident.Timelines {
