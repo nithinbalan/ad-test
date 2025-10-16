@@ -311,6 +311,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		commonModule.NotificationService,
 		complianceAssessmentFrameworkSvc,
 		complianceAssessmentStatusSvc,
+		complianceStatusSvc,
 	)
 	complianceAssessmentControlController := controllers.NewComplianceAssessmentControlController(complianceAssessmentControlSvc)
 	complianceAssessmentControlCommentRepository := repositories.NewComplianceAssessmentControlCommentRepository(db)
