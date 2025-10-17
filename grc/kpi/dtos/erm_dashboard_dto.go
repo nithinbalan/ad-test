@@ -24,10 +24,6 @@ type ERMDashboardListQueryParamsDTO struct {
 }
 
 type ERMRiskDistributionDTO struct {
-	RiskCountsByRating []ERMRiskRatingCountDTO `json:"risk_counts_by_rating"`
-}
-
-type ERMRiskRatingCountDTO struct {
 	TitleEn    string  `json:"title_en"`
 	TitleAr    string  `json:"title_ar"`
 	ColorCode  string  `json:"color_code"`
@@ -67,10 +63,6 @@ type ERMControlEfficiencySummaryDTO struct {
 	OverallControlEfficiency float64 `json:"overall_control_efficiency"`
 }
 
-type ERMControlEfficiencyBreakdownDTO struct {
-	ControlsByEfficiency []ERMRiskSummaryItemDTO `json:"controls_by_efficiency"`
-}
-
 type ERMControlsResultDTO struct {
 	TotalControls       int64
 	ApplicableControls  int64
@@ -97,14 +89,10 @@ type ERMControlsOverviewDTO struct {
 	HighRisksWithInefficientControlsPercent float64 `json:"high_risks_with_inefficient_controls_percent"`
 }
 
-type ERMRiskAppetiteOverviewItemDTO struct {
+type ERMRiskAppetiteOverviewDTO struct {
 	OrganizationUnit   string                  `json:"organization_unit"`
 	RiskAppetiteLevels []ERMRiskSummaryItemDTO `json:"risk_appetite_levels"`
 	TotalRisk          int64                   `json:"total_risk"`
-}
-
-type ERMRiskAppetiteOverviewDTO struct {
-	RiskAppetiteByOrganizationUnits []ERMRiskAppetiteOverviewItemDTO `json:"risk_appetite_by_organization_units"`
 }
 
 type ERMRiskAppetiteOverviewQueryResultDTO struct {
@@ -136,17 +124,13 @@ type ERMRiskAgingStatusQuereyResultDTO struct {
 }
 
 type ERMRiskAgingStatusDTO struct {
-	RiskAgingPeriods []RiskAgingPeriodDTO `json:"risk_aging_periods"`
-}
-
-type RiskAgingPeriodDTO struct {
 	RiskAging string `json:"risk_aging"`
 	Open      int64  `json:"open"`
 	Closed    int64  `json:"closed"`
 	Total     int64  `json:"total"`
 }
 
-type ERMRiskTreatmentPlanProgressItemDTO struct {
+type ERMRiskTreatmentPlanProgressDTO struct {
 	ID        uint   `json:"id"`
 	TitleEn   string `json:"title_en"`
 	TitleAr   string `json:"title_ar"`
@@ -154,10 +138,6 @@ type ERMRiskTreatmentPlanProgressItemDTO struct {
 	Type      string `json:"type"`
 	OnTime    int64  `json:"on_time"`
 	Overdue   int64  `json:"overdue"`
-}
-
-type ERMRiskTreatmentPlanProgressDTO struct {
-	RiskTreatmentPlanProgress []ERMRiskTreatmentPlanProgressItemDTO `json:"risk_treatment_plan_progress"`
 }
 
 type ERMStregicObjectiveRiskItemDTO struct {
@@ -202,61 +182,46 @@ type ERMRiskOrganizationUnitSummaryDTO struct {
 
 // ERM Risk Details
 type ERMRiskCategorySummaryItemDTO struct {
-	Category string `json:"category"`
-	Count    int64  `json:"count"`
+	CategoryTitleEn string `json:"category_title_en"`
+	CategoryTitleAr string `json:"category_title_ar"`
+	Count           int64  `json:"count"`
 }
 
 type ERMRiskCategorySummaryDTO struct {
 	RisksByCategory []ERMRiskCategorySummaryItemDTO `json:"risks_by_category"`
-}
-
-type ERMRiskSourceSummaryItemDTO struct {
-	Source string `json:"source"`
-	Count  int64  `json:"count"`
+	Total           int64                           `json:"total"`
 }
 
 type ERMRiskSourceSummaryDTO struct {
-	RisksBySource []ERMRiskSourceSummaryItemDTO `json:"risks_by_source"`
+	SourceTitleEn string `json:"source_title_en"`
+	SourceTitleAR string `json:"source_title_ar"`
+	Count         int64  `json:"count"`
 }
-
 type ERMRiskStatusSummaryDTO struct {
 	RisksByStatus []ERMRiskSummaryItemDTO `json:"risks_by_status"`
 	Total         int64                   `json:"total"`
 }
 
-type ERMRiskSummaryByOrganizationUnitItemDTO struct {
-	OrganizationUnit string `json:"organization_unit"`
-	Count            int64  `json:"count"`
-}
-
 type ERMRiskSummaryByOrganizationUnitDTO struct {
-	RisksByOrganizationUnit []ERMRiskSummaryByOrganizationUnitItemDTO `json:"risks_by_organization_unit"`
+	OrganizationUnitTitleEn   string `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr   string `json:"organization_unit_title_ar"`
+	OrganizationUnitColorCode string `json:"organization_unit_color_code"`
+	Count                     int64  `json:"count"`
 }
-
-type ERMRisksIdentifiedSummaryItemDTO struct {
+type ERMRisksIdentifiedSummaryDTO struct {
 	Year  int64 `json:"year"`
 	Count int64 `json:"count"`
 }
 
-type ERMRisksIdentifiedSummaryDTO struct {
-	RisksIdentifiedOverYears []ERMRisksIdentifiedSummaryItemDTO `json:"risks_identified_over_years"`
-}
-
-type ERMRiskResponseStrategySummaryItemDTO struct {
-	ResponseStrategy string `json:"response_strategy"`
-	Count            int64  `json:"count"`
-}
-
 type ERMRiskResponseStrategySummaryDTO struct {
-	RisksResponseStrategySummary []ERMRiskResponseStrategySummaryItemDTO `json:"risks_by_response_strategy"`
+	ResponseStrategyTitleEn string `json:"response_strategy_title_en"`
+	ResponseStrategyTitleAr string `json:"response_strategy_title_ar"`
+	Count                   int64  `json:"count"`
 }
 
-type ERMRiskControlEfficiencySummaryItemDTO struct {
+type ERMRiskControlEfficiencySummaryDTO struct {
 	EfficiencyRange string  `json:"efficiency_range"`
 	Percentage      float64 `json:"percentage"`
-}
-type ERMRiskControlEfficiencySummaryDTO struct {
-	RiskControlEfficiencies []ERMRiskControlEfficiencySummaryItemDTO `json:"risk_control_efficiencies"`
 }
 
 type ERMRiskMitigationPlanStatusSummaryItemDTO struct {
