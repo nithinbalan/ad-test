@@ -237,10 +237,13 @@ func (repo *PolicyFolderRepository) GetAll(params *policyDTOs.PolicyRegisterList
 				)
 				AND (documents.created_by_id = ? OR documents.responsible_user_id = ?)
 			)
+			OR (
+				documents.is_folder = ?
+			)
 		`, currentUserID, currentUserID, currentUserID, // in-review access
 			currentUserID, currentUserID, currentUserID, // approved access
 			currentUserID, currentUserID, currentUserID, currentUserID, // published access
-			currentUserID, currentUserID) // all other statuses access
+			currentUserID, currentUserID, true) // all other statuses access
 	}
 
 	// Apply search keyword if exists
