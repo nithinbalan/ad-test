@@ -197,6 +197,16 @@ func (repo *PolicyFolderRepository) GetAll(params *policyDTOs.PolicyRegisterList
 					)
 				)
 			)
+			OR (documents.document_status_id = (SELECT id FROM document_statuses WHERE type = 'rejected') 
+				AND (documents.created_by_id = ? OR documents.responsible_user_id = ? 
+					OR EXISTS (
+						SELECT 1 FROM document_shared_users 
+						WHERE document_shared_users.document_id = documents.id 
+						AND document_shared_users.user_id = ? 
+						AND document_shared_users.type = 'review-user'
+					)
+				)
+			)
 			OR (documents.document_status_id = (SELECT id FROM document_statuses WHERE type = 'approved') 
 				AND (documents.created_by_id = ? OR documents.responsible_user_id = ? 
 					OR EXISTS (
@@ -241,6 +251,7 @@ func (repo *PolicyFolderRepository) GetAll(params *policyDTOs.PolicyRegisterList
 				documents.is_folder = ?
 			)
 		`, currentUserID, currentUserID, currentUserID, // in-review access
+			currentUserID, currentUserID, currentUserID, //reject case
 			currentUserID, currentUserID, currentUserID, // approved access
 			currentUserID, currentUserID, currentUserID, currentUserID, // published access
 			currentUserID, currentUserID, true) // all other statuses access
