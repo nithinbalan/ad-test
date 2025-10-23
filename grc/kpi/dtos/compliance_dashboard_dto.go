@@ -12,6 +12,13 @@ type ComplianceOverviewDTO struct {
 	TotalAssessments            int64   `json:"total_assessments"`
 }
 
+type ComplianceLeadershipAttentionDTO struct {
+	OpenCriticalRequirements      int64 `json:"open_critical_requirements"`
+	OverdueComplianceRequirements int64 `json:"overdue_compliance_requirements"`
+	UnassignedComplianceItems     int64 `json:"unassigned_compliance_items"`
+	PastDueActions                int64 `json:"past_due_actions"`
+}
+
 type ComplianceSummaryItemDTO struct {
 	ID        uint    `json:"id"`
 	TitleEn   string  `json:"title_en"`
@@ -27,23 +34,39 @@ type ComplianceBreakdownDTO struct {
 	Total              int64                      `json:"total"`
 }
 
-type CompliancePerformanceItemDTO struct {
+type CompliancePerformanceRadarDTO struct {
 	ComplianceStandardCode string  `json:"compliance_standard_code"`
+	ComplianceTitleEn      string  `json:"compliance_title_en"`
+	ComplianceTitleAr      string  `json:"compliance_title_ar"`
 	Score                  float64 `json:"score"`
 }
 
-type CompliancePerformanceRadarDTO struct {
-	Items []CompliancePerformanceItemDTO `json:"items"`
-}
-
-type ComplianceClausePerformanceItemDTO struct {
+type ComplianceClausePerformanceDTO struct {
 	ClauseNumber string  `json:"clause_number"`
 	TitleEn      string  `json:"title_en"`
+	TitleAr      string  `json:"title_ar"`
 	Score        float64 `json:"score"`
 }
 
-type ComplianceClausePerformanceDTO struct {
-	Items []ComplianceClausePerformanceItemDTO `json:"items"`
+type CompliancePolicyOverviewDTO struct {
+	TotalPolicies                  int64   `json:"total_policies"`
+	AcknowledgementScore           float64 `json:"acknowledgement_score"`
+	HighRiskPolicies               int64   `json:"high_risk_policies"`
+	PolicyExceptionsRaised         int64   `json:"policy_exceptions_raised"`
+	CriticalPoliciesUnacknowledged int64   `json:"critical_policies_unacknowledged"`
+}
+
+type CompliancePolicyStatusBreakdownDTO struct {
+	TotalPolicies    int64 `json:"total_policies"`
+	ActivePolicies   int64 `json:"active_policies"`
+	InactivePolicies int64 `json:"inactive_policies"`
+}
+
+type CompliancePolicyByOrganizationUnitDTO struct {
+	OrganizationUnitTitleEn   string `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr   string `json:"organization_unit_title_ar"`
+	OrganizationUnitColorCode string `json:"organization_unit_color_code"`
+	TotalPolicies             int64  `json:"total_policies"`
 }
 
 type ComplianceControlSummaryDTO struct {
@@ -55,6 +78,8 @@ type ComplianceControlSummaryDTO struct {
 
 type ComplianceEfficiencySummaryQueryResultDTO struct {
 	ComplianceStandardCode string
+	ComplianceTitleEn      string
+	ComplianceTitleAr      string
 	StatusID               uint
 	TitleEn                string
 	TitleAr                string
@@ -63,11 +88,49 @@ type ComplianceEfficiencySummaryQueryResultDTO struct {
 	Count                  int64
 }
 
-type ComplianceEfficiencySummaryItemDTO struct {
+type ComplianceEfficiencySummaryDTO struct {
 	ComplianceStandardCode string                     `json:"compliance_standard_code"`
+	ComplianceTitleEn      string                     `json:"compliance_title_en"`
+	ComplianceTitleAr      string                     `json:"compliance_title_ar"`
 	EfficiencyStatuses     []ComplianceSummaryItemDTO `json:"efficiency_statuses"`
 }
 
-type ComplianceEfficiencySummaryDTO struct {
-	Items []ComplianceEfficiencySummaryItemDTO `json:"items"`
+type ComplianceControlOverviewDTO struct {
+	TotalAssessments       int64   `json:"total_assessments"`
+	AssessmentCoverage     float64 `json:"assessment_coverage"`
+	Completion             float64 `json:"completion"`
+	HighRiskFindings       int64   `json:"high_risk_findings"`
+	RegistersAssessedX     int64   `json:"registers_assessed_x"`
+	RegistersAssessedY     int64   `json:"registers_assessed_y"`
+	RegistersAssessedPct   float64 `json:"registers_assessed_pct"`
+	UpcomingAssessments    int64   `json:"upcoming_assessments"`
+	PendingRemediation     int64   `json:"pending_remediation"`
+	DepartmentsNotAssessed int64   `json:"departments_not_assessed"`
+}
+
+type ComplianceAssessmentControlOrganizationUnit struct {
+	OrganizationUnitTitleEn   string `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr   string `json:"organization_unit_title_ar"`
+	OrganizationUnitColorCode string `json:"organization_unit_color_code"`
+	AssessmentCount           int64  `json:"assessment_count"`
+}
+type ComplianceActionPlanOverviewDTO struct {
+	TotalActionPlans     int64   `json:"total_action_plans"`
+	CompletedPlans       int64   `json:"completed_plans"`
+	PendingPlans         int64   `json:"pending_plans"`
+	OverduePlans         int64   `json:"overdue_plans"`
+	HighPriorityPlans    int64   `json:"high_priority_plans"`
+	AvgCompletionPercent float64 `json:"avg_completion_percent"`
+}
+
+type ComplianceActionPlanStatusSummaryDTO struct {
+	ActionPlanStatuses []ComplianceSummaryItemDTO `json:"action_plan_statuses"`
+	TotalActionPlans   int64                      `json:"total_action_plans"`
+}
+
+type ComplianceActionPlanByOrganizationUnitDTO struct {
+	OrganizationUnitTitleEn   string `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr   string `json:"organization_unit_title_ar"`
+	OrganizationUnitColorCode string `json:"organization_unit_color_code"`
+	TotalActionPlans          int64  `json:"total_action_plans"`
 }

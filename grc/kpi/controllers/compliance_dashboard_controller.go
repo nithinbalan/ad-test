@@ -44,6 +44,29 @@ func (cdc *ComplianceDashboardController) GetComplianceOverview(c *gin.Context) 
 	c.JSON(http.StatusOK, overview)
 }
 
+func (cdc *ComplianceDashboardController) GetLeadershipAttentionSummary(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	summary, err := cdc.service.GetLeadershipAttentionSummary(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(cdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}
+
 func (cdc *ComplianceDashboardController) GetComplianceBreakdown(c *gin.Context) {
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
@@ -140,7 +163,7 @@ func (cdc *ComplianceDashboardController) GetHighPerformanceComplianceClauses(c 
 	c.JSON(http.StatusOK, summary)
 }
 
-func (cdc *ComplianceDashboardController) GetLowPerformanceComplianceClauses(c *gin.Context) {
+func (cdc *ComplianceDashboardController) GetPolicyOverview(c *gin.Context) {
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
@@ -149,7 +172,31 @@ func (cdc *ComplianceDashboardController) GetLowPerformanceComplianceClauses(c *
 		DateTo:   dateTo,
 	}
 
-	summary, err := cdc.service.GetLowPerformanceComplianceClauses(&queryParams)
+	overview, err := cdc.service.GetPolicyOverview(&queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(cdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, overview)
+}
+
+func (cdc *ComplianceDashboardController) GetLeastPerformanceComplianceClauses(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	summary, err := cdc.service.GetLeastPerformanceComplianceClauses(&queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -164,7 +211,7 @@ func (cdc *ComplianceDashboardController) GetLowPerformanceComplianceClauses(c *
 	c.JSON(http.StatusOK, summary)
 }
 
-func (cdc *ComplianceDashboardController) GetComplianceControlSummary(c *gin.Context) {
+func (cdc *ComplianceDashboardController) GetPolicyByOrganizationUnit(c *gin.Context) {
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
@@ -173,7 +220,54 @@ func (cdc *ComplianceDashboardController) GetComplianceControlSummary(c *gin.Con
 		DateTo:   dateTo,
 	}
 
-	summary, err := cdc.service.GetComplianceControlSummary(&queryParams)
+	summary, err := cdc.service.GetPolicyByOrganizationUnit(&queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(cdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}
+
+func (cdc *ComplianceDashboardController) GetPolicyStatusBreakdown(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	summary, err := cdc.service.GetPolicyStatusBreakdown(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(cdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}
+
+func (cdc *ComplianceDashboardController) GetControlSummary(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	summary, err := cdc.service.GetControlSummary(&queryParams)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -199,6 +293,122 @@ func (cdc *ComplianceDashboardController) GetComplianceEfficiencySummary(c *gin.
 
 	summary, err := cdc.service.GetComplianceEfficiencySummary(&queryParams)
 
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(cdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}
+
+func (cdc *ComplianceDashboardController) GetControlOverview(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	overview, err := cdc.service.GetControlOverview(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(cdc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, overview)
+}
+
+func (cdc *ComplianceDashboardController) GetOrganizationUnitWiseAssessmentCoverage(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	overview, err := cdc.service.GetOrganizationUnitWiseAssessmentCoverage(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(cdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, overview)
+}
+
+func (cdc *ComplianceDashboardController) GetActionPlanOverview(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	overview, err := cdc.service.GetActionPlanOverview(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(cdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, overview)
+}
+
+func (cdc *ComplianceDashboardController) GetActionPlanStatusSummary(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	summary, err := cdc.service.GetActionPlanStatusSummary(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(cdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}
+
+func (cdc *ComplianceDashboardController) GetActionPlansByOrganizationUnit(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	summary, err := cdc.service.GetActionPlansByOrganizationUnit(&queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
