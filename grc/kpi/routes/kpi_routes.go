@@ -17,6 +17,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	grcDashboardController := app.KPIModule.GRCDashboardController
 	ermDashboardController := app.KPIModule.ERMDashboardController
+	complianceDashboardController := app.KPIModule.ComplianceDashboardController
 
 	//GRCDashboard Summary
 	kpiRoutes.GET("/kpis/grc-summary/compliance", middlewares.RolePermissionMiddleware(db, "grc_dashboard", "view"), grcDashboardController.GetGRCComplianceSummary)
@@ -68,4 +69,23 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/erm-details/open-risks", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetERMOpenRisksSummary)
 
 	kpiRoutes.GET("/kpis/erm/top-twenty-risks", middlewares.RolePermissionMiddleware(db, "erm_dashboard", "view"), ermDashboardController.GetTopRiskRegisters)
+
+	// Compliance Dashboard
+	kpiRoutes.GET("/kpis/compliance/overview", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetComplianceOverview)
+	kpiRoutes.GET("/kpis/compliance/leadership-attention", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetLeadershipAttentionSummary)
+	kpiRoutes.GET("/kpis/compliance/breakdown", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetComplianceBreakdown)
+	kpiRoutes.GET("/kpis/compliance/high-performance", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetHighPerformanceCompliances)
+	kpiRoutes.GET("/kpis/compliance/least-performance", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetLeastPerformanceCompliances)
+	kpiRoutes.GET("/kpis/compliance/high-performance/clauses", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetHighPerformanceComplianceClauses)
+	kpiRoutes.GET("/kpis/compliance/least-performance/clauses", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetLeastPerformanceComplianceClauses)
+	kpiRoutes.GET("/kpis/compliance/overview/policies", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetPolicyOverview)
+	kpiRoutes.GET("/kpis/compliance/summary/policy-statuses", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetPolicyStatusBreakdown)
+	kpiRoutes.GET("/kpis/compliance/summary/policy-organization-unit", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetPolicyByOrganizationUnit)
+	kpiRoutes.GET("/kpis/compliance/summary/controls", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetControlSummary)
+	kpiRoutes.GET("/kpis/compliance/summary/control-efficiency", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetComplianceEfficiencySummary)
+	kpiRoutes.GET("/kpis/compliance/overview/controls", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetControlOverview)
+	kpiRoutes.GET("/kpis/compliance/summary/control-organization-unit", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetOrganizationUnitWiseAssessmentCoverage)
+	kpiRoutes.GET("/kpis/compliance/overview/action-plans", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetActionPlanOverview)
+	kpiRoutes.GET("/kpis/compliance/summary/action-plan-statuses", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetActionPlanStatusSummary)
+	kpiRoutes.GET("/kpis/compliance/summary/action-plan-organization-units", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetActionPlansByOrganizationUnit)
 }
