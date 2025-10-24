@@ -247,12 +247,18 @@ func (repo *ComplianceDashboardRepository) GetLeastPerformanceCompliances(params
 func (repo *ComplianceDashboardRepository) GetHighPerformanceComplianceClauses(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]kpiDTOs.ComplianceClausePerformanceDTO, error) {
 	results := []kpiDTOs.ComplianceClausePerformanceDTO{}
 
-	query := repo.db.Model(&models.ComplianceClause{}).
-		Select(`compliance_clauses.clause_no, compliance_clauses.title_en, compliance_clauses.title_ar, AVG(compliance_clauses.score) AS score`).
-		Where("compliance_clauses.score IS NOT NULL").
-		Group("compliance_clauses.clause_no, compliance_clauses.title_en, compliance_clauses.title_ar").
-		Having("AVG(compliance_clauses.score) >= ?", 75.0).
-		Order("AVG(compliance_clauses.score) DESC").
+	query := repo.db.Table("compliance_clauses AS child").
+		Select(`
+			parent.clause_no AS compliance_clause_no,
+            parent.title_en AS compliance_clause_title_en,
+			parent.title_ar as compliance_clause_title_ar,
+            AVG(CAST(child.score AS FLOAT)) AS compliance_clause_score
+        `).
+		Joins("JOIN compliance_clauses AS parent ON parent.id = child.compliance_clause_id").
+		Where("child.compliance_clause_id IS NOT NULL").
+		Where("child.score IS NOT NULL").
+		Group("parent.clause_no, parent.title_en, parent.title_ar").
+		Order("compliance_clause_score DESC").
 		Limit(5)
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -269,12 +275,18 @@ func (repo *ComplianceDashboardRepository) GetHighPerformanceComplianceClauses(p
 func (repo *ComplianceDashboardRepository) GetLeastPerformanceComplianceClauses(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]kpiDTOs.ComplianceClausePerformanceDTO, error) {
 	results := []kpiDTOs.ComplianceClausePerformanceDTO{}
 
-	query := repo.db.Model(&models.ComplianceClause{}).
-		Select(`compliance_clauses.clause_no, compliance_clauses.title_en, compliance_clauses.title_ar, AVG(compliance_clauses.score) AS score`).
-		Where("compliance_clauses.score IS NOT NULL").
-		Group("compliance_clauses.clause_no, compliance_clauses.title_en, compliance_clauses.title_ar").
-		Having("AVG(compliance_clauses.score) < ?", 75.0).
-		Order("AVG(compliance_clauses.score) ASC").
+	query := repo.db.Table("compliance_clauses AS child").
+		Select(`
+			parent.clause_no AS compliance_clause_no,
+            parent.title_en AS compliance_clause_title_en,
+			parent.title_ar as compliance_clause_title_ar,
+            AVG(CAST(child.score AS FLOAT)) AS compliance_clause_score
+        `).
+		Joins("JOIN compliance_clauses AS parent ON parent.id = child.compliance_clause_id").
+		Where("child.compliance_clause_id IS NOT NULL").
+		Where("child.score IS NOT NULL").
+		Group("parent.clause_no, parent.title_en, parent.title_ar").
+		Order("compliance_clause_score ASC").
 		Limit(5)
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -636,7 +648,7 @@ func (repo *ComplianceDashboardRepository) GetComplianceEfficiencySummary(params
 func (repo *ComplianceDashboardRepository) GetControlOverview(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceControlOverviewDTO, error) {
 	result := &kpiDTOs.ComplianceControlOverviewDTO{}
 
-	// Reusable date filter
+	// date filter
 	applyDateFilter := func(tx *gorm.DB, table string) *gorm.DB {
 		if params.DateFrom != "" && params.DateTo != "" {
 			tx = tx.Where(fmt.Sprintf("%s.reported_at BETWEEN ? AND ?", table), params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")

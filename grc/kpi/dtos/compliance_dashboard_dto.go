@@ -42,10 +42,10 @@ type CompliancePerformanceRadarDTO struct {
 }
 
 type ComplianceClausePerformanceDTO struct {
-	ClauseNumber string  `json:"clause_number"`
-	TitleEn      string  `json:"title_en"`
-	TitleAr      string  `json:"title_ar"`
-	Score        float64 `json:"score"`
+	ClauseNo string  `json:"clause_no"`
+	TitleEn  string  `json:"title_en"`
+	TitleAr  string  `json:"title_ar"`
+	Score    float64 `json:"score"`
 }
 
 type CompliancePolicyOverviewDTO struct {
