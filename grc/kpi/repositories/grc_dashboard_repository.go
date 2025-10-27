@@ -3,8 +3,10 @@ package repositories
 import (
 	"database/sql"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
 	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/models"
+	"jethur/utility"
 	"math"
 	"time"
 
@@ -28,6 +30,9 @@ type GRCDashboardRepositoryInterface interface {
 	GetTopPublishedDocuments(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCTopDocumentsDTO, error)
 
 	GetGRCDocumentTypeChart(params *kpiDTOs.GRCDashboardListQueryParamsDTO) ([]*kpiDTOs.GRCDocumentTypeChartDTO, error)
+	GetPolicyDocuments(params *kpiDTOs.GRCDashboardDocumentListQueryParamsDTO) (*kpiDTOs.GRCDashboardDocumentListResponseDTO, error)
+
+	GetDocumentByID(documentId uint, tx ...utility.DatabaseTransaction) (*models.Document, error)
 }
 
 type GRCDashboardRepository struct {
@@ -675,4 +680,78 @@ func (repo *GRCDashboardRepository) GetGRCDocumentTypeChart(params *kpiDTOs.GRCD
 	}
 
 	return typeCounts, nil
+}
+
+func (repo *GRCDashboardRepository) GetPolicyDocuments(params *kpiDTOs.GRCDashboardDocumentListQueryParamsDTO) (*kpiDTOs.GRCDashboardDocumentListResponseDTO, error) {
+	var documents []*kpiDTOs.GRCDashboardDocumentResponseDTO
+	var totalCount int64
+
+	query := repo.db.Table("documents").
+		Select(`
+			documents.id AS id,reference_number,
+			documents.title_en, documents.title_ar,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_units.title_en AS responsible_unit_title_en,
+			responsible_units.title_ar AS responsible_unit_title_ar,
+			documents.created_by_id, documents.created_at
+		`).
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = documents.responsible_user_id").
+		Joins("LEFT JOIN document_types ON document_types.id = documents.document_type_id").
+		Joins("LEFT JOIN organization_units AS responsible_units ON responsible_units.id = documents.responsible_unit_id").
+		Where("document_types.type = ?", "policy").
+		Order("created_at ASC")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("documents.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&documents).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &kpiDTOs.GRCDashboardDocumentListResponseDTO{
+		Items: documents,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *GRCDashboardRepository) GetDocumentByID(documentId uint, tx ...utility.DatabaseTransaction) (*models.Document, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var document *models.Document
+	result := db.
+		Joins("JOIN document_types dt ON dt.id = documents.document_type_id").
+		Where("dt.type = ?", "policy").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUnit").
+		Preload("DocumentAccessType").
+		First(&document, documentId)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return document, nil
 }

@@ -24,6 +24,7 @@ type GovernanceReportServiceInterface interface {
 	DeleteGovernanceReportSection(governanceReportID uint, sectionID uint, currentUserID uint) error
 	DeleteGovernanceReport(governanceReportID uint, currentUserID uint) error
 	ExportGovernanceReportToPDF(governanceReportID uint, currentUserID uint) (string, error)
+	GetDocumentAcknowledgmentSummary(document *models.Document) (*dtos.DocumentAcknowledgmentSummaryDTO, error)
 }
 
 type GovernanceReportService struct {

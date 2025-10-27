@@ -16,10 +16,10 @@ type KPIModule struct {
 	GrcDashboardSvc services.GRCDashboardServiceInterface
 }
 
-func NewKPIModule(db *gorm.DB, riskModule *RiskModule) *KPIModule {
+func NewKPIModule(db *gorm.DB, riskModule *RiskModule, organizationModule *OrganizationModule, documentModule *DocumentModule) *KPIModule {
 
 	grcDashboardRepo := repositories.NewGRCDashboardRepository(db)
-	grcDashboardSvc := services.NewGRCDashboardService(grcDashboardRepo)
+	grcDashboardSvc := services.NewGRCDashboardService(grcDashboardRepo, organizationModule.GovernanceReportSvc, documentModule.DocumentSvc)
 	grcDashboardController := controllers.NewGRCDashboardController(grcDashboardSvc, riskModule.RiskHeatMapSvc)
 
 	// ERM Dashboard
