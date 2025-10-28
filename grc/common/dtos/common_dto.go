@@ -873,3 +873,81 @@ type AssociatedProjectListResponseDTO struct {
 	Items      []*AssociatedProjectListDTO `json:"items"`
 	Pagination PaginationInfoDTO           `json:"pagination"`
 }
+
+type AssociatedComplianceListDTO struct {
+	ID                                    uint   `json:"id"`
+	ComplianceRegisterID                  uint   `json:"compliance_register_id"`
+	ComplianceCategoryTitleEn             string `json:"compliance_category_title_en"`
+	ComplianceCategoryTitleAr             string `json:"compliance_category_title_ar"`
+	ComplianceStatusTitleEn               string `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr               string `json:"compliance_status_title_ar"`
+	ComplianceStatusColorCode             string `json:"compliance_status_color_code"`
+	ResponsibleUnitTitleEn                string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr                string `json:"responsible_unit_title_ar"`
+	ResponsibleUserID                     uint   `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn            string `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr            string `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn             string `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr             string `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial                string `json:"responsible_user_initial"`
+	ResponsibleUserColor                  string `json:"responsible_user_color"`
+	ResponsibleUserEmail                  string `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath       string `json:"responsible_user_profile_image_path"`
+	ReviewFrequencyTitleEn                string `json:"review_frequency_title_en"`
+	ReviewFrequencyTitleAr                string `json:"review_frequency_title_ar"`
+	ReviewResponsibleUserID               uint   `json:"review_responsible_user_id"`
+	ReviewResponsibleUserFirstNameEn      string `json:"review_responsible_user_first_name_en"`
+	ReviewResponsibleUserFirstNameAr      string `json:"review_responsible_user_first_name_ar"`
+	ReviewResponsibleUserLastNameEn       string `json:"review_responsible_user_last_name_en"`
+	ReviewResponsibleUserLastNameAr       string `json:"review_responsible_user_last_name_ar"`
+	ReviewResponsibleUserInitial          string `json:"review_responsible_user_initial"`
+	ReviewResponsibleUserColor            string `json:"review_responsible_user_color"`
+	ReviewResponsibleUserEmail            string `json:"review_responsible_user_email"`
+	ReviewResponsibleUserProfileImagePath string `json:"review_responsible_user_profile_image_path"`
+	SeverityLevelTitleEn                  string `json:"severity_level_title_en"`
+	SeverityLevelTitleAr                  string `json:"severity_level_title_ar"`
+	SeverityLevelColorCode                string `json:"severity_level_color_code"`
+	ReferenceNumber                       string `json:"reference_number"`
+	StandardCode                          string `json:"standard_code"`
+	TitleEn                               string `json:"title_en"`
+	TitleAr                               string `json:"title_ar"`
+	DescriptionEn                         string `json:"description_en"`
+	DescriptionAr                         string `json:"description_ar"`
+	Version                               string `json:"version"`
+	Deadline                              string `json:"deadline"`
+	IssueDate                             string `json:"issue_date"`
+	ExpiryDate                            string `json:"expiry_date"`
+	NextReviewDate                        string `json:"next_review_date"`
+	LastReviewedDate                      string `json:"last_reviewed_date"`
+	CreatedAt                             string `json:"created_at"`
+	UpdatedAt                             string `json:"updated_at"`
+	CreatedUserID                         uint   `json:"created_user_id"`
+	CreatedUserFirstNameEn                string `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr                string `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn                 string `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr                 string `json:"created_user_last_name_ar"`
+	CreatedUserInitial                    string `json:"created_user_initial"`
+	CreatedUserColor                      string `json:"created_user_color"`
+	CreatedUserEmail                      string `json:"created_user_email"`
+	CreatedUserProfileImagePath           string `json:"created_user_profile_image_path"`
+	UpdatedUserID                         *uint  `json:"updated_user_id"`
+	UpdatedUserFirstNameEn                string `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr                string `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn                 string `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr                 string `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial                    string `json:"updated_user_initial"`
+	UpdatedUserColor                      string `json:"updated_user_color"`
+	UpdatedUserEmail                      string `json:"updated_user_email"`
+	UpdatedUserProfileImagePath           string `json:"updated_user_profile_image_path"`
+	LifecycleStatusTitleEn                string `json:"lifecycle_status_title_en"`
+	LifecycleStatusTitleAr                string `json:"lifecycle_status_title_ar"`
+	LifecycleStatusColorCode              string `json:"lifecycle_status_color_code"`
+	ComplianceAssessmentFrameworkID       *uint  `json:"compliance_assessment_framework_id"`
+	ComplianceAssessmentFrameworkTitleEn  string `json:"compliance_assessment_framework_title_en"`
+	ComplianceAssessmentFrameworkTitleAr  string `json:"compliance_assessment_framework_title_ar"`
+}
+
+type AssociatedComplianceListResponseDTO struct {
+	Items      []*AssociatedComplianceListDTO `json:"items"`
+	Pagination PaginationInfoDTO              `json:"pagination"`
+}

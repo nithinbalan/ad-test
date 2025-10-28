@@ -88,3 +88,37 @@ type OrganizationUnitUserDTO struct {
 	IsHead           bool    `json:"is_head"`
 	Initial          string  `json:"initial"`
 }
+
+type OrganizationUnitUserRoleDistributionDTO struct {
+	ID    uint   `json:"id"`
+	Role  string `json:"Role"`
+	Count int64  `json:"count"`
+}
+
+type OrganizationUnitOverviewDTO struct {
+	OrganizationUnitID        uint   `json:"oraganization_unit_id"`
+	OrganizationUnitTitle     string `json:"organization_unit_title"`
+	OrganizationUnitHead      string `json:"organization_unit_head"`
+	OrganizationUnitHeadEmail string `json:"organization_unit_head_email"`
+	TotalEmployees            int64  `json:"total_employees"`
+}
+
+type OrganizationUnitKeyMatrixDTO struct {
+	TotalRisks       int64 `json:"total_risks"`
+	TotalPolicies    int64 `json:"total_policies"`
+	TotalProcesses   int64 `json:"total_processes"`
+	TotalCompliances int64 `json:"total_compliances"`
+}
+
+type OrganizationUnitDistributionItemDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Count     int64  `json:"count"`
+}
+
+type OrganizationUnitSummaryReportDTO struct {
+	OrganizationUnitOverview  OrganizationUnitOverviewDTO `json:"organization_unit_overview"`
+	OrganizationUnitKeyMatrix OrganizationUnitKeyMatrixDTO
+}

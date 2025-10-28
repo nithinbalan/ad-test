@@ -23,6 +23,15 @@ type OrganizationUnitsRepositoryInterface interface {
 	GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetParentOrganizationUnitWithHead(unitID uint, primaryField string) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error)
+	GetUserRoleDistribution(orgUnitID uint, level uint) ([]organizationDTOs.OrganizationUnitUserRoleDistributionDTO, error)
+	GetAllComplianceByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedComplianceListResponseDTO, error)
+	GetAllProcessByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
+	GetOrganizationUnitOverview(orgUnitID uint, level uint) (*organizationDTOs.OrganizationUnitOverviewDTO, error)
+	GetOrganizationUnitKeyMatrix(orgUnitID uint) (*organizationDTOs.OrganizationUnitKeyMatrixDTO, error)
+	GetRiskRatingDistributionByOrganizationUnit(unitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
+	GetPolicyStatusDistributionByOrganizationUnit(unitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
+	GetComplianceStatusDistributionByOrganizationUnit(unitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
+	GetProcessCriticalityDistributionByOrganizationUnit(unitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
 }
 
 type OrganizationUnitsRepository struct {
@@ -611,4 +620,534 @@ func (repo *OrganizationUnitsRepository) GetParentOrganizationUnitWithHead(unitI
 	}
 
 	return &result, nil
+}
+
+func (repo *OrganizationUnitsRepository) GetUserRoleDistribution(orgUnitID uint, level uint) ([]organizationDTOs.OrganizationUnitUserRoleDistributionDTO, error) {
+	results := []organizationDTOs.OrganizationUnitUserRoleDistributionDTO{}
+
+	query := repo.db.Table("user_roles").
+		Select(`
+			roles.id,
+			roles.title_en as role,
+			COUNT(DISTINCT users.id) AS count`).
+		Joins("JOIN users ON users.id = user_roles.user_id").
+		Joins("JOIN roles ON roles.id = user_roles.role_id")
+
+	if level > 0 {
+		field := fmt.Sprintf("organization_unit_%d_id", level)
+		query = query.Where(fmt.Sprintf("users.%s = ?", field), orgUnitID)
+	}
+
+	query = query.Group("roles.id, roles.title_en")
+
+	if err := query.Find(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (repo *OrganizationUnitsRepository) GetAllComplianceByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedComplianceListResponseDTO, error) {
+	var complianceRegisters []*commonDTOs.AssociatedComplianceListDTO
+	var totalCount int64
+
+	query := repo.db.Table("compliance_register").
+		Select(`
+            compliance_register.id,
+            compliance_register.id AS compliance_register_id,
+			compliance_register.reference_number,
+			compliance_register.standard_code,
+			compliance_register.title_en,
+			compliance_register.title_ar,
+			compliance_register.description_en,
+			compliance_register.description_ar,
+			compliance_register.version,
+			compliance_register.total_score,
+			compliance_register.score,
+			CONVERT(VARCHAR, compliance_register.deadline, 23) AS deadline,
+        	CONVERT(VARCHAR, compliance_register.issue_date, 23) AS issue_date,
+        	CONVERT(VARCHAR, compliance_register.expiry_date, 23) AS expiry_date,
+       		CONVERT(VARCHAR, compliance_register.next_review_date, 23) AS next_review_date,
+			CONVERT(VARCHAR, compliance_register.last_reviewed_date, 23) AS last_reviewed_date,
+			compliance_assessment_frameworks.id AS compliance_assessment_framework_id,
+			compliance_assessment_frameworks.title_en AS compliance_assessment_framework_title_en,
+			compliance_assessment_frameworks.title_ar AS compliance_assessment_framework_title_ar,
+			compliance_categories.title_en AS compliance_category_title_en,
+			compliance_categories.title_ar AS compliance_category_title_ar,
+			compliance_statuses.title_en AS compliance_status_title_en,
+			compliance_statuses.title_ar AS compliance_status_title_ar,
+			compliance_statuses.color_code AS compliance_status_color_code,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+            responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            responsible_user.last_name_en AS responsible_user_last_name_en,
+            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+			review_responsible_user.id AS review_responsible_user_id,
+			review_responsible_user.first_name_en AS review_responsible_user_first_name_en,
+            review_responsible_user.first_name_ar AS review_responsible_user_first_name_ar,
+            review_responsible_user.last_name_en AS review_responsible_user_last_name_en,
+            review_responsible_user.last_name_ar AS review_responsible_user_last_name_ar,
+			review_responsible_user.initial AS review_responsible_user_initial,
+        	review_responsible_user.color AS review_responsible_user_color,
+        	review_responsible_user.email AS review_responsible_user_email,
+        	review_responsible_user.profile_image_path AS review_responsible_user_profile_image_path,  
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			lifecycle_statuses.title_en AS lifecycle_status_title_en,
+			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
+			lifecycle_statuses.color_code AS lifecycle_status_color_code,
+        	created_user.id AS created_user_id,
+        	created_user.first_name_en AS created_user_first_name_en,
+        	created_user.first_name_ar AS created_user_first_name_ar,
+        	created_user.last_name_en AS created_user_last_name_en,
+        	created_user.last_name_ar AS created_user_last_name_ar,   
+        	created_user.initial AS created_user_initial,
+        	created_user.color AS created_user_color,
+        	created_user.email AS created_user_email,
+        	created_user.profile_image_path AS created_user_profile_image_path,   
+			updated_user.id AS updated_user_id,
+    		updated_user.first_name_en AS updated_user_first_name_en,
+        	updated_user.first_name_ar AS updated_user_first_name_ar,
+        	updated_user.last_name_en AS updated_user_last_name_en,
+        	updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+        	updated_user.color AS updated_user_color,
+        	updated_user.email AS updated_user_email,
+        	updated_user.profile_image_path AS updated_user_profile_image_path        
+        `).
+		Joins(`
+		    LEFT JOIN compliance_categories ON compliance_categories.id = compliance_register.compliance_category_id
+		    LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_register.compliance_status_id
+		    LEFT JOIN organization_units ON organization_units.id = compliance_register.responsible_unit_id
+		    LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_register.responsible_user_id
+		    LEFT JOIN review_frequencies ON review_frequencies.id = compliance_register.review_frequency_id
+			LEFT JOIN users AS review_responsible_user ON review_responsible_user.id = compliance_register.review_responsible_user_id
+		    LEFT JOIN severity_levels ON severity_levels.id = compliance_register.severity_level_id
+			LEFT JOIN compliance_assessment_frameworks ON compliance_assessment_frameworks.id = compliance_register.compliance_assessment_framework_id
+			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = compliance_register.lifecycle_status_id
+			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by_id
+		`).
+		Where("compliance_register.responsible_unit_id = ?", unitID)
+
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "compliant":
+			query = query.Where("compliance_statuses.type = ?", "compliant")
+		case "partially_compliant":
+			query = query.Where("compliance_statuses.type = ?", "partially_compliant")
+		case "non_compliant":
+			query = query.Where("compliance_statuses.type = ?", "not-implemented")
+		case "archived":
+			query = query.Where("lifecycle_statuses.type = ?", "archived")
+		}
+	}
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where("compliance_register.title_en LIKE ? OR compliance_register.title_ar LIKE ?", keyword, keyword)
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	sortBy := params.SortBy
+	if sortBy == "" {
+		sortBy = "compliance_register.id"
+	}
+	sortOrder := params.Sort
+	if sortOrder == "" {
+		sortOrder = "DESC"
+	}
+	query = query.Order(fmt.Sprintf("%s %s", sortBy, sortOrder))
+
+	if params.PageSize > 0 {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	if err := query.Find(&complianceRegisters).Error; err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	if totalPages == 0 {
+		totalPages = 1
+	}
+
+	response := &commonDTOs.AssociatedComplianceListResponseDTO{
+		Items: complianceRegisters,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
+}
+
+func (repo *OrganizationUnitsRepository) GetAllProcessByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error) {
+	var processList []*commonDTOs.AssociatedProcessListDTO
+	var totalCount int64
+
+	query := repo.db.Table("processes").
+		Select(`
+		processes.id,
+		processes.id AS process_id,
+		processes.reference_number,
+		processes.title_en,
+		processes.title_ar,
+		processes.description,
+		processes.marked_as_auditable_item,
+		process_groups.title_en AS process_group_title_en,
+		process_groups.title_ar AS process_group_title_ar,
+		processes.rto as rto,
+		processes.rto_unit_id as rto_unit_id,
+		rto_time_unit.title_en AS rto_unit_title_en,
+		rto_time_unit.title_ar AS rto_unit_title_ar,
+		processes.mtpd as mtpd,
+		processes.mtpd_unit_id as mtpd_unit_id,
+		mtpd_time_unit.title_en AS mtpd_unit_title_en,
+		mtpd_time_unit.title_ar AS mtpd_unit_title_ar,
+		processes.rpo as rpo,
+		processes.rpo_unit_id as rpo_unit_id,
+		rpo_time_unit.title_en AS rpo_unit_title_en,
+		rpo_time_unit.title_ar AS rpo_unit_title_ar,
+		processes.is_bia_performed,
+		processes.last_assessed_at,
+		last_assessed_user.id AS last_assessed_user_id,
+		last_assessed_user.first_name_en AS last_assessed_user_first_name_en,
+		last_assessed_user.first_name_ar AS last_assessed_user_first_name_ar,
+		last_assessed_user.last_name_en AS last_assessed_user_last_name_en,
+		last_assessed_user.last_name_ar AS last_assessed_user_last_name_ar,
+		last_assessed_user.initial AS last_assessed_user_initial,
+		last_assessed_user.color AS last_assessed_user_color,
+		last_assessed_user.email AS last_assessed_user_email,
+		last_assessed_user.profile_image_path AS last_assessed_user_profile_image_path,
+		organization_units.title_en AS owner_unit_title_en,
+		organization_units.title_ar AS owner_unit_title_ar,
+		owner.id AS owner_id,
+		owner.first_name_en AS owner_first_name_en,
+		owner.first_name_ar AS owner_first_name_ar,
+		owner.last_name_en AS owner_last_name_en,
+		owner.last_name_ar AS owner_last_name_ar,
+		owner.initial AS owner_initial,
+		owner.color AS owner_color,
+		owner.email AS owner_email,
+		owner.profile_image_path AS owner_profile_image_path,
+		lifecycle_statuses.title_en AS lifecycle_status_title_en,
+		lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
+		lifecycle_statuses.color_code AS lifecycle_status_color_code,
+		process_criticality_levels.id AS process_criticality_level_id,
+		process_criticality_levels.title_en AS process_criticality_level_title_en,
+		process_criticality_levels.title_ar AS process_criticality_level_title_ar,
+		created_user.id AS created_user_id,
+		created_user.first_name_en AS created_user_first_name_en,
+		created_user.first_name_ar AS created_user_first_name_ar,
+		created_user.last_name_en AS created_user_last_name_en,
+		created_user.last_name_ar AS created_user_last_name_ar,
+		created_user.initial AS created_user_initial,
+		created_user.color AS created_user_color,
+		created_user.email AS created_user_email,
+		created_user.profile_image_path AS created_user_profile_image_path,
+		updated_user.id AS updated_user_id,
+		updated_user.first_name_en AS updated_user_first_name_en,
+		updated_user.first_name_ar AS updated_user_first_name_ar,
+		updated_user.last_name_en AS updated_user_last_name_en,
+		updated_user.last_name_ar AS updated_user_last_name_ar,
+		updated_user.initial AS updated_user_initial,
+		updated_user.color AS updated_user_color,
+		updated_user.email AS updated_user_email,
+		updated_user.profile_image_path AS updated_user_profile_image_path,
+		processes.created_at,
+		processes.updated_at,
+		risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
+		risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
+		risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
+		risk_matrix_risk_rating_values.value AS risk_rating_value,
+		risk_levels.title_en AS risk_level_title_en,
+        risk_levels.title_ar AS risk_level_title_ar,
+		risk_levels.color_code AS risk_level_color_code,
+		risk_levels.type AS risk_level_type
+		`).
+		Joins(`
+			LEFT JOIN process_groups ON process_groups.id = processes.process_group_id
+			LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id
+			LEFT JOIN users AS owner ON owner.id = processes.responsible_user_id
+			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id
+			LEFT JOIN users AS created_user ON created_user.id = processes.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = processes.updated_by_id
+			LEFT JOIN users AS last_assessed_user ON last_assessed_user.id = processes.last_assessed_by_id
+			LEFT JOIN time_units AS rto_time_unit ON rto_time_unit.id = processes.rto_unit_id
+			LEFT JOIN time_units AS mtpd_time_unit ON mtpd_time_unit.id = processes.mtpd_unit_id
+			LEFT JOIN time_units AS rpo_time_unit ON rpo_time_unit.id = processes.rpo_unit_id
+			LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = processes.risk_matrix_risk_rating_id
+			LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = processes.risk_matrix_risk_rating_value_id
+			LEFT JOIN risk_levels ON risk_levels.id = processes.risk_level_id
+			LEFT JOIN process_criticality_levels ON process_criticality_levels.id = processes.process_criticality_level_id
+		`).
+		Where("processes.responsible_unit_id = ?", unitID)
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(processes.title_en LIKE ? OR
+			processes.title_ar LIKE ?)`,
+			keyword, keyword)
+	}
+
+	if params.SortBy == "" {
+		params.SortBy = "processes.title_en"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "asc"
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	offset := (params.Page - 1) * params.PageSize
+
+	// Execute the query
+	err := query.Offset(offset).Limit(params.PageSize).Find(&processList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &commonDTOs.AssociatedItemProcessListResponseDTO{
+		Items: processList,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *OrganizationUnitsRepository) GetOrganizationUnitOverview(orgUnitID uint, level uint) (*organizationDTOs.OrganizationUnitOverviewDTO, error) {
+
+	var result organizationDTOs.OrganizationUnitOverviewDTO
+
+	// Determine which organization_unit_X_id column to use dynamically
+	field := fmt.Sprintf("organization_unit_%d_id", level)
+
+	query := repo.db.Table("organization_units ou").
+		Select(`
+			ou.id AS organization_unit_id,
+			ou.title_en AS organization_unit_title,
+			CONCAT(head.first_name_en, ' ', head.last_name_en) AS organization_unit_head,
+			head.email AS organization_unit_head_email,
+			COUNT(DISTINCT users.id) AS total_employees
+		`).
+		Joins(fmt.Sprintf(` 
+			LEFT JOIN users head 
+				ON head.is_head = 1
+				AND head.%s = ou.id
+		`, field)).
+		Joins(fmt.Sprintf(`
+			LEFT JOIN users 
+				ON users.%s = ou.id
+		`, field)).
+		Where("ou.status = ?", "active").
+		Where("ou.id = ?", orgUnitID).
+		Group("ou.id, ou.title_en, head.first_name_en, head.last_name_en, head.email")
+
+	if err := query.Take(&result).Error; err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (repo *OrganizationUnitsRepository) GetOrganizationUnitKeyMatrix(unitID uint) (*organizationDTOs.OrganizationUnitKeyMatrixDTO, error) {
+	var result *organizationDTOs.OrganizationUnitKeyMatrixDTO
+
+	// risks
+	if err := repo.db.Table("risk_register").
+		Where("responsible_unit_id = ?", unitID).
+		Count(&result.TotalRisks).Error; err != nil {
+		return nil, err
+	}
+
+	if err := repo.db.Table("documents").
+		Joins("JOIN document_types ON document_types.id = documents.document_type_id").
+		Where("documents.responsible_unit_id = ?", unitID).
+		Where("document_types.type = ?", "policy").
+		Count(&result.TotalPolicies).Error; err != nil {
+		return nil, err
+	}
+
+	// processes
+	if err := repo.db.Table("processes").
+		Where("responsible_unit_id = ?", unitID).
+		Count(&result.TotalProcesses).Error; err != nil {
+		return nil, err
+	}
+
+	// compliances
+	if err := repo.db.Table("compliance_register").
+		Where("responsible_unit_id = ?", unitID).
+		Count(&result.TotalCompliances).Error; err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (repo *OrganizationUnitsRepository) GetRiskRatingDistributionByOrganizationUnit(unitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error) {
+	results := []organizationDTOs.OrganizationUnitDistributionItemDTO{}
+
+	q := repo.db.Table("risk_register").
+		Select(`
+			ISNULL(current_risk_rating.id, 0) AS id,
+			ISNULL(current_risk_rating.title_en, '') AS title_en,
+			ISNULL(current_risk_rating.title_ar, '') AS title_ar,
+			ISNULL(current_risk_rating.color_code, '') AS color_code,
+			COUNT(*) AS count
+		`).
+		Joins(`
+			LEFT JOIN risk_statuses
+				ON risk_statuses.id = risk_register.risk_status_id
+			LEFT JOIN risk_matrix_risk_ratings AS current_risk_rating
+				ON current_risk_rating.id = risk_register.current_risk_rating_id
+		`).
+		Where("risk_register.responsible_unit_id = ?", unitID).
+		Where("risk_statuses.type = ?", "open").
+		Group(`
+			current_risk_rating.id,
+			current_risk_rating.title_en,
+			current_risk_rating.title_ar,
+			current_risk_rating.color_code
+		`).
+		Order("current_risk_rating.id ASC")
+
+	if err := q.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return results, nil
+
+}
+
+func (repo *OrganizationUnitsRepository) GetPolicyStatusDistributionByOrganizationUnit(unitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error) {
+	results := []organizationDTOs.OrganizationUnitDistributionItemDTO{}
+
+	q := repo.db.Table("documents").
+		Select(`
+			ISNULL(document_statuses.id, 0) AS id,
+			ISNULL(document_statuses.title_en, '') AS title_en,
+			ISNULL(document_statuses.title_ar, '') AS title_ar,
+			ISNULL(document_statuses.color_code, '') AS color_code,
+			COUNT(*) AS count
+		`).
+		Joins(`
+			LEFT JOIN document_types
+				ON document_types.id = documents.document_type_id
+			LEFT JOIN document_statuses
+				ON document_statuses.id = documents.document_status_id
+		`).
+		Where("documents.responsible_unit_id = ?", unitID).
+		Where("document_types.type = 'policy'").
+		Group(`
+			document_statuses.id,
+			document_statuses.title_en,
+			document_statuses.title_ar,
+			document_statuses.color_code
+		`).
+		Order("document_statuses.title_en ASC")
+
+	if err := q.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (repo *OrganizationUnitsRepository) GetProcessCriticalityDistributionByOrganizationUnit(unitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error) {
+	results := []organizationDTOs.OrganizationUnitDistributionItemDTO{}
+
+	q := repo.db.Table("processes").
+		Select(`
+			ISNULL(process_criticality_levels.id, 0) AS id,
+			ISNULL(process_criticality_levels.title_en, '') AS title_en,
+			ISNULL(process_criticality_levels.title_ar, '') AS title_ar,
+			ISNULL(process_criticality_levels.color_code, '') AS color_code,
+			COUNT(*) AS count
+		`).
+		Joins(`
+			LEFT JOIN process_criticality_levels
+				ON process_criticality_levels.id = processes.process_criticality_level_id
+		`).
+		Where("processes.responsible_unit_id = ?", unitID).
+		Group(`
+			process_criticality_levels.id,
+			process_criticality_levels.title_en,
+			process_criticality_levels.title_ar,
+			process_criticality_levels.color_code
+		`).
+		Order("process_criticality_levels.title_en ASC")
+
+	if err := q.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (repo *OrganizationUnitsRepository) GetComplianceStatusDistributionByOrganizationUnit(unitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error) {
+	results := []organizationDTOs.OrganizationUnitDistributionItemDTO{}
+
+	q := repo.db.Table("compliance_register").
+		Select(`
+			ISNULL(compliance_statuses.id, 0) AS id,
+			ISNULL(compliance_statuses.title_en, '') AS title_en,
+			ISNULL(compliance_statuses.title_ar, '') AS title_ar,
+			ISNULL(compliance_statuses.type, '') AS type,
+			ISNULL(compliance_statuses.color_code, '') AS color_code,
+			COUNT(*) AS count
+		`).
+		Joins(`
+			LEFT JOIN compliance_statuses
+				ON compliance_statuses.id = compliance_register.compliance_status_id
+		`).
+		Where("compliance_register.responsible_unit_id = ?", unitID).
+		Group(`
+			compliance_statuses.id,
+			compliance_statuses.title_en,
+			compliance_statuses.title_ar,
+			compliance_statuses.type,
+			compliance_statuses.color_code
+		`).
+		Order("compliance_statuses.title_en ASC")
+
+	if err := q.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
