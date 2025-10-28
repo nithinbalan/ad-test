@@ -62,6 +62,7 @@ type OrganizationModule struct {
 	ProcessAssociatedItemSvc       services.ProcessAssociatedItemServiceInterface
 	ProcessDependencySvc           services.ProcessDependencyServiceInterface
 	JobDescriptionSvc              services.JobDescriptionServiceInterface
+	GovernanceReportSvc            services.GovernanceReportServiceInterface
 }
 
 func NewOrganizationModule(
@@ -332,5 +333,6 @@ func NewOrganizationModule(
 		ProcessAssociatedItemSvc:       processAssociatedItemSvc,
 		ProcessDependencySvc:           processDependencySvc,
 		JobDescriptionSvc:              jobDescriptionSvc,
+		GovernanceReportSvc:            governanceReportSvc,
 	}
 }
