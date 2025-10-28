@@ -55,7 +55,7 @@ func (repo *UserSettingRepository) GetUserSettingsWithMfaByUserID(userID uint) (
 			us.is_notification, 
 			uss.is_mfa 
 		FROM user_settings us
-		JOIN user_securities uss ON us.user_id = uss.user_id
+		LEFT JOIN user_securities uss ON us.user_id = uss.user_id
 		LEFT JOIN timezones tz ON us.timezone_id = tz.id
 		WHERE us.user_id = ?`
 
