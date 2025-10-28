@@ -1,9 +1,10 @@
 package dtos
 
 import (
+	"time"
+
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
-	"time"
 )
 
 type AuditPlanListDTO struct {
@@ -113,6 +114,7 @@ type AuditPlanDetailDTO struct {
 	AuditableItems      []*AuditPlanAuditableItemDTO     `json:"auditable_items"`
 	Members             []*AuditPlanAuditMemberDTO       `json:"members"`
 	AuditPlanChecklists []*AuditPlanChecklistDetailDTO   `json:"audit_plan_checklists"`
+	AuditPlanSchedules  []*AuditPlanScheduleDetailDTO    `json:"audit_plan_schedules"`
 }
 
 type AuditPlanListQueryParamsDTO struct {

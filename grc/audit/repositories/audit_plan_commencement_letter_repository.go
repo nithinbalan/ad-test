@@ -123,6 +123,7 @@ func (repo *AuditPlanCommencementLetterRepository) GetFullDetailsByID(auditPlanI
 	var commencementLetter *models.AuditPlanCommencementLetter
 
 	result := db.
+		Preload("AuditPlan").
 		Preload("ToUser.User").
 		Preload("CCUsers.User").
 		Preload("CreatedByUser").
@@ -165,7 +166,6 @@ func (repo *AuditPlanCommencementLetterRepository) Update(commencementLetter *mo
 }
 
 func (repo *AuditPlanCommencementLetterRepository) Delete(id uint) error {
-
 	if err := repo.db.Delete(&models.AuditPlanCommencementLetter{}, id).Error; err != nil {
 		return err
 	}
