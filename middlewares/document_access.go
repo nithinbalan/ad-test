@@ -156,6 +156,12 @@ func checkDocumentAccess(db *gorm.DB, documentID string, userID uint) (bool, err
 					 AND (d.created_by_id = ? OR d.responsible_user_id = ? 
 						  OR EXISTS (SELECT 1 FROM document_shared_users dsu 
 						             WHERE dsu.document_id = d.id AND dsu.user_id = ? AND dsu.type = 'review-user')))
+					OR				 
+					-- Rejected documents: creator, responsible, or shared for review
+					(d.document_status_id = (SELECT id FROM document_statuses WHERE type = 'rejected')
+					 AND (d.created_by_id = ? OR d.responsible_user_id = ? 
+						  OR EXISTS (SELECT 1 FROM document_shared_users dsu 
+						             WHERE dsu.document_id = d.id AND dsu.user_id = ? AND dsu.type = 'review-user')))
 					OR
 					-- Published documents: public, shared, or org unit access
 					(d.document_status_id = (SELECT id FROM document_statuses WHERE type = 'published')
@@ -180,7 +186,7 @@ func checkDocumentAccess(db *gorm.DB, documentID string, userID uint) (bool, err
 	`
 
 	var accessInt int
-	err := db.Raw(query, documentID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID).Scan(&accessInt).Error
+	err := db.Raw(query, documentID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID).Scan(&accessInt).Error
 
 	if err != nil {
 		return false, err
