@@ -23,15 +23,26 @@ type OrganizationUnitsRepositoryInterface interface {
 	GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetParentOrganizationUnitWithHead(unitID uint, primaryField string) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error)
-	GetUserRoleDistribution(orgUnitID uint, level uint) ([]organizationDTOs.OrganizationUnitUserRoleDistributionDTO, error)
-	GetAllComplianceByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedComplianceListResponseDTO, error)
-	GetAllProcessByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
-	GetOrganizationUnitOverview(orgUnitID uint, level uint) (*organizationDTOs.OrganizationUnitOverviewDTO, error)
-	GetOrganizationUnitKeyMatrix(orgUnitID uint) (*organizationDTOs.OrganizationUnitKeyMatrixDTO, error)
-	GetRiskRatingDistributionByOrganizationUnit(unitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
-	GetPolicyStatusDistributionByOrganizationUnit(unitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
-	GetComplianceStatusDistributionByOrganizationUnit(unitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
-	GetProcessCriticalityDistributionByOrganizationUnit(unitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
+
+	// Organization Unit Report
+	GetAll(params *organizationDTOs.OrganizationUnitReportListQueryParamsDTO) (*organizationDTOs.OrganizationUnitReportListReponseDTO, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.OrganizationUnitReport, error)
+	Create(OrganizationUnitReport *models.OrganizationUnitReport, tx ...utility.DatabaseTransaction) (uint, error)
+	Delete(OrganizationUnitReportID uint) error
+	GetOrganizationUnitOverview(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO, level uint) (*organizationDTOs.OrganizationUnitOverviewDTO, error)
+	GetOrganizationUnitKeyMatrix(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) (*organizationDTOs.OrganizationUnitKeyMatrixDTO, error)
+	GetUserRoleDistribution(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO, level uint) ([]organizationDTOs.OrganizationUnitUserRoleDistributionDTO, error)
+	GetUsersByOrganizationUnitReport(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO, level uint) ([]organizationDTOs.OrganizationUnitUserDetailsDTO, error)
+	GetRiskByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitRiskListDTO, error)
+	GetPolicyByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitPolicyListDTO, error)
+	GetProcessByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitProcessListDTO, error)
+	GetComplianceByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitComplianceListDTO, error)
+
+	GetRiskRatingDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
+	GetPolicyStatusDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
+	GetComplianceStatusDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
+	GetProcessHealthSummaryByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) (*organizationDTOs.OrganizationUnitProcessHealthSummaryDTO, error)
+	GetProcessCriticalityDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
 }
 
 type OrganizationUnitsRepository struct {
@@ -622,20 +633,206 @@ func (repo *OrganizationUnitsRepository) GetParentOrganizationUnitWithHead(unitI
 	return &result, nil
 }
 
-func (repo *OrganizationUnitsRepository) GetUserRoleDistribution(orgUnitID uint, level uint) ([]organizationDTOs.OrganizationUnitUserRoleDistributionDTO, error) {
+func (repo *OrganizationUnitsRepository) GetAll(params *organizationDTOs.OrganizationUnitReportListQueryParamsDTO) (*organizationDTOs.OrganizationUnitReportListReponseDTO, error) {
+	var reports []*organizationDTOs.OrganizationUnitReportListDTO
+	var totalCount int64
+
+	query := repo.db.Table("organization_unit_reports").
+		Select(`
+			organization_unit_reports.id, 
+			organization_unit_reports.title, 
+			CONVERT(VARCHAR, organization_unit_reports.start_date, 23) AS start_date,
+			CONVERT(VARCHAR, organization_unit_reports.end_date, 23) AS end_date,
+			organization_units.title_en AS organization_unit_title_en,
+			organization_units.title_ar AS organization_unit_title_ar,
+			organization_units.color_code AS organization_unit_color_code,
+			organization_unit_reports.created_at,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.email AS created_user_email,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.profile_image_path AS created_user_profile_image_path
+		`).
+		Joins("LEFT JOIN organization_units ON organization_units.id = organization_unit_reports.organization_unit_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = organization_unit_reports.created_by_id")
+
+	if params.Keyword != "" {
+		query = query.Where(`(organization_unit_reports.title LIKE ? )`, "%"+params.Keyword+"%")
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	offset := (params.Page - 1) * params.PageSize
+	query = query.Offset(offset).Limit(params.PageSize)
+
+	if err := query.Find(&reports).Error; err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &organizationDTOs.OrganizationUnitReportListReponseDTO{
+		Items: reports,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
+}
+
+func (repo *OrganizationUnitsRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.OrganizationUnitReport, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var organizationUnitReport models.OrganizationUnitReport
+
+	result := db.
+		Preload("CreatedByUser").
+		Preload("OrganizationUnit").
+		First(&organizationUnitReport, id)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &organizationUnitReport, nil
+}
+
+func (repo *OrganizationUnitsRepository) Create(OrganizationUnitReport *models.OrganizationUnitReport, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(OrganizationUnitReport).Error; err != nil {
+		return 0, err
+	}
+	return OrganizationUnitReport.ID, nil
+}
+
+func (repo *OrganizationUnitsRepository) Delete(OrganizationUnitReportID uint) error {
+
+	return repo.db.Where("id = ?", OrganizationUnitReportID).
+		Delete(&models.OrganizationUnitReport{}).Error
+}
+
+func (repo *OrganizationUnitsRepository) GetOrganizationUnitOverview(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO, level uint) (*organizationDTOs.OrganizationUnitOverviewDTO, error) {
+	var result organizationDTOs.OrganizationUnitOverviewDTO
+
+	field := fmt.Sprintf("organization_unit_%d_id", level)
+
+	query := repo.db.Table("organization_units AS ou").
+		Select(`
+			ou.id AS organization_unit_id,
+			ou.title_en AS organization_unit_title,
+			CONCAT(head.first_name_en, ' ', head.last_name_en) AS organization_unit_head,
+			head.email AS organization_unit_head_email,
+			COUNT(DISTINCT users.id) AS total_employees
+		`).
+		Joins(fmt.Sprintf(`
+			LEFT JOIN users AS head
+				ON head.is_head = 1
+				AND head.%s = ou.id
+		`, field)).
+		Joins(fmt.Sprintf(`
+			LEFT JOIN users
+				ON users.%s = ou.id
+		`, field)).
+		Where("ou.status = ?", "active").
+		Where("ou.id = ?", params.OrganizationUnitID).
+		Group("ou.id, ou.title_en, head.first_name_en, head.last_name_en, head.email")
+
+	if params.StartDate != "" && params.EndDate != "" {
+		query = query.Where("users.created_at BETWEEN ? AND ?", params.StartDate+" 00:00:00", params.EndDate+" 23:59:59")
+	}
+
+	if err := query.Take(&result).Error; err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (repo *OrganizationUnitsRepository) GetOrganizationUnitKeyMatrix(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) (*organizationDTOs.OrganizationUnitKeyMatrixDTO, error) {
+	result := &organizationDTOs.OrganizationUnitKeyMatrixDTO{}
+	unitID := params.OrganizationUnitID
+
+	var startDate, endDate string
+	if params.StartDate != "" && params.EndDate != "" {
+		startDate = params.StartDate
+		endDate = params.EndDate
+	}
+
+	riskQuery := repo.db.Table("risk_register").Where("responsible_unit_id = ?", unitID)
+	if startDate != "" && endDate != "" {
+		riskQuery = riskQuery.Where("risk_register.created_at BETWEEN ? AND ?", startDate, endDate)
+	}
+	if err := riskQuery.Count(&result.TotalRisks).Error; err != nil {
+		return nil, err
+	}
+
+	policyQuery := repo.db.Table("documents").
+		Joins("JOIN document_types ON document_types.id = documents.document_type_id").
+		Where("documents.responsible_unit_id = ?", unitID).
+		Where("document_types.type = ?", "policy")
+	if startDate != "" && endDate != "" {
+		policyQuery = policyQuery.Where("documents.created_at BETWEEN ? AND ?", startDate, endDate)
+	}
+	if err := policyQuery.Count(&result.TotalPolicies).Error; err != nil {
+		return nil, err
+	}
+
+	processQuery := repo.db.Table("processes").Where("responsible_unit_id = ?", unitID)
+	if startDate != "" && endDate != "" {
+		processQuery = processQuery.Where("processes.created_at BETWEEN ? AND ?", startDate, endDate)
+	}
+	if err := processQuery.Count(&result.TotalProcesses).Error; err != nil {
+		return nil, err
+	}
+
+	complianceQuery := repo.db.Table("compliance_register").Where("responsible_unit_id = ?", unitID)
+	if startDate != "" && endDate != "" {
+		complianceQuery = complianceQuery.Where("compliance_register.created_at BETWEEN ? AND ?", startDate, endDate)
+	}
+	if err := complianceQuery.Count(&result.TotalCompliances).Error; err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (repo *OrganizationUnitsRepository) GetUserRoleDistribution(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO, level uint) ([]organizationDTOs.OrganizationUnitUserRoleDistributionDTO, error) {
+
 	results := []organizationDTOs.OrganizationUnitUserRoleDistributionDTO{}
 
 	query := repo.db.Table("user_roles").
 		Select(`
 			roles.id,
-			roles.title_en as role,
-			COUNT(DISTINCT users.id) AS count`).
+			roles.title_en AS role,
+			COUNT(DISTINCT users.id) AS count
+		`).
 		Joins("JOIN users ON users.id = user_roles.user_id").
 		Joins("JOIN roles ON roles.id = user_roles.role_id")
 
 	if level > 0 {
 		field := fmt.Sprintf("organization_unit_%d_id", level)
-		query = query.Where(fmt.Sprintf("users.%s = ?", field), orgUnitID)
+		query = query.Where(fmt.Sprintf("users.%s = ?", field), params.OrganizationUnitID)
+	}
+
+	if params.StartDate != "" && params.EndDate != "" {
+		query = query.Where("users.created_at BETWEEN ? AND ?", params.StartDate, params.EndDate)
 	}
 
 	query = query.Group("roles.id, roles.title_en")
@@ -647,382 +844,309 @@ func (repo *OrganizationUnitsRepository) GetUserRoleDistribution(orgUnitID uint,
 	return results, nil
 }
 
-func (repo *OrganizationUnitsRepository) GetAllComplianceByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedComplianceListResponseDTO, error) {
-	var complianceRegisters []*commonDTOs.AssociatedComplianceListDTO
+func (repo *OrganizationUnitsRepository) GetUsersByOrganizationUnitReport(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO, level uint) ([]organizationDTOs.OrganizationUnitUserDetailsDTO, error) {
+
+	var users []organizationDTOs.OrganizationUnitUserDetailsDTO
 	var totalCount int64
 
-	query := repo.db.Table("compliance_register").
+	query := repo.db.Table("users").
 		Select(`
-            compliance_register.id,
-            compliance_register.id AS compliance_register_id,
-			compliance_register.reference_number,
-			compliance_register.standard_code,
-			compliance_register.title_en,
-			compliance_register.title_ar,
-			compliance_register.description_en,
-			compliance_register.description_ar,
-			compliance_register.version,
-			compliance_register.total_score,
-			compliance_register.score,
-			CONVERT(VARCHAR, compliance_register.deadline, 23) AS deadline,
-        	CONVERT(VARCHAR, compliance_register.issue_date, 23) AS issue_date,
-        	CONVERT(VARCHAR, compliance_register.expiry_date, 23) AS expiry_date,
-       		CONVERT(VARCHAR, compliance_register.next_review_date, 23) AS next_review_date,
-			CONVERT(VARCHAR, compliance_register.last_reviewed_date, 23) AS last_reviewed_date,
-			compliance_assessment_frameworks.id AS compliance_assessment_framework_id,
-			compliance_assessment_frameworks.title_en AS compliance_assessment_framework_title_en,
-			compliance_assessment_frameworks.title_ar AS compliance_assessment_framework_title_ar,
-			compliance_categories.title_en AS compliance_category_title_en,
-			compliance_categories.title_ar AS compliance_category_title_ar,
-			compliance_statuses.title_en AS compliance_status_title_en,
-			compliance_statuses.title_ar AS compliance_status_title_ar,
-			compliance_statuses.color_code AS compliance_status_color_code,
-			organization_units.title_en AS responsible_unit_title_en,
-			organization_units.title_ar AS responsible_unit_title_ar,
-			responsible_user.id AS responsible_user_id,
-			responsible_user.first_name_en AS responsible_user_first_name_en,
-            responsible_user.first_name_ar AS responsible_user_first_name_ar,
-            responsible_user.last_name_en AS responsible_user_last_name_en,
-            responsible_user.last_name_ar AS responsible_user_last_name_ar,
-			responsible_user.initial AS responsible_user_initial,
-            responsible_user.color AS responsible_user_color,
-            responsible_user.email AS responsible_user_email,
-            responsible_user.profile_image_path AS responsible_user_profile_image_path,
-			review_frequencies.title_en AS review_frequency_title_en,
-			review_frequencies.title_ar AS review_frequency_title_ar,
-			review_responsible_user.id AS review_responsible_user_id,
-			review_responsible_user.first_name_en AS review_responsible_user_first_name_en,
-            review_responsible_user.first_name_ar AS review_responsible_user_first_name_ar,
-            review_responsible_user.last_name_en AS review_responsible_user_last_name_en,
-            review_responsible_user.last_name_ar AS review_responsible_user_last_name_ar,
-			review_responsible_user.initial AS review_responsible_user_initial,
-        	review_responsible_user.color AS review_responsible_user_color,
-        	review_responsible_user.email AS review_responsible_user_email,
-        	review_responsible_user.profile_image_path AS review_responsible_user_profile_image_path,  
-			severity_levels.title_en AS severity_level_title_en,
-			severity_levels.title_ar AS severity_level_title_ar,
-			severity_levels.color_code AS severity_level_color_code,
-			lifecycle_statuses.title_en AS lifecycle_status_title_en,
-			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
-			lifecycle_statuses.color_code AS lifecycle_status_color_code,
-        	created_user.id AS created_user_id,
-        	created_user.first_name_en AS created_user_first_name_en,
-        	created_user.first_name_ar AS created_user_first_name_ar,
-        	created_user.last_name_en AS created_user_last_name_en,
-        	created_user.last_name_ar AS created_user_last_name_ar,   
-        	created_user.initial AS created_user_initial,
-        	created_user.color AS created_user_color,
-        	created_user.email AS created_user_email,
-        	created_user.profile_image_path AS created_user_profile_image_path,   
-			updated_user.id AS updated_user_id,
-    		updated_user.first_name_en AS updated_user_first_name_en,
-        	updated_user.first_name_ar AS updated_user_first_name_ar,
-        	updated_user.last_name_en AS updated_user_last_name_en,
-        	updated_user.last_name_ar AS updated_user_last_name_ar,
-			updated_user.initial AS updated_user_initial,
-        	updated_user.color AS updated_user_color,
-        	updated_user.email AS updated_user_email,
-        	updated_user.profile_image_path AS updated_user_profile_image_path        
-        `).
-		Joins(`
-		    LEFT JOIN compliance_categories ON compliance_categories.id = compliance_register.compliance_category_id
-		    LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_register.compliance_status_id
-		    LEFT JOIN organization_units ON organization_units.id = compliance_register.responsible_unit_id
-		    LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_register.responsible_user_id
-		    LEFT JOIN review_frequencies ON review_frequencies.id = compliance_register.review_frequency_id
-			LEFT JOIN users AS review_responsible_user ON review_responsible_user.id = compliance_register.review_responsible_user_id
-		    LEFT JOIN severity_levels ON severity_levels.id = compliance_register.severity_level_id
-			LEFT JOIN compliance_assessment_frameworks ON compliance_assessment_frameworks.id = compliance_register.compliance_assessment_framework_id
-			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = compliance_register.lifecycle_status_id
-			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by_id
-			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by_id
+			users.id,
+			users.first_name_en,
+			users.last_name_en,
+			users.first_name_ar,
+			users.last_name_ar,
+			users.is_head,
+			users.initial,
+			users.email,
+			users.profile_image_path,
+			designations.title_en AS designation_en,
+			designations.title_ar AS designation_ar,
+			roles.title_en AS role_title_en,
+			roles.title_ar AS role_title_ar
 		`).
-		Where("compliance_register.responsible_unit_id = ?", unitID)
+		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
+		Joins("LEFT JOIN user_roles ON user_roles.user_id = users.id").
+		Joins("LEFT JOIN roles ON roles.id = user_roles.role_id")
 
-	for columnName, values := range params.Filters {
-		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
-		}
+	if level > 0 {
+		field := fmt.Sprintf("organization_unit_%d_id", level)
+		query = query.Where(fmt.Sprintf("users.%s = ?", field), params.OrganizationUnitID)
 	}
 
-	for _, filter := range params.QuickFilter {
-		switch filter {
-		case "compliant":
-			query = query.Where("compliance_statuses.type = ?", "compliant")
-		case "partially_compliant":
-			query = query.Where("compliance_statuses.type = ?", "partially_compliant")
-		case "non_compliant":
-			query = query.Where("compliance_statuses.type = ?", "not-implemented")
-		case "archived":
-			query = query.Where("lifecycle_statuses.type = ?", "archived")
-		}
-	}
-
-	if params.Keyword != "" {
-		keyword := "%" + params.Keyword + "%"
-		query = query.Where("compliance_register.title_en LIKE ? OR compliance_register.title_ar LIKE ?", keyword, keyword)
+	if params.StartDate != "" && params.EndDate != "" {
+		query = query.Where("user_roles.created_at BETWEEN ? AND ?", params.StartDate, params.EndDate)
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
-	sortBy := params.SortBy
-	if sortBy == "" {
-		sortBy = "compliance_register.id"
-	}
-	sortOrder := params.Sort
-	if sortOrder == "" {
-		sortOrder = "DESC"
-	}
-	query = query.Order(fmt.Sprintf("%s %s", sortBy, sortOrder))
-
-	if params.PageSize > 0 {
-		offset := (params.Page - 1) * params.PageSize
-		query = query.Offset(offset).Limit(params.PageSize)
-	}
-
-	if err := query.Find(&complianceRegisters).Error; err != nil {
+	if err := query.Find(&users).Error; err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-	if totalPages == 0 {
-		totalPages = 1
-	}
-
-	response := &commonDTOs.AssociatedComplianceListResponseDTO{
-		Items: complianceRegisters,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-
-	return response, nil
+	return users, nil
 }
 
-func (repo *OrganizationUnitsRepository) GetAllProcessByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error) {
-	var processList []*commonDTOs.AssociatedProcessListDTO
-	var totalCount int64
+func (repo *OrganizationUnitsRepository) GetRiskByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitRiskListDTO, error) {
+
+	var risks []organizationDTOs.OrganizationUnitRiskListDTO
+
+	query := repo.db.Table("risk_register").
+		Select(`
+			risk_register.id AS id,
+			risk_register.id AS risk_register_id,
+			risk_register.reference_number,
+			risk_register.title,
+			risk_register.description,
+			CONVERT(VARCHAR, risk_register.reported_at, 23) AS reported_at,
+			risk_register.created_at,
+			risk_register.updated_at,
+			risk_categories.title_en AS risk_category_title_en,
+			risk_categories.title_ar AS risk_category_title_ar,
+			risk_statuses.title_en AS risk_status_title_en,
+			risk_statuses.title_ar AS risk_status_title_ar,
+			risk_statuses.color_code AS risk_status_color_code,
+			current_likelihood.title_en AS current_likelihood_title_en,
+			current_likelihood.title_ar AS current_likelihood_title_ar,
+			current_impact.title_en AS current_impact_title_en,
+			current_impact.title_ar AS current_impact_title_ar,
+			current_risk_rating.title_en AS current_risk_rating_title_en,
+			current_risk_rating.title_ar AS current_risk_rating_title_ar,
+			current_risk_rating.color_code AS current_risk_rating_color_code
+		`).
+		Joins(`
+			LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
+			LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id
+			LEFT JOIN risk_matrix_likelihoods AS current_likelihood ON current_likelihood.id = risk_register.current_likelihood_id
+			LEFT JOIN risk_matrix_impacts AS current_impact ON current_impact.id = risk_register.current_impact_id
+			LEFT JOIN risk_matrix_risk_ratings AS current_risk_rating ON current_risk_rating.id = risk_register.current_risk_rating_id
+		`).
+		Where("risk_register.responsible_unit_id = ?", params.OrganizationUnitID).
+		Where("risk_statuses.type = ?", "open")
+
+	if params.StartDate != "" && params.EndDate != "" {
+		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.StartDate, params.EndDate)
+	}
+
+	query = query.Order("risk_register.reported_at DESC")
+
+	if err := query.Find(&risks).Error; err != nil {
+		return nil, err
+	}
+
+	return risks, nil
+}
+
+func (repo *OrganizationUnitsRepository) GetPolicyByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitPolicyListDTO, error) {
+	var policyList []organizationDTOs.OrganizationUnitPolicyListDTO
+
+	query := repo.db.Table("documents").
+		Select(`
+			documents.id AS id,
+			documents.title_en AS title_en,
+			documents.title_ar AS title_ar,
+			document_categories.title_en AS document_category_title_en,
+			document_categories.title_ar AS document_category_title_ar,
+			document_types.title_en AS document_type_title_en,
+			document_types.title_ar AS document_type_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			document_statuses.title_en AS document_status_title_en,
+			document_statuses.title_ar AS document_status_title_ar,
+			document_statuses.color_code AS document_status_color_code,
+			document_statuses.type AS document_status_type,
+			document_versions.version AS document_version,
+			document_versions.url AS document_url,
+			document_versions.name AS document_name,
+			document_versions.size AS document_size,
+			document_versions.token AS document_token,
+			document_versions.original_name AS document_original_name,
+			document_versions.type AS document_type,
+			documents.created_at AS created_at,
+			documents.updated_at AS updated_at
+		`).
+		Joins(`
+			LEFT JOIN document_categories ON document_categories.id = documents.document_category_id
+			LEFT JOIN document_types ON document_types.id = documents.document_type_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = documents.responsible_user_id
+			LEFT JOIN document_versions ON document_versions.document_id = documents.id AND document_versions.is_latest_version = 1
+			LEFT JOIN document_statuses ON document_statuses.id = documents.document_status_id
+		`).
+		Where("documents.responsible_unit_id = ?", params.OrganizationUnitID).
+		Where("document_types.type = 'policy'").
+		Where("document_statuses.type = 'published'")
+
+	if params.StartDate != "" && params.EndDate != "" {
+		query = query.Where("documents.published_at BETWEEN ? AND ?", params.StartDate, params.EndDate)
+	}
+
+	if err := query.Find(&policyList).Error; err != nil {
+		return nil, err
+	}
+
+	return policyList, nil
+}
+
+func (repo *OrganizationUnitsRepository) GetProcessByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitProcessListDTO, error) {
+	var processes []organizationDTOs.OrganizationUnitProcessListDTO
 
 	query := repo.db.Table("processes").
 		Select(`
-		processes.id,
-		processes.id AS process_id,
-		processes.reference_number,
-		processes.title_en,
-		processes.title_ar,
-		processes.description,
-		processes.marked_as_auditable_item,
-		process_groups.title_en AS process_group_title_en,
-		process_groups.title_ar AS process_group_title_ar,
-		processes.rto as rto,
-		processes.rto_unit_id as rto_unit_id,
-		rto_time_unit.title_en AS rto_unit_title_en,
-		rto_time_unit.title_ar AS rto_unit_title_ar,
-		processes.mtpd as mtpd,
-		processes.mtpd_unit_id as mtpd_unit_id,
-		mtpd_time_unit.title_en AS mtpd_unit_title_en,
-		mtpd_time_unit.title_ar AS mtpd_unit_title_ar,
-		processes.rpo as rpo,
-		processes.rpo_unit_id as rpo_unit_id,
-		rpo_time_unit.title_en AS rpo_unit_title_en,
-		rpo_time_unit.title_ar AS rpo_unit_title_ar,
-		processes.is_bia_performed,
-		processes.last_assessed_at,
-		last_assessed_user.id AS last_assessed_user_id,
-		last_assessed_user.first_name_en AS last_assessed_user_first_name_en,
-		last_assessed_user.first_name_ar AS last_assessed_user_first_name_ar,
-		last_assessed_user.last_name_en AS last_assessed_user_last_name_en,
-		last_assessed_user.last_name_ar AS last_assessed_user_last_name_ar,
-		last_assessed_user.initial AS last_assessed_user_initial,
-		last_assessed_user.color AS last_assessed_user_color,
-		last_assessed_user.email AS last_assessed_user_email,
-		last_assessed_user.profile_image_path AS last_assessed_user_profile_image_path,
-		organization_units.title_en AS owner_unit_title_en,
-		organization_units.title_ar AS owner_unit_title_ar,
-		owner.id AS owner_id,
-		owner.first_name_en AS owner_first_name_en,
-		owner.first_name_ar AS owner_first_name_ar,
-		owner.last_name_en AS owner_last_name_en,
-		owner.last_name_ar AS owner_last_name_ar,
-		owner.initial AS owner_initial,
-		owner.color AS owner_color,
-		owner.email AS owner_email,
-		owner.profile_image_path AS owner_profile_image_path,
-		lifecycle_statuses.title_en AS lifecycle_status_title_en,
-		lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
-		lifecycle_statuses.color_code AS lifecycle_status_color_code,
-		process_criticality_levels.id AS process_criticality_level_id,
-		process_criticality_levels.title_en AS process_criticality_level_title_en,
-		process_criticality_levels.title_ar AS process_criticality_level_title_ar,
-		created_user.id AS created_user_id,
-		created_user.first_name_en AS created_user_first_name_en,
-		created_user.first_name_ar AS created_user_first_name_ar,
-		created_user.last_name_en AS created_user_last_name_en,
-		created_user.last_name_ar AS created_user_last_name_ar,
-		created_user.initial AS created_user_initial,
-		created_user.color AS created_user_color,
-		created_user.email AS created_user_email,
-		created_user.profile_image_path AS created_user_profile_image_path,
-		updated_user.id AS updated_user_id,
-		updated_user.first_name_en AS updated_user_first_name_en,
-		updated_user.first_name_ar AS updated_user_first_name_ar,
-		updated_user.last_name_en AS updated_user_last_name_en,
-		updated_user.last_name_ar AS updated_user_last_name_ar,
-		updated_user.initial AS updated_user_initial,
-		updated_user.color AS updated_user_color,
-		updated_user.email AS updated_user_email,
-		updated_user.profile_image_path AS updated_user_profile_image_path,
-		processes.created_at,
-		processes.updated_at,
-		risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
-		risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
-		risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
-		risk_matrix_risk_rating_values.value AS risk_rating_value,
-		risk_levels.title_en AS risk_level_title_en,
-        risk_levels.title_ar AS risk_level_title_ar,
-		risk_levels.color_code AS risk_level_color_code,
-		risk_levels.type AS risk_level_type
+			processes.id,
+			process_groups.title_en AS process_group_title_en,
+			process_groups.title_ar AS process_group_title_ar,
+			owner.first_name_en AS owner_first_name_en,
+			owner.first_name_ar AS owner_first_name_ar,
+			owner.last_name_en AS owner_last_name_en,
+			owner.last_name_ar AS owner_last_name_ar,
+			owner.initial AS owner_initial,
+			owner.color AS owner_color,
+			owner.email AS owner_email,
+			owner.profile_image_path AS owner_profile_image_path,
+			lifecycle_statuses.title_en AS lifecycle_status_title_en,
+			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
+			lifecycle_statuses.color_code AS lifecycle_status_color_code,
+			processes.reference_number,
+			processes.title_en,
+			processes.title_ar,
+			processes.description,
+			processes.marked_as_auditable_item,
+			processes.risk_level_id,
+			risk_levels.title_en AS risk_level_title_en,
+			risk_levels.title_ar AS risk_level_title_ar,
+			risk_levels.color_code AS risk_level_color_code,
+			risk_levels.type AS risk_level_type,
+			processes.process_criticality_level_id,
+			process_criticality_levels.title_en AS process_criticality_level_title_en,
+			process_criticality_levels.title_ar AS process_criticality_level_title_ar,
+			processes.created_at,
+			processes.updated_at,
+			risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
+			risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
+			risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
+			risk_matrix_risk_rating_values.value AS risk_rating_value
 		`).
 		Joins(`
 			LEFT JOIN process_groups ON process_groups.id = processes.process_group_id
 			LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id
 			LEFT JOIN users AS owner ON owner.id = processes.responsible_user_id
 			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id
-			LEFT JOIN users AS created_user ON created_user.id = processes.created_by_id
-			LEFT JOIN users AS updated_user ON updated_user.id = processes.updated_by_id
-			LEFT JOIN users AS last_assessed_user ON last_assessed_user.id = processes.last_assessed_by_id
-			LEFT JOIN time_units AS rto_time_unit ON rto_time_unit.id = processes.rto_unit_id
-			LEFT JOIN time_units AS mtpd_time_unit ON mtpd_time_unit.id = processes.mtpd_unit_id
-			LEFT JOIN time_units AS rpo_time_unit ON rpo_time_unit.id = processes.rpo_unit_id
-			LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = processes.risk_matrix_risk_rating_id
-			LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = processes.risk_matrix_risk_rating_value_id
 			LEFT JOIN risk_levels ON risk_levels.id = processes.risk_level_id
 			LEFT JOIN process_criticality_levels ON process_criticality_levels.id = processes.process_criticality_level_id
+			LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = processes.risk_matrix_risk_rating_id
+			LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = processes.risk_matrix_risk_rating_value_id
 		`).
-		Where("processes.responsible_unit_id = ?", unitID)
+		Where("processes.responsible_unit_id = ?", params.OrganizationUnitID)
 
-	// Apply search keyword if exists
-	if params.Keyword != "" {
-		keyword := "%" + params.Keyword + "%"
-		query = query.Where(`
-			(processes.title_en LIKE ? OR
-			processes.title_ar LIKE ?)`,
-			keyword, keyword)
+	if params.StartDate != "" && params.EndDate != "" {
+		query = query.Where("processes.created_at BETWEEN ? AND ?", params.StartDate, params.EndDate)
 	}
 
-	if params.SortBy == "" {
-		params.SortBy = "processes.title_en"
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc"
-	}
-
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-	query = query.Order(params.SortBy + " " + params.Sort)
-
-	offset := (params.Page - 1) * params.PageSize
-
-	// Execute the query
-	err := query.Offset(offset).Limit(params.PageSize).Find(&processList).Error
-	if err != nil {
+	if err := query.Find(&processes).Error; err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	response := &commonDTOs.AssociatedItemProcessListResponseDTO{
-		Items: processList,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-	return response, nil
+	return processes, nil
 }
 
-func (repo *OrganizationUnitsRepository) GetOrganizationUnitOverview(orgUnitID uint, level uint) (*organizationDTOs.OrganizationUnitOverviewDTO, error) {
+func (repo *OrganizationUnitsRepository) GetComplianceByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitComplianceListDTO, error) {
+	var complianceList []organizationDTOs.OrganizationUnitComplianceListDTO
 
-	var result organizationDTOs.OrganizationUnitOverviewDTO
-
-	// Determine which organization_unit_X_id column to use dynamically
-	field := fmt.Sprintf("organization_unit_%d_id", level)
-
-	query := repo.db.Table("organization_units ou").
+	query := repo.db.Table("compliance_register").
 		Select(`
-			ou.id AS organization_unit_id,
-			ou.title_en AS organization_unit_title,
-			CONCAT(head.first_name_en, ' ', head.last_name_en) AS organization_unit_head,
-			head.email AS organization_unit_head_email,
-			COUNT(DISTINCT users.id) AS total_employees
+			compliance_register.id AS id,
+			compliance_categories.title_en AS compliance_category_title_en,
+			compliance_categories.title_ar AS compliance_category_title_ar,
+			compliance_statuses.title_en AS compliance_status_title_en,
+			compliance_statuses.title_ar AS compliance_status_title_ar,
+			compliance_statuses.color_code AS compliance_status_color_code,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			compliance_register.reference_number AS reference_number,
+			compliance_register.standard_code AS standard_code,
+			compliance_register.title_en AS title_en,
+			compliance_register.title_ar AS title_ar,
+			compliance_register.description_en AS description_en,
+			compliance_register.description_ar AS description_ar,
+			compliance_register.version AS version,
+			CONVERT(VARCHAR, compliance_register.deadline, 23) AS deadline,
+			CONVERT(VARCHAR, compliance_register.issue_date, 23) AS issue_date,
+			CONVERT(VARCHAR, compliance_register.expiry_date, 23) AS expiry_date,
+			CONVERT(VARCHAR, compliance_register.next_review_date, 23) AS next_review_date,
+			CONVERT(VARCHAR, compliance_register.last_reviewed_date, 23) AS last_reviewed_date,
+			CONVERT(VARCHAR, compliance_register.created_at, 23) AS created_at,
+			CONVERT(VARCHAR, compliance_register.updated_at, 23) AS updated_at
 		`).
-		Joins(fmt.Sprintf(` 
-			LEFT JOIN users head 
-				ON head.is_head = 1
-				AND head.%s = ou.id
-		`, field)).
-		Joins(fmt.Sprintf(`
-			LEFT JOIN users 
-				ON users.%s = ou.id
-		`, field)).
-		Where("ou.status = ?", "active").
-		Where("ou.id = ?", orgUnitID).
-		Group("ou.id, ou.title_en, head.first_name_en, head.last_name_en, head.email")
+		Joins(`
+			LEFT JOIN compliance_categories ON compliance_categories.id = compliance_register.compliance_category_id
+			LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_register.compliance_status_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_register.responsible_user_id
+			LEFT JOIN severity_levels ON severity_levels.id = compliance_register.severity_level_id
+		`).
+		Where("compliance_register.responsible_unit_id = ?", params.OrganizationUnitID)
 
-	if err := query.Take(&result).Error; err != nil {
+	if params.StartDate != "" && params.EndDate != "" {
+		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.StartDate, params.EndDate)
+	}
+
+	if err := query.Find(&complianceList).Error; err != nil {
 		return nil, err
+	}
+
+	return complianceList, nil
+}
+
+func (repo *OrganizationUnitsRepository) GetRiskSummaryByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) (*organizationDTOs.OrganizationUnitRiskSummaryDTO, error) {
+	var result organizationDTOs.OrganizationUnitRiskSummaryDTO
+
+	query := repo.db.Table("risk_register").
+		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+		Where("risk_register.responsible_unit_id = ?", params.OrganizationUnitID).
+		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
+		Select(`
+			SUM(CASE WHEN risk_statuses.type = 'open' THEN 1 ELSE 0 END) AS open_risks,
+			SUM(CASE WHEN risk_statuses.type = 'closed' THEN 1 ELSE 0 END) AS closed_risks,
+			COUNT(*) AS total_risks
+		`)
+
+	// Apply date filter if provided
+	if params.StartDate != "" && params.EndDate != "" {
+		query = query.Where("risk_register.created_at BETWEEN ? AND ?", params.StartDate+" 00:00:00", params.EndDate+" 23:59:59")
+	}
+
+	if err := query.Scan(&result).Error; err != nil {
+		return nil, err
+	}
+
+	if result.TotalRisks > 0 {
+		result.ClosurePercentage = (float64(result.ClosedRisks) / float64(result.TotalRisks)) * 100
 	}
 
 	return &result, nil
 }
 
-func (repo *OrganizationUnitsRepository) GetOrganizationUnitKeyMatrix(unitID uint) (*organizationDTOs.OrganizationUnitKeyMatrixDTO, error) {
-	var result *organizationDTOs.OrganizationUnitKeyMatrixDTO
-
-	// risks
-	if err := repo.db.Table("risk_register").
-		Where("responsible_unit_id = ?", unitID).
-		Count(&result.TotalRisks).Error; err != nil {
-		return nil, err
-	}
-
-	if err := repo.db.Table("documents").
-		Joins("JOIN document_types ON document_types.id = documents.document_type_id").
-		Where("documents.responsible_unit_id = ?", unitID).
-		Where("document_types.type = ?", "policy").
-		Count(&result.TotalPolicies).Error; err != nil {
-		return nil, err
-	}
-
-	// processes
-	if err := repo.db.Table("processes").
-		Where("responsible_unit_id = ?", unitID).
-		Count(&result.TotalProcesses).Error; err != nil {
-		return nil, err
-	}
-
-	// compliances
-	if err := repo.db.Table("compliance_register").
-		Where("responsible_unit_id = ?", unitID).
-		Count(&result.TotalCompliances).Error; err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func (repo *OrganizationUnitsRepository) GetRiskRatingDistributionByOrganizationUnit(unitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error) {
+func (repo *OrganizationUnitsRepository) GetRiskRatingDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error) {
 	results := []organizationDTOs.OrganizationUnitDistributionItemDTO{}
 
-	q := repo.db.Table("risk_register").
+	query := repo.db.Table("risk_register").
 		Select(`
 			ISNULL(current_risk_rating.id, 0) AS id,
 			ISNULL(current_risk_rating.title_en, '') AS title_en,
@@ -1036,9 +1160,14 @@ func (repo *OrganizationUnitsRepository) GetRiskRatingDistributionByOrganization
 			LEFT JOIN risk_matrix_risk_ratings AS current_risk_rating
 				ON current_risk_rating.id = risk_register.current_risk_rating_id
 		`).
-		Where("risk_register.responsible_unit_id = ?", unitID).
-		Where("risk_statuses.type = ?", "open").
-		Group(`
+		Where("risk_register.responsible_unit_id = ?", params.OrganizationUnitID).
+		Where("risk_statuses.type = ?", "open")
+
+	if params.StartDate != "" && params.EndDate != "" {
+		query = query.Where("risk_register.created_at BETWEEN ? AND ?", params.StartDate, params.EndDate)
+	}
+
+	query = query.Group(`
 			current_risk_rating.id,
 			current_risk_rating.title_en,
 			current_risk_rating.title_ar,
@@ -1046,18 +1175,17 @@ func (repo *OrganizationUnitsRepository) GetRiskRatingDistributionByOrganization
 		`).
 		Order("current_risk_rating.id ASC")
 
-	if err := q.Scan(&results).Error; err != nil {
+	if err := query.Scan(&results).Error; err != nil {
 		return nil, err
 	}
 
 	return results, nil
-
 }
 
-func (repo *OrganizationUnitsRepository) GetPolicyStatusDistributionByOrganizationUnit(unitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error) {
+func (repo *OrganizationUnitsRepository) GetPolicyStatusDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error) {
 	results := []organizationDTOs.OrganizationUnitDistributionItemDTO{}
 
-	q := repo.db.Table("documents").
+	query := repo.db.Table("documents").
 		Select(`
 			ISNULL(document_statuses.id, 0) AS id,
 			ISNULL(document_statuses.title_en, '') AS title_en,
@@ -1071,9 +1199,14 @@ func (repo *OrganizationUnitsRepository) GetPolicyStatusDistributionByOrganizati
 			LEFT JOIN document_statuses
 				ON document_statuses.id = documents.document_status_id
 		`).
-		Where("documents.responsible_unit_id = ?", unitID).
-		Where("document_types.type = 'policy'").
-		Group(`
+		Where("documents.responsible_unit_id = ?", params.OrganizationUnitID).
+		Where("document_types.type = 'policy'")
+
+	if params.StartDate != "" && params.EndDate != "" {
+		query = query.Where("documents.created_at BETWEEN ? AND ?", params.StartDate, params.EndDate)
+	}
+
+	query = query.Group(`
 			document_statuses.id,
 			document_statuses.title_en,
 			document_statuses.title_ar,
@@ -1081,17 +1214,43 @@ func (repo *OrganizationUnitsRepository) GetPolicyStatusDistributionByOrganizati
 		`).
 		Order("document_statuses.title_en ASC")
 
-	if err := q.Scan(&results).Error; err != nil {
+	if err := query.Scan(&results).Error; err != nil {
 		return nil, err
 	}
 
 	return results, nil
 }
 
-func (repo *OrganizationUnitsRepository) GetProcessCriticalityDistributionByOrganizationUnit(unitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error) {
+func (repo *OrganizationUnitsRepository) GetProcessHealthSummaryByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) (*organizationDTOs.OrganizationUnitProcessHealthSummaryDTO, error) {
+	var result organizationDTOs.OrganizationUnitProcessHealthSummaryDTO
+
+	query := repo.db.Table("processes").
+		Select(`
+		SUM(CASE WHEN lifecycle_statuses.type = 'active' THEN 1 ELSE 0 END) AS active_processes,
+		COUNT(*) AS total_processes
+	`).
+		Joins("JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id").
+		Where("processes.responsible_unit_id = ?", params.OrganizationUnitID)
+
+	if params.StartDate != "" && params.EndDate != "" {
+		query = query.Where("processes.created_at BETWEEN ? AND ?", params.StartDate+" 00:00:00", params.EndDate+" 23:59:59")
+	}
+
+	if err := query.Scan(&result).Error; err != nil {
+		return nil, err
+	}
+
+	if result.TotalProcesses > 0 {
+		result.ActivePercentage = (float64(result.ActiveProcesses) / float64(result.TotalProcesses)) * 100
+	}
+
+	return &result, nil
+}
+
+func (repo *OrganizationUnitsRepository) GetProcessCriticalityDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error) {
 	results := []organizationDTOs.OrganizationUnitDistributionItemDTO{}
 
-	q := repo.db.Table("processes").
+	query := repo.db.Table("processes").
 		Select(`
 			ISNULL(process_criticality_levels.id, 0) AS id,
 			ISNULL(process_criticality_levels.title_en, '') AS title_en,
@@ -1103,8 +1262,13 @@ func (repo *OrganizationUnitsRepository) GetProcessCriticalityDistributionByOrga
 			LEFT JOIN process_criticality_levels
 				ON process_criticality_levels.id = processes.process_criticality_level_id
 		`).
-		Where("processes.responsible_unit_id = ?", unitID).
-		Group(`
+		Where("processes.responsible_unit_id = ?", params.OrganizationUnitID)
+
+	if params.StartDate != "" && params.EndDate != "" {
+		query = query.Where("processes.created_at BETWEEN ? AND ?", params.StartDate, params.EndDate)
+	}
+
+	query = query.Group(`
 			process_criticality_levels.id,
 			process_criticality_levels.title_en,
 			process_criticality_levels.title_ar,
@@ -1112,17 +1276,17 @@ func (repo *OrganizationUnitsRepository) GetProcessCriticalityDistributionByOrga
 		`).
 		Order("process_criticality_levels.title_en ASC")
 
-	if err := q.Scan(&results).Error; err != nil {
+	if err := query.Scan(&results).Error; err != nil {
 		return nil, err
 	}
 
 	return results, nil
 }
 
-func (repo *OrganizationUnitsRepository) GetComplianceStatusDistributionByOrganizationUnit(unitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error) {
+func (repo *OrganizationUnitsRepository) GetComplianceStatusDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error) {
 	results := []organizationDTOs.OrganizationUnitDistributionItemDTO{}
 
-	q := repo.db.Table("compliance_register").
+	query := repo.db.Table("compliance_register").
 		Select(`
 			ISNULL(compliance_statuses.id, 0) AS id,
 			ISNULL(compliance_statuses.title_en, '') AS title_en,
@@ -1135,8 +1299,13 @@ func (repo *OrganizationUnitsRepository) GetComplianceStatusDistributionByOrgani
 			LEFT JOIN compliance_statuses
 				ON compliance_statuses.id = compliance_register.compliance_status_id
 		`).
-		Where("compliance_register.responsible_unit_id = ?", unitID).
-		Group(`
+		Where("compliance_register.responsible_unit_id = ?", params.OrganizationUnitID)
+
+	if params.StartDate != "" && params.EndDate != "" {
+		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.StartDate, params.EndDate)
+	}
+
+	query = query.Group(`
 			compliance_statuses.id,
 			compliance_statuses.title_en,
 			compliance_statuses.title_ar,
@@ -1145,7 +1314,7 @@ func (repo *OrganizationUnitsRepository) GetComplianceStatusDistributionByOrgani
 		`).
 		Order("compliance_statuses.title_en ASC")
 
-	if err := q.Scan(&results).Error; err != nil {
+	if err := query.Scan(&results).Error; err != nil {
 		return nil, err
 	}
 

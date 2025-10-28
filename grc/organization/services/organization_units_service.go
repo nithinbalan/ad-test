@@ -21,6 +21,10 @@ type OrganizationUnitsServiceInterface interface {
 	GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetParentOrganizationUnitWithHead(unitID uint) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error)
+
+	GetAll(params *organizationDTOs.OrganizationUnitReportListQueryParamsDTO) (*organizationDTOs.OrganizationUnitReportListReponseDTO, error)
+	Create(currentUserID uint, organizationUnitReportFormDTO *organizationDTOs.OrganizationUnitReportFormDTO) (uint, error)
+	Delete(organizationUnitReportID uint, currentUserID uint) error
 }
 
 type OrganizationUnitsService struct {
@@ -187,6 +191,7 @@ func (s *OrganizationUnitsService) GetOrganizationUnitSummary(unitID uint) (*org
 
 	return dto, nil
 }
+
 func (s *OrganizationUnitsService) UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error {
 
 	// Get primary organization level field
@@ -302,4 +307,107 @@ func (s *OrganizationUnitsService) GetParentOrganizationUnitWithHead(unitID uint
 	}
 
 	return result, nil
+}
+
+func (s *OrganizationUnitsService) GetAll(params *organizationDTOs.OrganizationUnitReportListQueryParamsDTO) (*organizationDTOs.OrganizationUnitReportListReponseDTO, error) {
+	return s.repo.GetAll(params)
+}
+
+func (s *OrganizationUnitsService) Create(currentUserID uint, organizationUnitReportFormDTO *organizationDTOs.OrganizationUnitReportFormDTO) (uint, error) {
+	tx := s.repo.BeginTransaction()
+
+	if err := s.validateOrganizatoinUnitReportFormDTO(organizationUnitReportFormDTO); err != nil {
+		return 0, err
+	}
+
+	dates, err := s.parseGovernanceReportDates(organizationUnitReportFormDTO)
+	if err != nil {
+		return 0, err
+	}
+
+	organizationUnitReport := &models.OrganizationUnitReport{
+		Title:              organizationUnitReportFormDTO.Title,
+		StartDate:          *dates.StartDate,
+		EndDate:            *dates.EndDate,
+		OrganizationUnitID: organizationUnitReportFormDTO.OrganizationUnitID,
+		CreatedByID:        currentUserID,
+	}
+
+	organizationUnitReportID, err := s.repo.Create(organizationUnitReport, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	tx.Commit()
+
+	go func() {
+		err := s.activityLog.LogActivity(
+			models.CreateAction,
+			models.OrganizationUnitReport{}.TableName(),
+			organizationUnitReportID,
+			organizationUnitReport,
+			currentUserID,
+			"", "", "", nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+		}
+	}()
+
+	return organizationUnitReportID, nil
+}
+
+func (s *OrganizationUnitsService) Delete(organizationUnitReportID uint, currentUserID uint) error {
+	tx := s.repo.BeginTransaction()
+
+	existingReport, err := s.repo.GetByID(organizationUnitReportID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	go func() {
+		err := s.activityLog.LogActivity(
+			models.DeleteAction,
+			models.OrganizationUnitReport{}.TableName(),
+			organizationUnitReportID,
+			existingReport,
+			currentUserID,
+			"", "", "", nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+		}
+	}()
+
+	tx.Commit()
+	return nil
+}
+
+func (s *OrganizationUnitsService) parseGovernanceReportDates(dto *organizationDTOs.OrganizationUnitReportFormDTO) (*organizationDTOs.OrganizationUnitReportParsedDates, error) {
+	parsed := &organizationDTOs.OrganizationUnitReportParsedDates{}
+
+	var err error
+
+	parsed.StartDate, err = utility.ParseDate(dto.StartDate)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start date")
+	}
+
+	parsed.EndDate, err = utility.ParseDate(dto.EndDate)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end date")
+	}
+
+	return parsed, nil
+}
+
+func (s *OrganizationUnitsService) validateOrganizatoinUnitReportFormDTO(dto *organizationDTOs.OrganizationUnitReportFormDTO) error {
+
+	if _, err := s.organizationUnitSvc.GetByID(dto.OrganizationUnitID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("organization unit does not exist for ID: %d", dto.OrganizationUnitID), "not_exist", "organization unit")
+	}
+
+	return nil
 }
