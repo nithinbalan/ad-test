@@ -107,7 +107,8 @@ type OpenIncidentWithRiskDTO struct {
 
 type IncidentPendingActionPlanDTO struct {
 	IncidentID      uint   `json:"incident_id"`
-	IncidentTitle   string `json:"incident_title"`
+	IncidentTitleEn string `json:"title_en"`
+	IncidentTitleAr string `json:"title_ar"`
 	ActionPlanID    uint   `json:"action_plan_id"`
 	ActionPlanTitle string `json:"action_plan_title"`
 	Description     string `json:"description"`

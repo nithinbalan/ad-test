@@ -386,7 +386,8 @@ func (repo *IncidentReportRepository) GetIncidentPendingActionPlan(params *repor
 	query := repo.db.Raw(`
         SELECT 
             incident_register.id AS incident_id,
-            incident_register.title AS incident_title,
+            incident_register.title AS incident_title_en,
+			incident_register.title AS incident_title_ar,
             incident_action_plans.id AS action_plan_id,
             incident_action_plans.title AS action_plan_title,
             COALESCE(incident_action_plans.description, '') AS description,
