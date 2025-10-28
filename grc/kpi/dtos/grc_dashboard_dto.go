@@ -1,5 +1,7 @@
 package dtos
 
+import commonDTOs "jethur/grc/common/dtos"
+
 type GRCComplianceSummaryDTO struct {
 	ComplianceRequirementFulfillmentRate float64 `json:"compliance_requirement_fulfillment_rate"`
 	ComplianceActionPlanResolutionRate   float64 `json:"compliance_action_plan_resolution_rate"`
@@ -101,4 +103,34 @@ type GRCDocumentTypeChartDTO struct {
 type GRCDashboardListQueryParamsDTO struct {
 	DateFrom string `json:"date_from"`
 	DateTo   string `json:"date_to"`
+}
+
+type GRCDashboardDocumentResponseDTO struct {
+	ID                         uint   `json:"id"`
+	ReferenceNumber            string `json:"reference_number"`
+	DocumentTitleEn            string `json:"document_title_en"`
+	DocumentTitleAr            string `json:"document_title_ar"`
+	ResponsibleUserFirstNameEn string `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr string `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn  string `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr  string `json:"responsible_user_last_name_ar"`
+	ResponsibleUnitTitleEn     string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr     string `json:"responsible_unit_title_ar"`
+	TotalEmployees             int    `json:"total_employees"`
+	AcknowledgedCount          int    `json:"acknowledged_count"`
+	PendingCount               int    `json:"pending_count"`
+	CreatedByID                uint   `json:"created_by_id"`
+	CreatedAt                  string `json:"created_at"`
+}
+
+type GRCDashboardDocumentListQueryParamsDTO struct {
+	DateFrom string `json:"date_from"`
+	DateTo   string `json:"date_to"`
+	Page     int
+	PageSize int
+}
+
+type GRCDashboardDocumentListResponseDTO struct {
+	Items      []*GRCDashboardDocumentResponseDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO       `json:"pagination"`
 }

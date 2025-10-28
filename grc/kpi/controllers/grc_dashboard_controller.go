@@ -352,3 +352,40 @@ func (gdc *GRCDashboardController) GetGRCRiskHeatMap(c *gin.Context) {
 
 	c.JSON(http.StatusOK, riskHeatmap)
 }
+
+func (gdc *GRCDashboardController) GetGRCPolicyDocument(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(gdc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 5)
+	if err != nil {
+		utility.SendInternalErrResp(gdc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := kpiDTOs.GRCDashboardDocumentListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+		Page:     page,
+		PageSize: pageSize,
+	}
+	summary, err := gdc.service.GetPolicyDocuments(&queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(gdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}
