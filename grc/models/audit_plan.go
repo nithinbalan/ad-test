@@ -35,6 +35,7 @@ type AuditPlan struct {
 	PublishedByUser     *User                     `gorm:"foreignKey:PublishedBYID;constraint:OnUpdate:CASCADE,OnDelete:NO ACTION"`
 	CreatedByUser       *User                     `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser       *User                     `gorm:"foreignKey:UpdatedBYID"`
+	AuditPlanSchedules  []*AuditPlanSchedule      `gorm:"foreignKey:AuditPlanID"`
 }
 
 // TableName overrides the table name used by AuditPlan to `audit_plans`

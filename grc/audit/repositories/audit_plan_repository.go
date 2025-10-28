@@ -2,12 +2,13 @@ package repositories
 
 import (
 	"fmt"
+	"strconv"
+	"time"
+
 	auditDTOs "jethur/grc/audit/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
-	"strconv"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -251,6 +252,7 @@ func (repo *AuditPlanRepository) GetFullDetailsByID(id uint, tx ...utility.Datab
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("PublishedByUser").
+		Preload("AuditPlanSchedules").
 		First(&auditPlan, id)
 
 	if result.Error != nil {
@@ -305,7 +307,6 @@ func (repo *AuditPlanRepository) GenerateReferenceNumber() (string, error) {
 		Limit(1).
 		Pluck("reference_number", &lastReferenceNumber).
 		Error
-
 	if err != nil {
 		return "", err
 	}
