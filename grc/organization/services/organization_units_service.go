@@ -25,6 +25,7 @@ type OrganizationUnitsServiceInterface interface {
 	GetAll(params *organizationDTOs.OrganizationUnitReportListQueryParamsDTO) (*organizationDTOs.OrganizationUnitReportListReponseDTO, error)
 	Create(currentUserID uint, organizationUnitReportFormDTO *organizationDTOs.OrganizationUnitReportFormDTO) (uint, error)
 	Delete(organizationUnitReportID uint, currentUserID uint) error
+	GetOrganizationUnitReport(organizationUnitReportID uint) (*organizationDTOs.OrganizationUnitSummaryReportDTO, error)
 }
 
 type OrganizationUnitsService struct {
@@ -383,6 +384,97 @@ func (s *OrganizationUnitsService) Delete(organizationUnitReportID uint, current
 
 	tx.Commit()
 	return nil
+}
+
+func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitReportID uint) (*organizationDTOs.OrganizationUnitSummaryReportDTO, error) {
+	var report organizationDTOs.OrganizationUnitSummaryReportDTO
+
+	reportDetails, err := s.repo.GetByID(organizationUnitReportID)
+	if err != nil {
+		return nil, err
+	}
+
+	report.Title = reportDetails.Title
+	report.GeneratedOn = reportDetails.CreatedAt
+
+	if reportDetails.CreatedByUser != nil {
+		report.GeneratedByUserFirstNameEn = reportDetails.CreatedByUser.FirstNameEn
+		report.GeneratedByUserFirstNameAr = reportDetails.CreatedByUser.FirstNameAr
+		report.GeneratedByUserLastNameEn = reportDetails.CreatedByUser.LastNameEn
+		report.GeneratedByUserLastNameAr = reportDetails.CreatedByUser.LastNameAr
+		report.GeneratedByUserEmail = reportDetails.CreatedByUser.Email
+		report.GeneratedByUserColor = reportDetails.CreatedByUser.Color
+		report.GeneratedByUserInitial = reportDetails.CreatedByUser.Initial
+		if reportDetails.CreatedByUser.ProfileImagePath != nil {
+			report.GeneratedByUserProfileImagePath = *reportDetails.CreatedByUser.ProfileImagePath
+		}
+	}
+
+	params := &organizationDTOs.OrganizationUnitReportQueryParamsDTO{
+		OrganizationUnitID: reportDetails.OrganizationUnitID,
+		StartDate:          reportDetails.StartDate.Format("2006-01-02"),
+		EndDate:            reportDetails.EndDate.Format("2006-01-02"),
+	}
+
+	orgUnit, err := s.organizationUnitSvc.GetByID(reportDetails.OrganizationUnitID)
+	if err != nil {
+		return nil, err
+	}
+	level := uint(orgUnit.OrganizationLevel.Level)
+
+	if report.OrganizationUnitOverview, err = s.repo.GetOrganizationUnitOverview(params, level); err != nil {
+		return nil, err
+	}
+
+	if report.KeyMatrix, err = s.repo.GetOrganizationUnitKeyMatrix(params); err != nil {
+		return nil, err
+	}
+
+	if report.UserRoleDistribution, err = s.repo.GetUserRoleDistribution(params, level); err != nil {
+		return nil, err
+	}
+
+	if report.OrganizationUnitUserDetails, err = s.repo.GetUsersByOrganizationUnitReport(params, level); err != nil {
+		return nil, err
+	}
+
+	if report.RiskSummary, err = s.repo.GetRiskSummaryByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
+	if report.RiskRatingDistribution, err = s.repo.GetRiskRatingDistributionByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
+	if report.RiskDetails, err = s.repo.GetRiskByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
+	if report.PolicySummary, err = s.repo.GetPolicyStatusDistributionByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
+	if report.PolicyDetails, err = s.repo.GetPolicyByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
+	if report.ProcessHealthSummary, err = s.repo.GetProcessHealthSummaryByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
+	if report.ProcessDetails, err = s.repo.GetProcessByOrganizationUnit(params); err != nil { // ✅ fixed
+		return nil, err
+	}
+
+	if report.ComplianceSummary, err = s.repo.GetComplianceStatusDistributionByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
+	if report.ComplianceDetails, err = s.repo.GetComplianceByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
+	return &report, nil
 }
 
 func (s *OrganizationUnitsService) parseGovernanceReportDates(dto *organizationDTOs.OrganizationUnitReportFormDTO) (*organizationDTOs.OrganizationUnitReportParsedDates, error) {

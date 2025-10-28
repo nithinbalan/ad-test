@@ -38,6 +38,7 @@ type OrganizationUnitsRepositoryInterface interface {
 	GetProcessByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitProcessListDTO, error)
 	GetComplianceByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitComplianceListDTO, error)
 
+	GetRiskSummaryByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) (*organizationDTOs.OrganizationUnitRiskSummaryDTO, error)
 	GetRiskRatingDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
 	GetPolicyStatusDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
 	GetComplianceStatusDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
@@ -875,7 +876,7 @@ func (repo *OrganizationUnitsRepository) GetUsersByOrganizationUnitReport(params
 	}
 
 	if params.StartDate != "" && params.EndDate != "" {
-		query = query.Where("user_roles.created_at BETWEEN ? AND ?", params.StartDate, params.EndDate)
+		query = query.Where("users.created_at BETWEEN ? AND ?", params.StartDate, params.EndDate)
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {

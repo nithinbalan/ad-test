@@ -401,3 +401,24 @@ func (osc *OrganizationUnitsController) CreateOrganizationUnitReport(c *gin.Cont
 		"governance_report_id": organnizationUnitReportID,
 	})
 }
+
+func (osc *OrganizationUnitsController) GetOrganizationUnitReportDetails(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	report, err := osc.service.GetOrganizationUnitReport(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(osc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, report)
+}
