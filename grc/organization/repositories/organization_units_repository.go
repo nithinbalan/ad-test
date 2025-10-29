@@ -41,7 +41,7 @@ type OrganizationUnitsRepositoryInterface interface {
 
 	GetRiskSummaryByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) (*organizationDTOs.OrganizationUnitRiskSummaryDTO, error)
 	GetRiskRatingDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
-	GetPolicySummaryByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) (*organizationDTOs.OrganizationUnitPolicySummaryDTO, error)
+	GetPolicySummaryByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO, level uint) (*organizationDTOs.OrganizationUnitPolicySummaryDTO, error)
 	GetComplianceSummaryByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) (*organizationDTOs.OrganizationUnitComplianceSummaryDTO, error)
 	GetProcessHealthSummaryByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) (*organizationDTOs.OrganizationUnitProcessHealthSummaryDTO, error)
 	GetProcessCriticalityDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
@@ -1231,9 +1231,13 @@ func (repo *OrganizationUnitsRepository) GetRiskRatingDistributionByOrganization
 	return results, nil
 }
 
-func (repo *OrganizationUnitsRepository) GetPolicySummaryByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) (*organizationDTOs.OrganizationUnitPolicySummaryDTO, error) {
+func (repo *OrganizationUnitsRepository) GetPolicySummaryByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO, level uint) (*organizationDTOs.OrganizationUnitPolicySummaryDTO, error) {
 	var result organizationDTOs.OrganizationUnitPolicySummaryDTO
-	var acknowledgedPolicies int64
+	var totalUsers, acknowledgedUsers int64
+
+	orgLevelField := fmt.Sprintf("organization_unit_%d_id", level)
+
+	// Base query for documents under this org unit
 	baseQuery := repo.db.Table("documents").
 		Joins("LEFT JOIN document_types dt ON dt.id = documents.document_type_id").
 		Where("dt.type = 'policy'").
@@ -1242,12 +1246,15 @@ func (repo *OrganizationUnitsRepository) GetPolicySummaryByOrganizationUnit(para
 	if params.StartDate != "" && params.EndDate != "" {
 		baseQuery = baseQuery.Where("documents.created_at BETWEEN ? AND ?", params.StartDate, params.EndDate)
 	}
+
+	// ---- Total Policies ----
 	if err := baseQuery.Session(&gorm.Session{}).
 		Select("COUNT(*)").
 		Scan(&result.TotalPolicies).Error; err != nil {
 		return nil, err
 	}
 
+	// ---- Active Policies ----
 	if err := baseQuery.Session(&gorm.Session{}).
 		Joins("LEFT JOIN document_statuses ds ON ds.id = documents.document_status_id").
 		Where("(ds.type IN ('approved', 'published') OR documents.document_status_id IS NULL)").
@@ -1256,6 +1263,7 @@ func (repo *OrganizationUnitsRepository) GetPolicySummaryByOrganizationUnit(para
 		return nil, err
 	}
 
+	// ---- Policies Under Review ----
 	if err := baseQuery.Session(&gorm.Session{}).
 		Joins("LEFT JOIN document_statuses ds ON ds.id = documents.document_status_id").
 		Where("ds.type = 'in-review'").
@@ -1264,24 +1272,72 @@ func (repo *OrganizationUnitsRepository) GetPolicySummaryByOrganizationUnit(para
 		return nil, err
 	}
 
-	subQuery := repo.db.Table("document_acknowledge_users dau").
-		Select("COUNT(DISTINCT dau.document_id)").
-		Joins("JOIN documents d ON d.id = dau.document_id").
-		Joins("JOIN document_types dt ON dt.id = d.document_type_id").
-		Where("dt.type = 'policy'").
-		Where("d.responsible_unit_id = ?", params.OrganizationUnitID)
-
+	// ---- Total Users who must acknowledge ----
+	dateFilter := ""
 	if params.StartDate != "" && params.EndDate != "" {
-		subQuery = subQuery.Where("dau.created_at BETWEEN ? AND ?", params.StartDate, params.EndDate)
+		dateFilter = fmt.Sprintf("AND d.created_at BETWEEN '%s' AND '%s'", params.StartDate, params.EndDate)
 	}
 
-	if err := subQuery.Scan(&acknowledgedPolicies).Error; err != nil {
-		return nil, err
+	totalUsersQuery := fmt.Sprintf(`
+		SELECT COUNT(DISTINCT user_id)
+		FROM (
+			-- Explicitly shared users
+			SELECT u.id AS user_id
+			FROM document_shared_users dsu
+			JOIN documents d ON d.id = dsu.document_id
+			JOIN document_types dt ON dt.id = d.document_type_id
+			JOIN users u ON u.id = dsu.user_id
+			JOIN user_statuses us ON us.id = u.user_status_id
+			WHERE dt.type = 'policy'
+				AND d.responsible_unit_id = ?
+				AND us.is_active = 1
+				%s
+
+			UNION
+
+			-- Unit-based shared users
+			SELECT u.id AS user_id
+			FROM document_shared_units dsu
+			JOIN documents d ON d.id = dsu.document_id
+			JOIN document_types dt ON dt.id = d.document_type_id
+			JOIN organization_units ou ON ou.id = dsu.organization_unit_id
+			JOIN users u ON u.%s = ou.id
+			JOIN user_statuses us ON us.id = u.user_status_id
+			WHERE dt.type = 'policy'
+				AND d.responsible_unit_id = ?
+				AND us.is_active = 1
+				%s
+		) AS combined_users
+	`, dateFilter, orgLevelField, dateFilter)
+
+	if err := repo.db.Raw(totalUsersQuery, params.OrganizationUnitID, params.OrganizationUnitID).Scan(&totalUsers).Error; err != nil {
+		return nil, fmt.Errorf("error fetching total users: %v", err)
 	}
 
+	// ---- Acknowledged Users ----
+	acknowledgedUsersQuery := fmt.Sprintf(`
+		SELECT COUNT(DISTINCT dau.user_id)
+		FROM document_acknowledge_users dau
+		JOIN documents d ON d.id = dau.document_id
+		JOIN document_types dt ON dt.id = d.document_type_id
+		JOIN users u ON u.id = dau.user_id
+		JOIN user_statuses us ON us.id = u.user_status_id
+		WHERE dt.type = 'policy'
+			AND d.responsible_unit_id = ?
+			AND us.is_active = 1
+			%s
+	`, dateFilter)
+
+	if err := repo.db.Raw(acknowledgedUsersQuery, params.OrganizationUnitID).Scan(&acknowledgedUsers).Error; err != nil {
+		return nil, fmt.Errorf("error fetching acknowledged users: %v", err)
+	}
+
+	// ---- Percentages ----
 	if result.TotalPolicies > 0 {
 		result.PolicyHealthPercentage = float64(result.ActivePolicies) / float64(result.TotalPolicies) * 100
-		result.PolicyAwarenessPercentage = float64(acknowledgedPolicies) / float64(result.TotalPolicies) * 100
+	}
+	if totalUsers > 0 {
+		result.PolicyAwarenessPercentage = float64(acknowledgedUsers) / float64(totalUsers) * 100
 	}
 
 	return &result, nil

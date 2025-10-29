@@ -455,7 +455,7 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 		return nil, err
 	}
 
-	if report.PolicySummary, err = s.repo.GetPolicySummaryByOrganizationUnit(params); err != nil {
+	if report.PolicySummary, err = s.repo.GetPolicySummaryByOrganizationUnit(params, level); err != nil {
 		return nil, err
 	}
 
