@@ -462,15 +462,15 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 		return nil, err
 	}
 
-	if report.ProcessDetails, err = s.repo.GetProcessByOrganizationUnit(params); err != nil { // ✅ fixed
+	if report.ProcessDetails, err = s.repo.GetProcessByOrganizationUnit(params); err != nil {
 		return nil, err
 	}
 
-	if report.ComplianceSummary, err = s.repo.GetComplianceStatusDistributionByOrganizationUnit(params); err != nil {
+	if report.ComplianceRequirementSummary, err = s.repo.GetComplianceRequirementStatusDistributionByOrganizationUnit(params); err != nil {
 		return nil, err
 	}
 
-	if report.ComplianceDetails, err = s.repo.GetComplianceByOrganizationUnit(params); err != nil {
+	if report.ComplianceRequirementDetails, err = s.repo.GetComplianceRequirementsByOrganizationUnit(params); err != nil {
 		return nil, err
 	}
 

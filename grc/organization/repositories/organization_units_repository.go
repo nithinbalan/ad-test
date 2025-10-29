@@ -37,6 +37,7 @@ type OrganizationUnitsRepositoryInterface interface {
 	GetPolicyByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitPolicyListDTO, error)
 	GetProcessByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitProcessListDTO, error)
 	GetComplianceByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitComplianceListDTO, error)
+	GetComplianceRequirementsByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitComplianceRequirementListDTO, error)
 
 	GetRiskSummaryByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) (*organizationDTOs.OrganizationUnitRiskSummaryDTO, error)
 	GetRiskRatingDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
@@ -44,6 +45,7 @@ type OrganizationUnitsRepositoryInterface interface {
 	GetComplianceStatusDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
 	GetProcessHealthSummaryByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) (*organizationDTOs.OrganizationUnitProcessHealthSummaryDTO, error)
 	GetProcessCriticalityDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
+	GetComplianceRequirementStatusDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
 }
 
 type OrganizationUnitsRepository struct {
@@ -1115,6 +1117,56 @@ func (repo *OrganizationUnitsRepository) GetComplianceByOrganizationUnit(params 
 	return complianceList, nil
 }
 
+func (repo *OrganizationUnitsRepository) GetComplianceRequirementsByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitComplianceRequirementListDTO, error) {
+	var result []organizationDTOs.OrganizationUnitComplianceRequirementListDTO
+
+	query := repo.db.Table("compliance_requirements cr").
+		Select(`
+			cr.id AS id,
+			cr.title_en AS title_en,
+			cr.title_ar AS title_ar,
+			cr.score AS score,
+			cr.deadline AS deadline,
+			cr.created_at AS created_at,
+			cr.updated_at AS updated_at,
+			ISNULL(crc.title_en, '') AS compliance_requirement_category_title_en,
+			ISNULL(crc.title_ar, '') AS compliance_requirement_category_title_ar,
+			ISNULL(cs.title_en, '') AS compliance_status_title_en,
+			ISNULL(cs.title_ar, '') AS compliance_status_title_ar,
+			ISNULL(cs.color_code, '') AS compliance_status_color_code,
+			ISNULL(sl.title_en, '') AS severity_level_title_en,
+			ISNULL(sl.title_ar, '') AS severity_level_title_ar,
+			ISNULL(sl.color_code, '') AS severity_level_color_code
+		`).
+		Joins(`
+			JOIN compliance_requirement_responsible_units crru
+				ON crru.compliance_requirement_id = cr.id
+		`).
+		Joins(`
+			LEFT JOIN compliance_requirement_categories crc
+				ON crc.id = cr.compliance_requirement_category_id
+		`).
+		Joins(`
+			LEFT JOIN compliance_statuses cs
+				ON cs.id = cr.compliance_status_id
+		`).
+		Joins(`
+			LEFT JOIN severity_levels sl
+				ON sl.id = cr.severity_level_id
+		`).
+		Where("crru.responsible_unit_id = ?", params.OrganizationUnitID)
+
+	if params.StartDate != "" && params.EndDate != "" {
+		query = query.Where("cr.created_at BETWEEN ? AND ?", params.StartDate, params.EndDate)
+	}
+
+	if err := query.Find(&result).Error; err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func (repo *OrganizationUnitsRepository) GetRiskSummaryByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) (*organizationDTOs.OrganizationUnitRiskSummaryDTO, error) {
 	var result organizationDTOs.OrganizationUnitRiskSummaryDTO
 
@@ -1314,6 +1366,46 @@ func (repo *OrganizationUnitsRepository) GetComplianceStatusDistributionByOrgani
 			compliance_statuses.color_code
 		`).
 		Order("compliance_statuses.title_en ASC")
+
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (repo *OrganizationUnitsRepository) GetComplianceRequirementStatusDistributionByOrganizationUnit(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error) {
+	results := []organizationDTOs.OrganizationUnitDistributionItemDTO{}
+
+	query := repo.db.Table("compliance_requirements AS cr").
+		Select(`
+			ISNULL(cs.id, 0) AS id,
+			ISNULL(cs.title_en, '') AS title_en,
+			ISNULL(cs.title_ar, '') AS title_ar,
+			ISNULL(cs.type, '') AS type,
+			ISNULL(cs.color_code, '') AS color_code,
+			COUNT(*) AS count
+		`).
+		Joins(`
+			LEFT JOIN compliance_statuses AS cs 
+				ON cs.id = cr.compliance_status_id
+			INNER JOIN compliance_requirement_responsible_units AS crru 
+				ON crru.compliance_requirement_id = cr.id
+		`).
+		Where("crru.responsible_unit_id = ?", params.OrganizationUnitID)
+
+	if params.StartDate != "" && params.EndDate != "" {
+		query = query.Where("cr.created_at BETWEEN ? AND ?", params.StartDate, params.EndDate)
+	}
+
+	query = query.Group(`
+			cs.id,
+			cs.title_en,
+			cs.title_ar,
+			cs.type,
+			cs.color_code
+		`).
+		Order("cs.title_en ASC")
 
 	if err := query.Scan(&results).Error; err != nil {
 		return nil, err
