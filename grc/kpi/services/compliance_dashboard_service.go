@@ -1,7 +1,9 @@
 package services
 
 import (
+	complianceDTOs "jethur/grc/compliance/dtos"
 	kpiDTOs "jethur/grc/kpi/dtos"
+
 	"jethur/grc/kpi/repositories"
 )
 
@@ -23,6 +25,8 @@ type ComplianceDashboardServiceInterface interface {
 	GetActionPlanOverview(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceActionPlanOverviewDTO, error)
 	GetActionPlanStatusSummary(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceActionPlanStatusSummaryDTO, error)
 	GetActionPlansByOrganizationUnit(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]kpiDTOs.ComplianceActionPlanByOrganizationUnitDTO, error)
+
+	GetTopCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]complianceDTOs.ComplianceRegisterListDTO, error)
 }
 
 type ComplianceDashboardService struct {
@@ -99,4 +103,8 @@ func (cds *ComplianceDashboardService) GetActionPlanStatusSummary(params *kpiDTO
 
 func (cds *ComplianceDashboardService) GetActionPlansByOrganizationUnit(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]kpiDTOs.ComplianceActionPlanByOrganizationUnitDTO, error) {
 	return cds.repo.GetActionPlansByOrganizationUnit(params)
+}
+
+func (cds *ComplianceDashboardService) GetTopCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]complianceDTOs.ComplianceRegisterListDTO, error) {
+	return cds.repo.GetTopCompliances(params)
 }

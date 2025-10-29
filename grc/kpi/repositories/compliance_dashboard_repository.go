@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+	complianceDTOs "jethur/grc/compliance/dtos"
 	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/models"
 
@@ -26,6 +27,8 @@ type ComplianceDashboardRepositoryInterface interface {
 	GetActionPlanOverview(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceActionPlanOverviewDTO, error)
 	GetActionPlanStatusSummary(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceActionPlanStatusSummaryDTO, error)
 	GetActionPlansByOrganizationUnit(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]kpiDTOs.ComplianceActionPlanByOrganizationUnitDTO, error)
+
+	GetTopCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]complianceDTOs.ComplianceRegisterListDTO, error)
 }
 
 type ComplianceDashboardRepository struct {
@@ -943,4 +946,108 @@ func (repo *ComplianceDashboardRepository) GetActionPlansByOrganizationUnit(para
 		return nil, err
 	}
 	return results, nil
+}
+
+func (repo *ComplianceDashboardRepository) GetTopCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]complianceDTOs.ComplianceRegisterListDTO, error) {
+	var compliances []complianceDTOs.ComplianceRegisterListDTO
+
+	query := repo.db.Table("compliance_register").
+		Select(`
+			compliance_register.id AS id,
+			compliance_categories.title_en AS compliance_category_title_en,
+			compliance_categories.title_ar AS compliance_category_title_ar,
+			compliance_statuses.title_en AS compliance_status_title_en,
+			compliance_statuses.title_ar AS compliance_status_title_ar,
+			compliance_statuses.color_code AS compliance_status_color_code,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+			review_responsible_user.id AS review_responsible_user_id,
+			review_responsible_user.first_name_en AS review_responsible_user_first_name_en,
+			review_responsible_user.first_name_ar AS review_responsible_user_first_name_ar,
+			review_responsible_user.last_name_en AS review_responsible_user_last_name_en,
+			review_responsible_user.last_name_ar AS review_responsible_user_last_name_ar,
+			review_responsible_user.initial AS review_responsible_user_initial,
+			review_responsible_user.color AS review_responsible_user_color,
+			review_responsible_user.email AS review_responsible_user_email,
+			review_responsible_user.profile_image_path AS review_responsible_user_profile_image_path,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			compliance_register.reference_number,
+			compliance_register.standard_code,
+			compliance_register.title_en,
+			compliance_register.title_ar,
+			compliance_register.description_en,
+			compliance_register.description_ar,
+			compliance_register.version,
+			CONVERT(VARCHAR, compliance_register.deadline, 23) AS deadline,
+			CONVERT(VARCHAR, compliance_register.issue_date, 23) AS issue_date,
+			CONVERT(VARCHAR, compliance_register.expiry_date, 23) AS expiry_date,
+			CONVERT(VARCHAR, compliance_register.next_review_date, 23) AS next_review_date,
+			CONVERT(VARCHAR, compliance_register.last_reviewed_date, 23) AS last_reviewed_date,
+			CONVERT(VARCHAR, compliance_register.created_at, 23) AS created_at,
+			CONVERT(VARCHAR, compliance_register.updated_at, 23) AS updated_at,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+			updated_user.id AS updated_user_id,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path,
+			lifecycle_statuses.title_en AS lifecycle_status_title_en,
+			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
+			lifecycle_statuses.color_code AS lifecycle_status_color_code,
+			compliance_assessment_frameworks.id AS compliance_assessment_framework_id,
+			compliance_assessment_frameworks.title_en AS compliance_assessment_framework_title_en,
+			compliance_assessment_frameworks.title_ar AS compliance_assessment_framework_title_ar,
+			CAST(CASE WHEN compliance_register.is_control_assessment = 1 THEN 1 ELSE 0 END AS BIT) AS is_control_assessment,
+			CAST(CASE WHEN compliance_register.is_requirement_assessment = 1 THEN 1 ELSE 0 END AS BIT) AS is_requirement_assessment
+		`).
+		Joins(`
+			LEFT JOIN compliance_categories ON compliance_categories.id = compliance_register.compliance_category_id
+			LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_register.compliance_status_id
+			LEFT JOIN organization_units ON organization_units.id = compliance_register.responsible_unit_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_register.responsible_user_id
+			LEFT JOIN review_frequencies ON review_frequencies.id = compliance_register.review_frequency_id
+			LEFT JOIN users AS review_responsible_user ON review_responsible_user.id = compliance_register.review_responsible_user_id
+			LEFT JOIN severity_levels ON severity_levels.id = compliance_register.severity_level_id
+			LEFT JOIN compliance_assessment_frameworks ON compliance_assessment_frameworks.id = compliance_register.compliance_assessment_framework_id
+			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = compliance_register.lifecycle_status_id
+			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by_id
+		`).
+		Order("compliance_register.created_at DESC")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("compliance_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	query = query.Limit(20)
+	if err := query.Find(&compliances).Error; err != nil {
+		return nil, err
+	}
+
+	return compliances, nil
 }
