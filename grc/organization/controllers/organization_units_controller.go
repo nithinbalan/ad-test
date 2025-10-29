@@ -422,3 +422,32 @@ func (osc *OrganizationUnitsController) GetOrganizationUnitReportDetails(c *gin.
 	}
 	c.JSON(http.StatusOK, report)
 }
+
+func (osc *OrganizationUnitsController) DeleteOrganizationUnitReport(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(osc.db, c, err.Error())
+		return
+	}
+
+	err = osc.service.Delete(uint(id), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(osc.db, c, e.Error())
+			return
+		}
+	}
+	c.Status(http.StatusOK)
+}

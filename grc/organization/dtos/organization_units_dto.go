@@ -345,6 +345,21 @@ type OrganizationUnitProcessHealthSummaryDTO struct {
 	ActivePercentage float64 `json:"active_percentage"`
 }
 
+type OrganizationUnitComplianceSummaryDTO struct {
+	TotalRequirements  int64 `json:"total_requirements"`
+	Compliant          int64 `json:"compliant"`
+	PartiallyCompliant int64 `json:"partially_compliant"`
+	NonCompliant       int64 `json:"non_compliant"`
+	NotApplicable      int64 `json:"not_applicable"`
+}
+type OrganizationUnitPolicySummaryDTO struct {
+	TotalPolicies             int64   `json:"total_policies"`
+	ActivePolicies            int64   `json:"active_policies"`
+	PoliciesUnderReview       int64   `json:"policies_under_review"`
+	PolicyHealthPercentage    float64 `json:"policy_health_percentage"`
+	PolicyAwarenessPercentage float64 `json:"policy_awareness_percentage"`
+}
+
 type OrganizationUnitSummaryReportDTO struct {
 	Title                           string                                         `json:"title"`
 	GeneratedOn                     time.Time                                      `json:"generated_on"`
@@ -362,11 +377,12 @@ type OrganizationUnitSummaryReportDTO struct {
 	OrganizationUnitUserDetails     []OrganizationUnitUserDetailsDTO               `json:"organization_unit_user_details"`
 	RiskSummary                     *OrganizationUnitRiskSummaryDTO                `json:"risk_summary"`
 	RiskRatingDistribution          []OrganizationUnitDistributionItemDTO          `json:"risk_rating_distribution"`
+	RiskMitgationStatusDistribution []OrganizationUnitDistributionItemDTO          `json:"risk_mitigation_status_distribution"`
 	RiskDetails                     []OrganizationUnitRiskListDTO                  `json:"risk_details"`
-	PolicySummary                   []OrganizationUnitDistributionItemDTO          `json:"policy_summary"`
+	PolicySummary                   *OrganizationUnitPolicySummaryDTO              `json:"policy_summary"`
 	PolicyDetails                   []OrganizationUnitPolicyListDTO                `json:"policy_details"`
 	ProcessHealthSummary            *OrganizationUnitProcessHealthSummaryDTO       `json:"process_health_summary"`
 	ProcessDetails                  []OrganizationUnitProcessListDTO               `json:"process_details"`
-	ComplianceRequirementSummary    []OrganizationUnitDistributionItemDTO          `json:"compliance_requirement_summary"`
+	ComplianceSummary               *OrganizationUnitComplianceSummaryDTO          `json:"compliance_summary"`
 	ComplianceRequirementDetails    []OrganizationUnitComplianceRequirementListDTO `json:"compliance_requirement_details"`
 }

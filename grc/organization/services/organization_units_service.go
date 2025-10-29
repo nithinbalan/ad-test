@@ -360,11 +360,13 @@ func (s *OrganizationUnitsService) Create(currentUserID uint, organizationUnitRe
 }
 
 func (s *OrganizationUnitsService) Delete(organizationUnitReportID uint, currentUserID uint) error {
-	tx := s.repo.BeginTransaction()
 
-	existingReport, err := s.repo.GetByID(organizationUnitReportID, tx)
+	existingReport, err := s.repo.GetByID(organizationUnitReportID)
 	if err != nil {
-		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.Delete(organizationUnitReportID); err != nil {
 		return err
 	}
 
@@ -382,7 +384,6 @@ func (s *OrganizationUnitsService) Delete(organizationUnitReportID uint, current
 		}
 	}()
 
-	tx.Commit()
 	return nil
 }
 
@@ -446,11 +447,15 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 		return nil, err
 	}
 
+	if report.RiskMitgationStatusDistribution, err = s.repo.GetRiskMitigationStatusDistributionByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
 	if report.RiskDetails, err = s.repo.GetRiskByOrganizationUnit(params); err != nil {
 		return nil, err
 	}
 
-	if report.PolicySummary, err = s.repo.GetPolicyStatusDistributionByOrganizationUnit(params); err != nil {
+	if report.PolicySummary, err = s.repo.GetPolicySummaryByOrganizationUnit(params); err != nil {
 		return nil, err
 	}
 
@@ -466,7 +471,7 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 		return nil, err
 	}
 
-	if report.ComplianceRequirementSummary, err = s.repo.GetComplianceRequirementStatusDistributionByOrganizationUnit(params); err != nil {
+	if report.ComplianceSummary, err = s.repo.GetComplianceSummaryByOrganizationUnit(params); err != nil {
 		return nil, err
 	}
 
