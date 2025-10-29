@@ -434,28 +434,71 @@ func (repo *ComplianceDashboardRepository) GetPolicyByOrganizationUnit(params *k
 
 func (repo *ComplianceDashboardRepository) GetPolicyStatusBreakdown(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.CompliancePolicyStatusBreakdownDTO, error) {
 	result := &kpiDTOs.CompliancePolicyStatusBreakdownDTO{}
+	statuses := []kpiDTOs.ComplianceSummaryItemDTO{}
+	var total int64
 
+	// Select distinct mapped document IDs from requirements
 	mappedDocs := repo.db.
 		Table("document_compliance_requirements dcr").
 		Select("DISTINCT dcr.document_id")
 
+	// Main query: count policies grouped by document status
 	query := repo.db.
 		Table("(?) AS md", mappedDocs).
 		Select(`
-			COUNT(DISTINCT d.id) AS total_policies,
-			SUM(CASE WHEN ds.status = 'active' THEN 1 ELSE 0 END) AS active_policies,
-			SUM(CASE WHEN ds.status = 'inactive' THEN 1 ELSE 0 END) AS inactive_policies
+			ds.id,
+			ds.title_en,
+			ds.title_ar,
+			ds.color_code,
+			ds.type,
+			COUNT(DISTINCT d.id) AS count
 		`).
 		Joins("JOIN documents d ON d.id = md.document_id").
-		Joins("LEFT JOIN document_statuses ds ON ds.id = d.document_status_id")
+		Joins("LEFT JOIN document_statuses ds ON ds.id = d.document_status_id").
+		Group(`
+			ds.id,
+			ds.title_en,
+			ds.title_ar,
+			ds.color_code,
+			ds.type
+		`).
+		Order("ds.id")
 
+	// Apply date filter if provided
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("d.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
-	if err := query.Scan(result).Error; err != nil {
-		return nil, err
+	// Run the grouped query
+	if err := query.Scan(&statuses).Error; err != nil {
+		return nil, fmt.Errorf("error fetching policy statuses: %w", err)
 	}
+
+	// Calculate total count
+	totalQuery := repo.db.
+		Table("(?) AS md", mappedDocs).
+		Joins("JOIN documents d ON d.id = md.document_id")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		totalQuery = totalQuery.Where("d.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	if err := totalQuery.Count(&total).Error; err != nil {
+		return nil, fmt.Errorf("error fetching total policies: %w", err)
+	}
+
+	// Compute percentage for each status
+	for i := range statuses {
+		if total > 0 {
+			statuses[i].Percent = (float64(statuses[i].Count) / float64(total)) * 100
+		} else {
+			statuses[i].Percent = 0
+		}
+	}
+
+	// Build final result DTO
+	result.TotalPolicies = int(total)
+	result.PolicyStatuses = statuses
 
 	return result, nil
 }

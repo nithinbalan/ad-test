@@ -55,11 +55,9 @@ type CompliancePolicyOverviewDTO struct {
 	PolicyExceptionsRaised         int64   `json:"policy_exceptions_raised"`
 	CriticalPoliciesUnacknowledged int64   `json:"critical_policies_unacknowledged"`
 }
-
 type CompliancePolicyStatusBreakdownDTO struct {
-	TotalPolicies    int64 `json:"total_policies"`
-	ActivePolicies   int64 `json:"active_policies"`
-	InactivePolicies int64 `json:"inactive_policies"`
+	TotalPolicies  int                        `json:"total_policies"`
+	PolicyStatuses []ComplianceSummaryItemDTO `json:"policy_statuses"`
 }
 
 type CompliancePolicyByOrganizationUnitDTO struct {
