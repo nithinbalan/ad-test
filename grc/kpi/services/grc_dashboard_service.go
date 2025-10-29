@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	documentServices "jethur/grc/documents/services"
 	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/kpi/repositories"
@@ -95,42 +94,11 @@ func (gds *GRCDashboardService) GetGRCDocumentTypeChart(params *kpiDTOs.GRCDashb
 }
 
 func (gds *GRCDashboardService) GetPolicyDocuments(params *kpiDTOs.GRCDashboardDocumentListQueryParamsDTO) (*kpiDTOs.GRCDashboardDocumentListResponseDTO, error) {
-	// return gds.repo.GetPolicyDocuments(params)
-	var documentDTO []*kpiDTOs.GRCDashboardDocumentResponseDTO
+
 	documents, err := gds.repo.GetPolicyDocuments(params)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, document := range documents.Items {
-		fmt.Println(document)
-		policy, err := gds.repo.GetDocumentByID(document.ID)
-		if err != nil {
-			return nil, err
-		}
-		summary, err := gds.grcReportSvc.GetDocumentAcknowledgmentSummary(policy)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get acknowledgment summary for document ID %d: %w", document.ID, err)
-		}
-
-		docResponse := kpiDTOs.GRCDashboardDocumentResponseDTO{
-			ID:                         document.ID,
-			ReferenceNumber:            document.ReferenceNumber,
-			DocumentTitleEn:            policy.TitleEn,
-			DocumentTitleAr:            policy.TitleAr,
-			ResponsibleUserFirstNameEn: document.ResponsibleUserFirstNameEn,
-			ResponsibleUserFirstNameAr: document.ResponsibleUserFirstNameAr,
-			ResponsibleUserLastNameEn:  document.ResponsibleUserLastNameEn,
-			ResponsibleUserLastNameAr:  document.ResponsibleUserLastNameAr,
-			ResponsibleUnitTitleEn:     document.ResponsibleUnitTitleEn,
-			ResponsibleUnitTitleAr:     document.ResponsibleUnitTitleAr,
-			TotalEmployees:             int(summary.TotalUsers),
-			AcknowledgedCount:          int(summary.AcknowledgedUsers),
-			PendingCount:               int(summary.NotAcknowledgedUsers),
-			CreatedByID:                document.CreatedByID,
-		}
-		documentDTO = append(documentDTO, &docResponse)
-
-	}
 	return documents, nil
 }

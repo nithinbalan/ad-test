@@ -689,7 +689,9 @@ func (repo *GRCDashboardRepository) GetPolicyDocuments(params *kpiDTOs.GRCDashbo
 	query := repo.db.Table("documents").
 		Select(`
 			documents.id AS id,reference_number,
-			documents.title_en, documents.title_ar,
+			documents.title_en AS document_title_en, documents.title_ar AS document_title_ar,
+			CONCAT(responsible_user.first_name_en, ' ', responsible_user.last_name_en) AS responsible_user_name_en,
+			CONCAT(responsible_user.first_name_ar, ' ', responsible_user.last_name_ar) AS responsible_user_name_ar,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
 			responsible_user.first_name_ar AS responsible_user_first_name_ar,
 			responsible_user.last_name_en AS responsible_user_last_name_en,
