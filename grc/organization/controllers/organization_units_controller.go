@@ -315,3 +315,139 @@ func (osc *OrganizationUnitsController) GetParentOrganizationUnitWithHead(c *gin
 	}
 	c.JSON(http.StatusOK, result)
 }
+
+func (orc *OrganizationUnitsController) GetAllOrganizationUnitReports(c *gin.Context) {
+	sort := c.DefaultQuery("sort_order", "desc")
+	sortBy := c.DefaultQuery("sort_by", "created_at")
+	keyword := c.Query("keyword")
+
+	validSortFields := map[string]string{
+		"title":      "organization_unit_reports.title",
+		"start_date": "organization_unit_reports.start_date",
+		"end_date":   "organization_unit_reports.end_date",
+		"created_at": "organization_unit_reports.created_at",
+	}
+
+	filters := utility.ParseQueryFilters([]string{}, c.Request.URL.Query())
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	queryParams := organizationDTOs.OrganizationUnitReportListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   dbField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Filters:  filters,
+	}
+
+	reports, err := orc.service.GetAll(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(orc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, reports)
+}
+
+func (osc *OrganizationUnitsController) CreateOrganizationUnitReport(c *gin.Context) {
+	var request organizationDTOs.OrganizationUnitReportFormDTO
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(osc.db, c, err.Error())
+		return
+	}
+
+	organnizationUnitReportID, err := osc.service.Create(currentUserID, &request)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(osc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message":              "Governance report generated successfully",
+		"governance_report_id": organnizationUnitReportID,
+	})
+}
+
+func (osc *OrganizationUnitsController) GetOrganizationUnitReportDetails(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	report, err := osc.service.GetOrganizationUnitReport(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(osc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, report)
+}
+
+func (osc *OrganizationUnitsController) DeleteOrganizationUnitReport(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(osc.db, c, err.Error())
+		return
+	}
+
+	err = osc.service.Delete(uint(id), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(osc.db, c, e.Error())
+			return
+		}
+	}
+	c.Status(http.StatusOK)
+}

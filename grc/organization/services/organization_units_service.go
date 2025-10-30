@@ -21,6 +21,11 @@ type OrganizationUnitsServiceInterface interface {
 	GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetParentOrganizationUnitWithHead(unitID uint) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error)
+
+	GetAll(params *organizationDTOs.OrganizationUnitReportListQueryParamsDTO) (*organizationDTOs.OrganizationUnitReportListReponseDTO, error)
+	Create(currentUserID uint, organizationUnitReportFormDTO *organizationDTOs.OrganizationUnitReportFormDTO) (uint, error)
+	Delete(organizationUnitReportID uint, currentUserID uint) error
+	GetOrganizationUnitReport(organizationUnitReportID uint) (*organizationDTOs.OrganizationUnitSummaryReportDTO, error)
 }
 
 type OrganizationUnitsService struct {
@@ -187,6 +192,7 @@ func (s *OrganizationUnitsService) GetOrganizationUnitSummary(unitID uint) (*org
 
 	return dto, nil
 }
+
 func (s *OrganizationUnitsService) UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error {
 
 	// Get primary organization level field
@@ -302,4 +308,203 @@ func (s *OrganizationUnitsService) GetParentOrganizationUnitWithHead(unitID uint
 	}
 
 	return result, nil
+}
+
+func (s *OrganizationUnitsService) GetAll(params *organizationDTOs.OrganizationUnitReportListQueryParamsDTO) (*organizationDTOs.OrganizationUnitReportListReponseDTO, error) {
+	return s.repo.GetAll(params)
+}
+
+func (s *OrganizationUnitsService) Create(currentUserID uint, organizationUnitReportFormDTO *organizationDTOs.OrganizationUnitReportFormDTO) (uint, error) {
+	tx := s.repo.BeginTransaction()
+
+	if err := s.validateOrganizatoinUnitReportFormDTO(organizationUnitReportFormDTO); err != nil {
+		return 0, err
+	}
+
+	dates, err := s.parseGovernanceReportDates(organizationUnitReportFormDTO)
+	if err != nil {
+		return 0, err
+	}
+
+	organizationUnitReport := &models.OrganizationUnitReport{
+		Title:              organizationUnitReportFormDTO.Title,
+		StartDate:          *dates.StartDate,
+		EndDate:            *dates.EndDate,
+		OrganizationUnitID: organizationUnitReportFormDTO.OrganizationUnitID,
+		CreatedByID:        currentUserID,
+	}
+
+	organizationUnitReportID, err := s.repo.Create(organizationUnitReport, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	tx.Commit()
+
+	go func() {
+		err := s.activityLog.LogActivity(
+			models.CreateAction,
+			models.OrganizationUnitReport{}.TableName(),
+			organizationUnitReportID,
+			organizationUnitReport,
+			currentUserID,
+			"", "", "", nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+		}
+	}()
+
+	return organizationUnitReportID, nil
+}
+
+func (s *OrganizationUnitsService) Delete(organizationUnitReportID uint, currentUserID uint) error {
+
+	existingReport, err := s.repo.GetByID(organizationUnitReportID)
+	if err != nil {
+		return err
+	}
+
+	if err := s.repo.Delete(organizationUnitReportID); err != nil {
+		return err
+	}
+
+	go func() {
+		err := s.activityLog.LogActivity(
+			models.DeleteAction,
+			models.OrganizationUnitReport{}.TableName(),
+			organizationUnitReportID,
+			existingReport,
+			currentUserID,
+			"", "", "", nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+		}
+	}()
+
+	return nil
+}
+
+func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitReportID uint) (*organizationDTOs.OrganizationUnitSummaryReportDTO, error) {
+	var report organizationDTOs.OrganizationUnitSummaryReportDTO
+
+	reportDetails, err := s.repo.GetByID(organizationUnitReportID)
+	if err != nil {
+		return nil, err
+	}
+
+	report.Title = reportDetails.Title
+	report.GeneratedOn = reportDetails.CreatedAt
+
+	if reportDetails.CreatedByUser != nil {
+		report.GeneratedByUserFirstNameEn = reportDetails.CreatedByUser.FirstNameEn
+		report.GeneratedByUserFirstNameAr = reportDetails.CreatedByUser.FirstNameAr
+		report.GeneratedByUserLastNameEn = reportDetails.CreatedByUser.LastNameEn
+		report.GeneratedByUserLastNameAr = reportDetails.CreatedByUser.LastNameAr
+		report.GeneratedByUserEmail = reportDetails.CreatedByUser.Email
+		report.GeneratedByUserColor = reportDetails.CreatedByUser.Color
+		report.GeneratedByUserInitial = reportDetails.CreatedByUser.Initial
+		if reportDetails.CreatedByUser.ProfileImagePath != nil {
+			report.GeneratedByUserProfileImagePath = *reportDetails.CreatedByUser.ProfileImagePath
+		}
+	}
+
+	params := &organizationDTOs.OrganizationUnitReportQueryParamsDTO{
+		OrganizationUnitID: reportDetails.OrganizationUnitID,
+		StartDate:          reportDetails.StartDate.Format("2006-01-02"),
+		EndDate:            reportDetails.EndDate.Format("2006-01-02"),
+	}
+
+	orgUnit, err := s.organizationUnitSvc.GetByID(reportDetails.OrganizationUnitID)
+	if err != nil {
+		return nil, err
+	}
+	level := uint(orgUnit.OrganizationLevel.Level)
+
+	if report.OrganizationUnitOverview, err = s.repo.GetOrganizationUnitOverview(params, level); err != nil {
+		return nil, err
+	}
+
+	if report.KeyMatrix, err = s.repo.GetOrganizationUnitKeyMatrix(params); err != nil {
+		return nil, err
+	}
+
+	if report.UserRoleDistribution, err = s.repo.GetUserRoleDistribution(params, level); err != nil {
+		return nil, err
+	}
+
+	if report.OrganizationUnitUserDetails, err = s.repo.GetUsersByOrganizationUnitReport(params, level); err != nil {
+		return nil, err
+	}
+
+	if report.RiskSummary, err = s.repo.GetRiskSummaryByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
+	if report.RiskRatingDistribution, err = s.repo.GetRiskRatingDistributionByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
+	if report.RiskMitgationStatusDistribution, err = s.repo.GetRiskMitigationStatusDistributionByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
+	if report.RiskDetails, err = s.repo.GetRiskByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
+	if report.PolicySummary, err = s.repo.GetPolicySummaryByOrganizationUnit(params, level); err != nil {
+		return nil, err
+	}
+
+	if report.PolicyDetails, err = s.repo.GetPolicyByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
+	if report.ProcessHealthSummary, err = s.repo.GetProcessHealthSummaryByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
+	if report.ProcessDetails, err = s.repo.GetProcessByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
+	if report.ComplianceSummary, err = s.repo.GetComplianceSummaryByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
+	if report.ComplianceRequirementDetails, err = s.repo.GetComplianceRequirementsByOrganizationUnit(params); err != nil {
+		return nil, err
+	}
+
+	return &report, nil
+}
+
+func (s *OrganizationUnitsService) parseGovernanceReportDates(dto *organizationDTOs.OrganizationUnitReportFormDTO) (*organizationDTOs.OrganizationUnitReportParsedDates, error) {
+	parsed := &organizationDTOs.OrganizationUnitReportParsedDates{}
+
+	var err error
+
+	parsed.StartDate, err = utility.ParseDate(dto.StartDate)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start date")
+	}
+
+	parsed.EndDate, err = utility.ParseDate(dto.EndDate)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end date")
+	}
+
+	return parsed, nil
+}
+
+func (s *OrganizationUnitsService) validateOrganizatoinUnitReportFormDTO(dto *organizationDTOs.OrganizationUnitReportFormDTO) error {
+
+	if _, err := s.organizationUnitSvc.GetByID(dto.OrganizationUnitID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("organization unit does not exist for ID: %d", dto.OrganizationUnitID), "not_exist", "organization unit")
+	}
+
+	return nil
 }
