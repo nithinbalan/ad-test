@@ -23,6 +23,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	policyReviewController := app.PolicyModule.PolicyReviewController
 	policyWorkflowController := app.PolicyModule.PolicyWorkflowController
 	PolicyClauseCommentController := app.PolicyModule.PolicyClauseCommentController
+	PolicyReportController := app.PolicyModule.PolicyReportController
 
 	//policy folder
 	policyRoutes.GET("/policy-folders", policyFolderController.GetAllPolicyFolders)
@@ -62,4 +63,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	policyRoutes.PUT("/policy-register/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), PolicyClauseCommentController.UpdateComment)
 	policyRoutes.POST("/policy-register/:id/review-comments/delete", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), PolicyClauseCommentController.DeleteComment)
 	policyRoutes.PUT("/policy-register/:id/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), PolicyClauseCommentController.ResolveComment)
+
+	// policy reports
+	policyRoutes.GET("/policy/reports", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), PolicyReportController.GetAllPolicyReports)
+	policyRoutes.GET("/policy/reports/:id", middlewares.RolePermissionMiddleware(db, "policy_register", "db"), PolicyReportController.GetPolicySummaryReport)
+	policyRoutes.POST("/policy/reports", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), PolicyReportController.CreatePolicyReport)
+	policyRoutes.DELETE("/policy/reports/:id", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), PolicyReportController.DeletePolicyReport)
+
 }

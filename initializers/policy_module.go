@@ -15,6 +15,7 @@ type PolicyModule struct {
 	PolicyReviewController        *controllers.PolicyReviewController
 	PolicyWorkflowController      *controllers.PolicyWorkflowController
 	PolicyClauseCommentController *controllers.PolicyClauseCommentController
+	PolicyReportController        *controllers.PolicyReportController
 
 	PolicyFolderSvc   services.PolicyFolderServiceInterface
 	PolicyRegisterSvc services.PolicyRegisterServiceInterface
@@ -73,6 +74,10 @@ func NewPolicyModule(db *gorm.DB,
 	PolicyClauseCommentSvc := services.NewPolicyClauseCommentService(PolicyClauseCommentRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, policyRegisterSvc, masterModule.CommentStatusSvc)
 	PolicyClauseCommentController := controllers.NewPolicyClauseCommentController(PolicyClauseCommentSvc)
 
+	policyReportRepo := repositories.NewPolicyReportRepository(db)
+	policyReportSvc := services.NewPolicyReportService(policyReportRepo, sharedModule.ActivityLogService, documentModule.DocumentSvc, documentModule.DocumentClauseSvc, settingsModule.OrganizationLevelSvc)
+	policyReportController := controllers.NewPolicyReportController(policyReportSvc)
+
 	return &PolicyModule{
 		PolicyFolderController:        policyFolderController,
 		PolicyRegisterController:      policyRegisterController,
@@ -80,5 +85,6 @@ func NewPolicyModule(db *gorm.DB,
 		PolicyWorkflowController:      policyWorkflowController,
 		PolicyReviewController:        policyReviewController,
 		PolicyClauseCommentController: PolicyClauseCommentController,
+		PolicyReportController:        policyReportController,
 	}
 }

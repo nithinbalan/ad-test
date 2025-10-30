@@ -321,7 +321,7 @@ func (s *OrganizationUnitsService) Create(currentUserID uint, organizationUnitRe
 		return 0, err
 	}
 
-	dates, err := s.parseGovernanceReportDates(organizationUnitReportFormDTO)
+	dates, err := s.parseOrganizationUnitReportDates(organizationUnitReportFormDTO)
 	if err != nil {
 		return 0, err
 	}
@@ -482,7 +482,7 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 	return &report, nil
 }
 
-func (s *OrganizationUnitsService) parseGovernanceReportDates(dto *organizationDTOs.OrganizationUnitReportFormDTO) (*organizationDTOs.OrganizationUnitReportParsedDates, error) {
+func (s *OrganizationUnitsService) parseOrganizationUnitReportDates(dto *organizationDTOs.OrganizationUnitReportFormDTO) (*organizationDTOs.OrganizationUnitReportParsedDates, error) {
 	parsed := &organizationDTOs.OrganizationUnitReportParsedDates{}
 
 	var err error

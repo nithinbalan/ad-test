@@ -27,8 +27,8 @@ type OrganizationUnitsRepositoryInterface interface {
 	// Organization Unit Report
 	GetAll(params *organizationDTOs.OrganizationUnitReportListQueryParamsDTO) (*organizationDTOs.OrganizationUnitReportListReponseDTO, error)
 	GetByID(id uint) (*models.OrganizationUnitReport, error)
-	Create(OrganizationUnitReport *models.OrganizationUnitReport, tx ...utility.DatabaseTransaction) (uint, error)
-	Delete(OrganizationUnitReportID uint) error
+	Create(organizationUnitReport *models.OrganizationUnitReport, tx ...utility.DatabaseTransaction) (uint, error)
+	Delete(organizationUnitReportID uint) error
 	GetOrganizationUnitOverview(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO, level uint) (*organizationDTOs.OrganizationUnitOverviewDTO, error)
 	GetOrganizationUnitKeyMatrix(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO) (*organizationDTOs.OrganizationUnitKeyMatrixDTO, error)
 	GetUserRoleDistribution(params *organizationDTOs.OrganizationUnitReportQueryParamsDTO, level uint) ([]organizationDTOs.OrganizationUnitUserRoleDistributionDTO, error)
@@ -711,20 +711,20 @@ func (repo *OrganizationUnitsRepository) GetByID(id uint) (*models.OrganizationU
 	return &organizationUnitReport, nil
 }
 
-func (repo *OrganizationUnitsRepository) Create(OrganizationUnitReport *models.OrganizationUnitReport, tx ...utility.DatabaseTransaction) (uint, error) {
+func (repo *OrganizationUnitsRepository) Create(organizationUnitReport *models.OrganizationUnitReport, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	if err := db.Create(OrganizationUnitReport).Error; err != nil {
+	if err := db.Create(organizationUnitReport).Error; err != nil {
 		return 0, err
 	}
-	return OrganizationUnitReport.ID, nil
+	return organizationUnitReport.ID, nil
 }
 
-func (repo *OrganizationUnitsRepository) Delete(OrganizationUnitReportID uint) error {
+func (repo *OrganizationUnitsRepository) Delete(organizationUnitReportID uint) error {
 
-	return repo.db.Where("id = ?", OrganizationUnitReportID).
+	return repo.db.Where("id = ?", organizationUnitReportID).
 		Delete(&models.OrganizationUnitReport{}).Error
 }
 
