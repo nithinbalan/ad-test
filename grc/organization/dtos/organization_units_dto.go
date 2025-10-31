@@ -162,9 +162,10 @@ type OrganizationUnitUserDetailsDTO struct {
 }
 
 type OrganizationUnitUserRoleDistributionDTO struct {
-	ID    uint   `json:"id"`
-	Role  string `json:"Role"`
-	Count int64  `json:"count"`
+	ID          uint   `json:"id"`
+	RoleTitleEn string `json:"role_title_en"`
+	RoleTitleAr string `json:"role_title_ar"`
+	Count       int64  `json:"count"`
 }
 
 type OrganizationUnitOverviewDTO struct {
@@ -341,11 +342,8 @@ type OrganizationUnitProcessHealthSummaryDTO struct {
 }
 
 type OrganizationUnitComplianceSummaryDTO struct {
-	TotalRequirements  int64 `json:"total_requirements"`
-	Compliant          int64 `json:"compliant"`
-	PartiallyCompliant int64 `json:"partially_compliant"`
-	NonCompliant       int64 `json:"non_compliant"`
-	NotApplicable      int64 `json:"not_applicable"`
+	TotalRequirements  int64                                 `json:"total_requirements"`
+	ComplianceStatuses []OrganizationUnitDistributionItemDTO `json:"compliance_statuses"`
 }
 type OrganizationUnitPolicySummaryDTO struct {
 	TotalPolicies             int64   `json:"total_policies"`
@@ -357,6 +355,10 @@ type OrganizationUnitPolicySummaryDTO struct {
 
 type OrganizationUnitSummaryReportDTO struct {
 	Title                           string                                         `json:"title"`
+	OrganizationUnitID              uint                                           `json:"organization_unit_id"`
+	OrganizationUnitTitleEn         string                                         `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr         string                                         `json:"organization_unit_title_ar"`
+	OrganizationUnitColorCode       string                                         `json:"organization_unit_color_code"`
 	GeneratedOn                     string                                         `json:"generated_on"`
 	GeneratedByUserFirstNameEn      string                                         `json:"generated_by_user_first_name_en"`
 	GeneratedByUserFirstNameAr      string                                         `json:"generated_by_user_first_name_ar"`

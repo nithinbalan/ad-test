@@ -45,7 +45,6 @@ type OrganizationUnitsRepositoryInterface interface {
 	GetComplianceSummaryByOrganizationUnit(organizationUnitID uint) (*organizationDTOs.OrganizationUnitComplianceSummaryDTO, error)
 	GetProcessHealthSummaryByOrganizationUnit(organizationUnitID uint) (*organizationDTOs.OrganizationUnitProcessHealthSummaryDTO, error)
 	GetProcessCriticalityDistributionByOrganizationUnit(organizationUnitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
-	GetComplianceRequirementStatusDistributionByOrganizationUnit(organizationUnitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
 	GetRiskMitigationStatusDistributionByOrganizationUnit(organizationUnitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
 }
 
@@ -818,7 +817,8 @@ func (repo *OrganizationUnitsRepository) GetUserRoleDistribution(organizationUni
 	query := repo.db.Table("user_roles").
 		Select(`
 			roles.id,
-			roles.title_en AS role,
+			roles.title_en AS role_title_en,
+			roles.title_ar AS role_title_ar,
 			COUNT(DISTINCT users.id) AS count
 		`).
 		Joins("JOIN users ON users.id = user_roles.user_id").
@@ -829,7 +829,7 @@ func (repo *OrganizationUnitsRepository) GetUserRoleDistribution(organizationUni
 		query = query.Where(fmt.Sprintf("users.%s = ?", field), organizationUnitID)
 	}
 
-	query = query.Group("roles.id, roles.title_en")
+	query = query.Group("roles.id, roles.title_en, roles.title_ar")
 
 	if err := query.Find(&results).Error; err != nil {
 		return nil, err
@@ -1341,52 +1341,11 @@ func (repo *OrganizationUnitsRepository) GetProcessCriticalityDistributionByOrga
 }
 
 func (repo *OrganizationUnitsRepository) GetComplianceSummaryByOrganizationUnit(organizationUnitID uint) (*organizationDTOs.OrganizationUnitComplianceSummaryDTO, error) {
-
-	result := organizationDTOs.OrganizationUnitComplianceSummaryDTO{}
-
-	totalQuery := repo.db.Table("compliance_requirements cr").
-		Joins(`
-			JOIN compliance_requirement_responsible_units crru
-				ON crru.compliance_requirement_id = cr.id
-		`).
-		Where("crru.responsible_unit_id = ?", organizationUnitID)
-
-	if err := totalQuery.Count(&result.TotalRequirements).Error; err != nil {
-		return nil, err
-	}
-
-	statusCounts := map[string]*int64{
-		"Compliant":           &result.Compliant,
-		"Partially Compliant": &result.PartiallyCompliant,
-		"Non-Compliant":       &result.NonCompliant,
-		"Not Applicable":      &result.NotApplicable,
-	}
-
-	for status := range statusCounts {
-		subQuery := repo.db.Table("compliance_requirements cr").
-			Joins(`
-				JOIN compliance_requirement_responsible_units crru
-					ON crru.compliance_requirement_id = cr.id
-				LEFT JOIN compliance_statuses cs
-					ON cs.id = cr.compliance_status_id
-			`).
-			Where("crru.responsible_unit_id = ?", organizationUnitID).
-			Where("cs.title_en = ?", status)
-
-		if err := subQuery.Count(statusCounts[status]).Error; err != nil {
-			return nil, err
-		}
-	}
-
-	return &result, nil
-}
-
-func (repo *OrganizationUnitsRepository) GetComplianceRequirementStatusDistributionByOrganizationUnit(organizationUnitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error) {
 	results := []organizationDTOs.OrganizationUnitDistributionItemDTO{}
 
 	query := repo.db.Table("compliance_requirements AS cr").
 		Select(`
-			ISNULL(cs.id, 0) AS id,
+			cs.id AS id,
 			ISNULL(cs.title_en, '') AS title_en,
 			ISNULL(cs.title_ar, '') AS title_ar,
 			ISNULL(cs.type, '') AS type,
@@ -1394,14 +1353,13 @@ func (repo *OrganizationUnitsRepository) GetComplianceRequirementStatusDistribut
 			COUNT(*) AS count
 		`).
 		Joins(`
-			LEFT JOIN compliance_statuses AS cs 
-				ON cs.id = cr.compliance_status_id
 			INNER JOIN compliance_requirement_responsible_units AS crru 
 				ON crru.compliance_requirement_id = cr.id
+			INNER JOIN compliance_statuses AS cs 
+				ON cs.id = cr.compliance_status_id
 		`).
-		Where("crru.responsible_unit_id = ?", organizationUnitID)
-
-	query = query.Group(`
+		Where("crru.responsible_unit_id = ? AND cr.compliance_status_id IS NOT NULL", organizationUnitID).
+		Group(`
 			cs.id,
 			cs.title_en,
 			cs.title_ar,
@@ -1414,7 +1372,17 @@ func (repo *OrganizationUnitsRepository) GetComplianceRequirementStatusDistribut
 		return nil, err
 	}
 
-	return results, nil
+	var total int64
+	for _, item := range results {
+		total += item.Count
+	}
+
+	summary := &organizationDTOs.OrganizationUnitComplianceSummaryDTO{
+		TotalRequirements:  total,
+		ComplianceStatuses: results,
+	}
+
+	return summary, nil
 }
 
 func (repo *OrganizationUnitsRepository) GetRiskMitigationStatusDistributionByOrganizationUnit(organizationUnitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error) {

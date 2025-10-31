@@ -396,6 +396,10 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 	}
 
 	report.Title = reportDetails.Title
+	report.OrganizationUnitID = reportDetails.OrganizationUnitID
+	report.OrganizationUnitTitleEn = reportDetails.OrganizationUnitTitleEn
+	report.OrganizationUnitTitleAr = reportDetails.OrganizationUnitTitleAr
+	report.OrganizationUnitColorCode = reportDetails.OrganizationUnitColorCode
 	report.GeneratedOn = reportDetails.CreatedAt
 	report.GeneratedByUserFirstNameEn = reportDetails.CreatedUserFirstNameAr
 	report.GeneratedByUserFirstNameAr = reportDetails.CreatedUserFirstNameAr
