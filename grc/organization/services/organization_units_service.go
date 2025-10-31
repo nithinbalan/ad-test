@@ -397,25 +397,16 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 
 	report.Title = reportDetails.Title
 	report.GeneratedOn = reportDetails.CreatedAt
+	report.GeneratedByUserFirstNameEn = reportDetails.CreatedUserFirstNameAr
+	report.GeneratedByUserFirstNameAr = reportDetails.CreatedUserFirstNameAr
+	report.GeneratedByUserLastNameEn = reportDetails.CreatedUserLastNameEn
+	report.GeneratedByUserLastNameAr = reportDetails.CreatedUserLastNameAr
+	report.GeneratedByUserEmail = reportDetails.CreatedUserEmail
+	report.GeneratedByUserColor = reportDetails.CreatedUserColor
+	report.GeneratedByUserInitial = reportDetails.CreatedUserInitial
+	report.GeneratedByUserProfileImagePath = reportDetails.CreatedUserProfileImagePath
 
-	if reportDetails.CreatedByUser != nil {
-		report.GeneratedByUserFirstNameEn = reportDetails.CreatedByUser.FirstNameEn
-		report.GeneratedByUserFirstNameAr = reportDetails.CreatedByUser.FirstNameAr
-		report.GeneratedByUserLastNameEn = reportDetails.CreatedByUser.LastNameEn
-		report.GeneratedByUserLastNameAr = reportDetails.CreatedByUser.LastNameAr
-		report.GeneratedByUserEmail = reportDetails.CreatedByUser.Email
-		report.GeneratedByUserColor = reportDetails.CreatedByUser.Color
-		report.GeneratedByUserInitial = reportDetails.CreatedByUser.Initial
-		if reportDetails.CreatedByUser.ProfileImagePath != nil {
-			report.GeneratedByUserProfileImagePath = *reportDetails.CreatedByUser.ProfileImagePath
-		}
-	}
-
-	params := &organizationDTOs.OrganizationUnitReportQueryParamsDTO{
-		OrganizationUnitID: reportDetails.OrganizationUnitID,
-		StartDate:          reportDetails.StartDate.Format("2006-01-02"),
-		EndDate:            reportDetails.EndDate.Format("2006-01-02"),
-	}
+	organizationUnitID := reportDetails.OrganizationUnitID
 
 	orgUnit, err := s.organizationUnitSvc.GetByID(reportDetails.OrganizationUnitID)
 	if err != nil {
@@ -423,59 +414,59 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 	}
 	level := uint(orgUnit.OrganizationLevel.Level)
 
-	if report.OrganizationUnitOverview, err = s.repo.GetOrganizationUnitOverview(params, level); err != nil {
+	if report.OrganizationUnitOverview, err = s.repo.GetOrganizationUnitOverview(organizationUnitID, level); err != nil {
 		return nil, err
 	}
 
-	if report.KeyMatrix, err = s.repo.GetOrganizationUnitKeyMatrix(params); err != nil {
+	if report.KeyMatrix, err = s.repo.GetOrganizationUnitKeyMatrix(organizationUnitID); err != nil {
 		return nil, err
 	}
 
-	if report.UserRoleDistribution, err = s.repo.GetUserRoleDistribution(params, level); err != nil {
+	if report.UserRoleDistribution, err = s.repo.GetUserRoleDistribution(organizationUnitID, level); err != nil {
 		return nil, err
 	}
 
-	if report.OrganizationUnitUserDetails, err = s.repo.GetUsersByOrganizationUnitReport(params, level); err != nil {
+	if report.OrganizationUnitUserDetails, err = s.repo.GetUsersByOrganizationUnitReport(organizationUnitID, level); err != nil {
 		return nil, err
 	}
 
-	if report.RiskSummary, err = s.repo.GetRiskSummaryByOrganizationUnit(params); err != nil {
+	if report.RiskSummary, err = s.repo.GetRiskSummaryByOrganizationUnit(organizationUnitID); err != nil {
 		return nil, err
 	}
 
-	if report.RiskRatingDistribution, err = s.repo.GetRiskRatingDistributionByOrganizationUnit(params); err != nil {
+	if report.RiskRatingDistribution, err = s.repo.GetRiskRatingDistributionByOrganizationUnit(organizationUnitID); err != nil {
 		return nil, err
 	}
 
-	if report.RiskMitgationStatusDistribution, err = s.repo.GetRiskMitigationStatusDistributionByOrganizationUnit(params); err != nil {
+	if report.RiskMitgationStatusDistribution, err = s.repo.GetRiskMitigationStatusDistributionByOrganizationUnit(organizationUnitID); err != nil {
 		return nil, err
 	}
 
-	if report.RiskDetails, err = s.repo.GetRiskByOrganizationUnit(params); err != nil {
+	if report.RiskDetails, err = s.repo.GetRiskByOrganizationUnit(organizationUnitID); err != nil {
 		return nil, err
 	}
 
-	if report.PolicySummary, err = s.repo.GetPolicySummaryByOrganizationUnit(params, level); err != nil {
+	if report.PolicySummary, err = s.repo.GetPolicySummaryByOrganizationUnit(organizationUnitID, level); err != nil {
 		return nil, err
 	}
 
-	if report.PolicyDetails, err = s.repo.GetPolicyByOrganizationUnit(params); err != nil {
+	if report.PolicyDetails, err = s.repo.GetPolicyByOrganizationUnit(organizationUnitID); err != nil {
 		return nil, err
 	}
 
-	if report.ProcessHealthSummary, err = s.repo.GetProcessHealthSummaryByOrganizationUnit(params); err != nil {
+	if report.ProcessHealthSummary, err = s.repo.GetProcessHealthSummaryByOrganizationUnit(organizationUnitID); err != nil {
 		return nil, err
 	}
 
-	if report.ProcessDetails, err = s.repo.GetProcessByOrganizationUnit(params); err != nil {
+	if report.ProcessDetails, err = s.repo.GetProcessByOrganizationUnit(organizationUnitID); err != nil {
 		return nil, err
 	}
 
-	if report.ComplianceSummary, err = s.repo.GetComplianceSummaryByOrganizationUnit(params); err != nil {
+	if report.ComplianceSummary, err = s.repo.GetComplianceSummaryByOrganizationUnit(organizationUnitID); err != nil {
 		return nil, err
 	}
 
-	if report.ComplianceRequirementDetails, err = s.repo.GetComplianceRequirementsByOrganizationUnit(params); err != nil {
+	if report.ComplianceRequirementDetails, err = s.repo.GetComplianceRequirementsByOrganizationUnit(organizationUnitID); err != nil {
 		return nil, err
 	}
 

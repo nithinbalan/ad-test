@@ -106,6 +106,7 @@ type OrganizationUnitReportListDTO struct {
 	Title                       string `json:"title"`
 	StartDate                   string `json:"start_date"`
 	EndDate                     string `json:"end_date"`
+	OrganizationUnitID          uint   `json:"organization_unit_id"`
 	OrganizationUnitTitleEn     string `json:"organization_unit_title_en"`
 	OrganizationUnitTitleAr     string `json:"organization_unit_title_ar"`
 	OrganizationUnitColorCode   string `json:"organization_unit_color_code"`
@@ -136,12 +137,6 @@ type OrganizationUnitReportFormDTO struct {
 type OrganizationUnitReportParsedDates struct {
 	StartDate *time.Time
 	EndDate   *time.Time
-}
-
-type OrganizationUnitReportQueryParamsDTO struct {
-	OrganizationUnitID uint
-	StartDate          string
-	EndDate            string
 }
 
 type OrganizationUnitKeyMatrixDTO struct {
@@ -362,7 +357,7 @@ type OrganizationUnitPolicySummaryDTO struct {
 
 type OrganizationUnitSummaryReportDTO struct {
 	Title                           string                                         `json:"title"`
-	GeneratedOn                     time.Time                                      `json:"generated_on"`
+	GeneratedOn                     string                                         `json:"generated_on"`
 	GeneratedByUserFirstNameEn      string                                         `json:"generated_by_user_first_name_en"`
 	GeneratedByUserFirstNameAr      string                                         `json:"generated_by_user_first_name_ar"`
 	GeneratedByUserLastNameEn       string                                         `json:"generated_by_user_last_name_en"`

@@ -20,8 +20,9 @@ type PolicyReportListDTO struct {
 	Title                       string `json:"title"`
 	StartDate                   string `json:"start_date"`
 	EndDate                     string `json:"end_date"`
-	PolicyTitleEn               string `json:"policy_title_en"`
-	PolicyTitleAr               string `json:"policy_title_ar"`
+	DocumentID                  uint   `json:"document_id"`
+	DocumentTitleEn             string `json:"document_title_en"`
+	DocumentTitleAr             string `json:"document_title_ar"`
 	CreatedAt                   string `json:"created_at"`
 	CreatedUserID               uint   `json:"created_user_id"`
 	CreatedUserFirstNameEn      string `json:"created_user_first_name_en"`
@@ -61,7 +62,7 @@ type PolicySummaryReportDTO struct {
 	Title                                 string                                               `json:"title"`
 	DocumentTitleEn                       string                                               `json:"document_title_en"`
 	DocumentTitleAr                       string                                               `json:"document_title_ar"`
-	GeneratedOn                           time.Time                                            `json:"generated_on"`
+	GeneratedOn                           string                                               `json:"generated_on"`
 	GeneratedByUserFirstNameEn            string                                               `json:"generated_by_user_first_name_en"`
 	GeneratedByUserFirstNameAr            string                                               `json:"generated_by_user_first_name_ar"`
 	GeneratedByUserLastNameEn             string                                               `json:"generated_by_user_last_name_en"`

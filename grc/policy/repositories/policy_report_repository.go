@@ -17,7 +17,7 @@ type PolicyReportRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *policyDTOs.PolicyReportListQueryParamsDTO) (*policyDTOs.PolicyReportLisResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.PolicyReport, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.PolicyReport, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*policyDTOs.PolicyReportListDTO, error)
 	Create(policyReport *models.PolicyReport, tx ...utility.DatabaseTransaction) (uint, error)
 	Delete(policyReportID uint) error
 
@@ -63,8 +63,9 @@ func (repo *PolicyReportRepository) GetAll(params *policyDTOs.PolicyReportListQu
 			policy_reports.title, 
 			CONVERT(VARCHAR, policy_reports.start_date, 23) AS start_date,
 			CONVERT(VARCHAR, policy_reports.end_date, 23) AS end_date,
-			documents.title_en AS policy_title_en,
-			documents.title_ar AS policy_title_ar,
+			documents.id AS document_id,
+			documents.title_en AS document_title_en,
+			documents.title_ar AS document_title_ar,
 			policy_reports.created_at,
 			created_user.id AS created_user_id,
 			created_user.first_name_en AS created_user_first_name_en,
@@ -126,18 +127,38 @@ func (repo *PolicyReportRepository) GetByID(id uint, tx ...utility.DatabaseTrans
 	return policyReport, nil
 }
 
-func (repo *PolicyReportRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.PolicyReport, error) {
-
+func (repo *PolicyReportRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*policyDTOs.PolicyReportListDTO, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	var policyReport models.PolicyReport
 
-	result := db.
-		Preload("CreatedByUser").
-		Preload("Document").
-		First(&policyReport, id)
+	var policyReport policyDTOs.PolicyReportListDTO
+
+	result := db.Table("policy_reports").
+		Select(`
+			policy_reports.id, 
+			policy_reports.title, 
+			CONVERT(VARCHAR, policy_reports.start_date, 23) AS start_date,
+			CONVERT(VARCHAR, policy_reports.end_date, 23) AS end_date,
+			documents.id AS document_id,
+			documents.title_en AS document_title_en,
+			documents.title_ar AS document_title_ar,
+			policy_reports.created_at,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.email AS created_user_email,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.profile_image_path AS created_user_profile_image_path
+		`).
+		Joins("LEFT JOIN documents ON documents.id = policy_reports.document_id").
+		Joins("LEFT JOIN users AS created_user ON created_user.id = policy_reports.created_by_id").
+		Where("policy_reports.id = ?", id).
+		Scan(&policyReport)
 
 	if result.Error != nil {
 		return nil, result.Error

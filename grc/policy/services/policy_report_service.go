@@ -135,30 +135,21 @@ func (prs *PolicyReportService) GetPolicySummaryReport(policyReportID uint) (*po
 	}
 
 	policySummaryReport.Title = reportDetails.Title
-	policySummaryReport.DocumentTitleEn = reportDetails.Document.TitleEn
-	policySummaryReport.DocumentTitleAr = reportDetails.Document.TitleAr
+	policySummaryReport.DocumentTitleEn = reportDetails.DocumentTitleEn
+	policySummaryReport.DocumentTitleAr = reportDetails.DocumentTitleAr
 	policySummaryReport.GeneratedOn = reportDetails.CreatedAt
+	policySummaryReport.GeneratedByUserFirstNameEn = reportDetails.CreatedUserFirstNameEn
+	policySummaryReport.GeneratedByUserFirstNameAr = reportDetails.CreatedUserFirstNameAr
+	policySummaryReport.GeneratedByUserLastNameEn = reportDetails.CreatedUserLastNameAr
+	policySummaryReport.GeneratedByUserLastNameAr = reportDetails.CreatedUserLastNameAr
+	policySummaryReport.GeneratedByUserEmail = reportDetails.CreatedUserEmail
+	policySummaryReport.GeneratedByUserColor = reportDetails.CreatedUserColor
+	policySummaryReport.GeneratedByUserInitial = reportDetails.CreatedUserInitial
+	policySummaryReport.GeneratedByUserProfileImagePath = reportDetails.CreatedUserProfileImagePath
 
-	if reportDetails.CreatedByUser != nil {
-		policySummaryReport.GeneratedByUserFirstNameEn = reportDetails.CreatedByUser.FirstNameEn
-		policySummaryReport.GeneratedByUserFirstNameAr = reportDetails.CreatedByUser.FirstNameAr
-		policySummaryReport.GeneratedByUserLastNameEn = reportDetails.CreatedByUser.LastNameEn
-		policySummaryReport.GeneratedByUserLastNameAr = reportDetails.CreatedByUser.LastNameAr
-		policySummaryReport.GeneratedByUserEmail = reportDetails.CreatedByUser.Email
-		policySummaryReport.GeneratedByUserColor = reportDetails.CreatedByUser.Color
-		policySummaryReport.GeneratedByUserInitial = reportDetails.CreatedByUser.Initial
-		if reportDetails.CreatedByUser.ProfileImagePath != nil {
-			policySummaryReport.GeneratedByUserProfileImagePath = *reportDetails.CreatedByUser.ProfileImagePath
-		}
-	}
+	documentID := reportDetails.DocumentID
 
-	if policySummaryReport.PolicyOverview, err = prs.repo.GetPolicyOverview(reportDetails.DocumentID); err != nil {
-		return nil, err
-	}
-
-	if policySummaryReport.PolicyKeySummary, err = prs.repo.GetPolicyKeySummary(reportDetails.DocumentID); err != nil {
-		return nil, err
-	}
+	fmt.Print(documentID)
 
 	// sample params for clauselist
 	clauseParams := &documentDTOs.DocumentClauseListQueryParamsDTO{
@@ -166,35 +157,43 @@ func (prs *PolicyReportService) GetPolicySummaryReport(policyReportID uint) (*po
 		Sort:   "asc",
 	}
 
-	if policySummaryReport.ClauseList, err = prs.documentClauseSvc.GetAll(clauseParams, reportDetails.DocumentID); err != nil {
+	if policySummaryReport.PolicyOverview, err = prs.repo.GetPolicyOverview(documentID); err != nil {
 		return nil, err
 	}
 
-	if policySummaryReport.AcknowledgementUserList, err = prs.GetPolicyAcknowldegementList(reportDetails.DocumentID); err != nil {
+	if policySummaryReport.PolicyKeySummary, err = prs.repo.GetPolicyKeySummary(documentID); err != nil {
 		return nil, err
 	}
 
-	if policySummaryReport.OrganizatationUnitAcknowledgementList, err = prs.GetPolicyAcknowldegementOrganizationUnitSummary(reportDetails.DocumentID); err != nil {
+	if policySummaryReport.ClauseList, err = prs.documentClauseSvc.GetAll(clauseParams, documentID); err != nil {
 		return nil, err
 	}
 
-	if policySummaryReport.AssociatedRiskList, err = prs.repo.GetPolicyAssociatedRisks(reportDetails.DocumentID); err != nil {
+	if policySummaryReport.AcknowledgementUserList, err = prs.GetPolicyAcknowldegementList(documentID); err != nil {
 		return nil, err
 	}
 
-	if policySummaryReport.AssociatedStrategicObjectiveLIst, err = prs.repo.GetPolicyAssociatedtrategicObjectives(reportDetails.DocumentID); err != nil {
+	if policySummaryReport.OrganizatationUnitAcknowledgementList, err = prs.GetPolicyAcknowldegementOrganizationUnitSummary(documentID); err != nil {
 		return nil, err
 	}
 
-	if policySummaryReport.AssociatedComplianceRequirmentLIst, err = prs.repo.GetPolicyAssociatedComplianceRequirements(reportDetails.DocumentID); err != nil {
+	if policySummaryReport.AssociatedRiskList, err = prs.repo.GetPolicyAssociatedRisks(documentID); err != nil {
 		return nil, err
 	}
 
-	if policySummaryReport.PolicyVersionList, err = prs.repo.GetPolicyVersions(reportDetails.DocumentID); err != nil {
+	if policySummaryReport.AssociatedStrategicObjectiveLIst, err = prs.repo.GetPolicyAssociatedtrategicObjectives(documentID); err != nil {
 		return nil, err
 	}
 
-	document, err := prs.documentSvc.GetFullDetailsByID(reportDetails.DocumentID, nil)
+	if policySummaryReport.AssociatedComplianceRequirmentLIst, err = prs.repo.GetPolicyAssociatedComplianceRequirements(documentID); err != nil {
+		return nil, err
+	}
+
+	if policySummaryReport.PolicyVersionList, err = prs.repo.GetPolicyVersions(documentID); err != nil {
+		return nil, err
+	}
+
+	document, err := prs.documentSvc.GetFullDetailsByID(documentID, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -209,11 +208,11 @@ func (prs *PolicyReportService) GetPolicySummaryReport(policyReportID uint) (*po
 
 	}
 
-	if policySummaryReport.PolicyAccessUserList, err = prs.repo.GePolicyAccessUsers(reportDetails.DocumentID, primaryOrgUnitField); err != nil {
+	if policySummaryReport.PolicyAccessUserList, err = prs.repo.GePolicyAccessUsers(documentID, primaryOrgUnitField); err != nil {
 		return nil, err
 	}
 
-	if policySummaryReport.PolicyAttachmentList, err = prs.repo.GetPolicyAttachments(reportDetails.DocumentID); err != nil {
+	if policySummaryReport.PolicyAttachmentList, err = prs.repo.GetPolicyAttachments(documentID); err != nil {
 		return nil, err
 	}
 
@@ -229,6 +228,10 @@ func (prs *PolicyReportService) GetPolicyAcknowldegementList(documentID uint) ([
 	primaryOrgUnitField, err := prs.GetPrimaryOrgField()
 	if err != nil {
 		return nil, err
+
+	}
+	if document.DocumentAccessType.Type == "public" {
+		return prs.repo.GetPolicyAcknowledgementList(documentID, document.LatestDocumentVersion.ID, primaryOrgUnitField, true)
 
 	}
 	return prs.repo.GetPolicyAcknowledgementList(documentID, document.LatestDocumentVersion.ID, primaryOrgUnitField, false)
