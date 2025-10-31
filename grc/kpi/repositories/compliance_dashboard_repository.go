@@ -255,13 +255,13 @@ func (repo *ComplianceDashboardRepository) GetHighPerformanceComplianceClauses(p
 			parent.clause_no AS compliance_clause_no,
             parent.title_en AS compliance_clause_title_en,
 			parent.title_ar as compliance_clause_title_ar,
-            AVG(CAST(child.score AS FLOAT)) AS compliance_clause_score
+            AVG(CAST(child.score AS FLOAT)) AS score
         `).
 		Joins("JOIN compliance_clauses AS parent ON parent.id = child.compliance_clause_id").
 		Where("child.compliance_clause_id IS NOT NULL").
 		Where("child.score IS NOT NULL").
 		Group("parent.clause_no, parent.title_en, parent.title_ar").
-		Order("compliance_clause_score DESC").
+		Order("score DESC").
 		Limit(5)
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -283,13 +283,13 @@ func (repo *ComplianceDashboardRepository) GetLeastPerformanceComplianceClauses(
 			parent.clause_no AS compliance_clause_no,
             parent.title_en AS compliance_clause_title_en,
 			parent.title_ar as compliance_clause_title_ar,
-            AVG(CAST(child.score AS FLOAT)) AS compliance_clause_score
+            AVG(CAST(child.score AS FLOAT)) AS score
         `).
 		Joins("JOIN compliance_clauses AS parent ON parent.id = child.compliance_clause_id").
 		Where("child.compliance_clause_id IS NOT NULL").
 		Where("child.score IS NOT NULL").
 		Group("parent.clause_no, parent.title_en, parent.title_ar").
-		Order("compliance_clause_score ASC").
+		Order("score ASC").
 		Limit(5)
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -554,6 +554,31 @@ func (repo *ComplianceDashboardRepository) GetControlSummary(params *kpiDTOs.Com
 		}
 	}
 	summary.ImplementationStatuses = implementationStatuses
+
+	implementationSummary := []kpiDTOs.ComplianceSummaryItemDTO{}
+	implementationSummaryQuery := repo.db.Table("compliance_controls").
+		Select(`
+			control_implementation_statuses.type, 
+			COUNT(DISTINCT compliance_controls.control_id) AS count
+		`).
+		Joins("JOIN controls ON controls.id = compliance_controls.control_id").
+		Joins("JOIN control_implementation_statuses ON control_implementation_statuses.id = controls.control_implementation_status_id").
+		Where("control_implementation_statuses.type IN ?", []string{"implemented", "not-implemented"}).
+		Group("control_implementation_statuses.type").
+		Order("control_implementation_statuses.type")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		implementationSummaryQuery = implementationSummaryQuery.Where("compliance_controls.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+	if err := implementationSummaryQuery.Scan(&implementationSummary).Error; err != nil {
+		return nil, err
+	}
+	for i := range implementationSummary {
+		if summary.TotalControls > 0 {
+			implementationSummary[i].Percent = float64(implementationSummary[i].Count) / float64(summary.TotalControls) * 100
+		}
+	}
+	summary.ImplementationSummary = implementationSummary
 
 	efficiencyStatuses := []kpiDTOs.ComplianceSummaryItemDTO{}
 	efficiencyQuery := repo.db.Model(&models.ComplianceControl{}).
