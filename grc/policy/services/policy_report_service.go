@@ -5,6 +5,8 @@ import (
 	documentDTOs "jethur/grc/documents/dtos"
 	documentServices "jethur/grc/documents/services"
 	settinsSvc "jethur/grc/settings/services"
+	"os"
+	"time"
 
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
@@ -20,6 +22,7 @@ type PolicyReportServiceInterface interface {
 	Delete(policyReportID uint, currentUserID uint) error
 
 	GetPolicySummaryReport(policyReportID uint) (*policyDTOs.PolicySummaryReportDTO, error)
+	GetPolicySummaryReportExport(policyReportID uint, currentUserID uint) (string, error)
 }
 
 type PolicyReportService struct {
@@ -28,6 +31,7 @@ type PolicyReportService struct {
 	documentSvc       documentServices.DocumentServiceInterface
 	documentClauseSvc documentServices.DocumentClauseServiceInterface
 	orgLevelSvc       settinsSvc.OrganizationLevelServiceInterface
+	reportTemplateSvc settinsSvc.ReportTemplateSettingServiceInterface
 }
 
 func NewPolicyReportService(
@@ -36,6 +40,8 @@ func NewPolicyReportService(
 	documentSvc documentServices.DocumentServiceInterface,
 	documentClauseSvc documentServices.DocumentClauseServiceInterface,
 	orgLevelSvc settinsSvc.OrganizationLevelServiceInterface,
+	reportTemplateSvc settinsSvc.ReportTemplateSettingServiceInterface,
+
 ) PolicyReportServiceInterface {
 	return &PolicyReportService{
 		repo:              repo,
@@ -43,6 +49,7 @@ func NewPolicyReportService(
 		documentSvc:       documentSvc,
 		documentClauseSvc: documentClauseSvc,
 		orgLevelSvc:       orgLevelSvc,
+		reportTemplateSvc: reportTemplateSvc,
 	}
 }
 
@@ -134,6 +141,13 @@ func (prs *PolicyReportService) GetPolicySummaryReport(policyReportID uint) (*po
 		return nil, err
 	}
 
+	if _, err := prs.reportTemplateSvc.GetImagePath("logo"); err != nil {
+		return nil, utility.NewForbiddenError("logo_image_missing")
+	}
+	if _, err := prs.reportTemplateSvc.GetImagePath("cover-page-bg"); err != nil {
+		return nil, utility.NewForbiddenError("cover_image_missing")
+	}
+
 	policySummaryReport.Title = reportDetails.Title
 	policySummaryReport.DocumentTitleEn = reportDetails.DocumentTitleEn
 	policySummaryReport.DocumentTitleAr = reportDetails.DocumentTitleAr
@@ -185,7 +199,7 @@ func (prs *PolicyReportService) GetPolicySummaryReport(policyReportID uint) (*po
 		return nil, err
 	}
 
-	if policySummaryReport.AssociatedComplianceRequirmentLIst, err = prs.repo.GetPolicyAssociatedComplianceRequirements(documentID); err != nil {
+	if policySummaryReport.AssociatedComplianceList, err = prs.repo.GetPolicyAssocatedCompliance(documentID); err != nil {
 		return nil, err
 	}
 
@@ -216,7 +230,52 @@ func (prs *PolicyReportService) GetPolicySummaryReport(policyReportID uint) (*po
 		return nil, err
 	}
 
+	policySummaryReport.AppUrl = os.Getenv("APP_URL")
+
 	return &policySummaryReport, nil
+}
+
+func (prs *PolicyReportService) GetPolicySummaryReportExport(policyReportID uint, currentUserID uint) (string, error) {
+	policyReport, err := prs.GetPolicySummaryReport(policyReportID)
+	if err != nil {
+		return "", err
+	}
+
+	policyReport.GeneratedOn = time.Now().Format("2006-01-02 03:04 PM")
+
+	// Main content template
+	templatePaths := []string{"policy/templates/pdf/policy_summary_report.html"}
+	htmlContent, err := utility.GeneratePDFContent(policyReport, templatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate HTML content: %w", err)
+	}
+
+	// Header template - process with data to resolve template variables
+	headerTemplatePaths := []string{"policy/templates/pdf/policy_summary_report_header.html"}
+	headerContent, err := utility.GeneratePDFContent(policyReport, headerTemplatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate header content: %w", err)
+	}
+
+	// Footer template - process with data to resolve template variables
+	footerTemplatePaths := []string{"policy/templates/pdf/policy_summary_report_footer.html"}
+	footerContent, err := utility.GeneratePDFContent(policyReport, footerTemplatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate footer content: %w", err)
+	}
+	coverTemplatePaths := []string{"policy/templates/pdf/policy_summary_report_cover.html"}
+	coverContent, err := utility.GeneratePDFContent(policyReport, coverTemplatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate footer content: %w", err)
+	}
+
+	// Convert HTML → PDF with header and footer
+	pdfFileName := fmt.Sprintf("PolicySummaryReport_%d.pdf", policyReportID)
+	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent, htmlContent, pdfFileName, headerContent, footerContent); err != nil {
+		return "", fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	return pdfFileName, nil
 }
 
 func (prs *PolicyReportService) GetPolicyAcknowldegementList(documentID uint) ([]*policyDTOs.PolicyAcknowledgementListDTO, error) {

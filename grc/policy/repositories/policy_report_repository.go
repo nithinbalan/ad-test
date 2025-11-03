@@ -37,6 +37,7 @@ type PolicyReportRepositoryInterface interface {
 	GePolicyAccessUsers(documentID uint, primaryOrgUnitField string) ([]*policyDTOs.PolicyAccessUserDTO, error)
 	GetPolicyApprovalHistory(VersionID uint) ([]*policyDTOs.PolicyApprovalHistoryDTO, error)
 	GetPolicyAttachments(documentID uint) ([]*policyDTOs.PolicyAttachmentDTO, error)
+	GetPolicyAssocatedCompliance(documentID uint) ([]*commonDTOs.AssociatedClauseListDTO, error)
 }
 
 type PolicyReportRepository struct {
@@ -191,8 +192,11 @@ func (repo *PolicyReportRepository) GetPolicyOverview(documentID uint) (*policyD
 		Select(`
 			documents.id,
 			documents.document_type_id,
+			documents.reference_number,
 			documents.title_en,
 			documents.title_ar,
+			documents.description_en,
+			documents.description_ar,
 			documents.created_at,
 			documents.updated_at,
 			documents.next_review_date,
@@ -218,7 +222,7 @@ func (repo *PolicyReportRepository) GetPolicyOverview(documentID uint) (*policyD
 			ds.color_code AS document_status_color_code,
 			ds.type AS document_status_type,
 			dv.version AS document_version,
-			dv.published_at AS published_at,
+			CONVERT(VARCHAR, dv.published_at, 23) AS published_at,
 			pub.first_name_en AS published_user_first_name_en,
 			pub.first_name_ar AS published_user_first_name_ar,
 			pub.last_name_en AS published_user_last_name_en,
@@ -370,6 +374,7 @@ func (repo *PolicyReportRepository) GetPolicyKeySummary(documentID uint) (*polic
 	out := &policyDTOs.PolicyReportKeySummaryDTO{
 		ClausesDefined:            clausesDefined,
 		AcknowledgmentRate:        rate,
+		TotalAcknowledgments:      totalRecipients,
 		AcknowledgmentsCompleted:  ackUsers,
 		AcknowledgmentsPending:    pending,
 		RiskReported:              risksReported,
@@ -745,6 +750,7 @@ func (repo *PolicyReportRepository) GetPolicyVersions(documentID uint) ([]*polic
 			document_versions.enable_acknowledgement,
 			document_versions.created_at,
 			document_versions.updated_at,
+			CONVERT(VARCHAR, document_versions.published_at, 23) AS published_at,
 			published_by_users.first_name_en AS published_by_first_name_en,
 			published_by_users.last_name_en AS published_by_last_name_en,
 			published_by_users.email AS published_by_email
@@ -850,4 +856,57 @@ func (repo *PolicyReportRepository) GetPolicyAttachments(documentID uint) ([]*po
 	}
 
 	return rows, nil
+}
+
+func (repo *PolicyReportRepository) GetPolicyAssocatedCompliance(documentID uint) ([]*commonDTOs.AssociatedClauseListDTO, error) {
+
+	var clauseList []commonDTOs.AssociatedClauseRowDTO
+	query := repo.db.Table("document_compliance_requirements").
+		Select(`
+			compliance_clauses.title_en AS clause_title_en,
+			compliance_clauses.title_ar AS clause_title_ar,
+			compliance_clauses.clause_no,
+			compliance_clauses.compliance_register_id,
+			compliance_clauses.id AS compliance_clause_id,
+			compliance_register.title_en AS compliance_register_title_en,
+			compliance_register.title_ar AS compliance_register_title_ar
+		`).
+		Joins(`
+			LEFT JOIN compliance_clauses ON document_compliance_requirements.compliance_clause_id = compliance_clauses.id
+			LEFT JOIN compliance_register ON document_compliance_requirements.compliance_register_id = compliance_register.id
+		`).
+		Where("document_compliance_requirements.document_id = ?", documentID)
+
+	if err := query.Find(&clauseList).Error; err != nil {
+		return nil, err
+	}
+
+	clausesByComplianceRegister := make(map[uint]*commonDTOs.AssociatedClauseListDTO)
+	for _, row := range clauseList {
+		if _, exists := clausesByComplianceRegister[row.ComplianceRegisterID]; !exists {
+			clausesByComplianceRegister[row.ComplianceRegisterID] = &commonDTOs.AssociatedClauseListDTO{
+				ComplianceRegisterID:      row.ComplianceRegisterID,
+				ComplianceRegisterTitleEn: row.ComplianceRegisterTitleEn,
+				ComplianceRegisterTitleAr: row.ComplianceRegisterTitleAr,
+				Clauses:                   []commonDTOs.AssociatedClauseDTO{},
+			}
+		}
+		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(clausesByComplianceRegister[row.ComplianceRegisterID].Clauses, commonDTOs.AssociatedClauseDTO{
+			ComplianceClauseID: row.ComplianceClauseID,
+			ClauseNo:           row.ClauseNo,
+			ClauseTitleEn:      row.ClauseTitleEn,
+			ClauseTitleAr:      row.ClauseTitleAr,
+		})
+	}
+
+	var groupedClauses []*commonDTOs.AssociatedClauseListDTO
+	for _, v := range clausesByComplianceRegister {
+		groupedClauses = append(groupedClauses, v)
+	}
+
+	if groupedClauses == nil {
+		groupedClauses = []*commonDTOs.AssociatedClauseListDTO{}
+	}
+
+	return groupedClauses, nil
 }
