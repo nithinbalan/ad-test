@@ -406,22 +406,20 @@ func (repo *ComplianceDashboardRepository) GetPolicyByOrganizationUnit(params *k
 
 	query := repo.db.Table("document_compliance_requirements AS dcr").
 		Select(`
-			parent_unit.title_en AS organization_unit_title_en,
-			parent_unit.title_ar AS organization_unit_title_ar,
-			parent_unit.color_code AS organization_unit_color_code,
+			ou.title_en AS organization_unit_title_en,
+			ou.title_ar AS organization_unit_title_ar,
+			ou.color_code AS organization_unit_color_code,
 			COUNT(DISTINCT dcr.document_id) AS total_policies
 		`).
 		Joins("JOIN documents doc ON doc.id = dcr.document_id").
-		Joins("LEFT JOIN organization_units child_unit ON child_unit.id = doc.responsible_unit_id").
-		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(child_unit.organization_unit_id, child_unit.id) = parent_unit.id").
-		Joins("JOIN organization_levels ol ON ol.id = parent_unit.organization_level_id AND ol.is_primary = ?", true).
-		Where("parent_unit.organization_unit_id IS NULL")
+		Joins("JOIN organization_units ou ON ou.id = doc.responsible_unit_id").
+		Joins("JOIN organization_levels ol ON ol.id = ou.organization_level_id AND ol.is_primary = ?", true)
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("dcr.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
-	err := query.Group("parent_unit.title_en, parent_unit.title_ar, parent_unit.color_code").
+	err := query.Group("ou.title_en, ou.title_ar, ou.color_code").
 		Order("total_policies DESC").
 		Scan(&results).Error
 
@@ -867,23 +865,22 @@ func (repo *ComplianceDashboardRepository) GetOrganizationUnitWiseAssessmentCove
 
 	query := repo.db.Table("compliance_assessment_controls AS cac").
 		Select(`
-			parent_unit.title_en AS organization_unit_title_en,
-			parent_unit.title_ar AS organization_unit_title_ar,
-			parent_unit.color_code AS organization_unit_color_code,
+			ou.title_en AS organization_unit_title_en,
+			ou.title_ar AS organization_unit_title_ar,
+			ou.color_code AS organization_unit_color_code,
 			COUNT(DISTINCT cac.id) AS assessment_count
 		`).
 		Joins("JOIN compliance_assessments AS ca ON ca.id = cac.compliance_assessment_id").
 		Joins("JOIN compliance_register AS cr ON cr.id = ca.compliance_register_id").
-		Joins("LEFT JOIN organization_units child_unit ON child_unit.id = cr.responsible_unit_id").
-		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(child_unit.organization_unit_id, child_unit.id) = parent_unit.id").
-		Joins("JOIN organization_levels ol ON ol.id = parent_unit.organization_level_id AND ol.is_primary = ?", true)
+		Joins("JOIN organization_units ou ON ou.id = cr.responsible_unit_id").
+		Joins("JOIN organization_levels ol ON ol.id = ou.organization_level_id AND ol.is_primary = ?", true)
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("cac.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := query.
-		Group("parent_unit.title_en, parent_unit.title_ar, parent_unit.color_code").
+		Group("ou.title_en, ou.title_ar, ou.color_code").
 		Order("assessment_count DESC").
 		Scan(&results).Error
 
