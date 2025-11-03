@@ -316,7 +316,7 @@ func (osc *OrganizationUnitsController) GetParentOrganizationUnitWithHead(c *gin
 	c.JSON(http.StatusOK, result)
 }
 
-func (orc *OrganizationUnitsController) GetAllOrganizationUnitReports(c *gin.Context) {
+func (osc *OrganizationUnitsController) GetAllOrganizationUnitReports(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "desc")
 	sortBy := c.DefaultQuery("sort_by", "created_at")
 	keyword := c.Query("keyword")
@@ -332,13 +332,13 @@ func (orc *OrganizationUnitsController) GetAllOrganizationUnitReports(c *gin.Con
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
-		utility.SendInternalErrResp(orc.db, c, "Invalid page parameter")
+		utility.SendInternalErrResp(osc.db, c, "Invalid page parameter")
 		return
 	}
 
 	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
 	if err != nil {
-		utility.SendInternalErrResp(orc.db, c, "Invalid page_size parameter")
+		utility.SendInternalErrResp(osc.db, c, "Invalid page_size parameter")
 		return
 	}
 
@@ -358,9 +358,9 @@ func (orc *OrganizationUnitsController) GetAllOrganizationUnitReports(c *gin.Con
 		Filters:  filters,
 	}
 
-	reports, err := orc.service.GetAll(&queryParams)
+	reports, err := osc.service.GetAll(&queryParams)
 	if err != nil {
-		utility.SendInternalErrResp(orc.db, c, err.Error())
+		utility.SendInternalErrResp(osc.db, c, err.Error())
 		return
 	}
 
@@ -397,8 +397,8 @@ func (osc *OrganizationUnitsController) CreateOrganizationUnitReport(c *gin.Cont
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message":              "Governance report generated successfully",
-		"governance_report_id": organnizationUnitReportID,
+		"message":                     "Organization unit report generated successfully",
+		"organization_unit_report_id": organnizationUnitReportID,
 	})
 }
 

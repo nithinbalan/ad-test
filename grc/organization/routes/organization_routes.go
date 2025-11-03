@@ -477,7 +477,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Organization unit reports
 	organizationRoutes.GET("/organization-units/reports", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetAllOrganizationUnitReports)
 	organizationRoutes.GET("/organization-units/reports/:id", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetOrganizationUnitReportDetails)
-	organizationRoutes.POST("/organization-units/reports", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.CreateOrganizationUnitReport)
-	organizationRoutes.DELETE("/organization-units/reports/:id", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.DeleteOrganizationUnitReport)
+	organizationRoutes.POST("/organization-units/reports", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitsController.CreateOrganizationUnitReport)
+	organizationRoutes.DELETE("/organization-units/reports/:id", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitsController.DeleteOrganizationUnitReport)
 
 }
