@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+	complianceDTOs "jethur/grc/compliance/dtos"
 	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/models"
 
@@ -26,6 +27,8 @@ type ComplianceDashboardRepositoryInterface interface {
 	GetActionPlanOverview(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceActionPlanOverviewDTO, error)
 	GetActionPlanStatusSummary(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceActionPlanStatusSummaryDTO, error)
 	GetActionPlansByOrganizationUnit(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]kpiDTOs.ComplianceActionPlanByOrganizationUnitDTO, error)
+
+	GetTopCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]complianceDTOs.ComplianceRegisterListDTO, error)
 }
 
 type ComplianceDashboardRepository struct {
@@ -252,13 +255,13 @@ func (repo *ComplianceDashboardRepository) GetHighPerformanceComplianceClauses(p
 			parent.clause_no AS compliance_clause_no,
             parent.title_en AS compliance_clause_title_en,
 			parent.title_ar as compliance_clause_title_ar,
-            AVG(CAST(child.score AS FLOAT)) AS compliance_clause_score
+            AVG(CAST(child.score AS FLOAT)) AS score
         `).
 		Joins("JOIN compliance_clauses AS parent ON parent.id = child.compliance_clause_id").
 		Where("child.compliance_clause_id IS NOT NULL").
 		Where("child.score IS NOT NULL").
 		Group("parent.clause_no, parent.title_en, parent.title_ar").
-		Order("compliance_clause_score DESC").
+		Order("score DESC").
 		Limit(5)
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -280,13 +283,13 @@ func (repo *ComplianceDashboardRepository) GetLeastPerformanceComplianceClauses(
 			parent.clause_no AS compliance_clause_no,
             parent.title_en AS compliance_clause_title_en,
 			parent.title_ar as compliance_clause_title_ar,
-            AVG(CAST(child.score AS FLOAT)) AS compliance_clause_score
+            AVG(CAST(child.score AS FLOAT)) AS score
         `).
 		Joins("JOIN compliance_clauses AS parent ON parent.id = child.compliance_clause_id").
 		Where("child.compliance_clause_id IS NOT NULL").
 		Where("child.score IS NOT NULL").
 		Group("parent.clause_no, parent.title_en, parent.title_ar").
-		Order("compliance_clause_score ASC").
+		Order("score ASC").
 		Limit(5)
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -403,22 +406,20 @@ func (repo *ComplianceDashboardRepository) GetPolicyByOrganizationUnit(params *k
 
 	query := repo.db.Table("document_compliance_requirements AS dcr").
 		Select(`
-			parent_unit.title_en AS organization_unit_title_en,
-			parent_unit.title_ar AS organization_unit_title_ar,
-			parent_unit.color_code AS organization_unit_color_code,
+			ou.title_en AS organization_unit_title_en,
+			ou.title_ar AS organization_unit_title_ar,
+			ou.color_code AS organization_unit_color_code,
 			COUNT(DISTINCT dcr.document_id) AS total_policies
 		`).
 		Joins("JOIN documents doc ON doc.id = dcr.document_id").
-		Joins("LEFT JOIN organization_units child_unit ON child_unit.id = doc.responsible_unit_id").
-		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(child_unit.organization_unit_id, child_unit.id) = parent_unit.id").
-		Joins("JOIN organization_levels ol ON ol.id = parent_unit.organization_level_id AND ol.is_primary = ?", true).
-		Where("parent_unit.organization_unit_id IS NULL")
+		Joins("JOIN organization_units ou ON ou.id = doc.responsible_unit_id").
+		Joins("JOIN organization_levels ol ON ol.id = ou.organization_level_id AND ol.is_primary = ?", true)
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("dcr.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
-	err := query.Group("parent_unit.title_en, parent_unit.title_ar, parent_unit.color_code").
+	err := query.Group("ou.title_en, ou.title_ar, ou.color_code").
 		Order("total_policies DESC").
 		Scan(&results).Error
 
@@ -431,28 +432,71 @@ func (repo *ComplianceDashboardRepository) GetPolicyByOrganizationUnit(params *k
 
 func (repo *ComplianceDashboardRepository) GetPolicyStatusBreakdown(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.CompliancePolicyStatusBreakdownDTO, error) {
 	result := &kpiDTOs.CompliancePolicyStatusBreakdownDTO{}
+	statuses := []kpiDTOs.ComplianceSummaryItemDTO{}
+	var total int64
 
+	// Select distinct mapped document IDs from requirements
 	mappedDocs := repo.db.
 		Table("document_compliance_requirements dcr").
 		Select("DISTINCT dcr.document_id")
 
+	// Main query: count policies grouped by document status
 	query := repo.db.
 		Table("(?) AS md", mappedDocs).
 		Select(`
-			COUNT(DISTINCT d.id) AS total_policies,
-			SUM(CASE WHEN ds.status = 'active' THEN 1 ELSE 0 END) AS active_policies,
-			SUM(CASE WHEN ds.status = 'inactive' THEN 1 ELSE 0 END) AS inactive_policies
+			ds.id,
+			ds.title_en,
+			ds.title_ar,
+			ds.color_code,
+			ds.type,
+			COUNT(DISTINCT d.id) AS count
 		`).
 		Joins("JOIN documents d ON d.id = md.document_id").
-		Joins("LEFT JOIN document_statuses ds ON ds.id = d.document_status_id")
+		Joins("LEFT JOIN document_statuses ds ON ds.id = d.document_status_id").
+		Group(`
+			ds.id,
+			ds.title_en,
+			ds.title_ar,
+			ds.color_code,
+			ds.type
+		`).
+		Order("ds.id")
 
+	// Apply date filter if provided
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("d.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
-	if err := query.Scan(result).Error; err != nil {
-		return nil, err
+	// Run the grouped query
+	if err := query.Scan(&statuses).Error; err != nil {
+		return nil, fmt.Errorf("error fetching policy statuses: %w", err)
 	}
+
+	// Calculate total count
+	totalQuery := repo.db.
+		Table("(?) AS md", mappedDocs).
+		Joins("JOIN documents d ON d.id = md.document_id")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		totalQuery = totalQuery.Where("d.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	if err := totalQuery.Count(&total).Error; err != nil {
+		return nil, fmt.Errorf("error fetching total policies: %w", err)
+	}
+
+	// Compute percentage for each status
+	for i := range statuses {
+		if total > 0 {
+			statuses[i].Percent = (float64(statuses[i].Count) / float64(total)) * 100
+		} else {
+			statuses[i].Percent = 0
+		}
+	}
+
+	// Build final result DTO
+	result.TotalPolicies = int(total)
+	result.PolicyStatuses = statuses
 
 	return result, nil
 }
@@ -508,6 +552,31 @@ func (repo *ComplianceDashboardRepository) GetControlSummary(params *kpiDTOs.Com
 		}
 	}
 	summary.ImplementationStatuses = implementationStatuses
+
+	implementationSummary := []kpiDTOs.ComplianceSummaryItemDTO{}
+	implementationSummaryQuery := repo.db.Table("compliance_controls").
+		Select(`
+			control_implementation_statuses.type, 
+			COUNT(DISTINCT compliance_controls.control_id) AS count
+		`).
+		Joins("JOIN controls ON controls.id = compliance_controls.control_id").
+		Joins("JOIN control_implementation_statuses ON control_implementation_statuses.id = controls.control_implementation_status_id").
+		Where("control_implementation_statuses.type IN ?", []string{"implemented", "not-implemented"}).
+		Group("control_implementation_statuses.type").
+		Order("control_implementation_statuses.type")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		implementationSummaryQuery = implementationSummaryQuery.Where("compliance_controls.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+	if err := implementationSummaryQuery.Scan(&implementationSummary).Error; err != nil {
+		return nil, err
+	}
+	for i := range implementationSummary {
+		if summary.TotalControls > 0 {
+			implementationSummary[i].Percent = float64(implementationSummary[i].Count) / float64(summary.TotalControls) * 100
+		}
+	}
+	summary.ImplementationSummary = implementationSummary
 
 	efficiencyStatuses := []kpiDTOs.ComplianceSummaryItemDTO{}
 	efficiencyQuery := repo.db.Model(&models.ComplianceControl{}).
@@ -796,23 +865,22 @@ func (repo *ComplianceDashboardRepository) GetOrganizationUnitWiseAssessmentCove
 
 	query := repo.db.Table("compliance_assessment_controls AS cac").
 		Select(`
-			parent_unit.title_en AS organization_unit_title_en,
-			parent_unit.title_ar AS organization_unit_title_ar,
-			parent_unit.color_code AS organization_unit_color_code,
+			ou.title_en AS organization_unit_title_en,
+			ou.title_ar AS organization_unit_title_ar,
+			ou.color_code AS organization_unit_color_code,
 			COUNT(DISTINCT cac.id) AS assessment_count
 		`).
 		Joins("JOIN compliance_assessments AS ca ON ca.id = cac.compliance_assessment_id").
 		Joins("JOIN compliance_register AS cr ON cr.id = ca.compliance_register_id").
-		Joins("LEFT JOIN organization_units child_unit ON child_unit.id = cr.responsible_unit_id").
-		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(child_unit.organization_unit_id, child_unit.id) = parent_unit.id").
-		Joins("JOIN organization_levels ol ON ol.id = parent_unit.organization_level_id AND ol.is_primary = ?", true)
+		Joins("JOIN organization_units ou ON ou.id = cr.responsible_unit_id").
+		Joins("JOIN organization_levels ol ON ol.id = ou.organization_level_id AND ol.is_primary = ?", true)
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("cac.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := query.
-		Group("parent_unit.title_en, parent_unit.title_ar, parent_unit.color_code").
+		Group("ou.title_en, ou.title_ar, ou.color_code").
 		Order("assessment_count DESC").
 		Scan(&results).Error
 
@@ -943,4 +1011,108 @@ func (repo *ComplianceDashboardRepository) GetActionPlansByOrganizationUnit(para
 		return nil, err
 	}
 	return results, nil
+}
+
+func (repo *ComplianceDashboardRepository) GetTopCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]complianceDTOs.ComplianceRegisterListDTO, error) {
+	var compliances []complianceDTOs.ComplianceRegisterListDTO
+
+	query := repo.db.Table("compliance_register").
+		Select(`
+			compliance_register.id AS id,
+			compliance_categories.title_en AS compliance_category_title_en,
+			compliance_categories.title_ar AS compliance_category_title_ar,
+			compliance_statuses.title_en AS compliance_status_title_en,
+			compliance_statuses.title_ar AS compliance_status_title_ar,
+			compliance_statuses.color_code AS compliance_status_color_code,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.first_name_ar AS responsible_user_first_name_ar,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+			responsible_user.color AS responsible_user_color,
+			responsible_user.email AS responsible_user_email,
+			responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			review_frequencies.title_en AS review_frequency_title_en,
+			review_frequencies.title_ar AS review_frequency_title_ar,
+			review_responsible_user.id AS review_responsible_user_id,
+			review_responsible_user.first_name_en AS review_responsible_user_first_name_en,
+			review_responsible_user.first_name_ar AS review_responsible_user_first_name_ar,
+			review_responsible_user.last_name_en AS review_responsible_user_last_name_en,
+			review_responsible_user.last_name_ar AS review_responsible_user_last_name_ar,
+			review_responsible_user.initial AS review_responsible_user_initial,
+			review_responsible_user.color AS review_responsible_user_color,
+			review_responsible_user.email AS review_responsible_user_email,
+			review_responsible_user.profile_image_path AS review_responsible_user_profile_image_path,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
+			severity_levels.color_code AS severity_level_color_code,
+			compliance_register.reference_number,
+			compliance_register.standard_code,
+			compliance_register.title_en,
+			compliance_register.title_ar,
+			compliance_register.description_en,
+			compliance_register.description_ar,
+			compliance_register.version,
+			CONVERT(VARCHAR, compliance_register.deadline, 23) AS deadline,
+			CONVERT(VARCHAR, compliance_register.issue_date, 23) AS issue_date,
+			CONVERT(VARCHAR, compliance_register.expiry_date, 23) AS expiry_date,
+			CONVERT(VARCHAR, compliance_register.next_review_date, 23) AS next_review_date,
+			CONVERT(VARCHAR, compliance_register.last_reviewed_date, 23) AS last_reviewed_date,
+			CONVERT(VARCHAR, compliance_register.created_at, 23) AS created_at,
+			CONVERT(VARCHAR, compliance_register.updated_at, 23) AS updated_at,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
+			updated_user.id AS updated_user_id,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.initial AS updated_user_initial,
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path,
+			lifecycle_statuses.title_en AS lifecycle_status_title_en,
+			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
+			lifecycle_statuses.color_code AS lifecycle_status_color_code,
+			compliance_assessment_frameworks.id AS compliance_assessment_framework_id,
+			compliance_assessment_frameworks.title_en AS compliance_assessment_framework_title_en,
+			compliance_assessment_frameworks.title_ar AS compliance_assessment_framework_title_ar,
+			CAST(CASE WHEN compliance_register.is_control_assessment = 1 THEN 1 ELSE 0 END AS BIT) AS is_control_assessment,
+			CAST(CASE WHEN compliance_register.is_requirement_assessment = 1 THEN 1 ELSE 0 END AS BIT) AS is_requirement_assessment
+		`).
+		Joins(`
+			LEFT JOIN compliance_categories ON compliance_categories.id = compliance_register.compliance_category_id
+			LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_register.compliance_status_id
+			LEFT JOIN organization_units ON organization_units.id = compliance_register.responsible_unit_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_register.responsible_user_id
+			LEFT JOIN review_frequencies ON review_frequencies.id = compliance_register.review_frequency_id
+			LEFT JOIN users AS review_responsible_user ON review_responsible_user.id = compliance_register.review_responsible_user_id
+			LEFT JOIN severity_levels ON severity_levels.id = compliance_register.severity_level_id
+			LEFT JOIN compliance_assessment_frameworks ON compliance_assessment_frameworks.id = compliance_register.compliance_assessment_framework_id
+			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = compliance_register.lifecycle_status_id
+			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by_id
+			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by_id
+		`).
+		Order("compliance_register.created_at DESC")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("compliance_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	query = query.Limit(20)
+	if err := query.Find(&compliances).Error; err != nil {
+		return nil, err
+	}
+
+	return compliances, nil
 }

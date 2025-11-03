@@ -42,10 +42,10 @@ type CompliancePerformanceRadarDTO struct {
 }
 
 type ComplianceClausePerformanceDTO struct {
-	ClauseNo string  `json:"clause_no"`
-	TitleEn  string  `json:"title_en"`
-	TitleAr  string  `json:"title_ar"`
-	Score    float64 `json:"score"`
+	ComplianceClauseNo      string  `json:"compliance_clause_no"`
+	ComplianceClauseTitleEn string  `json:"compliance_clause_title_en"`
+	ComplianceClauseTitleAr string  `json:"compliance_clause_title_ar"`
+	Score                   float64 `json:"score"`
 }
 
 type CompliancePolicyOverviewDTO struct {
@@ -55,11 +55,9 @@ type CompliancePolicyOverviewDTO struct {
 	PolicyExceptionsRaised         int64   `json:"policy_exceptions_raised"`
 	CriticalPoliciesUnacknowledged int64   `json:"critical_policies_unacknowledged"`
 }
-
 type CompliancePolicyStatusBreakdownDTO struct {
-	TotalPolicies    int64 `json:"total_policies"`
-	ActivePolicies   int64 `json:"active_policies"`
-	InactivePolicies int64 `json:"inactive_policies"`
+	TotalPolicies  int                        `json:"total_policies"`
+	PolicyStatuses []ComplianceSummaryItemDTO `json:"policy_statuses"`
 }
 
 type CompliancePolicyByOrganizationUnitDTO struct {
@@ -71,6 +69,7 @@ type CompliancePolicyByOrganizationUnitDTO struct {
 
 type ComplianceControlSummaryDTO struct {
 	TotalControls          int64                      `json:"total_controls"`
+	ImplementationSummary  []ComplianceSummaryItemDTO `json:"implementation_summary"`
 	ImplementationStatuses []ComplianceSummaryItemDTO `json:"implementation_statuses"`
 	EfficiencyChart        []ComplianceSummaryItemDTO `json:"efficiency_chart"`
 	OverallEfficiency      float64                    `json:"overall_efficiency"`
