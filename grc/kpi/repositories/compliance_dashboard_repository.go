@@ -556,14 +556,24 @@ func (repo *ComplianceDashboardRepository) GetControlSummary(params *kpiDTOs.Com
 	implementationSummary := []kpiDTOs.ComplianceSummaryItemDTO{}
 	implementationSummaryQuery := repo.db.Table("compliance_controls").
 		Select(`
+			control_implementation_statuses.id, 
+			control_implementation_statuses.title_en, 
+			control_implementation_statuses.title_ar, 
+			control_implementation_statuses.color_code, 
 			control_implementation_statuses.type, 
 			COUNT(DISTINCT compliance_controls.control_id) AS count
 		`).
 		Joins("JOIN controls ON controls.id = compliance_controls.control_id").
 		Joins("JOIN control_implementation_statuses ON control_implementation_statuses.id = controls.control_implementation_status_id").
 		Where("control_implementation_statuses.type IN ?", []string{"implemented", "not-implemented"}).
-		Group("control_implementation_statuses.type").
-		Order("control_implementation_statuses.type")
+		Group(`
+			control_implementation_statuses.id, 
+			control_implementation_statuses.title_en, 
+			control_implementation_statuses.title_ar, 
+			control_implementation_statuses.color_code, 
+			control_implementation_statuses.type
+		`).
+		Order("control_implementation_statuses.id")
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		implementationSummaryQuery = implementationSummaryQuery.Where("compliance_controls.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
