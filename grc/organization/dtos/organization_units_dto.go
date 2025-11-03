@@ -244,6 +244,9 @@ type OrganizationUnitProcessListDTO struct {
 	OwnerColor                     string     `json:"owner_color"`
 	OwnerEmail                     string     `json:"owner_email"`
 	OwnerProfileImagePath          string     `json:"owner_profile_image_path"`
+	ResponsibleUnitTitleEn         string     `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr         string     `json:"responsible_unit_title_ar"`
+	ResponsibleUnitColorCode       string     `json:"responsible_unit_color_code"`
 	LifecycleStatusTitleEn         string     `json:"lifecycle_status_title_en"`
 	LifecycleStatusTitleAr         string     `json:"lifecycle_status_title_ar"`
 	LifecycleStatusColorCode       string     `json:"lifecycle_status_color_code"`
@@ -354,33 +357,33 @@ type OrganizationUnitPolicySummaryDTO struct {
 }
 
 type OrganizationUnitSummaryReportDTO struct {
-	Title                           string                                         `json:"title"`
-	OrganizationUnitID              uint                                           `json:"organization_unit_id"`
-	OrganizationUnitTitleEn         string                                         `json:"organization_unit_title_en"`
-	OrganizationUnitTitleAr         string                                         `json:"organization_unit_title_ar"`
-	OrganizationUnitColorCode       string                                         `json:"organization_unit_color_code"`
-	GeneratedOn                     string                                         `json:"generated_on"`
-	GeneratedByUserFirstNameEn      string                                         `json:"generated_by_user_first_name_en"`
-	GeneratedByUserFirstNameAr      string                                         `json:"generated_by_user_first_name_ar"`
-	GeneratedByUserLastNameEn       string                                         `json:"generated_by_user_last_name_en"`
-	GeneratedByUserLastNameAr       string                                         `json:"generated_by_user_last_name_ar"`
-	GeneratedByUserInitial          string                                         `json:"generated_by_user_initial"`
-	GeneratedByUserColor            string                                         `json:"generated_by_user_color"`
-	GeneratedByUserEmail            string                                         `json:"generated_by_user_email"`
-	GeneratedByUserProfileImagePath string                                         `json:"generated_by_user_profile_image_path"`
-	OrganizationUnitOverview        *OrganizationUnitOverviewDTO                   `json:"organization_unit_overview"`
-	KeyMatrix                       *OrganizationUnitKeyMatrixDTO                  `json:"key_matrix"`
-	UserRoleDistribution            []OrganizationUnitUserRoleDistributionDTO      `json:"user_role_distribution"`
-	OrganizationUnitUserDetails     []OrganizationUnitUserDetailsDTO               `json:"organization_unit_user_details"`
-	RiskSummary                     *OrganizationUnitRiskSummaryDTO                `json:"risk_summary"`
-	RiskRatingDistribution          []OrganizationUnitDistributionItemDTO          `json:"risk_rating_distribution"`
-	RiskMitgationStatusDistribution []OrganizationUnitDistributionItemDTO          `json:"risk_mitigation_status_distribution"`
-	RiskDetails                     []OrganizationUnitRiskListDTO                  `json:"risk_details"`
-	PolicySummary                   *OrganizationUnitPolicySummaryDTO              `json:"policy_summary"`
-	PolicyDetails                   []OrganizationUnitPolicyListDTO                `json:"policy_details"`
-	ProcessHealthSummary            *OrganizationUnitProcessHealthSummaryDTO       `json:"process_health_summary"`
-	ProcessDetails                  []OrganizationUnitProcessListDTO               `json:"process_details"`
-	ComplianceSummary               *OrganizationUnitComplianceSummaryDTO          `json:"compliance_summary"`
-	ComplianceRequirementDetails    []OrganizationUnitComplianceRequirementListDTO `json:"compliance_requirement_details"`
-	AppUrl                          string                                         `json:"url"`
+	Title                            string                                         `json:"title"`
+	OrganizationUnitID               uint                                           `json:"organization_unit_id"`
+	OrganizationUnitTitleEn          string                                         `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr          string                                         `json:"organization_unit_title_ar"`
+	OrganizationUnitColorCode        string                                         `json:"organization_unit_color_code"`
+	GeneratedOn                      string                                         `json:"generated_on"`
+	GeneratedByUserFirstNameEn       string                                         `json:"generated_by_user_first_name_en"`
+	GeneratedByUserFirstNameAr       string                                         `json:"generated_by_user_first_name_ar"`
+	GeneratedByUserLastNameEn        string                                         `json:"generated_by_user_last_name_en"`
+	GeneratedByUserLastNameAr        string                                         `json:"generated_by_user_last_name_ar"`
+	GeneratedByUserInitial           string                                         `json:"generated_by_user_initial"`
+	GeneratedByUserColor             string                                         `json:"generated_by_user_color"`
+	GeneratedByUserEmail             string                                         `json:"generated_by_user_email"`
+	GeneratedByUserProfileImagePath  string                                         `json:"generated_by_user_profile_image_path"`
+	OrganizationUnitOverview         *OrganizationUnitOverviewDTO                   `json:"organization_unit_overview"`
+	KeyMatrix                        *OrganizationUnitKeyMatrixDTO                  `json:"key_matrix"`
+	UserRoleDistribution             []OrganizationUnitUserRoleDistributionDTO      `json:"user_role_distribution"`
+	OrganizationUnitUserDetails      []OrganizationUnitUserDetailsDTO               `json:"organization_unit_user_details"`
+	RiskSummary                      *OrganizationUnitRiskSummaryDTO                `json:"risk_summary"`
+	RiskRatingDistribution           []OrganizationUnitDistributionItemDTO          `json:"risk_rating_distribution"`
+	RiskMitigationStatusDistribution []OrganizationUnitDistributionItemDTO          `json:"risk_mitigation_status_distribution"`
+	RiskDetails                      []OrganizationUnitRiskListDTO                  `json:"risk_details"`
+	PolicySummary                    *OrganizationUnitPolicySummaryDTO              `json:"policy_summary"`
+	PolicyDetails                    []OrganizationUnitPolicyListDTO                `json:"policy_details"`
+	ProcessHealthSummary             *OrganizationUnitProcessHealthSummaryDTO       `json:"process_health_summary"`
+	ProcessDetails                   []OrganizationUnitProcessListDTO               `json:"process_details"`
+	ComplianceSummary                *OrganizationUnitComplianceSummaryDTO          `json:"compliance_summary"`
+	ComplianceRequirementDetails     []OrganizationUnitComplianceRequirementListDTO `json:"compliance_requirement_details"`
+	AppUrl                           string                                         `json:"url"`
 }

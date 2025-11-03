@@ -31,6 +31,7 @@ type OrganizationUnitsServiceInterface interface {
 	Create(currentUserID uint, organizationUnitReportFormDTO *organizationDTOs.OrganizationUnitReportFormDTO) (uint, error)
 	Delete(organizationUnitReportID uint, currentUserID uint) error
 	GetOrganizationUnitReport(organizationUnitReportID uint) (*organizationDTOs.OrganizationUnitSummaryReportDTO, error)
+	GetOrganizationUnitReportExport(organizationReportID uint, currentUserID uint) (string, error)
 }
 
 type OrganizationUnitsService struct {
@@ -59,6 +60,7 @@ func NewOrganizationUnitsService(
 		userRepo:             userRepo,
 		userSvc:              userSvc,
 		organizationUnitSvc:  organizationUnitSvc,
+		reportTemplateSvc:    reportTemplateSvc,
 	}
 }
 
@@ -459,7 +461,7 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 		return nil, err
 	}
 
-	if report.RiskMitgationStatusDistribution, err = s.repo.GetRiskMitigationStatusDistributionByOrganizationUnit(organizationUnitID); err != nil {
+	if report.RiskMitigationStatusDistribution, err = s.repo.GetRiskMitigationStatusDistributionByOrganizationUnit(organizationUnitID); err != nil {
 		return nil, err
 	}
 
@@ -512,19 +514,19 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReportExport(organizationR
 	}
 
 	// Header template - process with data to resolve template variables
-	headerTemplatePaths := []string{"incident/templates/pdf/organization_unit_summary_report_header.html"}
+	headerTemplatePaths := []string{"organization/templates/pdf/organization_unit_summary_report_header.html"}
 	headerContent, err := utility.GeneratePDFContent(organizationReport, headerTemplatePaths, "", "")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate header content: %w", err)
 	}
 
 	// Footer template - process with data to resolve template variables
-	footerTemplatePaths := []string{"incident/templates/pdf/organization_unit_summary_report_footer.html"}
+	footerTemplatePaths := []string{"organization/templates/pdf/organization_unit_summary_report_footer.html"}
 	footerContent, err := utility.GeneratePDFContent(organizationReport, footerTemplatePaths, "", "")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate footer content: %w", err)
 	}
-	coverTemplatePaths := []string{"incident/templates/pdf/organization_unit_summary_report_cover.html"}
+	coverTemplatePaths := []string{"organization/templates/pdf/organization_unit_summary_report_cover.html"}
 	coverContent, err := utility.GeneratePDFContent(organizationReport, coverTemplatePaths, "", "")
 	if err != nil {
 		return "", fmt.Errorf("failed to generate footer content: %w", err)
