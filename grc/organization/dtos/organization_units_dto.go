@@ -382,4 +382,5 @@ type OrganizationUnitSummaryReportDTO struct {
 	ProcessDetails                  []OrganizationUnitProcessListDTO               `json:"process_details"`
 	ComplianceSummary               *OrganizationUnitComplianceSummaryDTO          `json:"compliance_summary"`
 	ComplianceRequirementDetails    []OrganizationUnitComplianceRequirementListDTO `json:"compliance_requirement_details"`
+	AppUrl                          string                                         `json:"url"`
 }
