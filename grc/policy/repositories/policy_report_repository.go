@@ -22,7 +22,7 @@ type PolicyReportRepositoryInterface interface {
 	Delete(policyReportID uint) error
 
 	GetPolicyOverview(documentID uint) (*policyDTOs.PolicyReportPolicyOverviewDTO, error)
-	GetPolicyKeySummary(documentID uint) (*policyDTOs.PolicyReportKeySummaryDTO, error)
+	GetPolicyKeySummary(documentID uint, primaryOrgUnitField string, isPublic bool) (*policyDTOs.PolicyReportKeySummaryDTO, error)
 	GetPolicyAcknowledgementList(documentID uint, versionID uint, primaryOrgUnitField string, isPublic bool) ([]*policyDTOs.PolicyAcknowledgementListDTO, error)
 	GetPolicyAcknowldegementOrganizationUnitSummary(
 		documentID uint,
@@ -250,8 +250,7 @@ func (repo *PolicyReportRepository) GetPolicyOverview(documentID uint) (*policyD
 	return &result, nil
 }
 
-func (repo *PolicyReportRepository) GetPolicyKeySummary(documentID uint) (*policyDTOs.PolicyReportKeySummaryDTO, error) {
-
+func (repo *PolicyReportRepository) GetPolicyKeySummary(documentID uint, primaryOrgUnitField string, isPublic bool) (*policyDTOs.PolicyReportKeySummaryDTO, error) {
 	var (
 		clausesDefined            int64
 		totalRecipients           int64
@@ -264,6 +263,7 @@ func (repo *PolicyReportRepository) GetPolicyKeySummary(documentID uint) (*polic
 		latestVersionID           uint
 	)
 
+	// Get latest document version
 	if err := repo.db.Table("document_versions dv").
 		Select("dv.id").
 		Where("dv.document_id = ?", documentID).
@@ -272,62 +272,65 @@ func (repo *PolicyReportRepository) GetPolicyKeySummary(documentID uint) (*polic
 		return nil, err
 	}
 
+	// Clauses defined
 	if err := repo.db.Table("document_version_clauses dvc").
 		Where("dvc.document_version_id = ?", latestVersionID).
 		Count(&clausesDefined).Error; err != nil {
 		return nil, err
 	}
 
-	if err := repo.db.Table("users a").
-		Joins("JOIN user_statuses aus ON aus.id = a.user_status_id AND aus.is_active = 1").
-		Where(`
+	// === Acknowledgement calculation (same logic as GetPolicyAcknowledgementList) ===
+	usersScope := repo.db.Table("users u").
+		Joins("JOIN user_statuses us ON us.id = u.user_status_id AND us.is_active = 1")
+
+	if !isPublic {
+		usersScope = usersScope.Where(`
 			EXISTS (
-				SELECT 1 FROM document_shared_users dsu
-				WHERE dsu.document_id = ? AND dsu.user_id = a.id
+				SELECT 1
+				FROM document_shared_users dsu
+				WHERE dsu.document_id = ? AND dsu.user_id = u.id
 			) OR EXISTS (
 				SELECT 1
 				FROM document_shared_units dsu2
-				JOIN organization_units ou ON ou.id = dsu2.organization_unit_id
+				JOIN organization_units ou2 ON ou2.id = dsu2.organization_unit_id
 				WHERE dsu2.document_id = ?
-				  AND (
-					  a.organization_unit_1_id = ou.id OR
-					  a.organization_unit_2_id = ou.id OR
-					  a.organization_unit_3_id = ou.id OR
-					  a.organization_unit_4_id = ou.id OR
-					  a.organization_unit_5_id = ou.id
-				  )
+				  AND u.`+primaryOrgUnitField+` = ou2.id
 			)
-		`, documentID, documentID).
-		Count(&totalRecipients).Error; err != nil {
+		`, documentID, documentID)
+	}
+
+	// Count total recipients
+	if err := usersScope.Count(&totalRecipients).Error; err != nil {
 		return nil, err
 	}
 
-	if err := repo.db.Table("document_acknowledge_users dau").
+	// Count acknowledged users
+	ackScope := repo.db.Table("document_acknowledge_users dau").
 		Joins("JOIN users u ON u.id = dau.user_id").
 		Joins("JOIN user_statuses us ON us.id = u.user_status_id AND us.is_active = 1").
-		Where("dau.document_id = ?", documentID).
-		Where(`
+		Where("dau.document_id = ?", documentID)
+
+	if !isPublic {
+		ackScope = ackScope.Where(`
 			EXISTS (
-				SELECT 1 FROM document_shared_users dsu
+				SELECT 1
+				FROM document_shared_users dsu
 				WHERE dsu.document_id = ? AND dsu.user_id = dau.user_id
 			) OR EXISTS (
 				SELECT 1
 				FROM document_shared_units dsu2
-				JOIN organization_units ou ON ou.id = dsu2.organization_unit_id
+				JOIN organization_units ou2 ON ou2.id = dsu2.organization_unit_id
 				WHERE dsu2.document_id = ?
-				  AND (
-					  u.organization_unit_1_id = ou.id OR
-					  u.organization_unit_2_id = ou.id OR
-					  u.organization_unit_3_id = ou.id OR
-					  u.organization_unit_4_id = ou.id OR
-					  u.organization_unit_5_id = ou.id
-				  )
+				  AND u.`+primaryOrgUnitField+` = ou2.id
 			)
-		`, documentID, documentID).
-		Count(&ackUsers).Error; err != nil {
+		`, documentID, documentID)
+	}
+
+	if err := ackScope.Count(&ackUsers).Error; err != nil {
 		return nil, err
 	}
 
+	// === Other queries remain unchanged ===
 	if err := repo.db.Table("risk_associated_documents rad").
 		Where("rad.document_id = ?", documentID).
 		Count(&risksReported).Error; err != nil {
@@ -362,10 +365,12 @@ func (repo *PolicyReportRepository) GetPolicyKeySummary(documentID uint) (*polic
 		return nil, err
 	}
 
+	// === Acknowledgement rate calculation ===
 	pending := totalRecipients - ackUsers
 	if pending < 0 {
 		pending = 0
 	}
+
 	var rate float64
 	if totalRecipients > 0 {
 		rate = math.Round((float64(ackUsers)/float64(totalRecipients)*100.0)*100) / 100
@@ -383,6 +388,7 @@ func (repo *PolicyReportRepository) GetPolicyKeySummary(documentID uint) (*polic
 		StrategicObjectivesLinked: strategicObjectivesLinked,
 		ApprovalCycle:             approvalCycles,
 	}
+
 	return out, nil
 }
 
@@ -503,8 +509,8 @@ func (repo *PolicyReportRepository) GetPolicyAcknowldegementOrganizationUnitSumm
 	var totalPercent float64
 	if totalUsers > 0 {
 		totalPercent = float64(totalAck) * 100.0 / float64(totalUsers)
+		totalPercent = math.Round(totalPercent*100) / 100
 	}
-
 	resp := &policyDTOs.PolicyAcknowledgementOrganizatationUnitSummaryDTO{
 		Items:                     items,
 		TotalUsers:                totalUsers,

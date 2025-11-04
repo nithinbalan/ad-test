@@ -175,7 +175,7 @@ func (prs *PolicyReportService) GetPolicySummaryReport(policyReportID uint) (*po
 		return nil, err
 	}
 
-	if policySummaryReport.PolicyKeySummary, err = prs.repo.GetPolicyKeySummary(documentID); err != nil {
+	if policySummaryReport.PolicyKeySummary, err = prs.GetPolicyKeySummary(documentID); err != nil {
 		return nil, err
 	}
 
@@ -276,6 +276,24 @@ func (prs *PolicyReportService) GetPolicySummaryReportExport(policyReportID uint
 	}
 
 	return pdfFileName, nil
+}
+
+func (prs *PolicyReportService) GetPolicyKeySummary(documentID uint) (*policyDTOs.PolicyReportKeySummaryDTO, error) {
+	document, err := prs.documentSvc.GetFullDetailsByID(documentID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	primaryOrgUnitField, err := prs.GetPrimaryOrgField()
+	if err != nil {
+		return nil, err
+
+	}
+	if document.DocumentAccessType.Type == "public" {
+		return prs.repo.GetPolicyKeySummary(documentID, primaryOrgUnitField, true)
+
+	}
+	return prs.repo.GetPolicyKeySummary(documentID, primaryOrgUnitField, false)
 }
 
 func (prs *PolicyReportService) GetPolicyAcknowldegementList(documentID uint) ([]*policyDTOs.PolicyAcknowledgementListDTO, error) {

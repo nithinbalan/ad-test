@@ -231,7 +231,7 @@ type PolicyAttachmentDTO struct {
 	DocumentId          uint    `json:"document_id"`
 	DocumentTitleEn     string  `json:"document_title_en"`
 	DocumentTitleAr     string  `json:"document_title_ar"`
-	DocumentTypeTitleEn string  `json:"document_type_title_enn"`
+	DocumentTypeTitleEn string  `json:"document_type_title_en"`
 	DocumentTypeTitleAr string  `json:"document_type_title_ar"`
 	CreatedAt           *string `json:"created_at"`
 }
