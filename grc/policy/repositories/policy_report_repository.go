@@ -22,7 +22,7 @@ type PolicyReportRepositoryInterface interface {
 	Delete(policyReportID uint) error
 
 	GetPolicyOverview(documentID uint) (*policyDTOs.PolicyReportPolicyOverviewDTO, error)
-	GetPolicyKeySummary(documentID uint) (*policyDTOs.PolicyReportKeySummaryDTO, error)
+	GetPolicyKeySummary(documentID uint, primaryOrgUnitField string, isPublic bool) (*policyDTOs.PolicyReportKeySummaryDTO, error)
 	GetPolicyAcknowledgementList(documentID uint, versionID uint, primaryOrgUnitField string, isPublic bool) ([]*policyDTOs.PolicyAcknowledgementListDTO, error)
 	GetPolicyAcknowldegementOrganizationUnitSummary(
 		documentID uint,
@@ -37,6 +37,7 @@ type PolicyReportRepositoryInterface interface {
 	GePolicyAccessUsers(documentID uint, primaryOrgUnitField string) ([]*policyDTOs.PolicyAccessUserDTO, error)
 	GetPolicyApprovalHistory(VersionID uint) ([]*policyDTOs.PolicyApprovalHistoryDTO, error)
 	GetPolicyAttachments(documentID uint) ([]*policyDTOs.PolicyAttachmentDTO, error)
+	GetPolicyAssocatedCompliance(documentID uint) ([]*commonDTOs.AssociatedClauseListDTO, error)
 }
 
 type PolicyReportRepository struct {
@@ -191,8 +192,11 @@ func (repo *PolicyReportRepository) GetPolicyOverview(documentID uint) (*policyD
 		Select(`
 			documents.id,
 			documents.document_type_id,
+			documents.reference_number,
 			documents.title_en,
 			documents.title_ar,
+			documents.description_en,
+			documents.description_ar,
 			documents.created_at,
 			documents.updated_at,
 			documents.next_review_date,
@@ -218,7 +222,7 @@ func (repo *PolicyReportRepository) GetPolicyOverview(documentID uint) (*policyD
 			ds.color_code AS document_status_color_code,
 			ds.type AS document_status_type,
 			dv.version AS document_version,
-			dv.published_at AS published_at,
+			CONVERT(VARCHAR, dv.published_at, 23) AS published_at,
 			pub.first_name_en AS published_user_first_name_en,
 			pub.first_name_ar AS published_user_first_name_ar,
 			pub.last_name_en AS published_user_last_name_en,
@@ -246,8 +250,7 @@ func (repo *PolicyReportRepository) GetPolicyOverview(documentID uint) (*policyD
 	return &result, nil
 }
 
-func (repo *PolicyReportRepository) GetPolicyKeySummary(documentID uint) (*policyDTOs.PolicyReportKeySummaryDTO, error) {
-
+func (repo *PolicyReportRepository) GetPolicyKeySummary(documentID uint, primaryOrgUnitField string, isPublic bool) (*policyDTOs.PolicyReportKeySummaryDTO, error) {
 	var (
 		clausesDefined            int64
 		totalRecipients           int64
@@ -260,6 +263,7 @@ func (repo *PolicyReportRepository) GetPolicyKeySummary(documentID uint) (*polic
 		latestVersionID           uint
 	)
 
+	// Get latest document version
 	if err := repo.db.Table("document_versions dv").
 		Select("dv.id").
 		Where("dv.document_id = ?", documentID).
@@ -268,62 +272,65 @@ func (repo *PolicyReportRepository) GetPolicyKeySummary(documentID uint) (*polic
 		return nil, err
 	}
 
+	// Clauses defined
 	if err := repo.db.Table("document_version_clauses dvc").
 		Where("dvc.document_version_id = ?", latestVersionID).
 		Count(&clausesDefined).Error; err != nil {
 		return nil, err
 	}
 
-	if err := repo.db.Table("users a").
-		Joins("JOIN user_statuses aus ON aus.id = a.user_status_id AND aus.is_active = 1").
-		Where(`
+	// === Acknowledgement calculation (same logic as GetPolicyAcknowledgementList) ===
+	usersScope := repo.db.Table("users u").
+		Joins("JOIN user_statuses us ON us.id = u.user_status_id AND us.is_active = 1")
+
+	if !isPublic {
+		usersScope = usersScope.Where(`
 			EXISTS (
-				SELECT 1 FROM document_shared_users dsu
-				WHERE dsu.document_id = ? AND dsu.user_id = a.id
+				SELECT 1
+				FROM document_shared_users dsu
+				WHERE dsu.document_id = ? AND dsu.user_id = u.id
 			) OR EXISTS (
 				SELECT 1
 				FROM document_shared_units dsu2
-				JOIN organization_units ou ON ou.id = dsu2.organization_unit_id
+				JOIN organization_units ou2 ON ou2.id = dsu2.organization_unit_id
 				WHERE dsu2.document_id = ?
-				  AND (
-					  a.organization_unit_1_id = ou.id OR
-					  a.organization_unit_2_id = ou.id OR
-					  a.organization_unit_3_id = ou.id OR
-					  a.organization_unit_4_id = ou.id OR
-					  a.organization_unit_5_id = ou.id
-				  )
+				  AND u.`+primaryOrgUnitField+` = ou2.id
 			)
-		`, documentID, documentID).
-		Count(&totalRecipients).Error; err != nil {
+		`, documentID, documentID)
+	}
+
+	// Count total recipients
+	if err := usersScope.Count(&totalRecipients).Error; err != nil {
 		return nil, err
 	}
 
-	if err := repo.db.Table("document_acknowledge_users dau").
+	// Count acknowledged users
+	ackScope := repo.db.Table("document_acknowledge_users dau").
 		Joins("JOIN users u ON u.id = dau.user_id").
 		Joins("JOIN user_statuses us ON us.id = u.user_status_id AND us.is_active = 1").
-		Where("dau.document_id = ?", documentID).
-		Where(`
+		Where("dau.document_id = ?", documentID)
+
+	if !isPublic {
+		ackScope = ackScope.Where(`
 			EXISTS (
-				SELECT 1 FROM document_shared_users dsu
+				SELECT 1
+				FROM document_shared_users dsu
 				WHERE dsu.document_id = ? AND dsu.user_id = dau.user_id
 			) OR EXISTS (
 				SELECT 1
 				FROM document_shared_units dsu2
-				JOIN organization_units ou ON ou.id = dsu2.organization_unit_id
+				JOIN organization_units ou2 ON ou2.id = dsu2.organization_unit_id
 				WHERE dsu2.document_id = ?
-				  AND (
-					  u.organization_unit_1_id = ou.id OR
-					  u.organization_unit_2_id = ou.id OR
-					  u.organization_unit_3_id = ou.id OR
-					  u.organization_unit_4_id = ou.id OR
-					  u.organization_unit_5_id = ou.id
-				  )
+				  AND u.`+primaryOrgUnitField+` = ou2.id
 			)
-		`, documentID, documentID).
-		Count(&ackUsers).Error; err != nil {
+		`, documentID, documentID)
+	}
+
+	if err := ackScope.Count(&ackUsers).Error; err != nil {
 		return nil, err
 	}
 
+	// === Other queries remain unchanged ===
 	if err := repo.db.Table("risk_associated_documents rad").
 		Where("rad.document_id = ?", documentID).
 		Count(&risksReported).Error; err != nil {
@@ -358,10 +365,12 @@ func (repo *PolicyReportRepository) GetPolicyKeySummary(documentID uint) (*polic
 		return nil, err
 	}
 
+	// === Acknowledgement rate calculation ===
 	pending := totalRecipients - ackUsers
 	if pending < 0 {
 		pending = 0
 	}
+
 	var rate float64
 	if totalRecipients > 0 {
 		rate = math.Round((float64(ackUsers)/float64(totalRecipients)*100.0)*100) / 100
@@ -370,6 +379,7 @@ func (repo *PolicyReportRepository) GetPolicyKeySummary(documentID uint) (*polic
 	out := &policyDTOs.PolicyReportKeySummaryDTO{
 		ClausesDefined:            clausesDefined,
 		AcknowledgmentRate:        rate,
+		TotalAcknowledgments:      totalRecipients,
 		AcknowledgmentsCompleted:  ackUsers,
 		AcknowledgmentsPending:    pending,
 		RiskReported:              risksReported,
@@ -378,6 +388,7 @@ func (repo *PolicyReportRepository) GetPolicyKeySummary(documentID uint) (*polic
 		StrategicObjectivesLinked: strategicObjectivesLinked,
 		ApprovalCycle:             approvalCycles,
 	}
+
 	return out, nil
 }
 
@@ -498,8 +509,8 @@ func (repo *PolicyReportRepository) GetPolicyAcknowldegementOrganizationUnitSumm
 	var totalPercent float64
 	if totalUsers > 0 {
 		totalPercent = float64(totalAck) * 100.0 / float64(totalUsers)
+		totalPercent = math.Round(totalPercent*100) / 100
 	}
-
 	resp := &policyDTOs.PolicyAcknowledgementOrganizatationUnitSummaryDTO{
 		Items:                     items,
 		TotalUsers:                totalUsers,
@@ -745,6 +756,7 @@ func (repo *PolicyReportRepository) GetPolicyVersions(documentID uint) ([]*polic
 			document_versions.enable_acknowledgement,
 			document_versions.created_at,
 			document_versions.updated_at,
+			CONVERT(VARCHAR, document_versions.published_at, 23) AS published_at,
 			published_by_users.first_name_en AS published_by_first_name_en,
 			published_by_users.last_name_en AS published_by_last_name_en,
 			published_by_users.email AS published_by_email
@@ -850,4 +862,57 @@ func (repo *PolicyReportRepository) GetPolicyAttachments(documentID uint) ([]*po
 	}
 
 	return rows, nil
+}
+
+func (repo *PolicyReportRepository) GetPolicyAssocatedCompliance(documentID uint) ([]*commonDTOs.AssociatedClauseListDTO, error) {
+
+	var clauseList []commonDTOs.AssociatedClauseRowDTO
+	query := repo.db.Table("document_compliance_requirements").
+		Select(`
+			compliance_clauses.title_en AS clause_title_en,
+			compliance_clauses.title_ar AS clause_title_ar,
+			compliance_clauses.clause_no,
+			compliance_clauses.compliance_register_id,
+			compliance_clauses.id AS compliance_clause_id,
+			compliance_register.title_en AS compliance_register_title_en,
+			compliance_register.title_ar AS compliance_register_title_ar
+		`).
+		Joins(`
+			LEFT JOIN compliance_clauses ON document_compliance_requirements.compliance_clause_id = compliance_clauses.id
+			LEFT JOIN compliance_register ON document_compliance_requirements.compliance_register_id = compliance_register.id
+		`).
+		Where("document_compliance_requirements.document_id = ?", documentID)
+
+	if err := query.Find(&clauseList).Error; err != nil {
+		return nil, err
+	}
+
+	clausesByComplianceRegister := make(map[uint]*commonDTOs.AssociatedClauseListDTO)
+	for _, row := range clauseList {
+		if _, exists := clausesByComplianceRegister[row.ComplianceRegisterID]; !exists {
+			clausesByComplianceRegister[row.ComplianceRegisterID] = &commonDTOs.AssociatedClauseListDTO{
+				ComplianceRegisterID:      row.ComplianceRegisterID,
+				ComplianceRegisterTitleEn: row.ComplianceRegisterTitleEn,
+				ComplianceRegisterTitleAr: row.ComplianceRegisterTitleAr,
+				Clauses:                   []commonDTOs.AssociatedClauseDTO{},
+			}
+		}
+		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(clausesByComplianceRegister[row.ComplianceRegisterID].Clauses, commonDTOs.AssociatedClauseDTO{
+			ComplianceClauseID: row.ComplianceClauseID,
+			ClauseNo:           row.ClauseNo,
+			ClauseTitleEn:      row.ClauseTitleEn,
+			ClauseTitleAr:      row.ClauseTitleAr,
+		})
+	}
+
+	var groupedClauses []*commonDTOs.AssociatedClauseListDTO
+	for _, v := range clausesByComplianceRegister {
+		groupedClauses = append(groupedClauses, v)
+	}
+
+	if groupedClauses == nil {
+		groupedClauses = []*commonDTOs.AssociatedClauseListDTO{}
+	}
+
+	return groupedClauses, nil
 }

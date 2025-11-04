@@ -696,7 +696,7 @@ func (repo *OrganizationUnitsRepository) GetAll(params *organizationDTOs.Organiz
 }
 
 func (repo *OrganizationUnitsRepository) GetByID(id uint) (*organizationDTOs.OrganizationUnitReportListDTO, error) {
-	var organizationUnitReport *organizationDTOs.OrganizationUnitReportListDTO
+	var organizationUnitReport organizationDTOs.OrganizationUnitReportListDTO
 
 	result := repo.db.Table("organization_unit_reports").
 		Select(`
@@ -728,7 +728,11 @@ func (repo *OrganizationUnitsRepository) GetByID(id uint) (*organizationDTOs.Org
 		return nil, result.Error
 	}
 
-	return organizationUnitReport, nil
+	if result.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	return &organizationUnitReport, nil
 }
 
 func (repo *OrganizationUnitsRepository) Create(organizationUnitReport *models.OrganizationUnitReport, tx ...utility.DatabaseTransaction) (uint, error) {
@@ -994,6 +998,9 @@ func (repo *OrganizationUnitsRepository) GetProcessByOrganizationUnit(organizati
 			owner.color AS owner_color,
 			owner.email AS owner_email,
 			owner.profile_image_path AS owner_profile_image_path,
+			organization_units.title_en As responsible_unit_title_en,
+			organization_units.title_ar As responsible_unit_title_ar,
+			organization_units.color_code As responsible_unit_color_code,
 			lifecycle_statuses.title_en AS lifecycle_status_title_en,
 			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
 			lifecycle_statuses.color_code AS lifecycle_status_color_code,

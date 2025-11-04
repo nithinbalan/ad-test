@@ -59,37 +59,41 @@ type PolicyReportQueryParamsDTO struct {
 }
 
 type PolicySummaryReportDTO struct {
-	Title                                 string                                               `json:"title"`
-	DocumentTitleEn                       string                                               `json:"document_title_en"`
-	DocumentTitleAr                       string                                               `json:"document_title_ar"`
-	GeneratedOn                           string                                               `json:"generated_on"`
-	GeneratedByUserFirstNameEn            string                                               `json:"generated_by_user_first_name_en"`
-	GeneratedByUserFirstNameAr            string                                               `json:"generated_by_user_first_name_ar"`
-	GeneratedByUserLastNameEn             string                                               `json:"generated_by_user_last_name_en"`
-	GeneratedByUserLastNameAr             string                                               `json:"generated_by_user_last_name_ar"`
-	GeneratedByUserInitial                string                                               `json:"generated_by_user_initial"`
-	GeneratedByUserColor                  string                                               `json:"generated_by_user_color"`
-	GeneratedByUserEmail                  string                                               `json:"generated_by_user_email"`
-	GeneratedByUserProfileImagePath       string                                               `json:"generated_by_user_profile_image_path"`
-	PolicyOverview                        *PolicyReportPolicyOverviewDTO                       `json:"policy_overview"`
-	PolicyKeySummary                      *PolicyReportKeySummaryDTO                           `json:"policy_key_summary"`
-	ClauseList                            []*documentDTOs.DocumentClauseListDTO                `json:"clause_list"`
-	AcknowledgementUserList               []*PolicyAcknowledgementListDTO                      `json:"acknowldegement_user_list"`
-	OrganizatationUnitAcknowledgementList *PolicyAcknowledgementOrganizatationUnitSummaryDTO   `json:"orgaonizatoin_unit_acknowledgement_list"`
-	AssociatedRiskList                    []*commonDTOs.AssociatedRiskListDTO                  `json:"associated_risk_list"`
-	AssociatedStrategicObjectiveLIst      []*commonDTOs.AssociatedStrategicObjectiveListDTO    `json:"associated_strategic_objective_list"`
-	AssociatedComplianceRequirmentLIst    []*documentDTOs.DocumentComplianceRequirementListDTO `json:"associated_compliance_requirement_list"`
-	PolicyVersionList                     []*PolicyVersionDTO                                  `json:"policy_version_list"`
-	PolicyAccessUserList                  []*PolicyAccessUserDTO                               `json:"policy_access_user_list"`
-	PolicyApprovalHistroyList             []*PolicyApprovalHistoryDTO                          `json:"policy_apporval_histroy_list"`
-	PolicyAttachmentList                  []*PolicyAttachmentDTO                               `json:"policy_attachment_list"`
+	Title                                 string                                             `json:"title"`
+	DocumentTitleEn                       string                                             `json:"document_title_en"`
+	DocumentTitleAr                       string                                             `json:"document_title_ar"`
+	GeneratedOn                           string                                             `json:"generated_on"`
+	GeneratedByUserFirstNameEn            string                                             `json:"generated_by_user_first_name_en"`
+	GeneratedByUserFirstNameAr            string                                             `json:"generated_by_user_first_name_ar"`
+	GeneratedByUserLastNameEn             string                                             `json:"generated_by_user_last_name_en"`
+	GeneratedByUserLastNameAr             string                                             `json:"generated_by_user_last_name_ar"`
+	GeneratedByUserInitial                string                                             `json:"generated_by_user_initial"`
+	GeneratedByUserColor                  string                                             `json:"generated_by_user_color"`
+	GeneratedByUserEmail                  string                                             `json:"generated_by_user_email"`
+	GeneratedByUserProfileImagePath       string                                             `json:"generated_by_user_profile_image_path"`
+	PolicyOverview                        *PolicyReportPolicyOverviewDTO                     `json:"policy_overview"`
+	PolicyKeySummary                      *PolicyReportKeySummaryDTO                         `json:"policy_key_summary"`
+	ClauseList                            []*documentDTOs.DocumentClauseListDTO              `json:"clause_list"`
+	AcknowledgementUserList               []*PolicyAcknowledgementListDTO                    `json:"acknowldegement_user_list"`
+	OrganizatationUnitAcknowledgementList *PolicyAcknowledgementOrganizatationUnitSummaryDTO `json:"orgaonizatoin_unit_acknowledgement_list"`
+	AssociatedRiskList                    []*commonDTOs.AssociatedRiskListDTO                `json:"associated_risk_list"`
+	AssociatedStrategicObjectiveLIst      []*commonDTOs.AssociatedStrategicObjectiveListDTO  `json:"associated_strategic_objective_list"`
+	AssociatedComplianceList              []*commonDTOs.AssociatedClauseListDTO              `json:"associated_compliance_list"`
+	PolicyVersionList                     []*PolicyVersionDTO                                `json:"policy_version_list"`
+	PolicyAccessUserList                  []*PolicyAccessUserDTO                             `json:"policy_access_user_list"`
+	PolicyApprovalHistroyList             []*PolicyApprovalHistoryDTO                        `json:"policy_apporval_histroy_list"`
+	PolicyAttachmentList                  []*PolicyAttachmentDTO                             `json:"policy_attachment_list"`
+	AppUrl                                string                                             `json:"url"`
 }
 
 type PolicyReportPolicyOverviewDTO struct {
 	ID                              uint       `json:"id"`
 	DocumentTypeID                  uint       `json:"document_type_id"`
+	ReferenceNumber                 string     `json:"reference_number"`
 	TitleEn                         string     `json:"title_en"`
 	TitleAr                         string     `json:"title_ar"`
+	DescriptionEn                   string     `json:"description_en"`
+	DescriptionAr                   string     `json:"description_ar"`
 	DocumentCategoryTitleEn         string     `json:"document_category_title_en"`
 	DocumentCategoryTitleAr         string     `json:"document_category_title_ar"`
 	DocumentTypeTitleEn             string     `json:"document_type_title_en"`
@@ -112,7 +116,7 @@ type PolicyReportPolicyOverviewDTO struct {
 	DocumentStatusColorCode         string     `json:"document_status_color_code"`
 	DocumentStatusType              string     `json:"document_status_type"`
 	DocumentVersion                 float64    `json:"document_version"`
-	NextReviewDate                  *time.Time `json:"next_review_date"`
+	NextReviewDate                  *string    `json:"next_review_date"`
 	CreatedAt                       time.Time  `json:"created_at"`
 	UpdatedAt                       *time.Time `json:"updated_at"`
 	Acknowledged                    *bool      `json:"acknowledged,omitempty"`
@@ -124,12 +128,13 @@ type PolicyReportPolicyOverviewDTO struct {
 	PublishedUserColor              string     `json:"published_user_color"`
 	PublishedUserEmail              string     `json:"published_user_email"`
 	PublishedUserProfileImagePath   string     `json:"published_user_profile_image_path"`
-	PublishedAt                     *time.Time `json:"published_at"`
+	PublishedAt                     *string    `json:"published_at"`
 }
 
 type PolicyReportKeySummaryDTO struct {
 	ClausesDefined            int64   `json:"clauses_defined"`
 	AcknowledgmentRate        float64 `json:"acknowledgment_rate"`
+	TotalAcknowledgments      int64   `json:"total_acknowledgments"`
 	AcknowledgmentsCompleted  int64   `json:"acknowledgments_completed"`
 	AcknowledgmentsPending    int64   `json:"acknowledgments_pending"`
 	RiskReported              int64   `json:"risk_reported"`
@@ -179,6 +184,7 @@ type PolicyVersionDTO struct {
 	DocumentID             uint    `json:"document_id"`
 	Version                float64 `json:"version"`
 	IsLatestVersion        bool    `json:"is_latest_version"`
+	PublishedAt            string  `json:"published_at"`
 	EnableAcknowledgement  bool    `json:"enable_acknowledgement"`
 	CreatedAt              string  `json:"created_at"`
 	UpdatedAt              *string `json:"updated_at"`
@@ -225,7 +231,7 @@ type PolicyAttachmentDTO struct {
 	DocumentId          uint    `json:"document_id"`
 	DocumentTitleEn     string  `json:"document_title_en"`
 	DocumentTitleAr     string  `json:"document_title_ar"`
-	DocumentTypeTitleEn string  `json:"document_type_title_enn"`
+	DocumentTypeTitleEn string  `json:"document_type_title_en"`
 	DocumentTypeTitleAr string  `json:"document_type_title_ar"`
 	CreatedAt           *string `json:"created_at"`
 }

@@ -1,0 +1,2109 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <!-- <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous"> -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <style>
+    .keep-together {
+      page-break-inside: avoid;
+    }
+
+    .break-before {
+      page-break-before: always;
+    }
+
+    .break-after {
+      page-break-after: always;
+    }
+
+    .clearfix::after {
+      display: block;
+      clear: both;
+      content: "";
+    }
+
+    table {
+      border-collapse: collapse;
+    }
+  </style>
+
+  <body
+    style="
+      font-family: 'Lexend Deca', sans-serif;
+      box-sizing: border-box;
+      color: #000;
+      height: 100%;
+      hyphens: auto;
+      line-height: 1.4;
+      -moz-hyphens: auto;
+      -ms-word-break: break-all;
+      width: 100% !important;
+      -webkit-hyphens: auto;
+      -webkit-text-size-adjust: none;
+      word-break: break-word;
+    "
+  >
+    <div
+      class="page"
+      style="width: 1000px; margin: 0; background: #fff; padding: 0px 32px"
+    >
+      <div style="padding-top: 4px">
+        <div class="keep-together" style="padding-top: 0px">
+          <h4
+            style="
+              margin: 0 0 10px 0;
+              font-size: 18px;
+              color: #050505;
+              font-weight: 400;
+            "
+          >
+            Department Overview
+          </h4>
+
+          <div style="margin-top: 10px">
+            <!-- Department Name -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Department Name:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ with .Data.OrganizationUnitOverview.OrganizationUnitTitle
+                }}{{ . }}{{ else }}N/A{{ end }}
+              </p>
+            </div>
+
+            <!-- Department Head -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Department Head:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ with .Data.OrganizationUnitOverview.OrganizationUnitHead }}{{
+                . }}{{ else }}N/A{{ end }}
+              </p>
+            </div>
+
+            <!-- Email -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Email:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ with .Data.OrganizationUnitOverview.OrganizationUnitHeadEmail
+                }}{{ . }}{{ else }}N/A{{ end }}
+              </p>
+            </div>
+
+            <!-- Total Employees -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Total Employees:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ with .Data.OrganizationUnitOverview.TotalEmployees }}{{ .
+                }}{{ else }}N/A{{ end }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Key Summary Matrices (updated to show 0 instead of N/A) -->
+        <div class="keep-together" style="padding-top: 0px; margin-top: 32px">
+          <h4
+            style="
+              margin: 0 0 10px 0;
+              font-size: 18px;
+              color: #050505;
+              font-weight: 400;
+            "
+          >
+            Key Summary Matrices
+          </h4>
+
+          <div style="margin-top: 10px">
+            <!-- Total Users -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Total Users:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ if ne .Data.OrganizationUnitOverview.TotalEmployees nil }} {{
+                .Data.OrganizationUnitOverview.TotalEmployees }} {{ else }}N/A{{
+                end }}
+              </p>
+            </div>
+
+            <!-- Total Risks -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Total Risks:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ if ne .Data.KeyMatrix.TotalRisks nil }} {{
+                .Data.KeyMatrix.TotalRisks }} {{ else }}N/A{{ end }}
+              </p>
+            </div>
+
+            <!-- Total Policies -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Total Policies:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ if ne .Data.KeyMatrix.TotalPolicies nil }} {{
+                .Data.KeyMatrix.TotalPolicies }} {{ else }}N/A{{ end }}
+              </p>
+            </div>
+
+            <!-- Total Processes -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Total Processes:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ if ne .Data.KeyMatrix.TotalProcesses nil }} {{
+                .Data.KeyMatrix.TotalProcesses }} {{ else }}N/A{{ end }}
+              </p>
+            </div>
+
+            <!-- Total Compliances -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Total Compliances:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ if ne .Data.KeyMatrix.TotalCompliances nil }} {{
+                .Data.KeyMatrix.TotalCompliances }} {{ else }}N/A{{ end }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 1px; background: #e5e7eb; margin: 26px 0"></div>
+
+        {{ if (gt (len .Data.UserRoleDistribution) 0) }}
+        <div class="keep-together" style="padding-top: 0px; margin-top: 32px">
+          <h4
+            style="
+              margin: 0 0 10px 0;
+              font-size: 18px;
+              color: #050505;
+              font-weight: 400;
+            "
+          >
+            User Role Distribution
+          </h4>
+
+          <div style="margin-top: 10px">
+            {{ range .Data.UserRoleDistribution }}
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                {{ .RoleTitleEn }}:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ printf "%02d" .Count }}
+              </p>
+            </div>
+            {{ end }}
+          </div>
+        </div>
+        {{ end }} {{ if gt (len .Data.OrganizationUnitUserDetails) 0 }}
+        <div
+          style="
+            width: 100%;
+            max-width: 1000px;
+            margin-top: 32px;
+            background: #fff;
+          "
+        >
+          <h4
+            style="
+              margin: 0 0 10px 0;
+              font-size: 18px;
+              color: #050505;
+              font-weight: 400;
+            "
+          >
+            Users in {{ .Data.OrganizationUnitOverview.OrganizationUnitTitle }}
+          </h4>
+
+          <table
+            style="
+              width: 100%;
+              border-collapse: separate;
+              border-spacing: 0;
+              border: 1px solid #e5e7eb;
+              border-radius: 10px;
+              overflow: hidden;
+              font-size: 14px;
+            "
+          >
+            <thead>
+              <tr style="background: #fafafa; color: #111827">
+                <th
+                  style="
+                    text-align: left;
+                    padding: 12px 14px;
+                    border-bottom: 1px solid #e5e7eb;
+                    width: 52px;
+                  "
+                >
+                  #
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 12px 14px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Name
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 12px 14px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Designation
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 12px 14px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Role(s)
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {{ range $i, $u := .Data.OrganizationUnitUserDetails }}
+              <tr style="background: #ffffff">
+                <td
+                  style="
+                    padding: 12px 14px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #6b7280;
+                  "
+                >
+                  {{ printf "%d" (add $i 1) }}
+                </td>
+                <td
+                  style="padding: 12px 14px; border-bottom: 1px solid #f3f4f6"
+                >
+                  {{ printf "%s %s" $u.FirstNameEn $u.LastNameEn }}
+                </td>
+                <td
+                  style="
+                    padding: 12px 14px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #374151;
+                  "
+                >
+                  {{ $u.DesignationEn }}
+                </td>
+                <td
+                  style="
+                    padding: 12px 14px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #374151;
+                  "
+                >
+                  {{ $u.RoleTitleEn }}
+                </td>
+              </tr>
+              {{ end }}
+            </tbody>
+          </table>
+        </div>
+        {{ end }}
+
+        <!-- Risk Summary -->
+        {{ if .Data.RiskSummary}}
+        <div class="keep-together" style="padding-top: 0px; margin-top: 32px">
+          <h4
+            style="
+              margin: 0 0 10px 0;
+              font-size: 18px;
+              color: #050505;
+              font-weight: 400;
+            "
+          >
+            Risk Summary for {{ .Data.OrganizationUnitTitleEn }}
+          </h4>
+
+          <div style="margin-top: 10px">
+            <!-- Total Risks -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Total Risks:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                06
+              </p>
+            </div>
+
+            <!-- Open Risk -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Open Risk:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                04
+              </p>
+            </div>
+
+            <!-- Closed Risk -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Closed Risk:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                02
+              </p>
+            </div>
+
+            <!-- Closure Percentage -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Closure Percentage:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                33%
+              </p>
+            </div>
+          </div>
+        </div>
+        {{ end }}
+
+        <!-- Risk Rating Distribution -->
+        {{ if (gt (len .Data.RiskRatingDistribution) 0) }}
+        <div class="keep-together" style="padding-top: 0px; margin-top: 32px">
+          <h4
+            style="
+              margin: 0 0 10px 0;
+              font-size: 18px;
+              color: #050505;
+              font-weight: 400;
+            "
+          >
+            Risk Rating Distribution
+          </h4>
+
+          <div style="margin-top: 10px; margin-left: 10px">
+            {{ range .Data.RiskRatingDistribution }}
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <!-- Badge with reduced opacity background -->
+              <div
+                style="background: #E5F4F0;
+                   color: {{ .ColorCode }};
+                    padding: 4px 8px;
+                    border-radius: 5px;
+                    font-size: 12px;
+                    line-height: normal;
+                    display: inline-block;
+                    border: 1px solid {{ .ColorCode }};
+                    font-weight: 400;"
+              >
+                {{ .TitleEn }}
+              </div>
+
+              <!-- Count -->
+              <p
+                style="
+                  margin-top: 10px;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 500;
+                "
+              >
+                {{ printf "%02d" .Count }}
+              </p>
+            </div>
+            {{ end }}
+          </div>
+        </div>
+        {{ end }}
+
+        <!-- Mitigation Status -->
+        {{ if (gt (len .Data.RiskMitigationStatusDistribution) 0) }}
+        <div class="keep-together" style="padding-top: 0px; margin-top: 32px">
+          <h4
+            style="
+              margin: 0 0 10px 0;
+              font-size: 18px;
+              color: #050505;
+              font-weight: 400;
+            "
+          >
+            Mitigation Status
+          </h4>
+
+          <div style="margin-top: 10px; margin-left: 10px">
+            {{ range .Data.RiskMitigationStatusDistribution }}
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <div
+                style="background: #E5F4F0;
+                   color: {{ .ColorCode }};
+                    padding: 4px 8px;
+                    border-radius: 5px;
+                    font-size: 12px;
+                    line-height: normal;
+                    display: inline-block;
+                    border: 1px solid {{ .ColorCode }};
+                    font-weight: 400;"
+              >
+                {{ .TitleEn }}
+              </div>
+              <p
+                style="
+                  margin-top: 10px;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 500;
+                "
+              >
+                {{ printf "%02d" .Count }}
+              </p>
+            </div>
+            {{ end }}
+          </div>
+        </div>
+        {{ end }} {{ if gt (len .Data.RiskDetails) 0 }}
+        <div
+          class="keep-together"
+          style="
+            width: 100%;
+            max-width: 1000px;
+            margin-top: 32px;
+            background: #fff;
+          "
+        >
+          <h4
+            style="
+              margin: 0 0 10px 0;
+              font-size: 18px;
+              color: #050505;
+              font-weight: 400;
+            "
+          >
+            Risks Associated with {{ .Data.OrganizationUnitTitleEn }}
+          </h4>
+
+          <table
+            style="
+              width: 100%;
+              border-collapse: separate;
+              border-spacing: 0;
+              border: 1px solid #e5e7eb;
+              border-radius: 10px;
+              overflow: hidden;
+              font-family: 'Lexend Deca', sans-serif;
+              font-size: 13px;
+              color: #111827;
+            "
+          >
+            <thead>
+              <tr style="background: #fafafa; color: #111827">
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 40px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  #
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 260px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Risk Title
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 160px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Category
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 120px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Likelihood
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 120px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Impact
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 120px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Rating
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 120px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {{ range $i, $r := .Data.RiskDetails }} {{ $likelihood := "" }} {{
+              if $r.CurrentLikelihoodTitleEn }}{{ $likelihood =
+              $r.CurrentLikelihoodTitleEn }}{{ end }} {{ $impact := "" }} {{ if
+              $r.CurrentImpactTitleEn }}{{ $impact = $r.CurrentImpactTitleEn
+              }}{{ end }} {{ $rating := "" }} {{ if $r.CurrentRiskRatingTitleEn
+              }}{{ $rating = $r.CurrentRiskRatingTitleEn }}{{ end }} {{
+              $ratingColor := "#e5e7eb" }} {{ if $r.CurrentRiskRatingColorCode
+              }}{{ $ratingColor = $r.CurrentRiskRatingColorCode }}{{ end }} {{
+              $status := $r.RiskStatusTitleEn }} {{ $statusColor :=
+              $r.RiskStatusColorCode }}
+
+              <tr style="background: #ffffff">
+                <td
+                  style="
+                    padding: 10px 12px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #6b7280;
+                  "
+                >
+                  {{ printf "%d" (add $i 1) }}
+                </td>
+
+                <td
+                  style="padding: 10px 12px; border-bottom: 1px solid #f3f4f6"
+                >
+                  {{ $r.Title }}
+                </td>
+
+                <td
+                  style="
+                    padding: 10px 12px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #374151;
+                  "
+                >
+                  {{ $r.RiskCategoryTitleEn }}
+                </td>
+
+                <!-- Likelihood -->
+                <td
+                  style="
+                    padding: 10px 12px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #374151;
+                  "
+                >
+                  {{ $likelihood }}
+                </td>
+
+                <!-- Impact -->
+                <td
+                  style="
+                    padding: 10px 12px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #374151;
+                  "
+                >
+                  {{ $impact }}
+                </td>
+
+                <!-- Rating -->
+                <td
+                  style="padding: 10px 12px; border-bottom: 1px solid #f3f4f6"
+                >
+                  {{ if $rating }}
+                  <span
+                    style="background: #E5F4F0;
+                   color: {{ $ratingColor }};
+                   padding: 4px 8px;
+                   border-radius: 5px;
+                   font-size: 12px;
+                   line-height: normal;
+                   display: inline-block;
+                   border: 1px solid {{ $ratingColor }};
+                   font-weight: 400;"
+                  >
+                    {{ $rating }}
+                  </span>
+                  {{ else }} N/A {{ end }}
+                </td>
+
+                <!-- Status -->
+                <td
+                  style="padding: 10px 12px; border-bottom: 1px solid #f3f4f6"
+                >
+                  {{ if $status }}
+                  <span
+                    style="background: #E5F4F0;
+                   color: {{ $statusColor }};
+                   padding: 4px 8px;
+                   border-radius: 5px;
+                   font-size: 12px;
+                   line-height: normal;
+                   display: inline-block;
+                   border: 1px solid {{ $statusColor }};
+                   font-weight: 400;"
+                  >
+                    {{ $status }}
+                  </span>
+                  {{ else }} N/A {{ end }}
+                </td>
+              </tr>
+              {{ end }}
+            </tbody>
+          </table>
+        </div>
+        {{ end }} {{ if .Data.PolicySummary }}
+        <div
+          style="
+            width: 100%;
+            max-width: 1000px;
+            background: #fff;
+            margin-top: 32px;
+          "
+        >
+          <h4
+            style="
+              margin: 0 0 10px 0;
+              font-size: 18px;
+              color: #050505;
+              font-weight: 400;
+            "
+          >
+            Policy Summary for {{ .Data.OrganizationUnitTitleEn }}
+          </h4>
+
+          <div style="margin-top: 10px">
+            <!-- Total Policies -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Total Policies:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ printf "%02d" .Data.PolicySummary.TotalPolicies }}
+              </p>
+            </div>
+
+            <!-- Active Policies -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Active Policies:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ printf "%02d" .Data.PolicySummary.ActivePolicies }}
+              </p>
+            </div>
+
+            <!-- Under Review -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Under Review:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ printf "%02d" .Data.PolicySummary.PoliciesUnderReview }}
+              </p>
+            </div>
+
+            <!-- Policy Health -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Policy Health:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ printf "%.1f%%" .Data.PolicySummary.PolicyHealthPercentage }}
+              </p>
+            </div>
+
+            <!-- Awareness -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Policy Awareness:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ printf "%.0f%%" .Data.PolicySummary.PolicyAwarenessPercentage
+                }}
+              </p>
+            </div>
+          </div>
+        </div>
+        {{ end }} {{ if gt (len .Data.PolicyDetails) 0 }}
+        <div
+          class="keep-together"
+          style="
+            width: 100%;
+            max-width: 1000px;
+            margin-top: 32px;
+            background: #fff;
+          "
+        >
+          <h4
+            style="
+              margin: 0 0 10px 0;
+              font-size: 18px;
+              color: #050505;
+              font-weight: 400;
+            "
+          >
+            Policies Applied to {{ .Data.OrganizationUnitTitleEn }}
+          </h4>
+
+          <table
+            style="
+              width: 100%;
+              border-collapse: separate;
+              border-spacing: 0;
+              border: 1px solid #e5e7eb;
+              border-radius: 10px;
+              overflow: hidden;
+              font-family: 'Lexend Deca', sans-serif;
+              font-size: 13px;
+              color: #111827;
+            "
+          >
+            <thead>
+              <tr style="background: #fafafa; color: #111827">
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 40px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  #
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 120px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Type
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 240px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Title
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 160px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Category
+                </th>
+
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 180px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Responsible User
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 140px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Acknowledgement Status
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {{ range $i, $p := .Data.PolicyDetails }}
+
+              <tr style="background: #ffffff">
+                <!-- Index -->
+                <td
+                  style="
+                    padding: 10px 12px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #6b7280;
+                  "
+                >
+                  {{ printf "%d" (add $i 1) }}
+                </td>
+
+                <!-- Type -->
+                <td
+                  style="
+                    padding: 10px 12px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #374151;
+                  "
+                >
+                  {{ $p.DocumentTypeTitleEn }}
+                </td>
+
+                <!-- Policy Title -->
+                <td
+                  style="padding: 10px 12px; border-bottom: 1px solid #f3f4f6"
+                >
+                  {{ $p.TitleEn }}
+                </td>
+
+                <!-- Category -->
+                <td
+                  style="
+                    padding: 10px 12px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #374151;
+                  "
+                >
+                  {{ $p.DocumentCategoryTitleEn }}
+                </td>
+
+                <!-- Responsible User -->
+                <td
+                  style="
+                    padding: 10px 12px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #374151;
+                  "
+                >
+                  {{ $p.ResponsibleUserFirstNameEn }} {{
+                  $p.ResponsibleUserLastNameEn }}
+                </td>
+
+                <!-- Status -->
+                <td
+                  style="padding: 10px 12px; border-bottom: 1px solid #f3f4f6"
+                >
+                  {{ if $p.Acknowledged }}
+                  <span
+                    style="
+                      background: rgba(
+                        16,
+                        185,
+                        129,
+                        0.1
+                      ); /* light green background */
+                      color: #10b981; /* green text */
+                      padding: 4px 8px;
+                      border-radius: 5px;
+                      font-size: 12px;
+                      line-height: normal;
+                      display: inline-block;
+                      border: 1px solid #10b981;
+                      font-weight: 500;
+                    "
+                  >
+                    Acknowledged
+                  </span>
+                  {{ else }}
+                  <span
+                    style="
+                      background: rgba(
+                        239,
+                        68,
+                        68,
+                        0.1
+                      ); /* light red background */
+                      color: #ef4444; /* red text */
+                      padding: 4px 8px;
+                      border-radius: 5px;
+                      font-size: 12px;
+                      line-height: normal;
+                      display: inline-block;
+                      border: 1px solid #ef4444;
+                      font-weight: 500;
+                    "
+                  >
+                    Not Acknowledged
+                  </span>
+                  {{ end }}
+                </td>
+              </tr>
+              {{ end }}
+            </tbody>
+          </table>
+        </div>
+        {{ end }} {{ if .Data.ProcessHealthSummary }}
+        <div
+          style="
+            width: 100%;
+            max-width: 1000px;
+            background: #fff;
+            margin-top: 32px;
+          "
+        >
+          <h4
+            style="
+              margin: 0 0 10px 0;
+              font-size: 18px;
+              color: #050505;
+              font-weight: 400;
+            "
+          >
+            Process Health Summary for {{ .Data.OrganizationUnitTitleEn }}
+          </h4>
+
+          <div style="margin-top: 10px">
+            <!-- Total Processes -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Total Processes:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ printf "%02d" .Data.ProcessHealthSummary.TotalProcesses }}
+              </p>
+            </div>
+
+            <!-- Active Processes -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Active Processes:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ printf "%02d" .Data.ProcessHealthSummary.ActiveProcesses }}
+              </p>
+            </div>
+
+            <!-- Active Percentage -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Active Percentage:
+              </p>
+              <p
+                style="
+                  margin: 0 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ printf "%.0f%%" .Data.ProcessHealthSummary.ActivePercentage
+                }}
+              </p>
+            </div>
+          </div>
+        </div>
+        {{ end }} {{ if gt (len .Data.ProcessDetails) 0 }}
+        <div
+          class="keep-together"
+          style="
+            width: 100%;
+            max-width: 1000px;
+            margin-top: 32px;
+            background: #fff;
+          "
+        >
+          <h4
+            style="
+              margin: 0 0 10px 0;
+              font-size: 18px;
+              color: #050505;
+              font-weight: 400;
+              font-family: 'Lexend Deca', sans-serif;
+            "
+          >
+            Processes Managed by {{ .Data.OrganizationUnitTitleEn }}
+          </h4>
+
+          <table
+            style="
+              width: 100%;
+              border-collapse: separate;
+              border-spacing: 0;
+              border: 1px solid #e5e7eb;
+              border-radius: 10px;
+              overflow: hidden;
+              font-family: 'Lexend Deca', sans-serif;
+              font-size: 13px;
+              color: #111827;
+            "
+          >
+            <thead>
+              <tr style="background: #fafafa; color: #111827">
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 40px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  #
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 200px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Process Title
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 160px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Process Group
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 160px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Responsible Unit
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 160px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Process Owner
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 120px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Risk Rating
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 120px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Status
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {{ range $i, $p := .Data.ProcessDetails }} {{/* Risk Rating */}}
+              {{ $riskTitle := "" }} {{ if $p.RiskRatingTitleEn }}{{ $riskTitle
+              = $p.RiskRatingTitleEn }}{{ end }} {{ $riskColor := "#e5e7eb" }}
+              {{ if $p.RiskRatingColorCode }}{{ $riskColor =
+              $p.RiskRatingColorCode }}{{ end }} {{/* Status */}} {{
+              $statusTitle := $p.LifecycleStatusTitleEn }} {{ $statusColor :=
+              $p.LifecycleStatusColorCode }}
+
+              <tr style="background: #ffffff">
+                <td
+                  style="
+                    padding: 10px 12px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #6b7280;
+                  "
+                >
+                  {{ printf "%d" (add $i 1) }}
+                </td>
+
+                <td
+                  style="padding: 10px 12px; border-bottom: 1px solid #f3f4f6"
+                >
+                  {{ $p.TitleEn }}
+                </td>
+
+                <td
+                  style="
+                    padding: 10px 12px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #374151;
+                  "
+                >
+                  {{ $p.ProcessGroupTitleEn }}
+                </td>
+
+                <td
+                  style="
+                    padding: 10px 12px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #374151;
+                  "
+                >
+                  {{ $p.ResponsibleUnitTitleEn }}
+                </td>
+
+                <td
+                  style="
+                    padding: 10px 12px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #374151;
+                  "
+                >
+                  {{ $p.OwnerFirstNameEn }} {{ $p.OwnerLastNameEn}}
+                </td>
+
+                <!-- Risk Rating -->
+                <td
+                  style="padding: 10px 12px; border-bottom: 1px solid #f3f4f6"
+                >
+                  {{ if $riskTitle }}
+                  <span
+                    style="
+              background: rgba(229, 244, 240, 0.5);
+              color: {{ $riskColor }};
+              padding: 4px 8px;
+              border-radius: 5px;
+              font-size: 12px;
+              line-height: normal;
+              display: inline-block;
+              border: 1px solid {{ $riskColor }};
+              font-weight: 400;
+            "
+                  >
+                    {{ $riskTitle }}
+                  </span>
+                  {{ else }} N/A {{ end }}
+                </td>
+
+                <!-- Status -->
+                <td
+                  style="padding: 10px 12px; border-bottom: 1px solid #f3f4f6"
+                >
+                  {{ if $statusTitle }}
+                  <span
+                    style="
+              background: rgba(229, 244, 240, 0.5);
+              color: {{ $statusColor }};
+              padding: 4px 8px;
+              border-radius: 5px;
+              font-size: 12px;
+              line-height: normal;
+              display: inline-block;
+              border: 1px solid {{ $statusColor }};
+              font-weight: 400;
+            "
+                  >
+                    {{ $statusTitle }}
+                  </span>
+                  {{ else }} N/A {{ end }}
+                </td>
+              </tr>
+              {{ end }}
+            </tbody>
+          </table>
+        </div>
+        {{ end }} {{ if .Data.ComplianceSummary }}
+        <div
+          style="
+            width: 100%;
+            max-width: 1000px;
+            background: #fff;
+            margin-top: 32px;
+          "
+        >
+          <h4
+            style="
+              margin: 0 0 10px 0;
+              font-size: 18px;
+              color: #050505;
+              font-weight: 400;
+            "
+          >
+            Compliance Summary for {{ .Data.OrganizationUnitTitleEn }}
+          </h4>
+
+          <div style="margin-top: 10px">
+            <!-- Total Requirements -->
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <p
+                style="
+                  margin: 0 0 2px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 13px;
+                  line-height: 1.5em;
+                  font-weight: 300;
+                "
+              >
+                Total Compliance Requirements:
+              </p>
+              <p
+                style="
+                  margin: 10px 0 13px 0;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 400;
+                "
+              >
+                {{ printf "%02d" .Data.ComplianceSummary.TotalRequirements }}
+              </p>
+            </div>
+
+            <!-- Dynamic Compliance Statuses -->
+            {{ range .Data.ComplianceSummary.ComplianceStatuses }}
+            <div
+              style="
+                width: 22%;
+                padding-right: 1%;
+                display: inline-block;
+                vertical-align: top;
+              "
+            >
+              <div
+                style="background: #E5F4F0;
+                   color: {{ .ColorCode }};
+                    padding: 4px 8px;
+                    border-radius: 5px;
+                    font-size: 12px;
+                    line-height: normal;
+                    display: inline-block;
+                    border: 1px solid {{ .ColorCode }};
+                    font-weight: 400;"
+              >
+                {{ .TitleEn }}
+              </div>
+              <p
+                style="
+                  margin-top: 10px;
+                  font-family: 'Lexend Deca', sans-serif;
+                  color: #000;
+                  font-size: 14px;
+                  line-height: 1.5em;
+                  font-weight: 500;
+                "
+              >
+                {{ printf "%02d" .Count }}
+              </p>
+            </div>
+            {{ end }}
+          </div>
+        </div>
+        {{ end }} {{ if gt (len .Data.ComplianceRequirementDetails) 0 }}
+        <div
+          class="keep-together"
+          style="
+            width: 100%;
+            max-width: 1000px;
+            margin-top: 32px;
+            background: #fff;
+          "
+        >
+          <h4
+            style="
+              margin: 0 0 10px 0;
+              font-size: 18px;
+              color: #050505;
+              font-weight: 400;
+            "
+          >
+            Compliance Requirements Linked to {{ .Data.OrganizationUnitTitleEn
+            }}
+          </h4>
+
+          <table
+            style="
+              width: 100%;
+              border-collapse: separate;
+              border-spacing: 0;
+              border: 1px solid #e5e7eb;
+              border-radius: 10px;
+              overflow: hidden;
+              font-family: 'Lexend Deca', sans-serif;
+              font-size: 13px;
+              color: #111827;
+            "
+          >
+            <thead>
+              <tr style="background: #fafafa; color: #111827">
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 40px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  #
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 260px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Requirement Title
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 180px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Category
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 120px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Severity
+                </th>
+                <th
+                  style="
+                    text-align: left;
+                    padding: 10px 12px;
+                    width: 140px;
+                    border-bottom: 1px solid #e5e7eb;
+                  "
+                >
+                  Compliance Status
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {{ range $i, $c := .Data.ComplianceRequirementDetails }} {{
+              $severityTitle := $c.SeverityLevelTitleEn }} {{ $severityColor :=
+              $c.SeverityLevelColorCode }} {{ $statusTitle :=
+              $c.ComplianceStatusTitleEn }} {{ $statusColor :=
+              $c.ComplianceStatusColorCode }}
+
+              <tr style="background: #ffffff">
+                <td
+                  style="
+                    padding: 10px 12px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #6b7280;
+                  "
+                >
+                  {{ printf "%d" (add $i 1) }}
+                </td>
+
+                <td
+                  style="
+                    padding: 10px 12px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #111827;
+                  "
+                >
+                  {{ $c.TitleEn }}
+                </td>
+
+                <td
+                  style="
+                    padding: 10px 12px;
+                    border-bottom: 1px solid #f3f4f6;
+                    color: #374151;
+                  "
+                >
+                  {{ if $c.ComplianceRequirementCategoryTitleEn }} {{
+                  $c.ComplianceRequirementCategoryTitleEn}} {{ else }} N/A {{
+                  end }}
+                </td>
+
+                <!-- Severity -->
+                <td
+                  style="padding: 10px 12px; border-bottom: 1px solid #f3f4f6"
+                >
+                  {{ if $severityTitle }}
+                  <span
+                    style="
+              background: #E5F4F0;
+              color: {{ $severityColor }};
+              padding: 4px 8px;
+              border-radius: 5px;
+              font-size: 12px;
+              line-height: normal;
+              display: inline-block;
+              border: 1px solid {{ $severityColor }};
+              font-weight: 400;
+            "
+                  >
+                    {{ $severityTitle }}
+                  </span>
+                  {{ else }} N/A {{ end }}
+                </td>
+
+                <!-- Status -->
+                <td
+                  style="padding: 10px 12px; border-bottom: 1px solid #f3f4f6"
+                >
+                  {{ if $statusTitle }}
+                  <span
+                    style="
+              background: #E5F4F0;
+              color: {{ $statusColor }};
+              padding: 4px 8px;
+              border-radius: 5px;
+              font-size: 12px;
+              line-height: normal;
+              display: inline-block;
+              border: 1px solid {{ $statusColor }};
+              font-weight: 400;
+            "
+                  >
+                    {{ $statusTitle }}
+                  </span>
+                  {{ else }} N/A {{ end }}
+                </td>
+              </tr>
+              {{ end }}
+            </tbody>
+          </table>
+        </div>
+        {{ end }}
+      </div>
+    </div>
+
+    <script
+      src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+      integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+      integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+      integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+      crossorigin="anonymous"
+    ></script>
+  </body>
+</html>

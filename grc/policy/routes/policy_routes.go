@@ -69,5 +69,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	policyRoutes.GET("/policy/reports/:id", middlewares.RolePermissionMiddleware(db, "policy_register", "db"), PolicyReportController.GetPolicySummaryReport)
 	policyRoutes.POST("/policy/reports", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), PolicyReportController.CreatePolicyReport)
 	policyRoutes.DELETE("/policy/reports/:id", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), PolicyReportController.DeletePolicyReport)
+	policyRoutes.GET("/policy/reports/:id/export", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), PolicyReportController.ExportPolicySummaryReportToPDF)
 
 }

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	logServices "jethur/grc/logs/services"
@@ -10,6 +11,10 @@ import (
 	settingServices "jethur/grc/settings/services"
 	"jethur/utility"
 	"math"
+	"os"
+	"time"
+
+	"gorm.io/gorm"
 )
 
 // Interface
@@ -26,6 +31,7 @@ type OrganizationUnitsServiceInterface interface {
 	Create(currentUserID uint, organizationUnitReportFormDTO *organizationDTOs.OrganizationUnitReportFormDTO) (uint, error)
 	Delete(organizationUnitReportID uint, currentUserID uint) error
 	GetOrganizationUnitReport(organizationUnitReportID uint) (*organizationDTOs.OrganizationUnitSummaryReportDTO, error)
+	GetOrganizationUnitReportExport(organizationReportID uint, currentUserID uint) (string, error)
 }
 
 type OrganizationUnitsService struct {
@@ -35,6 +41,7 @@ type OrganizationUnitsService struct {
 	userRepo             repositories.UserRepositoryInterface
 	userSvc              UserServiceInterface
 	organizationUnitSvc  settingServices.OrganizationUnitServiceInterface
+	reportTemplateSvc    settingServices.ReportTemplateSettingServiceInterface
 }
 
 func NewOrganizationUnitsService(
@@ -44,6 +51,7 @@ func NewOrganizationUnitsService(
 	userRepo repositories.UserRepositoryInterface,
 	userSvc UserServiceInterface,
 	organizationUnitSvc settingServices.OrganizationUnitServiceInterface,
+	reportTemplateSvc settingServices.ReportTemplateSettingServiceInterface,
 ) *OrganizationUnitsService {
 	return &OrganizationUnitsService{
 		repo:                 repo,
@@ -52,6 +60,7 @@ func NewOrganizationUnitsService(
 		userRepo:             userRepo,
 		userSvc:              userSvc,
 		organizationUnitSvc:  organizationUnitSvc,
+		reportTemplateSvc:    reportTemplateSvc,
 	}
 }
 
@@ -392,7 +401,17 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 
 	reportDetails, err := s.repo.GetByID(organizationUnitReportID)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, organizationUnitReportID)
+		}
 		return nil, err
+	}
+
+	if _, err := s.reportTemplateSvc.GetImagePath("logo"); err != nil {
+		return nil, utility.NewForbiddenError("logo_image_missing")
+	}
+	if _, err := s.reportTemplateSvc.GetImagePath("cover-page-bg"); err != nil {
+		return nil, utility.NewForbiddenError("cover_image_missing")
 	}
 
 	report.Title = reportDetails.Title
@@ -442,7 +461,7 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 		return nil, err
 	}
 
-	if report.RiskMitgationStatusDistribution, err = s.repo.GetRiskMitigationStatusDistributionByOrganizationUnit(organizationUnitID); err != nil {
+	if report.RiskMitigationStatusDistribution, err = s.repo.GetRiskMitigationStatusDistributionByOrganizationUnit(organizationUnitID); err != nil {
 		return nil, err
 	}
 
@@ -474,7 +493,52 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 		return nil, err
 	}
 
+	report.AppUrl = os.Getenv("APP_URL")
+
 	return &report, nil
+}
+
+func (s *OrganizationUnitsService) GetOrganizationUnitReportExport(organizationReportID uint, currentUserID uint) (string, error) {
+	organizationReport, err := s.GetOrganizationUnitReport(organizationReportID)
+	if err != nil {
+		return "", err
+	}
+
+	organizationReport.GeneratedOn = time.Now().Format("2006-01-02 03:04 PM")
+
+	// Main content template
+	templatePaths := []string{"organization/templates/pdf/organization_unit_summary_report.html"}
+	htmlContent, err := utility.GeneratePDFContent(organizationReport, templatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate HTML content: %w", err)
+	}
+
+	// Header template - process with data to resolve template variables
+	headerTemplatePaths := []string{"organization/templates/pdf/organization_unit_summary_report_header.html"}
+	headerContent, err := utility.GeneratePDFContent(organizationReport, headerTemplatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate header content: %w", err)
+	}
+
+	// Footer template - process with data to resolve template variables
+	footerTemplatePaths := []string{"organization/templates/pdf/organization_unit_summary_report_footer.html"}
+	footerContent, err := utility.GeneratePDFContent(organizationReport, footerTemplatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate footer content: %w", err)
+	}
+	coverTemplatePaths := []string{"organization/templates/pdf/organization_unit_summary_report_cover.html"}
+	coverContent, err := utility.GeneratePDFContent(organizationReport, coverTemplatePaths, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate footer content: %w", err)
+	}
+
+	// Convert HTML → PDF with header and footer
+	pdfFileName := fmt.Sprintf("DepartmentSummaryReport_%d.pdf", organizationReportID)
+	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent, htmlContent, pdfFileName, headerContent, footerContent); err != nil {
+		return "", fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	return pdfFileName, nil
 }
 
 func (s *OrganizationUnitsService) parseOrganizationUnitReportDates(dto *organizationDTOs.OrganizationUnitReportFormDTO) (*organizationDTOs.OrganizationUnitReportParsedDates, error) {

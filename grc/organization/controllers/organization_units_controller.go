@@ -2,8 +2,11 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
 	"strconv"
+	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
@@ -450,4 +453,55 @@ func (osc *OrganizationUnitsController) DeleteOrganizationUnitReport(c *gin.Cont
 		}
 	}
 	c.Status(http.StatusOK)
+}
+
+func (osc *OrganizationUnitsController) ExportOrganizationUnitReportToPDF(c *gin.Context) {
+	IDStr := c.Param("id")
+	ID, err := strconv.ParseUint(IDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(osc.db, c, err.Error())
+		return
+	}
+
+	// Delegate to service to handle PDF generation
+	fileName, err := osc.service.GetOrganizationUnitReportExport(uint(ID), uint(currentUserID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ForbiddenError:
+			// Return a 403 Forbidden response with the error message
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(osc.db, c, fmt.Sprintf("Failed to export Organization unit Report PDF: %s", err.Error()))
+			return
+		}
+	}
+
+	// Set headers to ensure the file is served with the correct file name
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
+	c.Header("Content-Type", "application/pdf")
+
+	// Serve the PDF file
+	c.File(fileName)
+	// Cleanup after the response has been sent
+	c.Writer.Flush()
+
+	go func() {
+		time.Sleep(2 * time.Second) // Add a small delay to ensure file is no longer in use
+		err := os.Remove(fileName)
+		if err != nil {
+			fmt.Printf("Failed to delete file %s: %v\n", fileName, err)
+		} else {
+			fmt.Printf("Successfully deleted file %s\n", fileName)
+		}
+	}()
 }
