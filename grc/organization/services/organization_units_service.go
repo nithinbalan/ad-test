@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
@@ -10,6 +11,7 @@ import (
 	"jethur/grc/organization/repositories"
 	settingServices "jethur/grc/settings/services"
 	"jethur/utility"
+	"log"
 	"math"
 	"os"
 	"time"
@@ -28,8 +30,8 @@ type OrganizationUnitsServiceInterface interface {
 	GetParentOrganizationUnitWithHead(unitID uint) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error)
 
 	GetAll(params *organizationDTOs.OrganizationUnitReportListQueryParamsDTO) (*organizationDTOs.OrganizationUnitReportListReponseDTO, error)
-	Create(currentUserID uint, organizationUnitReportFormDTO *organizationDTOs.OrganizationUnitReportFormDTO) (uint, error)
-	Delete(organizationUnitReportID uint, currentUserID uint) error
+	CreateOrganizationUnitReport(currentUserID uint, organizationUnitReportFormDTO *organizationDTOs.OrganizationUnitReportFormDTO) (uint, error)
+	DeleteOrganizationUnitReport(organizationUnitReportID uint, currentUserID uint) error
 	GetOrganizationUnitReport(organizationUnitReportID uint) (*organizationDTOs.OrganizationUnitSummaryReportDTO, error)
 	GetOrganizationUnitReportExport(organizationReportID uint, currentUserID uint) (string, error)
 }
@@ -323,7 +325,7 @@ func (s *OrganizationUnitsService) GetAll(params *organizationDTOs.OrganizationU
 	return s.repo.GetAll(params)
 }
 
-func (s *OrganizationUnitsService) Create(currentUserID uint, organizationUnitReportFormDTO *organizationDTOs.OrganizationUnitReportFormDTO) (uint, error) {
+func (s *OrganizationUnitsService) CreateOrganizationUnitReport(currentUserID uint, organizationUnitReportFormDTO *organizationDTOs.OrganizationUnitReportFormDTO) (uint, error) {
 	tx := s.repo.BeginTransaction()
 
 	if err := s.validateOrganizatoinUnitReportFormDTO(organizationUnitReportFormDTO); err != nil {
@@ -343,10 +345,366 @@ func (s *OrganizationUnitsService) Create(currentUserID uint, organizationUnitRe
 		CreatedByID:        currentUserID,
 	}
 
-	organizationUnitReportID, err := s.repo.Create(organizationUnitReport, tx)
+	organizationUnitReportID, err := s.repo.CreateOrganizationUnitReport(organizationUnitReport, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	organizationUnitID := organizationUnitReportFormDTO.OrganizationUnitID
+
+	orgUnit, err := s.organizationUnitSvc.GetByID(organizationUnitID)
+	if err != nil {
+		return 0, err
+	}
+	orgLevel := uint(orgUnit.OrganizationLevel.Level)
+
+	overview, err := s.repo.GetOrganizationUnitOverview(organizationUnitID, orgLevel)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	log.Println("overview:", overview)
+
+	if overview.OrganizationUnitHeadNameEn != nil && *overview.OrganizationUnitHeadNameEn == "" {
+		overview.OrganizationUnitHeadNameEn = nil
+	}
+	if overview.OrganizationUnitHeadNameAr != nil && *overview.OrganizationUnitHeadNameAr == "" {
+		overview.OrganizationUnitHeadNameAr = nil
+	}
+
+	overviewDTO := &models.OrganizationUnitReportOverview{
+		OrganizationUnitReportID:   organizationUnitReportID,
+		OrganizationUnitTitleEn:    overview.OrganizationUnitTitleEn,
+		OrganizationUnitTitleAr:    overview.OrganizationUnitTitleAr,
+		OrganizationUnitHeadNameEn: overview.OrganizationUnitHeadNameEn,
+		OrganizationUnitHeadNameAr: overview.OrganizationUnitHeadNameAr,
+		OrganizationUnitHeadEmail:  overview.OrganizationUnitHeadEmail,
+		TotalEmployees:             int(overview.TotalEmployees),
+		CreatedByID:                currentUserID,
+	}
+
+	if err := s.repo.CreateOrganizationUnitReportOverview(overviewDTO, tx); err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to insert organization_unit_report_overview: %w", err)
+	}
+
+	keyMetrics, err := s.repo.GetOrganizationUnitKeyMetrics(organizationUnitID)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	keyMetricsDTO := &models.OrganizationUnitReportKeyMetrics{
+		OrganizationUnitReportID: organizationUnitReportID,
+		TotalUsers:               int(overview.TotalEmployees),
+		TotalRisks:               int(keyMetrics.TotalRisks),
+		TotalPolicies:            int(keyMetrics.TotalPolicies),
+		TotalProcesses:           int(keyMetrics.TotalProcesses),
+		TotalCompliances:         int(keyMetrics.TotalCompliances),
+		CreatedByID:              currentUserID,
+	}
+
+	if err := s.repo.CreateOrganizationUnitReportKeyMetrics(keyMetricsDTO, tx); err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to insert organization_unit_report_key_metrics: %w", err)
+	}
+
+	userRoles, err := s.repo.GetUserRoleDistribution(organizationUnitID, orgLevel)
+	if err != nil {
+		tx.Rollback()
+		return 0, nil
+	}
+
+	for _, role := range userRoles {
+		userRoleDTO := &models.OrganizationUnitReportUserRole{
+			OrganizationUnitReportID: organizationUnitReportID,
+			RoleTitleEn:              role.RoleTitleEn,
+			RoleTitleAr:              role.RoleTitleAr,
+			Count:                    int(role.Count),
+			CreatedByID:              currentUserID,
+		}
+
+		if err := s.repo.CreateOrganizationUnitReportUserRole(userRoleDTO, tx); err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to insert organization_unit_report_user_roles: %w", err)
+
+		}
+	}
+
+	users, err := s.repo.GetUsersByOrganizationUnitReport(organizationUnitID, orgLevel)
+	if err != nil {
+		tx.Rollback()
+		return 0, nil
+	}
+
+	for _, user := range users {
+		userDTO := &models.OrganizationUnitReportUser{
+			OrganizationUnitReportID: organizationUnitReportID,
+			UserNameEn:               fmt.Sprintf("%s %s", user.FirstNameEn, user.LastNameEn),
+			UserNameAr:               fmt.Sprintf("%s %s", user.FirstNameAr, user.LastNameAr),
+			DesignationEn:            user.DesignationEn,
+			DesignationAr:            user.DesignationAr,
+			RoleTitleEn:              user.RoleTitleEn,
+			RoleTitleAr:              user.RoleTitleAr,
+			CreatedByID:              currentUserID,
+		}
+
+		if err := s.repo.CreateOrganizationUnitReportUser(userDTO, tx); err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to insert organization_unit_report_users: %w", err)
+		}
+	}
+
+	riskSummary, err := s.repo.GetRiskSummaryByOrganizationUnit(organizationUnitID)
+	if err != nil {
+		tx.Rollback()
+		return 0, nil
+	}
+
+	riskSummaryDTO := &models.OrganizationUnitReportRiskSummary{
+		OrganizationUnitReportID: organizationUnitReportID,
+		TotalRiskCount:           int(riskSummary.TotalRisks),
+		OpenRiskCount:            int(riskSummary.OpenRisks),
+		ClosedRiskCount:          int(riskSummary.ClosedRisks),
+		CreatedByID:              currentUserID,
+	}
+
+	if err := s.repo.CreateOrganizationUnitReportRiskSummary(riskSummaryDTO, tx); err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to insert organization_unit_report_risk_summary: %w", err)
+	}
+
+	riskRatings, err := s.repo.GetRiskRatingDistributionByOrganizationUnit(organizationUnitID)
+	if err != nil {
+		tx.Rollback()
+		return 0, nil
+	}
+
+	for _, riskRating := range riskRatings {
+		riskRatingDTO := &models.OrganizationUnitReportRiskRating{
+			OrganizationUnitReportID: organizationUnitReportID,
+			RiskRatingTitleEn:        riskRating.TitleEn,
+			RiskRatingTitleAr:        riskRating.TitleAr,
+			RiskRatingColorCode:      riskRating.ColorCode,
+			Count:                    int(riskRating.Count),
+			CreatedByID:              currentUserID,
+		}
+
+		if err := s.repo.CreateOrganizationUnitReportRiskRating(riskRatingDTO, tx); err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to insert organization_unit_report_risk_ratings: %w", err)
+
+		}
+	}
+
+	riskMitigations, err := s.repo.GetRiskMitigationStatusDistributionByOrganizationUnit(organizationUnitID)
+	if err != nil {
+		tx.Rollback()
+		return 0, nil
+	}
+
+	for _, riskMitigation := range riskMitigations {
+		riskMitigationDTO := &models.OrganizationUnitReportRiskMitigation{
+			OrganizationUnitReportID:      organizationUnitReportID,
+			RiskActionPlanStatusTitleEn:   riskMitigation.TitleEn,
+			RiskActionPlanStatusTitleAr:   riskMitigation.TitleAr,
+			RiskActionPlanStatusColorCode: riskMitigation.ColorCode,
+			Count:                         int(riskMitigation.Count),
+			CreatedByID:                   currentUserID,
+		}
+
+		if err := s.repo.CreateOrganizationUnitReportRiskMitigation(riskMitigationDTO, tx); err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to insert organization_unit_report_risk_mitigations: %w", err)
+
+		}
+	}
+
+	risks, err := s.repo.GetRiskByOrganizationUnit(organizationUnitID)
+	if err != nil {
+		tx.Rollback()
+		return 0, nil
+	}
+
+	for _, risk := range risks {
+		riskDTO := &models.OrganizationUnitReportRisk{
+			OrganizationUnitReportID: organizationUnitReportID,
+			RiskTitle:                risk.Title,
+			Description:              risk.Description,
+			RiskCategoryTitleEn:      risk.RiskCategoryTitleEn,
+			RiskCategoryTitleAr:      risk.RiskCategoryTitleAr,
+			RiskStatusTitleEn:        risk.RiskStatusTitleEn,
+			RiskStatusTitleAr:        risk.RiskStatusTitleAr,
+			RiskStatusColorCode:      risk.RiskStatusColorCode,
+			RiskLikelihoodTitleEn:    risk.CurrentLikelihoodTitleEn,
+			RiskLikelihoodTitleAr:    risk.CurrentLikelihoodTitleAr,
+			RiskImpactTitleEn:        risk.CurrentImpactTitleEn,
+			RiskImpactTitleAr:        risk.CurrentImpactTitleAr,
+			RiskRatingTitleEn:        risk.CurrentRiskRatingTitleEn,
+			RiskRatingTitleAr:        risk.CurrentRiskRatingTitleAr,
+			RiskRatingColorCode:      risk.CurrentRiskRatingColorCode,
+			CreatedByID:              currentUserID,
+		}
+
+		if err := s.repo.CreateOrganizationUnitReportRisk(riskDTO, tx); err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to insert organization_unit_report_risks: %w", err)
+
+		}
+	}
+
+	policySummary, err := s.repo.GetPolicySummaryByOrganizationUnit(organizationUnitID, orgLevel)
+	if err != nil {
+		tx.Rollback()
+		return 0, nil
+	}
+
+	policySummaryDTO := &models.OrganizationUnitReportPolicySummary{
+		OrganizationUnitReportID: organizationUnitReportID,
+		TotalPolicyCount:         int(policySummary.TotalPolicies),
+		ActivePolicyCount:        int(policySummary.ActivePolicies),
+		UnderReviewPolicyCount:   int(policySummary.PoliciesUnderReview),
+		PolicyHealthPercent:      float32(policySummary.PolicyHealthPercentage),
+		PolicyAwarenessPercent:   float32(policySummary.PolicyAwarenessPercentage),
+		CreatedByID:              currentUserID,
+	}
+
+	if err := s.repo.CreateOrganizationUnitReportPolicySummary(policySummaryDTO, tx); err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to insert organization_unit_report_policy_summary: %w", err)
+	}
+
+	policies, err := s.repo.GetPolicyByOrganizationUnit(organizationUnitID)
+	if err != nil {
+		tx.Rollback()
+		return 0, nil
+	}
+
+	for _, policy := range policies {
+		policyDTO := &models.OrganizationUnitReportPolicy{
+			OrganizationUnitReportID: organizationUnitReportID,
+			DocumentTitleEn:          policy.TitleEn,
+			DocumentTitleAr:          policy.TitleAr,
+			DocumentCategoryTitleEn:  policy.DocumentCategoryTitleEn,
+			DocumentCategoryTitleAr:  policy.DocumentCategoryTitleAr,
+			DocumentTypeTitleEn:      policy.DocumentTypeTitleEn,
+			DocumentTypeTitleAr:      policy.DocumentTypeTitleAr,
+			ResponsibleUserNameEn:    fmt.Sprintf("%s %s", policy.ResponsibleUserFirstNameEn, policy.ResponsibleUserLastNameEn),
+			ResponsibleUserNameAr:    fmt.Sprintf("%s %s", policy.ResponsibleUserFirstNameAr, policy.ResponsibleUserLastNameAr),
+			Acknowledged:             policy.Acknowledged,
+			CreatedByID:              currentUserID,
+		}
+
+		if err := s.repo.CreateOrganizationUnitReportPolicy(policyDTO, tx); err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to insert organization_unit_report_policies: %w", err)
+
+		}
+	}
+
+	processSummary, err := s.repo.GetProcessHealthSummaryByOrganizationUnit(organizationUnitID)
+	if err != nil {
+		tx.Rollback()
+		return 0, nil
+	}
+
+	processSummaryDTO := &models.OrganizationUnitReportProcessSummary{
+		OrganizationUnitReportID: organizationUnitReportID,
+		ActiveProcessCount:       int(processSummary.ActiveProcesses),
+		TotalProcessCount:        int(processSummary.TotalProcesses),
+		CreatedByID:              currentUserID,
+	}
+
+	if err := s.repo.CreateOrganizationUnitReportProcessSummary(processSummaryDTO, tx); err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to insert organization_unit_report_process_summary: %w", err)
+	}
+
+	processes, err := s.repo.GetProcessByOrganizationUnit(organizationUnitID)
+	if err != nil {
+		tx.Rollback()
+		return 0, nil
+	}
+
+	for _, process := range processes {
+		processDTO := &models.OrganizationUnitReportProcess{
+			OrganizationUnitReportID: organizationUnitReportID,
+			ProcessTitleEn:           process.TitleEn,
+			ProcessTitleAr:           process.TitleAr,
+			ProcessGroupTitleEn:      process.ProcessGroupTitleEn,
+			ProcessGroupTitleAr:      process.ProcessGroupTitleAr,
+			ProcessOwnerNameEn:       fmt.Sprintf("%s %s", process.OwnerFirstNameEn, process.OwnerLastNameEn),
+			ProcessOwnerNameAR:       fmt.Sprintf("%s %s", process.OwnerFirstNameAr, process.OwnerLastNameAr),
+			ResponsibleUnitTitleEn:   process.ResponsibleUnitTitleEn,
+			ResponsibleUnitTitleAr:   process.ResponsibleUnitTitleAr,
+			RiskRatingTitleEn:        process.RiskRatingTitleEn,
+			RiskRatingTitleAr:        process.RiskRatingTitleAr,
+			RiskRatingColorCode:      process.RiskRatingColorCode,
+			LifecycleStatusTitleEn:   process.LifecycleStatusTitleEn,
+			LifecycleStatusTitleAr:   process.LifecycleStatusTitleAr,
+			LifecycleStatusColorCode: process.LifecycleStatusColorCode,
+			CreatedByID:              currentUserID,
+		}
+
+		if err := s.repo.CreateOrganizationUnitReportProcess(processDTO, tx); err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to insert organization_unit_report_risks: %w", err)
+		}
+	}
+
+	complianceSummary, err := s.repo.GetComplianceSummaryByOrganizationUnit(organizationUnitID)
+	if err != nil {
+		tx.Rollback()
+		return 0, nil
+	}
+
+	complianceStatusesJSON, err := json.Marshal(complianceSummary.ComplianceStatuses)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal compliance statuses: %w", err)
+	}
+
+	complianceStatusesStr := string(complianceStatusesJSON)
+
+	complianceSummaryDTO := &models.OrganizationUnitReportComplianceSummary{
+		OrganizationUnitReportID: organizationUnitReportID,
+		TotalRequirements:        int(complianceSummary.TotalRequirements),
+		ComplianceStatuses:       &complianceStatusesStr,
+		CreatedByID:              currentUserID,
+	}
+
+	if err := s.repo.CreateOrganizationUnitReportComplianceSummary(complianceSummaryDTO, tx); err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to insert organizatoin_unit_report_compliance_summary: %w", err)
+	}
+
+	complianceRequirements, err := s.repo.GetComplianceRequirementsByOrganizationUnit(organizationUnitID)
+	if err != nil {
+		tx.Rollback()
+		return 0, nil
+	}
+
+	for _, complianceRequirement := range complianceRequirements {
+		complianceRequirementDTO := &models.OrganizationUnitReportComplianceRequirement{
+			OrganizationUnitReportID:             organizationUnitReportID,
+			ComplianceRequirementTitleEn:         complianceRequirement.TitleEn,
+			ComplianceRequirementTitleAr:         complianceRequirement.TitleAr,
+			ComplianceRequirementCategoryTitleEn: complianceRequirement.ComplianceRequirementCategoryTitleEn,
+			ComplianceRequirementCategoryTitleAr: complianceRequirement.ComplianceRequirementCategoryTitleAr,
+			ComplianceStatusTitleEn:              complianceRequirement.ComplianceStatusTitleEn,
+			ComplianceStatusTitleAr:              complianceRequirement.ComplianceStatusTitleAr,
+			ComplianceStatusColorCode:            complianceRequirement.ComplianceStatusColorCode,
+			SeverityLevelTitleEn:                 complianceRequirement.SeverityLevelTitleEn,
+			SeverityLevelTitleAr:                 complianceRequirement.SeverityLevelTitleAr,
+			SeverityLevelColorCode:               complianceRequirement.SeverityLevelColorCode,
+			CreatedByID:                          currentUserID,
+		}
+
+		if err := s.repo.CreateOrganizationUnitReportComplianceRequirement(complianceRequirementDTO, tx); err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to insert organization_unit_report_compliances: %w", err)
+		}
 	}
 
 	tx.Commit()
@@ -368,14 +726,90 @@ func (s *OrganizationUnitsService) Create(currentUserID uint, organizationUnitRe
 	return organizationUnitReportID, nil
 }
 
-func (s *OrganizationUnitsService) Delete(organizationUnitReportID uint, currentUserID uint) error {
+func (s *OrganizationUnitsService) DeleteOrganizationUnitReport(organizationUnitReportID uint, currentUserID uint) error {
+	tx := s.repo.BeginTransaction()
 
 	existingReport, err := s.repo.GetByID(organizationUnitReportID)
 	if err != nil {
+		tx.Rollback()
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, organizationUnitReportID)
+		}
 		return err
 	}
 
-	if err := s.repo.Delete(organizationUnitReportID); err != nil {
+	if err := s.repo.DeleteOrganizationUnitReportOverview(organizationUnitReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.DeleteOrganizationUnitReportKeyMetrics(organizationUnitReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.DeleteOrganizationUnitReportUserRole(organizationUnitReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.DeleteOrganizationUnitReportUser(organizationUnitReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.DeleteOrganizationUnitReportRisk(organizationUnitReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.DeleteOrganizationUnitReportPolicy(organizationUnitReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.DeleteOrganizationUnitReportProcess(organizationUnitReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.DeleteOrganizationUnitReportComplianceRequirement(organizationUnitReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.DeleteOrganizationUnitReportRiskSummary(organizationUnitReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.DeleteOrganizationUnitReportRiskRating(organizationUnitReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.DeleteOrganizationUnitReportRiskMitigation(organizationUnitReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.DeleteOrganizationUnitReportPolicySummary(organizationUnitReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.DeleteOrganizationUnitReportProcessSummary(organizationUnitReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.DeleteOrganizationUnitReportComplianceSummary(organizationUnitReportID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.DeleteOrganizationUnitReport(organizationUnitReportID); err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -397,7 +831,6 @@ func (s *OrganizationUnitsService) Delete(organizationUnitReportID uint, current
 }
 
 func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitReportID uint) (*organizationDTOs.OrganizationUnitSummaryReportDTO, error) {
-	var report organizationDTOs.OrganizationUnitSummaryReportDTO
 
 	reportDetails, err := s.repo.GetByID(organizationUnitReportID)
 	if err != nil {
@@ -414,88 +847,104 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 		return nil, utility.NewForbiddenError("cover_image_missing")
 	}
 
-	report.Title = reportDetails.Title
-	report.OrganizationUnitID = reportDetails.OrganizationUnitID
-	report.OrganizationUnitTitleEn = reportDetails.OrganizationUnitTitleEn
-	report.OrganizationUnitTitleAr = reportDetails.OrganizationUnitTitleAr
-	report.OrganizationUnitColorCode = reportDetails.OrganizationUnitColorCode
-	report.GeneratedOn = reportDetails.CreatedAt
-	report.GeneratedByUserFirstNameEn = reportDetails.CreatedUserFirstNameAr
-	report.GeneratedByUserFirstNameAr = reportDetails.CreatedUserFirstNameAr
-	report.GeneratedByUserLastNameEn = reportDetails.CreatedUserLastNameEn
-	report.GeneratedByUserLastNameAr = reportDetails.CreatedUserLastNameAr
-	report.GeneratedByUserEmail = reportDetails.CreatedUserEmail
-	report.GeneratedByUserColor = reportDetails.CreatedUserColor
-	report.GeneratedByUserInitial = reportDetails.CreatedUserInitial
-	report.GeneratedByUserProfileImagePath = reportDetails.CreatedUserProfileImagePath
-
-	organizationUnitID := reportDetails.OrganizationUnitID
-
-	orgUnit, err := s.organizationUnitSvc.GetByID(reportDetails.OrganizationUnitID)
+	organizationUnitOverview, err := s.repo.GetOrganizationUnitReportOverview(organizationUnitReportID)
 	if err != nil {
 		return nil, err
 	}
-	level := uint(orgUnit.OrganizationLevel.Level)
 
-	if report.OrganizationUnitOverview, err = s.repo.GetOrganizationUnitOverview(organizationUnitID, level); err != nil {
+	keyMetrics, err := s.repo.GetOrganizationUnitReportKeyMetrics(organizationUnitReportID)
+	if err != nil {
 		return nil, err
 	}
 
-	if report.KeyMatrix, err = s.repo.GetOrganizationUnitKeyMetrics(organizationUnitID); err != nil {
+	userRoles, err := s.repo.GetOrganizationUnitReportUserRole(organizationUnitReportID)
+	if err != nil {
 		return nil, err
 	}
 
-	if report.UserRoleDistribution, err = s.repo.GetUserRoleDistribution(organizationUnitID, level); err != nil {
+	users, err := s.repo.GetOrganizationUnitReportUser(organizationUnitReportID)
+	if err != nil {
 		return nil, err
 	}
 
-	if report.OrganizationUnitUserDetails, err = s.repo.GetUsersByOrganizationUnitReport(organizationUnitID, level); err != nil {
+	riskSummary, err := s.repo.GetOrganizationUnitReportRiskSummary(organizationUnitReportID)
+	if err != nil {
 		return nil, err
 	}
 
-	if report.RiskSummary, err = s.repo.GetRiskSummaryByOrganizationUnit(organizationUnitID); err != nil {
+	riskRatings, err := s.repo.GetOrganizationUnitReportRiskRating(organizationUnitReportID)
+	if err != nil {
 		return nil, err
 	}
 
-	if report.RiskRatingDistribution, err = s.repo.GetRiskRatingDistributionByOrganizationUnit(organizationUnitID); err != nil {
+	riskMitigations, err := s.repo.GetOrganizationUnitReportRiskMitigation(organizationUnitReportID)
+	if err != nil {
 		return nil, err
 	}
 
-	if report.RiskMitigationStatusDistribution, err = s.repo.GetRiskMitigationStatusDistributionByOrganizationUnit(organizationUnitID); err != nil {
+	risks, err := s.repo.GetOrganizationUnitReportRisk(organizationUnitReportID)
+	if err != nil {
 		return nil, err
 	}
 
-	if report.RiskDetails, err = s.repo.GetRiskByOrganizationUnit(organizationUnitID); err != nil {
+	policySummary, err := s.repo.GetOrganizationUnitReportPolicySummary(organizationUnitReportID)
+	if err != nil {
 		return nil, err
 	}
 
-	if report.PolicySummary, err = s.repo.GetPolicySummaryByOrganizationUnit(organizationUnitID, level); err != nil {
+	policies, err := s.repo.GetOrganizationUnitReportPolicy(organizationUnitReportID)
+	if err != nil {
 		return nil, err
 	}
 
-	if report.PolicyDetails, err = s.repo.GetPolicyByOrganizationUnit(organizationUnitID); err != nil {
+	processSummary, err := s.repo.GetOrganizationUnitReportProcessSummary(organizationUnitReportID)
+	if err != nil {
 		return nil, err
 	}
 
-	if report.ProcessHealthSummary, err = s.repo.GetProcessHealthSummaryByOrganizationUnit(organizationUnitID); err != nil {
+	processes, err := s.repo.GetOrganizationUnitReportProcess(organizationUnitReportID)
+	if err != nil {
 		return nil, err
 	}
 
-	if report.ProcessDetails, err = s.repo.GetProcessByOrganizationUnit(organizationUnitID); err != nil {
+	complianceSummary, err := s.repo.GetOrganizationUnitReportComplianceSummary(organizationUnitReportID)
+	if err != nil {
 		return nil, err
 	}
 
-	if report.ComplianceSummary, err = s.repo.GetComplianceSummaryByOrganizationUnit(organizationUnitID); err != nil {
+	complianceRequirments, err := s.repo.GetOrganizationUnitReportComplianceRequirement(organizationUnitReportID)
+	if err != nil {
 		return nil, err
 	}
 
-	if report.ComplianceRequirementDetails, err = s.repo.GetComplianceRequirementsByOrganizationUnit(organizationUnitID); err != nil {
-		return nil, err
+	response := &organizationDTOs.OrganizationUnitSummaryReportDTO{
+		ID:                               reportDetails.ID,
+		Title:                            reportDetails.Title,
+		OrganizationUnitID:               reportDetails.OrganizationUnitID,
+		OrganizationUnitTitleEn:          reportDetails.OrganizationUnitTitleEn,
+		OrganizationUnitTitleAr:          reportDetails.OrganizationUnitTitleAr,
+		OrganizationUnitColorCode:        reportDetails.OrganizationUnitColorCode,
+		GeneratedOn:                      reportDetails.CreatedAt,
+		GeneratedUserNameEn:              fmt.Sprintf("%s %s", reportDetails.CreatedUserFirstNameEn, reportDetails.CreatedUserFirstNameEn),
+		GeneratedUserNameAr:              fmt.Sprintf("%s %s", reportDetails.CreatedUserFirstNameAr, reportDetails.CreatedUserFirstNameAr),
+		OrganizationUnitOverview:         *organizationUnitOverview,
+		KeyMetrics:                       *keyMetrics,
+		UserRoleDistribution:             userRoles,
+		OrganizationUnitUserDetails:      users,
+		RiskSummary:                      *riskSummary,
+		RiskRatingDistribution:           riskRatings,
+		RiskMitigationStatusDistribution: riskMitigations,
+		RiskDetails:                      risks,
+		PolicySummary:                    *policySummary,
+		PolicyDetails:                    policies,
+		ProcessHealthSummary:             *processSummary,
+		ProcessDetails:                   processes,
+		ComplianceSummary:                *complianceSummary,
+		ComplianceRequirementDetails:     complianceRequirments,
+		AppUrl:                           os.Getenv("APP_URL"),
 	}
 
-	report.AppUrl = os.Getenv("APP_URL")
-
-	return &report, nil
+	return response, nil
 }
 
 func (s *OrganizationUnitsService) GetOrganizationUnitReportExport(organizationReportID uint, currentUserID uint) (string, error) {
