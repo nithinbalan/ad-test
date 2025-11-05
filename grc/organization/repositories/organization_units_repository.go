@@ -30,7 +30,7 @@ type OrganizationUnitsRepositoryInterface interface {
 	Create(organizationUnitReport *models.OrganizationUnitReport, tx ...utility.DatabaseTransaction) (uint, error)
 	Delete(organizationUnitReportID uint) error
 	GetOrganizationUnitOverview(organizationUnitID uint, level uint) (*organizationDTOs.OrganizationUnitOverviewDTO, error)
-	GetOrganizationUnitKeyMatrix(organizationUnitID uint) (*organizationDTOs.OrganizationUnitKeyMatrixDTO, error)
+	GetOrganizationUnitKeyMetrics(organizationUnitID uint) (*organizationDTOs.OrganizationUnitKeyMatrixDTO, error)
 	GetUserRoleDistribution(organizationUnitID uint, level uint) ([]organizationDTOs.OrganizationUnitUserRoleDistributionDTO, error)
 	GetUsersByOrganizationUnitReport(organizationUnitID uint, level uint) ([]organizationDTOs.OrganizationUnitUserDetailsDTO, error)
 	GetRiskByOrganizationUnit(organizationUnitID uint) ([]organizationDTOs.OrganizationUnitRiskListDTO, error)
@@ -46,6 +46,22 @@ type OrganizationUnitsRepositoryInterface interface {
 	GetProcessHealthSummaryByOrganizationUnit(organizationUnitID uint) (*organizationDTOs.OrganizationUnitProcessHealthSummaryDTO, error)
 	GetProcessCriticalityDistributionByOrganizationUnit(organizationUnitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
 	GetRiskMitigationStatusDistributionByOrganizationUnit(organizationUnitID uint) ([]organizationDTOs.OrganizationUnitDistributionItemDTO, error)
+
+	CreateOrganizationUnitReportOverview(overview *models.OrganizationUnitReportOverview, tx ...utility.DatabaseTransaction) error
+	CreateOrganizationUnitReportKeyMetrics(keyMetrics *models.OrganizationUnitReportKeyMetrics, tx ...utility.DatabaseTransaction) error
+	CreateOrganizationUnitReportUserRole(userRole *models.OrganizationUnitReportUserRole, tx ...utility.DatabaseTransaction) error
+	CreateOrganizationUnitReportUser(user *models.OrganizationUnitReportUser, tx ...utility.DatabaseTransaction) error
+	CreateOrganizationUnitReportRisk(risk *models.OrganizationUnitReportRisk, tx ...utility.DatabaseTransaction) error
+	CreateOrganizationUnitReportPolicy(policy *models.OrganizationUnitReportPolicy, tx ...utility.DatabaseTransaction) error
+	CreateOrganizationUnitReportProcess(process *models.OrganizationUnitReportPolicy, tx ...utility.DatabaseTransaction) error
+	CreateOrganizationUnitReportComplianceRequirement(complianceRequirement *models.OrganizationUnitReportComplianceRequirement, tx ...utility.DatabaseTransaction) error
+
+	CreateOrganizationUnitReportRiskSummary(riskSummary *models.OrganizationUnitReportRiskSummary, tx ...utility.DatabaseTransaction) error
+	CreateOrganizationUnitReportRiskRating(riskRating *models.OrganizationUnitReportRiskRating, tx ...utility.DatabaseTransaction) error
+	CreateOrganizationUnitReportRiskMitigation(riskMitigation *models.OrganizationUnitReportRiskMitigation, tx ...utility.DatabaseTransaction) error
+	CreateOrganizationUnitReportPolicySummary(policySummary *models.OrganizationUnitReportPolicySummary, tx ...utility.DatabaseTransaction) error
+	CreateOrganizationUnitReportProcessSummary(processSummary *models.OrganizationUnitReportProcessSummary, tx ...utility.DatabaseTransaction) error
+	CreateOrganizationUnitReportComplianceSummary(complianceSummary *models.OrganizationUnitReportComplianceSummary, tx ...utility.DatabaseTransaction) error
 }
 
 type OrganizationUnitsRepository struct {
@@ -785,7 +801,7 @@ func (repo *OrganizationUnitsRepository) GetOrganizationUnitOverview(organizatio
 	return &result, nil
 }
 
-func (repo *OrganizationUnitsRepository) GetOrganizationUnitKeyMatrix(organizationUnitID uint) (*organizationDTOs.OrganizationUnitKeyMatrixDTO, error) {
+func (repo *OrganizationUnitsRepository) GetOrganizationUnitKeyMetrics(organizationUnitID uint) (*organizationDTOs.OrganizationUnitKeyMatrixDTO, error) {
 	result := &organizationDTOs.OrganizationUnitKeyMatrixDTO{}
 
 	riskQuery := repo.db.Table("risk_register").Where("responsible_unit_id = ?", organizationUnitID)
@@ -1425,4 +1441,130 @@ func (repo *OrganizationUnitsRepository) GetRiskMitigationStatusDistributionByOr
 	}
 
 	return results, nil
+}
+
+func (repo *OrganizationUnitsRepository) CreateOrganizationUnitReportOverview(overview *models.OrganizationUnitReportOverview, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(overview).Error
+}
+
+func (repo *OrganizationUnitsRepository) CreateOrganizationUnitReportKeyMetrics(keyMetrics *models.OrganizationUnitReportKeyMetrics, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(keyMetrics).Error
+}
+
+func (repo *OrganizationUnitsRepository) CreateOrganizationUnitReportUserRole(userRole *models.OrganizationUnitReportUserRole, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(userRole).Error
+}
+
+func (repo *OrganizationUnitsRepository) CreateOrganizationUnitReportUser(user *models.OrganizationUnitReportUser, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(user).Error
+}
+
+func (repo *OrganizationUnitsRepository) CreateOrganizationUnitReportRisk(risk *models.OrganizationUnitReportRisk, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(risk).Error
+}
+
+func (repo *OrganizationUnitsRepository) CreateOrganizationUnitReportPolicy(policy *models.OrganizationUnitReportPolicy, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(policy).Error
+}
+
+func (repo *OrganizationUnitsRepository) CreateOrganizationUnitReportProcess(process *models.OrganizationUnitReportPolicy, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(process).Error
+}
+
+func (repo *OrganizationUnitsRepository) CreateOrganizationUnitReportComplianceRequirement(complianceRequirement *models.OrganizationUnitReportComplianceRequirement, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(complianceRequirement).Error
+}
+
+func (repo *OrganizationUnitsRepository) CreateOrganizationUnitReportRiskSummary(riskSummary *models.OrganizationUnitReportRiskSummary, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(riskSummary).Error
+}
+
+func (repo *OrganizationUnitsRepository) CreateOrganizationUnitReportRiskRating(riskRating *models.OrganizationUnitReportRiskRating, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(riskRating).Error
+}
+
+func (repo *OrganizationUnitsRepository) CreateOrganizationUnitReportRiskMitigation(riskMitigation *models.OrganizationUnitReportRiskMitigation, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(riskMitigation).Error
+}
+
+func (repo *OrganizationUnitsRepository) CreateOrganizationUnitReportPolicySummary(policySummary *models.OrganizationUnitReportPolicySummary, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(policySummary).Error
+}
+
+func (repo *OrganizationUnitsRepository) CreateOrganizationUnitReportProcessSummary(processSummary *models.OrganizationUnitReportProcessSummary, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(processSummary).Error
+}
+
+func (repo *OrganizationUnitsRepository) CreateOrganizationUnitReportComplianceSummary(complianceSummary *models.OrganizationUnitReportComplianceSummary, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(complianceSummary).Error
 }

@@ -441,7 +441,7 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 		return nil, err
 	}
 
-	if report.KeyMatrix, err = s.repo.GetOrganizationUnitKeyMatrix(organizationUnitID); err != nil {
+	if report.KeyMatrix, err = s.repo.GetOrganizationUnitKeyMetrics(organizationUnitID); err != nil {
 		return nil, err
 	}
 
