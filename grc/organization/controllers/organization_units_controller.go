@@ -418,6 +418,9 @@ func (osc *OrganizationUnitsController) GetOrganizationUnitReportDetails(c *gin.
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(osc.db, c, e.Error())
 			return
