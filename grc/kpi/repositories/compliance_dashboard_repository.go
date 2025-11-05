@@ -250,56 +250,66 @@ func (repo *ComplianceDashboardRepository) GetLeastPerformanceCompliances(params
 func (repo *ComplianceDashboardRepository) GetHighPerformanceComplianceClauses(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]kpiDTOs.ComplianceClausePerformanceDTO, error) {
 	results := []kpiDTOs.ComplianceClausePerformanceDTO{}
 
-	query := repo.db.Table("compliance_clauses AS child").
+	query := repo.db.Table("compliance_clauses AS c").
 		Select(`
-			parent.clause_no AS compliance_clause_no,
-            parent.title_en AS compliance_clause_title_en,
-			parent.title_ar as compliance_clause_title_ar,
-            AVG(CAST(child.score AS FLOAT)) AS score
-        `).
-		Joins("JOIN compliance_clauses AS parent ON parent.id = child.compliance_clause_id").
-		Where("child.compliance_clause_id IS NOT NULL").
-		Where("child.score IS NOT NULL").
-		Group("parent.clause_no, parent.title_en, parent.title_ar").
-		Order("score DESC").
+			c.id AS compliance_clause_id,
+			c.clause_no AS compliance_clause_no,
+			c.title_en AS compliance_clause_title_en,
+			c.title_ar AS compliance_clause_title_ar,
+			c.score AS score
+		`).
+		Where("c.score IS NOT NULL").
+		Where(`
+			c.compliance_clause_id IS NULL
+			OR c.compliance_clause_id IN (
+				SELECT id FROM compliance_clauses WHERE compliance_clause_id IS NULL
+			)
+		`).
+		Order("c.score DESC").
 		Limit(5)
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		query = query.Where("compliance_clauses.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		query = query.Where("c.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := query.Scan(&results).Error
 	if err != nil {
 		return nil, err
 	}
+
 	return results, nil
 }
 
 func (repo *ComplianceDashboardRepository) GetLeastPerformanceComplianceClauses(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]kpiDTOs.ComplianceClausePerformanceDTO, error) {
 	results := []kpiDTOs.ComplianceClausePerformanceDTO{}
 
-	query := repo.db.Table("compliance_clauses AS child").
-		Select(`
-			parent.clause_no AS compliance_clause_no,
-            parent.title_en AS compliance_clause_title_en,
-			parent.title_ar as compliance_clause_title_ar,
-            AVG(CAST(child.score AS FLOAT)) AS score
-        `).
-		Joins("JOIN compliance_clauses AS parent ON parent.id = child.compliance_clause_id").
-		Where("child.compliance_clause_id IS NOT NULL").
-		Where("child.score IS NOT NULL").
-		Group("parent.clause_no, parent.title_en, parent.title_ar").
-		Order("score ASC").
+	query := repo.db.Table("compliance_clauses AS c").
+		Select(` 
+			c.id AS compliance_clause_id,
+			c.clause_no AS compliance_clause_no,
+			c.title_en AS compliance_clause_title_en,
+			c.title_ar AS compliance_clause_title_ar,
+			c.score AS score
+		`).
+		Where("c.score IS NOT NULL").
+		Where(`
+			c.compliance_clause_id IS NULL
+			OR c.compliance_clause_id IN (
+				SELECT id FROM compliance_clauses WHERE compliance_clause_id IS NULL
+			)
+		`).
+		Order("c.score ASC").
 		Limit(5)
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		query = query.Where("compliance_clauses.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		query = query.Where("c.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := query.Scan(&results).Error
 	if err != nil {
 		return nil, err
 	}
+
 	return results, nil
 }
 
