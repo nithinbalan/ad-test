@@ -5,7 +5,7 @@ import "time"
 type OrganizationUnitReportComplianceSummary struct {
 	ID                       uint      `json:"id" gorm:"primaryKey;autoIncrement"`
 	OrganizationUnitReportID uint      `json:"organization_unit_report_id" gorm:"not null;index;"`
-	TotalRequirements        int       `json:"total_requirements" gorm:"not null;default:0"`
+	TotalRequirementCount    int       `json:"total_requirement_count" gorm:"not null;default:0"`
 	ComplianceStatuses       *string   `json:"compliance_statuses" gorm:"type:nvarchar(max)"`
 	CreatedByID              uint      `json:"created_by_id" gorm:"not null;index"`
 	CreatedAt                time.Time `json:"created_at" gorm:"not null"`

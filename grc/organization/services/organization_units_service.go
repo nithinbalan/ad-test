@@ -468,6 +468,7 @@ func (s *OrganizationUnitsService) CreateOrganizationUnitReport(currentUserID ui
 		TotalRiskCount:           int(riskSummary.TotalRisks),
 		OpenRiskCount:            int(riskSummary.OpenRisks),
 		ClosedRiskCount:          int(riskSummary.ClosedRisks),
+		ClosurePercentage:        float32(riskSummary.ClosurePercentage),
 		CreatedByID:              currentUserID,
 	}
 
@@ -614,6 +615,7 @@ func (s *OrganizationUnitsService) CreateOrganizationUnitReport(currentUserID ui
 		OrganizationUnitReportID: organizationUnitReportID,
 		ActiveProcessCount:       int(processSummary.ActiveProcesses),
 		TotalProcessCount:        int(processSummary.TotalProcesses),
+		ActivePercentage:         float32(processSummary.ActivePercentage),
 		CreatedByID:              currentUserID,
 	}
 
@@ -669,7 +671,7 @@ func (s *OrganizationUnitsService) CreateOrganizationUnitReport(currentUserID ui
 
 	complianceSummaryDTO := &models.OrganizationUnitReportComplianceSummary{
 		OrganizationUnitReportID: organizationUnitReportID,
-		TotalRequirements:        int(complianceSummary.TotalRequirements),
+		TotalRequirementCount:    int(complianceSummary.TotalRequirements),
 		ComplianceStatuses:       &complianceStatusesStr,
 		CreatedByID:              currentUserID,
 	}
@@ -912,6 +914,20 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 		return nil, err
 	}
 
+	if complianceSummary != nil {
+		if complianceSummary.ComplianceStatuses != nil {
+			var statuses []organizationDTOs.OrganizationUnitDistributionItemDTO
+
+			if err := json.Unmarshal([]byte(*complianceSummary.ComplianceStatuses), &statuses); err == nil {
+				complianceSummary.ComplianceStatusesParsed = statuses
+			} else {
+				complianceSummary.ComplianceStatusesParsed = []organizationDTOs.OrganizationUnitDistributionItemDTO{}
+			}
+		} else {
+			complianceSummary.ComplianceStatusesParsed = []organizationDTOs.OrganizationUnitDistributionItemDTO{}
+		}
+	}
+
 	complianceRequirments, err := s.repo.GetOrganizationUnitReportComplianceRequirement(organizationUnitReportID)
 	if err != nil {
 		return nil, err
@@ -939,7 +955,7 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 		PolicyDetails:                    policies,
 		ProcessHealthSummary:             *processSummary,
 		ProcessDetails:                   processes,
-		ComplianceSummary:                *complianceSummary,
+		ComplianceSummary:                complianceSummary,
 		ComplianceRequirementDetails:     complianceRequirments,
 		AppUrl:                           os.Getenv("APP_URL"),
 	}

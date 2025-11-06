@@ -381,7 +381,7 @@ type OrganizationUnitSummaryReportDTO struct {
 	PolicyDetails                    []OrganizationUnitReportPolicyResponseDTO                `json:"policy_details"`
 	ProcessHealthSummary             OrganizationUnitReportProcessSummaryResponseDTO          `json:"process_health_summary"`
 	ProcessDetails                   []OrganizationUnitReportProcessResponseDTO               `json:"process_details"`
-	ComplianceSummary                OrganizationUnitReportComplianceSummaryResponseDTO       `json:"compliance_summary"`
+	ComplianceSummary                *OrganizationUnitReportComplianceSummaryResponseDTO      `json:"compliance_summary"`
 	ComplianceRequirementDetails     []OrganizationUnitReportComplianceRequirementResponseDTO `json:"compliance_requirement_details"`
 	AppUrl                           string                                                   `json:"url"`
 }
@@ -494,11 +494,12 @@ type OrganizationUnitReportComplianceRequirementResponseDTO struct {
 }
 
 type OrganizationUnitReportRiskSummaryResponseDTO struct {
-	ID                       uint `json:"id"`
-	OrganizationUnitReportID uint `json:"organization_unit_report_id"`
-	TotalRiskCount           int  `json:"total_risk_count"`
-	OpenRiskCount            int  `json:"open_risk_count"`
-	ClosedRiskCount          int  `json:"closed_risk_count"`
+	ID                       uint    `json:"id"`
+	OrganizationUnitReportID uint    `json:"organization_unit_report_id"`
+	TotalRiskCount           int     `json:"total_risk_count"`
+	OpenRiskCount            int     `json:"open_risk_count"`
+	ClosedRiskCount          int     `json:"closed_risk_count"`
+	ClosurePercentage        float32 `json:"closure_percentage"`
 }
 
 type OrganizationUnitReportRiskRatingResponseDTO struct {
@@ -530,15 +531,17 @@ type OrganizationUnitReportPolicySummaryResponseDTO struct {
 }
 
 type OrganizationUnitReportProcessSummaryResponseDTO struct {
-	ID                       uint `json:"id"`
-	OrganizationUnitReportID uint `json:"organization_unit_report_id"`
-	TotalProcessCount        int  `json:"total_process_count"`
-	ActiveProcessCount       int  `json:"active_process_count"`
+	ID                       uint    `json:"id"`
+	OrganizationUnitReportID uint    `json:"organization_unit_report_id"`
+	TotalProcessCount        int     `json:"total_process_count"`
+	ActiveProcessCount       int     `json:"active_process_count"`
+	ActivePercentage         float32 `json:"active_percentage"`
 }
 
 type OrganizationUnitReportComplianceSummaryResponseDTO struct {
-	ID                       uint    `json:"id"`
-	OrganizationUnitReportID uint    `json:"organization_unit_report_id"`
-	TotalRequirements        int     `json:"total_requirements"`
-	ComplianceStatuses       *string `json:"compliance_statuses"`
+	ID                       uint                                  `json:"id"`
+	OrganizationUnitReportID uint                                  `json:"organization_unit_report_id"`
+	TotalRequirementCount    int                                   `json:"total_requirement_count"`
+	ComplianceStatuses       *string                               `json:"compliance_statuses"`
+	ComplianceStatusesParsed []OrganizationUnitDistributionItemDTO `json:"compliance_statuses_parsed" gorm:"-"`
 }

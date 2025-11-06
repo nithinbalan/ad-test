@@ -7,6 +7,7 @@ type OrganizationUnitReportProcessSummary struct {
 	OrganizationUnitReportID uint      `json:"organization_unit_report_id" gorm:"not null;index"`
 	TotalProcessCount        int       `json:"total_process_count" gorm:"not null;default:0"`
 	ActiveProcessCount       int       `json:"active_process_count" gorm:"not null;default:0"`
+	ActivePercentage         float32   `json:"active_percentage" gorm:"type:numeric(5,2);not null;default:0"`
 	CreatedByID              uint      `json:"created_by_id" gorm:"not null;index"`
 	CreatedAt                time.Time `json:"created_at" gorm:"not null"`
 

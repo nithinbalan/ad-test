@@ -8,6 +8,7 @@ type OrganizationUnitReportRiskSummary struct {
 	TotalRiskCount           int       `json:"total_risk_count" gorm:"not null;default:0"`
 	OpenRiskCount            int       `json:"open_risk_count" gorm:"not null;default:0"`
 	ClosedRiskCount          int       `json:"closed_risk_count" gorm:"not null;default:0"`
+	ClosurePercentage        float32   `json:"closure_percentage" gorm:"type:numeric(5,2);not null;default:0"`
 	CreatedByID              uint      `json:"created_by_id" gorm:"not null;index"`
 	CreatedAt                time.Time `json:"created_at" gorm:"not null"`
 
