@@ -7,8 +7,8 @@ type OrganizationUnitReportUser struct {
 	OrganizationUnitReportID uint      `json:"organization_unit_report_id" gorm:"not null;index"`
 	UserNameEn               string    `json:"user_name_en" gorm:"type:nvarchar(255);not null"`
 	UserNameAr               string    `json:"user_name_ar" gorm:"type:nvarchar(255)"`
-	DesignationEn            string    `json:"designation_en" gorm:"type:nvarchar(255)"`
-	DesignationAr            string    `json:"designation_ar" gorm:"type:nvarchar(255)"`
+	DesignationTitleEn       string    `json:"designation_title_en" gorm:"type:nvarchar(255)"`
+	DesignationTitleAr       string    `json:"designation_title_ar" gorm:"type:nvarchar(255)"`
 	RoleTitleEn              string    `json:"role_title_en" gorm:"type:nvarchar(255);not null"`
 	RoleTitleAr              string    `json:"role_title_ar" gorm:"type:nvarchar(255)"`
 	CreatedByID              uint      `json:"created_by_id" gorm:"not null;index"`

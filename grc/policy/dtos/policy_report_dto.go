@@ -223,7 +223,7 @@ type PolicyApprovalHistoryDTO struct {
 	ActionTitleAr         string  `json:"action_title_ar"`
 	ActionType            string  `json:"action_type"`
 	ActionColorCode       string  `json:"action_color_code"`
-	ActionDate            *string `json:"date"`
+	ActionDate            *string `json:"action_date"`
 	Comment               string  `json:"comment"`
 }
 

@@ -932,8 +932,8 @@ func (repo *OrganizationUnitsRepository) GetUsersByOrganizationUnitReport(organi
 			users.initial,
 			users.email,
 			users.profile_image_path,
-			designations.title_en AS designation_en,
-			designations.title_ar AS designation_ar,
+			designations.title_en AS designation_title_en,
+			designations.title_ar AS designation_title_ar,
 			roles.title_en AS role_title_en,
 			roles.title_ar AS role_title_ar
 		`).

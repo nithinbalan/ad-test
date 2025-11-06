@@ -8,12 +8,12 @@ type PolicyReportOverview struct {
 	ReferenceNumber             string     `json:"reference_number" gorm:"type:varchar(50);index"`
 	PolicyTitleEn               string     `json:"policy_title_en" gorm:"type:nvarchar(255);not null"`
 	PolicyTitleAr               string     `json:"policy_title_ar" gorm:"type:nvarchar(255)"`
-	DescriptionEn               string     `json:"description_en" gorm:"type:nvarchar(4000)"`
-	DescriptionAr               string     `json:"description_ar" gorm:"type:nvarchar(4000)"`
+	DescriptionEn               string     `json:"description_en" gorm:"type:nvarchar(max)"`
+	DescriptionAr               string     `json:"description_ar" gorm:"type:nvarchar(max)"`
 	ResponsibleUnitTitleEn      string     `json:"responsible_unit_title_en" gorm:"type:nvarchar(255)"`
 	ResponsibleUnitTitleAr      string     `json:"responsible_unit_title_ar" gorm:"type:nvarchar(255)"`
-	ResponsibleUserFirstNameEn  string     `json:"responsible_user_name_en" gorm:"type:nvarchar(100)"`
-	ResponsibleUserFirstNameAr  string     `json:"responsible_user_name_ar" gorm:"type:nvarchar(100)"`
+	ResponsibleUserNameEn       string     `json:"responsible_user_name_en" gorm:"type:nvarchar(255)"`
+	ResponsibleUserNameAr       string     `json:"responsible_user_name_ar" gorm:"type:nvarchar(255)"`
 	PublishedDate               *time.Time `json:"published_date" gorm:"type:date"`
 	NextReviewDate              *time.Time `json:"next_review_date" gorm:"type:date"`
 	Version                     string     `json:"version" gorm:"type:varchar(20)"`
@@ -27,8 +27,8 @@ type PolicyReportOverview struct {
 	CreatedAt                   time.Time  `json:"created_at" gorm:"not null"`
 
 	// Relationships
-	PolicyReport *PolicyReport `gorm:"foreignKey:PolicyReportID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	CreatedBy    *User         `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	PolicyReport  *PolicyReport `gorm:"foreignKey:PolicyReportID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CreatedByUser *User         `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 func (PolicyReportOverview) TableName() string {

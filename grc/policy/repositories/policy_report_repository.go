@@ -828,7 +828,7 @@ func (repo *PolicyReportRepository) GetPolicyApprovalHistory(versionID uint) ([]
 			ISNULL(dws.title_ar, '') AS action_title_ar,
 			ISNULL(dws.type, '') AS action_type,
 			ISNULL(dws.color_code, '') AS action_color_code,
-			CASE WHEN dwr.created_at IS NULL THEN NULL ELSE CONVERT(VARCHAR, dwr.created_at, 106) END AS date,
+			CASE WHEN dwr.created_at IS NULL THEN NULL ELSE CONVERT(VARCHAR, dwr.created_at, 23) END AS action_date,
 			ISNULL(dwr.comment, '') AS comment
 		`).
 		Order("dwr.created_at ASC, dwr.id ASC").

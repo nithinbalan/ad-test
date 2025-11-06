@@ -9,8 +9,8 @@ type OrganizationUnitReportProcess struct {
 	ProcessTitleAr           string    `json:"process_title_ar" gorm:"type:nvarchar(255)"`
 	ProcessGroupTitleEn      string    `json:"process_group_title_en" gorm:"type:nvarchar(255)"`
 	ProcessGroupTitleAr      string    `json:"process_group_title_ar" gorm:"type:nvarchar(255)"`
-	ProcessOwnerNameEn       string    `json:"process_owner_name_en" gorm:"type:nvarchar(100)"`
-	ProcessOwnerNameAR       string    `json:"process_owner_name_ar" gorm:"type:nvarchar(100)"`
+	ProcessOwnerNameEn       string    `json:"process_owner_name_en" gorm:"type:nvarchar(255)"`
+	ProcessOwnerNameAR       string    `json:"process_owner_name_ar" gorm:"type:nvarchar(255)"`
 	ResponsibleUnitTitleEn   string    `json:"responsible_unit_title_en" gorm:"type:nvarchar(255)"`
 	ResponsibleUnitTitleAr   string    `json:"responsible_unit_title_ar" gorm:"type:nvarchar(255)"`
 	RiskRatingTitleEn        *string   `json:"risk_rating_title_en" gorm:"type:nvarchar(100)"`
