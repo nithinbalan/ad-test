@@ -156,6 +156,9 @@ func (prc *PolicyReportController) GetPolicySummaryReport(c *gin.Context) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(prc.db, c, e.Error())
 			return
