@@ -9,9 +9,9 @@ type OrganizationUnitReportComplianceRequirement struct {
 	ComplianceRequirementTitleAr         string    `json:"compliance_requirement_title_ar" gorm:"type:nvarchar(255)"`
 	ComplianceRequirementCategoryTitleEn string    `json:"compliance_requirement_category_title_en" gorm:"type:nvarchar(255)"`
 	ComplianceRequirementCategoryTitleAr string    `json:"compliance_requirement_category_title_ar" gorm:"type:nvarchar(255)"`
-	ComplianceStatusTitleEn              string    `json:"compliance_status_title_en" gorm:"type:nvarchar(150)"`
-	ComplianceStatusTitleAr              string    `json:"compliance_status_title_ar" gorm:"type:nvarchar(150)"`
-	ComplianceStatusColorCode            string    `json:"compliance_status_color_code" gorm:"type:varchar(9)"`
+	ComplianceStatusTitleEn              *string   `json:"compliance_status_title_en" gorm:"type:nvarchar(150)"`
+	ComplianceStatusTitleAr              *string   `json:"compliance_status_title_ar" gorm:"type:nvarchar(150)"`
+	ComplianceStatusColorCode            *string   `json:"compliance_status_color_code" gorm:"type:varchar(9)"`
 	SeverityLevelTitleEn                 string    `json:"severity_level_title_en" gorm:"type:nvarchar(100)"`
 	SeverityLevelTitleAr                 string    `json:"severity_level_title_ar" gorm:"type:nvarchar(100)"`
 	SeverityLevelColorCode               string    `json:"severity_level_color_code" gorm:"type:varchar(9)"`

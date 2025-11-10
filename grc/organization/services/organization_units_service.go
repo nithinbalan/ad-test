@@ -11,7 +11,6 @@ import (
 	"jethur/grc/organization/repositories"
 	settingServices "jethur/grc/settings/services"
 	"jethur/utility"
-	"log"
 	"math"
 	"os"
 	"time"
@@ -364,8 +363,6 @@ func (s *OrganizationUnitsService) CreateOrganizationUnitReport(currentUserID ui
 		tx.Rollback()
 		return 0, err
 	}
-
-	log.Println("overview:", overview)
 
 	if overview.OrganizationUnitHeadNameEn != nil && *overview.OrganizationUnitHeadNameEn == "" {
 		overview.OrganizationUnitHeadNameEn = nil
@@ -733,7 +730,6 @@ func (s *OrganizationUnitsService) DeleteOrganizationUnitReport(organizationUnit
 
 	existingReport, err := s.repo.GetByID(organizationUnitReportID)
 	if err != nil {
-		tx.Rollback()
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return utility.NewResourceNotFoundError(err, organizationUnitReportID)
 		}
@@ -810,10 +806,12 @@ func (s *OrganizationUnitsService) DeleteOrganizationUnitReport(organizationUnit
 		return err
 	}
 
-	if err := s.repo.DeleteOrganizationUnitReport(organizationUnitReportID); err != nil {
+	if err := s.repo.DeleteOrganizationUnitReport(organizationUnitReportID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
+
+	tx.Commit()
 
 	go func() {
 		err := s.activityLog.LogActivity(
@@ -916,15 +914,15 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 
 	if complianceSummary != nil {
 		if complianceSummary.ComplianceStatuses != nil {
-			var statuses []organizationDTOs.OrganizationUnitDistributionItemDTO
+			var statuses []*organizationDTOs.OrganizationUnitDistributionItemDTO
 
 			if err := json.Unmarshal([]byte(*complianceSummary.ComplianceStatuses), &statuses); err == nil {
 				complianceSummary.ComplianceStatusesParsed = statuses
 			} else {
-				complianceSummary.ComplianceStatusesParsed = []organizationDTOs.OrganizationUnitDistributionItemDTO{}
+				complianceSummary.ComplianceStatusesParsed = []*organizationDTOs.OrganizationUnitDistributionItemDTO{}
 			}
 		} else {
-			complianceSummary.ComplianceStatusesParsed = []organizationDTOs.OrganizationUnitDistributionItemDTO{}
+			complianceSummary.ComplianceStatusesParsed = []*organizationDTOs.OrganizationUnitDistributionItemDTO{}
 		}
 	}
 
@@ -940,20 +938,22 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReport(organizationUnitRep
 		OrganizationUnitTitleEn:          reportDetails.OrganizationUnitTitleEn,
 		OrganizationUnitTitleAr:          reportDetails.OrganizationUnitTitleAr,
 		OrganizationUnitColorCode:        reportDetails.OrganizationUnitColorCode,
-		GeneratedOn:                      reportDetails.CreatedAt,
-		GeneratedUserNameEn:              fmt.Sprintf("%s %s", reportDetails.CreatedUserFirstNameEn, reportDetails.CreatedUserFirstNameEn),
-		GeneratedUserNameAr:              fmt.Sprintf("%s %s", reportDetails.CreatedUserFirstNameAr, reportDetails.CreatedUserFirstNameAr),
-		OrganizationUnitOverview:         *organizationUnitOverview,
-		KeyMetrics:                       *keyMetrics,
+		CreatedAt:                        reportDetails.CreatedAt,
+		CreatedUserFirstNameEn:           reportDetails.CreatedUserFirstNameEn,
+		CreatedUserFirstNameAr:           reportDetails.CreatedUserFirstNameAr,
+		CreatedUserLastNameEn:            reportDetails.CreatedUserLastNameEn,
+		CreatedUserLastNameAr:            reportDetails.CreatedUserLastNameAr,
+		OrganizationUnitOverview:         organizationUnitOverview,
+		KeyMetrics:                       keyMetrics,
 		UserRoleDistribution:             userRoles,
 		OrganizationUnitUserDetails:      users,
-		RiskSummary:                      *riskSummary,
+		RiskSummary:                      riskSummary,
 		RiskRatingDistribution:           riskRatings,
 		RiskMitigationStatusDistribution: riskMitigations,
 		RiskDetails:                      risks,
-		PolicySummary:                    *policySummary,
+		PolicySummary:                    policySummary,
 		PolicyDetails:                    policies,
-		ProcessHealthSummary:             *processSummary,
+		ProcessHealthSummary:             processSummary,
 		ProcessDetails:                   processes,
 		ComplianceSummary:                complianceSummary,
 		ComplianceRequirementDetails:     complianceRequirments,
@@ -969,7 +969,7 @@ func (s *OrganizationUnitsService) GetOrganizationUnitReportExport(organizationR
 		return "", err
 	}
 
-	organizationReport.GeneratedOn = time.Now().Format("2006-01-02 03:04 PM")
+	organizationReport.CreatedAt = time.Now().Format("2006-01-02 03:04 PM")
 
 	// Main content template
 	templatePaths := []string{"organization/templates/pdf/organization_unit_summary_report.html"}

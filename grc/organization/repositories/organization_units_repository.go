@@ -87,16 +87,16 @@ type OrganizationUnitsRepositoryInterface interface {
 	// get tables
 	GetOrganizationUnitReportOverview(organizationUnitReportID uint) (*organizationDTOs.OrganizationUnitReportOverviewResponseDTO, error)
 	GetOrganizationUnitReportKeyMetrics(organizationUnitReportID uint) (*organizationDTOs.OrganizationUnitReportKeyMetricsResponseDTO, error)
-	GetOrganizationUnitReportUserRole(organizationUnitReportID uint) ([]organizationDTOs.OrganizationUnitReportUserRoleResponseDTO, error)
-	GetOrganizationUnitReportUser(organizationUnitReportID uint) ([]organizationDTOs.OrganizationUnitReportUserResponseDTO, error)
-	GetOrganizationUnitReportRisk(organizationUnitReportID uint) ([]organizationDTOs.OrganizationUnitReportRiskResponseDTO, error)
-	GetOrganizationUnitReportPolicy(organizationUnitReportID uint) ([]organizationDTOs.OrganizationUnitReportPolicyResponseDTO, error)
-	GetOrganizationUnitReportProcess(organizationUnitReportID uint) ([]organizationDTOs.OrganizationUnitReportProcessResponseDTO, error)
-	GetOrganizationUnitReportComplianceRequirement(organizationUnitReportID uint) ([]organizationDTOs.OrganizationUnitReportComplianceRequirementResponseDTO, error)
+	GetOrganizationUnitReportUserRole(organizationUnitReportID uint) ([]*organizationDTOs.OrganizationUnitReportUserRoleResponseDTO, error)
+	GetOrganizationUnitReportUser(organizationUnitReportID uint) ([]*organizationDTOs.OrganizationUnitReportUserResponseDTO, error)
+	GetOrganizationUnitReportRisk(organizationUnitReportID uint) ([]*organizationDTOs.OrganizationUnitReportRiskResponseDTO, error)
+	GetOrganizationUnitReportPolicy(organizationUnitReportID uint) ([]*organizationDTOs.OrganizationUnitReportPolicyResponseDTO, error)
+	GetOrganizationUnitReportProcess(organizationUnitReportID uint) ([]*organizationDTOs.OrganizationUnitReportProcessResponseDTO, error)
+	GetOrganizationUnitReportComplianceRequirement(organizationUnitReportID uint) ([]*organizationDTOs.OrganizationUnitReportComplianceRequirementResponseDTO, error)
 
 	GetOrganizationUnitReportRiskSummary(organizationUnitReportID uint) (*organizationDTOs.OrganizationUnitReportRiskSummaryResponseDTO, error)
-	GetOrganizationUnitReportRiskRating(organizationUnitReportID uint) ([]organizationDTOs.OrganizationUnitReportRiskRatingResponseDTO, error)
-	GetOrganizationUnitReportRiskMitigation(organizationUnitReportID uint) ([]organizationDTOs.OrganizationUnitReportRiskMitigationResponsDTO, error)
+	GetOrganizationUnitReportRiskRating(organizationUnitReportID uint) ([]*organizationDTOs.OrganizationUnitReportRiskRatingResponseDTO, error)
+	GetOrganizationUnitReportRiskMitigation(organizationUnitReportID uint) ([]*organizationDTOs.OrganizationUnitReportRiskMitigationResponsDTO, error)
 	GetOrganizationUnitReportPolicySummary(organizationUnitReportID uint) (*organizationDTOs.OrganizationUnitReportPolicySummaryResponseDTO, error)
 	GetOrganizationUnitReportProcessSummary(organizationUnitReportID uint) (*organizationDTOs.OrganizationUnitReportProcessSummaryResponseDTO, error)
 	GetOrganizationUnitReportComplianceSummary(organizationUnitReportID uint) (*organizationDTOs.OrganizationUnitReportComplianceSummaryResponseDTO, error)
@@ -802,7 +802,12 @@ func (repo *OrganizationUnitsRepository) CreateOrganizationUnitReport(organizati
 
 func (repo *OrganizationUnitsRepository) DeleteOrganizationUnitReport(organizationUnitReportID uint, tx ...utility.DatabaseTransaction) error {
 
-	return repo.db.Where("id = ?", organizationUnitReportID).
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("id = ?", organizationUnitReportID).
 		Delete(&models.OrganizationUnitReport{}).Error
 }
 
@@ -1025,6 +1030,10 @@ func (repo *OrganizationUnitsRepository) GetPolicyByOrganizationUnit(organizatio
 			document_versions.type AS document_type,
 			documents.created_at AS created_at,
 			documents.updated_at AS updated_at,
+			users.first_name_en AS responsible_user_first_name_en,
+			users.last_name_en AS responsible_user_last_name_en,
+			users.first_name_ar AS responsible_user_frist_name_ar,
+			users.last_name_ar AS responsible_user_last_name_ar,
 
 			-- Check if all required users acknowledged
 			CASE
@@ -1081,6 +1090,7 @@ func (repo *OrganizationUnitsRepository) GetPolicyByOrganizationUnit(organizatio
 			LEFT JOIN document_access_types dat ON dat.id = documents.document_access_type_id
 			LEFT JOIN document_versions ON document_versions.document_id = documents.id AND document_versions.is_latest_version = 1
 			LEFT JOIN document_statuses ON document_statuses.id = documents.document_status_id
+			LEFT JOIN users ON users.id = documents.responsible_user_id
 		WHERE documents.responsible_unit_id = ? 
 			AND document_types.type = 'policy' 
 			AND document_statuses.type = 'published'
@@ -1219,14 +1229,14 @@ func (repo *OrganizationUnitsRepository) GetComplianceRequirementsByOrganization
 			cr.deadline AS deadline,
 			cr.created_at AS created_at,
 			cr.updated_at AS updated_at,
-			ISNULL(crc.title_en, '') AS compliance_requirement_category_title_en,
-			ISNULL(crc.title_ar, '') AS compliance_requirement_category_title_ar,
-			ISNULL(cs.title_en, '') AS compliance_status_title_en,
-			ISNULL(cs.title_ar, '') AS compliance_status_title_ar,
-			ISNULL(cs.color_code, '') AS compliance_status_color_code,
-			ISNULL(sl.title_en, '') AS severity_level_title_en,
-			ISNULL(sl.title_ar, '') AS severity_level_title_ar,
-			ISNULL(sl.color_code, '') AS severity_level_color_code
+			crc.title_en AS compliance_requirement_category_title_en,
+			crc.title_ar AS compliance_requirement_category_title_ar,
+			cs.title_en AS compliance_status_title_en,
+			cs.title_ar AS compliance_status_title_ar,
+			cs.color_code AS compliance_status_color_code,
+			sl.title_en AS severity_level_title_en,
+			sl.title_ar AS severity_level_title_ar,
+			sl.color_code AS severity_level_color_code
 		`).
 		Joins(`
 			JOIN compliance_requirement_responsible_units crru
@@ -1801,8 +1811,8 @@ func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportKeyMetrics(org
 	return &keyMetrics, nil
 }
 
-func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportUserRole(organizationUnitReportID uint) ([]organizationDTOs.OrganizationUnitReportUserRoleResponseDTO, error) {
-	var userRoles []organizationDTOs.OrganizationUnitReportUserRoleResponseDTO
+func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportUserRole(organizationUnitReportID uint) ([]*organizationDTOs.OrganizationUnitReportUserRoleResponseDTO, error) {
+	userRoles := []*organizationDTOs.OrganizationUnitReportUserRoleResponseDTO{}
 	err := repo.db.Table("organization_unit_report_user_roles").
 		Where("organization_unit_report_id = ?", organizationUnitReportID).
 		Find(&userRoles).Error
@@ -1813,8 +1823,8 @@ func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportUserRole(organ
 	return userRoles, nil
 }
 
-func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportUser(organizationUnitReportID uint) ([]organizationDTOs.OrganizationUnitReportUserResponseDTO, error) {
-	var users []organizationDTOs.OrganizationUnitReportUserResponseDTO
+func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportUser(organizationUnitReportID uint) ([]*organizationDTOs.OrganizationUnitReportUserResponseDTO, error) {
+	users := []*organizationDTOs.OrganizationUnitReportUserResponseDTO{}
 	err := repo.db.Table("organization_unit_report_users").
 		Where("organization_unit_report_id = ?", organizationUnitReportID).
 		Find(&users).Error
@@ -1825,8 +1835,8 @@ func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportUser(organizat
 	return users, nil
 }
 
-func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportRisk(organizationUnitReportID uint) ([]organizationDTOs.OrganizationUnitReportRiskResponseDTO, error) {
-	var risks []organizationDTOs.OrganizationUnitReportRiskResponseDTO
+func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportRisk(organizationUnitReportID uint) ([]*organizationDTOs.OrganizationUnitReportRiskResponseDTO, error) {
+	var risks []*organizationDTOs.OrganizationUnitReportRiskResponseDTO
 	err := repo.db.Table("organization_unit_report_risks").
 		Where("organization_unit_report_id = ?", organizationUnitReportID).
 		Find(&risks).Error
@@ -1837,8 +1847,8 @@ func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportRisk(organizat
 	return risks, nil
 }
 
-func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportPolicy(organizationUnitReportID uint) ([]organizationDTOs.OrganizationUnitReportPolicyResponseDTO, error) {
-	var policies []organizationDTOs.OrganizationUnitReportPolicyResponseDTO
+func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportPolicy(organizationUnitReportID uint) ([]*organizationDTOs.OrganizationUnitReportPolicyResponseDTO, error) {
+	var policies []*organizationDTOs.OrganizationUnitReportPolicyResponseDTO
 	err := repo.db.Table("organization_unit_report_policies").
 		Where("organization_unit_report_id = ?", organizationUnitReportID).
 		Find(&policies).Error
@@ -1849,8 +1859,8 @@ func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportPolicy(organiz
 	return policies, nil
 }
 
-func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportProcess(organizationUnitReportID uint) ([]organizationDTOs.OrganizationUnitReportProcessResponseDTO, error) {
-	var processes []organizationDTOs.OrganizationUnitReportProcessResponseDTO
+func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportProcess(organizationUnitReportID uint) ([]*organizationDTOs.OrganizationUnitReportProcessResponseDTO, error) {
+	var processes []*organizationDTOs.OrganizationUnitReportProcessResponseDTO
 	err := repo.db.Table("organization_unit_report_processes").
 		Where("organization_unit_report_id = ?", organizationUnitReportID).
 		Find(&processes).Error
@@ -1861,8 +1871,8 @@ func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportProcess(organi
 	return processes, nil
 }
 
-func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportComplianceRequirement(organizationUnitReportID uint) ([]organizationDTOs.OrganizationUnitReportComplianceRequirementResponseDTO, error) {
-	var complianceRequirements []organizationDTOs.OrganizationUnitReportComplianceRequirementResponseDTO
+func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportComplianceRequirement(organizationUnitReportID uint) ([]*organizationDTOs.OrganizationUnitReportComplianceRequirementResponseDTO, error) {
+	var complianceRequirements []*organizationDTOs.OrganizationUnitReportComplianceRequirementResponseDTO
 	err := repo.db.Table("organization_unit_report_compliance_requirements").
 		Where("organization_unit_report_id = ?", organizationUnitReportID).
 		Find(&complianceRequirements).Error
@@ -1885,8 +1895,8 @@ func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportRiskSummary(or
 	return &riskSummary, nil
 }
 
-func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportRiskRating(organizationUnitReportID uint) ([]organizationDTOs.OrganizationUnitReportRiskRatingResponseDTO, error) {
-	var riskRatings []organizationDTOs.OrganizationUnitReportRiskRatingResponseDTO
+func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportRiskRating(organizationUnitReportID uint) ([]*organizationDTOs.OrganizationUnitReportRiskRatingResponseDTO, error) {
+	riskRatings := []*organizationDTOs.OrganizationUnitReportRiskRatingResponseDTO{}
 	err := repo.db.Table("organization_unit_report_risk_ratings").
 		Where("organization_unit_report_id = ?", organizationUnitReportID).
 		Find(&riskRatings).Error
@@ -1897,8 +1907,8 @@ func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportRiskRating(org
 	return riskRatings, nil
 }
 
-func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportRiskMitigation(organizationUnitReportID uint) ([]organizationDTOs.OrganizationUnitReportRiskMitigationResponsDTO, error) {
-	var riskMitigations []organizationDTOs.OrganizationUnitReportRiskMitigationResponsDTO
+func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportRiskMitigation(organizationUnitReportID uint) ([]*organizationDTOs.OrganizationUnitReportRiskMitigationResponsDTO, error) {
+	riskMitigations := []*organizationDTOs.OrganizationUnitReportRiskMitigationResponsDTO{}
 	err := repo.db.Table("organization_unit_report_risk_mitigations").
 		Where("organization_unit_report_id = ?", organizationUnitReportID).
 		Find(&riskMitigations).Error

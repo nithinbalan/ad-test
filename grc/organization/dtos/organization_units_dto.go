@@ -317,9 +317,9 @@ type OrganizationUnitComplianceRequirementListDTO struct {
 	UpdatedAt                            *string  `json:"updated_at"`
 	ComplianceRequirementCategoryTitleEn string   `json:"compliance_requirement_category_title_en"`
 	ComplianceRequirementCategoryTitleAr string   `json:"compliance_requirement_category_title_ar"`
-	ComplianceStatusTitleEn              string   `json:"compliance_status_title_en"`
-	ComplianceStatusTitleAr              string   `json:"compliance_status_title_ar"`
-	ComplianceStatusColorCode            string   `json:"compliance_status_color_code"`
+	ComplianceStatusTitleEn              *string  `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr              *string  `json:"compliance_status_title_ar"`
+	ComplianceStatusColorCode            *string  `json:"compliance_status_color_code"`
 	SeverityLevelTitleEn                 string   `json:"severity_level_title_en"`
 	SeverityLevelTitleAr                 string   `json:"severity_level_title_ar"`
 	SeverityLevelColorCode               string   `json:"severity_level_color_code"`
@@ -360,30 +360,32 @@ type OrganizationUnitPolicySummaryDTO struct {
 }
 
 type OrganizationUnitSummaryReportDTO struct {
-	ID                               uint                                                     `json:"id"`
-	Title                            string                                                   `json:"title"`
-	OrganizationUnitID               uint                                                     `json:"organization_unit_id"`
-	OrganizationUnitTitleEn          string                                                   `json:"organization_unit_title_en"`
-	OrganizationUnitTitleAr          string                                                   `json:"organization_unit_title_ar"`
-	OrganizationUnitColorCode        string                                                   `json:"organization_unit_color_code"`
-	GeneratedOn                      string                                                   `json:"generated_on"`
-	GeneratedUserNameEn              string                                                   `json:"generated_user_name_en"`
-	GeneratedUserNameAr              string                                                   `json:"generated_user_name_ar"`
-	OrganizationUnitOverview         OrganizationUnitReportOverviewResponseDTO                `json:"organization_unit_overview"`
-	KeyMetrics                       OrganizationUnitReportKeyMetricsResponseDTO              `json:"key_metrics"`
-	UserRoleDistribution             []OrganizationUnitReportUserRoleResponseDTO              `json:"user_role_distribution"`
-	OrganizationUnitUserDetails      []OrganizationUnitReportUserResponseDTO                  `json:"organization_unit_user_details"`
-	RiskSummary                      OrganizationUnitReportRiskSummaryResponseDTO             `json:"risk_summary"`
-	RiskRatingDistribution           []OrganizationUnitReportRiskRatingResponseDTO            `json:"risk_rating_distribution"`
-	RiskMitigationStatusDistribution []OrganizationUnitReportRiskMitigationResponsDTO         `json:"risk_mitigation_status_distribution"`
-	RiskDetails                      []OrganizationUnitReportRiskResponseDTO                  `json:"risk_details"`
-	PolicySummary                    OrganizationUnitReportPolicySummaryResponseDTO           `json:"policy_summary"`
-	PolicyDetails                    []OrganizationUnitReportPolicyResponseDTO                `json:"policy_details"`
-	ProcessHealthSummary             OrganizationUnitReportProcessSummaryResponseDTO          `json:"process_health_summary"`
-	ProcessDetails                   []OrganizationUnitReportProcessResponseDTO               `json:"process_details"`
-	ComplianceSummary                *OrganizationUnitReportComplianceSummaryResponseDTO      `json:"compliance_summary"`
-	ComplianceRequirementDetails     []OrganizationUnitReportComplianceRequirementResponseDTO `json:"compliance_requirement_details"`
-	AppUrl                           string                                                   `json:"url"`
+	ID                               uint                                                      `json:"id"`
+	Title                            string                                                    `json:"title"`
+	OrganizationUnitID               uint                                                      `json:"organization_unit_id"`
+	OrganizationUnitTitleEn          string                                                    `json:"organization_unit_title_en"`
+	OrganizationUnitTitleAr          string                                                    `json:"organization_unit_title_ar"`
+	OrganizationUnitColorCode        string                                                    `json:"organization_unit_color_code"`
+	CreatedAt                        string                                                    `json:"created_at"`
+	CreatedUserFirstNameEn           string                                                    `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr           string                                                    `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn            string                                                    `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr            string                                                    `json:"created_user_last_name_ar"`
+	OrganizationUnitOverview         *OrganizationUnitReportOverviewResponseDTO                `json:"organization_unit_overview"`
+	KeyMetrics                       *OrganizationUnitReportKeyMetricsResponseDTO              `json:"key_metrics"`
+	UserRoleDistribution             []*OrganizationUnitReportUserRoleResponseDTO              `json:"user_role_distribution"`
+	OrganizationUnitUserDetails      []*OrganizationUnitReportUserResponseDTO                  `json:"organization_unit_user_details"`
+	RiskSummary                      *OrganizationUnitReportRiskSummaryResponseDTO             `json:"risk_summary"`
+	RiskRatingDistribution           []*OrganizationUnitReportRiskRatingResponseDTO            `json:"risk_rating_distribution"`
+	RiskMitigationStatusDistribution []*OrganizationUnitReportRiskMitigationResponsDTO         `json:"risk_mitigation_status_distribution"`
+	RiskDetails                      []*OrganizationUnitReportRiskResponseDTO                  `json:"risk_details"`
+	PolicySummary                    *OrganizationUnitReportPolicySummaryResponseDTO           `json:"policy_summary"`
+	PolicyDetails                    []*OrganizationUnitReportPolicyResponseDTO                `json:"policy_details"`
+	ProcessHealthSummary             *OrganizationUnitReportProcessSummaryResponseDTO          `json:"process_health_summary"`
+	ProcessDetails                   []*OrganizationUnitReportProcessResponseDTO               `json:"process_details"`
+	ComplianceSummary                *OrganizationUnitReportComplianceSummaryResponseDTO       `json:"compliance_summary"`
+	ComplianceRequirementDetails     []*OrganizationUnitReportComplianceRequirementResponseDTO `json:"compliance_requirement_details"`
+	AppUrl                           string                                                    `json:"url"`
 }
 
 type OrganizationUnitReportOverviewResponseDTO struct {
@@ -420,8 +422,8 @@ type OrganizationUnitReportUserResponseDTO struct {
 	OrganizationUnitReportID uint   `json:"organization_unit_report_id"`
 	UserNameEn               string `json:"user_name_en"`
 	UserNameAr               string `json:"user_name_ar"`
-	DesignationEn            string `json:"designation_en"`
-	DesignationAr            string `json:"designation_ar"`
+	DesignationTitleEn       string `json:"designation_title_en"`
+	DesignationTitleAr       string `json:"designation_title_ar"`
 	RoleTitleEn              string `json:"role_title_en"`
 	RoleTitleAr              string `json:"role_title_ar"`
 }
@@ -539,9 +541,9 @@ type OrganizationUnitReportProcessSummaryResponseDTO struct {
 }
 
 type OrganizationUnitReportComplianceSummaryResponseDTO struct {
-	ID                       uint                                  `json:"id"`
-	OrganizationUnitReportID uint                                  `json:"organization_unit_report_id"`
-	TotalRequirementCount    int                                   `json:"total_requirement_count"`
-	ComplianceStatuses       *string                               `json:"compliance_statuses"`
-	ComplianceStatusesParsed []OrganizationUnitDistributionItemDTO `json:"compliance_statuses_parsed" gorm:"-"`
+	ID                       uint                                   `json:"id"`
+	OrganizationUnitReportID uint                                   `json:"organization_unit_report_id"`
+	TotalRequirementCount    int                                    `json:"total_requirement_count"`
+	ComplianceStatuses       *string                                `json:"compliance_statuses"`
+	ComplianceStatusesParsed []*OrganizationUnitDistributionItemDTO `json:"compliance_statuses_parsed" gorm:"-"`
 }

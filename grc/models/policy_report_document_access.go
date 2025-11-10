@@ -9,7 +9,7 @@ type PolicyReportDocumentAccess struct {
 	UserNameAr              string    `json:"user_name_ar" gorm:"type:nvarchar(255)"`
 	DesignationTitleEn      string    `json:"designation_title_en" gorm:"type:nvarchar(255)"`
 	DesignationTitleAr      string    `json:"designation_title_ar" gorm:"type:nvarchar(255)"`
-	OrganizatinUnitTitleEn  string    `json:"organization_unit_title_en" gorm:"type:nvarchar(255)"`
+	OrganizationUnitTitleEn string    `json:"organization_unit_title_en" gorm:"type:nvarchar(255)"`
 	OrganizationUnitTitleAr string    `json:"organization_unit_title_ar" gorm:"type:nvarchar(255)"`
 	CreatedByID             uint      `json:"created_by_id" gorm:"not null;index"`
 	CreatedAt               time.Time `json:"created_at" gorm:"not null"`

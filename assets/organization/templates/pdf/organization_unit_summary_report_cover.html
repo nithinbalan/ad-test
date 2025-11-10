@@ -35,7 +35,7 @@
             </div>
          </div>
          <div style="margin-top: 10px; ">
-            {{- if .Data.GeneratedOn }}
+            {{- if .Data.CreatedAt }}
             <div style="width: 30%; display: inline-block; vertical-align: top;">
                <p
                   style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000; font-size: 13px; line-height: 1.5em; margin-top: 0px; text-align: left; margin-bottom: 2px; font-weight: 300;">
@@ -43,7 +43,7 @@
                </p>
                <p
                   style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">
-                  {{ .Data.GeneratedOn }} </p>
+                  {{ .Data.CreatedAt }} </p>
             </div>
             {{end}}
             <div style="width: 30%; display: inline-block; vertical-align: top;">
@@ -53,7 +53,7 @@
                </p>
                <p
                   style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">
-                  {{ .Data.GeneratedUserNameEn }}</p>
+                  {{ .Data.CreatedUserFirstNameEn }} {{ .Data.CreatedUserLastNameEn }}</p>
             </div>
 
             <div style="width: 30%; display: inline-block; vertical-align: top;">
@@ -63,7 +63,7 @@
                </p>
                <p
                   style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; box-sizing: border-box; color: #000000; font-size: 14px;  line-height: 1.5em; text-align: left; margin-bottom: 13px; margin-top: 0px;">
-                  {{ .Data.GeneratedOn }} </p>
+                  {{ .Data.CreatedAt }} </p>
             </div>
          </div>
       </div>
