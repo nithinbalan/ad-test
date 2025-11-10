@@ -97,8 +97,8 @@
                   font-weight: 400;
                 "
               >
-                {{ if .Data.PolicyOverview.TitleEn }}{{
-                .Data.PolicyOverview.TitleEn }}{{ else }}N/A{{ end }}
+                {{ if .Data.PolicyOverview.PolicyTitleEn }}{{
+                .Data.PolicyOverview.PolicyTitleEn }}{{ else }}N/A{{ end }}
               </p>
             </div>
 
@@ -166,8 +166,7 @@
                 "
               >
                 {{ if .Data.PolicyOverview.ResponsibleUnitTitleEn }}{{
-                .Data.PolicyOverview.ResponsibleUnitTitleEn }}{{ else }}N/A{{
-                end }}
+                .Data.PolicyOverview.ResponsibleUnitTitleEn }}{{ else }}N/A{{ end }}
               </p>
             </div>
 
@@ -200,15 +199,8 @@
                   font-weight: 400;
                 "
               >
-                {{ if and .Data.PolicyOverview.ResponsibleUserFirstNameEn
-                .Data.PolicyOverview.ResponsibleUserLastNameEn }} {{
-                .Data.PolicyOverview.ResponsibleUserFirstNameEn }} {{
-                .Data.PolicyOverview.ResponsibleUserLastNameEn }} {{ else if
-                .Data.PolicyOverview.ResponsibleUserFirstNameEn }} {{
-                .Data.PolicyOverview.ResponsibleUserFirstNameEn }} {{ else if
-                .Data.PolicyOverview.ResponsibleUserLastNameEn }} {{
-                .Data.PolicyOverview.ResponsibleUserLastNameEn }} {{ else }} N/A
-                {{ end }}
+                {{ if .Data.PolicyOverview.ResponsibleUserNameEn }} {{
+                .Data.PolicyOverview.ResponsibleUserNameEn }} {{ else }} N/A {{ end }}
               </p>
             </div>
 
@@ -241,8 +233,8 @@
                   font-weight: 400;
                 "
               >
-                {{ if .Data.PolicyOverview.PublishedAt }}{{
-                .Data.PolicyOverview.PublishedAt }}{{ else }}N/A{{ end }}
+                {{ if .Data.PolicyOverview.PublishedDate }}{{
+                .Data.PolicyOverview.PublishedDate }}{{ else }}N/A{{ end }}
               </p>
             </div>
 
@@ -310,8 +302,7 @@
                 "
               >
                 {{ if .Data.PolicyOverview.DocumentStatusTitleEn }}{{
-                .Data.PolicyOverview.DocumentStatusTitleEn }}{{ else }}N/A{{ end
-                }}
+                .Data.PolicyOverview.DocumentStatusTitleEn }}{{ else }}N/A{{ end }}
               </p>
             </div>
 
@@ -379,8 +370,7 @@
                 "
               >
                 {{ if .Data.PolicyOverview.DocumentAccessTypeTitleEn }}{{
-                .Data.PolicyOverview.DocumentAccessTypeTitleEn }}{{ else }}N/A{{
-                end }}
+                .Data.PolicyOverview.DocumentAccessTypeTitleEn }}{{ else }}N/A{{ end }}
               </p>
             </div>
 
@@ -465,7 +455,7 @@
                   font-weight: 400;
                 "
               >
-                {{ .Data.PolicyKeySummary.ClausesDefined }}
+                {{ .Data.PolicyKeyMetrics.ClausesDefinedCount }}
               </p>
             </div>
 
@@ -500,7 +490,7 @@
                   font-weight: 400;
                 "
               >
-                {{ .Data.PolicyKeySummary.AcknowledgmentRate }}
+                {{ .Data.PolicyKeyMetrics.AcknowledgementPercentage }}
               </p>
             </div>
 
@@ -535,8 +525,8 @@
                   font-weight: 400;
                 "
               >
-                {{ .Data.PolicyKeySummary.AcknowledgmentsCompleted }}/{{
-                .Data.PolicyKeySummary.TotalAcknowledgments }}
+                {{ .Data.PolicyKeyMetrics.AcknowledgementsCompletedCount }}/{{
+                .Data.PolicyKeyMetrics.TotalAcknowledgementCount }}
               </p>
             </div>
 
@@ -571,8 +561,8 @@
                   font-weight: 400;
                 "
               >
-                {{ .Data.PolicyKeySummary.AcknowledgmentsPending }}/{{
-                .Data.PolicyKeySummary.TotalAcknowledgments }}
+                {{ .Data.PolicyKeyMetrics.AcknowledgementsPendingCount }}/{{
+                .Data.PolicyKeyMetrics.TotalAcknowledgementCount }}
               </p>
             </div>
 
@@ -607,7 +597,7 @@
                   font-weight: 400;
                 "
               >
-                {{ .Data.PolicyKeySummary.RiskReported }}
+                {{ .Data.PolicyKeyMetrics.RisksReportedCount }}
               </p>
             </div>
 
@@ -642,8 +632,8 @@
                   font-weight: 400;
                 "
               >
-                {{ .Data.PolicyKeySummary.AssociatedStandardsCount }}/{{
-                .Data.PolicyKeySummary.AssociatedClausesCount }}
+                {{ .Data.PolicyKeyMetrics.AssociatedStandardsCount }}/{{
+                .Data.PolicyKeyMetrics.AssociatedClausesCount }}
               </p>
             </div>
 
@@ -678,7 +668,7 @@
                   font-weight: 400;
                 "
               >
-                {{ .Data.PolicyKeySummary.StrategicObjectivesLinked }}
+                {{ .Data.PolicyKeyMetrics.StrategicObjectivesLinkedCount }}
               </p>
             </div>
 
@@ -713,8 +703,8 @@
                   font-weight: 400;
                 "
               >
-                {{ if .Data.PolicyKeySummary.ApprovalCycle }}{{
-                .Data.PolicyKeySummary.ApprovalCycle }}{{ else }}N/A{{ end }}
+                {{ if .Data.PolicyKeyMetrics.ApprovalCycleCount }}{{
+                .Data.PolicyKeyMetrics.ApprovalCycleCount }}{{ else }}N/A{{ end }}
               </p>
             </div>
           </div>
@@ -813,8 +803,7 @@
                 <td
                   style="padding: 12px 14px; border-bottom: 1px solid #f3f4f6"
                 >
-                  {{ if $u.ClauseNumber }}{{ $u.ClauseNumber }}{{ else }}N/A{{
-                  end }}
+                  {{ if $u.ClauseNumber }}{{ $u.ClauseNumber }}{{ else }}N/A{{ end }}
                 </td>
 
                 <td
@@ -824,8 +813,7 @@
                     color: #374151;
                   "
                 >
-                  {{ if $u.ClauseTitleEn }}{{ $u.ClauseTitleEn }}{{ else }}N/A{{
-                  end }}
+                  {{ if $u.ClauseTitleEn }}{{ $u.ClauseTitleEn }}{{ else }}N/A{{ end }}
                 </td>
 
                 <td
@@ -835,9 +823,9 @@
                     color: #374151;
                   "
                 >
-                  {{ range $i, $ctrl := $u.Controls }} {{ $ctrl.TitleEn }} {{ if
-                  lt (add $i 1) (len $u.Controls) }}, {{ end }} {{ else }} N/A
-                  {{ end }}
+                  {{ range $i, $ctrl := $u.ControlsParsed }} {{ $ctrl.TitleEn }}
+                  {{ if lt (add $i 1) (len $u.ControlsParsed) }}, {{ end }} {{
+                  else }} N/A {{ end }}
                 </td>
               </tr>
               {{ end }}
@@ -963,8 +951,8 @@
                     color: #374151;
                   "
                 >
-                  {{ if or $r.FirstNameEn $r.LastNameEn }} {{ $r.FirstNameEn }}
-                  {{ $r.LastNameEn }} {{ else }} N/A {{ end }}
+                  {{ if $r.UserNameEn }}
+                  {{ $r.UserNameEn }} {{ else }} N/A {{ end }}
                 </td>
 
                 <td
@@ -974,7 +962,7 @@
                     color: #374151;
                   "
                 >
-                  {{ if $r.DepartmentTitleEn }}{{ $r.DepartmentTitleEn }}{{ else
+                  {{ if $r.OrganizationUnitTitleEn }}{{ $r.OrganizationUnitTitleEn }}{{ else
                   }}N/A{{ end }}
                 </td>
 
@@ -1386,15 +1374,14 @@
             </thead>
             <tbody>
               {{ range $i, $r := .Data.AssociatedRiskList }} {{ $likelihood :=
-              "" }} {{ if $r.CurrentLikelihoodTitleEn }}{{ $likelihood =
-              $r.CurrentLikelihoodTitleEn }}{{ end }} {{ $impact := "" }} {{ if
-              $r.CurrentImpactTitleEn }}{{ $impact = $r.CurrentImpactTitleEn
-              }}{{ end }} {{ $rating := "" }} {{ if $r.CurrentRiskRatingTitleEn
-              }}{{ $rating = $r.CurrentRiskRatingTitleEn }}{{ end }} {{
-              $ratingColor := "#e5e7eb" }} {{ if $r.CurrentRiskRatingColorCode
-              }}{{ $ratingColor = $r.CurrentRiskRatingColorCode }}{{ end }} {{
-              $status := $r.RiskStatusTitleEn }} {{ $statusColor :=
-              $r.RiskStatusColorCode }}
+              "" }} {{ if $r.RiskLikelihoodTitleEn }}{{ $likelihood =
+              $r.RiskLikelihoodTitleEn }}{{ end }} {{ $impact := "" }} {{ if
+              $r.RiskImpactTitleEn }}{{ $impact = $r.RiskImpactTitleEn }}{{ end }}
+               {{ $rating := "" }} {{ if $r.RiskRatingTitleEn }}{{ $rating =
+              $r.RiskRatingTitleEn }}{{ end }} {{ $ratingColor := "#e5e7eb" }}
+              {{ if $r.RiskRatingColorCode }}{{ $ratingColor =
+              $r.RiskRatingColorCode }}{{ end }} {{ $status :=
+              $r.RiskStatusTitleEn }} {{ $statusColor := $r.RiskStatusColorCode }}
 
               <tr style="background: #ffffff">
                 <td
@@ -1410,7 +1397,7 @@
                 <td
                   style="padding: 10px 12px; border-bottom: 1px solid #f3f4f6"
                 >
-                  {{ $r.Title }}
+                  {{ $r.RiskTitle }}
                 </td>
 
                 <td
@@ -1610,7 +1597,7 @@
                     color: #111827;
                   "
                 >
-                  {{ $c.TitleEn }}
+                  {{ $c.StrategicObjectiveTitleEn }}
                 </td>
 
                 <td
@@ -1621,8 +1608,7 @@
                   "
                 >
                   {{ if $c.StrategicObjectiveCategoryTitleEn }} {{
-                  $c.StrategicObjectiveCategoryTitleEn}} {{ else }} N/A {{ end
-                  }}
+                  $c.StrategicObjectiveCategoryTitleEn}} {{ else }} N/A {{ end }}
                 </td>
 
                 <!-- Severity -->
@@ -1633,8 +1619,7 @@
                     color: #374151;
                   "
                 >
-                  {{ if $c.StartDate }} {{ $c.StartDate}} {{ else }} N/A {{ end
-                  }}
+                  {{ if $c.StartDate }} {{ $c.StartDate }} {{ else }} N/A {{ end }}
                 </td>
 
                 <!-- Status -->
@@ -1645,7 +1630,7 @@
                     color: #374151;
                   "
                 >
-                  {{ if $c.EndDate }} {{ $c.EndDate}} {{ else }} N/A {{ end }}
+                  {{ if $c.EndDate }} {{ $c.EndDate }} {{ else }} N/A {{ end }}
                 </td>
                 <td
                   style="
@@ -1654,10 +1639,8 @@
                     color: #374151;
                   "
                 >
-                  {{ if $c.ResponsibleUserFirstNameEn }} {{ if
-                  $c.ResponsibleUserLastNameEn }} {{
-                  $c.ResponsibleUserFirstNameEn}} {{
-                  $c.ResponsibleUserLastNameEn}} {{ else }} N/A {{ end }}
+                  {{ if $c.ResponsibleUserNameEn }} {{ $c.ResponsibleUserNameEn
+                  }} {{ else }} N/A {{ end }}
                 </td>
               </tr>
               {{ end }}
@@ -1741,9 +1724,10 @@
             <tbody>
               {{ $row := 0 }} {{ range $i, $c := .Data.AssociatedComplianceList
               }} {{/* determine how many clause rows we’ll output for this
-              compliance */}} {{ $n := len $c.Clauses }} {{ if lt $n 1 }}{{ $n =
-              1 }}{{ end }} {{/* first row: print the index and compliance title
-              with rowspan over all clause rows */}} {{ $row = add $row 1 }}
+              compliance */}} {{ $n := len $c.ClausesParsed }} {{ if lt $n 1
+              }}{{ $n = 1 }}{{ end }} {{/* first row: print the index and
+              compliance title with rowspan over all clause rows */}} {{ $row =
+              add $row 1 }}
               <tr style="background: #ffffff">
                 <td
                   rowspan="{{ $n }}"
@@ -1765,18 +1749,17 @@
                     vertical-align: top;
                   "
                 >
-                  {{ if $c.ComplianceRegisterTitleEn }}{{
-                  $c.ComplianceRegisterTitleEn }}{{ else }}N/A{{ end }}
+                  {{ if $c.ComplianceTitleEn }}{{ $c.ComplianceTitleEn }}{{ else
+                  }}N/A{{ end }}
                 </td>
 
                 {{/* if there is at least one clause, render the first here;
-                else show N/A */}} {{ if gt (len $c.Clauses) 0 }} {{ $first :=
-                index $c.Clauses 0 }}
+                else show N/A */}} {{ if gt (len $c.ClausesParsed) 0 }} {{
+                $first := index $c.ClausesParsed 0 }}
                 <td
                   style="padding: 12px 14px; border-bottom: 1px solid #f3f4f6"
                 >
-                  {{ if $first.ClauseNo }}{{ $first.ClauseNo }}{{ else }}N/A{{
-                  end }}
+                  {{ if $first.ClauseNo }}{{ $first.ClauseNo }}{{ else }}N/A{{ end }}
                 </td>
                 <td
                   style="
@@ -1807,7 +1790,7 @@
               </tr>
 
               {{/* remaining clause rows for this compliance */}} {{ if gt (len
-              $c.Clauses) 1 }} {{ range $j, $cl := (slice $c.Clauses 1) }}
+              $c.ClausesParsed) 1 }} {{ range $j, $cl := (slice $c.ClausesParsed 1) }}
               <tr style="background: #ffffff">
                 <td
                   style="padding: 12px 14px; border-bottom: 1px solid #f3f4f6"
@@ -1934,8 +1917,7 @@
                     color: #374151;
                   "
                 >
-                  {{ if $u.PublishedAt }}{{ $u.PublishedAt }}{{ else }}N/A{{ end
-                  }}
+                  {{ if $u.PublishedAt }}{{ $u.PublishedAt }}{{ else }}N/A{{ end }}
                 </td>
 
                 <!-- Published By -->
@@ -1946,8 +1928,7 @@
                     color: #374151;
                   "
                 >
-                  {{ if or $u.PublishedByFirstNameEn $u.PublishedByLastNameEn }}
-                  {{ $u.PublishedByFirstNameEn }} {{ $u.PublishedByLastNameEn }}
+                  {{ if $u.PublishedUserNameEn }} {{ $u.PublishedUserNameEn }}
                   {{ else }} N/A {{ end }}
                 </td>
               </tr>
@@ -2046,8 +2027,7 @@
                 <td
                   style="padding: 12px 14px; border-bottom: 1px solid #f3f4f6"
                 >
-                  {{ if and $u.FirstNameEn $u.LastNameEn }} {{ $u.FirstNameEn }}
-                  {{ $u.LastNameEn }} {{ else }} N/A {{ end }}
+                  {{ if $u.UserNameEn }} {{ $u.UserNameEn }} {{ else }} N/A {{ end }}
                 </td>
 
                 <td
@@ -2057,7 +2037,7 @@
                     color: #374151;
                   "
                 >
-                  {{ if $u.DesignationTitleEn }}{{ $u.DesignationTitleEn }}{{
+                  {{ if $u.DesignationTitleEn }} {{ $u.DesignationTitleEn }}{{
                   else }}N/A{{ end }}
                 </td>
 
@@ -2196,9 +2176,8 @@
                     color: #111827;
                   "
                 >
-                  {{ if or $c.ApprovedByFirstNameEn $c.ApprovedByLastNameEn }}
-                  {{ $c.ApprovedByFirstNameEn }} {{ $c.ApprovedByLastNameEn }}
-                  {{ else }} N/A {{ end }}
+                  {{ if $c.ApprovedUserNameEn }} {{ $c.ApprovedUserNameEn }} {{
+                  else }} N/A {{ end }}
                 </td>
 
                 <!-- Designation -->
@@ -2244,8 +2223,7 @@
                     color: #374151;
                   "
                 >
-                  {{ if $c.ActionDate }}{{ $c.ActionDate }}{{ else }}N/A{{ end
-                  }}
+                  {{ if $c.ActionDate }}{{ $c.ActionDate }}{{ else }}N/A{{ end }}
                 </td>
 
                 <!-- Comments -->
@@ -2384,7 +2362,7 @@
                     color: #374151;
                   "
                 >
-                  {{ if $u.CreatedAt }}{{ $u.CreatedAt }}{{ else }}N/A{{ end }}
+                  {{ if $u.LinkedDate }}{{ $u.LinkedDate }}{{ else }}N/A{{ end }}
                 </td>
               </tr>
               {{ end }}
@@ -2394,7 +2372,6 @@
         {{ end }}
       </div>
     </div>
-    {{ end }}
 
     <script
       src="https://code.jquery.com/jquery-3.3.1.slim.min.js"

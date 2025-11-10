@@ -384,7 +384,7 @@ func (osc *OrganizationUnitsController) CreateOrganizationUnitReport(c *gin.Cont
 		return
 	}
 
-	organnizationUnitReportID, err := osc.service.Create(currentUserID, &request)
+	organnizationUnitReportID, err := osc.service.CreateOrganizationUnitReport(currentUserID, &request)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -418,6 +418,9 @@ func (osc *OrganizationUnitsController) GetOrganizationUnitReportDetails(c *gin.
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(osc.db, c, e.Error())
 			return
@@ -438,7 +441,7 @@ func (osc *OrganizationUnitsController) DeleteOrganizationUnitReport(c *gin.Cont
 		return
 	}
 
-	err = osc.service.Delete(uint(id), currentUserID)
+	err = osc.service.DeleteOrganizationUnitReport(uint(id), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

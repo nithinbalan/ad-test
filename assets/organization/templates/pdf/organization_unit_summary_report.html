@@ -55,6 +55,7 @@
       style="width: 1000px; margin: 0; background: #fff; padding: 0px 32px"
     >
       <div style="padding-top: 4px">
+        <!-- overview -->
         <div class="keep-together" style="padding-top: 0px">
           <h4
             style="
@@ -99,7 +100,7 @@
                   font-weight: 400;
                 "
               >
-                {{ with .Data.OrganizationUnitOverview.OrganizationUnitTitle
+                {{ with .Data.OrganizationUnitOverview.OrganizationUnitTitleEn
                 }}{{ . }}{{ else }}N/A{{ end }}
               </p>
             </div>
@@ -135,8 +136,9 @@
                   font-weight: 400;
                 "
               >
-                {{ with .Data.OrganizationUnitOverview.OrganizationUnitHead }}{{
-                . }}{{ else }}N/A{{ end }}
+                {{ with
+                .Data.OrganizationUnitOverview.OrganizationUnitHeadNameEn }}{{ .
+                }}{{ else }}N/A{{ end }}
               </p>
             </div>
 
@@ -214,7 +216,7 @@
           </div>
         </div>
 
-        <!-- Key Summary Matrices (updated to show 0 instead of N/A) -->
+        <!-- Key Summary Matrices  -->
         <div class="keep-together" style="padding-top: 0px; margin-top: 32px">
           <h4
             style="
@@ -260,7 +262,7 @@
                 "
               >
                 {{ if ne .Data.OrganizationUnitOverview.TotalEmployees nil }} {{
-                .Data.OrganizationUnitOverview.TotalEmployees }} {{ else }}N/A{{
+                printf "%02d"  .Data.OrganizationUnitOverview.TotalEmployees }} {{ else }}N/A{{
                 end }}
               </p>
             </div>
@@ -296,8 +298,8 @@
                   font-weight: 400;
                 "
               >
-                {{ if ne .Data.KeyMatrix.TotalRisks nil }} {{
-                .Data.KeyMatrix.TotalRisks }} {{ else }}N/A{{ end }}
+                {{ if ne .Data.KeyMetrics.TotalRisks nil }} {{
+                printf "%02d"  .Data.KeyMetrics.TotalRisks }} {{ else }}N/A{{ end }}
               </p>
             </div>
 
@@ -332,8 +334,8 @@
                   font-weight: 400;
                 "
               >
-                {{ if ne .Data.KeyMatrix.TotalPolicies nil }} {{
-                .Data.KeyMatrix.TotalPolicies }} {{ else }}N/A{{ end }}
+                {{ if ne .Data.KeyMetrics.TotalPolicies nil }} {{
+                printf "%02d"  .Data.KeyMetrics.TotalPolicies }} {{ else }}N/A{{ end }}
               </p>
             </div>
 
@@ -368,8 +370,8 @@
                   font-weight: 400;
                 "
               >
-                {{ if ne .Data.KeyMatrix.TotalProcesses nil }} {{
-                .Data.KeyMatrix.TotalProcesses }} {{ else }}N/A{{ end }}
+                {{ if ne .Data.KeyMetrics.TotalProcesses nil }} {{
+                printf "%02d"  .Data.KeyMetrics.TotalProcesses }} {{ else }}N/A{{ end }}
               </p>
             </div>
 
@@ -404,8 +406,8 @@
                   font-weight: 400;
                 "
               >
-                {{ if ne .Data.KeyMatrix.TotalCompliances nil }} {{
-                .Data.KeyMatrix.TotalCompliances }} {{ else }}N/A{{ end }}
+                {{ if ne .Data.KeyMetrics.TotalCompliances nil }} {{
+                printf "%02d"  .Data.KeyMetrics.TotalCompliances }} {{ else }}N/A{{ end }}
               </p>
             </div>
           </div>
@@ -481,7 +483,8 @@
               font-weight: 400;
             "
           >
-            Users in {{ .Data.OrganizationUnitOverview.OrganizationUnitTitle }}
+            Users in {{ .Data.OrganizationUnitOverview.OrganizationUnitTitleEn
+            }}
           </h4>
 
           <table
@@ -551,7 +554,7 @@
                 <td
                   style="padding: 12px 14px; border-bottom: 1px solid #f3f4f6"
                 >
-                  {{ printf "%s %s" $u.FirstNameEn $u.LastNameEn }}
+                  {{ $u.UserNameEn}}
                 </td>
                 <td
                   style="
@@ -560,7 +563,7 @@
                     color: #374151;
                   "
                 >
-                  {{ $u.DesignationEn }}
+                  {{ $u.DesignationTitleEn }}
                 </td>
                 <td
                   style="
@@ -579,7 +582,7 @@
         {{ end }}
 
         <!-- Risk Summary -->
-        {{ if .Data.RiskSummary}}
+        {{ if .Data.RiskSummary }}
         <div class="keep-together" style="padding-top: 0px; margin-top: 32px">
           <h4
             style="
@@ -624,7 +627,7 @@
                   font-weight: 400;
                 "
               >
-                06
+                {{ printf "%02d" .Data.RiskSummary.TotalRiskCount }}
               </p>
             </div>
 
@@ -659,7 +662,7 @@
                   font-weight: 400;
                 "
               >
-                04
+                {{ printf "%02d" .Data.RiskSummary.OpenRiskCount }}
               </p>
             </div>
 
@@ -694,7 +697,7 @@
                   font-weight: 400;
                 "
               >
-                02
+                {{ printf "%02d" .Data.RiskSummary.ClosedRiskCount }}
               </p>
             </div>
 
@@ -729,7 +732,8 @@
                   font-weight: 400;
                 "
               >
-                33%
+                {{ printf "%.0f%%" .Data.RiskSummary.ClosurePercentage }}
+
               </p>
             </div>
           </div>
@@ -763,16 +767,16 @@
               <!-- Badge with reduced opacity background -->
               <div
                 style="background: #E5F4F0;
-                   color: {{ .ColorCode }};
+                   color: {{ .RiskRatingColorCode }};
                     padding: 4px 8px;
                     border-radius: 5px;
                     font-size: 12px;
                     line-height: normal;
                     display: inline-block;
-                    border: 1px solid {{ .ColorCode }};
+                    border: 1px solid {{ .RiskRatingColorCode }};
                     font-weight: 400;"
               >
-                {{ .TitleEn }}
+                {{ .RiskRatingTitleEn }}
               </div>
 
               <!-- Count -->
@@ -820,16 +824,16 @@
             >
               <div
                 style="background: #E5F4F0;
-                   color: {{ .ColorCode }};
+                   color: {{ .RiskActionPlanStatusColorCode }};
                     padding: 4px 8px;
                     border-radius: 5px;
                     font-size: 12px;
                     line-height: normal;
                     display: inline-block;
-                    border: 1px solid {{ .ColorCode }};
+                    border: 1px solid {{ .RiskActionPlanStatusColorCode }};
                     font-weight: 400;"
               >
-                {{ .TitleEn }}
+                {{ .RiskActionPlanStatusTitleEn }}
               </div>
               <p
                 style="
@@ -957,15 +961,15 @@
             </thead>
             <tbody>
               {{ range $i, $r := .Data.RiskDetails }} {{ $likelihood := "" }} {{
-              if $r.CurrentLikelihoodTitleEn }}{{ $likelihood =
-              $r.CurrentLikelihoodTitleEn }}{{ end }} {{ $impact := "" }} {{ if
-              $r.CurrentImpactTitleEn }}{{ $impact = $r.CurrentImpactTitleEn
-              }}{{ end }} {{ $rating := "" }} {{ if $r.CurrentRiskRatingTitleEn
-              }}{{ $rating = $r.CurrentRiskRatingTitleEn }}{{ end }} {{
-              $ratingColor := "#e5e7eb" }} {{ if $r.CurrentRiskRatingColorCode
-              }}{{ $ratingColor = $r.CurrentRiskRatingColorCode }}{{ end }} {{
-              $status := $r.RiskStatusTitleEn }} {{ $statusColor :=
-              $r.RiskStatusColorCode }}
+              if $r.RiskLikelihoodTitleEn }}{{ $likelihood =
+              $r.RiskLikelihoodTitleEn }}{{ end }} {{ $impact := "" }} {{ if
+              $r.RiskImpactTitleEn }}{{ $impact = $r.RiskImpactTitleEn }}{{ end
+              }} {{ $rating := "" }} {{ if $r.RiskRatingTitleEn }}{{ $rating =
+              $r.RiskRatingTitleEn }}{{ end }} {{ $ratingColor := "#e5e7eb" }}
+              {{ if $r.RiskRatingColorCode }}{{ $ratingColor =
+              $r.RiskRatingColorCode }}{{ end }} {{ $status :=
+              $r.RiskStatusTitleEn }} {{ $statusColor := $r.RiskStatusColorCode
+              }}
 
               <tr style="background: #ffffff">
                 <td
@@ -981,7 +985,7 @@
                 <td
                   style="padding: 10px 12px; border-bottom: 1px solid #f3f4f6"
                 >
-                  {{ $r.Title }}
+                  {{ $r.RiskTitle }}
                 </td>
 
                 <td
@@ -1114,7 +1118,7 @@
                   font-weight: 400;
                 "
               >
-                {{ printf "%02d" .Data.PolicySummary.TotalPolicies }}
+                {{ printf "%02d" .Data.PolicySummary.TotalPolicyCount }}
               </p>
             </div>
 
@@ -1149,7 +1153,7 @@
                   font-weight: 400;
                 "
               >
-                {{ printf "%02d" .Data.PolicySummary.ActivePolicies }}
+                {{ printf "%02d" .Data.PolicySummary.ActivePolicyCount }}
               </p>
             </div>
 
@@ -1184,7 +1188,7 @@
                   font-weight: 400;
                 "
               >
-                {{ printf "%02d" .Data.PolicySummary.PoliciesUnderReview }}
+                {{ printf "%02d" .Data.PolicySummary.UnderReviewPolicyCount }}
               </p>
             </div>
 
@@ -1219,7 +1223,7 @@
                   font-weight: 400;
                 "
               >
-                {{ printf "%.1f%%" .Data.PolicySummary.PolicyHealthPercentage }}
+                {{ printf "%.1f%%" .Data.PolicySummary.PolicyHealthPercent }}
               </p>
             </div>
 
@@ -1254,8 +1258,7 @@
                   font-weight: 400;
                 "
               >
-                {{ printf "%.0f%%" .Data.PolicySummary.PolicyAwarenessPercentage
-                }}
+                {{ printf "%.0f%%" .Data.PolicySummary.PolicyAwarenessPercent }}
               </p>
             </div>
           </div>
@@ -1389,7 +1392,7 @@
                 <td
                   style="padding: 10px 12px; border-bottom: 1px solid #f3f4f6"
                 >
-                  {{ $p.TitleEn }}
+                  {{ $p.DocumentTitleEn }}
                 </td>
 
                 <!-- Category -->
@@ -1411,8 +1414,7 @@
                     color: #374151;
                   "
                 >
-                  {{ $p.ResponsibleUserFirstNameEn }} {{
-                  $p.ResponsibleUserLastNameEn }}
+                  {{ $p.ResponsibleUserNameEn }}
                 </td>
 
                 <!-- Status -->
@@ -1520,7 +1522,7 @@
                   font-weight: 400;
                 "
               >
-                {{ printf "%02d" .Data.ProcessHealthSummary.TotalProcesses }}
+                {{ printf "%02d" .Data.ProcessHealthSummary.TotalProcessCount }}
               </p>
             </div>
 
@@ -1555,7 +1557,8 @@
                   font-weight: 400;
                 "
               >
-                {{ printf "%02d" .Data.ProcessHealthSummary.ActiveProcesses }}
+                {{ printf "%02d" .Data.ProcessHealthSummary.ActiveProcessCount
+                }}
               </p>
             </div>
 
@@ -1589,9 +1592,8 @@
                   line-height: 1.5em;
                   font-weight: 400;
                 "
-              >
-                {{ printf "%.0f%%" .Data.ProcessHealthSummary.ActivePercentage
-                }}
+              >{{ printf "%.0f%%" .Data.ProcessHealthSummary.ActivePercentage }}
+
               </p>
             </div>
           </div>
@@ -1708,12 +1710,12 @@
 
             <tbody>
               {{ range $i, $p := .Data.ProcessDetails }} {{/* Risk Rating */}}
-              {{ $riskTitle := "" }} {{ if $p.RiskRatingTitleEn }}{{ $riskTitle
-              = $p.RiskRatingTitleEn }}{{ end }} {{ $riskColor := "#e5e7eb" }}
-              {{ if $p.RiskRatingColorCode }}{{ $riskColor =
-              $p.RiskRatingColorCode }}{{ end }} {{/* Status */}} {{
-              $statusTitle := $p.LifecycleStatusTitleEn }} {{ $statusColor :=
-              $p.LifecycleStatusColorCode }}
+              {{ $riskRatingTitleEn := "" }} {{ if $p.RiskRatingTitleEn }}{{
+              $riskRatingTitleEn = $p.RiskRatingTitleEn }}{{ end }} {{
+              $riskRatingColor := "#e5e7eb" }} {{ if $p.RiskRatingColorCode }}{{
+              $riskRatingColor = $p.RiskRatingColorCode }}{{ end }} {{/* Status
+              */}} {{ $statusTitle := $p.LifecycleStatusTitleEn }} {{
+              $statusColor := $p.LifecycleStatusColorCode }}
 
               <tr style="background: #ffffff">
                 <td
@@ -1729,7 +1731,7 @@
                 <td
                   style="padding: 10px 12px; border-bottom: 1px solid #f3f4f6"
                 >
-                  {{ $p.TitleEn }}
+                  {{ $p.ProcessTitleEn }}
                 </td>
 
                 <td
@@ -1759,28 +1761,28 @@
                     color: #374151;
                   "
                 >
-                  {{ $p.OwnerFirstNameEn }} {{ $p.OwnerLastNameEn}}
+                  {{ $p.ProcessOwnerNameEn }}
                 </td>
 
                 <!-- Risk Rating -->
                 <td
                   style="padding: 10px 12px; border-bottom: 1px solid #f3f4f6"
                 >
-                  {{ if $riskTitle }}
+                  {{ if $riskRatingTitleEn }}
                   <span
                     style="
               background: rgba(229, 244, 240, 0.5);
-              color: {{ $riskColor }};
+              color: {{ $riskRatingColor }};
               padding: 4px 8px;
               border-radius: 5px;
               font-size: 12px;
               line-height: normal;
               display: inline-block;
-              border: 1px solid {{ $riskColor }};
+              border: 1px solid {{ $riskRatingColor }};
               font-weight: 400;
             "
                   >
-                    {{ $riskTitle }}
+                    {{ $riskRatingTitleEn }}
                   </span>
                   {{ else }} N/A {{ end }}
                 </td>
@@ -1864,12 +1866,13 @@
                   font-weight: 400;
                 "
               >
-                {{ printf "%02d" .Data.ComplianceSummary.TotalRequirements }}
+                {{ printf "%02d" .Data.ComplianceSummary.TotalRequirementCount
+                }}
               </p>
             </div>
 
             <!-- Dynamic Compliance Statuses -->
-            {{ range .Data.ComplianceSummary.ComplianceStatuses }}
+            {{ range .Data.ComplianceSummary.ComplianceStatusesParsed }}
             <div
               style="
                 width: 22%;
@@ -2021,7 +2024,7 @@
                     color: #111827;
                   "
                 >
-                  {{ $c.TitleEn }}
+                  {{ $c.ComplianceRequirementTitleEn }}
                 </td>
 
                 <td
