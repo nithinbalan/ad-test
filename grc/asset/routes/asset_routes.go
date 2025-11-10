@@ -33,7 +33,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	threatController := app.AssetModule.ThreatController
 	vulnerabilityActionPlanController := app.AssetModule.VulnerabilityActionPlanController
 	vulnerabilityActionPlanStatusUpdateController := app.AssetModule.VulnerabilityActionPlanStatusUpdateController
-	vulnerabilityActionPlanCommentController:=app.AssetModule.VulnerabilityActionPlanCommentController
+	vulnerabilityActionPlanCommentController := app.AssetModule.VulnerabilityActionPlanCommentController
 	threatActionPlanController := app.AssetModule.ThreatActionPlanController
 	threatActionPlanCommentController := app.AssetModule.ThreatActionPlanCommentController
 
@@ -48,6 +48,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetOtherDocumentController := app.AssetModule.AssetOtherDocumentController
 	assetControlAnalysisController := app.AssetModule.AssetControlAnalysisController
 	assetKriController := app.AssetModule.AssetKriController
+	tenableController := app.AssetModule.TenableController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -179,9 +180,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/vulnerabilities/:id/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "vulnerabilitie", "modify"), vulnerabilityActionPlanCommentController.CreateComment)
 	assetRoutes.PUT("/vulnerabilities/:id/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "threat", "modify"), vulnerabilityActionPlanCommentController.UpdateComment)
 	assetRoutes.POST("/vulnerabilities/:id/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "threat", "modify"), vulnerabilityActionPlanCommentController.DeleteComment)
-
-
-
 
 	// Document Preview and Download for Vulnerability Action Plan Status Update
 	unauthenticatedRoutes.GET("/vulnerabilities/:id/action-plans/:actionPlanId/status-updates/:statusUpdateId/document-preview", vulnerabilityActionPlanStatusUpdateController.GetDocumentPreview)
@@ -336,4 +334,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/assets/:id/kris", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetKriController.CreateAssetKri)
 	assetRoutes.PUT("/assets/:id/kris", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetKriController.UpdateAssetKri)
 	assetRoutes.POST("/assets/:id/kris/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetKriController.DeleteAssetKris)
+
+	//tenable
+	assetRoutes.GET("/tenable/assets", middlewares.RolePermissionMiddleware(db, "asset", "view"), tenableController.GetAllAssets)
+
 }
