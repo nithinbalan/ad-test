@@ -336,6 +336,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/assets/:id/kris/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetKriController.DeleteAssetKris)
 
 	//tenable
-	assetRoutes.GET("/tenable/assets", middlewares.RolePermissionMiddleware(db, "asset", "view"), tenableController.GetAllAssets)
+	assetRoutes.GET("/tenable/assets", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), tenableController.GetAllAssets)
 
 }

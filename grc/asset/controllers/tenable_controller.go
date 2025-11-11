@@ -35,7 +35,7 @@ func (tc *TenableController) GetAllAssets(c *gin.Context) {
 		PageSize: pageSize,
 	}
 
-	response, err := tc.service.GetAll(&params)
+	response, err := tc.service.GetAllAssets(&params)
 	if err != nil {
 		utility.SendInternalErrResp(nil, c, err.Error())
 		return
