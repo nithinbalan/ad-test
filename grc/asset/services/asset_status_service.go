@@ -13,6 +13,7 @@ type AssetStatusServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.AssetStatus, error)
 	GetByID(id uint) (*models.AssetStatus, error)
 	GetByType(status string) (*models.AssetStatus, error)
+	GetByTitleEn(title_en string) (*models.AssetStatus, error)
 }
 
 // Service and implementations
@@ -45,6 +46,16 @@ func (ass AssetStatusService) GetByID(id uint) (*models.AssetStatus, error) {
 
 func (ass *AssetStatusService) GetByType(status string) (*models.AssetStatus, error) {
 	assetStatus, err := ass.repo.GetByType(status)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return assetStatus, nil
+}
+
+func (ass *AssetStatusService) GetByTitleEn(title_en string) (*models.AssetStatus, error) {
+	assetStatus, err := ass.repo.GetByType(title_en)
 
 	if err != nil {
 		return nil, err

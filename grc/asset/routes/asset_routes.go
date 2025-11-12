@@ -337,5 +337,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//tenable
 	assetRoutes.GET("/tenable/assets", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), tenableController.GetAllAssets)
+	assetRoutes.POST("/assets/tenable/validate", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableController.ValidateTenableAssets)
 
 }

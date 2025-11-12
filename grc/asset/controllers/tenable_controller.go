@@ -7,10 +7,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type TenableController struct {
 	service services.TenableServiceInterface
+	db      *gorm.DB
 }
 
 func NewTenableController(service services.TenableServiceInterface) *TenableController {
@@ -42,4 +44,35 @@ func (tc *TenableController) GetAllAssets(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func (tc *TenableController) ValidateTenableAssets(c *gin.Context) {
+	var input []map[string]interface{}
+
+	// Client sends edited assets from Tenable
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tc.db, c, err.Error())
+		return
+	}
+
+	// Validate client-sent assets (not fetching)
+	assets, err := tc.service.ValidateTenableAssets(input, currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(tc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, assets)
 }

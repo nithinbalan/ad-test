@@ -11,6 +11,7 @@ type AssetStatusRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.AssetStatus, error)
 	GetByID(id uint) (*models.AssetStatus, error)
 	GetByType(status string) (*models.AssetStatus, error)
+	GetByTitleEn(title_en string) (*models.AssetStatus, error)
 }
 
 // Implementation
@@ -64,6 +65,18 @@ func (repo *AssetStatusRepository) GetByType(status string) (*models.AssetStatus
 	var assetStatus *models.AssetStatus
 
 	result := repo.db.Where("type = ?", status).First(&assetStatus)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return assetStatus, nil
+}
+
+func (repo *AssetStatusRepository) GetByTitleEn(title_en string) (*models.AssetStatus, error) {
+	var assetStatus *models.AssetStatus
+
+	result := repo.db.Where("title_en = ?", title_en).First(&assetStatus)
 
 	if result.Error != nil {
 		return nil, result.Error
