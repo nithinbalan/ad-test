@@ -76,3 +76,33 @@ func (tc *TenableController) ValidateTenableAssets(c *gin.Context) {
 
 	c.JSON(http.StatusOK, assets)
 }
+
+func (tc *TenableController) ImportAssets(c *gin.Context) {
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tc.db, c, err.Error())
+		return
+	}
+
+	createdIDs, err := tc.service.ImportAssets(input, currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(tc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"created_ids": createdIDs,
+	})
+}

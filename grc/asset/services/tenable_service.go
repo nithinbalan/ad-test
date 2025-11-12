@@ -18,6 +18,7 @@ import (
 type TenableServiceInterface interface {
 	GetAllAssets(params *dtos.TenableAssetListQueryParamsDTO) (*dtos.TenableAssetListResponseDTO, error)
 	ValidateTenableAssets(input []map[string]interface{}, currentUserID uint) ([]map[string]interface{}, error)
+	ImportAssets(input []map[string]interface{}, currentUserID uint) ([]uint, error)
 }
 
 type TenableService struct {
@@ -259,7 +260,11 @@ func (s *TenableService) validateAssetRecord(record map[string]interface{}, exis
 	} else if user, err := s.userSvc.GetByID(responsibleUserID); err != nil {
 		rowErrors["responsible_user_id"] = "Responsible User not found"
 	} else {
-		record["responsible_user"] = user.FirstNameEn + " " + user.LastNameEn
+		if _, err := s.userSvc.GetUserPrimaryUnitID(responsibleUserID); err != nil {
+			rowErrors["responsible_user_id"] = "Organization unit not set for responsible user"
+		} else {
+			record["responsible_user"] = user.FirstNameEn + " " + user.LastNameEn
+		}
 	}
 
 	for _, dateField := range []string{"acquisition_date", "assignment_date", "warranty_expiry_date"} {
@@ -273,4 +278,49 @@ func (s *TenableService) validateAssetRecord(record map[string]interface{}, exis
 	}
 
 	return rowErrors
+}
+
+func (s *TenableService) ImportAssets(input []map[string]interface{}, currentUserID uint) ([]uint, error) {
+	validated, err := s.ValidateTenableAssets(input, currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if any record has validation errors
+	for _, r := range validated {
+		if errs, ok := r["errors"].(map[string]interface{}); ok && len(errs) > 0 {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid data"), "invalid_data", "Invalid Data")
+		}
+	}
+
+	var createdIDs []uint
+
+	for _, record := range validated {
+		dto := &dtos.AssetRegisterFormDTO{
+			TitleEn:            utility.GetStringValue(record["title_en"]),
+			TitleAr:            utility.GetStringValue(record["title_ar"]),
+			AssetCategoryID:    utility.GetUintValue(record["asset_category_id"]),
+			AssetSubCategoryID: utility.GetUintValue(record["asset_sub_category_id"]),
+			AssetStatusID:      utility.GetUintValue(record["asset_status_id"]),
+			ResponsibleUserID:  utility.GetUintValue(record["responsible_user_id"]),
+			Location:           utility.GetOptionalStringValue(record["location"]),
+			Description:        utility.GetOptionalStringValue(record["description"]),
+			AcquisitionDate:    utility.GetOptionalStringValue(record["acquisition_date"]),
+			AssignmentDate:     utility.GetOptionalStringValue(record["assignment_date"]),
+			WarrantyExpiryDate: utility.GetOptionalStringValue(record["warranty_expiry_date"]),
+			Manufacturer:       utility.GetOptionalStringValue(record["manufacturer"]),
+			Model:              utility.GetOptionalStringValue(record["model"]),
+			SerialNumber:       utility.GetOptionalStringValue(record["serial_number"]),
+			Documents:          []*commonDTOs.DocumentFormDTO{},
+		}
+
+		id, err := s.assetRegisterSvc.Create(dto, currentUserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create asset for record: %+v, error: %v", record, err)
+		}
+
+		createdIDs = append(createdIDs, id)
+	}
+
+	return createdIDs, nil
 }
