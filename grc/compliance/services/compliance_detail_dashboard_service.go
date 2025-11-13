@@ -10,7 +10,7 @@ type ComplianceDetailDashboardServiceInterface interface {
 	GetComplianceClauseSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceClauseSummaryDTO, error)
 	GetTop5ClausePerformance(complianceRegisterID uint) ([]complianceDTOs.ComplianceClausePerformanceDTO, error)
 	GetBottom5ClausePerformance(complianceRegisterID uint) ([]complianceDTOs.ComplianceClausePerformanceDTO, error)
-	GetComplianceDomainWiseOverview(params *complianceDTOs.ComplianceDashboardQueryParamsDTO, complianceRegisterID uint) (*complianceDTOs.ComplianceDomainWiseOverviewDTO, error)
+	GetComplianceDomainWiseOverview(complianceRegisterID uint) ([]complianceDTOs.ComplianceDomainWiseOverviewDTO, error)
 	GetPolicyByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyByOrganizationUnitDTO, error)
 	GetControlEffectivenessSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlEffectivenessDTO, error)
 	GetControlImplementationSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlImplementationSummaryDTO, error)
@@ -28,7 +28,7 @@ type ComplianceDetailDashboardService struct {
 	repo repositories.ComplianceDetailDashboardRepositoryInterface
 }
 
-func NewComplianceDetailDashboardService(repo repositories.ComplianceDetailDashboardRepositoryInterface) *ComplianceDetailDashboardService {
+func NewComplianceDetailDashboardService(repo repositories.ComplianceDetailDashboardRepositoryInterface) ComplianceDetailDashboardServiceInterface {
 	return &ComplianceDetailDashboardService{
 		repo: repo,
 	}
@@ -50,8 +50,43 @@ func (cdds *ComplianceDetailDashboardService) GetBottom5ClausePerformance(compli
 	return cdds.repo.GetBottom5ClausePerformance(complianceRegisterID)
 }
 
-func (cdds *ComplianceDetailDashboardService) GetComplianceDomainWiseOverview(params *complianceDTOs.ComplianceDashboardQueryParamsDTO, complianceRegisterID uint) (*complianceDTOs.ComplianceDomainWiseOverviewDTO, error) {
-	return cdds.repo.GetComplianceDomainWiseOverview(params, complianceRegisterID)
+func (cdds *ComplianceDetailDashboardService) GetComplianceDomainWiseOverview(complianceRegisterID uint) ([]complianceDTOs.ComplianceDomainWiseOverviewDTO, error) {
+
+	rawItems, err := cdds.repo.GetComplianceDomainWiseOverview(complianceRegisterID)
+	if err != nil {
+		return nil, err
+	}
+
+	domainMap := map[uint]*complianceDTOs.ComplianceDomainWiseOverviewDTO{}
+
+	for _, row := range rawItems {
+
+		if _, exists := domainMap[row.DomainID]; !exists {
+			domainMap[row.DomainID] = &complianceDTOs.ComplianceDomainWiseOverviewDTO{
+				DomainTitleEn:      row.DomainTitleEn,
+				DomainTitleAr:      row.DomainTitleAr,
+				ComplianceStatuses: []complianceDTOs.ComplianceStatusResponseDTO{},
+			}
+		}
+
+		domainMap[row.DomainID].ComplianceStatuses = append(
+			domainMap[row.DomainID].ComplianceStatuses,
+			complianceDTOs.ComplianceStatusResponseDTO{
+				TitleEn:   row.StatusTitleEn,
+				TitleAr:   row.StatusTitleAr,
+				ColorCode: row.ColorCode,
+				Type:      row.StatusType,
+				Count:     row.Count,
+			},
+		)
+	}
+
+	response := []complianceDTOs.ComplianceDomainWiseOverviewDTO{}
+	for _, v := range domainMap {
+		response = append(response, *v)
+	}
+
+	return response, nil
 }
 
 func (cdds *ComplianceDetailDashboardService) GetPolicyByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyByOrganizationUnitDTO, error) {

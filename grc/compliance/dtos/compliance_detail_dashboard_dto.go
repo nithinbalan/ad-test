@@ -1,9 +1,5 @@
 package dtos
 
-import (
-	commonDTOs "jethur/grc/common/dtos"
-)
-
 type ComplianceDashboardQueryParamsDTO struct {
 	Sort     string
 	SortBy   string
@@ -39,18 +35,29 @@ type ComplianceClausePerformanceDTO struct {
 	ComplianceClauseScore   float64 `json:"compliance_clause_score"`
 }
 
+type ComplianceStatusResponseDTO struct {
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Type      string `json:"type"`
+	Count     int64  `json:"count"`
+}
+
 type ComplianceDomainWiseOverviewItemDTO struct {
+	DomainID      uint   `json:"domain_id"`
 	DomainTitleEn string `json:"domain_title_en"`
 	DomainTitleAr string `json:"domain_title_ar"`
-	Compliant     int64  `json:"compliant"`
-	Partial       int64  `json:"partial"`
-	NonCompliant  int64  `json:"non_compliant"`
-	Pending       int64  `json:"pending"`
+	StatusTitleEn string `json:"status_title_en"`
+	StatusTitleAr string `json:"status_title_ar"`
+	ColorCode     string `json:"color_code"`
+	StatusType    string `json:"status_type"`
+	Count         int64  `json:"count"`
 }
 
 type ComplianceDomainWiseOverviewDTO struct {
-	Items      []ComplianceDomainWiseOverviewItemDTO `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO
+	DomainTitleEn      string                        `json:"domain_title_en"`
+	DomainTitleAr      string                        `json:"domain_title_ar"`
+	ComplianceStatuses []ComplianceStatusResponseDTO `json:"compliance_statuses"`
 }
 
 type CompliancePolicyByOrganizationUnitDTO struct {

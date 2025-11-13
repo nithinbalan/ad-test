@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"fmt"
-	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"time"
@@ -15,7 +14,7 @@ type ComplianceDetailDashboardRepositoryInterface interface {
 	GetComplianceClauseSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceClauseSummaryDTO, error)
 	GetTop5ClausePerformance(complianceRegisterID uint) ([]complianceDTOs.ComplianceClausePerformanceDTO, error)
 	GetBottom5ClausePerformance(complianceRegisterID uint) ([]complianceDTOs.ComplianceClausePerformanceDTO, error)
-	GetComplianceDomainWiseOverview(params *complianceDTOs.ComplianceDashboardQueryParamsDTO, complianceRegisterID uint) (*complianceDTOs.ComplianceDomainWiseOverviewDTO, error)
+	GetComplianceDomainWiseOverview(complianceRegisterID uint) ([]complianceDTOs.ComplianceDomainWiseOverviewItemDTO, error)
 	GetPolicyByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyByOrganizationUnitDTO, error)
 	GetControlEffectivenessSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlEffectivenessDTO, error)
 	GetControlImplementationSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlImplementationSummaryDTO, error)
@@ -232,50 +231,52 @@ func (repo *ComplianceDetailDashboardRepository) GetBottom5ClausePerformance(com
 	return results, nil
 }
 
-func (repo *ComplianceDetailDashboardRepository) GetComplianceDomainWiseOverview(params *complianceDTOs.ComplianceDashboardQueryParamsDTO, complianceRegisterID uint) (*complianceDTOs.ComplianceDomainWiseOverviewDTO, error) {
-	results := []complianceDTOs.ComplianceDomainWiseOverviewItemDTO{}
-	var totalCount int64
+func (repo *ComplianceDetailDashboardRepository) GetComplianceDomainWiseOverview(complianceRegisterID uint) ([]complianceDTOs.ComplianceDomainWiseOverviewItemDTO, error) {
 
-	query := repo.db.Table("compliance_clauses AS parent").
+	var results []complianceDTOs.ComplianceDomainWiseOverviewItemDTO
+
+	err := repo.db.Table("compliance_clauses AS parent").
 		Select(`
+            parent.id AS domain_id,
             parent.title_en AS domain_title_en,
             parent.title_ar AS domain_title_ar,
-            SUM(CASE WHEN cs.type = 'compliant' THEN 1 ELSE 0 END) AS compliant,
-            SUM(CASE WHEN cs.type = 'partially_compliant' THEN 1 ELSE 0 END) AS partial,
-            SUM(CASE WHEN cs.type = 'not-implemented' THEN 1 ELSE 0 END) AS non_compliant,
-            SUM(CASE WHEN cs.type = 'in_progress' THEN 1 ELSE 0 END) AS pending
+
+            cs.title_en AS status_title_en,
+            cs.title_ar AS status_title_ar,
+            cs.color_code AS color_code,
+            cs.type AS status_type,
+
+            COUNT(cr.id) AS count
         `).
-		Joins("LEFT JOIN compliance_statuses AS cs ON cs.id = parent.compliance_status_id").
+		Joins("CROSS JOIN compliance_statuses AS cs").
+		Joins(`
+            LEFT JOIN compliance_requirements AS cr 
+            ON cr.compliance_clause_id = parent.id
+            AND cr.compliance_status_id = cs.id
+        `).
 		Where("parent.compliance_register_id = ?", complianceRegisterID).
 		Where("parent.compliance_clause_id IS NULL").
-		Group("parent.title_en, parent.title_ar")
+		Group(`
+            parent.id,
+            parent.title_en,
+            parent.title_ar,
+			cs.id,
+            cs.title_en,
+            cs.title_ar,
+            cs.color_code,
+            cs.type
+        `).
+		Order(`
+            parent.title_en ASC,
+            cs.id ASC
+        `).
+		Scan(&results).Error
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
-	query = query.Order(params.SortBy + " " + params.Sort)
-
-	offset := (params.Page - 1) * params.PageSize
-
-	err := query.Offset(offset).Limit(params.PageSize).Find(&results).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	respnose := &complianceDTOs.ComplianceDomainWiseOverviewDTO{
-		Items: results,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-
-	return respnose, nil
+	return results, nil
 }
 
 func (repo *ComplianceDetailDashboardRepository) GetPolicyByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyByOrganizationUnitDTO, error) {
