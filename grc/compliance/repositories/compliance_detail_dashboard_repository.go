@@ -2,9 +2,9 @@ package repositories
 
 import (
 	"fmt"
-	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
+	"math"
 	"time"
 
 	"gorm.io/gorm"
@@ -15,7 +15,7 @@ type ComplianceDetailDashboardRepositoryInterface interface {
 	GetComplianceClauseSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceClauseSummaryDTO, error)
 	GetTop5ClausePerformance(complianceRegisterID uint) ([]complianceDTOs.ComplianceClausePerformanceDTO, error)
 	GetBottom5ClausePerformance(complianceRegisterID uint) ([]complianceDTOs.ComplianceClausePerformanceDTO, error)
-	GetComplianceDomainWiseOverview(params *complianceDTOs.ComplianceDashboardQueryParamsDTO, complianceRegisterID uint) (*complianceDTOs.ComplianceDomainWiseOverviewDTO, error)
+	GetComplianceDomainWiseOverview(complianceRegisterID uint) ([]complianceDTOs.ComplianceDomainWiseOverviewItemDTO, error)
 	GetPolicyByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyByOrganizationUnitDTO, error)
 	GetControlEffectivenessSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlEffectivenessDTO, error)
 	GetControlImplementationSummary(complianceRegisterID uint) (*complianceDTOs.ComplianceControlImplementationSummaryDTO, error)
@@ -232,50 +232,52 @@ func (repo *ComplianceDetailDashboardRepository) GetBottom5ClausePerformance(com
 	return results, nil
 }
 
-func (repo *ComplianceDetailDashboardRepository) GetComplianceDomainWiseOverview(params *complianceDTOs.ComplianceDashboardQueryParamsDTO, complianceRegisterID uint) (*complianceDTOs.ComplianceDomainWiseOverviewDTO, error) {
-	results := []complianceDTOs.ComplianceDomainWiseOverviewItemDTO{}
-	var totalCount int64
+func (repo *ComplianceDetailDashboardRepository) GetComplianceDomainWiseOverview(complianceRegisterID uint) ([]complianceDTOs.ComplianceDomainWiseOverviewItemDTO, error) {
 
-	query := repo.db.Table("compliance_clauses AS parent").
+	var results []complianceDTOs.ComplianceDomainWiseOverviewItemDTO
+
+	err := repo.db.Table("compliance_clauses AS parent").
 		Select(`
+            parent.id AS domain_id,
             parent.title_en AS domain_title_en,
             parent.title_ar AS domain_title_ar,
-            SUM(CASE WHEN cs.type = 'compliant' THEN 1 ELSE 0 END) AS compliant,
-            SUM(CASE WHEN cs.type = 'partially_compliant' THEN 1 ELSE 0 END) AS partial,
-            SUM(CASE WHEN cs.type = 'not-implemented' THEN 1 ELSE 0 END) AS non_compliant,
-            SUM(CASE WHEN cs.type = 'in_progress' THEN 1 ELSE 0 END) AS pending
+
+            cs.title_en AS status_title_en,
+            cs.title_ar AS status_title_ar,
+            cs.color_code AS color_code,
+            cs.type AS status_type,
+
+            COUNT(cr.id) AS count
         `).
-		Joins("LEFT JOIN compliance_statuses AS cs ON cs.id = parent.compliance_status_id").
+		Joins("CROSS JOIN compliance_statuses AS cs").
+		Joins(`
+            LEFT JOIN compliance_requirements AS cr 
+            ON cr.compliance_clause_id = parent.id
+            AND cr.compliance_status_id = cs.id
+        `).
 		Where("parent.compliance_register_id = ?", complianceRegisterID).
 		Where("parent.compliance_clause_id IS NULL").
-		Group("parent.title_en, parent.title_ar")
+		Group(`
+            parent.id,
+            parent.title_en,
+            parent.title_ar,
+			cs.id,
+            cs.title_en,
+            cs.title_ar,
+            cs.color_code,
+            cs.type
+        `).
+		Order(`
+            parent.title_en ASC,
+            cs.id ASC
+        `).
+		Scan(&results).Error
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
-	query = query.Order(params.SortBy + " " + params.Sort)
-
-	offset := (params.Page - 1) * params.PageSize
-
-	err := query.Offset(offset).Limit(params.PageSize).Find(&results).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
-
-	respnose := &complianceDTOs.ComplianceDomainWiseOverviewDTO{
-		Items: results,
-		Pagination: commonDTOs.PaginationInfoDTO{
-			CurrentPage: params.Page,
-			PageSize:    params.PageSize,
-			TotalPages:  totalPages,
-			TotalCount:  totalCount,
-		},
-	}
-
-	return respnose, nil
+	return results, nil
 }
 
 func (repo *ComplianceDetailDashboardRepository) GetPolicyByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyByOrganizationUnitDTO, error) {
@@ -283,18 +285,16 @@ func (repo *ComplianceDetailDashboardRepository) GetPolicyByOrganizationUnit(com
 
 	err := repo.db.Table("document_compliance_requirements AS dcr").
 		Select(`
-            parent_unit.title_en AS organization_unit_title_en,
-            parent_unit.title_ar AS organization_unit_title_ar,
-			parent_unit.color_code AS organization_unit_color_code,
+            ou.title_en AS organization_unit_title_en,
+			ou.title_ar AS organization_unit_title_ar,
+			ou.color_code AS organization_unit_color_code,
             COUNT(DISTINCT dcr.document_id) AS total_policies
         `).
 		Joins("JOIN documents doc ON doc.id = dcr.document_id").
-		Joins("LEFT JOIN organization_units child_unit ON child_unit.id = doc.responsible_unit_id").
-		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(child_unit.organization_unit_id, child_unit.id) = parent_unit.id").
-		Joins("JOIN organization_levels ol ON ol.id = parent_unit.organization_level_id AND ol.is_primary = ?", true).
+		Joins("JOIN organization_units ou ON ou.id = doc.responsible_unit_id").
+		Joins("JOIN organization_levels ol ON ol.id = ou.organization_level_id AND ol.is_primary = ?", true).
 		Where("dcr.compliance_register_id = ?", complianceRegisterID).
-		Where("parent_unit.organization_unit_id IS NULL").
-		Group("parent_unit.title_en, parent_unit.title_ar, parent_unit.color_code").
+		Group("ou.title_en, ou.title_ar, ou.color_code").
 		Order("total_policies DESC").
 		Scan(&results).Error
 
@@ -356,7 +356,7 @@ func (repo *ComplianceDetailDashboardRepository) GetControlImplementationSummary
 			cis.title_en,
 			cis.title_ar,
 			cis.color_code,
-			cis.type AS status_type,
+			cis.type,
 			COUNT(DISTINCT compliance_controls.control_id) AS count
 		`).
 		Joins("JOIN controls ON controls.id = compliance_controls.control_id").
@@ -515,37 +515,116 @@ func (repo *ComplianceDetailDashboardRepository) GetCompliancePolicySummary(comp
 }
 
 func (repo *ComplianceDetailDashboardRepository) GetPolicyAcknowledgementByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyAcknowledgementOrganizationUnitDTO, error) {
+
 	results := []complianceDTOs.CompliancePolicyAcknowledgementOrganizationUnitDTO{}
 
-	err := repo.db.Table("document_compliance_requirements AS dcr").
+	base := repo.db.Table("document_compliance_requirements dcr").
 		Select(`
-            parent_unit.title_en AS organization_unit_title_en,
-            parent_unit.title_ar AS organization_unit_title_ar,
-			parent_unit.color_code AS organization_unit_color_code,
-            COUNT(DISTINCT dcr.document_id) AS total_policies,
-            COUNT(DISTINCT CASE WHEN doc.acknowledged = 1 THEN dcr.document_id END) AS acknowledged_policies
-        `).
-		Joins("JOIN documents doc ON doc.id = dcr.document_id").
-		Joins("LEFT JOIN organization_units child_unit ON child_unit.id = doc.responsible_unit_id").
-		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(child_unit.organization_unit_id, child_unit.id) = parent_unit.id").
-		Joins("JOIN organization_levels ol ON ol.id = parent_unit.organization_level_id AND ol.is_primary = ?", true).
-		Where("dcr.compliance_register_id = ?", complianceRegisterID).
-		Where("parent_unit.organization_unit_id IS NULL").
-		Group("parent_unit.title_en, parent_unit.title_ar, parent_unit.color_code").
-		Order("total_policies DESC").
-		Scan(&results).Error
+			ou.id AS organization_unit_id,
+			ou.title_en AS organization_unit_title_en,
+			ou.title_ar AS organization_unit_title_ar,
+			ou.color_code AS organization_unit_color_code,
+			documents.id AS document_id,
+			dat.type AS document_access_type
+		`).
+		Joins("JOIN documents ON documents.id = dcr.document_id").
+		Joins("JOIN document_access_types dat ON dat.id = documents.document_access_type_id").
+		Joins("JOIN organization_units ou ON ou.id = documents.responsible_unit_id").
+		Joins("JOIN organization_levels ol ON ol.id = ou.organization_level_id AND ol.is_primary = 1").
+		Where("dcr.compliance_register_id = ?", complianceRegisterID)
 
-	if err != nil {
+	var documentList []struct {
+		DocumentID                uint
+		DocumentAccessType        string
+		OrganizationUnitID        uint
+		OrganizationUnitTitleEn   string
+		OrganizationUnitTitleAr   string
+		OrganizationUnitColorCode string
+	}
+
+	if err := base.Scan(&documentList).Error; err != nil {
 		return nil, err
 	}
 
-	// Percentage per organization unit
-	for i := range results {
-		if results[i].TotalPolicies > 0 {
-			results[i].AcknowledgementPercent = float64(results[i].AcknowledgedPolicies) / float64(results[i].TotalPolicies) * 100
-		} else {
-			results[i].AcknowledgementPercent = 0
+	// Map for accumulating policy stats per org unit
+	unitMap := map[uint]*complianceDTOs.CompliancePolicyAcknowledgementOrganizationUnitDTO{}
+
+	for _, doc := range documentList {
+		var totalUsers, acknowledgedUsers int64
+
+		// Count total active users per document (depending on access type)
+		usersQuery := repo.db.Table("users u").
+			Joins("JOIN user_statuses us ON us.id = u.user_status_id AND us.is_active = 1")
+
+		if doc.DocumentAccessType != "public" {
+			usersQuery = usersQuery.Where(`
+				EXISTS (
+					SELECT 1 FROM document_shared_users dsu
+					WHERE dsu.document_id = ? AND dsu.user_id = u.id
+				)
+				OR EXISTS (
+					SELECT 1 FROM document_shared_units dsu2
+					JOIN organization_units ou2 ON ou2.id = dsu2.organization_unit_id
+					WHERE dsu2.document_id = ?
+					  AND u.organization_unit_1_id = ou2.id
+				)
+			`, doc.DocumentID, doc.DocumentID)
 		}
+
+		if err := usersQuery.Count(&totalUsers).Error; err != nil {
+			return nil, err
+		}
+
+		// Count acknowledged users for this document
+		ackQuery := repo.db.Table("document_acknowledge_users dau").
+			Joins("JOIN users u ON u.id = dau.user_id").
+			Joins("JOIN user_statuses us ON us.id = u.user_status_id AND us.is_active = 1").
+			Where("dau.document_id = ?", doc.DocumentID)
+
+		if doc.DocumentAccessType != "public" {
+			ackQuery = ackQuery.Where(`
+				EXISTS (
+					SELECT 1 FROM document_shared_users dsu
+					WHERE dsu.document_id = ? AND dsu.user_id = dau.user_id
+				)
+				OR EXISTS (
+					SELECT 1 FROM document_shared_units dsu2
+					JOIN organization_units ou2 ON ou2.id = dsu2.organization_unit_id
+					WHERE dsu2.document_id = ?
+					  AND u.organization_unit_1_id = ou2.id
+				)
+			`, doc.DocumentID, doc.DocumentID)
+		}
+
+		if err := ackQuery.Count(&acknowledgedUsers).Error; err != nil {
+			return nil, err
+		}
+
+		// Aggregate per organization unit
+		unit, ok := unitMap[doc.OrganizationUnitID]
+		if !ok {
+			unit = &complianceDTOs.CompliancePolicyAcknowledgementOrganizationUnitDTO{
+				OrganizationUnitTitleEn:   doc.OrganizationUnitTitleEn,
+				OrganizationUnitTitleAr:   doc.OrganizationUnitTitleAr,
+				OrganizationUnitColorCode: doc.OrganizationUnitColorCode,
+				TotalPolicies:             0,
+				AcknowledgedPolicies:      0,
+			}
+			unitMap[doc.OrganizationUnitID] = unit
+		}
+
+		unit.TotalPolicies++
+		if totalUsers > 0 && acknowledgedUsers == totalUsers {
+			unit.AcknowledgedPolicies++
+		}
+	}
+
+	// Convert map to slice and calculate percentage
+	for _, unit := range unitMap {
+		if unit.TotalPolicies > 0 {
+			unit.AcknowledgementPercent = float64(unit.AcknowledgedPolicies) / float64(unit.TotalPolicies) * 100
+		}
+		results = append(results, *unit)
 	}
 
 	return results, nil
@@ -583,6 +662,7 @@ func (repo *ComplianceDetailDashboardRepository) GetActionPlanOverview(complianc
 	} else {
 		result.AvgCompletionPercent = 0
 	}
+	result.AvgCompletionPercent = math.Round(result.AvgCompletionPercent*100) / 100
 
 	return result, nil
 }
@@ -619,6 +699,7 @@ func (repo *ComplianceDetailDashboardRepository) GetActionPlanStatusSummary(comp
 		} else {
 			actionPlanStatuses[i].Percent = 0
 		}
+		actionPlanStatuses[i].Percent = math.Round(actionPlanStatuses[i].Percent*100) / 100
 
 	}
 	summary.ActionPlanStatuses = actionPlanStatuses
