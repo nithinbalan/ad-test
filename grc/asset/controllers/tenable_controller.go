@@ -47,7 +47,7 @@ func (tc *TenableController) GetAllAssets(c *gin.Context) {
 }
 
 func (tc *TenableController) ValidateTenableAssets(c *gin.Context) {
-	var input []map[string]interface{}
+	var input []dtos.TenableAssetImportDTO
 
 	// Client sends edited assets from Tenable
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -78,7 +78,7 @@ func (tc *TenableController) ValidateTenableAssets(c *gin.Context) {
 }
 
 func (tc *TenableController) ImportAssets(c *gin.Context) {
-	var input []map[string]interface{}
+	var input []dtos.TenableAssetImportDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return

@@ -41,3 +41,22 @@ type TenableAssetListResponseDTO struct {
 	Items      []TenableAssetDTO            `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
+
+type TenableAssetImportDTO struct {
+	TenableUUID        string                        `json:"tenable_uuid"`
+	TitleEn            string                        `json:"title_en" binding:"required"`
+	TitleAr            string                        `json:"title_ar" binding:"required"`
+	AssetCategory      string                        `json:"asset_category" binding:"required"`
+	AssetSubCategory   string                        `json:"asset_sub_category" binding:"required"`
+	AssetStatus        string                        `json:"asset_status" binding:"required"`
+	ResponsibleUser    string                        `json:"responsible_user" binding:"required"`
+	Location           *string                       `json:"location" binding:"omitempty"`
+	Description        *string                       `json:"description" binding:"omitempty"`
+	AcquisitionDate    *string                       `json:"acquisition_date" binding:"omitempty"`
+	AssignmentDate     *string                       `json:"assignment_date" binding:"omitempty"`
+	WarrantyExpiryDate *string                       `json:"warranty_expiry_date" binding:"omitempty"`
+	Manufacturer       *string                       `json:"manufacturer" binding:"omitempty"`
+	Model              *string                       `json:"model" binding:"omitempty"`
+	SerialNumber       *string                       `json:"serial_number" binding:"omitempty"`
+	Documents          []*commonDTOs.DocumentFormDTO `json:"documents"`
+}
