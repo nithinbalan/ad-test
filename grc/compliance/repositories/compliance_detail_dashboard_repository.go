@@ -4,6 +4,7 @@ import (
 	"fmt"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
+	"math"
 	"time"
 
 	"gorm.io/gorm"
@@ -355,7 +356,7 @@ func (repo *ComplianceDetailDashboardRepository) GetControlImplementationSummary
 			cis.title_en,
 			cis.title_ar,
 			cis.color_code,
-			cis.type AS status_type,
+			cis.type,
 			COUNT(DISTINCT compliance_controls.control_id) AS count
 		`).
 		Joins("JOIN controls ON controls.id = compliance_controls.control_id").
@@ -513,13 +514,10 @@ func (repo *ComplianceDetailDashboardRepository) GetCompliancePolicySummary(comp
 	return result, nil
 }
 
-func (repo *ComplianceDetailDashboardRepository) GetPolicyAcknowledgementByOrganizationUnit(
-	complianceRegisterID uint,
-) ([]complianceDTOs.CompliancePolicyAcknowledgementOrganizationUnitDTO, error) {
+func (repo *ComplianceDetailDashboardRepository) GetPolicyAcknowledgementByOrganizationUnit(complianceRegisterID uint) ([]complianceDTOs.CompliancePolicyAcknowledgementOrganizationUnitDTO, error) {
 
 	results := []complianceDTOs.CompliancePolicyAcknowledgementOrganizationUnitDTO{}
 
-	// Build base query: get each document’s access type and org unit
 	base := repo.db.Table("document_compliance_requirements dcr").
 		Select(`
 			ou.id AS organization_unit_id,
@@ -664,6 +662,7 @@ func (repo *ComplianceDetailDashboardRepository) GetActionPlanOverview(complianc
 	} else {
 		result.AvgCompletionPercent = 0
 	}
+	result.AvgCompletionPercent = math.Round(result.AvgCompletionPercent*100) / 100
 
 	return result, nil
 }
@@ -700,6 +699,7 @@ func (repo *ComplianceDetailDashboardRepository) GetActionPlanStatusSummary(comp
 		} else {
 			actionPlanStatuses[i].Percent = 0
 		}
+		actionPlanStatuses[i].Percent = math.Round(actionPlanStatuses[i].Percent*100) / 100
 
 	}
 	summary.ActionPlanStatuses = actionPlanStatuses
