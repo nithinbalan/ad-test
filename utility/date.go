@@ -2,6 +2,7 @@ package utility
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -80,4 +81,16 @@ func ConvertToUTC(localTime string, timezoneName string) (*time.Time, error) {
 	// Convert to UTC
 	utcTime := parsedTime.UTC()
 	return &utcTime, nil
+}
+
+func ParseUnixTimestamp(value interface{}) time.Time {
+	switch v := value.(type) {
+	case float64:
+		return time.Unix(int64(v), 0).UTC()
+	case string:
+		if ts, err := strconv.ParseInt(v, 10, 64); err == nil {
+			return time.Unix(ts, 0).UTC()
+		}
+	}
+	return time.Time{}
 }

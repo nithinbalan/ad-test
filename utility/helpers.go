@@ -8,6 +8,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -367,4 +368,35 @@ func GetVendorAssessmentURL() string {
 		externalURL = "http://dev.jethur.com"
 	}
 	return externalURL
+}
+
+func GetUintValue(value interface{}) uint {
+	if value == nil {
+		return 0
+	}
+	switch v := value.(type) {
+	case int:
+		return uint(v)
+	case int32:
+		return uint(v)
+	case int64:
+		return uint(v)
+	case float64:
+		return uint(v)
+	case uint:
+		return v
+	case uint64:
+		return uint(v)
+	case string:
+		if v == "" {
+			return 0
+		}
+		num, err := strconv.ParseUint(v, 10, 64)
+		if err != nil {
+			return 0
+		}
+		return uint(num)
+	default:
+		return 0
+	}
 }
