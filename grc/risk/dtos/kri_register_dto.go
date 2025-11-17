@@ -136,3 +136,8 @@ type KRIRegisterParsedDates struct {
 	LastReviewedDate *time.Time
 	NextReviewDate   *time.Time
 }
+
+type KRITrendAnalysisDTO struct {
+	ReviewedAtString string  `json:"reviewed_at"`
+	Value            float64 `json:"value"`
+}

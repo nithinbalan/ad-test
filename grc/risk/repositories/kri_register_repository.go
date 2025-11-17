@@ -24,6 +24,7 @@ type KRIRegisterRepositoryInterface interface {
 	GenerateReferenceNumber() (string, error)
 	CreateInitialKriValueUpdate(kriValueUpdate *models.KRIValueUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteKriValueUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
+	GetTrendAnalysis(kriId uint, limit int) ([]*models.KRIValueUpdate, error)
 }
 
 type KRIRegisterRepository struct {
@@ -365,4 +366,19 @@ func (repo *KRIRegisterRepository) DeleteKriValueUpdates(ids []*uint, tx ...util
 	}
 
 	return nil
+}
+
+func (repo *KRIRegisterRepository) GetTrendAnalysis(kriID uint, limit int) ([]*models.KRIValueUpdate, error) {
+	var kriValueUpdate []*models.KRIValueUpdate
+
+	result := repo.db.Where("kri_register_id = ?", kriID).
+		Order("reviewed_date DESC").
+		Limit(limit).
+		Find(&kriValueUpdate)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return kriValueUpdate, nil
 }
