@@ -281,6 +281,21 @@ func (s *TenableService) ValidateTenableAssets(input []dtos.TenableAssetImportDT
 			rowErrors["responsible_user"] = fmt.Sprintf("Invalid responsible user: %s", record.ResponsibleUser)
 		}
 
+		for _, field := range []struct {
+			key   string
+			value *string
+		}{
+			{"acquisition_date", record.AcquisitionDate},
+			{"assignment_date", record.AssignmentDate},
+			{"warranty_expiry_date", record.WarrantyExpiryDate},
+		} {
+			if field.value != nil && *field.value != "" {
+				if _, err := utility.ParseDate(*field.value); err != nil {
+					rowErrors[field.key] = "Invalid date format (expected YYYY-MM-DD)"
+				}
+			}
+		}
+
 		if len(rowErrors) > 0 {
 			processed["errors"] = rowErrors
 		} else {
