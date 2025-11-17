@@ -281,18 +281,21 @@ func (s *TenableService) ValidateTenableAssets(input []dtos.TenableAssetImportDT
 			rowErrors["responsible_user"] = fmt.Sprintf("Invalid responsible user: %s", record.ResponsibleUser)
 		}
 
-		for _, field := range []struct {
-			key   string
-			value *string
-		}{
-			{"acquisition_date", record.AcquisitionDate},
-			{"assignment_date", record.AssignmentDate},
-			{"warranty_expiry_date", record.WarrantyExpiryDate},
-		} {
-			if field.value != nil && *field.value != "" {
-				if _, err := utility.ParseDate(*field.value); err != nil {
-					rowErrors[field.key] = "Invalid date format (expected YYYY-MM-DD)"
-				}
+		if record.AcquisitionDate != nil && *record.AcquisitionDate != "" {
+			if _, err := utility.ParseDate(*record.AcquisitionDate); err != nil {
+				rowErrors["acquisition_date"] = "Invalid acquisition date format (expected YYYY-MM-DD)"
+			}
+		}
+
+		if record.AssignmentDate != nil && *record.AssignmentDate != "" {
+			if _, err := utility.ParseDate(*record.AssignmentDate); err != nil {
+				rowErrors["assignment_date"] = "Invalid assignment date format (expected YYYY-MM-DD)"
+			}
+		}
+
+		if record.WarrantyExpiryDate != nil && *record.WarrantyExpiryDate != "" {
+			if _, err := utility.ParseDate(*record.WarrantyExpiryDate); err != nil {
+				rowErrors["warranty_expiry_date"] = "Invalid warranty expiry date format (expected YYYY-MM-DD)"
 			}
 		}
 
