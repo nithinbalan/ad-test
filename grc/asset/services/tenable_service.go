@@ -155,7 +155,6 @@ func (s *TenableService) GetAllAssets(params *dtos.TenableAssetListQueryParamsDT
 			Manufacturer:       strPtr("Tenable Security Center"),
 			Model:              nonNil(obj["model"]),
 			SerialNumber:       nonNil(obj["serial_number"]),
-			Documents:          nil,
 		})
 	}
 
@@ -214,22 +213,30 @@ func (s *TenableService) ValidateTenableAssets(input []dtos.TenableAssetImportDT
 		rowErrors := make(map[string]string)
 		processed := make(map[string]interface{})
 
-		processed["tenable_uuid"] = record.TenableUUID
-		processed["title_en"] = record.TitleEn
-		processed["title_ar"] = record.TitleAr
-		processed["asset_category"] = record.AssetCategory
-		processed["asset_sub_category"] = record.AssetSubCategory
-		processed["asset_status"] = record.AssetStatus
-		processed["responsible_user"] = record.ResponsibleUser
-		processed["location"] = record.Location
-		processed["description"] = record.Description
-		processed["acquisition_date"] = record.AcquisitionDate
-		processed["assignment_date"] = record.AssignmentDate
-		processed["warranty_expiry_date"] = record.WarrantyExpiryDate
-		processed["manufacturer"] = record.Manufacturer
-		processed["model"] = record.Model
-		processed["serial_number"] = record.SerialNumber
-		processed["documents"] = record.Documents
+		fields := []struct {
+			key   string
+			value interface{}
+		}{
+			{"tenable_uuid", record.TenableUUID},
+			{"title_en", record.TitleEn},
+			{"title_ar", record.TitleAr},
+			{"asset_category", record.AssetCategory},
+			{"asset_sub_category", record.AssetSubCategory},
+			{"asset_status", record.AssetStatus},
+			{"responsible_user", record.ResponsibleUser},
+			{"location", record.Location},
+			{"description", record.Description},
+			{"acquisition_date", record.AcquisitionDate},
+			{"assignment_date", record.AssignmentDate},
+			{"warranty_expiry_date", record.WarrantyExpiryDate},
+			{"manufacturer", record.Manufacturer},
+			{"model", record.Model},
+			{"serial_number", record.SerialNumber},
+		}
+
+		for _, f := range fields {
+			processed[f.key] = f.value
+		}
 
 		if record.TitleEn == "" {
 			rowErrors["title_en"] = "Title (EN) is required"
@@ -238,25 +245,33 @@ func (s *TenableService) ValidateTenableAssets(input []dtos.TenableAssetImportDT
 			rowErrors["title_ar"] = "Title (AR) is required"
 		}
 
-		if id, ok := categoryTitles[strings.ToLower(strings.TrimSpace(record.AssetCategory))]; ok {
+		if strings.TrimSpace(record.AssetCategory) == "" {
+			rowErrors["asset_category"] = "Asset category is required"
+		} else if id, ok := categoryTitles[strings.ToLower(strings.TrimSpace(record.AssetCategory))]; ok {
 			processed["asset_category_id"] = id
 		} else {
 			rowErrors["asset_category"] = fmt.Sprintf("Invalid asset category: %s", record.AssetCategory)
 		}
 
-		if id, ok := subCategoryTitles[strings.ToLower(strings.TrimSpace(record.AssetSubCategory))]; ok {
+		if strings.TrimSpace(record.AssetSubCategory) == "" {
+			rowErrors["asset_sub_category"] = "Asset subcategory is required"
+		} else if id, ok := subCategoryTitles[strings.ToLower(strings.TrimSpace(record.AssetSubCategory))]; ok {
 			processed["asset_sub_category_id"] = id
 		} else {
 			rowErrors["asset_sub_category"] = fmt.Sprintf("Invalid asset subcategory: %s", record.AssetSubCategory)
 		}
 
-		if id, ok := statusTitles[strings.ToLower(strings.TrimSpace(record.AssetStatus))]; ok {
+		if strings.TrimSpace(record.AssetStatus) == "" {
+			rowErrors["asset_status"] = "Asset status is required"
+		} else if id, ok := statusTitles[strings.ToLower(strings.TrimSpace(record.AssetStatus))]; ok {
 			processed["asset_status_id"] = id
 		} else {
 			rowErrors["asset_status"] = fmt.Sprintf("Invalid asset status: %s", record.AssetStatus)
 		}
 
-		if id, ok := userFullNames[strings.ToLower(strings.TrimSpace(record.ResponsibleUser))]; ok {
+		if strings.TrimSpace(record.ResponsibleUser) == "" {
+			rowErrors["responsible_user"] = "Responsible user is required"
+		} else if id, ok := userFullNames[strings.ToLower(strings.TrimSpace(record.ResponsibleUser))]; ok {
 			if _, err := s.userSvc.GetUserPrimaryUnitID(id); err != nil {
 				rowErrors["responsible_user"] = "Organization unit not set for responsible user"
 			} else {
@@ -266,18 +281,21 @@ func (s *TenableService) ValidateTenableAssets(input []dtos.TenableAssetImportDT
 			rowErrors["responsible_user"] = fmt.Sprintf("Invalid responsible user: %s", record.ResponsibleUser)
 		}
 
-		for _, field := range []struct {
-			key   string
-			value *string
-		}{
-			{"acquisition_date", record.AcquisitionDate},
-			{"assignment_date", record.AssignmentDate},
-			{"warranty_expiry_date", record.WarrantyExpiryDate},
-		} {
-			if field.value != nil && *field.value != "" {
-				if _, err := utility.ParseDate(*field.value); err != nil {
-					rowErrors[field.key] = "Invalid date format (expected YYYY-MM-DD)"
-				}
+		if record.AcquisitionDate != nil && *record.AcquisitionDate != "" {
+			if _, err := utility.ParseDate(*record.AcquisitionDate); err != nil {
+				rowErrors["acquisition_date"] = "Invalid acquisition date format (expected YYYY-MM-DD)"
+			}
+		}
+
+		if record.AssignmentDate != nil && *record.AssignmentDate != "" {
+			if _, err := utility.ParseDate(*record.AssignmentDate); err != nil {
+				rowErrors["assignment_date"] = "Invalid assignment date format (expected YYYY-MM-DD)"
+			}
+		}
+
+		if record.WarrantyExpiryDate != nil && *record.WarrantyExpiryDate != "" {
+			if _, err := utility.ParseDate(*record.WarrantyExpiryDate); err != nil {
+				rowErrors["warranty_expiry_date"] = "Invalid warranty expiry date format (expected YYYY-MM-DD)"
 			}
 		}
 
