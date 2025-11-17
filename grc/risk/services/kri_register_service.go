@@ -30,6 +30,7 @@ type KRIRegisterServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	ExportKriRegister(data []*riskDTOs.KRIRegisterListDTO, currentUserID uint) (*os.File, error)
+	GetTrendAnalysis(kriID uint, limit int) ([]*riskDTOs.KRITrendAnalysisDTO, error)
 
 	DetermineRiskLevel(value int, lowThreshold, mediumThreshold *int) (*models.RiskLevel, error)
 }
@@ -870,4 +871,35 @@ func (krs *KRIRegisterService) DetermineRiskLevel(value int, lowThreshold, mediu
 	}
 
 	return riskLevel, nil
+}
+
+func (krs *KRIRegisterService) GetTrendAnalysis(kriID uint, limit int) ([]*riskDTOs.KRITrendAnalysisDTO, error) {
+	kriValueUpdates, err := krs.repo.GetTrendAnalysis(kriID, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(kriValueUpdates) == 0 {
+		return []*riskDTOs.KRITrendAnalysisDTO{}, nil
+	}
+
+	// Already sorted and limited in repo (DESC), so just map to DTOs
+	var trend []*riskDTOs.KRITrendAnalysisDTO
+	for _, valueUpdate := range kriValueUpdates {
+		var kriUpdate riskDTOs.KRITrendAnalysisDTO
+		err := mapstructure.Decode(valueUpdate, &kriUpdate)
+		if err != nil {
+			return nil, err
+		}
+		if valueUpdate.Value != nil {
+			kriUpdate.Value = float64(*valueUpdate.Value)
+		} else {
+			kriUpdate.Value = 0
+		}
+		reviewedAt := valueUpdate.ReviewedDate.Format("2006-01-02")
+		kriUpdate.ReviewedAtString = reviewedAt
+		trend = append(trend, &kriUpdate)
+	}
+
+	return trend, nil
 }

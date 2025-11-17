@@ -254,3 +254,26 @@ func (krc *KRIRegisterController) GetKriRegisterExport(c *gin.Context) {
 
 	krc.GetAllKRIRegisters(c)
 }
+
+func (krc *KRIRegisterController) GetKRITrendAnalysis(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	controlTrend, err := krc.service.GetTrendAnalysis(uint(id), 10)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(krc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, controlTrend)
+}
