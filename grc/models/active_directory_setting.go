@@ -5,8 +5,9 @@ import (
 )
 
 type ActiveDirectorySetting struct {
-	ID             uint       `json:"id" gorm:"primaryKey;autoIncrement"`
-	IntegrationID  uint       `json:"integration_id"`
+	ID            uint `json:"id" gorm:"primaryKey;autoIncrement"`
+	IntegrationID uint `json:"integration_id"`
+	// === LDAP (on-prem AD) fields ===
 	Server         string     `json:"server" gorm:"size:255;not null"`
 	Port           int        `json:"port" gorm:"not null"`
 	UseSSL         bool       `json:"use_ssl" gorm:"not null"`
@@ -20,6 +21,14 @@ type ActiveDirectorySetting struct {
 	CreatedAt      time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedBYID    *uint      `json:"updated_by_id,omitempty" gorm:"default:null"`
 	UpdatedAt      *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
+
+	// === Entra ID (Azure AD OAuth2 / SSO) fields ===
+	TenantID     string `json:"tenant_id" gorm:"size:100"`               // Directory (tenant) ID
+	ClientID     string `json:"client_id" gorm:"size:255"`               // Application (client) ID
+	ClientSecret string `json:"client_secret" gorm:"type:nvarchar(255)"` // Encrypted
+	RedirectURI  string `json:"redirect_uri" gorm:"type:nvarchar(500)"`  // OAuth2 callback URI
+
+	// AuthType      string     `json:"auth_type" gorm:"size:50;default:'ldap'"` // 'ldap' or 'entra'
 
 	// Relationships
 	Integration   *Integration `gorm:"foreignKey:IntegrationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

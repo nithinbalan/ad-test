@@ -1,8 +1,12 @@
 package utility
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"jethur/config"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -62,6 +66,47 @@ func VerifyToken(tokenStr string) (*UserClaims, error) {
 	claims, ok := token.Claims.(*UserClaims)
 	if !ok || !token.Valid {
 		return nil, errors.New("invalid token or claims")
+	}
+
+	return claims, nil
+}
+
+// GenerateRandomString creates a secure random string for OAuth2 state/nonce.
+func GenerateRandomString(length int) string {
+	bytes := make([]byte, length)
+	if _, err := rand.Read(bytes); err != nil {
+		// fallback if crypto/rand fails
+		return base64.URLEncoding.EncodeToString([]byte("fallback-random"))[:length]
+	}
+	return base64.URLEncoding.EncodeToString(bytes)[:length]
+}
+
+// DecodeJWTClaims decodes a JWT (ID token or access token) without verifying signature.
+// Used to inspect claims from Microsoft Entra ID.
+func DecodeJWTClaims(token string) (map[string]interface{}, error) {
+	parts := strings.Split(token, ".")
+	if len(parts) < 2 {
+		return nil, errors.New("invalid JWT token format")
+	}
+
+	payload := parts[1]
+	// Add missing padding if required
+	if l := len(payload) % 4; l > 0 {
+		payload += strings.Repeat("=", 4-l)
+	}
+
+	decoded, err := base64.RawURLEncoding.DecodeString(payload)
+	if err != nil {
+		// try standard encoding as fallback
+		decoded, err = base64.StdEncoding.DecodeString(payload)
+		if err != nil {
+			return nil, errors.New("failed to decode JWT payload")
+		}
+	}
+
+	var claims map[string]interface{}
+	if err := json.Unmarshal(decoded, &claims); err != nil {
+		return nil, errors.New("failed to unmarshal JWT claims: " + err.Error())
 	}
 
 	return claims, nil

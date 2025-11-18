@@ -119,3 +119,112 @@ func (adsc *ActiveDirectorySettingController) CheckSavedADConnection(ctx *gin.Co
 
 	ctx.JSON(http.StatusOK, gin.H{"success": true, "message": "Active Directory connection (from saved config) successful"})
 }
+
+// ==============================
+// Entra ID (OAuth2 / SSO / Graph)
+// ==============================
+
+func (adsc *ActiveDirectorySettingController) TestOAuthConnection(c *gin.Context) {
+	var req dtos.EntraOAuthConfigDTO
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	token, err := adsc.service.TestOAuthConnection(&req)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ActiveDirectoryConnectionError:
+			utility.SendCustomErrResp(c, http.StatusUnprocessableEntity, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(adsc.db, c, err.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "OAuth connection successful", "access_token": token})
+}
+
+func (adsc *ActiveDirectorySettingController) GetOAuthConfiguration(c *gin.Context) {
+	config, err := adsc.service.GetOAuthConfiguration()
+	if err != nil {
+		utility.SendInternalErrResp(adsc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, config)
+}
+
+func (adsc *ActiveDirectorySettingController) SaveOAuthConfiguration(c *gin.Context) {
+	var req dtos.EntraOAuthConfigDTO
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(adsc.db, c, err.Error())
+		return
+	}
+	err = adsc.service.SaveOAuthConfiguration(currentUserID, req)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(adsc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "OAuth configuration saved successfully"})
+}
+
+func (adsc *ActiveDirectorySettingController) GetLoginURL(c *gin.Context) {
+	url, err := adsc.service.GenerateMicrosoftLoginURL()
+	if err != nil {
+		utility.SendInternalErrResp(adsc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"login_url": url})
+}
+
+func (adsc *ActiveDirectorySettingController) HandleOAuthCallback(c *gin.Context) {
+	code := c.Query("code")
+	state := c.Query("state")
+
+	if code == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	userData, err := adsc.service.HandleOAuthCallback(code, state)
+	if err != nil {
+		utility.SendInternalErrResp(adsc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "OAuth login successful",
+		"user":    userData,
+	})
+}
+
+func (adsc *ActiveDirectorySettingController) SyncAzureUsers(c *gin.Context) {
+	count, err := adsc.service.SyncAzureUsers()
+	if err != nil {
+		utility.SendInternalErrResp(adsc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Users synced successfully", "count": count})
+}
+
+func (adsc *ActiveDirectorySettingController) SyncAzureGroups(c *gin.Context) {
+	count, err := adsc.service.SyncAzureGroups()
+	if err != nil {
+		utility.SendInternalErrResp(adsc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Groups synced successfully", "count": count})
+}
