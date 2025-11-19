@@ -43,18 +43,18 @@ type TenableAssetListResponseDTO struct {
 
 type TenableAssetImportDTO struct {
 	TenableUUID        string  `json:"tenable_uuid"`
-	TitleEn            string  `json:"title_en" binding:"required"`
-	TitleAr            string  `json:"title_ar" binding:"required"`
-	AssetCategory      string  `json:"asset_category" binding:"required"`
-	AssetSubCategory   string  `json:"asset_sub_category" binding:"required"`
-	AssetStatus        string  `json:"asset_status" binding:"required"`
-	ResponsibleUser    string  `json:"responsible_user" binding:"required"`
-	Location           *string `json:"location" binding:"omitempty"`
-	Description        *string `json:"description" binding:"omitempty"`
-	AcquisitionDate    *string `json:"acquisition_date" binding:"omitempty"`
-	AssignmentDate     *string `json:"assignment_date" binding:"omitempty"`
-	WarrantyExpiryDate *string `json:"warranty_expiry_date" binding:"omitempty"`
-	Manufacturer       *string `json:"manufacturer" binding:"omitempty"`
-	Model              *string `json:"model" binding:"omitempty"`
-	SerialNumber       *string `json:"serial_number" binding:"omitempty"`
+	TitleEn            string  `json:"title_en"`
+	TitleAr            string  `json:"title_ar"`
+	AssetCategory      string  `json:"asset_category"`
+	AssetSubCategory   string  `json:"asset_sub_category"`
+	AssetStatus        string  `json:"asset_status"`
+	ResponsibleUser    string  `json:"responsible_user"`
+	Location           *string `json:"location"`
+	Description        *string `json:"description"`
+	AcquisitionDate    *string `json:"acquisition_date"`
+	AssignmentDate     *string `json:"assignment_date"`
+	WarrantyExpiryDate *string `json:"warranty_expiry_date"`
+	Manufacturer       *string `json:"manufacturer"`
+	Model              *string `json:"model"`
+	SerialNumber       *string `json:"serial_number"`
 }
