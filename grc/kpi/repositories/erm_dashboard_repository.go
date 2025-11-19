@@ -996,7 +996,6 @@ func (repo *ERMDashboardRepository) GetERMRiskSummaryByOrganizationUnit(params *
 
 	query := repo.db.Table("risk_register rr").
 		Joins("LEFT JOIN organization_units ru ON ru.id = rr.responsible_unit_id").
-		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(ru.organization_unit_id, ru.id) = parent_unit.id").
 		Joins("JOIN organization_levels ol ON ol.id = ru.organization_level_id AND ol.is_primary = ?", true).
 		Joins("LEFT JOIN risk_matrix_risk_ratings current_rmrr ON current_rmrr.id = rr.current_risk_rating_id AND current_rmrr.status = 'active'").
 		Joins("LEFT JOIN risk_matrix_risk_ratings residual_rmrr ON residual_rmrr.id = rr.residual_risk_rating_id AND residual_rmrr.status = 'active'").
@@ -1022,8 +1021,8 @@ func (repo *ERMDashboardRepository) GetERMRiskSummaryByOrganizationUnit(params *
 
 	// Select aggregated data
 	query = query.Select(`
-		parent_unit.title_en AS organization_unit_title_en,
-		parent_unit.title_ar AS organization_unit_title_ar,
+		ru.title_en AS organization_unit_title_en,
+		ru.title_ar AS organization_unit_title_ar,
 		COUNT(*) AS total_risks,
 		-- High risks based on current risk rating
 		COUNT(CASE WHEN current_rmrr.type IN ('high', 'very_high') THEN 1 END) AS high_risks,
@@ -1064,7 +1063,7 @@ func (repo *ERMDashboardRepository) GetERMRiskSummaryByOrganizationUnit(params *
 				WHEN residual_rmrr.type = 'very_low' THEN residual_rmrr.color_code
 			END) AS residual_risk_rating_color_code
 	`).
-		Group("parent_unit.id, parent_unit.title_en, parent_unit.title_ar")
+		Group("ru.id, ru.title_en, ru.title_ar")
 
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
@@ -1218,18 +1217,17 @@ func (repo *ERMDashboardRepository) GetERMRiskOrganizationUnitSummary(params *kp
 
 	query := repo.db.Model(&models.RiskRegister{}).
 		Joins("LEFT JOIN organization_units ru ON ru.id = risk_register.responsible_unit_id").
-		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(ru.organization_unit_id, ru.id) = parent_unit.id").
 		Joins("JOIN organization_levels ol ON ol.id = ru.organization_level_id AND ol.is_primary = ?", true).
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id AND risk_statuses.status = ?", "active").
 		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
-		Where("parent_unit.status = ?", "active").
+		Where("ru.status = ?", "active"). 
 		Select(`
-			parent_unit.title_en AS organization_unit_title_en,
-			parent_unit.title_ar AS organization_unit_title_ar, 
-			parent_unit.color_code As organization_unit_color_code,
+			ru.title_en AS organization_unit_title_en,
+			ru.title_ar AS organization_unit_title_ar, 
+			ru.color_code AS organization_unit_color_code,
 			COUNT(risk_register.id) AS count
 		`).
-		Group("parent_unit.id, parent_unit.title_en, parent_unit.title_ar, parent_unit.color_code")
+		Group("ru.id, ru.title_en, ru.title_ar, ru.color_code")
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -1241,6 +1239,7 @@ func (repo *ERMDashboardRepository) GetERMRiskOrganizationUnitSummary(params *kp
 
 	return results, nil
 }
+
 
 func (repo *ERMDashboardRepository) GetERMRisksIdentifiedSummary() ([]kpiDTOs.ERMRisksIdentifiedSummaryDTO, error) {
 	results := []kpiDTOs.ERMRisksIdentifiedSummaryDTO{}
@@ -1618,6 +1617,7 @@ func (repo *ERMDashboardRepository) GetTopRiskRegisters(params *kpiDTOs.ERMDashb
             LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id
             LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
         `).
+		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
 		Order("current_risk_rating_value DESC")
 
 	if params.DateFrom != "" && params.DateTo != "" {
