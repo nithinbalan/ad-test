@@ -43,12 +43,12 @@ type TenableAssetListResponseDTO struct {
 
 type TenableAssetImportDTO struct {
 	TenableUUID        string  `json:"tenable_uuid"`
-	TitleEn            string  `json:"title_en" binding:"required"`
-	TitleAr            string  `json:"title_ar" binding:"required"`
-	AssetCategory      string  `json:"asset_category" binding:"required"`
-	AssetSubCategory   string  `json:"asset_sub_category" binding:"required"`
-	AssetStatus        string  `json:"asset_status" binding:"required"`
-	ResponsibleUser    string  `json:"responsible_user" binding:"required"`
+	TitleEn            string  `json:"title_en"`
+	TitleAr            string  `json:"title_ar"`
+	AssetCategory      string  `json:"asset_category"`
+	AssetSubCategory   string  `json:"asset_sub_category"`
+	AssetStatus        string  `json:"asset_status"`
+	ResponsibleUser    string  `json:"responsible_user"`
 	Location           *string `json:"location" binding:"omitempty"`
 	Description        *string `json:"description" binding:"omitempty"`
 	AcquisitionDate    *string `json:"acquisition_date" binding:"omitempty"`
