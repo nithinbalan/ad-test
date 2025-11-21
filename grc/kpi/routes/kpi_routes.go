@@ -18,6 +18,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	grcDashboardController := app.KPIModule.GRCDashboardController
 	ermDashboardController := app.KPIModule.ERMDashboardController
 	complianceDashboardController := app.KPIModule.ComplianceDashboardController
+	kriDashboardController := app.KPIModule.KRIDashboardController
 
 	//GRCDashboard Summary
 	kpiRoutes.GET("/kpis/grc-summary/compliance", middlewares.RolePermissionMiddleware(db, "grc_dashboard", "view"), grcDashboardController.GetGRCComplianceSummary)
@@ -92,4 +93,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/compliance/summary/action-plan-organization-units", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetActionPlansByOrganizationUnit)
 
 	kpiRoutes.GET("/kpis/compliance/top-twenty-compliances", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetTopCompliances)
+
+	// KRI Dashboard
+	kpiRoutes.GET("/kpis/kri/overview", middlewares.RolePermissionMiddleware(db, "kri_dashboard", "view"), kriDashboardController.GetKRIOverview)
+	kpiRoutes.GET("/kpis/kri/review-status", middlewares.RolePermissionMiddleware(db, "kri_dashboard", "view"), kriDashboardController.GetKRIReviewStatus)
+	kpiRoutes.GET("/kpis/kri/status-category", middlewares.RolePermissionMiddleware(db, "kri_dashboard", "view"), kriDashboardController.GetKRIStatusCategory)
+	kpiRoutes.GET("/kpis/kri/severity-breakdown", middlewares.RolePermissionMiddleware(db, "kri_dashboard", "view"), kriDashboardController.GetKRISeverityBreakdown)
+	kpiRoutes.GET("/kpis/kri/top-risk-exposure", middlewares.RolePermissionMiddleware(db, "kri_dashboard", "view"), kriDashboardController.GetTopKRIRiskExposure)
+	kpiRoutes.GET("/kpis/kri/severity-organization-unit", middlewares.RolePermissionMiddleware(db, "kri_dashboard", "view"), kriDashboardController.GetKRISeverityByOrganizationUnit)
+	kpiRoutes.GET("/kpis/kri/severity-category", middlewares.RolePermissionMiddleware(db, "kri_dashboard", "view"), kriDashboardController.GetKRISeverityByCategory)
+	kpiRoutes.GET("/kpis/kri/breaches", middlewares.RolePermissionMiddleware(db, "kri_dashboard", "view"), kriDashboardController.GetKRIMostFrequentBreaches)
 }
