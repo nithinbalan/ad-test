@@ -120,6 +120,29 @@ func (adsc *ActiveDirectorySettingController) CheckSavedADConnection(ctx *gin.Co
 	ctx.JSON(http.StatusOK, gin.H{"success": true, "message": "Active Directory connection (from saved config) successful"})
 }
 
+
+
+func (adsc *ActiveDirectorySettingController) DeleteActiveDirectorySetting(c *gin.Context) {
+
+    currentUserID, err := utility.GetCurrentUserID(c)
+    if err != nil {
+        utility.SendInternalErrResp(adsc.db, c, err.Error())
+        return
+    }
+
+    err = adsc.service.Delete(currentUserID)
+    if err != nil {
+        utility.SendInternalErrResp(adsc.db, c, err.Error())
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "success": true,
+        "message": "Active Directory setting deleted successfully",
+    })
+}
+
+
 // ==============================
 // Entra ID (OAuth2 / SSO / Graph)
 // ==============================
@@ -228,3 +251,58 @@ func (adsc *ActiveDirectorySettingController) SyncAzureGroups(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Groups synced successfully", "count": count})
 }
+
+func (uc *ActiveDirectorySettingController) GetAzureDynamicGroups(c *gin.Context) {
+    groups, err := uc.service.GetAzureDynamicGroups()
+    if err != nil {
+        utility.SendInternalErrResp(uc.db, c, err.Error())
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "success": true,
+        "message": "Dynamic Groups fetched successfully",
+        "count":   len(groups),
+        "data":    groups,
+    })
+}
+
+func (uc *ActiveDirectorySettingController) GetAzureSecurityGroups(c *gin.Context) {
+    groups, err := uc.service.GetAzureSecurityGroups()
+    if err != nil {
+        utility.SendInternalErrResp(uc.db, c, err.Error())
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "success": true,
+        "message": "Security groups fetched successfully",
+        "count":   len(groups),
+        "data":    groups,
+    })
+}
+
+func (adsc *ActiveDirectorySettingController) GetAzureUserGroups(c *gin.Context) {
+    userID := c.Param("id")
+    if userID == "" {
+        utility.SendInvalidErrResp(c)
+        return
+    }
+
+    groups, err := adsc.service.GetAzureUserGroups(userID)
+    if err != nil {
+        utility.SendInternalErrResp(adsc.db, c, err.Error())
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "success": true,
+        "message": "User groups fetched successfully",
+        "count":   len(groups),
+        "data":    groups,
+    })
+}
+
+
+
+

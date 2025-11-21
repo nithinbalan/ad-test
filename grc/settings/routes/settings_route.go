@@ -132,6 +132,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.POST("/active-directory-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), activeDirectorySettingController.CreateActiveDirectorySetting)
 	settingRoutes.POST("/active-directory-settings/check-connection", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), activeDirectorySettingController.CheckActiveDirectoryConnection)
 	settingRoutes.GET("/active-directory-settings/check-saved-connection", activeDirectorySettingController.CheckSavedADConnection)
+	settingRoutes.DELETE(
+	"/active-directory-settings/delete",
+	middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
+	activeDirectorySettingController.DeleteActiveDirectorySetting,
+)
+
 
 	settingRoutes.GET("/siem-settings", siemSettingController.GetSIEMSettings)
 	settingRoutes.PUT("/siem-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), siemSettingController.UpdateSIEMSettings)
@@ -201,4 +207,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.GET("/active-directory-settings/sync-groups",
 		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
 		activeDirectorySettingController.SyncAzureGroups)
+
+
+	settingRoutes.GET("/active-directory-settings/dynamic-groups", 
+		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
+		activeDirectorySettingController.GetAzureDynamicGroups)
+
+	settingRoutes.GET("/active-directory-settings/security-groups", 
+		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
+		activeDirectorySettingController.GetAzureSecurityGroups)
+
+	settingRoutes.GET("/active-directory-settings/users/:id/groups", 
+		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
+		activeDirectorySettingController.GetAzureUserGroups)
 }
