@@ -120,6 +120,29 @@ func (adsc *ActiveDirectorySettingController) CheckSavedADConnection(ctx *gin.Co
 	ctx.JSON(http.StatusOK, gin.H{"success": true, "message": "Active Directory connection (from saved config) successful"})
 }
 
+
+
+func (adsc *ActiveDirectorySettingController) DeleteActiveDirectorySetting(c *gin.Context) {
+
+    currentUserID, err := utility.GetCurrentUserID(c)
+    if err != nil {
+        utility.SendInternalErrResp(adsc.db, c, err.Error())
+        return
+    }
+
+    err = adsc.service.Delete(currentUserID)
+    if err != nil {
+        utility.SendInternalErrResp(adsc.db, c, err.Error())
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "success": true,
+        "message": "Active Directory setting deleted successfully",
+    })
+}
+
+
 // ==============================
 // Entra ID (OAuth2 / SSO / Graph)
 // ==============================
@@ -143,7 +166,7 @@ func (adsc *ActiveDirectorySettingController) TestOAuthConnection(c *gin.Context
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "OAuth connection successful", "access_token": token})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message":"OAuth connection successful","access_token": token})
 }
 
 func (adsc *ActiveDirectorySettingController) GetOAuthConfiguration(c *gin.Context) {
@@ -179,6 +202,28 @@ func (adsc *ActiveDirectorySettingController) SaveOAuthConfiguration(c *gin.Cont
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "OAuth configuration saved successfully"})
 }
+
+
+func (adsc *ActiveDirectorySettingController) DeleteOAuthConfiguration(c *gin.Context) {
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(adsc.db, c, err.Error())
+		return
+	}
+
+	err = adsc.service.DeleteOAuthConfiguration(currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(adsc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "OAuth configuration deleted successfully",
+	})
+}
+
 
 func (adsc *ActiveDirectorySettingController) GetLoginURL(c *gin.Context) {
 	url, err := adsc.service.GenerateMicrosoftLoginURL()
@@ -228,3 +273,29 @@ func (adsc *ActiveDirectorySettingController) SyncAzureGroups(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Groups synced successfully", "count": count})
 }
+
+
+func (adsc *ActiveDirectorySettingController) GetAzureUserGroups(c *gin.Context) {
+    userID := c.Param("id")
+    if userID == "" {
+        utility.SendInvalidErrResp(c)
+        return
+    }
+
+    groups, err := adsc.service.GetAzureUserGroups(userID)
+    if err != nil {
+        utility.SendInternalErrResp(adsc.db, c, err.Error())
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "success": true,
+        "message": "User groups fetched successfully",
+        "count":   len(groups),
+        "data":    groups,
+    })
+}
+
+
+
+

@@ -4,16 +4,18 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/go-ldap/ldap/v3"
 	"io"
-
 	"jethur/grc/models"
+	userDTOs "jethur/grc/organization/dtos"
+	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/grc/settings/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
 	"jethur/utility"
 	"net/http"
 	"net/url"
-
-	"github.com/go-ldap/ldap/v3"
+	"strings"
 )
 
 type ActiveDirectorySettingServiceInterface interface {
@@ -21,25 +23,33 @@ type ActiveDirectorySettingServiceInterface interface {
 	Create(currentUserID uint, dto dtos.ActiveDirectorySettingDTO) error
 	CheckADConnection(dto *dtos.ActiveDirectorySettingDTO) error
 	GetADConnection() error
+	Delete(currentUserID uint) error
 
 	TestOAuthConnection(dto *dtos.EntraOAuthConfigDTO) (string, error)
 	GetOAuthConfiguration() (*dtos.EntraOAuthConfigDTO, error)
 	SaveOAuthConfiguration(currentUserID uint, dto dtos.EntraOAuthConfigDTO) error
+    DeleteOAuthConfiguration(currentUserID uint) error
+
 	GenerateMicrosoftLoginURL() (string, error)
 	HandleOAuthCallback(code string, state string) (map[string]interface{}, error)
-	SyncAzureUsers() (int, error)
-	SyncAzureGroups() (int, error)
+	SyncAzureUsers() ([]userDTOs.ADUserFlatDTO, error)
+	SyncAzureGroups() ([]map[string]interface{}, error)
+	GetAzureUserGroups(userID string) ([]map[string]interface{}, error)
 }
 
 type ActiveDirectorySettingService struct {
-	repo           repositories.ActiveDirectorySettingRepositoryInterface
-	integrationSvc IntegrationServiceInterface
+	repo             repositories.ActiveDirectorySettingRepositoryInterface
+	userRepo         organizationRepositories.UserRepositoryInterface
+	organizationRepo repositories.OrganizationLevelRepositoryInterface
+	integrationSvc   IntegrationServiceInterface
 }
 
-func NewActiveDirectorySettingService(repo repositories.ActiveDirectorySettingRepositoryInterface, integrationSvc IntegrationServiceInterface) ActiveDirectorySettingServiceInterface {
+func NewActiveDirectorySettingService(repo repositories.ActiveDirectorySettingRepositoryInterface, userRepo organizationRepositories.UserRepositoryInterface, organizationRepo repositories.OrganizationLevelRepositoryInterface, integrationSvc IntegrationServiceInterface) ActiveDirectorySettingServiceInterface {
 	return &ActiveDirectorySettingService{
-		repo:           repo,
-		integrationSvc: integrationSvc,
+		repo:             repo,
+		userRepo:         userRepo,
+		integrationSvc:   integrationSvc,
+		organizationRepo: organizationRepo,
 	}
 }
 
@@ -68,9 +78,16 @@ func (adss *ActiveDirectorySettingService) Create(currentUserID uint, dto dtos.A
 	if err != nil {
 		return err
 	}
-	if !integration.IsEnable {
-		return err
+
+	emptyCredential := &settingsDTOs.IntegrationCredentialFormDTO{}
+	_, err = adss.integrationSvc.EnableIntegration(integration.ID, currentUserID, emptyCredential)
+	if err != nil {
+		return fmt.Errorf("failed to enable integration: %w", err)
 	}
+
+	// if !integration.IsEnable {
+	// 	return err
+	// }
 
 	// Step 4: Save or Update setting
 	activeDirectorySetting, err := adss.repo.GetFirst()
@@ -224,6 +241,29 @@ func (adss *ActiveDirectorySettingService) GetADConnection() error {
 	return adss.CheckADConnection(&dto)
 }
 
+func (adss *ActiveDirectorySettingService) Delete(currentUserID uint) error {
+	setting, err := adss.repo.GetFirst()
+	if err != nil {
+		return err
+	}
+	if setting == nil {
+		return fmt.Errorf("active directory setting not found")
+	}else{
+		adss.repo.Delete(setting)
+	}
+
+	integration, err := adss.integrationSvc.GetByType("active-directory")
+	if err != nil {
+		return err
+	}
+
+	_, err = adss.integrationSvc.DisableIntegration(integration.ID, currentUserID)
+	if err != nil {
+		return fmt.Errorf("failed to disable integration: %w", err)
+	}
+	return nil
+}
+
 // ==============================
 // Entra ID (OAuth2 / SSO / Graph)
 // ==============================
@@ -290,8 +330,11 @@ func (adss *ActiveDirectorySettingService) SaveOAuthConfiguration(currentUserID 
 	if err != nil {
 		return err
 	}
-	if !integration.IsEnable {
-		return utility.NewActiveDirectoryConnectionError(fmt.Errorf("integration 'active-directory' is disabled"))
+
+	emptyCredential := &settingsDTOs.IntegrationCredentialFormDTO{}
+	_, err = adss.integrationSvc.EnableIntegration(integration.ID, currentUserID, emptyCredential)
+	if err != nil {
+		return fmt.Errorf("failed to enable integration: %w", err)
 	}
 
 	encryptedSecret, err := utility.EncryptData([]byte(dto.ClientSecret))
@@ -322,6 +365,30 @@ func (adss *ActiveDirectorySettingService) SaveOAuthConfiguration(currentUserID 
 		CreatedBYID:   currentUserID,
 	}
 	return adss.repo.Create(&newSetting)
+}
+
+
+func (adss *ActiveDirectorySettingService) DeleteOAuthConfiguration(currentUserID uint) error {
+
+    setting, err := adss.repo.GetFirst()
+    if err != nil {
+        return err
+    }
+    if setting == nil {
+        return fmt.Errorf("no OAuth/Active Directory setting found")
+    }
+
+    integration, err := adss.integrationSvc.GetByType("active-directory")
+    if err != nil {
+        return err
+    }
+
+    _, err = adss.integrationSvc.DisableIntegration(integration.ID, currentUserID)
+    if err != nil {
+        return fmt.Errorf("failed to disable integration: %w", err)
+    }
+
+    return adss.repo.Delete(setting)
 }
 
 // GenerateMicrosoftLoginURL builds the OAuth2 authorize URL for SSO.
@@ -419,102 +486,169 @@ func (adss *ActiveDirectorySettingService) HandleOAuthCallback(code string, stat
 }
 
 // SyncAzureUsers pulls users from Microsoft Graph and syncs to DB.
-func (adss *ActiveDirectorySettingService) SyncAzureUsers() (int, error) {
+func (adss *ActiveDirectorySettingService) SyncAzureUsers() ([]userDTOs.ADUserFlatDTO, error) {
 	setting, err := adss.repo.GetFirst()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	if setting == nil {
-		return 0, utility.NewActiveDirectoryConnectionError(fmt.Errorf("no Entra ID configuration found"))
+		return nil, utility.NewActiveDirectoryConnectionError(fmt.Errorf("no Entra ID configuration found"))
 	}
 
 	decryptedSecret, err := utility.DecryptData(setting.ClientSecret)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	token, err := adss.getClientCredentialToken(setting.TenantID, setting.ClientID, string(decryptedSecret))
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	req, _ := http.NewRequest("GET", "https://graph.microsoft.com/v1.0/users?$select=id,displayName,mail,userPrincipalName", nil)
+	req, _ := http.NewRequest("GET",
+		"https://graph.microsoft.com/v1.0/users?$select=id,givenName,surname,displayName,mail,userPrincipalName,jobTitle,department,officeLocation,accountEnabled,businessPhones,mobilePhone",
+		nil,
+	)
 	req.Header.Set("Authorization", "Bearer "+token)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return 0, fmt.Errorf("graph API user fetch failed: %s", string(body))
+		return nil, fmt.Errorf("Graph API user fetch failed: %s", string(body))
 	}
 
 	var result struct {
 		Value []struct {
-			ID                string `json:"id"`
-			DisplayName       string `json:"displayName"`
-			Mail              string `json:"mail"`
-			UserPrincipalName string `json:"userPrincipalName"`
+			ID                string   `json:"id"`
+			GivenName         string   `json:"givenName"`
+			Surname           string   `json:"surname"`
+			DisplayName       string   `json:"displayName"`
+			Mail              string   `json:"mail"`
+			UserPrincipalName string   `json:"userPrincipalName"`
+			JobTitle          string   `json:"jobTitle"`
+			Department        string   `json:"department"`
+			OfficeLocation    string   `json:"officeLocation"`
+			MobilePhone       string   `json:"mobilePhone"`
+			BusinessPhones    []string `json:"businessPhones"`
+			AccountEnabled    bool     `json:"accountEnabled"`
 		} `json:"value"`
 	}
+
 	if err := json.Unmarshal(body, &result); err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	// Map to local DB if required
-	return len(result.Value), nil
+	// === EXACT LDAP-LIKE RESPONSE ===
+	slNo := 1
+	orgLevels, err := adss.organizationRepo.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch organization levels: %w", err)
+	}
+	orgLevelCount := len(orgLevels)
+
+	finalUsers := []userDTOs.ADUserFlatDTO{}
+
+	for _, u := range result.Value {
+
+		if u.Mail == "" {
+			continue
+		}
+
+		exists, _ := adss.userRepo.ExistsByEmail(strings.ToLower(u.Mail))
+		fmt.Println("users details", u)
+		user := userDTOs.ADUserFlatDTO{
+			"sl_no":         slNo,
+			"first_name_en": u.GivenName,
+			"last_name_en":  u.Surname,
+			"first_name_ar": u.GivenName,
+			"last_name_ar":  u.Surname,
+			"email":         u.Mail,
+			"mobile_number": u.MobilePhone,
+			"designation":   u.JobTitle,
+			"user_status": func() string {
+				if u.AccountEnabled {
+					return "Active"
+				}
+				return "Inactive"
+			}(),
+			"roles":              []string{},
+			"primary_department": u.Department,
+			"is_exists":          exists,
+			"errors":             nil,
+		}
+
+		// Fill org levels (Azure AD does NOT have OU hierarchy)
+		for i := 0; i < orgLevelCount; i++ {
+			key := fmt.Sprintf("organization_unit_%d", i+1)
+			user[key] = "" // default empty (Azure has no OU)
+		}
+
+		finalUsers = append(finalUsers, user)
+		slNo++
+	}
+
+	return finalUsers, nil
 }
 
 // SyncAzureGroups pulls group data from Microsoft Graph.
-func (adss *ActiveDirectorySettingService) SyncAzureGroups() (int, error) {
+func (adss *ActiveDirectorySettingService) SyncAzureGroups() ([]map[string]interface{}, error) {
+
 	setting, err := adss.repo.GetFirst()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	if setting == nil {
-		return 0, utility.NewActiveDirectoryConnectionError(fmt.Errorf("no Entra ID configuration found"))
+		return nil, utility.NewActiveDirectoryConnectionError(fmt.Errorf("no Entra ID configuration found"))
 	}
 
 	decryptedSecret, err := utility.DecryptData(setting.ClientSecret)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	token, err := adss.getClientCredentialToken(setting.TenantID, setting.ClientID, string(decryptedSecret))
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	req, _ := http.NewRequest("GET", "https://graph.microsoft.com/v1.0/groups?$select=id,displayName", nil)
+	// MAXIMUM FIELDS
+	url := "https://graph.microsoft.com/v1.0/groups?$select=" +
+		"id,displayName,description,mail,mailEnabled,securityEnabled,groupTypes,visibility," +
+		"mailNickname,createdDateTime,renewedDateTime,expirationDateTime," +
+		"membershipRule,membershipRuleProcessingState," +
+		"onPremisesSamAccountName,onPremisesSecurityIdentifier,onPremisesLastSyncDateTime,onPremisesNetBiosName," +
+		"proxyAddresses"
+
+	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return 0, fmt.Errorf("graph API group fetch failed: %s", string(body))
+		return nil, fmt.Errorf("Graph API group fetch failed: %s", string(body))
 	}
 
 	var result struct {
-		Value []struct {
-			ID          string `json:"id"`
-			DisplayName string `json:"displayName"`
-		} `json:"value"`
-	}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return 0, err
+		Value []map[string]interface{} `json:"value"`
 	}
 
-	return len(result.Value), nil
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, err
+	}
+
+	return result.Value, nil
 }
 
 // helper: request client_credentials token
@@ -544,4 +678,83 @@ func (adss *ActiveDirectorySettingService) getClientCredentialToken(tenantID, cl
 		return "", err
 	}
 	return tokenResp.AccessToken, nil
+}
+
+
+func (adss *ActiveDirectorySettingService) GetAzureUserGroups(userID string) ([]map[string]interface{}, error) {
+
+	// 1. Load Azure AD config
+	setting, err := adss.repo.GetFirst()
+	if err != nil {
+		return nil, err
+	}
+	if setting == nil {
+		return nil, fmt.Errorf("Azure AD configuration not found")
+	}
+
+	// 2. Decrypt client secret
+	decryptedSecret, err := utility.DecryptData(setting.ClientSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Get access token
+	token, err := adss.getClientCredentialToken(setting.TenantID, setting.ClientID, string(decryptedSecret))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get access token: %w", err)
+	}
+
+	// 4. Build Graph URL
+	url := fmt.Sprintf(
+		"https://graph.microsoft.com/v1.0/users/%s/memberOf?$select=id,displayName,description,groupTypes",
+		userID,
+	)
+
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Graph API error: %s", string(body))
+	}
+
+	// 5. Parse response
+	var result struct {
+		Value []struct {
+			ID          string   `json:"id"`
+			Name        string   `json:"displayName"`
+			Description string   `json:"description"`
+			GroupTypes  []string `json:"groupTypes"`
+		} `json:"value"`
+	}
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, err
+	}
+
+	// 6. Format response
+	final := []map[string]interface{}{}
+	for _, g := range result.Value {
+
+		// filter: only group objects
+		if g.ID == "" || g.Name == "" {
+			continue
+		}
+
+		final = append(final, map[string]interface{}{
+			"id":          g.ID,
+			"name":        g.Name,
+			"description": g.Description,
+			"group_types": g.GroupTypes,
+		})
+	}
+
+	return final, nil
 }

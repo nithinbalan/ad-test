@@ -640,7 +640,12 @@ func (uc *UserController) GetADUsers(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, users)
+	c.JSON(http.StatusOK,gin.H{
+		"success": true,
+		"message": "Users synced successfully",
+		"data":    users,
+		"count":   len(users),
+	})
 }
 
 func (uc *UserController) UpdateUserOrganizationUnit(c *gin.Context) {
