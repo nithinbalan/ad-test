@@ -28,12 +28,12 @@ type ActiveDirectorySettingServiceInterface interface {
 	TestOAuthConnection(dto *dtos.EntraOAuthConfigDTO) (string, error)
 	GetOAuthConfiguration() (*dtos.EntraOAuthConfigDTO, error)
 	SaveOAuthConfiguration(currentUserID uint, dto dtos.EntraOAuthConfigDTO) error
+    DeleteOAuthConfiguration(currentUserID uint) error
+
 	GenerateMicrosoftLoginURL() (string, error)
 	HandleOAuthCallback(code string, state string) (map[string]interface{}, error)
 	SyncAzureUsers() ([]userDTOs.ADUserFlatDTO, error)
 	SyncAzureGroups() ([]map[string]interface{}, error)
-	GetAzureDynamicGroups() ([]map[string]interface{}, error)
-	GetAzureSecurityGroups() ([]map[string]interface{}, error)
 	GetAzureUserGroups(userID string) ([]map[string]interface{}, error)
 }
 
@@ -84,6 +84,10 @@ func (adss *ActiveDirectorySettingService) Create(currentUserID uint, dto dtos.A
 	if err != nil {
 		return fmt.Errorf("failed to enable integration: %w", err)
 	}
+
+	// if !integration.IsEnable {
+	// 	return err
+	// }
 
 	// Step 4: Save or Update setting
 	activeDirectorySetting, err := adss.repo.GetFirst()
@@ -326,8 +330,11 @@ func (adss *ActiveDirectorySettingService) SaveOAuthConfiguration(currentUserID 
 	if err != nil {
 		return err
 	}
-	if !integration.IsEnable {
-		return utility.NewActiveDirectoryConnectionError(fmt.Errorf("integration 'active-directory' is disabled"))
+
+	emptyCredential := &settingsDTOs.IntegrationCredentialFormDTO{}
+	_, err = adss.integrationSvc.EnableIntegration(integration.ID, currentUserID, emptyCredential)
+	if err != nil {
+		return fmt.Errorf("failed to enable integration: %w", err)
 	}
 
 	encryptedSecret, err := utility.EncryptData([]byte(dto.ClientSecret))
@@ -358,6 +365,30 @@ func (adss *ActiveDirectorySettingService) SaveOAuthConfiguration(currentUserID 
 		CreatedBYID:   currentUserID,
 	}
 	return adss.repo.Create(&newSetting)
+}
+
+
+func (adss *ActiveDirectorySettingService) DeleteOAuthConfiguration(currentUserID uint) error {
+
+    setting, err := adss.repo.GetFirst()
+    if err != nil {
+        return err
+    }
+    if setting == nil {
+        return fmt.Errorf("no OAuth/Active Directory setting found")
+    }
+
+    integration, err := adss.integrationSvc.GetByType("active-directory")
+    if err != nil {
+        return err
+    }
+
+    _, err = adss.integrationSvc.DisableIntegration(integration.ID, currentUserID)
+    if err != nil {
+        return fmt.Errorf("failed to disable integration: %w", err)
+    }
+
+    return adss.repo.Delete(setting)
 }
 
 // GenerateMicrosoftLoginURL builds the OAuth2 authorize URL for SSO.
@@ -649,151 +680,6 @@ func (adss *ActiveDirectorySettingService) getClientCredentialToken(tenantID, cl
 	return tokenResp.AccessToken, nil
 }
 
-func (adss *ActiveDirectorySettingService) GetAzureDynamicGroups() ([]map[string]interface{}, error) {
-
-	setting, err := adss.repo.GetFirst()
-	if err != nil {
-		return nil, err
-	}
-	if setting == nil {
-		return nil, fmt.Errorf("Azure AD config not found")
-	}
-
-	decryptedSecret, err := utility.DecryptData(setting.ClientSecret)
-	if err != nil {
-		return nil, err
-	}
-
-	token, err := adss.getClientCredentialToken(setting.TenantID, setting.ClientID, string(decryptedSecret))
-	if err != nil {
-		return nil, err
-	}
-
-	url := "https://graph.microsoft.com/v1.0/groups?$select=id,displayName,description,groupTypes,membershipRule,membershipRuleProcessingState"
-
-	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Graph API failed: %s", string(body))
-	}
-
-	var result struct {
-		Value []struct {
-			ID         string   `json:"id"`
-			Name       string   `json:"displayName"`
-			Desc       string   `json:"description"`
-			GroupTypes []string `json:"groupTypes"`
-			Rule       string   `json:"membershipRule"`
-			RuleState  string   `json:"membershipRuleProcessingState"`
-		} `json:"value"`
-	}
-
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, err
-	}
-
-	final := []map[string]interface{}{}
-
-	// Filter manually (Microsoft REQUIRED)
-	for _, g := range result.Value {
-
-		if g.Rule == "" {
-			continue
-		}
-
-		final = append(final, map[string]interface{}{
-			"id":               g.ID,
-			"name":             g.Name,
-			"description":      g.Desc,
-			"group_types":      g.GroupTypes,
-			"membership_rule":  g.Rule,
-			"processing_state": g.RuleState,
-		})
-	}
-
-	return final, nil
-}
-
-func (adss *ActiveDirectorySettingService) GetAzureSecurityGroups() ([]map[string]interface{}, error) {
-
-	// 1. Load configuration
-	setting, err := adss.repo.GetFirst()
-	if err != nil {
-		return nil, err
-	}
-	if setting == nil {
-		return nil, fmt.Errorf("Azure AD configuration not found")
-	}
-
-	// 2. Decrypt secret
-	decryptedSecret, err := utility.DecryptData(setting.ClientSecret)
-	if err != nil {
-		return nil, err
-	}
-
-	// 3. Generate Access Token
-	token, err := adss.getClientCredentialToken(setting.TenantID, setting.ClientID, string(decryptedSecret))
-	if err != nil {
-		return nil, err
-	}
-
-	// 4. Graph API URL for security groups
-	url := "https://graph.microsoft.com/v1.0/groups?$filter=securityEnabled%20eq%20true"
-
-	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Graph API error: %s", string(body))
-	}
-
-	var result struct {
-		Value []struct {
-			ID              string   `json:"id"`
-			DisplayName     string   `json:"displayName"`
-			Description     string   `json:"description"`
-			SecurityEnabled bool     `json:"securityEnabled"`
-			MailEnabled     bool     `json:"mailEnabled"`
-			GroupTypes      []string `json:"groupTypes"`
-		} `json:"value"`
-	}
-
-	_ = json.Unmarshal(body, &result)
-
-	final := []map[string]interface{}{}
-
-	for _, g := range result.Value {
-		// if g.SecurityEnabled && !g.MailEnabled {
-		final = append(final, map[string]interface{}{
-			"id":          g.ID,
-			"name":        g.DisplayName,
-			"description": g.Description,
-		})
-		// }
-	}
-
-	return final, nil
-
-}
 
 func (adss *ActiveDirectorySettingService) GetAzureUserGroups(userID string) ([]map[string]interface{}, error) {
 

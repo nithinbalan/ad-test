@@ -194,6 +194,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
 		activeDirectorySettingController.SaveOAuthConfiguration)
 
+	settingRoutes.DELETE("/active-directory-settings/oauth-config",
+        middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
+        activeDirectorySettingController.DeleteOAuthConfiguration)
+
 	settingRoutes.GET("/active-directory-settings/login-url",
 		activeDirectorySettingController.GetLoginURL)
 
@@ -207,15 +211,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.GET("/active-directory-settings/sync-groups",
 		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
 		activeDirectorySettingController.SyncAzureGroups)
-
-
-	settingRoutes.GET("/active-directory-settings/dynamic-groups", 
-		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
-		activeDirectorySettingController.GetAzureDynamicGroups)
-
-	settingRoutes.GET("/active-directory-settings/security-groups", 
-		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
-		activeDirectorySettingController.GetAzureSecurityGroups)
 
 	settingRoutes.GET("/active-directory-settings/users/:id/groups", 
 		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
