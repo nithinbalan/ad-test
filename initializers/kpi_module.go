@@ -12,6 +12,7 @@ type KPIModule struct {
 	GRCDashboardController        *controllers.GRCDashboardController
 	ERMDashboardController        *controllers.ERMDashboardController
 	ComplianceDashboardController *controllers.ComplianceDashboardController
+	KRIDashboardController        *controllers.KRIDashboardController
 
 	GrcDashboardSvc services.GRCDashboardServiceInterface
 }
@@ -22,20 +23,23 @@ func NewKPIModule(db *gorm.DB, riskModule *RiskModule, organizationModule *Organ
 	grcDashboardSvc := services.NewGRCDashboardService(grcDashboardRepo, organizationModule.GovernanceReportSvc, documentModule.DocumentSvc)
 	grcDashboardController := controllers.NewGRCDashboardController(grcDashboardSvc, riskModule.RiskHeatMapSvc)
 
-	// ERM Dashboard
 	ermDashboardRepo := repositories.NewERMDashboardRepository(db)
 	ermDashboardSvc := services.NewERMDashboardService(ermDashboardRepo)
 	ermDashboardController := controllers.NewERMDashboardController(ermDashboardSvc, riskModule.RiskHeatMapSvc)
 
-	// Compliance Dashboard
 	complianceDashboardRepo := repositories.NewComplianceDashboardRepository(db)
 	complianceDashboardSvc := services.NewComplianceDashboardService(complianceDashboardRepo)
 	complianceDashboardController := controllers.NewComplianceDashboardController(complianceDashboardSvc)
+
+	kriDashboardRepo := repositories.NewKRIDashboardRepository(db)
+	kriDashboardSvc := services.NewKRIDashboardService(kriDashboardRepo)
+	kriDashboardController := controllers.NewKRIDashboardController(kriDashboardSvc)
 
 	return &KPIModule{
 		GRCDashboardController:        grcDashboardController,
 		ERMDashboardController:        ermDashboardController,
 		ComplianceDashboardController: complianceDashboardController,
+		KRIDashboardController:        kriDashboardController,
 
 		GrcDashboardSvc: grcDashboardSvc,
 	}
