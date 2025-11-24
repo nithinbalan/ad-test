@@ -4,6 +4,7 @@ import (
 	"jethur/grc/settings/controllers"
 	"jethur/grc/settings/repositories"
 	"jethur/grc/settings/services"
+	orgRepo "jethur/grc/organization/repositories"
 
 	"gorm.io/gorm"
 )
@@ -113,8 +114,9 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	reportTemplateSettingController := controllers.NewReportTemplateSettingController(reportTemplateSettingSvc)
 
 	activeDirectorySettingRepo := repositories.NewActiveDirectorySettingRepository(db)
+	orgRepo:=orgRepo.NewUserRepository(db)
 	activeDirectorySettingSvc := services.NewActiveDirectorySettingService(
-		activeDirectorySettingRepo, integrationSvc)
+		activeDirectorySettingRepo, orgRepo, organizationLevelRepo,integrationSvc)
 	activeDirectorySettingController := controllers.NewActiveDirectorySettingController(activeDirectorySettingSvc)
 
 	siemSettingRepo := repositories.NewSIEMSettingRepository(db)

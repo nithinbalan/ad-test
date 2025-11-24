@@ -14,3 +14,11 @@ type ActiveDirectorySettingDTO struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
+
+type EntraOAuthConfigDTO struct {
+	TenantID     string `json:"tenant_id" binding:"required"`
+	ClientID     string `json:"client_id" binding:"required"`
+	ClientSecret string `json:"client_secret" binding:"required"`
+	RedirectURI  string `json:"redirect_uri" binding:"required"`
+	GraphScope   string `json:"graph_scope"`
+}

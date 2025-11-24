@@ -12,6 +12,7 @@ type ActiveDirectorySettingRepositoryInterface interface {
 	GetFirst() (*models.ActiveDirectorySetting, error)
 	Create(ad *models.ActiveDirectorySetting) error
 	Update(ad *models.ActiveDirectorySetting) error
+	Delete(ad *models.ActiveDirectorySetting) error
 }
 
 // Implementation
@@ -40,4 +41,8 @@ func (repo *ActiveDirectorySettingRepository) Create(ad *models.ActiveDirectoryS
 
 func (repo *ActiveDirectorySettingRepository) Update(ad *models.ActiveDirectorySetting) error {
 	return repo.db.Save(ad).Error
+}
+
+func (repo *ActiveDirectorySettingRepository) Delete(ad *models.ActiveDirectorySetting) error {
+    return repo.db.Delete(ad).Error
 }
