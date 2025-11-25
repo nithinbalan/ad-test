@@ -24,6 +24,8 @@ type IntegrationServiceInterface interface {
 	EnableIntegration(integrationID uint, currentUserID uint, integrtaionCredentialFormDTO *settingsDTOs.IntegrationCredentialFormDTO) (uint, error)
 	UpdateCredential(id uint, currentUserID uint, integrationCredential *settingsDTOs.IntegrationCredentialFormDTO) (uint, error)
 	DisableIntegration(id uint, currentUserID uint) (uint, error)
+	EnableADIntegration(integration *models.Integration, currentUserID uint) (uint, error)
+	DisableADIntegration(integration *models.Integration, currentUserID uint) (uint, error)
 	// UpdateIntegration(id uint)
 }
 
@@ -242,4 +244,62 @@ func (is *IntegrationService) GetByType(integrationType string) (*models.Integra
 	}
 
 	return integration, nil
+}
+
+func (is *IntegrationService) EnableADIntegration(integration *models.Integration, currentUserID uint) (uint, error) {
+
+	integration.IsEnable = true
+	integration.UpdatedBYID = &currentUserID
+
+	id, err := is.repo.Update(integration.ID, integration)
+	if err != nil {
+		return 0, err
+	}
+
+	go func() {
+		err := is.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.Integration{}.TableName(),
+			integration.ID,
+			integration,
+			currentUserID,
+			"", "", "", nil,
+		)
+
+		if err != nil {
+			// @todo - save to log file
+			log.Printf("Failed to log activity: %v", err)
+		}
+	}()
+
+	return id, nil
+}
+
+func (is *IntegrationService) DisableADIntegration(integration *models.Integration, currentUserID uint) (uint, error) {
+
+	integration.IsEnable = false
+	integration.UpdatedBYID = &currentUserID
+
+	id, err := is.repo.Update(integration.ID, integration)
+	if err != nil {
+		return 0, err
+	}
+
+	go func() {
+		err := is.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.Integration{}.TableName(),
+			integration.ID,
+			integration,
+			currentUserID,
+			"", "", "", nil,
+		)
+
+		if err != nil {
+			// @todo - save to log file
+			log.Printf("Failed to log activity: %v", err)
+		}
+	}()
+
+	return id, nil
 }
