@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/go-ldap/ldap/v3"
 	"io"
 	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
@@ -16,6 +15,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/go-ldap/ldap/v3"
 )
 
 type ActiveDirectorySettingServiceInterface interface {
@@ -28,7 +29,7 @@ type ActiveDirectorySettingServiceInterface interface {
 	TestOAuthConnection(dto *dtos.EntraOAuthConfigDTO) (string, error)
 	GetOAuthConfiguration() (*dtos.EntraOAuthConfigDTO, error)
 	SaveOAuthConfiguration(currentUserID uint, dto dtos.EntraOAuthConfigDTO) error
-    DeleteOAuthConfiguration(currentUserID uint) error
+	DeleteOAuthConfiguration(currentUserID uint) error
 
 	GenerateMicrosoftLoginURL() (string, error)
 	HandleOAuthCallback(code string, state string) (map[string]interface{}, error)
@@ -79,15 +80,15 @@ func (adss *ActiveDirectorySettingService) Create(currentUserID uint, dto dtos.A
 		return err
 	}
 
-	emptyCredential := &settingsDTOs.IntegrationCredentialFormDTO{}
-	_, err = adss.integrationSvc.EnableIntegration(integration.ID, currentUserID, emptyCredential)
-	if err != nil {
-		return fmt.Errorf("failed to enable integration: %w", err)
-	}
-
-	// if !integration.IsEnable {
-	// 	return err
+	// emptyCredential := &settingsDTOs.IntegrationCredentialFormDTO{}
+	// _, err = adss.integrationSvc.EnableIntegration(integration.ID, currentUserID, emptyCredential)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to enable integration: %w", err)
 	// }
+	_, err = adss.integrationSvc.EnableADIntegration(integration, currentUserID)
+	if err != nil {
+		return err
+	}
 
 	// Step 4: Save or Update setting
 	activeDirectorySetting, err := adss.repo.GetFirst()
@@ -246,9 +247,10 @@ func (adss *ActiveDirectorySettingService) Delete(currentUserID uint) error {
 	if err != nil {
 		return err
 	}
+
 	if setting == nil {
 		return fmt.Errorf("active directory setting not found")
-	}else{
+	} else {
 		adss.repo.Delete(setting)
 	}
 
@@ -257,9 +259,9 @@ func (adss *ActiveDirectorySettingService) Delete(currentUserID uint) error {
 		return err
 	}
 
-	_, err = adss.integrationSvc.DisableIntegration(integration.ID, currentUserID)
+	_, err = adss.integrationSvc.DisableADIntegration(integration, currentUserID)
 	if err != nil {
-		return fmt.Errorf("failed to disable integration: %w", err)
+		return err
 	}
 	return nil
 }
@@ -367,28 +369,27 @@ func (adss *ActiveDirectorySettingService) SaveOAuthConfiguration(currentUserID 
 	return adss.repo.Create(&newSetting)
 }
 
-
 func (adss *ActiveDirectorySettingService) DeleteOAuthConfiguration(currentUserID uint) error {
 
-    setting, err := adss.repo.GetFirst()
-    if err != nil {
-        return err
-    }
-    if setting == nil {
-        return fmt.Errorf("no OAuth/Active Directory setting found")
-    }
+	setting, err := adss.repo.GetFirst()
+	if err != nil {
+		return err
+	}
+	if setting == nil {
+		return fmt.Errorf("no OAuth/Active Directory setting found")
+	}
 
-    integration, err := adss.integrationSvc.GetByType("active-directory")
-    if err != nil {
-        return err
-    }
+	integration, err := adss.integrationSvc.GetByType("active-directory")
+	if err != nil {
+		return err
+	}
 
-    _, err = adss.integrationSvc.DisableIntegration(integration.ID, currentUserID)
-    if err != nil {
-        return fmt.Errorf("failed to disable integration: %w", err)
-    }
+	_, err = adss.integrationSvc.DisableIntegration(integration.ID, currentUserID)
+	if err != nil {
+		return fmt.Errorf("failed to disable integration: %w", err)
+	}
 
-    return adss.repo.Delete(setting)
+	return adss.repo.Delete(setting)
 }
 
 // GenerateMicrosoftLoginURL builds the OAuth2 authorize URL for SSO.
@@ -679,7 +680,6 @@ func (adss *ActiveDirectorySettingService) getClientCredentialToken(tenantID, cl
 	}
 	return tokenResp.AccessToken, nil
 }
-
 
 func (adss *ActiveDirectorySettingService) GetAzureUserGroups(userID string) ([]map[string]interface{}, error) {
 
