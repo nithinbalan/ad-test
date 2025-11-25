@@ -16,8 +16,6 @@ ADD redirect_uri NVARCHAR(500) NULL;
 ALTER TABLE active_directory_settings 
 ADD auth_type NVARCHAR(50) NOT NULL DEFAULT 'ldap';
 
-ALTER TABLE active_directory_settings 
-ADD is_enabled BIT NOT NULL DEFAULT 1;
 -- +goose StatementEnd
 
 
@@ -49,5 +47,4 @@ ALTER TABLE active_directory_settings DROP COLUMN client_id;
 ALTER TABLE active_directory_settings DROP COLUMN client_secret;
 ALTER TABLE active_directory_settings DROP COLUMN redirect_uri;
 ALTER TABLE active_directory_settings DROP COLUMN auth_type;
-ALTER TABLE active_directory_settings DROP COLUMN is_enabled;
 -- +goose StatementEnd
