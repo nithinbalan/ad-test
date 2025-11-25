@@ -382,9 +382,9 @@ func (adss *ActiveDirectorySettingService) DeleteOAuthConfiguration(currentUserI
 		return err
 	}
 
-	_, err = adss.integrationSvc.DisableIntegration(integration.ID, currentUserID)
+	_, err = adss.integrationSvc.DisableADIntegration(integration, currentUserID)
 	if err != nil {
-		return fmt.Errorf("failed to disable integration: %w", err)
+		return err
 	}
 
 	return adss.repo.Delete(setting)
