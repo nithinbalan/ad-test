@@ -326,7 +326,6 @@ func (adss *ActiveDirectorySettingService) GetOAuthConfiguration() (*models.Acti
 	if err != nil {
 		return nil,err
 	}
-	fmt.Println("getOuthconfig",res)
 	return res,nil
 }
 
