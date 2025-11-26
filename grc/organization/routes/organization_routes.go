@@ -383,6 +383,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/active-directory/ou-group-users", userController.ListUsersInGroups)
 	organizationRoutes.GET("/active-directory-users", userController.GetADUsers)
 
+
+
+	organizationRoutes.GET("/active-directory-settings/sync-users",
+		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
+		userController.SyncAzureUsers)
+
+	organizationRoutes.GET("/active-directory-settings/sync-groups",
+		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
+		userController.SyncAzureGroups)
+
 	organizationRoutes.GET("/processes/:processId/activities", processActivityController.GetAllProcessActivities)
 	organizationRoutes.GET("/processes/:processId/activities/:activityId", processActivityController.GetProcessActivityDetails)
 	organizationRoutes.POST("/processes/:processId/activities", middlewares.RolePermissionMiddleware(db, "process", "modify"), processActivityController.CreateProcessActivity)

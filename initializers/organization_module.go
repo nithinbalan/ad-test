@@ -4,6 +4,7 @@ import (
 	"jethur/grc/organization/controllers"
 	"jethur/grc/organization/repositories"
 	"jethur/grc/organization/services"
+	 settingsRepo "jethur/grc/settings/repositories"
 
 	"gorm.io/gorm"
 )
@@ -106,6 +107,8 @@ func NewOrganizationModule(
 	userStatusRepo := repositories.NewUserStatusRepository(db)
 	userStatusSvc := services.NewUserStatusService(userStatusRepo)
 	userStatusController := controllers.NewUserStatusController(userStatusSvc)
+	activityDirectoryRepo := settingsRepo.NewActiveDirectorySettingRepository(db)
+	organizationLevelRepo :=settingsRepo.NewOrganizationLevelRepository(db)
 
 	userRepo := repositories.NewUserRepository(db)
 	userSvc := services.NewUserService(
@@ -123,6 +126,8 @@ func NewOrganizationModule(
 		settingsModule.OrganizationUnitSvc,
 		userJobDescriptionSvc,
 		masterModule.LicenseTypeSvc,
+		organizationLevelRepo,
+		activityDirectoryRepo,
 	)
 	userSettingRepo := repositories.NewUserSettingRepository(db)
 	userSettingSvc := services.NewUserSettingService(
