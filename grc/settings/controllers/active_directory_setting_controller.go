@@ -256,23 +256,7 @@ func (adsc *ActiveDirectorySettingController) HandleOAuthCallback(c *gin.Context
 	})
 }
 
-func (adsc *ActiveDirectorySettingController) SyncAzureUsers(c *gin.Context) {
-	count, err := adsc.service.SyncAzureUsers()
-	if err != nil {
-		utility.SendInternalErrResp(adsc.db, c, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Users synced successfully", "count": count})
-}
 
-func (adsc *ActiveDirectorySettingController) SyncAzureGroups(c *gin.Context) {
-	count, err := adsc.service.SyncAzureGroups()
-	if err != nil {
-		utility.SendInternalErrResp(adsc.db, c, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Groups synced successfully", "count": count})
-}
 
 
 func (adsc *ActiveDirectorySettingController) GetAzureUserGroups(c *gin.Context) {

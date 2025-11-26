@@ -727,3 +727,22 @@ func (uc *UserController) GetUserModulesWithOpenTasks(c *gin.Context) {
 
 	c.JSON(http.StatusOK, permissions)
 }
+
+
+func (adsc *UserController) SyncAzureUsers(c *gin.Context) {
+	users, err := adsc.service.SyncAzureUsers()
+	if err != nil {
+		utility.SendInternalErrResp(adsc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Users synced successfully", "users": users})
+}
+
+func (adsc *UserController) SyncAzureGroups(c *gin.Context) {
+	groups, err := adsc.service.SyncAzureGroups()
+	if err != nil {
+		utility.SendInternalErrResp(adsc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Groups synced successfully", "groups": groups})
+}

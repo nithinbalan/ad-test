@@ -204,13 +204,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/auth/callback/microsoft",
 		activeDirectorySettingController.HandleOAuthCallback)
 
-	settingRoutes.GET("/active-directory-settings/sync-users",
-		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
-		activeDirectorySettingController.SyncAzureUsers)
-
-	settingRoutes.GET("/active-directory-settings/sync-groups",
-		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
-		activeDirectorySettingController.SyncAzureGroups)
 
 	settingRoutes.GET("/active-directory-settings/users/:id/groups", 
 		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
