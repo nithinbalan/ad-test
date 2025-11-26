@@ -386,11 +386,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 
 	organizationRoutes.GET("/active-directory-settings/sync-users",
-		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
+		middlewares.RolePermissionMiddleware(db, "user_management", "modify"),
 		userController.SyncAzureUsers)
 
 	organizationRoutes.GET("/active-directory-settings/sync-groups",
-		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
+		middlewares.RolePermissionMiddleware(db, "user_management", "modify"),
 		userController.SyncAzureGroups)
 
 	organizationRoutes.GET("/processes/:processId/activities", processActivityController.GetAllProcessActivities)
