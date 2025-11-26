@@ -301,3 +301,31 @@ func (ac *AuthController) GetLoginSettings(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, settings)
 }
+
+
+func (adsc *AuthController) GetLoginURL(c *gin.Context) {
+	url, err := adsc.service.GenerateMicrosoftLoginURL()
+	if err != nil {
+		utility.SendInternalErrResp(adsc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"login_url": url})
+}
+
+func (adsc *AuthController) HandleOAuthCallback(c *gin.Context) {
+	code := c.Query("code")
+	state := c.Query("state")
+
+	if code == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	responseDTO, err := adsc.service.HandleOAuthCallback(code, state)
+	if err != nil {
+		utility.SendInternalErrResp(adsc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, responseDTO)
+}

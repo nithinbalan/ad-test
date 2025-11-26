@@ -3,7 +3,7 @@ package initializers
 import (
 	"jethur/grc/auth/controllers"
 	"jethur/grc/auth/services"
-
+     settingsRepo "jethur/grc/settings/repositories"
 	"gorm.io/gorm"
 )
 
@@ -20,6 +20,7 @@ func NewAuthModule(db *gorm.DB, organizationModule *OrganizationModule, settings
 		settingsModule.EmailTemplateSettingsSvc,
 		settingsModule.ActiveDirectorySettingSvc,
 		settingsModule.IntegrationSvc,
+	    settingsRepo.NewActiveDirectorySettingRepository(db),
 	)
 	authController := controllers.NewAuthController(db, authService)
 

@@ -198,11 +198,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
         middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
         activeDirectorySettingController.DeleteOAuthConfiguration)
 
-	settingRoutes.GET("/active-directory-settings/login-url",
-		activeDirectorySettingController.GetLoginURL)
 
-	unauthenticatedRoutes.GET("/auth/callback/microsoft",
-		activeDirectorySettingController.HandleOAuthCallback)
 
 
 	settingRoutes.GET("/active-directory-settings/users/:id/groups", 
