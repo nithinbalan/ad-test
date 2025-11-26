@@ -259,6 +259,7 @@ func (us *UserService) GetFullDetailsByID(id uint) (*userDTOs.UserDetailsDTO, er
 			TitleAr:      userRole.Role.TitleAr,
 			IsSuperAdmin: userRole.Role.IsSuperAdmin,
 			Status:       userRole.Role.Status,
+			Type:         userRole.Role.Type,
 		})
 	}
 	userDetailsDTO.Roles = &roles
@@ -933,6 +934,7 @@ func (us *UserService) GetCurrentUserDetails(id uint) (*userDTOs.CurrentUserDeta
 			TitleEn:      userRole.Role.TitleEn,
 			TitleAr:      userRole.Role.TitleAr,
 			Status:       userRole.Role.Status,
+			Type:         userRole.Role.Type,
 			IsSuperAdmin: userRole.Role.IsSuperAdmin,
 		})
 	}

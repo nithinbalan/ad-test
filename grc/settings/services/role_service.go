@@ -104,6 +104,9 @@ func (rs *RoleService) Create(currentUserID uint, role *models.Role) (*models.Ro
 		return nil, err
 	}
 
+	defaultType := "other"
+	role.Type = &defaultType
+
 	createdRole, err := rs.repo.Create(role)
 	if err != nil {
 		return nil, err
