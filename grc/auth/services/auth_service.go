@@ -654,29 +654,8 @@ func (adss *AuthService) HandleOAuthCallback(code string, state string) (*authDT
 		return nil, fmt.Errorf("invalid token response format: %w", err)
 	}
 
-	// ✅ Ensure we got an ID token
-	// if tokenResp.IDToken == "" {
-	// 	// fallback for debugging
-	// 	fmt.Println("⚠️ ID token missing! Microsoft response did not include an id_token.")
-	// 	fmt.Println("👉 Make sure your app registration has 'ID tokens (used for OpenID Connect)' enabled.")
-	// 	fmt.Println("👉 Current scope:", tokenResp.Scope)
-
-	// 	// Optionally, decode the AccessToken for debugging
-	// 	claims, err := utility.DecodeJWTClaims(tokenResp.AccessToken)
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("no id_token returned, and access_token also invalid: %w", err)
-	// 	}
-	// 	return claims, nil
-	// }
-
-	// // ✅ Decode ID token
-	// claims, err := utility.DecodeJWTClaims(tokenResp.IDToken)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to decode ID token: %w", err)
-	// }
 
 	//generate access token
-
 	accessToken, err := utility.GenerateToken(setting.ID)
 	if err != nil {
 		return nil, utility.NewInternalServerError(err)
@@ -686,8 +665,30 @@ func (adss *AuthService) HandleOAuthCallback(code string, state string) (*authDT
 	if err != nil {
 		return nil, utility.NewInternalServerError(err)
 	}
-	
 
+	// ✅ Ensure we got an ID token
+	if tokenResp.IDToken == "" {
+		// fallback for debugging
+		fmt.Println("⚠️ ID token missing! Microsoft response did not include an id_token.")
+		fmt.Println("👉 Make sure your app registration has 'ID tokens (used for OpenID Connect)' enabled.")
+		fmt.Println("👉 Current scope:", tokenResp.Scope)
+
+		// Optionally, decode the AccessToken for debugging
+		 responseDTO := &authDTOs.LoginResponseDTO{
+		AccessToken:  &accessToken,
+		RefreshToken: &refreshToken,
+		IsMFAEnabled: true,
+	  }
+
+	  return responseDTO,nil
+	}
+
+	// // ✅ Decode ID token
+	// claims, err := utility.DecodeJWTClaims(tokenResp.IDToken)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to decode ID token: %w", err)
+	// }
+	
 	responseDTO := &authDTOs.LoginResponseDTO{
 		AccessToken:  &accessToken,
 		RefreshToken: &refreshToken,

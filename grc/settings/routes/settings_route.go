@@ -198,9 +198,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
         middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
         activeDirectorySettingController.DeleteOAuthConfiguration)
 
-
-
-
 	settingRoutes.GET("/active-directory-settings/users/:id/groups", 
 		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
 		activeDirectorySettingController.GetAzureUserGroups)
