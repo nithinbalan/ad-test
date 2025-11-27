@@ -13,7 +13,6 @@ import (
 	"jethur/grc/organization/services"
 	settingService "jethur/grc/settings/services"
 	"jethur/utility"
-    settingsRepo "jethur/grc/settings/repositories"
 	"github.com/go-ldap/ldap/v3"
 	"golang.org/x/crypto/bcrypt"
 
@@ -45,7 +44,6 @@ type AuthService struct {
 	emailTemplateSettingsSvc  settingService.EmailTemplateSettingsServiceInterface
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface
 	integrationSvc            settingService.IntegrationServiceInterface
-	activeDirectorySettingRepo  settingsRepo.ActiveDirectorySettingRepositoryInterface
 }
 
 func NewAuthService(
@@ -55,7 +53,6 @@ func NewAuthService(
 	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface,
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface,
 	integrationSvc settingService.IntegrationServiceInterface,
-	activeDirectorySettingRepo  settingsRepo.ActiveDirectorySettingRepositoryInterface,
 	) AuthServiceInterface {
 	return &AuthService{
 		userService:               userService,
@@ -64,7 +61,6 @@ func NewAuthService(
 		emailTemplateSettingsSvc:  emailTemplateSettingsSvc,
 		activeDirectorySettingSvc: activeDirectorySettingSvc,
 		integrationSvc:            integrationSvc,
-		activeDirectorySettingRepo: activeDirectorySettingRepo,
 	}
 }
 
@@ -586,7 +582,7 @@ func (as *AuthService) GetLoginSettings() (*authDTOs.LoginSettingsDTO, error) {
 
 // GenerateMicrosoftLoginURL builds the OAuth2 authorize URL for SSO.
 func (adss *AuthService) GenerateMicrosoftLoginURL() (string, error) {
-	setting, err := adss.activeDirectorySettingRepo.GetFirst()
+	setting, err := adss.activeDirectorySettingSvc.GetFirst()
 	if err != nil {
 		return "", err
 	}
@@ -603,7 +599,7 @@ func (adss *AuthService) GenerateMicrosoftLoginURL() (string, error) {
 
 // HandleOAuthCallback exchanges code for tokens and maps user claims.
 func (adss *AuthService) HandleOAuthCallback(code string, state string) (*authDTOs.LoginResponseDTO, error) {
-	setting, err := adss.activeDirectorySettingRepo.GetFirst()
+	setting, err := adss.activeDirectorySettingSvc.GetFirst()
 	if err != nil {
 		return nil, err
 	}
