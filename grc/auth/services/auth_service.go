@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-ldap/ldap/v3"
+	"golang.org/x/crypto/bcrypt"
 	"io"
 	authDTOs "jethur/grc/auth/dtos"
 	commonDTOs "jethur/grc/common/dtos"
@@ -13,10 +15,8 @@ import (
 	"jethur/grc/organization/services"
 	settingService "jethur/grc/settings/services"
 	"jethur/utility"
-	"github.com/go-ldap/ldap/v3"
-	"golang.org/x/crypto/bcrypt"
 
-    "net/http"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -53,7 +53,7 @@ func NewAuthService(
 	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface,
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface,
 	integrationSvc settingService.IntegrationServiceInterface,
-	) AuthServiceInterface {
+) AuthServiceInterface {
 	return &AuthService{
 		userService:               userService,
 		userSettingService:        userSettingService,
@@ -579,7 +579,6 @@ func (as *AuthService) GetLoginSettings() (*authDTOs.LoginSettingsDTO, error) {
 	return settings, nil
 }
 
-
 // GenerateMicrosoftLoginURL builds the OAuth2 authorize URL for SSO.
 func (adss *AuthService) GenerateMicrosoftLoginURL() (string, error) {
 	setting, err := adss.activeDirectorySettingSvc.GetFirst()
@@ -650,7 +649,6 @@ func (adss *AuthService) HandleOAuthCallback(code string, state string) (*authDT
 		return nil, fmt.Errorf("invalid token response format: %w", err)
 	}
 
-
 	//generate access token
 	accessToken, err := utility.GenerateToken(setting.ID)
 	if err != nil {
@@ -662,6 +660,12 @@ func (adss *AuthService) HandleOAuthCallback(code string, state string) (*authDT
 		return nil, utility.NewInternalServerError(err)
 	}
 
+	responseDTO := &authDTOs.LoginResponseDTO{
+		AccessToken:  &accessToken,
+		RefreshToken: &refreshToken,
+		IsMFAEnabled: true,
+	}
+
 	// ✅ Ensure we got an ID token
 	if tokenResp.IDToken == "" {
 		// fallback for debugging
@@ -669,14 +673,7 @@ func (adss *AuthService) HandleOAuthCallback(code string, state string) (*authDT
 		fmt.Println("👉 Make sure your app registration has 'ID tokens (used for OpenID Connect)' enabled.")
 		fmt.Println("👉 Current scope:", tokenResp.Scope)
 
-		// Optionally, decode the AccessToken for debugging
-		 responseDTO := &authDTOs.LoginResponseDTO{
-		AccessToken:  &accessToken,
-		RefreshToken: &refreshToken,
-		IsMFAEnabled: true,
-	  }
-
-	  return responseDTO,nil
+		return responseDTO, nil
 	}
 
 	// // ✅ Decode ID token
@@ -684,12 +681,6 @@ func (adss *AuthService) HandleOAuthCallback(code string, state string) (*authDT
 	// if err != nil {
 	// 	return nil, fmt.Errorf("failed to decode ID token: %w", err)
 	// }
-	
-	responseDTO := &authDTOs.LoginResponseDTO{
-		AccessToken:  &accessToken,
-		RefreshToken: &refreshToken,
-		IsMFAEnabled: true,
-	}
 
 	return responseDTO, nil
 }
