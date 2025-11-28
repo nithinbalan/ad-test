@@ -1,9 +1,12 @@
 package services
 
 import (
+	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	authDTOs "jethur/grc/auth/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	commonService "jethur/grc/common/services"
@@ -15,6 +18,8 @@ import (
 	"github.com/go-ldap/ldap/v3"
 	"golang.org/x/crypto/bcrypt"
 
+	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -29,6 +34,8 @@ type AuthServiceInterface interface {
 	VerifyPasswordRecoveryOTP(email, otp string) (string, error)
 	SetPassword(setPasswordFormDTO authDTOs.PasswordRecoverySetPasswordFormDTO) error
 	GetLoginSettings() (*authDTOs.LoginSettingsDTO, error)
+	GenerateMicrosoftLoginURL() (string, error)
+	HandleOAuthCallback(ctx context.Context, code string, state string) (*authDTOs.LoginResponseDTO, error)
 }
 
 // Service and implementations
@@ -47,7 +54,8 @@ func NewAuthService(
 	notificationSvc commonService.NotificationServiceInterface,
 	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface,
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface,
-	integrationSvc settingService.IntegrationServiceInterface) AuthServiceInterface {
+	integrationSvc settingService.IntegrationServiceInterface,
+) AuthServiceInterface {
 	return &AuthService{
 		userService:               userService,
 		userSettingService:        userSettingService,
@@ -572,3 +580,223 @@ func (as *AuthService) GetLoginSettings() (*authDTOs.LoginSettingsDTO, error) {
 
 	return settings, nil
 }
+
+// GenerateMicrosoftLoginURL builds the OAuth2 authorize URL for SSO.
+func (as *AuthService) GenerateMicrosoftLoginURL() (string, error) {
+	setting, err := as.activeDirectorySettingSvc.GetFirst()
+	if err != nil {
+		return "", err
+	}
+	if setting == nil {
+		return "", utility.NewActiveDirectoryConnectionError(fmt.Errorf("no Entra ID config found"))
+	}
+
+	url := fmt.Sprintf(
+		"https://login.microsoftonline.com/%s/oauth2/v2.0/authorize?client_id=%s&response_type=code&redirect_uri=%s&response_mode=query&scope=openid%%20profile%%20email&state=%s",
+		setting.TenantID, setting.ClientID, url.QueryEscape(setting.RedirectURI), utility.GenerateRandomString(12),
+	)
+	return url, nil
+}
+
+// HandleOAuthCallback exchanges code for tokens and maps user claims.
+func (as *AuthService) HandleOAuthCallback(ctx context.Context, code string, state string) (*authDTOs.LoginResponseDTO, error) {
+
+	setting, err := as.activeDirectorySettingSvc.GetFirst()
+	if err != nil {
+		return nil, err
+	}
+	if setting == nil {
+		return nil, utility.NewActiveDirectoryConnectionError(fmt.Errorf("no Entra ID configuration found"))
+	}
+
+	// Decrypt secret
+	decryptedSecret, err := utility.DecryptData(setting.ClientSecret)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt client secret: %w", err)
+	}
+
+	// Prepare token exchange request
+	data := url.Values{}
+	data.Set("client_id", setting.ClientID)
+	data.Set("client_secret", string(decryptedSecret))
+	data.Set("grant_type", "authorization_code")
+	data.Set("code", code)
+	data.Set("redirect_uri", setting.RedirectURI)
+	data.Set("scope", "openid profile email") // 👈 required for ID token
+
+	tokenURL := fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/token", setting.TenantID)
+	resp, err := http.PostForm(tokenURL, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to exchange authorization code: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("token exchange failed (%d): %s", resp.StatusCode, string(body))
+	}
+
+	// Print/log response for debugging
+	fmt.Println("🔍 Microsoft Token Response:", string(body))
+
+	// Parse JSON
+	var tokenResp struct {
+		IDToken      string `json:"id_token"`
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+		TokenType    string `json:"token_type"`
+		Scope        string `json:"scope"`
+	}
+	if err := json.Unmarshal(body, &tokenResp); err != nil {
+		return nil, fmt.Errorf("invalid token response format: %w", err)
+	}
+
+	// ✅ Ensure we got an ID token
+	if tokenResp.IDToken == "" {
+		// fallback for debugging
+		return nil, fmt.Errorf("id_token missing in token response")
+
+	}
+
+	claims, err := utility.VerifyMicrosoftIDToken(ctx, tokenResp.IDToken, setting.TenantID, setting.ClientID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ID token: %w", err)
+	}
+
+	var email string
+	if v, ok := claims["email"].(string); ok && v != "" {
+		email = v
+	} else if v, ok := claims["preferred_username"].(string); ok && v != "" {
+		email = v
+	} else if v, ok := claims["upn"].(string); ok && v != "" {
+		email = v
+	} else {
+		return nil, fmt.Errorf("email claim not found in id token")
+	}
+
+	user, err := as.userService.GetByEmail(email)
+	if err != nil {
+		return nil, utility.NewResourceNotFoundError(err, email)
+	}
+	//generate access token
+	accessToken, err := utility.GenerateToken(setting.ID)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	refreshToken, err := utility.GenerateRefreshToken(setting.ID)
+	if err != nil {
+		return nil, utility.NewInternalServerError(err)
+	}
+
+	_ = as.userService.CreateUserLoginHistory(user, "success", "", "", "", "")
+
+	responseDTO := &authDTOs.LoginResponseDTO{
+		AccessToken:  &accessToken,
+		RefreshToken: &refreshToken,
+		IsMFAEnabled: true,
+	}
+
+	return responseDTO, nil
+}
+
+// func (adss *AuthService) HandleOAuthCallback(code string, state string) (*authDTOs.LoginResponseDTO, error) {
+// 	setting, err := adss.activeDirectorySettingSvc.GetFirst()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	if setting == nil {
+// 		return nil, utility.NewActiveDirectoryConnectionError(fmt.Errorf("no Entra ID configuration found"))
+// 	}
+
+// 	// NOTE: Ideally validate 'state' here against a server-side stored value (e.g., in session/cache).
+// 	// If you do not store state on the server you cannot validate it — this reduces protection against CSRF.
+// 	if state == "" {
+// 		// We don't fail immediately, but warn in logs. Optionally return error instead.
+// 		fmt.Println("⚠️ OAuth state is empty — ensure you store/validate state per-request.")
+// 	}
+
+// 	// Exchange code for tokens
+// 	data := url.Values{}
+// 	data.Set("client_id", setting.ClientID)
+
+// 	decryptedSecret, err := utility.DecryptData(setting.ClientSecret)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to decrypt client secret: %w", err)
+// 	}
+// 	data.Set("client_secret", string(decryptedSecret))
+// 	data.Set("grant_type", "authorization_code")
+// 	data.Set("code", code)
+// 	data.Set("redirect_uri", setting.RedirectURI)
+// 	data.Set("scope", "openid profile email")
+
+// 	tokenURL := fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/token", setting.TenantID)
+// 	resp, err := http.PostForm(tokenURL, data)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to exchange authorization code: %w", err)
+// 	}
+// 	defer resp.Body.Close()
+
+// 	body, _ := io.ReadAll(resp.Body)
+// 	if resp.StatusCode != http.StatusOK {
+// 		return nil, fmt.Errorf("token exchange failed (%d): %s", resp.StatusCode, string(body))
+// 	}
+
+// 	var tokenResp struct {
+// 		IDToken      string `json:"id_token"`
+// 		AccessToken  string `json:"access_token"`
+// 		RefreshToken string `json:"refresh_token"`
+// 		TokenType    string `json:"token_type"`
+// 		Scope        string `json:"scope"`
+// 	}
+// 	if err := json.Unmarshal(body, &tokenResp); err != nil {
+// 		return nil, fmt.Errorf("invalid token response format: %w", err)
+// 	}
+
+// 	if tokenResp.IDToken == "" {
+// 		return nil, fmt.Errorf("id_token missing in token response")
+// 	}
+
+// 	// Validate ID token using JWKS
+// 	claims, err := validateMicrosoftIDToken(tokenResp.IDToken, setting.TenantID, setting.ClientID)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("id token validation failed: %w", err)
+// 	}
+
+// 	// Extract email (preferred order)
+// 	var email string
+// 	if v, ok := claims["email"].(string); ok && v != "" {
+// 		email = v
+// 	} else if v, ok := claims["preferred_username"].(string); ok && v != "" {
+// 		email = v
+// 	} else if v, ok := claims["upn"].(string); ok && v != "" {
+// 		email = v
+// 	} else {
+// 		return nil, fmt.Errorf("email claim not found in id token")
+// 	}
+
+// 	// Map by email - find local user
+// 	user, err := adss.userService.GetByEmail(email)
+// 	if err != nil {
+// 		return nil, utility.NewResourceNotFoundError(err, email)
+// 	}
+
+// 	accessToken, err := utility.GenerateToken(user.ID)
+// 	if err != nil {
+// 		return nil, utility.NewInternalServerError(err)
+// 	}
+// 	refreshToken, err := utility.GenerateRefreshToken(user.ID)
+// 	if err != nil {
+// 		return nil, utility.NewInternalServerError(err)
+// 	}
+
+// 	// Create login history
+// 	_ = adss.userService.CreateUserLoginHistory(user, "success", "", "", "", "")
+
+// 	return &authDTOs.LoginResponseDTO{
+// 		AccessToken:  &accessToken,
+// 		RefreshToken: &refreshToken,
+// 		IsMFAEnabled: false,
+// 	}, nil
+// }

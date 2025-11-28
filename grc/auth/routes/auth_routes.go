@@ -27,4 +27,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Login settings
 	unauthenticatedRoutes.GET("/login-settings", authController.GetLoginSettings)
+
+	//Azure_AD login
+
+    authRoutes.GET("/active-directory-settings/login-url",
+		authController.GetLoginURL)
+
+	authRoutes.GET("/auth/callback/microsoft",
+		authController.HandleOAuthCallback)
 }

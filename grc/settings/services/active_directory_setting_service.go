@@ -31,8 +31,6 @@ type ActiveDirectorySettingServiceInterface interface {
 	SaveOAuthConfiguration(currentUserID uint, dto settingsDTOs.EntraOAuthConfigDTO) error
 	DeleteOAuthConfiguration(currentUserID uint) error
     
-	GenerateMicrosoftLoginURL() (string, error)
-	HandleOAuthCallback(code string, state string) (map[string]interface{}, error)
 	GetAzureUserGroups(userID string) ([]map[string]interface{}, error)
 
 
@@ -326,6 +324,7 @@ func (adss *ActiveDirectorySettingService) GetOAuthConfiguration() (*models.Acti
 	if err != nil {
 		return nil,err
 	}
+
 	return res,nil
 }
 
@@ -394,99 +393,6 @@ func (adss *ActiveDirectorySettingService) DeleteOAuthConfiguration(currentUserI
 	return adss.repo.Delete(setting)
 }
 
-// GenerateMicrosoftLoginURL builds the OAuth2 authorize URL for SSO.
-func (adss *ActiveDirectorySettingService) GenerateMicrosoftLoginURL() (string, error) {
-	setting, err := adss.repo.GetFirst()
-	if err != nil {
-		return "", err
-	}
-	if setting == nil {
-		return "", utility.NewActiveDirectoryConnectionError(fmt.Errorf("no Entra ID config found"))
-	}
-
-	url := fmt.Sprintf(
-		"https://login.microsoftonline.com/%s/oauth2/v2.0/authorize?client_id=%s&response_type=code&redirect_uri=%s&response_mode=query&scope=openid%%20profile%%20email&state=%s",
-		setting.TenantID, setting.ClientID, url.QueryEscape(setting.RedirectURI), utility.GenerateRandomString(12),
-	)
-	return url, nil
-}
-
-// HandleOAuthCallback exchanges code for tokens and maps user claims.
-func (adss *ActiveDirectorySettingService) HandleOAuthCallback(code string, state string) (map[string]interface{}, error) {
-	setting, err := adss.repo.GetFirst()
-	if err != nil {
-		return nil, err
-	}
-	if setting == nil {
-		return nil, utility.NewActiveDirectoryConnectionError(fmt.Errorf("no Entra ID configuration found"))
-	}
-
-	// Decrypt secret
-	decryptedSecret, err := utility.DecryptData(setting.ClientSecret)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt client secret: %w", err)
-	}
-
-	// Prepare token exchange request
-	data := url.Values{}
-	data.Set("client_id", setting.ClientID)
-	data.Set("client_secret", string(decryptedSecret))
-	data.Set("grant_type", "authorization_code")
-	data.Set("code", code)
-	data.Set("redirect_uri", setting.RedirectURI)
-	data.Set("scope", "openid profile email") // 👈 required for ID token
-
-	tokenURL := fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/token", setting.TenantID)
-	resp, err := http.PostForm(tokenURL, data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to exchange authorization code: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("token exchange failed (%d): %s", resp.StatusCode, string(body))
-	}
-
-	// Print/log response for debugging
-	fmt.Println("🔍 Microsoft Token Response:", string(body))
-
-	// Parse JSON
-	var tokenResp struct {
-		IDToken      string `json:"id_token"`
-		AccessToken  string `json:"access_token"`
-		RefreshToken string `json:"refresh_token"`
-		TokenType    string `json:"token_type"`
-		Scope        string `json:"scope"`
-	}
-	if err := json.Unmarshal(body, &tokenResp); err != nil {
-		return nil, fmt.Errorf("invalid token response format: %w", err)
-	}
-
-	// ✅ Ensure we got an ID token
-	if tokenResp.IDToken == "" {
-		// fallback for debugging
-		fmt.Println("⚠️ ID token missing! Microsoft response did not include an id_token.")
-		fmt.Println("👉 Make sure your app registration has 'ID tokens (used for OpenID Connect)' enabled.")
-		fmt.Println("👉 Current scope:", tokenResp.Scope)
-
-		// Optionally, decode the AccessToken for debugging
-		claims, err := utility.DecodeJWTClaims(tokenResp.AccessToken)
-		if err != nil {
-			return nil, fmt.Errorf("no id_token returned, and access_token also invalid: %w", err)
-		}
-		return claims, nil
-	}
-
-	// ✅ Decode ID token
-	claims, err := utility.DecodeJWTClaims(tokenResp.IDToken)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode ID token: %w", err)
-	}
-
-	return claims, nil
-}
 
 
 

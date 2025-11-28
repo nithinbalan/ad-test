@@ -3,7 +3,6 @@ package initializers
 import (
 	"jethur/grc/auth/controllers"
 	"jethur/grc/auth/services"
-
 	"gorm.io/gorm"
 )
 
