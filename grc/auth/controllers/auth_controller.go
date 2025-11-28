@@ -302,7 +302,6 @@ func (ac *AuthController) GetLoginSettings(c *gin.Context) {
 	c.JSON(http.StatusOK, settings)
 }
 
-
 func (adsc *AuthController) GetLoginURL(c *gin.Context) {
 	url, err := adsc.service.GenerateMicrosoftLoginURL()
 	if err != nil {
@@ -321,7 +320,7 @@ func (adsc *AuthController) HandleOAuthCallback(c *gin.Context) {
 		return
 	}
 
-	responseDTO, err := adsc.service.HandleOAuthCallback(code, state)
+	responseDTO, err := adsc.service.HandleOAuthCallback(c.Request.Context(), code, state)
 	if err != nil {
 		utility.SendInternalErrResp(adsc.db, c, err.Error())
 		return
