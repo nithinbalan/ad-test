@@ -30,10 +30,19 @@ func (aiafc *AuditInsightsAuditFindingController) GetAllAuditInsightsAuditFindin
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(aiafc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(aiafc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -164,7 +173,6 @@ func (aiafc *AuditInsightsAuditFindingController) GetAuditInsightFindingCountByC
 }
 
 func (aiafc *AuditInsightsAuditFindingController) GetAuditInsightsAuditFindingsExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
-
+	c.Set("export", true)
 	aiafc.GetAllAuditInsightsAuditFindings(c)
 }

@@ -30,10 +30,19 @@ func (aidrc *AuditInsightsFinalReportController) GetAllAuditInsightsFinalReports
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(aidrc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(aidrc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -128,8 +137,7 @@ func (aidrc *AuditInsightsFinalReportController) GetAllAuditInsightsFinalReports
 }
 
 func (aidrc *AuditInsightsFinalReportController) GetAuditInsightsFinalReportExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
-
+	c.Set("export", true)
 	aidrc.GetAllAuditInsightsFinalReports(c)
 }
 

@@ -27,7 +27,12 @@ func (klc *KpiLibraryController) GetAllKpi(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
-	export, _ := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	export := false
+	if v, exists := c.Get("export"); exists {
+		export = v.(bool)
+	} else if s := c.Query("export"); s != "" {
+		export, _ = strconv.ParseBool(s)
+	}
 	page, _ := utility.ParseQueryParamToInt(c, "page", 1)
 	pageSize, _ := utility.ParseQueryParamToInt(c, "page_size", 10)
 	categories := c.QueryArray("categories")
@@ -65,7 +70,7 @@ func (klc *KpiLibraryController) GetAllKpi(c *gin.Context) {
 }
 
 func (klc *KpiLibraryController) GetKpiExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 	klc.GetAllKpi(c)
 }
 

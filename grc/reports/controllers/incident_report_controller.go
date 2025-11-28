@@ -40,10 +40,18 @@ func (irc *IncidentReportController) GetAllIncidents(c *gin.Context) {
 	quickFilter := c.QueryArray("quick_filter")
 
 	// Convert the export parameter to a boolean
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(irc.db, c, "Invalid export parameter")
-		return
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(irc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -162,7 +170,7 @@ func (irc *IncidentReportController) GetAllIncidents(c *gin.Context) {
 }
 
 func (irc *IncidentReportController) GetIncidentExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	irc.GetAllIncidents(c)
 }
@@ -475,10 +483,18 @@ func (irc *IncidentReportController) GetAllIncidentActionPlans(c *gin.Context) {
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(irc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(irc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -584,7 +600,7 @@ func (irc *IncidentReportController) GetAllIncidentActionPlans(c *gin.Context) {
 }
 
 func (irc *IncidentReportController) GetIncidentActionPlanExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	irc.GetAllIncidentActionPlans(c)
 }

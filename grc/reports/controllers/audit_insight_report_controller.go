@@ -532,10 +532,18 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsAudits(c *gin.Conte
 	quickFilter := c.QueryArray("quick_filter")
 
 	// Convert the export parameter to a boolean
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(airc.db, c, "Invalid export parameter")
-		return
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(airc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -614,7 +622,7 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsAudits(c *gin.Conte
 }
 
 func (airc *AuditInsightReportController) GetAllAuditInsightsAuditsExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	airc.GetAllAuditInsightsAudits(c)
 }
@@ -627,10 +635,19 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsActionPlans(c *gin.
 	quickFilter := c.QueryArray("quick_filter")
 	// Check if `findingId` exists in the route
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(airc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(airc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -718,7 +735,7 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsActionPlans(c *gin.
 }
 
 func (airc *AuditInsightReportController) GetAuditInsightsActionPlanExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	airc.GetAllAuditInsightsActionPlans(c)
 }
@@ -730,10 +747,19 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsAuditFindings(c *gi
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(airc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(airc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -822,7 +848,7 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsAuditFindings(c *gi
 }
 
 func (airc *AuditInsightReportController) GetAuditInsightsAuditFindingsExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	airc.GetAllAuditInsightsAuditFindings(c)
 }
@@ -834,10 +860,19 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsAuditPlans(c *gin.C
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(airc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(airc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -917,7 +952,7 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsAuditPlans(c *gin.C
 }
 
 func (airc *AuditInsightReportController) GetAuditInsightsAuditPlansExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	airc.GetAllAuditInsightsAuditPlans(c)
 }
@@ -929,10 +964,19 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsDraftReports(c *gin
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(airc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(airc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -1008,7 +1052,7 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsDraftReports(c *gin
 }
 
 func (airc *AuditInsightReportController) GetAuditInsightsDraftReportsExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	airc.GetAllAuditInsightsDraftReports(c)
 }
@@ -1020,10 +1064,19 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsFinalReports(c *gin
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(airc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(airc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -1118,7 +1171,7 @@ func (airc *AuditInsightReportController) GetAllAuditInsightsFinalReports(c *gin
 }
 
 func (airc *AuditInsightReportController) GetAuditInsightsFinalReportsExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	airc.GetAllAuditInsightsFinalReports(c)
 }

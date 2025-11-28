@@ -33,10 +33,18 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 	quickFilter := c.QueryArray("quick_filter")
 
 	// Convert the export parameter to a boolean
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
-		return
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -426,7 +434,7 @@ func (crc *ComplianceRegisterController) DownloadComplianceRegisterDocument(c *g
 }
 
 func (crc *ComplianceRegisterController) GetComplianceRegisterExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	crc.GetAllComplianceRegisters(c)
 }

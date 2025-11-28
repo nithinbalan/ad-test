@@ -47,10 +47,18 @@ func (mapc *MeetingActionPlanController) GetAllMeetingActionPlans(c *gin.Context
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(mapc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(mapc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -329,7 +337,7 @@ func (mapc *MeetingActionPlanController) GetMeetingActionPlanSummary(c *gin.Cont
 	c.JSON(http.StatusOK, summary)
 }
 func (mapc *MeetingActionPlanController) GetMeetingActionPlanExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	mapc.GetAllMeetingActionPlans(c)
 }

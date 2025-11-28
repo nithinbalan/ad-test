@@ -30,10 +30,19 @@ func (amc *AssetMaintenanceController) GetAllMaintenances(c *gin.Context) {
 	performedDateFrom := c.Query("performed_date_from")
 	performedDateTo := c.Query("performed_date_to")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(amc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(amc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -214,6 +223,6 @@ func (amc *AssetMaintenanceController) DeleteMaintenances(c *gin.Context) {
 }
 
 func (amc *AssetMaintenanceController) GetMaintenancesExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 	amc.GetAllMaintenances(c)
 }

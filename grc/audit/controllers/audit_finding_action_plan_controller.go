@@ -46,10 +46,17 @@ func (afapc *AuditFindingActionPlanController) GetAllAuditFindingActionPlans(c *
 	quickFilter := c.QueryArray("quick_filter")
 
 	// Convert the export parameter to a boolean
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(afapc.db, c, "Invalid export parameter")
-		return
+	exportFromContext, exists := c.Get("export")
+	var export bool
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(afapc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -177,8 +184,7 @@ func (afapc *AuditFindingActionPlanController) GetAllAuditFindingActionPlans(c *
 }
 
 func (afapc *AuditFindingActionPlanController) GetAuditFindingActionPlanExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
-
+	c.Set("export", true)
 	afapc.GetAllAuditFindingActionPlans(c)
 }
 
