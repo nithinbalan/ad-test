@@ -43,10 +43,19 @@ func (drc *DocumentReportController) GetAllDocuments(c *gin.Context) {
 	documentTypes := utility.ParseCommaSeparatedStringToArray(c.Query("document_types"))
 	documentStatus := utility.ParseCommaSeparatedStringToArray(c.Query("document_status"))
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(drc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(drc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -145,7 +154,7 @@ func (drc *DocumentReportController) GetAllDocuments(c *gin.Context) {
 }
 
 func (drc *DocumentReportController) GetDocumentExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	drc.GetAllDocuments(c)
 }
@@ -317,10 +326,19 @@ func (drc *DocumentReportController) GetAllDocumentChangeRequests(c *gin.Context
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(drc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(drc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -406,7 +424,7 @@ func (drc *DocumentReportController) GetAllDocumentChangeRequests(c *gin.Context
 }
 
 func (drc *DocumentReportController) GetDocumentChangeRequestExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	drc.GetAllDocumentChangeRequests(c)
 }

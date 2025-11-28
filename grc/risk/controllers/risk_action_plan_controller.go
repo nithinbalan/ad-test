@@ -47,10 +47,18 @@ func (rapc *RiskActionPlanController) GetAllRiskActionPlans(c *gin.Context) {
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(rapc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(rapc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -315,7 +323,7 @@ func (rapc *RiskActionPlanController) DeleteRiskActionPlans(c *gin.Context) {
 }
 
 func (rapc *RiskActionPlanController) GetRiskActionPlanExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	rapc.GetAllRiskActionPlans(c)
 }

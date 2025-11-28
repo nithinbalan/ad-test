@@ -30,10 +30,19 @@ func (tec *TestAndExerciseController) GetAllTestAndExercises(c *gin.Context) {
 	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(tec.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(tec.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -231,7 +240,7 @@ func (tec *TestAndExerciseController) DeleteTestAndExercises(c *gin.Context) {
 }
 
 func (tec *TestAndExerciseController) GetAllTestAndExerciseExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	tec.GetAllTestAndExercises(c)
 }

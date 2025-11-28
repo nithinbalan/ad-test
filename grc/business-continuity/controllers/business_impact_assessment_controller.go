@@ -41,10 +41,19 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(biac.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(biac.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -622,10 +631,19 @@ func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(biac.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(biac.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	allowedParams := []string{
@@ -715,13 +733,13 @@ func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
 }
 
 func (biac *BusinessImpactAssessmentController) GetBiaMatrixExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	biac.GetBIAMatrix(c)
 }
 
 func (biac *BusinessImpactAssessmentController) GetAllProcessesExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	biac.GetAllProcesses(c)
 }

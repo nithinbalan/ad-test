@@ -48,10 +48,17 @@ func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.
 	quickFilter := c.QueryArray("quick_filter")
 
 	// Convert the export parameter to a boolean
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
-		return
+	exportFromContext, exists := c.Get("export")
+	var export bool
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -392,7 +399,7 @@ func (crc *ComplianceRequirementController) DeleteComplianceRequirements(c *gin.
 }
 
 func (crc *ComplianceRequirementController) GetComplianceRequirementsExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	crc.GetAllComplianceRequirements(c)
 }

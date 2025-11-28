@@ -55,10 +55,18 @@ func (orc *OrganizationReportController) GetAllUsers(c *gin.Context) {
 		return
 	}
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(orc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(orc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -160,7 +168,7 @@ func (orc *OrganizationReportController) GetAllUsers(c *gin.Context) {
 }
 
 func (orc *OrganizationReportController) GetUsersExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	orc.GetAllUsers(c)
 }
@@ -228,10 +236,19 @@ func (orc *OrganizationReportController) GetAllProcesses(c *gin.Context) {
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(orc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(orc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -328,7 +345,7 @@ func (orc *OrganizationReportController) GetAllProcesses(c *gin.Context) {
 }
 
 func (orc *OrganizationReportController) GetProcessesExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	orc.GetAllProcesses(c)
 }
@@ -416,10 +433,18 @@ func (orc *OrganizationReportController) GetAllControls(c *gin.Context) {
 		return
 	}
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(orc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(orc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -558,7 +583,7 @@ func (orc *OrganizationReportController) GetAllControls(c *gin.Context) {
 }
 
 func (orc *OrganizationReportController) GetControlsExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	orc.GetAllControls(c)
 }

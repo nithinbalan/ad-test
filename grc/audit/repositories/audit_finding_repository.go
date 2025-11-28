@@ -128,13 +128,15 @@ func (repo *AuditFindingRepository) GetAll(params *auditDTOs.AuditFindingListQue
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(auditable_items.title_en LIKE ? OR
+			(audit_findings.title LIKE ? OR
+			audit_findings.description LIKE ? OR
+			auditable_items.title_en LIKE ? OR
 			audit_finding_categories.title_en LIKE ? OR
 			severity_levels.title_en LIKE ? OR
 			audit_finding_statuses.title_en LIKE ? OR
 			created_user.first_name_en LIKE ? OR
 			updated_user.first_name_en LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)

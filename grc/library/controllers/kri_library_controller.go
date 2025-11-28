@@ -30,10 +30,19 @@ func (klc *KRILibraryController) GetAllKRILibrary(c *gin.Context) {
 	keyword := c.Query("keyword")
 	categories := c.QueryArray("categories")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(klc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(klc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
@@ -256,6 +265,6 @@ func (klc *KRILibraryController) KRICountByCategory(c *gin.Context) {
 }
 
 func (klc *KRILibraryController) GetKRILibraryExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 	klc.GetAllKRILibrary(c)
 }
