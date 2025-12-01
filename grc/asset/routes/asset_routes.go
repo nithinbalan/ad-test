@@ -342,10 +342,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/tenable/assets/import", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableController.ImportAssets)
 
 	//tenable settings
-	assetRoutes.GET("/tenable/settings", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), tenableSettingsController.GetSettings)
-	assetRoutes.PUT("tenable/settings", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableSettingsController.UpdateSettings)
-	assetRoutes.PUT("/tenable/settings/activate", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableSettingsController.Activate)
-	assetRoutes.PUT("/tenable/settings/deactivate", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableSettingsController.Deactivate)
+	assetRoutes.GET("/tenable/settings", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), tenableSettingsController.GetTenableSettings)
+	assetRoutes.PUT("tenable/settings", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableSettingsController.UpdateTenableSettings)
+	assetRoutes.PUT("/tenable/settings/activate/:id", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableSettingsController.Activate)
+	assetRoutes.PUT("/tenable/settings/deactivate/:id", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableSettingsController.Deactivate)
 	assetRoutes.GET("/tenable/settings/test", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), tenableSettingsController.TestConnection)
 
 }

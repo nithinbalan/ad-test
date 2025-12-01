@@ -5,15 +5,18 @@ import (
 	"io"
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
+	"jethur/grc/models"
 	"net/http"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type TenableSettingsService interface {
-	GetSettings() (*dtos.TenableSettingsResponseDTO, error)
-	UpdateSettings(input dtos.UpdateTenableSettingsDTO) error
-	ActivateSettings() error
-	DeactivateSettings() error
+	GetTenableSettings() (*dtos.TenableSettingsResponseDTO, error)
+	UpdateTenableSettings(input dtos.UpdateTenableSettingsDTO) error
+	ActivateSettings(id uint) error
+	DeactivateSettings(id uint) error
 	TestConnection(input dtos.TestTenableConnectionDTO) error
 }
 
@@ -25,26 +28,38 @@ func NewTenableSettingsService(repo repositories.TenableSettingsRepository) Tena
 	return &tenableSettingsService{repo: repo}
 }
 
-func (s *tenableSettingsService) GetSettings() (*dtos.TenableSettingsResponseDTO, error) {
-	st, err := s.repo.Get()
+func (tss *tenableSettingsService) getOrCreate() (*models.TenableSettings, error) {
+	st, err := tss.repo.GetFirst()
+
+	if err == gorm.ErrRecordNotFound {
+		st = &models.TenableSettings{
+			BaseURL:            "",
+			AccessKey:          "",
+			SecretKey:          "",
+			SyncFrequencyHours: 24,
+			LookbackDays:       30,
+			Status:             "inactive",
+		}
+		if err := tss.repo.Create(st); err != nil {
+			return nil, err
+		}
+		return st, nil
+	}
+
+	return st, err
+}
+
+func (tss *tenableSettingsService) GetTenableSettings() (*dtos.TenableSettingsResponseDTO, error) {
+	_, err := tss.getOrCreate()
 	if err != nil {
 		return nil, err
 	}
 
-	return &dtos.TenableSettingsResponseDTO{
-		ID:                 st.ID,
-		BaseURL:            st.BaseURL,
-		AccessKey:          st.AccessKey,
-		SecretKey:          st.SecretKey,
-		SyncFrequencyHours: st.SyncFrequencyHours,
-		LookbackDays:       st.LookbackDays,
-		Status:             st.Status,
-	}, nil
+	return tss.repo.GetSettingsDTO()
 }
 
-func (s *tenableSettingsService) UpdateSettings(input dtos.UpdateTenableSettingsDTO) error {
-
-	st, err := s.repo.Get()
+func (tss *tenableSettingsService) UpdateTenableSettings(input dtos.UpdateTenableSettingsDTO) error {
+	st, err := tss.getOrCreate()
 	if err != nil {
 		return err
 	}
@@ -68,15 +83,15 @@ func (s *tenableSettingsService) UpdateSettings(input dtos.UpdateTenableSettings
 	st.Status = "active"
 	st.UpdatedAt = time.Now().UTC()
 
-	return s.repo.Update(st)
+	return tss.repo.Update(st)
 }
 
-func (s *tenableSettingsService) ActivateSettings() error {
-	return s.repo.Activate()
+func (tss *tenableSettingsService) ActivateSettings(id uint) error {
+	return tss.repo.Activate(id)
 }
 
-func (s *tenableSettingsService) DeactivateSettings() error {
-	st, err := s.repo.Get()
+func (tss *tenableSettingsService) DeactivateSettings(id uint) error {
+	st, err := tss.repo.GetByID(id)
 	if err != nil {
 		return err
 	}
@@ -86,15 +101,15 @@ func (s *tenableSettingsService) DeactivateSettings() error {
 	st.SecretKey = ""
 	st.UpdatedAt = time.Now().UTC()
 
-	return s.repo.Update(st)
+	return tss.repo.Update(st)
 }
 
-func (s *tenableSettingsService) TestConnection(input dtos.TestTenableConnectionDTO) error {
+func (tss *tenableSettingsService) TestConnection(input dtos.TestTenableConnectionDTO) error {
 
 	if input.BaseURL == "" {
-		st, err := s.repo.Get()
+		st, err := tss.getOrCreate()
 		if err != nil {
-			return fmt.Errorf("failed to load settings from DB: %w", err)
+			return fmt.Errorf("failed to load settings: %w", err)
 		}
 		input.BaseURL = st.BaseURL
 	}

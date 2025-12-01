@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"fmt"
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/services"
 	"jethur/utility"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,9 +19,9 @@ func NewTenableSettingsController(service services.TenableSettingsService) *Tena
 	return &TenableSettingsController{service: service}
 }
 
-func (tc *TenableSettingsController) GetSettings(c *gin.Context) {
+func (tc *TenableSettingsController) GetTenableSettings(c *gin.Context) {
 
-	data, err := tc.service.GetSettings()
+	data, err := tc.service.GetTenableSettings()
 	if err != nil {
 		utility.SendInternalErrResp(nil, c, err.Error())
 		return
@@ -27,7 +29,7 @@ func (tc *TenableSettingsController) GetSettings(c *gin.Context) {
 	c.JSON(http.StatusOK, data)
 }
 
-func (tc *TenableSettingsController) UpdateSettings(c *gin.Context) {
+func (tc *TenableSettingsController) UpdateTenableSettings(c *gin.Context) {
 	var input dtos.UpdateTenableSettingsDTO
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -35,7 +37,7 @@ func (tc *TenableSettingsController) UpdateSettings(c *gin.Context) {
 		return
 	}
 
-	if err := tc.service.UpdateSettings(input); err != nil {
+	if err := tc.service.UpdateTenableSettings(input); err != nil {
 		utility.SendInternalErrResp(nil, c, err.Error())
 		return
 	}
@@ -44,18 +46,34 @@ func (tc *TenableSettingsController) UpdateSettings(c *gin.Context) {
 }
 
 func (tc *TenableSettingsController) Activate(c *gin.Context) {
-	if err := tc.service.ActivateSettings(); err != nil {
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		utility.SendInvalidErrResp(c, fmt.Errorf("invalid ID"))
+		return
+	}
+
+	if err := tc.service.ActivateSettings(uint(id)); err != nil {
 		utility.SendInternalErrResp(nil, c, err.Error())
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Tenable settings activated"})
 }
 
 func (tc *TenableSettingsController) Deactivate(c *gin.Context) {
-	if err := tc.service.DeactivateSettings(); err != nil {
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		utility.SendInvalidErrResp(c, fmt.Errorf("invalid ID"))
+		return
+	}
+
+	if err := tc.service.DeactivateSettings(uint(id)); err != nil {
 		utility.SendInternalErrResp(nil, c, err.Error())
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Tenable settings deactivated"})
 }
 
