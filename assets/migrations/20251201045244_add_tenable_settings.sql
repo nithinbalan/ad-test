@@ -18,7 +18,7 @@ CREATE TABLE tenable_settings (
 
 -- default row
 INSERT INTO tenable_settings 
-    (base_url, access_key, secret_key, sync_frequency_hours, lookback_days, is_active)
+    (base_url, access_key, secret_key, sync_frequency_hours, lookback_days, status)
 VALUES
     ('https://sc.tenalab.online', '', '', 24, 30, 'active');
 
