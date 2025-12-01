@@ -20,3 +20,9 @@ type UpdateTenableSyncSettingsDTO struct {
 	SyncFrequencyHours int `json:"sync_frequency_hours" binding:"required,min=1"`
 	LookbackDays       int `json:"lookback_days" binding:"required,min=1"`
 }
+
+type TestTenableConnectionDTO struct {
+	BaseURL   string `json:"base_url"`
+	AccessKey string `json:"access_key" binding:"required"`
+	SecretKey string `json:"secret_key" binding:"required"`
+}

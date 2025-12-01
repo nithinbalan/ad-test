@@ -70,10 +70,16 @@ func (tc *TenableSettingsController) Deactivate(c *gin.Context) {
 }
 
 func (tc *TenableSettingsController) TestConnection(c *gin.Context) {
-	err := tc.service.TestConnection()
-	if err != nil {
+	var input dtos.TestTenableConnectionDTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	if err := tc.service.TestConnection(input); err != nil {
 		utility.SendInternalErrResp(nil, c, err.Error())
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Connection successful"})
 }

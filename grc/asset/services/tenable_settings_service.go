@@ -15,7 +15,7 @@ type TenableSettingsService interface {
 	UpdateSyncSettings(input dtos.UpdateTenableSyncSettingsDTO) error
 	ActivateSettings() error
 	DeactivateSettings() error
-	TestConnection() error
+	TestConnection(input dtos.TestTenableConnectionDTO) error
 }
 
 type tenableSettingsService struct {
@@ -78,24 +78,43 @@ func (s *tenableSettingsService) ActivateSettings() error {
 }
 
 func (s *tenableSettingsService) DeactivateSettings() error {
-	return s.repo.Deactivate()
-}
-
-func (s *tenableSettingsService) TestConnection() error {
 	st, err := s.repo.Get()
 	if err != nil {
 		return err
 	}
 
+	st.Status = "inactive"
+	st.AccessKey = ""
+	st.SecretKey = ""
+	st.UpdatedAt = time.Now().UTC()
+
+	return s.repo.Update(st)
+}
+
+func (s *tenableSettingsService) TestConnection(input dtos.TestTenableConnectionDTO) error {
+
+	if input.BaseURL == "" {
+		st, err := s.repo.Get()
+		if err != nil {
+			return fmt.Errorf("failed to load settings from DB: %w", err)
+		}
+		input.BaseURL = st.BaseURL
+	}
+
 	client := &http.Client{Timeout: 20 * time.Second}
-	url := fmt.Sprintf("%s/rest/system", st.BaseURL)
+	url := fmt.Sprintf("%s/rest/system", input.BaseURL)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
 	}
 
-	req.Header.Set("x-apikey", fmt.Sprintf("accessKey=%s; secretKey=%s", st.AccessKey, st.SecretKey))
+	req.Header.Set("x-apikey",
+		fmt.Sprintf("accessKey=%s; secretKey=%s",
+			input.AccessKey, input.SecretKey,
+		),
+	)
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("connection failed: %w", err)
