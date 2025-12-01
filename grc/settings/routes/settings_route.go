@@ -198,20 +198,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
         middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
         activeDirectorySettingController.DeleteOAuthConfiguration)
 
-	settingRoutes.GET("/active-directory-settings/login-url",
-		activeDirectorySettingController.GetLoginURL)
-
-	unauthenticatedRoutes.GET("/auth/callback/microsoft",
-		activeDirectorySettingController.HandleOAuthCallback)
-
-	settingRoutes.GET("/active-directory-settings/sync-users",
-		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
-		activeDirectorySettingController.SyncAzureUsers)
-
-	settingRoutes.GET("/active-directory-settings/sync-groups",
-		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
-		activeDirectorySettingController.SyncAzureGroups)
-
 	settingRoutes.GET("/active-directory-settings/users/:id/groups", 
 		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
 		activeDirectorySettingController.GetAzureUserGroups)

@@ -225,56 +225,6 @@ func (adsc *ActiveDirectorySettingController) DeleteOAuthConfiguration(c *gin.Co
 }
 
 
-func (adsc *ActiveDirectorySettingController) GetLoginURL(c *gin.Context) {
-	url, err := adsc.service.GenerateMicrosoftLoginURL()
-	if err != nil {
-		utility.SendInternalErrResp(adsc.db, c, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"login_url": url})
-}
-
-func (adsc *ActiveDirectorySettingController) HandleOAuthCallback(c *gin.Context) {
-	code := c.Query("code")
-	state := c.Query("state")
-
-	if code == "" {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	userData, err := adsc.service.HandleOAuthCallback(code, state)
-	if err != nil {
-		utility.SendInternalErrResp(adsc.db, c, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "OAuth login successful",
-		"user":    userData,
-	})
-}
-
-func (adsc *ActiveDirectorySettingController) SyncAzureUsers(c *gin.Context) {
-	count, err := adsc.service.SyncAzureUsers()
-	if err != nil {
-		utility.SendInternalErrResp(adsc.db, c, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Users synced successfully", "count": count})
-}
-
-func (adsc *ActiveDirectorySettingController) SyncAzureGroups(c *gin.Context) {
-	count, err := adsc.service.SyncAzureGroups()
-	if err != nil {
-		utility.SendInternalErrResp(adsc.db, c, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Groups synced successfully", "count": count})
-}
-
-
 func (adsc *ActiveDirectorySettingController) GetAzureUserGroups(c *gin.Context) {
     userID := c.Param("id")
     if userID == "" {

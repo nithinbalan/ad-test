@@ -47,10 +47,18 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		return
 	}
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(uc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(uc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -471,7 +479,7 @@ func (uc *UserController) MarkwNotificationAsUnread(c *gin.Context) {
 }
 
 func (uc *UserController) GetUsersExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	uc.GetAllUsers(c)
 }
@@ -640,7 +648,7 @@ func (uc *UserController) GetADUsers(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK,gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Users synced successfully",
 		"data":    users,
@@ -726,4 +734,22 @@ func (uc *UserController) GetUserModulesWithOpenTasks(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, permissions)
+}
+
+func (adsc *UserController) SyncAzureUsers(c *gin.Context) {
+	users, err := adsc.service.SyncAzureUsers()
+	if err != nil {
+		utility.SendInternalErrResp(adsc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Users synced successfully", "users": users})
+}
+
+func (adsc *UserController) SyncAzureGroups(c *gin.Context) {
+	groups, err := adsc.service.SyncAzureGroups()
+	if err != nil {
+		utility.SendInternalErrResp(adsc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Groups synced successfully", "groups": groups})
 }

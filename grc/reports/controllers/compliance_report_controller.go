@@ -45,10 +45,18 @@ func (crc *ComplianceReportController) GetAllComplianceRegisters(c *gin.Context)
 	quickFilter := c.QueryArray("quick_filter")
 
 	// Convert the export parameter to a boolean
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
-		return
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -176,7 +184,7 @@ func (crc *ComplianceReportController) GetAllComplianceRegisters(c *gin.Context)
 }
 
 func (crc *ComplianceReportController) ComplianceRegisterReportExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	crc.GetAllComplianceRegisters(c)
 }
@@ -306,10 +314,18 @@ func (crc *ComplianceReportController) GetAllComplianceRequirements(c *gin.Conte
 		return
 	}
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	queryParams := complianceDTOs.ComplianceRequirementListQueryParamsDTO{
@@ -371,7 +387,7 @@ func (crc *ComplianceReportController) GetAllComplianceRequirements(c *gin.Conte
 }
 
 func (crc *ComplianceReportController) ComplianceRequirementReportExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	crc.GetAllComplianceRequirements(c)
 }
@@ -482,10 +498,18 @@ func (crc *ComplianceReportController) GetAllComplianceActionPlans(c *gin.Contex
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
@@ -554,7 +578,7 @@ func (crc *ComplianceReportController) GetAllComplianceActionPlans(c *gin.Contex
 }
 
 func (crc *ComplianceReportController) GetComplianceActionPlanExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	crc.GetAllComplianceActionPlans(c)
 }
@@ -611,10 +635,18 @@ func (crc *ComplianceReportController) GetAllSLARegisters(c *gin.Context) {
 	quickFilter := c.QueryArray("quick_filter")
 
 	// Convert the export parameter to a boolean
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
-		return
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -727,7 +759,7 @@ func (crc *ComplianceReportController) GetAllSLARegisters(c *gin.Context) {
 }
 
 func (crc *ComplianceReportController) GetSLARegisterExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	crc.GetAllSLARegisters(c)
 }

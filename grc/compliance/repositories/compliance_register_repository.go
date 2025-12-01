@@ -203,7 +203,7 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 		case "partially_compliant":
 			query = query.Where("compliance_statuses.type = ?", "partially_compliant")
 		case "non_compliant":
-			query = query.Where("compliance_statuses.type = ?", "not-implemented")
+			query = query.Where("compliance_statuses.type = ?", "not_implemented")
 		case "archived":
 			query = query.Where("lifecycle_statuses.type = ?", "archived")
 

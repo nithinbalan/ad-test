@@ -150,8 +150,8 @@ func (dcs *DocumentClauseService) Create(documentId uint, currentUserId uint, do
 		CreatedBYID:       currentUserId,
 	}
 
-	if documentClauseFormDTO.ParantClauseID != nil {
-		parantClause, err := dcs.repo.GetByID(*documentClauseFormDTO.ParantClauseID, tx)
+	if documentClauseFormDTO.ParentClauseID != nil {
+		parantClause, err := dcs.repo.GetByID(*documentClauseFormDTO.ParentClauseID, tx)
 		if err != nil {
 			tx.Rollback()
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -285,8 +285,8 @@ func (dcs *DocumentClauseService) Update(documentId uint, clauseId uint, current
 	existingClause.Description = documentClauseFormDTO.Description
 	existingClause.UpdatedBYID = &currentUserId
 
-	if documentClauseFormDTO.ParantClauseID != nil {
-		parantClause, err := dcs.repo.GetByID(*documentClauseFormDTO.ParantClauseID, tx)
+	if documentClauseFormDTO.ParentClauseID != nil {
+		parantClause, err := dcs.repo.GetByID(*documentClauseFormDTO.ParentClauseID, tx)
 		if err != nil {
 			tx.Rollback()
 			if errors.Is(err, gorm.ErrRecordNotFound) {

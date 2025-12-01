@@ -31,10 +31,19 @@ func (rlc *RiskLibraryController) GetAllRiskLibrary(c *gin.Context) {
 	likelihoods := c.QueryArray("likelihoods")
 	impacts := c.QueryArray("impacts")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(rlc.db, c, "Invalid export parameter")
-		return
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(rlc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
@@ -93,7 +102,7 @@ func (rlc *RiskLibraryController) RiskCountByCategory(c *gin.Context) {
 }
 
 func (rlc *RiskLibraryController) GetRiskLibraryExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 	rlc.GetAllRiskLibrary(c)
 }
 

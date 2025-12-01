@@ -46,10 +46,18 @@ func (arc *AuditReportController) GetAllAuditPlans(c *gin.Context) {
 	quickFilter := c.QueryArray("quick_filter")
 
 	// Convert the export parameter to a boolean
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(arc.db, c, "Invalid export parameter")
-		return
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(arc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -144,7 +152,7 @@ func (arc *AuditReportController) GetAllAuditPlans(c *gin.Context) {
 }
 
 func (arc *AuditReportController) GetAuditPlanExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	arc.GetAllAuditPlans(c)
 }
@@ -534,10 +542,18 @@ func (arc *AuditReportController) GetAllAudits(c *gin.Context) {
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 	// Convert the export parameter to a boolean
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(arc.db, c, "Invalid export parameter")
-		return
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(arc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -631,7 +647,7 @@ func (arc *AuditReportController) GetAllAudits(c *gin.Context) {
 }
 
 func (arc *AuditReportController) GetAuditExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	arc.GetAllAudits(c)
 }
@@ -644,10 +660,18 @@ func (arc *AuditReportController) GetAllAuditFindings(c *gin.Context) {
 	quickFilter := c.QueryArray("quick_filter")
 
 	// Convert the export parameter to a boolean
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(arc.db, c, "Invalid export parameter")
-		return
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(arc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -740,7 +764,7 @@ func (arc *AuditReportController) GetAllAuditFindings(c *gin.Context) {
 	c.JSON(http.StatusOK, auditFindings)
 }
 func (arc *AuditReportController) GetAuditFindingExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	arc.GetAllAuditFindings(c)
 }
@@ -767,10 +791,17 @@ func (arc *AuditReportController) GetAllAuditActionPlans(c *gin.Context) {
 	quickFilter := c.QueryArray("quick_filter")
 
 	// Convert the export parameter to a boolean
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(arc.db, c, "Invalid export parameter")
-		return
+	exportFromContext, exists := c.Get("export")
+	var export bool
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(arc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -898,7 +929,7 @@ func (arc *AuditReportController) GetAllAuditActionPlans(c *gin.Context) {
 }
 
 func (arc *AuditReportController) GetAuditActionPlanExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 
 	arc.GetAllAuditActionPlans(c)
 }

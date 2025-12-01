@@ -4,37 +4,37 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/go-ldap/ldap/v3"
 	"io"
 	"jethur/grc/models"
-	userDTOs "jethur/grc/organization/dtos"
+	
 	organizationRepositories "jethur/grc/organization/repositories"
-	"jethur/grc/settings/dtos"
+
+	// "jethur/grc/settings/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
 	"jethur/utility"
 	"net/http"
 	"net/url"
-	"strings"
+
+	"github.com/go-ldap/ldap/v3"
 )
 
 type ActiveDirectorySettingServiceInterface interface {
 	GetFirst() (*models.ActiveDirectorySetting, error)
-	Create(currentUserID uint, dto dtos.ActiveDirectorySettingDTO) error
-	CheckADConnection(dto *dtos.ActiveDirectorySettingDTO) error
+	Create(currentUserID uint, dto settingsDTOs.ActiveDirectorySettingDTO) error
+	CheckADConnection(dto *settingsDTOs.ActiveDirectorySettingDTO) error
 	GetADConnection() error
 	Delete(currentUserID uint) error
 
-	TestOAuthConnection(dto *dtos.EntraOAuthConfigDTO) (string, error)
-	GetOAuthConfiguration() (*dtos.EntraOAuthConfigDTO, error)
-	SaveOAuthConfiguration(currentUserID uint, dto dtos.EntraOAuthConfigDTO) error
-    DeleteOAuthConfiguration(currentUserID uint) error
-
-	GenerateMicrosoftLoginURL() (string, error)
-	HandleOAuthCallback(code string, state string) (map[string]interface{}, error)
-	SyncAzureUsers() ([]userDTOs.ADUserFlatDTO, error)
-	SyncAzureGroups() ([]map[string]interface{}, error)
+	TestOAuthConnection(dto *settingsDTOs.EntraOAuthConfigDTO) (string, error)
+	GetOAuthConfiguration() (*models.ActiveDirectorySetting, error)
+	SaveOAuthConfiguration(currentUserID uint, dto settingsDTOs.EntraOAuthConfigDTO) error
+	DeleteOAuthConfiguration(currentUserID uint) error
+    
 	GetAzureUserGroups(userID string) ([]map[string]interface{}, error)
+
+
+	GetClientCredentialToken(tenantID, clientID, clientSecret string) (string, error)
 }
 
 type ActiveDirectorySettingService struct {
@@ -57,7 +57,7 @@ func (adss *ActiveDirectorySettingService) GetFirst() (*models.ActiveDirectorySe
 	return adss.repo.GetFirst()
 }
 
-func (adss *ActiveDirectorySettingService) Create(currentUserID uint, dto dtos.ActiveDirectorySettingDTO) error {
+func (adss *ActiveDirectorySettingService) Create(currentUserID uint, dto settingsDTOs.ActiveDirectorySettingDTO) error {
 	// Step 1: Check connection first
 	if err := adss.CheckADConnection(&dto); err != nil {
 		return err
@@ -79,15 +79,15 @@ func (adss *ActiveDirectorySettingService) Create(currentUserID uint, dto dtos.A
 		return err
 	}
 
-	emptyCredential := &settingsDTOs.IntegrationCredentialFormDTO{}
-	_, err = adss.integrationSvc.EnableIntegration(integration.ID, currentUserID, emptyCredential)
-	if err != nil {
-		return fmt.Errorf("failed to enable integration: %w", err)
-	}
-
-	// if !integration.IsEnable {
-	// 	return err
+	// emptyCredential := &settingsDTOs.IntegrationCredentialFormDTO{}
+	// _, err = adss.integrationSvc.EnableIntegration(integration.ID, currentUserID, emptyCredential)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to enable integration: %w", err)
 	// }
+	_, err = adss.integrationSvc.EnableADIntegration(integration, currentUserID)
+	if err != nil {
+		return err
+	}
 
 	// Step 4: Save or Update setting
 	activeDirectorySetting, err := adss.repo.GetFirst()
@@ -135,7 +135,7 @@ func (adss *ActiveDirectorySettingService) Create(currentUserID uint, dto dtos.A
 	return nil
 }
 
-func (adss *ActiveDirectorySettingService) CheckADConnection(dto *dtos.ActiveDirectorySettingDTO) error {
+func (adss *ActiveDirectorySettingService) CheckADConnection(dto *settingsDTOs.ActiveDirectorySettingDTO) error {
 	address := fmt.Sprintf("%s:%d", dto.Server, dto.Port)
 
 	var l *ldap.Conn
@@ -227,7 +227,7 @@ func (adss *ActiveDirectorySettingService) GetADConnection() error {
 	}
 
 	// Prepare DTO manually
-	dto := dtos.ActiveDirectorySettingDTO{
+	dto := settingsDTOs.ActiveDirectorySettingDTO{
 		Server:       activeDirectorySetting.Server,
 		Port:         activeDirectorySetting.Port,
 		UseSSL:       activeDirectorySetting.UseSSL,
@@ -246,9 +246,10 @@ func (adss *ActiveDirectorySettingService) Delete(currentUserID uint) error {
 	if err != nil {
 		return err
 	}
+
 	if setting == nil {
 		return fmt.Errorf("active directory setting not found")
-	}else{
+	} else {
 		adss.repo.Delete(setting)
 	}
 
@@ -257,9 +258,9 @@ func (adss *ActiveDirectorySettingService) Delete(currentUserID uint) error {
 		return err
 	}
 
-	_, err = adss.integrationSvc.DisableIntegration(integration.ID, currentUserID)
+	_, err = adss.integrationSvc.DisableADIntegration(integration, currentUserID)
 	if err != nil {
-		return fmt.Errorf("failed to disable integration: %w", err)
+		return err
 	}
 	return nil
 }
@@ -269,7 +270,7 @@ func (adss *ActiveDirectorySettingService) Delete(currentUserID uint) error {
 // ==============================
 
 // TestOAuthConnection validates the Entra ID client credentials by requesting a token.
-func (adss *ActiveDirectorySettingService) TestOAuthConnection(dto *dtos.EntraOAuthConfigDTO) (string, error) {
+func (adss *ActiveDirectorySettingService) TestOAuthConnection(dto *settingsDTOs.EntraOAuthConfigDTO) (string, error) {
 	form := url.Values{}
 	form.Set("client_id", dto.ClientID)
 	form.Set("client_secret", dto.ClientSecret)
@@ -305,34 +306,36 @@ func (adss *ActiveDirectorySettingService) TestOAuthConnection(dto *dtos.EntraOA
 }
 
 // GetOAuthConfiguration fetches stored Entra ID settings (if any).
-func (adss *ActiveDirectorySettingService) GetOAuthConfiguration() (*dtos.EntraOAuthConfigDTO, error) {
-	setting, err := adss.repo.GetFirst()
+func (adss *ActiveDirectorySettingService) GetOAuthConfiguration() (*models.ActiveDirectorySetting, error) {
+	// setting, err := adss.repo.GetFirst()
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// // Map LDAP model fields to DTO placeholders for UI reuse
+	// return &settingsDTOs.EntraOAuthConfigDTO{
+	// 	TenantID:     setting.TenantID,
+	// 	ClientID:     setting.ClientID,
+	// 	ClientSecret: "********", // mask
+	// 	RedirectURI:  setting.RedirectURI,
+	// 	GraphScope:   "https://graph.microsoft.com/.default",
+	// }, nil
+	res,err := adss.repo.GetFirst()
 	if err != nil {
-		return nil, err
-	}
-	if setting == nil {
-		return nil, utility.NewResourceNotFoundError(fmt.Errorf("no Entra ID configuration found"), "Entra ID config")
+		return nil,err
 	}
 
-	// Map LDAP model fields to DTO placeholders for UI reuse
-	return &dtos.EntraOAuthConfigDTO{
-		TenantID:     setting.TenantID,
-		ClientID:     setting.ClientID,
-		ClientSecret: "********", // mask
-		RedirectURI:  setting.RedirectURI,
-		GraphScope:   "https://graph.microsoft.com/.default",
-	}, nil
+	return res,nil
 }
 
 // SaveOAuthConfiguration stores or updates Entra ID credentials.
-func (adss *ActiveDirectorySettingService) SaveOAuthConfiguration(currentUserID uint, dto dtos.EntraOAuthConfigDTO) error {
-	integration, err := adss.integrationSvc.GetByType("active-directory")
+func (adss *ActiveDirectorySettingService) SaveOAuthConfiguration(currentUserID uint, dto settingsDTOs.EntraOAuthConfigDTO) error {
+	integration, err := adss.integrationSvc.GetByType("azure-ad")
 	if err != nil {
 		return err
 	}
 
-	emptyCredential := &settingsDTOs.IntegrationCredentialFormDTO{}
-	_, err = adss.integrationSvc.EnableIntegration(integration.ID, currentUserID, emptyCredential)
+	_, err = adss.integrationSvc.EnableADIntegration(integration, currentUserID)
 	if err != nil {
 		return fmt.Errorf("failed to enable integration: %w", err)
 	}
@@ -367,292 +370,34 @@ func (adss *ActiveDirectorySettingService) SaveOAuthConfiguration(currentUserID 
 	return adss.repo.Create(&newSetting)
 }
 
-
 func (adss *ActiveDirectorySettingService) DeleteOAuthConfiguration(currentUserID uint) error {
 
-    setting, err := adss.repo.GetFirst()
-    if err != nil {
-        return err
-    }
-    if setting == nil {
-        return fmt.Errorf("no OAuth/Active Directory setting found")
-    }
-
-    integration, err := adss.integrationSvc.GetByType("active-directory")
-    if err != nil {
-        return err
-    }
-
-    _, err = adss.integrationSvc.DisableIntegration(integration.ID, currentUserID)
-    if err != nil {
-        return fmt.Errorf("failed to disable integration: %w", err)
-    }
-
-    return adss.repo.Delete(setting)
-}
-
-// GenerateMicrosoftLoginURL builds the OAuth2 authorize URL for SSO.
-func (adss *ActiveDirectorySettingService) GenerateMicrosoftLoginURL() (string, error) {
 	setting, err := adss.repo.GetFirst()
 	if err != nil {
-		return "", err
+		return err
 	}
 	if setting == nil {
-		return "", utility.NewActiveDirectoryConnectionError(fmt.Errorf("no Entra ID config found"))
+		return fmt.Errorf("no OAuth/Active Directory setting found")
 	}
 
-	url := fmt.Sprintf(
-		"https://login.microsoftonline.com/%s/oauth2/v2.0/authorize?client_id=%s&response_type=code&redirect_uri=%s&response_mode=query&scope=openid%%20profile%%20email&state=%s",
-		setting.TenantID, setting.ClientID, url.QueryEscape(setting.RedirectURI), utility.GenerateRandomString(12),
-	)
-	return url, nil
+	integration, err := adss.integrationSvc.GetByType("azure-ad")
+	if err != nil {
+		return err
+	}
+
+	_, err = adss.integrationSvc.DisableADIntegration(integration, currentUserID)
+	if err != nil {
+		return err
+	}
+
+	return adss.repo.Delete(setting)
 }
 
-// HandleOAuthCallback exchanges code for tokens and maps user claims.
-func (adss *ActiveDirectorySettingService) HandleOAuthCallback(code string, state string) (map[string]interface{}, error) {
-	setting, err := adss.repo.GetFirst()
-	if err != nil {
-		return nil, err
-	}
-	if setting == nil {
-		return nil, utility.NewActiveDirectoryConnectionError(fmt.Errorf("no Entra ID configuration found"))
-	}
 
-	// Decrypt secret
-	decryptedSecret, err := utility.DecryptData(setting.ClientSecret)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt client secret: %w", err)
-	}
 
-	// Prepare token exchange request
-	data := url.Values{}
-	data.Set("client_id", setting.ClientID)
-	data.Set("client_secret", string(decryptedSecret))
-	data.Set("grant_type", "authorization_code")
-	data.Set("code", code)
-	data.Set("redirect_uri", setting.RedirectURI)
-	data.Set("scope", "openid profile email") // 👈 required for ID token
-
-	tokenURL := fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/token", setting.TenantID)
-	resp, err := http.PostForm(tokenURL, data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to exchange authorization code: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("token exchange failed (%d): %s", resp.StatusCode, string(body))
-	}
-
-	// Print/log response for debugging
-	fmt.Println("🔍 Microsoft Token Response:", string(body))
-
-	// Parse JSON
-	var tokenResp struct {
-		IDToken      string `json:"id_token"`
-		AccessToken  string `json:"access_token"`
-		RefreshToken string `json:"refresh_token"`
-		TokenType    string `json:"token_type"`
-		Scope        string `json:"scope"`
-	}
-	if err := json.Unmarshal(body, &tokenResp); err != nil {
-		return nil, fmt.Errorf("invalid token response format: %w", err)
-	}
-
-	// ✅ Ensure we got an ID token
-	if tokenResp.IDToken == "" {
-		// fallback for debugging
-		fmt.Println("⚠️ ID token missing! Microsoft response did not include an id_token.")
-		fmt.Println("👉 Make sure your app registration has 'ID tokens (used for OpenID Connect)' enabled.")
-		fmt.Println("👉 Current scope:", tokenResp.Scope)
-
-		// Optionally, decode the AccessToken for debugging
-		claims, err := utility.DecodeJWTClaims(tokenResp.AccessToken)
-		if err != nil {
-			return nil, fmt.Errorf("no id_token returned, and access_token also invalid: %w", err)
-		}
-		return claims, nil
-	}
-
-	// ✅ Decode ID token
-	claims, err := utility.DecodeJWTClaims(tokenResp.IDToken)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode ID token: %w", err)
-	}
-
-	return claims, nil
-}
-
-// SyncAzureUsers pulls users from Microsoft Graph and syncs to DB.
-func (adss *ActiveDirectorySettingService) SyncAzureUsers() ([]userDTOs.ADUserFlatDTO, error) {
-	setting, err := adss.repo.GetFirst()
-	if err != nil {
-		return nil, err
-	}
-	if setting == nil {
-		return nil, utility.NewActiveDirectoryConnectionError(fmt.Errorf("no Entra ID configuration found"))
-	}
-
-	decryptedSecret, err := utility.DecryptData(setting.ClientSecret)
-	if err != nil {
-		return nil, err
-	}
-
-	token, err := adss.getClientCredentialToken(setting.TenantID, setting.ClientID, string(decryptedSecret))
-	if err != nil {
-		return nil, err
-	}
-
-	req, _ := http.NewRequest("GET",
-		"https://graph.microsoft.com/v1.0/users?$select=id,givenName,surname,displayName,mail,userPrincipalName,jobTitle,department,officeLocation,accountEnabled,businessPhones,mobilePhone",
-		nil,
-	)
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Graph API user fetch failed: %s", string(body))
-	}
-
-	var result struct {
-		Value []struct {
-			ID                string   `json:"id"`
-			GivenName         string   `json:"givenName"`
-			Surname           string   `json:"surname"`
-			DisplayName       string   `json:"displayName"`
-			Mail              string   `json:"mail"`
-			UserPrincipalName string   `json:"userPrincipalName"`
-			JobTitle          string   `json:"jobTitle"`
-			Department        string   `json:"department"`
-			OfficeLocation    string   `json:"officeLocation"`
-			MobilePhone       string   `json:"mobilePhone"`
-			BusinessPhones    []string `json:"businessPhones"`
-			AccountEnabled    bool     `json:"accountEnabled"`
-		} `json:"value"`
-	}
-
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, err
-	}
-
-	// === EXACT LDAP-LIKE RESPONSE ===
-	slNo := 1
-	orgLevels, err := adss.organizationRepo.GetAll()
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch organization levels: %w", err)
-	}
-	orgLevelCount := len(orgLevels)
-
-	finalUsers := []userDTOs.ADUserFlatDTO{}
-
-	for _, u := range result.Value {
-
-		if u.Mail == "" {
-			continue
-		}
-
-		exists, _ := adss.userRepo.ExistsByEmail(strings.ToLower(u.Mail))
-		fmt.Println("users details", u)
-		user := userDTOs.ADUserFlatDTO{
-			"sl_no":         slNo,
-			"first_name_en": u.GivenName,
-			"last_name_en":  u.Surname,
-			"first_name_ar": u.GivenName,
-			"last_name_ar":  u.Surname,
-			"email":         u.Mail,
-			"mobile_number": u.MobilePhone,
-			"designation":   u.JobTitle,
-			"user_status": func() string {
-				if u.AccountEnabled {
-					return "Active"
-				}
-				return "Inactive"
-			}(),
-			"roles":              []string{},
-			"primary_department": u.Department,
-			"is_exists":          exists,
-			"errors":             nil,
-		}
-
-		// Fill org levels (Azure AD does NOT have OU hierarchy)
-		for i := 0; i < orgLevelCount; i++ {
-			key := fmt.Sprintf("organization_unit_%d", i+1)
-			user[key] = "" // default empty (Azure has no OU)
-		}
-
-		finalUsers = append(finalUsers, user)
-		slNo++
-	}
-
-	return finalUsers, nil
-}
-
-// SyncAzureGroups pulls group data from Microsoft Graph.
-func (adss *ActiveDirectorySettingService) SyncAzureGroups() ([]map[string]interface{}, error) {
-
-	setting, err := adss.repo.GetFirst()
-	if err != nil {
-		return nil, err
-	}
-	if setting == nil {
-		return nil, utility.NewActiveDirectoryConnectionError(fmt.Errorf("no Entra ID configuration found"))
-	}
-
-	decryptedSecret, err := utility.DecryptData(setting.ClientSecret)
-	if err != nil {
-		return nil, err
-	}
-
-	token, err := adss.getClientCredentialToken(setting.TenantID, setting.ClientID, string(decryptedSecret))
-	if err != nil {
-		return nil, err
-	}
-
-	// MAXIMUM FIELDS
-	url := "https://graph.microsoft.com/v1.0/groups?$select=" +
-		"id,displayName,description,mail,mailEnabled,securityEnabled,groupTypes,visibility," +
-		"mailNickname,createdDateTime,renewedDateTime,expirationDateTime," +
-		"membershipRule,membershipRuleProcessingState," +
-		"onPremisesSamAccountName,onPremisesSecurityIdentifier,onPremisesLastSyncDateTime,onPremisesNetBiosName," +
-		"proxyAddresses"
-
-	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Graph API group fetch failed: %s", string(body))
-	}
-
-	var result struct {
-		Value []map[string]interface{} `json:"value"`
-	}
-
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, err
-	}
-
-	return result.Value, nil
-}
 
 // helper: request client_credentials token
-func (adss *ActiveDirectorySettingService) getClientCredentialToken(tenantID, clientID, clientSecret string) (string, error) {
+func (adss *ActiveDirectorySettingService) GetClientCredentialToken(tenantID, clientID, clientSecret string) (string, error) {
 	form := url.Values{}
 	form.Set("client_id", clientID)
 	form.Set("client_secret", clientSecret)
@@ -680,7 +425,6 @@ func (adss *ActiveDirectorySettingService) getClientCredentialToken(tenantID, cl
 	return tokenResp.AccessToken, nil
 }
 
-
 func (adss *ActiveDirectorySettingService) GetAzureUserGroups(userID string) ([]map[string]interface{}, error) {
 
 	// 1. Load Azure AD config
@@ -699,7 +443,7 @@ func (adss *ActiveDirectorySettingService) GetAzureUserGroups(userID string) ([]
 	}
 
 	// 3. Get access token
-	token, err := adss.getClientCredentialToken(setting.TenantID, setting.ClientID, string(decryptedSecret))
+	token, err := adss.GetClientCredentialToken(setting.TenantID, setting.ClientID, string(decryptedSecret))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get access token: %w", err)
 	}

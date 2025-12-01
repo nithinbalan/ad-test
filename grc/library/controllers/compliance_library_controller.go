@@ -83,8 +83,12 @@ func (clc *ComplianceLibraryController) GetControlMappings(c *gin.Context) {
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 
-	export, _ := strconv.ParseBool(c.DefaultQuery("export", "false"))
-
+	export := false
+	if v, exists := c.Get("export"); exists {
+		export = v.(bool)
+	} else if s := c.Query("export"); s != "" {
+		export, _ = strconv.ParseBool(s)
+	}
 	page, _ := utility.ParseQueryParamToInt(c, "page", 1)
 	pageSize, _ := utility.ParseQueryParamToInt(c, "page_size", 10)
 
@@ -122,6 +126,6 @@ func (clc *ComplianceLibraryController) GetControlMappings(c *gin.Context) {
 }
 
 func (clc *ComplianceLibraryController) GetControlMappingsExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
+	c.Set("export", true)
 	clc.GetControlMappings(c)
 }

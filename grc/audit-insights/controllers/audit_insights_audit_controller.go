@@ -30,10 +30,18 @@ func (aiac *AuditInsightsAuditController) GetAllAuditInsightsAudits(c *gin.Conte
 	quickFilter := c.QueryArray("quick_filter")
 
 	// Convert the export parameter to a boolean
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(aiac.db, c, "Invalid export parameter")
-		return
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(aiac.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -136,7 +144,6 @@ func (aiac *AuditInsightsAuditController) GetAuditInsightsAuditDetails(c *gin.Co
 }
 
 func (aiac *AuditInsightsAuditController) GetAuditInsightsAuditsExport(c *gin.Context) {
-	c.Request.URL.RawQuery += "&export=true"
-
+	c.Set("export", true)
 	aiac.GetAllAuditInsightsAudits(c)
 }
