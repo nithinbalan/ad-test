@@ -49,6 +49,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetControlAnalysisController := app.AssetModule.AssetControlAnalysisController
 	assetKriController := app.AssetModule.AssetKriController
 	tenableController := app.AssetModule.TenableController
+	tenableSettingsController := app.AssetModule.TenableSettingsController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -339,5 +340,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("/tenable/assets", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), tenableController.GetAllAssets)
 	assetRoutes.POST("/tenable/assets/validate", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableController.ValidateTenableAssets)
 	assetRoutes.POST("/tenable/assets/import", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableController.ImportAssets)
+
+	//tenable settings
+	assetRoutes.GET("/tenable/settings", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), tenableSettingsController.GetSettings)
+	assetRoutes.PUT("tenable/settings/connection", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableSettingsController.UpdateConnection)
+	assetRoutes.PUT("tenable/settings/sync", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableSettingsController.UpdateSyncSettings)
+	assetRoutes.PUT("/tenable/settings/activate", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableSettingsController.Activate)
+	assetRoutes.PUT("/tenable/settings/deactivate", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableSettingsController.Deactivate)
+	assetRoutes.GET("/tenable/settings/test", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), tenableSettingsController.TestConnection)
 
 }
