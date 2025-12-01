@@ -27,30 +27,20 @@ func (tc *TenableSettingsController) GetSettings(c *gin.Context) {
 	c.JSON(http.StatusOK, data)
 }
 
-func (tc *TenableSettingsController) UpdateConnection(c *gin.Context) {
-	var input dtos.UpdateTenableConnectionDTO
-	if err := c.ShouldBindJSON(&input); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-	if err := tc.service.UpdateConnectionSettings(input); err != nil {
-		utility.SendInternalErrResp(nil, c, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "Connection settings updated"})
-}
+func (tc *TenableSettingsController) UpdateSettings(c *gin.Context) {
+	var input dtos.UpdateTenableSettingsDTO
 
-func (tc *TenableSettingsController) UpdateSyncSettings(c *gin.Context) {
-	var input dtos.UpdateTenableSyncSettingsDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
-	if err := tc.service.UpdateSyncSettings(input); err != nil {
+
+	if err := tc.service.UpdateSettings(input); err != nil {
 		utility.SendInternalErrResp(nil, c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Sync settings updated"})
+
+	c.JSON(http.StatusOK, gin.H{"message": "Tenable settings updated"})
 }
 
 func (tc *TenableSettingsController) Activate(c *gin.Context) {

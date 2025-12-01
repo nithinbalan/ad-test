@@ -11,8 +11,7 @@ import (
 
 type TenableSettingsService interface {
 	GetSettings() (*dtos.TenableSettingsResponseDTO, error)
-	UpdateConnectionSettings(input dtos.UpdateTenableConnectionDTO) error
-	UpdateSyncSettings(input dtos.UpdateTenableSyncSettingsDTO) error
+	UpdateSettings(input dtos.UpdateTenableSettingsDTO) error
 	ActivateSettings() error
 	DeactivateSettings() error
 	TestConnection(input dtos.TestTenableConnectionDTO) error
@@ -43,31 +42,32 @@ func (s *tenableSettingsService) GetSettings() (*dtos.TenableSettingsResponseDTO
 	}, nil
 }
 
-func (s *tenableSettingsService) UpdateConnectionSettings(input dtos.UpdateTenableConnectionDTO) error {
+func (s *tenableSettingsService) UpdateSettings(input dtos.UpdateTenableSettingsDTO) error {
+
 	st, err := s.repo.Get()
 	if err != nil {
 		return err
 	}
 
-	st.BaseURL = input.BaseURL
-	st.AccessKey = input.AccessKey
-	st.SecretKey = input.SecretKey
-	st.UpdatedAt = time.Now().UTC()
-	st.Status = "active"
-
-	return s.repo.Update(st)
-}
-
-func (s *tenableSettingsService) UpdateSyncSettings(input dtos.UpdateTenableSyncSettingsDTO) error {
-	st, err := s.repo.Get()
-	if err != nil {
-		return err
+	// Partial updates
+	if input.BaseURL != nil {
+		st.BaseURL = *input.BaseURL
+	}
+	if input.AccessKey != nil {
+		st.AccessKey = *input.AccessKey
+	}
+	if input.SecretKey != nil {
+		st.SecretKey = *input.SecretKey
+	}
+	if input.SyncFrequencyHours != nil {
+		st.SyncFrequencyHours = *input.SyncFrequencyHours
+	}
+	if input.LookbackDays != nil {
+		st.LookbackDays = *input.LookbackDays
 	}
 
-	st.SyncFrequencyHours = input.SyncFrequencyHours
-	st.LookbackDays = input.LookbackDays
+	// Any update activates the integration
 	st.Status = "active"
-
 	st.UpdatedAt = time.Now().UTC()
 
 	return s.repo.Update(st)

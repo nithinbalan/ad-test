@@ -343,8 +343,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//tenable settings
 	assetRoutes.GET("/tenable/settings", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), tenableSettingsController.GetSettings)
-	assetRoutes.PUT("tenable/settings/connection", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableSettingsController.UpdateConnection)
-	assetRoutes.PUT("tenable/settings/sync", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableSettingsController.UpdateSyncSettings)
+	assetRoutes.PUT("tenable/settings", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableSettingsController.UpdateSettings)
 	assetRoutes.PUT("/tenable/settings/activate", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableSettingsController.Activate)
 	assetRoutes.PUT("/tenable/settings/deactivate", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableSettingsController.Deactivate)
 	assetRoutes.GET("/tenable/settings/test", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), tenableSettingsController.TestConnection)
