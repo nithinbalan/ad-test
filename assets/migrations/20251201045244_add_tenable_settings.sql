@@ -6,21 +6,18 @@ CREATE TABLE tenable_settings (
     base_url VARCHAR(255) NOT NULL,
     access_key VARCHAR(300) NOT NULL,
     secret_key VARCHAR(300) NOT NULL,
-    sync_frequency_hours INT NOT NULL DEFAULT 24,      
-    lookback_days INT NOT NULL DEFAULT 30,             
-    status VARCHAR(10) NOT NULL 
-        CONSTRAINT chk_tenable_status CHECK (status IN ('active', 'inactive'))
-        DEFAULT 'active',
+    sync_frequency_hours INT NOT NULL DEFAULT 24,   -- default: every 24 hours
+    lookback_days INT NOT NULL DEFAULT 30,          -- default: last 30 days
+    is_active BIT NOT NULL DEFAULT 1,
     created_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     updated_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 );
 
-
 -- default row
 INSERT INTO tenable_settings 
-    (base_url, access_key, secret_key, sync_frequency_hours, lookback_days, status)
+    (base_url, access_key, secret_key, sync_frequency_hours, lookback_days)
 VALUES
-    ('https://sc.tenalab.online', '', '', 24, 30, 'active');
+    ('https://sc.tenalab.online', '', '', 24, 30);
 
 -- +goose StatementEnd
 
