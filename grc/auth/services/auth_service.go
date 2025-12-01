@@ -560,14 +560,19 @@ func (as *AuthService) LoginWithActiveDirectory(email, password, ip, location, d
 
 func (as *AuthService) GetLoginSettings() (*authDTOs.LoginSettingsDTO, error) {
 	// 1. Get Active Directory Integration by type
-	integration, err := as.integrationSvc.GetByType("active-directory")
+	activeDirectoryIntegration, err := as.integrationSvc.GetByType("active-directory")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Active Directory integration: %w", err)
 	}
 
-	// 2. Prepare typed response
+	azureADIntegration, err := as.integrationSvc.GetByType("azure-ad")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Azure AD integration: %w", err)
+	}
+
 	settings := &authDTOs.LoginSettingsDTO{
-		ActiveDirectoryEnabled: integration.IsEnable,
+		ActiveDirectoryEnabled: activeDirectoryIntegration.IsEnable,
+		AzureADEnabled:         azureADIntegration.IsEnable,
 	}
 
 	return settings, nil
