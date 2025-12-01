@@ -49,7 +49,6 @@ func (s *tenableSettingsService) UpdateSettings(input dtos.UpdateTenableSettings
 		return err
 	}
 
-	// Partial updates
 	if input.BaseURL != nil {
 		st.BaseURL = *input.BaseURL
 	}
@@ -66,7 +65,6 @@ func (s *tenableSettingsService) UpdateSettings(input dtos.UpdateTenableSettings
 		st.LookbackDays = *input.LookbackDays
 	}
 
-	// Any update activates the integration
 	st.Status = "active"
 	st.UpdatedAt = time.Now().UTC()
 
