@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"jethur/grc/models"
-	
+
 	organizationRepositories "jethur/grc/organization/repositories"
 
 	// "jethur/grc/settings/dtos"
@@ -30,9 +30,8 @@ type ActiveDirectorySettingServiceInterface interface {
 	GetOAuthConfiguration() (*models.ActiveDirectorySetting, error)
 	SaveOAuthConfiguration(currentUserID uint, dto settingsDTOs.EntraOAuthConfigDTO) error
 	DeleteOAuthConfiguration(currentUserID uint) error
-    
-	GetAzureUserGroups(userID string) ([]map[string]interface{}, error)
 
+	GetAzureUserGroups(userID string) ([]map[string]interface{}, error)
 
 	GetClientCredentialToken(tenantID, clientID, clientSecret string) (string, error)
 }
@@ -302,6 +301,10 @@ func (adss *ActiveDirectorySettingService) TestOAuthConnection(dto *settingsDTOs
 		)
 	}
 
+	if err := adss.validateRedirectURI(dto, tokenResp.AccessToken); err != nil {
+		return "", err
+	}
+
 	return tokenResp.AccessToken, nil
 }
 
@@ -320,12 +323,12 @@ func (adss *ActiveDirectorySettingService) GetOAuthConfiguration() (*models.Acti
 	// 	RedirectURI:  setting.RedirectURI,
 	// 	GraphScope:   "https://graph.microsoft.com/.default",
 	// }, nil
-	res,err := adss.repo.GetFirst()
+	res, err := adss.repo.GetFirst()
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
-	return res,nil
+	return res, nil
 }
 
 // SaveOAuthConfiguration stores or updates Entra ID credentials.
@@ -392,9 +395,6 @@ func (adss *ActiveDirectorySettingService) DeleteOAuthConfiguration(currentUserI
 
 	return adss.repo.Delete(setting)
 }
-
-
-
 
 // helper: request client_credentials token
 func (adss *ActiveDirectorySettingService) GetClientCredentialToken(tenantID, clientID, clientSecret string) (string, error) {
@@ -501,4 +501,41 @@ func (adss *ActiveDirectorySettingService) GetAzureUserGroups(userID string) ([]
 	}
 
 	return final, nil
+}
+
+func (adss *ActiveDirectorySettingService) validateRedirectURI(dto *settingsDTOs.EntraOAuthConfigDTO, accessToken string) error {
+	if _, err := url.ParseRequestURI(dto.RedirectURI); err != nil {
+		return fmt.Errorf("invalid redirect URI format: %w", err)
+	}
+
+	graphURL := fmt.Sprintf("https://graph.microsoft.com/v1.0/applications?$filter=appId%%20eq%%20'%s'", dto.ClientID)
+
+	req, _ := http.NewRequest("GET", graphURL, nil)
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+
+	client := &http.Client{}
+	graphResp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to contact Microsoft Graph: %w", err)
+	}
+	defer graphResp.Body.Close()
+
+	graphBody, _ := io.ReadAll(graphResp.Body)
+
+	var appResp struct {
+		Value []struct {
+			Web struct {
+				RedirectUris []string `json:"redirectUris"`
+			} `json:"web"`
+		} `json:"value"`
+	}
+	json.Unmarshal(graphBody, &appResp)
+
+	for _, r := range appResp.Value[0].Web.RedirectUris {
+		if r == dto.RedirectURI {
+			return nil // success
+		}
+	}
+
+	return fmt.Errorf("redirect URI not registered in Azure App: %s", dto.RedirectURI)
 }
