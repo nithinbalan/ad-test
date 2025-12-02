@@ -7,6 +7,7 @@ import (
 	"jethur/grc/models"
 	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
+	"jethur/utility"
 	"net/http"
 	"strings"
 	"time"
@@ -16,7 +17,7 @@ type TenableSettingsService interface {
 	GetTenableSettings() (*models.TenableSettings, error)
 	SaveTenableSettings(currentUserID uint, dto dtos.UpdateTenableSettingsDTO) error
 	DeleteTenableSettings(currentUserID uint) error
-	TestConnection(input dtos.TestTenableConnectionDTO) (*dtos.TestConnectionResult, error)
+	TestConnection(input dtos.TestTenableConnectionDTO) (string, error)
 }
 
 type tenableSettingsService struct {
@@ -95,17 +96,16 @@ func (tss *tenableSettingsService) DeleteTenableSettings(currentUserID uint) err
 	return tss.repo.Delete(setting)
 }
 
-func (tss *tenableSettingsService) TestConnection(input dtos.TestTenableConnectionDTO) (*dtos.TestConnectionResult, error) {
+func (tss *tenableSettingsService) TestConnection(input dtos.TestTenableConnectionDTO) (string, error) {
 
 	client := &http.Client{Timeout: 20 * time.Second}
 	url := fmt.Sprintf("%s/rest/system", input.BaseURL)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return &dtos.TestConnectionResult{
-			Success: false,
-			Message: "Unable to create request",
-		}, nil
+		return "", utility.NewTenableConnectionError(
+			fmt.Errorf("unable to create request: %w", err),
+		)
 	}
 
 	req.Header.Set("x-apikey",
@@ -116,10 +116,9 @@ func (tss *tenableSettingsService) TestConnection(input dtos.TestTenableConnecti
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return &dtos.TestConnectionResult{
-			Success: false,
-			Message: "Connection failed: " + err.Error(),
-		}, nil
+		return "", utility.NewTenableConnectionError(
+			fmt.Errorf("connection failed: %w", err),
+		)
 	}
 	defer resp.Body.Close()
 
@@ -128,21 +127,15 @@ func (tss *tenableSettingsService) TestConnection(input dtos.TestTenableConnecti
 	if resp.StatusCode != 200 {
 		var terr dtos.TenableTestErrorResponse
 		if err := json.Unmarshal(body, &terr); err == nil && terr.ErrorMsg != "" {
-			return &dtos.TestConnectionResult{
-				Success: false,
-				Message: strings.TrimSpace(terr.ErrorMsg),
-			}, nil
+			return "", utility.NewTenableConnectionError(
+				fmt.Errorf("%s", strings.TrimSpace(terr.ErrorMsg)),
+			)
 		}
 
-		// fallback: return plain body if unmarshal fails
-		return &dtos.TestConnectionResult{
-			Success: false,
-			Message: string(body),
-		}, nil
+		return "", utility.NewTenableConnectionError(
+			fmt.Errorf("tenable returned %d: %s", resp.StatusCode, string(body)),
+		)
 	}
 
-	return &dtos.TestConnectionResult{
-		Success: true,
-		Message: "Connection successful",
-	}, nil
+	return "Connection successful", nil
 }
