@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Lexend Deca', sans-serif;
+      font-size: 13px;
+      margin-top: 0px;
+      margin-bottom: 10px;
+      padding: 0px 10px;
+    }
+
+    h2 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+    table{ 
+        border-collapse: collapse;
+    }
+  </style>
+</head>
+<body>
+    <div class="keep-together break-before" style="padding-top: 0px;">
+        <!-- <h3 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;">
+            Disclaimer
+        </h3>
+        <div style="margin-top: 10px;">
+            <div style="width: 100%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 20px 0; font-family: 'Lexend Deca', sans-serif; 
+                    color: #000; font-size: 14px; line-height: 1.5em; 
+                    text-align: left; margin-bottom: 13px; margin-top: 0px; 
+                    font-weight: 400;">
+                    {{.Data.Document.DescriptionEn}}
+                </p>
+            </div>
+        </div> -->
+        <h3 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;">
+            Document Approval
+        </h3>
+        <table style="
+            font-family: -apple-system, BlinkMacSystemFont,
+            'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+            'Apple Color Emoji', 'Segoe UI Emoji',
+            'Segoe UI Symbol';
+            box-sizing: border-box;
+            background: #fff;
+            padding: 0;
+            text-align: center;
+            width: 100%;
+            margin: 0 auto;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            ">
+            <tbody>
+                <tr style="border: 1px solid #EAEDF2;">
+                  <th style="
+                       font-family: -apple-system, BlinkMacSystemFont,
+                       'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                       'Apple Color Emoji', 'Segoe UI Emoji',
+                       'Segoe UI Symbol';
+                       box-sizing: border-box;
+                       color: #1a1a1a;
+                       font-size: 14px;
+                       line-height: 1.3em;
+                       font-weight: bold;
+                       border: 1px solid #EAEDF2;
+                       padding: 11px 10px;
+                       text-align: left; background: #F9FBFC; font-weight: 500; width: 10%;
+                       ">Level</th>
+                    
+                    <th style="
+                       font-family: -apple-system, BlinkMacSystemFont,
+                       'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                       'Apple Color Emoji', 'Segoe UI Emoji',
+                       'Segoe UI Symbol';
+                       box-sizing: border-box;
+                       color: #1a1a1a;
+                       font-size: 14px;
+                       line-height: 1.3em;
+                       font-weight: bold;
+                       border: 1px solid #EAEDF2;
+                       padding: 11px 10px;
+                       text-align: left; background: #F9FBFC; font-weight: 500; width: 65%;
+                       ">Reviewer</th>
+                    
+                   
+                    
+                    <th style="
+                       font-family: -apple-system, BlinkMacSystemFont,
+                       'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                       'Apple Color Emoji', 'Segoe UI Emoji',
+                       'Segoe UI Symbol';
+                       box-sizing: border-box;
+                       color: #1a1a1a;
+                       font-size: 14px;
+                       line-height: 1.3em;
+                       font-weight: 500;
+                       border: 1px solid #EAEDF2;
+                       padding: 11px 10px;
+                       text-align: left; background: #F9FBFC;width: 15%;
+                       ">
+                      Date
+                    </th>
+
+                    <th style="
+                       font-family: -apple-system, BlinkMacSystemFont,
+                       'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                       'Apple Color Emoji', 'Segoe UI Emoji',
+                       'Segoe UI Symbol';
+                       box-sizing: border-box;
+                       color: #1a1a1a;
+                       font-size: 14px;
+                       line-height: 1.3em;
+                       font-weight: 500;
+                       border: 1px solid #EAEDF2;
+                       padding: 11px 10px;
+                       text-align: left; background: #F9FBFC;width: 10%;
+                       ">
+                      Status
+                    </th>
+                    
+                 </tr>
+                 {{range .Data.Workflow.DocumentWorkflows}}
+               <tr style="border: 1px solid #EAEDF2;">
+                 <td style="
+                    font-family: -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                    'Apple Color Emoji', 'Segoe UI Emoji',
+                    'Segoe UI Symbol';
+                    box-sizing: border-box;
+                    color: #1a1a1a;
+                    font-size: 14px;
+                    line-height: 1.3em;
+                    border: 1px solid #EAEDF2;
+                    padding: 10px 10px;
+                    text-align: left;
+                    ">Level {{.Level}}
+                 </td>
+                 <td style="
+                    font-family: -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                    'Apple Color Emoji', 'Segoe UI Emoji',
+                    'Segoe UI Symbol';
+                    box-sizing: border-box;
+                    color: #1a1a1a;
+                    font-size: 14px;
+                    line-height: 1.3em;
+                    border: 1px solid #EAEDF2;
+                    padding: 10px 10px;
+                    text-align: left;
+                    ">
+                   {{- range $index, $user := .ApprovedUsers -}}
+                     {{if $index}}, {{end}}{{ $user.FirstNameEN }} {{ $user.LastNameEN }}
+                  {{- end -}}
+                 </td>
+                <td style="
+                    font-family: -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                    'Apple Color Emoji', 'Segoe UI Emoji',
+                    'Segoe UI Symbol';
+                    box-sizing: border-box;
+                    color: #1a1a1a;
+                    font-size: 14px;
+                    line-height: 1.3em;
+                    border: 1px solid #EAEDF2;
+                    padding: 10px 10px;
+                    text-align: left;
+                    ">
+                   {{.ApprovedAtString}} 
+                 </td>
+                <td style="
+                    font-family: -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                    'Apple Color Emoji', 'Segoe UI Emoji',
+                    'Segoe UI Symbol';
+                    box-sizing: border-box;
+                    color: #1a1a1a;
+                    font-size: 14px;
+                    line-height: 1.3em;
+                    border: 1px solid #EAEDF2;
+                    padding: 10px 10px;
+                    text-align: left;
+                    ">
+                   {{.CurrentStatus.TitleEn}} 
+                 </td>         
+               
+              </tr>
+           {{end}}
+           <tr style="border: 1px solid #EAEDF2;">
+                 <td style="
+                    font-family: -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                    'Apple Color Emoji', 'Segoe UI Emoji',
+                    'Segoe UI Symbol';
+                    box-sizing: border-box;
+                    color: #1a1a1a;
+                    font-size: 14px;
+                    line-height: 1.3em;
+                    border: 1px solid #EAEDF2;
+                    padding: 10px 10px;
+                    text-align: left;
+                    ">-
+                 </td>
+                 <td style="
+                    font-family: -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                    'Apple Color Emoji', 'Segoe UI Emoji',
+                    'Segoe UI Symbol';
+                    box-sizing: border-box;
+                    color: #1a1a1a;
+                    font-size: 14px;
+                    line-height: 1.3em;
+                    border: 1px solid #EAEDF2;
+                    padding: 10px 10px;
+                    text-align: left;
+                    ">
+                   {{.Data.Document.LatestDocumentVersion.PublishedByUser.FirstNameEN}} {{.Data.Document.LatestDocumentVersion.PublishedByUser.LastNameEN}} 
+                 </td>
+                <td style="
+                    font-family: -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                    'Apple Color Emoji', 'Segoe UI Emoji',
+                    'Segoe UI Symbol';
+                    box-sizing: border-box;
+                    color: #1a1a1a;
+                    font-size: 14px;
+                    line-height: 1.3em;
+                    border: 1px solid #EAEDF2;
+                    padding: 10px 10px;
+                    text-align: left;
+                    ">
+                   {{.Data.PublishedAtString}}
+                 </td>
+                <td style="
+                    font-family: -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                    'Apple Color Emoji', 'Segoe UI Emoji',
+                    'Segoe UI Symbol';
+                    box-sizing: border-box;
+                    color: #1a1a1a;
+                    font-size: 14px;
+                    line-height: 1.3em;
+                    border: 1px solid #EAEDF2;
+                    padding: 10px 10px;
+                    text-align: left;
+                    ">
+                   {{.Data.Document.DocumentStatus.TitleEn}} 
+                 </td>         
+               
+              </tr>
+            </tbody>
+         </table>
+         <h3 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;">
+            Version Control
+        </h3>
+        <table style="
+            font-family: -apple-system, BlinkMacSystemFont,
+            'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+            'Apple Color Emoji', 'Segoe UI Emoji',
+            'Segoe UI Symbol';
+            box-sizing: border-box;
+            background: #fff;
+            padding: 0;
+            text-align: center;
+            width: 100%;
+            margin: 0 auto;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            ">
+            <tbody>
+                <tr style="border: 1px solid #EAEDF2;">
+                  <th style="
+                       font-family: -apple-system, BlinkMacSystemFont,
+                       'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                       'Apple Color Emoji', 'Segoe UI Emoji',
+                       'Segoe UI Symbol';
+                       box-sizing: border-box;
+                       color: #1a1a1a;
+                       font-size: 14px;
+                       line-height: 1.3em;
+                       font-weight: bold;
+                       border: 1px solid #EAEDF2;
+                       padding: 11px 10px;
+                       text-align: left; background: #F9FBFC; font-weight: 500; width: 20%;
+                       ">Version</th>
+                    
+                    <th style="
+                       font-family: -apple-system, BlinkMacSystemFont,
+                       'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                       'Apple Color Emoji', 'Segoe UI Emoji',
+                       'Segoe UI Symbol';
+                       box-sizing: border-box;
+                       color: #1a1a1a;
+                       font-size: 14px;
+                       line-height: 1.3em;
+                       font-weight: bold;
+                       border: 1px solid #EAEDF2;
+                       padding: 11px 10px;
+                       text-align: left; background: #F9FBFC; font-weight: 500; width: 20%;
+                       ">Date</th>
+                    <th style="
+                       font-family: -apple-system, BlinkMacSystemFont,
+                       'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                       'Apple Color Emoji', 'Segoe UI Emoji',
+                       'Segoe UI Symbol';
+                       box-sizing: border-box;
+                       color: #1a1a1a;
+                       font-size: 14px;
+                       line-height: 1.3em;
+                       font-weight: 500;
+                       border: 1px solid #EAEDF2;
+                       padding: 11px 10px;
+                       text-align: left; background: #F9FBFC;width: 20%;
+                       ">
+                      Updated By
+                    </th>
+
+                    <th style="
+                       font-family: -apple-system, BlinkMacSystemFont,
+                       'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                       'Apple Color Emoji', 'Segoe UI Emoji',
+                       'Segoe UI Symbol';
+                       box-sizing: border-box;
+                       color: #1a1a1a;
+                       font-size: 14px;
+                       line-height: 1.3em;
+                       font-weight: 500;
+                       border: 1px solid #EAEDF2;
+                       padding: 11px 10px;
+                       text-align: left; background: #F9FBFC;width: 20%;
+                       ">
+                      Version Details
+                    </th>                    
+                 </tr>
+                 <tr style="border: 1px solid #EAEDF2;">
+                 <td style="
+                    font-family: -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                    'Apple Color Emoji', 'Segoe UI Emoji',
+                    'Segoe UI Symbol';
+                    box-sizing: border-box;
+                    color: #1a1a1a;
+                    font-size: 14px;
+                    line-height: 1.3em;
+                    border: 1px solid #EAEDF2;
+                    padding: 10px 10px;
+                    text-align: left;
+                    ">
+                    {{.Data.Document.LatestDocumentVersion.Version}}
+                 </td>
+                 <td style="
+                    font-family: -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                    'Apple Color Emoji', 'Segoe UI Emoji',
+                    'Segoe UI Symbol';
+                    box-sizing: border-box;
+                    color: #1a1a1a;
+                    font-size: 14px;
+                    line-height: 1.3em;
+                    border: 1px solid #EAEDF2;
+                    padding: 10px 10px;
+                    text-align: left;
+                    ">
+                  {{.Data.PublishedAtString}}
+                 </td>
+                <td style="
+                    font-family: -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                    'Apple Color Emoji', 'Segoe UI Emoji',
+                    'Segoe UI Symbol';
+                    box-sizing: border-box;
+                    color: #1a1a1a;
+                    font-size: 14px;
+                    line-height: 1.3em;
+                    border: 1px solid #EAEDF2;
+                    padding: 10px 10px;
+                    text-align: left;
+                    ">
+                    {{.Data.Document.LatestDocumentVersion.PublishedByUser.FirstNameEN}} {{.Data.Document.LatestDocumentVersion.PublishedByUser.LastNameEN}}
+                 </td>
+                 <td style="
+                    font-family: -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                    'Apple Color Emoji', 'Segoe UI Emoji',
+                    'Segoe UI Symbol';
+                    box-sizing: border-box;
+                    color: #1a1a1a;
+                    font-size: 14px;
+                    line-height: 1.3em;
+                    border: 1px solid #EAEDF2;
+                    padding: 10px 10px;
+                    text-align: left;
+                    ">
+                    -
+                 </td>
+              </tr>
+                 </tbody>
+                 </table>
+                 <h3 style="margin: 0 0 10px 0; font-size: 18px; color: #050505; font-weight: 400;">
+            Review Table
+        </h3>
+        <table style="
+            font-family: -apple-system, BlinkMacSystemFont,
+            'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+            'Apple Color Emoji', 'Segoe UI Emoji',
+            'Segoe UI Symbol';
+            box-sizing: border-box;
+            background: #fff;
+            padding: 0;
+            text-align: center;
+            width: 100%;
+            margin: 0 auto;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            ">
+            <tbody>
+                <tr style="border: 1px solid #EAEDF2;">
+                  <th style="
+                       font-family: -apple-system, BlinkMacSystemFont,
+                       'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                       'Apple Color Emoji', 'Segoe UI Emoji',
+                       'Segoe UI Symbol';
+                       box-sizing: border-box;
+                       color: #1a1a1a;
+                       font-size: 14px;
+                       line-height: 1.3em;
+                       font-weight: bold;
+                       border: 1px solid #EAEDF2;
+                       padding: 11px 10px;
+                       text-align: left; background: #F9FBFC; font-weight: 500; width: 30%;
+                       ">Periodic Review Rate</th>
+                    
+                    <th style="
+                       font-family: -apple-system, BlinkMacSystemFont,
+                       'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                       'Apple Color Emoji', 'Segoe UI Emoji',
+                       'Segoe UI Symbol';
+                       box-sizing: border-box;
+                       color: #1a1a1a;
+                       font-size: 14px;
+                       line-height: 1.3em;
+                       font-weight: bold;
+                       border: 1px solid #EAEDF2;
+                       padding: 11px 10px;
+                       text-align: left; background: #F9FBFC; font-weight: 500; width: 30%;
+                       ">Last Review Date</th>
+                    <th style="
+                       font-family: -apple-system, BlinkMacSystemFont,
+                       'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                       'Apple Color Emoji', 'Segoe UI Emoji',
+                       'Segoe UI Symbol';
+                       box-sizing: border-box;
+                       color: #1a1a1a;
+                       font-size: 14px;
+                       line-height: 1.3em;
+                       font-weight: 500;
+                       border: 1px solid #EAEDF2;
+                       padding: 11px 10px;
+                       text-align: left; background: #F9FBFC;width: 30%;
+                       ">
+                      Upcoming Review Date
+                    </th>                   
+                 </tr>
+                 <tr style="border: 1px solid #EAEDF2;">
+                 <td style="
+                    font-family: -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                    'Apple Color Emoji', 'Segoe UI Emoji',
+                    'Segoe UI Symbol';
+                    box-sizing: border-box;
+                    color: #1a1a1a;
+                    font-size: 14px;
+                    line-height: 1.3em;
+                    border: 1px solid #EAEDF2;
+                    padding: 10px 10px;
+                    text-align: left;
+                    ">
+                    {{- if .Data.Document.ReviewFrequency }}
+                     {{.Data.Document.ReviewFrequency.TitleEn}}
+                    {{- end }}
+                 </td>
+                 <td style="
+                    font-family: -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                    'Apple Color Emoji', 'Segoe UI Emoji',
+                    'Segoe UI Symbol'; 
+                    box-sizing: border-box;
+                    color: #1a1a1a;
+                    font-size: 14px;
+                    line-height: 1.3em;
+                    border: 1px solid #EAEDF2;
+                    padding: 10px 10px;
+                    text-align: left;
+                    ">
+                   - 
+                 </td>
+                <td style="
+                    font-family: -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+                    'Apple Color Emoji', 'Segoe UI Emoji',
+                    'Segoe UI Symbol';
+                    box-sizing: border-box;
+                    color: #1a1a1a;
+                    font-size: 14px;
+                    line-height: 1.3em;
+                    border: 1px solid #EAEDF2;
+                    padding: 10px 10px;
+                    text-align: left;
+                    ">
+                    {{- if .Data.Document.ReviewFrequency }}
+                        {{.Data.NextReviewDate}}
+                     {{- end}}
+                 </td>
+              </tr>
+                 </tbody>
+                 </table>
+
+    </div>
+</body>
+</html>
