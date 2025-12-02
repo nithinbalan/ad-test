@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"jethur/grc/models"
-	
+
 	organizationRepositories "jethur/grc/organization/repositories"
 
 	// "jethur/grc/settings/dtos"
@@ -30,9 +30,8 @@ type ActiveDirectorySettingServiceInterface interface {
 	GetOAuthConfiguration() (*models.ActiveDirectorySetting, error)
 	SaveOAuthConfiguration(currentUserID uint, dto settingsDTOs.EntraOAuthConfigDTO) error
 	DeleteOAuthConfiguration(currentUserID uint) error
-    
-	GetAzureUserGroups(userID string) ([]map[string]interface{}, error)
 
+	GetAzureUserGroups(userID string) ([]map[string]interface{}, error)
 
 	GetClientCredentialToken(tenantID, clientID, clientSecret string) (string, error)
 }
@@ -84,7 +83,7 @@ func (adss *ActiveDirectorySettingService) Create(currentUserID uint, dto settin
 	// if err != nil {
 	// 	return fmt.Errorf("failed to enable integration: %w", err)
 	// }
-	_, err = adss.integrationSvc.EnableADIntegration(integration, currentUserID)
+	_, err = adss.integrationSvc.EnableIntegrationSettings(integration, currentUserID)
 	if err != nil {
 		return err
 	}
@@ -258,7 +257,7 @@ func (adss *ActiveDirectorySettingService) Delete(currentUserID uint) error {
 		return err
 	}
 
-	_, err = adss.integrationSvc.DisableADIntegration(integration, currentUserID)
+	_, err = adss.integrationSvc.DisableIntegrationSettings(integration, currentUserID)
 	if err != nil {
 		return err
 	}
@@ -320,12 +319,12 @@ func (adss *ActiveDirectorySettingService) GetOAuthConfiguration() (*models.Acti
 	// 	RedirectURI:  setting.RedirectURI,
 	// 	GraphScope:   "https://graph.microsoft.com/.default",
 	// }, nil
-	res,err := adss.repo.GetFirst()
+	res, err := adss.repo.GetFirst()
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
-	return res,nil
+	return res, nil
 }
 
 // SaveOAuthConfiguration stores or updates Entra ID credentials.
@@ -335,7 +334,7 @@ func (adss *ActiveDirectorySettingService) SaveOAuthConfiguration(currentUserID 
 		return err
 	}
 
-	_, err = adss.integrationSvc.EnableADIntegration(integration, currentUserID)
+	_, err = adss.integrationSvc.EnableIntegrationSettings(integration, currentUserID)
 	if err != nil {
 		return fmt.Errorf("failed to enable integration: %w", err)
 	}
@@ -385,16 +384,13 @@ func (adss *ActiveDirectorySettingService) DeleteOAuthConfiguration(currentUserI
 		return err
 	}
 
-	_, err = adss.integrationSvc.DisableADIntegration(integration, currentUserID)
+	_, err = adss.integrationSvc.DisableIntegrationSettings(integration, currentUserID)
 	if err != nil {
 		return err
 	}
 
 	return adss.repo.Delete(setting)
 }
-
-
-
 
 // helper: request client_credentials token
 func (adss *ActiveDirectorySettingService) GetClientCredentialToken(tenantID, clientID, clientSecret string) (string, error) {

@@ -204,7 +204,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//tenable settings
 	settingRoutes.GET("/tenable/settings", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), tenableSettingsController.GetTenableSettings)
-	settingRoutes.PUT("tenable/settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), tenableSettingsController.UpdateTenableSettings)
+	settingRoutes.POST("tenable/settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), tenableSettingsController.SaveTenableSettings)
 	settingRoutes.DELETE("/tenable/settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), tenableSettingsController.DeleteTenableSettings)
 	settingRoutes.POST("/tenable/settings/test", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), tenableSettingsController.TestConnection)
 

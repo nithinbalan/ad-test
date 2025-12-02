@@ -27,29 +27,41 @@ func (tc *TenableSettingsController) GetTenableSettings(c *gin.Context) {
 	c.JSON(http.StatusOK, data)
 }
 
-func (tc *TenableSettingsController) UpdateTenableSettings(c *gin.Context) {
-	var input dtos.UpdateTenableSettingsDTO
+func (tc *TenableSettingsController) SaveTenableSettings(c *gin.Context) {
+	var dto dtos.UpdateTenableSettingsDTO
 
-	if err := c.ShouldBindJSON(&input); err != nil {
+	if err := c.ShouldBindJSON(&dto); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	if err := tc.service.UpdateTenableSettings(input); err != nil {
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
 		utility.SendInternalErrResp(nil, c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Tenable settings updated"})
+	if err := tc.service.SaveTenableSettings(currentUserID, dto); err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Tenable settings saved successfully"})
 }
 
 func (tc *TenableSettingsController) DeleteTenableSettings(c *gin.Context) {
-	if err := tc.service.DeleteTenableSettings(); err != nil {
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
 		utility.SendInternalErrResp(nil, c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Tenable settings deleted"})
+	if err := tc.service.DeleteTenableSettings(currentUserID); err != nil {
+		utility.SendInternalErrResp(nil, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Tenable settings deleted successfully"})
 }
 
 func (tc *TenableSettingsController) TestConnection(c *gin.Context) {
