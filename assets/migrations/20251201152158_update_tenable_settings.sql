@@ -1,23 +1,20 @@
 -- +goose NO TRANSACTION
 -- +goose Up
 -- +goose StatementBegin
+-- +goose NO TRANSACTION
+-- +goose Up
 
--- 1. Add new status column
 ALTER TABLE tenable_settings
-ADD status VARCHAR(10) NOT NULL DEFAULT 'active';
+ADD status VARCHAR(10) NULL DEFAULT 'active';
+GO
 
--- 2. Add the check constraint
-ALTER TABLE tenable_settings
-ADD CONSTRAINT chk_tenable_status CHECK (status IN ('active', 'inactive'));
-
--- 3. Migrate data from is_active → status
 UPDATE tenable_settings
 SET status = CASE 
                 WHEN is_active = 'true' THEN 'active'
                 ELSE 'inactive'
             END;
+GO
 
--- 4. Drop default constraint on is_active
 DECLARE @constraintName NVARCHAR(200);
 
 SELECT @constraintName = dc.name
@@ -28,9 +25,10 @@ WHERE c.object_id = OBJECT_ID('tenable_settings')
 
 IF @constraintName IS NOT NULL
     EXEC('ALTER TABLE tenable_settings DROP CONSTRAINT ' + @constraintName);
+GO
 
--- 5. Drop the old column
 ALTER TABLE tenable_settings
 DROP COLUMN is_active;
+GO
 
 -- +goose StatementEnd
