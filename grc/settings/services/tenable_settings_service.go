@@ -17,7 +17,7 @@ type TenableSettingsService interface {
 	GetTenableSettings() (*models.TenableSettings, error)
 	SaveTenableSettings(currentUserID uint, dto dtos.UpdateTenableSettingsDTO) error
 	DeleteTenableSettings(currentUserID uint) error
-	TestConnection(input dtos.TestTenableConnectionDTO) (string, error)
+	TestConnection(input dtos.TestTenableConnectionDTO) error
 }
 
 type tenableSettingsService struct {
@@ -96,14 +96,14 @@ func (tss *tenableSettingsService) DeleteTenableSettings(currentUserID uint) err
 	return tss.repo.Delete(setting)
 }
 
-func (tss *tenableSettingsService) TestConnection(input dtos.TestTenableConnectionDTO) (string, error) {
+func (tss *tenableSettingsService) TestConnection(input dtos.TestTenableConnectionDTO) error {
 
 	client := &http.Client{Timeout: 20 * time.Second}
 	url := fmt.Sprintf("%s/rest/system", input.BaseURL)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return "", utility.NewTenableConnectionError(
+		return utility.NewTenableConnectionError(
 			fmt.Errorf("unable to create request: %w", err),
 		)
 	}
@@ -116,7 +116,7 @@ func (tss *tenableSettingsService) TestConnection(input dtos.TestTenableConnecti
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", utility.NewTenableConnectionError(
+		return utility.NewTenableConnectionError(
 			fmt.Errorf("connection failed: %w", err),
 		)
 	}
@@ -127,15 +127,15 @@ func (tss *tenableSettingsService) TestConnection(input dtos.TestTenableConnecti
 	if resp.StatusCode != 200 {
 		var terr dtos.TenableTestErrorResponse
 		if err := json.Unmarshal(body, &terr); err == nil && terr.ErrorMsg != "" {
-			return "", utility.NewTenableConnectionError(
+			return utility.NewTenableConnectionError(
 				fmt.Errorf("%s", strings.TrimSpace(terr.ErrorMsg)),
 			)
 		}
 
-		return "", utility.NewTenableConnectionError(
+		return utility.NewTenableConnectionError(
 			fmt.Errorf("tenable returned %d: %s", resp.StatusCode, string(body)),
 		)
 	}
 
-	return "Connection successful", nil
+	return nil
 }

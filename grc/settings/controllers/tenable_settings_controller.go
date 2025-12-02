@@ -71,11 +71,10 @@ func (tc *TenableSettingsController) TestConnection(c *gin.Context) {
 		return
 	}
 
-	result, err := tc.service.TestConnection(input)
-	if err != nil {
-		switch e := err.(type) {
+	if err := tc.service.TestConnection(input); err != nil {
+		switch err.(type) {
 		case *utility.TenableConnectionError:
-			utility.SendCustomErrResp(c, http.StatusUnprocessableEntity, e.Error())
+			utility.SendCustomErrResp(c, http.StatusUnprocessableEntity, err.Error())
 			return
 		default:
 			utility.SendInternalErrResp(nil, c, err.Error())
@@ -83,8 +82,5 @@ func (tc *TenableSettingsController) TestConnection(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": result,
-	})
+	c.Status(http.StatusOK)
 }
