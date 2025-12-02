@@ -1,5 +1,5 @@
--- +goose NO TRANSACTION
 -- +goose Up
+-- +goose NO TRANSACTION
 -- +goose StatementBegin
 
 
