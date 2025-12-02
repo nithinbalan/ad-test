@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/repositories"
 	"jethur/utility"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -23,10 +25,11 @@ type TenableSettingsService interface {
 type tenableSettingsService struct {
 	repo           repositories.TenableSettingsRepository
 	integrationsvc IntegrationServiceInterface
+	activityLogSvc logServices.ActivityLogServiceInterface
 }
 
-func NewTenableSettingsService(repo repositories.TenableSettingsRepository, integrationsvc IntegrationServiceInterface) TenableSettingsService {
-	return &tenableSettingsService{repo: repo, integrationsvc: integrationsvc}
+func NewTenableSettingsService(repo repositories.TenableSettingsRepository, integrationsvc IntegrationServiceInterface, activityLogSvc logServices.ActivityLogServiceInterface) TenableSettingsService {
+	return &tenableSettingsService{repo: repo, integrationsvc: integrationsvc, activityLogSvc: activityLogSvc}
 }
 
 func (tss *tenableSettingsService) GetTenableSettings() (*models.TenableSettings, error) {
@@ -58,7 +61,26 @@ func (tss *tenableSettingsService) SaveTenableSettings(currentUserID uint, dto d
 		existingSetting.Status = "active"
 		existingSetting.UpdatedAt = time.Now().UTC()
 
-		return tss.repo.Update(existingSetting)
+		err = tss.repo.Update(existingSetting)
+		if err != nil {
+			return err
+		}
+
+		go func() {
+			err := tss.activityLogSvc.LogActivity(
+				models.UpdateAction,
+				"tenable_settings",
+				existingSetting.ID,
+				existingSetting,
+				currentUserID,
+				"", "", "", nil,
+			)
+			if err != nil {
+				log.Printf("Failed to log Tenable settings update: %v", err)
+			}
+		}()
+		return nil
+
 	}
 
 	newSetting := models.TenableSettings{
@@ -71,7 +93,27 @@ func (tss *tenableSettingsService) SaveTenableSettings(currentUserID uint, dto d
 		CreatedAt:          time.Now().UTC(),
 	}
 
-	return tss.repo.Create(&newSetting)
+	err = tss.repo.Create(&newSetting)
+
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		err := tss.activityLogSvc.LogActivity(
+			models.CreateAction,
+			"tenable_settings",
+			newSetting.ID,
+			newSetting,
+			currentUserID,
+			"", "", "", nil,
+		)
+		if err != nil {
+			log.Printf("Failed to log Tenable settings create: %v", err)
+		}
+	}()
+
+	return nil
 }
 
 func (tss *tenableSettingsService) DeleteTenableSettings(currentUserID uint) error {
@@ -93,7 +135,27 @@ func (tss *tenableSettingsService) DeleteTenableSettings(currentUserID uint) err
 		return err
 	}
 
-	return tss.repo.Delete(setting)
+	err = tss.repo.Delete(setting)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		err := tss.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			"tenable_settings",
+			setting.ID,
+			setting,
+			currentUserID,
+			"", "", "", nil,
+		)
+		if err != nil {
+			log.Printf("Failed to log Tenable settings delete: %v", err)
+		}
+	}()
+
+	return nil
+
 }
 
 func (tss *tenableSettingsService) TestConnection(input dtos.TestTenableConnectionDTO) error {

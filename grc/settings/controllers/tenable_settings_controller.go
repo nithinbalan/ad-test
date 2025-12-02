@@ -46,7 +46,7 @@ func (tc *TenableSettingsController) SaveTenableSettings(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Tenable settings saved successfully"})
+	c.Status(http.StatusOK)
 }
 
 func (tc *TenableSettingsController) DeleteTenableSettings(c *gin.Context) {
@@ -61,7 +61,7 @@ func (tc *TenableSettingsController) DeleteTenableSettings(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Tenable settings deleted successfully"})
+	c.Status(http.StatusOK)
 }
 
 func (tc *TenableSettingsController) TestConnection(c *gin.Context) {
