@@ -203,9 +203,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 		activeDirectorySettingController.GetAzureUserGroups)
 
 	//tenable settings
-	settingRoutes.GET("/tenable/settings", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), tenableSettingsController.GetTenableSettings)
-	settingRoutes.POST("tenable/settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), tenableSettingsController.SaveTenableSettings)
-	settingRoutes.DELETE("/tenable/settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), tenableSettingsController.DeleteTenableSettings)
-	settingRoutes.POST("/tenable/settings/test", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), tenableSettingsController.TestConnection)
+	settingRoutes.GET("/tenable-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), tenableSettingsController.GetTenableSettings)
+	settingRoutes.POST("tenable-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), tenableSettingsController.SaveTenableSettings)
+	settingRoutes.DELETE("/tenable-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), tenableSettingsController.DeleteTenableSettings)
+	settingRoutes.POST("/tenable-settings/test-connection", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), tenableSettingsController.TestConnection)
 
 }
