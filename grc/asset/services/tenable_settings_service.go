@@ -1,12 +1,14 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
 	"jethur/grc/models"
 	"net/http"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -15,9 +17,8 @@ import (
 type TenableSettingsService interface {
 	GetTenableSettings() (*dtos.TenableSettingsResponseDTO, error)
 	UpdateTenableSettings(input dtos.UpdateTenableSettingsDTO) error
-	ActivateSettings(id uint) error
-	DeactivateSettings(id uint) error
-	TestConnection(input dtos.TestTenableConnectionDTO) error
+	DeleteTenableSettings() error
+	TestConnection(input dtos.TestTenableConnectionDTO) (*dtos.TestConnectionResult, error)
 }
 
 type tenableSettingsService struct {
@@ -64,6 +65,7 @@ func (tss *tenableSettingsService) UpdateTenableSettings(input dtos.UpdateTenabl
 		return err
 	}
 
+	// update fields
 	if input.BaseURL != nil {
 		st.BaseURL = *input.BaseURL
 	}
@@ -80,36 +82,43 @@ func (tss *tenableSettingsService) UpdateTenableSettings(input dtos.UpdateTenabl
 		st.LookbackDays = *input.LookbackDays
 	}
 
-	st.Status = "active"
-	st.UpdatedAt = time.Now().UTC()
+	// automatically update status based on credentials
+	if st.BaseURL != "" && st.AccessKey != "" && st.SecretKey != "" {
+		st.Status = "active"
+	} else {
+		st.Status = "inactive"
+	}
 
+	st.UpdatedAt = time.Now().UTC()
 	return tss.repo.Update(st)
 }
 
-func (tss *tenableSettingsService) ActivateSettings(id uint) error {
-	return tss.repo.Activate(id)
-}
-
-func (tss *tenableSettingsService) DeactivateSettings(id uint) error {
-	st, err := tss.repo.GetByID(id)
+func (tss *tenableSettingsService) DeleteTenableSettings() error {
+	st, err := tss.repo.GetFirst()
 	if err != nil {
 		return err
 	}
+	if st == nil {
+		return fmt.Errorf("no Tenable settings found")
+	}
 
-	st.Status = "inactive"
 	st.AccessKey = ""
 	st.SecretKey = ""
+	st.Status = "inactive"
 	st.UpdatedAt = time.Now().UTC()
 
 	return tss.repo.Update(st)
 }
 
-func (tss *tenableSettingsService) TestConnection(input dtos.TestTenableConnectionDTO) error {
+func (tss *tenableSettingsService) TestConnection(input dtos.TestTenableConnectionDTO) (*dtos.TestConnectionResult, error) {
 
 	if input.BaseURL == "" {
 		st, err := tss.getOrCreate()
 		if err != nil {
-			return fmt.Errorf("failed to load settings: %w", err)
+			return &dtos.TestConnectionResult{
+				Success: false,
+				Message: "Failed to load settings",
+			}, nil
 		}
 		input.BaseURL = st.BaseURL
 	}
@@ -119,7 +128,10 @@ func (tss *tenableSettingsService) TestConnection(input dtos.TestTenableConnecti
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return err
+		return &dtos.TestConnectionResult{
+			Success: false,
+			Message: "Unable to create request",
+		}, nil
 	}
 
 	req.Header.Set("x-apikey",
@@ -130,13 +142,33 @@ func (tss *tenableSettingsService) TestConnection(input dtos.TestTenableConnecti
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("connection failed: %w", err)
+		return &dtos.TestConnectionResult{
+			Success: false,
+			Message: "Connection failed: " + err.Error(),
+		}, nil
 	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("tenable returned %d: %s", resp.StatusCode, string(body))
+		var terr dtos.TenableTestErrorResponse
+		if err := json.Unmarshal(body, &terr); err == nil && terr.ErrorMsg != "" {
+			return &dtos.TestConnectionResult{
+				Success: false,
+				Message: strings.TrimSpace(terr.ErrorMsg),
+			}, nil
+		}
+
+		// fallback: return plain body if unmarshal fails
+		return &dtos.TestConnectionResult{
+			Success: false,
+			Message: string(body),
+		}, nil
 	}
 
-	return nil
+	return &dtos.TestConnectionResult{
+		Success: true,
+		Message: "Connection successful",
+	}, nil
 }

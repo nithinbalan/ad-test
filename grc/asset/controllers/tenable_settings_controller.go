@@ -1,12 +1,10 @@
 package controllers
 
 import (
-	"fmt"
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/services"
 	"jethur/utility"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -45,36 +43,13 @@ func (tc *TenableSettingsController) UpdateTenableSettings(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Tenable settings updated"})
 }
 
-func (tc *TenableSettingsController) Activate(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.ParseUint(idParam, 10, 32)
-	if err != nil {
-		utility.SendInvalidErrResp(c, fmt.Errorf("invalid ID"))
-		return
-	}
-
-	if err := tc.service.ActivateSettings(uint(id)); err != nil {
+func (tc *TenableSettingsController) DeleteTenableSettings(c *gin.Context) {
+	if err := tc.service.DeleteTenableSettings(); err != nil {
 		utility.SendInternalErrResp(nil, c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Tenable settings activated"})
-}
-
-func (tc *TenableSettingsController) Deactivate(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.ParseUint(idParam, 10, 32)
-	if err != nil {
-		utility.SendInvalidErrResp(c, fmt.Errorf("invalid ID"))
-		return
-	}
-
-	if err := tc.service.DeactivateSettings(uint(id)); err != nil {
-		utility.SendInternalErrResp(nil, c, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Tenable settings deactivated"})
+	c.JSON(http.StatusOK, gin.H{"message": "Tenable settings deleted"})
 }
 
 func (tc *TenableSettingsController) TestConnection(c *gin.Context) {
@@ -84,10 +59,12 @@ func (tc *TenableSettingsController) TestConnection(c *gin.Context) {
 		return
 	}
 
-	if err := tc.service.TestConnection(input); err != nil {
+	result, err := tc.service.TestConnection(input)
+	if err != nil {
 		utility.SendInternalErrResp(nil, c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Connection successful"})
+	c.JSON(http.StatusOK, result)
+
 }

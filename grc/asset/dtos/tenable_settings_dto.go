@@ -23,3 +23,12 @@ type TestTenableConnectionDTO struct {
 	AccessKey string `json:"access_key" binding:"required"`
 	SecretKey string `json:"secret_key" binding:"required"`
 }
+
+type TestConnectionResult struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+}
+
+type TenableTestErrorResponse struct {
+	ErrorMsg string `json:"error_msg"`
+}
