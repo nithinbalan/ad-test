@@ -18,11 +18,13 @@ type TprmModule struct {
 	ThirdPartyAssessmentStatusController *controllers.ThirdPartyAssessmentStatusController
 	ThirdPartyAssessmentController       *controllers.ThirdPartyAssessmentController
 	ThirdPartyAssociatedItemController   *controllers.ThirdPartyAssociatedItemController
+	TPRMSettingController                *controllers.TPRMSettingController
 
 	ThirdPartyTypeSvc             services.ThirdPartyTypeServiceInterface
 	ThirdPartyRegisterSvc         services.ThirdPartyRegisterServiceInterface
 	ThirdPartyQuestionCategorySvc services.ThirdPartyQuestionCategoryServiceInterface
 	ThirdPartyQuestionTypeSvc     services.ThirdPartyQuestionTypeServiceInterface
+	TPRMSettingSvc                services.TPRMSettingServiceInterface
 }
 
 func NewTprmModule(
@@ -104,6 +106,9 @@ func NewTprmModule(
 	thirdPartyAssociatedItemSvc := services.NewThirdPartyAssociatedItemService(thirdPartyAssociatedItemRepo, thirdPartyRegisterSvc, commonModule.AssociatedItemValidationService)
 	thirdPartyAssociatedItemController := controllers.NewThirdPartyAssociatedItemController(thirdPartyAssociatedItemSvc)
 
+	tprmSettingRepo := repositories.NewTPRMSettingRepository(db)
+	tprmSettingSvc := services.NewTPRMSettingService(tprmSettingRepo)
+	tprmSettingController := controllers.NewTPRMSettingController(tprmSettingSvc)
 	return &TprmModule{
 		ThirdPartyTypeController:             thirdPartyTypeController,
 		ThirdPartyRegisterController:         thirdPartyRegisterController,
@@ -114,10 +119,12 @@ func NewTprmModule(
 		ThirdPartyAssessmentStatusController: thirdPartyAssessmentStatusController,
 		ThirdPartyAssessmentController:       thirdPartyAssessmentController,
 		ThirdPartyAssociatedItemController:   thirdPartyAssociatedItemController,
+		TPRMSettingController:                tprmSettingController,
 
 		ThirdPartyTypeSvc:             thirdPartyTypeSvc,
 		ThirdPartyRegisterSvc:         thirdPartyRegisterSvc,
 		ThirdPartyQuestionCategorySvc: thirdPartyQuestionCategorySvc,
 		ThirdPartyQuestionTypeSvc:     thirdPartyQuestionTypeSvc,
+		TPRMSettingSvc:                tprmSettingSvc,
 	}
 }
