@@ -23,6 +23,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	thirdPartyAssessmentStatusController := app.TprmModule.ThirdPartyAssessmentStatusController
 	thirdPartyAssessmentController := app.TprmModule.ThirdPartyAssessmentController
 	thirdPartyAssociatedItemController := app.TprmModule.ThirdPartyAssociatedItemController
+	tprmSettingController := app.TprmModule.TPRMSettingController
 
 	tprmRoutes.GET("/third-party-types", thirdPartyTypeController.GetAllThirdPartyTypes)
 	tprmRoutes.GET("/third-party-types/:id", thirdPartyTypeController.GetThirdPartyTypeDetails)
@@ -112,4 +113,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	tprmRoutes.GET("/third-party-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "third_party_register", "view"), thirdPartyAssociatedItemController.GetAllClauses)
 	tprmRoutes.PUT("/third-party-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyAssociatedItemController.UpdateClauses)
+
+	tprmRoutes.GET("/tprm-settings", middlewares.RolePermissionMiddleware(db, "tprm_setting", "view"), tprmSettingController.GetTPRMSetting)
+	tprmRoutes.PUT("/tprm-settings", middlewares.RolePermissionMiddleware(db, "tprm_setting", "modify"), tprmSettingController.UpdateTPRMSetting)
 }
