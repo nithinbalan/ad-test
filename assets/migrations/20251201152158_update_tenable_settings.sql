@@ -1,6 +1,7 @@
--- +goose StatementBegin
 -- +goose NO TRANSACTION
 -- +goose Up
+-- +goose StatementBegin
+
 
 ALTER TABLE tenable_settings
 ADD status VARCHAR(10) NULL DEFAULT 'active';
