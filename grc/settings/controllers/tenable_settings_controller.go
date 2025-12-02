@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"jethur/grc/asset/dtos"
-	"jethur/grc/asset/services"
+	"jethur/grc/settings/dtos"
+	"jethur/grc/settings/services"
 	"jethur/utility"
 	"net/http"
 

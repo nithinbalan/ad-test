@@ -38,6 +38,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	escalationLevelController := app.SettingsModule.EscalationLevelController
 	reminderContextController := app.SettingsModule.ReminderContextController
 	ragSettingController := app.SettingsModule.RAGSettingController
+	tenableSettingsController := app.SettingsModule.TenableSettingsController
 
 	// Organization Level
 	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
@@ -133,11 +134,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.POST("/active-directory-settings/check-connection", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), activeDirectorySettingController.CheckActiveDirectoryConnection)
 	settingRoutes.GET("/active-directory-settings/check-saved-connection", activeDirectorySettingController.CheckSavedADConnection)
 	settingRoutes.DELETE(
-	"/active-directory-settings/delete",
-	middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
-	activeDirectorySettingController.DeleteActiveDirectorySetting,
-)
-
+		"/active-directory-settings/delete",
+		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
+		activeDirectorySettingController.DeleteActiveDirectorySetting,
+	)
 
 	settingRoutes.GET("/siem-settings", siemSettingController.GetSIEMSettings)
 	settingRoutes.PUT("/siem-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), siemSettingController.UpdateSIEMSettings)
@@ -195,10 +195,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 		activeDirectorySettingController.SaveOAuthConfiguration)
 
 	settingRoutes.DELETE("/active-directory-settings/oauth-config",
-        middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
-        activeDirectorySettingController.DeleteOAuthConfiguration)
+		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
+		activeDirectorySettingController.DeleteOAuthConfiguration)
 
-	settingRoutes.GET("/active-directory-settings/users/:id/groups", 
+	settingRoutes.GET("/active-directory-settings/users/:id/groups",
 		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
 		activeDirectorySettingController.GetAzureUserGroups)
+
+	//tenable settings
+	settingRoutes.GET("/tenable/settings", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), tenableSettingsController.GetTenableSettings)
+	settingRoutes.PUT("tenable/settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), tenableSettingsController.UpdateTenableSettings)
+	settingRoutes.DELETE("/tenable/settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), tenableSettingsController.DeleteTenableSettings)
+	settingRoutes.POST("/tenable/settings/test", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), tenableSettingsController.TestConnection)
+
 }

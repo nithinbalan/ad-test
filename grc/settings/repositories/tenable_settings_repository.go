@@ -1,8 +1,8 @@
 package repositories
 
 import (
-	"jethur/grc/asset/dtos"
 	"jethur/grc/models"
+	"jethur/grc/settings/dtos"
 
 	"gorm.io/gorm"
 )
