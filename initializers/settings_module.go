@@ -159,7 +159,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	ragSettingController := controllers.NewRAGSettingController(ragSettingSvc)
 
 	tenableSettingsRepo := repositories.NewTenableSettingsRepository(db)
-	tenableSettingsSvc := services.NewTenableSettingsService(tenableSettingsRepo, integrationSvc)
+	tenableSettingsSvc := services.NewTenableSettingsService(tenableSettingsRepo, integrationSvc, sharedModule.ActivityLogService)
 	tenableSettingsController := controllers.NewTenableSettingsController(tenableSettingsSvc)
 
 	return &SettingsModule{
