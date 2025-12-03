@@ -30,9 +30,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Azure_AD login
 
-    authRoutes.GET("/active-directory-settings/login-url",
+	authRoutes.GET("/active-directory-settings/login-url",
 		authController.GetLoginURL)
 
-	authRoutes.GET("/auth/callback/microsoft",
-		authController.HandleOAuthCallback)
+	authRoutes.POST("/auth/callback/microsoft",
+		authController.HandleMicrosoftOAuthCallback)
 }

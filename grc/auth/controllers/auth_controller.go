@@ -311,19 +311,34 @@ func (adsc *AuthController) GetLoginURL(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"login_url": url})
 }
 
-func (adsc *AuthController) HandleOAuthCallback(c *gin.Context) {
-	code := c.Query("code")
-	state := c.Query("state")
+func (ac *AuthController) HandleMicrosoftOAuthCallback(c *gin.Context) {
+	var input authDTOs.MicrosoftOAuthCallbackDTO
 
-	if code == "" {
-		utility.SendNotFoundErrResp(c)
+	// Bind JSON to DTO
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	responseDTO, err := adsc.service.HandleOAuthCallback(c.Request.Context(), code, state)
+	responseDTO, err := ac.service.HandleOAuthCallback(
+		c.Request.Context(),
+		input.Code,
+		input.State,
+	)
 	if err != nil {
-		utility.SendInternalErrResp(adsc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+
+		default:
+			utility.SendInternalErrResp(ac.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, responseDTO)

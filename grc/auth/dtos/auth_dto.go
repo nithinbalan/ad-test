@@ -46,3 +46,8 @@ type LoginSettingsDTO struct {
 	ActiveDirectoryEnabled bool `json:"active_directory_enabled"`
 	AzureADEnabled         bool `json:"azure_ad_enabled"`
 }
+
+type MicrosoftOAuthCallbackDTO struct {
+	Code  string `json:"code" binding:"required"`
+	State string `json:"state"`
+}
