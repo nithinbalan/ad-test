@@ -83,7 +83,7 @@ func (adss *ActiveDirectorySettingService) Create(currentUserID uint, dto settin
 	// if err != nil {
 	// 	return fmt.Errorf("failed to enable integration: %w", err)
 	// }
-	_, err = adss.integrationSvc.EnableADIntegration(integration, currentUserID)
+	_, err = adss.integrationSvc.EnableIntegrationSettings(integration, currentUserID)
 	if err != nil {
 		return err
 	}
@@ -257,7 +257,7 @@ func (adss *ActiveDirectorySettingService) Delete(currentUserID uint) error {
 		return err
 	}
 
-	_, err = adss.integrationSvc.DisableADIntegration(integration, currentUserID)
+	_, err = adss.integrationSvc.DisableIntegrationSettings(integration, currentUserID)
 	if err != nil {
 		return err
 	}
@@ -338,7 +338,7 @@ func (adss *ActiveDirectorySettingService) SaveOAuthConfiguration(currentUserID 
 		return err
 	}
 
-	_, err = adss.integrationSvc.EnableADIntegration(integration, currentUserID)
+	_, err = adss.integrationSvc.EnableIntegrationSettings(integration, currentUserID)
 	if err != nil {
 		return fmt.Errorf("failed to enable integration: %w", err)
 	}
@@ -388,7 +388,7 @@ func (adss *ActiveDirectorySettingService) DeleteOAuthConfiguration(currentUserI
 		return err
 	}
 
-	_, err = adss.integrationSvc.DisableADIntegration(integration, currentUserID)
+	_, err = adss.integrationSvc.DisableIntegrationSettings(integration, currentUserID)
 	if err != nil {
 		return err
 	}

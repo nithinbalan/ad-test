@@ -41,7 +41,6 @@ type AssetModule struct {
 	AssetControlAnalysisController                *controllers.AssetControlAnalysisController
 	AssetKriController                            *controllers.AssetKriController
 	TenableController                             *controllers.TenableController
-	TenableSettingsController                     *controllers.TenableSettingsController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -262,10 +261,6 @@ func NewAssetModule(db *gorm.DB,
 	tenableSvc := services.NewTenableService(tenableRepo, assetStatusSvc, assetCategorySvc, organizationModule.UserSvc, assetRegisterSvc, assetSubCategorySvc)
 	tenableController := controllers.NewTenableController(tenableSvc)
 
-	tenableSettingsRepo := repositories.NewTenableSettingsRepository(db)
-	tenableSettingsSvc := services.NewTenableSettingsService(tenableSettingsRepo)
-	tenableSettingsController := controllers.NewTenableSettingsController(tenableSettingsSvc)
-
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
 		AssetCategoryController:                       assetCategoryController,
@@ -299,7 +294,6 @@ func NewAssetModule(db *gorm.DB,
 		AssetControlAnalysisController:                assetControlAnalysisController,
 		AssetKriController:                            assetKriController,
 		TenableController:                             tenableController,
-		TenableSettingsController:                     tenableSettingsController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}
