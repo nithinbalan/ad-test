@@ -700,7 +700,7 @@ func (as *AuthService) HandleOAuthCallback(ctx context.Context, code string, sta
 	responseDTO := &authDTOs.LoginResponseDTO{
 		AccessToken:  &accessToken,
 		RefreshToken: &refreshToken,
-		IsMFAEnabled: true,
+		IsMFAEnabled: false,
 	}
 
 	return responseDTO, nil
