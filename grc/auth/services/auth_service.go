@@ -679,18 +679,18 @@ func (as *AuthService) HandleOAuthCallback(ctx context.Context, code string, sta
 	} else {
 		return nil, fmt.Errorf("email claim not found in id token")
 	}
-
+	fmt.Println(email)
 	user, err := as.userService.GetByEmail(email)
 	if err != nil {
 		return nil, utility.NewResourceNotFoundError(err, email)
 	}
 	//generate access token
-	accessToken, err := utility.GenerateToken(setting.ID)
+	accessToken, err := utility.GenerateToken(user.ID)
 	if err != nil {
 		return nil, utility.NewInternalServerError(err)
 	}
 
-	refreshToken, err := utility.GenerateRefreshToken(setting.ID)
+	refreshToken, err := utility.GenerateRefreshToken(user.ID)
 	if err != nil {
 		return nil, utility.NewInternalServerError(err)
 	}
