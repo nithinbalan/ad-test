@@ -24,8 +24,8 @@ type IntegrationServiceInterface interface {
 	EnableIntegration(integrationID uint, currentUserID uint, integrtaionCredentialFormDTO *settingsDTOs.IntegrationCredentialFormDTO) (uint, error)
 	UpdateCredential(id uint, currentUserID uint, integrationCredential *settingsDTOs.IntegrationCredentialFormDTO) (uint, error)
 	DisableIntegration(id uint, currentUserID uint) (uint, error)
-	EnableADIntegration(integration *models.Integration, currentUserID uint) (uint, error)
-	DisableADIntegration(integration *models.Integration, currentUserID uint) (uint, error)
+	EnableIntegrationSettings(integration *models.Integration, currentUserID uint) (uint, error)
+	DisableIntegrationSettings(integration *models.Integration, currentUserID uint) (uint, error)
 	// UpdateIntegration(id uint)
 }
 
@@ -246,7 +246,7 @@ func (is *IntegrationService) GetByType(integrationType string) (*models.Integra
 	return integration, nil
 }
 
-func (is *IntegrationService) EnableADIntegration(integration *models.Integration, currentUserID uint) (uint, error) {
+func (is *IntegrationService) EnableIntegrationSettings(integration *models.Integration, currentUserID uint) (uint, error) {
 
 	integration.IsEnable = true
 	integration.UpdatedBYID = &currentUserID
@@ -275,7 +275,7 @@ func (is *IntegrationService) EnableADIntegration(integration *models.Integratio
 	return id, nil
 }
 
-func (is *IntegrationService) DisableADIntegration(integration *models.Integration, currentUserID uint) (uint, error) {
+func (is *IntegrationService) DisableIntegrationSettings(integration *models.Integration, currentUserID uint) (uint, error) {
 
 	integration.IsEnable = false
 	integration.UpdatedBYID = &currentUserID

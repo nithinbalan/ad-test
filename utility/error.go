@@ -28,6 +28,10 @@ type ActiveDirectoryConnectionError struct {
 	err error
 }
 
+type TenableConnectionError struct {
+	err error
+}
+
 func (e *InternalServerError) Error() string {
 	return e.err.Error()
 }
@@ -49,6 +53,10 @@ func (e *ResourceConflictError) Error() string {
 }
 
 func (e *ActiveDirectoryConnectionError) Error() string {
+	return e.err.Error()
+}
+
+func (e *TenableConnectionError) Error() string {
 	return e.err.Error()
 }
 
@@ -88,4 +96,8 @@ func NewActiveDirectoryConnectionError(err error) error {
 	return &ActiveDirectoryConnectionError{
 		err: err,
 	}
+}
+
+func NewTenableConnectionError(err error) error {
+	return &TenableConnectionError{err: err}
 }

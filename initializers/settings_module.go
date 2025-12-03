@@ -1,10 +1,10 @@
 package initializers
 
 import (
+	orgRepo "jethur/grc/organization/repositories"
 	"jethur/grc/settings/controllers"
 	"jethur/grc/settings/repositories"
 	"jethur/grc/settings/services"
-	orgRepo "jethur/grc/organization/repositories"
 
 	"gorm.io/gorm"
 )
@@ -34,6 +34,7 @@ type SettingsModule struct {
 	EscalationLevelController        *controllers.EscalationLevelController
 	ReminderContextController        *controllers.ReminderContextController
 	RAGSettingController             *controllers.RAGSettingController
+	TenableSettingsController        *controllers.TenableSettingsController
 
 	SystemPreferenceSvc       services.SystemPreferenceServiceInterface
 	OrganizationUnitSvc       services.OrganizationUnitServiceInterface
@@ -114,9 +115,9 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	reportTemplateSettingController := controllers.NewReportTemplateSettingController(reportTemplateSettingSvc)
 
 	activeDirectorySettingRepo := repositories.NewActiveDirectorySettingRepository(db)
-	orgRepo:=orgRepo.NewUserRepository(db)
+	orgRepo := orgRepo.NewUserRepository(db)
 	activeDirectorySettingSvc := services.NewActiveDirectorySettingService(
-		activeDirectorySettingRepo, orgRepo, organizationLevelRepo,integrationSvc)
+		activeDirectorySettingRepo, orgRepo, organizationLevelRepo, integrationSvc)
 	activeDirectorySettingController := controllers.NewActiveDirectorySettingController(activeDirectorySettingSvc)
 
 	siemSettingRepo := repositories.NewSIEMSettingRepository(db)
@@ -157,6 +158,10 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	ragSettingSvc := services.NewRAGSettingService(ragSettingRepo)
 	ragSettingController := controllers.NewRAGSettingController(ragSettingSvc)
 
+	tenableSettingsRepo := repositories.NewTenableSettingsRepository(db)
+	tenableSettingsSvc := services.NewTenableSettingsService(tenableSettingsRepo, integrationSvc)
+	tenableSettingsController := controllers.NewTenableSettingsController(tenableSettingsSvc)
+
 	return &SettingsModule{
 		OrganizationLevelController:      organizationLevelController,
 		SystemPreferenceController:       systemPreferenceController,
@@ -182,6 +187,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		EscalationLevelController:        escalationLevelController,
 		ReminderContextController:        reminderContextController,
 		RAGSettingController:             ragSettingController,
+		TenableSettingsController:        tenableSettingsController,
 
 		SystemPreferenceSvc:       systemPreferenceSvc,
 		OrganizationLevelSvc:      organizationLevelSvc,
