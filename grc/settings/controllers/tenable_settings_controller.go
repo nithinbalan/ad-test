@@ -84,3 +84,36 @@ func (tc *TenableSettingsController) TestConnection(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (tc *TenableSettingsController) CheckSavedConnection(c *gin.Context) {
+
+	err := tc.service.CheckSavedConnection()
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, err.Error())
+			return
+
+		case *utility.TenableConnectionError:
+			utility.SendCustomErrResp(c, http.StatusUnprocessableEntity, e.Error())
+			return
+
+		default:
+			utility.SendInternalErrResp(nil, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Tenable connection (from saved config) successful",
+	})
+}
