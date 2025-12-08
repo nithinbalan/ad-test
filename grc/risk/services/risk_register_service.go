@@ -677,18 +677,19 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			RiskMatrixLikelihoodID: *riskRegisterFormDTO.InherentRiskMatrixLikelihoodID,
 			RiskMatrixImpactID:     *riskRegisterFormDTO.InherentRiskMatrixImpactID,
 		}
-
-		existingRiskEvaluation, err := rrs.riskInherentEvaluationSvc.GetFullDetailsByID(id, tx)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		if existingRiskRegister.InherentLikelihoodID != nil && existingRiskRegister.InherentImpactID != nil {
-			_, err = rrs.riskInherentEvaluationSvc.Delete(id, existingRiskEvaluation.ID, currentUserID, tx)
+		if existingRisk.InherentLikelihood != nil && existingRisk.InherentImpact != nil {
+			existingRiskEvaluation, err := rrs.riskInherentEvaluationSvc.GetFullDetailsByID(id, tx)
 			if err != nil {
 				tx.Rollback()
 				return err
+			}
+
+			if existingRiskRegister.InherentLikelihoodID != nil && existingRiskRegister.InherentImpactID != nil {
+				_, err = rrs.riskInherentEvaluationSvc.Delete(id, existingRiskEvaluation.ID, currentUserID, tx)
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
 			}
 		}
 
