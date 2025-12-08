@@ -143,6 +143,12 @@ func (us *UserService) SetUserSettingService(svc UserSettingServiceInterface) {
 }
 
 func (us *UserService) GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error) {
+	
+    // Prevent panic when writing to Filters map
+	if params.Filters == nil {
+    params.Filters = map[string][]string{}
+	}
+
 	// Check if `organization_unit_ids` exists in the filters
 	orgUnitIDs, ok := params.Filters["organization_unit_id"]
 	if ok && len(orgUnitIDs) > 0 {
@@ -172,6 +178,10 @@ func (us *UserService) GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTO
 		// Add the resolved column name and value to the filters
 		params.Filters[primaryOrgUnitField] = orgUnitIDs
 		delete(params.Filters, "organization_unit_id") // Clean up the generic filter key
+	}
+
+	if params.ReportedToID != nil {
+		params.Filters["reported_to_id"] = []string{strconv.Itoa(int(*params.ReportedToID))}
 	}
 
 	return us.repo.GetAll(params)

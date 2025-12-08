@@ -72,6 +72,7 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		"user_status_ids",
 		"license_type_ids",
 		"organization_unit_ids", // to get users based on primary organization level
+		"reported_to_id",
 	}
 
 	validSortFields := map[string]string{

@@ -114,12 +114,17 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
 		Joins("LEFT JOIN license_types ON license_types.id = users.license_type_id").
 		Joins("LEFT JOIN user_statuses ON user_statuses.id = users.user_status_id").
-		Joins("LEFT JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id")
+		Joins("LEFT JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id").
+		Joins("LEFT JOIN users AS reported_to_user ON reported_to_user.id = users.reporting_user_id")
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			if columnName == "reported_to_id" {
+				query = query.Where("users.reporting_user_id IN (?)", values)
+			} else {
+				query = query.Where(columnName+" IN (?)", values)
+			}
 		}
 	}
 
