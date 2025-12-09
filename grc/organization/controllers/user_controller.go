@@ -72,6 +72,7 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		"user_status_ids",
 		"license_type_ids",
 		"organization_unit_ids", // to get users based on primary organization level
+		"reporting_user_ids", 
 	}
 
 	validSortFields := map[string]string{
@@ -91,24 +92,6 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 	
-	ReportingToIDStr := c.Query("reported_to_id")
-	var ReportingToID *uint
-
-	if ReportingToIDStr != "" {
-
-		if strings.ToLower(ReportingToIDStr) == "null" {
-			temp := uint(0)
-			ReportingToID = &temp
-		} else {
-			parsed, err := strconv.ParseUint(ReportingToIDStr, 10, 64)
-			if err != nil {
-				utility.SendInvalidErrResp(c, errors.New("invalid 'reported_to_id' parameter"))
-				return
-			}
-			temp := uint(parsed)
-			ReportingToID = &temp
-		}
-	}
 
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
@@ -147,7 +130,6 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		Export:      export,
 		DateFrom:    dateFrom,
 		DateTo:      dateTo,
-		ReportingToID: ReportingToID,
 	}
 
 	users, err := uc.service.GetAll(&queryParams)
