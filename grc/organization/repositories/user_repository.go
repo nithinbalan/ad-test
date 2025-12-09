@@ -8,7 +8,7 @@ import (
 	settingDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
 	"time"
-
+	"strings"
 	"gorm.io/gorm"
 )
 
@@ -118,17 +118,17 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 		Joins("LEFT JOIN users AS reported_to_user ON reported_to_user.id = users.reporting_user_id")
 
 	for columnName, values := range params.Filters {
-    if len(values) > 0 {
-          if columnName == "reporting_user_ids" {
-            if len(values) == 1 && strings.ToLower(values[0]) == "null" {
-                query = query.Where("users.reporting_user_id IS NULL")
-            } else {
-                query = query.Where("users.reporting_user_id IN (?)", values)
-            }
-            continue
-        }
-       		query = query.Where(columnName+" IN (?)", values)
-    	}
+		if len(values) > 0 {
+			if columnName == "reporting_user_id" {
+				if len(values) == 1 && strings.ToLower(values[0]) == "null" {
+					query = query.Where("users.reporting_user_id IS NULL")
+				} else {
+					query = query.Where("users.reporting_user_id IN (?)", values)
+				}
+				continue
+			}
+			query = query.Where("users."+columnName+" IN (?)", values)
+		}
 	}
 
 
