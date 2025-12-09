@@ -71,7 +71,7 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		"organization_unit_5_ids",
 		"user_status_ids",
 		"license_type_ids",
-		"organization_unit_ids"
+		"organization_unit_ids", // to get users based on primary organization level
 	}
 
 	validSortFields := map[string]string{
@@ -91,16 +91,16 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 	
-	reportedToIDStr := c.Query("reported_to_id")
+	ReportingToIDStr := c.Query("reported_to_id")
 	var ReportingToID *uint
 
-	if reportedToIDStr != "" {
+	if ReportingToIDStr != "" {
 
-		if strings.ToLower(reportedToIDStr) == "null" {
+		if strings.ToLower(ReportingToIDStr) == "null" {
 			temp := uint(0)
 			ReportingToID = &temp
 		} else {
-			parsed, err := strconv.ParseUint(reportedToIDStr, 10, 64)
+			parsed, err := strconv.ParseUint(ReportingToIDStr, 10, 64)
 			if err != nil {
 				utility.SendInvalidErrResp(c, errors.New("invalid 'reported_to_id' parameter"))
 				return
@@ -109,6 +109,7 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 			ReportingToID = &temp
 		}
 	}
+
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -146,8 +147,7 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		Export:      export,
 		DateFrom:    dateFrom,
 		DateTo:      dateTo,
-		ReportingToID: ReportingToID
-
+		ReportingToID: ReportingToID,
 	}
 
 	users, err := uc.service.GetAll(&queryParams)
