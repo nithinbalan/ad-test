@@ -143,6 +143,7 @@ func (us *UserService) SetUserSettingService(svc UserSettingServiceInterface) {
 }
 
 func (us *UserService) GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error) {
+	
 	// Check if `organization_unit_ids` exists in the filters
 	orgUnitIDs, ok := params.Filters["organization_unit_id"]
 	if ok && len(orgUnitIDs) > 0 {

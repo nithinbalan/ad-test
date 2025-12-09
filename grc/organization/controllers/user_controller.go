@@ -72,6 +72,7 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		"user_status_ids",
 		"license_type_ids",
 		"organization_unit_ids", // to get users based on primary organization level
+		"reporting_user_ids", 
 	}
 
 	validSortFields := map[string]string{
@@ -90,6 +91,8 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+	
+
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {

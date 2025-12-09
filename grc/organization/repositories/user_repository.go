@@ -8,7 +8,7 @@ import (
 	settingDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
 	"time"
-
+	"strings"
 	"gorm.io/gorm"
 )
 
@@ -114,14 +114,23 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
 		Joins("LEFT JOIN license_types ON license_types.id = users.license_type_id").
 		Joins("LEFT JOIN user_statuses ON user_statuses.id = users.user_status_id").
-		Joins("LEFT JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id")
+		Joins("LEFT JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id").
+		Joins("LEFT JOIN users AS reported_to_user ON reported_to_user.id = users.reporting_user_id")
 
-	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			if columnName == "reporting_user_id" {
+				if len(values) == 1 && strings.ToLower(values[0]) == "null" {
+					query = query.Where("users.reporting_user_id IS NULL")
+				} else {
+					query = query.Where("users.reporting_user_id IN (?)", values)
+				}
+				continue
+			}
+			query = query.Where("users."+columnName+" IN (?)", values)
 		}
 	}
+
 
 	if len(params.UserIDs) > 0 {
 		query = query.Where("users.id IN (?)", params.UserIDs)
