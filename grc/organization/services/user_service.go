@@ -180,9 +180,10 @@ func (us *UserService) GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTO
 		delete(params.Filters, "organization_unit_id") // Clean up the generic filter key
 	}
 
-	if params.ReportedToID != nil {
-		params.Filters["reported_to_id"] = []string{strconv.Itoa(int(*params.ReportedToID))}
-	}
+	// if params.ReportedToID != nil {
+    // // Just pass it down — do not push into Filters
+	// }
+
 
 	return us.repo.GetAll(params)
 }

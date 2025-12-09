@@ -119,14 +119,21 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
-		if len(values) > 0 {
-			if columnName == "reported_to_id" {
-				query = query.Where("users.reporting_user_id IN (?)", values)
-			} else {
-				query = query.Where(columnName+" IN (?)", values)
-			}
-		}
+    if len(values) > 0 {
+        query = query.Where(columnName+" IN (?)", values)
+    	}
 	}
+
+	if params.ReportingToID != nil {
+    if *params.ReportingToID == 0 {
+        query = query.Where("users.reporting_user_id IS NULL")
+    } else {
+        query = query.Where("users.reporting_user_id = ?", *params.ReportingToID)
+    }
+	}
+
+
+
 
 	if len(params.UserIDs) > 0 {
 		query = query.Where("users.id IN (?)", params.UserIDs)

@@ -91,6 +91,25 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+	
+	reportedToIDStr := c.Query("reported_to_id")
+	var reportedToID *uint
+
+	if reportedToIDStr != "" {
+
+		if strings.ToLower(reportedToIDStr) == "null" {
+			temp := uint(0)
+			reportedToID = &temp
+		} else {
+			parsed, err := strconv.ParseUint(reportedToIDStr, 10, 64)
+			if err != nil {
+				utility.SendInvalidErrResp(c, errors.New("invalid 'reported_to_id' parameter"))
+				return
+			}
+			temp := uint(parsed)
+			reportedToID = &temp
+		}
+	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -128,6 +147,8 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		Export:      export,
 		DateFrom:    dateFrom,
 		DateTo:      dateTo,
+		ReportingToID: reportedToID
+
 	}
 
 	users, err := uc.service.GetAll(&queryParams)

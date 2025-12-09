@@ -57,7 +57,7 @@ type UserListQueryParamsDTO struct {
 	RoleIDs     []int
 	DateFrom    string
 	DateTo      string
-	ReportedToID *uint
+	ReportingToID *uint
 }
 
 type UserListResponseDTO struct {
