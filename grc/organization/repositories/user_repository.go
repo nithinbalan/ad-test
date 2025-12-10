@@ -105,7 +105,8 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 			user_statuses.title_ar AS user_status_title_ar,
 			user_statuses.color_code AS user_status_color_code,
 			user_statuses.is_active AS user_status_is_active,
-			(SELECT COUNT(*) FROM users u2 WHERE u2.reporting_user_id = users.id) AS report_count
+			(SELECT COUNT(*) FROM users u2 WHERE u2.reporting_user_id = users.id) AS reporting_users_count
+
 		`).
 		Joins("INNER JOIN organization_units org1 ON org1.id = users.organization_unit_1_id").
 		Joins("LEFT JOIN organization_units org2 ON org2.id = users.organization_unit_2_id").

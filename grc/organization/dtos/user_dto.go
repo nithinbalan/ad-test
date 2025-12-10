@@ -41,7 +41,7 @@ type UserListDTO struct {
 	UserStatusTitleAr        string  `json:"user_status_title_ar"`
 	UserStatusColorCode      string  `json:"user_status_color_code"`
 	UserStatusIsActive       bool    `json:"user_status_is_active"`
-	ReportCount              int     `json:"report_count"`
+    ReportingUsersCount      int     `json:"reporting_users_count"`
 }
 
 type UserListQueryParamsDTO struct {
