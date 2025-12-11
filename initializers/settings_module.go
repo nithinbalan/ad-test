@@ -35,6 +35,7 @@ type SettingsModule struct {
 	ReminderContextController        *controllers.ReminderContextController
 	RAGSettingController             *controllers.RAGSettingController
 	TenableSettingsController        *controllers.TenableSettingsController
+	HealthCheckController            *controllers.HealthCheckController
 
 	SystemPreferenceSvc       services.SystemPreferenceServiceInterface
 	OrganizationUnitSvc       services.OrganizationUnitServiceInterface
@@ -162,6 +163,10 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	tenableSettingsSvc := services.NewTenableSettingsService(tenableSettingsRepo, integrationSvc, sharedModule.ActivityLogService)
 	tenableSettingsController := controllers.NewTenableSettingsController(tenableSettingsSvc)
 
+	healthCheckRepo := repositories.NewHealthCheckRepository(db)
+	healthCheckService := services.NewHealthCheckService(healthCheckRepo, systemPreferenceSvc)
+	healthCheckController := controllers.NewHealthCheckController(healthCheckService)
+
 	return &SettingsModule{
 		OrganizationLevelController:      organizationLevelController,
 		SystemPreferenceController:       systemPreferenceController,
@@ -188,6 +193,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		ReminderContextController:        reminderContextController,
 		RAGSettingController:             ragSettingController,
 		TenableSettingsController:        tenableSettingsController,
+		HealthCheckController:            healthCheckController,
 
 		SystemPreferenceSvc:       systemPreferenceSvc,
 		OrganizationLevelSvc:      organizationLevelSvc,

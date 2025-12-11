@@ -39,6 +39,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reminderContextController := app.SettingsModule.ReminderContextController
 	ragSettingController := app.SettingsModule.RAGSettingController
 	tenableSettingsController := app.SettingsModule.TenableSettingsController
+	healthCheckController := app.SettingsModule.HealthCheckController
 
 	// Organization Level
 	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
@@ -208,4 +209,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.DELETE("/tenable-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), tenableSettingsController.DeleteTenableSettings)
 	settingRoutes.POST("/tenable-settings/test-connection", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), tenableSettingsController.TestConnection)
 
+	unauthenticatedRoutes.GET("/health", healthCheckController.Health)
+	unauthenticatedRoutes.GET("/health/live", healthCheckController.Liveness)
+	unauthenticatedRoutes.GET("/health/ready", healthCheckController.Readiness)
 }
