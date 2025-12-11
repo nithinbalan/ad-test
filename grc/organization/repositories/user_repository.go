@@ -8,7 +8,7 @@ import (
 	settingDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
 	"time"
-
+	"strings"
 	"gorm.io/gorm"
 )
 
@@ -104,7 +104,9 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 			user_statuses.title_en AS user_status_title_en,
 			user_statuses.title_ar AS user_status_title_ar,
 			user_statuses.color_code AS user_status_color_code,
-			user_statuses.is_active AS user_status_is_active
+			user_statuses.is_active AS user_status_is_active,
+			(SELECT COUNT(*) FROM users u2 WHERE u2.reporting_user_id = users.id) AS reporting_users_count
+
 		`).
 		Joins("INNER JOIN organization_units org1 ON org1.id = users.organization_unit_1_id").
 		Joins("LEFT JOIN organization_units org2 ON org2.id = users.organization_unit_2_id").
@@ -114,14 +116,23 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
 		Joins("LEFT JOIN license_types ON license_types.id = users.license_type_id").
 		Joins("LEFT JOIN user_statuses ON user_statuses.id = users.user_status_id").
-		Joins("LEFT JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id")
+		Joins("LEFT JOIN (SELECT user_roles.user_id, STRING_AGG(roles.title_en, ', ') AS roles_en, STRING_AGG(roles.title_ar, ', ') AS roles_ar FROM user_roles JOIN roles ON roles.id = user_roles.role_id GROUP BY user_roles.user_id) roles_agg ON roles_agg.user_id = users.id").
+		Joins("LEFT JOIN users AS reported_to_user ON reported_to_user.id = users.reporting_user_id")
 
-	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			if columnName == "reporting_user_id" {
+				if len(values) == 1 && strings.ToLower(values[0]) == "null" {
+					query = query.Where("users.reporting_user_id IS NULL")
+				} else {
+					query = query.Where("users.reporting_user_id IN (?)", values)
+				}
+				continue
+			}
+			query = query.Where("users."+columnName+" IN (?)", values)
 		}
 	}
+
 
 	if len(params.UserIDs) > 0 {
 		query = query.Where("users.id IN (?)", params.UserIDs)

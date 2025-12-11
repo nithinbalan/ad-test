@@ -20,6 +20,7 @@ type TenableSettingsService interface {
 	SaveTenableSettings(currentUserID uint, dto dtos.UpdateTenableSettingsDTO) error
 	DeleteTenableSettings(currentUserID uint) error
 	TestConnection(input dtos.TestTenableConnectionDTO) error
+	CheckSavedConnection() error
 }
 
 type tenableSettingsService struct {
@@ -106,7 +107,7 @@ func (tss *tenableSettingsService) SaveTenableSettings(currentUserID uint, dto d
 			newSetting.ID,
 			newSetting,
 			currentUserID,
-			"", "", "", nil,
+			"setting", "general_setting", "", nil,
 		)
 		if err != nil {
 			log.Printf("Failed to log Tenable settings create: %v", err)
@@ -147,7 +148,7 @@ func (tss *tenableSettingsService) DeleteTenableSettings(currentUserID uint) err
 			setting.ID,
 			setting,
 			currentUserID,
-			"", "", "", nil,
+			"setting", "general_setting", "", nil,
 		)
 		if err != nil {
 			log.Printf("Failed to log Tenable settings delete: %v", err)
@@ -200,4 +201,41 @@ func (tss *tenableSettingsService) TestConnection(input dtos.TestTenableConnecti
 	}
 
 	return nil
+}
+
+func (tss *tenableSettingsService) CheckSavedConnection() error {
+
+	integration, err := tss.integrationsvc.GetByType("tenable")
+	if err != nil {
+		return utility.NewTenableConnectionError(
+			fmt.Errorf("failed to find integration: %w", err),
+		)
+	}
+
+	if !integration.IsEnable {
+		return utility.NewTenableConnectionError(
+			fmt.Errorf("integration 'tenable' is disabled"),
+		)
+	}
+
+	setting, err := tss.repo.GetFirst()
+	if err != nil {
+		return utility.NewTenableConnectionError(
+			fmt.Errorf("failed to fetch saved Tenable settings: %w", err),
+		)
+	}
+
+	if setting == nil {
+		return utility.NewTenableConnectionError(
+			fmt.Errorf("no Tenable settings found"),
+		)
+	}
+
+	dto := dtos.TestTenableConnectionDTO{
+		BaseURL:   setting.BaseURL,
+		AccessKey: setting.AccessKey,
+		SecretKey: setting.SecretKey,
+	}
+
+	return tss.TestConnection(dto)
 }
