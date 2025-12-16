@@ -142,6 +142,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	settingRoutes.GET("/siem-settings", siemSettingController.GetSIEMSettings)
 	settingRoutes.PUT("/siem-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), siemSettingController.UpdateSIEMSettings)
+	settingRoutes.DELETE("/siem-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), siemSettingController.DeleteSIEMSettings)
 
 	settingRoutes.PUT("/ai-settings/enable", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), aiSettingController.EnableAISetting)
 	settingRoutes.PUT("/ai-settings/disable", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), aiSettingController.DisableAISetting)
