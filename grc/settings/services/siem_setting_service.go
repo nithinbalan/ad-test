@@ -10,7 +10,7 @@ import (
 type SIEMSettingServiceInterface interface {
 	GetFirst() (*models.SIEMSetting, error)
 	Update(currentUserID uint, dto dtos.SIEMSettingDTO) error
-	Delete() error
+	Delete(currentUserID uint) error
 }
 
 type SIEMSettingService struct {
@@ -34,8 +34,10 @@ func (sss *SIEMSettingService) Update(currentUserID uint, dto dtos.SIEMSettingDT
 	if err != nil {
 		return err
 	}
-	if !integration.IsEnable {
-		return utility.NewForbiddenError("SIEM integration is disabled")
+
+	_, err = sss.integrationSvc.EnableIntegrationSettings(integration, currentUserID)
+	if err != nil {
+		return utility.NewForbiddenError("failed to enable SIEM integration")
 	}
 
 	existingSiemSettings, err := sss.repo.GetFirst()
@@ -70,7 +72,7 @@ func (sss *SIEMSettingService) Update(currentUserID uint, dto dtos.SIEMSettingDT
 	return sss.repo.Create(&newSetting)
 }
 
-func (sss *SIEMSettingService) Delete() error {
+func (sss *SIEMSettingService) Delete(currentUserID uint) error {
 	setting, err := sss.repo.GetFirst()
 	if err != nil {
 		return err
@@ -78,5 +80,17 @@ func (sss *SIEMSettingService) Delete() error {
 	if setting == nil {
 		return err
 	}
+
+	integration, err := sss.integrationSvc.GetByType("siem")
+	if err != nil {
+		return err
+	}
+
+	// DISABLE integration settings
+	_, err = sss.integrationSvc.DisableIntegrationSettings(integration, currentUserID)
+	if err != nil {
+		return err
+	}
+
 	return sss.repo.Delete(setting.ID)
 }

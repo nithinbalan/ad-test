@@ -62,7 +62,13 @@ func (ssc *SIEMSettingController) UpdateSIEMSettings(c *gin.Context) {
 }
 
 func (ssc *SIEMSettingController) DeleteSIEMSettings(c *gin.Context) {
-	err := ssc.service.Delete()
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(ssc.db, c, err.Error())
+		return
+	}
+
+	err = ssc.service.Delete(currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
