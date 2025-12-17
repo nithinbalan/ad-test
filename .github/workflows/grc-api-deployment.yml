@@ -122,16 +122,25 @@ jobs:
       - name: Build API
         run: go build ./cmd/api
 
-      - name: Backup and Deploy API Executable
+      - name: Backup and Deploy API and Migration Executable
+        shell: powershell
         run: |
-          $apiBackup = "$env:IIS_DOC_ROOT\api_backup.exe"
-          $apiExecutable = "$env:IIS_DOC_ROOT\api.exe"
+          $apiBackup       = "$env:IIS_DOC_ROOT\api_backup.exe"
+          $apiExecutable   = "$env:IIS_DOC_ROOT\api.exe"
+          $migrationBackup = "$env:IIS_DOC_ROOT\migration_backup.exe"
+          $migrationExe    = "$env:IIS_DOC_ROOT\migration.exe"
 
           if (Test-Path $apiBackup) { Remove-Item -Force $apiBackup }
           if (Test-Path $apiExecutable) { Rename-Item -Path $apiExecutable -NewName "api_backup.exe" }
 
-          Copy-Item -Path "${{ github.workspace }}\api.exe" -Destination $env:IIS_DOC_ROOT
-        shell: powershell
+          if (Test-Path $migrationBackup) { Remove-Item -Force $migrationBackup }
+          if (Test-Path $migrationExe) { Rename-Item -Path $migrationExe -NewName "migration_backup.exe" }
+
+          Copy-Item -Path "${{ github.workspace }}\api.exe" `
+                    -Destination $env:IIS_DOC_ROOT -Force
+
+          Copy-Item -Path "${{ github.workspace }}\migration.exe" `
+                    -Destination $env:IIS_DOC_ROOT -Force
 
       - name: Start NSSM Service
         run: nssm start ${{ env.SERVICE_NAME }}
