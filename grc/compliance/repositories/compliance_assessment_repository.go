@@ -19,6 +19,7 @@ type ComplianceAssessmentRepositoryInterface interface {
 	Create(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	ForceDelete(id uint, tx ...utility.DatabaseTransaction) error
 
 	IsAssessmentExists(organizationUnitID uint, compliancRegisterID uint, ids []uint) (bool, error)
 	IsAssessmentExistExcludingID(id uint, organizationUnitID uint, compliancRegisterID uint, ids []uint) (bool, error)
@@ -318,6 +319,7 @@ func (repo *ComplianceAssessmentRepository) Delete(id uint, tx ...utility.Databa
 
 	return nil
 }
+
 func (repo *ComplianceAssessmentRepository) IsAssessmentExists(organizationUnitID uint, complianceRegisterID uint, ids []uint) (bool, error) {
 	db := repo.db
 
@@ -1407,4 +1409,136 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func (repo *ComplianceAssessmentRepository) ForceDelete(id uint, tx ...utility.DatabaseTransaction) error {
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	/* ================= ACTION PLAN TREE ================= */
+
+	queries := []string{
+
+		// Action plan comment documents
+		`DELETE capcd
+		 FROM compliance_action_plan_comment_documents capcd
+		 JOIN compliance_action_plan_comments capc ON capc.id = capcd.compliance_action_plan_comment_id
+		 JOIN compliance_action_plans cap ON cap.id = capc.compliance_action_plan_id
+		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = cap.compliance_assessment_requirement_responsible_unit_id
+		 JOIN compliance_assessment_requirements r ON r.id = ru.compliance_assessment_requirement_id
+		 WHERE r.compliance_assessment_id = ?`,
+
+		// Action plan comments
+		`DELETE capc
+		 FROM compliance_action_plan_comments capc
+		 JOIN compliance_action_plans cap ON cap.id = capc.compliance_action_plan_id
+		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = cap.compliance_assessment_requirement_responsible_unit_id
+		 JOIN compliance_assessment_requirements r ON r.id = ru.compliance_assessment_requirement_id
+		 WHERE r.compliance_assessment_id = ?`,
+
+		// Status update documents
+		`DELETE capsud
+		 FROM compliance_action_plan_status_update_documents capsud
+		 JOIN compliance_action_plan_status_updates capsu ON capsu.id = capsud.compliance_action_plan_status_update_id
+		 JOIN compliance_action_plans cap ON cap.id = capsu.compliance_action_plan_id
+		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = cap.compliance_assessment_requirement_responsible_unit_id
+		 JOIN compliance_assessment_requirements r ON r.id = ru.compliance_assessment_requirement_id
+		 WHERE r.compliance_assessment_id = ?`,
+
+		// Status updates
+		`DELETE capsu
+		 FROM compliance_action_plan_status_updates capsu
+		 JOIN compliance_action_plans cap ON cap.id = capsu.compliance_action_plan_id
+		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = cap.compliance_assessment_requirement_responsible_unit_id
+		 JOIN compliance_assessment_requirements r ON r.id = ru.compliance_assessment_requirement_id
+		 WHERE r.compliance_assessment_id = ?`,
+
+		// Tasks
+		`DELETE t
+		 FROM tasks t
+		 JOIN compliance_action_plans cap ON cap.id = t.compliance_action_plan_id
+		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = cap.compliance_assessment_requirement_responsible_unit_id
+		 JOIN compliance_assessment_requirements r ON r.id = ru.compliance_assessment_requirement_id
+		 WHERE r.compliance_assessment_id = ?`,
+
+		// Action plans
+		`DELETE cap
+		 FROM compliance_action_plans cap
+		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = cap.compliance_assessment_requirement_responsible_unit_id
+		 JOIN compliance_assessment_requirements r ON r.id = ru.compliance_assessment_requirement_id
+		 WHERE r.compliance_assessment_id = ?`,
+
+		/* ================= REQUIREMENT TREE ================= */
+
+		// Required documents
+		`DELETE card
+		 FROM compliance_assessment_requirement_required_documents card
+		 JOIN compliance_assessment_requirement_document_titles dt
+		   ON dt.id = card.compliance_assessment_requirement_document_title_id
+		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = dt.compliance_assessment_requirement_responsible_unit_id
+		 JOIN compliance_assessment_requirements r
+		   ON r.id = ru.compliance_assessment_requirement_id
+		 WHERE r.compliance_assessment_id = ?`,
+
+		// Document titles
+		`DELETE dt
+		 FROM compliance_assessment_requirement_document_titles dt
+		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = dt.compliance_assessment_requirement_responsible_unit_id
+		 JOIN compliance_assessment_requirements r
+		   ON r.id = ru.compliance_assessment_requirement_id
+		 WHERE r.compliance_assessment_id = ?`,
+
+		// Requirement comments
+		`DELETE c
+		 FROM compliance_assessment_requirement_comments c
+		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = c.compliance_assessment_requirement_responsible_unit_id
+		 JOIN compliance_assessment_requirements r
+		   ON r.id = ru.compliance_assessment_requirement_id
+		 WHERE r.compliance_assessment_id = ?`,
+
+		// Requirement action plans
+		`DELETE carap
+		 FROM compliance_assessment_requirement_action_plans carap
+		 JOIN compliance_assessment_requirement_responsible_units ru
+		   ON ru.id = carap.compliance_assessment_requirement_responsible_unit_id
+		 JOIN compliance_assessment_requirements r
+		   ON r.id = ru.compliance_assessment_requirement_id
+		 WHERE r.compliance_assessment_id = ?`,
+
+		// Responsible units
+		`DELETE ru
+		 FROM compliance_assessment_requirement_responsible_units ru
+		 JOIN compliance_assessment_requirements r
+		   ON r.id = ru.compliance_assessment_requirement_id
+		 WHERE r.compliance_assessment_id = ?`,
+
+		// Requirements
+		`DELETE FROM compliance_assessment_requirements
+		 WHERE compliance_assessment_id = ?`,
+
+		/* ================= CONTROLS ================= */
+
+		// Control comments
+		`DELETE cc
+		 FROM compliance_assessment_control_comments cc
+		 JOIN compliance_assessment_controls c
+		   ON c.id = cc.compliance_assessment_control_id
+		 WHERE c.compliance_assessment_id = ?`,
+
+		// Controls
+		`DELETE FROM compliance_assessment_controls
+		 WHERE compliance_assessment_id = ?`,
+	}
+
+	for _, q := range queries {
+		if err := db.Exec(q, id).Error; err != nil {
+			return err
+		}
+	}
+
+	/* ================= ROOT ================= */
+	return db.Delete(&models.ComplianceAssessment{}, id).Error
 }
