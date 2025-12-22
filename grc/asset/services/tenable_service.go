@@ -24,7 +24,7 @@ type TenableServiceInterface interface {
 
 type TenableService struct {
 	repo                   repositories.TenableRepositoryInterface
-	ass                    AssetStatusServiceInterface
+	assetStatusSvc         AssetStatusServiceInterface
 	tenableSettingsService settingsServices.TenableSettingsServiceInterface
 	assetCategorySvc       AssetCategoryServiceInterface
 	userSvc                organizationServices.UserServiceInterface
@@ -34,7 +34,7 @@ type TenableService struct {
 
 func NewTenableService(
 	repo repositories.TenableRepositoryInterface,
-	ass AssetStatusServiceInterface,
+	assetStatusSvc AssetStatusServiceInterface,
 	tenableSettingsService settingsServices.TenableSettingsServiceInterface,
 	assetCategorySvc AssetCategoryServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
@@ -43,7 +43,7 @@ func NewTenableService(
 ) TenableServiceInterface {
 	return &TenableService{
 		repo:                   repo,
-		ass:                    ass,
+		assetStatusSvc:         assetStatusSvc,
 		tenableSettingsService: tenableSettingsService,
 		assetCategorySvc:       assetCategorySvc,
 		userSvc:                userSvc,
@@ -54,17 +54,13 @@ func NewTenableService(
 
 func (s *TenableService) GetAllAssets(params *dtos.TenableAssetListQueryParamsDTO) (*dtos.TenableAssetListResponseDTO, error) {
 
-	settings, err := s.tenableSettingsService.GetTenableSettings()
-	if err != nil {
+	if err := s.tenableSettingsService.CheckSavedConnection(); err != nil {
 		return nil, err
 	}
 
-	if settings == nil {
-		return nil, fmt.Errorf("tenable settings not found")
-	}
-
-	if settings.BaseURL == "" || settings.AccessKey == "" || settings.SecretKey == "" {
-		return nil, fmt.Errorf("tenable settings are incomplete")
+	settings, err := s.tenableSettingsService.GetTenableSettings()
+	if err != nil {
+		return nil, err
 	}
 
 	baseURL := settings.BaseURL
@@ -145,7 +141,7 @@ func (s *TenableService) GetAllAssets(params *dtos.TenableAssetListQueryParamsDT
 			statusType = "disposed"
 		}
 
-		statusObj, err := s.ass.GetByType(statusType)
+		statusObj, err := s.assetStatusSvc.GetByType(statusType)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get asset status '%s': %v", statusType, err)
 		}
@@ -205,7 +201,7 @@ func (s *TenableService) ValidateTenableAssets(input []dtos.TenableAssetImportDT
 		subCategoryTitles[strings.ToLower(strings.TrimSpace(sub.TitleEn))] = uint(sub.ID)
 	}
 
-	statuses, err := s.ass.GetAll("", "", "", "")
+	statuses, err := s.assetStatusSvc.GetAll("", "", "", "")
 	if err != nil {
 		return nil, fmt.Errorf("error fetching asset statuses: %v", err)
 	}
