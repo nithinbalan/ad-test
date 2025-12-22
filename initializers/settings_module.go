@@ -50,6 +50,7 @@ type SettingsModule struct {
 	RiskTemplateSettingSvc    services.RiskTemplateSettingServiceInterface
 	ReportTemplateSettingSvc  services.ReportTemplateSettingServiceInterface
 	ActiveDirectorySettingSvc services.ActiveDirectorySettingServiceInterface
+	TenableSettingsSvc        services.TenableSettingsServiceInterface
 }
 
 func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule) *SettingsModule {
@@ -208,5 +209,6 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		RiskTemplateSettingSvc:    riskTemplateSettingSvc,
 		ReportTemplateSettingSvc:  reportTemplateSettingSvc,
 		ActiveDirectorySettingSvc: activeDirectorySettingSvc,
+		TenableSettingsSvc:        tenableSettingsSvc,
 	}
 }

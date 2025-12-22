@@ -258,7 +258,7 @@ func NewAssetModule(db *gorm.DB,
 	assetKriController := controllers.NewAssetKriController(assetKriSvc)
 
 	tenableRepo := repositories.NewTenableRepository()
-	tenableSvc := services.NewTenableService(tenableRepo, assetStatusSvc, assetCategorySvc, organizationModule.UserSvc, assetRegisterSvc, assetSubCategorySvc)
+	tenableSvc := services.NewTenableService(tenableRepo, assetStatusSvc, settingsModule.TenableSettingsSvc, assetCategorySvc, organizationModule.UserSvc, assetRegisterSvc, assetSubCategorySvc)
 	tenableController := controllers.NewTenableController(tenableSvc)
 
 	return &AssetModule{

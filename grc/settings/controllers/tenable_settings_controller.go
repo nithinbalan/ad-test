@@ -10,10 +10,10 @@ import (
 )
 
 type TenableSettingsController struct {
-	service services.TenableSettingsService
+	service services.TenableSettingsServiceInterface
 }
 
-func NewTenableSettingsController(service services.TenableSettingsService) *TenableSettingsController {
+func NewTenableSettingsController(service services.TenableSettingsServiceInterface) *TenableSettingsController {
 	return &TenableSettingsController{service: service}
 }
 
