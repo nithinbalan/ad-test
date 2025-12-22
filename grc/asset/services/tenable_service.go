@@ -52,33 +52,24 @@ func NewTenableService(
 	}
 }
 
-func (s *TenableService) getTenableCredentials() (string, string, string, error) {
-
-	if err := s.tenableSettingsService.CheckSavedConnection(); err != nil {
-		return "", "", "", err
-	}
-
-	settings, err := s.tenableSettingsService.GetTenableSettings()
-
-	if err != nil {
-		return "", "", "", fmt.Errorf("failed to load Tenable settings: %w", err)
-	}
-
-	if settings == nil || settings.BaseURL == "" || settings.AccessKey == "" || settings.SecretKey == "" {
-		return "", "", "", fmt.Errorf("tenable settings are missing or inactive")
-	}
-
-	return settings.BaseURL, settings.AccessKey, settings.SecretKey, nil
-}
-
 func (s *TenableService) GetAllAssets(params *dtos.TenableAssetListQueryParamsDTO) (*dtos.TenableAssetListResponseDTO, error) {
 
-	baseURL, accessKey, secretKey, err := s.getTenableCredentials()
-
+	settings, err := s.tenableSettingsService.GetTenableSettings()
 	if err != nil {
-
 		return nil, err
 	}
+
+	if settings == nil {
+		return nil, fmt.Errorf("tenable settings not found")
+	}
+
+	if settings.BaseURL == "" || settings.AccessKey == "" || settings.SecretKey == "" {
+		return nil, fmt.Errorf("tenable settings are incomplete")
+	}
+
+	baseURL := settings.BaseURL
+	accessKey := settings.AccessKey
+	secretKey := settings.SecretKey
 
 	client := &http.Client{Timeout: 20 * time.Second}
 	url := fmt.Sprintf("%s/rest/asset?fields=uuid,name,description,status,createdTime,modifiedTime", baseURL)
