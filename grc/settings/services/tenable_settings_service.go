@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-type TenableSettingsService interface {
+type TenableSettingsServiceInterface interface {
 	GetTenableSettings() (*models.TenableSettings, error)
 	SaveTenableSettings(currentUserID uint, dto dtos.UpdateTenableSettingsDTO) error
 	DeleteTenableSettings(currentUserID uint) error
@@ -29,7 +29,7 @@ type tenableSettingsService struct {
 	activityLogSvc logServices.ActivityLogServiceInterface
 }
 
-func NewTenableSettingsService(repo repositories.TenableSettingsRepository, integrationsvc IntegrationServiceInterface, activityLogSvc logServices.ActivityLogServiceInterface) TenableSettingsService {
+func NewTenableSettingsService(repo repositories.TenableSettingsRepository, integrationsvc IntegrationServiceInterface, activityLogSvc logServices.ActivityLogServiceInterface) TenableSettingsServiceInterface {
 	return &tenableSettingsService{repo: repo, integrationsvc: integrationsvc, activityLogSvc: activityLogSvc}
 }
 
