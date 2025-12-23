@@ -22,7 +22,7 @@ type ThemeServiceInterface interface {
 	GetFullDetailsByID(themeID uint) (*dtos.ThemeDetailDTO, error)
 	Create(currentUserID uint, form *dtos.ThemeFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, form *dtos.ThemeFormDTO) error
-	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	Delete(id uint, currentUserID uint) error
 }
 
 type ThemeService struct {
@@ -183,54 +183,45 @@ func (ts *ThemeService) Update(id uint, currentUserID uint, themeForm *dtos.Them
 	return nil
 }
 
-func (ts *ThemeService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
-
-	var failedIDs []uint
-	var successfulIDs []uint
-	var deletedThemes []map[string]interface{}
-
-	for _, id := range ids {
-		theme, err := ts.repo.GetByID(id)
-		if err != nil {
-			failedIDs = append(failedIDs, id)
-			continue
-		}
-
-		if theme.IsSystem {
-			failedIDs = append(failedIDs, id)
-			continue
-		}
-
-		if err := ts.repo.Delete(id); err != nil {
-			failedIDs = append(failedIDs, id)
-			continue
-		}
-
-		successfulIDs = append(successfulIDs, id)
-		deletedThemes = append(deletedThemes, map[string]interface{}{
-			"id":       id,
-			"title_en": theme.TitleEn,
-		})
+func (ts *ThemeService) Delete(id uint, currentUserID uint) error {
+	theme, err := ts.repo.GetByID(id)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, id)
 	}
 
-	if len(successfulIDs) > 0 {
-		go func() {
-			err := ts.activityLogSvc.LogBulkActivities(
-				models.DeleteAction,
-				models.Theme{}.TableName(),
-				successfulIDs,
-				deletedThemes,
-				currentUserID,
-				nil,
-			)
-			if err != nil {
-				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+	if theme.IsSystem {
+		return utility.NewForbiddenError(
+			fmt.Sprintf("System theme '%s' cannot be deleted", theme.TitleEn),
+		)
+	}
+
+	if err := ts.repo.Delete(id); err != nil {
+		return err
+	}
+
+	deletedTheme := map[string]interface{}{
+				"id":       id,
+				"title_en": theme.TitleEn,
 			}
-		}()
-	}
 
-	return failedIDs, nil
+	go func() {
+		err := ts.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.Theme{}.TableName(),
+			id,
+			deletedTheme,
+			currentUserID,
+			"setting", "general_setting", "", nil,
+		)
+		if err != nil {
+			fmt.Printf("Failed to log delete activity: %v\n", err)
+		}
+	}()
+
+	return nil
 }
+
+
 
 func (ts *ThemeService) validateThemeForm(form *dtos.ThemeFormDTO) error {
 

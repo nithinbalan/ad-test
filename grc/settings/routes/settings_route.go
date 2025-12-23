@@ -204,7 +204,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.GET("/theme-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), themeController.GetThemeDetails)
 	settingRoutes.POST("/theme-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), themeController.CreateTheme)
 	settingRoutes.PUT("/theme-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), themeController.UpdateTheme)
-	settingRoutes.POST("/theme-settings/delete", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), themeController.DeleteThemes)
+	settingRoutes.DELETE("/theme-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), themeController.DeleteTheme)
 
 	unauthenticatedRoutes.GET("/health", healthCheckController.Health)
 	unauthenticatedRoutes.GET("/health/live", healthCheckController.Liveness)

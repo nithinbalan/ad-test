@@ -132,14 +132,12 @@ func (tc *ThemeController) UpdateTheme(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (tc *ThemeController) DeleteThemes(c *gin.Context) {
+func (tc *ThemeController) DeleteTheme(c *gin.Context) {
 
-	var request struct {
-		IDs []uint `json:"ids" binding:"required"`
-	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		utility.SendInvalidErrResp(c, err)
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
 		return
 	}
 
@@ -149,13 +147,23 @@ func (tc *ThemeController) DeleteThemes(c *gin.Context) {
 		return
 	}
 
-	failedIDs, err := tc.service.Delete(request.IDs, currentUserID)
+	err = tc.service.Delete(uint(id), currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(tc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(tc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"failed_ids": failedIDs,
+		"message": "Theme deleted successfully",
 	})
 }
+
