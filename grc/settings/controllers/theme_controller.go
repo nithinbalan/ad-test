@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/services"
 	"jethur/utility"
@@ -56,9 +57,9 @@ func (tc *ThemeController) GetThemeDetails(c *gin.Context) {
 
 func (tc *ThemeController) CreateTheme(c *gin.Context) {
 
-	var form dtos.ThemeFormDTO
+	var themeFormDTO dtos.ThemeFormDTO
 
-	if err := c.ShouldBindJSON(&form); err != nil {
+	if err := c.ShouldBindJSON(&themeFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -69,7 +70,7 @@ func (tc *ThemeController) CreateTheme(c *gin.Context) {
 		return
 	}
 
-	themeID, err := tc.service.Create(currentUserID, &form)
+	id, err := tc.service.Create(currentUserID, &themeFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -84,14 +85,12 @@ func (tc *ThemeController) CreateTheme(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"id": themeID,
-	})
+	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
 func (tc *ThemeController) UpdateTheme(c *gin.Context) {
 
-	var updateDTO *dtos.ThemeFormDTO
+	var themeFormDTO *dtos.ThemeFormDTO
 
 	idStr := c.Param("id")
 
@@ -101,7 +100,7 @@ func (tc *ThemeController) UpdateTheme(c *gin.Context) {
 		return
 	}
 
-	if err := c.ShouldBindJSON(&updateDTO); err != nil {
+	if err := c.ShouldBindJSON(&themeFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -112,7 +111,7 @@ func (tc *ThemeController) UpdateTheme(c *gin.Context) {
 		return
 	}
 
-	err = tc.service.Update(uint(themeID), currentUserID, updateDTO)
+	err = tc.service.Update(uint(themeID), currentUserID, themeFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -147,7 +146,7 @@ func (tc *ThemeController) DeleteTheme(c *gin.Context) {
 		return
 	}
 
-	err = tc.service.Delete(uint(id), currentUserID)
+	failedID, err = tc.service.Delete(uint(id), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -162,8 +161,5 @@ func (tc *ThemeController) DeleteTheme(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Theme deleted successfully",
-	})
+	c.JSON(http.StatusOK, gin.H{"failed_id": failedID})
 }
-

@@ -11,7 +11,6 @@ import (
 	"log"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -22,7 +21,7 @@ type ThemeServiceInterface interface {
 	GetFullDetailsByID(themeID uint) (*dtos.ThemeDetailDTO, error)
 	Create(currentUserID uint, form *dtos.ThemeFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, form *dtos.ThemeFormDTO) error
-	Delete(id uint, currentUserID uint) error
+	Delete(id uint, currentUserID uint) (uint, error)
 }
 
 type ThemeService struct {
@@ -60,21 +59,21 @@ func (ts *ThemeService) GetFullDetailsByID(themeID uint) (*dtos.ThemeDetailDTO, 
 	return &themeDTO, nil
 }
 
-func (ts *ThemeService) Create(currentUserID uint, themeForm *dtos.ThemeFormDTO) (uint, error) {
-	if err := ts.validateThemeForm(themeForm); err != nil {
+func (ts *ThemeService) Create(currentUserID uint, themeFormDTO *dtos.ThemeFormDTO) (uint, error) {
+	if err := ts.validateThemeForm(themeFormDTO); err != nil {
 		return 0, err
 	}
 
 	theme := &models.Theme{
-		TitleEn:        themeForm.TitleEn,
-		TitleAr:        themeForm.TitleAr,
-		DescriptionEn:  themeForm.DescriptionEn,
-		DescriptionAr:  themeForm.DescriptionAr,
-		PrimaryColor:   themeForm.PrimaryColor,
+		TitleEn:        themeFormDTO.TitleEn,
+		TitleAr:        themeFormDTO.TitleAr,
+		DescriptionEn:  themeFormDTO.DescriptionEn,
+		DescriptionAr:  themeFormDTO.DescriptionAr,
+		PrimaryColor:   themeFormDTO.PrimaryColor,
 		SecondaryColor: themeForm.SecondaryColor,
-		LinkColor:      themeForm.LinkColor,
-		SidebarBgColor: themeForm.SidebarBgColor,
-		IsSystem:       themeForm.IsSystem,
+		LinkColor:      themeFormDTO.LinkColor,
+		SidebarBgColor: themeFormDTO.SidebarBgColor,
+		IsSystem:       false,
 		CreatedBYID:    currentUserID,
 	}
 
@@ -109,32 +108,26 @@ func (ts *ThemeService) Create(currentUserID uint, themeForm *dtos.ThemeFormDTO)
 
 func (ts *ThemeService) Update(id uint, currentUserID uint, themeForm *dtos.ThemeFormDTO) error {
 
-	existingTheme, err := ts.repo.GetByID(id)
+	existingTheme, err := ts.GetByID(id)
 	if err != nil {
-		return utility.NewResourceNotFoundError(err, id)
+		return err
 	}
 
 	if err := ts.validateThemeForm(themeForm); err != nil {
 		return err
 	}
 
-	updatedTheme := *existingTheme
+	existingTheme.TitleEn = themeForm.TitleEn
+	existingTheme.TitleAr = themeForm.TitleAr
+	existingTheme.DescriptionEn = themeForm.DescriptionEn
+	existingTheme.DescriptionAr = themeForm.DescriptionAr
+	existingTheme.PrimaryColor = themeForm.PrimaryColor
+	existingTheme.SecondaryColor = themeForm.SecondaryColor
+	existingTheme.LinkColor = themeForm.LinkColor
+	existingTheme.SidebarBgColor = themeForm.SidebarBgColor
+	existingTheme.UpdatedBYID = &currentUserID
 
-	updatedTheme.TitleEn = themeForm.TitleEn
-	updatedTheme.TitleAr = themeForm.TitleAr
-	updatedTheme.DescriptionEn = themeForm.DescriptionEn
-	updatedTheme.DescriptionAr = themeForm.DescriptionAr
-	updatedTheme.PrimaryColor = themeForm.PrimaryColor
-	updatedTheme.SecondaryColor = themeForm.SecondaryColor
-	updatedTheme.LinkColor = themeForm.LinkColor
-	updatedTheme.SidebarBgColor = themeForm.SidebarBgColor
-	updatedTheme.IsSystem = themeForm.IsSystem
-
-	updatedTheme.UpdatedBYID = &currentUserID
-	now := time.Now()
-	updatedTheme.UpdatedAt = &now
-
-	if err := ts.repo.Update(&updatedTheme); err != nil {
+	if err := ts.repo.Update(&existingTheme); err != nil {
 		return err
 	}
 
@@ -150,7 +143,7 @@ func (ts *ThemeService) Update(id uint, currentUserID uint, themeForm *dtos.Them
 		"IsSystem",
 	}
 
-	changes, err := utility.CompareFields(existingTheme, &updatedTheme, fieldsToCompare)
+	changes, err := utility.CompareFields(existingTheme, &existingTheme, fieldsToCompare)
 	if err != nil {
 		log.Println("compare error:", err.Error())
 	}
@@ -183,10 +176,10 @@ func (ts *ThemeService) Update(id uint, currentUserID uint, themeForm *dtos.Them
 	return nil
 }
 
-func (ts *ThemeService) Delete(id uint, currentUserID uint) error {
-	theme, err := ts.repo.GetByID(id)
+func (ts *ThemeService) Delete(id uint, currentUserID uint) (uint, error) {
+	theme, err := ts.GetByID(id)
 	if err != nil {
-		return utility.NewResourceNotFoundError(err, id)
+		return err
 	}
 
 	if theme.IsSystem {
@@ -200,9 +193,9 @@ func (ts *ThemeService) Delete(id uint, currentUserID uint) error {
 	}
 
 	deletedTheme := map[string]interface{}{
-				"id":       id,
-				"title_en": theme.TitleEn,
-			}
+		"id":       id,
+		"title_en": theme.TitleEn,
+	}
 
 	go func() {
 		err := ts.activityLogSvc.LogActivity(
@@ -221,9 +214,7 @@ func (ts *ThemeService) Delete(id uint, currentUserID uint) error {
 	return nil
 }
 
-
-
-func (ts *ThemeService) validateThemeForm(form *dtos.ThemeFormDTO) error {
+func (ts *ThemeService) validateThemeForm(themeFormDTO *dtos.ThemeFormDTO) error {
 
 	hexColorRegex := regexp.MustCompile(`^#([A-Fa-f0-9]{6})$`)
 

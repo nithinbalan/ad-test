@@ -9,9 +9,9 @@ type ThemeListDTO struct {
 	TitleEn        string     `json:"title_en"`
 	TitleAr        string     `json:"title_ar"`
 	PrimaryColor   string     `json:"primary_color"`
-	SecondaryColor *string    `json:"secondary_color"`
-	LinkColor      *string    `json:"link_color"`
-	SidebarBgColor *string    `json:"sidebar_bg_color"`
+	SecondaryColor string     `json:"secondary_color"`
+	LinkColor      string     `json:"link_color"`
+	SidebarBgColor string     `json:"sidebar_bg_color"`
 	IsSystem       bool       `json:"is_system"`
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      *time.Time `json:"updated_at"`
@@ -46,7 +46,6 @@ type ThemeFormDTO struct {
 	SecondaryColor string  `json:"secondary_color" binding:"required"`
 	LinkColor      string  `json:"link_color" binding:"required"`
 	SidebarBgColor string  `json:"sidebar_bg_color" binding:"required"`
-	IsSystem       bool    `json:"is_system"`
 }
 
 type ThemeDetailDTO struct {
@@ -56,9 +55,9 @@ type ThemeDetailDTO struct {
 	DescriptionEn  *string    `json:"description_en"`
 	DescriptionAr  *string    `json:"description_ar"`
 	PrimaryColor   string     `json:"primary_color"`
-	SecondaryColor *string    `json:"secondary_color"`
-	LinkColor      *string    `json:"link_color"`
-	SidebarBgColor *string    `json:"sidebar_bg_color"`
+	SecondaryColor string     `json:"secondary_color"`
+	LinkColor      string     `json:"link_color"`
+	SidebarBgColor string     `json:"sidebar_bg_color"`
 	IsSystem       bool       `json:"is_system"`
 	CreatedByID    uint       `json:"created_by_id"`
 	UpdatedByID    *uint      `json:"updated_by_id"`

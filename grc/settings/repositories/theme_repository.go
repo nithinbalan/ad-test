@@ -25,7 +25,7 @@ func NewThemeRepository(db *gorm.DB) *ThemeRepository {
 }
 
 func (repo *ThemeRepository) GetAll(Keyword string, SortBy string, Sort string) ([]*dtos.ThemeListDTO, error) {
-	var themes []*dtos.ThemeListDTO
+	var themes = []*dtos.ThemeListDTO{}
 
 	query := repo.db.
 		Table("themes").
