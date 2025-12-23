@@ -52,6 +52,7 @@ type SettingsModule struct {
 	ReportTemplateSettingSvc  services.ReportTemplateSettingServiceInterface
 	ActiveDirectorySettingSvc services.ActiveDirectorySettingServiceInterface
 	ThemeSvc                  services.ThemeServiceInterface
+	TenableSettingsSvc        services.TenableSettingsServiceInterface
 }
 
 func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule) *SettingsModule {
@@ -216,5 +217,6 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		ReportTemplateSettingSvc:  reportTemplateSettingSvc,
 		ActiveDirectorySettingSvc: activeDirectorySettingSvc,
 		ThemeSvc:              themeSvc,
+		TenableSettingsSvc:        tenableSettingsSvc,
 	}
 }
