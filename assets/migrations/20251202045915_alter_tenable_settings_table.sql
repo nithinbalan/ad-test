@@ -1,5 +1,5 @@
 -- +goose Up
--- +goose NO TRANSACTION
+-- +goose StatementBegin
 
 BEGIN
     DECLARE @constraintName NVARCHAR(200)
@@ -15,3 +15,13 @@ BEGIN
 
     ALTER TABLE tenable_settings DROP COLUMN is_active
 END;
+-- +goose StatementEnd
+
+
+-- +goose Down
+-- +goose StatementBegin
+
+ALTER TABLE dbo.tenable_settings
+ADD is_active VARCHAR(10) NULL DEFAULT 'true';
+
+-- +goose StatementEnd
