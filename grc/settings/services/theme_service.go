@@ -196,6 +196,11 @@ func (ts *ThemeService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 			continue
 		}
 
+		if theme.IsSystem {
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+
 		if err := ts.repo.Delete(id); err != nil {
 			failedIDs = append(failedIDs, id)
 			continue
@@ -212,7 +217,7 @@ func (ts *ThemeService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 		go func() {
 			err := ts.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
-				models.DocumentVersionClauseComment{}.TableName(),
+				models.Theme{}.TableName(),
 				successfulIDs,
 				deletedThemes,
 				currentUserID,
