@@ -185,24 +185,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.GET("/rag-setting", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), ragSettingController.GetAllRAGSetting)
 
 	// --- Microsoft Entra ID (SSO + Directory Sync) ---
-	settingRoutes.POST("/active-directory-settings/test-oauth-connection",
-		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
-		activeDirectorySettingController.TestOAuthConnection)
-
-	settingRoutes.GET("/active-directory-settings/oauth-config",
-		activeDirectorySettingController.GetOAuthConfiguration)
-
-	settingRoutes.POST("/active-directory-settings/oauth-config",
-		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
-		activeDirectorySettingController.SaveOAuthConfiguration)
-
-	settingRoutes.DELETE("/active-directory-settings/oauth-config",
-		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
-		activeDirectorySettingController.DeleteOAuthConfiguration)
-
-	settingRoutes.GET("/active-directory-settings/users/:id/groups",
-		middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),
-		activeDirectorySettingController.GetAzureUserGroups)
+	settingRoutes.POST("/active-directory-settings/test-oauth-connection",middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),activeDirectorySettingController.TestOAuthConnection)
+	settingRoutes.GET("/active-directory-settings/oauth-config",activeDirectorySettingController.GetOAuthConfiguration)
+	settingRoutes.POST("/active-directory-settings/oauth-config",middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),activeDirectorySettingController.SaveOAuthConfiguration)
+	settingRoutes.DELETE("/active-directory-settings/oauth-config",middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),activeDirectorySettingController.DeleteOAuthConfiguration)
+	settingRoutes.GET("/active-directory-settings/users/:id/groups",middlewares.RolePermissionMiddleware(db, "general_setting", "modify"),activeDirectorySettingController.GetAzureUserGroups)
 
 	//tenable settings
 	settingRoutes.GET("/tenable-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), tenableSettingsController.GetTenableSettings)
