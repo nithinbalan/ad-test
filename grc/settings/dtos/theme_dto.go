@@ -40,12 +40,12 @@ type ThemeListDTO struct {
 type ThemeFormDTO struct {
 	TitleEn        string  `json:"title_en" binding:"required"`
 	TitleAr        string  `json:"title_ar" binding:"required"`
-	DescriptionEn  *string `json:"description_en,omitempty"`
-	DescriptionAr  *string `json:"description_ar,omitempty"`
+	DescriptionEn  *string `json:"description_en"`
+	DescriptionAr  *string `json:"description_ar"`
 	PrimaryColor   string  `json:"primary_color" binding:"required"`
-	SecondaryColor *string `json:"secondary_color,omitempty"`
-	LinkColor      *string `json:"link_color,omitempty"`
-	SidebarBgColor *string `json:"sidebar_bg_color,omitempty"`
+	SecondaryColor string  `json:"secondary_color" binding:"required"`
+	LinkColor      string  `json:"link_color" binding:"required"`
+	SidebarBgColor string  `json:"sidebar_bg_color" binding:"required"`
 	IsSystem       bool    `json:"is_system"`
 }
 

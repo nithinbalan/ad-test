@@ -229,38 +229,86 @@ func (ts *ThemeService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 
 func (ts *ThemeService) validateThemeForm(form *dtos.ThemeFormDTO) error {
 
-	HexColorRegex := regexp.MustCompile(`^#([A-Fa-f0-9]{6})$`)
+	hexColorRegex := regexp.MustCompile(`^#([A-Fa-f0-9]{6})$`)
 
 	if strings.TrimSpace(form.TitleEn) == "" {
-		return utility.NewValidationError(nil, "title_en", "Title (English) is required")
-	}
-
-	if strings.TrimSpace(form.TitleAr) == "" {
-		return utility.NewValidationError(nil, "title_ar", "Title (Arabic) is required")
-	}
-
-	if strings.TrimSpace(form.PrimaryColor) == "" {
-		return utility.NewValidationError(nil, "primary_color", "Primary color is required")
-	}
-
-	if !HexColorRegex.MatchString(form.PrimaryColor) {
 		return utility.NewValidationError(
-			nil,
-			"primary_color",
-			"Primary color must be a valid hex value (e.g. #165D31)",
+			fmt.Errorf("title_en is empty"),
+			"required",
+			"title_en",
 		)
 	}
 
-	if form.SecondaryColor != nil && !HexColorRegex.MatchString(*form.SecondaryColor) {
-		return utility.NewValidationError(nil, "secondary_color", "Secondary color must be a valid hex value")
+	if strings.TrimSpace(form.TitleAr) == "" {
+		return utility.NewValidationError(
+			fmt.Errorf("title_ar is empty"),
+			"required",
+			"title_ar",
+		)
 	}
 
-	if form.LinkColor != nil && !HexColorRegex.MatchString(*form.LinkColor) {
-		return utility.NewValidationError(nil, "link_color", "Link color must be a valid hex value")
+	if strings.TrimSpace(form.PrimaryColor) == "" {
+		return utility.NewValidationError(
+			fmt.Errorf("primary_color is empty"),
+			"required",
+			"primary_color",
+		)
 	}
 
-	if form.SidebarBgColor != nil && !HexColorRegex.MatchString(*form.SidebarBgColor) {
-		return utility.NewValidationError(nil, "sidebar_bg_color", "Sidebar background color must be a valid hex value")
+	if !hexColorRegex.MatchString(form.PrimaryColor) {
+		return utility.NewValidationError(
+			fmt.Errorf("invalid primary_color format"),
+			"invalid",
+			"primary_color",
+		)
+	}
+
+	if strings.TrimSpace(form.SecondaryColor) == "" {
+		return utility.NewValidationError(
+			fmt.Errorf("secondary_color is empty"),
+			"required",
+			"secondary_color",
+		)
+	}
+
+	if !hexColorRegex.MatchString(form.SecondaryColor) {
+		return utility.NewValidationError(
+			fmt.Errorf("invalid secondary_color format"),
+			"invalid",
+			"secondary_color",
+		)
+	}
+
+	if strings.TrimSpace(form.LinkColor) == "" {
+		return utility.NewValidationError(
+			fmt.Errorf("link_color is empty"),
+			"required",
+			"link_color",
+		)
+	}
+
+	if !hexColorRegex.MatchString(form.LinkColor) {
+		return utility.NewValidationError(
+			fmt.Errorf("invalid link_color format"),
+			"invalid",
+			"link_color",
+		)
+	}
+
+	if strings.TrimSpace(form.SidebarBgColor) == "" {
+		return utility.NewValidationError(
+			fmt.Errorf("sidebar_bg_color is empty"),
+			"required",
+			"sidebar_bg_color",
+		)
+	}
+
+	if !hexColorRegex.MatchString(form.SidebarBgColor) {
+		return utility.NewValidationError(
+			fmt.Errorf("invalid sidebar_bg_color format"),
+			"invalid",
+			"sidebar_bg_color",
+		)
 	}
 
 	return nil
