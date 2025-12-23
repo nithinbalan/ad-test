@@ -28,7 +28,7 @@ func (tc *ThemeController) GetAllThemes(c *gin.Context) {
 	sortBy := c.DefaultQuery("sort_by", "created_at")
 	keyword := c.Query("keyword")
 
-	themes, err := tc.service.GetAll(keyword,sortBy,sort)
+	themes, err := tc.service.GetAll(keyword, sortBy, sort)
 	if err != nil {
 		utility.SendInternalErrResp(nil, c, err.Error())
 		return
@@ -76,6 +76,9 @@ func (tc *ThemeController) CreateTheme(c *gin.Context) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(nil, c, e.Error())
 			return
@@ -119,6 +122,9 @@ func (tc *ThemeController) UpdateTheme(c *gin.Context) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return 
 		default:
 			utility.SendInternalErrResp(nil, c, e.Error())
 			return
