@@ -2,12 +2,10 @@ package controllers
 
 import (
 	"net/http"
-
 	"jethur/grc/settings/dtos"
 	"jethur/grc/settings/services"
 	"jethur/utility"
 	"strconv"
-
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -124,7 +122,7 @@ func (tc *ThemeController) UpdateTheme(c *gin.Context) {
 			return
 		case *utility.ForbiddenError:
 			utility.SendForbiddenErrResp(c, e.Error())
-			return 
+			return
 		default:
 			utility.SendInternalErrResp(nil, c, e.Error())
 			return

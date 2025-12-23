@@ -18,30 +18,28 @@ import (
 )
 
 type ThemeServiceInterface interface {
-	GetAll(Keyword string,SortBy string,Sort string) ([]*dtos.ThemeListDTO, error)
+	GetAll(Keyword string, SortBy string, Sort string) ([]*dtos.ThemeListDTO, error)
 	GetFullDetailsByID(themeID uint) (*dtos.ThemeDetailDTO, error)
-	Create(currentUserID uint,form *dtos.ThemeFormDTO) (uint, error)
-	Update(id uint,currentUserID uint,form *dtos.ThemeFormDTO) error
+	Create(currentUserID uint, form *dtos.ThemeFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, form *dtos.ThemeFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
 type ThemeService struct {
-	repo            repositories.ThemeRepositoryInterface
+	repo           repositories.ThemeRepositoryInterface
 	activityLogSvc services.ActivityLogServiceInterface
 }
 
-func NewThemeService(repo repositories.ThemeRepositoryInterface,activityLogSvc services.ActivityLogServiceInterface,) *ThemeService {
+func NewThemeService(repo repositories.ThemeRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) *ThemeService {
 	return &ThemeService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
 	}
 }
 
-
-func (ts *ThemeService) GetAll(Keyword string,SortBy string,Sort string) ([]*dtos.ThemeListDTO, error) {
-	return ts.repo.GetAll(Keyword ,SortBy ,Sort)
+func (ts *ThemeService) GetAll(Keyword string, SortBy string, Sort string) ([]*dtos.ThemeListDTO, error) {
+	return ts.repo.GetAll(Keyword, SortBy, Sort)
 }
-
 
 func (ts *ThemeService) GetFullDetailsByID(themeID uint) (*dtos.ThemeDetailDTO, error) {
 	var themeDTO dtos.ThemeDetailDTO
@@ -62,12 +60,11 @@ func (ts *ThemeService) GetFullDetailsByID(themeID uint) (*dtos.ThemeDetailDTO, 
 	return &themeDTO, nil
 }
 
-
-func (ts *ThemeService) Create(currentUserID uint,themeForm *dtos.ThemeFormDTO) (uint, error) {
+func (ts *ThemeService) Create(currentUserID uint, themeForm *dtos.ThemeFormDTO) (uint, error) {
 	if err := ts.validateThemeForm(themeForm); err != nil {
 		return 0, err
 	}
-	
+
 	theme := &models.Theme{
 		TitleEn:        themeForm.TitleEn,
 		TitleAr:        themeForm.TitleAr,
@@ -86,7 +83,6 @@ func (ts *ThemeService) Create(currentUserID uint,themeForm *dtos.ThemeFormDTO) 
 		return 0, err
 	}
 
-	 
 	go func() {
 		err := ts.activityLogSvc.LogActivity(
 			models.CreateAction,
@@ -94,7 +90,7 @@ func (ts *ThemeService) Create(currentUserID uint,themeForm *dtos.ThemeFormDTO) 
 			createdTheme.ID,
 			createdTheme,
 			currentUserID,
-			"setting", "general-setting", "", nil,
+			"setting", "general_setting", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -111,7 +107,7 @@ func (ts *ThemeService) Create(currentUserID uint,themeForm *dtos.ThemeFormDTO) 
 	return createdTheme.ID, nil
 }
 
-func (ts *ThemeService) Update(id uint,currentUserID uint,themeForm *dtos.ThemeFormDTO) error {
+func (ts *ThemeService) Update(id uint, currentUserID uint, themeForm *dtos.ThemeFormDTO) error {
 
 	existingTheme, err := ts.repo.GetByID(id)
 	if err != nil {
@@ -171,7 +167,7 @@ func (ts *ThemeService) Update(id uint,currentUserID uint,themeForm *dtos.ThemeF
 			id,
 			changedDataJSON,
 			currentUserID,
-			"setting", "general-setting", "", nil,
+			"setting", "general_setting", "", nil,
 		); err != nil {
 			fields := map[string]interface{}{
 				"action":    models.UpdateAction,
@@ -186,7 +182,6 @@ func (ts *ThemeService) Update(id uint,currentUserID uint,themeForm *dtos.ThemeF
 
 	return nil
 }
-
 
 func (ts *ThemeService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 
@@ -270,9 +265,3 @@ func (ts *ThemeService) validateThemeForm(form *dtos.ThemeFormDTO) error {
 
 	return nil
 }
-
-
-
-
-
-

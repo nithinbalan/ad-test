@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	// "fmt"
 	"jethur/grc/models"
 	"jethur/grc/settings/dtos"
 
@@ -9,7 +8,7 @@ import (
 )
 
 type ThemeRepositoryInterface interface {
-	GetAll(Keyword string,SortBy string,Sort string) ([]*dtos.ThemeListDTO, error)
+	GetAll(Keyword string, SortBy string, Sort string) ([]*dtos.ThemeListDTO, error)
 	GetFullDetailsByID(id uint) (*models.Theme, error)
 	GetByID(id uint) (*models.Theme, error)
 	Create(theme *models.Theme) (*models.Theme, error)
@@ -25,7 +24,7 @@ func NewThemeRepository(db *gorm.DB) *ThemeRepository {
 	return &ThemeRepository{db: db}
 }
 
-func (repo *ThemeRepository) GetAll(Keyword string,SortBy string,Sort string) ([]*dtos.ThemeListDTO, error) {
+func (repo *ThemeRepository) GetAll(Keyword string, SortBy string, Sort string) ([]*dtos.ThemeListDTO, error) {
 	var themes []*dtos.ThemeListDTO
 
 	query := repo.db.
@@ -71,7 +70,7 @@ func (repo *ThemeRepository) GetAll(Keyword string,SortBy string,Sort string) ([
 				created_user.last_name_ar LIKE ?
 			)
 		`,
-			keyword, keyword,keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 		)
 	}
 	if SortBy == "" {
@@ -136,4 +135,3 @@ func (repo *ThemeRepository) Update(theme *models.Theme) error {
 func (repo *ThemeRepository) Delete(id uint) error {
 	return repo.db.Delete(&models.Theme{}, id).Error
 }
-

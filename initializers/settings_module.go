@@ -216,7 +216,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		RiskTemplateSettingSvc:    riskTemplateSettingSvc,
 		ReportTemplateSettingSvc:  reportTemplateSettingSvc,
 		ActiveDirectorySettingSvc: activeDirectorySettingSvc,
-		ThemeSvc:              themeSvc,
+		ThemeSvc:                  themeSvc,
 		TenableSettingsSvc:        tenableSettingsSvc,
 	}
 }
