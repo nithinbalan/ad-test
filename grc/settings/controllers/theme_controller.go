@@ -146,7 +146,7 @@ func (tc *ThemeController) DeleteTheme(c *gin.Context) {
 		return
 	}
 
-	failedID, err = tc.service.Delete(uint(id), currentUserID)
+	failedID, err := tc.service.Delete(uint(id), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

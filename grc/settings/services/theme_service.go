@@ -19,8 +19,8 @@ import (
 type ThemeServiceInterface interface {
 	GetAll(Keyword string, SortBy string, Sort string) ([]*dtos.ThemeListDTO, error)
 	GetFullDetailsByID(themeID uint) (*dtos.ThemeDetailDTO, error)
-	Create(currentUserID uint, form *dtos.ThemeFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, form *dtos.ThemeFormDTO) error
+	Create(currentUserID uint, themeFormDTO *dtos.ThemeFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, themeFormDTO *dtos.ThemeFormDTO) error
 	Delete(id uint, currentUserID uint) (uint, error)
 }
 
@@ -38,6 +38,17 @@ func NewThemeService(repo repositories.ThemeRepositoryInterface, activityLogSvc 
 
 func (ts *ThemeService) GetAll(Keyword string, SortBy string, Sort string) ([]*dtos.ThemeListDTO, error) {
 	return ts.repo.GetAll(Keyword, SortBy, Sort)
+}
+
+func (ts ThemeService) GetByID(id uint) (*models.Theme, error) {
+	theme, err := ts.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+	return theme, nil
 }
 
 func (ts *ThemeService) GetFullDetailsByID(themeID uint) (*dtos.ThemeDetailDTO, error) {
@@ -70,7 +81,7 @@ func (ts *ThemeService) Create(currentUserID uint, themeFormDTO *dtos.ThemeFormD
 		DescriptionEn:  themeFormDTO.DescriptionEn,
 		DescriptionAr:  themeFormDTO.DescriptionAr,
 		PrimaryColor:   themeFormDTO.PrimaryColor,
-		SecondaryColor: themeForm.SecondaryColor,
+		SecondaryColor: themeFormDTO.SecondaryColor,
 		LinkColor:      themeFormDTO.LinkColor,
 		SidebarBgColor: themeFormDTO.SidebarBgColor,
 		IsSystem:       false,
@@ -106,28 +117,28 @@ func (ts *ThemeService) Create(currentUserID uint, themeFormDTO *dtos.ThemeFormD
 	return createdTheme.ID, nil
 }
 
-func (ts *ThemeService) Update(id uint, currentUserID uint, themeForm *dtos.ThemeFormDTO) error {
+func (ts *ThemeService) Update(id uint, currentUserID uint, themeFormDTO *dtos.ThemeFormDTO) error {
 
 	existingTheme, err := ts.GetByID(id)
 	if err != nil {
 		return err
 	}
 
-	if err := ts.validateThemeForm(themeForm); err != nil {
+	if err := ts.validateThemeForm(themeFormDTO); err != nil {
 		return err
 	}
 
-	existingTheme.TitleEn = themeForm.TitleEn
-	existingTheme.TitleAr = themeForm.TitleAr
-	existingTheme.DescriptionEn = themeForm.DescriptionEn
-	existingTheme.DescriptionAr = themeForm.DescriptionAr
-	existingTheme.PrimaryColor = themeForm.PrimaryColor
-	existingTheme.SecondaryColor = themeForm.SecondaryColor
-	existingTheme.LinkColor = themeForm.LinkColor
-	existingTheme.SidebarBgColor = themeForm.SidebarBgColor
+	existingTheme.TitleEn = themeFormDTO.TitleEn
+	existingTheme.TitleAr = themeFormDTO.TitleAr
+	existingTheme.DescriptionEn = themeFormDTO.DescriptionEn
+	existingTheme.DescriptionAr = themeFormDTO.DescriptionAr
+	existingTheme.PrimaryColor = themeFormDTO.PrimaryColor
+	existingTheme.SecondaryColor = themeFormDTO.SecondaryColor
+	existingTheme.LinkColor = themeFormDTO.LinkColor
+	existingTheme.SidebarBgColor = themeFormDTO.SidebarBgColor
 	existingTheme.UpdatedBYID = &currentUserID
 
-	if err := ts.repo.Update(&existingTheme); err != nil {
+	if err := ts.repo.Update(existingTheme); err != nil {
 		return err
 	}
 
@@ -179,17 +190,17 @@ func (ts *ThemeService) Update(id uint, currentUserID uint, themeForm *dtos.Them
 func (ts *ThemeService) Delete(id uint, currentUserID uint) (uint, error) {
 	theme, err := ts.GetByID(id)
 	if err != nil {
-		return err
+		return 0,err
 	}
 
 	if theme.IsSystem {
-		return utility.NewForbiddenError(
+		return 0,utility.NewForbiddenError(
 			fmt.Sprintf("System theme '%s' cannot be deleted", theme.TitleEn),
 		)
 	}
 
 	if err := ts.repo.Delete(id); err != nil {
-		return err
+		return 0,err
 	}
 
 	deletedTheme := map[string]interface{}{
@@ -211,14 +222,14 @@ func (ts *ThemeService) Delete(id uint, currentUserID uint) (uint, error) {
 		}
 	}()
 
-	return nil
+	return 0,nil
 }
 
 func (ts *ThemeService) validateThemeForm(themeFormDTO *dtos.ThemeFormDTO) error {
 
 	hexColorRegex := regexp.MustCompile(`^#([A-Fa-f0-9]{6})$`)
 
-	if strings.TrimSpace(form.TitleEn) == "" {
+	if strings.TrimSpace(themeFormDTO.TitleEn) == "" {
 		return utility.NewValidationError(
 			fmt.Errorf("title_en is empty"),
 			"required",
@@ -226,7 +237,7 @@ func (ts *ThemeService) validateThemeForm(themeFormDTO *dtos.ThemeFormDTO) error
 		)
 	}
 
-	if strings.TrimSpace(form.TitleAr) == "" {
+	if strings.TrimSpace(themeFormDTO.TitleAr) == "" {
 		return utility.NewValidationError(
 			fmt.Errorf("title_ar is empty"),
 			"required",
@@ -234,7 +245,7 @@ func (ts *ThemeService) validateThemeForm(themeFormDTO *dtos.ThemeFormDTO) error
 		)
 	}
 
-	if strings.TrimSpace(form.PrimaryColor) == "" {
+	if strings.TrimSpace(themeFormDTO.PrimaryColor) == "" {
 		return utility.NewValidationError(
 			fmt.Errorf("primary_color is empty"),
 			"required",
@@ -242,7 +253,7 @@ func (ts *ThemeService) validateThemeForm(themeFormDTO *dtos.ThemeFormDTO) error
 		)
 	}
 
-	if !hexColorRegex.MatchString(form.PrimaryColor) {
+	if !hexColorRegex.MatchString(themeFormDTO.PrimaryColor) {
 		return utility.NewValidationError(
 			fmt.Errorf("invalid primary_color format"),
 			"invalid",
@@ -250,7 +261,7 @@ func (ts *ThemeService) validateThemeForm(themeFormDTO *dtos.ThemeFormDTO) error
 		)
 	}
 
-	if strings.TrimSpace(form.SecondaryColor) == "" {
+	if strings.TrimSpace(themeFormDTO.SecondaryColor) == "" {
 		return utility.NewValidationError(
 			fmt.Errorf("secondary_color is empty"),
 			"required",
@@ -258,7 +269,7 @@ func (ts *ThemeService) validateThemeForm(themeFormDTO *dtos.ThemeFormDTO) error
 		)
 	}
 
-	if !hexColorRegex.MatchString(form.SecondaryColor) {
+	if !hexColorRegex.MatchString(themeFormDTO.SecondaryColor) {
 		return utility.NewValidationError(
 			fmt.Errorf("invalid secondary_color format"),
 			"invalid",
@@ -266,7 +277,7 @@ func (ts *ThemeService) validateThemeForm(themeFormDTO *dtos.ThemeFormDTO) error
 		)
 	}
 
-	if strings.TrimSpace(form.LinkColor) == "" {
+	if strings.TrimSpace(themeFormDTO.LinkColor) == "" {
 		return utility.NewValidationError(
 			fmt.Errorf("link_color is empty"),
 			"required",
@@ -274,7 +285,7 @@ func (ts *ThemeService) validateThemeForm(themeFormDTO *dtos.ThemeFormDTO) error
 		)
 	}
 
-	if !hexColorRegex.MatchString(form.LinkColor) {
+	if !hexColorRegex.MatchString(themeFormDTO.LinkColor) {
 		return utility.NewValidationError(
 			fmt.Errorf("invalid link_color format"),
 			"invalid",
@@ -282,7 +293,7 @@ func (ts *ThemeService) validateThemeForm(themeFormDTO *dtos.ThemeFormDTO) error
 		)
 	}
 
-	if strings.TrimSpace(form.SidebarBgColor) == "" {
+	if strings.TrimSpace(themeFormDTO.SidebarBgColor) == "" {
 		return utility.NewValidationError(
 			fmt.Errorf("sidebar_bg_color is empty"),
 			"required",
@@ -290,7 +301,7 @@ func (ts *ThemeService) validateThemeForm(themeFormDTO *dtos.ThemeFormDTO) error
 		)
 	}
 
-	if !hexColorRegex.MatchString(form.SidebarBgColor) {
+	if !hexColorRegex.MatchString(themeFormDTO.SidebarBgColor) {
 		return utility.NewValidationError(
 			fmt.Errorf("invalid sidebar_bg_color format"),
 			"invalid",
