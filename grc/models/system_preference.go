@@ -23,10 +23,11 @@ type SystemPreference struct {
 	UpdatedByID              *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt                time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-
+	ThemeID                  uint       `json:"theme_id" binding:"required" gorm:"not null"`
 	// Relationships
 	Currency      *Currency `gorm:"foreignKey:CurrencyID;constraint:OnDelete:NO ACTION,OnUpdate:NO ACTION"`
 	Timezone      *Timezone `gorm:"foreignKey:TimezoneID;constraint:OnDelete:NO ACTION,OnUpdate:NO ACTION"`
+	Theme         *Theme    `gorm:"foreignKey:ThemeID"`
 	CreatedByUser *User     `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser *User     `gorm:"foreignKey:UpdatedByID"`
 }
