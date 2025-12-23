@@ -36,6 +36,7 @@ type SettingsModule struct {
 	RAGSettingController             *controllers.RAGSettingController
 	TenableSettingsController        *controllers.TenableSettingsController
 	HealthCheckController            *controllers.HealthCheckController
+	ThemeController                  *controllers.ThemeController
 
 	SystemPreferenceSvc       services.SystemPreferenceServiceInterface
 	OrganizationUnitSvc       services.OrganizationUnitServiceInterface
@@ -50,6 +51,7 @@ type SettingsModule struct {
 	RiskTemplateSettingSvc    services.RiskTemplateSettingServiceInterface
 	ReportTemplateSettingSvc  services.ReportTemplateSettingServiceInterface
 	ActiveDirectorySettingSvc services.ActiveDirectorySettingServiceInterface
+	ThemeSvc                  services.ThemeServiceInterface
 }
 
 func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule) *SettingsModule {
@@ -167,6 +169,10 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	healthCheckService := services.NewHealthCheckService(healthCheckRepo, systemPreferenceSvc)
 	healthCheckController := controllers.NewHealthCheckController(healthCheckService)
 
+	themeRepo := repositories.NewThemeRepository(db)
+	themeSvc := services.NewThemeService(themeRepo, sharedModule.ActivityLogService)
+	themeController := controllers.NewThemeController(themeSvc)
+
 	return &SettingsModule{
 		OrganizationLevelController:      organizationLevelController,
 		SystemPreferenceController:       systemPreferenceController,
@@ -194,6 +200,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		RAGSettingController:             ragSettingController,
 		TenableSettingsController:        tenableSettingsController,
 		HealthCheckController:            healthCheckController,
+		ThemeController:                  themeController,
 
 		SystemPreferenceSvc:       systemPreferenceSvc,
 		OrganizationLevelSvc:      organizationLevelSvc,
@@ -208,5 +215,6 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		RiskTemplateSettingSvc:    riskTemplateSettingSvc,
 		ReportTemplateSettingSvc:  reportTemplateSettingSvc,
 		ActiveDirectorySettingSvc: activeDirectorySettingSvc,
+		ThemeSvc:              themeSvc,
 	}
 }
