@@ -184,6 +184,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("/risk-register", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRegisterController.CreateRiskRegister)
 	riskRoutes.PUT("/risk-register/:id", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRegisterController.UpdateRiskRegister)
 	riskRoutes.POST("/risk-register/delete", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRegisterController.DeleteRiskRegisters)
+	riskRoutes.POST("/risk-register/force-delete", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskRegisterController.DeleteForceRiskRegisters)
 
 	unauthenticatedRoutes.GET("/identified-risks/:id/document-preview", riskRegisterController.GetRiskRegisterDocumentPreview)
 	unauthenticatedRoutes.GET("/identified-risks/:id/document-download", riskRegisterController.DownloadRiskRegisterDocument)

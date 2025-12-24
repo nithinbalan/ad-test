@@ -742,3 +742,28 @@ func (rrc *RiskRegisterController) GetAllIdentifiedRisks(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, risks)
 }
+
+func (rrc *RiskRegisterController) DeleteForceRiskRegisters(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := rrc.service.ForceDelete(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(rrc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
