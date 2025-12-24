@@ -33,6 +33,7 @@ func (repo *SystemPreferenceRepository) GetSystemPreference() (*models.SystemPre
 	result := repo.db.
 		Preload("Timezone").
 		Preload("Currency").
+		Preload("Theme").
 		First(&systemPreference)
 
 	if result.Error != nil {
