@@ -157,6 +157,9 @@ jobs:
           Copy-Item -Path "${{ github.workspace }}\migration.exe" `
                     -Destination $env:IIS_DOC_ROOT -Force
 
+      - name: Start NSSM Service
+        run: nssm start ${{ env.SERVICE_NAME }}
+        continue-on-error: true
 
       - name: Status NSSM Service
         run: nssm status ${{ env.SERVICE_NAME }}
