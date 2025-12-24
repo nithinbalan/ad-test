@@ -49,8 +49,20 @@ type LicenseKeyDTO struct {
 }
 
 type ThemeDTO struct {
-	ID      int    `json:"id"`
-	TitleEn string `json:"title_en"`
+	ID             uint       `json:"id"`
+	TitleEn        string     `json:"title_en"`
+	TitleAr        string     `json:"title_ar"`
+	DescriptionEn  *string    `json:"description_en"`
+	DescriptionAr  *string    `json:"description_ar"`
+	PrimaryColor   string     `json:"primary_color"`
+	SecondaryColor string     `json:"secondary_color"`
+	LinkColor      string     `json:"link_color"`
+	SidebarBgColor string     `json:"sidebar_bg_color"`
+	IsSystem       bool       `json:"is_system"`
+	CreatedByID    uint       `json:"created_by_id"`
+	UpdatedByID    *uint      `json:"updated_by_id"`
+	CreatedAt      string     `json:"created_at"`
+	UpdatedAt      *string    `json:"updated_at"`
 }
 
 type TimezoneDTO struct {
