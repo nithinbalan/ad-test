@@ -1,7 +1,5 @@
 package dtos
 
-import "time"
-
 type SystemPreferenceFormDTO struct {
 	CurrencyID          uint   `json:"currency_id" binding:"required"`
 	TimezoneID          uint   `json:"timezone_id" binding:"required"`
@@ -34,7 +32,7 @@ type SystemPreferenceDTO struct {
 	Timezone            TimezoneDTO    `json:"timezone"`
 	Currency            CurrencyDTO    `json:"currency"`
 	LicenseKeyDetails   *LicenseKeyDTO `json:"license_key_details"`
-	Theme               ThemeDTO       `json:"theme"`
+	Theme               ThemeDetailDTO `json:"theme"`
 }
 
 type LicenseKeyDTO struct {
@@ -48,23 +46,6 @@ type LicenseKeyDTO struct {
 	PassiveUsersCount          *int     `json:"passive_user_count"`
 	BalanceActiveUsersCount    *int     `json:"balance_active_user_count"`
 	BalancePassiveUsersCount   *int     `json:"balance_passive_user_count"`
-}
-
-type ThemeDTO struct {
-	ID             uint       `json:"id"`
-	TitleEn        string     `json:"title_en"`
-	TitleAr        string     `json:"title_ar"`
-	DescriptionEn  *string    `json:"description_en"`
-	DescriptionAr  *string    `json:"description_ar"`
-	PrimaryColor   string     `json:"primary_color"`
-	SecondaryColor string     `json:"secondary_color"`
-	LinkColor      string     `json:"link_color"`
-	SidebarBgColor string     `json:"sidebar_bg_color"`
-	IsSystem       bool       `json:"is_system"`
-	CreatedByID    uint       `json:"created_by_id"`
-	UpdatedByID    *uint      `json:"updated_by_id"`
-	CreatedAt      time.Time     `json:"created_at"`
-	UpdatedAt      *time.Time    `json:"updated_at"`
 }
 
 type TimezoneDTO struct {
