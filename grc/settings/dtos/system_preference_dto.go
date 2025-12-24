@@ -9,6 +9,7 @@ type SystemPreferenceFormDTO struct {
 	LogoUploadSize      int    `json:"logo_upload_size" binding:"required"`
 	IdleTimeout         int    `json:"idle_timeout" binding:"required"`
 	IsMaintenanceModeOn *bool  `json:"is_maintenance_mode_on"`
+	ThemeID             uint   `json:"theme_id" binding:"required"`
 }
 
 type LicenseKeyUpdateFormDTO struct {
@@ -31,6 +32,7 @@ type SystemPreferenceDTO struct {
 	Timezone            TimezoneDTO    `json:"timezone"`
 	Currency            CurrencyDTO    `json:"currency"`
 	LicenseKeyDetails   *LicenseKeyDTO `json:"license_key_details"`
+	Theme               ThemeDetailDTO `json:"theme"`
 }
 
 type LicenseKeyDTO struct {
@@ -45,6 +47,7 @@ type LicenseKeyDTO struct {
 	BalanceActiveUsersCount    *int     `json:"balance_active_user_count"`
 	BalancePassiveUsersCount   *int     `json:"balance_passive_user_count"`
 }
+
 type TimezoneDTO struct {
 	ID          int    `json:"id"`
 	Name        string `json:"name"`
