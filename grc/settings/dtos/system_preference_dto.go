@@ -1,5 +1,7 @@
 package dtos
 
+import "time"
+
 type SystemPreferenceFormDTO struct {
 	CurrencyID          uint   `json:"currency_id" binding:"required"`
 	TimezoneID          uint   `json:"timezone_id" binding:"required"`
@@ -61,8 +63,8 @@ type ThemeDTO struct {
 	IsSystem       bool       `json:"is_system"`
 	CreatedByID    uint       `json:"created_by_id"`
 	UpdatedByID    *uint      `json:"updated_by_id"`
-	CreatedAt      string     `json:"created_at"`
-	UpdatedAt      *string    `json:"updated_at"`
+	CreatedAt      time.Time     `json:"created_at"`
+	UpdatedAt      *time.Time    `json:"updated_at"`
 }
 
 type TimezoneDTO struct {
