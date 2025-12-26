@@ -13,12 +13,14 @@ import (
 )
 
 type KRIRegisterRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *riskDTOs.KRIRegisterListQueryParamsDTO) (*riskDTOs.KRIRegisterListResponseDTO, error)
 	GetByID(id uint) (*models.KRIRegister, error)
 	GetFullDetailsByID(id uint) (*models.KRIRegister, error)
 	Create(kriRegister *models.KRIRegister) (uint, error)
 	Update(kriRegister *models.KRIRegister, tx ...utility.DatabaseTransaction) error
 	Delete(id uint) error
+	ForceDelete(id uint, tx ...utility.DatabaseTransaction) error
 	ExistsByTitle(Title string, KRICategoryID uint) (bool, error)
 	ExistsByTitleExcludingID(id uint, Title string, KRICategoryID uint) (bool, error)
 	GenerateReferenceNumber() (string, error)
@@ -35,6 +37,10 @@ func NewKRIRegisterRepository(db *gorm.DB) *KRIRegisterRepository {
 	return &KRIRegisterRepository{
 		db: db,
 	}
+}
+
+func (repo *KRIRegisterRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryParamsDTO) (*riskDTOs.KRIRegisterListResponseDTO, error) {
@@ -381,4 +387,39 @@ func (repo *KRIRegisterRepository) GetTrendAnalysis(kriID uint, limit int) ([]*m
 	}
 
 	return kriValueUpdate, nil
+}
+
+func (repo *KRIRegisterRepository) ForceDelete(id uint, tx ...utility.DatabaseTransaction) error {
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	queries := []string{
+		`DELETE kud
+		 FROM kri_value_update_documents AS kud
+		 JOIN kri_value_updates AS ku ON ku.id = kud.kri_value_update_id
+		 WHERE ku.kri_register_id = ?`,
+
+		`DELETE FROM kri_value_updates WHERE kri_register_id = ?`,
+		`DELETE FROM risk_kris WHERE kri_register_id = ?`,
+		`DELETE FROM kri_processes WHERE kri_register_id = ?`,
+		`DELETE FROM kri_kpis WHERE kri_register_id = ?`,
+		`DELETE FROM kri_incidents WHERE kri_register_id = ?`,
+		`DELETE FROM kri_controls WHERE kri_register_id = ?`,
+		`DELETE FROM kri_compliance_requirements WHERE kri_register_id = ?`,
+		`DELETE FROM kri_associated_documents WHERE kri_register_id = ?`,
+		`DELETE FROM asset_kris WHERE kri_register_id = ?`,
+	}
+
+	for _, q := range queries {
+		res := db.Exec(q, id)
+		if res.Error != nil {
+			return res.Error
+		}
+	}
+
+	// Force hard delete (ignore soft delete)
+	return db.Delete(&models.KRIRegister{}, id).Error
 }
