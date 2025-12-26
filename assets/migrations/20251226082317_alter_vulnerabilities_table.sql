@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 ALTER TABLE vulnerabilities
-ADD tenable_cve VARCHAR(100) NULL;
+ADD tenable_cve VARCHAR(MAX) NULL;
 -- +goose StatementEnd
 
 -- +goose Down
