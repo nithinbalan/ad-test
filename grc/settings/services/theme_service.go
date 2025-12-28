@@ -27,12 +27,14 @@ type ThemeServiceInterface interface {
 type ThemeService struct {
 	repo           repositories.ThemeRepositoryInterface
 	activityLogSvc services.ActivityLogServiceInterface
+	systemPreferenceSvc SystemPreferenceServiceInterface
 }
 
-func NewThemeService(repo repositories.ThemeRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) *ThemeService {
+func NewThemeService(repo repositories.ThemeRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, systemPreferenceSvc SystemPreferenceServiceInterface) *ThemeService {
 	return &ThemeService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
+		systemPreferenceSvc: systemPreferenceSvc,
 	}
 }
 
@@ -196,6 +198,17 @@ func (ts *ThemeService) Delete(id uint, currentUserID uint) (uint, error) {
 	if theme.IsSystem {
 		return 0,utility.NewForbiddenError(
 			fmt.Sprintf("System theme '%s' cannot be deleted", theme.TitleEn),
+		)
+	}
+
+	system,err := ts.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return 0,err
+	}
+
+	if system.Theme.ID == id {
+       return 0,utility.NewResourceConflictError(
+			errors.New("selected_theme_is_already_in_use"),
 		)
 	}
 
