@@ -9,6 +9,8 @@ import (
 
 type ComplianceAIServiceInterface interface {
 	GetComplianceAutofill(req dtos.ComplianceAutofillRequest) (map[string]interface{}, error)
+	GetComplianceSummary(complianceID uint) (map[string]interface{}, error)
+	GetComplianceClauseGuidance(clauseID uint) (map[string]interface{}, error)	
 }
 
 type ComplianceAIService struct {
@@ -38,3 +40,39 @@ func (cais *ComplianceAIService) GetComplianceAutofill(req dtos.ComplianceAutofi
 
 	return utility.CallAIAPI("/api/v1/compliance/autofill", payload)
 }
+
+func (cais *ComplianceAIService) GetComplianceSummary(complianceID uint) (map[string]interface{}, error) {
+
+	systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
+	path := fmt.Sprintf("/api/v1/compliance/%d/compliance-summary",complianceID)
+
+	return utility.CallAIAPIObjectResponse(path)
+}
+
+func (cais *ComplianceAIService) GetComplianceClauseGuidance(clauseID uint) (map[string]interface{}, error) {
+
+	systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
+	path := fmt.Sprintf("/api/v1/compliance/%d/clause-guidance",clauseID,)
+
+	return utility.CallAIAPIObjectResponse(path)
+}
+
+
+
+
