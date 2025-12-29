@@ -28,6 +28,7 @@ type KRIRegisterServiceInterface interface {
 	Update(id uint, currentUserID uint, kriRegisterFormDTO *riskDTOs.KRIRegisterFormDTO) error
 	UpdateValue(kriRegister *models.KRIRegister, tx utility.DatabaseTransaction) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
 
 	ExportKriRegister(data []*riskDTOs.KRIRegisterListDTO, currentUserID uint) (*os.File, error)
 	GetTrendAnalysis(kriID uint, limit int) ([]*riskDTOs.KRITrendAnalysisDTO, error)
@@ -902,4 +903,44 @@ func (krs *KRIRegisterService) GetTrendAnalysis(kriID uint, limit int) ([]*riskD
 	}
 
 	return trend, nil
+}
+
+func (krs *KRIRegisterService) ForceDelete(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := krs.repo.BeginTransaction()
+	var failedIds []uint
+	var deletedData []map[string]interface{}
+
+	for _, id := range ids {
+		if err := krs.repo.ForceDelete(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		deletedData = append(deletedData, map[string]interface{}{
+			"id": id,
+		})
+	}
+
+	if len(failedIds) > 0 {
+		return failedIds, nil
+	}
+
+	if err := tx.Commit(); err != nil {
+		return ids, err
+	}
+
+	go func() {
+		if err := krs.activityLogSvc.LogBulkActivities(
+			models.DeleteAction,
+			models.KRIRegister{}.TableName(),
+			ids,
+			deletedData,
+			currentUserID,
+			nil,
+		); err != nil {
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
+	return nil, nil
 }

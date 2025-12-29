@@ -111,6 +111,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/kri-register/:id", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriRegisterController.UpdateKRIRegister)
 	riskRoutes.GET("/kri-register/:id/trends", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriRegisterController.GetKRITrendAnalysis)
 	riskRoutes.POST("/kri-register/delete", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriRegisterController.DeleteKRIRegisters)
+	riskRoutes.POST("/kri-register/force-delete", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriRegisterController.DeleteForceKRIRegisters)
 
 	unauthenticatedRoutes.GET("/kri-register/:id/value-updates/:updateId/document-preview", kriValueUpdateController.GetKRIValueUpdateDocumentPreview)
 	unauthenticatedRoutes.GET("/kri-register/:id/value-updates/:updateId/document-download", kriValueUpdateController.DownloadKRIValueUpdateDocument)
