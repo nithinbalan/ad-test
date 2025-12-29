@@ -155,6 +155,9 @@ func (tc *ThemeController) DeleteTheme(c *gin.Context) {
 		case *utility.ForbiddenError:
 			utility.SendForbiddenErrResp(c, e.Error())
 			return
+		case *utility.ResourceConflictError:
+			utility.SendConflictErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(tc.db, c, e.Error())
 			return
