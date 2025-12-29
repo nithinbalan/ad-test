@@ -201,7 +201,6 @@ func (ts *ThemeService) Delete(id uint, currentUserID uint) (uint, error) {
 
 	if err := ts.repo.Delete(id); err != nil {
 		if utility.IsForeignKeyConstraintError(err) {
-			fmt.Printf("the=================]")
 			return 0, utility.NewResourceConflictError(
 				fmt.Errorf("selected_theme_is_already_in_use"),
 			)
