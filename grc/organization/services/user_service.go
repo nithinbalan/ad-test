@@ -13,7 +13,6 @@ import (
 	"jethur/grc/models"
 	userDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
-	settingsRepo "jethur/grc/settings/repositories"
 	settingDTOs "jethur/grc/settings/dtos"
 	settingService "jethur/grc/settings/services"
 	"jethur/utility"
@@ -96,8 +95,6 @@ type UserService struct {
 	organizationUnitSvc       settingService.OrganizationUnitServiceInterface
 	userJobDescriptionSvc     UserJobDescriptionServiceInterface
 	licenseTypeSvc            masterService.LicenseTypeServiceInterface
-	organizationRepo          settingsRepo.OrganizationLevelRepositoryInterface
-	ActiveDirectoryRepo       settingsRepo.ActiveDirectorySettingRepositoryInterface
 }
 
 func NewUserService(
@@ -115,8 +112,6 @@ func NewUserService(
 	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
 	userJobDescriptionSvc UserJobDescriptionServiceInterface,
 	licenseTypeSvc masterService.LicenseTypeServiceInterface,
-	organizationRepo settingsRepo.OrganizationLevelRepositoryInterface,
-	ActiveDirectoryRepo  settingsRepo.ActiveDirectorySettingRepositoryInterface,
 ) UserServiceInterface {
 	return &UserService{
 		repo:                      repo,
@@ -133,8 +128,6 @@ func NewUserService(
 		organizationUnitSvc:       organizationUnitSvc,
 		userJobDescriptionSvc:     userJobDescriptionSvc,
 		licenseTypeSvc:            licenseTypeSvc,
-		organizationRepo:          organizationRepo,
-		ActiveDirectoryRepo:       ActiveDirectoryRepo,
 	}
 }
 
@@ -2489,7 +2482,7 @@ func (us *UserService) UpdateDelegateeUser(user *models.User, tx utility.Databas
 
 // SyncAzureUsers pulls users from Microsoft Graph and syncs to DB.
 func (us *UserService) SyncAzureUsers() ([]userDTOs.ADUserFlatDTO, error) {
-	setting, err := us.ActiveDirectoryRepo.GetFirst()
+	setting, err := us.activeDirectorySettingSvc.GetFirst()
 	if err != nil {
 		return nil, err
 	}
@@ -2548,7 +2541,7 @@ func (us *UserService) SyncAzureUsers() ([]userDTOs.ADUserFlatDTO, error) {
 
 	// === EXACT LDAP-LIKE RESPONSE ===
 	slNo := 1
-	orgLevels, err := us.organizationRepo.GetAll()
+	orgLevels, err := us.organizationLevelSvc.GetAll()
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch organization levels: %w", err)
 	}
@@ -2601,7 +2594,7 @@ func (us *UserService) SyncAzureUsers() ([]userDTOs.ADUserFlatDTO, error) {
 // SyncAzureGroups pulls group data from Microsoft Graph.
 func (us *UserService) SyncAzureGroups() ([]map[string]interface{}, error) {
 
-	setting, err := us.ActiveDirectoryRepo.GetFirst()
+	setting, err := us.activeDirectorySettingSvc.GetFirst()
 	if err != nil {
 		return nil, err
 	}

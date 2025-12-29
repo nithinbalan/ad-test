@@ -8,6 +8,7 @@ import (
 	"jethur/grc/asset/repositories"
 	commonDTOs "jethur/grc/common/dtos"
 	organizationServices "jethur/grc/organization/services"
+	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
 	"math"
 	"net/http"
@@ -22,48 +23,58 @@ type TenableServiceInterface interface {
 }
 
 type TenableService struct {
-	repo                repositories.TenableRepositoryInterface
-	ass                 AssetStatusServiceInterface
-	assetCategorySvc    AssetCategoryServiceInterface
-	userSvc             organizationServices.UserServiceInterface
-	assetRegisterSvc    AssetRegisterServiceInterface
-	assetSubCategorySvc AssetSubCategoryServiceInterface
+	repo                   repositories.TenableRepositoryInterface
+	assetStatusSvc         AssetStatusServiceInterface
+	tenableSettingsService settingsServices.TenableSettingsServiceInterface
+	assetCategorySvc       AssetCategoryServiceInterface
+	userSvc                organizationServices.UserServiceInterface
+	assetRegisterSvc       AssetRegisterServiceInterface
+	assetSubCategorySvc    AssetSubCategoryServiceInterface
 }
 
 func NewTenableService(
 	repo repositories.TenableRepositoryInterface,
-	ass AssetStatusServiceInterface,
+	assetStatusSvc AssetStatusServiceInterface,
+	tenableSettingsService settingsServices.TenableSettingsServiceInterface,
 	assetCategorySvc AssetCategoryServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	assetRegisterSvc AssetRegisterServiceInterface,
 	assetSubCategorySvc AssetSubCategoryServiceInterface,
 ) TenableServiceInterface {
 	return &TenableService{
-		repo:                repo,
-		ass:                 ass,
-		assetCategorySvc:    assetCategorySvc,
-		userSvc:             userSvc,
-		assetRegisterSvc:    assetRegisterSvc,
-		assetSubCategorySvc: assetSubCategorySvc,
+		repo:                   repo,
+		assetStatusSvc:         assetStatusSvc,
+		tenableSettingsService: tenableSettingsService,
+		assetCategorySvc:       assetCategorySvc,
+		userSvc:                userSvc,
+		assetRegisterSvc:       assetRegisterSvc,
+		assetSubCategorySvc:    assetSubCategorySvc,
 	}
 }
 
-const (
-	BaseURL   = "https://sc.tenalab.online"
-	AccessKey = "803fe2c0529f448983c9168df30fd801"
-	SecretKey = "17511bc49b254f2283e20de69f7cce6d"
-)
-
 func (s *TenableService) GetAllAssets(params *dtos.TenableAssetListQueryParamsDTO) (*dtos.TenableAssetListResponseDTO, error) {
 
+	if err := s.tenableSettingsService.CheckSavedConnection(); err != nil {
+		return nil, err
+	}
+
+	settings, err := s.tenableSettingsService.GetTenableSettings()
+	if err != nil {
+		return nil, err
+	}
+
+	baseURL := settings.BaseURL
+	accessKey := settings.AccessKey
+	secretKey := settings.SecretKey
+
 	client := &http.Client{Timeout: 20 * time.Second}
-	url := fmt.Sprintf("%s/rest/asset?fields=uuid,name,description,status,createdTime,modifiedTime", BaseURL)
+	url := fmt.Sprintf("%s/rest/asset?fields=uuid,name,description,status,createdTime,modifiedTime", baseURL)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("x-apikey", fmt.Sprintf("accessKey=%s; secretKey=%s", AccessKey, SecretKey))
+	req.Header.Set("x-apikey", fmt.Sprintf("accessKey=%s; secretKey=%s", accessKey, secretKey))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := client.Do(req)
@@ -130,7 +141,7 @@ func (s *TenableService) GetAllAssets(params *dtos.TenableAssetListQueryParamsDT
 			statusType = "disposed"
 		}
 
-		statusObj, err := s.ass.GetByType(statusType)
+		statusObj, err := s.assetStatusSvc.GetByType(statusType)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get asset status '%s': %v", statusType, err)
 		}
@@ -190,7 +201,7 @@ func (s *TenableService) ValidateTenableAssets(input []dtos.TenableAssetImportDT
 		subCategoryTitles[strings.ToLower(strings.TrimSpace(sub.TitleEn))] = uint(sub.ID)
 	}
 
-	statuses, err := s.ass.GetAll("", "", "", "")
+	statuses, err := s.assetStatusSvc.GetAll("", "", "", "")
 	if err != nil {
 		return nil, fmt.Errorf("error fetching asset statuses: %v", err)
 	}

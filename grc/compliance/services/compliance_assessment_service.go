@@ -30,6 +30,7 @@ type ComplianceAssessmentServiceInterface interface {
 	Create(currentUserID uint, complianceAssessmentFormDTO *complianceDTOs.ComplianceAssessmentFormDTO) error
 	Update(id uint, currentUserID uint, compliance *complianceDTOs.ComplianceAssessmentUpdateFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
 
 	AssessmentCompletionRollup(assessmentID uint) (*complianceDTOs.AssessmentCompletionRollupDTO, error)
 	GetComplianceStatusSummary(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error)
@@ -769,6 +770,48 @@ func (cras *ComplianceAssessmentService) Delete(ids []uint, currentUserID uint) 
 	}
 
 	return failedIds, nil
+}
+
+func (cras *ComplianceAssessmentService) ForceDelete(ids []uint, currentUserID uint) ([]uint, error) {
+
+	tx := cras.repo.BeginTransaction()
+	var failedIds []uint
+	var deletedData []map[string]interface{}
+
+	for _, id := range ids {
+		if err := cras.repo.ForceDelete(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		deletedData = append(deletedData, map[string]interface{}{
+			"id": id,
+		})
+	}
+
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	tx.Commit()
+
+	go func() {
+		err := cras.activityLogSvc.LogBulkActivities(
+			models.DeleteAction,
+			models.ComplianceAssessment{}.TableName(),
+			ids,
+			deletedData,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			// @todo - save to log file
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
+	return nil, nil
 }
 
 func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(complianceAssessmentFormDTO *complianceDTOs.ComplianceAssessmentFormDTO) error {
