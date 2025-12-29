@@ -171,7 +171,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	healthCheckController := controllers.NewHealthCheckController(healthCheckService)
 
 	themeRepo := repositories.NewThemeRepository(db)
-	themeSvc := services.NewThemeService(themeRepo, sharedModule.ActivityLogService,systemPreferenceSvc)
+	themeSvc := services.NewThemeService(themeRepo, sharedModule.ActivityLogService)
 	themeController := controllers.NewThemeController(themeSvc)
 
 	return &SettingsModule{

@@ -25,16 +25,14 @@ type ThemeServiceInterface interface {
 }
 
 type ThemeService struct {
-	repo           repositories.ThemeRepositoryInterface
-	activityLogSvc services.ActivityLogServiceInterface
-	systemPreferenceSvc SystemPreferenceServiceInterface
+	repo                repositories.ThemeRepositoryInterface
+	activityLogSvc      services.ActivityLogServiceInterface
 }
 
-func NewThemeService(repo repositories.ThemeRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface, systemPreferenceSvc SystemPreferenceServiceInterface) *ThemeService {
+func NewThemeService(repo repositories.ThemeRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) *ThemeService {
 	return &ThemeService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
-		systemPreferenceSvc: systemPreferenceSvc,
+		repo:                repo,
+		activityLogSvc:      activityLogSvc,
 	}
 }
 
@@ -192,28 +190,22 @@ func (ts *ThemeService) Update(id uint, currentUserID uint, themeFormDTO *dtos.T
 func (ts *ThemeService) Delete(id uint, currentUserID uint) (uint, error) {
 	theme, err := ts.GetByID(id)
 	if err != nil {
-		return 0,err
+		return 0, err
 	}
 
 	if theme.IsSystem {
-		return 0,utility.NewForbiddenError(
+		return 0, utility.NewForbiddenError(
 			fmt.Sprintf("System theme '%s' cannot be deleted", theme.TitleEn),
 		)
 	}
 
-	system,err := ts.systemPreferenceSvc.GetSystemPreference()
-	if err != nil {
-		return 0,err
-	}
-
-	if system.Theme.ID == id {
-       return 0,utility.NewResourceConflictError(
-			errors.New("selected_theme_is_already_in_use"),
-		)
-	}
-
 	if err := ts.repo.Delete(id); err != nil {
-		return 0,err
+		if utility.IsForeignKeyConstraintError(err) {
+			fmt.Printf("the=================]")
+			return 0, utility.NewResourceConflictError(
+				fmt.Errorf("selected_theme_is_already_in_use"),
+			)
+		}
 	}
 
 	deletedTheme := map[string]interface{}{
@@ -235,7 +227,7 @@ func (ts *ThemeService) Delete(id uint, currentUserID uint) (uint, error) {
 		}
 	}()
 
-	return 0,nil
+	return 0, nil
 }
 
 func (ts *ThemeService) validateThemeForm(themeFormDTO *dtos.ThemeFormDTO) error {
