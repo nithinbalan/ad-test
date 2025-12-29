@@ -36,6 +36,7 @@ type RiskRegisterServiceInterface interface {
 	Create(currentUserID uint, riskRegisterFormDTO *riskDTOs.RiskRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, risk *riskDTOs.RiskRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
 	UpdateResponseStrategy(riskID uint, currentUserID uint, riskResponseStrategyFormDTO *riskDTOs.RiskResponseStrategyFormDTO, tx ...utility.DatabaseTransaction) error
 	DeleteResponseStrategy(riskID uint, currentUserID uint) error
 	GetControlPerformance(riskID uint) (map[string]float64, error)
@@ -2341,4 +2342,45 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 
 func (rrs *RiskRegisterService) GetAllIdentifiedRisks(params *riskDTOs.RiskRegisterListQueryParamsDTO) (*riskDTOs.RiskRegisterListResponseDTO, error) {
 	return rrs.repo.GetAllIdentifiedRisks(params)
+}
+
+func (rrs *RiskRegisterService) ForceDelete(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := rrs.repo.BeginTransaction()
+	var failedIds []uint
+	var deletedData []map[string]interface{}
+
+	for _, id := range ids {
+		if err := rrs.repo.ForceDelete(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		deletedData = append(deletedData, map[string]interface{}{
+			"id": id,
+		})
+	}
+
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	tx.Commit()
+
+	go func() {
+		err := rrs.activityLogSvc.LogBulkActivities(
+			models.DeleteAction, // Make sure this action constant is defined appropriately
+			models.RiskRegister{}.TableName(),
+			ids,
+			deletedData,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			// @todo - save to log file
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
+	return nil, nil
 }
