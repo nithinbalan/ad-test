@@ -7,6 +7,7 @@ import (
 	"jethur/grc/jethur-ai/services"
 	"jethur/utility"
 	"net/http"
+	"strconv"
 )
 
 type ComplianceAIController struct {
@@ -35,3 +36,43 @@ func (caic *ComplianceAIController) GetComplianceAutofill(c *gin.Context) {
 
 	c.JSON(http.StatusOK, result)
 }
+
+func (caic *ComplianceAIController) GetComplianceSummary(c *gin.Context) {
+	complianceID, err := strconv.ParseUint(c.Param("complianceId"), 10 ,64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid compliance ID",
+		})
+		return
+	}
+
+	result, err := caic.service.GetComplianceSummary(uint(complianceID))
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (caic *ComplianceAIController) GetComplianceClauseGuidance(c *gin.Context) {
+	clauseID, err := strconv.ParseUint(c.Param("clauseId"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid clause ID",
+		})
+		return
+	}
+
+	result, err := caic.service.GetComplianceClauseGuidance(uint(clauseID))
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+
+
+
