@@ -32,6 +32,7 @@ type ComplianceRegisterServiceInterface interface {
 	Create(currentUserID uint, complianceRegisterFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, compliance *complianceDTOs.ComplianceRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
 	Archive(ids []uint, currentUserID uint) ([]uint, error)
 	Restore(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(id uint, currentUserID uint, complianceStatusID uint, tx utility.DatabaseTransaction) error
@@ -1563,4 +1564,46 @@ func (crs ComplianceRegisterService) GetAllVersions(id uint) ([]*complianceDTOs.
 	}
 
 	return complianceDTO, nil
+}
+
+func (crs *ComplianceRegisterService) ForceDelete(ids []uint, currentUserID uint) ([]uint, error) {
+
+	tx := crs.repo.BeginTransaction()
+	var failedIds []uint
+	var deletedData []map[string]interface{}
+
+	for _, id := range ids {
+		if err := crs.repo.ForceDelete(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		deletedData = append(deletedData, map[string]interface{}{
+			"id": id,
+		})
+	}
+
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	tx.Commit()
+
+	go func() {
+		err := crs.activityLogSvc.LogBulkActivities(
+			models.DeleteAction,
+			models.ComplianceRegister{}.TableName(),
+			ids,
+			deletedData,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			// @todo - save to log file
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
+	return nil, nil
 }

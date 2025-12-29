@@ -490,3 +490,28 @@ func (crc *ComplianceRegisterController) CreateComplianceVersion(c *gin.Context)
 
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
+
+func (crc *ComplianceRegisterController) DeleteForceComplianceRegisters(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := crc.service.ForceDelete(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
