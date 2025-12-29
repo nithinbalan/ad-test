@@ -8,9 +8,10 @@ import (
 )
 
 type JethurAIModule struct {
-	DocumentAIController *controllers.DocumentAIController
-	CommonAIController   *controllers.CommonAIController
-	RiskAIController     *controllers.RiskAIController
+	DocumentAIController   *controllers.DocumentAIController
+	CommonAIController     *controllers.CommonAIController
+	RiskAIController       *controllers.RiskAIController
+	ComplianceAIController *controllers.ComplianceAIController
 
 	DocumentAIService services.DocumentAIServiceInterface
 }
@@ -26,10 +27,14 @@ func NewJethurAIModule(db *gorm.DB, documentModule *DocumentModule, organization
 	riskAISvc := services.NewRiskAIService(settingsModule.SystemPreferenceSvc)
 	riskAIController := controllers.NewRiskAIController(riskAISvc)
 
+	complianceAISvc := services.NewComplianceAIService(settingsModule.SystemPreferenceSvc)
+	complianceAIController := controllers.NewComplianceAIController(complianceAISvc)
+
 	return &JethurAIModule{
-		DocumentAIController: documentAIController,
-		RiskAIController:     riskAIController,
-		CommonAIController:   commonAIController,
+		DocumentAIController:   documentAIController,
+		RiskAIController:       riskAIController,
+		CommonAIController:     commonAIController,
+		ComplianceAIController: complianceAIController,
 
 		DocumentAIService: documentAISvc,
 	}

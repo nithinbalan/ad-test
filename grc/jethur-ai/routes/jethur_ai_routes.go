@@ -15,6 +15,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentAIController := app.JethurAIModule.DocumentAIController
 	commonAIController := app.JethurAIModule.CommonAIController
 	riskAIController := app.JethurAIModule.RiskAIController
+	complianceAIController := app.JethurAIModule.ComplianceAIController
 
 	jethurAIRoutes.GET("/jethur-ai/documents/:id/summary", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAIController.GetDocumentSummary)
 	jethurAIRoutes.GET("/jethur-ai/documents/:id/recommendations", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAIController.GetDocumentRecommendations)
@@ -36,5 +37,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	jethurAIRoutes.GET("/jethur-ai/risk-chat/:contextId", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetRiskChatsByContext)
 	jethurAIRoutes.GET("/jethur-ai/risks/duplicate", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetDuplicateRisks)
 	jethurAIRoutes.GET("/jethur-ai/risks/:riskId/closure/autofill", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskAIController.GetRiskClosureAutofill)
+
+	jethurAIRoutes.POST("/jethur-ai/compliance/autofill", middlewares.RolePermissionMiddleware(db, "compliance", "view"), complianceAIController.GetComplianceAutofill)
 
 }
