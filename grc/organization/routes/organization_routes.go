@@ -212,6 +212,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/controls", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlController.CreateControl)
 	organizationRoutes.PUT("/controls/:controlId", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlController.UpdateControl)
 	organizationRoutes.POST("/controls/delete", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlController.DeleteControls)
+	organizationRoutes.POST("/controls/force-delete", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlController.DeleteForceControls)
 	organizationRoutes.PUT("/controls/archive", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlController.ArchiveControls)
 	organizationRoutes.PUT("/controls/restore", middlewares.RolePermissionMiddleware(db, "controls", "modify"), controlController.RestoreControls)
 
@@ -383,8 +384,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/active-directory/ou-group-users", userController.ListUsersInGroups)
 	organizationRoutes.GET("/active-directory-users", userController.GetADUsers)
 
-	organizationRoutes.GET("/active-directory-settings/sync-users",middlewares.RolePermissionMiddleware(db, "user_management", "modify"),userController.SyncAzureUsers)
-	organizationRoutes.GET("/active-directory-settings/sync-groups",middlewares.RolePermissionMiddleware(db, "user_management", "modify"),userController.SyncAzureGroups)
+	organizationRoutes.GET("/active-directory-settings/sync-users", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.SyncAzureUsers)
+	organizationRoutes.GET("/active-directory-settings/sync-groups", middlewares.RolePermissionMiddleware(db, "user_management", "modify"), userController.SyncAzureGroups)
 
 	organizationRoutes.GET("/processes/:processId/activities", processActivityController.GetAllProcessActivities)
 	organizationRoutes.GET("/processes/:processId/activities/:activityId", processActivityController.GetProcessActivityDetails)
