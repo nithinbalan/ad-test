@@ -4,7 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
@@ -37,6 +40,7 @@ type ThirdPartyRegisterService struct {
 	thirdPartyTypeSvc ThirdPartyTypeServiceInterface
 	countrySvc        masterServices.CountryServiceInterface
 	userSettingSvc    organizationServices.UserSettingServiceInterface
+	notificationSvc   commonServices.NotificationServiceInterface
 }
 
 func NewThirdPartyRegisterService(
@@ -48,6 +52,7 @@ func NewThirdPartyRegisterService(
 	thirdPartyTypeSvc ThirdPartyTypeServiceInterface,
 	countrySvc masterServices.CountryServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) *ThirdPartyRegisterService {
 	return &ThirdPartyRegisterService{
 		repo:              repo,
@@ -58,6 +63,7 @@ func NewThirdPartyRegisterService(
 		thirdPartyTypeSvc: thirdPartyTypeSvc,
 		countrySvc:        countrySvc,
 		userSettingSvc:    userSettingSvc,
+		notificationSvc:   notificationSvc,
 	}
 }
 
@@ -139,7 +145,7 @@ func (tprs *ThirdPartyRegisterService) Create(currentUserID uint, form *dtos.Thi
 		CountryID:          form.CountryID,
 		Address:            form.Address,
 		Website:            form.Website,
-		OrganizationUnitID: form.OrganizationUnitID,
+		OrgUnitID:          form.OrganizationUnitID,
 		RepresentativeName: form.RepresentativeName,
 		RepresentativeRole: form.RepresentativeRole,
 		Email:              form.Email,
@@ -159,6 +165,78 @@ func (tprs *ThirdPartyRegisterService) Create(currentUserID uint, form *dtos.Thi
 		return 0, err
 	}
 	tx.Commit()
+	go func() {
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "third-party-register"
+		action := "responsible-user-assign"
+		if form.ResponsibleUserID != nil {
+
+			thirdParty, err := tprs.GetByID(id)
+			if err != nil {
+				return
+			}
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{*form.ResponsibleUserID},
+				ModuleIdentifier:     "tprm",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				ReferenceNumber:      thirdParty.ReferenceNumber,
+				HeadingEn:            "Third Party Register Assigned",
+				HeadingAr:            "تم تعيين سجل طرف ثالث",
+				TitleEn:              thirdParty.Title,
+				TitleAr:              thirdParty.Title,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			responsibleUser, err := tprs.userSvc.GetByID(*thirdParty.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			assignedBy, err := tprs.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			emailTo := []string{responsibleUser.Email}
+			subject := fmt.Sprintf("Third Party Register Responsiblity Assigned: %s", thirdParty.Title)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":           responsibleUser.FirstNameEn,
+				"LastNameEn":            responsibleUser.LastNameEn,
+				"Title":                 thirdParty.Title,
+				"ReferenceNumber":       thirdParty.ReferenceNumber,
+				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
+				"AssignedByLastNameEn":  assignedBy.LastNameEn,
+				"AssignedOn":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           fmt.Sprintf("%s/tprm/third-party-register/%d/overview", appURL, thirdParty.ID),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "tprm/templates/email/third_party_register_responsible_user_mail.html",
+				EmailData:            emailData,
+			}
+
+			err = tprs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "third_party_register")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+	}()
 
 	return id, nil
 }
@@ -193,7 +271,7 @@ func (tprs *ThirdPartyRegisterService) Update(id uint, currentUserID uint, form 
 	existing.CountryID = form.CountryID
 	existing.Address = form.Address
 	existing.Website = form.Website
-	existing.OrganizationUnitID = form.OrganizationUnitID
+	existing.OrgUnitID = form.OrganizationUnitID
 	existing.RepresentativeName = form.RepresentativeName
 	existing.RepresentativeRole = form.RepresentativeRole
 	existing.Email = form.Email
@@ -305,36 +383,30 @@ func (tps *ThirdPartyRegisterService) ExportThirdPartyRegister(data []*dtos.Thir
 			"SL No.",
 			"رقم المرجع",
 			"العنوان",
-			"نوع الطرف الثالث",
+			"يكتب",
 			"الدولة",
-			"الوحدة التنظيمية",
-			"اسم الممثل",
-			"دور الممثل",
-			"البريد الإلكتروني",
-			"رقم الهاتف",
+			"قسم",
+			"مالك داخلي",
 			"المستخدم المسؤول",
 			"تاريخ بدء الخدمة",
 			"تاريخ انتهاء الخدمة",
-			"تاريخ الانضمام",
-			"مستوى الشدة",
+			"تاريخ الصعود",
+			"الحرجية",
 		}
 	} else {
 		headers = []string{
 			"SL No.",
 			"Reference Number",
-			"Title",
-			"Third Party Type",
+			"Name",
+			"Type",
 			"Country",
-			"Organization Unit",
+			"Department",
 			"Representative Name",
-			"Representative Role",
-			"Email",
-			"Phone Number",
-			"Responsible User",
+			"Internal Owner",
 			"Service Start Date",
 			"Service End Date",
 			"Onboarding Date",
-			"Severity Level",
+			"Criticality",
 		}
 	}
 
@@ -367,9 +439,6 @@ func (tps *ThirdPartyRegisterService) ExportThirdPartyRegister(data []*dtos.Thir
 			country,
 			orgUnit,
 			utility.GetStringValue(item.RepresentativeName),
-			utility.GetStringValue(item.RepresentativeRole),
-			utility.GetStringValue(item.Email),
-			utility.GetStringValue(item.PhoneNumber),
 			responsibleUser,
 			utility.GetStringValue(item.ServiceStartDate),
 			utility.GetStringValue(item.ServiceEndDate),

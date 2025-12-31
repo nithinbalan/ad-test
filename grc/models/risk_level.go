@@ -7,6 +7,8 @@ type RiskLevel struct {
 	TitleAr   string `json:"title_ar" binding:"required,max=45" gorm:"type:nvarchar(45);not null"`
 	ColorCode string `json:"color_code" binding:"required,max=25" gorm:"type:varchar(25);not null"`
 	Status    string `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
+	ScoreFrom *int   `json:"score_from"`
+	ScoreTo   *int   `json:"score_to"`
 }
 
 // TableName overrides the table name used by RiskLevel to `risk_levels`
