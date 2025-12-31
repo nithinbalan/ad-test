@@ -36,12 +36,13 @@ type ThirdPartyAssessmentWorkflowServiceInterface interface {
 }
 
 type ThirdPartyAssessmentWorkflowService struct {
-	repo              repositories.ThirdPartyAssessmentWorkflowRepositoryInterface
-	activityLogSvc    logSvc.ActivityLogServiceInterface
-	workflowSvc       settinsSvc.WorkflowServiceInterface
-	workflowStatusSvc masterSvc.WorkflowStatusServiceInterface
-	userSvc           organizationSvc.UserServiceInterface
-	tprmAssessmentSvc ThirdPartyAssessmentServiceInterface
+	repo               repositories.ThirdPartyAssessmentWorkflowRepositoryInterface
+	activityLogSvc     logSvc.ActivityLogServiceInterface
+	workflowSvc        settinsSvc.WorkflowServiceInterface
+	workflowStatusSvc  masterSvc.WorkflowStatusServiceInterface
+	userSvc            organizationSvc.UserServiceInterface
+	tprmAssessmentSvc  ThirdPartyAssessmentServiceInterface
+	workflowContextSvc masterSvc.WorkflowContextServiceInterface
 }
 
 func NewThirdPartyAssessmentWorkflowService(
@@ -50,13 +51,15 @@ func NewThirdPartyAssessmentWorkflowService(
 	workflowSvc settinsSvc.WorkflowServiceInterface,
 	workflowStatusSvc masterSvc.WorkflowStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
+	workflowContextSvc masterSvc.WorkflowContextServiceInterface,
 ) ThirdPartyAssessmentWorkflowServiceInterface {
 	return &ThirdPartyAssessmentWorkflowService{
-		repo:              repo,
-		activityLogSvc:    activityLogSvc,
-		workflowSvc:       workflowSvc,
-		workflowStatusSvc: workflowStatusSvc,
-		userSvc:           userSvc,
+		repo:               repo,
+		activityLogSvc:     activityLogSvc,
+		workflowSvc:        workflowSvc,
+		workflowStatusSvc:  workflowStatusSvc,
+		userSvc:            userSvc,
+		workflowContextSvc: workflowContextSvc,
 	}
 }
 
@@ -126,16 +129,17 @@ func (arws *ThirdPartyAssessmentWorkflowService) GetTprmWorkflowList(assessmentI
 
 func (arws *ThirdPartyAssessmentWorkflowService) CreateTprmAssessmentWorkflow(assessmentWorkflowID uint, contextType string, currentUserID uint, tx ...utility.DatabaseTransaction) error {
 
-	workflow, err := arws.workflowSvc.GetAllWorkflowsByType("tprm-assessment", "tprm")
+	workflowContext, err := arws.workflowContextSvc.GetByType(contextType)
 	if err != nil {
 		return err
 	}
 
-	if len(workflow) < 1 {
-		return utility.NewForbiddenError("workflow_not_configured")
+	workflow, err := arws.workflowSvc.GetWorkflowByContext(workflowContext.ID)
+	if err != nil {
+		return err
 	}
 
-	workflowLevels, err := arws.workflowSvc.GetWorkflowLevels(workflow[0].ID, tx...)
+	workflowLevels, err := arws.workflowSvc.GetWorkflowLevels(workflow.ID, tx...)
 	if err != nil {
 		return err
 	}
@@ -323,21 +327,20 @@ func (arws *ThirdPartyAssessmentWorkflowService) mapWorkflowStatusToDTO(status *
 }
 
 func (arws *ThirdPartyAssessmentWorkflowService) ValidateWorkflowBeforeCreate(contextType string, tx ...utility.DatabaseTransaction) error {
-	// workflowContext, err := arws.workflowContextSvc.GetByType(contextType)
-	// if err != nil {
-	// 	return err
-	// }
-
-	workflow, err := arws.workflowSvc.GetAllWorkflowsByType("tprm-assessment", "tprm")
+	workflowContext, err := arws.workflowContextSvc.GetByType(contextType)
 	if err != nil {
 		return err
 	}
 
-	if len(workflow) < 1 {
+	workflow, err := arws.workflowSvc.GetWorkflowByContext(workflowContext.ID)
+	if err != nil {
+		return err
+	}
+	if workflow == nil {
 		return utility.NewForbiddenError("workflow_not_configured")
 	}
 
-	workflowLevels, err := arws.workflowSvc.GetWorkflowLevels(workflow[0].ID, tx...)
+	workflowLevels, err := arws.workflowSvc.GetWorkflowLevels(workflow.ID, tx...)
 	if err != nil {
 		return err
 	}

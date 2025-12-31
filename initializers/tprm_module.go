@@ -112,7 +112,7 @@ func NewTprmModule(
 	thirdPartyAssessmentStatusController := controllers.NewThirdPartyAssessmentStatusController(thirdPartyAssessmentStatusSvc)
 
 	tprmAssessmentWorkflowRepo := repositories.NewThirdPartyAssessmentWorkflowRepository(db)
-	tprmAssessmentWorkflowSvc := services.NewThirdPartyAssessmentWorkflowService(tprmAssessmentWorkflowRepo, sharedModule.ActivityLogService, settingsModule.WorkflowSvc, masterModule.WorkflowStatusSvc, organizationModule.UserSvc)
+	tprmAssessmentWorkflowSvc := services.NewThirdPartyAssessmentWorkflowService(tprmAssessmentWorkflowRepo, sharedModule.ActivityLogService, settingsModule.WorkflowSvc, masterModule.WorkflowStatusSvc, organizationModule.UserSvc, masterModule.WorkflowContextSvc)
 	tprmAssessmentWorkflowController := controllers.NewThirdPartyAssessmentWorkflowController(tprmAssessmentWorkflowSvc)
 
 	// === Third Party Register ===
