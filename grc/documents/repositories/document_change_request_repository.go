@@ -20,6 +20,7 @@ type DocumentChangeRequestRepositoryInterface interface {
 	Create(changeRequest *models.DocumentChangeRequest, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(changeRequest *models.DocumentChangeRequest, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	ForceDelete(id uint, tx ...utility.DatabaseTransaction) error
 
 	GenerateReferenceNumber() (string, error)
 
@@ -412,4 +413,42 @@ func (repo *DocumentChangeRequestRepository) GetNonPublishedChangeRequests(docum
 		Find(&changeRequests).Error
 
 	return changeRequests, err
+}
+func (repo *DocumentChangeRequestRepository) ForceDelete(id uint, tx ...utility.DatabaseTransaction) error {
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	queries := []string{
+		`DELETE tasks
+		FROM tasks
+		JOIN document_change_request_workflows ON document_change_request_workflows.id = tasks.document_change_request_workflow_id
+		WHERE document_change_request_workflows.document_change_request_id = ?`,
+
+		`DELETE document_change_request_workflow_reviews
+		FROM document_change_request_workflow_reviews
+		JOIN document_change_request_workflows ON document_change_request_workflows.id = document_change_request_workflow_reviews.document_change_request_workflow_id
+		WHERE document_change_request_workflows.document_change_request_id = ?`,
+
+		`DELETE document_change_request_workflow_participants
+		FROM document_change_request_workflow_participants
+		JOIN document_change_request_workflows ON document_change_request_workflows.id = document_change_request_workflow_participants.document_change_request_workflow_id
+		WHERE document_change_request_workflows.document_change_request_id = ?`,
+
+		`DELETE FROM document_change_request_workflows WHERE document_change_request_id = ?`,
+		`DELETE FROM document_change_request_edit_histories WHERE document_change_request_id = ?`,
+		`DELETE FROM document_change_request_documents WHERE document_change_request_id = ?`,
+	}
+
+	for _, q := range queries {
+		res := db.Exec(q, id)
+		if res.Error != nil {
+			return res.Error
+		}
+	}
+
+	// Force hard delete (ignore soft delete)
+	return db.Delete(&models.DocumentChangeRequest{}, id).Error
 }

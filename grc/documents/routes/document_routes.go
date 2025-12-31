@@ -193,6 +193,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/document-change-requests", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.CreateDocumentChangeRequest)
 	documentRoutes.PUT("/document-change-requests/:id", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.UpdateDocumentChangeRequest)
 	documentRoutes.POST("/document-change-requests/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.DeleteDocumentChangeRequest)
+	documentRoutes.POST("/document-change-requests/force-delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.DeleteForceDocumentChangeRequest)
 	documentRoutes.GET("/document-change-requests/:id/check-out", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentChangeRequestController.CheckoutDocument)
 	documentRoutes.POST("/document-change-requests/:id/check-in", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.CheckinDocument)
 	documentRoutes.POST("/document-change-requests/:id/check-out-revert", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentChangeRequestController.RevertDocumentCheckout)
