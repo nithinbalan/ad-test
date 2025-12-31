@@ -401,7 +401,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	}
 
 	if existingComplianceRegister.ResponsibleUserID != complianceRegisterFormDTO.ResponsibleUserID {
-		responsibleUnitID, err := crs.userSvc.GetUserPrimaryUnitID(existingComplianceRegister.ResponsibleUserID)
+		responsibleUnitID, err := crs.userSvc.GetUserPrimaryUnitID(complianceRegisterFormDTO.ResponsibleUserID)
 		if err != nil {
 			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
 		}
