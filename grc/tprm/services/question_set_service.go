@@ -5,10 +5,14 @@ import (
 	"fmt"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	"jethur/grc/tprm/dtos"
 	tprmRepo "jethur/grc/tprm/repositories"
 	"jethur/utility"
+	"os"
+	"strings"
 
+	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
 
@@ -22,23 +26,30 @@ type QuestionSetServiceInterface interface {
 
 	AddQuestionsToSet(questionSetID, currentUserID uint, dto *dtos.QuestionSetAddQuestionsDTO) error
 	DeleteQuestionFromSet(questionSetID uint, questionID uint) error
+	ReorderSection(sections []dtos.ReorderDTO) error
+	ReorderQuestion(questions []dtos.ReorderDTO) error
+
+	ExportQuestionSet(data *dtos.QuestionSetDetailDTO, currentUserID uint) (*os.File, error)
 }
 
 type QuestionSetService struct {
 	repo                         tprmRepo.QuestionSetRepositoryInterface
 	activityLogSvc               logServices.ActivityLogServiceInterface
 	thirdPartyQuestionLibrarySvc ThirdPartyQuestionLibraryServiceInterface
+	userSettingSvc               organizationServices.UserSettingServiceInterface
 }
 
 func NewQuestionSetService(
 	repo tprmRepo.QuestionSetRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	thirdPartyQuestionLibrarySvc ThirdPartyQuestionLibraryServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) *QuestionSetService {
 	return &QuestionSetService{
 		repo:                         repo,
 		activityLogSvc:               activityLogSvc,
 		thirdPartyQuestionLibrarySvc: thirdPartyQuestionLibrarySvc,
+		userSettingSvc:               userSettingSvc,
 	}
 }
 
@@ -75,79 +86,86 @@ func (svc *QuestionSetService) GetFullDetailsByID(id uint) (*dtos.QuestionSetDet
 		UpdatedAt:   entity.UpdatedAt,
 	}
 
-	// Temp map for grouping
-	categoryMap := make(map[string]*dtos.QuestionSetCategoryGroupDTO)
+	dto.Sections = make([]dtos.QuestionSetSectionDTO, 0)
 
-	for _, q := range entity.Questions {
-		var catEn, catAr string
-		var catID uint
+	for _, sec := range entity.Sections {
 
-		questionDTO := dtos.QuestionSetQuestionDetailDTO{
-			ID:                          q.ID,
-			QuestionSetID:               q.QuestionSetID,
-			ThirdPartyQuestionLibraryID: q.ThirdPartyQuestionLibraryID,
-			QuestionTitleEn:             q.QuestionTitleEn,
-			QuestionTitleAr:             q.QuestionTitleAr,
+		sectionDTO := dtos.QuestionSetSectionDTO{
+			ID:                           sec.ID,
+			TitleEn:                      sec.TitleEn,
+			TitleAr:                      sec.TitleAr,
+			Order:                        sec.Order,
+			ThirdPartyQuestionCategoryID: sec.ThirdPartyQuestionCategoryID,
+			Questions:                    []dtos.QuestionSetQuestionDetailDTO{},
 		}
 
-		if q.QuestionLibrary != nil {
-			questionDTO.ReferenceNumber = q.QuestionLibrary.ReferenceNumber
-			questionDTO.Mandatory = q.QuestionLibrary.Mandatory
-			questionDTO.ThirdPartyQuestionCategoryID = q.QuestionLibrary.ThirdPartyQuestionCategoryID
-			questionDTO.ThirdPartyQuestionTypeID = q.QuestionLibrary.ThirdPartyQuestionTypeID
+		for _, q := range sec.Questions {
 
-			if q.QuestionLibrary.QuestionCategory != nil {
-				catEn = q.QuestionLibrary.QuestionCategory.TitleEn
-				catAr = q.QuestionLibrary.QuestionCategory.TitleAr
-				catID = q.QuestionLibrary.QuestionCategory.ID
-				questionDTO.ThirdPartyQuestionCategoryID = q.QuestionLibrary.QuestionCategory.ID
-				questionDTO.QuestionCategoryTitleEn = catEn
-				questionDTO.QuestionCategoryTitleAr = catAr
+			questionDTO := dtos.QuestionSetQuestionDetailDTO{
+				ID:                          q.ID,
+				QuestionSetID:               q.QuestionSetID,
+				ThirdPartyQuestionLibraryID: q.ThirdPartyQuestionLibraryID,
+				QuestionTitleEn:             q.QuestionTitleEn,
+				QuestionTitleAr:             q.QuestionTitleAr,
+				Order:                       q.Order,
 			}
 
-			if q.QuestionLibrary.QuestionType != nil {
-				questionDTO.QuestionTypeTitleEn = q.QuestionLibrary.QuestionType.TitleEn
-				questionDTO.QuestionTypeTitleAr = q.QuestionLibrary.QuestionType.TitleAr
-				questionDTO.QuestionTypeType = q.QuestionLibrary.QuestionType.Type
-			}
+			if q.QuestionLibrary != nil {
+				questionDTO.ReferenceNumber = q.QuestionLibrary.ReferenceNumber
+				questionDTO.Mandatory = q.QuestionLibrary.Mandatory
+				questionDTO.ThirdPartyQuestionCategoryID = q.QuestionLibrary.ThirdPartyQuestionCategoryID
+				questionDTO.ThirdPartyQuestionTypeID = q.QuestionLibrary.ThirdPartyQuestionTypeID
 
-			for _, opt := range q.QuestionLibrary.AnswerOptions {
-				optionDTO := dtos.ThirdPartyQuestionLibraryAnswerOptionDetailDTO{
-					ID:                  opt.ID,
-					AnswerOptionTitleEn: opt.AnswerOptionTitleEn,
-					AnswerOptionTitleAr: opt.AnswerOptionTitleAr,
-					RiskLevelID:         opt.RiskLevelID,
-					RangeFrom:           opt.RangeFrom,
-					RangeTo:             opt.RangeTo,
+				if q.QuestionLibrary.QuestionCategory != nil {
+					questionDTO.QuestionCategoryTitleEn = q.QuestionLibrary.QuestionCategory.TitleEn
+					questionDTO.QuestionCategoryTitleAr = q.QuestionLibrary.QuestionCategory.TitleAr
 				}
-				if opt.RiskLevel != nil {
-					optionDTO.RiskLevel.ID = opt.RiskLevel.ID
-					optionDTO.RiskLevel.TitleEn = opt.RiskLevel.TitleEn
-					optionDTO.RiskLevel.TitleAr = opt.RiskLevel.TitleAr
-					optionDTO.RiskLevel.ColorCode = opt.RiskLevel.ColorCode
-					optionDTO.RiskLevel.Type = opt.RiskLevel.Type
+
+				if q.QuestionLibrary.QuestionType != nil {
+					questionDTO.QuestionTypeTitleEn = q.QuestionLibrary.QuestionType.TitleEn
+					questionDTO.QuestionTypeTitleAr = q.QuestionLibrary.QuestionType.TitleAr
+					questionDTO.QuestionTypeType = q.QuestionLibrary.QuestionType.Type
 				}
-				questionDTO.AnswerOptions = append(questionDTO.AnswerOptions, optionDTO)
+
+				for _, opt := range q.QuestionLibrary.AnswerOptions {
+					optDTO := dtos.ThirdPartyQuestionLibraryAnswerOptionDetailDTO{
+						ID:                  opt.ID,
+						AnswerOptionTitleEn: opt.AnswerOptionTitleEn,
+						AnswerOptionTitleAr: opt.AnswerOptionTitleAr,
+						RiskLevelID:         opt.RiskLevelID,
+						RangeFrom:           opt.RangeFrom,
+						RangeTo:             opt.RangeTo,
+					}
+
+					if opt.TPRMComplianceResponse != nil {
+						optDTO.TPRMComplianceResponse = &dtos.TPRMComplianceResponseDetailDTO{}
+						optDTO.Score = &opt.TPRMComplianceResponse.Score
+						optDTO.TPRMComplianceResponseID = opt.TPRMComplianceResponseID
+						optDTO.TPRMComplianceResponse.ID = opt.TPRMComplianceResponse.ID
+						optDTO.TPRMComplianceResponse.TitleEn = opt.TPRMComplianceResponse.TitleEn
+						optDTO.TPRMComplianceResponse.TitleAr = opt.TPRMComplianceResponse.TitleAr
+						optDTO.TPRMComplianceResponse.ColorCode = *opt.TPRMComplianceResponse.ColorCode
+						optDTO.TPRMComplianceResponse.Score = opt.TPRMComplianceResponse.Score
+					}
+
+					if opt.RiskLevel != nil {
+						optDTO.RiskLevel.ID = opt.RiskLevel.ID
+						optDTO.RiskLevel.TitleEn = opt.RiskLevel.TitleEn
+						optDTO.RiskLevel.TitleAr = opt.RiskLevel.TitleAr
+						optDTO.RiskLevel.ColorCode = opt.RiskLevel.ColorCode
+						optDTO.RiskLevel.Type = opt.RiskLevel.Type
+					}
+
+					questionDTO.AnswerOptions = append(questionDTO.AnswerOptions, optDTO)
+				}
 			}
+
+			sectionDTO.Questions = append(sectionDTO.Questions, questionDTO)
 		}
 
-		groupKey := catEn + "::" + catAr
-		if _, exists := categoryMap[groupKey]; !exists {
-			categoryMap[groupKey] = &dtos.QuestionSetCategoryGroupDTO{
-				CategoryID:      catID,
-				CategoryTitleEn: catEn,
-				CategoryTitleAr: catAr,
-				Questions:       []dtos.QuestionSetQuestionDetailDTO{},
-			}
-		}
-		categoryMap[groupKey].Questions = append(categoryMap[groupKey].Questions, questionDTO)
+		dto.Sections = append(dto.Sections, sectionDTO)
 	}
 
-	// Convert map to slice
-	dto.Categories = []dtos.QuestionSetCategoryGroupDTO{}
-	for _, v := range categoryMap {
-		dto.Categories = append(dto.Categories, *v)
-	}
 	dto.TotalQuestions = len(entity.Questions)
 	return dto, nil
 }
@@ -225,22 +243,84 @@ func (svc *QuestionSetService) Delete(ids []uint, currentUserID uint) ([]uint, e
 }
 
 func (svc *QuestionSetService) AddQuestionsToSet(questionSetID, currentUserID uint, dto *dtos.QuestionSetAddQuestionsDTO) error {
+
 	tx := svc.repo.BeginTransaction()
 
-	var questions []*models.QuestionSetQuestion
+	questionSet, err := svc.repo.GetFullDetailsByID(questionSetID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			tx.Rollback()
+			return utility.NewResourceNotFoundError(err, questionSetID)
+		}
+		tx.Rollback()
+		return err
+	}
+
+	sectionMap := make(map[uint]uint)     // categoryID -> sectionID
+	sectionOrderMap := make(map[uint]int) // sectionID -> max question order
+	maxSectionOrder := 0                  // for new sections
+
+	for _, sec := range questionSet.Sections {
+		sectionMap[sec.ThirdPartyQuestionCategoryID] = sec.ID
+
+		if sec.Order > maxSectionOrder {
+			maxSectionOrder = sec.Order
+		}
+
+		// find max question order in this section
+		for _, q := range sec.Questions {
+			if q.Order > sectionOrderMap[sec.ID] {
+				sectionOrderMap[sec.ID] = q.Order
+			}
+		}
+	}
+
+	var questions []*models.QuestionSetSectionQuestion
 
 	for _, libID := range dto.QuestionLibraryIDs {
-		lib, err := svc.thirdPartyQuestionLibrarySvc.GetByID(libID)
+
+		lib, err := svc.thirdPartyQuestionLibrarySvc.GetFullDetailsByID(libID)
 		if err != nil {
 			tx.Rollback()
 			return utility.NewValidationError(err, "not_exist", fmt.Sprintf("question_library_id_%d", libID))
 		}
 
-		questions = append(questions, &models.QuestionSetQuestion{
+		category := lib.QuestionCategory
+
+		sectionID, exists := sectionMap[category.ID]
+		if !exists {
+
+			maxSectionOrder++
+
+			newSection := &models.QuestionSetSection{
+				QuestionSetID:                questionSetID,
+				ThirdPartyQuestionCategoryID: category.ID,
+				TitleEn:                      category.TitleEn,
+				TitleAr:                      category.TitleAr,
+				Order:                        maxSectionOrder,
+				CreatedBYID:                  currentUserID,
+			}
+
+			sectionID, err = svc.repo.CreateSection(newSection, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			sectionMap[category.ID] = sectionID
+			sectionOrderMap[sectionID] = 0 // initialize
+		}
+
+		sectionOrderMap[sectionID]++
+		nextOrder := sectionOrderMap[sectionID]
+
+		questions = append(questions, &models.QuestionSetSectionQuestion{
 			QuestionSetID:               questionSetID,
+			QuestionSetSectionID:        sectionID,
 			ThirdPartyQuestionLibraryID: libID,
 			QuestionTitleEn:             lib.QuestionTitleEn,
 			QuestionTitleAr:             lib.QuestionTitleAr,
+			Order:                       nextOrder,
 			CreatedBYID:                 currentUserID,
 		})
 	}
@@ -251,22 +331,229 @@ func (svc *QuestionSetService) AddQuestionsToSet(questionSetID, currentUserID ui
 			return err
 		}
 	}
-
 	tx.Commit()
+
 	return nil
 }
 
 func (svc *QuestionSetService) DeleteQuestionFromSet(questionSetID uint, questionID uint) error {
-	tx := svc.repo.BeginTransaction()
-	_, err := svc.GetByID(questionSetID)
+	sectionID, err := svc.repo.GetSectionIDByQuestionID(questionID)
 	if err != nil {
 		return err
 	}
+	tx := svc.repo.BeginTransaction()
+
 	if err := svc.repo.DeleteByID(questionID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
 
+	questions, err := svc.repo.GetQuestionsBySectionID(sectionID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if len(questions) == 0 {
+		if err := svc.repo.DeleteSection(sectionID, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		questionSet, err := svc.repo.GetFullDetailsByID(questionSetID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// 5. Reorder remaining sections
+		for index, section := range questionSet.Sections {
+			newOrder := index + 1
+			section.Order = newOrder
+			err := svc.repo.UpdateSection(section, tx)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	for i, q := range questions {
+		qstn, err := svc.repo.GetByQuestionID(q.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		newOrder := i + 1
+		if q.Order != newOrder {
+			qstn.Order = newOrder
+			if err := svc.repo.UpdateQuestion(qstn, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
 	tx.Commit()
 	return nil
+}
+
+func (svc *QuestionSetService) ReorderSection(sections []dtos.ReorderDTO) error {
+	for _, section := range sections {
+		existingSection, err := svc.repo.GetSectionByID(section.ID)
+		if err != nil {
+			return nil
+		}
+		existingSection.Order = section.Order
+		err = svc.repo.UpdateSection(existingSection)
+		if err != nil {
+			return nil
+		}
+
+	}
+
+	return nil
+}
+
+func (svc *QuestionSetService) ReorderQuestion(questions []dtos.ReorderDTO) error {
+	for _, question := range questions {
+		existingQuestion, err := svc.repo.GetByQuestionID(question.ID)
+		if err != nil {
+			return nil
+		}
+		existingQuestion.Order = question.Order
+		err = svc.repo.UpdateQuestion(existingQuestion)
+		if err != nil {
+			return nil
+		}
+
+	}
+
+	return nil
+}
+
+func (svc *QuestionSetService) ExportQuestionSet(data *dtos.QuestionSetDetailDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := svc.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{"SL No.", "Section", "Question", "Mandatory", "Question Type", "Options"}
+	} else {
+		headers = []string{"SL No.", "Section", "Question", "Mandatory", "Question Type", "Options"}
+	}
+
+	// Prepare the data rows
+	slNo := 1
+	rows := [][]interface{}{}
+	for _, sec := range data.Sections {
+		for _, qstn := range sec.Questions {
+			// Initialize data variables with default values
+			var options []string
+			var section, question, questionType string
+			var mandatory bool
+
+			// Assign values based on language preference and check for nil pointers
+			if userSetting.Language == "ar" {
+				section = sec.TitleAr
+				question = qstn.QuestionTitleAr
+				mandatory = qstn.Mandatory
+				questionType = qstn.QuestionTypeTitleAr
+
+				for _, opt := range qstn.AnswerOptions {
+					options = append(options, *opt.AnswerOptionTitleAr)
+				}
+
+			} else {
+				section = sec.TitleEn
+				question = qstn.QuestionTitleEn
+				mandatory = qstn.Mandatory
+				questionType = qstn.QuestionTypeTitleEn
+				for _, opt := range qstn.AnswerOptions {
+					options = append(options, *opt.AnswerOptionTitleEn)
+				}
+			}
+
+			joinedOptions := strings.Join(options, ", ")
+
+			rows = append(rows, []interface{}{
+				slNo,
+				section,
+				question,
+				mandatory,
+				questionType,
+				joinedOptions,
+			})
+			slNo++
+		}
+	}
+
+	// Generate the Excel file
+	file, err := utility.GenerateExcelFile(headers, rows)
+	if err != nil {
+		return nil, err
+	}
+
+	filePath := file.Name()
+	file.Close()
+
+	// Re-open for merge & styling
+	f, err := excelize.OpenFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	currentSection := ""
+	startRow := 2
+
+	for i, row := range rows {
+		rowIndex := i + 2
+		section := row[1].(string)
+
+		if section != currentSection {
+			if currentSection != "" && startRow < rowIndex-1 {
+				// merge previous section block
+				startCell, _ := excelize.CoordinatesToCellName(2, startRow)
+				endCell, _ := excelize.CoordinatesToCellName(2, rowIndex-1)
+				f.MergeCell("Sheet1", startCell, endCell)
+			}
+
+			currentSection = section
+			startRow = rowIndex
+		}
+	}
+
+	// Merge final section
+	lastRow := len(rows) + 1
+	if startRow < lastRow {
+		startCell, _ := excelize.CoordinatesToCellName(2, startRow)
+		endCell, _ := excelize.CoordinatesToCellName(2, lastRow)
+		f.MergeCell("Sheet1", startCell, endCell)
+	}
+
+	sectionStyle, _ := f.NewStyle(&excelize.Style{
+		Alignment: &excelize.Alignment{
+			Vertical: "center",
+			WrapText: true,
+		},
+	})
+
+	secStart, _ := excelize.CoordinatesToCellName(2, 2)
+	secEnd, _ := excelize.CoordinatesToCellName(2, lastRow)
+	f.SetCellStyle("Sheet1", secStart, secEnd, sectionStyle)
+
+	if err := f.SaveAs(filePath); err != nil {
+		return nil, err
+	}
+	f.Close()
+
+	finalFile, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return finalFile, nil
+
 }

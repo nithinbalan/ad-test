@@ -8,6 +8,7 @@ import (
 	"io"
 	"jethur/assets"
 	"jethur/config"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
+	"github.com/xuri/excelize/v2"
 )
 
 func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath string, coverBGImagePath string) (string, error) {
@@ -401,4 +403,195 @@ func GeneratePDFWithCoverHeaderFooter(coverContent, htmlContent, pdfFileName, he
 	os.Remove(bodyPDF)
 
 	return nil
+}
+
+func GenerateExcelFileWithSheetsAndDropDownAnswer(dataBySheet map[string][][]interface{}, dropDownConfig map[string]bool, readOnlyConfig map[string]bool) (*os.File, error) {
+	f := excelize.NewFile()
+
+	if intro, exists := dataBySheet["Introduction"]; exists {
+		if err := createSheet(f, "Introduction", intro); err != nil {
+			return nil, err
+		}
+		// Set Introduction as the active sheet
+		idx, _ := f.GetSheetIndex("Introduction")
+		if idx > -1 {
+			f.SetActiveSheet(idx)
+		}
+		// Remove to avoid creating again in loop
+		delete(dataBySheet, "Introduction")
+	}
+
+	// Ensure Template is created and set as the first sheet
+	if data, exists := dataBySheet["Template"]; exists {
+		// delete(dataBySheet, "Template") // Remove Template from the map to avoid duplicate processing
+		if err := createSheetWithDropDownAnswer(f, "Template", data, dataBySheet, dropDownConfig, readOnlyConfig); err != nil {
+			return nil, err
+		}
+		// sheetIndex, err := f.GetSheetIndex("Template")
+		// if err != nil {
+		// 	return nil, fmt.Errorf("failed to get Template sheet index: %v", err)
+		// }
+		// if sheetIndex != -1 {
+		// 	f.SetActiveSheet(sheetIndex)
+		// }
+	}
+
+	// Create the remaining sheets
+	for sheetName, data := range dataBySheet {
+		if err := createSheet(f, sheetName, data); err != nil {
+			return nil, err
+		}
+	}
+
+	if index, err := f.GetSheetIndex("Sheet1"); err == nil && index != -1 {
+		f.DeleteSheet("Sheet1")
+	}
+
+	// Save the file
+	tempFile, err := os.CreateTemp("", "template_*.xlsx")
+	if err != nil {
+		return nil, err
+	}
+
+	if err := f.SaveAs(tempFile.Name()); err != nil {
+		return nil, err
+	}
+
+	return tempFile, nil
+}
+
+func createSheetWithDropDownAnswer(f *excelize.File, sheetName string, data [][]interface{}, columnToSheet map[string][][]interface{}, dropDownConfig map[string]bool, readOnlyConfig map[string]bool) error {
+	if _, err := f.NewSheet(sheetName); err != nil {
+		return fmt.Errorf("failed to create sheet %s: %v", sheetName, err)
+	}
+
+	if len(data) == 0 {
+		return nil
+	}
+
+	headers := data[0]
+	boldStyle, err := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true},
+	})
+	lockedStyle, _ := f.NewStyle(&excelize.Style{Protection: &excelize.Protection{Locked: true}})
+	unlockedStyle, _ := f.NewStyle(&excelize.Style{Protection: &excelize.Protection{Locked: false}})
+	if err != nil {
+		return fmt.Errorf("failed to create bold style: %v", err)
+	}
+
+	for row := 1; row < len(data); row++ {
+		for col := 0; col < len(headers); col++ {
+
+			colName := toAlphaString(col)
+			cell := fmt.Sprintf("%s%d", colName, row+1)
+			headerText := headers[col].(string)
+
+			f.SetCellValue(sheetName, cell, data[row][col])
+
+			// APPLY LOCK / UNLOCK BASED ON CONFIG
+			if readOnlyConfig[strings.TrimSpace(headerText)] {
+				f.SetCellStyle(sheetName, cell, cell, lockedStyle)
+			} else {
+				f.SetCellStyle(sheetName, cell, cell, unlockedStyle)
+			}
+		}
+	}
+	for i, header := range headers {
+		cell := fmt.Sprintf("%s1", toAlphaString(i))
+		f.SetCellValue(sheetName, cell, header)
+		f.SetCellStyle(sheetName, cell, cell, boldStyle)
+	}
+
+	for colIndex, header := range headers {
+		headerStr, ok := header.(string)
+		if !ok {
+			continue
+		}
+
+		headerKey := strings.TrimSpace(headerStr)
+
+		apply, exists := dropDownConfig[headerKey]
+		if !exists {
+			log.Printf("Dropdown config missing for header: %q", headerKey)
+			continue
+		}
+		if !apply {
+			log.Printf("Dropdown disabled for: %q", headerKey)
+			continue
+		}
+
+		optionsData, exists := columnToSheet[headerKey]
+		if !exists || len(optionsData) <= 1 {
+			log.Printf("No data for dropdown source: %s", headerKey)
+			continue
+		}
+
+		colLetter := toAlphaString(colIndex)
+
+		// Create Data Validation
+		dv := excelize.NewDataValidation(true)
+		dv.Sqref = fmt.Sprintf("%s2:%s1000", colLetter, colLetter)
+
+		// Range reference (bypasses 255-char limit)
+		var sourceSheet, valueCol string
+		if headerKey == "Clause" {
+			sourceSheet = "Clause"
+			valueCol = "B"
+		} else {
+			sourceSheet = headerKey
+			valueCol = "A"
+		}
+		lastRow := len(optionsData) // includes header → data from row 2
+		dv.Formula1 = fmt.Sprintf("=%s!$%s$2:$%s$%d", sourceSheet, valueCol, valueCol, lastRow+1)
+		dv.Type = "list"
+
+		errorTitle := "Invalid Selection"
+		errorMsg := fmt.Sprintf("Please select a valid %s from the list.", strings.ToLower(headerKey))
+		// promptTitle := headerKey
+		// promptMsg := fmt.Sprintf("Select from available %ss", strings.ToLower(headerKey))
+
+		dv.ErrorTitle = &errorTitle
+		dv.Error = &errorMsg
+		// dv.PromptTitle = &promptTitle
+		// dv.Prompt = &promptMsg
+
+		dv.ShowErrorMessage = true
+		dv.ShowInputMessage = true
+
+		if err := f.AddDataValidation(sheetName, dv); err != nil {
+			return fmt.Errorf("failed to add dropdown for %s: %v", headerKey, err)
+		}
+
+		log.Printf("Dropdown added: %s → %s!$%s$2:$%s$%d", headerKey, sourceSheet, valueCol, valueCol, lastRow+1)
+	}
+
+	f.ProtectSheet(sheetName, &excelize.SheetProtectionOptions{
+		SelectLockedCells:   false,
+		SelectUnlockedCells: true,
+		FormatCells:         false,
+		FormatColumns:       false,
+		FormatRows:          false,
+		InsertColumns:       false,
+		InsertRows:          false,
+		InsertHyperlinks:    false,
+		EditObjects:         false,
+		EditScenarios:       false,
+	})
+
+	return nil
+}
+
+func ReadExcelFileWithIntroduction(file io.Reader) ([][]string, error) {
+	f, err := excelize.OpenReader(file)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	rows, err := f.GetRows(f.GetSheetName(1))
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
 }

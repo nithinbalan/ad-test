@@ -31,6 +31,7 @@ func (qsc *QuestionSetController) GetAllQuestionSets(c *gin.Context) {
 	allowedParams := []string{
 		"third_party_question_category_ids",
 		"third_party_question_library_ids",
+		"created_by_ids",
 	}
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
@@ -46,8 +47,10 @@ func (qsc *QuestionSetController) GetAllQuestionSets(c *gin.Context) {
 	}
 
 	validSortFields := map[string]string{
-		"title_en": "question_sets.title_en",
-		"title_ar": "question_sets.title_ar",
+		"title_en":    "question_sets.title_en",
+		"title_ar":    "question_sets.title_ar",
+		"description": "question_sets.description",
+		"created_at":  "question_sets.created_at",
 	}
 
 	sortField, valid := validSortFields[sortBy]
@@ -234,4 +237,102 @@ func (qsc *QuestionSetController) DeleteQuestionFromSet(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (qsc *QuestionSetController) ReorderSection(c *gin.Context) {
+
+	var sections []dtos.ReorderDTO
+	if err := c.ShouldBindJSON(&sections); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	_, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	err = qsc.service.ReorderSection(sections)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(qsc.db, c, e.Error())
+			return
+		}
+	}
+}
+
+func (qsc *QuestionSetController) ReorderQuestion(c *gin.Context) {
+
+	var sections []dtos.ReorderDTO
+	if err := c.ShouldBindJSON(&sections); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	_, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	_, err = strconv.Atoi(c.Param("sectionId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	err = qsc.service.ReorderQuestion(sections)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(qsc.db, c, e.Error())
+			return
+		}
+	}
+}
+
+func (qsc *QuestionSetController) GetQuestionSetExport(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	assessmentDetails, err := qsc.service.GetFullDetailsByID(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(qsc.db, c, err.Error())
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(qsc.db, c, err.Error())
+		return
+	}
+
+	excelFile, err := qsc.service.ExportQuestionSet(assessmentDetails, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(qsc.db, c, err.Error())
+		return
+	}
+	defer excelFile.Close()
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Disposition", `attachment; filename="QuestionSet.xlsx"`)
+	c.Header("Content-Type", "application/octet-stream")
+	c.File(excelFile.Name())
+
 }

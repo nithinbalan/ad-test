@@ -27,7 +27,7 @@ type ThirdPartyQuestionLibraryFormDTO struct {
 	QuestionTitleAr              string                                         `json:"question_title_ar" binding:"required"`
 	ThirdPartyQuestionCategoryID uint                                           `json:"third_party_question_category_id" binding:"required"`
 	Mandatory                    bool                                           `json:"mandatory"`
-	ThirdPartyQuestionTypeID     uint                                           `json:"third_party_question_type_id" binding:"required"`
+	ThirdPartyQuestionTypeID     *uint                                          `json:"third_party_question_type_id"`
 	AnswerOptions                []ThirdPartyQuestionLibraryAnswerOptionFormDTO `json:"answer_options"`
 }
 
@@ -44,13 +44,16 @@ type ThirdPartyQuestionLibraryDetailDTO struct {
 	AnswerOptions    []ThirdPartyQuestionLibraryAnswerOptionDetailDTO `json:"answer_options"`
 }
 type ThirdPartyQuestionLibraryAnswerOptionDetailDTO struct {
-	ID                  uint                   `json:"id"`
-	AnswerOptionTitleEn *string                `json:"answer_option_title_en"`
-	AnswerOptionTitleAr *string                `json:"answer_option_title_ar"`
-	RiskLevelID         *uint                  `json:"risk_level_id"`
-	RangeFrom           *int                   `json:"range_from"`
-	RangeTo             *int                   `json:"range_to"`
-	RiskLevel           risksDTOs.RiskLevelDTO `json:"risk_level"`
+	ID                       uint                             `json:"id"`
+	AnswerOptionTitleEn      *string                          `json:"answer_option_title_en"`
+	AnswerOptionTitleAr      *string                          `json:"answer_option_title_ar"`
+	RiskLevelID              *uint                            `json:"risk_level_id"`
+	RangeFrom                *int                             `json:"range_from"`
+	RangeTo                  *int                             `json:"range_to"`
+	RiskLevel                risksDTOs.RiskLevelDTO           `json:"risk_level"`
+	Score                    *int                             `json:"score"`
+	TPRMComplianceResponseID *uint                            `json:"tprm_compliance_response_id"`
+	TPRMComplianceResponse   *TPRMComplianceResponseDetailDTO `json:"tprm_compliance_response"`
 }
 
 type ThirdPartyQuestionLibraryListQueryParamsDTO struct {
@@ -61,6 +64,7 @@ type ThirdPartyQuestionLibraryListQueryParamsDTO struct {
 	PageSize    int
 	Filters     map[string][]string
 	QuickFilter []string
+	Export      bool
 }
 
 type ThirdPartyQuestionLibraryListResponseDTO struct {

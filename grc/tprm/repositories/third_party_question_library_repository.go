@@ -25,6 +25,8 @@ type ThirdPartyQuestionLibraryRepositoryInterface interface {
 
 	CreateAnswerOptions(options []*models.ThirdPartyQuestionLibraryAnswerOption, tx ...utility.DatabaseTransaction) error
 	DeleteAnswerOptionsByLibraryID(libraryID uint, tx ...utility.DatabaseTransaction) error
+
+	IsQuestionLibraryUsed(libraryID uint) (bool, error)
 }
 
 type ThirdPartyQuestionLibraryRepository struct {
@@ -111,11 +113,19 @@ func (repo *ThirdPartyQuestionLibraryRepository) GetAll(params *dtos.ThirdPartyQ
 		)
 	}
 	query = query.Order(params.SortBy + " " + params.Sort)
-	offset := (params.Page - 1) * params.PageSize
-	query = query.Offset(offset).Limit(params.PageSize)
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
 
 	if err := query.Find(&results).Error; err != nil {
 		return nil, err
+	}
+
+	if params.Export {
+		return &dtos.ThirdPartyQuestionLibraryListResponseDTO{
+			Items: results,
+		}, nil
 	}
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
@@ -212,4 +222,31 @@ func (repo *ThirdPartyQuestionLibraryRepository) DeleteAnswerOptionsByLibraryID(
 		db = tx[0].DB()
 	}
 	return db.Where("third_party_question_library_id = ?", libraryID).Delete(&models.ThirdPartyQuestionLibraryAnswerOption{}).Error
+}
+
+func (repo *ThirdPartyQuestionLibraryRepository) IsQuestionLibraryUsed(libraryID uint) (bool, error) {
+	var count int64
+
+	// Check in question_set_section_questions
+	err := repo.db.
+		Table("question_set_section_questions").
+		Where("third_party_question_library_id = ?", libraryID).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	if count > 0 {
+		return true, nil
+	}
+
+	// Check in tprm_assessment_section_questions
+	err = repo.db.
+		Table("tprm_assessment_section_questions").
+		Where("third_party_question_library_id = ?", libraryID).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }

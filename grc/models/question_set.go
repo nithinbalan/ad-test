@@ -15,9 +15,10 @@ type QuestionSet struct {
 	UpdatedAt   *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
-	CreatedByUser *User                 `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	UpdatedByUser *User                 `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	Questions     []QuestionSetQuestion `gorm:"foreignKey:QuestionSetID;constraint:OnUpdate:NO ACTION,OnDelete:CASCADE"`
+	CreatedByUser *User                        `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	UpdatedByUser *User                        `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	Sections      []*QuestionSetSection        `gorm:"foreignKey:QuestionSetID;constraint:OnUpdate:NO ACTION,OnDelete:CASCADE"`
+	Questions     []QuestionSetSectionQuestion `gorm:"foreignKey:QuestionSetID;constraint:OnUpdate:NO ACTION,OnDelete:CASCADE"`
 }
 
 // TableName overrides the table name used by QuestionSet to `question_sets`

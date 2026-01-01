@@ -69,6 +69,7 @@ type QuestionSetQuestionDetailDTO struct {
 	ThirdPartyQuestionLibraryID uint   `json:"third_party_question_library_id"`
 	QuestionTitleEn             string `json:"question_title_en"`
 	QuestionTitleAr             string `json:"question_title_ar"`
+	Order                       int    `json:"order"`
 
 	// Related data from library
 	ReferenceNumber              string `json:"reference_number"`
@@ -88,23 +89,39 @@ type QuestionSetQuestionDetailDTO struct {
 }
 
 type QuestionSetDetailDTO struct {
-	ID             uint                          `json:"id"`
-	TitleEn        string                        `json:"title_en"`
-	TitleAr        string                        `json:"title_ar"`
-	Description    *string                       `json:"description"`
-	CreatedAt      time.Time                     `json:"created_at"`
-	UpdatedAt      *time.Time                    `json:"updated_at"`
-	Categories     []QuestionSetCategoryGroupDTO `json:"categories"`
-	TotalQuestions int                           `json:"total_questions"`
+	ID          uint       `json:"id"`
+	TitleEn     string     `json:"title_en"`
+	TitleAr     string     `json:"title_ar"`
+	Description *string    `json:"description"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   *time.Time `json:"updated_at"`
+	// Categories     []QuestionSetCategoryGroupDTO `json:"categories"`
+	Sections       []QuestionSetSectionDTO `json:"categories"`
+	TotalQuestions int                     `json:"total_questions"`
+}
+
+type QuestionSetSectionDTO struct {
+	ID                           uint                           `json:"id"`
+	ThirdPartyQuestionCategoryID uint                           `json:"third_party_question_category_id"`
+	TitleEn                      string                         `json:"category_title_en"`
+	TitleAr                      string                         `json:"category_title_ar"`
+	Order                        int                            `json:"order"`
+	Questions                    []QuestionSetQuestionDetailDTO `json:"questions"`
 }
 
 type QuestionSetCategoryGroupDTO struct {
 	CategoryID      uint                           `json:"category_id"`
 	CategoryTitleEn string                         `json:"category_title_en"`
 	CategoryTitleAr string                         `json:"category_title_ar"`
+	Order           int                            `json:"order"`
 	Questions       []QuestionSetQuestionDetailDTO `json:"questions"`
 }
 
 type QuestionSetAddQuestionsDTO struct {
 	QuestionLibraryIDs []uint `json:"question_library_ids" binding:"required"` // required non-empty array
+}
+
+type ReorderDTO struct {
+	ID    uint `json:"id"`
+	Order int  `json:"order"`
 }
