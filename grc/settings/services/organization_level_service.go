@@ -399,6 +399,19 @@ func (ols *OrganizationLevelService) ForceDelete(id uint, currentUserID uint) er
 	}
 
 	tx.Commit()
-
+	// Log the activity
+	go func() {
+		err := ols.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.OrganizationLevel{}.TableName(),
+			id,
+			nil,
+			currentUserID,
+			"setting", "general_setting", "", nil,
+		)
+		if err != nil {
+			fmt.Printf("Failed to log activity: %v\n", err)
+		}
+	}()
 	return nil
 }
