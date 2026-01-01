@@ -193,6 +193,12 @@ func (ms *ModuleService) DisableModule(id uint) (*models.Module, error) {
 		return nil, err
 	}
 
+	if module.Identifier == "setting" {
+		return nil, utility.NewResourceConflictError(
+			fmt.Errorf("settings module cannot be disabled"),
+		)
+	}
+
 	module.IsEnable = false
 	_, err = ms.repo.Update(module.ID, module)
 	if err != nil {
