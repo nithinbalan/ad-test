@@ -114,6 +114,11 @@ func (mc *ModuleController) DisableModule(c *gin.Context) {
 	_, err = mc.service.DisableModule(uint(moduleId))
 	if err != nil {
 		switch e := err.(type) {
+		case *utility.ForbiddenError:
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": e.Error(),
+			})
+			return
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return

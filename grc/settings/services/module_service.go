@@ -194,9 +194,7 @@ func (ms *ModuleService) DisableModule(id uint) (*models.Module, error) {
 	}
 
 	if module.Identifier == "setting" {
-		return nil, utility.NewResourceConflictError(
-			fmt.Errorf("settings module cannot be disabled"),
-		)
+		return nil, utility.NewForbiddenError("settings module cannot be disabled")
 	}
 
 	module.IsEnable = false
