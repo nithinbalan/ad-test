@@ -163,3 +163,37 @@ func (olc *OrganizationLevelController) DeleteOrganizationLevel(c *gin.Context) 
 
 	c.JSON(http.StatusOK, gin.H{"message": "Organization level deleted successfully"})
 }
+
+func (olc *OrganizationLevelController) DeleteForceOrganizationLevel(c *gin.Context) {
+
+	orgLevelID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(olc.db, c, err.Error())
+		return
+	}
+
+	if err := olc.service.ForceDelete(uint(orgLevelID), currentUserID); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceConflictError:
+			utility.SendConflictErrResp(c, e.Error())
+			return
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(olc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Organization level deleted successfully"})
+}

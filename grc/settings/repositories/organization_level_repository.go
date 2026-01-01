@@ -15,6 +15,8 @@ type OrganizationLevelRepositoryInterface interface {
 	Create(orgLevel *models.OrganizationLevel) (*models.OrganizationLevel, error)
 	Update(id uint, updatedOrgLevel *models.OrganizationLevel) (*models.OrganizationLevel, error)
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	NullOrganizationUnitReferences(ids []uint, tx ...utility.DatabaseTransaction) error
+	GetMaxLevel(tx ...utility.DatabaseTransaction) (int, error)
 	GetPrimaryLevel() (*models.OrganizationLevel, error)
 	DeleteOrganizationUnits(ids []uint, tx ...utility.DatabaseTransaction) error
 
@@ -230,4 +232,41 @@ func (repo *OrganizationLevelRepository) ExistsByLevelExcludingID(id uint, level
 	}
 
 	return count > 0, nil
+}
+
+func (repo *OrganizationLevelRepository) NullOrganizationUnitReferences(ids []uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	queries := []string{
+		`UPDATE users SET organization_unit_1_id = NULL WHERE organization_unit_1_id IN ?`,
+		`UPDATE users SET organization_unit_2_id = NULL WHERE organization_unit_2_id IN ?`,
+		`UPDATE users SET organization_unit_3_id = NULL WHERE organization_unit_3_id IN ?`,
+		`UPDATE users SET organization_unit_4_id = NULL WHERE organization_unit_4_id IN ?`,
+		`UPDATE users SET organization_unit_5_id = NULL WHERE organization_unit_5_id IN ?`,
+	}
+
+	for _, q := range queries {
+		if err := db.Exec(q, ids).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (repo *OrganizationLevelRepository) GetMaxLevel(tx ...utility.DatabaseTransaction) (int, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var maxLevel int
+	err := db.Model(&models.OrganizationLevel{}).
+		Select("COALESCE(MAX(level), 0)").
+		Scan(&maxLevel).Error
+
+	return maxLevel, err
 }
