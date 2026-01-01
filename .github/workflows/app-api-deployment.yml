@@ -12,6 +12,7 @@ jobs:
       DB_NAME: jethur_app_db
       DEPLOY_BRANCH: main
       MIGRATION_BRANCH: migration
+      TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
       IIS_DOC_ROOT: C:\inetpub\wwwroot\app\app-api
       SERVICE_NAME: app-api
       SCRIPT_SOURCE_PATH: C:\deployment\deployment-files\.env
@@ -20,21 +21,34 @@ jobs:
       EMAIL_FROM: "Jethur Notifications <info@jethur.com>"
 
     steps:
-      - name: Send Start Email
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.ZEPTO_HOST }}
-          server_port: 587
-          username: ${{ secrets.ZEPTO_USERNAME }}
-          password: ${{ secrets.ZEPTO_PASSWORD }}
-          subject: "Pipeline Started"
-          body: |
-            GitHub Actions deployment for ${{ env.PROJECT_NAME }} has started.
 
-            Triggered by: ${{ github.actor }}
-          to: ${{ env.EMAIL_TO }}
-          from: ${{ env.EMAIL_FROM }}
+      - name: Notify Start on Teams
+        shell: powershell
+        run: |
+          # Store environment variables in PowerShell variables for cleaner string construction
+          $projectName = $env:PROJECT_NAME
+          $githubActor = $env:GITHUB_ACTOR
+          $githubRefName = $env:GITHUB_REF_NAME
 
+          # Construct the Teams MessageCard payload
+          # The emoji has been removed from the title to prevent encoding issues
+          $card = @{
+              "@context"   = "http://schema.org/extensions"
+              "@type"      = "MessageCard"
+              "themeColor" = "0078D7" # A hex color code for the card (e.g., Microsoft Blue)
+              "title"      = "Deployment Started" # EMOJI REMOVED HERE
+              "text"       = "**${projectName}** deployment started by **${githubActor}** on branch **${githubRefName}**"
+          }
+
+          # Convert the PowerShell hashtable to a JSON string
+          $body = $card | ConvertTo-Json -Depth 10
+
+          # Set the Content-Type header
+          $headers = @{ "Content-Type" = "application/json" }
+
+          # Invoke the web request to the Teams webhook URL
+          Invoke-WebRequest -Uri $env:TEAMS_WEBHOOK_URL -Method Post -Headers $headers -Body $body -UseBasicParsing
+ 
       - name: Pre Cleanup workspace
         if: always()
         shell: powershell
@@ -120,6 +134,9 @@ jobs:
           go mod tidy
         shell: powershell
 
+      - name: Build API
+        run: go build ./cmd/api
+
       - name: Backup and Deploy API and Migration Executable
         shell: powershell
         run: |
@@ -170,14 +187,41 @@ jobs:
           Get-ChildItem -Force
         shell: powershell
 
-      - name: Send Completion Email
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.ZEPTO_HOST }}
-          server_port: 587
-          username: ${{ secrets.ZEPTO_USERNAME }}
-          password: ${{ secrets.ZEPTO_PASSWORD }}
-          subject: "Pipeline Completed"
-          body: "GitHub Actions deployment for ${{ env.PROJECT_NAME }} completed successfully."
-          to: ${{ env.EMAIL_TO }}
-          from: ${{ env.EMAIL_FROM }}
+      - name: Notify Teams
+        if: always()
+        shell: powershell
+        run: |
+          $projectName = $env:PROJECT_NAME
+          $githubActor = $env:GITHUB_ACTOR
+          $githubRefName = $env:GITHUB_REF_NAME
+          $status = "${{ job.status }}"
+          $userLink = "https://github.com/$githubActor"
+
+          if ($status -eq "success") {
+            $color = "28A745"  # Green
+            $title = "Deployment Successful"
+            $text  = "**${projectName}** was successfully deployed by [**${githubActor}**](${userLink}) on branch **${githubRefName}**"
+          }
+          elseif ($status -eq "failure") {
+            $color = "D93F0B"  # Red
+            $title = "Deployment Failed"
+            $text  = "**${projectName}** deployment failed by [**${githubActor}**](${userLink}) on branch **${githubRefName}**"
+          }
+          else {
+            $color = "808080"  # Gray
+            $title = "Deployment Status: $status"
+            $text  = "**${projectName}** deployment ended with status: $status by [**${githubActor}**](${userLink}) on branch **${githubRefName}**"
+          }
+
+          $card = @{
+              "@context"   = "http://schema.org/extensions"
+              "@type"      = "MessageCard"
+              "themeColor" = $color
+              "title"      = $title
+              "text"       = $text
+          }
+
+          $body = $card | ConvertTo-Json -Depth 10
+          $headers = @{ "Content-Type" = "application/json" }
+
+          Invoke-WebRequest -Uri $env:TEAMS_WEBHOOK_URL -Method Post -Headers $headers -Body $body -UseBasicParsing
