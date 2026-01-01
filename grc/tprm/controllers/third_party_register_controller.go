@@ -30,11 +30,9 @@ func (tprc *ThirdPartyRegisterController) GetAllThirdPartyRegister(c *gin.Contex
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
-	// Convert the export parameter to a boolean
 	exportFromContext, exists := c.Get("export")
 	var export bool
 	var err error
-
 	if exists {
 		export = exportFromContext.(bool)
 	} else {

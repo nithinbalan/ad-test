@@ -91,7 +91,8 @@ type ThirdPartyRegisterDetailDTO struct {
 	Country                masterDTOs.CountryDTO             `json:"country"`
 	Address                *string                           `json:"address"`
 	Website                *string                           `json:"website"`
-	OrganizationUnit       settingsDTOs.OrganizationUnitDTO  `json:"organization_unit"`
+	OrgUnitID              *uint                             `json:"organization_unit_id"`
+	OrgUnit                *settingsDTOs.OrganizationUnitDTO `json:"organization_unit"`
 	RepresentativeName     *string                           `json:"representative_name"`
 	RepresentativeRole     *string                           `json:"representative_role"`
 	Email                  *string                           `json:"email"`
@@ -102,6 +103,8 @@ type ThirdPartyRegisterDetailDTO struct {
 	ServiceStartDateString *string                           `json:"service_start_date"`
 	ServiceEndDateString   *string                           `json:"service_end_date"`
 	SeverityLevel          *masterDTOs.SeverityLevelDTO      `json:"severity_level"`
+	RiskLevel              *organizationDTOs.RiskLevelDTO    `json:"risk_level"`
+	Score                  *int                              `json:"score"`
 	CreatedAt              time.Time                         `json:"created_at"`
 	UpdatedAt              *time.Time                        `json:"updated_at"`
 	CreatedBy              organizationDTOs.UserMinimalDTO   `json:"created_by"`

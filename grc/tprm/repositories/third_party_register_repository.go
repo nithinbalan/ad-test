@@ -75,10 +75,36 @@ func (repo *ThirdPartyRegisterRepository) GetAll(params *thirdPartyDTOs.ThirdPar
 		Joins("LEFT JOIN severity_levels ON severity_levels.id = third_party_register.severity_level_id").
 		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = third_party_register.responsible_user_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = third_party_register.created_by_id").
-		Joins("LEFT JOIN users AS updated_user ON updated_user.id = third_party_register.updated_by_id")
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = third_party_register.updated_by_id").
+		Joins(`
+        LEFT JOIN (
+        SELECT 
+            tpa.third_party_register_id,
+            tpa.third_party_assessment_status_id,
+            tpa.risk_level_id,
+            tpa.created_at,
+            ROW_NUMBER() OVER (
+                PARTITION BY tpa.third_party_register_id
+                ORDER BY tpa.created_at DESC
+            ) AS rn
+        FROM third_party_assessments tpa
+        ) AS latest
+        ON latest.third_party_register_id = third_party_register.id
+        AND latest.rn = 1
+        `)
 
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
+			if columnName == "latest_status_id" {
+				query = query.Where("latest.third_party_assessment_status_id IN (?)", values)
+				continue
+			}
+
+			if columnName == "latest_risk_level_id" {
+				query = query.Where("latest.risk_level_id IN (?)", values)
+				continue
+			}
+
 			if columnName == "organization_unit_id" {
 				query = query.Where("third_party_register.organization_unit_id IN (?)", values)
 			} else {
@@ -86,6 +112,11 @@ func (repo *ThirdPartyRegisterRepository) GetAll(params *thirdPartyDTOs.ThirdPar
 			}
 		}
 	}
+
+	now := time.Now()
+	exp30 := now.AddDate(0, 0, 30)
+	exp60 := now.AddDate(0, 0, 60)
+
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
@@ -95,7 +126,14 @@ func (repo *ThirdPartyRegisterRepository) GetAll(params *thirdPartyDTOs.ThirdPar
 			query = query.Where("severity_levels.type = ?", "medium")
 		case "high":
 			query = query.Where("severity_levels.type = ?", "high")
+		case "expired":
+			query = query.Where("third_party_register.service_end_date < ?", now)
+		case "expiring_30":
+			query = query.Where("third_party_register.service_end_date BETWEEN ? AND ?", now, exp30)
+		case "expiring_60":
+			query = query.Where("third_party_register.service_end_date BETWEEN ? AND ?", exp30, exp60)
 		}
+
 	}
 
 	if params.Keyword != "" {
@@ -140,15 +178,20 @@ func (repo *ThirdPartyRegisterRepository) GetAll(params *thirdPartyDTOs.ThirdPar
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
-	offset := (params.Page - 1) * params.PageSize
-	query = query.Offset(offset).Limit(params.PageSize)
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
 
 	err := query.Find(&results).Error
 	if err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	totalPages := 1
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	}
 
 	response := &thirdPartyDTOs.ThirdPartyRegisterListResponseDTO{
 		Items: results,
@@ -179,10 +222,11 @@ func (repo *ThirdPartyRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 	var entity *models.ThirdPartyRegister
 	if err := db.Preload("ThirdPartyType").
 		Preload("Country").
-		Preload("OrganizationUnit").
+		Preload("OrgUnit").
 		Preload("SeverityLevel").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUnit").
+		Preload("RiskLevel").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&entity, id).Error; err != nil {

@@ -37,12 +37,30 @@ func (caic *ComplianceAIController) GetComplianceAutofill(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+
+func (caic *ComplianceAIController) ImportComplianceRegister(c *gin.Context) {
+
+    file, err := c.FormFile("file")
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "file is required"})
+        return
+    }
+
+    result, err := caic.service.ImportComplianceRegister(file)
+    if err != nil {
+        utility.SendInternalErrResp(caic.db, c, err.Error())
+        return
+    }
+
+    c.JSON(http.StatusOK, result)
+}
+
+
+
 func (caic *ComplianceAIController) GetComplianceSummary(c *gin.Context) {
-	complianceID, err := strconv.ParseUint(c.Param("complianceId"), 10 ,64)
+	complianceID, err := strconv.ParseUint(c.Param("complianceId"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid compliance ID",
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid compliance ID"})
 		return
 	}
 
@@ -58,9 +76,7 @@ func (caic *ComplianceAIController) GetComplianceSummary(c *gin.Context) {
 func (caic *ComplianceAIController) GetComplianceClauseGuidance(c *gin.Context) {
 	clauseID, err := strconv.ParseUint(c.Param("clauseId"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid clause ID",
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid clause ID"})
 		return
 	}
 
@@ -73,6 +89,122 @@ func (caic *ComplianceAIController) GetComplianceClauseGuidance(c *gin.Context) 
 	c.JSON(http.StatusOK, result)
 }
 
+func (caic *ComplianceAIController) GetComplianceStrategicObjectivesJob(c *gin.Context) {
 
+	complianceID, err := strconv.ParseUint(c.Param("complianceId"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid compliance ID"})
+		return
+	}
 
+	result, err := caic.service.GetComplianceStrategicObjectivesJob(uint(complianceID))
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
 
+	c.JSON(http.StatusOK, result)
+}
+
+func (caic *ComplianceAIController) GetComplianceSuggestKPIJob(c *gin.Context) {
+
+	complianceID, err := strconv.ParseUint(c.Param("complianceId"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid compliance ID"})
+		return
+	}
+
+	result, err := caic.service.GetComplianceSuggestKPIJob(uint(complianceID))
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (caic *ComplianceAIController) GetComplianceSuggestProcessJob(c *gin.Context) {
+
+	complianceID, err := strconv.ParseUint(c.Param("complianceId"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid compliance ID"})
+		return
+	}
+
+	result, err := caic.service.GetComplianceSuggestProcessJob(uint(complianceID))
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (caic *ComplianceAIController) GetComplianceSuggestRisksJob(c *gin.Context) {
+
+	complianceID, err := strconv.ParseUint(
+		c.Param("complianceId"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid compliance ID"})
+		return
+	}
+
+	result, err := caic.service.GetComplianceSuggestRisksJob(uint(complianceID))
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (caic *ComplianceAIController) GetComplianceSuggestControlsJob(c *gin.Context) {
+
+	complianceID, err := strconv.ParseUint(
+		c.Param("complianceId"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid compliance ID"})
+		return
+	}
+
+	result, err := caic.service.GetComplianceSuggestControlsJob(uint(complianceID))
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (caic *ComplianceAIController) GetComplianceSuggestAssociatesJob(c *gin.Context) {
+
+	complianceID, err := strconv.ParseUint(c.Param("complianceId"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid compliance ID"})
+		return
+	}
+
+	result, err := caic.service.GetComplianceSuggestAssociatesJob(uint(complianceID))
+	if err != nil {
+		utility.SendInternalErrResp(caic.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (ajc *ComplianceAIController) GetComplianceJobStatus(c *gin.Context) {
+	jobID := c.Param("jobId")
+	if jobID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid job ID"})
+		return
+	}
+
+	result, err := ajc.service.GetComplianceJobStatus(jobID)
+	if err != nil {
+		utility.SendInternalErrResp(ajc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
