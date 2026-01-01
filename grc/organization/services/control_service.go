@@ -365,6 +365,7 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 	existingControl.NextReviewDate = dates.NextReviewDate
 	existingControl.LastReviewNote = controlFormDTO.LastReviewNote
 	existingControl.TestFrequencyID = controlFormDTO.TestFrequencyID
+	existingControl.EfficiencyScore = controlFormDTO.EfficiencyScore
 	existingControl.ImplementedAt = dates.ImplementedAt
 	existingControl.LastTestDate = dates.LastTestDate
 	existingControl.NextTestDate = dates.NextTestDate
