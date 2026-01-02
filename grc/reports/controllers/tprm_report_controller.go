@@ -297,7 +297,7 @@ func (tprc *TPRMReportController) GetAllThirdPartyAssessment(c *gin.Context) {
 		}
 	}
 	allowedParams := []string{
-		"third_party_register_ids", 
+		"third_party_register_ids",
 		"question_set_ids",
 		"third_party_assessment_status_ids",
 		"risk_level_ids",
@@ -321,6 +321,10 @@ func (tprc *TPRMReportController) GetAllThirdPartyAssessment(c *gin.Context) {
 		"third_party_register_title": "third_party_register.title",
 		"title":                      "third_party_assessments.title",
 		"reference_number":           "third_party_assessments.reference_number",
+		"risk_level_title_en":        "risk_levels.title_en",
+		"risk_level_title_ar":        "risk_levels.title_ar",
+		"assessment_status_title_en": "third_party_assessment_statuses.title_en",
+		"assessment_status_title_ar": "third_party_assessment_statuses.title_ar",
 		"due_date":                   "third_party_assessments.due_date",
 		"question_set_title_en":      "question_sets.title_en",
 		"question_set_title_ar":      "question_sets.title_ar",

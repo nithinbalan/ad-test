@@ -130,6 +130,7 @@ func NewTprmModule(
 		commonModule.NotificationService,
 		tprmAssessmentWorkflowSvc,
 		tprmComplianceResponseSvc,
+		settingsModule.ReportTemplateSettingSvc,
 	)
 	thirdPartyAssessmentController := controllers.NewThirdPartyAssessmentController(thirdPartyAssessmentSvc)
 
