@@ -22,6 +22,7 @@ type ReportsModule struct {
 	GRCReportCommentStatusController         *controllers.GRCReportCommentStatusController
 	GRCReportWorkflowController              *controllers.GRCReportWorkflowController
 	GRCReportWorkflowReviewCommentController *controllers.GRCReportWorkflowReviewCommentController
+	TPRMReportController                     *controllers.TPRMReportController
 }
 
 func NewReportsModule(db *gorm.DB,
@@ -37,6 +38,7 @@ func NewReportsModule(db *gorm.DB,
 	sharedModule *SharedModule,
 	kpiModule *KPIModule,
 	commonModule *CommonModule,
+	tprmModule *TprmModule,
 ) *ReportsModule {
 
 	organizationReportRepo := repositories.NewOrganizationReportRepository(db)
@@ -126,6 +128,10 @@ func NewReportsModule(db *gorm.DB,
 	grcReportWorkflowReviewCommentSvc := services.NewGRCReportWorkflowReviewCommentService(grcReportWorkflowReviewCommentRepo, grcReportSvc, grcReportWorkflowSvc, grcReportWorkflowStatusSvc, grcReportCommentStatusSvc, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, commonModule.NotificationService)
 	grcReportWorkflowReviewCommentController := controllers.NewGRCReportWorkflowReviewCommentController(grcReportWorkflowReviewCommentSvc)
 
+	tprmReportRepo := repositories.NewTPRMReportRepository(db)
+	tprmReportSvc := services.NewTPRMReportService(tprmReportRepo)
+	tprmReportController := controllers.NewTPRMReportController(tprmReportSvc, tprmModule.ThirdPartyRegisterSvc, tprmModule.ThirdPartyAssessmentSvc)
+
 	return &ReportsModule{
 		ComplianceReportController:               complianceReportController,
 		OrganizationReportController:             organizationReportController,
@@ -140,5 +146,6 @@ func NewReportsModule(db *gorm.DB,
 		GRCReportCommentStatusController:         grcReportCommentStatusController,
 		GRCReportWorkflowController:              grcReportWorkflowController,
 		GRCReportWorkflowReviewCommentController: grcReportWorkflowReviewCommentController,
+		TPRMReportController:                     tprmReportController,
 	}
 }

@@ -28,6 +28,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	grcReportCommentStatusController := app.ReportsModule.GRCReportCommentStatusController
 	grcReportWorkflowController := app.ReportsModule.GRCReportWorkflowController
 	grcReportWorkflowReviewCommentController := app.ReportsModule.GRCReportWorkflowReviewCommentController
+	tprmReportController := app.ReportsModule.TPRMReportController
 
 	//Compliance
 	reportsRoutes.GET("/reports/compliance-registers", complianceReportController.GetAllComplianceRegisters)
@@ -293,4 +294,22 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	reportsRoutes.PUT("/grc-reports/:grcReportId/submit", grcReportController.GRCReportSubmit)
 	reportsRoutes.PUT("/grc-reports/:grcReportId/review", grcReportController.GRCReportReviewed)
 	reportsRoutes.PUT("/grc-reports/:grcReportId/approve", grcReportController.GRCReportApproved)
+
+	// TPRM Reports
+	reportsRoutes.GET("/reports/third-party-registers", tprmReportController.GetAllThirdPartyRegister)
+	reportsRoutes.GET("/reports/third-party-registers/export", tprmReportController.GetThirdPartyRegisterExport)
+	reportsRoutes.GET("/reports/third-party-register-by-type", tprmReportController.GetThirdPartyByType)
+	reportsRoutes.GET("/reports/third-party-register-by-country", tprmReportController.GetThirdPartyByCountry)
+	reportsRoutes.GET("/reports/third-party-register-by-department", tprmReportController.GetThirdPartyByDepartment)
+	reportsRoutes.GET("/reports/third-party-register-by-criticality", tprmReportController.GetThirdPartyByCriticality)
+	reportsRoutes.GET("/reports/third-party-register-by-assessment-status", tprmReportController.GetThirdPartyByLatestAssessmentStatus)
+	reportsRoutes.GET("/reports/third-party-register-by-risk-rating", tprmReportController.GetThirdPartyByRiskRating)
+	reportsRoutes.GET("/reports/third-party-register-service-expiry", tprmReportController.GetThirdPartyServiceExpiry)
+	reportsRoutes.GET("/reports/tprm-assessments", tprmReportController.GetAllThirdPartyAssessment)
+	reportsRoutes.GET("/reports/tprm-assessments/export", tprmReportController.GetThirdPartyAssessmentExport)
+	reportsRoutes.GET("/reports/tprm-assessment-by-status", tprmReportController.GetAssessmentsByStatus)
+	reportsRoutes.GET("/reports/tprm-assessment-by-risk-rating", tprmReportController.GetAssessmentsByRiskRating)
+	reportsRoutes.GET("/reports/tprm-assessment-by-category", tprmReportController.GetAssessmentsByThirdPartyCategory)
+	reportsRoutes.GET("/reports/tprm-assessment-by-template", tprmReportController.GetAssessmentsByTemplate)
+	reportsRoutes.GET("/reports/tprm-assessment-overdue", tprmReportController.GetOverdueAssessments)
 }
