@@ -17,6 +17,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	settingSvc "jethur/grc/settings/services"
 	settingsServices "jethur/grc/settings/services"
 	"jethur/grc/tprm/dtos"
 	tprmRepo "jethur/grc/tprm/repositories"
@@ -71,6 +72,7 @@ type ThirdPartyAssessmentService struct {
 	notificationSvc               commonServices.NotificationServiceInterface
 	assessmentWorkflowSvc         ThirdPartyAssessmentWorkflowServiceInterface
 	complianceResponseSvc         TPRMComplianceResponseServiceInterface
+	settingSvc                    settingSvc.ReportTemplateSettingServiceInterface
 }
 
 func NewThirdPartyAssessmentService(
@@ -86,6 +88,7 @@ func NewThirdPartyAssessmentService(
 	notificationSvc commonServices.NotificationServiceInterface,
 	assessmentWorkflowSvc ThirdPartyAssessmentWorkflowServiceInterface,
 	complianceResponseSvc TPRMComplianceResponseServiceInterface,
+	settingSvc settingSvc.ReportTemplateSettingServiceInterface,
 ) *ThirdPartyAssessmentService {
 	return &ThirdPartyAssessmentService{
 		repo:                          repo,
@@ -100,6 +103,7 @@ func NewThirdPartyAssessmentService(
 		notificationSvc:               notificationSvc,
 		assessmentWorkflowSvc:         assessmentWorkflowSvc,
 		complianceResponseSvc:         complianceResponseSvc,
+		settingSvc:                    settingSvc,
 	}
 }
 
@@ -1052,6 +1056,13 @@ func (tpas *ThirdPartyAssessmentService) ExportTPRMAssessmentReport(assessmentID
 	assessment, err := tpas.GetFullDetailsByID(assessmentID)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch assessment: %w", err)
+	}
+
+	if _, err := tpas.settingSvc.GetImagePath("logo"); err != nil {
+		return "", utility.NewForbiddenError("logo image missing")
+	}
+	if _, err := tpas.settingSvc.GetImagePath("cover-page-bg"); err != nil {
+		return "", utility.NewForbiddenError("cover image missing")
 	}
 
 	var assessmentSections []dtos.TPRMAssessmentSectionDTO
