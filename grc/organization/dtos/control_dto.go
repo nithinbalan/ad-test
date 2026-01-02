@@ -173,7 +173,7 @@ type ControlDetailDTO struct {
 	Description                   *string                          `json:"description"`
 	Objective                     *string                          `json:"objective"`
 	ControlType                   ControlTypeDTO                   `json:"control_type"`
-	ControlCategory               ControlCategoryDTO               `json:"control_category"`
+	ControlCategory               *ControlCategoryDTO               `json:"control_category"`
 	ResponsibleUnit               settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
 	ResponsibleUserID             *uint                            `json:"owner_id"`
 	Responsibleuser               *UserMinimalDTO                  `json:"owner"`
