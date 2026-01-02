@@ -48,6 +48,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.POST("/organization-level", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), organizationLevelController.CreateOrganizationLevel)
 	settingRoutes.PUT("/organization-levels/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), organizationLevelController.UpdateOrganizationLevel)
 	settingRoutes.DELETE("/organization-levels/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), organizationLevelController.DeleteOrganizationLevel)
+	settingRoutes.DELETE("/organization-levels/:id/force-delete", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), organizationLevelController.DeleteForceOrganizationLevel)
 
 	// System Preference
 	settingRoutes.GET("/system-preferences", systemPreferenceController.GetSystemPreference)

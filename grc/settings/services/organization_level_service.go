@@ -19,7 +19,7 @@ type OrganizationLevelServiceInterface interface {
 	Create(currentUserID uint, orgLevel *models.OrganizationLevel) (*models.OrganizationLevel, error)
 	Update(id uint, currentUserID uint, updatedOrgLevel *models.OrganizationLevel) (*models.OrganizationLevel, error)
 	Delete(id uint, currentUserID uint) error
-
+	ForceDelete(id uint, currentUserID uint) error
 	GetPrimaryLevel() (*models.OrganizationLevel, error)
 }
 
@@ -343,5 +343,75 @@ func (ols *OrganizationLevelService) validateOrganizationLevelForm(orgLevel *mod
 			return utility.NewValidationError(fmt.Errorf("the level must be unique"), "unique", "level")
 		}
 	}
+	return nil
+}
+
+func (ols *OrganizationLevelService) ForceDelete(id uint, currentUserID uint) error {
+	tx := ols.repo.BeginTransaction()
+
+	orgLevel, err := ols.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	if orgLevel.IsPrimary {
+		return fmt.Errorf("cannot delete a primary organization level")
+	}
+
+	maxLevel, err := ols.repo.GetMaxLevel(tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if int(orgLevel.Level) != maxLevel {
+		tx.Rollback()
+		return utility.NewResourceConflictError(fmt.Errorf("delete highest level first"))
+	}
+
+	var unitIDs []uint
+	for _, unit := range orgLevel.OrganizationUnits {
+		unitIDs = append(unitIDs, unit.ID)
+	}
+	//Delete all related organization units if any
+	if len(unitIDs) > 0 {
+		if err := ols.repo.NullOrganizationUnitReferences(unitIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		if err := ols.repo.DeleteOrganizationUnits(unitIDs, tx); err != nil {
+			tx.Rollback()
+			if utility.IsForeignKeyConstraintError(err) {
+				return utility.NewResourceConflictError(fmt.Errorf("foreign key constraint violation while deleting organization units"))
+			}
+			return err
+		}
+	}
+
+	err = ols.repo.Delete(id, tx)
+	if err != nil {
+		tx.Rollback()
+		if utility.IsForeignKeyConstraintError(err) {
+			return utility.NewResourceConflictError(fmt.Errorf("foreign key constraint violation while deleting organization level"))
+		}
+		return err
+	}
+
+	tx.Commit()
+	// Log the activity
+	go func() {
+		err := ols.activityLogSvc.LogActivity(
+			models.DeleteAction,
+			models.OrganizationLevel{}.TableName(),
+			id,
+			nil,
+			currentUserID,
+			"setting", "general_setting", "", nil,
+		)
+		if err != nil {
+			fmt.Printf("Failed to log activity: %v\n", err)
+		}
+	}()
 	return nil
 }

@@ -38,6 +38,7 @@ type DocumentChangeRequestServiceInterface interface {
 	Create(currentUserID uint, formDTO *documentDTOs.DocumentChangeRequestFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(id uint, currentUserID uint, formDTO *documentDTOs.DocumentChangeRequestFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
 
 	UpdateDocumentChangeRequest(documentChangeRequest *models.DocumentChangeRequest, tx ...utility.DatabaseTransaction) error
 
@@ -2020,4 +2021,44 @@ func (dcrs *DocumentChangeRequestService) parseDocumentPublishDates(dto *documen
 	}
 
 	return parsed, nil
+}
+
+func (dcrs *DocumentChangeRequestService) ForceDelete(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := dcrs.repo.BeginTransaction()
+	var failedIds []uint
+	var deletedData []map[string]interface{}
+
+	for _, id := range ids {
+		if err := dcrs.repo.ForceDelete(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		deletedData = append(deletedData, map[string]interface{}{
+			"id": id,
+		})
+	}
+
+	if len(failedIds) > 0 {
+		return failedIds, nil
+	}
+
+	if err := tx.Commit(); err != nil {
+		return ids, err
+	}
+
+	go func() {
+		if err := dcrs.activityLogSvc.LogBulkActivities(
+			models.DeleteAction,
+			models.DocumentChangeRequest{}.TableName(),
+			ids,
+			deletedData,
+			currentUserID,
+			nil,
+		); err != nil {
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
+	return nil, nil
 }
