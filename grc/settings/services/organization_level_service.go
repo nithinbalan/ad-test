@@ -366,7 +366,7 @@ func (ols *OrganizationLevelService) ForceDelete(id uint, currentUserID uint) er
 
 	if int(orgLevel.Level) != maxLevel {
 		tx.Rollback()
-		return utility.NewResourceConflictError(fmt.Errorf("delete highest level first"))
+		return utility.NewResourceConflictError(fmt.Errorf("delete lowest level in the organization hierarchy first"))
 	}
 
 	var unitIDs []uint
