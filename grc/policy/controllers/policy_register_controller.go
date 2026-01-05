@@ -131,6 +131,12 @@ func (prc *PolicyRegisterController) GetAllPolicies(c *gin.Context) {
 	c.JSON(http.StatusOK, documents)
 }
 
+func (prc *PolicyRegisterController) GetPolicyExport(c *gin.Context) {
+	c.Set("export", true)
+
+	prc.GetAllPolicies(c)
+}
+
 func (prc *PolicyRegisterController) GetPolicyDetails(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
