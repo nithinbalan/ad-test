@@ -25,6 +25,12 @@ func NewPolicyRegisterController(service services.PolicyRegisterServiceInterface
 	}
 }
 
+func (prc *PolicyRegisterController) GetPolicyExport(c *gin.Context) {
+	c.Set("export", true)
+
+	prc.GetAllPolicies(c)
+}
+
 func (prc *PolicyRegisterController) GetAllPolicies(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title_en")
@@ -32,10 +38,18 @@ func (prc *PolicyRegisterController) GetAllPolicies(c *gin.Context) {
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
-	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
-	if err != nil {
-		utility.SendInternalErrResp(prc.db, c, "Invalid export parameter")
-		return
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(prc.db, c, "Invalid export parameter")
+			return
+		}
 	}
 
 	// Define an array of allowed parameter names
@@ -113,7 +127,6 @@ func (prc *PolicyRegisterController) GetAllPolicies(c *gin.Context) {
 			utility.SendInternalErrResp(prc.db, c, err.Error())
 			return
 		}
-
 		excelFile, err := prc.service.ExportPolicies(documents.Items, currentUserID)
 		if err != nil {
 			utility.SendInternalErrResp(prc.db, c, err.Error())
@@ -129,12 +142,6 @@ func (prc *PolicyRegisterController) GetAllPolicies(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, documents)
-}
-
-func (prc *PolicyRegisterController) GetPolicyExport(c *gin.Context) {
-	c.Set("export", true)
-
-	prc.GetAllPolicies(c)
 }
 
 func (prc *PolicyRegisterController) GetPolicyDetails(c *gin.Context) {
