@@ -1,5 +1,9 @@
 package dtos
 
+import (
+	settingDTOs "jethur/grc/settings/dtos"
+)
+
 type LoginResponseDTO struct {
 	AccessToken  *string `json:"access_token"`
 	RefreshToken *string `json:"refresh_token"`
@@ -43,8 +47,9 @@ type PasswordRecoverySetPasswordEmailDTO struct {
 }
 
 type LoginSettingsDTO struct {
-	ActiveDirectoryEnabled bool `json:"active_directory_enabled"`
-	AzureADEnabled         bool `json:"azure_ad_enabled"`
+	ActiveDirectoryEnabled bool                       `json:"active_directory_enabled"`
+	AzureADEnabled         bool                       `json:"azure_ad_enabled"`
+	Theme                  settingDTOs.ThemeDetailDTO `json:"theme"`
 }
 
 type MicrosoftOAuthCallbackDTO struct {
