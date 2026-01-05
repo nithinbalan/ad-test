@@ -46,6 +46,7 @@ type AuthService struct {
 	emailTemplateSettingsSvc  settingService.EmailTemplateSettingsServiceInterface
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface
 	integrationSvc            settingService.IntegrationServiceInterface
+	systemPrefSvc             settingService.SystemPreferenceServiceInterface
 }
 
 func NewAuthService(
@@ -55,6 +56,7 @@ func NewAuthService(
 	emailTemplateSettingsSvc settingService.EmailTemplateSettingsServiceInterface,
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface,
 	integrationSvc settingService.IntegrationServiceInterface,
+	systemPrefSvc settingService.SystemPreferenceServiceInterface,
 ) AuthServiceInterface {
 	return &AuthService{
 		userService:               userService,
@@ -63,6 +65,7 @@ func NewAuthService(
 		emailTemplateSettingsSvc:  emailTemplateSettingsSvc,
 		activeDirectorySettingSvc: activeDirectorySettingSvc,
 		integrationSvc:            integrationSvc,
+		systemPrefSvc:             systemPrefSvc,
 	}
 }
 
@@ -577,10 +580,15 @@ func (as *AuthService) GetLoginSettings() (*authDTOs.LoginSettingsDTO, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Azure AD integration: %w", err)
 	}
+	systemPref, err := as.systemPrefSvc.GetSystemPreference()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get system preferences: %w", err)
+	}
 
 	settings := &authDTOs.LoginSettingsDTO{
 		ActiveDirectoryEnabled: activeDirectoryIntegration.IsEnable,
 		AzureADEnabled:         azureADIntegration.IsEnable,
+		Theme:                  systemPref.Theme,
 	}
 
 	return settings, nil
