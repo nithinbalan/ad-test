@@ -18,6 +18,7 @@ type IncidentActionPlanRepositoryInterface interface {
 	Create(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	ForceDelete(id uint, tx ...utility.DatabaseTransaction) error
 	GetCountByRiskID(incidentID uint, tx ...utility.DatabaseTransaction) (int64, error)
 
 	CreateInitialIncidentActionPlanStatusUpdate(incidentActionPlanStatusUpdate *models.IncidentActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
@@ -309,4 +310,40 @@ func (repo *IncidentActionPlanRepository) GetCountByRiskID(incidentID uint, tx .
 		return 0, err
 	}
 	return count, nil
+}
+
+func (repo *IncidentActionPlanRepository) ForceDelete(id uint, tx ...utility.DatabaseTransaction) error {
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	/* ================= ACTION PLAN TREE ================= */
+
+	queries := []string{
+
+		// Action plan comment documents
+		`DELETE incident_action_plan_status_update_documents
+		 FROM incident_action_plan_status_update_documents 
+		 JOIN incident_action_plan_status_updates ON incident_action_plan_status_updates.id = incident_action_plan_status_update_documents.incident_action_plan_status_update_id
+		 WHERE incident_action_plan_status_updates.incident_action_plan_id = ?`,
+
+		`DELETE incident_action_plan_comment_documents
+		 FROM incident_action_plan_comment_documents 
+		 JOIN incident_action_plan_comments ON incident_action_plan_comments.id = incident_action_plan_comment_documents.incident_action_plan_comment_id
+		 WHERE incident_action_plan_comments.incident_action_plan_id = ?`,
+		`DELETE FROM tasks WHERE tasks.incident_action_plan_id = ?`,
+		`DELETE FROM incident_action_plan_comments WHERE incident_action_plan_comments.incident_action_plan_id = ?`,
+		`DELETE FROM incident_action_plan_status_updates WHERE incident_action_plan_status_updates.incident_action_plan_id = ?`,
+	}
+
+	for _, q := range queries {
+		if err := db.Exec(q, id).Error; err != nil {
+			return err
+		}
+	}
+
+	/* ================= ROOT ================= */
+	return db.Delete(&models.IncidentActionPlan{}, id).Error
 }

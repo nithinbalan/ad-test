@@ -75,6 +75,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.POST("/incident-register", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentRegisterController.CreateIncidentRegister)
 	incidentRoutes.PUT("/incident-register/:id", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentRegisterController.UpdateIncidentRegister)
 	incidentRoutes.POST("/incident-register/delete", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentRegisterController.DeleteIncidentRegisters)
+	incidentRoutes.POST("/incident-register/force-delete", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentRegisterController.DeleteForceIncidentRegisters)
 
 	// Incident Investigation Status
 	incidentRoutes.GET("/incident-investigation-statuses", incidentInvestigationStatusController.GetAllIncidentInvestigationStatuses)
@@ -89,6 +90,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.DELETE("/incidents/:incidentID/investigation", middlewares.RolePermissionMiddleware(db, "incident_register", "modify"), incidentInvestigationController.DeleteIncidentInvestigations)
 
 	// Incident Action Plan
+	incidentRoutes.POST("/incident-action-plans/force-delete", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "view"), incidentActionPlanController.DeleteForceIncidentActionPlans)
 	incidentRoutes.GET("/incident-action-plans/export", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "view"), incidentActionPlanController.GetIncidentActionPlanExport)
 	incidentRoutes.GET("/incident-action-plans", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "view"), incidentActionPlanController.GetAllIncidentActionPlans)
 	incidentRoutes.GET("/incidents/:incidentID/action-plans", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "view"), incidentActionPlanController.GetAllIncidentActionPlans)
