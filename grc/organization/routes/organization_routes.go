@@ -487,5 +487,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/organization-units/reports/:id/export", organizationUnitsController.ExportOrganizationUnitReportToPDF)
 
 	organizationRoutes.GET("/organization-chart/users", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"),organizationChartUsers.GetUsers)
-	organizationRoutes.GET("/organization-chart/users/:id", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationChartUsers.GetUserDetails)
+	organizationRoutes.GET("/organization-chart/users/:id", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationChartUsers.GetUserFullDetails)
 }
