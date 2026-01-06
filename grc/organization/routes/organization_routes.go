@@ -57,6 +57,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	userJobDescriptionController := app.OrganizationModule.UserJobDescriptionController
 	userDelegationHistoryController := app.OrganizationModule.UserDelegationHistoryController
 	organizationUnitsController := app.OrganizationModule.OrganizationUnitsController
+	organizationChartUsers := app.OrganizationModule.OrganizationCartController
 
 	// Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
@@ -485,4 +486,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.DELETE("/organization-units/reports/:id", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitsController.DeleteOrganizationUnitReport)
 	organizationRoutes.GET("/organization-units/reports/:id/export", organizationUnitsController.ExportOrganizationUnitReportToPDF)
 
+	organizationRoutes.GET("/organization-chart/users", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"),organizationChartUsers.GetUsers)
+	organizationRoutes.GET("/organization-chart/users/:id", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationChartUsers.GetUserDetails)
 }
