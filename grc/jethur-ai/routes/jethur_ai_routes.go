@@ -51,4 +51,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	jethurAIRoutes.GET("/jethur-ai/compliances/:complianceId/start-job/suggest-associates", middlewares.RolePermissionMiddleware(db, "compliance", "view"), complianceAIController.GetComplianceSuggestAssociatesJob)
 	jethurAIRoutes.GET("/jethur-ai/compliances/job-status/:jobId", middlewares.RolePermissionMiddleware(db, "compliance", "view"), complianceAIController.GetComplianceJobStatus)
 
+	jethurAIRoutes.GET("/jethur-ai/compliances/clauses/:clauseId/start-job/strategic-objectives", middlewares.RolePermissionMiddleware(db, "compliance", "view"), complianceAIController.GetComplianceClauseStrategicObjectivesJob)
+	jethurAIRoutes.GET("/jethur-ai/compliances/clauses/:clauseId/start-job/suggest-kpi", middlewares.RolePermissionMiddleware(db, "compliance", "view"), complianceAIController.GetComplianceClauseSuggestKPIJob)
+	jethurAIRoutes.GET("/jethur-ai/compliances/clauses/:clauseId/start-job/suggest-process", middlewares.RolePermissionMiddleware(db, "compliance", "view"), complianceAIController.GetComplianceClauseSuggestProcessJob)
+	jethurAIRoutes.GET("/jethur-ai/compliances/clauses/:clauseId/start-job/suggest-risks", middlewares.RolePermissionMiddleware(db, "compliance", "view"), complianceAIController.GetComplianceClauseSuggestRisksJob)
+	jethurAIRoutes.GET("/jethur-ai/compliances/clauses/:clauseId/start-job/suggest-controls", middlewares.RolePermissionMiddleware(db, "compliance", "view"), complianceAIController.GetComplianceClauseSuggestControlsJob)
+	jethurAIRoutes.GET("/jethur-ai/compliances/clauses/:clauseId/start-job/suggest-incidents", middlewares.RolePermissionMiddleware(db, "compliance", "view"), complianceAIController.GetComplianceClauseSuggestIncidentsJob)
+	jethurAIRoutes.GET("/jethur-ai/compliances/clauses/:clauseId/start-job/suggest-associates", middlewares.RolePermissionMiddleware(db, "compliance", "view"), complianceAIController.GetComplianceClauseSuggestAssociatesJob)
 }
