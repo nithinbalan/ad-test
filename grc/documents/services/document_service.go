@@ -40,6 +40,7 @@ type DocumentServiceInterface interface {
 	Create(currentUserID uint, documentFormDTO *documentDTOs.DocumentFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, documentFormDTO *documentDTOs.DocumentFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
 
 	UpdateDocument(document *models.Document, tx ...utility.DatabaseTransaction) error
 
@@ -2574,4 +2575,44 @@ func (ds *DocumentService) parseDocumentPublishDates(dto *documentDTOs.DocumentP
 	}
 
 	return parsed, nil
+}
+
+func (ds *DocumentService) ForceDelete(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := ds.repo.BeginTransaction()
+	var failedIds []uint
+	var deletedData []map[string]interface{}
+
+	for _, id := range ids {
+		if err := ds.repo.ForceDelete(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		deletedData = append(deletedData, map[string]interface{}{
+			"id": id,
+		})
+	}
+
+	if len(failedIds) > 0 {
+		return failedIds, nil
+	}
+
+	if err := tx.Commit(); err != nil {
+		return ids, err
+	}
+
+	go func() {
+		if err := ds.activityLogSvc.LogBulkActivities(
+			models.DeleteAction,
+			models.Document{}.TableName(),
+			ids,
+			deletedData,
+			currentUserID,
+			nil,
+		); err != nil {
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
+	return nil, nil
 }

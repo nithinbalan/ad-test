@@ -569,3 +569,28 @@ func (dc *DocumentController) GetDocumentExport(c *gin.Context) {
 
 	dc.GetAllDocuments(c)
 }
+
+func (dc *DocumentController) DeleteForceDocuments(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(dc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := dc.service.ForceDelete(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(dc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}

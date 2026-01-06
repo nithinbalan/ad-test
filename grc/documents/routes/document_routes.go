@@ -90,6 +90,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	documentRoutes.POST("/documents", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentController.CreateDocument)
 	documentRoutes.PUT("/documents/:id", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), documentController.UpdateDocument)
 	documentRoutes.POST("/documents/delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentController.DeleteDocuments)
+	documentRoutes.POST("/documents/force-delete", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), documentController.DeleteForceDocuments)
 	documentRoutes.GET("/documents/:id/check-out", middlewares.RolePermissionMiddleware(db, "document_register", "view"), middlewares.DocumentAccessCheckingMiddleware(db), documentController.CheckoutDocument)
 	documentRoutes.POST("/documents/:id/check-in", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), documentController.CheckinDocument)
 	documentRoutes.POST("/documents/:id/check-out-revert", middlewares.RolePermissionMiddleware(db, "document_register", "modify"), middlewares.DocumentAccessCheckingMiddleware(db), documentController.RevertDocumentCheckout)

@@ -154,7 +154,7 @@ func (sps *SystemPreferenceService) Update(id uint, currentUserID uint, systemPr
 	existingSystemPreference.LogoUploadSize = systemPreferenceFormDTO.LogoUploadSize
 	existingSystemPreference.IdleTimeout = systemPreferenceFormDTO.IdleTimeout
 	existingSystemPreference.IsMaintenanceModeOn = systemPreferenceFormDTO.IsMaintenanceModeOn
-	existingSystemPreference.ThemeID  = systemPreferenceFormDTO.ThemeID
+	existingSystemPreference.ThemeID = systemPreferenceFormDTO.ThemeID
 	existingSystemPreference.UpdatedByID = &currentUserID
 
 	// Update system preference in the repository
@@ -281,8 +281,10 @@ func (sps *SystemPreferenceService) UpdateLicenseKey(systemPreferenceFormDTO *dt
 	}
 
 	for _, module := range modules {
-		if _, err := sps.moduleSvc.DisableModule(module.ID); err != nil {
-			return err
+		if module.Identifier != "setting" {
+			if _, err := sps.moduleSvc.DisableModule(module.ID); err != nil {
+				return err
+			}
 		}
 	}
 
