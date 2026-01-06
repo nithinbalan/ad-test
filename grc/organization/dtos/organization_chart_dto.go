@@ -15,7 +15,7 @@ type OrganizationChartUserListDTO struct {
 	Designation     string  `json:"designation"`
 
 	OrganizationUnit1 string `json:"organization_unit_1"`
-	OrganizationUnit2 string `json:"organization_unit_2,omitempty"`
+	OrganizationUnit2 string `json:"organization_unit_2"`
 
 	RolesEn string `json:"roles_en"`
 	RolesAr string `json:"roles_ar"`
