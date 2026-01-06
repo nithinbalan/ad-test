@@ -1,14 +1,15 @@
 package repositories
 
 import (
+	"fmt"
+	"strings"
 	"gorm.io/gorm"
-
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 )
 
 type OrganizationChartRepositoryInterface interface {
-	GetAll() ([]*organizationDTOs.OrganizationChartUserListDTO, error)
+	GetAll(params *organizationDTOs.OrganizationChartUserListQueryParamsDTO, primaryOrgUnitField string) ([]*organizationDTOs.OrganizationChartUserListDTO, error)
 	GetUserDetailsByID(id uint) (*models.User, error)
 }
 
@@ -20,49 +21,65 @@ func NewOrganizationChartRepository(db *gorm.DB) OrganizationChartRepositoryInte
 	return &OrganizationChartRepository{db: db}
 }
 
-// repositories/user_repository.go
+func (repo *OrganizationChartRepository) GetAll(params *organizationDTOs.OrganizationChartUserListQueryParamsDTO,primaryOrgUnitField string) ([]*organizationDTOs.OrganizationChartUserListDTO, error) {
 
-func (repo *OrganizationChartRepository) GetAll() ([]*organizationDTOs.OrganizationChartUserListDTO, error) {
 	var users []*organizationDTOs.OrganizationChartUserListDTO
-
-	err := repo.db.
+	query := repo.db.
 		Table("users").
 		Select(`
-        users.id,
-        users.first_name_en,
-        users.last_name_en,
-        users.first_name_ar,
-        users.last_name_ar,
-        users.email,
-        users.mobile_number,
-        users.profile_image_path,
-        users.initial,
-        users.color,
+			users.id,
+			users.first_name_en,
+			users.last_name_en,
+			users.first_name_ar,
+			users.last_name_ar,
+			users.email,
+			users.mobile_number,
+			users.profile_image_path,
+			users.initial,
+			users.color,
 
-        designations.title_en AS designation,
-        org1.title_en AS organization_unit_1,
-        org2.title_en AS organization_unit_2,
+			designations.title_en AS designation,
 
-        roles_agg.roles_en,
-        roles_agg.roles_ar
-    `).
-		Joins("LEFT JOIN organization_units org1 ON org1.id = users.organization_unit_1_id").
-		Joins("LEFT JOIN organization_units org2 ON org2.id = users.organization_unit_2_id").
+			primary_unit.id       AS primary_organization_unit_id,
+			primary_unit.title_en AS primary_organization_unit,
+
+			roles_agg.roles_en,
+			roles_agg.roles_ar
+		`).
+		Joins(fmt.Sprintf("LEFT JOIN organization_units AS primary_unit ON primary_unit.id = users.%s", primaryOrgUnitField)).
 		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
 		Joins(`
-        LEFT JOIN (
-            SELECT 
-                user_roles.user_id,
-                STRING_AGG(roles.title_en, ', ') AS roles_en,
-                STRING_AGG(roles.title_ar, ', ') AS roles_ar
-            FROM user_roles
-            JOIN roles ON roles.id = user_roles.role_id
-            GROUP BY user_roles.user_id
-        ) roles_agg ON roles_agg.user_id = users.id
-    `).
+			LEFT JOIN (
+				SELECT 
+					user_roles.user_id,
+					STRING_AGG(roles.title_en, ', ') AS roles_en,
+					STRING_AGG(roles.title_ar, ', ') AS roles_ar
+				FROM user_roles
+				JOIN roles ON roles.id = user_roles.role_id
+				GROUP BY user_roles.user_id
+			) roles_agg ON roles_agg.user_id = users.id
+		`)
+
+	for column, values := range params.Filters {
+		if len(values) == 0 {
+			continue
+		}
+
+		if column == "reporting_user_id" {
+			if len(values) == 1 && strings.ToLower(values[0]) == "null" {
+				query = query.Where("users.reporting_user_id IS NULL")
+			} else {
+				query = query.Where("users.reporting_user_id IN (?)", values)
+			}
+			continue
+		}
+
+		query = query.Where("users."+column+" IN (?)", values)
+	}
+
+	err := query.
 		Order("users.first_name_en ASC").
 		Find(&users).Error
-
 	if err != nil {
 		return nil, err
 	}

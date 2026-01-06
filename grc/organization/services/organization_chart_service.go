@@ -2,30 +2,71 @@ package services
 
 import (
 	"errors"
+	"fmt"
+	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
+	settingService "jethur/grc/settings/services"
 	"jethur/utility"
+
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type OrganizationChartServiceInterface interface {
-	GetUsers() ([]*organizationDTOs.OrganizationChartUserListDTO, error)
+	GetAll(params *organizationDTOs.OrganizationChartUserListQueryParamsDTO) ([]*organizationDTOs.OrganizationChartUserListDTO, error)
 	GetUserFullDetailsByID(id uint) (*organizationDTOs.OrganizationChartUserDetailsDTO, error)
 }
 
 type OrganizationChartService struct {
-	repo organizationRepositories.OrganizationChartRepositoryInterface
+	repo                 organizationRepositories.OrganizationChartRepositoryInterface
+	organizationLevelSvc settingService.OrganizationLevelServiceInterface
 }
 
 func NewOrganizationChartService(
 	repo organizationRepositories.OrganizationChartRepositoryInterface,
+	organizationLevelSvc settingService.OrganizationLevelServiceInterface,
 ) OrganizationChartServiceInterface {
-	return &OrganizationChartService{repo: repo}
+	return &OrganizationChartService{
+		repo:                 repo,
+		organizationLevelSvc: organizationLevelSvc,
+	}
 }
 
-func (ocs *OrganizationChartService) GetUsers() ([]*organizationDTOs.OrganizationChartUserListDTO, error) {
-	return ocs.repo.GetAll()
+func (ocs *OrganizationChartService) GetAll(params *organizationDTOs.OrganizationChartUserListQueryParamsDTO) ([]*organizationDTOs.OrganizationChartUserListDTO, error) {
+
+	if params.Filters == nil {
+		params.Filters = make(map[string][]string)
+	}
+
+	// Normalize filter key
+	if v, ok := params.Filters["reporting_user_ids"]; ok {
+		params.Filters["reporting_user_id"] = v
+		delete(params.Filters, "reporting_user_ids")
+	}
+
+	primaryLevel, err := ocs.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return nil, err
+	}
+
+	var primaryOrgUnitField string
+	switch primaryLevel.Level {
+	case 1:
+		primaryOrgUnitField = "organization_unit_1_id"
+	case 2:
+		primaryOrgUnitField = "organization_unit_2_id"
+	case 3:
+		primaryOrgUnitField = "organization_unit_3_id"
+	case 4:
+		primaryOrgUnitField = "organization_unit_4_id"
+	case 5:
+		primaryOrgUnitField = "organization_unit_5_id"
+	default:
+		return nil, fmt.Errorf("unsupported primary organization level")
+	}
+
+	return ocs.repo.GetAll(params, primaryOrgUnitField)
 }
 
 func (ocs *OrganizationChartService) GetUserFullDetailsByID(id uint) (*organizationDTOs.OrganizationChartUserDetailsDTO, error) {
@@ -43,13 +84,31 @@ func (ocs *OrganizationChartService) GetUserFullDetailsByID(id uint) (*organizat
 	if err := mapstructure.Decode(user, &organizationChartUserDetailsDTO); err != nil {
 		return nil, err
 	}
-	if user.Designation != nil {
-		organizationChartUserDetailsDTO.Designation = user.Designation.TitleEn
+	primaryLevel, err := ocs.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return nil, err
 	}
 
-	if user.PrimaryOrganizationUnit != nil {
-		organizationChartUserDetailsDTO.PrimaryOrganizationID = &user.PrimaryOrganizationUnit.ID
-		organizationChartUserDetailsDTO.PrimaryOrganization = user.PrimaryOrganizationUnit.TitleEn
+	var primaryOrgUnit *models.OrganizationUnit
+
+	switch primaryLevel.Level {
+	case 1:
+		primaryOrgUnit = user.OrganizationUnit1
+	case 2:
+		primaryOrgUnit = user.OrganizationUnit2
+	case 3:
+		primaryOrgUnit = user.OrganizationUnit3
+	case 4:
+		primaryOrgUnit = user.OrganizationUnit4
+	case 5:
+		primaryOrgUnit = user.OrganizationUnit5
+	default:
+		return nil, fmt.Errorf("invalid primary level: %d", primaryLevel.Level)
+	}
+
+	if primaryOrgUnit != nil {
+		organizationChartUserDetailsDTO.PrimaryOrganizationID = &primaryOrgUnit.ID
+		organizationChartUserDetailsDTO.PrimaryOrganization = primaryOrgUnit.TitleEn
 	}
 
 	if user.UserRoles != nil {
@@ -70,5 +129,3 @@ func (ocs *OrganizationChartService) GetUserFullDetailsByID(id uint) (*organizat
 
 	return &organizationChartUserDetailsDTO, nil
 }
-
-

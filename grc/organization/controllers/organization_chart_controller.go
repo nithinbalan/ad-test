@@ -1,13 +1,13 @@
 package controllers
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-    "strconv"
+	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/services"
 	"jethur/utility"
+	"net/http"
+	"strconv"
 )
 
 type OrganizationChartController struct {
@@ -22,7 +22,18 @@ func NewOrganizationChartController(service services.OrganizationChartServiceInt
 }
 
 func (occ *OrganizationChartController) GetUsers(c *gin.Context) {
-	users, err := occ.service.GetUsers()
+
+	allowedParams := []string{
+		"reporting_user_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	params := organizationDTOs.OrganizationChartUserListQueryParamsDTO{
+		Filters: filters,
+	}
+
+	users, err := occ.service.GetAll(&params)
 	if err != nil {
 		utility.SendInternalErrResp(occ.db, c, err.Error())
 		return

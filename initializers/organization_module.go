@@ -288,7 +288,7 @@ func NewOrganizationModule(
 	organizationUnitsController := controllers.NewOrganizationUnitsController(organizationUnitsSvc)
 
 	organizationChartRepo := repositories.NewOrganizationChartRepository(db)
-	organizationChartSvc := services.NewOrganizationChartService(organizationChartRepo)
+	organizationChartSvc := services.NewOrganizationChartService(organizationChartRepo,settingsModule.OrganizationLevelSvc)
 	organizationChartController := controllers.NewOrganizationChartController(organizationChartSvc)
 
 	return &OrganizationModule{
