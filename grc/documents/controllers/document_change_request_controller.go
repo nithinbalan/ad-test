@@ -64,8 +64,8 @@ func (dcrc *DocumentChangeRequestController) GetAllDocumentChangeRequests(c *gin
 		"status_ar":                       "change_request_statuses.title_en",
 		"document_ar":                     "documents.title_en",
 		"document_en":                     "documents.title_en",
-		"created_by":                      "created_by_user.first_name_en",
-		"updated_by":                      "updated_by_user.first_name_en",
+		"created_by":                      "LTRIM(RTRIM(ISNULL(created_by_user.first_name_en, '') + ' ' + ISNULL(created_by_user.last_name_en, '')))",
+		"updated_by":                      "LTRIM(RTRIM(ISNULL(updated_by_user.first_name_en, '') + ' ' + ISNULL(updated_by_user.last_name_en, '')))",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
