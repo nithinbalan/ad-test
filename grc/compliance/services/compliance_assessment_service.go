@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -41,13 +42,17 @@ type ComplianceAssessmentServiceInterface interface {
 
 	GetApprovalStatus(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentApprovalStatusDTO, error)
 	GetControlApprovalStatus(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentApprovalStatusDTO, error)
+
+	ExportComplianceAssessments(data []*complianceDTOs.ComplianceAssessmentListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
 type ComplianceAssessmentService struct {
 	repo                          complianceRepositories.ComplianceAssessmentRepositoryInterface
+	requirementRepo              complianceRepositories.ComplianceAssessmentRequirementRepositoryInterface
 	activityLogSvc                logServices.ActivityLogServiceInterface
 	userSvc                       organizationServices.UserServiceInterface
+	userSettingSvc                organizationServices.UserSettingServiceInterface
 	complianceRegisterSvc         ComplianceRegisterServiceInterface
 	applicablityStatusSvc         masterServices.ApplicabilityStatusServiceInterface
 	complianceAssessmentStatusSvc ComplianceAssessmentStatusServiceInterface
@@ -58,8 +63,10 @@ type ComplianceAssessmentService struct {
 
 func NewComplianceAssessmentService(
 	repo complianceRepositories.ComplianceAssessmentRepositoryInterface,
+	requirementRepo complianceRepositories.ComplianceAssessmentRequirementRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 	complianceRegisterSvc ComplianceRegisterServiceInterface,
 	applicablityStatusSvc masterServices.ApplicabilityStatusServiceInterface,
 	complianceAssessmentStatusSvc ComplianceAssessmentStatusServiceInterface,
@@ -69,8 +76,10 @@ func NewComplianceAssessmentService(
 ) ComplianceAssessmentServiceInterface {
 	return &ComplianceAssessmentService{
 		repo:                          repo,
+		requirementRepo:              requirementRepo,
 		activityLogSvc:                activityLogSvc,
 		userSvc:                       userSvc,
+		userSettingSvc:                userSettingSvc,
 		complianceRegisterSvc:         complianceRegisterSvc,
 		applicablityStatusSvc:         applicablityStatusSvc,
 		complianceAssessmentStatusSvc: complianceAssessmentStatusSvc,
@@ -2660,6 +2669,122 @@ func parseUintList(ss []string) []uint {
 		}
 	}
 	return out
+}
+
+func (cas *ComplianceAssessmentService) ExportComplianceAssessments(data []*complianceDTOs.ComplianceAssessmentListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := cas.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"Clause No",
+			"Clause Title",
+			"Requirement Title",
+			"Responsible Unit",
+			"Responsible User",
+			"Compliance Status",
+			"Compliance Title",
+			"Reference Number",
+		}
+	} else {
+		headers = []string{
+			"Clause No",
+			"Clause Title",
+			"Requirement Title",
+			"Responsible Unit",
+			"Responsible User",
+			"Compliance Status",
+			"Compliance Title",
+			"Reference Number",
+		}
+	}
+
+	var rows [][]interface{}
+
+	for _, assessment := range data {
+		params := &complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO{
+			Sort:        "id",
+			SortBy:      "id",
+			Keyword:     "",
+			Page:        1,
+			PageSize:    1000, 
+			Filters:     nil,
+			QuickFilter: nil,
+			ClauseID:    0,
+		}
+		requirements, err := cas.requirementRepo.GetAll(assessment.ID, params)
+		if err != nil {
+			continue 
+		}
+
+		complianceRegister, err := cas.complianceRegisterSvc.GetByID(assessment.ComplianceRegisterID)
+		if err != nil {
+			continue
+		}
+
+		complianceTitle := ""
+		referenceNumber := complianceRegister.ReferenceNumber
+		if userSetting.Language == "ar" {
+			complianceTitle = complianceRegister.TitleAr
+		} else {
+			complianceTitle = complianceRegister.TitleEn
+		}
+
+		for _, requirement := range requirements.Items {
+			var clauseNo, clauseTitle, requirementTitle, responsibleUnitControl, responsibleUser, complianceStatus string
+
+			clauseNo = requirement.ComplianceClauseNo
+			if userSetting.Language == "ar" {
+				clauseTitle = requirement.ComplianceClauseTitleAr
+			} else {
+				clauseTitle = requirement.ComplianceClauseTitleEn
+			}
+
+			if userSetting.Language == "ar" {
+				requirementTitle = requirement.ComplianceRequirementTitleAr
+			} else {
+				requirementTitle = requirement.ComplianceRequirementTitleEn
+			}
+
+			responsibleUnitControl = "" 
+			responsibleUser = "" 
+
+			if userSetting.Language == "ar" {
+				complianceStatus = requirement.ComplianceAssessmentRequirementStatusTitleAr
+			} else {
+				complianceStatus = requirement.ComplianceAssessmentRequirementStatusTitleEn
+			}
+
+			rows = append(rows, []interface{}{
+				clauseNo,
+				clauseTitle,
+				requirementTitle,
+				responsibleUnitControl,
+				responsibleUser,
+				complianceStatus,
+				complianceTitle,
+				referenceNumber,
+			})
+		}
+
+		if len(requirements.Items) == 0 {
+			rows = append(rows, []interface{}{
+				"", 
+				"", 
+				"", 
+				"", 
+				assessment.ReviewUserFirstNameEn + " " + assessment.ReviewUserLastNameEn,
+				"", 
+				complianceTitle,
+				referenceNumber, 
+			})
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }
 
 func derefUintPtr(p *uint) uint {
