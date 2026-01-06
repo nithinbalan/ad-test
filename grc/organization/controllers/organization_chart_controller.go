@@ -31,7 +31,7 @@ func (occ *OrganizationChartController) GetUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, users)
 }
 
-func (occ *OrganizationChartController) GetUserDetails(c *gin.Context) {
+func (occ *OrganizationChartController) GetUserFullDetails(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -39,7 +39,7 @@ func (occ *OrganizationChartController) GetUserDetails(c *gin.Context) {
 		return
 	}
 
-	user, err := occ.service.GetUserDetailsByID(uint(id))
+	user, err := occ.service.GetUserFullDetailsByID(uint(id))
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:

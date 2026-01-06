@@ -10,8 +10,8 @@ import (
 )
 
 type OrganizationChartServiceInterface interface {
-	GetUsers() ([]*organizationDTOs.OrganizationChartUserDTO, error)
-	GetUserDetailsByID(id uint) (*organizationDTOs.OrganizationChartUserDetailsDTO, error)
+	GetUsers() ([]*organizationDTOs.OrganizationChartUserListDTO, error)
+	GetUserFullDetailsByID(id uint) (*organizationDTOs.OrganizationChartUserDetailsDTO, error)
 }
 
 type OrganizationChartService struct {
@@ -24,11 +24,11 @@ func NewOrganizationChartService(
 	return &OrganizationChartService{repo: repo}
 }
 
-func (ocs *OrganizationChartService) GetUsers() ([]*organizationDTOs.OrganizationChartUserDTO, error) {
-	return ocs.repo.GetUsersForOrgChart()
+func (ocs *OrganizationChartService) GetUsers() ([]*organizationDTOs.OrganizationChartUserListDTO, error) {
+	return ocs.repo.GetAll()
 }
 
-func (ocs *OrganizationChartService) GetUserDetailsByID(id uint) (*organizationDTOs.OrganizationChartUserDetailsDTO, error) {
+func (ocs *OrganizationChartService) GetUserFullDetailsByID(id uint) (*organizationDTOs.OrganizationChartUserDetailsDTO, error) {
 
 	user, err := ocs.repo.GetUserDetailsByID(id)
 	if err != nil {
@@ -43,14 +43,15 @@ func (ocs *OrganizationChartService) GetUserDetailsByID(id uint) (*organizationD
 	if err := mapstructure.Decode(user, &organizationChartUserDetailsDTO); err != nil {
 		return nil, err
 	}
-
 	if user.Designation != nil {
 		organizationChartUserDetailsDTO.Designation = user.Designation.TitleEn
 	}
+
 	if user.PrimaryOrganizationUnit != nil {
 		organizationChartUserDetailsDTO.PrimaryOrganizationID = &user.PrimaryOrganizationUnit.ID
 		organizationChartUserDetailsDTO.PrimaryOrganization = user.PrimaryOrganizationUnit.TitleEn
 	}
+
 	if user.UserRoles != nil {
 		organizationChartUserDetailsDTO.SystemRoles = make([]organizationDTOs.OrganizationChartRoleDTO, 0)
 
@@ -66,20 +67,8 @@ func (ocs *OrganizationChartService) GetUserDetailsByID(id uint) (*organizationD
 			}
 		}
 	}
-	if user.ReportingUser != nil {
-		organizationChartUserDetailsDTO.ReportingTo = &organizationDTOs.OrganizationChartReportingUserDTO{
-			ID:               user.ReportingUser.ID,
-			FirstNameEn:      user.ReportingUser.FirstNameEn,
-			LastNameEn:       user.ReportingUser.LastNameEn,
-			ProfileImagePath: user.ReportingUser.ProfileImagePath,
-		}
-
-		if user.ReportingUser.Designation != nil {
-			organizationChartUserDetailsDTO.ReportingTo.Designation =
-				user.ReportingUser.Designation.TitleEn
-		}
-	}
 
 	return &organizationChartUserDetailsDTO, nil
 }
+
 

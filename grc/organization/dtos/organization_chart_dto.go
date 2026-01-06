@@ -1,15 +1,26 @@
 package dtos
 
-type OrganizationChartUserDTO struct {
-	ID              uint   `json:"id"`
-	FirstNameEn     string `json:"first_name_en"`
-	LastNameEn      string `json:"last_name_en"`
-	FirstNameAr     string `json:"first_name_ar"`
-	LastNameAr      string `json:"last_name_ar"`
-	Email           string `json:"email"`
-	Designation     string `json:"designation"`
-	ReportingUserID *uint  `json:"reporting_user_id"`
+type OrganizationChartUserListDTO struct {
+	ID              uint    `json:"id"`
+	FirstNameEn     string  `json:"first_name_en"`
+	LastNameEn      string  `json:"last_name_en"`
+	FirstNameAr     string  `json:"first_name_ar"`
+	LastNameAr      string  `json:"last_name_ar"`
+	Email           string  `json:"email"`
+	MobileNumber    *string `json:"mobile_number"`
+	ProfileImagePath *string `json:"profile_image_path"`
+	Initial         string  `json:"initial"`
+	Color           string  `json:"color"`
+
+	Designation     string  `json:"designation"`
+
+	OrganizationUnit1 string `json:"organization_unit_1"`
+	OrganizationUnit2 string `json:"organization_unit_2,omitempty"`
+
+	RolesEn string `json:"roles_en"`
+	RolesAr string `json:"roles_ar"`
 }
+
 
 
 type OrganizationChartUserDetailsDTO struct {
