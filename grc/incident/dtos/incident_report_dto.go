@@ -48,3 +48,11 @@ type IncidentReportDetailDTO struct {
 	Investigation          *IncidentInvestigationDetailDTO                   `json:"investigation"`
 	AppUrl                 string                                            `json:"url"`
 }
+
+type IncidentReportRequestDTO struct {
+	Type 		   string `json:"type" binding:"required,oneof=individual date-range"`
+	IncidentIDs    *[]uint `json:"incident_ids"`
+	Title  	 	   string `json:"title" binding:"required"`
+	StartDate      *string  `json:"start_date"`
+	EndDate        *string  `json:"end_date"`
+}

@@ -183,4 +183,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	incidentRoutes.GET("/incidents/:incidentID/export-pdf", IncidentReportController.ExportIncidentReportToPDF)
 
+	incidentRoutes.POST("/incidents-reports", IncidentReportController.CreateIncidentReport)
 }

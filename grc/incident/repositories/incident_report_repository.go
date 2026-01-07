@@ -8,6 +8,7 @@ import (
 )
 
 type IncidentReportRepositoryInterface interface {
+	BeginTransaction() *gorm.DB
 	GetFullReportDetailsByID(id uint) (*models.IncidentRegister, error)
 	GetAllIncidentKPI(incidentID uint) ([]*commonDTOs.AssociatedKPIRegisterListDTO, error)
 	GetAllIncidentStrategicObjectives(incidentID uint) ([]*commonDTOs.AssociatedStrategicObjectiveListDTO, error)
@@ -28,6 +29,10 @@ func NewIncidentReportRepository(db *gorm.DB) *IncidentReportRepository {
 	return &IncidentReportRepository{
 		db: db,
 	}
+}
+
+func (repo *IncidentReportRepository) BeginTransaction() *gorm.DB {
+	return repo.db.Begin()
 }
 
 func (repo *IncidentReportRepository) GetFullReportDetailsByID(id uint) (*models.IncidentRegister, error) {

@@ -2,11 +2,13 @@ package controllers
 
 import (
 	"fmt"
+	// "jethur/grc/asset/dtos"
+	incidentDTOs "jethur/grc/incident/dtos"
+	"jethur/grc/incident/services"
+	"jethur/utility"
 	"os"
 	"strconv"
 	"time"
-	"jethur/grc/incident/services"
-	"jethur/utility"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -72,4 +74,25 @@ func (irc *IncidentReportController) ExportIncidentReportToPDF(c *gin.Context) {
 			fmt.Printf("Successfully deleted file %s\n", fileName)
 		}
 	}()
+}
+
+
+func (irc *IncidentReportController) CreateIncidentReport(c *gin.Context) {
+	var requestBody incidentDTOs.IncidentReportRequestDTO
+
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(irc.db, c, err.Error())
+		return
+	}
+
+	reportURL, err := irc.service.CreateIncidentReport(requestBody, currentUserID)
+
+
+
 }

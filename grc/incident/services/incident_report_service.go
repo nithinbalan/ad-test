@@ -16,6 +16,7 @@ import (
 type IncidentReportServiceInterface interface {
 	ExportIncidentReport(id uint, currentUserID uint) (string, error)
 	GetFullReportDetailsByID(id uint) (*incidentDTOs.IncidentReportDetailDTO, error)
+	CreateIncidentReport(request incidentDTOs.IncidentReportRequestDTO, currentUserID uint) (string, error)
 }
 
 // Service and implementations
@@ -196,4 +197,10 @@ func (irs IncidentReportService) ExportIncidentReport(id uint, currentUserID uin
 	}
 
 	return pdfFileName, nil
+}
+
+func (irs IncidentReportService) CreateIncidentReport(request incidentDTOs.IncidentReportRequestDTO, currentUserID uint) (string, error) {
+	tx := irs.repo.BeginTransaction()
+
+	if err := irs.r
 }
