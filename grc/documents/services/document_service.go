@@ -1813,11 +1813,6 @@ func (ds *DocumentService) SubmitDocument(id uint, currentUserID uint) error {
 
 	currentTime := time.Now()
 
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error parsing current date: %w", err)
-	}
-
 	if document.DocumentStatus.Type != "reverted" {
 		documentVersion.SubmittedBYID = &currentUserID
 		documentVersion.SubmittedAt = &currentTime

@@ -3,7 +3,7 @@ package initializers
 import (
 	"jethur/grc/jethur-ai/controllers"
 	"jethur/grc/jethur-ai/services"
-
+     
 	"gorm.io/gorm"
 )
 
@@ -16,7 +16,7 @@ type JethurAIModule struct {
 	DocumentAIService services.DocumentAIServiceInterface
 }
 
-func NewJethurAIModule(db *gorm.DB, documentModule *DocumentModule, organizationModule *OrganizationModule, settingsModule *SettingsModule) *JethurAIModule {
+func NewJethurAIModule(db *gorm.DB, documentModule *DocumentModule, organizationModule *OrganizationModule, settingsModule *SettingsModule, complianceModule *ComplianceModule,) *JethurAIModule {
 	// documentAIRepo := repositories.NewAIRepository(db)
 	documentAISvc := services.NewDocumentAIService(documentModule.DocumentSvc, organizationModule.UserSvc, settingsModule.SystemPreferenceSvc)
 	documentAIController := controllers.NewDocumentAIController(documentAISvc)
@@ -27,7 +27,7 @@ func NewJethurAIModule(db *gorm.DB, documentModule *DocumentModule, organization
 	riskAISvc := services.NewRiskAIService(settingsModule.SystemPreferenceSvc)
 	riskAIController := controllers.NewRiskAIController(riskAISvc)
 
-	complianceAISvc := services.NewComplianceAIService(settingsModule.SystemPreferenceSvc)
+	complianceAISvc := services.NewComplianceAIService(settingsModule.SystemPreferenceSvc,complianceModule.ComplianceRegisterSvc)
 	complianceAIController := controllers.NewComplianceAIController(complianceAISvc)
 
 	return &JethurAIModule{

@@ -10,6 +10,7 @@ import (
 	"jethur/utility"
 	"mime/multipart"
 	"net/http"
+	complianceServices "jethur/grc/compliance/services"
 )
 
 type ComplianceAIServiceInterface interface {
@@ -25,22 +26,24 @@ type ComplianceAIServiceInterface interface {
 	GetComplianceSuggestAssociatesJob(complianceID uint) (map[string]interface{}, error)
 	GetComplianceJobStatus(jobID string) (map[string]interface{}, error)
 
-	GetComplianceClauseStrategicObjectivesJob(clauseID uint) (map[string]interface{}, error)
-	GetComplianceClauseSuggestKPIJob(clauseID uint) (map[string]interface{}, error)
-	GetComplianceClauseSuggestProcessJob(clauseID uint) (map[string]interface{}, error)
-	GetComplianceClauseSuggestRisksJob(clauseID uint) (map[string]interface{}, error)
-	GetComplianceClauseSuggestControlsJob(clauseID uint) (map[string]interface{}, error)
-	GetComplianceClauseSuggestIncidentsJob(clauseID uint) (map[string]interface{}, error)
-	GetComplianceClauseSuggestAssociatesJob(clauseID uint) (map[string]interface{}, error)
+	GetComplianceClauseStrategicObjectivesJob(complianceID uint,clauseID uint) (map[string]interface{}, error)
+	GetComplianceClauseSuggestKPIJob(complianceID uint,clauseID uint) (map[string]interface{}, error)
+	GetComplianceClauseSuggestProcessJob(complianceID uint,clauseID uint) (map[string]interface{}, error)
+	GetComplianceClauseSuggestRisksJob(complianceID uint,clauseID uint) (map[string]interface{}, error)
+	GetComplianceClauseSuggestControlsJob(complianceID uint,clauseID uint) (map[string]interface{}, error)
+	GetComplianceClauseSuggestIncidentsJob(complianceID uint,clauseID uint) (map[string]interface{}, error)
+	GetComplianceClauseSuggestAssociatesJob(complianceID uint,clauseID uint) (map[string]interface{}, error)
 }
 
 type ComplianceAIService struct {
 	systemPreferenceSvc services.SystemPreferenceServiceInterface
+	complianceRegisterSvc       complianceServices.ComplianceRegisterServiceInterface
 }
 
-func NewComplianceAIService(systemPreferenceSvc services.SystemPreferenceServiceInterface) ComplianceAIServiceInterface {
+func NewComplianceAIService(systemPreferenceSvc services.SystemPreferenceServiceInterface,complianceRegisterSvc complianceServices.ComplianceRegisterServiceInterface) ComplianceAIServiceInterface {
 	return &ComplianceAIService{
 		systemPreferenceSvc: systemPreferenceSvc,
+		complianceRegisterSvc: complianceRegisterSvc,
 	}
 }
 
@@ -62,9 +65,7 @@ func (cais *ComplianceAIService) GetComplianceAutofill(req dtos.ComplianceAutofi
 	return utility.CallAIAPI("/api/v1/compliance/autofill", payload)
 }
 
-func (cais *ComplianceAIService) ImportComplianceRegister(
-	fileHeader *multipart.FileHeader,
-) (map[string]interface{}, error) {
+func (cais *ComplianceAIService) ImportComplianceRegister(fileHeader *multipart.FileHeader) (map[string]interface{}, error) {
 
 	systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
 	if err != nil {
@@ -270,7 +271,11 @@ func (ajs *ComplianceAIService) GetComplianceJobStatus(jobID string) (map[string
 	return utility.CallAIAPIObjectResponse(path)
 }
 
-func (cais *ComplianceAIService) GetComplianceClauseStrategicObjectivesJob(clauseID uint) (map[string]interface{}, error) {
+func (cais *ComplianceAIService) GetComplianceClauseStrategicObjectivesJob(complianceID uint,clauseID uint) (map[string]interface{}, error) {
+
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil,utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_id")
+	}
 
 	systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
 	if err != nil {
@@ -289,7 +294,11 @@ func (cais *ComplianceAIService) GetComplianceClauseStrategicObjectivesJob(claus
 	return utility.CallAIAPIObjectResponse(path)
 }
 
-func (cais *ComplianceAIService) GetComplianceClauseSuggestKPIJob(clauseID uint) (map[string]interface{}, error) {
+func (cais *ComplianceAIService) GetComplianceClauseSuggestKPIJob(complianceID uint,clauseID uint) (map[string]interface{}, error) {
+
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil,utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_id")
+	}
 
     systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
     if err != nil {
@@ -305,7 +314,11 @@ func (cais *ComplianceAIService) GetComplianceClauseSuggestKPIJob(clauseID uint)
     return utility.CallAIAPIObjectResponse(path)
 }
 
-func (cais *ComplianceAIService) GetComplianceClauseSuggestProcessJob(clauseID uint) (map[string]interface{}, error) {
+func (cais *ComplianceAIService) GetComplianceClauseSuggestProcessJob(complianceID uint,clauseID uint) (map[string]interface{}, error) {
+
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil,utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_id")
+	}
 
 	systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
 	if err != nil {
@@ -320,7 +333,11 @@ func (cais *ComplianceAIService) GetComplianceClauseSuggestProcessJob(clauseID u
 	return utility.CallAIAPIObjectResponse(path)
 }
 
-func (cais *ComplianceAIService) GetComplianceClauseSuggestRisksJob(clauseID uint) (map[string]interface{}, error) {
+func (cais *ComplianceAIService) GetComplianceClauseSuggestRisksJob(complianceID uint,clauseID uint) (map[string]interface{}, error) {
+
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil,utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_id")
+	}
 
 	systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
 	if err != nil {
@@ -335,7 +352,11 @@ func (cais *ComplianceAIService) GetComplianceClauseSuggestRisksJob(clauseID uin
 	return utility.CallAIAPIObjectResponse(path)
 }
 
-func (cais *ComplianceAIService) GetComplianceClauseSuggestControlsJob(clauseID uint) (map[string]interface{}, error) {
+func (cais *ComplianceAIService) GetComplianceClauseSuggestControlsJob(complianceID uint,clauseID uint) (map[string]interface{}, error) {
+
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil,utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_id")
+	}
 
 	systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
 	if err != nil {
@@ -350,7 +371,11 @@ func (cais *ComplianceAIService) GetComplianceClauseSuggestControlsJob(clauseID 
 	return utility.CallAIAPIObjectResponse(path)
 }
 
-func (cais *ComplianceAIService) GetComplianceClauseSuggestIncidentsJob(clauseID uint) (map[string]interface{}, error) {
+func (cais *ComplianceAIService) GetComplianceClauseSuggestIncidentsJob(complianceID uint,clauseID uint) (map[string]interface{}, error) {
+
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil,utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_id")
+	}
 
 	systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
 	if err != nil {
@@ -365,7 +390,11 @@ func (cais *ComplianceAIService) GetComplianceClauseSuggestIncidentsJob(clauseID
 	return utility.CallAIAPIObjectResponse(path)
 }
 
-func (cais *ComplianceAIService) GetComplianceClauseSuggestAssociatesJob(clauseID uint) (map[string]interface{}, error) {
+func (cais *ComplianceAIService) GetComplianceClauseSuggestAssociatesJob(complianceID uint,clauseID uint) (map[string]interface{}, error) {
+
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil,utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_id")
+	}
 
 	systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
 	if err != nil {
