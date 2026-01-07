@@ -76,9 +76,9 @@ func (bs *BrandingService) Update(id uint, currentUserID uint, brandingFormDTO *
 
 	existing.LoginPageTitle = brandingFormDTO.LoginPageTitle
 	existing.LoginPageSubtitle = brandingFormDTO.LoginPageSubtitle
-	existing.LoginPageBgImagePath = brandingFormDTO.LoginPageBgImagePath
-	existing.OrgLogoImagePath = brandingFormDTO.OrgLogoImagePath
-	existing.FaviconImagePath = brandingFormDTO.FaviconImagePath
+	existing.LoginPageBgImagePath = &brandingFormDTO.LoginPageBgImagePath
+	existing.OrgLogoImagePath = &brandingFormDTO.OrgLogoImagePath
+	existing.FaviconImagePath = &brandingFormDTO.FaviconImagePath
 	existing.UpdatedBYID = &currentUserID
 	existing.UpdatedAt = &now
 
