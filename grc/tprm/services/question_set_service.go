@@ -596,19 +596,11 @@ func (svc *QuestionSetService) ExportQuestionSets(data []*dtos.QuestionSetListDT
 		// Assign values based on language preference
 		if userSetting.Language == "ar" {
 			title = questionSet.TitleAr
-			if questionSet.Description != "" {
-				description = questionSet.Description
-			} else {
-				description = ""
-			}
+			description = utility.GetStringValue(questionSet.Description)
 			createdBy = questionSet.CreatedUserFirstNameAr + " " + questionSet.CreatedUserLastNameAr
 		} else {
 			title = questionSet.TitleEn
-			if questionSet.Description != "" {
-				description = questionSet.Description
-			} else {
-				description = ""
-			}
+			description = utility.GetStringValue(questionSet.Description)
 			createdBy = questionSet.CreatedUserFirstNameEn + " " + questionSet.CreatedUserLastNameEn
 		}
 
