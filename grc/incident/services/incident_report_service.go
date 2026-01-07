@@ -3,14 +3,17 @@ package services
 import (
 	"errors"
 	"fmt"
-	"github.com/mitchellh/mapstructure"
-	"gorm.io/gorm"
+	"html/template"
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepo "jethur/grc/incident/repositories"
+	"jethur/grc/models"
 	settingSvc "jethur/grc/settings/services"
 	"jethur/utility"
 	"os"
 	"time"
+
+	"github.com/mitchellh/mapstructure"
+	"gorm.io/gorm"
 )
 
 type IncidentReportServiceInterface interface {
@@ -46,7 +49,7 @@ func (irs IncidentReportService) GetFullReportDetailsByID(id uint) (*incidentDTO
 		}
 		return nil, err
 	}
-	
+
 	if _, err := irs.settigSvc.GetImagePath("logo"); err != nil {
 		return nil, utility.NewForbiddenError("logo_image_missing")
 	}
@@ -202,5 +205,102 @@ func (irs IncidentReportService) ExportIncidentReport(id uint, currentUserID uin
 func (irs IncidentReportService) CreateIncidentReport(request incidentDTOs.IncidentReportRequestDTO, currentUserID uint) (string, error) {
 	tx := irs.repo.BeginTransaction()
 
-	if err := irs.r
+	template, err := irs.settigSvc.GetFirst()
+	if err != nil {
+		tx.Rollback()
+		return "", err
+	}
+
+	if template.CoverPageBGImagePath == nil || template.LogoImagePath == nil {
+		tx.Rollback()
+		return "", utility.NewForbiddenError("Logo and Background Image not added.")
+	}
+
+	var startDate, endDate *time.Time
+
+	if request.Type == "date-range" {
+		dates, err := irs.parseIncidentReportDates(request)
+		if err != nil {
+			tx.Rollback()
+			return "", err
+		}
+		startDate = dates.StartDate
+		endDate = dates.EndDate
+	}
+
+	incidentReport := &models.IncidentReport{
+		Title:       request.Title,
+		StartDate:   startDate,
+		EndDate:     endDate,
+		CreatedBYID: currentUserID,
+	}
+
+	reportID, err := irs.repo.Create(incidentReport, tx)
+
+	if err != nil {
+		tx.Rollback()
+		return "", err
+	}
+
+	var incidents []*models.IncidentRegister
+
+	switch request.Type {
+
+	case "individual":
+		if request.IncidentIDs == nil || len(*request.IncidentIDs) == 0 {
+			tx.Rollback()
+			return "", utility.NewValidationError(
+				fmt.Errorf("incident_ids cannot be empty for individual report"),
+				"incident_ids_empty",
+				"incident_ids",
+			)
+		}
+
+		incidents, err = irs.repo.GetIncidentsByIDs(*request.IncidentIDs, tx)
+		if err != nil {
+			tx.Rollback()
+			return "", err
+		}
+
+	case "date-range":
+		incidents, err = irs.repo.GetIncidentsByDateRange(*startDate, *endDate, tx)
+		if err != nil {
+			tx.Rollback()
+			return "", err
+		}
+
+	default:
+		tx.Rollback()
+		return "", utility.NewValidationError(
+			fmt.Errorf("invalid type"),
+			"invalid_type",
+			"type",
+		)
+	}
+
+	for _, incident := range incidents {
+	incidentReportIncident := &models.IncidentReportIncident{
+		
+	}
+	}
+
+
+}
+
+func (irs *IncidentReportService) parseIncidentReportDates(dto incidentDTOs.IncidentReportRequestDTO) (*incidentDTOs.IncidentReportParsedDates, error) {
+	parsed := &incidentDTOs.IncidentReportParsedDates{}
+
+	var err error
+
+	parsed.StartDate, err = utility.ParseDate(*dto.StartDate)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start date")
+	}
+
+	parsed.EndDate, err = utility.ParseDate(*dto.EndDate)
+	if err != nil {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end date")
+	}
+
+	return parsed, nil
 }

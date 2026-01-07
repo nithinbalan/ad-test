@@ -1,10 +1,12 @@
 package repositories
 
 import (
-	"gorm.io/gorm"
 	commonDTOs "jethur/grc/common/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 	"jethur/grc/models"
+	"time"
+
+	"gorm.io/gorm"
 )
 
 type IncidentReportRepositoryInterface interface {
@@ -19,6 +21,9 @@ type IncidentReportRepositoryInterface interface {
 	GetAllIncidentRisks(incidentID uint) ([]*commonDTOs.AssociatedRiskListDTO, error)
 	GetAllIncidentProcesses(incidentID uint) ([]*commonDTOs.AssociatedProcessListDTO, error)
 	GetAllIncidentComplianceRequirements(incidentID uint) ([]*commonDTOs.AssociatedClauseListDTO, error)
+	GetIncidentsByIDs(ids []uint, tx *gorm.DB) ([]*models.IncidentRegister, error)
+	GetIncidentsByDateRange(startDate time.Time, endDate time.Time, tx *gorm.DB) ([]*models.IncidentRegister, error)
+	Create(report *models.IncidentReport, tx *gorm.DB) (uint, error)
 }
 
 type IncidentReportRepository struct {
@@ -844,3 +849,37 @@ func (repo *IncidentReportRepository) GetAllIncidentComplianceRequirements(incid
 
 	return groupedClauses, nil
 }
+
+func (repo *IncidentReportRepository) Create(report *models.IncidentReport, tx *gorm.DB) (uint, error) {
+	if err := tx.Create(report).Error; err != nil {
+		return 0, err
+	}
+	return report.ID, nil
+}
+
+func (repo *IncidentReportRepository) GetIncidentsByIDs(ids []uint, tx *gorm.DB) ([]*models.IncidentRegister, error){
+	var incidents []*models.IncidentRegister
+
+	if err := tx.Where("id IN ?", ids).Find(&incidents).Error; err != nil {
+		return nil, err
+	}
+	return incidents, nil
+}
+
+func (repo *IncidentReportRepository) GetIncidentsByDateRange(
+    start time.Time,
+    end time.Time,
+    tx *gorm.DB,
+) ([]*models.IncidentRegister, error) {
+
+    var incidents []*models.IncidentRegister
+
+    if err := tx.
+        Where("incident_at BETWEEN ? AND ?", start, end).
+        Find(&incidents).Error; err != nil {
+        return nil, err
+    }
+
+    return incidents, nil
+}
+
