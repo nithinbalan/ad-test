@@ -98,7 +98,5 @@ func (occ *OrganizationChartController) ChangeReportingUser(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Reporting user updated successfully",
-	})
+	c.Status(http.StatusOK)
 }
