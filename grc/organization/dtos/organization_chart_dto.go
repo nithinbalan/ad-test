@@ -16,6 +16,10 @@ type OrganizationChartUserListDTO struct {
 
 	PrimaryOrganizationID *uint  `json:"primary_organization_unit_id" gorm:"column:primary_organization_unit_id"`
 	PrimaryOrganization   string `json:"primary_organization_unit" gorm:"column:primary_organization_unit"`
+	
+	ReportingUserID             *uint  `json:"reporting_user_id"`
+	ReportingUserFirstNameEn    string `json:"reporting_user_first_name_en"`
+	ReportingUserFirstNameAr    string `json:"reporting_user_first_name_ar"`
 
 	RolesEn string `json:"roles_en"`
 	RolesAr string `json:"roles_ar"`
@@ -36,8 +40,8 @@ type OrganizationChartUserDetailsDTO struct {
 	PrimaryOrganizationID *uint          `json:"primary_organization_unit_id" mapstructure:"-"`
 	PrimaryOrganization   string         `json:"primary_organization_unit" mapstructure:"-"`
 
-	SystemRoles []OrganizationChartRoleDTO         `json:"system_roles"`
-	ReportingTo *OrganizationChartReportingUserDTO `json:"reporting_to"`
+	SystemRoles   []OrganizationChartRoleDTO         `json:"system_roles"`
+	ReportingUser *OrganizationChartReportingUserDTO `json:"reporting_user"`
 }
 
 type OrganizationChartRoleDTO struct {
@@ -56,4 +60,8 @@ type OrganizationChartReportingUserDTO struct {
 
 type OrganizationChartUserListQueryParamsDTO struct {
 	Filters map[string][]string
+}
+
+type ChangeReportingUserFormDTO struct {
+	ReportingUserID *uint `json:"reporting_user_id"`
 }

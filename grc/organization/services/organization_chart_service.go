@@ -16,6 +16,7 @@ import (
 type OrganizationChartServiceInterface interface {
 	GetAll(params *organizationDTOs.OrganizationChartUserListQueryParamsDTO) ([]*organizationDTOs.OrganizationChartUserListDTO, error)
 	GetUserFullDetailsByID(id uint) (*organizationDTOs.OrganizationChartUserDetailsDTO, error)
+	ChangeReportingUser(userID uint,changeReportingUserFormDTO *organizationDTOs.ChangeReportingUserFormDTO) error
 }
 
 type OrganizationChartService struct {
@@ -38,11 +39,15 @@ func (ocs *OrganizationChartService) GetAll(params *organizationDTOs.Organizatio
 	if params.Filters == nil {
 		params.Filters = make(map[string][]string)
 	}
-
-	// Normalize filter key
+	
 	if v, ok := params.Filters["reporting_user_ids"]; ok {
 		params.Filters["reporting_user_id"] = v
 		delete(params.Filters, "reporting_user_ids")
+	}
+
+	if v, ok := params.Filters["user_status_ids"]; ok {
+		params.Filters["user_status_id"] = v
+		delete(params.Filters, "user_status_ids")
 	}
 
 	primaryLevel, err := ocs.organizationLevelSvc.GetPrimaryLevel()
@@ -128,4 +133,20 @@ func (ocs *OrganizationChartService) GetUserFullDetailsByID(id uint) (*organizat
 	}
 
 	return &organizationChartUserDetailsDTO, nil
+}
+
+func (ocs *OrganizationChartService) ChangeReportingUser(userID uint,changeReportingUserFormDTO *organizationDTOs.ChangeReportingUserFormDTO) error {
+	if changeReportingUserFormDTO.ReportingUserID != nil && *changeReportingUserFormDTO.ReportingUserID == userID {
+		return utility.NewForbiddenError("user cannot report to himself")
+	}
+
+	err := ocs.repo.UpdateReportingUser(userID, changeReportingUserFormDTO.ReportingUserID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, userID)
+		}
+		return err
+	}
+
+	return nil
 }

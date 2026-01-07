@@ -2,15 +2,16 @@ package repositories
 
 import (
 	"fmt"
-	"strings"
 	"gorm.io/gorm"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
+	"strings"
 )
 
 type OrganizationChartRepositoryInterface interface {
 	GetAll(params *organizationDTOs.OrganizationChartUserListQueryParamsDTO, primaryOrgUnitField string) ([]*organizationDTOs.OrganizationChartUserListDTO, error)
 	GetUserDetailsByID(id uint) (*models.User, error)
+	UpdateReportingUser(userID uint, reportingUserID *uint) error
 }
 
 type OrganizationChartRepository struct {
@@ -21,7 +22,7 @@ func NewOrganizationChartRepository(db *gorm.DB) OrganizationChartRepositoryInte
 	return &OrganizationChartRepository{db: db}
 }
 
-func (repo *OrganizationChartRepository) GetAll(params *organizationDTOs.OrganizationChartUserListQueryParamsDTO,primaryOrgUnitField string) ([]*organizationDTOs.OrganizationChartUserListDTO, error) {
+func (repo *OrganizationChartRepository) GetAll(params *organizationDTOs.OrganizationChartUserListQueryParamsDTO, primaryOrgUnitField string) ([]*organizationDTOs.OrganizationChartUserListDTO, error) {
 
 	var users []*organizationDTOs.OrganizationChartUserListDTO
 	query := repo.db.
@@ -37,17 +38,18 @@ func (repo *OrganizationChartRepository) GetAll(params *organizationDTOs.Organiz
 			users.profile_image_path,
 			users.initial,
 			users.color,
-
 			designations.title_en AS designation,
-
 			primary_unit.id       AS primary_organization_unit_id,
 			primary_unit.title_en AS primary_organization_unit,
-
+			reporting_user.id AS reporting_user_id,
+		    reporting_user.first_name_en AS reporting_user_first_name_en,
+		    reporting_user.first_name_ar AS reporting_user_first_name_ar,
 			roles_agg.roles_en,
 			roles_agg.roles_ar
 		`).
 		Joins(fmt.Sprintf("LEFT JOIN organization_units AS primary_unit ON primary_unit.id = users.%s", primaryOrgUnitField)).
 		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
+		Joins("LEFT JOIN users AS reporting_user ON reporting_user.id = users.reporting_user_id").
 		Joins(`
 			LEFT JOIN (
 				SELECT 
@@ -100,15 +102,8 @@ func (repo *OrganizationChartRepository) GetUserDetailsByID(id uint) (*models.Us
 		Preload("UserStatus").
 		Preload("Designation").
 		Preload("UserRoles").
-		Preload("UserSetting").
-		Preload("UserSetting.Timezone").
 		Preload("UserRoles.Role").
-		Preload("UserRoles.Role.LicenseType").
-		Preload("CreatedByUser").
-		Preload("UpdatedByUser").
 		Preload("ReportingUser").
-		Preload("LicenseType").
-		Preload("DelegationUser").
 		First(&user, id)
 
 	if result.Error != nil {
@@ -116,4 +111,18 @@ func (repo *OrganizationChartRepository) GetUserDetailsByID(id uint) (*models.Us
 	}
 
 	return user, nil
+}
+
+func (repo *OrganizationChartRepository) UpdateReportingUser(userID uint, reportingUserID *uint) error {
+
+	result := repo.db.
+		Model(&models.User{}).
+		Where("id = ?", userID).
+		Update("reporting_user_id", reportingUserID)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
 }
