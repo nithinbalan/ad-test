@@ -183,5 +183,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	incidentRoutes.GET("/incidents/:incidentID/export-pdf", IncidentReportController.ExportIncidentReportToPDF)
 
+	incidentRoutes.GET("/incidents-reports", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), IncidentReportController.GetAllIncidentReports)
 	incidentRoutes.POST("/incidents-reports", IncidentReportController.CreateIncidentReport)
 }

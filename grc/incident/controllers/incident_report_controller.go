@@ -1,8 +1,12 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
+
 	// "jethur/grc/asset/dtos"
+	commonDTOs "jethur/grc/common/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 	"jethur/grc/incident/services"
 	"jethur/utility"
@@ -24,6 +28,59 @@ func NewIncidentReportController(service services.IncidentReportServiceInterface
 		service: service,
 	}
 }
+
+
+func (irc *IncidentReportController) GetAllIncidentReports(c *gin.Context) {
+	sort := c.DefaultQuery("sort_order", "desc")
+	sortBy := c.DefaultQuery("sort_by", "created_at")
+	keyword := c.Query("keyword")
+
+	validSortFields := map[string]string{
+		"title":      "incident_reports.title",
+		"start_date": "incident_reports.start_date",
+		"end_date":   "incident_reports.end_date",
+		"created_at": "incident_reports.created_at",
+	}
+
+	filters := utility.ParseQueryFilters([]string{}, c.Request.URL.Query())
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(irc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(irc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	queryParams := incidentDTOs.IncidentReportListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   dbField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Filters:  filters,
+	}
+
+	// reports, err := irc.service.GetAll(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(irc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, reports)
+}
+
 
 func (irc *IncidentReportController) ExportIncidentReportToPDF(c *gin.Context) {
 	incidentIDStr := c.Param("incidentID")
@@ -78,9 +135,9 @@ func (irc *IncidentReportController) ExportIncidentReportToPDF(c *gin.Context) {
 
 
 func (irc *IncidentReportController) CreateIncidentReport(c *gin.Context) {
-	var requestBody incidentDTOs.IncidentReportRequestDTO
+	var request incidentDTOs.IncidentReportRequestDTO
 
-	if err := c.ShouldBindJSON(&requestBody); err != nil {
+	if err := c.ShouldBindJSON(&request); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -91,8 +148,25 @@ func (irc *IncidentReportController) CreateIncidentReport(c *gin.Context) {
 		return
 	}
 
-	reportURL, err := irc.service.CreateIncidentReport(requestBody, currentUserID)
+	reportID, err := irc.service.Create(currentUserID, request)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(irc.db, c, e.Error())
+			return
+		}
+	}
 
-
-
+	c.JSON(http.StatusCreated, commonDTOs.IDResponse{
+		ID: reportID,
+	})
 }

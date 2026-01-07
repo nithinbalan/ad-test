@@ -3,13 +3,16 @@ package services
 import (
 	"errors"
 	"fmt"
-	"html/template"
+	"io"
+	"jethur/config"
 	incidentDTOs "jethur/grc/incident/dtos"
 	incidentRepo "jethur/grc/incident/repositories"
 	"jethur/grc/models"
 	settingSvc "jethur/grc/settings/services"
 	"jethur/utility"
 	"os"
+	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -19,23 +22,29 @@ import (
 type IncidentReportServiceInterface interface {
 	ExportIncidentReport(id uint, currentUserID uint) (string, error)
 	GetFullReportDetailsByID(id uint) (*incidentDTOs.IncidentReportDetailDTO, error)
-	CreateIncidentReport(request incidentDTOs.IncidentReportRequestDTO, currentUserID uint) (string, error)
+	Create(currentUserID uint, dto incidentDTOs.IncidentReportRequestDTO) (uint, error)
 }
 
 // Service and implementations
 type IncidentReportService struct {
-	repo      incidentRepo.IncidentReportRepositoryInterface
-	settigSvc settingSvc.ReportTemplateSettingServiceInterface
+	repo                         incidentRepo.IncidentReportRepositoryInterface
+	settigSvc                    settingSvc.ReportTemplateSettingServiceInterface
+	incidentRootCauseAnalysisSvc IncidentRootCauseAnalysisServiceInterface
+	incidentActionPlanSvc        IncidentActionPlanServiceInterface
 }
 
 func NewIncidentReportService(
 	repo incidentRepo.IncidentReportRepositoryInterface,
 	settigSvc settingSvc.ReportTemplateSettingServiceInterface,
+	incidentRootCauseAnalysisSvc IncidentRootCauseAnalysisServiceInterface,
+	incidentActionPlanSvc IncidentActionPlanServiceInterface,
 
 ) IncidentReportServiceInterface {
 	return &IncidentReportService{
-		repo:      repo,
-		settigSvc: settigSvc,
+		repo:                         repo,
+		settigSvc:                    settigSvc,
+		incidentRootCauseAnalysisSvc: incidentRootCauseAnalysisSvc,
+		incidentActionPlanSvc:        incidentActionPlanSvc,
 	}
 }
 
@@ -202,89 +211,291 @@ func (irs IncidentReportService) ExportIncidentReport(id uint, currentUserID uin
 	return pdfFileName, nil
 }
 
-func (irs IncidentReportService) CreateIncidentReport(request incidentDTOs.IncidentReportRequestDTO, currentUserID uint) (string, error) {
+func (irs *IncidentReportService) Create(
+	currentUserID uint,
+	dto incidentDTOs.IncidentReportRequestDTO,
+) (uint, error) {
+
 	tx := irs.repo.BeginTransaction()
 
 	template, err := irs.settigSvc.GetFirst()
 	if err != nil {
 		tx.Rollback()
-		return "", err
+		return 0, err
 	}
 
 	if template.CoverPageBGImagePath == nil || template.LogoImagePath == nil {
 		tx.Rollback()
-		return "", utility.NewForbiddenError("Logo and Background Image not added.")
+		return 0, utility.NewForbiddenError("Logo and Background Image not added.")
 	}
 
-	var startDate, endDate *time.Time
-
-	if request.Type == "date-range" {
-		dates, err := irs.parseIncidentReportDates(request)
-		if err != nil {
-			tx.Rollback()
-			return "", err
-		}
-		startDate = dates.StartDate
-		endDate = dates.EndDate
+	dates, err := irs.parseIncidentReportDates(dto)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 
-	incidentReport := &models.IncidentReport{
-		Title:       request.Title,
-		StartDate:   startDate,
-		EndDate:     endDate,
+	report := &models.IncidentReport{
+		Title:       dto.Title,
+		StartDate:   dates.StartDate,
+		EndDate:     dates.EndDate,
 		CreatedBYID: currentUserID,
 	}
 
-	reportID, err := irs.repo.Create(incidentReport, tx)
-
+	reportID, err := irs.repo.Create(report, tx)
 	if err != nil {
 		tx.Rollback()
-		return "", err
+		return 0, err
 	}
 
-	var incidents []*models.IncidentRegister
+	sectionTypes := []string{
+		"executive-summary", "scope", "objectives", "overview",
+		"details", "containment", "recovery", "post-incident",
+	}
 
-	switch request.Type {
+	for i, s := range sectionTypes {
+		en, ar := formatTitle(s)
+
+		sec := models.IncidentReportSection{
+			IncidentReportID: reportID,
+			Type:             s,
+			TitleEn:          en,
+			TitleAr:          ar,
+			OrderNum:         i + 1,
+		}
+
+		if _, err := irs.repo.CreateSection(&sec, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	var incidents []incidentDTOs.IncidentReportIncidentDTO
+
+	switch dto.Type {
+
+	case "date-range":
+		if dates.StartDate == nil || dates.EndDate == nil {
+			tx.Rollback()
+			return 0, utility.NewValidationError(
+				errors.New("start_date and end_date are required for date-range reports"),
+				"required",
+				"start_date",
+			)
+		}
+
+		incidents, err = irs.repo.GetReportIncidentsByDateRange(
+			*dates.StartDate,
+			*dates.EndDate,
+			tx,
+		)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 
 	case "individual":
-		if request.IncidentIDs == nil || len(*request.IncidentIDs) == 0 {
+		if dto.IncidentIDs == nil || len(*dto.IncidentIDs) == 0 {
 			tx.Rollback()
-			return "", utility.NewValidationError(
-				fmt.Errorf("incident_ids cannot be empty for individual report"),
-				"incident_ids_empty",
+			return 0, utility.NewValidationError(
+				errors.New("incident_ids are required for individual reports"),
+				"required",
 				"incident_ids",
 			)
 		}
 
-		incidents, err = irs.repo.GetIncidentsByIDs(*request.IncidentIDs, tx)
+		incidents, err = irs.repo.GetIncidentsByIDs(*dto.IncidentIDs, tx)
 		if err != nil {
 			tx.Rollback()
-			return "", err
-		}
-
-	case "date-range":
-		incidents, err = irs.repo.GetIncidentsByDateRange(*startDate, *endDate, tx)
-		if err != nil {
-			tx.Rollback()
-			return "", err
+			return 0, err
 		}
 
 	default:
 		tx.Rollback()
-		return "", utility.NewValidationError(
-			fmt.Errorf("invalid type"),
-			"invalid_type",
+		return 0, utility.NewValidationError(
+			errors.New("invalid report type"),
+			"invalid",
 			"type",
 		)
 	}
 
-	for _, incident := range incidents {
-	incidentReportIncident := &models.IncidentReportIncident{
-		
-	}
+	for _, inc := range incidents {
+		reportIncident := &models.IncidentReportIncident{
+			IncidentReportID:           reportID,
+			IncidentRegisterID:         inc.ID,
+			ReferenceNumber:            &inc.ReferenceNumber,
+			IncidentCategoryTitleEn:    inc.IncidentCategoryTitleEn,
+			IncidentCategoryTitleAr:    inc.IncidentCategoryTitleAr,
+			IncidentSubCategoryTitleEn: inc.IncidentSubCategoryTitleEn,
+			IncidentSubCategoryTitleAr: inc.IncidentSubCategoryTitleAr,
+			SeverityTitleEn:            inc.SeverityTitleEn,
+			SeverityTitleAr:            inc.SeverityTitleAr,
+			IncidentAt:                 inc.RealTime,
+			ReportedAt:                 inc.DetectedTime,
+			IncidentStatusTitleEn:      inc.IncidentStatusTitleEn,
+			IncidentStatusTitleAr:      inc.IncidentStatusTitleAr,
+			ContainmentStrategy:        inc.ContainmentStrategy,
+			NextSteps:                  inc.NextSteps,
+			ResolvedDate:               inc.ResolvedDate,
+			RecoveryMeasures:           inc.RecoveryMeasures,
+			AssignedUserInitial:        inc.AssignedUserInitial,
+			AssignedUserFirstNameEn:    inc.AssignedUserFirstNameEn,
+			AssignedUserLastNameEn:     inc.AssignedUserLastNameEn,
+			AssignedUserFirstNameAr:    inc.AssignedUserFirstNameAr,
+			AssignedUserLastNameAr:     inc.AssignedUserLastNameAr,
+		}
+
+		if err := irs.repo.CreateReportIncident(reportIncident, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		documents, err := irs.repo.GetDocumentsByIncidentID(inc.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		var reportDocs []*models.IncidentReportDocument
+
+		for _, document := range documents {
+
+			storagePath := config.GetEnv("STORAGE_PATH", "")
+
+			oldFilePath := filepath.Join(
+				storagePath,
+				"incident",
+				"incident-register",
+				strconv.FormatUint(uint64(inc.ID), 10),
+				"documents",
+				*document.Name,
+			)
+
+			if _, err := os.Stat(oldFilePath); os.IsNotExist(err) {
+				tx.Rollback()
+				return 0, fmt.Errorf("source file does not exist: %s", oldFilePath)
+			}
+
+			newStoragePath := filepath.Join(
+				storagePath,
+				"incident",
+				"incident-report",
+				strconv.FormatUint(uint64(reportID), 10),
+				"documents",
+			)
+
+			newFilePath := filepath.Join(newStoragePath, *document.Name)
+
+			newURL := utility.GenerateDocumentURL(
+				"incident",
+				"incident-report",
+				strconv.FormatUint(uint64(reportID), 10),
+				"documents",
+			)
+
+			if err := os.MkdirAll(newStoragePath, os.ModePerm); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+
+			input, err := os.Open(oldFilePath)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+			defer input.Close()
+
+			output, err := os.Create(newFilePath)
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+			defer output.Close()
+
+			if _, err := io.Copy(output, input); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+
+			reportDocs = append(reportDocs, &models.IncidentReportDocument{
+				IncidentDocumentID:       document.ID,
+				IncidentReportIncidentID: reportIncident.ID,
+				URL:                      newURL,
+				Name:                     *document.Name,
+				Size:                     document.Size,
+				Token:                    document.Token,
+				OriginalName:             document.OriginalName,
+				Type:                     document.Type,
+				CreatedByID:              currentUserID,
+			})
+		}
+
+		if len(reportDocs) > 0 {
+			if err := irs.repo.CreateIncidentDocuments(reportDocs, tx); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+
+		analyses, err := irs.incidentRootCauseAnalysisSvc.GetAllByIncidentID(inc.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		var rcas []*models.IncidentReportRootCauseAnalysis
+
+		for _, a := range analyses {
+			rcas = append(rcas, &models.IncidentReportRootCauseAnalysis{
+				IncidentReportIncidentID: reportIncident.ID,
+				IncidentReportID:         reportID,
+				Why:                      a.Why,
+				Question:                 a.Question,
+				Answer:                   a.Answer,
+				CreatedByID:              a.CreatedByID,
+			})
+		}
+
+		if len(rcas) > 0 {
+			if err := irs.repo.CreateIncidentRootCauseAnalyses(rcas, tx); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+
+		plans, err := irs.incidentActionPlanSvc.GetAllByIncidentID(inc.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		var reportPlans []*models.IncidentReportActionPlan
+
+		for _, p := range plans {
+			reportPlans = append(reportPlans, &models.IncidentReportActionPlan{
+				IncidentReportIncidentID: reportIncident.ID,
+				IncidentReportID:         reportID,
+
+				Title:       p.Title,
+				Description: p.Description,
+				TargetDate:  p.TargetDate,
+
+				StatusTitle: p.ActionPlanStatus.TitleEn,
+
+				CreatedByID: &p.CreatedBYID,
+			})
+		}
+
+		if len(reportPlans) > 0 {
+			if err := irs.repo.CreateIncidentReportActionPlans(reportPlans, tx); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
 	}
 
-
+	tx.Commit()
+	return reportID, nil
 }
 
 func (irs *IncidentReportService) parseIncidentReportDates(dto incidentDTOs.IncidentReportRequestDTO) (*incidentDTOs.IncidentReportParsedDates, error) {
@@ -303,4 +514,29 @@ func (irs *IncidentReportService) parseIncidentReportDates(dto incidentDTOs.Inci
 	}
 
 	return parsed, nil
+}
+
+func formatTitle(sectionType string) (string, string) {
+	switch sectionType {
+	case "executive-summary":
+		return "Executive Summary", "الملخص التنفيذي"
+	case "context":
+		return "Risk Governance & Context", "حوكمة المخاطر والسياق"
+	case "identification":
+		return "Risk Identification", "تحديد المخاطر"
+	case "assessment":
+		return "Risk Assessment Details", "تفاصيل تقييم المخاطر"
+	case "mitigation":
+		return "Risk Response & Mitigation", "الاستجابة للمخاطر والتخفيف منها"
+	case "kri":
+		return "Key Risk Indicators (KRIs) & Performance", "مؤشرات المخاطر الرئيسية والأداء"
+	case "communication":
+		return "Risk Monitoring, Reporting & Communication", "مراقبة المخاطر والإبلاغ والتواصل"
+	case "recommendation":
+		return "Recommendations & Action Plan", "التوصيات وخطة العمل"
+	case "documents":
+		return "Appendices & Supporting Documents", "الملاحق والمستندات الداعمة"
+	default:
+		return sectionType, sectionType // Default to sectionType if not found
+	}
 }

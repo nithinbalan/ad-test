@@ -15,6 +15,7 @@ type IncidentActionPlanRepositoryInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentActionPlanListQueryParamsDTO) (*incidentDTOs.IncidentActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.IncidentActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.IncidentActionPlan, error)
+	GetAllByIncidentID(incidentID uint, tx ...utility.DatabaseTransaction) ([]*models.IncidentActionPlan, error)
 	Create(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
@@ -230,6 +231,30 @@ func (repo *IncidentActionPlanRepository) GetFullDetailsByID(id uint) (*models.I
 	}
 
 	return incidentActionPlan, nil
+}
+
+func (repo *IncidentActionPlanRepository) GetAllByIncidentID(
+	incidentID uint,
+	tx ...utility.DatabaseTransaction,
+) ([]*models.IncidentActionPlan, error) {
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var plans []*models.IncidentActionPlan
+
+	err := db.Model(&models.IncidentActionPlan{}).
+		Where("incident_register_id = ?", incidentID).
+		Order("created_at ASC").
+		Find(&plans).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return plans, nil
 }
 
 func (repo *IncidentActionPlanRepository) Create(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) (uint, error) {

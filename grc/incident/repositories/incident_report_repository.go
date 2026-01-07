@@ -4,13 +4,14 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	incidentDTOs "jethur/grc/incident/dtos"
 	"jethur/grc/models"
+	"jethur/utility"
 	"time"
 
 	"gorm.io/gorm"
 )
 
 type IncidentReportRepositoryInterface interface {
-	BeginTransaction() *gorm.DB
+	BeginTransaction() utility.DatabaseTransaction
 	GetFullReportDetailsByID(id uint) (*models.IncidentRegister, error)
 	GetAllIncidentKPI(incidentID uint) ([]*commonDTOs.AssociatedKPIRegisterListDTO, error)
 	GetAllIncidentStrategicObjectives(incidentID uint) ([]*commonDTOs.AssociatedStrategicObjectiveListDTO, error)
@@ -21,9 +22,15 @@ type IncidentReportRepositoryInterface interface {
 	GetAllIncidentRisks(incidentID uint) ([]*commonDTOs.AssociatedRiskListDTO, error)
 	GetAllIncidentProcesses(incidentID uint) ([]*commonDTOs.AssociatedProcessListDTO, error)
 	GetAllIncidentComplianceRequirements(incidentID uint) ([]*commonDTOs.AssociatedClauseListDTO, error)
-	GetIncidentsByIDs(ids []uint, tx *gorm.DB) ([]*models.IncidentRegister, error)
-	GetIncidentsByDateRange(startDate time.Time, endDate time.Time, tx *gorm.DB) ([]*models.IncidentRegister, error)
-	Create(report *models.IncidentReport, tx *gorm.DB) (uint, error)
+	GetIncidentsByIDs(ids []uint, tx utility.DatabaseTransaction) ([]incidentDTOs.IncidentReportIncidentDTO, error)
+	GetReportIncidentsByDateRange(start time.Time, end time.Time, tx utility.DatabaseTransaction) ([]incidentDTOs.IncidentReportIncidentDTO, error)
+	GetDocumentsByIncidentID(incidentID uint, tx utility.DatabaseTransaction) ([]incidentDTOs.IncidentReportDocumentDTO, error)
+	Create(report *models.IncidentReport, tx utility.DatabaseTransaction) (uint, error)
+	CreateSection(section *models.IncidentReportSection, tx utility.DatabaseTransaction) (uint, error)
+	CreateReportIncident(incident *models.IncidentReportIncident, tx utility.DatabaseTransaction) error
+	CreateIncidentDocuments(docs []*models.IncidentReportDocument, tx utility.DatabaseTransaction) error
+	CreateIncidentRootCauseAnalyses(rcas []*models.IncidentReportRootCauseAnalysis, tx utility.DatabaseTransaction) error
+	CreateIncidentReportActionPlans(plans []*models.IncidentReportActionPlan, tx utility.DatabaseTransaction) error
 }
 
 type IncidentReportRepository struct {
@@ -36,8 +43,8 @@ func NewIncidentReportRepository(db *gorm.DB) *IncidentReportRepository {
 	}
 }
 
-func (repo *IncidentReportRepository) BeginTransaction() *gorm.DB {
-	return repo.db.Begin()
+func (repo *IncidentReportRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *IncidentReportRepository) GetFullReportDetailsByID(id uint) (*models.IncidentRegister, error) {
@@ -850,36 +857,234 @@ func (repo *IncidentReportRepository) GetAllIncidentComplianceRequirements(incid
 	return groupedClauses, nil
 }
 
-func (repo *IncidentReportRepository) Create(report *models.IncidentReport, tx *gorm.DB) (uint, error) {
-	if err := tx.Create(report).Error; err != nil {
+func (repo *IncidentReportRepository) Create(report *models.IncidentReport, tx utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if tx != nil {
+		db = tx.DB()
+	}
+
+	if err := db.Create(report).Error; err != nil {
 		return 0, err
 	}
+
 	return report.ID, nil
 }
 
-func (repo *IncidentReportRepository) GetIncidentsByIDs(ids []uint, tx *gorm.DB) ([]*models.IncidentRegister, error){
-	var incidents []*models.IncidentRegister
+func (repo *IncidentReportRepository) GetIncidentsByIDs(
+	ids []uint,
+	tx utility.DatabaseTransaction,
+) ([]incidentDTOs.IncidentReportIncidentDTO, error) {
 
-	if err := tx.Where("id IN ?", ids).Find(&incidents).Error; err != nil {
+	db := repo.db
+	if tx != nil {
+		db = tx.DB()
+	}
+
+	var incidents []incidentDTOs.IncidentReportIncidentDTO
+
+	if err := db.Table("incident_register").
+		Select(`
+            incident_register.id,
+            incident_register.reference_number,
+            incident_categories.title_en AS incident_category_title_en,
+            incident_categories.title_ar AS incident_category_title_ar,
+            incident_sub_categories.title_en AS incident_sub_category_title_en,
+            incident_sub_categories.title_ar AS incident_sub_category_title_ar,
+            severity_levels.title_en AS severity_title_en,
+            severity_levels.title_ar AS severity_title_ar,
+            incident_register.incident_at AS real_time,
+            incident_register.reported_at AS detected_time,
+            incident_statuses.title_en AS incident_status_title_en,
+            incident_statuses.title_ar AS incident_status_title_ar,
+            incident_investigations.description AS containment_strategy,
+            incident_investigations.action_recommendation AS next_steps,
+            incident_closures.completion_date AS resolved_date,
+            incident_closures.resolution_summary AS recovery_measures,
+            assigned_user.initial AS assigned_user_initial,
+            assigned_user.first_name_en AS assigned_user_first_name_en,
+            assigned_user.last_name_en AS assigned_user_last_name_en,
+            assigned_user.first_name_ar AS assigned_user_first_name_ar,
+            assigned_user.last_name_ar AS assigned_user_last_name_ar
+        `).
+		Joins("LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id").
+		Joins("LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id").
+		Joins("LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id").
+		Joins("LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id").
+		Joins("LEFT JOIN incident_investigations ON incident_investigations.incident_register_id = incident_register.id").
+		Joins("LEFT JOIN users assigned_user ON assigned_user.id = incident_investigations.team_lead_id").
+		Joins("LEFT JOIN incident_closures ON incident_closures.incident_register_id = incident_register.id").
+		Where("incident_register.id IN ?", ids).
+		Order("incident_register.created_at DESC").
+		Find(&incidents).Error; err != nil {
+
 		return nil, err
 	}
+
 	return incidents, nil
 }
 
-func (repo *IncidentReportRepository) GetIncidentsByDateRange(
-    start time.Time,
-    end time.Time,
-    tx *gorm.DB,
-) ([]*models.IncidentRegister, error) {
+func (repo *IncidentReportRepository) GetReportIncidentsByDateRange(
+	start time.Time,
+	end time.Time,
+	 tx utility.DatabaseTransaction,
+) ([]incidentDTOs.IncidentReportIncidentDTO, error) {
 
-    var incidents []*models.IncidentRegister
+	db := repo.db
+    if tx != nil {
+        db = tx.DB()
+    }
 
-    if err := tx.
-        Where("incident_at BETWEEN ? AND ?", start, end).
-        Find(&incidents).Error; err != nil {
+	var incidents []incidentDTOs.IncidentReportIncidentDTO
+
+	if err := db.Table("incident_register").
+		Select(`
+            incident_register.id,
+            incident_register.reference_number,
+            incident_categories.title_en AS incident_category_title_en,
+            incident_categories.title_ar AS incident_category_title_ar,
+            incident_sub_categories.title_en AS incident_sub_category_title_en,
+            incident_sub_categories.title_ar AS incident_sub_category_title_ar,
+            severity_levels.title_en AS severity_title_en,
+            severity_levels.title_ar AS severity_title_ar,
+            incident_register.incident_at AS real_time,
+            incident_register.reported_at AS detected_time,
+            incident_statuses.title_en AS incident_status_title_en,
+            incident_statuses.title_ar AS incident_status_title_ar,
+            incident_investigations.description AS containment_strategy,
+            incident_investigations.action_recommendation AS next_steps,
+            incident_closures.completion_date AS resolved_date,
+            incident_closures.resolution_summary AS recovery_measures,
+            assigned_user.initial AS assigned_user_initial,
+            assigned_user.first_name_en AS assigned_user_first_name_en,
+            assigned_user.last_name_en AS assigned_user_last_name_en,
+            assigned_user.first_name_ar AS assigned_user_first_name_ar,
+            assigned_user.last_name_ar AS assigned_user_last_name_ar
+        `).
+		Joins("LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id").
+		Joins("LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id").
+		Joins("LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id").
+		Joins("LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id").
+		Joins("LEFT JOIN incident_investigations ON incident_investigations.incident_register_id = incident_register.id").
+		Joins("LEFT JOIN users assigned_user ON assigned_user.id = incident_investigations.team_lead_id").
+		Joins("LEFT JOIN incident_closures ON incident_closures.incident_register_id = incident_register.id").
+		Where("incident_register.reported_at BETWEEN ? AND ?", start, end).
+		Order("incident_register.created_at DESC").
+		Find(&incidents).Error; err != nil {
+		return nil, err
+	}
+
+	return incidents, nil
+}
+
+func (repo *IncidentReportRepository) CreateSection(
+	section *models.IncidentReportSection,
+	tx utility.DatabaseTransaction,
+) (uint, error) {
+
+	db := repo.db
+	if tx != nil {
+		db = tx.DB()
+	}
+
+	if err := db.Create(section).Error; err != nil {
+		return 0, err
+	}
+
+	return section.ID, nil
+}
+
+func (repo *IncidentReportRepository) CreateReportIncident(incident *models.IncidentReportIncident, tx utility.DatabaseTransaction) error {
+    db := repo.db
+    if tx != nil {
+        db = tx.DB()
+    }
+
+    if err := db.Create(incident).Error; err != nil {
+        return err
+    }
+
+    return nil
+}
+
+func (repo *IncidentReportRepository) GetDocumentsByIncidentID(
+    incidentID uint,
+    tx utility.DatabaseTransaction,
+) ([]incidentDTOs.IncidentReportDocumentDTO, error) {
+
+    db := repo.db
+    if tx != nil {
+        db = tx.DB()
+    }
+
+    var documents []incidentDTOs.IncidentReportDocumentDTO
+
+    query := db.Table("incident_documents").
+        Select(`
+            incident_documents.id,
+            incident_documents.url,
+            incident_documents.name,
+            incident_documents.size,
+            incident_documents.token,
+            incident_documents.original_name,
+            incident_documents.type
+        `).
+        Where("incident_documents.incident_register_id = ?", incidentID)
+
+    if err := query.Find(&documents).Error; err != nil {
         return nil, err
     }
 
-    return incidents, nil
+    return documents, nil
 }
 
+
+func (repo *IncidentReportRepository) CreateIncidentDocuments(
+	docs []*models.IncidentReportDocument,
+	tx utility.DatabaseTransaction,
+) error {
+
+	db := repo.db
+	if tx != nil {
+		db = tx.DB()
+	}
+
+	if err := db.Create(&docs).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *IncidentReportRepository) CreateIncidentRootCauseAnalyses(
+	rcas []*models.IncidentReportRootCauseAnalysis,
+	tx utility.DatabaseTransaction,
+) error {
+
+	db := repo.db
+	if tx != nil {
+		db = tx.DB()
+	}
+
+	if err := db.Create(&rcas).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *IncidentReportRepository) CreateIncidentReportActionPlans(
+	plans []*models.IncidentReportActionPlan,
+	tx utility.DatabaseTransaction,
+) error {
+
+	db := repo.db
+	if tx != nil {
+		db = tx.DB()
+	}
+
+	if err := db.Create(&plans).Error; err != nil {
+		return err
+	}
+
+	return nil
+}

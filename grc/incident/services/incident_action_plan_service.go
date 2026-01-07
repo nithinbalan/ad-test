@@ -26,6 +26,7 @@ type IncidentActionPlanServiceInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentActionPlanListQueryParamsDTO) (*incidentDTOs.IncidentActionPlanListResponseDTO, error)
 	GetByID(incidentID uint, id uint) (*models.IncidentActionPlan, error)
 	GetFullDetailsByID(incidentID uint, id uint) (*incidentDTOs.IncidentActionPlanDetailDTO, error)
+	GetAllByIncidentID(incidentID uint, tx utility.DatabaseTransaction) ([]*models.IncidentActionPlan, error)
 	Create(incidentID uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) (uint, error)
 	Update(incidentID uint, id uint, currentUserID uint, incident *incidentDTOs.IncidentActionPlanFormDTO) error
 	Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -131,6 +132,14 @@ func (iaps IncidentActionPlanService) GetFullDetailsByID(incidentID uint, id uin
 	incidentActionPlanDTO.UpdatedAt = incidentActionPlan.UpdatedAt
 
 	return &incidentActionPlanDTO, nil
+}
+
+func (svc *IncidentActionPlanService) GetAllByIncidentID(
+	incidentID uint,
+	tx utility.DatabaseTransaction,
+) ([]*models.IncidentActionPlan, error) {
+
+	return svc.repo.GetAllByIncidentID(incidentID, tx)
 }
 
 func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) (uint, error) {

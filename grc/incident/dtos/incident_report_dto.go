@@ -61,3 +61,56 @@ type IncidentReportParsedDates struct {
 	StartDate *time.Time
 	EndDate   *time.Time
 }
+
+type IncidentReportIncidentDTO struct {
+	ID              uint   `json:"id"`
+	ReferenceNumber string `json:"reference_number"`
+
+	IncidentCategoryTitleEn string `json:"incident_category_title_en"`
+	IncidentCategoryTitleAr string `json:"incident_category_title_ar"`
+
+	IncidentSubCategoryTitleEn *string `json:"incident_sub_category_title_en"`
+	IncidentSubCategoryTitleAr *string `json:"incident_sub_category_title_ar"`
+
+	SeverityTitleEn string `json:"severity_title_en"`
+	SeverityTitleAr string `json:"severity_title_ar"`
+
+	RealTime     time.Time `json:"real_time"`
+	DetectedTime time.Time `json:"detected_time"`
+
+	IncidentStatusTitleEn string `json:"incident_status_title_en"`
+	IncidentStatusTitleAr string `json:"incident_status_title_ar"`
+
+	ContainmentStrategy *string `json:"containment_strategy"`
+	NextSteps           *string `json:"next_steps"`
+
+	ResolvedDate     *time.Time `json:"resolved_date"`
+	RecoveryMeasures *string    `json:"recovery_measures"`
+
+	AssignedUserInitial        *string `json:"assigned_user_initial"`
+	AssignedUserFirstNameEn    *string `json:"assigned_user_first_name_en"`
+	AssignedUserLastNameEn     *string `json:"assigned_user_last_name_en"`
+	AssignedUserFirstNameAr    *string `json:"assigned_user_first_name_ar"`
+	AssignedUserLastNameAr     *string `json:"assigned_user_last_name_ar"`
+}
+
+type IncidentReportDocumentDTO struct {
+	ID                       uint    `json:"id"`
+	IncidentDocumentID       uint    `json:"incident_document_id"`
+	IncidentReportIncidentID uint    `json:"incident_report_incident_id"`
+	URL                      string  `json:"url"`
+	Name                     *string `json:"name"`
+	Size                     int     `json:"size"`
+	Token                    string  `json:"token"`
+	OriginalName             string  `json:"original_name"`
+	Type                     string  `json:"type"`
+}
+
+type IncidentReportListQueryParamsDTO struct {
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Page     int
+	PageSize int
+	Filters  map[string][]string
+}
