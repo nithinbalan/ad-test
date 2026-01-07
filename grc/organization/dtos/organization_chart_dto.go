@@ -19,7 +19,9 @@ type OrganizationChartUserListDTO struct {
 	
 	ReportingUserID             *uint  `json:"reporting_user_id"`
 	ReportingUserFirstNameEn    string `json:"reporting_user_first_name_en"`
+	ReportingUserLastNameEn    string `json:"reporting_user_last_name_en"`
 	ReportingUserFirstNameAr    string `json:"reporting_user_first_name_ar"`
+	ReportingUserLastNameAr    string `json:"reporting_user_last_name_ar"`
 
 	RolesEn string `json:"roles_en"`
 	RolesAr string `json:"roles_ar"`

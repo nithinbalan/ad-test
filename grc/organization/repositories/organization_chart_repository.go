@@ -43,7 +43,9 @@ func (repo *OrganizationChartRepository) GetAll(params *organizationDTOs.Organiz
 			primary_unit.title_en AS primary_organization_unit,
 			reporting_user.id AS reporting_user_id,
 		    reporting_user.first_name_en AS reporting_user_first_name_en,
-		    reporting_user.first_name_ar AS reporting_user_first_name_ar,
+		    reporting_user.last_name_en AS reporting_user_last_name_en,
+			reporting_user.first_name_ar AS reporting_user_first_name_ar,
+		    reporting_user.last_name_ar AS reporting_user_last_name_ar,
 			roles_agg.roles_en,
 			roles_agg.roles_ar
 		`).
