@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
 	settingService "jethur/grc/settings/services"
@@ -79,26 +78,25 @@ func (ocs *OrganizationChartService) GetUserFullDetailsByID(id uint) (*organizat
 		return nil, err
 	}
 
-	var primaryOrgUnit *models.OrganizationUnit
+	var primaryOrgUnitID *uint
 
 	switch primaryLevel.Level {
 	case 1:
-		primaryOrgUnit = user.OrganizationUnit1
+		primaryOrgUnitID = &user.OrganizationUnit1ID
 	case 2:
-		primaryOrgUnit = user.OrganizationUnit2
+		primaryOrgUnitID = user.OrganizationUnit2ID
 	case 3:
-		primaryOrgUnit = user.OrganizationUnit3
+		primaryOrgUnitID = user.OrganizationUnit3ID
 	case 4:
-		primaryOrgUnit = user.OrganizationUnit4
+		primaryOrgUnitID = user.OrganizationUnit4ID
 	case 5:
-		primaryOrgUnit = user.OrganizationUnit5
+		primaryOrgUnitID = user.OrganizationUnit5ID
 	default:
 		return nil, fmt.Errorf("invalid primary level: %d", primaryLevel.Level)
 	}
 
-	if primaryOrgUnit != nil {
-		organizationChartUserDetailsDTO.PrimaryOrganizationID = &primaryOrgUnit.ID
-		organizationChartUserDetailsDTO.PrimaryOrganization = primaryOrgUnit.TitleEn
+	if primaryOrgUnitID != nil {
+		organizationChartUserDetailsDTO.PrimaryOrganizationID = primaryOrgUnitID
 	}
 
 	if user.UserRoles != nil {

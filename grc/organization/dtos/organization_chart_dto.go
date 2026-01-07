@@ -11,12 +11,8 @@ type OrganizationChartUserListDTO struct {
 	ProfileImagePath *string `json:"profile_image_path"`
 	Initial          string  `json:"initial"`
 	Color            string  `json:"color"`
-
 	Designation string `json:"designation"`
-
 	PrimaryOrganizationID *uint  `json:"primary_organization_unit_id" gorm:"column:primary_organization_unit_id"`
-	PrimaryOrganization   string `json:"primary_organization_unit" gorm:"column:primary_organization_unit"`
-	
 	ReportingUserID             *uint  `json:"reporting_user_id"`
 	ReportingUserFirstNameEn    string `json:"reporting_user_first_name_en"`
 	ReportingUserLastNameEn    string `json:"reporting_user_last_name_en"`
@@ -39,8 +35,7 @@ type OrganizationChartUserDetailsDTO struct {
 	IsHead           bool    `json:"is_head"`
 
 	Designation           DesignationDTO `json:"designation"`
-	PrimaryOrganizationID *uint          `json:"primary_organization_unit_id" mapstructure:"-"`
-	PrimaryOrganization   string         `json:"primary_organization_unit" mapstructure:"-"`
+	PrimaryOrganizationID *uint          `json:"primary_organization_unit_id"`
 
 	SystemRoles   []OrganizationChartRoleDTO         `json:"system_roles"`
 	ReportingUser *OrganizationChartReportingUserDTO `json:"reporting_user"`

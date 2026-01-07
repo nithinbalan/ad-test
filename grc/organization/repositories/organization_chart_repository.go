@@ -40,7 +40,6 @@ func (repo *OrganizationChartRepository) GetAll(params *organizationDTOs.Organiz
 			users.color,
 			designations.title_en AS designation,
 			primary_unit.id       AS primary_organization_unit_id,
-			primary_unit.title_en AS primary_organization_unit,
 			reporting_user.id AS reporting_user_id,
 		    reporting_user.first_name_en AS reporting_user_first_name_en,
 		    reporting_user.last_name_en AS reporting_user_last_name_en,
@@ -51,6 +50,7 @@ func (repo *OrganizationChartRepository) GetAll(params *organizationDTOs.Organiz
 		`).
 		Joins(fmt.Sprintf("LEFT JOIN organization_units AS primary_unit ON primary_unit.id = users.%s", primaryOrgUnitField)).
 		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
+		Joins("LEFT JOIN user_statuses ON user_statuses.id = users.user_status_id").
 		Joins("LEFT JOIN users AS reporting_user ON reporting_user.id = users.reporting_user_id").
 		Joins(`
 			LEFT JOIN (
@@ -62,7 +62,7 @@ func (repo *OrganizationChartRepository) GetAll(params *organizationDTOs.Organiz
 				JOIN roles ON roles.id = user_roles.role_id
 				GROUP BY user_roles.user_id
 			) roles_agg ON roles_agg.user_id = users.id
-		`)
+		`).Where("user_statuses.is_active = ?", true)
 
 	for column, values := range params.Filters {
 		if len(values) == 0 {
@@ -77,7 +77,7 @@ func (repo *OrganizationChartRepository) GetAll(params *organizationDTOs.Organiz
 			}
 			continue
 		}
-
+       
 		query = query.Where("users."+column+" IN (?)", values)
 	}
 
