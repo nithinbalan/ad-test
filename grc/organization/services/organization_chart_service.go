@@ -35,21 +35,6 @@ func NewOrganizationChartService(
 }
 
 func (ocs *OrganizationChartService) GetAll(params *organizationDTOs.OrganizationChartUserListQueryParamsDTO) ([]*organizationDTOs.OrganizationChartUserListDTO, error) {
-
-	if params.Filters == nil {
-		params.Filters = make(map[string][]string)
-	}
-	
-	if v, ok := params.Filters["reporting_user_ids"]; ok {
-		params.Filters["reporting_user_id"] = v
-		delete(params.Filters, "reporting_user_ids")
-	}
-
-	if v, ok := params.Filters["user_status_ids"]; ok {
-		params.Filters["user_status_id"] = v
-		delete(params.Filters, "user_status_ids")
-	}
-
 	primaryLevel, err := ocs.organizationLevelSvc.GetPrimaryLevel()
 	if err != nil {
 		return nil, err
