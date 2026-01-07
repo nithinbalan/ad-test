@@ -352,3 +352,28 @@ func (irc *IncidentRegisterController) GetIncidentRegisterExport(c *gin.Context)
 
 	irc.GetAllIncidentRegisters(c)
 }
+
+func (irc *IncidentRegisterController) DeleteForceIncidentRegisters(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(irc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := irc.service.ForceDelete(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(irc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}

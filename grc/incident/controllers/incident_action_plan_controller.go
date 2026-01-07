@@ -330,3 +330,28 @@ func (iapc *IncidentActionPlanController) GetIncidentActionPlanExport(c *gin.Con
 
 	iapc.GetAllIncidentActionPlans(c)
 }
+
+func (iapc *IncidentActionPlanController) DeleteForceIncidentActionPlans(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(iapc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := iapc.service.ForceDelete(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(iapc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
