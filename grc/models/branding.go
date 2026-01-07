@@ -6,9 +6,9 @@ type Branding struct {
 	ID                   uint       `json:"id" gorm:"primaryKey;autoIncrement"`
 	LoginPageTitle       string     `json:"login_page_title" gorm:"type:nvarchar(max);not null"`
 	LoginPageSubtitle    string     `json:"login_page_subtitle" gorm:"type:nvarchar(max);not null"`
-	LoginPageBgImagePath *string    `json:"login_page_bg_image_path" gorm:"type:varchar(500);default:null"`
-	OrgLogoImagePath     *string    `json:"org_logo_image_path" gorm:"type:varchar(500);default:null"`
-	FaviconImagePath     *string    `json:"favicon_image_path" gorm:"type:varchar(500);default:null"`
+	LoginPageBgImagePath string     `json:"login_page_bg_image_path" gorm:"type:varchar(500);not null"`
+	OrgLogoImagePath     string     `json:"org_logo_image_path" gorm:"type:varchar(500);not null"`
+	FaviconImagePath     string     `json:"favicon_image_path" gorm:"type:varchar(500);not null"`
 	CreatedBYID          uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID          *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt            time.Time  `json:"created_at" gorm:"not null;autoCreateTime"`

@@ -69,9 +69,6 @@ func (bs *BrandingService) Update(id uint, currentUserID uint, brandingFormDTO *
 	existing, err := bs.GetByID(id)
 	if err != nil {
 		tx.Rollback()
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return utility.NewResourceNotFoundError(err, nil)
-		}
 		return err
 	}
 
@@ -79,9 +76,9 @@ func (bs *BrandingService) Update(id uint, currentUserID uint, brandingFormDTO *
 
 	existing.LoginPageTitle = brandingFormDTO.LoginPageTitle
 	existing.LoginPageSubtitle = brandingFormDTO.LoginPageSubtitle
-	existing.LoginPageBgImagePath = &brandingFormDTO.LoginPageBgImagePath
-	existing.OrgLogoImagePath = &brandingFormDTO.OrgLogoImagePath
-	existing.FaviconImagePath = &brandingFormDTO.FaviconImagePath
+	existing.LoginPageBgImagePath = brandingFormDTO.LoginPageBgImagePath
+	existing.OrgLogoImagePath = brandingFormDTO.OrgLogoImagePath
+	existing.FaviconImagePath = brandingFormDTO.FaviconImagePath
 	existing.UpdatedBYID = &currentUserID
 	existing.UpdatedAt = &now
 
