@@ -49,7 +49,7 @@ type ComplianceAssessmentServiceInterface interface {
 // Service and implementations
 type ComplianceAssessmentService struct {
 	repo                          complianceRepositories.ComplianceAssessmentRepositoryInterface
-	requirementRepo              complianceRepositories.ComplianceAssessmentRequirementRepositoryInterface
+	requirementRepo               complianceRepositories.ComplianceAssessmentRequirementRepositoryInterface
 	activityLogSvc                logServices.ActivityLogServiceInterface
 	userSvc                       organizationServices.UserServiceInterface
 	userSettingSvc                organizationServices.UserSettingServiceInterface
@@ -76,7 +76,7 @@ func NewComplianceAssessmentService(
 ) ComplianceAssessmentServiceInterface {
 	return &ComplianceAssessmentService{
 		repo:                          repo,
-		requirementRepo:              requirementRepo,
+		requirementRepo:               requirementRepo,
 		activityLogSvc:                activityLogSvc,
 		userSvc:                       userSvc,
 		userSettingSvc:                userSettingSvc,
@@ -2680,107 +2680,56 @@ func (cas *ComplianceAssessmentService) ExportComplianceAssessments(data []*comp
 	var headers []string
 	if userSetting.Language == "ar" {
 		headers = []string{
-			"Clause No",
-			"Clause Title",
-			"Requirement Title",
-			"Responsible Unit",
-			"Responsible User",
-			"Compliance Status",
-			"Compliance Title",
-			"Reference Number",
+			"SL No.",
+			"Compliance Register",
+			"Review User",
+			"Description",
+			"Status",
+			"Created By",
+			"Created At",
 		}
 	} else {
 		headers = []string{
-			"Clause No",
-			"Clause Title",
-			"Requirement Title",
-			"Responsible Unit",
-			"Responsible User",
-			"Compliance Status",
-			"Compliance Title",
-			"Reference Number",
+			"SL No.",
+			"Compliance Register",
+			"Review User",
+			"Description",
+			"Status",
+			"Created By",
+			"Created At",
 		}
 	}
 
-	var rows [][]interface{}
+	rows := make([][]interface{}, len(data))
+	for i, assessment := range data {
+		var complianceRegister, reviewUser, description, status, createdBy string
+		var createdAt interface{}
 
-	for _, assessment := range data {
-		params := &complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO{
-			Sort:        "id",
-			SortBy:      "id",
-			Keyword:     "",
-			Page:        1,
-			PageSize:    1000, 
-			Filters:     nil,
-			QuickFilter: nil,
-			ClauseID:    0,
-		}
-		requirements, err := cas.requirementRepo.GetAll(assessment.ID, params)
-		if err != nil {
-			continue 
-		}
-
-		complianceRegister, err := cas.complianceRegisterSvc.GetByID(assessment.ComplianceRegisterID)
-		if err != nil {
-			continue
-		}
-
-		complianceTitle := ""
-		referenceNumber := complianceRegister.ReferenceNumber
 		if userSetting.Language == "ar" {
-			complianceTitle = complianceRegister.TitleAr
+			complianceRegister = assessment.ComplianceRegisterTitleAr
+			reviewUser = assessment.ReviewUserFirstNameAr + " " + assessment.ReviewUserLastNameAr
+			status = assessment.ComplianceAssessmentStatusTitleAr
+			createdBy = assessment.CreatedUserFirstNameAr + " " + assessment.CreatedUserLastNameAr
+			description = utility.GetStringValue(assessment.Description)
 		} else {
-			complianceTitle = complianceRegister.TitleEn
+			complianceRegister = assessment.ComplianceRegisterTitleEn
+			reviewUser = assessment.ReviewUserFirstNameEn + " " + assessment.ReviewUserLastNameEn
+			status = assessment.ComplianceAssessmentStatusTitleEn
+			createdBy = assessment.CreatedUserFirstNameEn + " " + assessment.CreatedUserLastNameEn
+			description = utility.GetStringValue(assessment.Description)
+
 		}
 
-		for _, requirement := range requirements.Items {
-			var clauseNo, clauseTitle, requirementTitle, responsibleUnitControl, responsibleUser, complianceStatus string
+		createdAt = assessment.CreatedAt
 
-			clauseNo = requirement.ComplianceClauseNo
-			if userSetting.Language == "ar" {
-				clauseTitle = requirement.ComplianceClauseTitleAr
-			} else {
-				clauseTitle = requirement.ComplianceClauseTitleEn
-			}
-
-			if userSetting.Language == "ar" {
-				requirementTitle = requirement.ComplianceRequirementTitleAr
-			} else {
-				requirementTitle = requirement.ComplianceRequirementTitleEn
-			}
-
-			responsibleUnitControl = "" 
-			responsibleUser = "" 
-
-			if userSetting.Language == "ar" {
-				complianceStatus = requirement.ComplianceAssessmentRequirementStatusTitleAr
-			} else {
-				complianceStatus = requirement.ComplianceAssessmentRequirementStatusTitleEn
-			}
-
-			rows = append(rows, []interface{}{
-				clauseNo,
-				clauseTitle,
-				requirementTitle,
-				responsibleUnitControl,
-				responsibleUser,
-				complianceStatus,
-				complianceTitle,
-				referenceNumber,
-			})
-		}
-
-		if len(requirements.Items) == 0 {
-			rows = append(rows, []interface{}{
-				"", 
-				"", 
-				"", 
-				"", 
-				assessment.ReviewUserFirstNameEn + " " + assessment.ReviewUserLastNameEn,
-				"", 
-				complianceTitle,
-				referenceNumber, 
-			})
+		rows[i] = []interface{}{
+			i + 1,
+			complianceRegister,
+			reviewUser,
+			description,
+			status,
+			createdBy,
+			createdAt,
 		}
 	}
 

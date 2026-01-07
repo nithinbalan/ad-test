@@ -179,6 +179,12 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
 		return nil, err
 	}
 
+	if params.Export {
+		return &complianceDTOs.ComplianceAssessmentListResponseDTO{
+			Items: complianceAssessments,
+		}, nil
+	}
+
 	totalPages := 1
 	if !params.Export {
 		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
