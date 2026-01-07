@@ -107,14 +107,23 @@ func (repo *QuestionSetRepository) GetAll(params *dtos.QuestionSetListQueryParam
 		return nil, err
 	}
 
-	query = query.Order(params.SortBy + " " + params.Sort).
-		Offset((params.Page - 1) * params.PageSize).
-		Limit(params.PageSize)
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
 
 	if err := query.Find(&results).Error; err != nil {
 		return nil, err
 	}
 
+	if params.Export {
+		return &dtos.QuestionSetListResponseDTO{
+			Items: results,
+		}, nil
+	}
+	
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
 	return &dtos.QuestionSetListResponseDTO{
