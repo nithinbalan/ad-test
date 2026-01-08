@@ -20,10 +20,10 @@ func UserStatusMiddleware(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		var user models.User
-		
+
 		err = db.
 			Joins("JOIN user_statuses ON user_statuses.id = users.user_status_id").
-			Where("users.id = ? AND user_statuses.is_active = 1", currentUserID).
+			Where("users.id = ? AND user_statuses.is_active = ?", currentUserID, true).
 			First(&user).Error
 
 		if err != nil {
