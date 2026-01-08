@@ -37,7 +37,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/policy-register/:id/document-download", policyRegisterController.DownloadDocument)
 	policyRoutes.GET("/policy-register", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), policyRegisterController.GetAllPolicies)
 	policyRoutes.GET("/policy-register/export", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), policyRegisterController.GetPolicyExport)
-	policyRoutes.GET("/policy-register/folder/:folderId/export", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), policyRegisterController.GetPolicyFolderExport)
+	policyRoutes.GET("/policy-register/:id/folder-export", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), policyRegisterController.GetPolicyFolderExport)
 	policyRoutes.GET("/policy-register/:id", middlewares.RolePermissionMiddleware(db, "policy_register", "view"), policyRegisterController.GetPolicyDetails)
 	policyRoutes.POST("/policy-register", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), policyRegisterController.CreatePolicy)
 	policyRoutes.PUT("/policy-register/:id", middlewares.RolePermissionMiddleware(db, "policy_register", "modify"), policyRegisterController.UpdatePolicy)
