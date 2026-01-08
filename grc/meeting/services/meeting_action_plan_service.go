@@ -927,10 +927,6 @@ func (maps *MeetingActionPlanService) ForceDelete(ids []uint, currentUserID uint
 	for _, id := range ids {
 		if err := maps.repo.ForceDelete(id, tx); err != nil {
 			failedIds = append(failedIds, id)
-
-			// 👇 LOG the exact reason for testing
-			fmt.Printf("DryRun delete failed for ID %d: %v\n", id, err)
-
 			continue
 		}
 
@@ -939,45 +935,27 @@ func (maps *MeetingActionPlanService) ForceDelete(ids []uint, currentUserID uint
 		})
 	}
 
-	// 👇 ALWAYS rollback for testing
-	fmt.Println("Dry run complete — rolling back transaction")
-	tx.Rollback()
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
 
-	// Return failed IDs for inspection
-	return failedIds, nil
+	tx.Commit()
 
-	// for _, id := range ids {
-	// 	if err := maps.repo.ForceDelete(id, tx); err != nil {
-	// 		failedIds = append(failedIds, id)
-	// 		continue
-	// 	}
+	go func() {
+		err := maps.activityLogSvc.LogBulkActivities(
+			models.DeleteAction,
+			models.MeetingActionPlan{}.TableName(),
+			ids,
+			deletedData,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			// @todo - save to log file
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
 
-	// 	deletedData = append(deletedData, map[string]interface{}{
-	// 		"id": id,
-	// 	})
-	// }
-
-	// if len(failedIds) > 0 {
-	// 	tx.Rollback()
-	// 	return failedIds, nil
-	// }
-
-	// tx.Commit()
-
-	// go func() {
-	// 	err := maps.activityLogSvc.LogBulkActivities(
-	// 		models.DeleteAction,
-	// 		models.MeetingActionPlan{}.TableName(),
-	// 		ids,
-	// 		deletedData,
-	// 		currentUserID,
-	// 		nil,
-	// 	)
-	// 	if err != nil {
-	// 		// @todo - save to log file
-	// 		fmt.Printf("Failed to log bulk delete activity: %v\n", err)
-	// 	}
-	// }()
-
-	// return nil, nil
+	return nil, nil
 }
