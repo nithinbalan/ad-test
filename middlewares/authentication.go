@@ -1,14 +1,17 @@
 package middlewares
 
 import (
+	"errors"
 	"fmt"
+	"jethur/grc/models"
 	"jethur/utility"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-func AuthMiddleware() gin.HandlerFunc {
+func AuthMiddleware(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 
@@ -32,7 +35,30 @@ func AuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		c.Set("currentUserID", claims.UserID)
+
+		currentUserID := claims.UserID
+		c.Set("currentUserID", currentUserID)
+
+		var user models.User
+		err = db.Preload("UserStatus").
+			Where("id = ?", currentUserID).
+			First(&user).Error
+
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				utility.SendUnauthorizedErrResp(c, "User not found")
+			} else {
+				utility.SendInternalErrResp(db, c, "Unable to verify user status")
+			}
+			c.Abort()
+			return
+		}
+
+		if user.UserStatus == nil || !user.UserStatus.IsActive {
+			utility.SendForbiddenErrResp(c, "User account is inactive")
+			c.Abort()
+			return
+		}
 
 		c.Next()
 	}

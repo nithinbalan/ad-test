@@ -11,7 +11,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	reportsRoutes := router.Group("/")
 
-	reportsRoutes.Use(middlewares.AuthMiddleware())
+	reportsRoutes.Use(middlewares.AuthMiddleware(app.DB))
 
 	db := app.DB
 

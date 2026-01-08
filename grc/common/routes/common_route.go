@@ -14,7 +14,7 @@ func RegisterRoutes(db *gorm.DB, router *gin.Engine) {
 
 	commonRoutes := router.Group("/")
 
-	commonRoutes.Use(middlewares.AuthMiddleware())
+	commonRoutes.Use(middlewares.AuthMiddleware(db))
 
 	fileRepo := repositories.NewFileRepository()
 	fileSvc := services.NewFileService(fileRepo)
