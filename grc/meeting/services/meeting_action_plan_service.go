@@ -28,6 +28,7 @@ type MeetingActionPlanServiceInterface interface {
 	Create(meetingID uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) (uint, error)
 	Update(meetingID uint, id uint, currentUserID uint, MeetingActionPlanFormDTO *meetingDTOs.MeetingActionPlanFormDTO) error
 	Delete(meetingID uint, ids []uint, currentUserID uint) ([]uint, error)
+	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(meetingID uint, id uint, currentUserID uint, meetingActionPlanStatusUpdateFormDTO *meetingDTOs.MeetingActionPlanStatusUpdateFormDTO, tx ...utility.DatabaseTransaction) error
 
 	GetMeetingActionPlanSummary(meetingID uint) (*meetingDTOs.ActionPlanSummaryDTO, error)
@@ -607,7 +608,7 @@ func (maps *MeetingActionPlanService) Delete(meetingID uint, ids []uint, current
 	if err != nil {
 		return nil, err
 	}
-	
+
 	tx := maps.repo.BeginTransaction()
 
 	var failedIds []uint
@@ -915,4 +916,68 @@ func (maps *MeetingActionPlanService) ExportMeetingActionPlan(data []*meetingDTO
 
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (maps *MeetingActionPlanService) ForceDelete(ids []uint, currentUserID uint) ([]uint, error) {
+
+	tx := maps.repo.BeginTransaction()
+	var failedIds []uint
+	var deletedData []map[string]interface{}
+
+	for _, id := range ids {
+		if err := maps.repo.ForceDelete(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+
+			// 👇 LOG the exact reason for testing
+			fmt.Printf("DryRun delete failed for ID %d: %v\n", id, err)
+
+			continue
+		}
+
+		deletedData = append(deletedData, map[string]interface{}{
+			"id": id,
+		})
+	}
+
+	// 👇 ALWAYS rollback for testing
+	fmt.Println("Dry run complete — rolling back transaction")
+	tx.Rollback()
+
+	// Return failed IDs for inspection
+	return failedIds, nil
+
+	// for _, id := range ids {
+	// 	if err := maps.repo.ForceDelete(id, tx); err != nil {
+	// 		failedIds = append(failedIds, id)
+	// 		continue
+	// 	}
+
+	// 	deletedData = append(deletedData, map[string]interface{}{
+	// 		"id": id,
+	// 	})
+	// }
+
+	// if len(failedIds) > 0 {
+	// 	tx.Rollback()
+	// 	return failedIds, nil
+	// }
+
+	// tx.Commit()
+
+	// go func() {
+	// 	err := maps.activityLogSvc.LogBulkActivities(
+	// 		models.DeleteAction,
+	// 		models.MeetingActionPlan{}.TableName(),
+	// 		ids,
+	// 		deletedData,
+	// 		currentUserID,
+	// 		nil,
+	// 	)
+	// 	if err != nil {
+	// 		// @todo - save to log file
+	// 		fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+	// 	}
+	// }()
+
+	// return nil, nil
 }
