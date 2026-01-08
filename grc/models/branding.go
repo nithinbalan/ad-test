@@ -9,6 +9,7 @@ type Branding struct {
 	LoginPageBgImagePath *string    `json:"login_page_bg_image_path" gorm:"type:varchar(500);default:null"`
 	OrgLogoImagePath     *string    `json:"org_logo_image_path" gorm:"type:varchar(500);default:null"`
 	FaviconImagePath     *string    `json:"favicon_image_path" gorm:"type:varchar(500);default:null"`
+	LoaderGifPath        *string    `json:"loader_gif_path" gorm:"type:varchar(500);default:null"`
 	CreatedBYID          uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID          *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt            time.Time  `json:"created_at" gorm:"not null;autoCreateTime"`
