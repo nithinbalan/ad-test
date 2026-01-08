@@ -3,8 +3,13 @@ package services
 import (
 	"crypto/rand"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-ldap/ldap/v3"
+	"github.com/mitchellh/mapstructure"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 	"io"
 	commonDTOs "jethur/grc/common/dtos"
 	commonService "jethur/grc/common/services"
@@ -16,17 +21,12 @@ import (
 	settingDTOs "jethur/grc/settings/dtos"
 	settingService "jethur/grc/settings/services"
 	"jethur/utility"
+	"net/http"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
-    "net/http"
-	"encoding/json"
-	"github.com/go-ldap/ldap/v3"
-	"github.com/mitchellh/mapstructure"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type UserServiceInterface interface {
@@ -73,7 +73,6 @@ type UserServiceInterface interface {
 	GetUserModulesWithPermissions(userID uint, params *settingDTOs.ModuleListQueryParamsDTO) ([]settingDTOs.ModulePermissionListDTO, error)
 	GetUserModulesWithOpenTasks(userID uint) ([]settingDTOs.ModulePermissionListDTO, error)
 	UpdateDelegateeUser(user *models.User, tx utility.DatabaseTransaction) error
-
 
 	SyncAzureUsers() ([]userDTOs.ADUserFlatDTO, error)
 	SyncAzureGroups() ([]map[string]interface{}, error)
@@ -136,7 +135,7 @@ func (us *UserService) SetUserSettingService(svc UserSettingServiceInterface) {
 }
 
 func (us *UserService) GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error) {
-	
+
 	// Check if `organization_unit_ids` exists in the filters
 	orgUnitIDs, ok := params.Filters["organization_unit_id"]
 	if ok && len(orgUnitIDs) > 0 {
@@ -2478,7 +2477,6 @@ func (us *UserService) UpdateDelegateeUser(user *models.User, tx utility.Databas
 
 	return nil
 }
-
 
 // SyncAzureUsers pulls users from Microsoft Graph and syncs to DB.
 func (us *UserService) SyncAzureUsers() ([]userDTOs.ADUserFlatDTO, error) {
