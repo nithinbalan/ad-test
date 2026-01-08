@@ -175,14 +175,13 @@ func (repo *PolicyRegisterRepository) GetAll(params *policyDTOs.PolicyRegisterLi
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			actualColumnName := columnName
 
-			if columnName == "policy_folder_ids" {
-				actualColumnName = "documents.parent_document_id"
-			}
-
-
-			query = query.Where(actualColumnName+" IN (?)", values)
+		if columnName == "policy_folder_ids" {
+            query = query.Where("documents.parent_document_id IN (?)", values)
+		}else{
+			query = query.Where(columnName+" IN (?)", values)
+		}
+		
 		}
 	}
 
