@@ -3,19 +3,20 @@ package services
 import (
 	"errors"
 	"fmt"
+	"github.com/mitchellh/mapstructure"
+	"gorm.io/gorm"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
+	settingDTOs "jethur/grc/settings/dtos"
 	settingService "jethur/grc/settings/services"
 	"jethur/utility"
-
-	"github.com/mitchellh/mapstructure"
-	"gorm.io/gorm"
 )
 
 type OrganizationChartServiceInterface interface {
 	GetAll(params *organizationDTOs.OrganizationChartUserListQueryParamsDTO) ([]*organizationDTOs.OrganizationChartUserListDTO, error)
 	GetUserFullDetailsByID(id uint) (*organizationDTOs.OrganizationChartUserDetailsDTO, error)
+	ChangeReportingUser(userID uint, changeReportingUserFormDTO *organizationDTOs.ChangeReportingUserFormDTO) error
 }
 
 type OrganizationChartService struct {
@@ -34,17 +35,6 @@ func NewOrganizationChartService(
 }
 
 func (ocs *OrganizationChartService) GetAll(params *organizationDTOs.OrganizationChartUserListQueryParamsDTO) ([]*organizationDTOs.OrganizationChartUserListDTO, error) {
-
-	if params.Filters == nil {
-		params.Filters = make(map[string][]string)
-	}
-
-	// Normalize filter key
-	if v, ok := params.Filters["reporting_user_ids"]; ok {
-		params.Filters["reporting_user_id"] = v
-		delete(params.Filters, "reporting_user_ids")
-	}
-
 	primaryLevel, err := ocs.organizationLevelSvc.GetPrimaryLevel()
 	if err != nil {
 		return nil, err
@@ -94,12 +84,16 @@ func (ocs *OrganizationChartService) GetUserFullDetailsByID(id uint) (*organizat
 	switch primaryLevel.Level {
 	case 1:
 		primaryOrgUnit = user.OrganizationUnit1
+
 	case 2:
 		primaryOrgUnit = user.OrganizationUnit2
+
 	case 3:
 		primaryOrgUnit = user.OrganizationUnit3
+
 	case 4:
 		primaryOrgUnit = user.OrganizationUnit4
+
 	case 5:
 		primaryOrgUnit = user.OrganizationUnit5
 	default:
@@ -107,25 +101,39 @@ func (ocs *OrganizationChartService) GetUserFullDetailsByID(id uint) (*organizat
 	}
 
 	if primaryOrgUnit != nil {
-		organizationChartUserDetailsDTO.PrimaryOrganizationID = &primaryOrgUnit.ID
-		organizationChartUserDetailsDTO.PrimaryOrganization = primaryOrgUnit.TitleEn
+		organizationChartUserDetailsDTO.PrimaryOrganizationUnitID = &primaryOrgUnit.ID
+		organizationChartUserDetailsDTO.PrimaryOrganizationUnitEn = primaryOrgUnit.TitleEn
+		organizationChartUserDetailsDTO.PrimaryOrganizationUnitAr = primaryOrgUnit.TitleAr
 	}
 
-	if user.UserRoles != nil {
-		organizationChartUserDetailsDTO.SystemRoles = make([]organizationDTOs.OrganizationChartRoleDTO, 0)
-
-		for _, ur := range *user.UserRoles {
-			if ur.Role.ID != 0 {
-				organizationChartUserDetailsDTO.SystemRoles = append(organizationChartUserDetailsDTO.SystemRoles,
-					organizationDTOs.OrganizationChartRoleDTO{
-						ID:      ur.Role.ID,
-						TitleEn: ur.Role.TitleEn,
-						TitleAr: ur.Role.TitleAr,
-					},
-				)
-			}
-		}
+	roles := make([]settingDTOs.RoleDTO, 0, len(*user.UserRoles))
+	for _, userRole := range *user.UserRoles {
+		roles = append(roles, settingDTOs.RoleDTO{
+			ID:           userRole.Role.ID,
+			TitleEn:      userRole.Role.TitleEn,
+			TitleAr:      userRole.Role.TitleAr,
+			IsSuperAdmin: userRole.Role.IsSuperAdmin,
+			Status:       userRole.Role.Status,
+			Type:         userRole.Role.Type,
+		})
 	}
+	organizationChartUserDetailsDTO.Roles = &roles
 
 	return &organizationChartUserDetailsDTO, nil
+}
+
+func (ocs *OrganizationChartService) ChangeReportingUser(userID uint, changeReportingUserFormDTO *organizationDTOs.ChangeReportingUserFormDTO) error {
+	if changeReportingUserFormDTO.ReportingUserID != nil && *changeReportingUserFormDTO.ReportingUserID == userID {
+		return utility.NewForbiddenError("user cannot report to himself")
+	}
+
+	err := ocs.repo.UpdateReportingUser(userID, changeReportingUserFormDTO.ReportingUserID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, userID)
+		}
+		return err
+	}
+
+	return nil
 }
