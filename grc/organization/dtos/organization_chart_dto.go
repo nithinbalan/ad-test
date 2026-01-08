@@ -11,34 +11,40 @@ type OrganizationChartUserListDTO struct {
 	ProfileImagePath *string `json:"profile_image_path"`
 	Initial          string  `json:"initial"`
 	Color            string  `json:"color"`
-	Designation string `json:"designation"`
+
+	DesignationEn         string `json:"designation_en"`
+	DesignationAr         string `json:"designation_ar"`
 	PrimaryOrganizationID *uint  `json:"primary_organization_unit_id" gorm:"column:primary_organization_unit_id"`
-	ReportingUserID             *uint  `json:"reporting_user_id"`
-	ReportingUserFirstNameEn    string `json:"reporting_user_first_name_en"`
-	ReportingUserLastNameEn    string `json:"reporting_user_last_name_en"`
-	ReportingUserFirstNameAr    string `json:"reporting_user_first_name_ar"`
-	ReportingUserLastNameAr    string `json:"reporting_user_last_name_ar"`
+	PrimaryOrganizationEn string `json:"primary_organization_unit_en" gorm:"column:primary_organization_unit_en"`
+	PrimaryOrganizationAr string `json:"primary_organization_unit_ar" gorm:"column:primary_organization_unit_ar"`
+
+	ReportingUserID          *uint  `json:"reporting_user_id"`
+	ReportingUserFirstNameEn string `json:"reporting_user_first_name_en"`
+	ReportingUserLastNameEn  string `json:"reporting_user_last_name_en"`
+	ReportingUserFirstNameAr string `json:"reporting_user_first_name_ar"`
+	ReportingUserLastNameAr  string `json:"reporting_user_last_name_ar"`
 
 	RolesEn string `json:"roles_en"`
 	RolesAr string `json:"roles_ar"`
 }
 
 type OrganizationChartUserDetailsDTO struct {
-	ID               uint    `json:"id"`
-	FirstNameEn      string  `json:"first_name_en"`
-	LastNameEn       string  `json:"last_name_en"`
-	FirstNameAr      string  `json:"first_name_ar"`
-	LastNameAr       string  `json:"last_name_ar"`
-	Email            string  `json:"email"`
-	MobileNumber     *string `json:"mobile_number"`
-	ProfileImagePath *string `json:"profile_image_path"`
-	IsHead           bool    `json:"is_head"`
+	ID                    uint            `json:"id"`
+	FirstNameEn           string          `json:"first_name_en"`
+	LastNameEn            string          `json:"last_name_en"`
+	FirstNameAr           string          `json:"first_name_ar"`
+	LastNameAr            string          `json:"last_name_ar"`
+	Email                 string          `json:"email"`
+	MobileNumber          *string         `json:"mobile_number"`
+	ProfileImagePath      *string         `json:"profile_image_path"`
+	IsHead                bool            `json:"is_head"`
+	Designation           *DesignationDTO `json:"designation"`
+	PrimaryOrganizationID *uint           `json:"primary_organization_unit_id"`
+	PrimaryOrganizationEn string          `json:"primary_organization_unit_en"`
+	PrimaryOrganizationAr string          `json:"primary_organization_unit_ar"`
 
-	Designation           DesignationDTO `json:"designation"`
-	PrimaryOrganizationID *uint          `json:"primary_organization_unit_id"`
-
-	SystemRoles   []OrganizationChartRoleDTO         `json:"system_roles"`
-	ReportingUser *OrganizationChartReportingUserDTO `json:"reporting_user"`
+	SystemRoles   []OrganizationChartRoleDTO `json:"system_roles"`
+	ReportingUser *UserMinimalDTO            `json:"reporting_user"`
 }
 
 type OrganizationChartRoleDTO struct {

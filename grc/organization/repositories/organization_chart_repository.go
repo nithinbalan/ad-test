@@ -38,8 +38,13 @@ func (repo *OrganizationChartRepository) GetAll(params *organizationDTOs.Organiz
 			users.profile_image_path,
 			users.initial,
 			users.color,
-			designations.title_en AS designation,
+			designations.title_en AS designation_en,
+			designations.title_ar AS designation_ar,
+			
 			primary_unit.id       AS primary_organization_unit_id,
+			primary_unit.title_en AS primary_organization_unit_en,
+			primary_unit.title_ar AS primary_organization_unit_ar,
+
 			reporting_user.id AS reporting_user_id,
 		    reporting_user.first_name_en AS reporting_user_first_name_en,
 		    reporting_user.last_name_en AS reporting_user_last_name_en,
