@@ -2686,7 +2686,6 @@ func (cas *ComplianceAssessmentService) ExportComplianceAssessments(data []*comp
 			"Description",
 			"Status",
 			"Created By",
-			"Created At",
 		}
 	} else {
 		headers = []string{
@@ -2696,14 +2695,12 @@ func (cas *ComplianceAssessmentService) ExportComplianceAssessments(data []*comp
 			"Description",
 			"Status",
 			"Created By",
-			"Created At",
 		}
 	}
 
 	rows := make([][]interface{}, len(data))
 	for i, assessment := range data {
 		var complianceRegister, reviewUser, description, status, createdBy string
-		var createdAt interface{}
 
 		if userSetting.Language == "ar" {
 			complianceRegister = assessment.ComplianceRegisterTitleAr
@@ -2720,8 +2717,6 @@ func (cas *ComplianceAssessmentService) ExportComplianceAssessments(data []*comp
 
 		}
 
-		createdAt = assessment.CreatedAt
-
 		rows[i] = []interface{}{
 			i + 1,
 			complianceRegister,
@@ -2729,7 +2724,6 @@ func (cas *ComplianceAssessmentService) ExportComplianceAssessments(data []*comp
 			description,
 			status,
 			createdBy,
-			createdAt,
 		}
 	}
 
