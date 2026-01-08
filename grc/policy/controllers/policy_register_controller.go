@@ -32,7 +32,7 @@ func (prc *PolicyRegisterController) GetPolicyExport(c *gin.Context) {
 }
 
 func (prc *PolicyRegisterController) GetPolicyFolderExport(c *gin.Context) {
-	folderIdStr := c.Param("folderId")
+	folderIdStr := c.Param("id")
 	folderId, err := strconv.ParseUint(folderIdStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
