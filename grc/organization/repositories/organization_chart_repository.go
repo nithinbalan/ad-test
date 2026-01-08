@@ -51,7 +51,8 @@ func (repo *OrganizationChartRepository) GetAll(params *organizationDTOs.Organiz
 			reporting_user.first_name_ar AS reporting_user_first_name_ar,
 		    reporting_user.last_name_ar AS reporting_user_last_name_ar,
 			roles_agg.roles_en,
-			roles_agg.roles_ar
+			roles_agg.roles_ar,
+			(SELECT COUNT(*) FROM users u2 WHERE u2.reporting_user_id = users.id) AS reporting_users_count
 		`).
 		Joins(fmt.Sprintf("LEFT JOIN organization_units AS primary_unit ON primary_unit.id = users.%s", primaryOrgUnitField)).
 		Joins("LEFT JOIN designations ON designations.id = users.designation_id").

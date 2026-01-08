@@ -24,8 +24,9 @@ type OrganizationChartUserListDTO struct {
 	ReportingUserFirstNameAr string `json:"reporting_user_first_name_ar"`
 	ReportingUserLastNameAr  string `json:"reporting_user_last_name_ar"`
 
-	RolesEn string `json:"roles_en"`
-	RolesAr string `json:"roles_ar"`
+	RolesEn             string `json:"roles_en"`
+	RolesAr             string `json:"roles_ar"`
+	ReportingUsersCount int    `json:"reporting_users_count"`
 }
 
 type OrganizationChartUserDetailsDTO struct {
