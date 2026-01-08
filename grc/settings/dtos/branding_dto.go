@@ -4,8 +4,10 @@ import "time"
 
 type BrandingDetailDTO struct {
 	ID                   uint            `json:"id"`
-	LoginPageTitle       string          `json:"login_page_title"`
-	LoginPageSubtitle    string          `json:"login_page_subtitle"`
+	LoginPageTitleEn     string          `json:"login_page_title_en"`
+	LoginPageTitleAr     string          `json:"login_page_title_ar"`
+	LoginPageSubtitleEn  string          `json:"login_page_subtitle_en"`
+	LoginPageSubtitleAr  string          `json:"login_page_subtitle_ar"`
 	LoginPageBgImagePath *string         `json:"login_page_bg_image_path"`
 	OrgLogoImagePath     *string         `json:"org_logo_image_path"`
 	FaviconImagePath     *string         `json:"favicon_image_path"`
@@ -17,8 +19,10 @@ type BrandingDetailDTO struct {
 }
 
 type BrandingUpdateFormDTO struct {
-	LoginPageTitle       string `json:"login_page_title" binding:"required"`
-	LoginPageSubtitle    string `json:"login_page_subtitle" binding:"required"`
+	LoginPageTitleEn     string `json:"login_page_title_en" binding:"required"`
+	LoginPageTitleAr     string `json:"login_page_title_ar" binding:"required"`
+	LoginPageSubtitleEn  string `json:"login_page_subtitle_en" binding:"required"`
+	LoginPageSubtitleAr  string `json:"login_page_subtitle_ar" binding:"required"`
 	LoginPageBgImagePath string `json:"login_page_bg_image_path" binding:"required"`
 	OrgLogoImagePath     string `json:"org_logo_image_path" binding:"required"`
 	FaviconImagePath     string `json:"favicon_image_path" binding:"required"`

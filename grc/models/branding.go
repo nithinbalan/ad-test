@@ -4,8 +4,10 @@ import "time"
 
 type Branding struct {
 	ID                   uint       `json:"id" gorm:"primaryKey;autoIncrement"`
-	LoginPageTitle       string     `json:"login_page_title" gorm:"type:nvarchar(max);not null"`
-	LoginPageSubtitle    string     `json:"login_page_subtitle" gorm:"type:nvarchar(max);not null"`
+	LoginPageTitleEn     string     `json:"login_page_title_en" gorm:"type:nvarchar(max);not null"`
+	LoginPageTitleAr     string     `json:"login_page_title_ar" gorm:"type:nvarchar(max);not null"`
+	LoginPageSubtitleEn  string     `json:"login_page_subtitle_en" gorm:"type:nvarchar(max);not null"`
+	LoginPageSubtitleAr  string     `json:"login_page_subtitle_ar" gorm:"type:nvarchar(max);not null"`
 	LoginPageBgImagePath *string    `json:"login_page_bg_image_path" gorm:"type:varchar(500);default:null"`
 	OrgLogoImagePath     *string    `json:"org_logo_image_path" gorm:"type:varchar(500);default:null"`
 	FaviconImagePath     *string    `json:"favicon_image_path" gorm:"type:varchar(500);default:null"`

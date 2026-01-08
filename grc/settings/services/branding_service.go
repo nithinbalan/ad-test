@@ -74,8 +74,10 @@ func (bs *BrandingService) Update(id uint, currentUserID uint, brandingFormDTO *
 
 	now := time.Now()
 
-	existing.LoginPageTitle = brandingFormDTO.LoginPageTitle
-	existing.LoginPageSubtitle = brandingFormDTO.LoginPageSubtitle
+	existing.LoginPageTitleEn = brandingFormDTO.LoginPageTitleEn
+	existing.LoginPageTitleAr = brandingFormDTO.LoginPageTitleAr
+	existing.LoginPageSubtitleEn = brandingFormDTO.LoginPageSubtitleEn
+	existing.LoginPageSubtitleAr = brandingFormDTO.LoginPageSubtitleAr
 	existing.LoginPageBgImagePath = &brandingFormDTO.LoginPageBgImagePath
 	existing.OrgLogoImagePath = &brandingFormDTO.OrgLogoImagePath
 	existing.FaviconImagePath = &brandingFormDTO.FaviconImagePath
