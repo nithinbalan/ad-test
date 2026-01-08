@@ -9,7 +9,7 @@ import (
 
 func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	jethurAIRoutes := router.Group("/")
-	jethurAIRoutes.Use(middlewares.AuthMiddleware())
+	jethurAIRoutes.Use(middlewares.AuthMiddleware(app.DB))
 
 	db := app.DB
 	documentAIController := app.JethurAIModule.DocumentAIController

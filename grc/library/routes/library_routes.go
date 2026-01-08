@@ -10,7 +10,7 @@ import (
 func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	libraryRoutes := router.Group("/")
 
-	libraryRoutes.Use(middlewares.AuthMiddleware())
+	libraryRoutes.Use(middlewares.AuthMiddleware(app.DB))
 
 	questionLibraryController := app.LibraryModule.QuestionLibraryController
 	KRILibraryController := app.LibraryModule.KriLibraryController

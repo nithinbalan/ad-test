@@ -10,7 +10,7 @@ import (
 func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationalContextRoutes := router.Group("/")
 
-	organizationalContextRoutes.Use(middlewares.AuthMiddleware())
+	organizationalContextRoutes.Use(middlewares.AuthMiddleware(app.DB))
 
 	unauthenticatedRoutes := router.Group("/")
 

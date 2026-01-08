@@ -11,7 +11,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	taskRoutes := router.Group("/")
 
-	taskRoutes.Use(middlewares.AuthMiddleware())
+	taskRoutes.Use(middlewares.AuthMiddleware(app.DB))
 
 	taskStatusController := app.TaskModule.TaskStatusController
 	taskController := app.TaskModule.TaskController
