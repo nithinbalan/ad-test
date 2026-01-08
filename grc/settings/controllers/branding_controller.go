@@ -73,3 +73,27 @@ func (bc *BrandingController) UpdateBranding(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (bc *BrandingController) GetBrandingPreviewImage(c *gin.Context) {
+	brandingPreviewType := c.Query("type")
+	if brandingPreviewType == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	brandingImagePath, err := bc.service.GetPreviewImage(brandingPreviewType)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, err)
+			return
+		default:
+			utility.SendInternalErrResp(bc.db, c, err.Error())
+		}
+		return
+	}
+
+	c.File(brandingImagePath)
+}
