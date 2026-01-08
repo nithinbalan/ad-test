@@ -100,8 +100,8 @@ func (bs *BrandingService) Update(id uint, currentUserID uint, brandingFormDTO *
 			existing.ID,
 			brandingFormDTO,
 			currentUserID,
-			"general_settings",
-			"branding",
+			"",
+			"",
 			"",
 			nil,
 		)
