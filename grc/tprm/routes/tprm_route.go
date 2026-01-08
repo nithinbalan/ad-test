@@ -73,6 +73,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	tprmRoutes.POST("/third-party-question-libraries/import", middlewares.RolePermissionMiddleware(db, "question_library", "modify"), thirdPartyQuestionLibraryController.ImportQuestionLibraries)
 
 	tprmRoutes.GET("/question-sets", questionSetController.GetAllQuestionSets)
+	tprmRoutes.GET("/question-sets/export", questionSetController.GetQuestionSetsExport)
 	tprmRoutes.GET("/question-sets/:id", questionSetController.GetQuestionSetDetails)
 	tprmRoutes.POST("/question-sets", questionSetController.CreateQuestionSet)
 	tprmRoutes.PUT("/question-sets/:id", questionSetController.UpdateQuestionSet)
@@ -89,6 +90,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// === Third Party Assessment ===
 	tprmRoutes.GET("/third-party-assessments", thirdPartyAssessmentController.GetAllThirdPartyAssessment)
+	tprmRoutes.GET("/third-party-assessments/export", thirdPartyAssessmentController.GetThirdPartyAssessmentExport)
 	tprmRoutes.GET("/third-party-assessments/:assessmentID", thirdPartyAssessmentController.GetThirdPartyAssessmentDetails)
 	tprmRoutes.POST("/third-party-assessments", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentController.CreateThirdPartyAssessment)
 	tprmRoutes.PUT("/third-party-assessments/:assessmentID", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentController.UpdateThirdPartyAssessment)

@@ -30,6 +30,7 @@ type QuestionSetServiceInterface interface {
 	ReorderQuestion(questions []dtos.ReorderDTO) error
 
 	ExportQuestionSet(data *dtos.QuestionSetDetailDTO, currentUserID uint) (*os.File, error)
+	ExportQuestionSets(data []*dtos.QuestionSetListDTO, currentUserID uint) (*os.File, error)
 }
 
 type QuestionSetService struct {
@@ -556,4 +557,63 @@ func (svc *QuestionSetService) ExportQuestionSet(data *dtos.QuestionSetDetailDTO
 
 	return finalFile, nil
 
+}
+
+func (svc *QuestionSetService) ExportQuestionSets(data []*dtos.QuestionSetListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := svc.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Define headers based on user language setting
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Title",
+			"Description",
+			"Created By",
+			"Created At",
+			"Total Questions",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Title",
+			"Description",
+			"Created By",
+			"Created At",
+			"Total Questions",
+		}
+	}
+
+	// Prepare the data rows
+	rows := make([][]interface{}, len(data))
+	for i, questionSet := range data {
+		var title, description, createdBy string
+
+		// Assign values based on language preference
+		if userSetting.Language == "ar" {
+			title = questionSet.TitleAr
+			description = utility.GetStringValue(questionSet.Description)
+			createdBy = questionSet.CreatedUserFirstNameAr + " " + questionSet.CreatedUserLastNameAr
+		} else {
+			title = questionSet.TitleEn
+			description = utility.GetStringValue(questionSet.Description)
+			createdBy = questionSet.CreatedUserFirstNameEn + " " + questionSet.CreatedUserLastNameEn
+		}
+
+		rows[i] = []interface{}{
+			i + 1,
+			title,
+			description,
+			createdBy,
+			questionSet.CreatedAt,
+			questionSet.TotalQuestions,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }
