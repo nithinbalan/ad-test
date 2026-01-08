@@ -28,6 +28,21 @@ func (qsc *QuestionSetController) GetAllQuestionSets(c *gin.Context) {
 	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
 
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(qsc.db, c, "Invalid export parameter")
+			return
+		}
+	}
+
 	allowedParams := []string{
 		"third_party_question_category_ids",
 		"third_party_question_library_ids",
@@ -66,6 +81,7 @@ func (qsc *QuestionSetController) GetAllQuestionSets(c *gin.Context) {
 		Page:     page,
 		PageSize: pageSize,
 		Filters:  filters,
+		Export:   export,
 	}
 
 	result, err := qsc.service.GetAll(&query)
@@ -74,7 +90,36 @@ func (qsc *QuestionSetController) GetAllQuestionSets(c *gin.Context) {
 		return
 	}
 
+	// If export is true, generate and return the Excel file
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(qsc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := qsc.service.ExportQuestionSets(result.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(qsc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Question Sets.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
 	c.JSON(http.StatusOK, result)
+}
+
+func (qsc *QuestionSetController) GetQuestionSetsExport(c *gin.Context) {
+	c.Set("export", true)
+
+	qsc.GetAllQuestionSets(c)
 }
 
 // GET /question-sets/:id

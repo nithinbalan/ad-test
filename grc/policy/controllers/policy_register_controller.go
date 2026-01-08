@@ -31,6 +31,19 @@ func (prc *PolicyRegisterController) GetPolicyExport(c *gin.Context) {
 	prc.GetAllPolicies(c)
 }
 
+func (prc *PolicyRegisterController) GetPolicyFolderExport(c *gin.Context) {
+	folderIdStr := c.Param("id")
+	folderId, err := strconv.ParseUint(folderIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	c.Set("export", true)
+	c.Set("folder_filter", uint(folderId))
+
+	prc.GetAllPolicies(c)
+}
+
 func (prc *PolicyRegisterController) GetAllPolicies(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title_en")
@@ -77,6 +90,11 @@ func (prc *PolicyRegisterController) GetAllPolicies(c *gin.Context) {
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	// Apply folder filter from context if set (for folder-specific export)
+	if folderFilter, exists := c.Get("folder_filter"); exists {
+		filters["policy_folder_ids"] = []string{strconv.FormatUint(uint64(folderFilter.(uint)), 10)}
+	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
