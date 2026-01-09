@@ -444,4 +444,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/identified-risks/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "identified_risk", "modify"), riskReviewCommentController.UpdateComment)
 	riskRoutes.POST("/identified-risks/:id/review-comments/delete", middlewares.RolePermissionMiddleware(db, "identified_risk", "modify"), riskReviewCommentController.DeleteComment)
 	riskRoutes.PUT("/identified-risks/:id/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "identified_risk", "modify"), riskReviewCommentController.ResolveComment)
+
+	riskRoutes.GET("/risks/:riskId/export-pdf", riskRegisterController.ExportRiskRegisterToPDF)
 }

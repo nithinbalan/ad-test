@@ -2,9 +2,12 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -417,6 +420,45 @@ func (rrc *RiskRegisterController) GetControlPerformance(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, controlPerformance)
+}
+
+func (rrc *RiskRegisterController) ExportRiskRegisterToPDF(c *gin.Context) {
+	riskIDStr := c.Param("riskId")
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrc.db, c, err.Error())
+		return
+	}
+
+	fileName, err := rrc.service.ExportRiskRegisterPDF(uint(riskID), uint(currentUserID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
+	c.Header("Content-Type", "application/pdf")
+	c.File(fileName)
+	c.Writer.Flush()
+
+	go func() {
+		time.Sleep(2 * time.Second)
+		if err := os.Remove(fileName); err != nil {
+			fmt.Printf("Failed to delete file %s: %v\n", fileName, err)
+		}
+	}()
 }
 
 func (rrc *RiskRegisterController) GetRiskRegisterDocumentPreview(c *gin.Context) {
