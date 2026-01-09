@@ -19,6 +19,7 @@ type MeetingActionPlanRepositoryInterface interface {
 	Create(meetingActionPlan *models.MeetingActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(meetingActionPlan *models.MeetingActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	ForceDelete(id uint, tx ...utility.DatabaseTransaction) error
 
 	CreateInitialMeetingActionPlanStatusUpdate(meetingActionPlanStatusUpdate *models.MeetingActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteMeetingActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
@@ -323,4 +324,37 @@ func (repo *MeetingActionPlanRepository) GetMeetingActionPlanSummary(meetingID u
 	closedCount = int(closed)
 
 	return openCount, closedCount, nil
+}
+
+func (repo *MeetingActionPlanRepository) ForceDelete(id uint, tx ...utility.DatabaseTransaction) error {
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	queries := []string{
+		`DELETE meeting_action_plan_status_update_documents
+		 FROM meeting_action_plan_status_update_documents
+		 JOIN meeting_action_plan_status_updates ON meeting_action_plan_status_updates.id = meeting_action_plan_status_update_documents.meeting_action_plan_status_update_id
+		 WHERE meeting_action_plan_status_updates.meeting_action_plan_id = ?`,
+
+		`DELETE meeting_action_plan_comment_documents
+		 FROM meeting_action_plan_comment_documents
+		 JOIN meeting_action_plan_comments ON meeting_action_plan_comments.id = meeting_action_plan_comment_documents.meeting_action_plan_comment_id
+		 WHERE meeting_action_plan_comments.meeting_action_plan_id = ?`,
+
+		`DELETE FROM tasks WHERE tasks.meeting_action_plan_id = ?`,
+		`DELETE FROM meeting_action_plan_status_updates WHERE meeting_action_plan_status_updates.meeting_action_plan_id = ?`,
+		`DELETE FROM meeting_action_plan_comments WHERE meeting_action_plan_comments.meeting_action_plan_id = ?`,
+	}
+
+	for _, q := range queries {
+		if err := db.Exec(q, id).Error; err != nil {
+			return err
+		}
+	}
+
+	/* ================= ROOT ================= */
+	return db.Delete(&models.MeetingActionPlan{}, id).Error
 }

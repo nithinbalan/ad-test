@@ -20,6 +20,7 @@ type MeetingRepositoryInterface interface {
 	Create(meeting *models.Meeting, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(meeting *models.Meeting, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	ForceDelete(id uint, tx ...utility.DatabaseTransaction) error
 	CreateParticipants(participants []*models.MeetingParticipant, tx ...utility.DatabaseTransaction) error
 	DeleteParticipants(participantIDs []uint, tx ...utility.DatabaseTransaction) error
 	CreateMeetingActionPlans(actionPlans []*models.MeetingActionPlan, tx ...utility.DatabaseTransaction) error
@@ -455,4 +456,354 @@ func (repo *MeetingRepository) DeleteMeetingDocuments(docIds []*uint, tx ...util
 		return err
 	}
 	return nil
+}
+
+func (repo *MeetingRepository) ForceDelete(id uint, tx ...utility.DatabaseTransaction) error {
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	queries := []string{
+		`DELETE meeting_action_plan_status_update_documents
+		 FROM meeting_action_plan_status_update_documents
+		 JOIN meeting_action_plan_status_updates ON meeting_action_plan_status_updates.id = meeting_action_plan_status_update_documents.meeting_action_plan_status_update_id
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_status_updates.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meeting_agendas ON meeting_agendas.id = meeting_minutes.meeting_agenda_id
+		 JOIN meetings ON meetings.id = meeting_agendas.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_comment_documents
+		 FROM meeting_action_plan_comment_documents
+		 JOIN meeting_action_plan_comments ON meeting_action_plan_comments.id = meeting_action_plan_comment_documents.meeting_action_plan_comment_id
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_comments.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meeting_agendas ON meeting_agendas.id = meeting_minutes.meeting_agenda_id
+		 JOIN meetings ON meetings.id = meeting_agendas.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE tasks
+		 FROM tasks
+		 JOIN meeting_action_plans ON meeting_action_plans.id = tasks.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meeting_agendas ON meeting_agendas.id = meeting_minutes.meeting_agenda_id
+		 JOIN meetings ON meetings.id = meeting_agendas.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_status_updates
+		 FROM meeting_action_plan_status_updates
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_status_updates.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meeting_agendas ON meeting_agendas.id = meeting_minutes.meeting_agenda_id
+		 JOIN meetings ON meetings.id = meeting_agendas.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_comments
+		 FROM meeting_action_plan_comments
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_comments.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meeting_agendas ON meeting_agendas.id = meeting_minutes.meeting_agenda_id
+		 JOIN meetings ON meetings.id = meeting_agendas.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_status_update_documents
+		 FROM meeting_action_plan_status_update_documents
+		 JOIN meeting_action_plan_status_updates ON meeting_action_plan_status_updates.id = meeting_action_plan_status_update_documents.meeting_action_plan_status_update_id
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_status_updates.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meetings ON meetings.id = meeting_minutes.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_status_update_documents
+		 FROM meeting_action_plan_status_update_documents
+		 JOIN meeting_action_plan_status_updates ON meeting_action_plan_status_updates.id = meeting_action_plan_status_update_documents.meeting_action_plan_status_update_id
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_status_updates.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meeting_agendas ON meeting_agendas.id = meeting_minutes.meeting_agenda_id
+		 WHERE meeting_agendas.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_comment_documents
+		 FROM meeting_action_plan_comment_documents
+		 JOIN meeting_action_plan_comments ON meeting_action_plan_comments.id = meeting_action_plan_comment_documents.meeting_action_plan_comment_id
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_comments.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meeting_agendas ON meeting_agendas.id = meeting_minutes.meeting_agenda_id
+		 WHERE meeting_agendas.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_comment_documents
+		 FROM meeting_action_plan_comment_documents
+		 JOIN meeting_action_plan_comments ON meeting_action_plan_comments.id = meeting_action_plan_comment_documents.meeting_action_plan_comment_id
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_comments.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meetings ON meetings.id = meeting_minutes.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_action_plans
+		 FROM meeting_action_plans
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meeting_agendas ON meeting_agendas.id = meeting_minutes.meeting_agenda_id
+		 JOIN meetings ON meetings.id = meeting_agendas.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE tasks
+		 FROM tasks
+		 JOIN meeting_action_plans ON meeting_action_plans.id = tasks.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meetings ON meetings.id = meeting_minutes.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE tasks
+		 FROM tasks
+		 JOIN meeting_action_plans ON meeting_action_plans.id = tasks.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meeting_agendas ON meeting_agendas.id = meeting_minutes.meeting_agenda_id
+		 WHERE meeting_agendas.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_status_updates
+		 FROM meeting_action_plan_status_updates
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_status_updates.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meeting_agendas ON meeting_agendas.id = meeting_minutes.meeting_agenda_id
+		 WHERE meeting_agendas.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_status_updates
+		 FROM meeting_action_plan_status_updates
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_status_updates.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meetings ON meetings.id = meeting_minutes.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_comments
+		 FROM meeting_action_plan_comments
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_comments.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meetings ON meetings.id = meeting_minutes.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_comments
+		 FROM meeting_action_plan_comments
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_comments.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meeting_agendas ON meeting_agendas.id = meeting_minutes.meeting_agenda_id
+		 WHERE meeting_agendas.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_status_update_documents
+		 FROM meeting_action_plan_status_update_documents
+		 JOIN meeting_action_plan_status_updates ON meeting_action_plan_status_updates.id = meeting_action_plan_status_update_documents.meeting_action_plan_status_update_id
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_status_updates.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 WHERE meeting_minutes.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_status_update_documents
+		 FROM meeting_action_plan_status_update_documents
+		 JOIN meeting_action_plan_status_updates ON meeting_action_plan_status_updates.id = meeting_action_plan_status_update_documents.meeting_action_plan_status_update_id
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_status_updates.meeting_action_plan_id
+		 JOIN meetings ON meetings.id = meeting_action_plans.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_comment_documents
+		 FROM meeting_action_plan_comment_documents
+		 JOIN meeting_action_plan_comments ON meeting_action_plan_comments.id = meeting_action_plan_comment_documents.meeting_action_plan_comment_id
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_comments.meeting_action_plan_id
+		 JOIN meetings ON meetings.id = meeting_action_plans.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_comment_documents
+		 FROM meeting_action_plan_comment_documents
+		 JOIN meeting_action_plan_comments ON meeting_action_plan_comments.id = meeting_action_plan_comment_documents.meeting_action_plan_comment_id
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_comments.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 WHERE meeting_minutes.meeting_id = ?`,
+
+		`DELETE meeting_action_plans
+		 FROM meeting_action_plans
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meeting_agendas ON meeting_agendas.id = meeting_minutes.meeting_agenda_id
+		 WHERE meeting_agendas.meeting_id = ?`,
+
+		`DELETE meeting_action_plans
+		 FROM meeting_action_plans
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 JOIN meetings ON meetings.id = meeting_minutes.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_minutes
+		 FROM meeting_minutes
+		 JOIN meeting_agendas ON meeting_agendas.id = meeting_minutes.meeting_agenda_id
+		 JOIN meetings ON meetings.id = meeting_agendas.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE tasks
+		 FROM tasks
+		 JOIN meeting_action_plans ON meeting_action_plans.id = tasks.meeting_action_plan_id
+		 JOIN meetings ON meetings.id = meeting_action_plans.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE tasks
+		 FROM tasks
+		 JOIN meeting_action_plans ON meeting_action_plans.id = tasks.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 WHERE meeting_minutes.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_status_updates
+		 FROM meeting_action_plan_status_updates
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_status_updates.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 WHERE meeting_minutes.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_status_updates
+		 FROM meeting_action_plan_status_updates
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_status_updates.meeting_action_plan_id
+		 JOIN meetings ON meetings.id = meeting_action_plans.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_comments
+		 FROM meeting_action_plan_comments
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_comments.meeting_action_plan_id
+		 JOIN meetings ON meetings.id = meeting_action_plans.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_comments
+		 FROM meeting_action_plan_comments
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_comments.meeting_action_plan_id
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 WHERE meeting_minutes.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_status_update_documents
+		 FROM meeting_action_plan_status_update_documents
+		 JOIN meeting_action_plan_status_updates ON meeting_action_plan_status_updates.id = meeting_action_plan_status_update_documents.meeting_action_plan_status_update_id
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_status_updates.meeting_action_plan_id
+		 WHERE meeting_action_plans.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_comment_documents
+		 FROM meeting_action_plan_comment_documents
+		 JOIN meeting_action_plan_comments ON meeting_action_plan_comments.id = meeting_action_plan_comment_documents.meeting_action_plan_comment_id
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_comments.meeting_action_plan_id
+		 WHERE meeting_action_plans.meeting_id = ?`,
+
+		`DELETE meeting_strategic_objectives
+		 FROM meeting_strategic_objectives
+		 JOIN meetings ON meetings.id = meeting_strategic_objectives.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_risks
+		 FROM meeting_risks
+		 JOIN meetings ON meetings.id = meeting_risks.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_processes
+		 FROM meeting_processes
+		 JOIN meetings ON meetings.id = meeting_processes.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_participants
+		 FROM meeting_participants
+		 JOIN meetings ON meetings.id = meeting_participants.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_minutes
+		 FROM meeting_minutes
+		 JOIN meetings ON meetings.id = meeting_minutes.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_kpis
+		 FROM meeting_kpis
+		 JOIN meetings ON meetings.id = meeting_kpis.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_incidents
+		 FROM meeting_incidents
+		 JOIN meetings ON meetings.id = meeting_incidents.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_documents
+		 FROM meeting_documents
+		 JOIN meetings ON meetings.id = meeting_documents.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_controls
+		 FROM meeting_controls
+		 JOIN meetings ON meetings.id = meeting_controls.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_compliance_requirements
+		 FROM meeting_compliance_requirements
+		 JOIN meetings ON meetings.id = meeting_compliance_requirements.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_associated_documents
+		 FROM meeting_associated_documents
+		 JOIN meetings ON meetings.id = meeting_associated_documents.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_assets
+		 FROM meeting_assets
+		 JOIN meetings ON meetings.id = meeting_assets.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_agendas
+		 FROM meeting_agendas
+		 JOIN meetings ON meetings.id = meeting_agendas.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_action_plans
+		 FROM meeting_action_plans
+		 JOIN meetings ON meetings.id = meeting_action_plans.meeting_id
+		 WHERE meetings.meeting_id = ?`,
+
+		`DELETE meeting_action_plans
+		 FROM meeting_action_plans
+		 JOIN meeting_minutes ON meeting_minutes.id = meeting_action_plans.meeting_minute_id
+		 WHERE meeting_minutes.meeting_id = ?`,
+
+		`DELETE meeting_minutes
+		 FROM meeting_minutes
+		 JOIN meeting_agendas ON meeting_agendas.id = meeting_minutes.meeting_agenda_id
+		 WHERE meeting_agendas.meeting_id = ?`,
+
+		`DELETE tasks
+		 FROM tasks
+		 JOIN meeting_action_plans ON meeting_action_plans.id = tasks.meeting_action_plan_id
+		 WHERE meeting_action_plans.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_status_updates
+		 FROM meeting_action_plan_status_updates
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_status_updates.meeting_action_plan_id
+		 WHERE meeting_action_plans.meeting_id = ?`,
+
+		`DELETE meeting_action_plan_comments
+		 FROM meeting_action_plan_comments
+		 JOIN meeting_action_plans ON meeting_action_plans.id = meeting_action_plan_comments.meeting_action_plan_id
+		 WHERE meeting_action_plans.meeting_id = ?`,
+
+		`DELETE FROM meeting_strategic_objectives WHERE meeting_strategic_objectives.meeting_id = ?`,
+		`DELETE FROM meeting_risks WHERE meeting_risks.meeting_id = ?`,
+		`DELETE FROM meeting_processes WHERE meeting_processes.meeting_id = ?`,
+		`DELETE FROM meeting_participants WHERE meeting_participants.meeting_id = ?`,
+		`DELETE FROM meeting_kpis WHERE meeting_kpis.meeting_id = ?`,
+		`DELETE FROM meeting_incidents WHERE meeting_incidents.meeting_id = ?`,
+		`DELETE FROM meeting_documents WHERE meeting_documents.meeting_id = ?`,
+		`DELETE FROM meeting_controls WHERE meeting_controls.meeting_id = ?`,
+		`DELETE FROM meeting_compliance_requirements WHERE meeting_compliance_requirements.meeting_id = ?`,
+		`DELETE FROM meeting_associated_documents WHERE meeting_associated_documents.meeting_id = ?`,
+		`DELETE FROM meeting_assets WHERE meeting_assets.meeting_id = ?`,
+
+		`DELETE FROM meeting_minutes WHERE meeting_minutes.meeting_id = ?`,
+		`DELETE FROM meeting_agendas WHERE meeting_agendas.meeting_id = ?`,
+		`DELETE FROM meeting_action_plans WHERE meeting_action_plans.meeting_id = ?`,
+
+		`UPDATE meetings SET meeting_id = NULL WHERE meeting_id = ?`,
+		`DELETE FROM meetings WHERE meetings.meeting_id = ?`,
+	}
+
+	for _, q := range queries {
+		if err := db.Exec(q, id).Error; err != nil {
+			return err
+		}
+	}
+
+	/* ================= ROOT ================= */
+	return db.Delete(&models.Meeting{}, id).Error
 }
