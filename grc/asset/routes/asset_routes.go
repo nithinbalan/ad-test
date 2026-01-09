@@ -87,6 +87,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/asset-register", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.CreateAsset)
 	assetRoutes.PUT("/asset-register/:id", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.UpdateAsset)
 	assetRoutes.POST("/asset-register/delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.DeleteAssets)
+	assetRoutes.POST("/asset-register/force-delete", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), assetRegisterController.DeleteForceAssets)
 	assetRoutes.GET("/asset-register/:id/control-summary", middlewares.RolePermissionMiddleware(db, "process", "view"), assetRegisterController.GetControlSummary)
 	unauthenticatedRoutes.GET("/asset-register/:id/document-download", assetRegisterController.DownloadAssetDocument)
 	assetRoutes.GET("/asset-register/export", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), assetRegisterController.GetAssetsExport)
