@@ -54,6 +54,7 @@ type SettingsModule struct {
 	ActiveDirectorySettingSvc services.ActiveDirectorySettingServiceInterface
 	ThemeSvc                  services.ThemeServiceInterface
 	TenableSettingsSvc        services.TenableSettingsServiceInterface
+	BrandingSettingSvc        services.BrandingServiceInterface
 }
 
 func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule) *SettingsModule {
@@ -224,5 +225,6 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		ActiveDirectorySettingSvc: activeDirectorySettingSvc,
 		ThemeSvc:                  themeSvc,
 		TenableSettingsSvc:        tenableSettingsSvc,
+		BrandingSettingSvc:        brandingSvc,
 	}
 }

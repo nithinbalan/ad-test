@@ -37,3 +37,12 @@ type BrandingFormDTO struct {
 	FaviconImage        *BrandingDocumentFormDTO `json:"favicon_image,omitempty"`
 	LoaderGif           *BrandingDocumentFormDTO `json:"loader_gif,omitempty"`
 }
+
+type LoginBrandingDTO struct {
+	LoginPageTitleEn     string  `json:"login_page_title_en"`
+	LoginPageTitleAr     string  `json:"login_page_title_ar"`
+	LoginPageSubtitleEn  string  `json:"login_page_subtitle_en"`
+	LoginPageSubtitleAr  string  `json:"login_page_subtitle_ar"`
+	LoginPageBgImagePath *string `json:"login_page_bg_image_path"`
+	OrgLogoImagePath     *string `json:"org_logo_image_path"`
+}
