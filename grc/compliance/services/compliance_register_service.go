@@ -1199,7 +1199,7 @@ func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complian
 			"Severity Level (EN)",
 			"Responsible User (EN)",
 			"Review Frequency (EN)",
-			"Frequency Responsible User (EN)",
+			"Review Responsible User (EN)",
 		}
 	}
 
