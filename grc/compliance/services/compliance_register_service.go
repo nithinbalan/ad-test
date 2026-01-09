@@ -1180,7 +1180,7 @@ func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complian
 			"Severity Level (AR)",
 			"Responsible User (AR)",
 			"Review Frequency (AR)",
-			"Frequency Responsible User (AR)",
+			"Review Responsible User (AR)",
 		}
 	} else {
 		headers = []string{
