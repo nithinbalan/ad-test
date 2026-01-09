@@ -10,7 +10,7 @@ import (
 func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	auditInsightsRoutes := router.Group("/")
 	unauthenticatedRoutes := router.Group("/")
-	auditInsightsRoutes.Use(middlewares.AuthMiddleware())
+	auditInsightsRoutes.Use(middlewares.AuthMiddleware(app.DB))
 
 	db := app.DB
 

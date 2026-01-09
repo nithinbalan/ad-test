@@ -235,6 +235,9 @@ func (repo *ComplianceStatusUpdateRepository) GetLatestComplianceStatusUpdate(co
 		First(&complianceUpdate)
 
 	if query.Error != nil {
+		if query.Error == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
 		return nil, query.Error
 	}
 
