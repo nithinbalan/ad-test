@@ -137,6 +137,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/vulnerabilities", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.CreateVulnerability)
 	assetRoutes.PUT("/vulnerabilities/:id", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.UpdateVulnerability)
 	assetRoutes.POST("/vulnerabilities/delete", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.DeleteVulnerabilities)
+	assetRoutes.POST("/vulnerabilities/force-delete", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.DeleteForceVulnerabilities)
 	assetRoutes.GET("/assets/:id/vulnerability-summary", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityController.GetVulnerabilitySummary)
 	assetRoutes.GET("/vulnerabilities/export", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityController.GetVulnerabilitiesExport)
 	// Threat types
@@ -158,6 +159,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/threats", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatController.CreateThreat)
 	assetRoutes.PUT("/threats/:id", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatController.UpdateThreat)
 	assetRoutes.POST("/threats/delete", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatController.DeleteThreats)
+	assetRoutes.POST("/threats/force-delete", middlewares.RolePermissionMiddleware(db, "threat", "modify"), threatController.DeleteForceThreats)
 	assetRoutes.GET("/assets/:id/threat-summary", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatController.GetThreatSummary)
 	assetRoutes.GET("/threats/export", middlewares.RolePermissionMiddleware(db, "threat", "view"), threatController.GetThreatsExport)
 

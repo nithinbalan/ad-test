@@ -271,3 +271,28 @@ func (tc *ThreatController) GetThreatSummary(c *gin.Context) {
 
 	c.JSON(http.StatusOK, summary)
 }
+
+func (tc *ThreatController) DeleteForceThreats(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := tc.service.ForceDelete(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(tc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
