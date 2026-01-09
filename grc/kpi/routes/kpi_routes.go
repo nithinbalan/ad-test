@@ -11,7 +11,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	kpiRoutes := router.Group("/")
 
-	kpiRoutes.Use(middlewares.AuthMiddleware())
+	kpiRoutes.Use(middlewares.AuthMiddleware(app.DB))
 
 	db := app.DB
 

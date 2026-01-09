@@ -1421,114 +1421,128 @@ func (repo *ComplianceAssessmentRepository) ForceDelete(id uint, tx ...utility.D
 	/* ================= ACTION PLAN TREE ================= */
 
 	queries := []string{
+		`DELETE compliance_action_plan_status_update_documents
+		 FROM compliance_action_plan_status_update_documents
+		 JOIN compliance_action_plan_status_updates ON compliance_action_plan_status_updates.id = compliance_action_plan_status_update_documents.compliance_action_plan_status_update_id
+		 JOIN compliance_action_plans ON compliance_action_plans.id = compliance_action_plan_status_updates.compliance_action_plan_id
+		 JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.id = compliance_action_plans.compliance_assessment_requirement_responsible_unit_id
+		 JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
+		 WHERE compliance_assessment_requirements.compliance_assessment_id = ?`,
 
-		// Action plan comment documents
-		`DELETE capcd
-		 FROM compliance_action_plan_comment_documents capcd
-		 JOIN compliance_action_plan_comments capc ON capc.id = capcd.compliance_action_plan_comment_id
-		 JOIN compliance_action_plans cap ON cap.id = capc.compliance_action_plan_id
-		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = cap.compliance_assessment_requirement_responsible_unit_id
-		 JOIN compliance_assessment_requirements r ON r.id = ru.compliance_assessment_requirement_id
-		 WHERE r.compliance_assessment_id = ?`,
+		`DELETE compliance_action_plan_comment_documents
+		FROM compliance_action_plan_comment_documents
+		JOIN compliance_action_plan_comments ON compliance_action_plan_comments.id = compliance_action_plan_comment_documents.compliance_action_plan_comment_id
+		JOIN compliance_action_plans ON compliance_action_plans.id = compliance_action_plan_comments.compliance_action_plan_id
+		JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.id = compliance_action_plans.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
+		WHERE compliance_assessment_requirements.compliance_assessment_id = ?`,
 
-		// Action plan comments
-		`DELETE capc
-		 FROM compliance_action_plan_comments capc
-		 JOIN compliance_action_plans cap ON cap.id = capc.compliance_action_plan_id
-		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = cap.compliance_assessment_requirement_responsible_unit_id
-		 JOIN compliance_assessment_requirements r ON r.id = ru.compliance_assessment_requirement_id
-		 WHERE r.compliance_assessment_id = ?`,
+		`DELETE compliance_assessment_requirement_required_documents
+		FROM compliance_assessment_requirement_required_documents
+		JOIN compliance_assessment_requirement_document_titles ON compliance_assessment_requirement_document_titles.id = compliance_assessment_requirement_required_documents.compliance_assessment_requirement_document_title_id
+		JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.id = compliance_assessment_requirement_document_titles.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
+		WHERE compliance_assessment_requirements.compliance_assessment_id = ?`,
 
-		// Status update documents
-		`DELETE capsud
-		 FROM compliance_action_plan_status_update_documents capsud
-		 JOIN compliance_action_plan_status_updates capsu ON capsu.id = capsud.compliance_action_plan_status_update_id
-		 JOIN compliance_action_plans cap ON cap.id = capsu.compliance_action_plan_id
-		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = cap.compliance_assessment_requirement_responsible_unit_id
-		 JOIN compliance_assessment_requirements r ON r.id = ru.compliance_assessment_requirement_id
-		 WHERE r.compliance_assessment_id = ?`,
+		`DELETE tasks
+		FROM tasks
+		JOIN compliance_action_plans ON compliance_action_plans.id = tasks.compliance_action_plan_id
+		JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.id = compliance_action_plans.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
+		WHERE compliance_assessment_requirements.compliance_assessment_id = ?`,
 
-		// Status updates
-		`DELETE capsu
-		 FROM compliance_action_plan_status_updates capsu
-		 JOIN compliance_action_plans cap ON cap.id = capsu.compliance_action_plan_id
-		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = cap.compliance_assessment_requirement_responsible_unit_id
-		 JOIN compliance_assessment_requirements r ON r.id = ru.compliance_assessment_requirement_id
-		 WHERE r.compliance_assessment_id = ?`,
+		`DELETE compliance_action_plan_status_updates
+		FROM compliance_action_plan_status_updates
+		JOIN compliance_action_plans ON compliance_action_plans.id = compliance_action_plan_status_updates.compliance_action_plan_id
+		JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.id = compliance_action_plans.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
+		WHERE compliance_assessment_requirements.compliance_assessment_id = ?`,
 
-		// Tasks
-		`DELETE t
-		 FROM tasks t
-		 JOIN compliance_action_plans cap ON cap.id = t.compliance_action_plan_id
-		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = cap.compliance_assessment_requirement_responsible_unit_id
-		 JOIN compliance_assessment_requirements r ON r.id = ru.compliance_assessment_requirement_id
-		 WHERE r.compliance_assessment_id = ?`,
+		`DELETE compliance_action_plan_comments
+		FROM compliance_action_plan_comments
+		JOIN compliance_action_plans ON compliance_action_plans.id = compliance_action_plan_comments.compliance_action_plan_id
+		JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.id = compliance_action_plans.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
+		WHERE compliance_assessment_requirements.compliance_assessment_id = ?`,
 
-		// Action plans
-		`DELETE cap
-		 FROM compliance_action_plans cap
-		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = cap.compliance_assessment_requirement_responsible_unit_id
-		 JOIN compliance_assessment_requirements r ON r.id = ru.compliance_assessment_requirement_id
-		 WHERE r.compliance_assessment_id = ?`,
+		`DELETE compliance_action_plan_status_update_documents
+		FROM compliance_action_plan_status_update_documents
+		JOIN compliance_action_plan_status_updates ON compliance_action_plan_status_updates.id = compliance_action_plan_status_update_documents.compliance_action_plan_status_update_id
+		JOIN compliance_action_plans ON compliance_action_plans.id = compliance_action_plan_status_updates.compliance_action_plan_id
+		JOIN compliance_assessment_controls ON compliance_assessment_controls.id = compliance_action_plans.compliance_assessment_control_id
+		WHERE compliance_assessment_controls.compliance_assessment_id = ?`,
 
-		/* ================= REQUIREMENT TREE ================= */
+		`DELETE compliance_action_plan_comment_documents
+		FROM compliance_action_plan_comment_documents
+		JOIN compliance_action_plan_comments ON compliance_action_plan_comments.id = compliance_action_plan_comment_documents.compliance_action_plan_comment_id
+		JOIN compliance_action_plans ON compliance_action_plans.id =compliance_action_plan_comments.compliance_action_plan_id
+		JOIN compliance_assessment_controls ON compliance_assessment_controls.id = compliance_action_plans.compliance_assessment_control_id
+		WHERE compliance_assessment_controls.compliance_assessment_id = ?`,
 
-		// Required documents
-		`DELETE card
-		 FROM compliance_assessment_requirement_required_documents card
-		 JOIN compliance_assessment_requirement_document_titles dt
-		   ON dt.id = card.compliance_assessment_requirement_document_title_id
-		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = dt.compliance_assessment_requirement_responsible_unit_id
-		 JOIN compliance_assessment_requirements r
-		   ON r.id = ru.compliance_assessment_requirement_id
-		 WHERE r.compliance_assessment_id = ?`,
+		`DELETE compliance_assessment_requirement_document_titles
+		FROM compliance_assessment_requirement_document_titles
+		JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.id =compliance_assessment_requirement_document_titles.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id =compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
+		WHERE compliance_assessment_requirements.compliance_assessment_id = ?`,
 
-		// Document titles
-		`DELETE dt
-		 FROM compliance_assessment_requirement_document_titles dt
-		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = dt.compliance_assessment_requirement_responsible_unit_id
-		 JOIN compliance_assessment_requirements r
-		   ON r.id = ru.compliance_assessment_requirement_id
-		 WHERE r.compliance_assessment_id = ?`,
+		`DELETE compliance_assessment_requirement_comments
+		FROM compliance_assessment_requirement_comments
+		JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.id = compliance_assessment_requirement_comments.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
+		WHERE compliance_assessment_requirements.compliance_assessment_id = ?`,
 
-		// Requirement comments
-		`DELETE c
-		 FROM compliance_assessment_requirement_comments c
-		 JOIN compliance_assessment_requirement_responsible_units ru ON ru.id = c.compliance_assessment_requirement_responsible_unit_id
-		 JOIN compliance_assessment_requirements r
-		   ON r.id = ru.compliance_assessment_requirement_id
-		 WHERE r.compliance_assessment_id = ?`,
+		`DELETE compliance_assessment_requirement_action_plans
+		FROM compliance_assessment_requirement_action_plans
+		JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.id = compliance_assessment_requirement_action_plans.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
+		WHERE compliance_assessment_requirements.compliance_assessment_id = ?`,
 
-		// Requirement action plans
-		`DELETE carap
-		 FROM compliance_assessment_requirement_action_plans carap
-		 JOIN compliance_assessment_requirement_responsible_units ru
-		   ON ru.id = carap.compliance_assessment_requirement_responsible_unit_id
-		 JOIN compliance_assessment_requirements r
-		   ON r.id = ru.compliance_assessment_requirement_id
-		 WHERE r.compliance_assessment_id = ?`,
+		`DELETE compliance_action_plans
+		FROM compliance_action_plans
+		JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.id = compliance_action_plans.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
+		WHERE compliance_assessment_requirements.compliance_assessment_id = ?`,
 
-		// Responsible units
-		`DELETE ru
-		 FROM compliance_assessment_requirement_responsible_units ru
-		 JOIN compliance_assessment_requirements r
-		   ON r.id = ru.compliance_assessment_requirement_id
-		 WHERE r.compliance_assessment_id = ?`,
+		`DELETE tasks
+		FROM tasks
+		JOIN compliance_action_plans
+		ON compliance_action_plans.id = tasks.compliance_action_plan_id
+		JOIN compliance_assessment_controls
+		ON compliance_assessment_controls.id = compliance_action_plans.compliance_assessment_control_id
+		WHERE compliance_assessment_controls.compliance_assessment_id = ?`,
 
-		// Requirements
+		`DELETE compliance_action_plan_status_updates
+		FROM compliance_action_plan_status_updates
+		JOIN compliance_action_plans
+		ON compliance_action_plans.id = compliance_action_plan_status_updates.compliance_action_plan_id
+		JOIN compliance_assessment_controls
+		ON compliance_assessment_controls.id = compliance_action_plans.compliance_assessment_control_id
+		WHERE compliance_assessment_controls.compliance_assessment_id = ?`,
+
+		`DELETE compliance_action_plan_comments
+		FROM compliance_action_plan_comments
+		JOIN compliance_action_plans ON compliance_action_plans.id = compliance_action_plan_comments.compliance_action_plan_id
+		JOIN compliance_assessment_controls ON compliance_assessment_controls.id = compliance_action_plans.compliance_assessment_control_id
+		WHERE compliance_assessment_controls.compliance_assessment_id = ?`,
+
+		`DELETE compliance_assessment_requirement_responsible_units
+		FROM compliance_assessment_requirement_responsible_units
+		JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
+		WHERE compliance_assessment_requirements.compliance_assessment_id = ?`,
+
+		`DELETE compliance_assessment_control_comments
+		FROM compliance_assessment_control_comments
+		JOIN compliance_assessment_controls ON compliance_assessment_controls.id = compliance_assessment_control_comments.compliance_assessment_control_id
+		WHERE compliance_assessment_controls.compliance_assessment_id = ?`,
+
+		`DELETE compliance_action_plans
+		FROM compliance_action_plans
+		JOIN compliance_assessment_controls ON compliance_assessment_controls.id = compliance_action_plans.compliance_assessment_control_id
+		WHERE compliance_assessment_controls.compliance_assessment_id = ?`,
+
 		`DELETE FROM compliance_assessment_requirements
 		 WHERE compliance_assessment_id = ?`,
 
-		/* ================= CONTROLS ================= */
-
-		// Control comments
-		`DELETE cc
-		 FROM compliance_assessment_control_comments cc
-		 JOIN compliance_assessment_controls c
-		   ON c.id = cc.compliance_assessment_control_id
-		 WHERE c.compliance_assessment_id = ?`,
-
-		// Controls
 		`DELETE FROM compliance_assessment_controls
 		 WHERE compliance_assessment_id = ?`,
 	}

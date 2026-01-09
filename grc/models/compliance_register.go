@@ -7,7 +7,7 @@ import (
 type ComplianceRegister struct {
 	ID                              uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	ComplianceCategoryID            uint       `json:"compliance_category_id" binding:"required" gorm:"not null"`
-	ComplianceStatusID              uint       `json:"compliance_status_id" binding:"required" gorm:"not null"`
+	ComplianceStatusID              *uint       `json:"compliance_status_id" gorm:"default:null"`
 	ResponsibleUnitID               uint       `json:"responsible_unit_id" binding:"required" gorm:"not null"`
 	ResponsibleUserID               uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	ReviewFrequencyID               *uint      `json:"review_frequency_id" binding:"required" gorm:"default:null"`

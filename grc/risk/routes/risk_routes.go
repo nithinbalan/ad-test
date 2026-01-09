@@ -10,7 +10,7 @@ import (
 func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes := router.Group("/")
 
-	riskRoutes.Use(middlewares.AuthMiddleware())
+	riskRoutes.Use(middlewares.AuthMiddleware(app.DB))
 
 	unauthenticatedRoutes := router.Group("/")
 

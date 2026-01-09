@@ -11,7 +11,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	documentRoutes := router.Group("/")
 
-	documentRoutes.Use(middlewares.AuthMiddleware())
+	documentRoutes.Use(middlewares.AuthMiddleware(app.DB))
 
 	unauthenticatedRoutes := router.Group("/")
 
