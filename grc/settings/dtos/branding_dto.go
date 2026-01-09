@@ -17,14 +17,23 @@ type BrandingDetailDTO struct {
 	CreatedAt            time.Time       `json:"created_at"`
 	UpdatedAt            *time.Time      `json:"updated_at"`
 }
+type BrandingDocumentFormDTO struct {
+	URL           string `json:"url"`
+	FileName      string `json:"file_name"`
+	OriginalName  string `json:"original_name"`
+	Type          string `json:"type"`
+	Size          int    `json:"size"`
+	IsNewFile     *bool  `json:"is_new_file,omitempty"`
+	IsDeletedFile *bool  `json:"is_deleted_file,omitempty"`
+}
 
-type BrandingUpdateFormDTO struct {
-	LoginPageTitleEn     string `json:"login_page_title_en" binding:"required"`
-	LoginPageTitleAr     string `json:"login_page_title_ar" binding:"required"`
-	LoginPageSubtitleEn  string `json:"login_page_subtitle_en" binding:"required"`
-	LoginPageSubtitleAr  string `json:"login_page_subtitle_ar" binding:"required"`
-	LoginPageBgImagePath string `json:"login_page_bg_image_path" binding:"required"`
-	OrgLogoImagePath     string `json:"org_logo_image_path" binding:"required"`
-	FaviconImagePath     string `json:"favicon_image_path" binding:"required"`
-	LoaderGifPath        string `json:"loader_gif_path" binding:"required"`
+type BrandingFormDTO struct {
+	LoginPageTitleEn    string                   `json:"login_page_title_en" binding:"required"`
+	LoginPageTitleAr    string                   `json:"login_page_title_ar" binding:"required"`
+	LoginPageSubtitleEn string                   `json:"login_page_subtitle_en" binding:"required"`
+	LoginPageSubtitleAr string                   `json:"login_page_subtitle_ar" binding:"required"`
+	LoginPageBgImage    *BrandingDocumentFormDTO `json:"login_page_bg_image,omitempty"`
+	OrgLogoImage        *BrandingDocumentFormDTO `json:"org_logo_image,omitempty"`
+	FaviconImage        *BrandingDocumentFormDTO `json:"favicon_image,omitempty"`
+	LoaderGif           *BrandingDocumentFormDTO `json:"loader_gif,omitempty"`
 }

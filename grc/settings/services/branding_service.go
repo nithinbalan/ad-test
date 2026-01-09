@@ -18,10 +18,10 @@ import (
 )
 
 type BrandingServiceInterface interface {
-	GetByID(id uint) (*models.Branding, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Branding, error)
 	GetFullDetails() (*dtos.BrandingDetailDTO, error)
-	Update(id uint, currentUserID uint, brandingFormDTO *dtos.BrandingUpdateFormDTO) error
-	GetPreviewImage(previewType string) (string, error)
+	Update(id uint, currentUserID uint, brandingFormDTO *dtos.BrandingFormDTO) error
+	GetBrandingPreviewImage(previewType string) (string, error)
 }
 
 type BrandingService struct {
@@ -55,7 +55,7 @@ func (bs *BrandingService) GetFullDetails() (*dtos.BrandingDetailDTO, error) {
 	return &brandingDTO, nil
 }
 
-func (bs BrandingService) GetByID(id uint) (*models.Branding, error) {
+func (bs BrandingService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Branding, error) {
 	branding, err := bs.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -68,11 +68,61 @@ func (bs BrandingService) GetByID(id uint) (*models.Branding, error) {
 	return branding, nil
 }
 
-func (bs *BrandingService) Update(id uint, currentUserID uint, brandingFormDTO *dtos.BrandingUpdateFormDTO) error {
+func (bs *BrandingService) Update(id uint, currentUserID uint, brandingFormDTO *dtos.BrandingFormDTO) error {
 	tx := bs.repo.BeginTransaction()
 
-	existing, err := bs.GetByID(id)
+	existing, err := bs.GetByID(id, tx)
 	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	handleBrandingUpdate := func(doc *dtos.BrandingDocumentFormDTO, storageFolder string, urlField **string) error {
+		if doc != nil && doc.IsNewFile != nil && *doc.IsNewFile {
+			// Remove old file if exists
+			if *urlField != nil && **urlField != "" {
+				oldRelativePath := **urlField
+
+				oldDir := filepath.Dir(oldRelativePath)
+				oldFile := filepath.Base(oldRelativePath)
+
+				// Ignore error if file does not exist
+				_ = utility.RemoveFile(oldFile, oldDir)
+			}
+			
+			// Generate URL for the new document,
+			url := utility.GenerateDocumentURL("branding", "branding-settings", storageFolder, doc.FileName)
+
+			*urlField = new(string)
+			**urlField = url
+
+			//define storage path
+			storagePath := filepath.Join("branding", "branding-settings", storageFolder)
+
+			if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	if err := handleBrandingUpdate(brandingFormDTO.LoginPageBgImage, "login-page-bg", &existing.LoginPageBgImagePath); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := handleBrandingUpdate(brandingFormDTO.OrgLogoImage, "org-logo", &existing.OrgLogoImagePath); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := handleBrandingUpdate(brandingFormDTO.FaviconImage, "favicon", &existing.FaviconImagePath); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := handleBrandingUpdate(brandingFormDTO.LoaderGif, "loader", &existing.LoaderGifPath); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -83,10 +133,6 @@ func (bs *BrandingService) Update(id uint, currentUserID uint, brandingFormDTO *
 	existing.LoginPageTitleAr = brandingFormDTO.LoginPageTitleAr
 	existing.LoginPageSubtitleEn = brandingFormDTO.LoginPageSubtitleEn
 	existing.LoginPageSubtitleAr = brandingFormDTO.LoginPageSubtitleAr
-	existing.LoginPageBgImagePath = &brandingFormDTO.LoginPageBgImagePath
-	existing.OrgLogoImagePath = &brandingFormDTO.OrgLogoImagePath
-	existing.FaviconImagePath = &brandingFormDTO.FaviconImagePath
-	existing.LoaderGifPath = &brandingFormDTO.LoaderGifPath
 	existing.UpdatedBYID = &currentUserID
 	existing.UpdatedAt = &now
 
@@ -127,7 +173,7 @@ func (bs *BrandingService) Update(id uint, currentUserID uint, brandingFormDTO *
 	return nil
 }
 
-func (bs *BrandingService) GetPreviewImage(previewType string) (string, error) {
+func (bs *BrandingService) GetBrandingPreviewImage(previewType string) (string, error) {
 	// Retrieve the branding details
 	branding, err := bs.repo.GetFullDetails()
 	if err != nil {
@@ -135,9 +181,13 @@ func (bs *BrandingService) GetPreviewImage(previewType string) (string, error) {
 	}
 
 	var storagePath *string
-	
+
 	// Map previewType to the corresponding storage path
 	switch previewType {
+	case "login-page-bg":
+		storagePath = branding.LoginPageBgImagePath
+	case "loader":
+		storagePath = branding.LoaderGifPath
 	case "org-logo":
 		storagePath = branding.OrgLogoImagePath
 	case "favicon":

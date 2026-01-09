@@ -9,7 +9,7 @@ import (
 
 type BrandingRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetByID(id uint) (*models.Branding, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Branding, error)
 	GetFullDetails() (*models.Branding, error)
 	Update(branding *models.Branding, tx ...utility.DatabaseTransaction) error
 }
@@ -43,10 +43,15 @@ func (repo *BrandingRepository) GetFullDetails() (*models.Branding, error) {
 	return &branding, nil
 }
 
-func (repo *BrandingRepository) GetByID(id uint) (*models.Branding, error) {
+func (repo *BrandingRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Branding, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var branding models.Branding
 
-	if err := repo.db.First(&branding, id).Error; err != nil {
+	if err := db.First(&branding, id).Error; err != nil {
 		return nil, err
 	}
 

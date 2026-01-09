@@ -33,7 +33,7 @@ func (bc *BrandingController) GetBranding(c *gin.Context) {
 }
 
 func (bc *BrandingController) UpdateBranding(c *gin.Context) {
-	var brandingFormDTO dtos.BrandingUpdateFormDTO
+	var brandingFormDTO dtos.BrandingFormDTO
 
 	brandingIDStr := c.Param("id")
 	brandingID, err := strconv.ParseUint(brandingIDStr, 10, 32)
@@ -81,7 +81,7 @@ func (bc *BrandingController) GetBrandingPreviewImage(c *gin.Context) {
 		return
 	}
 
-	brandingImagePath, err := bc.service.GetPreviewImage(brandingPreviewType)
+	brandingImagePath, err := bc.service.GetBrandingPreviewImage(brandingPreviewType)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:

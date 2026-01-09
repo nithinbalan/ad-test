@@ -215,5 +215,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Branding Settings
 	settingRoutes.GET("/branding-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), brandingController.GetBranding)
 	settingRoutes.PUT("/branding-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), brandingController.UpdateBranding)
-	unauthenticatedRoutes.GET("/branding-settings/branding-preview", brandingController.GetBrandingPreviewImage)
+	unauthenticatedRoutes.GET("/branding-settings/image-preview", brandingController.GetBrandingPreviewImage)
 }
