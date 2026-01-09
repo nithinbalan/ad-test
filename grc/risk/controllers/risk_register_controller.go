@@ -442,6 +442,9 @@ func (rrc *RiskRegisterController) ExportRiskRegisterToPDF(c *gin.Context) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(rrc.db, c, e.Error())
 			return
