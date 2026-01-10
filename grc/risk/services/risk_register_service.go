@@ -234,86 +234,39 @@ func (rrs RiskRegisterService) ExportRiskRegisterPDF(id uint, currentUserID uint
 		return "", err
 	}
 
-	viewModel, err := buildRiskRegisterExportView(riskDTO, id, rrs.riskReportRepo)
-	if err != nil {
-		return "", fmt.Errorf("failed to build export view: %w", err)
-	}
-
-	// Body
-	bodyTemplates := []string{"risk/templates/pdf/risk_register_body.html"}
-	htmlContent, err := utility.GeneratePDFContent(viewModel, bodyTemplates, "", "")
-	if err != nil {
-		return "", fmt.Errorf("failed to generate HTML content: %w", err)
-	}
-
-	// Cover
-	coverTemplates := []string{"risk/templates/pdf/risk_register_cover.html"}
-	coverContent, err := utility.GeneratePDFContent(viewModel, coverTemplates, "", "")
-	if err != nil {
-		return "", fmt.Errorf("failed to generate cover content: %w", err)
-	}
-
-	// Header
-	headerTemplates := []string{"risk/templates/pdf/risk_register_header.html"}
-	headerContent, err := utility.GeneratePDFContent(viewModel, headerTemplates, "", "")
-	if err != nil {
-		return "", fmt.Errorf("failed to generate header content: %w", err)
-	}
-
-	// Footer
-	footerTemplates := []string{"risk/templates/pdf/risk_register_footer.html"}
-	footerContent, err := utility.GeneratePDFContent(viewModel, footerTemplates, "", "")
-	if err != nil {
-		return "", fmt.Errorf("failed to generate footer content: %w", err)
-	}
-
-	pdfFileName := fmt.Sprintf("RiskRegister_%d.pdf", id)
-	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent, htmlContent, pdfFileName, headerContent, footerContent); err != nil {
-		return "", fmt.Errorf("failed to generate PDF: %w", err)
-	}
-
-	return pdfFileName, nil
-}
-
-func buildRiskRegisterExportView(dto *riskDTOs.RiskRegisterDetailDTO, riskID uint, riskReportRepo riskRepositories.RiskReportRepositoryInterface) (riskDTOs.RiskRegisterExportPDFDTO, error) {
-	createdAt := dto.CreatedAt.Format("2006-01-02")
+	// Inline build of export view (align with incident pattern)
+	createdAt := riskDTO.CreatedAt.Format("2006-01-02")
 	generatedAt := time.Now().Format("Jan 02, 2006")
-	preparedFirst := dto.CreatedByUser.FirstNameEN
-	preparedLast := dto.CreatedByUser.LastNameEN
-	orgUnit := dto.ResponsibleUnit.TitleEn
-	orgUnitAr := dto.ResponsibleUnit.TitleAr
+	preparedFirst := riskDTO.CreatedByUser.FirstNameEN
+	preparedLast := riskDTO.CreatedByUser.LastNameEN
+	orgUnit := riskDTO.ResponsibleUnit.TitleEn
+	orgUnitAr := riskDTO.ResponsibleUnit.TitleAr
 
 	reportedAt := ""
-	if dto.ReportedAtString != nil {
-		reportedAt = *dto.ReportedAtString
+	if riskDTO.ReportedAtString != nil {
+		reportedAt = *riskDTO.ReportedAtString
 	}
 
-	// Risk Source
 	var riskSourceTitleEn *string
 	var riskSourceTitleAr *string
-	if dto.RiskSource != nil {
-		riskSourceTitleEn = &dto.RiskSource.TitleEn
-		riskSourceTitleAr = &dto.RiskSource.TitleAr
+	if riskDTO.RiskSource != nil {
+		riskSourceTitleEn = &riskDTO.RiskSource.TitleEn
+		riskSourceTitleAr = &riskDTO.RiskSource.TitleAr
 	}
 
-	// Risk Response Strategy
 	var riskResponseStrategyTitleEn *string
 	var riskResponseStrategyTitleAr *string
 	var riskResponseStrategyDescription *string
 	var riskResponseStrategyTreatmentGuidance *string
-	if dto.RiskResponseStrategy != nil {
-		riskResponseStrategyTitleEn = &dto.RiskResponseStrategy.TitleEn
-		riskResponseStrategyTitleAr = &dto.RiskResponseStrategy.TitleAr
-		// Description and TreatmentGuidance are not available in RiskResponseStrategyDTO
-		// They would need to be fetched separately if required
+	if riskDTO.RiskResponseStrategy != nil {
+		riskResponseStrategyTitleEn = &riskDTO.RiskResponseStrategy.TitleEn
+		riskResponseStrategyTitleAr = &riskDTO.RiskResponseStrategy.TitleAr
 	}
 
-	// Responsible User
-	responsibleUserFirstNameEn := dto.ResponsibleUser.FirstNameEN
-	responsibleUserLastNameEn := dto.ResponsibleUser.LastNameEN
-	responsibleUserInitial := dto.ResponsibleUser.Initial
+	responsibleUserFirstNameEn := riskDTO.ResponsibleUser.FirstNameEN
+	responsibleUserLastNameEn := riskDTO.ResponsibleUser.LastNameEN
+	responsibleUserInitial := riskDTO.ResponsibleUser.Initial
 
-	// Current Risk Rating
 	var currentRiskRatingTitleEn *string
 	var currentRiskRatingTitleAr *string
 	var currentRiskRatingColorCode *string
@@ -326,148 +279,135 @@ func buildRiskRegisterExportView(dto *riskDTOs.RiskRegisterDetailDTO, riskID uin
 	var currentImpactTitleAr *string
 	var currentImpactScore *uint
 	var currentImpactDescriptionEn *string
-	if dto.CurrentRiskRating != nil {
-		currentRiskRatingTitleEn = &dto.CurrentRiskRating.TitleEn
-		currentRiskRatingTitleAr = &dto.CurrentRiskRating.TitleAr
-		currentRiskRatingColorCode = &dto.CurrentRiskRating.ColorCode
+	if riskDTO.CurrentRiskRating != nil {
+		currentRiskRatingTitleEn = &riskDTO.CurrentRiskRating.TitleEn
+		currentRiskRatingTitleAr = &riskDTO.CurrentRiskRating.TitleAr
+		currentRiskRatingColorCode = &riskDTO.CurrentRiskRating.ColorCode
 	}
-	if dto.CurrentRiskRatingValue != nil {
-		currentRiskRatingValue = &dto.CurrentRiskRatingValue.Value
+	if riskDTO.CurrentRiskRatingValue != nil {
+		currentRiskRatingValue = &riskDTO.CurrentRiskRatingValue.Value
 	}
-	if dto.CurrentLikelihood != nil {
-		currentLikelihoodTitleEn = &dto.CurrentLikelihood.TitleEn
-		currentLikelihoodTitleAr = &dto.CurrentLikelihood.TitleAr
-		currentLikelihoodScore = &dto.CurrentLikelihood.Score
-		currentLikelihoodDescriptionEn = &dto.CurrentLikelihood.DescriptionEn
+	if riskDTO.CurrentLikelihood != nil {
+		currentLikelihoodTitleEn = &riskDTO.CurrentLikelihood.TitleEn
+		currentLikelihoodTitleAr = &riskDTO.CurrentLikelihood.TitleAr
+		currentLikelihoodScore = &riskDTO.CurrentLikelihood.Score
+		currentLikelihoodDescriptionEn = &riskDTO.CurrentLikelihood.DescriptionEn
 	}
-	if dto.CurrentImpact != nil {
-		currentImpactTitleEn = &dto.CurrentImpact.TitleEn
-		currentImpactTitleAr = &dto.CurrentImpact.TitleAr
-		currentImpactScore = &dto.CurrentImpact.Score
-		currentImpactDescriptionEn = &dto.CurrentImpact.DescriptionEn
+	if riskDTO.CurrentImpact != nil {
+		currentImpactTitleEn = &riskDTO.CurrentImpact.TitleEn
+		currentImpactTitleAr = &riskDTO.CurrentImpact.TitleAr
+		currentImpactScore = &riskDTO.CurrentImpact.Score
+		currentImpactDescriptionEn = &riskDTO.CurrentImpact.DescriptionEn
 	}
 
-	// Inherent Risk Rating
 	var inherentRiskRatingTitleEn *string
 	var inherentRiskRatingTitleAr *string
 	var inherentRiskRatingColorCode *string
-	if dto.InherentRiskRating != nil {
-		inherentRiskRatingTitleEn = &dto.InherentRiskRating.TitleEn
-		inherentRiskRatingTitleAr = &dto.InherentRiskRating.TitleAr
-		inherentRiskRatingColorCode = &dto.InherentRiskRating.ColorCode
+	if riskDTO.InherentRiskRating != nil {
+		inherentRiskRatingTitleEn = &riskDTO.InherentRiskRating.TitleEn
+		inherentRiskRatingTitleAr = &riskDTO.InherentRiskRating.TitleAr
+		inherentRiskRatingColorCode = &riskDTO.InherentRiskRating.ColorCode
 	}
 
-	// Inherent Risk Rating Value
 	var inherentRiskRatingValue *uint
-	if dto.InherentRiskRatingValue != nil {
-		inherentRiskRatingValue = &dto.InherentRiskRatingValue.Value
+	if riskDTO.InherentRiskRatingValue != nil {
+		inherentRiskRatingValue = &riskDTO.InherentRiskRatingValue.Value
 	}
 
-	// Inherent Likelihood
 	var inherentLikelihoodTitleEn *string
 	var inherentLikelihoodTitleAr *string
 	var inherentLikelihoodScore *uint
 	var inherentLikelihoodDescriptionEn *string
-	if dto.InherentLikelihood != nil {
-		inherentLikelihoodTitleEn = &dto.InherentLikelihood.TitleEn
-		inherentLikelihoodTitleAr = &dto.InherentLikelihood.TitleAr
-		inherentLikelihoodScore = &dto.InherentLikelihood.Score
-		inherentLikelihoodDescriptionEn = &dto.InherentLikelihood.DescriptionEn
+	if riskDTO.InherentLikelihood != nil {
+		inherentLikelihoodTitleEn = &riskDTO.InherentLikelihood.TitleEn
+		inherentLikelihoodTitleAr = &riskDTO.InherentLikelihood.TitleAr
+		inherentLikelihoodScore = &riskDTO.InherentLikelihood.Score
+		inherentLikelihoodDescriptionEn = &riskDTO.InherentLikelihood.DescriptionEn
 	}
 
-	// Inherent Impact
 	var inherentImpactTitleEn *string
 	var inherentImpactTitleAr *string
 	var inherentImpactScore *uint
 	var inherentImpactDescriptionEn *string
-	if dto.InherentImpact != nil {
-		inherentImpactTitleEn = &dto.InherentImpact.TitleEn
-		inherentImpactTitleAr = &dto.InherentImpact.TitleAr
-		inherentImpactScore = &dto.InherentImpact.Score
-		inherentImpactDescriptionEn = &dto.InherentImpact.DescriptionEn
+	if riskDTO.InherentImpact != nil {
+		inherentImpactTitleEn = &riskDTO.InherentImpact.TitleEn
+		inherentImpactTitleAr = &riskDTO.InherentImpact.TitleAr
+		inherentImpactScore = &riskDTO.InherentImpact.Score
+		inherentImpactDescriptionEn = &riskDTO.InherentImpact.DescriptionEn
 	}
 
-	// Residual Risk Rating
 	var residualRiskRatingTitleEn *string
 	var residualRiskRatingTitleAr *string
 	var residualRiskRatingColorCode *string
-	if dto.ResidualRiskRating != nil {
-		residualRiskRatingTitleEn = &dto.ResidualRiskRating.TitleEn
-		residualRiskRatingTitleAr = &dto.ResidualRiskRating.TitleAr
-		residualRiskRatingColorCode = &dto.ResidualRiskRating.ColorCode
+	if riskDTO.ResidualRiskRating != nil {
+		residualRiskRatingTitleEn = &riskDTO.ResidualRiskRating.TitleEn
+		residualRiskRatingTitleAr = &riskDTO.ResidualRiskRating.TitleAr
+		residualRiskRatingColorCode = &riskDTO.ResidualRiskRating.ColorCode
 	}
 
-	// Residual Risk Rating Value
 	var residualRiskRatingValue *uint
-	if dto.ResidualRiskRatingValue != nil {
-		residualRiskRatingValue = &dto.ResidualRiskRatingValue.Value
+	if riskDTO.ResidualRiskRatingValue != nil {
+		residualRiskRatingValue = &riskDTO.ResidualRiskRatingValue.Value
 	}
 
-	// Residual Likelihood
 	var residualLikelihoodTitleEn *string
 	var residualLikelihoodTitleAr *string
 	var residualLikelihoodScore *uint
 	var residualLikelihoodDescriptionEn *string
-	if dto.ResidualLikelihood != nil {
-		residualLikelihoodTitleEn = &dto.ResidualLikelihood.TitleEn
-		residualLikelihoodTitleAr = &dto.ResidualLikelihood.TitleAr
-		residualLikelihoodScore = &dto.ResidualLikelihood.Score
-		residualLikelihoodDescriptionEn = &dto.ResidualLikelihood.DescriptionEn
+	if riskDTO.ResidualLikelihood != nil {
+		residualLikelihoodTitleEn = &riskDTO.ResidualLikelihood.TitleEn
+		residualLikelihoodTitleAr = &riskDTO.ResidualLikelihood.TitleAr
+		residualLikelihoodScore = &riskDTO.ResidualLikelihood.Score
+		residualLikelihoodDescriptionEn = &riskDTO.ResidualLikelihood.DescriptionEn
 	}
 
-	// Residual Impact
 	var residualImpactTitleEn *string
 	var residualImpactTitleAr *string
 	var residualImpactScore *uint
 	var residualImpactDescriptionEn *string
-	if dto.ResidualImpact != nil {
-		residualImpactTitleEn = &dto.ResidualImpact.TitleEn
-		residualImpactTitleAr = &dto.ResidualImpact.TitleAr
-		residualImpactScore = &dto.ResidualImpact.Score
-		residualImpactDescriptionEn = &dto.ResidualImpact.DescriptionEn
+	if riskDTO.ResidualImpact != nil {
+		residualImpactTitleEn = &riskDTO.ResidualImpact.TitleEn
+		residualImpactTitleAr = &riskDTO.ResidualImpact.TitleAr
+		residualImpactScore = &riskDTO.ResidualImpact.Score
+		residualImpactDescriptionEn = &riskDTO.ResidualImpact.DescriptionEn
 	}
 
-	// Severity Level
 	var severityLevelTitleEn *string
 	var severityLevelTitleAr *string
-	if dto.SeverityLevel != nil {
-		severityLevelTitleEn = &dto.SeverityLevel.TitleEn
-		severityLevelTitleAr = &dto.SeverityLevel.TitleAr
+	if riskDTO.SeverityLevel != nil {
+		severityLevelTitleEn = &riskDTO.SeverityLevel.TitleEn
+		severityLevelTitleAr = &riskDTO.SeverityLevel.TitleAr
 	}
 
-	// Review Information
 	var reviewFrequencyTitleEn *string
 	var reviewFrequencyTitleAr *string
-	if dto.ReviewFrequency != nil {
-		reviewFrequencyTitleEn = &dto.ReviewFrequency.TitleEn
-		reviewFrequencyTitleAr = &dto.ReviewFrequency.TitleAr
+	if riskDTO.ReviewFrequency != nil {
+		reviewFrequencyTitleEn = &riskDTO.ReviewFrequency.TitleEn
+		reviewFrequencyTitleAr = &riskDTO.ReviewFrequency.TitleAr
 	}
 
-	// Submission & Review History
 	var submittedByUserFirstNameEn *string
 	var submittedByUserLastNameEn *string
-	if dto.SubmittedByUser != nil {
-		submittedByUserFirstNameEn = &dto.SubmittedByUser.FirstNameEN
-		submittedByUserLastNameEn = &dto.SubmittedByUser.LastNameEN
+	if riskDTO.SubmittedByUser != nil {
+		submittedByUserFirstNameEn = &riskDTO.SubmittedByUser.FirstNameEN
+		submittedByUserLastNameEn = &riskDTO.SubmittedByUser.LastNameEN
 	}
 	var updatedByUserFirstNameEn *string
 	var updatedByUserLastNameEn *string
-	// UpdatedByUser is not a pointer in RiskRegisterDetailDTO, so check if it's populated
-	if dto.UpdatedByUser.FirstNameEN != "" {
-		updatedByUserFirstNameEn = &dto.UpdatedByUser.FirstNameEN
-		updatedByUserLastNameEn = &dto.UpdatedByUser.LastNameEN
+	if riskDTO.UpdatedByUser.FirstNameEN != "" {
+		updatedByUserFirstNameEn = &riskDTO.UpdatedByUser.FirstNameEN
+		updatedByUserLastNameEn = &riskDTO.UpdatedByUser.LastNameEN
 	}
 	var updatedAtString *string
-	if dto.UpdatedAt != nil {
-		updatedAtStr := dto.UpdatedAt.Format("2006-01-02 15:04:05")
+	if riskDTO.UpdatedAt != nil {
+		updatedAtStr := riskDTO.UpdatedAt.Format("2006-01-02 15:04:05")
 		updatedAtString = &updatedAtStr
 	}
 
-	// Build ExistingControls from Controls array
 	var existingControls *string
-	if len(dto.Controls) > 0 {
-		controlTitles := make([]string, 0, len(dto.Controls))
-		for _, control := range dto.Controls {
+	if len(riskDTO.Controls) > 0 {
+		controlTitles := make([]string, 0, len(riskDTO.Controls))
+		for _, control := range riskDTO.Controls {
 			if control.Control.TitleEn != "" {
 				controlTitles = append(controlTitles, control.Control.TitleEn)
 			}
@@ -478,10 +418,9 @@ func buildRiskRegisterExportView(dto *riskDTOs.RiskRegisterDetailDTO, riskID uin
 		}
 	}
 
-	// Fetch Controls using separate method (following incident pattern)
-	riskControls, err := riskReportRepo.GetAllRiskControls(riskID)
+	riskControls, err := rrs.riskReportRepo.GetAllRiskControls(id)
 	if err != nil {
-		return riskDTOs.RiskRegisterExportPDFDTO{}, fmt.Errorf("failed to fetch controls: %w", err)
+		return "", fmt.Errorf("failed to fetch controls: %w", err)
 	}
 	controls := make([]riskDTOs.RiskRegisterExportControlDTO, 0, len(riskControls))
 	for _, control := range riskControls {
@@ -496,8 +435,6 @@ func buildRiskRegisterExportView(dto *riskDTOs.RiskRegisterDetailDTO, riskID uin
 		if control.ControlImplementationStatusTitleEn != "" {
 			implementationStatusTitleEn = &control.ControlImplementationStatusTitleEn
 		}
-		// Note: TestScore is not directly available in AssociatedControlListDTO
-		// It would need to be fetched separately if required, or use RiskRatingValue as alternative
 		if control.RiskRatingValue != nil {
 			testScore = control.RiskRatingValue
 		}
@@ -528,10 +465,9 @@ func buildRiskRegisterExportView(dto *riskDTOs.RiskRegisterDetailDTO, riskID uin
 		controls = append(controls, controlDTO)
 	}
 
-	// Fetch Assets using separate method (following incident pattern)
-	riskAssets, err := riskReportRepo.GetAllRiskAssets(riskID)
+	riskAssets, err := rrs.riskReportRepo.GetAllRiskAssets(id)
 	if err != nil {
-		return riskDTOs.RiskRegisterExportPDFDTO{}, fmt.Errorf("failed to fetch assets: %w", err)
+		return "", fmt.Errorf("failed to fetch assets: %w", err)
 	}
 	assets := make([]riskDTOs.RiskRegisterExportAssetDTO, 0, len(riskAssets))
 	for _, asset := range riskAssets {
@@ -549,58 +485,49 @@ func buildRiskRegisterExportView(dto *riskDTOs.RiskRegisterDetailDTO, riskID uin
 		assets = append(assets, assetDTO)
 	}
 
-	// Fetch Documents using separate method (following incident pattern)
-	documents, err := riskReportRepo.GetAllRiskDocuments(riskID)
+	documents, err := rrs.riskReportRepo.GetAllRiskDocuments(id)
 	if err != nil {
-		return riskDTOs.RiskRegisterExportPDFDTO{}, fmt.Errorf("failed to fetch documents: %w", err)
+		return "", fmt.Errorf("failed to fetch documents: %w", err)
 	}
 
-	// Fetch Processes using separate method (following incident pattern)
-	processes, err := riskReportRepo.GetAllRiskProcesses(riskID)
+	processes, err := rrs.riskReportRepo.GetAllRiskProcesses(id)
 	if err != nil {
-		return riskDTOs.RiskRegisterExportPDFDTO{}, fmt.Errorf("failed to fetch processes: %w", err)
+		return "", fmt.Errorf("failed to fetch processes: %w", err)
 	}
 
-	// Fetch KPIs using separate method (following incident pattern)
-	kpis, err := riskReportRepo.GetAllRiskKPIs(riskID)
+	kpis, err := rrs.riskReportRepo.GetAllRiskKPIs(id)
 	if err != nil {
-		return riskDTOs.RiskRegisterExportPDFDTO{}, fmt.Errorf("failed to fetch KPIs: %w", err)
+		return "", fmt.Errorf("failed to fetch KPIs: %w", err)
 	}
 
-	// Fetch Strategic Objectives using separate method (following incident pattern)
-	strategicObjectives, err := riskReportRepo.GetAllRiskStrategicObjectives(riskID)
+	strategicObjectives, err := rrs.riskReportRepo.GetAllRiskStrategicObjectives(id)
 	if err != nil {
-		return riskDTOs.RiskRegisterExportPDFDTO{}, fmt.Errorf("failed to fetch strategic objectives: %w", err)
+		return "", fmt.Errorf("failed to fetch strategic objectives: %w", err)
 	}
 
-	// Fetch Compliance Requirements using separate method (following incident pattern)
-	complianceRequirements, err := riskReportRepo.GetAllRiskComplianceRequirements(riskID)
+	complianceRequirements, err := rrs.riskReportRepo.GetAllRiskComplianceRequirements(id)
 	if err != nil {
-		return riskDTOs.RiskRegisterExportPDFDTO{}, fmt.Errorf("failed to fetch compliance requirements: %w", err)
+		return "", fmt.Errorf("failed to fetch compliance requirements: %w", err)
 	}
 
-	// Fetch Incidents using separate method (following incident pattern)
-	incidents, err := riskReportRepo.GetAllRiskIncidents(riskID)
+	incidents, err := rrs.riskReportRepo.GetAllRiskIncidents(id)
 	if err != nil {
-		return riskDTOs.RiskRegisterExportPDFDTO{}, fmt.Errorf("failed to fetch incidents: %w", err)
+		return "", fmt.Errorf("failed to fetch incidents: %w", err)
 	}
 
-	// Fetch Root Cause Analysis
-	rootCauseAnalyses, err := fetchRootCauseAnalysesForExport(riskID, riskReportRepo)
+	rootCauseAnalyses, err := fetchRootCauseAnalysesForExport(id, rrs.riskReportRepo)
 	if err != nil {
-		return riskDTOs.RiskRegisterExportPDFDTO{}, fmt.Errorf("failed to fetch root cause analyses: %w", err)
+		return "", fmt.Errorf("failed to fetch root cause analyses: %w", err)
 	}
 
-	// Fetch Action Plans
-	actionPlans, err := fetchActionPlansForExport(riskID, dto.ReferenceNumber, dto.Title, riskReportRepo)
+	actionPlans, err := fetchActionPlansForExport(id, riskDTO.ReferenceNumber, riskDTO.Title, rrs.riskReportRepo)
 	if err != nil {
-		return riskDTOs.RiskRegisterExportPDFDTO{}, fmt.Errorf("failed to fetch action plans: %w", err)
+		return "", fmt.Errorf("failed to fetch action plans: %w", err)
 	}
 
-	// Fetch and Map KRIs
-	kriDTOs, err := riskReportRepo.GetKRIsByRiskID(riskID)
+	kriDTOs, err := rrs.riskReportRepo.GetKRIsByRiskID(id)
 	if err != nil {
-		return riskDTOs.RiskRegisterExportPDFDTO{}, fmt.Errorf("failed to fetch KRIs: %w", err)
+		return "", fmt.Errorf("failed to fetch KRIs: %w", err)
 	}
 
 	kris := make([]riskDTOs.RiskReportKriResponseDTO, 0, len(kriDTOs))
@@ -621,8 +548,8 @@ func buildRiskRegisterExportView(dto *riskDTOs.RiskRegisterDetailDTO, riskID uin
 		kriResponse := riskDTOs.RiskReportKriResponseDTO{
 			ID:                         0,
 			RiskReportIdentificationID: 0,
-			RiskReferenceNumber:        dto.ReferenceNumber,
-			RiskTitle:                  dto.Title,
+			RiskReferenceNumber:        riskDTO.ReferenceNumber,
+			RiskTitle:                  riskDTO.Title,
 			Title:                      kri.Title,
 			Description:                kri.Description,
 			LowThreshold:               lowThresholdPtr,
@@ -635,12 +562,12 @@ func buildRiskRegisterExportView(dto *riskDTOs.RiskRegisterDetailDTO, riskID uin
 	}
 
 	risk := riskDTOs.RiskRegisterExportRiskDTO{
-		ReferenceNumber:                 dto.ReferenceNumber,
-		Title:                           dto.Title,
-		Description:                     dto.Description,
+		ReferenceNumber:                 riskDTO.ReferenceNumber,
+		Title:                           riskDTO.Title,
+		Description:                     riskDTO.Description,
 		ReportedAt:                      reportedAt,
-		RiskCategoryTitleEn:             dto.RiskCategory.TitleEn,
-		RiskCategoryTitleAr:             dto.RiskCategory.TitleAr,
+		RiskCategoryTitleEn:             riskDTO.RiskCategory.TitleEn,
+		RiskCategoryTitleAr:             riskDTO.RiskCategory.TitleAr,
 		RiskSourceTitleEn:               riskSourceTitleEn,
 		RiskSourceTitleAr:               riskSourceTitleAr,
 		ResponsibleUnitTitleEn:          orgUnit,
@@ -688,20 +615,20 @@ func buildRiskRegisterExportView(dto *riskDTOs.RiskRegisterDetailDTO, riskID uin
 		SeverityLevelTitleAr:            severityLevelTitleAr,
 		ReviewFrequencyTitleEn:          reviewFrequencyTitleEn,
 		ReviewFrequencyTitleAr:          reviewFrequencyTitleAr,
-		NextReviewDateString:            dto.NextReviewDateString,
-		LastReviewNote:                  dto.LastReviewNote,
-		NextReviewLevel:                 dto.NextReviewLevel,
+		NextReviewDateString:            riskDTO.NextReviewDateString,
+		LastReviewNote:                  riskDTO.LastReviewNote,
+		NextReviewLevel:                 riskDTO.NextReviewLevel,
 		SubmittedByUserFirstNameEn:      submittedByUserFirstNameEn,
 		SubmittedByUserLastNameEn:       submittedByUserLastNameEn,
-		SubmittedAtString:               dto.SubmittedAtString,
+		SubmittedAtString:               riskDTO.SubmittedAtString,
 		UpdatedByUserFirstNameEn:        utility.GetStringValue(updatedByUserFirstNameEn),
 		UpdatedByUserLastNameEn:         utility.GetStringValue(updatedByUserLastNameEn),
 		UpdatedAtString:                 updatedAtString,
 		ExistingControls:                existingControls,
 		ProposedControls:                nil,
-		RiskStatusTitleEn:               dto.RiskStatus.TitleEn,
-		RiskStatusTitleAr:               dto.RiskStatus.TitleAr,
-		RiskStatusColorCode:             dto.RiskStatus.ColorCode,
+		RiskStatusTitleEn:               riskDTO.RiskStatus.TitleEn,
+		RiskStatusTitleAr:               riskDTO.RiskStatus.TitleAr,
+		RiskStatusColorCode:             riskDTO.RiskStatus.ColorCode,
 		RiskResponseStrategyTitleEn:     riskResponseStrategyTitleEn,
 		RiskResponseStrategyTitleAr:     riskResponseStrategyTitleAr,
 		ActionPlans:                     actionPlans,
@@ -718,39 +645,39 @@ func buildRiskRegisterExportView(dto *riskDTOs.RiskRegisterDetailDTO, riskID uin
 		Risks:       []riskDTOs.RiskRegisterExportRiskDTO{risk},
 	}
 
-	return riskDTOs.RiskRegisterExportPDFDTO{
-		Title:                                 dto.Title,
+	viewModel := riskDTOs.RiskRegisterExportPDFDTO{
+		Title:                                 riskDTO.Title,
 		CreatedAt:                             createdAt,
 		GeneratedAt:                           generatedAt,
-		ReferenceNumber:                       dto.ReferenceNumber,
-		Description:                           dto.Description,
+		ReferenceNumber:                       riskDTO.ReferenceNumber,
+		Description:                           riskDTO.Description,
 		CreatedUserFirstNameEn:                preparedFirst,
 		CreatedUserLastNameEn:                 preparedLast,
 		OrganizationUnitTitlesEn:              orgUnit,
 		StartDate:                             reportedAt,
 		EndDate:                               reportedAt,
-		RiskStatusTitleEn:                     dto.RiskStatus.TitleEn,
-		RiskStatusTitleAr:                     dto.RiskStatus.TitleAr,
-		RiskStatusColorCode:                   dto.RiskStatus.ColorCode,
-		RiskCategoryTitleEn:                   dto.RiskCategory.TitleEn,
-		RiskCategoryTitleAr:                   dto.RiskCategory.TitleAr,
+		RiskStatusTitleEn:                     riskDTO.RiskStatus.TitleEn,
+		RiskStatusTitleAr:                     riskDTO.RiskStatus.TitleAr,
+		RiskStatusColorCode:                   riskDTO.RiskStatus.ColorCode,
+		RiskCategoryTitleEn:                   riskDTO.RiskCategory.TitleEn,
+		RiskCategoryTitleAr:                   riskDTO.RiskCategory.TitleAr,
 		RiskSourceTitleEn:                     riskSourceTitleEn,
 		RiskSourceTitleAr:                     riskSourceTitleAr,
 		ResponsibleUnitTitleEn:                orgUnit,
 		ResponsibleUnitTitleAr:                orgUnitAr,
-		ResponsibleUserFirstNameEn:            dto.ResponsibleUser.FirstNameEN,
-		ResponsibleUserLastNameEn:             dto.ResponsibleUser.LastNameEN,
-		ResponsibleUserInitial:                dto.ResponsibleUser.Initial,
+		ResponsibleUserFirstNameEn:            riskDTO.ResponsibleUser.FirstNameEN,
+		ResponsibleUserLastNameEn:             riskDTO.ResponsibleUser.LastNameEN,
+		ResponsibleUserInitial:                riskDTO.ResponsibleUser.Initial,
 		ReviewFrequencyTitleEn:                reviewFrequencyTitleEn,
 		ReviewFrequencyTitleAr:                reviewFrequencyTitleAr,
-		NextReviewDateString:                  dto.NextReviewDateString,
-		LastReviewNote:                        dto.LastReviewNote,
-		NextReviewLevel:                       dto.NextReviewLevel,
+		NextReviewDateString:                  riskDTO.NextReviewDateString,
+		LastReviewNote:                        riskDTO.LastReviewNote,
+		NextReviewLevel:                       riskDTO.NextReviewLevel,
 		SeverityLevelTitleEn:                  severityLevelTitleEn,
 		SeverityLevelTitleAr:                  severityLevelTitleAr,
 		SubmittedByUserFirstNameEn:            submittedByUserFirstNameEn,
 		SubmittedByUserLastNameEn:             submittedByUserLastNameEn,
-		SubmittedAtString:                     dto.SubmittedAtString,
+		SubmittedAtString:                     riskDTO.SubmittedAtString,
 		UpdatedByUserFirstNameEn:              updatedByUserFirstNameEn,
 		UpdatedByUserLastNameEn:               updatedByUserLastNameEn,
 		UpdatedAtString:                       updatedAtString,
@@ -806,7 +733,42 @@ func buildRiskRegisterExportView(dto *riskDTOs.RiskRegisterDetailDTO, riskID uin
 		Incidents:                             incidents,
 		RootCauseAnalyses:                     rootCauseAnalyses,
 		Sections:                              []riskDTOs.RiskRegisterExportSectionDTO{section},
-	}, nil
+	}
+
+	// Body
+	bodyTemplates := []string{"risk/templates/pdf/risk_register_body.html"}
+	htmlContent, err := utility.GeneratePDFContent(viewModel, bodyTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate HTML content: %w", err)
+	}
+
+	// Cover
+	coverTemplates := []string{"risk/templates/pdf/risk_register_cover.html"}
+	coverContent, err := utility.GeneratePDFContent(viewModel, coverTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate cover content: %w", err)
+	}
+
+	// Header
+	headerTemplates := []string{"risk/templates/pdf/risk_register_header.html"}
+	headerContent, err := utility.GeneratePDFContent(viewModel, headerTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate header content: %w", err)
+	}
+
+	// Footer
+	footerTemplates := []string{"risk/templates/pdf/risk_register_footer.html"}
+	footerContent, err := utility.GeneratePDFContent(viewModel, footerTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate footer content: %w", err)
+	}
+
+	pdfFileName := fmt.Sprintf("RiskRegister_%d.pdf", id)
+	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent, htmlContent, pdfFileName, headerContent, footerContent); err != nil {
+		return "", fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	return pdfFileName, nil
 }
 
 // fetchActionPlansForExport fetches action plans for a risk register and maps them to the export DTO format
@@ -865,8 +827,21 @@ func fetchActionPlansForExport(riskID uint, riskReferenceNumber string, riskTitl
 
 // fetchRootCauseAnalysesForExport fetches root cause analyses for a risk register
 func fetchRootCauseAnalysesForExport(riskID uint, riskReportRepo riskRepositories.RiskReportRepositoryInterface) ([]riskDTOs.RiskRegisterExportRootCauseAnalysisDTO, error) {
-	// No direct method in RiskReportRepository for RCA; return empty to avoid breaking existing pattern
-	return []riskDTOs.RiskRegisterExportRootCauseAnalysisDTO{}, nil
+	rootCauses, err := riskReportRepo.GetAllRiskRootCauseAnalyses(riskID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]riskDTOs.RiskRegisterExportRootCauseAnalysisDTO, 0, len(rootCauses))
+	for _, rc := range rootCauses {
+		result = append(result, riskDTOs.RiskRegisterExportRootCauseAnalysisDTO{
+			Why:      rc.Why,
+			Question: rc.Question,
+			Answer:   rc.Answer,
+		})
+	}
+
+	return result, nil
 }
 func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *riskDTOs.RiskRegisterFormDTO) (uint, error) {
 	tx := rrs.repo.BeginTransaction()
