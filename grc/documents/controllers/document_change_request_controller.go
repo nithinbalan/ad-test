@@ -64,6 +64,10 @@ func (dcrc *DocumentChangeRequestController) GetAllDocumentChangeRequests(c *gin
 		"status_ar":                       "change_request_statuses.title_en",
 		"document_ar":                     "documents.title_en",
 		"document_en":                     "documents.title_en",
+		"created_by_en":                   "CONCAT_WS(' ', created_by_user.first_name_en, created_by_user.last_name_en)",
+		"created_by_ar":                   "CONCAT_WS(' ', created_by_user.first_name_ar, created_by_user.last_name_ar)",
+		"updated_by_en":                   "CONCAT_WS(' ', updated_by_user.first_name_en, updated_by_user.last_name_en)",
+		"updated_by_ar":                   "CONCAT_WS(' ', updated_by_user.first_name_ar, updated_by_user.last_name_ar)",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

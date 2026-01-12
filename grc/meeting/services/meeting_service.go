@@ -33,6 +33,8 @@ type MeetingServiceInterface interface {
 	Create(currentUserID uint, meetingFormDTO *meetingDTOs.MeetingFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, meetingFormDTO *meetingDTOs.MeetingFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
+
 	GetAllCounts(meetingID uint) (*meetingDTOs.MeetingsCountResponseDTO, error)
 	GetMeetingEffectiveness(meetingID uint) (float64, error)
 
@@ -1266,4 +1268,46 @@ func (ms *MeetingService) GetDocumentPath(id uint, token string, tx ...utility.D
 	}
 
 	return fullPath, nil
+}
+
+func (ms *MeetingService) ForceDelete(ids []uint, currentUserID uint) ([]uint, error) {
+
+	tx := ms.repo.BeginTransaction()
+	var failedIds []uint
+	var deletedData []map[string]interface{}
+
+	for _, id := range ids {
+		if err := ms.repo.ForceDelete(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		deletedData = append(deletedData, map[string]interface{}{
+			"id": id,
+		})
+	}
+
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	tx.Commit()
+
+	go func() {
+		err := ms.activityLogSvc.LogBulkActivities(
+			models.DeleteAction,
+			models.Meeting{}.TableName(),
+			ids,
+			deletedData,
+			currentUserID,
+			nil,
+		)
+		if err != nil {
+			// @todo - save to log file
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
+	return nil, nil
 }

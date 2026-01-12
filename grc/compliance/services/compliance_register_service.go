@@ -230,18 +230,21 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, err
 	}
 
-	complianceStatusID := complianceRegisterFormDTO.ComplianceStatusID
-	complianceStatusUpdate := &models.ComplianceStatusUpdate{
-		ComplianceRegisterID: id,
-		ComplianceStatusID:   complianceStatusID,
-		Comment:              "Initial compliance status",
-		CreatedByID:          currentUserID,
-	}
+	if complianceRegisterFormDTO.ComplianceStatusID != nil {
 
-	_, err = crs.repo.CreateInitialComplianceStatusUpdate(complianceStatusUpdate, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
+		complianceStatusID := complianceRegisterFormDTO.ComplianceStatusID
+		complianceStatusUpdate := &models.ComplianceStatusUpdate{
+			ComplianceRegisterID: id,
+			ComplianceStatusID:   *complianceStatusID,
+			Comment:              "Initial compliance status",
+			CreatedByID:          currentUserID,
+		}
+
+		_, err = crs.repo.CreateInitialComplianceStatusUpdate(complianceStatusUpdate, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentEn, tx); err != nil {
@@ -993,7 +996,7 @@ func (crs *ComplianceRegisterService) StatusUpdate(id uint, currentUserID uint, 
 		return err
 	}
 
-	existingCompliance.ComplianceStatusID = complianceStatusID
+	existingCompliance.ComplianceStatusID = &complianceStatusID
 	existingCompliance.UpdatedBYID = &currentUserID
 
 	err = crs.repo.Update(existingCompliance, tx)
@@ -1024,8 +1027,10 @@ func (crs *ComplianceRegisterService) validateComplianceRegisterFormDTO(complian
 		return utility.NewValidationError(fmt.Errorf("compliance category does not exist"), "not_exist", "compliance category")
 	}
 
-	if _, err := crs.complianceStatusSvc.GetByID(complianceRegisterFormDTO.ComplianceStatusID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
+	if complianceRegisterFormDTO.ComplianceStatusID != nil {
+		if _, err := crs.complianceStatusSvc.GetByID(*complianceRegisterFormDTO.ComplianceStatusID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("compliance status does not exist"), "not_exist", "compliance status")
+		}
 	}
 
 	if complianceRegisterFormDTO.ReviewFrequencyID != nil {
@@ -1176,7 +1181,7 @@ func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complian
 			"Severity Level (AR)",
 			"Responsible User (AR)",
 			"Review Frequency (AR)",
-			"Frequency Responsible User (AR)",
+			"Review Responsible User (AR)",
 		}
 	} else {
 		headers = []string{
@@ -1195,7 +1200,7 @@ func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complian
 			"Severity Level (EN)",
 			"Responsible User (EN)",
 			"Review Frequency (EN)",
-			"Frequency Responsible User (EN)",
+			"Review Responsible User (EN)",
 		}
 	}
 
@@ -1387,18 +1392,20 @@ func (crs *ComplianceRegisterService) CreateComplianceVersion(currentUserID uint
 		return 0, err
 	}
 
-	complianceStatusID := parentCompliance.ComplianceStatusID
-	complianceStatusUpdate := &models.ComplianceStatusUpdate{
-		ComplianceRegisterID: id,
-		ComplianceStatusID:   complianceStatusID,
-		Comment:              "Initial compliance status",
-		CreatedByID:          currentUserID,
-	}
+	if parentCompliance.ComplianceStatusID != nil {
+		complianceStatusID := parentCompliance.ComplianceStatusID
+		complianceStatusUpdate := &models.ComplianceStatusUpdate{
+			ComplianceRegisterID: id,
+			ComplianceStatusID:   *complianceStatusID,
+			Comment:              "Initial compliance status",
+			CreatedByID:          currentUserID,
+		}
 
-	_, err = crs.repo.CreateInitialComplianceStatusUpdate(complianceStatusUpdate, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
+		_, err = crs.repo.CreateInitialComplianceStatusUpdate(complianceStatusUpdate, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentEn, tx); err != nil {

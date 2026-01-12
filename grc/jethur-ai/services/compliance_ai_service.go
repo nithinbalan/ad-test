@@ -1,15 +1,16 @@
 package services
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"jethur/grc/jethur-ai/dtos"
 	"jethur/grc/settings/services"
 	"jethur/utility"
-	"encoding/json"
-	"io"
-	"bytes"
 	"mime/multipart"
 	"net/http"
+	complianceServices "jethur/grc/compliance/services"
 )
 
 type ComplianceAIServiceInterface interface {
@@ -24,16 +25,25 @@ type ComplianceAIServiceInterface interface {
 	GetComplianceSuggestControlsJob(complianceID uint) (map[string]interface{}, error)
 	GetComplianceSuggestAssociatesJob(complianceID uint) (map[string]interface{}, error)
 	GetComplianceJobStatus(jobID string) (map[string]interface{}, error)
-	
+
+	GetComplianceClauseStrategicObjectivesJob(complianceID uint,clauseID uint) (map[string]interface{}, error)
+	GetComplianceClauseSuggestKPIJob(complianceID uint,clauseID uint) (map[string]interface{}, error)
+	GetComplianceClauseSuggestProcessJob(complianceID uint,clauseID uint) (map[string]interface{}, error)
+	GetComplianceClauseSuggestRisksJob(complianceID uint,clauseID uint) (map[string]interface{}, error)
+	GetComplianceClauseSuggestControlsJob(complianceID uint,clauseID uint) (map[string]interface{}, error)
+	GetComplianceClauseSuggestIncidentsJob(complianceID uint,clauseID uint) (map[string]interface{}, error)
+	GetComplianceClauseSuggestAssociatesJob(complianceID uint,clauseID uint) (map[string]interface{}, error)
 }
 
 type ComplianceAIService struct {
 	systemPreferenceSvc services.SystemPreferenceServiceInterface
+	complianceRegisterSvc       complianceServices.ComplianceRegisterServiceInterface
 }
 
-func NewComplianceAIService(systemPreferenceSvc services.SystemPreferenceServiceInterface) ComplianceAIServiceInterface {
+func NewComplianceAIService(systemPreferenceSvc services.SystemPreferenceServiceInterface,complianceRegisterSvc complianceServices.ComplianceRegisterServiceInterface) ComplianceAIServiceInterface {
 	return &ComplianceAIService{
 		systemPreferenceSvc: systemPreferenceSvc,
+		complianceRegisterSvc: complianceRegisterSvc,
 	}
 }
 
@@ -55,73 +65,68 @@ func (cais *ComplianceAIService) GetComplianceAutofill(req dtos.ComplianceAutofi
 	return utility.CallAIAPI("/api/v1/compliance/autofill", payload)
 }
 
+func (cais *ComplianceAIService) ImportComplianceRegister(fileHeader *multipart.FileHeader) (map[string]interface{}, error) {
 
-func (cais *ComplianceAIService) ImportComplianceRegister(
-    fileHeader *multipart.FileHeader,
-) (map[string]interface{}, error) {
+	systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
 
-    systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
-    if err != nil {
-        return nil, err
-    }
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
 
-    if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
-        return nil, fmt.Errorf("AI features are disabled in system preferences")
-    }
+	file, err := fileHeader.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
 
-    file, err := fileHeader.Open()
-    if err != nil {
-        return nil, err
-    }
-    defer file.Close()
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
 
-    body := &bytes.Buffer{}
-    writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", fileHeader.Filename)
+	if err != nil {
+		return nil, err
+	}
 
-    part, err := writer.CreateFormFile("file", fileHeader.Filename)
-    if err != nil {
-        return nil, err
-    }
+	if _, err := io.Copy(part, file); err != nil {
+		return nil, err
+	}
 
-    if _, err := io.Copy(part, file); err != nil {
-        return nil, err
-    }
+	writer.Close()
 
-    writer.Close()
+	apiURL, err := utility.GetAIEndpoint("/api/v1/compliance/compliance-register-import")
+	if err != nil {
+		return nil, err
+	}
 
-    apiURL, err := utility.GetAIEndpoint("/api/v1/compliance/compliance-register-import")
-    if err != nil {
-        return nil, err
-    }
+	req, err := http.NewRequest("POST", apiURL, body)
+	if err != nil {
+		return nil, err
+	}
 
-    req, err := http.NewRequest("POST", apiURL, body)
-    if err != nil {
-        return nil, err
-    }
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-    req.Header.Set("Content-Type", writer.FormDataContentType())
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
 
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("AI API error: %s", string(b))
+	}
 
-    if resp.StatusCode != http.StatusOK {
-        b, _ := io.ReadAll(resp.Body)
-        return nil, fmt.Errorf("AI API error: %s", string(b))
-    }
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
 
-    var result map[string]interface{}
-    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-        return nil, err
-    }
-
-    return result, nil
+	return result, nil
 }
-
-
 
 func (cais *ComplianceAIService) GetComplianceSummary(complianceID uint) (map[string]interface{}, error) {
 
@@ -134,7 +139,7 @@ func (cais *ComplianceAIService) GetComplianceSummary(complianceID uint) (map[st
 		return nil, fmt.Errorf("AI features are disabled in system preferences")
 	}
 
-	path := fmt.Sprintf("/api/v1/compliance/%d/compliance-summary",complianceID)
+	path := fmt.Sprintf("/api/v1/compliance/%d/compliance-summary", complianceID)
 
 	return utility.CallAIAPIObjectResponse(path)
 }
@@ -150,7 +155,7 @@ func (cais *ComplianceAIService) GetComplianceClauseGuidance(clauseID uint) (map
 		return nil, fmt.Errorf("AI features are disabled in system preferences")
 	}
 
-	path := fmt.Sprintf("/api/v1/compliance/%d/clause-guidance",clauseID)
+	path := fmt.Sprintf("/api/v1/compliance/%d/clause-guidance", clauseID)
 
 	return utility.CallAIAPIObjectResponse(path)
 }
@@ -166,7 +171,7 @@ func (cais *ComplianceAIService) GetComplianceStrategicObjectivesJob(complianceI
 		return nil, fmt.Errorf("AI features are disabled in system preferences")
 	}
 
-	path := fmt.Sprintf("/api/v1/compliance/%d/start-job/strategic-objectives",complianceID)
+	path := fmt.Sprintf("/api/v1/compliance/%d/start-job/strategic-objectives", complianceID)
 
 	return utility.CallAIAPIObjectResponse(path)
 }
@@ -182,7 +187,7 @@ func (cais *ComplianceAIService) GetComplianceSuggestKPIJob(complianceID uint) (
 		return nil, fmt.Errorf("AI features are disabled in system preferences")
 	}
 
-	path := fmt.Sprintf("/api/v1/compliance/%d/start-job/suggest-kpi",complianceID)
+	path := fmt.Sprintf("/api/v1/compliance/%d/start-job/suggest-kpi", complianceID)
 
 	return utility.CallAIAPIObjectResponse(path)
 }
@@ -198,7 +203,7 @@ func (cais *ComplianceAIService) GetComplianceSuggestProcessJob(complianceID uin
 		return nil, fmt.Errorf("AI features are disabled in system preferences")
 	}
 
-	path := fmt.Sprintf("/api/v1/compliance/%d/start-job/suggest-process",complianceID)
+	path := fmt.Sprintf("/api/v1/compliance/%d/start-job/suggest-process", complianceID)
 
 	return utility.CallAIAPIObjectResponse(path)
 }
@@ -214,7 +219,7 @@ func (cais *ComplianceAIService) GetComplianceSuggestRisksJob(complianceID uint)
 		return nil, fmt.Errorf("AI features are disabled in system preferences")
 	}
 
-	path := fmt.Sprintf("/api/v1/compliance/%d/start-job/suggest-risks",complianceID)
+	path := fmt.Sprintf("/api/v1/compliance/%d/start-job/suggest-risks", complianceID)
 
 	return utility.CallAIAPIObjectResponse(path)
 }
@@ -229,7 +234,7 @@ func (cais *ComplianceAIService) GetComplianceSuggestControlsJob(complianceID ui
 		return nil, fmt.Errorf("AI features are disabled in system preferences")
 	}
 
-	path := fmt.Sprintf("/api/v1/compliance/%d/start-job/suggest-controls",complianceID)
+	path := fmt.Sprintf("/api/v1/compliance/%d/start-job/suggest-controls", complianceID)
 
 	return utility.CallAIAPIObjectResponse(path)
 }
@@ -245,7 +250,7 @@ func (cais *ComplianceAIService) GetComplianceSuggestAssociatesJob(complianceID 
 		return nil, fmt.Errorf("AI features are disabled in system preferences")
 	}
 
-	path := fmt.Sprintf("/api/v1/compliance/%d/start-job/suggest-associates",complianceID)
+	path := fmt.Sprintf("/api/v1/compliance/%d/start-job/suggest-associates", complianceID)
 
 	return utility.CallAIAPIObjectResponse(path)
 }
@@ -265,3 +270,142 @@ func (ajs *ComplianceAIService) GetComplianceJobStatus(jobID string) (map[string
 
 	return utility.CallAIAPIObjectResponse(path)
 }
+
+func (cais *ComplianceAIService) GetComplianceClauseStrategicObjectivesJob(complianceID uint,clauseID uint) (map[string]interface{}, error) {
+
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil,utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_id")
+	}
+
+	systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
+	path := fmt.Sprintf(
+		"/api/v1/compliance/clause/%d/start-job/strategic-objectives",
+		clauseID,
+	)
+
+	return utility.CallAIAPIObjectResponse(path)
+}
+
+func (cais *ComplianceAIService) GetComplianceClauseSuggestKPIJob(complianceID uint,clauseID uint) (map[string]interface{}, error) {
+
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil,utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_id")
+	}
+
+    systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
+    if err != nil {
+        return nil, err
+    }
+
+    if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+        return nil, fmt.Errorf("AI features are disabled in system preferences")
+    }
+
+    path := fmt.Sprintf("/api/v1/compliance/clause/%d/start-job/suggest-kpi",clauseID)
+
+    return utility.CallAIAPIObjectResponse(path)
+}
+
+func (cais *ComplianceAIService) GetComplianceClauseSuggestProcessJob(complianceID uint,clauseID uint) (map[string]interface{}, error) {
+
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil,utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_id")
+	}
+
+	systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
+	path := fmt.Sprintf("/api/v1/compliance/clause/%d/start-job/suggest-process",clauseID)
+
+	return utility.CallAIAPIObjectResponse(path)
+}
+
+func (cais *ComplianceAIService) GetComplianceClauseSuggestRisksJob(complianceID uint,clauseID uint) (map[string]interface{}, error) {
+
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil,utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_id")
+	}
+
+	systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
+	path := fmt.Sprintf("/api/v1/compliance/clause/%d/start-job/suggest-risks",clauseID)
+
+	return utility.CallAIAPIObjectResponse(path)
+}
+
+func (cais *ComplianceAIService) GetComplianceClauseSuggestControlsJob(complianceID uint,clauseID uint) (map[string]interface{}, error) {
+
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil,utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_id")
+	}
+
+	systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
+	path := fmt.Sprintf("/api/v1/compliance/clause/%d/start-job/suggest-controls",clauseID)
+
+	return utility.CallAIAPIObjectResponse(path)
+}
+
+func (cais *ComplianceAIService) GetComplianceClauseSuggestIncidentsJob(complianceID uint,clauseID uint) (map[string]interface{}, error) {
+
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil,utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_id")
+	}
+
+	systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
+	path := fmt.Sprintf("/api/v1/compliance/clause/%d/start-job/suggest-incidents",clauseID)
+
+	return utility.CallAIAPIObjectResponse(path)
+}
+
+func (cais *ComplianceAIService) GetComplianceClauseSuggestAssociatesJob(complianceID uint,clauseID uint) (map[string]interface{}, error) {
+
+	if _, err := cais.complianceRegisterSvc.GetByID(complianceID); err != nil {
+		return nil,utility.NewValidationError(fmt.Errorf("compliance does not exist for ID: %d", complianceID), "not_exist", "compliance_id")
+	}
+
+	systemPreference, err := cais.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, err
+	}
+	if systemPreference.IsAIEnable == nil || !*systemPreference.IsAIEnable {
+		return nil, fmt.Errorf("AI features are disabled in system preferences")
+	}
+
+	path := fmt.Sprintf("/api/v1/compliance/clause/%d/start-job/suggest-associates",clauseID)
+
+	return utility.CallAIAPIObjectResponse(path)
+}
+

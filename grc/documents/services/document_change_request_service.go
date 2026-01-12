@@ -1210,11 +1210,6 @@ func (dcrs *DocumentChangeRequestService) SubmitDocumentChangeRequest(id uint, c
 	}
 
 	currentTime := time.Now()
-	// submittedAt, err := utility.ParseDate(currentDateStr)
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error parsing current date: %w", err)
-	}
 
 	if documentCRFullDetails.DocumentChangeRequestStatus.Type != "reverted" {
 		existingCRDocument.SubmittedBYID = &currentUserID

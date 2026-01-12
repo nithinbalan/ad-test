@@ -71,6 +71,10 @@ func (dc *DocumentController) GetAllDocuments(c *gin.Context) {
 		"status_en":           "document_statuses.title_ar",
 		"status_ar":           "document_statuses.title_en",
 		"created_at":          "documents.created_at",
+		"created_by_en":       "CONCAT_WS(' ', created_user.first_name_en, created_user.last_name_en)",
+		"created_by_ar":       "CONCAT_WS(' ', created_user.first_name_ar, created_user.last_name_ar)",
+		"responsible_unit_en": "organization_units.title_en",
+		"responsible_unit_ar": "organization_units.title_ar",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

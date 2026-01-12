@@ -115,7 +115,7 @@ type ComplianceRegisterListResponseDTO struct {
 
 type ComplianceRegisterFormDTO struct {
 	ComplianceCategoryID            uint                      `json:"compliance_category_id" binding:"required"`
-	ComplianceStatusID              uint                      `json:"compliance_status_id" binding:"required"`
+	ComplianceStatusID              *uint                     `json:"compliance_status_id"`
 	ResponsibleUserID               uint                      `json:"responsible_user_id" binding:"required"`
 	ReviewFrequencyID               *uint                     `json:"review_frequency_id"`
 	ReviewResponsibleUserID         *uint                     `json:"review_responsible_user_id"`
@@ -199,7 +199,7 @@ type ComplianceRegisterDetailDTO struct {
 	LastReviewedUser                *organizationDTOs.UserMinimalDTO                `json:"last_reviewed_user"`
 	ComplianceReviewStatus          *ComplianceReviewStatusDTO                      `json:"compliance_review_status"`
 	ComplianceCategory              ComplianceCategoryDTO                           `json:"compliance_category"`
-	ComplianceStatus                ComplianceStatusDTO                             `json:"compliance_status"`
+	ComplianceStatus                *ComplianceStatusDTO                             `json:"compliance_status"`
 	ResponsibleUnit                 settingsDTOs.OrganizationUnitDTO                `json:"responsible_unit"`
 	ResponsibleUser                 organizationDTOs.UserMinimalDTO                 `json:"responsible_user"`
 	ResponsibleUserID               uint                                            `json:"responsible_user_id" binding:"required" gorm:"not null"`

@@ -20,6 +20,7 @@ type IncidentRegisterRepositoryInterface interface {
 	Create(incidentRegister *models.IncidentRegister, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentRegister *models.IncidentRegister, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	ForceDelete(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber() (string, error)
 
 	//Document
@@ -381,4 +382,353 @@ func (repo *IncidentRegisterRepository) DeleteIncidentSLAs(slaRegisterIds []*uin
 	}
 
 	return nil
+}
+
+func (repo *IncidentRegisterRepository) ForceDelete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	queries := []string{
+		`DELETE audit_finding_action_plan_status_update_documents
+		FROM audit_finding_action_plan_status_update_documents
+		JOIN audit_finding_action_plan_status_updates ON audit_finding_action_plan_status_updates.id = audit_finding_action_plan_status_update_documents.audit_finding_action_plan_status_update_id
+		JOIN audit_finding_action_plans ON audit_finding_action_plans.id = audit_finding_action_plan_status_updates.audit_finding_action_plan_id
+		JOIN audit_findings ON audit_findings.id = audit_finding_action_plans.audit_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_finding_action_plan_comment_documents
+		FROM audit_finding_action_plan_comment_documents
+		JOIN audit_finding_action_plan_comments ON audit_finding_action_plan_comments.id = audit_finding_action_plan_comment_documents.audit_finding_action_plan_comment_id
+		JOIN audit_finding_action_plans ON audit_finding_action_plans.id = audit_finding_action_plan_comments.audit_finding_action_plan_id
+		JOIN audit_findings ON audit_findings.id = audit_finding_action_plans.audit_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE tasks
+		FROM tasks
+		JOIN audit_finding_action_plans ON audit_finding_action_plans.id = tasks.audit_finding_action_plan_id
+		JOIN audit_findings ON audit_findings.id = audit_finding_action_plans.audit_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_finding_action_plan_status_updates
+		FROM audit_finding_action_plan_status_updates
+		JOIN audit_finding_action_plans ON audit_finding_action_plans.id = audit_finding_action_plan_status_updates.audit_finding_action_plan_id
+		JOIN audit_findings ON audit_findings.id = audit_finding_action_plans.audit_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_finding_action_plan_comments
+		FROM audit_finding_action_plan_comments
+		JOIN audit_finding_action_plans ON audit_finding_action_plans.id = audit_finding_action_plan_comments.audit_finding_action_plan_id
+		JOIN audit_findings ON audit_findings.id = audit_finding_action_plans.audit_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_draft_finding_conversation_documents
+		FROM audit_draft_finding_conversation_documents
+		JOIN audit_draft_finding_conversations ON audit_draft_finding_conversations.id = audit_draft_finding_conversation_documents.audit_draft_finding_conversation_id
+		JOIN audit_draft_findings ON audit_draft_findings.id = audit_draft_finding_conversations.audit_draft_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_draft_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_finding_strategic_objectives
+		FROM audit_finding_strategic_objectives
+		JOIN audit_findings ON audit_findings.id = audit_finding_strategic_objectives.audit_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_finding_root_cause_analyses
+		FROM audit_finding_root_cause_analyses
+		JOIN audit_findings ON audit_findings.id = audit_finding_root_cause_analyses.audit_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_finding_risks
+		FROM audit_finding_risks
+		JOIN audit_findings ON audit_findings.id = audit_finding_risks.audit_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_finding_processes
+		FROM audit_finding_processes
+		JOIN audit_findings ON audit_findings.id = audit_finding_processes.audit_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_finding_kpis
+		FROM audit_finding_kpis
+		JOIN audit_findings ON audit_findings.id = audit_finding_kpis.audit_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_finding_incidents
+		FROM audit_finding_incidents
+		JOIN audit_findings ON audit_findings.id = audit_finding_incidents.audit_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_finding_documents
+		FROM audit_finding_documents
+		JOIN audit_findings ON audit_findings.id = audit_finding_documents.audit_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_finding_controls
+		FROM audit_finding_controls
+		JOIN audit_findings ON audit_findings.id = audit_finding_controls.audit_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_finding_compliance_requirements
+		FROM audit_finding_compliance_requirements
+		JOIN audit_findings ON audit_findings.id = audit_finding_compliance_requirements.audit_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_finding_associated_documents
+		FROM audit_finding_associated_documents
+		JOIN audit_findings ON audit_findings.id = audit_finding_associated_documents.audit_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_finding_assets
+		FROM audit_finding_assets
+		JOIN audit_findings ON audit_findings.id = audit_finding_assets.audit_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_finding_action_plans
+		FROM audit_finding_action_plans
+		JOIN audit_findings ON audit_findings.id = audit_finding_action_plans.audit_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_draft_finding_documents
+		FROM audit_draft_finding_documents
+		JOIN audit_draft_findings ON audit_draft_findings.id = audit_draft_finding_documents.audit_draft_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_draft_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_draft_finding_conversations
+		FROM audit_draft_finding_conversations
+		JOIN audit_draft_findings ON audit_draft_findings.id = audit_draft_finding_conversations.audit_draft_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_draft_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_draft_finding_action_plans
+		FROM audit_draft_finding_action_plans
+		JOIN audit_draft_findings ON audit_draft_findings.id = audit_draft_finding_action_plans.audit_draft_finding_id
+		JOIN audit_checklists ON audit_checklists.id = audit_draft_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_plan_auditable_item_risk_controls
+		FROM audit_plan_auditable_item_risk_controls
+		JOIN audit_plan_auditable_item_risks ON audit_plan_auditable_item_risks.id = audit_plan_auditable_item_risk_controls.audit_plan_auditable_item_risk_id
+		JOIN audit_plan_auditable_items ON audit_plan_auditable_items.id = audit_plan_auditable_item_risks.audit_plan_auditable_item_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_auditable_items.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_findings
+		FROM audit_findings
+		JOIN audit_checklists ON audit_checklists.id = audit_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_draft_findings
+		FROM audit_draft_findings
+		JOIN audit_checklists ON audit_checklists.id = audit_draft_findings.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_checklist_documents
+		FROM audit_checklist_documents
+		JOIN audit_checklists ON audit_checklists.id = audit_checklist_documents.audit_checklist_id
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE incident_action_plan_status_update_documents
+		FROM incident_action_plan_status_update_documents
+		JOIN incident_action_plan_status_updates ON incident_action_plan_status_updates.id = incident_action_plan_status_update_documents.incident_action_plan_status_update_id
+		JOIN incident_action_plans ON incident_action_plans.id = incident_action_plan_status_updates.incident_action_plan_id
+		WHERE incident_action_plans.incident_register_id = ?`,
+
+		`DELETE incident_action_plan_comment_documents
+		FROM incident_action_plan_comment_documents
+		JOIN incident_action_plan_comments ON incident_action_plan_comments.id = incident_action_plan_comment_documents.incident_action_plan_comment_id
+		JOIN incident_action_plans ON incident_action_plans.id = incident_action_plan_comments.incident_action_plan_id
+		WHERE incident_action_plans.incident_register_id = ?`,
+
+		`DELETE audit_checklists
+		FROM audit_checklists
+		JOIN audit_plan_checklists ON audit_plan_checklists.id = audit_checklists.audit_plan_checklist_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_plan_auditable_item_risks
+		FROM audit_plan_auditable_item_risks
+		JOIN audit_plan_auditable_items ON audit_plan_auditable_items.id = audit_plan_auditable_item_risks.audit_plan_auditable_item_id
+		JOIN auditable_items ON auditable_items.id = audit_plan_auditable_items.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE incident_post_review_users
+		FROM incident_post_review_users
+		JOIN incident_post_reviews ON incident_post_reviews.id = incident_post_review_users.incident_post_review_id
+		WHERE incident_post_reviews.incident_register_id = ?`,
+
+		`DELETE incident_post_review_recommendations
+		FROM incident_post_review_recommendations
+		JOIN incident_post_reviews ON incident_post_reviews.id = incident_post_review_recommendations.incident_post_review_id
+		WHERE incident_post_reviews.incident_register_id = ?`,
+
+		`DELETE incident_post_review_lessons
+		FROM incident_post_review_lessons
+		JOIN incident_post_reviews ON incident_post_reviews.id = incident_post_review_lessons.incident_post_review_id
+		WHERE incident_post_reviews.incident_register_id = ?`,
+
+		`DELETE incident_investigation_users
+		FROM incident_investigation_users
+		JOIN incident_investigations ON incident_investigations.id = incident_investigation_users.incident_investigation_id
+		WHERE incident_investigations.incident_register_id = ?`,
+
+		`DELETE incident_investigation_findings
+		FROM incident_investigation_findings
+		JOIN incident_investigations ON incident_investigations.id = incident_investigation_findings.incident_investigation_id
+		WHERE incident_investigations.incident_register_id = ?`,
+
+		`DELETE incident_investigation_documents
+		FROM incident_investigation_documents
+		JOIN incident_investigations ON incident_investigations.id = incident_investigation_documents.incident_investigation_id
+		WHERE incident_investigations.incident_register_id = ?`,
+
+		`DELETE incident_closure_lessons
+		FROM incident_closure_lessons
+		JOIN incident_closures ON incident_closures.id = incident_closure_lessons.incident_closure_id
+		WHERE incident_closures.incident_register_id = ?`,
+
+		`DELETE tasks
+		FROM tasks
+		JOIN incident_action_plans ON incident_action_plans.id = tasks.incident_action_plan_id
+		WHERE incident_action_plans.incident_register_id = ?`,
+
+		`DELETE incident_action_plan_status_updates
+		FROM incident_action_plan_status_updates
+		JOIN incident_action_plans ON incident_action_plans.id = incident_action_plan_status_updates.incident_action_plan_id
+		WHERE incident_action_plans.incident_register_id = ?`,
+
+		`DELETE incident_action_plan_comments
+		FROM incident_action_plan_comments
+		JOIN incident_action_plans ON incident_action_plans.id = incident_action_plan_comments.incident_action_plan_id
+		WHERE incident_action_plans.incident_register_id = ?`,
+
+		`DELETE audit_schedule_auditable_items
+		FROM audit_schedule_auditable_items
+		JOIN auditable_items ON auditable_items.id = audit_schedule_auditable_items.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_plan_schedule_auditable_items
+		FROM audit_plan_schedule_auditable_items
+		JOIN auditable_items ON auditable_items.id = audit_plan_schedule_auditable_items.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_plan_checklists
+		FROM audit_plan_checklists
+		JOIN auditable_items ON auditable_items.id = audit_plan_checklists.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_plan_auditable_items
+		FROM audit_plan_auditable_items
+		JOIN auditable_items ON auditable_items.id = audit_plan_auditable_items.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE audit_document_request_auditable_items
+		FROM audit_document_request_auditable_items
+		JOIN auditable_items ON auditable_items.id = audit_document_request_auditable_items.auditable_item_id
+		WHERE auditable_items.incident_register_id = ?`,
+
+		`DELETE FROM third_party_incidents WHERE third_party_incidents.incident_register_id = ?`,
+		`DELETE FROM project_incidents WHERE project_incidents.incident_register_id = ?`,
+		`DELETE FROM meeting_incidents WHERE meeting_incidents.incident_register_id = ?`,
+		`DELETE FROM kri_incidents WHERE kri_incidents.incident_register_id = ?`,
+		`DELETE FROM incident_timelines WHERE incident_timelines.incident_register_id = ?`,
+		`DELETE FROM incident_strategic_objectives WHERE incident_strategic_objectives.incident_register_id = ?`,
+		`DELETE FROM incident_slas WHERE incident_slas.incident_register_id = ?`,
+		`DELETE FROM incident_root_cause_analyses WHERE incident_root_cause_analyses.incident_register_id = ?`,
+		`DELETE FROM incident_risks WHERE incident_risks.incident_register_id = ?`,
+		`DELETE FROM incident_processes WHERE incident_processes.incident_register_id = ?`,
+		`DELETE FROM incident_post_reviews WHERE incident_post_reviews.incident_register_id = ?`,
+		`DELETE FROM incident_kpis WHERE incident_kpis.incident_register_id = ?`,
+		`DELETE FROM incident_investigations WHERE incident_investigations.incident_register_id = ?`,
+		`DELETE FROM incident_documents WHERE incident_documents.incident_register_id = ?`,
+		`DELETE FROM incident_controls WHERE incident_controls.incident_register_id = ?`,
+		`DELETE FROM incident_communication_logs WHERE incident_communication_logs.incident_register_id = ?`,
+		`DELETE FROM incident_closures WHERE incident_closures.incident_register_id = ?`,
+		`DELETE FROM incident_associated_documents WHERE incident_associated_documents.incident_register_id = ?`,
+		`DELETE FROM incident_compliance_requirements WHERE incident_compliance_requirements.incident_register_id = ?`,
+		`DELETE FROM incident_assets WHERE incident_assets.incident_register_id = ?`,
+		`DELETE FROM incident_action_plans WHERE incident_action_plans.incident_register_id = ?`,
+		`DELETE FROM bcp_incidents WHERE bcp_incidents.incident_register_id = ?`,
+		`DELETE FROM auditable_items WHERE auditable_items.incident_register_id = ?`,
+		`DELETE FROM audit_finding_incidents WHERE audit_finding_incidents.incident_register_id = ?`,
+	}
+
+	// Delete the Risk register
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, q := range queries {
+			if err := tx.Exec(q, id).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Delete(&models.IncidentRegister{}, id).Error
+	})
+
 }

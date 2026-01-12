@@ -341,3 +341,28 @@ func (mapc *MeetingActionPlanController) GetMeetingActionPlanExport(c *gin.Conte
 
 	mapc.GetAllMeetingActionPlans(c)
 }
+
+func (mapc *MeetingActionPlanController) DeleteForceMeetingActionPlans(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(mapc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := mapc.service.ForceDelete(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(mapc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}

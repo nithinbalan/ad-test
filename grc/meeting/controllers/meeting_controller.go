@@ -350,3 +350,28 @@ func (mc *MeetingController) DownloadMeetingDocument(c *gin.Context) {
 	// Serve the file
 	c.File(documentPath)
 }
+
+func (mc *MeetingController) DeleteForceMeetings(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(mc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := mc.service.ForceDelete(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(mc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
