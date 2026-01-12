@@ -719,14 +719,6 @@ func (repo *RiskReportRepository) GetRiskReportDocumentByID(riskReportID uint, d
 	return &riskReportDocument, nil
 }
 
-func (repo *RiskReportRepository) CreateRiskReportRiskRegister(riskRegister *models.RiskReportRiskRegister, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	return db.Create(riskRegister).Error
-}
-
 func (repo *RiskReportRepository) GetRisksByOrgUnitsAndRiskIDs(organizationUnitIDs []uint, riskIDs []uint, tx ...utility.DatabaseTransaction) ([]dtos.RiskReportIdentifiedRiskDTO, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -785,16 +777,4 @@ func (repo *RiskReportRepository) GetRisksByOrgUnitsAndRiskIDs(organizationUnitI
 	}
 
 	return risks, nil
-}
-
-func (repo *RiskReportRepository) DeleteRiskReportRiskRegisters(riskReportID uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	return db.
-		Where("risk_report_id = ?", riskReportID).
-		Delete(&models.RiskReportRiskRegister{}).
-		Error
 }
