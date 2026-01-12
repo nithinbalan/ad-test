@@ -1,100 +1,227 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
+
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet" />
   <title>Risk Report</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    @page { size: A4; margin: 0.5in; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    @page {
+      size: A4;
+      margin: 0.5in;
+    }
+
     body {
-      font-family: 'Lexend Deca', sans-serif;
+      font-family: 'Lexend Deca', Arial, sans-serif;
       background: #ffffff;
       color: #1f2937;
       font-size: 11px;
       line-height: 1.4;
       padding: 24px 32px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
+    
+    table {
+      border-collapse: collapse;
+    }
+
     .section {
       margin-bottom: 28px;
       page-break-inside: avoid;
     }
+
     .section-title {
       font-size: 16px;
-      font-weight: 700;
+      font-weight: 480;
       color: #111827;
-      margin-bottom: 16px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 8px;
+      padding-bottom: 4px;
     }
+
     .subsection-title {
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 400;
       color: #111827;
-      margin: 16px 0 10px 0;
+      margin: 6px 0 10px 0;
     }
+
     .data-table {
       width: 100%;
       border-collapse: collapse;
       margin-bottom: 12px;
     }
+
     .data-table td {
       padding: 5px 8px 5px 0;
       vertical-align: top;
       font-size: 11px;
     }
-    .label { color: #6b7280; font-weight: 400; }
-    .value { color: #111827; font-weight: 400; }
+
+    .label {
+      color: #6b7280;
+      font-weight: 400;
+    }
+
+    .value {
+      color: #111827;
+      font-weight: 400;
+    }
+
     .badge {
       display: inline-block;
-      padding: 3px 10px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 500;
-      margin-top: 4px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 400;
+      line-height: 1.2;
+      vertical-align: baseline;
+      white-space: nowrap;
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
-    .badge-red { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-    .badge-orange { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
-    .badge-yellow { background: #fefce8; color: #ca8a04; border: 1px solid #fef08a; }
-    .badge-green { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-    .badge-blue { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+
+    .badge-red {
+      background-color: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+
+    .badge-orange {
+      background-color: #fff7ed;
+      color: #ea580c;
+      border: 1px solid #fed7aa;
+    }
+
+    .badge-yellow {
+      background-color: #fefce8;
+      color: #ca8a04;
+      border: 1px solid #fef08a;
+    }
+
+    .badge-green {
+      background-color: #f0fdf4;
+      color: #16a34a;
+      border: 1px solid #bbf7d0;
+    }
+
+    .badge-blue {
+      background-color: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+    }
+
     .card {
       border: 1px solid #d1d5db;
       border-radius: 4px;
       padding: 14px 16px;
       margin-bottom: 12px;
-      background: #ffffff;
+      background: #ffffffba;
+      page-break-inside: avoid;
     }
+    
+    .card-inline {
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      background: #ffffff;
+      page-break-inside: avoid;
+    }
+
     .card-header {
       font-size: 12px;
       font-weight: 600;
       color: #111827;
       margin-bottom: 12px;
     }
+
     .card-table {
       width: 100%;
       border-collapse: collapse;
     }
+
     .card-table td {
       padding: 4px 8px 4px 0;
       vertical-align: top;
       font-size: 11px;
     }
-    .card-label { color: #6b7280; font-size: 10px; }
-    .card-value { color: #111827; font-size: 11px; }
-    .rca-item { margin-bottom: 10px; }
-    .rca-question { color: #111827; font-size: 11px; margin-bottom: 2px; }
-    .rca-answer { color: #374151; font-size: 11px; padding-left: 12px; }
-    .empty-state { color: #9ca3af; font-size: 11px; font-style: italic; padding: 12px 0; text-align: center; }
+
+    .card-label {
+      color: #6b7280;
+      font-size: 10px;
+    }
+
+    .card-value {
+      color: #111827;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    
+    .card-value .badge {
+      margin-top: 2px;
+      margin-bottom: 2px;
+    }
+
+    .rca-item {
+      margin-bottom: 10px;
+    }
+
+    .rca-question {
+      color: #111827;
+      font-size: 11px;
+      margin-bottom: 2px;
+    }
+
+    .rca-answer {
+      color: #374151;
+      font-size: 11px;
+      padding-left: 12px;
+    }
+
+    .empty-state {
+      color: #9ca3af;
+      font-size: 11px;
+      font-style: italic;
+      padding: 12px 0;
+      text-align: center;
+    }
+
+    .subsection {
+      margin-bottom: 16px;
+    }
+    
+    .keep-together {
+      page-break-inside: avoid;
+    }
+
     @media print {
-      .section { page-break-inside: avoid; }
-      body { padding: 16px 24px; }
+      .section {
+        page-break-inside: avoid;
+      }
+
+      body {
+        padding: 16px 24px;
+      }
+      
+      .card, .card-inline {
+        page-break-inside: avoid;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <!-- 1. Basic Risk Information -->
@@ -102,28 +229,37 @@
     <div class="section-title">1. Basic Risk Information</div>
 
     <div class="subsection-title">1.1 Basic Risk Information</div>
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Ref No:</span><br/><span class="card-value">{{.Data.ReferenceNumber}}</span></td>
-        <td style="width:25%;"><span class="card-label">Category:</span><br/><span class="card-value">{{.Data.RiskCategoryTitleEn}}</span></td>
-        <td style="width:25%;"><span class="card-label">Risk Title:</span><br/><span class="card-value">{{.Data.Title}}</span></td>
-        <td style="width:25%;"><span class="card-label">Risk Source:</span><br/><span class="card-value">{{if .Data.RiskSourceTitleEn}}{{.Data.RiskSourceTitleEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Ref No:</span><br /><span
+            class="card-value">{{.Data.ReferenceNumber}}</span></td>
+        <td style="width:25%;"><span class="card-label">Category:</span><br /><span
+            class="card-value">{{.Data.RiskCategoryTitleEn}}</span></td>
+        <td style="width:25%;"><span class="card-label">Risk Title:</span><br /><span
+            class="card-value">{{.Data.Title}}</span></td>
+        <td style="width:25%;"><span class="card-label">Risk Source:</span><br /><span class="card-value">{{if
+            .Data.RiskSourceTitleEn}}{{.Data.RiskSourceTitleEn}}{{else}}-{{end}}</span></td>
       </tr>
       <tr>
-        <td><span class="card-label">Risk Date:</span><br/><span class="card-value">{{.Data.StartDate}}</span></td>
-        <td><span class="card-label">Department:</span><br/><span class="card-value">{{.Data.ResponsibleUnitTitleEn}}</span></td>
+        <td><span class="card-label">Risk Date:</span><br /><span class="card-value">{{.Data.StartDate}}</span></td>
+        <td><span class="card-label">Department:</span><br /><span
+            class="card-value">{{.Data.ResponsibleUnitTitleEn}}</span></td>
         <td colspan="2"></td>
       </tr>
     </table>
 
     <div class="card-label" style="margin-top: 8px;">Description:</div>
-    <div class="card-value" style="margin-top: 4px; line-height: 1.5;">{{if .Data.Description}}{{.Data.Description}}{{else}}-{{end}}</div>
+    <div class="card-value" style="margin-top: 4px; line-height: 1.5;">{{if
+      .Data.Description}}{{.Data.Description}}{{else}}-{{end}}</div>
 
     <div class="subsection-title">1.2 Responsible Parties</div>
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Responsible Unit:</span><br/><span class="card-value">{{.Data.ResponsibleUnitTitleEn}}</span></td>
-        <td style="width:25%;"><span class="card-label">Responsible User:</span><br/><span class="card-value">{{if .Data.ResponsibleUserFirstNameEn}}{{.Data.ResponsibleUserFirstNameEn}} {{.Data.ResponsibleUserLastNameEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Responsible Unit:</span><br /><span
+            class="card-value">{{.Data.ResponsibleUnitTitleEn}}</span></td>
+        <td style="width:25%;"><span class="card-label">Responsible User:</span><br /><span class="card-value">{{if
+            .Data.ResponsibleUserFirstNameEn}}{{.Data.ResponsibleUserFirstNameEn}}
+            {{.Data.ResponsibleUserLastNameEn}}{{else}}-{{end}}</span></td>
         <td colspan="2"></td>
       </tr>
     </table>
@@ -134,31 +270,46 @@
     <div class="section-title">2. Submission &amp; Review History</div>
 
     <div class="subsection-title">2.1 Review Information</div>
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Review Frequency:</span><br/><span class="card-value">{{if .Data.ReviewFrequencyTitleEn}}{{.Data.ReviewFrequencyTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Next Review Date:</span><br/><span class="card-value">{{if .Data.NextReviewDateString}}{{.Data.NextReviewDateString}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Last Review Note:</span><br/><span class="card-value">{{if .Data.LastReviewNote}}{{.Data.LastReviewNote}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Next Review Level:</span><br/><span class="card-value">{{if .Data.NextReviewLevel}}{{.Data.NextReviewLevel}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Review Frequency:</span><br /><span class="card-value">{{if
+            .Data.ReviewFrequencyTitleEn}}{{.Data.ReviewFrequencyTitleEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Next Review Date:</span><br /><span class="card-value">{{if
+            .Data.NextReviewDateString}}{{.Data.NextReviewDateString}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Last Review Note:</span><br /><span class="card-value">{{if
+            .Data.LastReviewNote}}{{.Data.LastReviewNote}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Next Review Level:</span><br /><span class="card-value">{{if
+            .Data.NextReviewLevel}}{{.Data.NextReviewLevel}}{{else}}-{{end}}</span></td>
       </tr>
       <tr>
-        <td><span class="card-label">Submitted By:</span><br/><span class="card-value">{{if .Data.SubmittedByUserFirstNameEn}}{{.Data.SubmittedByUserFirstNameEn}} {{.Data.SubmittedByUserLastNameEn}}{{else}}-{{end}}</span></td>
-        <td><span class="card-label">Submitted At:</span><br/><span class="card-value">{{if .Data.SubmittedAtString}}{{.Data.SubmittedAtString}}{{else}}-{{end}}</span></td>
-        <td><span class="card-label">Reviewed By:</span><br/><span class="card-value">{{if .Data.UpdatedByUserFirstNameEn}}{{.Data.UpdatedByUserFirstNameEn}} {{.Data.UpdatedByUserLastNameEn}}{{else}}-{{end}}</span></td>
-        <td><span class="card-label">Created By:</span><br/><span class="card-value">{{.Data.CreatedUserFirstNameEn}} {{.Data.CreatedUserLastNameEn}}</span></td>
+        <td><span class="card-label">Submitted By:</span><br /><span class="card-value">{{if
+            .Data.SubmittedByUserFirstNameEn}}{{.Data.SubmittedByUserFirstNameEn}}
+            {{.Data.SubmittedByUserLastNameEn}}{{else}}-{{end}}</span></td>
+        <td><span class="card-label">Submitted At:</span><br /><span class="card-value">{{if
+            .Data.SubmittedAtString}}{{.Data.SubmittedAtString}}{{else}}-{{end}}</span></td>
+        <td><span class="card-label">Reviewed By:</span><br /><span class="card-value">{{if
+            .Data.UpdatedByUserFirstNameEn}}{{.Data.UpdatedByUserFirstNameEn}}
+            {{.Data.UpdatedByUserLastNameEn}}{{else}}-{{end}}</span></td>
+        <td><span class="card-label">Created By:</span><br /><span class="card-value">{{.Data.CreatedUserFirstNameEn}}
+            {{.Data.CreatedUserLastNameEn}}</span></td>
       </tr>
       <tr>
-        <td><span class="card-label">Created At:</span><br/><span class="card-value">{{.Data.CreatedAt}}</span></td>
-        <td><span class="card-label">Last Modified By:</span><br/><span class="card-value">{{if .Data.UpdatedByUserFirstNameEn}}{{.Data.UpdatedByUserFirstNameEn}} {{.Data.UpdatedByUserLastNameEn}}{{else}}-{{end}}</span></td>
-        <td><span class="card-label">Last Modified At:</span><br/><span class="card-value">{{if .Data.UpdatedAtString}}{{.Data.UpdatedAtString}}{{else}}-{{end}}</span></td>
+        <td><span class="card-label">Created At:</span><br /><span class="card-value">{{.Data.CreatedAt}}</ span></td>
+        <td><span class="card-label">Last Modified By:</span><br /><span class="card-value">{{if
+            .Data.UpdatedByUserFirstNameEn}}{{.Data.UpdatedByUserFirstNameEn}}
+            {{.Data.UpdatedByUserLastNameEn}}{{else}}-{{end}}</span></td>
+        <td><span class="card-label">Last Modified At:</span><br /><span class="card-value">{{if
+            .Data.UpdatedAtString}}{{.Data.UpdatedAtString}}{{else}}-{{end}}</span></td>
         <td></td>
       </tr>
     </table>
 
     <div class="subsection-title">2.2 Severity Level</div>
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Severity Level:</span><br/><span class="card-value">{{if .Data.SeverityLevelTitleEn}}<span class="badge badge-red">{{.Data.SeverityLevelTitleEn}}</span>{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Severity Level:</span><br /><span class="card-value">{{if
+            .Data.SeverityLevelTitleEn}}<span
+              class="badge badge-red">{{.Data.SeverityLevelTitleEn}}</span>{{else}}-{{end}}</span></td>
         <td colspan="3"></td>
       </tr>
     </table>
@@ -169,38 +320,64 @@
     <div class="section-title">3. Risk Ratings</div>
 
     <div class="subsection-title">3.1 Current Risk Rating</div>
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Likelihood Level:</span><br/><span class="card-value">{{if .Data.CurrentLikelihoodTitleEn}}<span class="badge badge-blue">{{.Data.CurrentLikelihoodTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Likelihood Value:</span><br/><span class="card-value">{{if .Data.CurrentLikelihoodScore}}{{.Data.CurrentLikelihoodScore}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Likelihood Description:</span><br/><span class="card-value">{{if .Data.CurrentLikelihoodDescriptionEn}}{{.Data.CurrentLikelihoodDescriptionEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Impact:</span><br/><span class="card-value">{{if .Data.CurrentImpactTitleEn}}<span class="badge badge-red">{{.Data.CurrentImpactTitleEn}}</span>{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Likelihood Level:</span><br /><span class="card-value">{{if
+            .Data.CurrentLikelihoodTitleEn}}<span
+              class="badge badge-blue">{{.Data.CurrentLikelihoodTitleEn}}</span>{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Likelihood Value:</span><br /><span class="card-value">{{if
+            .Data.CurrentLikelihoodScore}}{{.Data.CurrentLikelihoodScore}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Likelihood Description:</span><br /><span
+            class="card-value">{{if
+            .Data.CurrentLikelihoodDescriptionEn}}{{.Data.CurrentLikelihoodDescriptionEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Impact:</span><br /><span class="card-value">{{if
+            .Data.CurrentImpactTitleEn}}<span
+              class="badge badge-red">{{.Data.CurrentImpactTitleEn}}</span>{{else}}-{{end}}</span></td>
       </tr>
       <tr>
-        <td><span class="card-label">Impact Value:</span><br/><span class="card-value">{{if .Data.CurrentImpactScore}}{{.Data.CurrentImpactScore}}{{else}}-{{end}}</span></td>
-        <td><span class="card-label">Impact Description:</span><br/><span class="card-value">{{if .Data.CurrentImpactDescriptionEn}}{{.Data.CurrentImpactDescriptionEn}}{{else}}-{{end}}</span></td>
-        <td><span class="card-label">Overall Rating:</span><br/><span class="card-value">{{if .Data.CurrentRiskRatingTitleEn}}<span class="badge badge-red">{{.Data.CurrentRiskRatingTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td><span class="card-label">Risk Score:</span><br/><span class="card-value">{{if .Data.CurrentRiskRatingValue}}{{.Data.CurrentRiskRatingValue}}{{else}}-{{end}}</span></td>
+        <td><span class="card-label">Impact Value:</span><br /><span class="card-value">{{if
+            .Data.CurrentImpactScore}}{{.Data.CurrentImpactScore}}{{else}}-{{end}}</span></td>
+        <td><span class="card-label">Impact Description:</span><br /><span class="card-value">{{if
+            .Data.CurrentImpactDescriptionEn}}{{.Data.CurrentImpactDescriptionEn}}{{else}}-{{end}}</span></td>
+        <td><span class="card-label">Overall Rating:</span><br /><span class="card-value">{{if
+            .Data.CurrentRiskRatingTitleEn}}<span
+              class="badge badge-red">{{.Data.CurrentRiskRatingTitleEn}}</span>{{else}}-{{end}}</span></td>
+        <td><span class="card-label">Risk Score:</span><br /><span class="card-value">{{if
+            .Data.CurrentRiskRatingValue}}{{.Data.CurrentRiskRatingValue}}{{else}}-{{end}}</span></td>
       </tr>
     </table>
 
     <div class="subsection-title">3.2 Inherent Risk Rating</div>
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Likelihood Level:</span><br/><span class="card-value">{{if .Data.InherentLikelihoodTitleEn}}<span class="badge badge-red">{{.Data.InherentLikelihoodTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Impact Level:</span><br/><span class="card-value">{{if .Data.InherentImpactTitleEn}}<span class="badge badge-red">{{.Data.InherentImpactTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Overall Rating:</span><br/><span class="card-value">{{if .Data.InherentRiskRatingTitleEn}}<span class="badge badge-red">{{.Data.InherentRiskRatingTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Risk Score:</span><br/><span class="card-value">{{if .Data.InherentRiskRatingValue}}{{.Data.InherentRiskRatingValue}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Likelihood Level:</span><br /><span class="card-value">{{if
+            .Data.InherentLikelihoodTitleEn}}<span
+              class="badge badge-red">{{.Data.InherentLikelihoodTitleEn}}</span>{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Impact Level:</span><br /><span class="card-value">{{if
+            .Data.InherentImpactTitleEn}}<span
+              class="badge badge-red">{{.Data.InherentImpactTitleEn}}</span>{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Overall Rating:</span><br /><span class="card-value">{{if
+            .Data.InherentRiskRatingTitleEn}}<span
+              class="badge badge-red">{{.Data.InherentRiskRatingTitleEn}}</span>{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Risk Score:</span><br /><span class="card-value">{{if
+            .Data.InherentRiskRatingValue}}{{.Data.InherentRiskRatingValue}}{{else}}-{{end}}</span></td>
       </tr>
     </table>
 
     <div class="subsection-title">3.3 Residual Risk Rating</div>
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Likelihood Level:</span><br/><span class="card-value">{{if .Data.ResidualLikelihoodTitleEn}}<span class="badge badge-green">{{.Data.ResidualLikelihoodTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Impact Level:</span><br/><span class="card-value">{{if .Data.ResidualImpactTitleEn}}<span class="badge badge-red">{{.Data.ResidualImpactTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Overall Rating:</span><br/><span class="card-value">{{if .Data.ResidualRiskRatingTitleEn}}<span class="badge badge-yellow">{{.Data.ResidualRiskRatingTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Risk Score:</span><br/><span class="card-value">{{if .Data.ResidualRiskRatingValue}}{{.Data.ResidualRiskRatingValue}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Likelihood Level:</span><br /><span class="card-value">{{if
+            .Data.ResidualLikelihoodTitleEn}}<span
+              class="badge badge-green">{{.Data.ResidualLikelihoodTitleEn}}</span>{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Impact Level:</span><br /><span class="card-value">{{if
+            .Data.ResidualImpactTitleEn}}<span
+              class="badge badge-red">{{.Data.ResidualImpactTitleEn}}</span>{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Overall Rating:</span><br /><span class="card-value">{{if
+            .Data.ResidualRiskRatingTitleEn}}<span
+              class="badge badge-yellow">{{.Data.ResidualRiskRatingTitleEn}}</span>{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Risk Score:</span><br /><span class="card-value">{{if
+            .Data.ResidualRiskRatingValue}}{{.Data.ResidualRiskRatingValue}}{{else}}-{{end}}</span></td>
       </tr>
     </table>
   </div>
@@ -210,18 +387,25 @@
     <div class="section-title">4. Risk Response Strategy Section</div>
 
     <div class="subsection-title">4.1 Strategy Information</div>
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Risk Response Strategy:</span><br/><span class="card-value">{{if .Data.RiskResponseStrategyTitleEn}}{{.Data.RiskResponseStrategyTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Strategy Title:</span><br/><span class="card-value">{{if .Data.RiskResponseStrategyTitleEn}}{{.Data.RiskResponseStrategyTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:50%;" colspan="2"><span class="card-label">Strategy Description:</span><br/><span class="card-value">{{if .Data.RiskResponseStrategyDescription}}{{.Data.RiskResponseStrategyDescription}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Risk Response Strategy:</span><br /><span
+            class="card-value">{{if
+            .Data.RiskResponseStrategyTitleEn}}{{.Data.RiskResponseStrategyTitleEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Strategy Title:</span><br /><span class="card-value">{{if
+            .Data.RiskResponseStrategyTitleEn}}{{.Data.RiskResponseStrategyTitleEn}}{{else}}-{{end}}</span></td>
+        <td style="width:50%;" colspan="2"><span class="card-label">Strategy Description:</span><br /><span
+            class="card-value">{{if
+            .Data.RiskResponseStrategyDescription}}{{.Data.RiskResponseStrategyDescription}}{{else}}-{{end}}</span></td>
       </tr>
     </table>
 
     <div class="subsection-title">4.2 Risk Treatment Guidance</div>
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Treatment Guidance:</span><br/><span class="card-value">{{if .Data.RiskResponseStrategyTreatmentGuidance}}{{.Data.RiskResponseStrategyTreatmentGuidance}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Treatment Guidance:</span><br /><span class="card-value">{{if
+            .Data.RiskResponseStrategyTreatmentGuidance}}{{.Data.RiskResponseStrategyTreatmentGuidance}}{{else}}-{{end}}</span>
+        </td>
         <td colspan="3"></td>
       </tr>
     </table>
@@ -245,28 +429,40 @@
     <div class="section-title">6. Risk Analysis Details</div>
 
     <div class="subsection-title">6.1 Impact Analysis</div>
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Impact Level:</span><br/><span class="card-value">{{if .Data.CurrentImpactTitleEn}}<span class="badge badge-red">{{.Data.CurrentImpactTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Impact Value:</span><br/><span class="card-value">{{if .Data.CurrentImpactScore}}{{.Data.CurrentImpactScore}}{{else}}-{{end}}</span></td>
-        <td style="width:50%;" colspan="2"><span class="card-label">Description:</span><br/><span class="card-value">{{if .Data.CurrentImpactDescriptionEn}}{{.Data.CurrentImpactDescriptionEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Impact Level:</span><br /><span class="card-value">{{if
+            .Data.CurrentImpactTitleEn}}<span
+              class="badge badge-red">{{.Data.CurrentImpactTitleEn}}</span>{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Impact Value:</span><br /><span class="card-value">{{if
+            .Data.CurrentImpactScore}}{{.Data.CurrentImpactScore}}{{else}}-{{end}}</span></td>
+        <td style="width:50%;" colspan="2"><span class="card-label">Description:</span><br /><span
+            class="card-value">{{if
+            .Data.CurrentImpactDescriptionEn}}{{.Data.CurrentImpactDescriptionEn}}{{else}}-{{end}}</span></td>
       </tr>
     </table>
 
     <div class="subsection-title">6.2 Likelihood Analysis</div>
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Likelihood Level:</span><br/><span class="card-value">{{if .Data.CurrentLikelihoodTitleEn}}<span class="badge badge-blue">{{.Data.CurrentLikelihoodTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Likelihood Value:</span><br/><span class="card-value">{{if .Data.CurrentLikelihoodScore}}{{.Data.CurrentLikelihoodScore}}{{else}}-{{end}}</span></td>
-        <td style="width:50%;" colspan="2"><span class="card-label">Description:</span><br/><span class="card-value">{{if .Data.CurrentLikelihoodDescriptionEn}}{{.Data.CurrentLikelihoodDescriptionEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Likelihood Level:</span><br /><span class="card-value">{{if
+            .Data.CurrentLikelihoodTitleEn}}<span
+              class="badge badge-blue">{{.Data.CurrentLikelihoodTitleEn}}</span>{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Likelihood Value:</span><br /><span class="card-value">{{if
+            .Data.CurrentLikelihoodScore}}{{.Data.CurrentLikelihoodScore}}{{else}}-{{end}}</span></td>
+        <td style="width:50%;" colspan="2"><span class="card-label">Description:</span><br /><span
+            class="card-value">{{if
+            .Data.CurrentLikelihoodDescriptionEn}}{{.Data.CurrentLikelihoodDescriptionEn}}{{else}}-{{end}}</span></td>
       </tr>
     </table>
 
     <div class="subsection-title">6.3 Risk Appetite Alignment</div>
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Aligned with Risk Appetite:</span><br/><span class="card-value">No</span></td>
-        <td style="width:75%;" colspan="3"><span class="card-label">Details:</span><br/><span class="card-value">Exceeds approved cybersecurity risk tolerance</span></td>
+        <td style="width:25%;"><span class="card-label">Aligned with Risk Appetite:</span><br /><span
+            class="card-value">No</span></td>
+        <td style="width:75%;" colspan="3"><span class="card-label">Details:</span><br /><span
+            class="card-value">Exceeds approved cybersecurity risk tolerance</span></td>
       </tr>
     </table>
   </div>
@@ -276,31 +472,46 @@
     <div class="section-title">7. Control Analysis</div>
 
     <div class="subsection-title">7.1 Control Performance Overview</div>
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Implemented Controls:</span><br/><span class="card-value">{{if .Data.Controls}}{{len .Data.Controls}}{{else}}0{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Not Implemented Controls:</span><br/><span class="card-value">0</span></td>
-        <td style="width:25%;"><span class="card-label">Efficient Controls:</span><br/><span class="card-value">0</span></td>
-        <td style="width:25%;"><span class="card-label">Inefficient Controls:</span><br/><span class="card-value">0</span></td>
+        <td style="width:25%;"><span class="card-label">Implemented Controls:</span><br /><span class="card-value">{{if
+            .Data.Controls}}{{len .Data.Controls}}{{else}}0{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Not Implemented Controls:</span><br /><span
+            class="card-value">0</span></td>
+        <td style="width:25%;"><span class="card-label">Efficient Controls:</span><br /><span
+            class="card-value">0</span></td>
+        <td style="width:25%;"><span class="card-label">Inefficient Controls:</span><br /><span
+            class="card-value">0</span></td>
       </tr>
     </table>
 
     <div class="subsection-title">7.2 Control Details</div>
     {{if .Data.Controls}}
     {{range .Data.Controls}}
-    <div class="card">
-      <table class="card-table">
+    <div class="card-inline">
+      <table class="card-table" style="border-collapse: collapse;">
         <tr>
-          <td style="width:18%;"><span class="card-label">Control Reference:</span><br/><span class="card-value">{{.ReferenceNumber}}</span></td>
-          <td style="width:32%;"><span class="card-label">Control Title:</span><br/><span class="card-value">{{.TitleEn}}</span></td>
-          <td style="width:18%;"><span class="card-label">Control Code:</span><br/><span class="card-value">{{.Code}}</span></td>
-          <td style="width:32%;"><span class="card-label">Test Score:</span><br/><span class="card-value">{{if .TestScore}}{{.TestScore}} / 100{{else}}-{{end}}</span></td>
+          <td style="width:18%;"><span class="card-label">Control Reference:</span><br /><span
+              class="card-value">{{.ReferenceNumber}}</span></td>
+          <td style="width:32%;"><span class="card-label">Control Title:</span><br /><span
+              class="card-value">{{.TitleEn}}</span></td>
+          <td style="width:18%;"><span class="card-label">Control Code:</span><br /><span
+              class="card-value">{{.Code}}</span></td>
+          <td style="width:32%;"><span class="card-label">Test Score:</span><br /><span class="card-value">{{if
+              .TestScore}}{{.TestScore}} / 100{{else}}-{{end}}</span></td>
         </tr>
         <tr>
-          <td><span class="card-label">Implementation Status:</span><br/><span class="card-value">{{if .ImplementationStatusTitleEn}}<span class="badge badge-green">{{.ImplementationStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Efficiency Status:</span><br/><span class="card-value">{{if .EfficiencyStatusTitleEn}}<span class="badge badge-red">{{.EfficiencyStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Tested At:</span><br/><span class="card-value">{{if .TestedAtString}}{{.TestedAtString}}{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Tested By:</span><br/><span class="card-value">{{if .TestedByUserFirstNameEn}}{{.TestedByUserFirstNameEn}} {{.TestedByUserLastNameEn}}{{if .TestedByUserInitial}} ({{.TestedByUserInitial}}){{end}}{{else}}-{{end}}</span></td>
+          <td><span class="card-label">Implementation Status:</span><br /><span class="card-value">{{if
+              .ImplementationStatusTitleEn}}<span
+                class="badge badge-green">{{.ImplementationStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
+          <td><span class="card-label">Efficiency Status:</span><br /><span class="card-value">{{if
+              .EfficiencyStatusTitleEn}}<span
+                class="badge badge-red">{{.EfficiencyStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
+          <td><span class="card-label">Tested At:</span><br /><span class="card-value">{{if
+              .TestedAtString}}{{.TestedAtString}}{{else}}-{{end}}</span></td>
+          <td><span class="card-label">Tested By:</span><br /><span class="card-value">{{if
+              .TestedByUserFirstNameEn}}{{.TestedByUserFirstNameEn}} {{.TestedByUserLastNameEn}}{{if
+              .TestedByUserInitial}} ({{.TestedByUserInitial}}){{end}}{{else}}-{{end}}</span></td>
         </tr>
       </table>
     </div>
@@ -318,18 +529,29 @@
     {{if .Data.Controls}}
     {{range .Data.Controls}}
     <div class="card">
-      <table class="card-table">
+      <table class="card-table" style="border-collapse: collapse;">
         <tr>
-          <td style="width:18%;"><span class="card-label">Control Reference:</span><br/><span class="card-value">{{.ReferenceNumber}}</span></td>
-          <td style="width:32%;"><span class="card-label">Control Title:</span><br/><span class="card-value">{{.TitleEn}}</span></td>
-          <td style="width:18%;"><span class="card-label">Control Code:</span><br/><span class="card-value">{{.Code}}</span></td>
-          <td style="width:32%;"><span class="card-label">Test Score:</span><br/><span class="card-value">{{if .TestScore}}{{.TestScore}} / 100{{else}}-{{end}}</span></td>
+          <td style="width:18%;"><span class="card-label">Control Reference:</span><br /><span
+              class="card-value">{{.ReferenceNumber}}</span></td>
+          <td style="width:32%;"><span class="card-label">Control Title:</span><br /><span
+              class="card-value">{{.TitleEn}}</span></td>
+          <td style="width:18%;"><span class="card-label">Control Code:</span><br /><span
+              class="card-value">{{.Code}}</span></td>
+          <td style="width:32%;"><span class="card-label">Test Score:</span><br /><span class="card-value">{{if
+              .TestScore}}{{.TestScore}} / 100{{else}}-{{end}}</span></td>
         </tr>
         <tr>
-          <td><span class="card-label">Implementation Status:</span><br/><span class="card-value">{{if .ImplementationStatusTitleEn}}<span class="badge badge-green">{{.ImplementationStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Efficiency Status:</span><br/><span class="card-value">{{if .EfficiencyStatusTitleEn}}<span class="badge badge-red">{{.EfficiencyStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Tested At:</span><br/><span class="card-value">{{if .TestedAtString}}{{.TestedAtString}}{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Tested By:</span><br/><span class="card-value">{{if .TestedByUserFirstNameEn}}{{.TestedByUserFirstNameEn}} {{.TestedByUserLastNameEn}}{{if .TestedByUserInitial}} ({{.TestedByUserInitial}}){{end}}{{else}}-{{end}}</span></td>
+          <td><span class="card-label">Implementation Status:</span><br /><span class="card-value">{{if
+              .ImplementationStatusTitleEn}}<span
+                class="badge badge-green">{{.ImplementationStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
+          <td><span class="card-label">Efficiency Status:</span><br /><span class="card-value">{{if
+              .EfficiencyStatusTitleEn}}<span
+                class="badge badge-red">{{.EfficiencyStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
+          <td><span class="card-label">Tested At:</span><br /><span class="card-value">{{if
+              .TestedAtString}}{{.TestedAtString}}{{else}}-{{end}}</span></td>
+          <td><span class="card-label">Tested By:</span><br /><span class="card-value">{{if
+              .TestedByUserFirstNameEn}}{{.TestedByUserFirstNameEn}} {{.TestedByUserLastNameEn}}{{if
+              .TestedByUserInitial}} ({{.TestedByUserInitial}}){{end}}{{else}}-{{end}}</span></td>
         </tr>
       </table>
     </div>
@@ -346,22 +568,31 @@
     {{range $index, $plan := .Data.ActionPlans}}
     <div class="card">
       <div class="card-header">Action Plan {{add $index 1}}</div>
-      <table class="card-table">
+      <table class="card-table" style="border-collapse: collapse;">
         <tr>
-          <td style="width:18%;"><span class="card-label">Title:</span><br/><span class="card-value">{{if $plan.ActionPlanTitle}}{{$plan.ActionPlanTitle}}{{else}}-{{end}}</span></td>
-          <td style="width:32%;"><span class="card-label">Description:</span><br/><span class="card-value">{{if $plan.ActionPlanDescription}}{{$plan.ActionPlanDescription}}{{else}}-{{end}}</span></td>
-          <td style="width:18%;"><span class="card-label">Severity Level:</span><br/><span class="card-value">{{if $plan.SeverityLevelTitleEn}}<span class="badge badge-red">{{$plan.SeverityLevelTitleEn}}</span>{{else}}-{{end}}</span></td>
-          <td style="width:32%;"><span class="card-label">Responsible User:</span><br/><span class="card-value">{{if $plan.ResponsibleUserNameEn}}{{$plan.ResponsibleUserNameEn}}{{else}}-{{end}}</span></td>
+          <td style="width:18%;"><span class="card-label">Title:</span><br /><span class="card-value">{{if
+              $plan.ActionPlanTitle}}{{$plan.ActionPlanTitle}}{{else}}-{{end}}</span></td>
+          <td style="width:32%;"><span class="card-label">Description:</span><br /><span class="card-value">{{if
+              $plan.ActionPlanDescription}}{{$plan.ActionPlanDescription}}{{else}}-{{end}}</span></td>
+          <td style="width:18%;"><span class="card-label">Severity Level:</span><br /><span class="card-value">{{if
+              $plan.SeverityLevelTitleEn}}<span
+                class="badge badge-red">{{$plan.SeverityLevelTitleEn}}</span>{{else}}-{{end}}</span></td>
+          <td style="width:32%;"><span class="card-label">Responsible User:</span><br /><span class="card-value">{{if
+              $plan.ResponsibleUserNameEn}}{{$plan.ResponsibleUserNameEn}}{{else}}-{{end}}</span></td>
         </tr>
         <tr>
-          <td><span class="card-label">Target Date:</span><br/><span class="card-value">{{if $plan.TargetDate}}{{$plan.TargetDate.Format "02 Jan 2006"}}{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Completion:</span><br/><span class="card-value">-</span></td>
-          <td><span class="card-label">Status:</span><br/><span class="card-value">{{if $plan.ActionPlanStatusTitleEn}}<span class="badge badge-blue">{{$plan.ActionPlanStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Proposed Controls:</span><br/><span class="card-value">{{if $plan.ProposedControls}}{{$plan.ProposedControls}}{{else}}-{{end}}</span></td>
+          <td><span class="card-label">Target Date:</span><br /><span class="card-value">{{if
+              $plan.TargetDate}}{{$plan.TargetDate.Format "02 Jan 2006"}}{{else}}-{{end}}</span></td>
+          <td><span class="card-label">Completion:</span><br /><span class="card-value">-</span></td>
+          <td><span class="card-label">Status:</span><br /><span class="card-value">{{if
+              $plan.ActionPlanStatusTitleEn}}<span
+                class="badge badge-blue">{{$plan.ActionPlanStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
+          <td><span class="card-label">Proposed Controls:</span><br /><span class="card-value">{{if
+              $plan.ProposedControls}}{{$plan.ProposedControls}}{{else}}-{{end}}</span></td>
         </tr>
         <tr>
-          <td><span class="card-label">Latest Update:</span><br/><span class="card-value">-</span></td>
-          <td><span class="card-label">Comments:</span><br/><span class="card-value">-</span></td>
+          <td><span class="card-label">Latest Update:</span><br /><span class="card-value">-</span></td>
+          <td><span class="card-label">Comments:</span><br /><span class="card-value">-</span></td>
           <td colspan="2"></td>
         </tr>
       </table>
@@ -379,21 +610,32 @@
     {{range $index, $kri := .Data.KeyRiskIdentifiers}}
     <div class="card">
       <div class="card-header">KRI {{add $index 1}}</div>
-      <table class="card-table">
+      <table class="card-table" style="border-collapse: collapse;">
         <tr>
-          <td style="width:18%;"><span class="card-label">KRI Reference:</span><br/><span class="card-value">{{if $kri.RiskReferenceNumber}}{{$kri.RiskReferenceNumber}}{{else}}-{{end}}</span></td>
-          <td style="width:32%;"><span class="card-label">Title:</span><br/><span class="card-value">{{if $kri.Title}}{{$kri.Title}}{{else}}-{{end}}</span></td>
-          <td style="width:18%;"><span class="card-label">Description:</span><br/><span class="card-value">{{if $kri.Description}}{{$kri.Description}}{{else}}-{{end}}</span></td>
-          <td style="width:32%;"><span class="card-label">Category:</span><br/><span class="card-value">{{if $.Data.RiskCategoryTitleEn}}{{$.Data.RiskCategoryTitleEn}}{{else}}-{{end}}</span></td>
+          <td style="width:18%;"><span class="card-label">KRI Reference:</span><br /><span class="card-value">{{if
+              $kri.RiskReferenceNumber}}{{$kri.RiskReferenceNumber}}{{else}}-{{end}}</span></td>
+          <td style="width:32%;"><span class="card-label">Title:</span><br /><span class="card-value">{{if
+              $kri.Title}}{{$kri.Title}}{{else}}-{{end}}</span></td>
+          <td style="width:18%;"><span class="card-label">Description:</span><br /><span class="card-value">{{if
+              $kri.Description}}{{$kri.Description}}{{else}}-{{end}}</span></td>
+          <td style="width:32%;"><span class="card-label">Category:</span><br /><span class="card-value">{{if
+              $.Data.RiskCategoryTitleEn}}{{$.Data.RiskCategoryTitleEn}}{{else}}-{{end}}</span></td>
         </tr>
         <tr>
-          <td><span class="card-label">Current Value:</span><br/><span class="card-value">{{if $kri.CurrentValue}}{{$kri.CurrentValue}}{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Low Threshold:</span><br/><span class="card-value">{{if $kri.LowThreshold}}{{$kri.LowThreshold}}{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Medium Threshold:</span><br/><span class="card-value">{{if $kri.MediumThreshold}}{{$kri.MediumThreshold}}{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Unit:</span><br/><span class="card-value">{{if $kri.UnitTitleEn}}{{$kri.UnitTitleEn}}{{else}}-{{end}}</span></td>
+          <td><span class="card-label">Current Value:</span><br /><span class="card-value">{{if
+              $kri.CurrentValue}}{{$kri.CurrentValue}}{{else}}-{{end}}</span></td>
+          <td><span class="card-label">Low Threshold:</span><br /><span class="card-value">{{if
+              $kri.LowThreshold}}{{$kri.LowThreshold}}{{else}}-{{end}}</span></td>
+          <td><span class="card-label">Medium Threshold:</span><br /><span class="card-value">{{if
+              $kri.MediumThreshold}}{{$kri.MediumThreshold}}{{else}}-{{end}}</span></td>
+          <td><span class="card-label">Unit:</span><br /><span class="card-value">{{if
+              $kri.UnitTitleEn}}{{$kri.UnitTitleEn}}{{else}}-{{end}}</span></td>
         </tr>
         <tr>
-          <td colspan="4"><span class="card-label">Responsible User:</span><br/><span class="card-value">{{if $.Data.ResponsibleUserFirstNameEn}}{{$.Data.ResponsibleUserFirstNameEn}} {{$.Data.ResponsibleUserLastNameEn}}{{if $.Data.ResponsibleUserInitial}} ({{$.Data.ResponsibleUserInitial}}){{end}}{{else}}-{{end}}</span></td>
+          <td colspan="4"><span class="card-label">Responsible User:</span><br /><span class="card-value">{{if
+              $.Data.ResponsibleUserFirstNameEn}}{{$.Data.ResponsibleUserFirstNameEn}}
+              {{$.Data.ResponsibleUserLastNameEn}}{{if $.Data.ResponsibleUserInitial}}
+              ({{$.Data.ResponsibleUserInitial}}){{end}}{{else}}-{{end}}</span></td>
         </tr>
       </table>
     </div>
@@ -410,12 +652,16 @@
     <div class="subsection-title">11.1 Assets</div>
     {{if gt (len .Data.Assets) 0}}
     {{range .Data.Assets}}
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Asset Title:</span><br/><span class="card-value">{{if .TitleEn}}{{.TitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Asset Type:</span><br/><span class="card-value">{{if .AssetTypeTitleEn}}{{.AssetTypeTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Reference Number:</span><br/><span class="card-value">{{if .ReferenceNumber}}{{.ReferenceNumber}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Description:</span><br/><span class="card-value">{{if .Description}}{{.Description}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Asset Title:</span><br /><span class="card-value">{{if
+            .TitleEn}}{{.TitleEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Asset Type:</span><br /><span class="card-value">{{if
+            .AssetTypeTitleEn}}{{.AssetTypeTitleEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Reference Number:</span><br /><span class="card-value">{{if
+            .ReferenceNumber}}{{.ReferenceNumber}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Description:</span><br /><span class="card-value">{{if
+            .Description}}{{.Description}}{{else}}-{{end}}</span></td>
       </tr>
     </table>
     {{end}}
@@ -426,12 +672,17 @@
     <div class="subsection-title">11.2 Incidents</div>
     {{if gt (len .Data.Incidents) 0}}
     {{range .Data.Incidents}}
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Incident Title:</span><br/><span class="card-value">{{if .Title}}{{.Title}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Reference Number:</span><br/><span class="card-value">{{if .ReferenceNumber}}{{.ReferenceNumber}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Incident Date:</span><br/><span class="card-value">-</span></td>
-        <td style="width:25%;"><span class="card-label">Status:</span><br/><span class="card-value">{{if .IncidentStatusTitleEn}}<span class="badge badge-green">{{.IncidentStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Incident Title:</span><br /><span class="card-value">{{if
+            .Title}}{{.Title}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Reference Number:</span><br /><span class="card-value">{{if
+            .ReferenceNumber}}{{.ReferenceNumber}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Incident Date:</span><br /><span class="card-value">-</span>
+        </td>
+        <td style="width:25%;"><span class="card-label">Status:</span><br /><span class="card-value">{{if
+            .IncidentStatusTitleEn}}<span
+              class="badge badge-green">{{.IncidentStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
       </tr>
     </table>
     {{end}}
@@ -442,12 +693,17 @@
     <div class="subsection-title">11.3 Documents</div>
     {{if gt (len .Data.Documents) 0}}
     {{range .Data.Documents}}
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Document Title:</span><br/><span class="card-value">{{if .TitleEn}}{{.TitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Document Type:</span><br/><span class="card-value">{{if .DocumentTypeTitleEn}}{{.DocumentTypeTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Category:</span><br/><span class="card-value">{{if .DocumentCategoryTitleEn}}{{.DocumentCategoryTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Status:</span><br/><span class="card-value">{{if .DocumentStatusTitleEn}}<span class="badge badge-blue">{{.DocumentStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Document Title:</span><br /><span class="card-value">{{if
+            .TitleEn}}{{.TitleEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Document Type:</span><br /><span class="card-value">{{if
+            .DocumentTypeTitleEn}}{{.DocumentTypeTitleEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Category:</span><br /><span class="card-value">{{if
+            .DocumentCategoryTitleEn}}{{.DocumentCategoryTitleEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Status:</span><br /><span class="card-value">{{if
+            .DocumentStatusTitleEn}}<span
+              class="badge badge-blue">{{.DocumentStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
       </tr>
     </table>
     {{end}}
@@ -458,12 +714,17 @@
     <div class="subsection-title">11.4 Processes</div>
     {{if gt (len .Data.Processes) 0}}
     {{range .Data.Processes}}
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Process Reference:</span><br/><span class="card-value">{{if .ReferenceNumber}}{{.ReferenceNumber}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Process Title:</span><br/><span class="card-value">{{if .TitleEn}}{{.TitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Process Group:</span><br/><span class="card-value">{{if .ProcessGroupTitleEn}}{{.ProcessGroupTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Status:</span><br/><span class="card-value">{{if .LifecycleStatusTitleEn}}<span class="badge badge-blue">{{.LifecycleStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Process Reference:</span><br /><span class="card-value">{{if
+            .ReferenceNumber}}{{.ReferenceNumber}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Process Title:</span><br /><span class="card-value">{{if
+            .TitleEn}}{{.TitleEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Process Group:</span><br /><span class="card-value">{{if
+            .ProcessGroupTitleEn}}{{.ProcessGroupTitleEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Status:</span><br /><span class="card-value">{{if
+            .LifecycleStatusTitleEn}}<span
+              class="badge badge-blue">{{.LifecycleStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
       </tr>
     </table>
     {{end}}
@@ -474,12 +735,16 @@
     <div class="subsection-title">11.5 KPIs</div>
     {{if gt (len .Data.KPIs) 0}}
     {{range .Data.KPIs}}
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">KPI Reference:</span><br/><span class="card-value">{{if .ReferenceNumber}}{{.ReferenceNumber}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">KPI Title:</span><br/><span class="card-value">{{if .Title}}{{.Title}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Category:</span><br/><span class="card-value">{{if .KPICategoryTitleEn}}{{.KPICategoryTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Status:</span><br/><span class="card-value">{{if .KPIStatusTitleEn}}<span class="badge badge-blue">{{.KPIStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">KPI Reference:</span><br /><span class="card-value">{{if
+            .ReferenceNumber}}{{.ReferenceNumber}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">KPI Title:</span><br /><span class="card-value">{{if
+            .Title}}{{.Title}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Category:</span><br /><span class="card-value">{{if
+            .KPICategoryTitleEn}}{{.KPICategoryTitleEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Status:</span><br /><span class="card-value">{{if
+            .KPIStatusTitleEn}}<span class="badge badge-blue">{{.KPIStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
       </tr>
     </table>
     {{end}}
@@ -490,12 +755,16 @@
     <div class="subsection-title">11.6 Strategic Objectives</div>
     {{if gt (len .Data.StrategicObjectives) 0}}
     {{range .Data.StrategicObjectives}}
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Reference Number:</span><br/><span class="card-value">{{if .ReferenceNumber}}{{.ReferenceNumber}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Title:</span><br/><span class="card-value">{{if .TitleEn}}{{.TitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Category:</span><br/><span class="card-value">{{if .StrategicObjectiveCategoryTitleEn}}{{.StrategicObjectiveCategoryTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Status:</span><br/><span class="card-value">{{if .Status}}<span class="badge badge-blue">{{.Status}}</span>{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Reference Number:</span><br /><span class="card-value">{{if
+            .ReferenceNumber}}{{.ReferenceNumber}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Title:</span><br /><span class="card-value">{{if
+            .TitleEn}}{{.TitleEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Category:</span><br /><span class="card-value">{{if
+            .StrategicObjectiveCategoryTitleEn}}{{.StrategicObjectiveCategoryTitleEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Status:</span><br /><span class="card-value">{{if .Status}}<span
+              class="badge badge-blue">{{.Status}}</span>{{else}}-{{end}}</span></td>
       </tr>
     </table>
     {{end}}
@@ -506,11 +775,16 @@
     <div class="subsection-title">11.7 Compliance Requirements</div>
     {{if gt (len .Data.ComplianceRequirements) 0}}
     {{range .Data.ComplianceRequirements}}
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Compliance Register:</span><br/><span class="card-value">{{if .ComplianceRegisterTitleEn}}{{.ComplianceRegisterTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Clauses:</span><br/><span class="card-value">{{if gt (len .Clauses) 0}}{{range $index, $clause := .Clauses}}{{if $index}}, {{end}}{{$clause.ClauseNo}}{{end}}{{else}}-{{end}}</span></td>
-        <td style="width:50%;" colspan="2"><span class="card-label">Clause Details:</span><br/><span class="card-value">{{if gt (len .Clauses) 0}}{{range .Clauses}}{{.ClauseNo}}: {{.ClauseTitleEn}}<br/>{{end}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Compliance Register:</span><br /><span class="card-value">{{if
+            .ComplianceRegisterTitleEn}}{{.ComplianceRegisterTitleEn}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Clauses:</span><br /><span class="card-value">{{if gt (len
+            .Clauses) 0}}{{range $index, $clause := .Clauses}}{{if $index}},
+            {{end}}{{$clause.ClauseNo}}{{end}}{{else}}-{{end}}</span></td>
+        <td style="width:50%;" colspan="2"><span class="card-label">Clause Details:</span><br /><span
+            class="card-value">{{if gt (len .Clauses) 0}}{{range .Clauses}}{{.ClauseNo}}:
+            {{.ClauseTitleEn}}<br />{{end}}{{else}}-{{end}}</span></td>
       </tr>
     </table>
     {{end}}
@@ -522,15 +796,22 @@
   <!-- 12. Risk Closure -->
   <div class="section">
     <div class="section-title">12. Risk Closure</div>
-    <table class="card-table" style="margin-bottom:12px;">
+    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
       <tr>
-        <td style="width:25%;"><span class="card-label">Justification:</span><br/><span class="card-value">Risk reduced to acceptable level after PAM rollout</span></td>
-        <td style="width:25%;"><span class="card-label">Final Risk Rating:</span><br/><span class="card-value">{{if .Data.ResidualRiskRatingTitleEn}}<span class="badge badge-yellow">{{.Data.ResidualRiskRatingTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Created By:</span><br/><span class="card-value">{{if .Data.ResponsibleUserFirstNameEn}}{{.Data.ResponsibleUserFirstNameEn}} {{.Data.ResponsibleUserLastNameEn}}{{if .Data.ResponsibleUserInitial}} ({{.Data.ResponsibleUserInitial}}){{end}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Created At:</span><br/><span class="card-value">-</span></td>
+        <td style="width:25%;"><span class="card-label">Justification:</span><br /><span class="card-value">Risk reduced
+            to acceptable level after PAM rollout</span></td>
+        <td style="width:25%;"><span class="card-label">Final Risk Rating:</span><br /><span class="card-value">{{if
+            .Data.ResidualRiskRatingTitleEn}}<span
+              class="badge badge-yellow">{{.Data.ResidualRiskRatingTitleEn}}</span>{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Created By:</span><br /><span class="card-value">{{if
+            .Data.ResponsibleUserFirstNameEn}}{{.Data.ResponsibleUserFirstNameEn}}
+            {{.Data.ResponsibleUserLastNameEn}}{{if .Data.ResponsibleUserInitial}}
+            ({{.Data.ResponsibleUserInitial}}){{end}}{{else}}-{{end}}</span></td>
+        <td style="width:25%;"><span class="card-label">Created At:</span><br /><span class="card-value">-</span></td>
       </tr>
     </table>
   </div>
 
 </body>
+
 </html>
