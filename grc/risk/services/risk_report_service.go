@@ -644,24 +644,6 @@ func (rrs *RiskReportService) parseRiskReportDates(dto *dtos.RiskReportFormDTO) 
 	return parsed, nil
 }
 
-// func (rrs *RiskReportService) parseRiskReportDates(dto *dtos.RiskReportFormDTO) (*dtos.RiskReportParsedDates, error) {
-// 	parsed := &dtos.RiskReportParsedDates{}
-
-// 	var err error
-
-// 	parsed.StartDate, err = utility.ParseDate(dto.StartDate)
-// 	if err != nil {
-// 		return nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start date")
-// 	}
-
-// 	parsed.EndDate, err = utility.ParseDate(dto.EndDate)
-// 	if err != nil {
-// 		return nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end date")
-// 	}
-
-// 	return parsed, nil
-// }
-
 func (rrs *RiskReportService) GetDocumentPath(id uint, token string) (string, error) {
 	// Get full details of the risk report by ID
 	existingRiskReport, err := rrs.GetRiskReportDetails(id)
