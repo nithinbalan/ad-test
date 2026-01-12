@@ -23,6 +23,7 @@ type QuestionSetServiceInterface interface {
 	Create(currentUserID uint, form *dtos.QuestionSetFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, form *dtos.QuestionSetFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
 
 	AddQuestionsToSet(questionSetID, currentUserID uint, dto *dtos.QuestionSetAddQuestionsDTO) error
 	DeleteQuestionFromSet(questionSetID uint, questionID uint) error
@@ -616,4 +617,44 @@ func (svc *QuestionSetService) ExportQuestionSets(data []*dtos.QuestionSetListDT
 
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (svc *QuestionSetService) ForceDelete(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := svc.repo.BeginTransaction()
+	var failedIds []uint
+	var deletedData []map[string]interface{}
+
+	for _, id := range ids {
+		if err := svc.repo.ForceDelete(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		deletedData = append(deletedData, map[string]interface{}{
+			"id": id,
+		})
+	}
+
+	if len(failedIds) > 0 {
+		return failedIds, nil
+	}
+
+	if err := tx.Commit(); err != nil {
+		return ids, err
+	}
+
+	go func() {
+		if err := svc.activityLogSvc.LogBulkActivities(
+			models.DeleteAction,
+			models.QuestionSet{}.TableName(),
+			ids,
+			deletedData,
+			currentUserID,
+			nil,
+		); err != nil {
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
+	return nil, nil
 }
