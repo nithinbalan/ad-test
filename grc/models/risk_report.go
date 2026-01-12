@@ -17,6 +17,7 @@ type RiskReport struct {
 	ActionPlans       []RiskReportActionPlan        `gorm:"foreignKey:RiskReportID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 	KRIs              []RiskReportKRI               `gorm:"foreignKey:RiskReportID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 	OrganizationUnits []*RiskReportOrganizationUnit `gorm:"foreignKey:RiskReportID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	RiskRegisters     []*RiskReportRiskRegister     `gorm:"foreignKey:RiskReportID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 // TableName overrides the table name used by RiskReport to `risk_reports`

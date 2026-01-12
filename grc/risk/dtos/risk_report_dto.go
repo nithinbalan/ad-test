@@ -193,25 +193,25 @@ type RiskReportKriResponseDTO struct {
 // }
 
 // // RiskReportKriResponseDTO represents a Key Risk Indicator (KRI)
-// type RiskReportKriResponseDTO struct {
-// 	RiskReferenceNumber string  `json:"risk_reference_number"`
-// 	RiskTitle           string  `json:"risk_title"`
-// 	Title               string  `json:"title"`
-// 	Description         *string `json:"description"`
-// 	LowThreshold        *int    `json:"low_threshold"`
-// 	MediumThreshold     *int    `json:"medium_threshold"`
-// 	UnitTitleEn         *string `json:"unit_title_en"`
-// 	UnitTitleAr         *string `json:"unit_title_ar"`
-// 	CurrentValue        *int    `json:"current_value"`
-// }
-
+//
+//	type RiskReportKriResponseDTO struct {
+//		RiskReferenceNumber string  `json:"risk_reference_number"`
+//		RiskTitle           string  `json:"risk_title"`
+//		Title               string  `json:"title"`
+//		Description         *string `json:"description"`
+//		LowThreshold        *int    `json:"low_threshold"`
+//		MediumThreshold     *int    `json:"medium_threshold"`
+//		UnitTitleEn         *string `json:"unit_title_en"`
+//		UnitTitleAr         *string `json:"unit_title_ar"`
+//		CurrentValue        *int    `json:"current_value"`
+//	}
 type RiskReportFormDTO struct {
 	Title               string `json:"title" binding:"required"`
-	StartDate           string `json:"start_date" binding:"required"`
-	EndDate             string `json:"end_date" binding:"required"`
+	StartDate           string `json:"start_date"`
+	EndDate             string `json:"end_date"`
 	OrganizationUnitIDs []uint `json:"organization_unit_ids"`
+	RiskIDs             []uint `json:"risk_ids"`
 }
-
 type RiskReportIdentifiedRiskDTO struct {
 	ID                     uint      `json:"id"`
 	ReferenceNumber        string    `json:"reference_number"`

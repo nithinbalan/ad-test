@@ -58,6 +58,9 @@ type RiskReportRepositoryInterface interface {
 	GetRiskReportDocumentByID(riskReportID uint, documentID uint, tx ...utility.DatabaseTransaction) (*models.RiskReportDocument, error)
 	CreateRiskDocuments(documents []*models.RiskReportDocument, tx ...utility.DatabaseTransaction) error
 	DeleteRiskReportDocument(riskReportID uint, documentID uint, tx ...utility.DatabaseTransaction) error
+
+	//riskregister
+	CreateRiskReportRiskRegister(riskRegister *models.RiskReportRiskRegister, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskReportRepository struct {
@@ -714,4 +717,12 @@ func (repo *RiskReportRepository) GetRiskReportDocumentByID(riskReportID uint, d
 	}
 
 	return &riskReportDocument, nil
+}
+
+func (repo *RiskReportRepository) CreateRiskReportRiskRegister(riskRegister *models.RiskReportRiskRegister, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(riskRegister).Error
 }

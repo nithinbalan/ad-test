@@ -192,6 +192,21 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 		}
 	}
 
+	if len(riskReportFormDTO.RiskIDs) > 0 {
+		for _, riskRegisterID := range riskReportFormDTO.RiskIDs {
+			riskRegister := &models.RiskReportRiskRegister{
+				RiskReportID:   riskReportID,
+				RiskRegisterID: riskRegisterID,
+				CreatedBYID:    currentUserID,
+			}
+
+			if err := rrs.repo.CreateRiskReportRiskRegister(riskRegister, tx); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+	}
+
 	sectionTypes := []string{
 		"executive-summary", "context", "identification", "assessment",
 		"mitigation", "kri", "communication", "recommendation", "documents",
