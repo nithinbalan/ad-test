@@ -168,8 +168,8 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 	// Step 1: Create Risk Report Entry
 	riskReport := &models.RiskReport{
 		Title:       riskReportFormDTO.Title,
-		StartDate:   *dates.StartDate,
-		EndDate:     *dates.EndDate,
+		StartDate:   dates.StartDate,
+		EndDate:     dates.EndDate,
 		CreatedBYID: currentUserID,
 	}
 
@@ -623,24 +623,47 @@ func formatTitle(sectionType string) (string, string) {
 		return sectionType, sectionType // Default to sectionType if not found
 	}
 }
-
 func (rrs *RiskReportService) parseRiskReportDates(dto *dtos.RiskReportFormDTO) (*dtos.RiskReportParsedDates, error) {
 	parsed := &dtos.RiskReportParsedDates{}
 
 	var err error
 
-	parsed.StartDate, err = utility.ParseDate(dto.StartDate)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start date")
+	// StartDate
+	if dto.StartDate != nil {
+		parsed.StartDate, err = utility.ParseDate(*dto.StartDate) // dereference pointer
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start date")
+		}
 	}
 
-	parsed.EndDate, err = utility.ParseDate(dto.EndDate)
-	if err != nil {
-		return nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end date")
+	// EndDate
+	if dto.EndDate != nil {
+		parsed.EndDate, err = utility.ParseDate(*dto.EndDate) // dereference pointer
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end date")
+		}
 	}
 
 	return parsed, nil
 }
+
+// func (rrs *RiskReportService) parseRiskReportDates(dto *dtos.RiskReportFormDTO) (*dtos.RiskReportParsedDates, error) {
+// 	parsed := &dtos.RiskReportParsedDates{}
+
+// 	var err error
+
+// 	parsed.StartDate, err = utility.ParseDate(dto.StartDate)
+// 	if err != nil {
+// 		return nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start date")
+// 	}
+
+// 	parsed.EndDate, err = utility.ParseDate(dto.EndDate)
+// 	if err != nil {
+// 		return nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end date")
+// 	}
+
+// 	return parsed, nil
+// }
 
 func (rrs *RiskReportService) GetDocumentPath(id uint, token string) (string, error) {
 	// Get full details of the risk report by ID

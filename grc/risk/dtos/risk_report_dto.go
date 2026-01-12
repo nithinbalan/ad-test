@@ -206,11 +206,11 @@ type RiskReportKriResponseDTO struct {
 //		CurrentValue        *int    `json:"current_value"`
 //	}
 type RiskReportFormDTO struct {
-	Title               string `json:"title" binding:"required"`
-	StartDate           string `json:"start_date"`
-	EndDate             string `json:"end_date"`
-	OrganizationUnitIDs []uint `json:"organization_unit_ids"`
-	RiskIDs             []uint `json:"risk_ids"`
+	Title               string  `json:"title" binding:"required"`
+	StartDate           *string `json:"start_date"`
+	EndDate             *string `json:"end_date"`
+	OrganizationUnitIDs []uint  `json:"organization_unit_ids"`
+	RiskIDs             []uint  `json:"risk_ids"`
 }
 type RiskReportIdentifiedRiskDTO struct {
 	ID                     uint      `json:"id"`
