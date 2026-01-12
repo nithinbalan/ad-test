@@ -192,21 +192,6 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 		}
 	}
 
-	if len(riskReportFormDTO.RiskIDs) > 0 {
-		for _, riskRegisterID := range riskReportFormDTO.RiskIDs {
-			riskRegister := &models.RiskReportRiskRegister{
-				RiskReportID:   riskReportID,
-				RiskRegisterID: riskRegisterID,
-				CreatedBYID:    currentUserID,
-			}
-
-			if err := rrs.repo.CreateRiskReportRiskRegister(riskRegister, tx); err != nil {
-				tx.Rollback()
-				return 0, err
-			}
-		}
-	}
-
 	sectionTypes := []string{
 		"executive-summary", "context", "identification", "assessment",
 		"mitigation", "kri", "communication", "recommendation", "documents",
@@ -229,10 +214,21 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 		}
 	}
 
-	risks, err := rrs.repo.GetRisksByDateRange(*dates.StartDate, *dates.EndDate, riskReportFormDTO.OrganizationUnitIDs, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
+	var risks []dtos.RiskReportIdentifiedRiskDTO
+	if dates.StartDate != nil && dates.EndDate != nil {
+		var err error
+		risks, err = rrs.repo.GetRisksByDateRange(*dates.StartDate, *dates.EndDate, riskReportFormDTO.OrganizationUnitIDs, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	} else if riskReportFormDTO.RiskIDs != nil && len(*riskReportFormDTO.RiskIDs) > 0 {
+		var err error
+		risks, err = rrs.repo.GetRisksByOrgUnitsAndRiskIDs(riskReportFormDTO.OrganizationUnitIDs, *riskReportFormDTO.RiskIDs, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	for _, risk := range risks {
@@ -517,6 +513,7 @@ func (rrs *RiskReportService) DeleteRiskReportSection(riskReportID uint, section
 	if err := rrs.repo.DeleteRiskReportSection(sectionID, tx); err != nil {
 		tx.Rollback()
 		return err
+
 	}
 
 	// Reorder remaining sections

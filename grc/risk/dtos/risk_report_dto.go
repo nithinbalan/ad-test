@@ -210,7 +210,7 @@ type RiskReportFormDTO struct {
 	StartDate           *string `json:"start_date"`
 	EndDate             *string `json:"end_date"`
 	OrganizationUnitIDs []uint  `json:"organization_unit_ids"`
-	RiskIDs             []uint  `json:"risk_ids"`
+	RiskIDs             *[]uint `json:"risk_ids"`
 }
 type RiskReportIdentifiedRiskDTO struct {
 	ID                     uint      `json:"id"`
