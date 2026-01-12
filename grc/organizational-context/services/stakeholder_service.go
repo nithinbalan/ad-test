@@ -21,6 +21,7 @@ type StakeholderServiceInterface interface {
 	Create(currentUserID uint, organizationalContextDTOs *organizationalContextDTOs.StakeholderFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, stakeholder *organizationalContextDTOs.StakeholderFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -283,4 +284,44 @@ func (ss *StakeholderService) Delete(ids []uint, currentUserID uint) ([]uint, er
 	}
 
 	return failedIds, nil
+}
+
+func (ss *StakeholderService) ForceDelete(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := ss.repo.BeginTransaction()
+	var failedIds []uint
+	var deletedData []map[string]interface{}
+
+	for _, id := range ids {
+		if err := ss.repo.ForceDelete(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		deletedData = append(deletedData, map[string]interface{}{
+			"id": id,
+		})
+	}
+
+	if len(failedIds) > 0 {
+		return failedIds, nil
+	}
+
+	if err := tx.Commit(); err != nil {
+		return ids, err
+	}
+
+	go func() {
+		if err := ss.activityLogSvc.LogBulkActivities(
+			models.DeleteAction,
+			models.Stakeholder{}.TableName(),
+			ids,
+			deletedData,
+			currentUserID,
+			nil,
+		); err != nil {
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
+	return nil, nil
 }
