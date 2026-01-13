@@ -31,6 +31,20 @@ func (cac *ComplianceAssessmentController) GetAllComplianceAssessments(c *gin.Co
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(cac.db, c, "Invalid export parameter")
+			return
+		}
+	}
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"compliance_register_ids",
@@ -83,6 +97,7 @@ func (cac *ComplianceAssessmentController) GetAllComplianceAssessments(c *gin.Co
 		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
+		Export:      export,
 	}
 
 	complianceAssessments, err := cac.service.GetAll(&queryParams)
@@ -91,8 +106,36 @@ func (cac *ComplianceAssessmentController) GetAllComplianceAssessments(c *gin.Co
 		return
 	}
 
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(cac.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := cac.service.ExportComplianceAssessments(complianceAssessments.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(cac.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Compliance Assessments.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
 	// Otherwise, return the data as JSON
 	c.JSON(http.StatusOK, complianceAssessments)
+}
+
+func (cac *ComplianceAssessmentController) GetComplianceAssessmentsExport(c *gin.Context) {
+	c.Set("export", true)
+
+	cac.GetAllComplianceAssessments(c)
 }
 
 func (cac *ComplianceAssessmentController) GetComplianceAssessmentDetails(c *gin.Context) {
