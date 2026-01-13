@@ -10,19 +10,19 @@ import (
 	"gorm.io/gorm"
 )
 
-type DashboardController struct {
-	service organizationServices.DashboardServiceInterface
+type MyDashboardController struct {
+	service organizationServices.MyDashboardServiceInterface
 	db      *gorm.DB
 }
 
-func NewDashboardController(service organizationServices.DashboardServiceInterface, db *gorm.DB) *DashboardController {
-	return &DashboardController{
+func NewMyDashboardController(service organizationServices.MyDashboardServiceInterface, db *gorm.DB) *MyDashboardController {
+	return &MyDashboardController{
 		service: service,
 		db:      db,
 	}
 }
 
-func (dc *DashboardController) GetDashboardSummary(c *gin.Context) {
+func (dc *MyDashboardController) GetDashboardSummary(c *gin.Context) {
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(dc.db, c, err.Error())
@@ -38,7 +38,7 @@ func (dc *DashboardController) GetDashboardSummary(c *gin.Context) {
 	c.JSON(http.StatusOK, summary)
 }
 
-func (dc *DashboardController) GetUserTasks(c *gin.Context) {
+func (dc *MyDashboardController) GetUserTasks(c *gin.Context) {
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(dc.db, c, err.Error())
@@ -51,21 +51,23 @@ func (dc *DashboardController) GetUserTasks(c *gin.Context) {
 		limit = 5
 	}
 
-	if limit > 20 {
-		limit = 20
-	}
-
 	userTasks, err := dc.service.GetUserTasks(currentUserID, limit)
 	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, "Unable to fetch user tasks")
-		return
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(dc.db, c, err.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, userTasks)
 
 }
 
-func (dc *DashboardController) GetOverdueTasks(c *gin.Context) {
+func (dc *MyDashboardController) GetOverdueTasks(c *gin.Context) {
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(dc.db, c, err.Error())
@@ -80,14 +82,20 @@ func (dc *DashboardController) GetOverdueTasks(c *gin.Context) {
 
 	overdueTasks, err := dc.service.GetOverdueTasks(currentUserID, limit)
 	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, "Unable to fetch overdue tasks")
-		return
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(dc.db, c, err.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, overdueTasks)
 }
 
-func (dc *DashboardController) GetAssignedRisks(c *gin.Context) {
+func (dc *MyDashboardController) GetAssignedRisks(c *gin.Context) {
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(dc.db, c, err.Error())
@@ -102,14 +110,20 @@ func (dc *DashboardController) GetAssignedRisks(c *gin.Context) {
 
 	assignedRisks, err := dc.service.GetAssignedRisks(currentUserID, limit)
 	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, "Unable to fetch assigned risks")
-		return
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(dc.db, c, err.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, assignedRisks)
 }
 
-func (dc *DashboardController) GetRecentActivity(c *gin.Context) {
+func (dc *MyDashboardController) GetRecentActivity(c *gin.Context) {
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendUnauthorizedErrResp(c, "Unauthorized")
@@ -124,9 +138,16 @@ func (dc *DashboardController) GetRecentActivity(c *gin.Context) {
 
 	recentActivity, err := dc.service.GetRecentActivity(currentUserID, limit)
 	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, "Unable to fetch recent activity")
-		return
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(dc.db, c, err.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, recentActivity)
 }
+

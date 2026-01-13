@@ -8,24 +8,23 @@ import (
 	"gorm.io/gorm"
 )
 
-type DashboardRepositoryInterface interface {
-	GetDashboardSummary(userID uint) (*organizationDTOs.DashboardDTO, error)
-	GetUserTasks(userID uint, limit int) ([]*organizationDTOs.UserTaskDTO, error)
-	GetOverdueTasks(userID uint, limit int) ([]*organizationDTOs.UserTaskDTO, error)
-	GetAssignedRisks(userID uint, limit int) ([]*organizationDTOs.AssignedRiskDTO, error)
+type MyDashboardRepositoryInterface interface {
+	GetDashboardSummary(userID uint) (tasksAssigned, tasksCompleted, overdueItems, newNotifications int64, err error)
+	GetUserTasks(userID uint, limit int) ([]organizationDTOs.UserTaskDTO, error)
+	GetOverdueTasks(userID uint, limit int) ([]organizationDTOs.UserTaskDTO, error)
+	GetAssignedRisks(userID uint, limit int) ([]organizationDTOs.AssignedRiskFlatDTO, error)
 	GetRecentActivity(userID uint, limit int) ([]*models.ActivityLog, error)
 }
 
-type DashboardRepository struct {
+type MyDashboardRepository struct {
 	db *gorm.DB
 }
 
-func NewDashboardRepository(db *gorm.DB) *DashboardRepository {
-	return &DashboardRepository{db: db}
+func NewMyDashboardRepository(db *gorm.DB) *MyDashboardRepository {
+	return &MyDashboardRepository{db: db}
 }
 
-func (dr *DashboardRepository) GetDashboardSummary(userID uint) (*organizationDTOs.DashboardDTO, error) {
-	var summary organizationDTOs.DashboardDTO
+func (dr *MyDashboardRepository) GetDashboardSummary(userID uint) (tasksAssigned, tasksCompleted, overdueItems, newNotifications int64, err error) {
 	today := time.Now().Format("2006-01-02")
 
 	taskCountsQuery := `
@@ -38,27 +37,23 @@ func (dr *DashboardRepository) GetDashboardSummary(userID uint) (*organizationDT
 		WHERE t.responsible_user_id = ?
 	`
 
-	var taskCounts organizationDTOs.TaskCountsDTO
-
-	if err := dr.db.Raw(taskCountsQuery, today, userID).Scan(&taskCounts).Error; err != nil {
-		return nil, err
+	row := dr.db.Raw(taskCountsQuery, today, userID).Row()
+	if scanErr := row.Scan(&tasksAssigned, &tasksCompleted, &overdueItems); scanErr != nil {
+		err = scanErr
+		return
 	}
 
-	summary.TasksAssigned = taskCounts.TotalAssigned
-	summary.TasksCompleted = taskCounts.TotalCompleted
-	summary.OverdueItems = taskCounts.TotalOverdue
-
-	if err := dr.db.Model(&models.UserNotification{}).
+	if err = dr.db.Model(&models.UserNotification{}).
 		Where("user_id = ? AND is_read = ?", userID, false).
-		Count(&summary.NewNotifications).Error; err != nil {
-		return nil, err
+		Count(&newNotifications).Error; err != nil {
+		return
 	}
 
-	return &summary, nil
+	return
 }
 
-func (dr *DashboardRepository) GetUserTasks(userID uint, limit int) ([]*organizationDTOs.UserTaskDTO, error) {
-	var userTasks []*organizationDTOs.UserTaskDTO
+func (dr *MyDashboardRepository) GetUserTasks(userID uint, limit int) ([]organizationDTOs.UserTaskDTO, error) {
+	var userTasks []organizationDTOs.UserTaskDTO
 
 	query := `
 		SELECT
@@ -82,13 +77,13 @@ func (dr *DashboardRepository) GetUserTasks(userID uint, limit int) ([]*organiza
 			delegatee_user.color as delegatee_user_color,
 			delegatee_user.email as delegatee_user_email,
 			delegatee_user.profile_image_path as delegatee_user_profile_image_path,
-			FORMAT(t.target_date, 'yyyy-MM-dd') as target_date,
+			t.target_date as target_date,
 			t.url_param,
 			ts.title_en as task_status_title_en,
 			ts.title_ar as task_status_title_ar,
 			ts.color_code as task_status_color_code,
-			FORMAT(t.created_at, 'yyyy-MM-dd HH:mm:ss') as created_at,
-			CASE WHEN t.updated_at IS NOT NULL THEN FORMAT(t.updated_at, 'yyyy-MM-dd HH:mm:ss') ELSE NULL END as updated_at,
+			t.created_at as created_at,
+			t.updated_at as updated_at,
 			t.created_by_id as created_user_id,
 			created_user.first_name_en as created_user_first_name_en,
 			created_user.first_name_ar as created_user_first_name_ar,
@@ -126,8 +121,8 @@ func (dr *DashboardRepository) GetUserTasks(userID uint, limit int) ([]*organiza
 	return userTasks, nil
 }
 
-func (dr *DashboardRepository) GetOverdueTasks(userID uint, limit int) ([]*organizationDTOs.UserTaskDTO, error) {
-	var overdueTasks []*organizationDTOs.UserTaskDTO
+func (dr *MyDashboardRepository) GetOverdueTasks(userID uint, limit int) ([]organizationDTOs.UserTaskDTO, error) {
+	var overdueTasks []organizationDTOs.UserTaskDTO
 	today := time.Now().Format("2006-01-02")
 
 	query := `
@@ -152,13 +147,13 @@ func (dr *DashboardRepository) GetOverdueTasks(userID uint, limit int) ([]*organ
 			delegatee_user.color as delegatee_user_color,
 			delegatee_user.email as delegatee_user_email,
 			delegatee_user.profile_image_path as delegatee_user_profile_image_path,
-			FORMAT(t.target_date, 'yyyy-MM-dd') as target_date,
+			t.target_date as target_date,
 			t.url_param,
 			ts.title_en as task_status_title_en,
 			ts.title_ar as task_status_title_ar,
 			ts.color_code as task_status_color_code,
-			FORMAT(t.created_at, 'yyyy-MM-dd HH:mm:ss') as created_at,
-			CASE WHEN t.updated_at IS NOT NULL THEN FORMAT(t.updated_at, 'yyyy-MM-dd HH:mm:ss') ELSE NULL END as updated_at,
+			t.created_at as created_at,
+			t.updated_at as updated_at,
 			t.created_by_id as created_user_id,
 			created_user.first_name_en as created_user_first_name_en,
 			created_user.first_name_ar as created_user_first_name_ar,
@@ -199,8 +194,8 @@ func (dr *DashboardRepository) GetOverdueTasks(userID uint, limit int) ([]*organ
 	return overdueTasks, nil
 }
 
-func (dr *DashboardRepository) GetAssignedRisks(userID uint, limit int) ([]*organizationDTOs.AssignedRiskDTO, error) {
-	var flatRisks []*organizationDTOs.AssignedRiskFlatDTO
+func (dr *MyDashboardRepository) GetAssignedRisks(userID uint, limit int) ([]organizationDTOs.AssignedRiskFlatDTO, error) {
+	var flatRisks []organizationDTOs.AssignedRiskFlatDTO
 
 	query := `
 		SELECT
@@ -208,9 +203,8 @@ func (dr *DashboardRepository) GetAssignedRisks(userID uint, limit int) ([]*orga
 			rr.reference_number,
 			rr.title,
 			ISNULL(sl.title_en, 'Not Set') as severity_title,
-			ISNULL(sl.title_ar, 'Not Set') as severity_title,
 			ISNULL(sl.color_code, '#808080') as severity_color,
-			FORMAT(rr.updated_at, 'yyyy-MM-ddTHH:mm:ssZ') as last_updated
+			rr.updated_at as last_updated
 		FROM risk_register rr
 		LEFT JOIN severity_levels sl ON rr.severity_level_id = sl.id
 		WHERE rr.responsible_user_id = ?
@@ -222,24 +216,10 @@ func (dr *DashboardRepository) GetAssignedRisks(userID uint, limit int) ([]*orga
 		return nil, err
 	}
 
-	assignedRisks := make([]*organizationDTOs.AssignedRiskDTO, len(flatRisks))
-	for i, flatRisk := range flatRisks {
-		assignedRisks[i] = &organizationDTOs.AssignedRiskDTO{
-			ID:              flatRisk.ID,
-			Title:           flatRisk.Title,
-			ReferenceNumber: flatRisk.ReferenceNumber,
-			Severity: organizationDTOs.SeverityLevelDTO{
-				Title: flatRisk.SeverityTitle,
-				Color: flatRisk.SeverityColor,
-			},
-			LastUpdated: flatRisk.LastUpdated,
-		}
-	}
-
-	return assignedRisks, nil
+	return flatRisks, nil
 }
 
-func (dr *DashboardRepository) GetRecentActivity(userID uint, limit int) ([]*models.ActivityLog, error) {
+func (dr *MyDashboardRepository) GetRecentActivity(userID uint, limit int) ([]*models.ActivityLog, error) {
 	var activityLogs []*models.ActivityLog
 
 	query := dr.db.Table("activity_logs").
@@ -283,3 +263,4 @@ func (dr *DashboardRepository) GetRecentActivity(userID uint, limit int) ([]*mod
 
 	return activityLogs, nil
 }
+

@@ -16,7 +16,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	db := app.DB
 
-	dashboardController := app.OrganizationModule.DashboardController
+	myDashboardController := app.OrganizationModule.MyDashboardController
 	designationController := app.OrganizationModule.DesignationController
 	userStatusController := app.OrganizationModule.UserStatusController
 	userController := app.OrganizationModule.UserController
@@ -492,9 +492,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/organization-charts/users/:id/change-reporting-user", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationChartUsers.ChangeReportingUser)
 
 	// My Dashboard
-	organizationRoutes.GET("/my-dashboard/summary", dashboardController.GetDashboardSummary)
-	organizationRoutes.GET("/my-dashboard/tasks", dashboardController.GetUserTasks)
-	organizationRoutes.GET("/my-dashboard/overdue-tasks", dashboardController.GetOverdueTasks)
-	organizationRoutes.GET("/my-dashboard/assigned-risks", dashboardController.GetAssignedRisks)
-	organizationRoutes.GET("/my-dashboard/recent-activity", dashboardController.GetRecentActivity)
+	organizationRoutes.GET("/my-dashboard/summary", myDashboardController.GetDashboardSummary)
+	organizationRoutes.GET("/my-dashboard/tasks", myDashboardController.GetUserTasks)
+	organizationRoutes.GET("/my-dashboard/overdue-tasks", myDashboardController.GetOverdueTasks)
+	organizationRoutes.GET("/my-dashboard/assigned-risks", myDashboardController.GetAssignedRisks)
+	organizationRoutes.GET("/my-dashboard/recent-activity", myDashboardController.GetRecentActivity)
 }
