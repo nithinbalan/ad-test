@@ -16,6 +16,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	commonAIController := app.JethurAIModule.CommonAIController
 	riskAIController := app.JethurAIModule.RiskAIController
 	complianceAIController := app.JethurAIModule.ComplianceAIController
+	policyAIController :=app.JethurAIModule.PolicyAIController
 
 	jethurAIRoutes.GET("/jethur-ai/documents/:id/summary", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAIController.GetDocumentSummary)
 	jethurAIRoutes.GET("/jethur-ai/documents/:id/recommendations", middlewares.RolePermissionMiddleware(db, "document_register", "view"), documentAIController.GetDocumentRecommendations)
@@ -58,4 +59,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	jethurAIRoutes.GET("/jethur-ai/compliances/:complianceId/clauses/:clauseId/suggest-controls", middlewares.RolePermissionMiddleware(db, "compliance", "view"), complianceAIController.GetComplianceClauseSuggestControlsJob)
 	jethurAIRoutes.GET("/jethur-ai/compliances/:complianceId/clauses/:clauseId/suggest-incidents", middlewares.RolePermissionMiddleware(db, "compliance", "view"), complianceAIController.GetComplianceClauseSuggestIncidentsJob)
 	jethurAIRoutes.GET("/jethur-ai/compliances/:complianceId/clauses/:clauseId/suggest-associates", middlewares.RolePermissionMiddleware(db, "compliance", "view"), complianceAIController.GetComplianceClauseSuggestAssociatesJob)
+
+	jethurAIRoutes.POST("/jethur-ai/policy/autofill", middlewares.RolePermissionMiddleware(db, "policy", "view"), policyAIController.GetPolicyAutofill)
 }
