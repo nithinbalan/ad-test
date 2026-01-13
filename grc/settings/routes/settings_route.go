@@ -213,7 +213,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/health/ready", healthCheckController.Readiness)
 
 	//Branding Settings
-	settingRoutes.GET("/branding-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), brandingController.GetBranding)
+	settingRoutes.GET("/branding-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), brandingController.GetAllBranding)
 	settingRoutes.PUT("/branding-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), brandingController.UpdateBranding)
 	unauthenticatedRoutes.GET("/branding-settings/image-preview", brandingController.GetBrandingPreviewImage)
 }

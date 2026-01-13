@@ -22,10 +22,28 @@ func NewBrandingController(service services.BrandingServiceInterface) *BrandingC
 	}
 }
 
-func (bc *BrandingController) GetBranding(c *gin.Context) {
-	branding, err := bc.service.GetFullDetails()
+func (bc *BrandingController) GetAllBranding(c *gin.Context) {
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+
+	allowedParams := []string{
+		"created_by_ids",
+		"updated_by_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	queryParams := dtos.BrandingListQueryParamsDTO{
+		Sort:    sort,
+		SortBy:  sortBy,
+		Keyword: keyword,
+		Filters: filters,
+	}
+
+	branding, err := bc.service.GetAll(&queryParams)
 	if err != nil {
-		utility.SendNotFoundErrResp(c)
+		utility.SendInternalErrResp(bc.db, c, err.Error())
 		return
 	}
 

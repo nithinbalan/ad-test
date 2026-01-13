@@ -589,10 +589,12 @@ func (as *AuthService) GetLoginSettings() (*authDTOs.LoginSettingsDTO, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get system preferences: %w", err)
 	}
-	branding, err := as.brandingSvc.GetFullDetails()
+
+	branding, err := as.brandingSvc.GetFirst()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get branding details: %w", err)
 	}
+
 	var LoginBrandingDTO settingsDTOs.LoginBrandingDTO
 	err = mapstructure.Decode(branding, &LoginBrandingDTO)
 	if err != nil {

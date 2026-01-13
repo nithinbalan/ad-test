@@ -13,13 +13,13 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
 type BrandingServiceInterface interface {
+	GetAll(params *dtos.BrandingListQueryParamsDTO) ([]*dtos.BrandingListDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Branding, error)
-	GetFullDetails() (*dtos.BrandingDetailDTO, error)
+	GetFirst() (*models.Branding, error)
 	Update(id uint, currentUserID uint, brandingFormDTO *dtos.BrandingFormDTO) error
 	GetBrandingPreviewImage(previewType string) (string, error)
 }
@@ -36,27 +36,17 @@ func NewBrandingService(repo repositories.BrandingRepositoryInterface, activityL
 	}
 }
 
-func (bs *BrandingService) GetFullDetails() (*dtos.BrandingDetailDTO, error) {
-	var brandingDTO dtos.BrandingDetailDTO
-
-	branding, err := bs.repo.GetFullDetails()
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, nil)
-		}
-		return nil, err
-	}
-
-	err = mapstructure.Decode(branding, &brandingDTO)
+func (bs *BrandingService) GetAll(params *dtos.BrandingListQueryParamsDTO) ([]*dtos.BrandingListDTO, error) {
+	branding, err := bs.repo.GetAll(params)
 	if err != nil {
 		return nil, err
 	}
 
-	return &brandingDTO, nil
+	return branding, nil
 }
 
 func (bs BrandingService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Branding, error) {
-	branding, err := bs.repo.GetByID(id)
+	branding, err := bs.repo.GetByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, nil)
@@ -65,6 +55,17 @@ func (bs BrandingService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*
 		return nil, err
 	}
 
+	return branding, nil
+}
+
+func (bs BrandingService) GetFirst() (*models.Branding, error) {
+	branding, err := bs.repo.GetFirst()
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, nil)
+		}
+		return nil, err
+	}
 	return branding, nil
 }
 
@@ -79,28 +80,29 @@ func (bs *BrandingService) Update(id uint, currentUserID uint, brandingFormDTO *
 
 	handleBrandingUpdate := func(doc *dtos.BrandingDocumentFormDTO, storageFolder string, urlField **string) error {
 		if doc != nil && doc.IsNewFile != nil && *doc.IsNewFile {
-			// Remove old file if exists
+
+			var oldRelativePath *string
 			if *urlField != nil && **urlField != "" {
-				oldRelativePath := **urlField
-
-				oldDir := filepath.Dir(oldRelativePath)
-				oldFile := filepath.Base(oldRelativePath)
-
-				// Ignore error if file does not exist
-				_ = utility.RemoveFile(oldFile, oldDir)
+				tmp := **urlField
+				oldRelativePath = &tmp
 			}
-			
-			// Generate URL for the new document,
-			url := utility.GenerateDocumentURL("branding", "branding-settings", storageFolder, doc.FileName)
-
-			*urlField = new(string)
-			**urlField = url
 
 			//define storage path
 			storagePath := filepath.Join("branding", "branding-settings", storageFolder)
-
 			if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
 				return err
+			}
+
+			// Generate URL for the new document,
+			url := utility.GenerateDocumentURL("branding", "branding-settings", storageFolder, doc.FileName)
+
+			*urlField = &url
+
+			// Remove old file if exists
+			if oldRelativePath != nil {
+				oldDir := filepath.Dir(*oldRelativePath)
+				oldFile := filepath.Base(*oldRelativePath)
+				_ = utility.RemoveFile(oldFile, oldDir)
 			}
 		}
 
@@ -175,7 +177,7 @@ func (bs *BrandingService) Update(id uint, currentUserID uint, brandingFormDTO *
 
 func (bs *BrandingService) GetBrandingPreviewImage(previewType string) (string, error) {
 	// Retrieve the branding details
-	branding, err := bs.repo.GetFullDetails()
+	branding, err := bs.GetFirst()
 	if err != nil {
 		return "", err
 	}
