@@ -21,6 +21,7 @@ type AssetRegisterRepositoryInterface interface {
 	Create(assetRegister *models.AssetRegister, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(assetRegister *models.AssetRegister, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	ForceDelete(id uint, tx ...utility.DatabaseTransaction) error
 
 	GenerateReferenceNumber() (string, error)
 
@@ -327,4 +328,66 @@ func (repo *AssetRegisterRepository) GetDocumentByID(id uint) (*models.AssetDocu
 		return nil, err
 	}
 	return &document, nil
+}
+
+func (repo *AssetRegisterRepository) ForceDelete(id uint, tx ...utility.DatabaseTransaction) error {
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	/* ================= ACTION PLAN TREE ================= */
+
+	queries := []string{
+
+		// Action plan comment documents
+		`DELETE asset_policy_comments
+		 FROM asset_policy_comments 
+		 JOIN asset_policies ON asset_policies.id = asset_policy_comments.asset_policy_id
+		 WHERE asset_policies.asset_register_id = ?`,
+
+		`DELETE asset_policy_checklists
+		 FROM asset_policy_checklists 
+		 JOIN asset_policies ON asset_policies.id = asset_policy_checklists.asset_policy_id
+		 WHERE asset_policies.asset_register_id = ?`,
+
+		`DELETE asset_control_documents
+		 FROM asset_control_documents 
+		 JOIN asset_controls ON asset_controls.id = asset_control_documents.asset_control_id
+		 WHERE asset_controls.asset_register_id = ?`,
+
+		`DELETE FROM vulnerability_assets WHERE vulnerability_assets.asset_register_id = ?`,
+		`DELETE FROM third_party_assets WHERE third_party_assets.asset_register_id = ?`,
+		`DELETE FROM risk_assets WHERE risk_assets.asset_register_id = ?`,
+		`DELETE FROM project_assets WHERE project_assets.asset_register_id = ?`,
+		`DELETE FROM process_dependencies WHERE process_dependencies.asset_id = ?`,
+		`DELETE FROM process_assets WHERE process_assets.asset_register_id = ?`,
+		`DELETE FROM meeting_assets WHERE meeting_assets.asset_register_id = ?`,
+		`DELETE FROM kpi_assets WHERE kpi_assets.asset_register_id = ?`,
+		`DELETE FROM incident_assets WHERE incident_assets.asset_register_id = ?`,
+		`DELETE FROM business_impact_assessments WHERE business_impact_assessments.asset_register_id = ?`,
+		`DELETE FROM business_impact_assessment_recovery_objectives WHERE business_impact_assessment_recovery_objectives.asset_register_id = ?`,
+		`DELETE FROM bcp_assets WHERE bcp_assets.asset_register_id = ?`,
+		`DELETE FROM audit_finding_assets WHERE audit_finding_assets.asset_register_id = ?`,
+		`DELETE FROM asset_strategic_objectives WHERE asset_strategic_objectives.asset_register_id = ?`,
+		`DELETE FROM asset_policies WHERE asset_policies.asset_register_id = ?`,
+		`DELETE FROM asset_other_documents WHERE asset_other_documents.asset_register_id = ?`,
+		`DELETE FROM asset_maintenance WHERE asset_maintenance.asset_register_id = ?`,
+		`DELETE FROM asset_kris WHERE asset_kris.asset_register_id = ?`,
+		`DELETE FROM asset_documents WHERE asset_documents.asset_register_id = ?`,
+		`DELETE FROM asset_criticality_contributions WHERE asset_criticality_contributions.asset_register_id = ?`,
+		`DELETE FROM asset_controls WHERE asset_controls.asset_register_id = ?`,
+		`DELETE FROM asset_compliance_requirements WHERE asset_compliance_requirements.asset_register_id = ?`,
+		`DELETE FROM asset_associated_documents WHERE asset_associated_documents.asset_register_id = ?`,
+	}
+
+	for _, q := range queries {
+		if err := db.Exec(q, id).Error; err != nil {
+			return err
+		}
+	}
+
+	/* ================= ROOT ================= */
+	return db.Delete(&models.Threat{}, id).Error
 }
