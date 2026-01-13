@@ -51,6 +51,7 @@ type OrganizationModule struct {
 	UserDelegationHistoryController         *controllers.UserDelegationController
 	OrganizationUnitsController             *controllers.OrganizationUnitsController
 	OrganizationCartController              *controllers.OrganizationChartController
+	DashboardController                     *controllers.DashboardController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -64,6 +65,7 @@ type OrganizationModule struct {
 	ProcessDependencySvc           services.ProcessDependencyServiceInterface
 	JobDescriptionSvc              services.JobDescriptionServiceInterface
 	GovernanceReportSvc            services.GovernanceReportServiceInterface
+	DashboardSvc                   services.DashboardServiceInterface
 }
 
 func NewOrganizationModule(
@@ -291,6 +293,10 @@ func NewOrganizationModule(
 	organizationChartSvc := services.NewOrganizationChartService(organizationChartRepo,settingsModule.OrganizationLevelSvc)
 	organizationChartController := controllers.NewOrganizationChartController(organizationChartSvc)
 
+	dashboardRepo := repositories.NewDashboardRepository(db)
+	dashboardSvc := services.NewDashboardService(dashboardRepo)
+	dashboardController := controllers.NewDashboardController(dashboardSvc, db)
+
 	return &OrganizationModule{
 		DesignationController:                   designationController,
 		UserStatusController:                    userStatusController,
@@ -335,6 +341,7 @@ func NewOrganizationModule(
 		UserDelegationHistoryController:    userDelegationHistoryController,
 		OrganizationUnitsController:        organizationUnitsController,
 		OrganizationCartController:         organizationChartController,
+		DashboardController:                dashboardController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,
@@ -348,5 +355,6 @@ func NewOrganizationModule(
 		ProcessDependencySvc:           processDependencySvc,
 		JobDescriptionSvc:              jobDescriptionSvc,
 		GovernanceReportSvc:            governanceReportSvc,
+		DashboardSvc:                   dashboardSvc,
 	}
 }
