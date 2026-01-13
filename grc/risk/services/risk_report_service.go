@@ -215,20 +215,16 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 	}
 
 	var risks []dtos.RiskReportIdentifiedRiskDTO
+
 	if dates.StartDate != nil && dates.EndDate != nil {
-		var err error
 		risks, err = rrs.repo.GetRisksByDateRange(*dates.StartDate, *dates.EndDate, riskReportFormDTO.OrganizationUnitIDs, tx)
-		if err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	} else if riskReportFormDTO.RiskIDs != nil && len(*riskReportFormDTO.RiskIDs) > 0 {
-		var err error
-		risks, err = rrs.repo.GetRisksByOrgUnitsAndRiskIDs(riskReportFormDTO.OrganizationUnitIDs, *riskReportFormDTO.RiskIDs, tx)
-		if err != nil {
-			tx.Rollback()
-			return 0, err
-		}
+	} else if len(riskReportFormDTO.RiskIDs) > 0 {
+		risks, err = rrs.repo.GetRisksByOrgUnitsAndRiskIDs(riskReportFormDTO.OrganizationUnitIDs, riskReportFormDTO.RiskIDs, tx)
+	}
+
+	if err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 
 	for _, risk := range risks {
@@ -625,7 +621,6 @@ func (rrs *RiskReportService) parseRiskReportDates(dto *dtos.RiskReportFormDTO) 
 
 	var err error
 
-	// StartDate
 	if dto.StartDate != nil {
 		parsed.StartDate, err = utility.ParseDate(*dto.StartDate) // dereference pointer
 		if err != nil {
@@ -633,7 +628,6 @@ func (rrs *RiskReportService) parseRiskReportDates(dto *dtos.RiskReportFormDTO) 
 		}
 	}
 
-	// EndDate
 	if dto.EndDate != nil {
 		parsed.EndDate, err = utility.ParseDate(*dto.EndDate) // dereference pointer
 		if err != nil {
