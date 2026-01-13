@@ -105,6 +105,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationalContextRoutes.POST("/stakeholders", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderController.CreateStakeholder)
 	organizationalContextRoutes.PUT("/stakeholders/:stakeholderId", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderController.UpdateStakeholder)
 	organizationalContextRoutes.POST("/stakeholders/delete", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderController.DeleteStakeholders)
+	organizationalContextRoutes.POST("/stakeholders/force-delete", middlewares.RolePermissionMiddleware(db, "stakeholder_analysis", "modify"), stakeholderController.DeleteForceStakeholders)
 
 	// Evaluation Status
 	organizationalContextRoutes.GET("/evaluation-statuses", evaluationStatusController.GetAllEvaluationStatuses)

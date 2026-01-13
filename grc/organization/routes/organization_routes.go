@@ -489,6 +489,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	organizationRoutes.GET("/organization-chart/users", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationChartUsers.GetUsers)
 	organizationRoutes.GET("/organization-chart/users/:id", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationChartUsers.GetUserFullDetails)
+	organizationRoutes.GET("/organization-charts/users", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"),organizationChartUsers.GetUsers)
+	organizationRoutes.GET("/organization-charts/users/:id", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationChartUsers.GetUserFullDetails)
 	organizationRoutes.PUT("/organization-charts/users/:id/change-reporting-user", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationChartUsers.ChangeReportingUser)
 
 	// My Dashboard

@@ -27,6 +27,7 @@ type ThreatServiceInterface interface {
 	Create(threatForm *dtos.ThreatFormDTO, currentUserID uint) (uint, error)
 	Update(id uint, threatForm *dtos.ThreatFormDTO, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
 
 	GetThreatSummary(assetId uint) (*dtos.ThreatSummaryDTO, error)
 	ExportThreat(data []*dtos.ThreatListDTO, currentUserID uint) (*os.File, error)
@@ -724,4 +725,44 @@ func (ts *ThreatService) ExportThreat(data []*dtos.ThreatListDTO, currentUserID 
 	}
 
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (ts *ThreatService) ForceDelete(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := ts.repo.BeginTransaction()
+	var failedIds []uint
+	var deletedData []map[string]interface{}
+
+	for _, id := range ids {
+		if err := ts.repo.ForceDelete(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		deletedData = append(deletedData, map[string]interface{}{
+			"id": id,
+		})
+	}
+
+	if len(failedIds) > 0 {
+		return failedIds, nil
+	}
+
+	if err := tx.Commit(); err != nil {
+		return ids, err
+	}
+
+	go func() {
+		if err := ts.activityLogSvc.LogBulkActivities(
+			models.DeleteAction,
+			models.Threat{}.TableName(),
+			ids,
+			deletedData,
+			currentUserID,
+			nil,
+		); err != nil {
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
+	return nil, nil
 }
