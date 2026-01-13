@@ -47,6 +47,7 @@ func (tpqlc *ThirdPartyQuestionLibraryController) GetAllThirdPartyQuestionLibrar
 	allowedParams := []string{
 		"third_party_question_category_ids",
 		"third_party_question_type_ids",
+		"mandatory",
 	}
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
