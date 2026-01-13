@@ -26,6 +26,7 @@ type AssetRegisterServiceInterface interface {
 	Create(assetForm *dtos.AssetRegisterFormDTO, currentUserID uint) (uint, error)
 	Update(id uint, assetForm *dtos.AssetRegisterFormDTO, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
 
 	UpdateTotalScore(assetID uint, totalScore float64, tx ...utility.DatabaseTransaction) error
 	GetControlSummary(assetID uint) (map[string]interface{}, error)
@@ -826,4 +827,44 @@ func (ars *AssetRegisterService) ExportAsset(data []*dtos.AssetRegisterListDTO, 
 	}
 
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (ars *AssetRegisterService) ForceDelete(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := ars.repo.BeginTransaction()
+	var failedIds []uint
+	var deletedData []map[string]interface{}
+
+	for _, id := range ids {
+		if err := ars.repo.ForceDelete(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		deletedData = append(deletedData, map[string]interface{}{
+			"id": id,
+		})
+	}
+
+	if len(failedIds) > 0 {
+		return failedIds, nil
+	}
+
+	if err := tx.Commit(); err != nil {
+		return ids, err
+	}
+
+	go func() {
+		if err := ars.activityLogSvc.LogBulkActivities(
+			models.DeleteAction,
+			models.AssetRegister{}.TableName(),
+			ids,
+			deletedData,
+			currentUserID,
+			nil,
+		); err != nil {
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
+	return nil, nil
 }

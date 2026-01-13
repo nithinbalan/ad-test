@@ -381,3 +381,27 @@ func (qsc *QuestionSetController) GetQuestionSetExport(c *gin.Context) {
 	c.File(excelFile.Name())
 
 }
+
+func (qsc *QuestionSetController) DeleteForceQuestionSets(c *gin.Context) {
+	var req struct {
+		IDs []uint `json:"ids"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(qsc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := qsc.service.ForceDelete(req.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(qsc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}

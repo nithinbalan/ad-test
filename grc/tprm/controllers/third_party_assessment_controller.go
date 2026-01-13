@@ -758,3 +758,26 @@ func (tprc *ThirdPartyAssessmentController) DownloadAnswerDocument(c *gin.Contex
 
 	c.File(documentPath)
 }
+
+func (tprc *ThirdPartyAssessmentController) DeleteForceThirdPartyAssessment(c *gin.Context) {
+	var req struct {
+		IDs []uint `json:"ids"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tprc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := tprc.service.ForceDelete(req.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(tprc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}

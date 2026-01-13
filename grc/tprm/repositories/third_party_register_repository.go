@@ -21,6 +21,7 @@ type ThirdPartyRegisterRepositoryInterface interface {
 	Create(register *models.ThirdPartyRegister, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(register *models.ThirdPartyRegister, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	ForceDelete(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber() (string, error)
 }
 
@@ -282,4 +283,343 @@ func (repo *ThirdPartyRegisterRepository) GenerateReferenceNumber() (string, err
 
 	ref := fmt.Sprintf("TPR-%d-%04d", time.Now().Year(), lastNum+1)
 	return ref, nil
+}
+
+func (repo *ThirdPartyRegisterRepository) ForceDelete(id uint, tx ...utility.DatabaseTransaction) error {
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	/* ================= ACTION PLAN TREE ================= */
+
+	queries := []string{
+
+		`DELETE tprm_assessment_section_question_action_plan_status_update_documents
+		 FROM tprm_assessment_section_question_action_plan_status_update_documents 
+		 JOIN tprm_assessment_section_question_action_plan_status_updates ON tprm_assessment_section_question_action_plan_status_updates.id = tprm_assessment_section_question_action_plan_status_update_documents.tprm_assessment_section_question_action_plan_status_update_id
+		 JOIN tprm_assessment_section_question_action_plans ON tprm_assessment_section_question_action_plans.id = tprm_assessment_section_question_action_plan_status_updates.tprm_assessment_section_question_action_plan_id
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_section_question_action_plans.tprm_assessment_section_question_id
+		 JOIN tprm_assessment_sections ON tprm_assessment_sections.id = tprm_assessment_section_questions.tprm_assessment_section_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_sections.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_section_question_action_plan_status_updates
+		 FROM tprm_assessment_section_question_action_plan_status_updates 
+		 JOIN tprm_assessment_section_question_action_plans ON tprm_assessment_section_question_action_plans.id = tprm_assessment_section_question_action_plan_status_updates.tprm_assessment_section_question_action_plan_id
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_section_question_action_plans.tprm_assessment_section_question_id
+		 JOIN tprm_assessment_sections ON tprm_assessment_sections.id = tprm_assessment_section_questions.tprm_assessment_section_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_sections.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_section_question_action_plan_comments
+		 FROM tprm_assessment_section_question_action_plan_comments 
+		 JOIN tprm_assessment_section_question_action_plans ON tprm_assessment_section_question_action_plans.id = tprm_assessment_section_question_action_plan_comments.tprm_assessment_section_question_action_plan_id
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_section_question_action_plans.tprm_assessment_section_question_id
+		 JOIN tprm_assessment_sections ON tprm_assessment_sections.id = tprm_assessment_section_questions.tprm_assessment_section_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_sections.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tasks
+		 FROM tasks 
+		 JOIN tprm_assessment_section_question_action_plans ON tprm_assessment_section_question_action_plans.id = tasks.tprm_assessment_section_question_action_plan_id
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_section_question_action_plans.tprm_assessment_section_question_id
+		 JOIN tprm_assessment_sections ON tprm_assessment_sections.id = tprm_assessment_section_questions.tprm_assessment_section_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_sections.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_section_question_action_plan_status_update_documents
+		 FROM tprm_assessment_section_question_action_plan_status_update_documents 
+		 JOIN tprm_assessment_section_question_action_plan_status_updates ON tprm_assessment_section_question_action_plan_status_updates.id = tprm_assessment_section_question_action_plan_status_update_documents.tprm_assessment_section_question_action_plan_status_update_id
+		 JOIN tprm_assessment_section_question_action_plans ON tprm_assessment_section_question_action_plans.id = tprm_assessment_section_question_action_plan_status_updates.tprm_assessment_section_question_action_plan_id
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_section_question_action_plans.tprm_assessment_section_question_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_section_questions.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_answer_options
+		 FROM tprm_assessment_answer_options 
+		 JOIN tprm_assessment_question_answer_options ON tprm_assessment_question_answer_options.id = tprm_assessment_answer_options.answer_option_id
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_question_answer_options.tprm_assessment_question_id
+		 JOIN tprm_assessment_sections ON tprm_assessment_sections.id = tprm_assessment_section_questions.tprm_assessment_section_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_sections.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_answer_options
+		 FROM tprm_assessment_answer_options 
+		 JOIN tprm_assessment_answers ON tprm_assessment_answers.id = tprm_assessment_answer_options.tprm_assessment_answer_id
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_answers.tprm_assessment_question_id
+		 JOIN tprm_assessment_sections ON tprm_assessment_sections.id = tprm_assessment_section_questions.tprm_assessment_section_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_sections.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_answer_documents
+		 FROM tprm_assessment_answer_documents 
+		 JOIN tprm_assessment_answers ON tprm_assessment_answers.id = tprm_assessment_answer_documents.tprm_assessment_answer_id
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_answers.tprm_assessment_question_id
+		 JOIN tprm_assessment_sections ON tprm_assessment_sections.id = tprm_assessment_section_questions.tprm_assessment_section_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_sections.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_answer_comment_documents
+		 FROM tprm_assessment_answer_comment_documents 
+		 JOIN tprm_assessment_answers ON tprm_assessment_answers.id = tprm_assessment_answer_comment_documents.tprm_assessment_answer_id
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_answers.tprm_assessment_question_id
+		 JOIN tprm_assessment_sections ON tprm_assessment_sections.id = tprm_assessment_section_questions.tprm_assessment_section_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_sections.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_section_question_comments
+		 FROM tprm_assessment_section_question_comments 
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_section_question_comments.tprm_assessment_section_question_id
+		 JOIN tprm_assessment_sections ON tprm_assessment_sections.id = tprm_assessment_section_questions.tprm_assessment_section_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_sections.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_section_question_action_plans
+		 FROM tprm_assessment_section_question_action_plans 
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_section_question_action_plans.tprm_assessment_section_question_id
+		 JOIN tprm_assessment_sections ON tprm_assessment_sections.id = tprm_assessment_section_questions.tprm_assessment_section_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_sections.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_question_answer_options
+		 FROM tprm_assessment_question_answer_options 
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_question_answer_options.tprm_assessment_question_id
+		 JOIN tprm_assessment_sections ON tprm_assessment_sections.id = tprm_assessment_section_questions.tprm_assessment_section_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_sections.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_answers
+		 FROM tprm_assessment_answers 
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_answers.tprm_assessment_question_id
+		 JOIN tprm_assessment_sections ON tprm_assessment_sections.id = tprm_assessment_section_questions.tprm_assessment_section_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_sections.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_answer_options
+		 FROM tprm_assessment_answer_options 
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_answer_options.tprm_assessment_question_id
+		 JOIN tprm_assessment_sections ON tprm_assessment_sections.id = tprm_assessment_section_questions.tprm_assessment_section_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_sections.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_answer_documents
+		 FROM tprm_assessment_answer_documents 
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_answer_documents.tprm_assessment_question_id
+		 JOIN tprm_assessment_sections ON tprm_assessment_sections.id = tprm_assessment_section_questions.tprm_assessment_section_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_sections.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_answer_comment_documents
+		 FROM tprm_assessment_answer_comment_documents 
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_answer_comment_documents.tprm_assessment_question_id
+		 JOIN tprm_assessment_sections ON tprm_assessment_sections.id = tprm_assessment_section_questions.tprm_assessment_section_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_sections.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_section_question_action_plan_status_updates
+		 FROM tprm_assessment_section_question_action_plan_status_updates 
+		 JOIN tprm_assessment_section_question_action_plans ON tprm_assessment_section_question_action_plans.id = tprm_assessment_section_question_action_plan_status_updates.tprm_assessment_section_question_action_plan_id
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_section_question_action_plans.tprm_assessment_section_question_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_section_questions.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_section_question_action_plan_comments
+		 FROM tprm_assessment_section_question_action_plan_comments 
+		 JOIN tprm_assessment_section_question_action_plans ON tprm_assessment_section_question_action_plans.id = tprm_assessment_section_question_action_plan_comments.tprm_assessment_section_question_action_plan_id
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_section_question_action_plans.tprm_assessment_section_question_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_section_questions.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tasks
+		 FROM tasks 
+		 JOIN tprm_assessment_section_question_action_plans ON tprm_assessment_section_question_action_plans.id = tasks.tprm_assessment_section_question_action_plan_id
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_section_question_action_plans.tprm_assessment_section_question_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_section_questions.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_answer_options
+		 FROM tprm_assessment_answer_options 
+		 JOIN tprm_assessment_question_answer_options ON tprm_assessment_question_answer_options.id = tprm_assessment_answer_options.answer_option_id
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_question_answer_options.tprm_assessment_question_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_section_questions.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_answer_options
+		 FROM tprm_assessment_answer_options 
+		 JOIN tprm_assessment_answers ON tprm_assessment_answers.id = tprm_assessment_answer_options.tprm_assessment_answer_id
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_answers.tprm_assessment_question_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_section_questions.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_answer_documents
+		 FROM tprm_assessment_answer_documents 
+		 JOIN tprm_assessment_answers ON tprm_assessment_answers.id = tprm_assessment_answer_documents.tprm_assessment_answer_id
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_answers.tprm_assessment_question_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_section_questions.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_answer_comment_documents
+		 FROM tprm_assessment_answer_comment_documents 
+		 JOIN tprm_assessment_answers ON tprm_assessment_answers.id = tprm_assessment_answer_comment_documents.tprm_assessment_answer_id
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_answers.tprm_assessment_question_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_section_questions.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE stakeholder_action_plan_status_update_documents
+		 FROM stakeholder_action_plan_status_update_documents 
+		 JOIN stakeholder_action_plan_status_updates ON stakeholder_action_plan_status_updates.id = stakeholder_action_plan_status_update_documents.stakeholder_action_plan_status_update_id
+		 JOIN stakeholder_action_plans ON stakeholder_action_plans.id = stakeholder_action_plan_status_updates.stakeholder_action_plan_id
+		 JOIN stakeholders ON stakeholders.id = stakeholder_action_plans.stakeholder_id
+		 WHERE stakeholders.third_party_register_id = ?`,
+
+		`DELETE stakeholder_action_plan_comment_documents
+		 FROM stakeholder_action_plan_comment_documents 
+		 JOIN stakeholder_action_plan_comments ON stakeholder_action_plan_comments.id = stakeholder_action_plan_comment_documents.stakeholder_action_plan_comment_id
+		 JOIN stakeholder_action_plans ON stakeholder_action_plans.id = stakeholder_action_plan_comments.stakeholder_action_plan_id
+		 JOIN stakeholders ON stakeholders.id = stakeholder_action_plans.stakeholder_id
+		 WHERE stakeholders.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_workflow_reviews
+		 FROM tprm_assessment_workflow_reviews 
+		 JOIN tprm_assessment_workflows ON tprm_assessment_workflows.id = tprm_assessment_workflow_reviews.tprm_assessment_workflow_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_workflows.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_workflow_participants
+		 FROM tprm_assessment_workflow_participants 
+		 JOIN tprm_assessment_workflows ON tprm_assessment_workflows.id = tprm_assessment_workflow_participants.tprm_assessment_workflow_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_workflows.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_section_questions
+		 FROM tprm_assessment_section_questions 
+		 JOIN tprm_assessment_sections ON tprm_assessment_sections.id = tprm_assessment_section_questions.tprm_assessment_section_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_sections.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_section_question_comments
+		 FROM tprm_assessment_section_question_comments 
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_section_question_comments.tprm_assessment_section_question_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_section_questions.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_section_question_action_plans
+		 FROM tprm_assessment_section_question_action_plans 
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_section_question_action_plans.tprm_assessment_section_question_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_section_questions.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_question_answer_options
+		 FROM tprm_assessment_question_answer_options 
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_question_answer_options.tprm_assessment_question_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_section_questions.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_answers
+		 FROM tprm_assessment_answers 
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_answers.tprm_assessment_question_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_section_questions.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_answer_options
+		 FROM tprm_assessment_answer_options 
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_answer_options.tprm_assessment_question_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_section_questions.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_answer_documents
+		 FROM tprm_assessment_answer_documents 
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_answer_documents.tprm_assessment_question_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_section_questions.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_answer_comment_documents
+		 FROM tprm_assessment_answer_comment_documents 
+		 JOIN tprm_assessment_section_questions ON tprm_assessment_section_questions.id = tprm_assessment_answer_comment_documents.tprm_assessment_question_id
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_section_questions.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE stakeholder_needs_and_expectation_evaluations
+		 FROM stakeholder_needs_and_expectation_evaluations 
+		 JOIN stakeholder_needs_and_expectations ON stakeholder_needs_and_expectations.id = stakeholder_needs_and_expectation_evaluations.stakeholder_needs_and_expectation_id
+		 JOIN stakeholders ON stakeholders.id = stakeholder_needs_and_expectations.stakeholder_id
+		 WHERE stakeholders.third_party_register_id = ?`,
+
+		`DELETE stakeholder_engagement_evaluations
+		 FROM stakeholder_engagement_evaluations 
+		 JOIN stakeholder_engagements ON stakeholder_engagements.id = stakeholder_engagement_evaluations.stakeholder_engagement_id
+		 JOIN stakeholders ON stakeholders.id = stakeholder_engagements.stakeholder_id
+		 WHERE stakeholders.third_party_register_id = ?`,
+
+		`DELETE stakeholder_action_plan_status_updates
+		 FROM stakeholder_action_plan_status_updates 
+		 JOIN stakeholder_action_plans ON stakeholder_action_plans.id = stakeholder_action_plan_status_updates.stakeholder_action_plan_id
+		 JOIN stakeholders ON stakeholders.id = stakeholder_action_plans.stakeholder_id
+		 WHERE stakeholders.third_party_register_id = ?`,
+
+		`DELETE stakeholder_action_plan_comments
+		 FROM stakeholder_action_plan_comments 
+		 JOIN stakeholder_action_plans ON stakeholder_action_plans.id = stakeholder_action_plan_comments.stakeholder_action_plan_id
+		 JOIN stakeholders ON stakeholders.id = stakeholder_action_plans.stakeholder_id
+		 WHERE stakeholders.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_workflows
+		 FROM tprm_assessment_workflows 
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_workflows.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_sections
+		 FROM tprm_assessment_sections 
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_sections.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_section_questions
+		 FROM tprm_assessment_section_questions 
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_section_questions.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE tprm_assessment_section_question_comments
+		 FROM tprm_assessment_section_question_comments 
+		 JOIN third_party_assessments ON third_party_assessments.id = tprm_assessment_section_question_comments.third_party_assessment_id
+		 WHERE third_party_assessments.third_party_register_id = ?`,
+
+		`DELETE stakeholder_needs_and_expectations
+		 FROM stakeholder_needs_and_expectations 
+		 JOIN stakeholders ON stakeholders.id = stakeholder_needs_and_expectations.stakeholder_id
+		 WHERE stakeholders.third_party_register_id = ?`,
+
+		`DELETE stakeholder_engagements
+		 FROM stakeholder_engagements 
+		 JOIN stakeholders ON stakeholders.id = stakeholder_engagements.stakeholder_id
+		 WHERE stakeholders.third_party_register_id = ?`,
+
+		`DELETE stakeholder_action_plans
+		 FROM stakeholder_action_plans 
+		 JOIN stakeholders ON stakeholders.id = stakeholder_action_plans.stakeholder_id
+		 WHERE stakeholders.third_party_register_id = ?`,
+
+		`DELETE FROM third_party_strategic_objectives WHERE third_party_strategic_objectives.third_party_register_id = ?`,
+		`DELETE FROM third_party_risks WHERE third_party_risks.third_party_register_id = ?`,
+		`DELETE FROM third_party_processes WHERE third_party_processes.third_party_register_id = ?`,
+		`DELETE FROM third_party_incidents WHERE third_party_incidents.third_party_register_id = ?`,
+		`DELETE FROM third_party_controls WHERE third_party_controls.third_party_register_id = ?`,
+		`DELETE FROM third_party_compliance_requirements WHERE third_party_compliance_requirements.third_party_register_id = ?`,
+		`DELETE FROM third_party_associated_documents WHERE third_party_associated_documents.third_party_register_id = ?`,
+		`DELETE FROM third_party_assets WHERE third_party_assets.third_party_register_id = ?`,
+		`DELETE FROM third_party_assessments WHERE third_party_assessments.third_party_register_id = ?`,
+		`DELETE FROM stakeholders WHERE stakeholders.third_party_register_id = ?`,
+		`DELETE FROM process_dependencies WHERE process_dependencies.third_party_register_id = ?`,
+		`DELETE FROM kpi_third_parties WHERE kpi_third_parties.third_party_register_id = ?`,
+	}
+
+	for _, q := range queries {
+		if err := db.Exec(q, id).Error; err != nil {
+			return err
+		}
+	}
+
+	/* ================= ROOT ================= */
+	return db.Delete(&models.ThirdPartyRegister{}, id).Error
 }
