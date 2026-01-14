@@ -52,6 +52,10 @@ func (repo *ThirdPartyRegisterRepository) GetAll(params *thirdPartyDTOs.ThirdPar
 			countries.title_ar AS country_title_ar,
 			third_party_types.title_en AS third_party_type_title_en,
 			third_party_types.title_ar AS third_party_type_title_ar,
+			risk_levels.title_en AS risk_level_title_en,
+        	risk_levels.title_ar AS risk_level_title_ar,
+        	risk_levels.color_code AS risk_level_color_code,
+        	risk_levels.type AS risk_level_type,
 			organization_units.title_en AS organization_unit_title_en,
 			organization_units.title_ar AS organization_unit_title_ar,
 			responsible_user.first_name_en AS responsible_user_first_name_en,
@@ -74,6 +78,7 @@ func (repo *ThirdPartyRegisterRepository) GetAll(params *thirdPartyDTOs.ThirdPar
 		Joins("LEFT JOIN countries ON countries.id = third_party_register.country_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = third_party_register.organization_unit_id").
 		Joins("LEFT JOIN severity_levels ON severity_levels.id = third_party_register.severity_level_id").
+		Joins("LEFT JOIN risk_levels ON risk_levels.id = third_party_register.risk_level_id").
 		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = third_party_register.responsible_user_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = third_party_register.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = third_party_register.updated_by_id").
@@ -83,6 +88,7 @@ func (repo *ThirdPartyRegisterRepository) GetAll(params *thirdPartyDTOs.ThirdPar
             tpa.third_party_register_id,
             tpa.third_party_assessment_status_id,
             tpa.risk_level_id,
+			tpa.score as score,
             tpa.created_at,
             ROW_NUMBER() OVER (
                 PARTITION BY tpa.third_party_register_id
