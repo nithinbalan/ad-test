@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -41,13 +42,17 @@ type ComplianceAssessmentServiceInterface interface {
 
 	GetApprovalStatus(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentApprovalStatusDTO, error)
 	GetControlApprovalStatus(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceAssessmentApprovalStatusDTO, error)
+
+	ExportComplianceAssessments(data []*complianceDTOs.ComplianceAssessmentListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
 type ComplianceAssessmentService struct {
 	repo                          complianceRepositories.ComplianceAssessmentRepositoryInterface
+	requirementRepo               complianceRepositories.ComplianceAssessmentRequirementRepositoryInterface
 	activityLogSvc                logServices.ActivityLogServiceInterface
 	userSvc                       organizationServices.UserServiceInterface
+	userSettingSvc                organizationServices.UserSettingServiceInterface
 	complianceRegisterSvc         ComplianceRegisterServiceInterface
 	applicablityStatusSvc         masterServices.ApplicabilityStatusServiceInterface
 	complianceAssessmentStatusSvc ComplianceAssessmentStatusServiceInterface
@@ -58,8 +63,10 @@ type ComplianceAssessmentService struct {
 
 func NewComplianceAssessmentService(
 	repo complianceRepositories.ComplianceAssessmentRepositoryInterface,
+	requirementRepo complianceRepositories.ComplianceAssessmentRequirementRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 	complianceRegisterSvc ComplianceRegisterServiceInterface,
 	applicablityStatusSvc masterServices.ApplicabilityStatusServiceInterface,
 	complianceAssessmentStatusSvc ComplianceAssessmentStatusServiceInterface,
@@ -69,8 +76,10 @@ func NewComplianceAssessmentService(
 ) ComplianceAssessmentServiceInterface {
 	return &ComplianceAssessmentService{
 		repo:                          repo,
+		requirementRepo:               requirementRepo,
 		activityLogSvc:                activityLogSvc,
 		userSvc:                       userSvc,
+		userSettingSvc:                userSettingSvc,
 		complianceRegisterSvc:         complianceRegisterSvc,
 		applicablityStatusSvc:         applicablityStatusSvc,
 		complianceAssessmentStatusSvc: complianceAssessmentStatusSvc,
@@ -2660,6 +2669,65 @@ func parseUintList(ss []string) []uint {
 		}
 	}
 	return out
+}
+
+func (cas *ComplianceAssessmentService) ExportComplianceAssessments(data []*complianceDTOs.ComplianceAssessmentListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := cas.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Compliance Register",
+			"Review User",
+			"Description",
+			"Status",
+			"Created By",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Compliance Register",
+			"Review User",
+			"Description",
+			"Status",
+			"Created By",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, assessment := range data {
+		var complianceRegister, reviewUser, description, status, createdBy string
+
+		if userSetting.Language == "ar" {
+			complianceRegister = assessment.ComplianceRegisterTitleAr
+			reviewUser = assessment.ReviewUserFirstNameAr + " " + assessment.ReviewUserLastNameAr
+			status = assessment.ComplianceAssessmentStatusTitleAr
+			createdBy = assessment.CreatedUserFirstNameAr + " " + assessment.CreatedUserLastNameAr
+			description = utility.GetStringValue(assessment.Description)
+		} else {
+			complianceRegister = assessment.ComplianceRegisterTitleEn
+			reviewUser = assessment.ReviewUserFirstNameEn + " " + assessment.ReviewUserLastNameEn
+			status = assessment.ComplianceAssessmentStatusTitleEn
+			createdBy = assessment.CreatedUserFirstNameEn + " " + assessment.CreatedUserLastNameEn
+			description = utility.GetStringValue(assessment.Description)
+
+		}
+
+		rows[i] = []interface{}{
+			i + 1,
+			complianceRegister,
+			reviewUser,
+			description,
+			status,
+			createdBy,
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }
 
 func derefUintPtr(p *uint) uint {
