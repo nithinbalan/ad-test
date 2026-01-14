@@ -19,6 +19,10 @@ type ComplianceAssociatedItemServiceInterface interface {
 	GetAllAssociatedCounts(complianceID uint) (*complianceDTOs.ComplianceAssociatedItemsCountResponseDTO, error)
 	GetComplianceRequirementCountByStatus(complianceID uint) ([]complianceDTOs.ComplianceRequirementStatusCountResponseDTO, error)
 	GetAllStrategicObjectives(complianceID uint, params *complianceDTOs.ComplianceAssociatedItemListQueryParamsDTO) (*complianceDTOs.ComplianceAssociatedItemStrategicObjectiveListResponseDTO, error)
+	GetAllComplianceAssets(complianceID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error)
+	GetAllComplianceProcesses(complianceID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error)
+	GetAllComplianceKPI(complianceID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error)
+
 	CreateComplianceControls(complianceID, userID uint, dto *complianceDTOs.ComplianceRegisterControlMapDTO) error
 	DeleteComplianceControl(complianceID, controlID uint) error
 	CreateComplianceRisk(complianceID uint, userID uint, dto *commonDTOs.AssociatedRiskMapDTO) error
@@ -77,6 +81,34 @@ func (cais *ComplianceAssociatedItemService) GetAllStrategicObjectives(complianc
 		return nil, err
 	}
 	return cais.repo.GetAllStrategicObjectives(complianceID, params)
+}
+
+func (ccs *ComplianceAssociatedItemService) GetAllComplianceAssets(complianceID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemAssetListResponseDTO, error) {
+	// Fetch associated controls through requirements from repository
+	strategicObjectives, err := ccs.repo.GetAllComplianceAssets(complianceID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return strategicObjectives, nil
+}
+
+func (cais *ComplianceAssociatedItemService) GetAllComplianceProcesses(complianceID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedItemProcessListResponseDTO, error) {
+	strategicObjectives, err := cais.repo.GetAllComplianceProcesses(complianceID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return strategicObjectives, nil
+}
+
+func (cais *ComplianceAssociatedItemService) GetAllComplianceKPI(complianceID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedKPIRegisterListResponseDTO, error) {
+	kpis, err := cais.repo.GetAllComplianceKPI(complianceID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return kpis, nil
 }
 
 func (cais *ComplianceAssociatedItemService) GetAllAssociatedCounts(complianceID uint) (*complianceDTOs.ComplianceAssociatedItemsCountResponseDTO, error) {
