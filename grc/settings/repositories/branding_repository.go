@@ -43,6 +43,7 @@ func (repo *BrandingRepository) GetAll(params *dtos.BrandingListQueryParamsDTO) 
 		branding.login_page_bg_image_path,
 		branding.org_logo_image_path, 
 		branding.favicon_image_path, 
+		branding.loader_gif_path,
 		branding.created_at, 
 		branding.updated_at, 
 		created_user.id AS created_user_id, 
