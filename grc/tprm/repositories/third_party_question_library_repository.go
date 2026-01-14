@@ -71,6 +71,8 @@ func (repo *ThirdPartyQuestionLibraryRepository) GetAll(params *dtos.ThirdPartyQ
 	// Apply quick filters
 	for _, filter := range params.QuickFilter {
 		switch filter {
+		case "yes-no":
+			query = query.Where("third_party_question_types.type = ?", "yes-no")
 		case "dropdown-single":
 			query = query.Where("third_party_question_types.type = ?", "dropdown-single")
 		case "dropdown-multiple":
