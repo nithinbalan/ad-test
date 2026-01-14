@@ -38,6 +38,10 @@ func (tss *tenableSettingsService) GetTenableSettings() (*models.TenableSettings
 }
 
 func (tss *tenableSettingsService) SaveTenableSettings(currentUserID uint, dto dtos.UpdateTenableSettingsDTO) error {
+	if dto.LookbackDays <= 0 || dto.LookbackDays > 90 {
+		return fmt.Errorf("lookback days must be between 1 and 90 days")
+	}
+
 	integration, err := tss.integrationsvc.GetByType("tenable")
 	if err != nil {
 		return err
