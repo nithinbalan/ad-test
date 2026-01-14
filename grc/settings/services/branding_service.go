@@ -78,8 +78,8 @@ func (bs *BrandingService) Update(id uint, currentUserID uint, brandingFormDTO *
 		return err
 	}
 
-	handleBrandingUpdate := func(doc *dtos.BrandingDocumentFormDTO, storageFolder string, urlField **string) error {
-		if doc != nil && doc.IsNewFile != nil && *doc.IsNewFile {
+	handleBrandingUpdate := func(brandingDocumentFormDTO *dtos.BrandingDocumentFormDTO, storageFolder string, urlField **string) error {
+		if brandingDocumentFormDTO != nil && brandingDocumentFormDTO.IsNewFile != nil && *brandingDocumentFormDTO.IsNewFile {
 
 			var oldRelativePath *string
 			if *urlField != nil && **urlField != "" {
@@ -89,12 +89,12 @@ func (bs *BrandingService) Update(id uint, currentUserID uint, brandingFormDTO *
 
 			//define storage path
 			storagePath := filepath.Join("branding", "branding-settings", storageFolder)
-			if err := utility.StoreFile(doc.FileName, storagePath); err != nil {
+			if err := utility.StoreFile(brandingDocumentFormDTO.FileName, storagePath); err != nil {
 				return err
 			}
 
 			// Generate URL for the new document,
-			url := utility.GenerateDocumentURL("branding", "branding-settings", storageFolder, doc.FileName)
+			url := utility.GenerateDocumentURL("branding", "branding-settings", storageFolder, brandingDocumentFormDTO.FileName)
 
 			*urlField = &url
 
