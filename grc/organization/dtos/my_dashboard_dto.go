@@ -64,21 +64,6 @@ type UserTaskDTO struct {
 }
 
 type AssignedRiskDTO struct {
-	ID             uint            `json:"id"`
-	Title          string          `json:"title"`
-	ReferenceNumber string         `json:"reference_number"`
-	Severity       *SeverityLevelDTO `json:"severity"`
-	LastUpdated    time.Time       `json:"last_updated"`
-}
-
-type SeverityLevelDTO struct {
-	TitleEn   string `json:"title_en"`
-	TitleAr   string `json:"title_ar"`
-	ColorCode string `json:"color_code"`
-	Type      string `json:"type"`
-}
-
-type AssignedRiskFlatDTO struct {
 	ID                      uint       `gorm:"column:id"`
 	ReferenceNumber         string     `gorm:"column:reference_number"`
 	Title                   string     `gorm:"column:title"`

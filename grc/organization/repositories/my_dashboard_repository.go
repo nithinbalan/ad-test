@@ -12,7 +12,7 @@ type MyDashboardRepositoryInterface interface {
 	GetDashboardSummary(userID uint) (tasksAssigned, tasksCompleted, overdueItems, newNotifications int64, err error)
 	GetUserTasks(userID uint, limit int) ([]organizationDTOs.UserTaskDTO, error)
 	GetOverdueTasks(userID uint, limit int) ([]organizationDTOs.UserTaskDTO, error)
-	GetAssignedRisks(userID uint, limit int) ([]organizationDTOs.AssignedRiskFlatDTO, error)
+	GetAssignedRisks(userID uint, limit int) ([]organizationDTOs.AssignedRiskDTO, error)
 	GetRecentActivity(userID uint, limit int) ([]*models.ActivityLog, error)
 }
 
@@ -193,8 +193,8 @@ func (dr *MyDashboardRepository) GetOverdueTasks(userID uint, limit int) ([]orga
 	return overdueTasks, nil
 }
 
-func (dr *MyDashboardRepository) GetAssignedRisks(userID uint, limit int) ([]organizationDTOs.AssignedRiskFlatDTO, error) {
-	var flatRisks []organizationDTOs.AssignedRiskFlatDTO
+func (dr *MyDashboardRepository) GetAssignedRisks(userID uint, limit int) ([]organizationDTOs.AssignedRiskDTO, error) {
+	var flatRisks []organizationDTOs.AssignedRiskDTO
 
 	query := `
 		SELECT

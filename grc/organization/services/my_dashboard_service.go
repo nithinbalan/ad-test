@@ -47,31 +47,12 @@ func (ds *MyDashboardService) GetOverdueTasks(userID uint, limit int) ([]organiz
 }
 
 func (ds *MyDashboardService) GetAssignedRisks(userID uint, limit int) ([]organizationDTOs.AssignedRiskDTO, error) {
-	flatRisks, err := ds.repo.GetAssignedRisks(userID, limit)
-	if err != nil {
-		return nil, err
-	}
-
-	assignedRisks := make([]organizationDTOs.AssignedRiskDTO, len(flatRisks))
-	for i, flatRisk := range flatRisks {
-		assignedRisks[i] = organizationDTOs.AssignedRiskDTO{
-			ID:              flatRisk.ID,
-			Title:           flatRisk.Title,
-			ReferenceNumber: flatRisk.ReferenceNumber,
-			Severity: organizationDTOs.SeverityLevelDTO{
-				TitleEn:   flatRisk.SeverityLevelTitleEn,
-				TitleAr:   flatRisk.SeverityLevelTitleAr,
-				ColorCode: flatRisk.SeverityLevelColorCode,
-				Type:      flatRisk.SeverityLevelType,
-			},
-			LastUpdated: flatRisk.LastUpdated,
-		}
-	}
-
-	return assignedRisks, nil
+	return ds.repo.GetAssignedRisks(userID, limit)
 }
+
 
 func (ds *MyDashboardService) GetRecentActivity(userID uint, limit int) ([]*models.ActivityLog, error) {
 	return ds.repo.GetRecentActivity(userID, limit)
 }
+
 
