@@ -31,7 +31,7 @@ func (dc *MyDashboardController) GetDashboardSummary(c *gin.Context) {
 
 	summary, err := dc.service.GetDashboardSummary(currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, "Unable to fetch dashboard summary")
+		utility.SendInternalErrResp(dc.db, c, err.Error())
 		return
 	}
 
@@ -126,7 +126,7 @@ func (dc *MyDashboardController) GetAssignedRisks(c *gin.Context) {
 func (dc *MyDashboardController) GetRecentActivity(c *gin.Context) {
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendUnauthorizedErrResp(c, "Unauthorized")
+		utility.SendInternalErrResp(dc.db, c, err.Error())
 		return
 	}
 
@@ -150,4 +150,3 @@ func (dc *MyDashboardController) GetRecentActivity(c *gin.Context) {
 
 	c.JSON(http.StatusOK, recentActivity)
 }
-

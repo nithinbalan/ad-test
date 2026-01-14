@@ -16,7 +16,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	db := app.DB
 
-	myDashboardController := app.OrganizationModule.MyDashboardController
 	designationController := app.OrganizationModule.DesignationController
 	userStatusController := app.OrganizationModule.UserStatusController
 	userController := app.OrganizationModule.UserController
@@ -59,6 +58,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	userDelegationHistoryController := app.OrganizationModule.UserDelegationHistoryController
 	organizationUnitsController := app.OrganizationModule.OrganizationUnitsController
 	organizationChartUsers := app.OrganizationModule.OrganizationCartController
+	myDashboardController := app.OrganizationModule.MyDashboardController
 
 	// Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)

@@ -38,8 +38,7 @@ func (dr *MyDashboardRepository) GetDashboardSummary(userID uint) (tasksAssigned
 	`
 
 	row := dr.db.Raw(taskCountsQuery, today, userID).Row()
-	if scanErr := row.Scan(&tasksAssigned, &tasksCompleted, &overdueItems); scanErr != nil {
-		err = scanErr
+	if err = row.Scan(&tasksAssigned, &tasksCompleted, &overdueItems); err != nil {
 		return
 	}
 
@@ -202,8 +201,10 @@ func (dr *MyDashboardRepository) GetAssignedRisks(userID uint, limit int) ([]org
 			rr.id,
 			rr.reference_number,
 			rr.title,
-			ISNULL(sl.title_en, 'Not Set') as severity_title,
-			ISNULL(sl.color_code, '#808080') as severity_color,
+			sl.title_en as severity_level_title_en,
+			sl.title_ar as severity_level_title_ar,
+			sl.color_code as severity_level_color_code,
+			sl.type as severity_level_type,
 			rr.updated_at as last_updated
 		FROM risk_register rr
 		LEFT JOIN severity_levels sl ON rr.severity_level_id = sl.id

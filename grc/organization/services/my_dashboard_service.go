@@ -59,8 +59,10 @@ func (ds *MyDashboardService) GetAssignedRisks(userID uint, limit int) ([]organi
 			Title:           flatRisk.Title,
 			ReferenceNumber: flatRisk.ReferenceNumber,
 			Severity: organizationDTOs.SeverityLevelDTO{
-				Title: flatRisk.SeverityTitle,
-				Color: flatRisk.SeverityColor,
+				TitleEn:   flatRisk.SeverityLevelTitleEn,
+				TitleAr:   flatRisk.SeverityLevelTitleAr,
+				ColorCode: flatRisk.SeverityLevelColorCode,
+				Type:      flatRisk.SeverityLevelType,
 			},
 			LastUpdated: flatRisk.LastUpdated,
 		}

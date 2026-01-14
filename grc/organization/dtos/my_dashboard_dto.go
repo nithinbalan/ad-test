@@ -28,14 +28,14 @@ type UserTaskDTO struct {
 	ResponsibleUserEmail            string     `json:"responsible_user_email"`
 	ResponsibleUserProfileImagePath string     `json:"responsible_user_profile_image_path"`
 	DelegateeUserID                 *uint      `json:"delegatee_user_id"`
-	DelegateeUserFirstNameEn        string     `json:"delegatee_user_first_name_en"`
-	DelegateeUserFirstNameAr        string     `json:"delegatee_user_first_name_ar"`
-	DelegateeUserLastNameEn         string     `json:"delegatee_user_last_name_en"`
-	DelegateeUserLastNameAr         string     `json:"delegatee_user_last_name_ar"`
-	DelegateeUserInitial            string     `json:"delegatee_user_initial"`
-	DelegateeUserColor              string     `json:"delegatee_user_color"`
-	DelegateeUserEmail              string     `json:"delegatee_user_email"`
-	DelegateeUserProfileImagePath   string     `json:"delegatee_user_profile_image_path"`
+	DelegateeUserFirstNameEn        *string    `json:"delegatee_user_first_name_en"`
+	DelegateeUserFirstNameAr        *string    `json:"delegatee_user_first_name_ar"`
+	DelegateeUserLastNameEn         *string    `json:"delegatee_user_last_name_en"`
+	DelegateeUserLastNameAr         *string    `json:"delegatee_user_last_name_ar"`
+	DelegateeUserInitial             *string    `json:"delegatee_user_initial"`
+	DelegateeUserColor               *string    `json:"delegatee_user_color"`
+	DelegateeUserEmail               *string    `json:"delegatee_user_email"`
+	DelegateeUserProfileImagePath    *string    `json:"delegatee_user_profile_image_path"`
 	TargetDate                      *time.Time `json:"target_date"`
 	URLParam                        string     `json:"url_param"`
 	TaskStatusTitleEn               string     `json:"task_status_title_en"`
@@ -53,14 +53,14 @@ type UserTaskDTO struct {
 	CreatedUserEmail                string     `json:"created_user_email"`
 	CreatedUserProfileImagePath     string     `json:"created_user_profile_image_path"`
 	UpdatedUserID                   *uint      `json:"updated_user_id"`
-	UpdatedUserFirstNameEn          string     `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr          string     `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn           string     `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr           string     `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial              string     `json:"updated_user_initial"`
-	UpdatedUserColor                string     `json:"updated_user_color"`
-	UpdatedUserEmail                string     `json:"updated_user_email"`
-	UpdatedUserProfileImagePath     string     `json:"updated_user_profile_image_path"`
+	UpdatedUserFirstNameEn          *string    `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr          *string    `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn           *string    `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr           *string    `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial              *string    `json:"updated_user_initial"`
+	UpdatedUserColor                *string    `json:"updated_user_color"`
+	UpdatedUserEmail                *string    `json:"updated_user_email"`
+	UpdatedUserProfileImagePath     *string    `json:"updated_user_profile_image_path"`
 }
 
 type AssignedRiskDTO struct {
@@ -72,17 +72,21 @@ type AssignedRiskDTO struct {
 }
 
 type SeverityLevelDTO struct {
-	Title string `json:"title"`
-	Color string `json:"color"`
+	TitleEn   *string `json:"title_en"`
+	TitleAr   *string `json:"title_ar"`
+	ColorCode *string `json:"color_code"`
+	Type      *string `json:"type"`
 }
 
 type AssignedRiskFlatDTO struct {
-	ID             uint      `gorm:"column:id"`
-	ReferenceNumber string   `gorm:"column:reference_number"`
-	Title          string    `gorm:"column:title"`
-	SeverityTitle  string    `gorm:"column:severity_title"`
-	SeverityColor  string    `gorm:"column:severity_color"`
-	LastUpdated    time.Time `gorm:"column:last_updated"`
+	ID                      uint       `gorm:"column:id"`
+	ReferenceNumber         string     `gorm:"column:reference_number"`
+	Title                   string     `gorm:"column:title"`
+	SeverityLevelTitleEn    *string    `gorm:"column:severity_level_title_en"`
+	SeverityLevelTitleAr    *string    `gorm:"column:severity_level_title_ar"`
+	SeverityLevelColorCode  *string    `gorm:"column:severity_level_color_code"`
+	SeverityLevelType       *string    `gorm:"column:severity_level_type"`
+	LastUpdated             time.Time  `gorm:"column:last_updated"`
 }
 
 type TaskCountsDTO struct {
