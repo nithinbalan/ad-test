@@ -65,7 +65,6 @@ type OrganizationModule struct {
 	ProcessDependencySvc           services.ProcessDependencyServiceInterface
 	JobDescriptionSvc              services.JobDescriptionServiceInterface
 	GovernanceReportSvc            services.GovernanceReportServiceInterface
-	MyDashboardSvc                   services.MyDashboardServiceInterface
 }
 
 func NewOrganizationModule(
@@ -355,6 +354,5 @@ func NewOrganizationModule(
 		ProcessDependencySvc:           processDependencySvc,
 		JobDescriptionSvc:              jobDescriptionSvc,
 		GovernanceReportSvc:            governanceReportSvc,
-		MyDashboardSvc:                   myDashboardSvc,
 	}
 }

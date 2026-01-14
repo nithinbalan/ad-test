@@ -31,8 +31,14 @@ func (dc *MyDashboardController) GetDashboardSummary(c *gin.Context) {
 
 	summary, err := dc.service.GetDashboardSummary(currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(dc.db, c, err.Error())
-		return
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(dc.db, c, err.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, summary)

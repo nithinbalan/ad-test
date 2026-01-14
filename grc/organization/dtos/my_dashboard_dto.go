@@ -15,9 +15,9 @@ type UserTaskDTO struct {
 	ModuleID                        uint       `json:"module_id"`
 	Title                           string     `json:"title"`
 	Description                     string     `json:"description"`
-	SeverityLevelTitleEn            string     `json:"severity_level_title_en"`
-	SeverityLevelTitleAr            string     `json:"severity_level_title_ar"`
-	SeverityLevelColorCode          string     `json:"severity_level_color_code"`
+	SeverityLevelTitleEn            *string     `json:"severity_level_title_en"`
+	SeverityLevelTitleAr            *string     `json:"severity_level_title_ar"`
+	SeverityLevelColorCode          *string     `json:"severity_level_color_code"`
 	ResponsibleUserID               uint       `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      string     `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr      string     `json:"responsible_user_first_name_ar"`
@@ -67,15 +67,15 @@ type AssignedRiskDTO struct {
 	ID             uint            `json:"id"`
 	Title          string          `json:"title"`
 	ReferenceNumber string         `json:"reference_number"`
-	Severity       SeverityLevelDTO `json:"severity"`
+	Severity       *SeverityLevelDTO `json:"severity"`
 	LastUpdated    time.Time       `json:"last_updated"`
 }
 
 type SeverityLevelDTO struct {
-	TitleEn   *string `json:"title_en"`
-	TitleAr   *string `json:"title_ar"`
-	ColorCode *string `json:"color_code"`
-	Type      *string `json:"type"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Type      string `json:"type"`
 }
 
 type AssignedRiskFlatDTO struct {

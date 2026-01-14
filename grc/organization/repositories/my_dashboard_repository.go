@@ -205,11 +205,11 @@ func (dr *MyDashboardRepository) GetAssignedRisks(userID uint, limit int) ([]org
 			sl.title_ar as severity_level_title_ar,
 			sl.color_code as severity_level_color_code,
 			sl.type as severity_level_type,
-			rr.updated_at as last_updated
+			COALESCE(rr.updated_at, rr.created_at) as last_updated
 		FROM risk_register rr
 		LEFT JOIN severity_levels sl ON rr.severity_level_id = sl.id
 		WHERE rr.responsible_user_id = ?
-		ORDER BY rr.updated_at DESC
+		ORDER BY COALESCE(rr.updated_at, rr.created_at) DESC
 		OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY
 	`
 
