@@ -102,7 +102,9 @@ func (bs *BrandingService) Update(id uint, currentUserID uint, brandingFormDTO *
 			if oldRelativePath != nil {
 				oldDir := filepath.Dir(*oldRelativePath)
 				oldFile := filepath.Base(*oldRelativePath)
-				_ = utility.RemoveFile(oldFile, oldDir)
+				if err := utility.RemoveFile(oldFile, oldDir); err != nil {
+					return fmt.Errorf("failed to remove old file: %w", err)
+				}
 			}
 		}
 
