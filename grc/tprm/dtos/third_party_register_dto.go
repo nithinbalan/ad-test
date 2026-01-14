@@ -60,14 +60,14 @@ type ThirdPartyRegisterListDTO struct {
 	CreatedUserEmail                string   `json:"created_user_email"`
 	CreatedUserProfileImagePath     string   `json:"created_user_profile_image_path"`
 	UpdatedByID                     *uint    `json:"updated_by_id"`
-	UpdatedUserFirstNameEn          string   `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr          string   `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn           string   `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr           string   `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial              string   `json:"updated_user_initial"`
-	UpdatedUserColor                string   `json:"updated_user_color"`
-	UpdatedUserEmail                string   `json:"updated_user_email"`
-	UpdatedUserProfileImagePath     string   `json:"updated_user_profile_image_path"`
+	UpdatedUserFirstNameEn          *string   `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr          *string   `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn           *string   `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr           *string   `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial              *string   `json:"updated_user_initial"`
+	UpdatedUserColor                *string   `json:"updated_user_color"`
+	UpdatedUserEmail                *string   `json:"updated_user_email"`
+	UpdatedUserProfileImagePath     *string   `json:"updated_user_profile_image_path"`
 }
 
 type ThirdPartyRegisterFormDTO struct {
