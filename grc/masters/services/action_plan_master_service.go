@@ -203,25 +203,40 @@ func (apms *ActionPlanMasterService) Update(id uint, currentUserID uint, form *d
 	return nil
 }
 
-func (apms *ActionPlanMasterService) Delete(ids []uint,currentUserID uint) ([]uint, error) {
+func (apms *ActionPlanMasterService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := apms.repo.BeginTransaction()
 
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedActionPlans []map[string]interface{}
 
 	for _, id := range ids {
 
-		_, err := apms.repo.GetByID(id)
+		actionPlan, err := apms.GetByID(id)
 		if err != nil {
+			failedIds = append(failedIds, id)
 			continue
 		}
 
-		err = apms.repo.Delete(id)
-		if err != nil {
+		if err := apms.repo.Delete(id, tx); err != nil {
 			failedIds = append(failedIds, id)
-		} else {
-			successfulIds = append(successfulIds, id)
+			continue
 		}
+
+		successfulIds = append(successfulIds, id)
+
+		deletedActionPlans = append(deletedActionPlans, map[string]interface{}{
+			"id":    id,
+			"title": actionPlan.Title,
+		})
 	}
+
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	tx.Commit()
 
 	if len(successfulIds) > 0 {
 		go func() {
@@ -229,18 +244,19 @@ func (apms *ActionPlanMasterService) Delete(ids []uint,currentUserID uint) ([]ui
 				models.DeleteAction,
 				models.ActionPlanMaster{}.TableName(),
 				successfulIds,
-				nil,
+				deletedActionPlans,
 				currentUserID,
 				nil,
 			)
 			if err != nil {
-				fmt.Printf("Failed to activity: %v\n", err)
+				fmt.Printf("Failed to log ActionPlanMaster delete activity: %v\n", err)
 			}
 		}()
 	}
 
 	return failedIds, nil
 }
+
 
 
 func (apms *ActionPlanMasterService) Activate(ids []uint, currentUserID uint) error {
@@ -319,7 +335,7 @@ func (apms *ActionPlanMasterService) validateActionPlanMasterFormDTO(form *dtos.
 		}
 		if exists {
 			return utility.NewValidationError(
-				fmt.Errorf("action plan title must be unique per module"),"unique","title")
+				fmt.Errorf("action plan title must be unique"),"unique","title")
 		}
 	} else {
 		exists, err := apms.repo.ExistsByTitleExcludingID(*id, form.Title, form.ModuleID)
@@ -327,7 +343,7 @@ func (apms *ActionPlanMasterService) validateActionPlanMasterFormDTO(form *dtos.
 			return err
 		}
 		if exists {
-			return utility.NewValidationError(fmt.Errorf("action plan title must be unique per module"),"unique","title")
+			return utility.NewValidationError(fmt.Errorf("action plan title must be unique"),"unique","title")
 		}
 	}
 

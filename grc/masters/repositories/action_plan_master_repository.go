@@ -1,13 +1,15 @@
 package repositories
 
 import (
-	"gorm.io/gorm"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/masters/dtos"
 	"jethur/grc/models"
+	"jethur/utility"
+	"gorm.io/gorm"
 )
 
 type ActionPlanMasterRepositoryInterface interface {
+	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *dtos.ActionPlanMasterListQueryParamsDTO) (*dtos.ActionPlanMasterListResponseDTO, error)
 	GetByID(id uint) (*models.ActionPlanMaster, error)
 	GetFullDetailsByID(id uint) (*models.ActionPlanMaster, error)
@@ -17,7 +19,7 @@ type ActionPlanMasterRepositoryInterface interface {
 	ExistsByTitleExcludingID(id uint, title string, moduleID uint) (bool, error)
 	Create(actionPlanMaster *models.ActionPlanMaster) (uint, error)
 	Update(actionPlanMaster *models.ActionPlanMaster) error
-	Delete(id uint) error
+	Delete(id uint,tx ...utility.DatabaseTransaction) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
 }
@@ -30,6 +32,10 @@ func NewActionPlanMasterRepository(db *gorm.DB) *ActionPlanMasterRepository {
 	return &ActionPlanMasterRepository{
 		db: db,
 	}
+}
+
+func (repo *ActionPlanMasterRepository) BeginTransaction() utility.DatabaseTransaction {
+	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
 func (repo *ActionPlanMasterRepository) GetAll(params *dtos.ActionPlanMasterListQueryParamsDTO) (*dtos.ActionPlanMasterListResponseDTO, error) {
@@ -179,20 +185,19 @@ func (repo *ActionPlanMasterRepository) Update(actionPlan *models.ActionPlanMast
 	return nil
 }
 
-func (repo *ActionPlanMasterRepository) Delete(id uint) error {
-
-	var actionPlan *models.ActionPlanMaster
-	if err := repo.db.First(&actionPlan, id).Error; err != nil {
-		return err
+func (repo *ActionPlanMasterRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
 	}
 
-	result := repo.db.Delete(&models.ActionPlanMaster{}, id)
-	if result.Error != nil {
-		return result.Error
+	if err := db.Delete(&models.ActionPlanMaster{}, id).Error; err != nil {
+		return err
 	}
 
 	return nil
 }
+
 
 func (repo *ActionPlanMasterRepository) ExistsByTitle(title string) (bool, error) {
 
