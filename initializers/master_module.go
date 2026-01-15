@@ -37,6 +37,7 @@ type MasterModule struct {
 	LicenseTypeController            *controllers.LicenseTypeController
 	WorkflowContextController        *controllers.WorkflowContextController
 	CommentStatusController          *controllers.CommentStatusController
+	ActionPlanMasterController       *controllers.ActionPlanMasterController
 
 	ReviewFrequencySvc        services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc          services.SeverityLevelServiceInterface
@@ -65,6 +66,7 @@ type MasterModule struct {
 	LicenseTypeSvc            services.LicenseTypeServiceInterface
 	WorkflowContextSvc        services.WorkflowContextServiceInterface
 	CommentStatusSvc          services.CommentStatusServiceInterface
+	actionPlanMasterSvc       services.ActionPlanMasterServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -203,6 +205,10 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	commentStatusSvc := services.NewCommentStatusService(commentStatusRepo)
 	commentStatusController := controllers.NewCommentStatusController(commentStatusSvc)
 
+	actionPlanMasterRepo := repositories.NewActionPlanMasterRepository(db)
+	actionPlanMasterSvc := services.NewActionPlanMasterService(actionPlanMasterRepo, sharedModule.ActivityLogService, severityLevelSvc)
+	actionPlanMasterController := controllers.NewActionPlanMasterController(actionPlanMasterSvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:        reviewFrequencyController,
 		SeverityLevelController:          severityLevelController,
@@ -232,6 +238,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		LicenseTypeController:            licenseTypeController,
 		WorkflowContextController:        workflowContextController,
 		CommentStatusController:          commentStatusController,
+		ActionPlanMasterController:       actionPlanMasterController,
 
 		ReviewFrequencySvc:        reviewFrequencySvc,
 		SeverityLevelSvc:          severityLevelSvc,
@@ -260,5 +267,6 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		LicenseTypeSvc:            licenseTypeSvc,
 		WorkflowContextSvc:        workflowContextSvc,
 		CommentStatusSvc:          commentStatusSvc,
+		actionPlanMasterSvc:       actionPlanMasterSvc,
 	}
 }
