@@ -135,11 +135,7 @@ func (iaps IncidentActionPlanService) GetFullDetailsByID(incidentID uint, id uin
 	return &incidentActionPlanDTO, nil
 }
 
-func (svc *IncidentActionPlanService) GetAllByIncidentID(
-	incidentID uint,
-	tx utility.DatabaseTransaction,
-) ([]*models.IncidentActionPlan, error) {
-
+func (svc *IncidentActionPlanService) GetAllByIncidentID(incidentID uint, tx utility.DatabaseTransaction) ([]*models.IncidentActionPlan, error) {
 	return svc.repo.GetAllByIncidentID(incidentID, tx)
 }
 

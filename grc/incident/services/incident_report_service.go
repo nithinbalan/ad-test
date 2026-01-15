@@ -9,7 +9,6 @@ import (
 	incidentRepo "jethur/grc/incident/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
-	organizationDTOs "jethur/grc/organization/dtos"
 	settingSvc "jethur/grc/settings/services"
 	"jethur/utility"
 	"os"
@@ -227,11 +226,7 @@ func (irs IncidentReportService) ExportIncidentReport(id uint, currentUserID uin
 	return pdfFileName, nil
 }
 
-func (irs *IncidentReportService) Create(
-	currentUserID uint,
-	dto incidentDTOs.IncidentReportRequestDTO,
-) (uint, error) {
-
+func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.IncidentReportRequestDTO) (uint, error) {
 	tx := irs.repo.BeginTransaction()
 
 	template, err := irs.settigSvc.GetFirst()
@@ -446,10 +441,10 @@ func (irs *IncidentReportService) Create(
 				IncidentInvestigationID:  nil, // Can be set if document is linked to investigation
 				URL:                      &newURL,
 				Name:                     &docName,
-				Size:                     &docSize,
-				Token:                    &docToken,
-				OriginalName:             &docOriginalName,
-				Type:                     &docType,
+				Size:                     docSize,
+				Token:                    docToken,
+				OriginalName:             docOriginalName,
+				Type:                     docType,
 				CreatedByID:              &currentUserID,
 				UpdatedByID:              nil,
 			})
@@ -632,210 +627,24 @@ func (irs *IncidentReportService) GetIncidentReportDetails(id uint) (*incidentDT
 		return nil, err
 	}
 
-	response := &incidentDTOs.IncidentReportDetailsDTO{
-		ID:        report.ID,
-		Title:     report.Title,
-		CreatedAt: report.CreatedAt,
+	// Use single mapstructure.Decode() for the entire structure - DONE!
+	var response incidentDTOs.IncidentReportDetailsDTO
+	if err := mapstructure.Decode(report, &response); err != nil {
+		return nil, err
 	}
 
-	if report.StartDate != nil {
-		startDateStr := report.StartDate.Format("2006-01-02")
-		response.StartDate = &startDateStr
-	}
-
-	if report.EndDate != nil {
-		endDateStr := report.EndDate.Format("2006-01-02")
-		response.EndDate = &endDateStr
-	}
-
-	if report.CreatedByUser != nil {
-		response.CreatedBy = organizationDTOs.UserMinimalDTO{
-			ID:               int(report.CreatedByUser.ID),
-			FirstNameEN:      report.CreatedByUser.FirstNameEn,
-			LastNameEN:       report.CreatedByUser.LastNameEn,
-			FirstNameAR:      report.CreatedByUser.FirstNameAr,
-			LastNameAR:       report.CreatedByUser.LastNameAr,
-			Initial:          report.CreatedByUser.Initial,
-			Color:            report.CreatedByUser.Color,
-			Email:            report.CreatedByUser.Email,
-			ProfileImagePath: report.CreatedByUser.ProfileImagePath,
-		}
-	}
-
-	response.Sections = make([]*incidentDTOs.IncidentReportSectionDTO, 0, len(report.Sections))
-	for _, section := range report.Sections {
-		response.Sections = append(response.Sections, &incidentDTOs.IncidentReportSectionDTO{
-			ID:            section.ID,
-			Type:          section.Type,
-			TitleEn:       section.TitleEn,
-			TitleAr:       section.TitleAr,
-			DescriptionEn: section.DescriptionEn,
-			DescriptionAr: section.DescriptionAr,
-			OrderNum:      section.OrderNum,
-		})
-	}
-
-	response.Incidents = make([]*incidentDTOs.IncidentReportIncidentDetailDTO, 0, len(report.Incidents))
-	for _, incident := range report.Incidents {
-		categoryTitleEn := ""
-		categoryTitleAr := ""
-		if incident.IncidentCategoryTitleEn != nil {
-			categoryTitleEn = *incident.IncidentCategoryTitleEn
-		}
-		if incident.IncidentCategoryTitleAr != nil {
-			categoryTitleAr = *incident.IncidentCategoryTitleAr
-		}
-		severityTitleEn := ""
-		severityTitleAr := ""
-		if incident.SeverityLevelTitleEn != nil {
-			severityTitleEn = *incident.SeverityLevelTitleEn
-		}
-		if incident.SeverityLevelTitleAr != nil {
-			severityTitleAr = *incident.SeverityLevelTitleAr
-		}
-		statusTitleEn := ""
-		statusTitleAr := ""
-		if incident.IncidentStatusTitleEn != nil {
-			statusTitleEn = *incident.IncidentStatusTitleEn
-		}
-		if incident.IncidentStatusTitleAr != nil {
-			statusTitleAr = *incident.IncidentStatusTitleAr
-		}
-		incidentDTO := &incidentDTOs.IncidentReportIncidentDetailDTO{
-			ID:                         incident.ID,
-			ReferenceNumber:            incident.ReferenceNumber,
-			IncidentCategoryTitleEn:    categoryTitleEn,
-			IncidentCategoryTitleAr:    categoryTitleAr,
-			IncidentSubCategoryTitleEn: incident.IncidentSubCategoryTitleEn,
-			IncidentSubCategoryTitleAr: incident.IncidentSubCategoryTitleAr,
-			SeverityTitleEn:            severityTitleEn,
-			SeverityTitleAr:            severityTitleAr,
-			IncidentAt:                 incident.IncidentAt,
-			ReportedAt:                 incident.ReportedAt,
-			IncidentStatusTitleEn:      statusTitleEn,
-			IncidentStatusTitleAr:      statusTitleAr,
-		}
-
-		incidentDTO.Documents = make([]*incidentDTOs.IncidentReportDocumentDTO, 0, len(incident.Documents))
-		for _, doc := range incident.Documents {
-			docURL := ""
-			if doc.URL != nil {
-				docURL = *doc.URL
-			}
-			docName := ""
-			if doc.Name != nil {
-				docName = *doc.Name
-			}
-			docSize := 0
-			if doc.Size != nil {
-				docSize = *doc.Size
-			}
-			docToken := ""
-			if doc.Token != nil {
-				docToken = *doc.Token
-			}
-			docOriginalName := ""
-			if doc.OriginalName != nil {
-				docOriginalName = *doc.OriginalName
-			}
-			docType := ""
-			if doc.Type != nil {
-				docType = *doc.Type
-			}
-			incidentDTO.Documents = append(incidentDTO.Documents, &incidentDTOs.IncidentReportDocumentDTO{
-				ID:                       doc.ID,
-				IncidentDocumentID:       doc.IncidentDocumentID,
-				IncidentReportIncidentID: doc.IncidentReportIncidentID,
-				URL:                      docURL,
-				Name:                     &docName,
-				Size:                     docSize,
-				Token:                    docToken,
-				OriginalName:             docOriginalName,
-				Type:                     docType,
-			})
-		}
-
-		incidentDTO.RootCauseAnalyses = make([]*incidentDTOs.IncidentReportRootCauseAnalysisDTO, 0, len(incident.RootCauseAnalyses))
-		for _, rca := range incident.RootCauseAnalyses {
-			answer := ""
-			if rca.Answer != nil {
-				answer = *rca.Answer
-			}
-			rcaDTO := &incidentDTOs.IncidentReportRootCauseAnalysisDTO{
-				ID:       rca.ID,
-				Why:      rca.Why,
-				Question: rca.Question,
-				Answer:   answer,
-			}
-			incidentDTO.RootCauseAnalyses = append(incidentDTO.RootCauseAnalyses, rcaDTO)
-		}
-
-		incidentDTO.ActionPlans = make([]*incidentDTOs.IncidentReportActionPlanDTO, 0, len(incident.ActionPlans))
-		for _, plan := range incident.ActionPlans {
-			planDTO := &incidentDTOs.IncidentReportActionPlanDTO{
-				ID:          plan.ID,
-				Title:       plan.ActionPlanTitle,
-				Description: plan.ActionPlanDescription,
-				TargetDate:  plan.TargetDate,
-				StatusTitle: plan.ActionPlanStatusTitleEn,
-			}
-			incidentDTO.ActionPlans = append(incidentDTO.ActionPlans, planDTO)
-		}
-
-		// Map Investigation, Communication Logs, Closure, and PIR from IncidentRegister
+	// Flatten IncidentRegister fields into Incident level for API response
+	for _, incident := range response.Incidents {
 		if incident.IncidentRegister != nil {
-			// Map Investigation
-			if incident.IncidentRegister.Investigation != nil {
-				var investigationDTO incidentDTOs.IncidentInvestigationDetailDTO
-				if err := mapstructure.Decode(incident.IncidentRegister.Investigation, &investigationDTO); err == nil {
-					if incident.IncidentRegister.Investigation.InitiatedAt != nil {
-						initiatedAtStr := incident.IncidentRegister.Investigation.InitiatedAt.Format("2006-01-02")
-						investigationDTO.InitiatedAtString = &initiatedAtStr
-					}
-					incidentDTO.Investigation = &investigationDTO
-				}
-			}
-
-			// Map Communication Logs
-			if len(incident.IncidentRegister.CommunicationLogs) > 0 {
-				incidentDTO.CommunicationLogs = make([]*incidentDTOs.IncidentCommunicationLogDetailDTO, 0, len(incident.IncidentRegister.CommunicationLogs))
-				for _, commLog := range incident.IncidentRegister.CommunicationLogs {
-					var commLogDTO incidentDTOs.IncidentCommunicationLogDetailDTO
-					if err := mapstructure.Decode(commLog, &commLogDTO); err == nil {
-						incidentDTO.CommunicationLogs = append(incidentDTO.CommunicationLogs, &commLogDTO)
-					}
-				}
-			}
-
-			// Map Incident Closure
-			if incident.IncidentRegister.IncidentClosure != nil {
-				var closureDTO incidentDTOs.IncidentClosureDetailDTO
-				if err := mapstructure.Decode(incident.IncidentRegister.IncidentClosure, &closureDTO); err == nil {
-					if incident.IncidentRegister.IncidentClosure.CompletionDate != nil {
-						completionDateStr := incident.IncidentRegister.IncidentClosure.CompletionDate.Format("2006-01-02")
-						closureDTO.CompletionDateString = &completionDateStr
-					}
-					incidentDTO.IncidentClosure = &closureDTO
-				}
-			}
-
-			// Map Post Incident Review (PIR)
-			if incident.IncidentRegister.IncidentPostReview != nil {
-				var pirDTO incidentDTOs.IncidentPostReviewDetailDTO
-				if err := mapstructure.Decode(incident.IncidentRegister.IncidentPostReview, &pirDTO); err == nil {
-					if incident.IncidentRegister.IncidentPostReview.PostReviewDate != nil {
-						postReviewDateStr := incident.IncidentRegister.IncidentPostReview.PostReviewDate.Format("2006-01-02")
-						pirDTO.PostReviewDateString = &postReviewDateStr
-					}
-					incidentDTO.IncidentPostReview = &pirDTO
-				}
-			}
+			incident.Investigation = incident.IncidentRegister.Investigation
+			incident.CommunicationLogs = incident.IncidentRegister.CommunicationLogs
+			incident.IncidentClosure = incident.IncidentRegister.IncidentClosure
+			incident.IncidentPostReview = incident.IncidentRegister.IncidentPostReview
+			incident.IncidentRegister = nil // Hide nested structure from API response
 		}
-
-		response.Incidents = append(response.Incidents, incidentDTO)
 	}
 
-	return response, nil
+	return &response, nil
 }
 
 func (irs *IncidentReportService) DeleteIncidentReport(incidentReportID uint, currentUserID uint) error {

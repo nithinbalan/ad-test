@@ -119,10 +119,7 @@ func (repo *IncidentRootCauseAnalysisRepository) GetByIncidentID(incidentID uint
 	return analyses, nil
 }
 
-func (repo *IncidentRootCauseAnalysisRepository) GetAllByIncidentID(
-	incidentID uint,
-	tx ...utility.DatabaseTransaction,
-) ([]*models.IncidentRootCauseAnalysis, error) {
+func (repo *IncidentRootCauseAnalysisRepository) GetAllByIncidentID(incidentID uint, tx ...utility.DatabaseTransaction) ([]*models.IncidentRootCauseAnalysis, error) {
 
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {

@@ -67,11 +67,7 @@ func (ircas *IncidentRootCauseAnalysisService) GetByID(incidentID uint, id uint)
 	return incidentRootCauseAnalysis, nil
 }
 
-func (ircas *IncidentRootCauseAnalysisService) GetAllByIncidentID(
-	incidentID uint,
-	tx utility.DatabaseTransaction,
-) ([]*models.IncidentRootCauseAnalysis, error) {
-
+func (ircas *IncidentRootCauseAnalysisService) GetAllByIncidentID(incidentID uint, tx utility.DatabaseTransaction) ([]*models.IncidentRootCauseAnalysis, error) {
 	return ircas.repo.GetAllByIncidentID(incidentID, tx)
 }
 

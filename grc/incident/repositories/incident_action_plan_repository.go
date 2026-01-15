@@ -234,10 +234,7 @@ func (repo *IncidentActionPlanRepository) GetFullDetailsByID(id uint) (*models.I
 	return incidentActionPlan, nil
 }
 
-func (repo *IncidentActionPlanRepository) GetAllByIncidentID(
-	incidentID uint,
-	tx ...utility.DatabaseTransaction,
-) ([]*models.IncidentActionPlan, error) {
+func (repo *IncidentActionPlanRepository) GetAllByIncidentID(incidentID uint, tx ...utility.DatabaseTransaction) ([]*models.IncidentActionPlan, error) {
 
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
