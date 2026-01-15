@@ -7,18 +7,22 @@ type IncidentReportActionPlan struct {
 	IncidentReportID         uint `json:"incident_report_id" gorm:"not null"`
 	IncidentReportIncidentID uint `json:"incident_report_incident_id" gorm:"not null"`
 
-	Title       string     `json:"title" gorm:"type:nvarchar(255);not null"`
-	Description *string     `json:"description" gorm:"type:nvarchar(max)"`
-	TargetDate  *time.Time `json:"target_date"`
-	StatusTitle string     `json:"status_title" gorm:"type:nvarchar(255)"`
+	ActionPlanTitle       string     `json:"action_plan_title" gorm:"type:nvarchar(255);not null"`
+	ActionPlanDescription *string    `json:"action_plan_description" gorm:"type:nvarchar(max)"`
+	TargetDate            *time.Time `json:"target_date" gorm:"type:date;null"`
+	ResponsibleUserNameEn string     `json:"responsible_user_name_en" gorm:"type:nvarchar(255);not null"`
+	ResponsibleUserNameAr string     `json:"responsible_user_name_ar" gorm:"type:nvarchar(255);not null"`
 
-	CreatedByID *uint     `json:"created_by_id"`
-	CreatedAt   time.Time `json:"created_at" gorm:"not null;default:getdate()"`
+	SeverityLevelTitleEn *string `json:"severity_level_title_en" gorm:"type:nvarchar(255)"`
+	SeverityLevelTitleAr *string `json:"severity_level_title_ar" gorm:"type:nvarchar(255)"`
+
+	ActionPlanStatusTitleEn   string `json:"action_plan_status_title_en" gorm:"type:nvarchar(255);not null"`
+	ActionPlanStatusTitleAr   string `json:"action_plan_status_title_ar" gorm:"type:nvarchar(255);not null"`
+	ActionPlanStatusColorCode string `json:"action_plan_status_color_code" gorm:"type:nvarchar(7);not null"`
 
 	// Relations
 	IncidentReport         *IncidentReport         `gorm:"foreignKey:IncidentReportID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	IncidentReportIncident *IncidentReportIncident `gorm:"foreignKey:IncidentReportIncidentID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	CreatedBy              *User                   `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 func (IncidentReportActionPlan) TableName() string {

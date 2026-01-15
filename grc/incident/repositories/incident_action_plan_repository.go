@@ -246,7 +246,8 @@ func (repo *IncidentActionPlanRepository) GetAllByIncidentID(
 
 	var plans []*models.IncidentActionPlan
 
-	err := db.Model(&models.IncidentActionPlan{}).
+	err := db.
+		Preload("ActionPlanStatus").
 		Where("incident_register_id = ?", incidentID).
 		Order("created_at ASC").
 		Find(&plans).Error

@@ -3,7 +3,7 @@ package models
 type IncidentReportSection struct {
 	ID               uint   `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	IncidentReportID uint   `json:"incident_report_id" gorm:"not null"`
-	Type             string `json:"type" gorm:"type:varchar(50);not null;check:type IN ('executive-summary', 'scope', 'objectives', 'overview', 'details', 'containment', 'recovery', 'post-incident')"`
+	Type             string `json:"type" gorm:"type:varchar(50);not null;check:type IN ('executive-summary', 'scope', 'objectives', 'overview', 'details', 'investigation', 'incident-closure', 'post-incident-review','rca','communication-log','action-plan')"`
 	TitleEn          string `json:"title_en" gorm:"type:varchar(255);not null"`
 	TitleAr          string `json:"title_ar" gorm:"type:varchar(255);not null"`
 	DescriptionEn    string `json:"description_en" gorm:"type:text"`

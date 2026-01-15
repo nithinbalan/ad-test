@@ -50,11 +50,11 @@ type IncidentReportDetailDTO struct {
 }
 
 type IncidentReportRequestDTO struct {
-	Type 		   string `json:"type" binding:"required,oneof=individual date-range"`
-	IncidentIDs    *[]uint `json:"incident_ids"`
-	Title  	 	   string `json:"title" binding:"required"`
-	StartDate      *string  `json:"start_date"`
-	EndDate        *string  `json:"end_date"`
+	Type        string  `json:"type" binding:"required,oneof=individual date-range"`
+	IncidentIDs *[]uint `json:"incident_ids"`
+	Title       string  `json:"title" binding:"required"`
+	StartDate   *string `json:"start_date"`
+	EndDate     *string `json:"end_date"`
 }
 
 type IncidentReportParsedDates struct {
@@ -65,6 +65,7 @@ type IncidentReportParsedDates struct {
 type IncidentReportIncidentDTO struct {
 	ID              uint   `json:"id"`
 	ReferenceNumber string `json:"reference_number"`
+	IncidentTitle   string `json:"incident_title"`
 
 	IncidentCategoryTitleEn string `json:"incident_category_title_en"`
 	IncidentCategoryTitleAr string `json:"incident_category_title_ar"`
@@ -72,14 +73,20 @@ type IncidentReportIncidentDTO struct {
 	IncidentSubCategoryTitleEn *string `json:"incident_sub_category_title_en"`
 	IncidentSubCategoryTitleAr *string `json:"incident_sub_category_title_ar"`
 
-	SeverityTitleEn string `json:"severity_title_en"`
-	SeverityTitleAr string `json:"severity_title_ar"`
+	SeverityTitleEn   string  `json:"severity_title_en"`
+	SeverityTitleAr   string  `json:"severity_title_ar"`
+	SeverityColorCode *string `json:"severity_color_code"`
 
-	RealTime     time.Time `json:"real_time"`
-	DetectedTime time.Time `json:"detected_time"`
+	RealTime         time.Time `json:"real_time"`
+	DetectedTime     time.Time `json:"detected_time"`
+	IncidentLocation string    `json:"incident_location"`
 
 	IncidentStatusTitleEn string `json:"incident_status_title_en"`
 	IncidentStatusTitleAr string `json:"incident_status_title_ar"`
+	ResponsibleUserNameEn string `json:"responsible_user_name_en"`
+	ResponsibleUserNameAr string `json:"responsible_user_name_ar"`
+	ReportedUserNameEn    string `json:"reported_user_name_en"`
+	ReportedUserNameAr    string `json:"reported_user_name_ar"`
 
 	ContainmentStrategy *string `json:"containment_strategy"`
 	NextSteps           *string `json:"next_steps"`
@@ -87,11 +94,11 @@ type IncidentReportIncidentDTO struct {
 	ResolvedDate     *time.Time `json:"resolved_date"`
 	RecoveryMeasures *string    `json:"recovery_measures"`
 
-	AssignedUserInitial        *string `json:"assigned_user_initial"`
-	AssignedUserFirstNameEn    *string `json:"assigned_user_first_name_en"`
-	AssignedUserLastNameEn     *string `json:"assigned_user_last_name_en"`
-	AssignedUserFirstNameAr    *string `json:"assigned_user_first_name_ar"`
-	AssignedUserLastNameAr     *string `json:"assigned_user_last_name_ar"`
+	AssignedUserInitial     *string `json:"assigned_user_initial"`
+	AssignedUserFirstNameEn *string `json:"assigned_user_first_name_en"`
+	AssignedUserLastNameEn  *string `json:"assigned_user_last_name_en"`
+	AssignedUserFirstNameAr *string `json:"assigned_user_first_name_ar"`
+	AssignedUserLastNameAr  *string `json:"assigned_user_last_name_ar"`
 }
 
 type IncidentReportDocumentDTO struct {
@@ -113,4 +120,107 @@ type IncidentReportListQueryParamsDTO struct {
 	Page     int
 	PageSize int
 	Filters  map[string][]string
+}
+
+type IncidentReportListDTO struct {
+	ID                          uint   `json:"id"`
+	Title                       string `json:"title"`
+	StartDate                   string `json:"start_date"`
+	EndDate                     string `json:"end_date"`
+	CreatedAt                   string `json:"created_at"`
+	CreatedUserID               uint   `json:"created_user_id"`
+	CreatedUserFirstNameEn      string `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr      string `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn       string `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr       string `json:"created_user_last_name_ar"`
+	CreatedUserInitial          string `json:"created_user_initial"`
+	CreatedUserColor            string `json:"created_user_color"`
+	CreatedUserEmail            string `json:"created_user_email"`
+	CreatedUserProfileImagePath string `json:"created_user_profile_image_path"`
+}
+
+type IncidentReportListResponseDTO struct {
+	Items      []*IncidentReportListDTO     `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
+type IncidentReportDetailsDTO struct {
+	ID        uint                               `json:"id"`
+	Title     string                             `json:"title"`
+	StartDate *string                            `json:"start_date"`
+	EndDate   *string                            `json:"end_date"`
+	CreatedAt time.Time                          `json:"created_at"`
+	CreatedBy organizationDTOs.UserMinimalDTO    `json:"created_by"`
+	Sections  []*IncidentReportSectionDTO        `json:"sections"`
+	Incidents []*IncidentReportIncidentDetailDTO `json:"incidents"`
+}
+
+type IncidentReportSectionDTO struct {
+	ID            uint   `json:"id"`
+	Type          string `json:"type"`
+	TitleEn       string `json:"title_en"`
+	TitleAr       string `json:"title_ar"`
+	DescriptionEn string `json:"description_en"`
+	DescriptionAr string `json:"description_ar"`
+	OrderNum      int    `json:"order_num"`
+}
+
+type IncidentReportIncidentDetailDTO struct {
+	ID                         uint                                  `json:"id"`
+	ReferenceNumber            *string                               `json:"reference_number"`
+	IncidentCategoryTitleEn    string                                `json:"incident_category_title_en"`
+	IncidentCategoryTitleAr    string                                `json:"incident_category_title_ar"`
+	IncidentSubCategoryTitleEn *string                               `json:"incident_sub_category_title_en"`
+	IncidentSubCategoryTitleAr *string                               `json:"incident_sub_category_title_ar"`
+	SeverityTitleEn            string                                `json:"severity_title_en"`
+	SeverityTitleAr            string                                `json:"severity_title_ar"`
+	IncidentAt                 *time.Time                            `json:"incident_at"`
+	ReportedAt                 *time.Time                            `json:"reported_at"`
+	IndicatorsOfCompromise     *string                               `json:"indicators_of_compromise"`
+	IncidentStatusTitleEn      string                                `json:"incident_status_title_en"`
+	IncidentStatusTitleAr      string                                `json:"incident_status_title_ar"`
+	ContainmentStrategy        *string                               `json:"containment_strategy"`
+	NextSteps                  *string                               `json:"next_steps"`
+	ResolvedDate               *time.Time                            `json:"resolved_date"`
+	RecoveryMeasures           *string                               `json:"recovery_measures"`
+	AssignedUserInitial        *string                               `json:"assigned_user_initial"`
+	AssignedUserFirstNameEn    *string                               `json:"assigned_user_first_name_en"`
+	AssignedUserLastNameEn     *string                               `json:"assigned_user_last_name_en"`
+	AssignedUserFirstNameAr    *string                               `json:"assigned_user_first_name_ar"`
+	AssignedUserLastNameAr     *string                               `json:"assigned_user_last_name_ar"`
+	Documents                  []*IncidentReportDocumentDTO          `json:"documents"`
+	RootCauseAnalyses          []*IncidentReportRootCauseAnalysisDTO `json:"root_cause_analyses"`
+	ActionPlans                []*IncidentReportActionPlanDTO        `json:"action_plans"`
+	Investigation              *IncidentInvestigationDetailDTO       `json:"investigation"`
+	CommunicationLogs          []*IncidentCommunicationLogDetailDTO  `json:"communication_logs"`
+	IncidentClosure            *IncidentClosureDetailDTO             `json:"incident_closure"`
+	IncidentPostReview         *IncidentPostReviewDetailDTO          `json:"incident_post_review"`
+}
+
+type IncidentReportRootCauseAnalysisDTO struct {
+	ID        uint                             `json:"id"`
+	Why       uint                             `json:"why"`
+	Question  string                           `json:"question"`
+	Answer    string                           `json:"answer"`
+	CreatedBy organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedBy *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	CreatedAt time.Time                        `json:"created_at"`
+	UpdatedAt *time.Time                       `json:"updated_at"`
+}
+
+type IncidentReportActionPlanDTO struct {
+	ID          uint                             `json:"id"`
+	Title       string                           `json:"title"`
+	Description *string                          `json:"description"`
+	TargetDate  *time.Time                       `json:"target_date"`
+	StatusTitle string                           `json:"status_title"`
+	CreatedBy   *organizationDTOs.UserMinimalDTO `json:"created_by"`
+	CreatedAt   time.Time                        `json:"created_at"`
+}
+
+type IncidentReportSectionFormDTO struct {
+	TitleEn       string  `json:"title_en" binding:"required"`
+	TitleAr       string  `json:"title_ar" binding:"required"`
+	DescriptionEn *string `json:"description_en"`
+	DescriptionAr *string `json:"description_ar"`
 }

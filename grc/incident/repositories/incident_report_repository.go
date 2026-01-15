@@ -12,7 +12,9 @@ import (
 
 type IncidentReportRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
+	GetAll(params *incidentDTOs.IncidentReportListQueryParamsDTO) (*incidentDTOs.IncidentReportListResponseDTO, error)
 	GetFullReportDetailsByID(id uint) (*models.IncidentRegister, error)
+	GetIncidentReportDetailsByID(id uint) (*models.IncidentReport, error)
 	GetAllIncidentKPI(incidentID uint) ([]*commonDTOs.AssociatedKPIRegisterListDTO, error)
 	GetAllIncidentStrategicObjectives(incidentID uint) ([]*commonDTOs.AssociatedStrategicObjectiveListDTO, error)
 	GetAllIncidentActionPlan(incidentID uint) ([]*incidentDTOs.IncidentActionPlanListDTO, error)
@@ -31,6 +33,18 @@ type IncidentReportRepositoryInterface interface {
 	CreateIncidentDocuments(docs []*models.IncidentReportDocument, tx utility.DatabaseTransaction) error
 	CreateIncidentRootCauseAnalyses(rcas []*models.IncidentReportRootCauseAnalysis, tx utility.DatabaseTransaction) error
 	CreateIncidentReportActionPlans(plans []*models.IncidentReportActionPlan, tx utility.DatabaseTransaction) error
+
+	GetIncidentReportByID(incidentReportID uint, tx ...utility.DatabaseTransaction) (*models.IncidentReport, error)
+	GetSectionByID(sectionID uint, tx ...utility.DatabaseTransaction) (*models.IncidentReportSection, error)
+	UpdateSection(section *models.IncidentReportSection, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentReportSection(sectionID uint, tx ...utility.DatabaseTransaction) error
+	ReorderIncidentReportSections(incidentReportID uint, deletedOrderNum int, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentReportDocuments(incidentReportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentReportRootCauseAnalyses(incidentReportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentReportActionPlans(incidentReportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentReportIncidents(incidentReportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentReportSections(incidentReportID uint, tx ...utility.DatabaseTransaction) error
+	DeleteIncidentReport(incidentReportID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type IncidentReportRepository struct {
@@ -45,6 +59,84 @@ func NewIncidentReportRepository(db *gorm.DB) *IncidentReportRepository {
 
 func (repo *IncidentReportRepository) BeginTransaction() utility.DatabaseTransaction {
 	return utility.NewGormDatabaseTransaction(repo.db)
+}
+
+func (repo *IncidentReportRepository) GetAll(params *incidentDTOs.IncidentReportListQueryParamsDTO) (*incidentDTOs.IncidentReportListResponseDTO, error) {
+	var reports []*incidentDTOs.IncidentReportListDTO
+	var totalCount int64
+
+	query := repo.db.Table("incident_reports").
+		Select(`
+			incident_reports.id,
+			incident_reports.title,
+			CONVERT(VARCHAR, incident_reports.start_date, 23) AS start_date,
+			CONVERT(VARCHAR, incident_reports.end_date, 23) AS end_date,
+			incident_reports.created_at,
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.email AS created_user_email,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.profile_image_path AS created_user_profile_image_path
+		`).
+		Joins("LEFT JOIN users AS created_user ON created_user.id = incident_reports.created_by_id")
+
+	// Apply dynamic filters to the query
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where(columnName+" IN (?)", values)
+		}
+	}
+
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(incident_reports.title LIKE ? OR
+			created_user.first_name_en LIKE ? OR
+			created_user.last_name_en LIKE ? OR
+			created_user.first_name_ar LIKE ? OR
+			created_user.last_name_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword)
+	}
+
+	// Count before applying ORDER BY to avoid SQL Server OFFSET/FETCH issues
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Ensure ORDER BY is always present for SQL Server OFFSET/FETCH
+	sortBy := params.SortBy
+	if sortBy == "" {
+		sortBy = "incident_reports.id"
+	}
+	sort := params.Sort
+	if sort == "" {
+		sort = "DESC"
+	}
+	query = query.Order(sortBy + " " + sort)
+
+	offset := (params.Page - 1) * params.PageSize
+	query = query.Offset(offset).Limit(params.PageSize)
+
+	if err := query.Find(&reports).Error; err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &incidentDTOs.IncidentReportListResponseDTO{
+		Items: reports,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+	return response, nil
 }
 
 func (repo *IncidentReportRepository) GetFullReportDetailsByID(id uint) (*models.IncidentRegister, error) {
@@ -886,14 +978,17 @@ func (repo *IncidentReportRepository) GetIncidentsByIDs(
 		Select(`
             incident_register.id,
             incident_register.reference_number,
+            incident_register.title AS incident_title,
             incident_categories.title_en AS incident_category_title_en,
             incident_categories.title_ar AS incident_category_title_ar,
             incident_sub_categories.title_en AS incident_sub_category_title_en,
             incident_sub_categories.title_ar AS incident_sub_category_title_ar,
             severity_levels.title_en AS severity_title_en,
             severity_levels.title_ar AS severity_title_ar,
+            severity_levels.color_code AS severity_color_code,
             incident_register.incident_at AS real_time,
             incident_register.reported_at AS detected_time,
+            ISNULL(incident_register.location, '') AS incident_location,
             incident_statuses.title_en AS incident_status_title_en,
             incident_statuses.title_ar AS incident_status_title_ar,
             incident_investigations.description AS containment_strategy,
@@ -904,7 +999,11 @@ func (repo *IncidentReportRepository) GetIncidentsByIDs(
             assigned_user.first_name_en AS assigned_user_first_name_en,
             assigned_user.last_name_en AS assigned_user_last_name_en,
             assigned_user.first_name_ar AS assigned_user_first_name_ar,
-            assigned_user.last_name_ar AS assigned_user_last_name_ar
+            assigned_user.last_name_ar AS assigned_user_last_name_ar,
+            ISNULL(responsible_user.first_name_en, '') + ' ' + ISNULL(responsible_user.last_name_en, '') AS responsible_user_name_en,
+            ISNULL(responsible_user.first_name_ar, '') + ' ' + ISNULL(responsible_user.last_name_ar, '') AS responsible_user_name_ar,
+            ISNULL(reported_user.first_name_en, '') + ' ' + ISNULL(reported_user.last_name_en, '') AS reported_user_name_en,
+            ISNULL(reported_user.first_name_ar, '') + ' ' + ISNULL(reported_user.last_name_ar, '') AS reported_user_name_ar
         `).
 		Joins("LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id").
 		Joins("LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id").
@@ -913,6 +1012,8 @@ func (repo *IncidentReportRepository) GetIncidentsByIDs(
 		Joins("LEFT JOIN incident_investigations ON incident_investigations.incident_register_id = incident_register.id").
 		Joins("LEFT JOIN users assigned_user ON assigned_user.id = incident_investigations.team_lead_id").
 		Joins("LEFT JOIN incident_closures ON incident_closures.incident_register_id = incident_register.id").
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = incident_register.responsible_user_id").
+		Joins("LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by").
 		Where("incident_register.id IN ?", ids).
 		Order("incident_register.created_at DESC").
 		Find(&incidents).Error; err != nil {
@@ -926,13 +1027,13 @@ func (repo *IncidentReportRepository) GetIncidentsByIDs(
 func (repo *IncidentReportRepository) GetReportIncidentsByDateRange(
 	start time.Time,
 	end time.Time,
-	 tx utility.DatabaseTransaction,
+	tx utility.DatabaseTransaction,
 ) ([]incidentDTOs.IncidentReportIncidentDTO, error) {
 
 	db := repo.db
-    if tx != nil {
-        db = tx.DB()
-    }
+	if tx != nil {
+		db = tx.DB()
+	}
 
 	var incidents []incidentDTOs.IncidentReportIncidentDTO
 
@@ -940,14 +1041,17 @@ func (repo *IncidentReportRepository) GetReportIncidentsByDateRange(
 		Select(`
             incident_register.id,
             incident_register.reference_number,
+            incident_register.title AS incident_title,
             incident_categories.title_en AS incident_category_title_en,
             incident_categories.title_ar AS incident_category_title_ar,
             incident_sub_categories.title_en AS incident_sub_category_title_en,
             incident_sub_categories.title_ar AS incident_sub_category_title_ar,
             severity_levels.title_en AS severity_title_en,
             severity_levels.title_ar AS severity_title_ar,
+            severity_levels.color_code AS severity_color_code,
             incident_register.incident_at AS real_time,
             incident_register.reported_at AS detected_time,
+            ISNULL(incident_register.location, '') AS incident_location,
             incident_statuses.title_en AS incident_status_title_en,
             incident_statuses.title_ar AS incident_status_title_ar,
             incident_investigations.description AS containment_strategy,
@@ -958,7 +1062,11 @@ func (repo *IncidentReportRepository) GetReportIncidentsByDateRange(
             assigned_user.first_name_en AS assigned_user_first_name_en,
             assigned_user.last_name_en AS assigned_user_last_name_en,
             assigned_user.first_name_ar AS assigned_user_first_name_ar,
-            assigned_user.last_name_ar AS assigned_user_last_name_ar
+            assigned_user.last_name_ar AS assigned_user_last_name_ar,
+            ISNULL(responsible_user.first_name_en, '') + ' ' + ISNULL(responsible_user.last_name_en, '') AS responsible_user_name_en,
+            ISNULL(responsible_user.first_name_ar, '') + ' ' + ISNULL(responsible_user.last_name_ar, '') AS responsible_user_name_ar,
+            ISNULL(reported_user.first_name_en, '') + ' ' + ISNULL(reported_user.last_name_en, '') AS reported_user_name_en,
+            ISNULL(reported_user.first_name_ar, '') + ' ' + ISNULL(reported_user.last_name_ar, '') AS reported_user_name_ar
         `).
 		Joins("LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id").
 		Joins("LEFT JOIN incident_sub_categories ON incident_sub_categories.id = incident_register.incident_sub_category_id").
@@ -967,6 +1075,8 @@ func (repo *IncidentReportRepository) GetReportIncidentsByDateRange(
 		Joins("LEFT JOIN incident_investigations ON incident_investigations.incident_register_id = incident_register.id").
 		Joins("LEFT JOIN users assigned_user ON assigned_user.id = incident_investigations.team_lead_id").
 		Joins("LEFT JOIN incident_closures ON incident_closures.incident_register_id = incident_register.id").
+		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = incident_register.responsible_user_id").
+		Joins("LEFT JOIN users AS reported_user ON reported_user.id = incident_register.reported_by").
 		Where("incident_register.reported_at BETWEEN ? AND ?", start, end).
 		Order("incident_register.created_at DESC").
 		Find(&incidents).Error; err != nil {
@@ -994,32 +1104,32 @@ func (repo *IncidentReportRepository) CreateSection(
 }
 
 func (repo *IncidentReportRepository) CreateReportIncident(incident *models.IncidentReportIncident, tx utility.DatabaseTransaction) error {
-    db := repo.db
-    if tx != nil {
-        db = tx.DB()
-    }
+	db := repo.db
+	if tx != nil {
+		db = tx.DB()
+	}
 
-    if err := db.Create(incident).Error; err != nil {
-        return err
-    }
+	if err := db.Create(incident).Error; err != nil {
+		return err
+	}
 
-    return nil
+	return nil
 }
 
 func (repo *IncidentReportRepository) GetDocumentsByIncidentID(
-    incidentID uint,
-    tx utility.DatabaseTransaction,
+	incidentID uint,
+	tx utility.DatabaseTransaction,
 ) ([]incidentDTOs.IncidentReportDocumentDTO, error) {
 
-    db := repo.db
-    if tx != nil {
-        db = tx.DB()
-    }
+	db := repo.db
+	if tx != nil {
+		db = tx.DB()
+	}
 
-    var documents []incidentDTOs.IncidentReportDocumentDTO
+	var documents []incidentDTOs.IncidentReportDocumentDTO
 
-    query := db.Table("incident_documents").
-        Select(`
+	query := db.Table("incident_documents").
+		Select(`
             incident_documents.id,
             incident_documents.url,
             incident_documents.name,
@@ -1028,15 +1138,14 @@ func (repo *IncidentReportRepository) GetDocumentsByIncidentID(
             incident_documents.original_name,
             incident_documents.type
         `).
-        Where("incident_documents.incident_register_id = ?", incidentID)
+		Where("incident_documents.incident_register_id = ?", incidentID)
 
-    if err := query.Find(&documents).Error; err != nil {
-        return nil, err
-    }
+	if err := query.Find(&documents).Error; err != nil {
+		return nil, err
+	}
 
-    return documents, nil
+	return documents, nil
 }
-
 
 func (repo *IncidentReportRepository) CreateIncidentDocuments(
 	docs []*models.IncidentReportDocument,
@@ -1087,4 +1196,166 @@ func (repo *IncidentReportRepository) CreateIncidentReportActionPlans(
 	}
 
 	return nil
+}
+
+func (repo *IncidentReportRepository) GetIncidentReportDetailsByID(id uint) (*models.IncidentReport, error) {
+	var report models.IncidentReport
+
+	err := repo.db.
+		Preload("CreatedByUser").
+		Preload("Sections").
+		Preload("Incidents").
+		Preload("Incidents.Documents").
+		Preload("Incidents.RootCauseAnalyses").
+		Preload("Incidents.ActionPlans", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, incident_report_id, incident_report_incident_id, action_plan_title, action_plan_description, target_date, responsible_user_name_en, responsible_user_name_ar, severity_level_title_en, severity_level_title_ar, action_plan_status_title_en, action_plan_status_title_ar, action_plan_status_color_code")
+		}).
+		Preload("Incidents.IncidentRegister").
+		Preload("Incidents.IncidentRegister.Investigation").
+		Preload("Incidents.IncidentRegister.Investigation.TeamLead").
+		Preload("Incidents.IncidentRegister.Investigation.Users").
+		Preload("Incidents.IncidentRegister.Investigation.Users.User").
+		Preload("Incidents.IncidentRegister.Investigation.Documents").
+		Preload("Incidents.IncidentRegister.Investigation.Findings").
+		Preload("Incidents.IncidentRegister.Investigation.CreatedByUser").
+		Preload("Incidents.IncidentRegister.Investigation.UpdatedByUser").
+		Preload("Incidents.IncidentRegister.CommunicationLogs").
+		Preload("Incidents.IncidentRegister.CommunicationLogs.CreatedByUser").
+		Preload("Incidents.IncidentRegister.CommunicationLogs.UpdatedByUser").
+		Preload("Incidents.IncidentRegister.IncidentClosure").
+		Preload("Incidents.IncidentRegister.IncidentClosure.Lessons").
+		Preload("Incidents.IncidentRegister.IncidentClosure.CreatedByUser").
+		Preload("Incidents.IncidentRegister.IncidentClosure.UpdatedByUser").
+		Preload("Incidents.IncidentRegister.IncidentPostReview").
+		Preload("Incidents.IncidentRegister.IncidentPostReview.Users").
+		Preload("Incidents.IncidentRegister.IncidentPostReview.Users.User").
+		Preload("Incidents.IncidentRegister.IncidentPostReview.Recommendations").
+		Preload("Incidents.IncidentRegister.IncidentPostReview.Lessons").
+		Preload("Incidents.IncidentRegister.IncidentPostReview.IncidentPostReviewEffectiveness").
+		Preload("Incidents.IncidentRegister.IncidentPostReview.CreatedByUser").
+		Preload("Incidents.IncidentRegister.IncidentPostReview.UpdatedByUser").
+		Where("id = ?", id).
+		First(&report).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &report, nil
+}
+
+func (repo *IncidentReportRepository) GetIncidentReportByID(incidentReportID uint, tx ...utility.DatabaseTransaction) (*models.IncidentReport, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var report models.IncidentReport
+	err := db.Where("id = ?", incidentReportID).First(&report).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &report, nil
+}
+
+func (repo *IncidentReportRepository) DeleteIncidentReportDocuments(incidentReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("incident_report_incident_id IN (SELECT id FROM incident_report_incidents WHERE incident_report_id = ?)", incidentReportID).Delete(&models.IncidentReportDocument{}).Error
+}
+
+func (repo *IncidentReportRepository) DeleteIncidentReportRootCauseAnalyses(incidentReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("incident_report_id = ?", incidentReportID).Delete(&models.IncidentReportRootCauseAnalysis{}).Error
+}
+
+func (repo *IncidentReportRepository) DeleteIncidentReportActionPlans(incidentReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("incident_report_id = ?", incidentReportID).Delete(&models.IncidentReportActionPlan{}).Error
+}
+
+func (repo *IncidentReportRepository) DeleteIncidentReportIncidents(incidentReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("incident_report_id = ?", incidentReportID).Delete(&models.IncidentReportIncident{}).Error
+}
+
+func (repo *IncidentReportRepository) DeleteIncidentReportSections(incidentReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("incident_report_id = ?", incidentReportID).Delete(&models.IncidentReportSection{}).Error
+}
+
+func (repo *IncidentReportRepository) DeleteIncidentReport(incidentReportID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("id = ?", incidentReportID).Delete(&models.IncidentReport{}).Error
+}
+
+func (repo *IncidentReportRepository) GetSectionByID(sectionID uint, tx ...utility.DatabaseTransaction) (*models.IncidentReportSection, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var section models.IncidentReportSection
+	err := db.Where("id = ?", sectionID).First(&section).Error
+	if err != nil {
+		return nil, err
+	}
+	return &section, nil
+}
+
+func (repo *IncidentReportRepository) UpdateSection(section *models.IncidentReportSection, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Save(section).Error
+}
+
+func (repo *IncidentReportRepository) DeleteIncidentReportSection(sectionID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("id = ?", sectionID).Delete(&models.IncidentReportSection{}).Error
+}
+
+func (repo *IncidentReportRepository) ReorderIncidentReportSections(incidentReportID uint, deletedOrderNum int, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Shift order numbers of remaining sections
+	err := db.Exec(`
+		UPDATE incident_report_sections
+		SET order_num = order_num - 1
+		WHERE incident_report_id = ? AND order_num > ?`,
+		incidentReportID, deletedOrderNum).Error
+
+	return err
 }

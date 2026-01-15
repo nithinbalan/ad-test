@@ -185,6 +185,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	incidentRoutes.GET("/incidents/:incidentID/export-pdf", IncidentReportController.ExportIncidentReportToPDF)
 
-	incidentRoutes.GET("/incidents-reports", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), IncidentReportController.GetAllIncidentReports)
+	// Incident reports
+	incidentRoutes.GET("/incidents-reports", IncidentReportController.GetAllIncidentReports)
+	incidentRoutes.GET("/incidents-reports/:incidentReportId", IncidentReportController.GetIncidentReportDetails)
 	incidentRoutes.POST("/incidents-reports", IncidentReportController.CreateIncidentReport)
+	incidentRoutes.DELETE("/incidents-reports/:incidentReportId", IncidentReportController.DeleteIncidentReports)
+	incidentRoutes.GET("/incidents-reports/:incidentReportId/sections/:sectionId", IncidentReportController.GetIncidentReportSection)
+	incidentRoutes.PUT("/incidents-reports/:incidentReportId/sections/:sectionId", IncidentReportController.UpdateIncidentReportSection)
+	incidentRoutes.DELETE("/incidents-reports/:incidentReportId/sections/:sectionId", IncidentReportController.DeleteIncidentReportSection)
+	incidentRoutes.GET("/incidents-reports/:incidentReportId/export-pdf", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), IncidentReportController.GetIncidentReportExportZip)
 }
