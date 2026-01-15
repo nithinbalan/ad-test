@@ -212,7 +212,7 @@ func (apms *ActionPlanMasterService) Delete(ids []uint, currentUserID uint) ([]u
 
 	for _, id := range ids {
 
-		actionPlan, err := apms.GetByID(id)
+		actionPlanMaster, err := apms.GetByID(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
@@ -227,7 +227,7 @@ func (apms *ActionPlanMasterService) Delete(ids []uint, currentUserID uint) ([]u
 
 		deletedActionPlans = append(deletedActionPlans, map[string]interface{}{
 			"id":    id,
-			"title": actionPlan.Title,
+			"title": actionPlanMaster.Title,
 		})
 	}
 
