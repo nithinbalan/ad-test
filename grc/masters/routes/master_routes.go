@@ -43,6 +43,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	licenseTypeController := app.MasterModule.LicenseTypeController
 	workflowContextController := app.MasterModule.WorkflowContextController
 	commentStatusController := app.MasterModule.CommentStatusController
+	actionPlanMasterController := app.MasterModule.ActionPlanMasterController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -166,4 +167,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	masterRoutes.GET("/comment-statuses", commentStatusController.GetAllCommentStatuses)
 	masterRoutes.GET("/comment-statuses/:id", commentStatusController.GetCommentStatusDetails)
 
+	masterRoutes.GET("/action-plan-masters", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), actionPlanMasterController.GetAllActionPlanMasters)
+	masterRoutes.GET("/action-plan-masters/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), actionPlanMasterController.GetActionPlanMasterFullDetails)
+	masterRoutes.POST("/action-plan-masters", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), actionPlanMasterController.CreateActionPlanMaster)
+	masterRoutes.PUT("/action-plan-masters/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), actionPlanMasterController.UpdateActionPlanMaster)
+	masterRoutes.POST("/action-plan-masters/delete", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), actionPlanMasterController.DeleteActionPlanMasters)
+	masterRoutes.PUT("/action-plan-masters/activate", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), actionPlanMasterController.ActivateActionPlanMasters)
+	masterRoutes.PUT("/action-plan-masters/deactivate", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), actionPlanMasterController.DeactivateActionPlanMasters)
 }
