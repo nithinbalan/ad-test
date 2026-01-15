@@ -9,6 +9,7 @@ import (
 	"io"
 	authDTOs "jethur/grc/auth/dtos"
 	commonDTOs "jethur/grc/common/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 	commonService "jethur/grc/common/services"
 	"jethur/grc/models"
 	"jethur/grc/organization/services"
@@ -16,6 +17,7 @@ import (
 	"jethur/utility"
 
 	"github.com/go-ldap/ldap/v3"
+	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
 
 	"net/http"
@@ -47,6 +49,7 @@ type AuthService struct {
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface
 	integrationSvc            settingService.IntegrationServiceInterface
 	systemPrefSvc             settingService.SystemPreferenceServiceInterface
+	brandingSvc               settingService.BrandingServiceInterface
 }
 
 func NewAuthService(
@@ -57,6 +60,7 @@ func NewAuthService(
 	activeDirectorySettingSvc settingService.ActiveDirectorySettingServiceInterface,
 	integrationSvc settingService.IntegrationServiceInterface,
 	systemPrefSvc settingService.SystemPreferenceServiceInterface,
+	brandingSvc settingService.BrandingServiceInterface,
 ) AuthServiceInterface {
 	return &AuthService{
 		userService:               userService,
@@ -66,6 +70,7 @@ func NewAuthService(
 		activeDirectorySettingSvc: activeDirectorySettingSvc,
 		integrationSvc:            integrationSvc,
 		systemPrefSvc:             systemPrefSvc,
+		brandingSvc:               brandingSvc,	
 	}
 }
 
@@ -585,10 +590,22 @@ func (as *AuthService) GetLoginSettings() (*authDTOs.LoginSettingsDTO, error) {
 		return nil, fmt.Errorf("failed to get system preferences: %w", err)
 	}
 
+	branding, err := as.brandingSvc.GetFirst()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get branding details: %w", err)
+	}
+
+	var LoginBrandingDTO settingsDTOs.LoginBrandingDTO
+	err = mapstructure.Decode(branding, &LoginBrandingDTO)
+	if err != nil {
+		return nil, err
+	}
+
 	settings := &authDTOs.LoginSettingsDTO{
 		ActiveDirectoryEnabled: activeDirectoryIntegration.IsEnable,
 		AzureADEnabled:         azureADIntegration.IsEnable,
 		Theme:                  systemPref.Theme,
+		Branding:               LoginBrandingDTO,
 	}
 
 	return settings, nil
