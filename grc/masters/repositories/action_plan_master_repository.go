@@ -111,13 +111,13 @@ func (repo *ActionPlanMasterRepository) GetAll(params *dtos.ActionPlanMasterList
 }
 
 func (repo *ActionPlanMasterRepository) GetByID(id uint) (*models.ActionPlanMaster, error) {
-	var actionPlan models.ActionPlanMaster
+	var actionPlanMaster models.ActionPlanMaster
 
-	if err := repo.db.First(&actionPlan, id).Error; err != nil {
+	if err := repo.db.First(&actionPlanMaster, id).Error; err != nil {
 		return nil, err
 	}
 
-	return &actionPlan, nil
+	return &actionPlanMaster, nil
 }
 
 func (repo *ActionPlanMasterRepository) GetFullDetailsByID(id uint) (*models.ActionPlanMaster, error) {
