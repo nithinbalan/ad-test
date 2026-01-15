@@ -9,6 +9,12 @@ type MyDashboardDTO struct {
 	NewNotifications int64 `json:"new_notifications"`
 }
 
+type MyDashboardKPIDTO struct {
+	TaskCompletion  int `json:"task_completion"`
+	RiskMitigation  int `json:"risk_mitigation"`
+	ComplianceScore int `json:"compliance_score"`
+}
+
 type UserTaskDTO struct {
 	ID                              uint       `json:"id"`
 	ReferenceNumber                 string     `json:"reference_number"`

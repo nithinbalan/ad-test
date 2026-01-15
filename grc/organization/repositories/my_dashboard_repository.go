@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"database/sql"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	"time"
@@ -10,6 +11,9 @@ import (
 
 type MyDashboardRepositoryInterface interface {
 	GetDashboardSummary(userID uint) (tasksAssigned, tasksCompleted, overdueItems, newNotifications int64, err error)
+	GetTaskCompletionData(userID uint) (totalTasks, completedTasks int64, err error)
+	GetRiskMitigationData(userID uint) (totalActionPlans, closedActionPlans int64, err error)
+	GetComplianceScoreData(userID uint) (avgScore float64, err error)
 	GetUserTasks(userID uint, limit int) ([]organizationDTOs.UserTaskDTO, error)
 	GetOverdueTasks(userID uint, limit int) ([]organizationDTOs.UserTaskDTO, error)
 	GetAssignedRisks(userID uint, limit int) ([]organizationDTOs.AssignedRiskDTO, error)
@@ -48,6 +52,52 @@ func (dr *MyDashboardRepository) GetDashboardSummary(userID uint) (tasksAssigned
 		return
 	}
 
+	return
+}
+
+func (dr *MyDashboardRepository) GetTaskCompletionData(userID uint) (totalTasks, completedTasks int64, err error) {
+	taskQuery := `
+		SELECT
+			COUNT(*) as total_tasks,
+			COUNT(CASE WHEN ts.type = 'closed' THEN 1 END) as completed_tasks
+		FROM tasks t
+		LEFT JOIN task_statuses ts ON t.task_status_id = ts.id
+		WHERE t.responsible_user_id = ?
+	`
+	row := dr.db.Raw(taskQuery, userID).Row()
+	err = row.Scan(&totalTasks, &completedTasks)
+	return
+}
+
+func (dr *MyDashboardRepository) GetRiskMitigationData(userID uint) (totalActionPlans, closedActionPlans int64, err error) {
+	riskQuery := `
+		SELECT
+			COUNT(*) as total_plans,
+			COUNT(CASE WHEN aps.is_closed = 1 THEN 1 END) as closed_plans
+		FROM risk_action_plans rap
+		LEFT JOIN action_plan_statuses aps ON rap.action_plan_status_id = aps.id
+		WHERE rap.responsible_user_id = ?
+	`
+	row := dr.db.Raw(riskQuery, userID).Row()
+	err = row.Scan(&totalActionPlans, &closedActionPlans)
+	return
+}
+
+func (dr *MyDashboardRepository) GetComplianceScoreData(userID uint) (avgScore float64, err error) {
+	var nullAvgScore sql.NullFloat64
+	complianceQuery := `
+		SELECT AVG(score) as avg_score
+		FROM compliance_register
+		WHERE responsible_user_id = ? AND is_latest = 1 AND score IS NOT NULL
+	`
+	if err = dr.db.Raw(complianceQuery, userID).Scan(&nullAvgScore).Error; err != nil {
+		return
+	}
+	if nullAvgScore.Valid {
+		avgScore = nullAvgScore.Float64
+	} else {
+		avgScore = 0
+	}
 	return
 }
 
@@ -264,4 +314,3 @@ func (dr *MyDashboardRepository) GetRecentActivity(userID uint, limit int) ([]*m
 
 	return activityLogs, nil
 }
-

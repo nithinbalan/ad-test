@@ -495,6 +495,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// My Dashboard
 	organizationRoutes.GET("/my-dashboard/summary", myDashboardController.GetDashboardSummary)
+	organizationRoutes.GET("/my-dashboard/kpis", myDashboardController.GetKPIs)
 	organizationRoutes.GET("/my-dashboard/tasks", myDashboardController.GetUserTasks)
 	organizationRoutes.GET("/my-dashboard/overdue-tasks", myDashboardController.GetOverdueTasks)
 	organizationRoutes.GET("/my-dashboard/assigned-risks", myDashboardController.GetAssignedRisks)

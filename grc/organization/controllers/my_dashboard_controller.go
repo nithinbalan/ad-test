@@ -44,6 +44,28 @@ func (dc *MyDashboardController) GetDashboardSummary(c *gin.Context) {
 	c.JSON(http.StatusOK, summary)
 }
 
+func (dc *MyDashboardController) GetKPIs(c *gin.Context) {
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(dc.db, c, err.Error())
+		return
+	}
+
+	kpis, err := dc.service.GetKPIs(currentUserID)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(dc.db, c, err.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, kpis)
+}
+
 func (dc *MyDashboardController) GetUserTasks(c *gin.Context) {
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
