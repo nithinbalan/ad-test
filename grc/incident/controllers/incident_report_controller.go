@@ -286,17 +286,7 @@ func (irc *IncidentReportController) UpdateIncidentReportSection(c *gin.Context)
 			return
 		}
 	}
-	// Dummy response payload for testing the API contract
-	c.JSON(http.StatusOK, gin.H{
-		"id":                 sectionID,
-		"incident_report_id": incidentReportID,
-		"type":               "details",
-		"title_en":           formDTO.TitleEn,
-		"title_ar":           formDTO.TitleAr,
-		"description_en":     formDTO.DescriptionEn,
-		"description_ar":     formDTO.DescriptionAr,
-		"order_num":          1,
-	})
+	c.Status(http.StatusOK)
 }
 
 func (irc *IncidentReportController) DeleteIncidentReportSection(c *gin.Context) {
@@ -333,12 +323,7 @@ func (irc *IncidentReportController) DeleteIncidentReportSection(c *gin.Context)
 		}
 	}
 
-	// Dummy response payload for testing the API contract
-	c.JSON(http.StatusOK, gin.H{
-		"message":            "Incident report section deleted successfully",
-		"incident_report_id": incidentReportID,
-		"section_id":         sectionID,
-	})
+	c.Status(http.StatusOK)
 }
 
 func (irc *IncidentReportController) GetIncidentReportExportZip(c *gin.Context) {
