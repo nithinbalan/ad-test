@@ -3,7 +3,7 @@ package initializers
 import (
 	"jethur/grc/jethur-ai/controllers"
 	"jethur/grc/jethur-ai/services"
-     
+
 	"gorm.io/gorm"
 )
 
@@ -12,11 +12,12 @@ type JethurAIModule struct {
 	CommonAIController     *controllers.CommonAIController
 	RiskAIController       *controllers.RiskAIController
 	ComplianceAIController *controllers.ComplianceAIController
+	PolicyAIController     *controllers.PolicyAIController
 
 	DocumentAIService services.DocumentAIServiceInterface
 }
 
-func NewJethurAIModule(db *gorm.DB, documentModule *DocumentModule, organizationModule *OrganizationModule, settingsModule *SettingsModule, complianceModule *ComplianceModule,) *JethurAIModule {
+func NewJethurAIModule(db *gorm.DB, documentModule *DocumentModule, organizationModule *OrganizationModule, settingsModule *SettingsModule, complianceModule *ComplianceModule) *JethurAIModule {
 	// documentAIRepo := repositories.NewAIRepository(db)
 	documentAISvc := services.NewDocumentAIService(documentModule.DocumentSvc, organizationModule.UserSvc, settingsModule.SystemPreferenceSvc)
 	documentAIController := controllers.NewDocumentAIController(documentAISvc)
@@ -27,14 +28,18 @@ func NewJethurAIModule(db *gorm.DB, documentModule *DocumentModule, organization
 	riskAISvc := services.NewRiskAIService(settingsModule.SystemPreferenceSvc)
 	riskAIController := controllers.NewRiskAIController(riskAISvc)
 
-	complianceAISvc := services.NewComplianceAIService(settingsModule.SystemPreferenceSvc,complianceModule.ComplianceRegisterSvc)
+	complianceAISvc := services.NewComplianceAIService(settingsModule.SystemPreferenceSvc, complianceModule.ComplianceRegisterSvc)
 	complianceAIController := controllers.NewComplianceAIController(complianceAISvc)
+
+	policyAISvc := services.NewPolicyAIService(settingsModule.SystemPreferenceSvc)
+	policyAIController := controllers.NewPolicyAIController(policyAISvc)
 
 	return &JethurAIModule{
 		DocumentAIController:   documentAIController,
 		RiskAIController:       riskAIController,
 		CommonAIController:     commonAIController,
 		ComplianceAIController: complianceAIController,
+		PolicyAIController:     policyAIController,
 
 		DocumentAIService: documentAISvc,
 	}

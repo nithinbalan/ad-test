@@ -47,9 +47,10 @@ type PasswordRecoverySetPasswordEmailDTO struct {
 }
 
 type LoginSettingsDTO struct {
-	ActiveDirectoryEnabled bool                       `json:"active_directory_enabled"`
-	AzureADEnabled         bool                       `json:"azure_ad_enabled"`
-	Theme                  settingDTOs.ThemeDetailDTO `json:"theme"`
+	ActiveDirectoryEnabled bool                         `json:"active_directory_enabled"`
+	AzureADEnabled         bool                         `json:"azure_ad_enabled"`
+	Theme                  settingDTOs.ThemeDetailDTO   `json:"theme"`
+	Branding               settingDTOs.LoginBrandingDTO `json:"branding"`
 }
 
 type MicrosoftOAuthCallbackDTO struct {

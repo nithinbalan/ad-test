@@ -18,6 +18,7 @@ type ThreatRepositoryInterface interface {
 	Create(threat *models.Threat, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(threat *models.Threat, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	ForceDelete(id uint, tx ...utility.DatabaseTransaction) error
 
 	GetDocumentByID(id uint) (*models.ThreatDocument, error)
 	CreateDocuments(docs []*models.ThreatDocument, tx ...utility.DatabaseTransaction) error
@@ -328,4 +329,54 @@ func (repo *ThreatRepository) DeleteThreatVulnerabilities(vulnerabilityThreatIDs
 	}
 
 	return nil
+}
+
+func (repo *ThreatRepository) ForceDelete(id uint, tx ...utility.DatabaseTransaction) error {
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	/* ================= ACTION PLAN TREE ================= */
+
+	queries := []string{
+
+		// Action plan comment documents
+		`DELETE threat_action_plan_status_update_documents
+		 FROM threat_action_plan_status_update_documents 
+		 JOIN threat_action_plan_status_updates ON threat_action_plan_status_updates.id = threat_action_plan_status_update_documents.threat_action_plan_status_update_id
+		 JOIN threat_action_plans ON threat_action_plans.id = threat_action_plan_status_updates.threat_action_plan_id
+		 WHERE threat_action_plans.threat_id = ?`,
+
+		`DELETE threat_action_plan_comment_documents
+		 FROM threat_action_plan_comment_documents 
+		 JOIN threat_action_plan_comments ON threat_action_plan_comments.id = threat_action_plan_comment_documents.threat_action_plan_comment_id
+		 JOIN threat_action_plans ON threat_action_plans.id = threat_action_plan_comments.threat_action_plan_id
+		 WHERE threat_action_plans.threat_id = ?`,
+
+		`DELETE threat_action_plan_status_updates
+		 FROM threat_action_plan_status_updates 
+		 JOIN threat_action_plans ON threat_action_plans.id = threat_action_plan_status_updates.threat_action_plan_id
+		 WHERE threat_action_plans.threat_id = ?`,
+
+		`DELETE threat_action_plan_comments
+		 FROM threat_action_plan_comments 
+		 JOIN threat_action_plans ON threat_action_plans.id = threat_action_plan_comments.threat_action_plan_id
+		 WHERE threat_action_plans.threat_id = ?`,
+
+		`DELETE FROM vulnerability_threats WHERE vulnerability_threats.threat_id = ?`,
+		`DELETE FROM threat_documents WHERE threat_documents.threat_id = ?`,
+		`DELETE FROM threat_action_plans WHERE threat_action_plans.threat_id = ?`,
+		`DELETE FROM risk_threats WHERE risk_threats.threat_id = ?`,
+	}
+
+	for _, q := range queries {
+		if err := db.Exec(q, id).Error; err != nil {
+			return err
+		}
+	}
+
+	/* ================= ROOT ================= */
+	return db.Delete(&models.Threat{}, id).Error
 }

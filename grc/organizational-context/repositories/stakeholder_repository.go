@@ -16,6 +16,7 @@ type StakeholderRepositoryInterface interface {
 	Create(stkeholder *models.Stakeholder, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(stkeholder *models.Stakeholder, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	ForceDelete(id uint, tx ...utility.DatabaseTransaction) error
 }
 
 type StakeholderRepository struct {
@@ -230,4 +231,60 @@ func (repo *StakeholderRepository) Delete(id uint, tx ...utility.DatabaseTransac
 	}
 
 	return nil
+}
+
+func (repo *StakeholderRepository) ForceDelete(id uint, tx ...utility.DatabaseTransaction) error {
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	queries := []string{
+
+		`DELETE stakeholder_action_plan_status_update_documents
+		 FROM stakeholder_action_plan_status_update_documents 
+		 JOIN stakeholder_action_plan_status_updates ON stakeholder_action_plan_status_updates.id = stakeholder_action_plan_status_update_documents.stakeholder_action_plan_status_update_id
+		 JOIN stakeholder_action_plans ON stakeholder_action_plans.id = stakeholder_action_plan_status_updates.stakeholder_action_plan_id
+		 WHERE stakeholder_action_plans.stakeholder_id = ?`,
+
+		`DELETE stakeholder_action_plan_comment_documents
+		 FROM stakeholder_action_plan_comment_documents 
+		 JOIN stakeholder_action_plan_comments ON stakeholder_action_plan_comments.id = stakeholder_action_plan_comment_documents.stakeholder_action_plan_comment_id
+		 JOIN stakeholder_action_plans ON stakeholder_action_plans.id = stakeholder_action_plan_comments.stakeholder_action_plan_id
+		 WHERE stakeholder_action_plans.stakeholder_id = ?`,
+
+		`DELETE stakeholder_needs_and_expectation_evaluations
+		 FROM stakeholder_needs_and_expectation_evaluations 
+		 JOIN stakeholder_needs_and_expectations ON stakeholder_needs_and_expectations.id = stakeholder_needs_and_expectation_evaluations.stakeholder_needs_and_expectation_id
+		 WHERE stakeholder_needs_and_expectations.stakeholder_id = ?`,
+
+		`DELETE stakeholder_engagement_evaluations
+		 FROM stakeholder_engagement_evaluations 
+		 JOIN stakeholder_engagements ON stakeholder_engagements.id = stakeholder_engagement_evaluations.stakeholder_engagement_id
+		 WHERE stakeholder_engagements.stakeholder_id = ?`,
+
+		`DELETE stakeholder_action_plan_status_updates
+		 FROM stakeholder_action_plan_status_updates 
+		 JOIN stakeholder_action_plans ON stakeholder_action_plans.id = stakeholder_action_plan_status_updates.stakeholder_action_plan_id
+		 WHERE stakeholder_action_plans.stakeholder_id = ?`,
+
+		`DELETE stakeholder_action_plan_comments
+		 FROM stakeholder_action_plan_comments 
+		 JOIN stakeholder_action_plans ON stakeholder_action_plans.id = stakeholder_action_plan_comments.stakeholder_action_plan_id
+		 WHERE stakeholder_action_plans.stakeholder_id = ?`,
+
+		`DELETE FROM stakeholder_needs_and_expectations WHERE stakeholder_needs_and_expectations.stakeholder_id = ?`,
+		`DELETE FROM stakeholder_engagements WHERE stakeholder_engagements.stakeholder_id = ?`,
+		`DELETE FROM stakeholder_action_plans WHERE stakeholder_action_plans.stakeholder_id = ?`,
+	}
+
+	for _, q := range queries {
+		if err := db.Exec(q, id).Error; err != nil {
+			return err
+		}
+	}
+
+	/* ================= ROOT ================= */
+	return db.Delete(&models.Stakeholder{}, id).Error
 }

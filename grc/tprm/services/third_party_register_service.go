@@ -28,6 +28,7 @@ type ThirdPartyRegisterServiceInterface interface {
 	Create(currentUserID uint, dto *dtos.ThirdPartyRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, dto *dtos.ThirdPartyRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
 	ExportThirdPartyRegister(data []*dtos.ThirdPartyRegisterListDTO, currentUserID uint) (*os.File, error)
 }
 
@@ -448,4 +449,44 @@ func (tps *ThirdPartyRegisterService) ExportThirdPartyRegister(data []*dtos.Thir
 	}
 
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (tps *ThirdPartyRegisterService) ForceDelete(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := tps.repo.BeginTransaction()
+	var failedIds []uint
+	var deletedData []map[string]interface{}
+
+	for _, id := range ids {
+		if err := tps.repo.ForceDelete(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		deletedData = append(deletedData, map[string]interface{}{
+			"id": id,
+		})
+	}
+
+	if len(failedIds) > 0 {
+		return failedIds, nil
+	}
+
+	if err := tx.Commit(); err != nil {
+		return ids, err
+	}
+
+	go func() {
+		if err := tps.activityLogSvc.LogBulkActivities(
+			models.DeleteAction,
+			models.ThirdPartyRegister{}.TableName(),
+			ids,
+			deletedData,
+			currentUserID,
+			nil,
+		); err != nil {
+			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
+	return nil, nil
 }

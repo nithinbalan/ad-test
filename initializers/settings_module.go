@@ -37,6 +37,7 @@ type SettingsModule struct {
 	TenableSettingsController        *controllers.TenableSettingsController
 	HealthCheckController            *controllers.HealthCheckController
 	ThemeController                  *controllers.ThemeController
+	BrandingController               *controllers.BrandingController
 
 	SystemPreferenceSvc       services.SystemPreferenceServiceInterface
 	OrganizationUnitSvc       services.OrganizationUnitServiceInterface
@@ -53,6 +54,7 @@ type SettingsModule struct {
 	ActiveDirectorySettingSvc services.ActiveDirectorySettingServiceInterface
 	ThemeSvc                  services.ThemeServiceInterface
 	TenableSettingsSvc        services.TenableSettingsServiceInterface
+	BrandingSettingSvc        services.BrandingServiceInterface
 }
 
 func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule) *SettingsModule {
@@ -174,6 +176,10 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	themeSvc := services.NewThemeService(themeRepo, sharedModule.ActivityLogService)
 	themeController := controllers.NewThemeController(themeSvc)
 
+	brandingRepo := repositories.NewBrandingRepository(db)
+	brandingSvc := services.NewBrandingService(brandingRepo, sharedModule.ActivityLogService)
+	brandingController := controllers.NewBrandingController(brandingSvc)
+
 	return &SettingsModule{
 		OrganizationLevelController:      organizationLevelController,
 		SystemPreferenceController:       systemPreferenceController,
@@ -202,6 +208,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		TenableSettingsController:        tenableSettingsController,
 		HealthCheckController:            healthCheckController,
 		ThemeController:                  themeController,
+		BrandingController:               brandingController,
 
 		SystemPreferenceSvc:       systemPreferenceSvc,
 		OrganizationLevelSvc:      organizationLevelSvc,
@@ -218,5 +225,6 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		ActiveDirectorySettingSvc: activeDirectorySettingSvc,
 		ThemeSvc:                  themeSvc,
 		TenableSettingsSvc:        tenableSettingsSvc,
+		BrandingSettingSvc:        brandingSvc,
 	}
 }

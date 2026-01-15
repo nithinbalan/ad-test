@@ -47,6 +47,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	tprmRoutes.POST("/third-party-register", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyRegisterController.CreateThirdPartyRegister)
 	tprmRoutes.PUT("/third-party-register/:id", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyRegisterController.UpdateThirdPartyRegister)
 	tprmRoutes.POST("/third-party-register/delete", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyRegisterController.DeleteThirdPartyRegister)
+	tprmRoutes.POST("/third-party-register/force-delete", middlewares.RolePermissionMiddleware(db, "third_party_register", "modify"), thirdPartyRegisterController.DeleteForceThirdPartyRegister)
 
 	tprmRoutes.GET("/third-party-question-categories", thirdPartyQuestionCategoryController.GetAllThirdPartyQuestionCategories)
 	tprmRoutes.GET("/third-party-question-categories/:id", thirdPartyQuestionCategoryController.GetThirdPartyQuestionCategoryDetails)
@@ -78,6 +79,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	tprmRoutes.POST("/question-sets", questionSetController.CreateQuestionSet)
 	tprmRoutes.PUT("/question-sets/:id", questionSetController.UpdateQuestionSet)
 	tprmRoutes.POST("/question-sets/delete", questionSetController.DeleteQuestionSets)
+	tprmRoutes.POST("/question-sets/force-delete", questionSetController.DeleteForceQuestionSets)
 	tprmRoutes.POST("/question-sets/:id/questions", questionSetController.AddQuestionsToSet)
 	tprmRoutes.DELETE("/question-sets/:id/questions/:questionId", questionSetController.DeleteQuestionFromSet)
 	tprmRoutes.PUT("/question-sets/:id/sections/reorder", questionSetController.ReorderSection)
@@ -95,6 +97,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	tprmRoutes.POST("/third-party-assessments", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentController.CreateThirdPartyAssessment)
 	tprmRoutes.PUT("/third-party-assessments/:assessmentID", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentController.UpdateThirdPartyAssessment)
 	tprmRoutes.POST("/third-party-assessments/delete", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentController.DeleteThirdPartyAssessment)
+	tprmRoutes.POST("/third-party-assessments/force-delete", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentController.DeleteForceThirdPartyAssessment)
 	tprmRoutes.POST("/third-party-assessments/:assessmentID/share-link", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentController.ShareLink)
 	tprmRoutes.GET("/third-party-assessments/:assessmentID/workflow-list", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentWorkflowController.GetWorkflowList)
 	tprmRoutes.PUT("/third-party-assessments/:assessmentID/submit", middlewares.RolePermissionMiddleware(db, "assessment", "modify"), thirdPartyAssessmentReviewController.SubmitAssessment)
