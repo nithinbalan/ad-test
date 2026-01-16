@@ -46,7 +46,6 @@ type IncidentReportDetailDTO struct {
 	KPIs                   []*commonDTOs.AssociatedKPIRegisterListDTO        `json:"kpi"`
 	ComplianceRequirements []*commonDTOs.AssociatedClauseListDTO             `json:"compliance_clause"`
 	Investigation          *IncidentInvestigationDetailDTO                   `json:"investigation"`
-	AppUrl                 string                                            `json:"url"`
 }
 
 type IncidentReportRequestDTO struct {

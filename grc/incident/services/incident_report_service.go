@@ -176,7 +176,6 @@ func (irs IncidentReportService) GetFullReportDetailsByID(id uint) (*incidentDTO
 		}
 	}
 
-	incidentDTO.AppUrl = os.Getenv("APP_URL")
 	incidentDTO.CreatedAt = incident.CreatedAt
 	incidentDTO.UpdatedAt = incident.UpdatedAt
 
