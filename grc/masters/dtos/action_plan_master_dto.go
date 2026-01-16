@@ -65,6 +65,7 @@ type ActionPlanMasterListQueryParamsDTO struct {
 	Status   string
 	Page     int
 	PageSize int
+	Filters  map[string][]string
 }
 
 type ActionPlanMasterListResponseDTO struct {

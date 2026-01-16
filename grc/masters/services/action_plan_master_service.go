@@ -329,13 +329,13 @@ func (apms *ActionPlanMasterService) validateActionPlanMasterFormDTO(form *dtos.
 	}
 
 	if id == nil {
-		exists, err := apms.repo.ExistsByTitle(form.Title)
+		exists, err := apms.repo.ExistsByTitle(form.Title,form.ModuleID)
 		if err != nil {
 			return err
 		}
 		if exists {
 			return utility.NewValidationError(
-				fmt.Errorf("action plan title must be unique"),"unique","title")
+				fmt.Errorf("action plan master title must be unique per module"),"unique","action plan master title")
 		}
 	} else {
 		exists, err := apms.repo.ExistsByTitleExcludingID(*id, form.Title, form.ModuleID)
@@ -343,7 +343,7 @@ func (apms *ActionPlanMasterService) validateActionPlanMasterFormDTO(form *dtos.
 			return err
 		}
 		if exists {
-			return utility.NewValidationError(fmt.Errorf("action plan title must be unique"),"unique","title")
+			return utility.NewValidationError(fmt.Errorf("action plan master title must be unique per module"),"unique","action plan master title")
 		}
 	}
 

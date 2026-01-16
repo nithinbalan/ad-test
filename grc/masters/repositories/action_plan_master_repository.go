@@ -15,7 +15,7 @@ type ActionPlanMasterRepositoryInterface interface {
 	GetFullDetailsByID(id uint) (*models.ActionPlanMaster, error)
 	GetIncidentCategoryByID(id uint) (*models.IncidentCategory, error)
 	GetModuleByID(id uint) (*models.Module, error)
-	ExistsByTitle(title string) (bool, error)
+	ExistsByTitle(title string,moduleID uint) (bool, error)
 	ExistsByTitleExcludingID(id uint, title string, moduleID uint) (bool, error)
 	Create(actionPlanMaster *models.ActionPlanMaster) (uint, error)
 	Update(actionPlanMaster *models.ActionPlanMaster) error
@@ -79,6 +79,20 @@ func (repo *ActionPlanMasterRepository) GetAll(params *dtos.ActionPlanMasterList
 
 	if params.Status == "active" || params.Status == "inactive" {
 		query = query.Where("action_plan_master.status = ?", params.Status)
+	}
+
+	fieldMappings := map[string]string{
+		"incident_category_id": "action_plan_master.incident_category_id",
+		"severity_level_id":    "action_plan_master.severity_level_id",
+		"module_id":            "action_plan_master.module_id",
+	}
+
+	for columnName, values := range params.Filters {
+		if len(values) > 0 {
+			if mappedField, exists := fieldMappings[columnName]; exists {
+				query = query.Where(mappedField+" IN (?)", values)
+			}
+		}
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -199,12 +213,12 @@ func (repo *ActionPlanMasterRepository) Delete(id uint, tx ...utility.DatabaseTr
 }
 
 
-func (repo *ActionPlanMasterRepository) ExistsByTitle(title string) (bool, error) {
+func (repo *ActionPlanMasterRepository) ExistsByTitle(title string,moduleID uint) (bool, error) {
 
 	var count int64
 
 	err := repo.db.Model(&models.ActionPlanMaster{}).
-		Where("title = ?", title).
+		Where("title = ? AND module_id = ?", title,moduleID).
 		Count(&count).Error
 
 	if err != nil {
