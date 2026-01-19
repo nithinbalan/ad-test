@@ -13,6 +13,7 @@ type IncidentActionPlanListDTO struct {
 	IncidentRegisterID              uint    `json:"incident_register_id"`
 	IncidentReferenceNumber         string  `json:"incident_reference_number"`
 	IncidentTitle                   string  `json:"incident_title"`
+	ActionPlanMasterID              *uint   `json:"action_plan_master_id"`
 	Title                           string  `json:"title"`
 	Description                     string  `json:"description"`
 	SeverityLevelTitleEn            string  `json:"severity_level_title_en"`
@@ -86,6 +87,7 @@ type IncidentActionPlanListResponseDTO struct {
 type IncidentActionPlanFormDTO struct {
 	Title              string  `json:"title" binding:"required"`
 	Description        *string `json:"description" binding:"omitempty"`
+	ActionPlanMasterID *uint   `json:"action_plan_master_id"`
 	SeverityLevelID    *uint   `json:"severity_level_id" binding:"omitempty"`
 	ResponsibleUserID  uint    `json:"responsible_user_id" binding:"required"`
 	TargetDate         *string `json:"target_date" binding:"omitempty,datetime=2006-01-02"`
@@ -103,6 +105,7 @@ type IncidentActionPlanDetailDTO struct {
 	ID                      int                                  `json:"id"`
 	Title                   string                               `json:"title"`
 	Description             string                               `json:"description"`
+	ActionPlanMasterID      *uint                                `json:"action_plan_master_id"`
 	IncidentRegister        IncidentRegisterDetailDTO            `json:"incident_register"`
 	SeverityLevel           *masterDTOs.SeverityLevelDTO         `json:"severity_level"`
 	ResponsibleUser         organizationDTOs.UserMinimalDTO      `json:"responsible_user"`

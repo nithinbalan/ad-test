@@ -7,6 +7,7 @@ import (
 type IncidentActionPlan struct {
 	ID                 uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	IncidentRegisterID uint       `json:"incident_register_id" binding:"required" gorm:"not null"`
+	ActionPlanMasterID *uint      `json:"action_plan_master_id" gorm:"default:null"`
 	Title              string     `json:"title" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
 	Description        *string    `json:"description" gorm:"type:nvarchar(max);null"`
 	SeverityLevelID    *uint      `json:"severity_level_id" binding:"omitempty" gorm:"not null"`
@@ -24,6 +25,7 @@ type IncidentActionPlan struct {
 
 	// Relationships
 	IncidentRegister        *IncidentRegister                 `gorm:"foreignKey:IncidentRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ActionPlanMaster        *ActionPlanMaster                 `gorm:"foreignKey:ActionPlanMasterID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	SeverityLevel           *SeverityLevel                    `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUser         *User                             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ReviewUser              *User                             `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"` // New foreign key relationship

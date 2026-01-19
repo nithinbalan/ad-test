@@ -109,7 +109,7 @@ func NewIncidentModule(db *gorm.DB,
 		incidentTimelineSvc,
 		organizationModule.UserSettingSvc,
 		taskModule.TaskService,
-		organizationModule.UserSvc, commonModule.NotificationService, commonModule.DelegateeUserService,
+		organizationModule.UserSvc, commonModule.NotificationService, commonModule.DelegateeUserService,masterModule.actionPlanMasterSvc,
 	)
 	incidentActionPlanController := controllers.NewIncidentActionPlanController(incidentActionPlanSvc)
 
