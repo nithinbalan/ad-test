@@ -42,6 +42,14 @@ func (apmc *ActionPlanMasterController) GetAllActionPlanMasters(c *gin.Context) 
 		return
 	}
 
+	allowedParams := []string{
+		"incident_category_ids",
+		"severity_level_ids",
+		"module_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
 	queryParams := &dtos.ActionPlanMasterListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   sortBy,
@@ -49,6 +57,7 @@ func (apmc *ActionPlanMasterController) GetAllActionPlanMasters(c *gin.Context) 
 		Status:   status,
 		Page:     page,
 		PageSize: pageSize,
+		Filters:  filters,
 	}
 
 	response, err := apmc.service.GetAll(queryParams)

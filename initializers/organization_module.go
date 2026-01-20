@@ -51,6 +51,7 @@ type OrganizationModule struct {
 	UserDelegationHistoryController         *controllers.UserDelegationController
 	OrganizationUnitsController             *controllers.OrganizationUnitsController
 	OrganizationCartController              *controllers.OrganizationChartController
+	MyDashboardController                     *controllers.MyDashboardController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -291,6 +292,10 @@ func NewOrganizationModule(
 	organizationChartSvc := services.NewOrganizationChartService(organizationChartRepo,settingsModule.OrganizationLevelSvc)
 	organizationChartController := controllers.NewOrganizationChartController(organizationChartSvc)
 
+	myDashboardRepo := repositories.NewMyDashboardRepository(db)
+	myDashboardSvc := services.NewMyDashboardService(myDashboardRepo)
+	myDashboardController := controllers.NewMyDashboardController(myDashboardSvc, db)
+
 	return &OrganizationModule{
 		DesignationController:                   designationController,
 		UserStatusController:                    userStatusController,
@@ -335,6 +340,7 @@ func NewOrganizationModule(
 		UserDelegationHistoryController:    userDelegationHistoryController,
 		OrganizationUnitsController:        organizationUnitsController,
 		OrganizationCartController:         organizationChartController,
+		MyDashboardController:                myDashboardController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,

@@ -194,6 +194,31 @@ func (iapc *IncidentActionPlanController) GetIncidentActionPlanDetails(c *gin.Co
 	c.JSON(http.StatusOK, incidentActionPlan)
 }
 
+func (iapc *IncidentActionPlanController) GetUsedActionPlanMasterIDs(c *gin.Context) {
+	incidentIDStr := c.Param("incidentID")
+
+	incidentID, err := strconv.ParseUint(incidentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	ids, err := iapc.service.GetUsedActionPlanMasterIDs(uint(incidentID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(iapc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK,ids)
+}
+
+
 func (iapc *IncidentActionPlanController) CreateIncidentActionPlan(c *gin.Context) {
 	var IncidentActionPlanFormDTO incidentDTOs.IncidentActionPlanFormDTO
 

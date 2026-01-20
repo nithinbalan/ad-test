@@ -95,6 +95,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.GET("/incident-action-plans", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "view"), incidentActionPlanController.GetAllIncidentActionPlans)
 	incidentRoutes.GET("/incidents/:incidentID/action-plans", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "view"), incidentActionPlanController.GetAllIncidentActionPlans)
 	incidentRoutes.GET("/incidents/:incidentID/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "view"), incidentActionPlanController.GetIncidentActionPlanDetails)
+	incidentRoutes.GET("/incidents/:incidentID/used-action-plan-master-ids",middlewares.RolePermissionMiddleware(db, "incident_action_plan", "view"),incidentActionPlanController.GetUsedActionPlanMasterIDs)
 	incidentRoutes.POST("/incidents/:incidentID/action-plans", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "modify"), incidentActionPlanController.CreateIncidentActionPlan)
 	incidentRoutes.PUT("/incidents/:incidentID/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "modify"), incidentActionPlanController.UpdateIncidentActionPlan)
 	incidentRoutes.POST("/incidents/:incidentID/action-plans/delete", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "modify"), incidentActionPlanController.DeleteIncidentActionPlans)
