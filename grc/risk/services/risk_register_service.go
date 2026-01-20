@@ -20,6 +20,7 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
+	settingsServices "jethur/grc/settings/services"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -44,6 +45,8 @@ type RiskRegisterServiceInterface interface {
 	ClearRiskRating(riskID uint, updateDTO *riskDTOs.RiskRegisterRiskRatingUpdateDTO, tx utility.DatabaseTransaction) error
 
 	GetDocumentPath(id uint, token string) (string, error)
+
+	ExportRiskRegisterPDF(id uint, currentUserID uint) (string, error)
 
 	ExportRiskRegister(data []*riskDTOs.RiskRegisterListDTO, currentUserID uint) (*os.File, error)
 
@@ -85,6 +88,8 @@ type RiskRegisterService struct {
 	riskResidualEvaluationSvc RiskResidualEvaluationServiceInterface
 	riskWorkflowSvc           RiskWorkflowServiceInterface
 	severityLevelSvc          masterServices.SeverityLevelServiceInterface
+	riskTemplateSettingSvc    settingsServices.RiskTemplateSettingServiceInterface
+	riskReportRepo            riskRepositories.RiskReportRepositoryInterface
 }
 
 func NewRiskRegisterService(
@@ -112,6 +117,8 @@ func NewRiskRegisterService(
 	riskResponseStrategySvc RiskResponseStrategyServiceInterface,
 	riskResidualEvaluationSvc RiskResidualEvaluationServiceInterface,
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
+	riskReportRepo riskRepositories.RiskReportRepositoryInterface,
+	riskTemplateSettingSvc settingsServices.RiskTemplateSettingServiceInterface,
 ) RiskRegisterServiceInterface {
 	return &RiskRegisterService{
 		repo:                      repo,
@@ -138,6 +145,8 @@ func NewRiskRegisterService(
 		riskResponseStrategySvc:   riskResponseStrategySvc,
 		riskResidualEvaluationSvc: riskResidualEvaluationSvc,
 		severityLevelSvc:          severityLevelSvc,
+		riskReportRepo:            riskReportRepo,
+		riskTemplateSettingSvc:    riskTemplateSettingSvc,
 	}
 }
 
@@ -211,6 +220,629 @@ func (rrs RiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databas
 	return &riskDTO, nil
 }
 
+func (rrs RiskRegisterService) ExportRiskRegisterPDF(id uint, currentUserID uint) (string, error) {
+	// Validate that template images are configured
+	if _, err := rrs.riskTemplateSettingSvc.GetImagePath("logo"); err != nil {
+		return "", utility.NewForbiddenError("logo_image_missing")
+	}
+	if _, err := rrs.riskTemplateSettingSvc.GetImagePath("cover-page-bg"); err != nil {
+		return "", utility.NewForbiddenError("cover_image_missing")
+	}
+
+	riskDTO, err := rrs.GetFullDetailsByID(id)
+	if err != nil {
+		return "", err
+	}
+
+	// Inline build of export view (align with incident pattern)
+	createdAt := riskDTO.CreatedAt.Format("2006-01-02")
+	generatedAt := time.Now().Format("Jan 02, 2006")
+	preparedFirst := riskDTO.CreatedByUser.FirstNameEN
+	preparedLast := riskDTO.CreatedByUser.LastNameEN
+	orgUnit := riskDTO.ResponsibleUnit.TitleEn
+	orgUnitAr := riskDTO.ResponsibleUnit.TitleAr
+
+	reportedAt := ""
+	if riskDTO.ReportedAtString != nil {
+		reportedAt = *riskDTO.ReportedAtString
+	}
+
+	var riskSourceTitleEn *string
+	var riskSourceTitleAr *string
+	if riskDTO.RiskSource != nil {
+		riskSourceTitleEn = &riskDTO.RiskSource.TitleEn
+		riskSourceTitleAr = &riskDTO.RiskSource.TitleAr
+	}
+
+	var riskResponseStrategyTitleEn *string
+	var riskResponseStrategyTitleAr *string
+	var riskResponseStrategyDescription *string
+	var riskResponseStrategyTreatmentGuidance *string
+	if riskDTO.RiskResponseStrategy != nil {
+		riskResponseStrategyTitleEn = &riskDTO.RiskResponseStrategy.TitleEn
+		riskResponseStrategyTitleAr = &riskDTO.RiskResponseStrategy.TitleAr
+	}
+
+	responsibleUserFirstNameEn := riskDTO.ResponsibleUser.FirstNameEN
+	responsibleUserLastNameEn := riskDTO.ResponsibleUser.LastNameEN
+	responsibleUserInitial := riskDTO.ResponsibleUser.Initial
+
+	var currentRiskRatingTitleEn *string
+	var currentRiskRatingTitleAr *string
+	var currentRiskRatingColorCode *string
+	var currentRiskRatingValue *uint
+	var currentLikelihoodTitleEn *string
+	var currentLikelihoodTitleAr *string
+	var currentLikelihoodScore *uint
+	var currentLikelihoodDescriptionEn *string
+	var currentImpactTitleEn *string
+	var currentImpactTitleAr *string
+	var currentImpactScore *uint
+	var currentImpactDescriptionEn *string
+	if riskDTO.CurrentRiskRating != nil {
+		currentRiskRatingTitleEn = &riskDTO.CurrentRiskRating.TitleEn
+		currentRiskRatingTitleAr = &riskDTO.CurrentRiskRating.TitleAr
+		currentRiskRatingColorCode = &riskDTO.CurrentRiskRating.ColorCode
+	}
+	if riskDTO.CurrentRiskRatingValue != nil {
+		currentRiskRatingValue = &riskDTO.CurrentRiskRatingValue.Value
+	}
+	if riskDTO.CurrentLikelihood != nil {
+		currentLikelihoodTitleEn = &riskDTO.CurrentLikelihood.TitleEn
+		currentLikelihoodTitleAr = &riskDTO.CurrentLikelihood.TitleAr
+		currentLikelihoodScore = &riskDTO.CurrentLikelihood.Score
+		currentLikelihoodDescriptionEn = &riskDTO.CurrentLikelihood.DescriptionEn
+	}
+	if riskDTO.CurrentImpact != nil {
+		currentImpactTitleEn = &riskDTO.CurrentImpact.TitleEn
+		currentImpactTitleAr = &riskDTO.CurrentImpact.TitleAr
+		currentImpactScore = &riskDTO.CurrentImpact.Score
+		currentImpactDescriptionEn = &riskDTO.CurrentImpact.DescriptionEn
+	}
+
+	var inherentRiskRatingTitleEn *string
+	var inherentRiskRatingTitleAr *string
+	var inherentRiskRatingColorCode *string
+	if riskDTO.InherentRiskRating != nil {
+		inherentRiskRatingTitleEn = &riskDTO.InherentRiskRating.TitleEn
+		inherentRiskRatingTitleAr = &riskDTO.InherentRiskRating.TitleAr
+		inherentRiskRatingColorCode = &riskDTO.InherentRiskRating.ColorCode
+	}
+
+	var inherentRiskRatingValue *uint
+	if riskDTO.InherentRiskRatingValue != nil {
+		inherentRiskRatingValue = &riskDTO.InherentRiskRatingValue.Value
+	}
+
+	var inherentLikelihoodTitleEn *string
+	var inherentLikelihoodTitleAr *string
+	var inherentLikelihoodScore *uint
+	var inherentLikelihoodDescriptionEn *string
+	if riskDTO.InherentLikelihood != nil {
+		inherentLikelihoodTitleEn = &riskDTO.InherentLikelihood.TitleEn
+		inherentLikelihoodTitleAr = &riskDTO.InherentLikelihood.TitleAr
+		inherentLikelihoodScore = &riskDTO.InherentLikelihood.Score
+		inherentLikelihoodDescriptionEn = &riskDTO.InherentLikelihood.DescriptionEn
+	}
+
+	var inherentImpactTitleEn *string
+	var inherentImpactTitleAr *string
+	var inherentImpactScore *uint
+	var inherentImpactDescriptionEn *string
+	if riskDTO.InherentImpact != nil {
+		inherentImpactTitleEn = &riskDTO.InherentImpact.TitleEn
+		inherentImpactTitleAr = &riskDTO.InherentImpact.TitleAr
+		inherentImpactScore = &riskDTO.InherentImpact.Score
+		inherentImpactDescriptionEn = &riskDTO.InherentImpact.DescriptionEn
+	}
+
+	var residualRiskRatingTitleEn *string
+	var residualRiskRatingTitleAr *string
+	var residualRiskRatingColorCode *string
+	if riskDTO.ResidualRiskRating != nil {
+		residualRiskRatingTitleEn = &riskDTO.ResidualRiskRating.TitleEn
+		residualRiskRatingTitleAr = &riskDTO.ResidualRiskRating.TitleAr
+		residualRiskRatingColorCode = &riskDTO.ResidualRiskRating.ColorCode
+	}
+
+	var residualRiskRatingValue *uint
+	if riskDTO.ResidualRiskRatingValue != nil {
+		residualRiskRatingValue = &riskDTO.ResidualRiskRatingValue.Value
+	}
+
+	var residualLikelihoodTitleEn *string
+	var residualLikelihoodTitleAr *string
+	var residualLikelihoodScore *uint
+	var residualLikelihoodDescriptionEn *string
+	if riskDTO.ResidualLikelihood != nil {
+		residualLikelihoodTitleEn = &riskDTO.ResidualLikelihood.TitleEn
+		residualLikelihoodTitleAr = &riskDTO.ResidualLikelihood.TitleAr
+		residualLikelihoodScore = &riskDTO.ResidualLikelihood.Score
+		residualLikelihoodDescriptionEn = &riskDTO.ResidualLikelihood.DescriptionEn
+	}
+
+	var residualImpactTitleEn *string
+	var residualImpactTitleAr *string
+	var residualImpactScore *uint
+	var residualImpactDescriptionEn *string
+	if riskDTO.ResidualImpact != nil {
+		residualImpactTitleEn = &riskDTO.ResidualImpact.TitleEn
+		residualImpactTitleAr = &riskDTO.ResidualImpact.TitleAr
+		residualImpactScore = &riskDTO.ResidualImpact.Score
+		residualImpactDescriptionEn = &riskDTO.ResidualImpact.DescriptionEn
+	}
+
+	var severityLevelTitleEn *string
+	var severityLevelTitleAr *string
+	if riskDTO.SeverityLevel != nil {
+		severityLevelTitleEn = &riskDTO.SeverityLevel.TitleEn
+		severityLevelTitleAr = &riskDTO.SeverityLevel.TitleAr
+	}
+
+	var reviewFrequencyTitleEn *string
+	var reviewFrequencyTitleAr *string
+	if riskDTO.ReviewFrequency != nil {
+		reviewFrequencyTitleEn = &riskDTO.ReviewFrequency.TitleEn
+		reviewFrequencyTitleAr = &riskDTO.ReviewFrequency.TitleAr
+	}
+
+	var submittedByUserFirstNameEn *string
+	var submittedByUserLastNameEn *string
+	if riskDTO.SubmittedByUser != nil {
+		submittedByUserFirstNameEn = &riskDTO.SubmittedByUser.FirstNameEN
+		submittedByUserLastNameEn = &riskDTO.SubmittedByUser.LastNameEN
+	}
+	var updatedByUserFirstNameEn *string
+	var updatedByUserLastNameEn *string
+	if riskDTO.UpdatedByUser.FirstNameEN != "" {
+		updatedByUserFirstNameEn = &riskDTO.UpdatedByUser.FirstNameEN
+		updatedByUserLastNameEn = &riskDTO.UpdatedByUser.LastNameEN
+	}
+	var updatedAtString *string
+	if riskDTO.UpdatedAt != nil {
+		updatedAtStr := riskDTO.UpdatedAt.Format("2006-01-02 15:04:05")
+		updatedAtString = &updatedAtStr
+	}
+
+	var existingControls *string
+	if len(riskDTO.Controls) > 0 {
+		controlTitles := make([]string, 0, len(riskDTO.Controls))
+		for _, control := range riskDTO.Controls {
+			if control.Control.TitleEn != "" {
+				controlTitles = append(controlTitles, control.Control.TitleEn)
+			}
+		}
+		if len(controlTitles) > 0 {
+			controlsStr := strings.Join(controlTitles, ", ")
+			existingControls = &controlsStr
+		}
+	}
+
+	riskControls, err := rrs.riskReportRepo.GetAllRiskControls(id)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch controls: %w", err)
+	}
+	controls := make([]riskDTOs.RiskRegisterExportControlDTO, 0, len(riskControls))
+	for _, control := range riskControls {
+		var testScore *uint
+		var implementationStatusTitleEn *string
+		var efficiencyStatusTitleEn *string
+		var testedAtString *string
+
+		if control.ControlEfficiencyStatusTitleEn != "" {
+			efficiencyStatusTitleEn = &control.ControlEfficiencyStatusTitleEn
+		}
+		if control.ControlImplementationStatusTitleEn != "" {
+			implementationStatusTitleEn = &control.ControlImplementationStatusTitleEn
+		}
+		if control.RiskRatingValue != nil {
+			testScore = control.RiskRatingValue
+		}
+		if control.LastTestDate != nil {
+			testDateStr := control.LastTestDate.Format("2006-01-02")
+			testedAtString = &testDateStr
+		} else if control.LastReviewDate != nil {
+			reviewDateStr := control.LastReviewDate.Format("2006-01-02")
+			testedAtString = &reviewDateStr
+		}
+
+		code := ""
+		if control.Code != nil {
+			code = *control.Code
+		}
+		controlDTO := riskDTOs.RiskRegisterExportControlDTO{
+			ReferenceNumber:             control.ReferenceNumber,
+			TitleEn:                     control.TitleEn,
+			Code:                        code,
+			TestScore:                   testScore,
+			ImplementationStatusTitleEn: implementationStatusTitleEn,
+			EfficiencyStatusTitleEn:     efficiencyStatusTitleEn,
+			TestedAtString:              testedAtString,
+			TestedByUserFirstNameEn:     control.TestResponsibleUserFirstNameEn,
+			TestedByUserLastNameEn:      control.TestResponsibleUserLastNameEn,
+			TestedByUserInitial:         control.TestResponsibleUserInitial,
+		}
+		controls = append(controls, controlDTO)
+	}
+
+	riskAssets, err := rrs.riskReportRepo.GetAllRiskAssets(id)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch assets: %w", err)
+	}
+	assets := make([]riskDTOs.RiskRegisterExportAssetDTO, 0, len(riskAssets))
+	for _, asset := range riskAssets {
+		var assetTypeTitleEn *string
+		if asset.AssetCategoryTitleEn != nil && *asset.AssetCategoryTitleEn != "" {
+			assetTypeTitleEn = asset.AssetCategoryTitleEn
+		}
+		assetDTO := riskDTOs.RiskRegisterExportAssetDTO{
+			ReferenceNumber:  asset.ReferenceNumber,
+			TitleEn:          asset.TitleEn,
+			TitleAr:          asset.TitleAr,
+			AssetTypeTitleEn: assetTypeTitleEn,
+			Description:      asset.Description,
+		}
+		assets = append(assets, assetDTO)
+	}
+
+	documents, err := rrs.riskReportRepo.GetAllRiskDocuments(id)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch documents: %w", err)
+	}
+
+	processes, err := rrs.riskReportRepo.GetAllRiskProcesses(id)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch processes: %w", err)
+	}
+
+	kpis, err := rrs.riskReportRepo.GetAllRiskKPIs(id)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch KPIs: %w", err)
+	}
+
+	strategicObjectives, err := rrs.riskReportRepo.GetAllRiskStrategicObjectives(id)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch strategic objectives: %w", err)
+	}
+
+	complianceRequirements, err := rrs.riskReportRepo.GetAllRiskComplianceRequirements(id)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch compliance requirements: %w", err)
+	}
+
+	incidents, err := rrs.riskReportRepo.GetAllRiskIncidents(id)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch incidents: %w", err)
+	}
+
+	rootCauseAnalyses, err := fetchRootCauseAnalysesForExport(id, rrs.riskReportRepo)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch root cause analyses: %w", err)
+	}
+
+	actionPlans, err := fetchActionPlansForExport(id, riskDTO.ReferenceNumber, riskDTO.Title, rrs.riskReportRepo)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch action plans: %w", err)
+	}
+
+	kriDTOs, err := rrs.riskReportRepo.GetKRIsByRiskID(id)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch KRIs: %w", err)
+	}
+
+	kris := make([]riskDTOs.RiskReportKriResponseDTO, 0, len(kriDTOs))
+	for _, kri := range kriDTOs {
+		var unitTitleEnPtr *string
+		var unitTitleArPtr *string
+		if kri.UnitTitleEn != "" {
+			unitTitleEnPtr = &kri.UnitTitleEn
+		}
+		if kri.UnitTitleAr != "" {
+			unitTitleArPtr = &kri.UnitTitleAr
+		}
+
+		lowThresholdPtr := &kri.LowThreshold
+		mediumThresholdPtr := &kri.MediumThreshold
+		currentValuePtr := &kri.CurrentValue
+
+		kriResponse := riskDTOs.RiskReportKriResponseDTO{
+			ID:                         0,
+			RiskReportIdentificationID: 0,
+			RiskReferenceNumber:        riskDTO.ReferenceNumber,
+			RiskTitle:                  riskDTO.Title,
+			Title:                      kri.Title,
+			Description:                kri.Description,
+			LowThreshold:               lowThresholdPtr,
+			MediumThreshold:            mediumThresholdPtr,
+			UnitTitleEn:                unitTitleEnPtr,
+			UnitTitleAr:                unitTitleArPtr,
+			CurrentValue:               currentValuePtr,
+		}
+		kris = append(kris, kriResponse)
+	}
+
+	risk := riskDTOs.RiskRegisterExportRiskDTO{
+		ReferenceNumber:                 riskDTO.ReferenceNumber,
+		Title:                           riskDTO.Title,
+		Description:                     riskDTO.Description,
+		ReportedAt:                      reportedAt,
+		RiskCategoryTitleEn:             riskDTO.RiskCategory.TitleEn,
+		RiskCategoryTitleAr:             riskDTO.RiskCategory.TitleAr,
+		RiskSourceTitleEn:               riskSourceTitleEn,
+		RiskSourceTitleAr:               riskSourceTitleAr,
+		ResponsibleUnitTitleEn:          orgUnit,
+		ResponsibleUnitTitleAr:          orgUnitAr,
+		ResponsibleUserFirstNameEn:      responsibleUserFirstNameEn,
+		ResponsibleUserLastNameEn:       responsibleUserLastNameEn,
+		ResponsibleUserInitial:          responsibleUserInitial,
+		CurrentRiskRatingTitleEn:        currentRiskRatingTitleEn,
+		CurrentRiskRatingTitleAr:        currentRiskRatingTitleAr,
+		CurrentRiskRatingColorCode:      currentRiskRatingColorCode,
+		CurrentRiskRatingValue:          currentRiskRatingValue,
+		CurrentLikelihoodTitleEn:        currentLikelihoodTitleEn,
+		CurrentLikelihoodTitleAr:        currentLikelihoodTitleAr,
+		CurrentLikelihoodScore:          currentLikelihoodScore,
+		CurrentLikelihoodDescriptionEn:  currentLikelihoodDescriptionEn,
+		CurrentImpactTitleEn:            currentImpactTitleEn,
+		CurrentImpactTitleAr:            currentImpactTitleAr,
+		CurrentImpactScore:              currentImpactScore,
+		CurrentImpactDescriptionEn:      currentImpactDescriptionEn,
+		InherentRiskRatingTitleEn:       inherentRiskRatingTitleEn,
+		InherentRiskRatingTitleAr:       inherentRiskRatingTitleAr,
+		InherentRiskRatingColorCode:     inherentRiskRatingColorCode,
+		InherentRiskRatingValue:         inherentRiskRatingValue,
+		InherentLikelihoodTitleEn:       inherentLikelihoodTitleEn,
+		InherentLikelihoodTitleAr:       inherentLikelihoodTitleAr,
+		InherentLikelihoodScore:         inherentLikelihoodScore,
+		InherentLikelihoodDescriptionEn: inherentLikelihoodDescriptionEn,
+		InherentImpactTitleEn:           inherentImpactTitleEn,
+		InherentImpactTitleAr:           inherentImpactTitleAr,
+		InherentImpactScore:             inherentImpactScore,
+		InherentImpactDescriptionEn:     inherentImpactDescriptionEn,
+		ResidualRiskRatingTitleEn:       residualRiskRatingTitleEn,
+		ResidualRiskRatingTitleAr:       residualRiskRatingTitleAr,
+		ResidualRiskRatingColorCode:     residualRiskRatingColorCode,
+		ResidualRiskRatingValue:         residualRiskRatingValue,
+		ResidualLikelihoodTitleEn:       residualLikelihoodTitleEn,
+		ResidualLikelihoodTitleAr:       residualLikelihoodTitleAr,
+		ResidualLikelihoodScore:         residualLikelihoodScore,
+		ResidualLikelihoodDescriptionEn: residualLikelihoodDescriptionEn,
+		ResidualImpactTitleEn:           residualImpactTitleEn,
+		ResidualImpactTitleAr:           residualImpactTitleAr,
+		ResidualImpactScore:             residualImpactScore,
+		ResidualImpactDescriptionEn:     residualImpactDescriptionEn,
+		SeverityLevelTitleEn:            severityLevelTitleEn,
+		SeverityLevelTitleAr:            severityLevelTitleAr,
+		ReviewFrequencyTitleEn:          reviewFrequencyTitleEn,
+		ReviewFrequencyTitleAr:          reviewFrequencyTitleAr,
+		NextReviewDateString:            riskDTO.NextReviewDateString,
+		LastReviewNote:                  riskDTO.LastReviewNote,
+		NextReviewLevel:                 riskDTO.NextReviewLevel,
+		SubmittedByUserFirstNameEn:      submittedByUserFirstNameEn,
+		SubmittedByUserLastNameEn:       submittedByUserLastNameEn,
+		SubmittedAtString:               riskDTO.SubmittedAtString,
+		UpdatedByUserFirstNameEn:        utility.GetStringValue(updatedByUserFirstNameEn),
+		UpdatedByUserLastNameEn:         utility.GetStringValue(updatedByUserLastNameEn),
+		UpdatedAtString:                 updatedAtString,
+		ExistingControls:                existingControls,
+		ProposedControls:                nil,
+		RiskStatusTitleEn:               riskDTO.RiskStatus.TitleEn,
+		RiskStatusTitleAr:               riskDTO.RiskStatus.TitleAr,
+		RiskStatusColorCode:             riskDTO.RiskStatus.ColorCode,
+		RiskResponseStrategyTitleEn:     riskResponseStrategyTitleEn,
+		RiskResponseStrategyTitleAr:     riskResponseStrategyTitleAr,
+		ActionPlans:                     actionPlans,
+		KeyRiskIdentifiers:              kris,
+		Controls:                        controls,
+		Assets:                          assets,
+		RootCauseAnalyses:               rootCauseAnalyses,
+	}
+
+	section := riskDTOs.RiskRegisterExportSectionDTO{
+		Type:        "identification",
+		TitleEn:     "Risk Register",
+		Description: "",
+		Risks:       []riskDTOs.RiskRegisterExportRiskDTO{risk},
+	}
+
+	viewModel := riskDTOs.RiskRegisterExportPDFDTO{
+		Title:                                 riskDTO.Title,
+		CreatedAt:                             createdAt,
+		GeneratedAt:                           generatedAt,
+		ReferenceNumber:                       riskDTO.ReferenceNumber,
+		Description:                           riskDTO.Description,
+		CreatedUserFirstNameEn:                preparedFirst,
+		CreatedUserLastNameEn:                 preparedLast,
+		OrganizationUnitTitlesEn:              orgUnit,
+		StartDate:                             reportedAt,
+		EndDate:                               reportedAt,
+		RiskStatusTitleEn:                     riskDTO.RiskStatus.TitleEn,
+		RiskStatusTitleAr:                     riskDTO.RiskStatus.TitleAr,
+		RiskStatusColorCode:                   riskDTO.RiskStatus.ColorCode,
+		RiskCategoryTitleEn:                   riskDTO.RiskCategory.TitleEn,
+		RiskCategoryTitleAr:                   riskDTO.RiskCategory.TitleAr,
+		RiskSourceTitleEn:                     riskSourceTitleEn,
+		RiskSourceTitleAr:                     riskSourceTitleAr,
+		ResponsibleUnitTitleEn:                orgUnit,
+		ResponsibleUnitTitleAr:                orgUnitAr,
+		ResponsibleUserFirstNameEn:            riskDTO.ResponsibleUser.FirstNameEN,
+		ResponsibleUserLastNameEn:             riskDTO.ResponsibleUser.LastNameEN,
+		ResponsibleUserInitial:                riskDTO.ResponsibleUser.Initial,
+		ReviewFrequencyTitleEn:                reviewFrequencyTitleEn,
+		ReviewFrequencyTitleAr:                reviewFrequencyTitleAr,
+		NextReviewDateString:                  riskDTO.NextReviewDateString,
+		LastReviewNote:                        riskDTO.LastReviewNote,
+		NextReviewLevel:                       riskDTO.NextReviewLevel,
+		SeverityLevelTitleEn:                  severityLevelTitleEn,
+		SeverityLevelTitleAr:                  severityLevelTitleAr,
+		SubmittedByUserFirstNameEn:            submittedByUserFirstNameEn,
+		SubmittedByUserLastNameEn:             submittedByUserLastNameEn,
+		SubmittedAtString:                     riskDTO.SubmittedAtString,
+		UpdatedByUserFirstNameEn:              updatedByUserFirstNameEn,
+		UpdatedByUserLastNameEn:               updatedByUserLastNameEn,
+		UpdatedAtString:                       updatedAtString,
+		RiskResponseStrategyTitleEn:           riskResponseStrategyTitleEn,
+		RiskResponseStrategyTitleAr:           riskResponseStrategyTitleAr,
+		RiskResponseStrategyDescription:       riskResponseStrategyDescription,
+		RiskResponseStrategyTreatmentGuidance: riskResponseStrategyTreatmentGuidance,
+		CurrentRiskRatingTitleEn:              currentRiskRatingTitleEn,
+		CurrentRiskRatingTitleAr:              currentRiskRatingTitleAr,
+		CurrentRiskRatingColorCode:            currentRiskRatingColorCode,
+		CurrentRiskRatingValue:                currentRiskRatingValue,
+		CurrentLikelihoodTitleEn:              currentLikelihoodTitleEn,
+		CurrentLikelihoodTitleAr:              currentLikelihoodTitleAr,
+		CurrentLikelihoodScore:                currentLikelihoodScore,
+		CurrentLikelihoodDescriptionEn:        currentLikelihoodDescriptionEn,
+		CurrentImpactTitleEn:                  currentImpactTitleEn,
+		CurrentImpactTitleAr:                  currentImpactTitleAr,
+		CurrentImpactScore:                    currentImpactScore,
+		CurrentImpactDescriptionEn:            currentImpactDescriptionEn,
+		InherentRiskRatingTitleEn:             inherentRiskRatingTitleEn,
+		InherentRiskRatingTitleAr:             inherentRiskRatingTitleAr,
+		InherentRiskRatingColorCode:           inherentRiskRatingColorCode,
+		InherentRiskRatingValue:               inherentRiskRatingValue,
+		InherentLikelihoodTitleEn:             inherentLikelihoodTitleEn,
+		InherentLikelihoodTitleAr:             inherentLikelihoodTitleAr,
+		InherentLikelihoodScore:               inherentLikelihoodScore,
+		InherentLikelihoodDescriptionEn:       inherentLikelihoodDescriptionEn,
+		InherentImpactTitleEn:                 inherentImpactTitleEn,
+		InherentImpactTitleAr:                 inherentImpactTitleAr,
+		InherentImpactScore:                   inherentImpactScore,
+		InherentImpactDescriptionEn:           inherentImpactDescriptionEn,
+		ResidualRiskRatingTitleEn:             residualRiskRatingTitleEn,
+		ResidualRiskRatingTitleAr:             residualRiskRatingTitleAr,
+		ResidualRiskRatingColorCode:           residualRiskRatingColorCode,
+		ResidualRiskRatingValue:               residualRiskRatingValue,
+		ResidualLikelihoodTitleEn:             residualLikelihoodTitleEn,
+		ResidualLikelihoodTitleAr:             residualLikelihoodTitleAr,
+		ResidualLikelihoodScore:               residualLikelihoodScore,
+		ResidualLikelihoodDescriptionEn:       residualLikelihoodDescriptionEn,
+		ResidualImpactTitleEn:                 residualImpactTitleEn,
+		ResidualImpactTitleAr:                 residualImpactTitleAr,
+		ResidualImpactScore:                   residualImpactScore,
+		ResidualImpactDescriptionEn:           residualImpactDescriptionEn,
+		ActionPlans:                           actionPlans,
+		Controls:                              controls,
+		KeyRiskIdentifiers:                    kris,
+		Assets:                                assets,
+		Documents:                             documents,
+		Processes:                             processes,
+		KPIs:                                  kpis,
+		StrategicObjectives:                   strategicObjectives,
+		ComplianceRequirements:                complianceRequirements,
+		Incidents:                             incidents,
+		RootCauseAnalyses:                     rootCauseAnalyses,
+		Sections:                              []riskDTOs.RiskRegisterExportSectionDTO{section},
+	}
+
+	// Body
+	bodyTemplates := []string{"risk/templates/pdf/risk_register_body.html"}
+	htmlContent, err := utility.GeneratePDFContent(viewModel, bodyTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate HTML content: %w", err)
+	}
+
+	// Cover
+	coverTemplates := []string{"risk/templates/pdf/risk_register_cover.html"}
+	coverContent, err := utility.GeneratePDFContent(viewModel, coverTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate cover content: %w", err)
+	}
+
+	// Header
+	headerTemplates := []string{"risk/templates/pdf/risk_register_header.html"}
+	headerContent, err := utility.GeneratePDFContent(viewModel, headerTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate header content: %w", err)
+	}
+
+	// Footer
+	footerTemplates := []string{"risk/templates/pdf/risk_register_footer.html"}
+	footerContent, err := utility.GeneratePDFContent(viewModel, footerTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate footer content: %w", err)
+	}
+
+	pdfFileName := fmt.Sprintf("RiskRegister_%d.pdf", id)
+	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent, htmlContent, pdfFileName, headerContent, footerContent); err != nil {
+		return "", fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	return pdfFileName, nil
+}
+
+// fetchActionPlansForExport fetches action plans for a risk register and maps them to the export DTO format
+func fetchActionPlansForExport(riskID uint, riskReferenceNumber string, riskTitle string, repo riskRepositories.RiskReportRepositoryInterface) ([]riskDTOs.RiskReportActionPlanResponseDTO, error) {
+	actionPlanDTOs, err := repo.GetActionPlansByRiskID(riskID)
+	if err != nil {
+		return nil, err
+	}
+
+	actionPlans := make([]riskDTOs.RiskReportActionPlanResponseDTO, 0, len(actionPlanDTOs))
+	for _, ap := range actionPlanDTOs {
+		// Fetch proposed controls for this action plan
+		proposedControls, err := repo.GetActionPlanControlsByActionPlanID(ap.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch controls for action plan %d: %w", ap.ID, err)
+		}
+
+		var proposedControlsPtr *string
+		if proposedControls != "" {
+			proposedControlsPtr = &proposedControls
+		}
+
+		var severityLevelTitleEnPtr *string
+		var severityLevelTitleArPtr *string
+		if ap.SeverityLevelTitleEn != "" {
+			severityLevelTitleEnPtr = &ap.SeverityLevelTitleEn
+		}
+		if ap.SeverityLevelTitleAr != "" {
+			severityLevelTitleArPtr = &ap.SeverityLevelTitleAr
+		}
+
+		targetDatePtr := &ap.TargetDate
+
+		actionPlan := riskDTOs.RiskReportActionPlanResponseDTO{
+			ID:                         ap.ID,
+			RiskReportIdentificationID: 0,
+			RiskReferenceNumber:        riskReferenceNumber,
+			RiskTitle:                  riskTitle,
+			ActionPlanTitle:            ap.ActionPlanTitle,
+			ActionPlanDescription:      ap.ActionPlanDescription,
+			SeverityLevelTitleEn:       severityLevelTitleEnPtr,
+			SeverityLevelTitleAr:       severityLevelTitleArPtr,
+			ResponsibleUserNameEn:      ap.ResponsibleUserNameEn,
+			ResponsibleUserNameAr:      ap.ResponsibleUserNameAr,
+			TargetDate:                 targetDatePtr,
+			ActionPlanStatusTitleEn:    ap.ActionPlanStatusTitleEn,
+			ActionPlanStatusTitleAr:    ap.ActionPlanStatusTitleAr,
+			ActionPlanStatusColorCode:  ap.ActionPlanStatusColorCode,
+			ProposedControls:           proposedControlsPtr,
+		}
+		actionPlans = append(actionPlans, actionPlan)
+	}
+
+	return actionPlans, nil
+}
+
+// fetchRootCauseAnalysesForExport fetches root cause analyses for a risk register
+func fetchRootCauseAnalysesForExport(riskID uint, riskReportRepo riskRepositories.RiskReportRepositoryInterface) ([]riskDTOs.RiskRegisterExportRootCauseAnalysisDTO, error) {
+	rootCauses, err := riskReportRepo.GetAllRiskRootCauseAnalyses(riskID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]riskDTOs.RiskRegisterExportRootCauseAnalysisDTO, 0, len(rootCauses))
+	for _, rc := range rootCauses {
+		result = append(result, riskDTOs.RiskRegisterExportRootCauseAnalysisDTO{
+			Why:      rc.Why,
+			Question: rc.Question,
+			Answer:   rc.Answer,
+		})
+	}
+
+	return result, nil
+}
 func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *riskDTOs.RiskRegisterFormDTO) (uint, error) {
 	tx := rrs.repo.BeginTransaction()
 

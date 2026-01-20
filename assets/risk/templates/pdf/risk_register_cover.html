@@ -1,0 +1,63 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body style="font-family: 'Lexend Deca', sans-serif; margin:0; padding:0; background:#f8fafc;">
+  <div style="width: 1000px; margin: 20px auto; background: #fff;">
+    <div style="
+      height: 1210px;
+      background: url({{.ApiPath}}/risk-template-settings/image-preview?type=cover-page-bg) 0 0 no-repeat;
+      background-size: cover;
+      background-position: center;
+      padding: 10px 20px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;">
+      <h1 style="
+        font-size: 40px;
+        color: #fff;
+        position: absolute;
+        bottom: 40px;
+        text-align: center;
+        width: 94%;
+        font-weight: 700;
+        margin: 0;">
+        Risk Register Report
+      </h1>
+    </div>
+
+    <div style="padding: 20px 40px">
+      <div style="margin-top: 0px">
+        <div style="width: 30%; display: inline-block; vertical-align: top;">
+          <p style="margin:0 0 2px 0; color:#000; font-size:13px; font-weight:300;">Ref No:</p>
+          <p style="margin:0 0 13px 0; color:#000; font-size:14px; font-weight:400;">{{.Data.ReferenceNumber}}</p>
+        </div>
+        <div style="width: 60%; display: inline-block; vertical-align: top;">
+          <p style="margin:0 0 2px 0; color:#000; font-size:13px; font-weight:300;">Title</p>
+          <p style="margin:0 0 13px 0; color:#000; font-size:14px; font-weight:400;">{{.Data.Title}}</p>
+        </div>
+      </div>
+
+      <div style="margin-top: 10px">
+        <div style="width: 30%; display: inline-block; vertical-align: top;">
+          <p style="margin:0 0 2px 0; color:#000; font-size:13px; font-weight:300;">Date</p>
+          <p style="margin:0 0 13px 0; color:#000; font-size:14px; font-weight:400;">{{.Data.StartDate}}</p>
+        </div>
+        <div style="width: 30%; display: inline-block; vertical-align: top;">
+          <p style="margin:0 0 2px 0; color:#000; font-size:13px; font-weight:300;">Organizer</p>
+          <p style="margin:0 0 13px 0; color:#000; font-size:14px; font-weight:400;">{{.Data.CreatedUserFirstNameEn}} {{.Data.CreatedUserLastNameEn}}</p>
+        </div>
+        <div style="width: 30%; display: inline-block; vertical-align: top;">
+          <p style="margin:0 0 2px 0; color:#000; font-size:13px; font-weight:300;">Exported At</p>
+          <p style="margin:0 0 13px 0; color:#000; font-size:14px; font-weight:400;">{{.Data.GeneratedAt}}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

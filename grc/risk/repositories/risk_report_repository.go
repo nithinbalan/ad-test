@@ -58,6 +58,17 @@ type RiskReportRepositoryInterface interface {
 	GetRiskReportDocumentByID(riskReportID uint, documentID uint, tx ...utility.DatabaseTransaction) (*models.RiskReportDocument, error)
 	CreateRiskDocuments(documents []*models.RiskReportDocument, tx ...utility.DatabaseTransaction) error
 	DeleteRiskReportDocument(riskReportID uint, documentID uint, tx ...utility.DatabaseTransaction) error
+
+	// Methods for Risk Register PDF Export (following incident pattern)
+	GetAllRiskAssets(riskID uint) ([]*commonDTOs.AssociatedAssetListDTO, error)
+	GetAllRiskControls(riskID uint) ([]*commonDTOs.AssociatedControlListDTO, error)
+	GetAllRiskDocuments(riskID uint) ([]*commonDTOs.AssociatedDocumentListDTO, error)
+	GetAllRiskProcesses(riskID uint) ([]*commonDTOs.AssociatedProcessListDTO, error)
+	GetAllRiskKPIs(riskID uint) ([]*commonDTOs.AssociatedKPIRegisterListDTO, error)
+	GetAllRiskStrategicObjectives(riskID uint) ([]*commonDTOs.AssociatedStrategicObjectiveListDTO, error)
+	GetAllRiskComplianceRequirements(riskID uint) ([]*commonDTOs.AssociatedClauseListDTO, error)
+	GetAllRiskIncidents(riskID uint) ([]*commonDTOs.AssociatedIncidentListDTO, error)
+	GetAllRiskRootCauseAnalyses(riskID uint) ([]*dtos.RiskRegisterExportRootCauseAnalysisDTO, error)
 }
 
 type RiskReportRepository struct {
@@ -714,4 +725,281 @@ func (repo *RiskReportRepository) GetRiskReportDocumentByID(riskReportID uint, d
 	}
 
 	return &riskReportDocument, nil
+}
+
+// Methods for Risk Register PDF Export (following incident pattern)
+
+func (repo *RiskReportRepository) GetAllRiskAssets(riskID uint) ([]*commonDTOs.AssociatedAssetListDTO, error) {
+	var riskAssets []*commonDTOs.AssociatedAssetListDTO
+
+	query := repo.db.Table("risk_assets").
+		Select(`
+			asset_register.reference_number,
+			asset_register.title_en,
+			asset_register.title_ar,
+			asset_register.description,
+			asset_categories.title_en AS asset_category_title_en
+		`).
+		Joins("LEFT JOIN asset_register ON asset_register.id = risk_assets.asset_register_id").
+		Joins("LEFT JOIN asset_categories ON asset_categories.id = asset_register.asset_category_id").
+		Where("risk_assets.risk_register_id = ?", riskID)
+
+	err := query.Scan(&riskAssets).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return riskAssets, nil
+}
+
+func (repo *RiskReportRepository) GetAllRiskControls(riskID uint) ([]*commonDTOs.AssociatedControlListDTO, error) {
+	var controlList []*commonDTOs.AssociatedControlListDTO
+
+	query := repo.db.Table("risk_controls").
+		Select(`
+		control_implementation_statuses.title_en AS control_implementation_status_title_en,
+		control_efficiency_statuses.title_en AS control_efficiency_status_title_en,
+		risk_matrix_risk_rating_values.value AS risk_rating_value,
+		controls.reference_number,
+		controls.title_en,
+		controls.code,
+		controls.last_test_date,
+		controls.last_review_date,
+		test_responsible_user.first_name_en AS test_responsible_user_first_name_en,
+		test_responsible_user.last_name_en AS test_responsible_user_last_name_en,
+		test_responsible_user.initial AS test_responsible_user_initial
+	`).
+		Joins(`
+		LEFT JOIN controls ON controls.id = risk_controls.control_id
+		LEFT JOIN users AS test_responsible_user ON controls.test_responsible_user_id = test_responsible_user.id
+		LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
+		LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
+		LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id
+	`).Where("risk_controls.risk_register_id = ?", riskID)
+
+	err := query.Scan(&controlList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return controlList, nil
+}
+
+func (repo *RiskReportRepository) GetAllRiskDocuments(riskID uint) ([]*commonDTOs.AssociatedDocumentListDTO, error) {
+	var documentList []*commonDTOs.AssociatedDocumentListDTO
+
+	query := repo.db.Table("risk_associated_documents").
+		Select(`
+			documents.title_en AS title_en,
+			documents.title_ar AS title_ar,
+			document_types.title_en AS document_type_title_en,
+			document_categories.title_en AS document_category_title_en,
+			document_statuses.title_en AS document_status_title_en,
+			document_versions.version AS document_version,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.last_name_en AS responsible_user_last_name_en
+		`).
+		Joins(`
+			LEFT JOIN documents ON documents.id = risk_associated_documents.document_id
+			LEFT JOIN document_categories ON document_categories.id = documents.document_category_id
+			LEFT JOIN document_types ON document_types.id = documents.document_type_id
+			LEFT JOIN document_statuses ON document_statuses.id = documents.document_status_id
+			LEFT JOIN document_versions ON document_versions.document_id = documents.id AND document_versions.is_latest_version = 1
+			LEFT JOIN users AS responsible_user ON responsible_user.id = documents.responsible_user_id
+		`).
+		Where("risk_associated_documents.risk_register_id = ?", riskID)
+
+	err := query.Scan(&documentList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return documentList, nil
+}
+
+func (repo *RiskReportRepository) GetAllRiskProcesses(riskID uint) ([]*commonDTOs.AssociatedProcessListDTO, error) {
+	var processList []*commonDTOs.AssociatedProcessListDTO
+
+	query := repo.db.Table("risk_processes").
+		Select(`
+		processes.reference_number,
+		processes.title_en,
+		process_groups.title_en AS process_group_title_en,
+		processes.description,
+		lifecycle_statuses.title_en AS lifecycle_status_title_en,
+		owner.first_name_en AS owner_first_name_en,
+		owner.last_name_en AS owner_last_name_en
+		`).
+		Joins(`
+			LEFT JOIN processes ON processes.id = risk_processes.process_id
+		    LEFT JOIN process_groups ON process_groups.id = processes.process_group_id
+			LEFT JOIN users AS owner ON owner.id = processes.responsible_user_id
+			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id
+		`).Where("risk_processes.risk_register_id = ?", riskID)
+
+	err := query.Scan(&processList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return processList, nil
+}
+
+func (repo *RiskReportRepository) GetAllRiskKPIs(riskID uint) ([]*commonDTOs.AssociatedKPIRegisterListDTO, error) {
+	var kpiRegister []*commonDTOs.AssociatedKPIRegisterListDTO
+
+	query := repo.db.Table("risk_kris").
+		Select(`
+            kpi_register.*,
+			risk_kris.kri_register_id,
+			kpi_categories.title_en AS kpi_category_title_en,
+			kpi_categories.title_ar AS kpi_category_title_ar,
+			CONVERT(VARCHAR, kpi_register.start_date, 23) AS start_date,
+			CONVERT(VARCHAR, kpi_register.end_date, 23) AS target_date,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.last_name_en AS responsible_user_last_name_en,
+			kpi_statuses.title_en AS kpi_status_title_en,
+			kpi_register.description
+        `).
+		Joins(`
+		    LEFT JOIN kpi_register ON kpi_register.id = risk_kris.kri_register_id
+			LEFT JOIN kpi_categories ON kpi_categories.id = kpi_register.kpi_category_id
+			LEFT JOIN kpi_statuses ON kpi_statuses.id = kpi_register.kpi_status_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = kpi_register.responsible_user_id
+        `).Where("risk_kris.risk_register_id = ?", riskID)
+
+	err := query.Scan(&kpiRegister).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return kpiRegister, nil
+}
+
+func (repo *RiskReportRepository) GetAllRiskStrategicObjectives(riskID uint) ([]*commonDTOs.AssociatedStrategicObjectiveListDTO, error) {
+	var objectiveList []*commonDTOs.AssociatedStrategicObjectiveListDTO
+
+	query := repo.db.Table("risk_strategic_objectives").
+		Select(`
+			strategic_objectives.reference_number,
+			strategic_objectives.title_en,
+			strategic_objectives.description_en,
+			strategic_objective_categories.title_en AS strategic_objective_category_title_en,
+			strategic_objectives.status,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+			responsible_user.last_name_en AS responsible_user_last_name_en
+        `).
+		Joins(`
+			LEFT JOIN strategic_objectives ON strategic_objectives.id = risk_strategic_objectives.strategic_objective_id
+			LEFT JOIN users AS responsible_user ON responsible_user.id = strategic_objectives.responsible_user_id
+			LEFT JOIN strategic_objective_categories ON strategic_objective_categories.id = strategic_objectives.strategic_objective_category_id
+        `).Where("risk_strategic_objectives.risk_register_id = ?", riskID)
+
+	err := query.Scan(&objectiveList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return objectiveList, nil
+}
+
+func (repo *RiskReportRepository) GetAllRiskComplianceRequirements(riskID uint) ([]*commonDTOs.AssociatedClauseListDTO, error) {
+	var clauseList []commonDTOs.AssociatedClauseRowDTO
+
+	query := repo.db.Table("risk_compliance_requirements").
+		Select(`
+			compliance_clauses.clause_no,
+			compliance_clauses.title_en AS clause_title_en,
+			compliance_clauses.compliance_register_id,
+			compliance_clauses.id AS compliance_clause_id,
+			compliance_register.title_en AS compliance_register_title_en
+		`).
+		Joins(`
+			LEFT JOIN compliance_clauses ON risk_compliance_requirements.compliance_clause_id = compliance_clauses.id
+			LEFT JOIN compliance_register ON risk_compliance_requirements.compliance_register_id = compliance_register.id
+		`).
+		Where("risk_compliance_requirements.risk_register_id = ?", riskID)
+
+	if err := query.Find(&clauseList).Error; err != nil {
+		return nil, err
+	}
+
+	clausesByComplianceRegister := make(map[uint]*commonDTOs.AssociatedClauseListDTO)
+	for _, row := range clauseList {
+		if _, exists := clausesByComplianceRegister[row.ComplianceRegisterID]; !exists {
+			clausesByComplianceRegister[row.ComplianceRegisterID] = &commonDTOs.AssociatedClauseListDTO{
+				ComplianceRegisterID:      row.ComplianceRegisterID,
+				ComplianceRegisterTitleEn: row.ComplianceRegisterTitleEn,
+				ComplianceRegisterTitleAr: row.ComplianceRegisterTitleAr,
+				Clauses:                   []commonDTOs.AssociatedClauseDTO{},
+			}
+		}
+		clausesByComplianceRegister[row.ComplianceRegisterID].Clauses = append(
+			clausesByComplianceRegister[row.ComplianceRegisterID].Clauses,
+			commonDTOs.AssociatedClauseDTO{
+				ComplianceClauseID: row.ComplianceClauseID,
+				ClauseNo:           row.ClauseNo,
+				ClauseTitleEn:      row.ClauseTitleEn,
+				ClauseTitleAr:      row.ClauseTitleAr,
+			},
+		)
+	}
+
+	var groupedClauses []*commonDTOs.AssociatedClauseListDTO
+	for _, v := range clausesByComplianceRegister {
+		groupedClauses = append(groupedClauses, v)
+	}
+
+	if groupedClauses == nil {
+		groupedClauses = []*commonDTOs.AssociatedClauseListDTO{}
+	}
+
+	return groupedClauses, nil
+}
+
+func (repo *RiskReportRepository) GetAllRiskIncidents(riskID uint) ([]*commonDTOs.AssociatedIncidentListDTO, error) {
+	var incidentList []*commonDTOs.AssociatedIncidentListDTO
+
+	query := repo.db.Table("incident_risks").
+		Select(`
+			incident_register.reference_number,
+			incident_register.title,
+			incident_register.description,
+			incident_categories.title_en AS incident_category_title_en,
+			severity_levels.title_en AS severity_level_title_en,
+			incident_statuses.title_en AS incident_status_title_en
+		`).
+		Joins(`
+			LEFT JOIN incident_register ON incident_register.id = incident_risks.incident_register_id
+			LEFT JOIN incident_categories ON incident_categories.id = incident_register.incident_category_id
+			LEFT JOIN severity_levels ON severity_levels.id = incident_register.severity_level_id
+			LEFT JOIN incident_statuses ON incident_statuses.id = incident_register.incident_status_id
+		`).Where("incident_risks.risk_register_id = ?", riskID)
+
+	err := query.Scan(&incidentList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return incidentList, nil
+}
+
+func (repo *RiskReportRepository) GetAllRiskRootCauseAnalyses(riskID uint) ([]*dtos.RiskRegisterExportRootCauseAnalysisDTO, error) {
+	var rootCauses []*dtos.RiskRegisterExportRootCauseAnalysisDTO
+
+	err := repo.db.
+		Table("risk_root_cause_analysis").
+		Select(`
+			risk_root_cause_analysis.why,
+			risk_root_cause_analysis.question,
+			risk_root_cause_analysis.answer
+		`).
+		Where("risk_root_cause_analysis.risk_register_id = ?", riskID).
+		Order("risk_root_cause_analysis.why ASC").
+		Find(&rootCauses).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return rootCauses, nil
 }
