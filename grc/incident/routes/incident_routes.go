@@ -95,6 +95,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.GET("/incident-action-plans", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "view"), incidentActionPlanController.GetAllIncidentActionPlans)
 	incidentRoutes.GET("/incidents/:incidentID/action-plans", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "view"), incidentActionPlanController.GetAllIncidentActionPlans)
 	incidentRoutes.GET("/incidents/:incidentID/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "view"), incidentActionPlanController.GetIncidentActionPlanDetails)
+	incidentRoutes.GET("/incidents/:incidentID/used-action-plan-master-ids",middlewares.RolePermissionMiddleware(db, "incident_action_plan", "view"),incidentActionPlanController.GetUsedActionPlanMasterIDs)
 	incidentRoutes.POST("/incidents/:incidentID/action-plans", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "modify"), incidentActionPlanController.CreateIncidentActionPlan)
 	incidentRoutes.PUT("/incidents/:incidentID/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "modify"), incidentActionPlanController.UpdateIncidentActionPlan)
 	incidentRoutes.POST("/incidents/:incidentID/action-plans/delete", middlewares.RolePermissionMiddleware(db, "incident_action_plan", "modify"), incidentActionPlanController.DeleteIncidentActionPlans)
@@ -185,4 +186,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	incidentRoutes.GET("/incidents/:incidentID/export-pdf", IncidentReportController.ExportIncidentReportToPDF)
 
+	// Incident reports
+	incidentRoutes.GET("/incidents-reports", IncidentReportController.GetAllIncidentReports)
+	incidentRoutes.GET("/incidents-reports/:incidentReportId", IncidentReportController.GetIncidentReportDetails)
+	incidentRoutes.POST("/incidents-reports", IncidentReportController.CreateIncidentReport)
+	incidentRoutes.DELETE("/incidents-reports/:incidentReportId", IncidentReportController.DeleteIncidentReports)
+	incidentRoutes.GET("/incidents-reports/:incidentReportId/sections/:sectionId", IncidentReportController.GetIncidentReportSection)
+	incidentRoutes.PUT("/incidents-reports/:incidentReportId/sections/:sectionId", IncidentReportController.UpdateIncidentReportSection)
+	incidentRoutes.DELETE("/incidents-reports/:incidentReportId/sections/:sectionId", IncidentReportController.DeleteIncidentReportSection)
+	incidentRoutes.GET("/incidents-reports/:incidentReportId/export-pdf", middlewares.RolePermissionMiddleware(db, "incident_register", "view"), IncidentReportController.GetIncidentReportExportZip)
 }

@@ -17,6 +17,7 @@ import (
 type IncidentRootCauseAnalysisServiceInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentRootCauseAnalysisListQueryParamsDTO) ([]*incidentDTOs.IncidentRootCauseAnalysisListDTO, error)
 	GetByID(incidentID uint, id uint) (*models.IncidentRootCauseAnalysis, error)
+	GetAllByIncidentID(incidentID uint, tx utility.DatabaseTransaction) ([]*models.IncidentRootCauseAnalysis, error)
 	Create(incidentID uint, currentUserID uint, rootCauseAnalysisFormDTO *incidentDTOs.IncidentRootCauseAnalysisFormDTO) (uint, error)
 	Update(incidentID uint, id uint, currentUserID uint, rootCauseAnalysisFormDTO *incidentDTOs.IncidentRootCauseAnalysisFormDTO) error
 	Delete(incidentID uint, id uint, currentUserID uint) (uint, error)
@@ -64,6 +65,10 @@ func (ircas *IncidentRootCauseAnalysisService) GetByID(incidentID uint, id uint)
 		return nil, err
 	}
 	return incidentRootCauseAnalysis, nil
+}
+
+func (ircas *IncidentRootCauseAnalysisService) GetAllByIncidentID(incidentID uint, tx utility.DatabaseTransaction) ([]*models.IncidentRootCauseAnalysis, error) {
+	return ircas.repo.GetAllByIncidentID(incidentID, tx)
 }
 
 func (ircas *IncidentRootCauseAnalysisService) Create(incidentID uint, currentUserID uint, rootCauseAnalysisFormDTO *incidentDTOs.IncidentRootCauseAnalysisFormDTO) (uint, error) {

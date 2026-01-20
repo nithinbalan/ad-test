@@ -26,7 +26,7 @@ type IncidentModule struct {
 	IncidentAssociatedItemController          *controllers.IncidentAssociatedItemController
 	IncidentTimelineController                *controllers.IncidentTimelineController
 	IncidentActionPlanCommentController       *controllers.IncidentActionPlanCommentController
-	IncidentReportController        *controllers.IncidentReportController
+	IncidentReportController                  *controllers.IncidentReportController
 
 	IncidentRegisterSvc   services.IncidentRegisterServiceInterface
 	IncidentActionPlanSvc services.IncidentActionPlanServiceInterface
@@ -109,12 +109,12 @@ func NewIncidentModule(db *gorm.DB,
 		incidentTimelineSvc,
 		organizationModule.UserSettingSvc,
 		taskModule.TaskService,
-		organizationModule.UserSvc, commonModule.NotificationService, commonModule.DelegateeUserService,
+		organizationModule.UserSvc, commonModule.NotificationService, commonModule.DelegateeUserService,masterModule.actionPlanMasterSvc,
 	)
 	incidentActionPlanController := controllers.NewIncidentActionPlanController(incidentActionPlanSvc)
 
 	incidentActionPlanStatusUpdateRepo := repositories.NewIncidentActionPlanStatusUpdateRepository(db)
-	incidentActionPlanStatusUpdateSvc := services.NewIncidentActionPlanStatusUpdateService(incidentActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, incidentActionPlanSvc, masterModule.ActionPlanStatusSvc,  incidentRegisterSvc, taskModule.TaskService, taskModule.TaskStatusService, organizationModule.UserSvc, commonModule.NotificationService)
+	incidentActionPlanStatusUpdateSvc := services.NewIncidentActionPlanStatusUpdateService(incidentActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, incidentActionPlanSvc, masterModule.ActionPlanStatusSvc, incidentRegisterSvc, taskModule.TaskService, taskModule.TaskStatusService, organizationModule.UserSvc, commonModule.NotificationService)
 	incidentActionPlanStatusUpdateController := controllers.NewIncidentActionPlanStatusUpdateController(incidentActionPlanStatusUpdateSvc)
 
 	incidentActionPlanCommentRepository := repositories.NewIncidentActionPlanCommentRepository(db)
@@ -152,9 +152,9 @@ func NewIncidentModule(db *gorm.DB,
 	incidentAssociatedItemSvc := services.NewIncidentAssociatedItemService(incidentAssociatedItemRepo, incidentRegisterSvc, complianceModule.ComplianceClausevc, commonModule.AssociatedItemValidationService)
 	incidentAssociatedItemController := controllers.NewIncidentAssociatedItemController(incidentAssociatedItemSvc)
 
-	incidentReportrepo:= repositories.NewIncidentReportRepository(db)
-	incidentReportSvc:= services.NewIncidentReportService( incidentReportrepo,settingsModule.ReportTemplateSettingSvc)
-	incidentReportController :=controllers.NewIncidentReportController(incidentReportSvc)
+	incidentReportrepo := repositories.NewIncidentReportRepository(db)
+	incidentReportSvc := services.NewIncidentReportService(incidentReportrepo, settingsModule.ReportTemplateSettingSvc, incidentRootCauseAnalysisSvc, incidentActionPlanSvc, sharedModule.ActivityLogService)
+	incidentReportController := controllers.NewIncidentReportController(incidentReportSvc)
 
 	return &IncidentModule{
 		IncidentCategoryController:                incidentCategoryController,
@@ -174,7 +174,7 @@ func NewIncidentModule(db *gorm.DB,
 		IncidentAssociatedItemController:          incidentAssociatedItemController,
 		IncidentTimelineController:                incidentTimelineController,
 		IncidentActionPlanCommentController:       incidentActionPlanCommentController,
-		IncidentReportController:incidentReportController,
+		IncidentReportController:                  incidentReportController,
 
 		IncidentRegisterSvc:   incidentRegisterSvc,
 		IncidentActionPlanSvc: incidentActionPlanSvc,

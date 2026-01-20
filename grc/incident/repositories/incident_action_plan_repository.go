@@ -15,11 +15,14 @@ type IncidentActionPlanRepositoryInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentActionPlanListQueryParamsDTO) (*incidentDTOs.IncidentActionPlanListResponseDTO, error)
 	GetByID(id uint) (*models.IncidentActionPlan, error)
 	GetFullDetailsByID(id uint) (*models.IncidentActionPlan, error)
+	GetUsedActionPlanMasterIDsByIncidentID(incidentID uint) ([]uint, error)
 	Create(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	ForceDelete(id uint, tx ...utility.DatabaseTransaction) error
 	GetCountByRiskID(incidentID uint, tx ...utility.DatabaseTransaction) (int64, error)
+	HasActionPlanMasterInIncident(incidentID uint, actionPlanMasterID uint) (bool, error)
+	GetAllByIncidentID(incidentID uint, tx ...utility.DatabaseTransaction) ([]*models.IncidentActionPlan, error)
 
 	CreateInitialIncidentActionPlanStatusUpdate(incidentActionPlanStatusUpdate *models.IncidentActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteIncidentActionPlanStatusUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
@@ -233,6 +236,43 @@ func (repo *IncidentActionPlanRepository) GetFullDetailsByID(id uint) (*models.I
 	return incidentActionPlan, nil
 }
 
+func (repo *IncidentActionPlanRepository) GetUsedActionPlanMasterIDsByIncidentID(incidentID uint) ([]uint, error) {
+	var ids []uint
+
+	err := repo.db.
+		Model(&models.IncidentActionPlan{}).
+		Select("DISTINCT action_plan_master_id").
+		Where("incident_register_id = ? AND action_plan_master_id IS NOT NULL", incidentID).
+		Pluck("action_plan_master_id", &ids).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}
+
+func (repo *IncidentActionPlanRepository) GetAllByIncidentID(incidentID uint, tx ...utility.DatabaseTransaction) ([]*models.IncidentActionPlan, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var plans []*models.IncidentActionPlan
+
+	err := db.
+		Preload("ActionPlanStatus").
+		Where("incident_register_id = ?", incidentID).
+		Order("created_at ASC").
+		Find(&plans).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return plans, nil
+}
+
 func (repo *IncidentActionPlanRepository) Create(incidentActionPlan *models.IncidentActionPlan, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -271,6 +311,24 @@ func (repo *IncidentActionPlanRepository) Delete(id uint, tx ...utility.Database
 	}
 
 	return nil
+}
+
+func (repo *IncidentActionPlanRepository) HasActionPlanMasterInIncident(incidentID uint, actionPlanMasterID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Model(&models.IncidentActionPlan{}).
+		Where(
+			"incident_register_id = ? AND action_plan_master_id = ?",
+			incidentID,
+			actionPlanMasterID,
+		).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }
 
 func (repo *IncidentActionPlanRepository) CreateInitialIncidentActionPlanStatusUpdate(incidentActionPlanStatusUpdate *models.IncidentActionPlanStatusUpdate, tx ...utility.DatabaseTransaction) (uint, error) {

@@ -26,11 +26,13 @@ type IncidentActionPlanServiceInterface interface {
 	GetAll(incidentID uint, params *incidentDTOs.IncidentActionPlanListQueryParamsDTO) (*incidentDTOs.IncidentActionPlanListResponseDTO, error)
 	GetByID(incidentID uint, id uint) (*models.IncidentActionPlan, error)
 	GetFullDetailsByID(incidentID uint, id uint) (*incidentDTOs.IncidentActionPlanDetailDTO, error)
+	GetUsedActionPlanMasterIDs(incidentID uint) ([]uint, error)
 	Create(incidentID uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) (uint, error)
 	Update(incidentID uint, id uint, currentUserID uint, incident *incidentDTOs.IncidentActionPlanFormDTO) error
 	Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error)
 	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(incidentID uint, id uint, currentUserID uint, incidentActionPlanStatusUpdateFormDTO *incidentDTOs.IncidentActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
+	GetAllByIncidentID(incidentID uint, tx utility.DatabaseTransaction) ([]*models.IncidentActionPlan, error)
 
 	ExportIncidentActionPlan(data []*incidentDTOs.IncidentActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
@@ -48,6 +50,7 @@ type IncidentActionPlanService struct {
 	userSvc             organizationServices.UserServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
 	delegateeUserSvc    commonServices.DelegateeUserserviceInterface
+	actionPlanMasterSvc masterServices.ActionPlanMasterServiceInterface
 }
 
 func NewIncidentActionPlanService(
@@ -62,6 +65,7 @@ func NewIncidentActionPlanService(
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
+	actionPlanMasterSvc masterServices.ActionPlanMasterServiceInterface,
 ) IncidentActionPlanServiceInterface {
 	return &IncidentActionPlanService{
 		repo:                repo,
@@ -75,6 +79,7 @@ func NewIncidentActionPlanService(
 		userSvc:             userSvc,
 		notificationSvc:     notificationSvc,
 		delegateeUserSvc:    delegateeUserSvc,
+		actionPlanMasterSvc: actionPlanMasterSvc,
 	}
 }
 
@@ -134,6 +139,18 @@ func (iaps IncidentActionPlanService) GetFullDetailsByID(incidentID uint, id uin
 	return &incidentActionPlanDTO, nil
 }
 
+func (iaps *IncidentActionPlanService) GetUsedActionPlanMasterIDs(incidentID uint) ([]uint, error) {
+	if _, err := iaps.incidentRegisterSvc.GetByID(incidentID); err != nil {
+		return nil, err
+	}
+
+	return iaps.repo.GetUsedActionPlanMasterIDsByIncidentID(incidentID)
+}
+
+func (svc *IncidentActionPlanService) GetAllByIncidentID(incidentID uint, tx utility.DatabaseTransaction) ([]*models.IncidentActionPlan, error) {
+	return svc.repo.GetAllByIncidentID(incidentID, tx)
+}
+
 func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) (uint, error) {
 
 	incident, err := iaps.incidentRegisterSvc.GetByID(incidentID)
@@ -141,7 +158,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 		return 0, err
 	}
 
-	if err := iaps.validateIncidentActionPlanFormDTO(IncidentActionPlanFormDTO); err != nil {
+	if err := iaps.validateIncidentActionPlanFormDTO(IncidentActionPlanFormDTO, incidentID); err != nil {
 		return 0, err
 	}
 
@@ -157,6 +174,7 @@ func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uin
 
 	incidentActionPlan := &models.IncidentActionPlan{
 		IncidentRegisterID: incidentID,
+		ActionPlanMasterID: IncidentActionPlanFormDTO.ActionPlanMasterID,
 		Title:              IncidentActionPlanFormDTO.Title,
 		Description:        IncidentActionPlanFormDTO.Description,
 		SeverityLevelID:    IncidentActionPlanFormDTO.SeverityLevelID,
@@ -368,7 +386,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 
 	oldResponsibleUserID := existingIncidentActionPlan.ResponsibleUserID
 
-	if err := iaps.validateIncidentActionPlanFormDTO(IncidentActionPlanFormDTO); err != nil {
+	if err := iaps.validateIncidentActionPlanFormDTO(IncidentActionPlanFormDTO, incidentID); err != nil {
 		return err
 	}
 
@@ -378,6 +396,7 @@ func (iaps *IncidentActionPlanService) Update(incidentID uint, id uint, currentU
 	}
 
 	// Update Incident ActionPlan
+	existingIncidentActionPlan.ActionPlanMasterID = IncidentActionPlanFormDTO.ActionPlanMasterID
 	existingIncidentActionPlan.Title = IncidentActionPlanFormDTO.Title
 	existingIncidentActionPlan.Description = IncidentActionPlanFormDTO.Description
 	existingIncidentActionPlan.SeverityLevelID = IncidentActionPlanFormDTO.SeverityLevelID
@@ -839,11 +858,26 @@ func (iaps *IncidentActionPlanService) StatusUpdate(incidentID uint, id uint, cu
 	return nil
 }
 
-func (iaps *IncidentActionPlanService) validateIncidentActionPlanFormDTO(IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) error {
+func (iaps *IncidentActionPlanService) validateIncidentActionPlanFormDTO(IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO, incidentID uint) error {
 	if IncidentActionPlanFormDTO.SeverityLevelID != nil {
 		if _, err := iaps.severityLevelSvc.GetByID(*IncidentActionPlanFormDTO.SeverityLevelID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
 		}
+	}
+
+	if IncidentActionPlanFormDTO.ActionPlanMasterID != nil {
+		if _, err := iaps.actionPlanMasterSvc.GetByID(*IncidentActionPlanFormDTO.ActionPlanMasterID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("action plan master does not exist"), "not_exist", "action plan master")
+		}
+	}
+
+	exists, err := iaps.repo.HasActionPlanMasterInIncident(incidentID, *IncidentActionPlanFormDTO.ActionPlanMasterID)
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return utility.NewValidationError(fmt.Errorf("action plan master already used in this incident"), "duplicate", "action plan master")
 	}
 
 	return nil

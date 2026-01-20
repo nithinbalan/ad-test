@@ -199,6 +199,8 @@ func NewRiskModule(db *gorm.DB,
 	riskResponseStrategySvc := services.NewRiskResponseStrategyService(riskResponseStrategyRepo, sharedModule.ActivityLogService)
 	riskResponseStrategyController := controllers.NewRiskResponseStrategyController(riskResponseStrategySvc)
 
+	riskReportRepo := repositories.NewRiskReportRepository(db)
+
 	riskRegisterSvc := services.NewRiskRegisterService(
 		riskRegisterRepo,
 		sharedModule.ActivityLogService,
@@ -222,7 +224,11 @@ func NewRiskModule(db *gorm.DB,
 		riskMatrixLikelihoodSvc,
 		riskMatrixImpactSvc,
 		riskResponseStrategySvc,
-		nil, masterModule.SeverityLevelSvc)
+		nil,
+		masterModule.SeverityLevelSvc,
+		riskReportRepo,
+		settingsModule.RiskTemplateSettingSvc,
+	)
 	riskRegisterController := controllers.NewRiskRegisterController(riskRegisterSvc)
 
 	riskRegisterSvc.SetRiskWorkflowService(riskWorkflowSvc)
@@ -355,7 +361,6 @@ func NewRiskModule(db *gorm.DB,
 	riskCommentSvc := services.NewRiskCommentService(riskCommentRepo, riskRegisterSvc, riskStatusSvc, sharedModule.ActivityLogService, organizationModule.UserSvc, riskSettingsSvc, commonModule.NotificationService)
 	riskCommentController := controllers.NewRiskCommentController(riskCommentSvc)
 
-	riskReportRepo := repositories.NewRiskReportRepository(db)
 	riskReportSvc := services.NewRiskReportService(riskReportRepo, sharedModule.ActivityLogService, settingsModule.RiskTemplateSettingSvc)
 	riskReportController := controllers.NewRiskReportController(riskReportSvc)
 

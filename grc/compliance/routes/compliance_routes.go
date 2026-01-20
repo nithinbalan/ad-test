@@ -125,6 +125,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliances/:complianceId/risks", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceAssociatedItemController.GetAllComplianceRisks)
 	complianceRoutes.GET("/compliances/:complianceId/incidents", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceAssociatedItemController.GetAllComplianceIncidents)
 	complianceRoutes.GET("/compliances/:complianceId/strategic-objectives", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceAssociatedItemController.GetAllComplianceStrategicObjectives)
+	complianceRoutes.GET("/compliances/:complianceId/assets", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceAssociatedItemController.GetAllComplianceAssets)
+	complianceRoutes.GET("/compliances/:complianceId/processes", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceAssociatedItemController.GetAllComplianceProcesses)
+	complianceRoutes.GET("/compliances/:complianceId/kpis", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceAssociatedItemController.GetAllComplianceKPI)
 	complianceRoutes.GET("/compliances/:complianceId/associated-item-summary", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceAssociatedItemController.GetAllAssociatedCounts)
 	complianceRoutes.GET("/compliances/:complianceId/requirements-status-summary", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceAssociatedItemController.GetComplianceRequirementCountByStatus)
 	complianceRoutes.GET("/compliances/:complianceId/control-status-summary", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceAssociatedItemController.GetComplianceControlCountByStatus)
@@ -325,6 +328,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Compliance Requirement Assessment
 	complianceRoutes.GET("/compliance-assessments", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentController.GetAllComplianceAssessments)
+	complianceRoutes.GET("/compliance-assessments/export", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentController.GetComplianceAssessmentsExport)
 	complianceRoutes.GET("/compliance-assessments/:assessmentId", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentController.GetComplianceAssessmentDetails)
 	complianceRoutes.GET("/compliance-assessments/:assessmentId/is-all-requirements-approved", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentController.GetApprovalStatus)
 	complianceRoutes.GET("/compliance-assessments/:assessmentId/is-all-controls-approved", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentController.GetControlsApprovalStatus)

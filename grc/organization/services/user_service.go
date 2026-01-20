@@ -6,10 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-ldap/ldap/v3"
-	"github.com/mitchellh/mapstructure"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 	"io"
 	commonDTOs "jethur/grc/common/dtos"
 	commonService "jethur/grc/common/services"
@@ -27,6 +23,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-ldap/ldap/v3"
+	"github.com/mitchellh/mapstructure"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type UserServiceInterface interface {
@@ -1414,6 +1415,12 @@ func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID
 		return nil, fmt.Errorf("error fetching organization levels: %v", err)
 	}
 
+	// Get system preference for timezone (needed for user settings)
+	systemPreference, err := us.systemPreferenceSvc.GetSystemPreference()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching system preference: %v", err)
+	}
+
 	var createdUserIDs []uint
 	for _, record := range validatedData {
 		initial := generateInitial(
@@ -1463,6 +1470,19 @@ func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID
 		if err != nil {
 			return nil, fmt.Errorf("failed to create user for record: %+v, error: %v", record, err)
 		}
+
+		// Create user settings with default values
+		userSettingDTO := &userDTOs.UserSettingFormDTO{
+			TimezoneID:     systemPreference.TimezoneID,
+			Language:       "en",
+			Timeout:        5,
+			IsNotification: false,
+		}
+
+		if err = us.userSettingSvc.CreateUserSetting(userId, currentUserID, userSettingDTO, nil); err != nil {
+			return nil, fmt.Errorf("failed to create user settings for user: %v, error: %v", record["email"], err)
+		}
+
 		// Assign roles from validated input
 		roleIDsRaw, ok := record["role_ids"].([]uint)
 		if !ok || len(roleIDsRaw) == 0 {
