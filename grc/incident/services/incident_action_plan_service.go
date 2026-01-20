@@ -32,6 +32,7 @@ type IncidentActionPlanServiceInterface interface {
 	Delete(incidentID uint, ids []uint, currentUserID uint) ([]uint, error)
 	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(incidentID uint, id uint, currentUserID uint, incidentActionPlanStatusUpdateFormDTO *incidentDTOs.IncidentActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
+	GetAllByIncidentID(incidentID uint, tx utility.DatabaseTransaction) ([]*models.IncidentActionPlan, error)
 
 	ExportIncidentActionPlan(data []*incidentDTOs.IncidentActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
@@ -144,6 +145,10 @@ func (iaps *IncidentActionPlanService) GetUsedActionPlanMasterIDs(incidentID uin
 	}
 
 	return iaps.repo.GetUsedActionPlanMasterIDsByIncidentID(incidentID)
+}
+
+func (svc *IncidentActionPlanService) GetAllByIncidentID(incidentID uint, tx utility.DatabaseTransaction) ([]*models.IncidentActionPlan, error) {
+	return svc.repo.GetAllByIncidentID(incidentID, tx)
 }
 
 func (iaps *IncidentActionPlanService) Create(incidentID uint, currentUserID uint, IncidentActionPlanFormDTO *incidentDTOs.IncidentActionPlanFormDTO) (uint, error) {
