@@ -27,6 +27,12 @@ type IncidentModule struct {
 	IncidentTimelineController                *controllers.IncidentTimelineController
 	IncidentActionPlanCommentController       *controllers.IncidentActionPlanCommentController
 	IncidentReportController                  *controllers.IncidentReportController
+	ViolationReportChannelController          *controllers.ViolationReportChannelController
+	ViolationReportReasonController           *controllers.ViolationReportReasonController
+	ViolationReportCategoryController         *controllers.ViolationReportCategoryController
+	ViolationReportSubCategoryController      *controllers.ViolationReportSubCategoryController
+	ViolationReportStatusController           *controllers.ViolationReportStatusController
+	ViolationReportController                 *controllers.ViolationReportController
 
 	IncidentRegisterSvc   services.IncidentRegisterServiceInterface
 	IncidentActionPlanSvc services.IncidentActionPlanServiceInterface
@@ -109,7 +115,7 @@ func NewIncidentModule(db *gorm.DB,
 		incidentTimelineSvc,
 		organizationModule.UserSettingSvc,
 		taskModule.TaskService,
-		organizationModule.UserSvc, commonModule.NotificationService, commonModule.DelegateeUserService,masterModule.actionPlanMasterSvc,
+		organizationModule.UserSvc, commonModule.NotificationService, commonModule.DelegateeUserService, masterModule.actionPlanMasterSvc,
 	)
 	incidentActionPlanController := controllers.NewIncidentActionPlanController(incidentActionPlanSvc)
 
@@ -156,6 +162,30 @@ func NewIncidentModule(db *gorm.DB,
 	incidentReportSvc := services.NewIncidentReportService(incidentReportrepo, settingsModule.ReportTemplateSettingSvc, incidentRootCauseAnalysisSvc, incidentActionPlanSvc, sharedModule.ActivityLogService)
 	incidentReportController := controllers.NewIncidentReportController(incidentReportSvc)
 
+	violationReportChannelRepo := repositories.NewViolationReportChannelRepository(db)
+	violationReportChannelSvc := services.NewViolationReportChannelService(violationReportChannelRepo, sharedModule.ActivityLogService)
+	violationReportChannelController := controllers.NewViolationReportChannelController(violationReportChannelSvc)
+
+	violationReportReasonRepo := repositories.NewViolationReportReasonRepository(db)
+	violationReportReasonSvc := services.NewViolationReportReasonService(violationReportReasonRepo, sharedModule.ActivityLogService)
+	violationReportReasonController := controllers.NewViolationReportReasonController(violationReportReasonSvc)
+
+	violationReportCategoryRepo := repositories.NewViolationReportCategoryRepository(db)
+	violationReportCategorySvc := services.NewViolationReportCategoryService(violationReportCategoryRepo, sharedModule.ActivityLogService, settingsModule.OrganizationUnitSvc)
+	violationReportCategoryController := controllers.NewViolationReportCategoryController(violationReportCategorySvc)
+
+	violationReportSubCategoryRepo := repositories.NewViolationReportSubCategoryRepository(db)
+	violationReportSubCategorySvc := services.NewViolationReportSubCategoryService(violationReportSubCategoryRepo, sharedModule.ActivityLogService, violationReportCategorySvc)
+	violationReportSubCategoryController := controllers.NewViolationReportSubCategoryController(violationReportSubCategorySvc)
+
+	violationReportStatusRepo := repositories.NewViolationReportStatusRepository(db)
+	violationReportStatusSvc := services.NewViolationReportStatusService(violationReportStatusRepo)
+	violationReportStatusController := controllers.NewViolationReportStatusController(violationReportStatusSvc)
+
+	violationReportRepo := repositories.NewViolationReportRepository(db)
+	violationReportSvc := services.NewViolationReportService(violationReportRepo, sharedModule.ActivityLogService, violationReportChannelSvc, violationReportReasonSvc, violationReportCategorySvc, violationReportSubCategorySvc, violationReportStatusSvc, masterModule.SeverityLevelSvc, organizationModule.UserSvc, organizationModule.UserSettingSvc, commonModule.NotificationService, settingsModule.SystemPreferenceSvc)
+	violationReportController := controllers.NewViolationReportController(violationReportSvc)
+
 	return &IncidentModule{
 		IncidentCategoryController:                incidentCategoryController,
 		IncidentSubCategoryController:             incidentSubCategoryController,
@@ -175,6 +205,12 @@ func NewIncidentModule(db *gorm.DB,
 		IncidentTimelineController:                incidentTimelineController,
 		IncidentActionPlanCommentController:       incidentActionPlanCommentController,
 		IncidentReportController:                  incidentReportController,
+		ViolationReportChannelController:          violationReportChannelController,
+		ViolationReportReasonController:           violationReportReasonController,
+		ViolationReportCategoryController:         violationReportCategoryController,
+		ViolationReportSubCategoryController:      violationReportSubCategoryController,
+		ViolationReportStatusController:           violationReportStatusController,
+		ViolationReportController:                 violationReportController,
 
 		IncidentRegisterSvc:   incidentRegisterSvc,
 		IncidentActionPlanSvc: incidentActionPlanSvc,
