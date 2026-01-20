@@ -1,19 +1,19 @@
-name: demo-api.jethur.com
+name: adf-dev-api.jethur.com
 
 on:
   workflow_dispatch:
 
 jobs:
   deploy:
-    runs-on: jethur-dev
+    runs-on: adf-dev
     env:
   
-      PROJECT_NAME: demo-api
-      DB_NAME: jethur_demo_db
+      PROJECT_NAME: adf-dev-api
+      DB_NAME: adf_dev_db
       DEPLOY_BRANCH: main
       MIGRATION_BRANCH: migration
-      IIS_DOC_ROOT: C:\inetpub\wwwroot\demo\demo-api
-      SERVICE_NAME: demo-api
+      IIS_DOC_ROOT: C:\inetpub\wwwroot\adf-dev\adf-dev-api
+      SERVICE_NAME: adf-dev-api
       SCRIPT_SOURCE_PATH: C:\deployment\deployment-files\.env
       EMAIL_TO: nithin@jethur.com, shihab@jethur.com, ranjith@jethur.com, aparna@jethur.com, faisal@jethur.com, suhaila@jethur.com, anoop@jethur.com
       SENDER: "Jethur Notifications <info@jethur.com>"
