@@ -192,7 +192,8 @@ func (irc *IncidentReportController) GetIncidentReportDetails(c *gin.Context) {
 }
 
 func (irc *IncidentReportController) DeleteIncidentReports(c *gin.Context) {
-	incidentReportID, err := strconv.Atoi(c.Param("incidentReportId"))
+	incidentReportIDStr := c.Param("incidentReportId")
+	incidentReportID, err := strconv.ParseUint(incidentReportIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -221,13 +222,15 @@ func (irc *IncidentReportController) DeleteIncidentReports(c *gin.Context) {
 }
 
 func (irc *IncidentReportController) GetIncidentReportSection(c *gin.Context) {
-	incidentReportID, err := strconv.Atoi(c.Param("incidentReportId"))
+	incidentReportIDStr := c.Param("incidentReportId")
+	incidentReportID, err := strconv.ParseUint(incidentReportIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	sectionID, err := strconv.Atoi(c.Param("sectionId"))
+	sectionIDStr := c.Param("sectionId")
+	sectionID, err := strconv.ParseUint(sectionIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -248,13 +251,15 @@ func (irc *IncidentReportController) GetIncidentReportSection(c *gin.Context) {
 }
 
 func (irc *IncidentReportController) UpdateIncidentReportSection(c *gin.Context) {
-	incidentReportID, err := strconv.Atoi(c.Param("incidentReportId"))
+	incidentReportIDStr := c.Param("incidentReportId")
+	incidentReportID, err := strconv.ParseUint(incidentReportIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	sectionID, err := strconv.Atoi(c.Param("sectionId"))
+	sectionIDStr := c.Param("sectionId")
+	sectionID, err := strconv.ParseUint(sectionIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -290,13 +295,15 @@ func (irc *IncidentReportController) UpdateIncidentReportSection(c *gin.Context)
 }
 
 func (irc *IncidentReportController) DeleteIncidentReportSection(c *gin.Context) {
-	incidentReportID, err := strconv.Atoi(c.Param("incidentReportId"))
+	incidentReportIDStr := c.Param("incidentReportId")
+	incidentReportID, err := strconv.ParseUint(incidentReportIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	sectionID, err := strconv.Atoi(c.Param("sectionId"))
+	sectionIDStr := c.Param("sectionId")
+	sectionID, err := strconv.ParseUint(sectionIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return

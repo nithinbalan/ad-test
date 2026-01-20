@@ -294,11 +294,30 @@ func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.In
 			)
 		}
 
+		if dates.StartDate.After(*dates.EndDate) {
+			tx.Rollback()
+			return 0, utility.NewValidationError(
+				errors.New("start_date must be less than or equal to end_date"),
+				"invalid",
+				"start_date",
+			)
+		}
+
 		incidents, err = irs.repo.GetReportIncidentsByDateRange(
 			*dates.StartDate,
 			*dates.EndDate,
 			tx,
 		)
+
+		if len(incidents) == 0 {
+			tx.Rollback()
+			return 0, utility.NewValidationError(
+				errors.New("no incidents found for the specified criteria"),
+				"empty-result",
+				"date_range",
+			)
+		}
+
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -315,6 +334,7 @@ func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.In
 		}
 
 		incidents, err = irs.repo.GetIncidentsByIDs(*dto.IncidentIDs, tx)
+
 		if err != nil {
 			tx.Rollback()
 			return 0, err
@@ -328,6 +348,8 @@ func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.In
 			"type",
 		)
 	}
+
+	var incidentDocumentsMap = make(map[uint][]incidentDTOs.IncidentReportDocumentDTO)
 
 	for _, inc := range incidents {
 		reportIncident := &models.IncidentReportIncident{
@@ -365,14 +387,16 @@ func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.In
 			return 0, err
 		}
 
+		incidentDocumentsMap[inc.ID] = documents
+
 		var reportDocs []*models.IncidentReportDocument
+
+		storagePath := config.GetEnv("STORAGE_PATH", "")
 
 		for _, document := range documents {
 			if document.Name == nil || *document.Name == "" {
 				continue // Skip documents without a name
 			}
-
-			storagePath := config.GetEnv("STORAGE_PATH", "")
 
 			oldFilePath := filepath.Join(
 				storagePath,
@@ -388,46 +412,12 @@ func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.In
 				return 0, fmt.Errorf("source file does not exist: %s", oldFilePath)
 			}
 
-			newStoragePath := filepath.Join(
-				storagePath,
-				"incident",
-				"incident-report",
-				strconv.FormatUint(uint64(reportID), 10),
-				"documents",
-			)
-
-			newFilePath := filepath.Join(newStoragePath, *document.Name)
-
 			newURL := utility.GenerateDocumentURL(
 				"incident",
 				"incident-report",
 				strconv.FormatUint(uint64(reportID), 10),
 				"documents",
 			)
-
-			if err := os.MkdirAll(newStoragePath, os.ModePerm); err != nil {
-				tx.Rollback()
-				return 0, err
-			}
-
-			input, err := os.Open(oldFilePath)
-			if err != nil {
-				tx.Rollback()
-				return 0, err
-			}
-			defer input.Close()
-
-			output, err := os.Create(newFilePath)
-			if err != nil {
-				tx.Rollback()
-				return 0, err
-			}
-			defer output.Close()
-
-			if _, err := io.Copy(output, input); err != nil {
-				tx.Rollback()
-				return 0, err
-			}
 
 			docName := *document.Name
 			docSize := document.Size
@@ -563,6 +553,85 @@ func (irs *IncidentReportService) Create(currentUserID uint, dto incidentDTOs.In
 	}
 
 	tx.Commit()
+
+	// Copy files after transaction commits to avoid orphaned files on rollback
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	newStoragePath := filepath.Join(
+		storagePath,
+		"incident",
+		"incident-report",
+		strconv.FormatUint(uint64(reportID), 10),
+		"documents",
+	)
+
+	if err := os.MkdirAll(newStoragePath, os.ModePerm); err != nil {
+		_ = irs.DeleteIncidentReport(reportID, currentUserID)
+		return 0, fmt.Errorf("failed to create storage directory: %w", err)
+	}
+
+	for _, inc := range incidents {
+		documents := incidentDocumentsMap[inc.ID]
+
+		for _, document := range documents {
+			if document.Name == nil || *document.Name == "" {
+				continue
+			}
+
+			oldFilePath := filepath.Join(
+				storagePath,
+				"incident",
+				"incident-register",
+				strconv.FormatUint(uint64(inc.ID), 10),
+				"documents",
+				*document.Name,
+			)
+
+			newFilePath := filepath.Join(newStoragePath, *document.Name)
+
+			input, err := os.Open(oldFilePath)
+			if err != nil {
+				_ = irs.DeleteIncidentReport(reportID, currentUserID)
+				return 0, fmt.Errorf("failed to open source file %s: %w", oldFilePath, err)
+			}
+
+			output, err := os.Create(newFilePath)
+			if err != nil {
+				input.Close()
+				_ = irs.DeleteIncidentReport(reportID, currentUserID)
+				return 0, fmt.Errorf("failed to create destination file %s: %w", newFilePath, err)
+			}
+
+			_, err = io.Copy(output, input)
+			output.Close()
+			input.Close()
+
+			if err != nil {
+				_ = irs.DeleteIncidentReport(reportID, currentUserID)
+				return 0, fmt.Errorf("failed to copy file from %s to %s: %w", oldFilePath, newFilePath, err)
+			}
+		}
+	}
+
+	go func() {
+		report, err := irs.repo.GetIncidentReportByID(reportID)
+		if err != nil {
+			utility.LogError("Failed to get incident report", map[string]interface{}{"error": err.Error()})
+			return
+		}
+
+		err = irs.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.IncidentReport{}.TableName(),
+			reportID,
+			report,
+			currentUserID,
+			"incident", "incident_report", "", nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{"error": err.Error()})
+		}
+	}()
+
 	return reportID, nil
 }
 
@@ -658,6 +727,14 @@ func (irs *IncidentReportService) DeleteIncidentReport(incidentReportID uint, cu
 		return err
 	}
 
+	// Fetch documents before deleting from DB
+	var documentsToDelete []*models.IncidentReportDocument
+	db := tx.DB()
+	if err := db.Where("incident_report_incident_id IN (SELECT id FROM incident_report_incidents WHERE incident_report_id = ?)", incidentReportID).Find(&documentsToDelete).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	if err := irs.repo.DeleteIncidentReportDocuments(incidentReportID, tx); err != nil {
 		tx.Rollback()
 		return err
@@ -686,6 +763,18 @@ func (irs *IncidentReportService) DeleteIncidentReport(incidentReportID uint, cu
 	if err := irs.repo.DeleteIncidentReport(incidentReportID, tx); err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	// Delete files from storage
+	if len(documentsToDelete) > 0 {
+		storagePath := filepath.Join("incident", "incident-report", strconv.FormatUint(uint64(incidentReportID), 10), "documents")
+		for _, doc := range documentsToDelete {
+			if doc.Name != nil && *doc.Name != "" {
+				if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
+					utility.LogError("Failed to delete file", map[string]interface{}{"file": *doc.Name, "error": err.Error()})
+				}
+			}
+		}
 	}
 
 	go func() {
