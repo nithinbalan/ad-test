@@ -49,7 +49,7 @@ type IncidentRegister struct {
 	IncidentRootCauseAnalyses []*IncidentRootCauseAnalysis     `gorm:"foreignKey:IncidentRegisterID"`
 	StrategicObjectives       []*IncidentStrategicObjective    `gorm:"foreignKey:IncidentRegisterID"`
 	KPIs                      []*IncidentKPI                   `gorm:"foreignKey:IncidentRegisterID"`
-	Investigation             *IncidentInvestigation         `gorm:"foreignKey:IncidentRegisterID"`
+	Investigation             *IncidentInvestigation           `gorm:"foreignKey:IncidentRegisterID"`
 	ReportedByUser            *User                            `gorm:"foreignKey:ReportedBy"`
 	CreatedByUser             *User                            `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser             *User                            `gorm:"foreignKey:UpdatedByID"`

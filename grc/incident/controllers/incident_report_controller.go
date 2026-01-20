@@ -1,12 +1,18 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
+
+	// "jethur/grc/asset/dtos"
+	commonDTOs "jethur/grc/common/dtos"
+	incidentDTOs "jethur/grc/incident/dtos"
+	"jethur/grc/incident/services"
+	"jethur/utility"
 	"os"
 	"strconv"
 	"time"
-	"jethur/grc/incident/services"
-	"jethur/utility"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -21,6 +27,57 @@ func NewIncidentReportController(service services.IncidentReportServiceInterface
 	return &IncidentReportController{
 		service: service,
 	}
+}
+
+func (irc *IncidentReportController) GetAllIncidentReports(c *gin.Context) {
+	sort := c.DefaultQuery("sort_order", "desc")
+	sortBy := c.DefaultQuery("sort_by", "created_at")
+	keyword := c.Query("keyword")
+
+	validSortFields := map[string]string{
+		"title":      "incident_reports.title",
+		"start_date": "incident_reports.start_date",
+		"end_date":   "incident_reports.end_date",
+		"created_at": "incident_reports.created_at",
+	}
+
+	filters := utility.ParseQueryFilters([]string{}, c.Request.URL.Query())
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(irc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(irc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	queryParams := incidentDTOs.IncidentReportListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   dbField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+		Filters:  filters,
+	}
+
+	reports, err := irc.service.GetAll(&queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(irc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, reports)
 }
 
 func (irc *IncidentReportController) ExportIncidentReportToPDF(c *gin.Context) {
@@ -72,4 +129,244 @@ func (irc *IncidentReportController) ExportIncidentReportToPDF(c *gin.Context) {
 			fmt.Printf("Successfully deleted file %s\n", fileName)
 		}
 	}()
+}
+
+func (irc *IncidentReportController) CreateIncidentReport(c *gin.Context) {
+	var request incidentDTOs.IncidentReportRequestDTO
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(irc.db, c, err.Error())
+		return
+	}
+
+	reportID, err := irc.service.Create(currentUserID, request)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(irc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, commonDTOs.IDResponse{
+		ID: reportID,
+	})
+}
+
+func (irc *IncidentReportController) GetIncidentReportDetails(c *gin.Context) {
+	incidentReportIDStr := c.Param("incidentReportId")
+	incidentReportID, err := strconv.ParseUint(incidentReportIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	details, err := irc.service.GetIncidentReportDetails(uint(incidentReportID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(irc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, details)
+}
+
+func (irc *IncidentReportController) DeleteIncidentReports(c *gin.Context) {
+	incidentReportIDStr := c.Param("incidentReportId")
+	incidentReportID, err := strconv.ParseUint(incidentReportIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(irc.db, c, err.Error())
+		return
+	}
+
+	err = irc.service.DeleteIncidentReport(uint(incidentReportID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(irc.db, c, e.Error())
+			return
+		}
+	}
+	c.Status(http.StatusOK)
+}
+
+func (irc *IncidentReportController) GetIncidentReportSection(c *gin.Context) {
+	incidentReportIDStr := c.Param("incidentReportId")
+	incidentReportID, err := strconv.ParseUint(incidentReportIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sectionIDStr := c.Param("sectionId")
+	sectionID, err := strconv.ParseUint(sectionIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	details, err := irc.service.GetSectionByID(uint(incidentReportID), uint(sectionID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(irc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, details)
+}
+
+func (irc *IncidentReportController) UpdateIncidentReportSection(c *gin.Context) {
+	incidentReportIDStr := c.Param("incidentReportId")
+	incidentReportID, err := strconv.ParseUint(incidentReportIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sectionIDStr := c.Param("sectionId")
+	sectionID, err := strconv.ParseUint(sectionIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var formDTO incidentDTOs.IncidentReportSectionFormDTO
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(irc.db, c, err.Error())
+		return
+	}
+
+	err = irc.service.UpdateSection(uint(incidentReportID), uint(sectionID), currentUserID, &formDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(irc.db, c, e.Error())
+			return
+		}
+	}
+	c.Status(http.StatusOK)
+}
+
+func (irc *IncidentReportController) DeleteIncidentReportSection(c *gin.Context) {
+	incidentReportIDStr := c.Param("incidentReportId")
+	incidentReportID, err := strconv.ParseUint(incidentReportIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sectionIDStr := c.Param("sectionId")
+	sectionID, err := strconv.ParseUint(sectionIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(irc.db, c, err.Error())
+		return
+	}
+
+	err = irc.service.DeleteIncidentReportSection(uint(incidentReportID), uint(sectionID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(irc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (irc *IncidentReportController) GetIncidentReportExportZip(c *gin.Context) {
+	incidentReportIDStr := c.Param("incidentReportId")
+	incidentReportID, err := strconv.ParseUint(incidentReportIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(irc.db, c, err.Error())
+		return
+	}
+
+	// Call the service to export and get ZIP file path
+	zipFilePath, err := irc.service.GetIncidentReportExportZip(uint(incidentReportID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(irc.db, c, fmt.Sprintf("failed to export ZIP: %v", err))
+			return
+		}
+	}
+	// Set headers and return the file
+	c.Header("Content-Type", "application/zip")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=incident_report_%d.zip", incidentReportID))
+	c.File(zipFilePath)
+
+	// Optionally delete the file after serving it
+	defer os.Remove(zipFilePath)
 }
