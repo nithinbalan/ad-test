@@ -150,7 +150,6 @@ func (rrs *RiskReportService) GetSectionByID(riskReportID uint, sectionID uint, 
 }
 
 func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos.RiskReportFormDTO) (uint, error) {
-	tx := rrs.repo.BeginTransaction()
 
 	dates, err := rrs.parseRiskReportDates(riskReportFormDTO)
 	if err != nil {
@@ -165,6 +164,12 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 	if template.CoverPageBGImagePath == nil || template.LogoImagePath == nil {
 		return 0, utility.NewForbiddenError("Logo and Background Image not added.")
 	}
+
+	if (dates.StartDate == nil || dates.EndDate == nil) && len(riskReportFormDTO.RiskIDs) == 0 {
+		return 0, utility.NewForbiddenError("either date range or risk IDs must be provided.")
+	}
+
+	tx := rrs.repo.BeginTransaction()
 	// Step 1: Create Risk Report Entry
 	riskReport := &models.RiskReport{
 		Title:       riskReportFormDTO.Title,
@@ -225,6 +230,11 @@ func (rrs *RiskReportService) Create(currentUserID uint, riskReportFormDTO *dtos
 	if err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	if len(risks) == 0 {
+		tx.Rollback()
+		return 0, utility.NewForbiddenError("no risks found for the given criteria")
 	}
 
 	for _, risk := range risks {
@@ -616,25 +626,37 @@ func formatTitle(sectionType string) (string, string) {
 		return sectionType, sectionType // Default to sectionType if not found
 	}
 }
+
 func (rrs *RiskReportService) parseRiskReportDates(dto *dtos.RiskReportFormDTO) (*dtos.RiskReportParsedDates, error) {
 	parsed := &dtos.RiskReportParsedDates{}
 
 	var err error
 
+	if (dto.StartDate != nil && dto.EndDate == nil) || (dto.StartDate == nil && dto.EndDate != nil) {
+		return nil, utility.NewValidationError(fmt.Errorf("both start date and end date are required"), "invalid_date",
+			"start date,end date",
+		)
+	}
+
 	if dto.StartDate != nil {
-		parsed.StartDate, err = utility.ParseDate(*dto.StartDate) // dereference pointer
+		parsed.StartDate, err = utility.ParseDate(*dto.StartDate)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start date")
 		}
 	}
 
 	if dto.EndDate != nil {
-		parsed.EndDate, err = utility.ParseDate(*dto.EndDate) // dereference pointer
+		parsed.EndDate, err = utility.ParseDate(*dto.EndDate)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end date")
 		}
 	}
 
+	if parsed.StartDate != nil && parsed.EndDate != nil {
+		if parsed.StartDate.After(*parsed.EndDate) {
+			return nil, utility.NewValidationError(fmt.Errorf("start date cannot be after end date"), "invalid_date", "start_date,end_date")
+		}
+	}
 	return parsed, nil
 }
 
