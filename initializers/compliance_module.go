@@ -53,6 +53,7 @@ type ComplianceModule struct {
 	ComplianceAssessmentControlActionPlanStatusUpdateController     *controllers.ComplianceAssessmentControlActionPlanStatusUpdateController
 	ComplianceAssessmentControlActionPlanCommentController          *controllers.ComplianceAssessmentControlActionPlanCommentController
 	ComplianceDetailDashboardController                             *controllers.ComplianceDetailDashboardController
+	ConsultationRequestStatusController                             *controllers.ConsultationRequestStatusController
 
 	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
@@ -346,6 +347,10 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceDetailDashboardSvc := services.NewComplianceDetailDashboardService(complianceDetailDashboardRepo)
 	complianceDetailDashboardController := controllers.NewComplianceDetailDashboardController(complianceDetailDashboardSvc)
 
+	consultationRequestStatusRepo := repositories.NewConsultationRequestStatusRepository(db)
+	consultationRequestStatusSvc := services.NewConsultationRequestStatusService(consultationRequestStatusRepo)
+	consultationRequestStatusController := controllers.NewConsultationRequestStatusController(consultationRequestStatusSvc)
+
 	return &ComplianceModule{
 		ComplianceCategoryController:                                    complianceCategoryController,
 		ComplianceStatusController:                                      complianceStatusController,
@@ -391,6 +396,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceAssessmentControlActionPlanStatusUpdateController:     complianceAssessmentControlActionPlanStatusUpdateController,
 		ComplianceAssessmentControlActionPlanCommentController:          complianceAssessmentControlActionPlanCommentController,
 		ComplianceDetailDashboardController:                             complianceDetailDashboardController,
+		ConsultationRequestStatusController:                             consultationRequestStatusController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,
