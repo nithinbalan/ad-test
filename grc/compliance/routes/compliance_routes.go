@@ -60,6 +60,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceAssessmentControlActionPlanStatusUpdateController := app.ComplianceModule.ComplianceAssessmentControlActionPlanStatusUpdateController
 	complianceAssessmentControlActionPlanCommentController := app.ComplianceModule.ComplianceAssessmentControlActionPlanCommentController
 	complianceDetailDashboardController := app.ComplianceModule.ComplianceDetailDashboardController
+	consultationRequestStatusController := app.ComplianceModule.ConsultationRequestStatusController
 
 	// Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -73,6 +74,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Compliance Status
 	complianceRoutes.GET("/compliance-statuses", complianceStatusController.GetAllComplianceStatuses)
 	complianceRoutes.GET("/compliance-statuses/:id", complianceStatusController.GetComplianceStatusDetails)
+
+	//consultation-request-statuses
+	complianceRoutes.GET("/consultation-request-statuses", consultationRequestStatusController.GetAllConsultationRequestStatuses)
+	complianceRoutes.GET("/consultation-request-statuses/:id", consultationRequestStatusController.GetConsultationRequestStatusDetails)
 
 	// Compliance Requirement Category
 	complianceRoutes.GET("/compliance-requirement-categories", complianceRequirementCategoryController.GetAllComplianceRequirementCategories)
