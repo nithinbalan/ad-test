@@ -793,7 +793,7 @@ func (repo *RiskReportRepository) GetRisksByOrgUnitsAndRiskIDs(organizationUnitI
 	}
 
 	return risks, nil
-// Methods for Risk Register PDF Export (following incident pattern)
+}
 
 func (repo *RiskReportRepository) GetAllRiskAssets(riskID uint) ([]*commonDTOs.AssociatedAssetListDTO, error) {
 	var riskAssets []*commonDTOs.AssociatedAssetListDTO
