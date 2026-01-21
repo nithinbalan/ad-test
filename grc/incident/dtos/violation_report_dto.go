@@ -38,7 +38,7 @@ type ViolationReportListDTO struct {
 	SeverityLevelID                   *uint      `json:"severity_level_id"`
 	SeverityLevelTitleEn              *string    `json:"severity_level_title_en"`
 	SeverityLevelTitleAr              *string    `json:"severity_level_title_ar"`
-	SeverityLevelColor                *string    `json:"severity_level_color_code"`
+	SeverityLevelColorCode            *string    `json:"severity_level_color_code"`
 	ViolationReportStatusID           uint       `json:"violation_report_status_id"`
 	ViolationReportStatusTitleEn      string     `json:"violation_report_status_title_en"`
 	ViolationReportStatusTitleAr      string     `json:"violation_report_status_title_ar"`
