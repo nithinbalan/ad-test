@@ -49,7 +49,6 @@ type ConsultationRequestListDTO struct {
 	ConsultationRequestStatusID uint   `json:"consultation_request_status_id"`
 	StatusTitleEn               string `json:"status_title_en"`
 	StatusTitleAr               string `json:"status_title_ar"`
-	StatusColor                 string `json:"status_color"`
 
 	Reply     *string `json:"reply"`
 	ReplyDate *string `json:"reply_date"`

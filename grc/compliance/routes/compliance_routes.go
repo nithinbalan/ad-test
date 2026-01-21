@@ -131,7 +131,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/consultation-request", middlewares.RolePermissionMiddleware(db, "consultation_request", "modify"), consultationRequestController.CreateConsultationRequest)
 	complianceRoutes.PUT("/consultation-request/:id", middlewares.RolePermissionMiddleware(db, "consultation_request", "modify"), consultationRequestController.UpdateConsultationRequest)
 	complianceRoutes.POST("/consultation-request/delete", middlewares.RolePermissionMiddleware(db, "consultation_request", "modify"), consultationRequestController.DeleteConsultationRequests)
-
+	complianceRoutes.PUT("/consultation-request/:id/responsible-user", middlewares.RolePermissionMiddleware(db, "consultation_request", "modify"), consultationRequestController.UpdateConsultationRequestResponsibleUser)
 	// Compliance Associated Items
 	complianceRoutes.GET("/compliances/:complianceId/controls", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceAssociatedItemController.GetAllComplianceControls)
 	complianceRoutes.GET("/compliances/:complianceId/risks", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceAssociatedItemController.GetAllComplianceRisks)

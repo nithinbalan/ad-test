@@ -25,6 +25,7 @@ type ConsultationRequestServiceInterface interface {
 	Create(currentUserID uint, dto *dtos.ConsultationRequestFormDTO) (uint, error)
 	Update(id uint, dto *dtos.ConsultationRequestFormDTO, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	UpdateResponsibleUser(id uint, newResponsibleUserID uint, currentUserID uint) error
 }
 
 // Implementation
@@ -212,6 +213,46 @@ func (s *ConsultationRequestService) Update(id uint, dto *dtos.ConsultationReque
 		)
 		if err != nil {
 			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+		}
+	}()
+
+	return nil
+}
+func (s *ConsultationRequestService) UpdateResponsibleUser(id uint, responsibleUserID uint, currentUserID uint) error {
+	existing, err := s.repo.GetByID(id)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, id)
+	}
+
+	tx := s.repo.BeginTransaction()
+	now := time.Now()
+
+	existing.ResponsibleUserID = &responsibleUserID
+	existing.UpdatedByID = &currentUserID
+	existing.UpdatedAt = &now
+
+	if err := s.repo.Update(existing, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+
+	go func() {
+		fullDetails, _ := s.GetFullDetailsByID(id)
+
+		err := s.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.ConsultationRequest{}.TableName(),
+			id,
+			fullDetails,
+			currentUserID,
+			"compliance",
+			"consultation_request",
+			"",
+			nil,
+		)
+		if err != nil {
+			fmt.Printf("Failed to log update responsible user activity: %v\n", err)
 		}
 	}()
 

@@ -44,7 +44,7 @@ func (repo *ConsultationRequestRepository) GetAll(params *dtos.ConsultationReque
 		consultation_requests.*,
 		consultation_request_statuses.title_en AS status_title_en,
 		consultation_request_statuses.title_ar AS status_title_ar,
-		consultation_request_statuses.color_code AS status_color,
+	
 		req_unit.title_en AS requesting_department_title_en,
 		req_unit.title_ar AS requesting_department_title_ar,
 		con_unit.title_en AS consulted_department_title_en,

@@ -164,3 +164,40 @@ func (crc *ConsultationRequestController) DeleteConsultationRequests(c *gin.Cont
 }
 
 // Activate consultation requests
+func (crc *ConsultationRequestController) UpdateConsultationRequestResponsibleUser(c *gin.Context) {
+	var dto struct {
+		ResponsibleUserID uint `json:"responsible_user_id" binding:"required"`
+	}
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	err = crc.service.UpdateResponsibleUser(uint(id), dto.ResponsibleUserID, currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+		}
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
