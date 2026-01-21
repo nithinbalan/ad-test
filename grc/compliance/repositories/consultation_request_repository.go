@@ -16,7 +16,7 @@ type ConsultationRequestRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *dtos.ConsultationRequestListQueryParamsDTO) (*dtos.ConsultationRequestListResponseDTO, error)
 	GetByID(id uint) (*models.ConsultationRequest, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ConsultationRequest, error)
+	GetFullDetailsByID(id uint) (*models.ConsultationRequest, error)
 	Create(cr *models.ConsultationRequest, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(cr *models.ConsultationRequest, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
@@ -45,10 +45,10 @@ func (repo *ConsultationRequestRepository) GetAll(params *dtos.ConsultationReque
 		consultation_request_statuses.title_en AS status_title_en,
 		consultation_request_statuses.title_ar AS status_title_ar,
 	
-		req_unit.title_en AS requesting_department_title_en,
-		req_unit.title_ar AS requesting_department_title_ar,
-		con_unit.title_en AS consulted_department_title_en,
-		con_unit.title_ar AS consulted_department_title_ar,
+		req_unit.title_en AS requesting_department_unit_title_en,
+		req_unit.title_ar AS requesting_department_unit_title_ar,
+		con_unit.title_en AS consulted_department_unit_title_en,
+		con_unit.title_ar AS consulted_department_unit_title_ar,
 		resp_user.first_name_en AS responsible_first_name_en,
 		resp_user.last_name_en  AS responsible_last_name_en,
 		resp_user.email         AS responsible_email,
@@ -118,25 +118,24 @@ func (repo *ConsultationRequestRepository) GetByID(id uint) (*models.Consultatio
 }
 
 // GetFullDetailsByID with all relationships preloaded
-func (repo *ConsultationRequestRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ConsultationRequest, error) {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
+func (repo *ConsultationRequestRepository) GetFullDetailsByID(id uint) (*models.ConsultationRequest, error) {
 
-	var cr *models.ConsultationRequest
+	db := repo.db
+	var cr models.ConsultationRequest
 	err := db.
 		Preload("ResponsibleUser").
 		Preload("ConsultedDepartmentUnit").
-		Preload("RequestingOrganizationUnit").
+		Preload("RequestingDepartmentUnit").
 		Preload("ConsultationRequestStatus").
+		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&cr, id).Error
 
 	if err != nil {
 		return nil, err
 	}
-	return cr, nil
+
+	return &cr, nil
 }
 
 // Create
@@ -166,7 +165,20 @@ func (repo *ConsultationRequestRepository) Delete(id uint, tx ...utility.Databas
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	return db.Delete(&models.ConsultationRequest{}, id).Error
+
+	var consultationRequest *models.ConsultationRequest
+
+	// Check if the record exists first
+	if err := db.First(&consultationRequest, id).Error; err != nil {
+		return err
+	}
+
+	result := db.Delete(&models.ConsultationRequest{}, id)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
 }
 
 // GenerateReferenceNumber in format CR-YYYY-0001

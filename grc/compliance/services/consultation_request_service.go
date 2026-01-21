@@ -21,7 +21,7 @@ import (
 type ConsultationRequestServiceInterface interface {
 	GetAll(params *dtos.ConsultationRequestListQueryParamsDTO) (*dtos.ConsultationRequestListResponseDTO, error)
 	GetByID(id uint) (*models.ConsultationRequest, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.ConsultationRequestDetailDTO, error)
+	GetFullDetailsByID(id uint) (*dtos.ConsultationRequestDetailDTO, error)
 	Create(currentUserID uint, dto *dtos.ConsultationRequestFormDTO) (uint, error)
 	Update(id uint, dto *dtos.ConsultationRequestFormDTO, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -69,10 +69,11 @@ func (s *ConsultationRequestService) GetByID(id uint) (*models.ConsultationReque
 	return request, nil
 }
 
-func (s *ConsultationRequestService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.ConsultationRequestDetailDTO, error) {
+func (s *ConsultationRequestService) GetFullDetailsByID(id uint) (*dtos.ConsultationRequestDetailDTO, error) {
 	var detailDTO dtos.ConsultationRequestDetailDTO
 
-	request, err := s.repo.GetFullDetailsByID(id, tx...)
+	request, err := s.repo.GetFullDetailsByID(id)
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -82,34 +83,23 @@ func (s *ConsultationRequestService) GetFullDetailsByID(id uint, tx ...utility.D
 
 	err = mapstructure.Decode(request, &detailDTO)
 	if err != nil {
+		fmt.Println("Error occurred:", err)
 		return nil, err
 	}
-
-	// Format date fields
-	// detailDTO.DateRaisedString = request.DateRaised.Format("2006-01-02")
-	// if request.ReplyDate != nil {
-	// 	detailDTO.ReplyDateString = request.ReplyDate.Format("2006-01-02")
-	// }
-	// detailDTO.CreatedAt = request.CreatedAt
-	// if request.UpdatedAt != nil {
-	// 	detailDTO.UpdatedAt = request.UpdatedAt
-	// }
 
 	return &detailDTO, nil
 }
 
 // Create
 func (s *ConsultationRequestService) Create(currentUserID uint, dto *dtos.ConsultationRequestFormDTO) (uint, error) {
-	tx := s.repo.BeginTransaction()
 
 	if err := s.validateConsultationRequestDTO(dto); err != nil {
-		tx.Rollback()
+
 		return 0, err
 	}
 
 	referenceNumber, err := s.repo.GenerateReferenceNumber()
 	if err != nil {
-		tx.Rollback()
 		return 0, err
 	}
 
@@ -117,6 +107,7 @@ func (s *ConsultationRequestService) Create(currentUserID uint, dto *dtos.Consul
 	if err != nil {
 		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "bcp communication plan responsible unit")
 	}
+	tx := s.repo.BeginTransaction()
 
 	request := &models.ConsultationRequest{
 		ReferenceNumber:             referenceNumber,
@@ -124,10 +115,10 @@ func (s *ConsultationRequestService) Create(currentUserID uint, dto *dtos.Consul
 		RequestingDepartmentUnitID:  responsibleUnitID,
 		ConsultedDepartmentUnitID:   dto.ConsultedDepartmentID,
 		RequestDetails:              dto.RequestDetails,
-		ConsultationRequestStatusID: dto.ConsultationRequestStatusID,
+		ConsultationRequestStatusID: &dto.ConsultationRequestStatusID,
 		Reply:                       dto.Reply,
 		Notes:                       dto.Notes,
-		CreatedByID:                 currentUserID,
+		CreatedBYID:                 currentUserID,
 		CreatedAt:                   time.Now(),
 	}
 
@@ -189,7 +180,7 @@ func (s *ConsultationRequestService) Update(id uint, dto *dtos.ConsultationReque
 	}
 
 	existing.RequestDetails = dto.RequestDetails
-	existing.ConsultationRequestStatusID = dto.ConsultationRequestStatusID
+	existing.ConsultationRequestStatusID = &dto.ConsultationRequestStatusID
 	existing.Reply = dto.Reply
 	existing.Notes = dto.Notes
 	existing.UpdatedByID = &currentUserID
@@ -222,6 +213,14 @@ func (s *ConsultationRequestService) UpdateResponsibleUser(id uint, responsibleU
 	existing, err := s.repo.GetByID(id)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, id)
+	}
+	_, err = s.userSvc.GetByID(responsibleUserID)
+	if err != nil {
+		return utility.NewValidationError(
+			fmt.Errorf("user with ID %d does not exist", responsibleUserID),
+			"not_exist",
+			"responsible_user_id",
+		)
 	}
 
 	tx := s.repo.BeginTransaction()
@@ -261,38 +260,46 @@ func (s *ConsultationRequestService) UpdateResponsibleUser(id uint, responsibleU
 
 // Delete
 func (s *ConsultationRequestService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
-	tx := s.repo.BeginTransaction()
+
 	var failedIds []uint
 	var successfulIds []uint
+	var deletedConsultationRequests []map[string]interface{}
 
 	for _, id := range ids {
-		if err := s.repo.Delete(id, tx); err != nil {
+		consultationRequest, err := s.repo.GetByID(id)
+		if err != nil {
 			failedIds = append(failedIds, id)
 			continue
 		}
-		successfulIds = append(successfulIds, id)
-	}
 
-	if len(failedIds) > 0 {
-		tx.Rollback()
-		return failedIds, nil
-	}
-
-	tx.Commit()
-
-	go func() {
-		err := s.activityLogSvc.LogBulkActivities(
-			models.DeleteAction,
-			models.ConsultationRequest{}.TableName(),
-			successfulIds,
-			nil,
-			currentUserID,
-			nil,
-		)
+		err = s.repo.Delete(id)
 		if err != nil {
-			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			failedIds = append(failedIds, id)
+		} else {
+			successfulIds = append(successfulIds, id)
+			deletedConsultationRequests = append(deletedConsultationRequests, map[string]interface{}{
+				"id":               id,
+				"reference_number": consultationRequest.ReferenceNumber,
+				"request_details":  consultationRequest.RequestDetails,
+			})
 		}
-	}()
+	}
+	if len(successfulIds) > 0 {
+		go func() {
+			err := s.activityLogSvc.LogBulkActivities(
+				models.DeleteAction, // Action type
+				models.ConsultationRequest{}.TableName(),
+				successfulIds,
+				deletedConsultationRequests, // The slice of deleted request details
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				// Optional: save to log file or just print
+				fmt.Printf("Failed to log ConsultationRequest delete activity: %v\n", err)
+			}
+		}()
+	}
 
 	return failedIds, nil
 }
@@ -304,10 +311,8 @@ func (s *ConsultationRequestService) validateConsultationRequestDTO(dto *dtos.Co
 		return utility.NewValidationError(fmt.Errorf("consulted organization unit does not exist"), "not_exist", "consulted_organization_unit")
 	}
 
-	if dto.ConsultationRequestStatusID != nil {
-		if _, err := s.statusSvc.GetByID(*dto.ConsultationRequestStatusID); err != nil {
-			return utility.NewValidationError(errors.New("This staus not exist"), "not_exist", "consultation_request_status")
-		}
+	if _, err := s.statusSvc.GetByID(dto.ConsultationRequestStatusID); err != nil {
+		return utility.NewValidationError(errors.New("This status not exist"), "not_exist", "consultation_request_status")
 	}
 
 	return nil

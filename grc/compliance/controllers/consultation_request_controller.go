@@ -63,7 +63,7 @@ func (crc *ConsultationRequestController) GetConsultationRequestDetails(c *gin.C
 		return
 	}
 
-	request, err := crc.service.GetByID(uint(id))
+	request, err := crc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return

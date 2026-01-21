@@ -11,7 +11,7 @@ import (
 type ConsultationRequestFormDTO struct {
 	ConsultedDepartmentID       uint    `json:"consulted_department_id" binding:"required"`
 	RequestDetails              *string `json:"request_details" binding:"required"`
-	ConsultationRequestStatusID *uint   `json:"consultation_request_status_id"` // optional, default = New
+	ConsultationRequestStatusID uint    `json:"consultation_request_status_id"`
 	Reply                       *string `json:"reply,omitempty"`
 	Notes                       *string `json:"notes,omitempty"`
 }
@@ -66,15 +66,14 @@ type ConsultationRequestListDTO struct {
 }
 
 type ConsultationRequestDetailDTO struct {
-	ID              uint    `json:"id"`
-	ReferenceNumber string  `json:"reference_number"`
-	DateRaised      string  `json:"date_raised"`
-	DueDate         *string `json:"due_date"`
+	ID              uint      `json:"id"`
+	ReferenceNumber string    `json:"reference_number"`
+	DateRaised      time.Time `json:"date_raised"`
 
-	RequestDetails *string `json:"request_details"`
-	Reply          *string `json:"reply"`
-	ReplyDate      *string `json:"reply_date"`
-	Notes          *string `json:"notes"`
+	RequestDetails *string    `json:"request_details"`
+	Reply          *string    `json:"reply"`
+	ReplyDate      *time.Time `json:"reply_date"`
+	Notes          *string    `json:"notes"`
 
 	// Department Units
 	RequestingDepartmentUnit settingsDTOs.OrganizationUnitDTO `json:"requesting_department_unit"`
@@ -87,14 +86,10 @@ type ConsultationRequestDetailDTO struct {
 
 	// Status
 	ConsultationRequestStatus *ConsultationRequestStatusDTO `json:"consultation_request_status"`
-
-	// Audit
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt *time.Time `json:"updated_at"`
 }
 type ConsultationRequestStatusDTO struct {
-	ID        uint   `json:"id"`
-	TitleEn   string `json:"title_en"`
-	TitleAr   string `json:"title_ar"`
-	ColorCode string `json:"color_code"`
+	ID      uint   `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+	Type    string `json:"type"`
 }
