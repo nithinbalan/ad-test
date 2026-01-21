@@ -11,15 +11,16 @@ CREATE TABLE consultation_request_statuses (
     created_at DATETIME NOT NULL,
     CONSTRAINT CHK_consultation_request_statuses_status CHECK (status IN ('active', 'inactive')),
     CONSTRAINT CHK_consultation_request_statuses_type CHECK (type IN (
-        'new', 
-        'needs_clarification', 
-        'under_processing', 
-        'reply_sent', 
-        'closed', 
+        'new',
+        'needs_clarification',
+        'under_processing',
+        'reply_sent',
+        'closed',
         'reopened'
     ))
 );
 -- +goose StatementEnd
+
 
 -- +goose Down
 -- +goose StatementBegin

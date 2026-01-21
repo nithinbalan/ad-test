@@ -1,3 +1,4 @@
+
 -- +goose Up
 -- +goose StatementBegin
 INSERT INTO consultation_request_statuses (title_en, title_ar, description_en, description_ar, type, status, created_at) VALUES
@@ -8,6 +9,7 @@ INSERT INTO consultation_request_statuses (title_en, title_ar, description_en, d
 ('Closed', 'مغلق', 'Request is closed', 'الطلب مغلق', 'closed', 'active', GETDATE()),
 ('Reopened', 'أعيد فتحه', 'Request has been reopened', 'تم إعادة فتح الطلب', 'reopened', 'active', GETDATE());
 -- +goose StatementEnd
+
 
 -- +goose Down
 -- +goose StatementBegin
