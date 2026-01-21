@@ -23,6 +23,8 @@ type AssociatedItemValidationRepositoryInterface interface {
 	KpiExists(id uint) (*models.KPIRegister, error)
 	IsControlMapped(masterName string, columnName string, controlId, masterID uint) (bool, error)
 	ControlExists(id uint) (*models.Control, error)
+	IsComplianceRegisterMapped(masterName string, columnName string, complianceRegisterID, masterID uint) (bool, error)
+	ComplianceRegisterExists(id uint) (*models.ComplianceRegister, error)
 	IsProjectMapped(masterName string, columnName string, projectId, masterID uint) (bool, error)
 	ProjectExists(id uint) (*models.Project, error)
 	IsBCPMapped(masterName string, columnName string, bcpId, masterID uint) (bool, error)
@@ -284,6 +286,34 @@ func (repo *AssociatedItemValidationRepository) ControlExists(id uint) (*models.
 	}
 
 	return contol, nil
+
+}
+
+func (repo *AssociatedItemValidationRepository) IsComplianceRegisterMapped(masterName string, columnName string, complianceRegisterID, masterID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Table(masterName).
+		Where("compliance_register_id = ? AND "+columnName+" = ?", complianceRegisterID, masterID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *AssociatedItemValidationRepository) ComplianceRegisterExists(id uint) (*models.ComplianceRegister, error) {
+	db := repo.db
+
+	var complianceRegister *models.ComplianceRegister
+
+	result := db.
+		First(&complianceRegister, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return complianceRegister, nil
 
 }
 

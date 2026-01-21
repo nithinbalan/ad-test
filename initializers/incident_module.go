@@ -33,6 +33,7 @@ type IncidentModule struct {
 	ViolationReportSubCategoryController      *controllers.ViolationReportSubCategoryController
 	ViolationReportStatusController           *controllers.ViolationReportStatusController
 	ViolationReportController                 *controllers.ViolationReportController
+	ViolationReportAssociatedItemController   *controllers.ViolationReportAssociatedItemController
 
 	IncidentRegisterSvc   services.IncidentRegisterServiceInterface
 	IncidentActionPlanSvc services.IncidentActionPlanServiceInterface
@@ -186,6 +187,10 @@ func NewIncidentModule(db *gorm.DB,
 	violationReportSvc := services.NewViolationReportService(violationReportRepo, sharedModule.ActivityLogService, violationReportChannelSvc, violationReportReasonSvc, violationReportCategorySvc, violationReportSubCategorySvc, violationReportStatusSvc, masterModule.SeverityLevelSvc, organizationModule.UserSvc, organizationModule.UserSettingSvc, commonModule.NotificationService, settingsModule.SystemPreferenceSvc)
 	violationReportController := controllers.NewViolationReportController(violationReportSvc)
 
+	violationReportAssociatedItemRepo := repositories.NewViolationReportAssociatedItemRepository(db)
+	violationReportAssociatedItemSvc := services.NewViolationReportAssociatedItemService(violationReportAssociatedItemRepo, violationReportSvc, commonModule.AssociatedItemValidationService)
+	violationReportAssociatedItemController := controllers.NewViolationReportAssociatedItemController(violationReportAssociatedItemSvc)
+
 	return &IncidentModule{
 		IncidentCategoryController:                incidentCategoryController,
 		IncidentSubCategoryController:             incidentSubCategoryController,
@@ -211,6 +216,7 @@ func NewIncidentModule(db *gorm.DB,
 		ViolationReportSubCategoryController:      violationReportSubCategoryController,
 		ViolationReportStatusController:           violationReportStatusController,
 		ViolationReportController:                 violationReportController,
+		ViolationReportAssociatedItemController:   violationReportAssociatedItemController,
 
 		IncidentRegisterSvc:   incidentRegisterSvc,
 		IncidentActionPlanSvc: incidentActionPlanSvc,
