@@ -312,7 +312,7 @@ func (iaic *ViolationReportAssociatedItemController) DeleteViolationReportRisk(c
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from incident successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Risk unmapped from violation report successfully"})
 }
 
 func (iaic *ViolationReportAssociatedItemController) CreateViolationReportDocument(c *gin.Context) {
@@ -361,7 +361,7 @@ func (iaic *ViolationReportAssociatedItemController) DeleteViolationReportDocume
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Document unmapped from incident successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Document unmapped from violation report successfully"})
 }
 
 func (iaic *ViolationReportAssociatedItemController) CreateViolationReportControl(c *gin.Context) {
@@ -410,7 +410,7 @@ func (iaic *ViolationReportAssociatedItemController) DeleteViolationReportContro
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Control unmapped from incident successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Control unmapped from violation report successfully"})
 }
 
 func (iaic *ViolationReportAssociatedItemController) CreateViolationReportAsset(c *gin.Context) {
@@ -472,7 +472,7 @@ func (iaic *ViolationReportAssociatedItemController) DeleteViolationReportAsset(
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Asset unmapped from incident successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Asset unmapped from violation report successfully"})
 }
 
 func (iaic *ViolationReportAssociatedItemController) CreateViolationReportComplianceRegister(c *gin.Context) {
