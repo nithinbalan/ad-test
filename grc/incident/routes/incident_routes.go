@@ -40,6 +40,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	violationReportSubCategoryController := app.IncidentModule.ViolationReportSubCategoryController
 	violationReportStatusController := app.IncidentModule.ViolationReportStatusController
 	violationReportController := app.IncidentModule.ViolationReportController
+	violationReportAssociatedItemController := app.IncidentModule.ViolationReportAssociatedItemController
 
 	// Incident Category
 	incidentRoutes.GET("/incident-categories", incidentCategoryController.GetAllIncidentCategories)
@@ -243,4 +244,27 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	incidentRoutes.POST("/violation-reports", middlewares.RolePermissionMiddleware(db, "violation_report", "modify"), violationReportController.CreateViolationReport)
 	incidentRoutes.PUT("/violation-reports/:id", middlewares.RolePermissionMiddleware(db, "violation_report", "modify"), violationReportController.UpdateViolationReport)
 	incidentRoutes.POST("/violation-reports/delete", middlewares.RolePermissionMiddleware(db, "violation_report", "modify"), violationReportController.DeleteViolationReports)
+
+	//Violation Report Associated Items
+	incidentRoutes.GET("/violation-reports/:id/controls", middlewares.RolePermissionMiddleware(db, "violation_report", "view"), violationReportAssociatedItemController.GetAllViolationReportControls)
+	incidentRoutes.GET("/violation-reports/:id/compliance-registers", middlewares.RolePermissionMiddleware(db, "violation_report", "view"), violationReportAssociatedItemController.GetAllViolationReportComplianceRegisters)
+	incidentRoutes.GET("/violation-reports/:id/risks", middlewares.RolePermissionMiddleware(db, "violation_report", "view"), violationReportAssociatedItemController.GetAllViolationReportRisks)
+	incidentRoutes.GET("/violation-reports/:id/documents", middlewares.RolePermissionMiddleware(db, "violation_report", "view"), violationReportAssociatedItemController.GetAllViolationReportDocuments)
+	incidentRoutes.GET("/violation-reports/:id/assets", middlewares.RolePermissionMiddleware(db, "violation_report", "view"), violationReportAssociatedItemController.GetAllViolationReportAssets)
+
+	incidentRoutes.POST("/violation-reports/:id/assets", middlewares.RolePermissionMiddleware(db, "violation_report", "modify"), violationReportAssociatedItemController.CreateViolationReportAsset)
+	incidentRoutes.DELETE("/violation-reports/:id/assets/:assetId", middlewares.RolePermissionMiddleware(db, "violation_report", "modify"), violationReportAssociatedItemController.DeleteViolationReportAsset)
+
+	incidentRoutes.POST("/violation-reports/:id/risks", middlewares.RolePermissionMiddleware(db, "violation_report", "modify"), violationReportAssociatedItemController.CreateViolationReportRisk)
+	incidentRoutes.DELETE("/violation-reports/:id/risks/:riskId", middlewares.RolePermissionMiddleware(db, "violation_report", "modify"), violationReportAssociatedItemController.DeleteViolationReportRisk)
+
+	incidentRoutes.POST("/violation-reports/:id/documents", middlewares.RolePermissionMiddleware(db, "violation_report", "modify"), violationReportAssociatedItemController.CreateViolationReportDocument)
+	incidentRoutes.DELETE("/violation-reports/:id/documents/:documentId", middlewares.RolePermissionMiddleware(db, "violation_report", "modify"), violationReportAssociatedItemController.DeleteViolationReportDocument)
+
+	incidentRoutes.POST("/violation-reports/:id/controls", middlewares.RolePermissionMiddleware(db, "violation_report", "modify"), violationReportAssociatedItemController.CreateViolationReportControl)
+	incidentRoutes.DELETE("/violation-reports/:id/controls/:controlId", middlewares.RolePermissionMiddleware(db, "violation_report", "modify"), violationReportAssociatedItemController.DeleteViolationReportControl)
+
+	incidentRoutes.POST("/violation-reports/:id/compliance-registers", middlewares.RolePermissionMiddleware(db, "violation_report", "modify"), violationReportAssociatedItemController.CreateViolationReportComplianceRegister)
+	incidentRoutes.DELETE("/violation-reports/:id/compliance-registers/:complianceRegisterId", middlewares.RolePermissionMiddleware(db, "violation_report", "view"), violationReportAssociatedItemController.DeleteViolationReportComplianceRegister)
+
 }

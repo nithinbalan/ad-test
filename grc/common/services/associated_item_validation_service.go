@@ -17,6 +17,7 @@ type AssociatedItemValidationServiceInterface interface {
 	ValidateProcessMapping(masterID uint, processIds []uint, tableName string, columnName string) error
 	ValidateKPIMapping(masterID uint, kpiIds []uint, tableName string, columnName string) error
 	ValidateControlMapping(masterID uint, controlIds []uint, tableName string, columnName string) error
+	ValidateComplianceMapping(masterID uint, complianceRegisterIDs []uint, tableName string, columnName string) error
 	ValidateProjectMapping(masterID uint, projectIds []uint, tableName string, columnName string) error
 	ValidateBCPMapping(masterID uint, bcppIds []uint, tableName string, columnName string) error
 	ValidateClauseIDs(clauseIDs []uint) ([]*models.ComplianceClause, error)
@@ -288,6 +289,38 @@ func (aivs *AssociatedItemValidationService) ValidateControlMapping(masterID uin
 			return utility.NewValidationError(
 				fmt.Errorf("control ID %d already mapped to this %s", id, tableName),
 				"duplicate", "Control")
+		}
+
+		seen[id] = true
+	}
+
+	return nil
+}
+
+func (aivs *AssociatedItemValidationService) ValidateComplianceMapping(masterID uint, complianceRegisterIDs []uint, tableName string, columnName string) error {
+	if len(complianceRegisterIDs) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no compliance registers provided"), "required", "compliance_register_ids")
+	}
+
+	seen := make(map[uint]bool)
+	for _, id := range complianceRegisterIDs {
+		if seen[id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate compliance register ID: %d", id), "duplicate", "compliance_register_ids")
+		}
+
+		_, err := aivs.repo.ComplianceRegisterExists(id)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("compliance register does not exist: %d", id), "not_exist", "compliance_register_ids")
+		}
+
+		alreadyMapped, err := aivs.repo.IsComplianceRegisterMapped(tableName, columnName, id, masterID)
+		if err != nil {
+			return fmt.Errorf("failed to check mapping: %v", err)
+		}
+		if alreadyMapped {
+			return utility.NewValidationError(
+				fmt.Errorf("compliance register ID %d already mapped to this %s", id, tableName),
+				"duplicate", "compliance_register_ids")
 		}
 
 		seen[id] = true

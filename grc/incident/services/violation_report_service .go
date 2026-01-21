@@ -115,6 +115,7 @@ func (irs *ViolationReportService) GetFullDetailsByID(id uint, tx ...utility.Dat
 		return nil, err
 	}
 
+	violationReportDTO.ReportedAt = violationReport.ReportedAt
 	violationReportDTO.CreatedAt = violationReport.CreatedAt
 	violationReportDTO.UpdatedAt = violationReport.UpdatedAt
 

@@ -312,6 +312,10 @@ type AssociatedProcessMapDTO struct {
 	ProcessIDs []uint `json:"process_ids" binding:"required"`
 }
 
+type AssociatedComplianceMapDTO struct {
+	ComplianceRegisterIDs []uint `json:"compliance_register_ids" binding:"required"`
+}
+
 type AssociatedDocumentListDTO struct {
 	ID                              uint       `json:"id"`
 	DocumentID                      uint       `json:"document_id"`
