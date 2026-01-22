@@ -2,9 +2,10 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
-	incidentDTOs "jethur/grc/incident/dtos"
-	"jethur/grc/incident/services"
+	violationReportDTOs "jethur/grc/violation-report/dtos"
+	"jethur/grc/violation-report/services"
 	"jethur/utility"
 	"net/http"
 	"path/filepath"
@@ -102,7 +103,7 @@ func (vrc *ViolationReportController) GetAllViolationReports(c *gin.Context) {
 		return
 	}
 
-	queryParams := incidentDTOs.ViolationReportListQueryParamsDTO{
+	queryParams := violationReportDTOs.ViolationReportListQueryParamsDTO{
 		Sort:        sort,
 		SortBy:      sortField,
 		Keyword:     keyword,
@@ -166,7 +167,8 @@ func (vrc *ViolationReportController) GetViolationReportDetails(c *gin.Context) 
 }
 
 func (vrc *ViolationReportController) CreateViolationReport(c *gin.Context) {
-	var form incidentDTOs.ViolationReportFormDTO
+	fmt.Println("hi")
+	var form violationReportDTOs.ViolationReportFormDTO
 
 	if err := c.ShouldBindJSON(&form); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -202,7 +204,7 @@ func (vrc *ViolationReportController) UpdateViolationReport(c *gin.Context) {
 		return
 	}
 
-	var form incidentDTOs.ViolationReportFormDTO
+	var form violationReportDTOs.ViolationReportFormDTO
 	if err := c.ShouldBindJSON(&form); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -269,7 +271,7 @@ func (vrc *ViolationReportController) GetViolationReportDocumentPreview(c *gin.C
 		return
 	}
 
-	incidentDocumentPath, err := vrc.service.GetDocumentPath(uint(id), token)
+	violationReportDocumentPath, err := vrc.service.GetDocumentPath(uint(id), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -279,7 +281,7 @@ func (vrc *ViolationReportController) GetViolationReportDocumentPreview(c *gin.C
 		}
 		return
 	}
-	c.File(incidentDocumentPath)
+	c.File(violationReportDocumentPath)
 }
 
 func (vrc *ViolationReportController) DownloadViolationReportDocument(c *gin.Context) {
@@ -296,7 +298,7 @@ func (vrc *ViolationReportController) DownloadViolationReportDocument(c *gin.Con
 		return
 	}
 
-	incidentDocumentPath, err := vrc.service.GetDocumentPath(uint(id), token)
+	violationReportDocumentPath, err := vrc.service.GetDocumentPath(uint(id), token)
 	if err != nil {
 		switch err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -306,7 +308,7 @@ func (vrc *ViolationReportController) DownloadViolationReportDocument(c *gin.Con
 		}
 		return
 	}
-	filename := filepath.Base(incidentDocumentPath)
+	filename := filepath.Base(violationReportDocumentPath)
 
 	// Set the content type and disposition headers for the file download
 	c.Header("Content-Description", "File Transfer")
@@ -318,7 +320,7 @@ func (vrc *ViolationReportController) DownloadViolationReportDocument(c *gin.Con
 	c.Header("Pragma", "public")
 
 	// Serve the file
-	c.File(incidentDocumentPath)
+	c.File(violationReportDocumentPath)
 }
 
 func (vrc *ViolationReportController) GetViolationReportExport(c *gin.Context) {

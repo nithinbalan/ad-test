@@ -10,15 +10,16 @@ import (
 )
 
 type ViolationReportListDTO struct {
-	ID                            uint      `json:"id"`
-	ReferenceNumber               string    `json:"reference_number"`
-	ReportedAt                    time.Time `json:"reported_at"`
-	ViolationReportChannelID      uint      `json:"violation_report_channel_id"`
-	ViolationReportChannelTitleEn string    `json:"violation_report_channel_title_en"`
-	ViolationReportChannelTitleAr string    `json:"violation_report_channel_title_ar"`
-	// IDOfReporter                      *uint      `json:"id_of_reporter"`
-	// NameOfReporter                    *string    `json:"name_of_reporter"`
-	// PhoneOfReporter                   *string    `json:"phone_of_reporter"`
+	ID                                uint       `json:"id"`
+	ReferenceNumber                   string     `json:"reference_number"`
+	ReportedAt                        time.Time  `json:"reported_at"`
+	ViolationReportChannelID          uint       `json:"violation_report_channel_id"`
+	ViolationReportChannelTitleEn     string     `json:"violation_report_channel_title_en"`
+	ViolationReportChannelTitleAr     string     `json:"violation_report_channel_title_ar"`
+	IDOfReporter                      *uint      `json:"id_of_reporter"`
+	NameOfReporter                    *string    `json:"name_of_reporter"`
+	PhoneOfReporter                   *string    `json:"phone_of_reporter"`
+	EmailOfReporter                   *string    `json:"email_of_reporter"`
 	TitleEn                           string     `json:"title_en"`
 	TitleAr                           string     `json:"title_ar"`
 	ReportedEntityID                  uint       `json:"reported_entity_id"`
@@ -70,6 +71,7 @@ type ViolationReportFormDTO struct {
 	IDOfReporter                 *uint                             `json:"id_of_reporter"`
 	NameOfReporter               *string                           `json:"name_of_reporter"`
 	PhoneOfReporter              *string                           `json:"phone_of_reporter"`
+	EmailOfReporter              *string                           `json:"email_of_reporter"`
 	TitleEn                      string                            `json:"title_en" binding:"required,max=255"`
 	TitleAr                      string                            `json:"title_ar" binding:"required,max=255"`
 	ReportedEntityID             uint                              `json:"reported_entity_id" binding:"required"`
@@ -131,6 +133,10 @@ type ViolationReportDetailDTO struct {
 	DescriptionEn              string                                `json:"description_en"`
 	DescriptionAr              string                                `json:"description_ar"`
 	ReportedAt                 time.Time                             `json:"reported_at"`
+	IDOfReporter               *uint                                 `json:"id_of_reporter"`
+	NameOfReporter             *string                               `json:"name_of_reporter"`
+	PhoneOfReporter            *string                               `json:"phone_of_reporter"`
+	EmailOfReporter            *string                               `json:"email_of_reporter"`
 	ViolationReportChannel     ViolationReportChannelDTO             `json:"violation_report_channel"`
 	ViolationReportCategory    *ViolationReportCategoryDetailsDTO    `json:"violation_report_category"`
 	ViolationReportSubCategory *ViolationReportSubCategoryDetailsDTO `json:"violation_report_sub_category"`

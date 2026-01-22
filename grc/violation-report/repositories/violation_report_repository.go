@@ -3,8 +3,8 @@ package repositories
 import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
-	incidentDTOs "jethur/grc/incident/dtos"
 	"jethur/grc/models"
+	violationReportDTOs "jethur/grc/violation-report/dtos"
 	"jethur/utility"
 	"strconv"
 	"time"
@@ -14,7 +14,7 @@ import (
 
 type ViolationReportRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *incidentDTOs.ViolationReportListQueryParamsDTO) (*incidentDTOs.ViolationReportListResponseDTO, error)
+	GetAll(params *violationReportDTOs.ViolationReportListQueryParamsDTO) (*violationReportDTOs.ViolationReportListResponseDTO, error)
 	GetByID(id uint) (*models.ViolationReport, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ViolationReport, error)
 	Create(violationReport *models.ViolationReport, tx ...utility.DatabaseTransaction) (uint, error)
@@ -43,9 +43,9 @@ func (repo *ViolationReportRepository) BeginTransaction() utility.DatabaseTransa
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *ViolationReportRepository) GetAll(params *incidentDTOs.ViolationReportListQueryParamsDTO) (*incidentDTOs.ViolationReportListResponseDTO, error) {
+func (repo *ViolationReportRepository) GetAll(params *violationReportDTOs.ViolationReportListQueryParamsDTO) (*violationReportDTOs.ViolationReportListResponseDTO, error) {
 
-	var reports []*incidentDTOs.ViolationReportListDTO
+	var reports []*violationReportDTOs.ViolationReportListDTO
 	var totalCount int64
 
 	query := repo.db.Table("violation_reports").
@@ -177,7 +177,7 @@ func (repo *ViolationReportRepository) GetAll(params *incidentDTOs.ViolationRepo
 		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 	}
 
-	return &incidentDTOs.ViolationReportListResponseDTO{
+	return &violationReportDTOs.ViolationReportListResponseDTO{
 		Items: reports,
 		Pagination: commonDTOs.PaginationInfoDTO{
 			CurrentPage: params.Page,
@@ -189,14 +189,14 @@ func (repo *ViolationReportRepository) GetAll(params *incidentDTOs.ViolationRepo
 }
 
 func (repo *ViolationReportRepository) GetByID(id uint) (*models.ViolationReport, error) {
-	var incident *models.ViolationReport
+	var violationReport *models.ViolationReport
 
-	result := repo.db.First(&incident, id)
+	result := repo.db.First(&violationReport, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return incident, nil
+	return violationReport, nil
 
 }
 
@@ -205,7 +205,7 @@ func (repo *ViolationReportRepository) GetFullDetailsByID(id uint, tx ...utility
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	var incident *models.ViolationReport
+	var violationReport *models.ViolationReport
 
 	result := db.
 		Preload("ViolationReportChannel").
@@ -218,13 +218,13 @@ func (repo *ViolationReportRepository) GetFullDetailsByID(id uint, tx ...utility
 		Preload("ReportedEntity.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
-		First(&incident, id)
+		First(&violationReport, id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return incident, nil
+	return violationReport, nil
 }
 
 func (repo *ViolationReportRepository) Create(violationReport *models.ViolationReport, tx ...utility.DatabaseTransaction) (uint, error) {
@@ -256,7 +256,7 @@ func (repo *ViolationReportRepository) Delete(id uint, tx ...utility.DatabaseTra
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
-	// Delete the Incident register
+	// Delete the violation report
 	if err := db.Delete(&models.ViolationReport{}, id).Error; err != nil {
 		return err
 	}
