@@ -14,6 +14,7 @@ UPDATE modules
 SET 
     module_id = @parentConsultationID,
     [order] = 1,
+    identifier = 'consultation',
     route = '/consultation/requests'
 WHERE identifier = 'consultation_request'
   AND module_id IS NOT NULL;
@@ -34,9 +35,10 @@ WHERE identifier = 'compliance';
 UPDATE modules
 SET 
     module_id = @complianceModuleID,
-    [order] = 16,
+    identifier = 'consultation_request'
+    [order] = 7,
     route = 'compliance/consultation'
-WHERE identifier = 'consultation_request'
+WHERE identifier = 'consultation'
   AND module_id IS NOT NULL;
 
 -- +goose StatementEnd
