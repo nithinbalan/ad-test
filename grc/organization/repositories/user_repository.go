@@ -7,8 +7,9 @@ import (
 	userDTOs "jethur/grc/organization/dtos"
 	settingDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
-	"time"
 	"strings"
+	"time"
+
 	"gorm.io/gorm"
 )
 
@@ -59,6 +60,8 @@ type UserRepositoryInterface interface {
 
 	CountTasksByUser(userID uint, moduleID uint) (int, error)
 	GetUserModulesWithOpenTasks(userID uint) ([]settingDTOs.ModulePermissionListDTO, error)
+
+	GetUsersByOrganizationUnit(departmentUnitID uint) ([]*models.User, error)
 }
 
 type UserRepository struct {
@@ -132,7 +135,6 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 			query = query.Where("users."+columnName+" IN (?)", values)
 		}
 	}
-
 
 	if len(params.UserIDs) > 0 {
 		query = query.Where("users.id IN (?)", params.UserIDs)
@@ -975,4 +977,17 @@ func (r *UserRepository) GetUserModulesWithOpenTasks(userID uint) ([]settingDTOs
 	}
 
 	return submodules, nil
+}
+func (repo *UserRepository) GetUsersByOrganizationUnit(departmentUnitID uint) ([]*models.User, error) {
+	var users []*models.User
+
+	// Query users whose OrganizationUnit2ID matches the given departmentUnitID
+	err := repo.db.
+		Where("organization_unit_2_id = ?", departmentUnitID).
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }

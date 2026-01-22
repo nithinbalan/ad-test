@@ -4,6 +4,7 @@ import "time"
 
 type ConsultationRequest struct {
 	ID                          uint       `json:"id" gorm:"primaryKey;autoIncrement"`
+	Title                       string     `json:"title" gorm:"type:nvarchar(255);not null"`
 	ReferenceNumber             string     `json:"reference_number" gorm:"type:varchar(45);not null;uniqueIndex"` // CONS-12323
 	DateRaised                  time.Time  `json:"date_raised" gorm:"type:datetime;not null"`
 	RequestingDepartmentUnitID  uint       `json:"requesting_department_unit_id" gorm:"not null"`
@@ -27,7 +28,9 @@ type ConsultationRequest struct {
 	ConsultedDepartmentUnit   *OrganizationUnit          `gorm:"foreignKey:ConsultedDepartmentUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ConsultationRequestStatus *ConsultationRequestStatus `gorm:"foreignKey:ConsultationRequestStatusID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	CreatedByUser             *User                      `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	UpdatedByUser             *User                      `gorm:"foreignKey:UpdatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	UpdatedByUser             *User                      `gorm:"foreignKey:UpdatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`	
+	
+	Comments []*ConsultationRequestComment `gorm:"foreignKey:ConsultationRequestID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 // TableName overrides the default table name

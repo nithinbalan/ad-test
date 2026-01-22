@@ -77,6 +77,8 @@ type UserServiceInterface interface {
 
 	SyncAzureUsers() ([]userDTOs.ADUserFlatDTO, error)
 	SyncAzureGroups() ([]map[string]interface{}, error)
+
+	GetUsersByOrganizationUnit(departmentUnitID uint) ([]*models.User, error)
 }
 
 type UserService struct {
@@ -196,9 +198,9 @@ func (us *UserService) GetAllUsers() ([]*userDTOs.UserPrimaryDetailsDTO, error) 
 	return us.repo.GetAllUsers(primaryOrgUnitField)
 }
 
-// func (us *UserService) GetAllUsers() ([]*models.User, error) {
-// 	return us.repo.GetAllUsers()
-// }
+func (us *UserService) GetUsersByOrganizationUnit(departmentUnitID uint) ([]*models.User, error) {
+	return us.repo.GetUsersByOrganizationUnit(departmentUnitID)
+}
 
 func (us *UserService) GetByID(id uint) (*models.User, error) {
 	user, err := us.repo.GetByID(id)

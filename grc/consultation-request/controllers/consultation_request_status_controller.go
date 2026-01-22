@@ -1,7 +1,8 @@
 package controllers
 
 import (
-	"jethur/grc/compliance/services"
+	"jethur/grc/consultation-request/services"
+
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -55,4 +56,22 @@ func (crsc *ConsultationRequestStatusController) GetConsultationRequestStatusDet
 	}
 
 	c.JSON(http.StatusOK, status)
+}
+
+func (crc *ConsultationRequestController) GetAllConsultationRequestComment(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	comments, err := crc.service.GetAllConsultationRequestComments(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, comments)
 }

@@ -59,11 +59,16 @@ type ConsultationRequestListResponseDTO struct {
 
 // ConsultationRequestFormDTO is used for creating/updating consultation requests via API
 type ConsultationRequestFormDTO struct {
-	ConsultedDepartmentID       uint    `json:"consulted_department_id" binding:"required"`
-	RequestDetails              *string `json:"request_details" binding:"required"`
-	ConsultationRequestStatusID uint    `json:"consultation_request_status_id"`
-	Reply                       *string `json:"reply,omitempty"`
-	Notes                       *string `json:"notes,omitempty"`
+	ConsultedDepartmentID uint    `json:"consulted_department_id" binding:"required"`
+	RequestDetails        *string `json:"request_details" binding:"required"`
+	Title                 string  `json:"title" binding:"required"`
+	// ConsultationRequestStatusID uint    `json:"consultation_request_status_id"`
+	// Reply                       *string `json:"reply,omitempty"`
+	// Notes                       *string `json:"notes,omitempty"`
+}
+type ConsultationRequestCommentFormDTO struct {
+	ConsultationRequestStatusID uint   `json:"consultation_request_status_id"`
+	Comment                     string `json:"comment" binding:"required"`
 }
 
 type ConsultationRequestDetailDTO struct {
@@ -94,4 +99,25 @@ type ConsultationRequestStatusDTO struct {
 	TitleEn string `json:"title_en"`
 	TitleAr string `json:"title_ar"`
 	Type    string `json:"type"`
+}
+
+type ConsultationRequestCommentListDTO struct {
+	ID                    uint   `json:"id"`                      // Comment ID
+	ConsultationRequestID uint   `json:"consultation_request_id"` // Parent request ID
+	Comment               string `json:"comment"`                 // The actual comment text
+
+	// Status fields (flattened into the comment DTO)
+	ConsultationRequestStatusID uint      `json:"consultation_request_status_id,omitempty"`
+	StatusTitleEn               string    `json:"status_title_en,omitempty"`
+	StatusTitleAr               string    `json:"status_title_ar,omitempty"`
+	StatusDescriptionEn         string    `json:"status_description_en,omitempty"`
+	StatusDescriptionAr         string    `json:"status_description_ar,omitempty"`
+	StatusType                  string    `json:"status_type,omitempty"`
+	Status                      string    `json:"status,omitempty"`
+	StatusCreatedAt             time.Time `json:"status_created_at,omitempty"`
+
+	CreatedAt            time.Time `json:"created_at"`
+	CreatedByID          uint      `json:"created_by_id"`
+	CreatedByFirstNameEn string    `json:"created_by_first_name_en"`
+	CreatedByLastNameEn  string    `json:"created_by_last_name_en"`
 }

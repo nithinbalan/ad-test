@@ -1,7 +1,7 @@
 package services
 
 import (
-	"jethur/grc/compliance/repositories"
+	"jethur/grc/consultation-request/repositories"
 	"jethur/grc/models"
 )
 

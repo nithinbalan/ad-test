@@ -3,7 +3,8 @@ package repositories
 import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
-	"jethur/grc/compliance/dtos"
+	"jethur/grc/consultation-request/dtos"
+
 	"jethur/grc/models"
 	"jethur/utility"
 	"strconv"
@@ -21,6 +22,10 @@ type ConsultationRequestRepositoryInterface interface {
 	Update(cr *models.ConsultationRequest, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GenerateReferenceNumber() (string, error)
+
+	///
+	CreateComment(comment *models.ConsultationRequestComment, tx ...utility.DatabaseTransaction) (uint, error)
+	GetAllConsultationRequestComments(consultationRequestID uint) ([]*dtos.ConsultationRequestCommentListDTO, error)
 }
 
 type ConsultationRequestRepository struct {
@@ -117,6 +122,42 @@ func (repo *ConsultationRequestRepository) GetAll(params *dtos.ConsultationReque
 	return response, nil
 }
 
+func (repo *ConsultationRequestRepository) GetAllConsultationRequestComments(consultationRequestID uint) ([]*dtos.ConsultationRequestCommentListDTO, error) {
+
+	var comments []*dtos.ConsultationRequestCommentListDTO
+
+	query := repo.db.Table("consultation_request_comments").
+		Select(`
+			consultation_request_comments.id,
+			consultation_request_comments.consultation_request_id,
+			consultation_request_comments.comment,
+
+			consultation_request_statuses.id AS consultation_request_status_id,
+			consultation_request_statuses.title_en AS status_title_en,
+			consultation_request_statuses.title_ar AS status_title_ar,
+			consultation_request_statuses.description_en AS status_description_en,
+			consultation_request_statuses.description_ar AS status_description_ar,
+			consultation_request_statuses.type AS status_type,
+			consultation_request_statuses.status AS status,
+			consultation_request_statuses.created_at AS status_created_at,
+
+			consultation_request_comments.created_at,
+			users.id AS created_by_id,
+			users.first_name_en AS created_by_first_name_en,
+			users.last_name_en AS created_by_last_name_en
+		`).
+		Joins(`LEFT JOIN consultation_request_statuses ON consultation_request_statuses.id = consultation_request_comments.consultation_request_status_id`).
+		Joins(`LEFT JOIN users ON users.id = consultation_request_comments.created_by_id`).
+		Where("consultation_request_comments.consultation_request_id = ?", consultationRequestID).
+		Order("consultation_request_comments.created_at DESC")
+
+	if err := query.Find(&comments).Error; err != nil {
+		return nil, err
+	}
+
+	return comments, nil
+}
+
 // GetByID
 func (repo *ConsultationRequestRepository) GetByID(id uint) (*models.ConsultationRequest, error) {
 	var cr models.ConsultationRequest
@@ -158,6 +199,20 @@ func (repo *ConsultationRequestRepository) Create(cr *models.ConsultationRequest
 		return 0, err
 	}
 	return cr.ID, nil
+}
+
+func (repo *ConsultationRequestRepository) CreateComment(comment *models.ConsultationRequestComment, tx ...utility.DatabaseTransaction) (uint, error) {
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(comment).Error; err != nil {
+		return 0, err
+	}
+
+	return comment.ID, nil
 }
 
 // Update

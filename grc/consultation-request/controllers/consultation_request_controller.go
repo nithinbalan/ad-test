@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"jethur/grc/compliance/dtos"
-	"jethur/grc/compliance/services"
+	"jethur/grc/consultation-request/dtos"
+	"jethur/grc/consultation-request/services"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -200,4 +200,89 @@ func (crc *ConsultationRequestController) UpdateConsultationRequestResponsibleUs
 	}
 
 	c.Status(http.StatusOK)
+}
+func (crc *ConsultationRequestController) UpdateConsultationRequestNotes(c *gin.Context) {
+	var dto struct {
+		Notes string `json:"notes" binding:"required"`
+	}
+
+	// Parse ID from URL
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Bind JSON payload
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	// Get current user ID
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	// Call service to update Notes
+	err = crc.service.UpdateNotes(uint(id), dto.Notes, currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+		}
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (crc *ConsultationRequestController) CreateConsultationRequestComment(c *gin.Context) {
+	var dto dtos.ConsultationRequestCommentFormDTO
+
+	// Bind request body
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	// Get consultation request ID from URL
+	consultationRequestID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Get current user ID
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	// Call service
+	createdComment, err := crc.service.CreateConsultationRequestComment(
+		uint(consultationRequestID),
+		currentUserID,
+		&dto,
+	)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+		}
+		return
+	}
+
+	c.JSON(http.StatusCreated, createdComment)
 }
