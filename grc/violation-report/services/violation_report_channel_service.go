@@ -2,9 +2,9 @@ package services
 
 import (
 	"fmt"
-	"jethur/grc/incident/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
+	"jethur/grc/violation-report/repositories"
 	"jethur/utility"
 	"log"
 )

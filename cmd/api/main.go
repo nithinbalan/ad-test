@@ -28,6 +28,7 @@ import (
 	strategyRoutes "jethur/grc/strategy/routes"
 	taskRoutes "jethur/grc/task/routes"
 	tprmRoutes "jethur/grc/tprm/routes"
+	violationReportRoutes "jethur/grc/violation-report/routes"
 	"jethur/initializers"
 	"jethur/middlewares"
 	"jethur/utility"
@@ -96,6 +97,7 @@ func main() {
 	projectRoutes.RegisterRoutes(app, r)
 	jethurAIRoutes.RegisterRoutes(app, r)
 	policyRoutes.RegisterRoutes(app, r)
+	violationReportRoutes.RegisterRoutes(app, r)
 
 	if err := r.Run(":" + port); err != nil {
 		utility.LogFatal("Failed to run server", map[string]interface{}{

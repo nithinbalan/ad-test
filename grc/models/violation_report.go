@@ -12,6 +12,7 @@ type ViolationReport struct {
 	IDOfReporter                 *uint      `json:"id_of_reporter"`
 	NameOfReporter               *string    `json:"name_of_reporter" gorm:"type:nvarchar(max)"`
 	PhoneOfReporter              *string    `json:"phone_of_reporter" gorm:"type:nvarchar(max)"`
+	EmailOfReporter              *string    `json:"email_of_reporter" gorm:"type:nvarchar(max)"`
 	TitleEn                      string     `json:"title_en" binding:"required" gorm:"type:nvarchar(max);not null"`
 	TitleAr                      string     `json:"title_ar" binding:"required" gorm:"type:nvarchar(max);not null"`
 	ReportedEntityID             uint       `json:"reported_entity_id" binding:"required"`

@@ -10,13 +10,13 @@ import (
 
 	"jethur/config"
 	commonServices "jethur/grc/common/services"
-	incidentDTOs "jethur/grc/incident/dtos"
-	incidentRepositories "jethur/grc/incident/repositories"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
 	masterServices "jethur/grc/masters/services"
 	organizationServices "jethur/grc/organization/services"
 	settingServices "jethur/grc/settings/services"
+	violationReportDTOs "jethur/grc/violation-report/dtos"
+	violationReportRepositories "jethur/grc/violation-report/repositories"
 
 	"jethur/grc/models"
 	"jethur/utility"
@@ -26,19 +26,19 @@ import (
 )
 
 type ViolationReportServiceInterface interface {
-	GetAll(params *incidentDTOs.ViolationReportListQueryParamsDTO) (*incidentDTOs.ViolationReportListResponseDTO, error)
-	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.ViolationReportDetailDTO, error)
+	GetAll(params *violationReportDTOs.ViolationReportListQueryParamsDTO) (*violationReportDTOs.ViolationReportListResponseDTO, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*violationReportDTOs.ViolationReportDetailDTO, error)
 	GetByID(id uint) (*models.ViolationReport, error)
-	Create(currentUserID uint, violationReportFormDTO *incidentDTOs.ViolationReportFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, violationReport *incidentDTOs.ViolationReportFormDTO) error
+	Create(currentUserID uint, violationReportFormDTO *violationReportDTOs.ViolationReportFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, violationReport *violationReportDTOs.ViolationReportFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetDocumentPath(id uint, token string) (string, error)
-	ExportViolationReports(data []*incidentDTOs.ViolationReportListDTO, currentUserID uint) (*os.File, error)
+	ExportViolationReports(data []*violationReportDTOs.ViolationReportListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
 type ViolationReportService struct {
-	repo                          incidentRepositories.ViolationReportRepositoryInterface
+	repo                          violationReportRepositories.ViolationReportRepositoryInterface
 	activityLogSvc                logServices.ActivityLogServiceInterface
 	violationReportChannelSvc     ViolationReportChannelServiceInterface
 	violationReportReasonSvc      ViolationReportReasonServiceInterface
@@ -53,7 +53,7 @@ type ViolationReportService struct {
 }
 
 func NewViolationReportService(
-	repo incidentRepositories.ViolationReportRepositoryInterface,
+	repo violationReportRepositories.ViolationReportRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	violationReportChannelSvc ViolationReportChannelServiceInterface,
 	violationReportReasonSvc ViolationReportReasonServiceInterface,
@@ -82,7 +82,7 @@ func NewViolationReportService(
 	}
 }
 
-func (irs *ViolationReportService) GetAll(params *incidentDTOs.ViolationReportListQueryParamsDTO) (*incidentDTOs.ViolationReportListResponseDTO, error) {
+func (irs *ViolationReportService) GetAll(params *violationReportDTOs.ViolationReportListQueryParamsDTO) (*violationReportDTOs.ViolationReportListResponseDTO, error) {
 	return irs.repo.GetAll(params)
 }
 
@@ -97,9 +97,9 @@ func (irs *ViolationReportService) GetByID(id uint) (*models.ViolationReport, er
 	return violationReport, nil
 }
 
-func (irs *ViolationReportService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*incidentDTOs.ViolationReportDetailDTO, error) {
+func (irs *ViolationReportService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*violationReportDTOs.ViolationReportDetailDTO, error) {
 	// Initialize your DTO
-	var violationReportDTO incidentDTOs.ViolationReportDetailDTO
+	var violationReportDTO violationReportDTOs.ViolationReportDetailDTO
 
 	violationReport, err := irs.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
@@ -122,7 +122,7 @@ func (irs *ViolationReportService) GetFullDetailsByID(id uint, tx ...utility.Dat
 	return &violationReportDTO, nil
 }
 
-func (irs *ViolationReportService) Create(currentUserID uint, violationReportFormDTO *incidentDTOs.ViolationReportFormDTO) (uint, error) {
+func (irs *ViolationReportService) Create(currentUserID uint, violationReportFormDTO *violationReportDTOs.ViolationReportFormDTO) (uint, error) {
 	tx := irs.repo.BeginTransaction()
 	if err := irs.validateViolationReportFormDTO(violationReportFormDTO); err != nil {
 		return 0, err
@@ -138,17 +138,11 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 		return 0, err
 	}
 
-	// update incident status as open
+	// update violation report status as new
 	violationReportStatus, err := irs.violationReportStatusSvc.GetByType("new")
 	if err != nil {
 		return 0, err
 	}
-	// var organizationUnitID uint
-	// unitID, err := irs.userSvc.GetUserPrimaryUnitID(violationReportFormDTO.ResponsibleUserID)
-	// if err != nil {
-	// 	return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "responsible unit")
-	// }
-	// organizationUnitID = unitID
 	violationReport := &models.ViolationReport{
 		ReferenceNumber:              referenceNumber,
 		ViolationReportChannelID:     violationReportFormDTO.ViolationReportChannelID,
@@ -161,6 +155,7 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 		IDOfReporter:                 violationReportFormDTO.IDOfReporter,
 		NameOfReporter:               violationReportFormDTO.NameOfReporter,
 		PhoneOfReporter:              violationReportFormDTO.PhoneOfReporter,
+		EmailOfReporter:              violationReportFormDTO.EmailOfReporter,
 		TitleEn:                      violationReportFormDTO.TitleEn,
 		TitleAr:                      violationReportFormDTO.TitleAr,
 		DescriptionEn:                violationReportFormDTO.DescriptionEn,
@@ -190,7 +185,7 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 		}
 
 		// Construct the URL for the document
-		url := utility.GenerateDocumentURL("incident", "violation-report", strconv.FormatUint(uint64(id), 10), "documents")
+		url := utility.GenerateDocumentURL("violation-report", "violation-report-register", strconv.FormatUint(uint64(id), 10), "documents")
 
 		// Create a new ViolationReportDocument instance
 		document := &models.ViolationReportDocument{
@@ -208,13 +203,13 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 		documents = append(documents, document)
 	}
 	if len(documents) > 0 {
-		// Save the IncidentDocument
+		// Save the documents
 		if err := irs.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
 		for _, doc := range documents {
-			storagePath := filepath.Join("incident", "violation-report", strconv.FormatUint(uint64(id), 10), "documents")
+			storagePath := filepath.Join("violation-report", "violation-report-register", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 				tx.Rollback()
 				return 0, err
@@ -227,7 +222,7 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 	go func() {
 		existingViolationReport, err := irs.GetFullDetailsByID(id)
 		if err != nil {
-			utility.LogError("Failed to fetch incident register", map[string]interface{}{
+			utility.LogError("Failed to fetch violation report register", map[string]interface{}{
 				"error": err.Error(),
 			})
 			return
@@ -239,7 +234,7 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 			id,
 			existingViolationReport,
 			currentUserID,
-			"incident", "violation_report", "violation_report", nil,
+			"violation_report", "violation_report_register", "violation_report", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -258,7 +253,7 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 	return id, nil
 }
 
-func (irs *ViolationReportService) Update(id uint, currentUserID uint, violationReportFormDTO *incidentDTOs.ViolationReportFormDTO) error {
+func (irs *ViolationReportService) Update(id uint, currentUserID uint, violationReportFormDTO *violationReportDTOs.ViolationReportFormDTO) error {
 
 	tx := irs.repo.BeginTransaction()
 
@@ -293,6 +288,7 @@ func (irs *ViolationReportService) Update(id uint, currentUserID uint, violation
 	existingViolationReport.IDOfReporter = violationReportFormDTO.IDOfReporter
 	existingViolationReport.NameOfReporter = violationReportFormDTO.NameOfReporter
 	existingViolationReport.PhoneOfReporter = violationReportFormDTO.PhoneOfReporter
+	existingViolationReport.EmailOfReporter = violationReportFormDTO.EmailOfReporter
 	existingViolationReport.UpdatedBYID = &currentUserID
 
 	if err := irs.repo.Update(existingViolationReport, tx); err != nil {
@@ -317,8 +313,8 @@ func (irs *ViolationReportService) Update(id uint, currentUserID uint, violation
 			}
 
 			url := utility.GenerateDocumentURL(
-				"incident",
 				"violation-report",
+				"violation-report-register",
 				strconv.FormatUint(uint64(id), 10),
 				"documents",
 			)
@@ -366,7 +362,7 @@ func (irs *ViolationReportService) Update(id uint, currentUserID uint, violation
 
 	// ---------- FILE SYSTEM ----------
 	for _, doc := range documents {
-		storagePath := filepath.Join("incident", "violation-report", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("violation-report", "violation-report-register", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
@@ -374,7 +370,7 @@ func (irs *ViolationReportService) Update(id uint, currentUserID uint, violation
 	}
 
 	for _, doc := range documentsToDelete {
-		storagePath := filepath.Join("incident", "violation-report", strconv.FormatUint(uint64(id), 10), "documents")
+		storagePath := filepath.Join("violation-report", "violation-report-register", strconv.FormatUint(uint64(id), 10), "documents")
 		if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 			tx.Rollback()
 			return err
@@ -427,7 +423,7 @@ func (irs *ViolationReportService) Update(id uint, currentUserID uint, violation
 				id,
 				changedData,
 				currentUserID,
-				"incident", "violation_report", "violation_report", nil,
+				"violation_report", "violation_report_register", "violation_report", nil,
 			)
 		}
 	}()
@@ -441,7 +437,7 @@ func (irs *ViolationReportService) Delete(ids []uint, currentUserID uint) ([]uin
 	var successfulIds []uint
 	var deletedViolationReports []map[string]interface{}
 
-	documentsToDelete := make(map[uint][]*incidentDTOs.ViolationReportDocumentDTO)
+	documentsToDelete := make(map[uint][]*violationReportDTOs.ViolationReportDocumentDTO)
 
 	for _, id := range ids {
 		violationReport, err := irs.GetFullDetailsByID(id, tx)
@@ -455,7 +451,7 @@ func (irs *ViolationReportService) Delete(ids []uint, currentUserID uint) ([]uin
 			"title": violationReport.TitleEn,
 		})
 
-		// Delete each incident document if documents exist
+		// Delete each document if documents exist
 		if len(violationReport.Documents) > 0 {
 			var deleteDocumentIds []*uint
 			for _, doc := range violationReport.Documents {
@@ -471,7 +467,7 @@ func (irs *ViolationReportService) Delete(ids []uint, currentUserID uint) ([]uin
 
 		}
 
-		// Delete the incident
+		// Delete the violation report
 		if err := irs.repo.Delete(id, tx); err != nil {
 			failedIds = append(failedIds, id)
 			continue
@@ -489,7 +485,7 @@ func (irs *ViolationReportService) Delete(ids []uint, currentUserID uint) ([]uin
 		for violationReportID, documents := range documentsToDelete {
 			for _, doc := range documents {
 				fmt.Println("filename=", doc.Name)
-				storagePath := filepath.Join("incident", "violation-report", strconv.FormatUint(uint64(violationReportID), 10), "documents")
+				storagePath := filepath.Join("violation-report", "violation-report-register", strconv.FormatUint(uint64(violationReportID), 10), "documents")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
 					tx.Rollback()
 					fmt.Printf("Failed to delete file at URL %s: %v\n", *doc.URL, err)
@@ -522,7 +518,7 @@ func (irs *ViolationReportService) Delete(ids []uint, currentUserID uint) ([]uin
 	return failedIds, nil
 }
 
-func (irs *ViolationReportService) validateViolationReportFormDTO(violationReportFormDTO *incidentDTOs.ViolationReportFormDTO) error {
+func (irs *ViolationReportService) validateViolationReportFormDTO(violationReportFormDTO *violationReportDTOs.ViolationReportFormDTO) error {
 	// Validate violation report channel
 	if _, err := irs.violationReportChannelSvc.GetByID(violationReportFormDTO.ViolationReportChannelID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("violation report channel does not exist"), "not_exist", "violation_report_channel")
@@ -562,8 +558,8 @@ func (irs *ViolationReportService) validateViolationReportFormDTO(violationRepor
 	return nil
 }
 
-func (irs *ViolationReportService) parseViolationReportDates(dto *incidentDTOs.ViolationReportFormDTO, currentUserID uint) (*incidentDTOs.ViolationReportParsedDates, error) {
-	parsed := &incidentDTOs.ViolationReportParsedDates{}
+func (irs *ViolationReportService) parseViolationReportDates(dto *violationReportDTOs.ViolationReportFormDTO, currentUserID uint) (*violationReportDTOs.ViolationReportParsedDates, error) {
+	parsed := &violationReportDTOs.ViolationReportParsedDates{}
 
 	userPreference, err := irs.userSvc.GetCurrentUserDetails(currentUserID)
 	if err != nil {
@@ -587,7 +583,7 @@ func (irs *ViolationReportService) parseViolationReportDates(dto *incidentDTOs.V
 	return parsed, nil
 }
 
-func (irs *ViolationReportService) validateViolationReportDocumentFormDTO(documents []*incidentDTOs.ViolationReportDocumentFormDTO, evidenceDescription *string) error {
+func (irs *ViolationReportService) validateViolationReportDocumentFormDTO(documents []*violationReportDTOs.ViolationReportDocumentFormDTO, evidenceDescription *string) error {
 	// Documents are optional, but if provided, evidence_description is required
 	if len(documents) > 0 {
 		// If documents are present, evidence_description is required
@@ -619,7 +615,7 @@ func (irs *ViolationReportService) GetDocumentPath(id uint, token string) (strin
 		return "", fmt.Errorf("resource not found")
 	}
 
-	storagePath := filepath.Join("incident", "violation-report", strconv.FormatUint(uint64(id), 10), "documents")
+	storagePath := filepath.Join("violation-report", "violation-report-register", strconv.FormatUint(uint64(id), 10), "documents")
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
 	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
@@ -634,7 +630,7 @@ func (irs *ViolationReportService) GetDocumentPath(id uint, token string) (strin
 	return fullPath, nil
 }
 
-func (irs *ViolationReportService) ExportViolationReports(data []*incidentDTOs.ViolationReportListDTO, currentUserID uint) (*os.File, error) {
+func (irs *ViolationReportService) ExportViolationReports(data []*violationReportDTOs.ViolationReportListDTO, currentUserID uint) (*os.File, error) {
 	// Fetch user setting for language preference
 	userSetting, err := irs.userSettingSvc.GetUserSettingsByUserID(currentUserID)
 	if err != nil {
