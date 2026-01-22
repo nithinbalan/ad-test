@@ -38,7 +38,7 @@ type ViolationReportListDTO struct {
 	SeverityLevelID                   *uint      `json:"severity_level_id"`
 	SeverityLevelTitleEn              *string    `json:"severity_level_title_en"`
 	SeverityLevelTitleAr              *string    `json:"severity_level_title_ar"`
-	SeverityLevelColor                *string    `json:"severity_level_color_code"`
+	SeverityLevelColorCode            *string    `json:"severity_level_color_code"`
 	ViolationReportStatusID           uint       `json:"violation_report_status_id"`
 	ViolationReportStatusTitleEn      string     `json:"violation_report_status_title_en"`
 	ViolationReportStatusTitleAr      string     `json:"violation_report_status_title_ar"`
@@ -135,6 +135,7 @@ type ViolationReportDetailDTO struct {
 	ViolationReportCategory    *ViolationReportCategoryDetailsDTO    `json:"violation_report_category"`
 	ViolationReportSubCategory *ViolationReportSubCategoryDetailsDTO `json:"violation_report_sub_category"`
 	ViolationReportReason      ViolationReportReasonDTO              `json:"violation_report_reason"`
+	ViolationReportStatus      ViolationReportStatusDTO              `json:"violation_report_status"`
 	SeverityLevel              *masterDTOs.SeverityLevelDTO          `json:"severity_level"`
 	Documents                  []*ViolationReportDocumentDTO         `json:"documents"`
 	ReportedEntity             settingsDTOs.OrganizationUnitDTO      `json:"reported_entity"`
