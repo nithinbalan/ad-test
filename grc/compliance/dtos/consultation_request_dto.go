@@ -7,25 +7,6 @@ import (
 	"time"
 )
 
-// ConsultationRequestFormDTO is used for creating/updating consultation requests via API
-type ConsultationRequestFormDTO struct {
-	ConsultedDepartmentID       uint    `json:"consulted_department_id" binding:"required"`
-	RequestDetails              *string `json:"request_details" binding:"required"`
-	ConsultationRequestStatusID uint    `json:"consultation_request_status_id"`
-	Reply                       *string `json:"reply,omitempty"`
-	Notes                       *string `json:"notes,omitempty"`
-}
-type ConsultationRequestListQueryParamsDTO struct {
-	Sort     string
-	SortBy   string
-	Keyword  string
-	Page     int
-	PageSize int
-}
-type ConsultationRequestListResponseDTO struct {
-	Items      []*ConsultationRequestListDTO `json:"items"`
-	Pagination commonDTOs.PaginationInfoDTO  `json:"pagination"`
-}
 type ConsultationRequestListDTO struct {
 	ID              uint   `json:"id"`
 	ReferenceNumber string `json:"reference_number"`
@@ -64,16 +45,36 @@ type ConsultationRequestListDTO struct {
 	UpdatedByLastNameEn  string  `json:"updated_by_last_name_en"`
 	UpdatedAt            *string `json:"updated_at"`
 }
+type ConsultationRequestListQueryParamsDTO struct {
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Page     int
+	PageSize int
+}
+type ConsultationRequestListResponseDTO struct {
+	Items      []*ConsultationRequestListDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO  `json:"pagination"`
+}
+
+// ConsultationRequestFormDTO is used for creating/updating consultation requests via API
+type ConsultationRequestFormDTO struct {
+	ConsultedDepartmentID       uint    `json:"consulted_department_id" binding:"required"`
+	RequestDetails              *string `json:"request_details" binding:"required"`
+	ConsultationRequestStatusID uint    `json:"consultation_request_status_id"`
+	Reply                       *string `json:"reply,omitempty"`
+	Notes                       *string `json:"notes,omitempty"`
+}
 
 type ConsultationRequestDetailDTO struct {
-	ID              uint      `json:"id"`
-	ReferenceNumber string    `json:"reference_number"`
-	DateRaised      time.Time `json:"date_raised"`
+	ID              uint   `json:"id"`
+	ReferenceNumber string `json:"reference_number"`
+	RaisedDate      string `json:"date_raised"`
 
-	RequestDetails *string    `json:"request_details"`
-	Reply          *string    `json:"reply"`
-	ReplyDate      *time.Time `json:"reply_date"`
-	Notes          *string    `json:"notes"`
+	RequestDetails *string `json:"request_details"`
+	Reply          *string `json:"reply"`
+	ReplyedDate    string  `json:"reply_date"`
+	Notes          *string `json:"notes"`
 
 	// Department Units
 	RequestingDepartmentUnit settingsDTOs.OrganizationUnitDTO `json:"requesting_department_unit"`
@@ -86,6 +87,7 @@ type ConsultationRequestDetailDTO struct {
 
 	// Status
 	ConsultationRequestStatus *ConsultationRequestStatusDTO `json:"consultation_request_status"`
+	CreatedDate               string                        `json:"created_at"`
 }
 type ConsultationRequestStatusDTO struct {
 	ID      uint   `json:"id"`

@@ -66,9 +66,19 @@ func (repo *ConsultationRequestRepository) GetAll(params *dtos.ConsultationReque
 
 	if params.Keyword != "" {
 		kw := "%" + params.Keyword + "%"
+
 		query = query.Where(`
-			consultation_requests.reference_number LIKE ? OR
-			consultation_requests.request_details LIKE ? `,
+		consultation_requests.reference_number LIKE ? OR
+		consultation_requests.request_details LIKE ? OR
+
+		req_unit.title_en LIKE ? OR
+		req_unit.title_ar LIKE ? OR
+
+		con_unit.title_en LIKE ? OR
+		con_unit.title_ar LIKE ?
+	`,
+			kw, kw,
+			kw, kw,
 			kw, kw,
 		)
 	}

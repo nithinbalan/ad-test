@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"jethur/grc/compliance/dtos"
@@ -87,6 +88,17 @@ func (s *ConsultationRequestService) GetFullDetailsByID(id uint) (*dtos.Consulta
 		return nil, err
 	}
 
+	if !request.DateRaised.IsZero() {
+		detailDTO.RaisedDate = request.DateRaised.Format("2006-01-02")
+	}
+
+	if request.ReplyDate != nil && !request.ReplyDate.IsZero() {
+		detailDTO.ReplyedDate = request.ReplyDate.Format("2006-01-02")
+	}
+
+	if !request.CreatedAt.IsZero() {
+		detailDTO.CreatedDate = request.CreatedAt.Format("2006-01-02")
+	}
 	return &detailDTO, nil
 }
 
@@ -191,14 +203,26 @@ func (s *ConsultationRequestService) Update(id uint, dto *dtos.ConsultationReque
 	}
 	tx.Commit()
 
+	updated, err := s.repo.GetByID(id)
+
+	fieldsToCompare := []string{"RequestDetails", "ConsultationRequestStatusID", "Reply", "ReplyDate", "Notes"}
+	changes, err := utility.CompareFields(existing, updated, fieldsToCompare)
+	if err != nil {
+		log.Println("error :", err.Error())
+	}
+
+	changedDataJSON, err := utility.ChangesToJSON(changes)
+	if err != nil {
+		log.Println("error :", err.Error())
+	}
+
 	go func() {
-		fullDetails, _ := s.GetFullDetailsByID(id)
 
 		err := s.activityLogSvc.LogActivity(
 			models.UpdateAction,
 			models.ConsultationRequest{}.TableName(),
 			id,
-			fullDetails,
+			changedDataJSON,
 			currentUserID,
 			"compliance", "consultation_request", "", nil,
 		)
@@ -209,6 +233,7 @@ func (s *ConsultationRequestService) Update(id uint, dto *dtos.ConsultationReque
 
 	return nil
 }
+
 func (s *ConsultationRequestService) UpdateResponsibleUser(id uint, responsibleUserID uint, currentUserID uint) error {
 	existing, err := s.repo.GetByID(id)
 	if err != nil {
