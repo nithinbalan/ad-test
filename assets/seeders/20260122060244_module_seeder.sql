@@ -1,4 +1,3 @@
-
 -- +goose Up
 -- +goose StatementBegin
 DECLARE @complianceModuleID INT;
@@ -6,12 +5,15 @@ DECLARE @superAdminRoleID INT;
 DECLARE @viewPermissionTypeID INT, @modifyPermissionTypeID INT, @managePermissionTypeID INT;
 DECLARE @consultationRequestModuleID INT;
 
+
 -- Get parent module ID (Compliance)
 SELECT @complianceModuleID = id FROM modules WHERE identifier = 'compliance';
 -- Insert new submodule: consultation_request
 
+
     INSERT INTO modules (identifier, title_en, title_ar, module_id, [order], icon, route)
-    VALUES  ( 'consultation_request', 'Consultation Request','طلب استشارة',@complianceModuleID,6, NULL,'compliance/consultation-request');
+    VALUES  ( 'consultation_request', 'Consultation','استشارة',@complianceModuleID,6, NULL,'compliance/consultation');
+
 
 -- Get role and permission type IDs
 SELECT @superAdminRoleID = id FROM roles WHERE is_super_admin = 1;
@@ -62,10 +64,13 @@ END
 -- +goose StatementEnd
 
 
+
+
 -- +goose Down
 -- +goose StatementBegin
 -- Remove permissions for 'consultation_request' submodule
 DELETE FROM role_permissions WHERE module_id IN (SELECT id FROM modules WHERE identifier = 'consultation_request');
+
 
 -- Remove 'consultation_request' module
 DELETE FROM modules WHERE identifier = 'consultation_request';

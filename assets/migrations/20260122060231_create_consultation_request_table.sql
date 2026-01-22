@@ -18,6 +18,7 @@ CREATE TABLE consultation_requests
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
 
+
     -- Foreign Keys
     CONSTRAINT FK_consultation_requests_department_unit
         FOREIGN KEY (requesting_department_unit_id)
