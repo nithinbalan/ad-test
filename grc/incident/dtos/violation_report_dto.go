@@ -135,6 +135,7 @@ type ViolationReportDetailDTO struct {
 	ViolationReportCategory    *ViolationReportCategoryDetailsDTO    `json:"violation_report_category"`
 	ViolationReportSubCategory *ViolationReportSubCategoryDetailsDTO `json:"violation_report_sub_category"`
 	ViolationReportReason      ViolationReportReasonDTO              `json:"violation_report_reason"`
+	ViolationReportStatus      ViolationReportStatusDTO              `json:"violation_report_status"`
 	SeverityLevel              *masterDTOs.SeverityLevelDTO          `json:"severity_level"`
 	Documents                  []*ViolationReportDocumentDTO         `json:"documents"`
 	ReportedEntity             settingsDTOs.OrganizationUnitDTO      `json:"reported_entity"`
