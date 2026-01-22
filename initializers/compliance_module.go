@@ -54,6 +54,8 @@ type ComplianceModule struct {
 	ComplianceAssessmentControlActionPlanCommentController          *controllers.ComplianceAssessmentControlActionPlanCommentController
 	ComplianceDetailDashboardController                             *controllers.ComplianceDetailDashboardController
 	ConsultationRequestStatusController                             *controllers.ConsultationRequestStatusController
+	LegislativeBodyController                                       *controllers.LegislativeBodyController
+	LegislationTypeController                                       *controllers.LegislationTypeController
 
 	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
@@ -351,6 +353,14 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	consultationRequestStatusSvc := services.NewConsultationRequestStatusService(consultationRequestStatusRepo)
 	consultationRequestStatusController := controllers.NewConsultationRequestStatusController(consultationRequestStatusSvc)
 
+	legislativeBodyRepo := repositories.NewLegislativeBodyRepository(db)
+	legislativeBodySvc := services.NewLegislativeBodyService(legislativeBodyRepo, sharedModule.ActivityLogService)
+	legislativeBodyController := controllers.NewLegislativeBodyController(legislativeBodySvc)
+
+	legislationTypeRepo := repositories.NewLegislationTypeRepository(db)
+	legislationTypeSvc := services.NewLegislationTypeService(legislationTypeRepo, sharedModule.ActivityLogService)
+	legislationTypeController := controllers.NewLegislationTypeController(legislationTypeSvc)
+
 	return &ComplianceModule{
 		ComplianceCategoryController:                                    complianceCategoryController,
 		ComplianceStatusController:                                      complianceStatusController,
@@ -397,6 +407,8 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceAssessmentControlActionPlanCommentController:          complianceAssessmentControlActionPlanCommentController,
 		ComplianceDetailDashboardController:                             complianceDetailDashboardController,
 		ConsultationRequestStatusController:                             consultationRequestStatusController,
+		LegislativeBodyController:                                       legislativeBodyController,
+		LegislationTypeController:                                       legislationTypeController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,

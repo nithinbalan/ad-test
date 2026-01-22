@@ -61,6 +61,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceAssessmentControlActionPlanCommentController := app.ComplianceModule.ComplianceAssessmentControlActionPlanCommentController
 	complianceDetailDashboardController := app.ComplianceModule.ComplianceDetailDashboardController
 	consultationRequestStatusController := app.ComplianceModule.ConsultationRequestStatusController
+	LegislativeBodyController := app.ComplianceModule.LegislativeBodyController
+	LegislationTypeController := app.ComplianceModule.LegislationTypeController
 
 	// Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -96,6 +98,21 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/sla-categories/delete", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), SLACategoryController.DeleteSLACategories)
 	complianceRoutes.PUT("/sla-categories/activate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), SLACategoryController.ActivateSLACategories)
 	complianceRoutes.PUT("/sla-categories/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), SLACategoryController.DeactivateSLACategories)
+	// Legislative Body
+	complianceRoutes.GET("/legislative-bodies/:id", LegislativeBodyController.GetLegislativeBodyDetails)
+	complianceRoutes.POST("/legislative-bodies", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislativeBodyController.CreateLegislativeBody)
+	complianceRoutes.GET("/legislative-bodies", LegislativeBodyController.GetAllLegislativeBodies)
+	complianceRoutes.PUT("/legislative-bodies/:id", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislativeBodyController.UpdateLegislativeBody)
+	complianceRoutes.POST("/legislative-bodies/delete", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislativeBodyController.DeleteLegislativeBodies)
+
+	// Legislation Type routes
+	complianceRoutes.GET("/legislation-types/:id", LegislationTypeController.GetLegislationTypeDetails)
+	complianceRoutes.POST("/legislation-types", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislationTypeController.CreateLegislationType)
+	complianceRoutes.GET("/legislation-types", LegislationTypeController.GetAllLegislationTypes)
+	complianceRoutes.PUT("/legislation-types/:id", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislationTypeController.UpdateLegislationType)
+	complianceRoutes.POST("/legislation-types/delete", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislationTypeController.DeleteLegislationTypes)
+	complianceRoutes.POST("/legislation-types/activate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislationTypeController.ActivateLegislationTypes)
+	complianceRoutes.POST("/legislation-types/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislationTypeController.DeactivateLegislationTypes)
 
 	// Compliance Review Statuses
 	complianceRoutes.GET("/compliance-review-statuses", complianceReviewStatusController.GetAllComplianceReviewStatuses)
