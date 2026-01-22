@@ -61,6 +61,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceAssessmentControlActionPlanCommentController := app.ComplianceModule.ComplianceAssessmentControlActionPlanCommentController
 	complianceDetailDashboardController := app.ComplianceModule.ComplianceDetailDashboardController
 	consultationRequestStatusController := app.ComplianceModule.ConsultationRequestStatusController
+	consultationRequestController := app.ComplianceModule.ConsultationRequestController
 
 	// Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -125,6 +126,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliance-register/:id/versions", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceRegisterController.GetAllVersions)
 	complianceRoutes.POST("/compliance-register/:id/versions", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceRegisterController.CreateComplianceVersion)
 
+	complianceRoutes.GET("/consultation-request", consultationRequestController.GetAllConsultationRequests)
+	complianceRoutes.GET("/consultation-request/:id", consultationRequestController.GetConsultationRequestDetails)
+	complianceRoutes.POST("/consultation-request", middlewares.RolePermissionMiddleware(db, "consultation_request", "modify"), consultationRequestController.CreateConsultationRequest)
+	complianceRoutes.PUT("/consultation-request/:id", middlewares.RolePermissionMiddleware(db, "consultation_request", "modify"), consultationRequestController.UpdateConsultationRequest)
+	complianceRoutes.POST("/consultation-request/delete", middlewares.RolePermissionMiddleware(db, "consultation_request", "modify"), consultationRequestController.DeleteConsultationRequests)
+	complianceRoutes.PUT("/consultation-request/:id/responsible-user", middlewares.RolePermissionMiddleware(db, "consultation_request", "modify"), consultationRequestController.UpdateConsultationRequestResponsibleUser)
 	// Compliance Associated Items
 	complianceRoutes.GET("/compliances/:complianceId/controls", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceAssociatedItemController.GetAllComplianceControls)
 	complianceRoutes.GET("/compliances/:complianceId/risks", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceAssociatedItemController.GetAllComplianceRisks)
