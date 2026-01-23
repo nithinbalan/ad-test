@@ -33,7 +33,7 @@ WHERE identifier IN ('incident_action_plan', 'incident_report');
 -- 2. INSERT MAIN MODULE: VIOLATION REPORT (NO PERMISSIONS)
 INSERT INTO modules (identifier, title_en, title_ar, module_id, [order], icon, route)
 VALUES 
-('violation_report', 'Violation Report', 'تقرير الانتهاك', NULL, 18, 'icon-violation-report.svg', '/violation-report');
+('violation_report', 'Violation Report', 'تقرير الانتهاك', NULL, 15, 'icon-violation-report.svg', '/violation-report');
 
 SELECT @violationModuleID = id 
 FROM modules 
@@ -54,7 +54,7 @@ WHERE identifier = 'setting';
 -- 4. INSERT SUB MODULE: VIOLATION REPORT SETTING
 INSERT INTO modules (identifier, title_en, title_ar, module_id, [order], icon, route)
 VALUES 
-('violation_report_setting', 'Violation Report', 'تقرير الانتهاك', @settingModuleID, 17, NULL, '/setting/violation-report-setting');
+('violation_report_setting', 'Violation Report', 'تقرير الانتهاك', @settingModuleID, 14, NULL, '/settings/violation-report');
 
 -- 5. GET ROLE & PERMISSION TYPES
 SELECT @superAdminRoleID = id FROM roles WHERE is_super_admin = 1;
