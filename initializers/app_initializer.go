@@ -31,6 +31,7 @@ type App struct {
 	ProjectModule               *ProjectModule
 	JethurAIModule              *JethurAIModule
 	PolicyModule                *PolicyModule
+	ConsultationRequestModule   *ConsultationRequestModule
 	ViolationReportModule       *ViolationReportModule
 }
 
@@ -60,6 +61,7 @@ func NewApp(db *gorm.DB) *App {
 	strategyModule := NewStrategyModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule, riskModule, assetModule, tprmModule, complianceModule, documentModule, projectModule)
 	jethurAIModule := NewJethurAIModule(db, documentModule, organizationModule, settingsModule, complianceModule)
 	policyModule := NewPolicyModule(db, sharedModule, settingsModule, masterModule, organizationModule, taskModule, commonModule, documentModule)
+	consultationRequestModule := NewConsultationRequestModule(db, sharedModule, masterModule, organizationModule, taskModule, settingsModule, commonModule, documentModule)
 	violationReportModule := NewViolationReportModule(db, sharedModule, settingsModule, masterModule, organizationModule, complianceModule, riskModule, taskModule, commonModule, assetModule)
 
 	return &App{
@@ -89,6 +91,7 @@ func NewApp(db *gorm.DB) *App {
 		ProjectModule:               projectModule,
 		JethurAIModule:              jethurAIModule,
 		PolicyModule:                policyModule,
+		ConsultationRequestModule:   consultationRequestModule,
 		ViolationReportModule:       violationReportModule,
 	}
 }

@@ -8,10 +8,10 @@ import (
 )
 
 type ConsultationRequestListDTO struct {
-	ID              uint   `json:"id"`
-	ReferenceNumber string `json:"reference_number"`
-	DateRaised      string `json:"date_raised"`
-
+	ID                              uint   `json:"id"`
+	ReferenceNumber                 string `json:"reference_number"`
+	DateRaised                      string `json:"date_raised"`
+	Title                           string `json:"title"`
 	RequestingDepartmentUnitID      uint   `json:"requesting_department_unit_id"`
 	RequestingDepartmentUnitTitleEn string `json:"requesting_department_unit_title_en"`
 	RequestingDepartmentUnitTitleAr string `json:"requesting_department_unit_title_ar"`
@@ -59,17 +59,23 @@ type ConsultationRequestListResponseDTO struct {
 
 // ConsultationRequestFormDTO is used for creating/updating consultation requests via API
 type ConsultationRequestFormDTO struct {
-	ConsultedDepartmentID       uint    `json:"consulted_department_id" binding:"required"`
-	RequestDetails              *string `json:"request_details" binding:"required"`
-	ConsultationRequestStatusID uint    `json:"consultation_request_status_id"`
-	Reply                       *string `json:"reply,omitempty"`
-	Notes                       *string `json:"notes,omitempty"`
+	ConsultedDepartmentID uint    `json:"consulted_department_id" binding:"required"`
+	RequestDetails        *string `json:"request_details" binding:"required"`
+	Title                 string  `json:"title" binding:"required"`
+	// ConsultationRequestStatusID uint    `json:"consultation_request_status_id"`
+	// Reply                       *string `json:"reply,omitempty"`
+	// Notes                       *string `json:"notes,omitempty"`
+}
+type ConsultationRequestCommentFormDTO struct {
+	ConsultationRequestStatusID uint   `json:"consultation_request_status_id"`
+	Comment                     string `json:"comment" binding:"required"`
 }
 
 type ConsultationRequestDetailDTO struct {
 	ID              uint   `json:"id"`
 	ReferenceNumber string `json:"reference_number"`
 	RaisedDate      string `json:"date_raised"`
+	Title           string `json:"title"`
 
 	RequestDetails *string `json:"request_details"`
 	Reply          *string `json:"reply"`
@@ -94,4 +100,25 @@ type ConsultationRequestStatusDTO struct {
 	TitleEn string `json:"title_en"`
 	TitleAr string `json:"title_ar"`
 	Type    string `json:"type"`
+}
+
+type ConsultationRequestCommentListDTO struct {
+	ID                    uint   `json:"id"`                      // Comment ID
+	ConsultationRequestID uint   `json:"consultation_request_id"` // Parent request ID
+	Comment               string `json:"comment"`                 // The actual comment text
+
+	// Status fields (flattened into the comment DTO)
+	ConsultationRequestStatusID uint      `json:"consultation_request_status_id,omitempty"`
+	StatusTitleEn               string    `json:"status_title_en,omitempty"`
+	StatusTitleAr               string    `json:"status_title_ar,omitempty"`
+	StatusDescriptionEn         string    `json:"status_description_en,omitempty"`
+	StatusDescriptionAr         string    `json:"status_description_ar,omitempty"`
+	StatusType                  string    `json:"status_type,omitempty"`
+	Status                      string    `json:"status,omitempty"`
+	StatusCreatedAt             time.Time `json:"status_created_at,omitempty"`
+
+	CreatedAt            time.Time `json:"created_at"`
+	CreatedByID          uint      `json:"created_by_id"`
+	CreatedByFirstNameEn string    `json:"created_by_first_name_en"`
+	CreatedByLastNameEn  string    `json:"created_by_last_name_en"`
 }

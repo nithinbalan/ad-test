@@ -10,6 +10,7 @@ import (
 	businessContinuityRoutes "jethur/grc/business-continuity/routes"
 	commonRoutes "jethur/grc/common/routes"
 	complianceRoutes "jethur/grc/compliance/routes"
+	consultationRequestRoutes "jethur/grc/consultation-request/routes"
 	documentRoutes "jethur/grc/documents/routes"
 	incidentRoutes "jethur/grc/incident/routes"
 	jethurAIRoutes "jethur/grc/jethur-ai/routes"
@@ -28,6 +29,7 @@ import (
 	strategyRoutes "jethur/grc/strategy/routes"
 	taskRoutes "jethur/grc/task/routes"
 	tprmRoutes "jethur/grc/tprm/routes"
+
 	violationReportRoutes "jethur/grc/violation-report/routes"
 	"jethur/initializers"
 	"jethur/middlewares"
@@ -97,6 +99,7 @@ func main() {
 	projectRoutes.RegisterRoutes(app, r)
 	jethurAIRoutes.RegisterRoutes(app, r)
 	policyRoutes.RegisterRoutes(app, r)
+	consultationRequestRoutes.RegisterRoutes(app, r)
 	violationReportRoutes.RegisterRoutes(app, r)
 
 	if err := r.Run(":" + port); err != nil {

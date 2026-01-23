@@ -53,8 +53,6 @@ type ComplianceModule struct {
 	ComplianceAssessmentControlActionPlanStatusUpdateController     *controllers.ComplianceAssessmentControlActionPlanStatusUpdateController
 	ComplianceAssessmentControlActionPlanCommentController          *controllers.ComplianceAssessmentControlActionPlanCommentController
 	ComplianceDetailDashboardController                             *controllers.ComplianceDetailDashboardController
-	ConsultationRequestStatusController                             *controllers.ConsultationRequestStatusController
-	ConsultationRequestController                                   *controllers.ConsultationRequestController
 
 	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
@@ -348,14 +346,6 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceDetailDashboardSvc := services.NewComplianceDetailDashboardService(complianceDetailDashboardRepo)
 	complianceDetailDashboardController := controllers.NewComplianceDetailDashboardController(complianceDetailDashboardSvc)
 
-	consultationRequestStatusRepo := repositories.NewConsultationRequestStatusRepository(db)
-	consultationRequestStatusSvc := services.NewConsultationRequestStatusService(consultationRequestStatusRepo)
-	consultationRequestStatusController := controllers.NewConsultationRequestStatusController(consultationRequestStatusSvc)
-
-	consultationRequestRepo := repositories.NewConsultationRequestRepository(db)
-	consultationRequestSvc := services.NewConsultationRequestService(consultationRequestRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, settingsModule.OrganizationUnitSvc, consultationRequestStatusSvc)
-	consultationRequestController := controllers.NewConsultationRequestController(consultationRequestSvc)
-
 	return &ComplianceModule{
 		ComplianceCategoryController:                                    complianceCategoryController,
 		ComplianceStatusController:                                      complianceStatusController,
@@ -401,8 +391,6 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceAssessmentControlActionPlanStatusUpdateController:     complianceAssessmentControlActionPlanStatusUpdateController,
 		ComplianceAssessmentControlActionPlanCommentController:          complianceAssessmentControlActionPlanCommentController,
 		ComplianceDetailDashboardController:                             complianceDetailDashboardController,
-		ConsultationRequestStatusController:                             consultationRequestStatusController,
-		ConsultationRequestController:                                   consultationRequestController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,
