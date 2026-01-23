@@ -199,7 +199,28 @@ func (us *UserService) GetAllUsers() ([]*userDTOs.UserPrimaryDetailsDTO, error) 
 }
 
 func (us *UserService) GetUsersByOrganizationUnit(departmentUnitID uint) ([]*models.User, error) {
-	return us.repo.GetUsersByOrganizationUnit(departmentUnitID)
+	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return nil, err
+	}
+
+	var primaryOrgUnitField string
+	switch primaryLevel.Level {
+	case 1:
+		primaryOrgUnitField = "organization_unit_1_id"
+	case 2:
+		primaryOrgUnitField = "organization_unit_2_id"
+	case 3:
+		primaryOrgUnitField = "organization_unit_3_id"
+	case 4:
+		primaryOrgUnitField = "organization_unit_4_id"
+	case 5:
+		primaryOrgUnitField = "organization_unit_5_id"
+	default:
+		return nil, fmt.Errorf("unsupported primary level")
+	}
+
+	return us.repo.GetUsersByOrganizationUnit(primaryOrgUnitField, departmentUnitID)
 }
 
 func (us *UserService) GetByID(id uint) (*models.User, error) {

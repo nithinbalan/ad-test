@@ -61,7 +61,7 @@ type UserRepositoryInterface interface {
 	CountTasksByUser(userID uint, moduleID uint) (int, error)
 	GetUserModulesWithOpenTasks(userID uint) ([]settingDTOs.ModulePermissionListDTO, error)
 
-	GetUsersByOrganizationUnit(departmentUnitID uint) ([]*models.User, error)
+	GetUsersByOrganizationUnit(primaryOrgUnitField string, departmentUnitID uint) ([]*models.User, error)
 }
 
 type UserRepository struct {
@@ -978,12 +978,12 @@ func (r *UserRepository) GetUserModulesWithOpenTasks(userID uint) ([]settingDTOs
 
 	return submodules, nil
 }
-func (repo *UserRepository) GetUsersByOrganizationUnit(departmentUnitID uint) ([]*models.User, error) {
+func (repo *UserRepository) GetUsersByOrganizationUnit(primaryOrgUnitField string, departmentUnitID uint) ([]*models.User, error) {
 	var users []*models.User
 
-	// Query users whose OrganizationUnit2ID matches the given departmentUnitID
+	// Build the query dynamically using the column name
 	err := repo.db.
-		Where("organization_unit_2_id = ?", departmentUnitID).
+		Where(primaryOrgUnitField+" = ?", departmentUnitID).
 		Find(&users).Error
 	if err != nil {
 		return nil, err
