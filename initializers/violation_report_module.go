@@ -9,14 +9,15 @@ import (
 )
 
 type ViolationReportModule struct {
-	ViolationReportChannelController        *controllers.ViolationReportChannelController
-	ViolationReportReasonController         *controllers.ViolationReportReasonController
-	ViolationReportCategoryController       *controllers.ViolationReportCategoryController
-	ViolationReportSubCategoryController    *controllers.ViolationReportSubCategoryController
-	ViolationReportStatusController         *controllers.ViolationReportStatusController
-	ViolationReportController               *controllers.ViolationReportController
-	ViolationReportAssociatedItemController *controllers.ViolationReportAssociatedItemController
-	ViolationReportInvestigationController  *controllers.ViolationReportInvestigationController
+	ViolationReportChannelController           *controllers.ViolationReportChannelController
+	ViolationReportReasonController            *controllers.ViolationReportReasonController
+	ViolationReportCategoryController          *controllers.ViolationReportCategoryController
+	ViolationReportSubCategoryController       *controllers.ViolationReportSubCategoryController
+	ViolationReportStatusController            *controllers.ViolationReportStatusController
+	ViolationReportController                  *controllers.ViolationReportController
+	ViolationReportAssociatedItemController    *controllers.ViolationReportAssociatedItemController
+	ViolationReportInvestigationController     *controllers.ViolationReportInvestigationController
+	ViolationReportRootCauseAnalysisController *controllers.ViolationReportRootCauseAnalysisController
 }
 
 func NewViolationReportModule(db *gorm.DB,
@@ -68,15 +69,20 @@ func NewViolationReportModule(db *gorm.DB,
 	)
 	violationReportInvestigationController := controllers.NewViolationReportInvestigationController(violationReportInvestigationSvc)
 
+	violationReportRootCauseAnalysisRepo := repositories.NewViolationReportRootCauseAnalysisRepository(db)
+	violationReportRootCauseAnalysisSvc := services.NewViolationReportRootCauseAnalysisService(violationReportRootCauseAnalysisRepo, sharedModule.ActivityLogService, violationReportSvc)
+	violationReportRootCauseAnalysisController := controllers.NewViolationReportRootCauseAnalysisController(violationReportRootCauseAnalysisSvc)
+
 	return &ViolationReportModule{
 
-		ViolationReportChannelController:        violationReportChannelController,
-		ViolationReportReasonController:         violationReportReasonController,
-		ViolationReportCategoryController:       violationReportCategoryController,
-		ViolationReportSubCategoryController:    violationReportSubCategoryController,
-		ViolationReportStatusController:         violationReportStatusController,
-		ViolationReportController:               violationReportController,
-		ViolationReportAssociatedItemController: violationReportAssociatedItemController,
-		ViolationReportInvestigationController:  violationReportInvestigationController,
+		ViolationReportChannelController:           violationReportChannelController,
+		ViolationReportReasonController:            violationReportReasonController,
+		ViolationReportCategoryController:          violationReportCategoryController,
+		ViolationReportSubCategoryController:       violationReportSubCategoryController,
+		ViolationReportStatusController:            violationReportStatusController,
+		ViolationReportController:                  violationReportController,
+		ViolationReportAssociatedItemController:    violationReportAssociatedItemController,
+		ViolationReportInvestigationController:     violationReportInvestigationController,
+		ViolationReportRootCauseAnalysisController: violationReportRootCauseAnalysisController,
 	}
 }
