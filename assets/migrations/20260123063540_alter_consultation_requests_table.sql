@@ -1,12 +1,14 @@
 -- +goose Up
 -- +goose StatementBegin
 ALTER TABLE consultation_requests
-ALTER COLUMN consultation_request_status_id INT NULL;
+ADD title NVARCHAR(255) NOT NULL;
 -- +goose StatementEnd
+
+
 
 
 -- +goose Down
 -- +goose StatementBegin
 ALTER TABLE consultation_requests
-ALTER COLUMN consultation_request_status_id INT NOT NULL;
+DROP COLUMN title;
 -- +goose StatementEnd
