@@ -63,6 +63,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	consultationRequestStatusController := app.ComplianceModule.ConsultationRequestStatusController
 	LegislativeBodyController := app.ComplianceModule.LegislativeBodyController
 	LegislationTypeController := app.ComplianceModule.LegislationTypeController
+	IssuingAuthorityController := app.ComplianceModule.IssuingAuthorityController
+	ImportanceClassificationController := app.ComplianceModule.ImportanceClassificationController
+	SecrecyClassificationController := app.ComplianceModule.SecrecyClassificationController
 
 	// Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -113,6 +116,26 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/legislation-types/delete", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislationTypeController.DeleteLegislationTypes)
 	complianceRoutes.POST("/legislation-types/activate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislationTypeController.ActivateLegislationTypes)
 	complianceRoutes.POST("/legislation-types/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislationTypeController.DeactivateLegislationTypes)
+	// Issuing Authority routes
+	complianceRoutes.GET("/issuing-authorities/:id", IssuingAuthorityController.GetIssuingAuthorityDetails)
+	complianceRoutes.GET("/issuing-authorities", IssuingAuthorityController.GetAllIssuingAuthorities)
+	complianceRoutes.POST("/issuing-authorities", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), IssuingAuthorityController.CreateIssuingAuthority)
+	complianceRoutes.PUT("/issuing-authorities/:id", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), IssuingAuthorityController.UpdateIssuingAuthority)
+	complianceRoutes.POST("/issuing-authorities/delete", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), IssuingAuthorityController.DeleteIssuingAuthorities)
+	complianceRoutes.POST("/issuing-authorities/activate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), IssuingAuthorityController.ActivateIssuingAuthorities)
+	complianceRoutes.POST("/issuing-authorities/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), IssuingAuthorityController.DeactivateIssuingAuthorities)
+
+	complianceRoutes.GET("/importance-classifications", ImportanceClassificationController.GetAllImportanceClassifications)
+	complianceRoutes.GET("/importance-classifications/:id", ImportanceClassificationController.GetImportanceClassificationDetails)
+
+	// Secrecy Classification routes
+	complianceRoutes.GET("/secrecy-classifications/:id", SecrecyClassificationController.GetSecrecyClassificationDetails)
+	complianceRoutes.POST("/secrecy-classifications", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), SecrecyClassificationController.CreateSecrecyClassification)
+	complianceRoutes.GET("/secrecy-classifications", SecrecyClassificationController.GetAllSecrecyClassifications)
+	complianceRoutes.PUT("/secrecy-classifications/:id", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), SecrecyClassificationController.UpdateSecrecyClassification)
+	complianceRoutes.POST("/secrecy-classifications/delete", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), SecrecyClassificationController.DeleteSecrecyClassifications)
+	complianceRoutes.PUT("/secrecy-classifications/activate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), SecrecyClassificationController.ActivateSecrecyClassifications)
+	complianceRoutes.PUT("/secrecy-classifications/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), SecrecyClassificationController.DeactivateSecrecyClassifications)
 
 	// Compliance Review Statuses
 	complianceRoutes.GET("/compliance-review-statuses", complianceReviewStatusController.GetAllComplianceReviewStatuses)

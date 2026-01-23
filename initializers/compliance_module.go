@@ -56,6 +56,9 @@ type ComplianceModule struct {
 	ConsultationRequestStatusController                             *controllers.ConsultationRequestStatusController
 	LegislativeBodyController                                       *controllers.LegislativeBodyController
 	LegislationTypeController                                       *controllers.LegislationTypeController
+	IssuingAuthorityController                                      *controllers.IssuingAuthorityController
+	ImportanceClassificationController                              *controllers.ImportanceClassificationController
+	SecrecyClassificationController                                 *controllers.SecrecyClassificationController
 
 	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
@@ -360,6 +363,17 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	legislationTypeRepo := repositories.NewLegislationTypeRepository(db)
 	legislationTypeSvc := services.NewLegislationTypeService(legislationTypeRepo, sharedModule.ActivityLogService)
 	legislationTypeController := controllers.NewLegislationTypeController(legislationTypeSvc)
+	issuingAuthorityRepo := repositories.NewIssuingAuthorityRepository(db)
+	issuingAuthoritySvc := services.NewIssuingAuthorityService(issuingAuthorityRepo, sharedModule.ActivityLogService)
+	issuingAuthorityController := controllers.NewIssuingAuthorityController(issuingAuthoritySvc)
+
+	importanceClassificationRepo := repositories.NewImportanceClassificationRepository(db)
+	importanceClassificationSvc := services.NewImportanceClassificationService(importanceClassificationRepo)
+	importanceClassificationController := controllers.NewImportanceClassificationController(importanceClassificationSvc)
+
+	secrecyClassificationRepo := repositories.NewSecrecyClassificationRepository(db)
+	secrecyClassificationSvc := services.NewSecrecyClassificationService(secrecyClassificationRepo, sharedModule.ActivityLogService)
+	secrecyClassificationController := controllers.NewSecrecyClassificationController(secrecyClassificationSvc)
 
 	return &ComplianceModule{
 		ComplianceCategoryController:                                    complianceCategoryController,
@@ -409,6 +423,9 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ConsultationRequestStatusController:                             consultationRequestStatusController,
 		LegislativeBodyController:                                       legislativeBodyController,
 		LegislationTypeController:                                       legislationTypeController,
+		IssuingAuthorityController:                                      issuingAuthorityController,
+		ImportanceClassificationController:                              importanceClassificationController,
+		SecrecyClassificationController:                                 secrecyClassificationController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,
