@@ -4,8 +4,8 @@ import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
-	incidentRepositories "jethur/grc/incident/repositories"
 	"jethur/grc/models"
+	violationReportRepositories "jethur/grc/violation-report/repositories"
 	"jethur/utility"
 	"time"
 )
@@ -30,13 +30,13 @@ type ViolationReportAssociatedItemServiceInterface interface {
 
 // Service and implementations
 type ViolationReportAssociatedItemService struct {
-	repo               incidentRepositories.ViolationReportAssociatedItemRepositoryInterface
+	repo               violationReportRepositories.ViolationReportAssociatedItemRepositoryInterface
 	violationReportSvc ViolationReportServiceInterface
 	validationSvc      commonServices.AssociatedItemValidationServiceInterface
 }
 
 func NewViolationReportAssociatedItemService(
-	repo incidentRepositories.ViolationReportAssociatedItemRepositoryInterface,
+	repo violationReportRepositories.ViolationReportAssociatedItemRepositoryInterface,
 	violationReportSvc ViolationReportServiceInterface,
 	validationSvc commonServices.AssociatedItemValidationServiceInterface,
 

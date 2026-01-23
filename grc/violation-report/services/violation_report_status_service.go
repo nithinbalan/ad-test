@@ -2,8 +2,8 @@ package services
 
 import (
 	"errors"
-	"jethur/grc/incident/repositories"
 	"jethur/grc/models"
+	"jethur/grc/violation-report/repositories"
 	"jethur/utility"
 
 	"gorm.io/gorm"

@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"jethur/grc/incident/services"
 	"jethur/grc/models"
+	"jethur/grc/violation-report/services"
 	"jethur/utility"
 	"net/http"
 	"strconv"

@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"jethur/grc/incident/dtos"
-	"jethur/grc/incident/services"
+	"jethur/grc/violation-report/dtos"
+	"jethur/grc/violation-report/services"
 	"jethur/utility"
 
 	"github.com/gin-gonic/gin"
