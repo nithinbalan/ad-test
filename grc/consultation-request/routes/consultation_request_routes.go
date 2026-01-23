@@ -28,6 +28,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	consultationRequestRoutes.PUT("/consultation-request/:id/responsible-user", middlewares.RolePermissionMiddleware(db, "consultation", "modify"), consultationRequestController.UpdateConsultationRequestResponsibleUser)
 	consultationRequestRoutes.PUT("/consultation-request/:id/notes", middlewares.RolePermissionMiddleware(db, "consultation", "modify"), consultationRequestController.UpdateConsultationRequestNotes)
 	consultationRequestRoutes.POST("/consultation-request/:id/comments", middlewares.RolePermissionMiddleware(db, "consultation", "modify"), consultationRequestController.CreateConsultationRequestComment)
-	consultationRequestRoutes.GET("/consultation-request/:id/comments", middlewares.RolePermissionMiddleware(db, "consultation_request", "modify"), consultationRequestController.GetAllConsultationRequestComment)
+	consultationRequestRoutes.GET("/consultation-request/:id/comments", middlewares.RolePermissionMiddleware(db, "consultation", "modify"), consultationRequestController.GetAllConsultationRequestComment)
 
 }
