@@ -8,10 +8,10 @@ import (
 )
 
 type ConsultationRequestListDTO struct {
-	ID              uint   `json:"id"`
-	ReferenceNumber string `json:"reference_number"`
-	DateRaised      string `json:"date_raised"`
-
+	ID                              uint   `json:"id"`
+	ReferenceNumber                 string `json:"reference_number"`
+	DateRaised                      string `json:"date_raised"`
+	Title                           string `json:"title"`
 	RequestingDepartmentUnitID      uint   `json:"requesting_department_unit_id"`
 	RequestingDepartmentUnitTitleEn string `json:"requesting_department_unit_title_en"`
 	RequestingDepartmentUnitTitleAr string `json:"requesting_department_unit_title_ar"`
@@ -75,6 +75,7 @@ type ConsultationRequestDetailDTO struct {
 	ID              uint   `json:"id"`
 	ReferenceNumber string `json:"reference_number"`
 	RaisedDate      string `json:"date_raised"`
+	Title           string `json:"title"`
 
 	RequestDetails *string `json:"request_details"`
 	Reply          *string `json:"reply"`

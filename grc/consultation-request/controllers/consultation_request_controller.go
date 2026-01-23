@@ -193,6 +193,8 @@ func (crc *ConsultationRequestController) UpdateConsultationRequestResponsibleUs
 			utility.SendNotFoundErrResp(c)
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 		default:
 			utility.SendInternalErrResp(crc.db, c, e.Error())
 		}
@@ -234,6 +236,8 @@ func (crc *ConsultationRequestController) UpdateConsultationRequestNotes(c *gin.
 			utility.SendNotFoundErrResp(c)
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 		default:
 			utility.SendInternalErrResp(crc.db, c, e.Error())
 		}
@@ -278,6 +282,8 @@ func (crc *ConsultationRequestController) CreateConsultationRequestComment(c *gi
 			utility.SendNotFoundErrResp(c)
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 		default:
 			utility.SendInternalErrResp(crc.db, c, e.Error())
 		}

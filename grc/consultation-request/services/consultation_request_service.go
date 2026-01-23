@@ -158,7 +158,7 @@ func (s *ConsultationRequestService) Create(currentUserID uint, dto *dtos.Consul
 			id,
 			fullDetails,
 			currentUserID,
-			"compliance", "consultation_request", "", nil,
+			"consultation", "consultation_request", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -204,11 +204,7 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 			}
 		}
 		if !authorized {
-			return 0, utility.NewValidationError(
-				fmt.Errorf("you do not have authority to update staus"),
-				"unauthorized",
-				"responsible_user",
-			)
+			return 0, utility.NewForbiddenError("you do not have authority to update responsible user")
 		}
 	} else {
 		for _, u := range consUsers {
@@ -218,11 +214,7 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 			}
 		}
 		if !authorized {
-			return 0, utility.NewValidationError(
-				fmt.Errorf("you do not have authority to update status"),
-				"unauthorized",
-				"responsible_user",
-			)
+			return 0, utility.NewForbiddenError("you do not have authority to update responsible user")
 		}
 	}
 
@@ -270,8 +262,8 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 			commentID,
 			fullDetails,
 			currentUserID,
-			"compliance",
-			"consultation_request_comment",
+			"consultation_request",
+			"consultation",
 			"",
 			nil,
 		)
@@ -336,7 +328,7 @@ func (s *ConsultationRequestService) Update(id uint, dto *dtos.ConsultationReque
 			id,
 			changedDataJSON,
 			currentUserID,
-			"compliance", "consultation_request", "", nil,
+			"consultation_request", "consultation", "", nil,
 		)
 		if err != nil {
 			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
@@ -366,11 +358,7 @@ func (s *ConsultationRequestService) UpdateResponsibleUser(id uint, responsibleU
 	}
 
 	if !authorized {
-		return utility.NewValidationError(
-			fmt.Errorf("you do not have authority to update responsible user"),
-			"unauthorized",
-			"responsible_user",
-		)
+		return utility.NewForbiddenError("you do not have authority to update responsible user")
 	}
 
 	// Check that the new responsible user also belongs to the same department
@@ -420,8 +408,8 @@ func (s *ConsultationRequestService) UpdateResponsibleUser(id uint, responsibleU
 			id,
 			fullDetails,
 			currentUserID,
-			"compliance",
 			"consultation_request",
+			"consultation",
 			"",
 			nil,
 		)
@@ -504,7 +492,7 @@ func (s *ConsultationRequestService) UpdateNotes(id uint, notes string, currentU
 	}
 
 	if !authorized {
-		return utility.NewValidationError(fmt.Errorf("you do not have authority to add notes"), "unauthorized", "notes")
+		return utility.NewForbiddenError("you do not have authority to update responsible user")
 	}
 
 	tx := s.repo.BeginTransaction()
@@ -532,8 +520,8 @@ func (s *ConsultationRequestService) UpdateNotes(id uint, notes string, currentU
 			id,
 			fullDetails,
 			currentUserID,
-			"compliance",
 			"consultation_request",
+			"consultation",
 			"",
 			nil,
 		)
