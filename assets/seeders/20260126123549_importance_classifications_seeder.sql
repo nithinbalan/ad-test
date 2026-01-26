@@ -6,8 +6,7 @@ INSERT INTO importance_classifications (
     title_ar,
     description_en,
     description_ar,
-    status,
-    created_at
+    status
 ) VALUES
 (
     'normal',
@@ -15,8 +14,8 @@ INSERT INTO importance_classifications (
     N'عادي',
     'Normal importance level',
     N'مستوى أهمية عادي',
-    'active',
-    GETDATE()
+    'active'
+   
 ),
 (
     'urgent',
@@ -24,8 +23,8 @@ INSERT INTO importance_classifications (
     N'عاجل',
     'Urgent importance level',
     N'مستوى أهمية عاجل',
-    'active',
-    GETDATE()
+    'active'
+  
 ),
 (
     'very_urgent',
@@ -33,8 +32,8 @@ INSERT INTO importance_classifications (
     N'عاجل جداً',
     'Very urgent importance level',
     N'مستوى أهمية عاجل جداً',
-    'active',
-    GETDATE()
+    'active'
+    
 ),
 (
     'important_and_very_urgent',
@@ -42,8 +41,8 @@ INSERT INTO importance_classifications (
     N'مهم وعاجل جداً',
     'Important and very urgent importance level',
     N'مستوى أهمية مهم وعاجل جداً',
-    'active',
-    GETDATE()
+    'active'
+  
 );
 -- +goose StatementEnd
 
