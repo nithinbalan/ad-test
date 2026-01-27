@@ -14,7 +14,7 @@ import (
 
 type ViolationReportRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *violationReportDTOs.ViolationReportListQueryParamsDTO) (*violationReportDTOs.ViolationReportListResponseDTO, error)
+	GetAll(params *violationReportDTOs.ViolationReportListQueryParamsDTO, departmentID *uint, currentUserID uint) (*violationReportDTOs.ViolationReportListResponseDTO, error)
 	GetByID(id uint) (*models.ViolationReport, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ViolationReport, error)
 	Create(violationReport *models.ViolationReport, tx ...utility.DatabaseTransaction) (uint, error)
@@ -43,7 +43,7 @@ func (repo *ViolationReportRepository) BeginTransaction() utility.DatabaseTransa
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *ViolationReportRepository) GetAll(params *violationReportDTOs.ViolationReportListQueryParamsDTO) (*violationReportDTOs.ViolationReportListResponseDTO, error) {
+func (repo *ViolationReportRepository) GetAll(params *violationReportDTOs.ViolationReportListQueryParamsDTO, departmentID *uint, currentUserID uint) (*violationReportDTOs.ViolationReportListResponseDTO, error) {
 
 	var reports []*violationReportDTOs.ViolationReportListDTO
 	var totalCount int64
@@ -117,6 +117,14 @@ func (repo *ViolationReportRepository) GetAll(params *violationReportDTOs.Violat
 			LEFT JOIN users AS created_user ON created_user.id = violation_reports.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = violation_reports.updated_by_id
 		`)
+
+		// Add department filter if departmentID is provided (non-admin users)
+	if departmentID != nil {
+		query = query.Where(
+			repo.db.Where("violation_reports.created_by_id = ?", currentUserID).
+				Or("violation_reports.reported_entity_id = ?", *departmentID),
+		)
+	}
 
 	for column, values := range params.Filters {
 		if len(values) > 0 {

@@ -68,7 +68,6 @@ type ViolationReportInvestigationFormDTO struct {
 	DisciplinaryProcedure              *string                       `json:"disciplinary_procedure"`
 	IsDisciplinaryRegulatoryCompliance *bool                         `json:"is_disciplinary_regulatory_compliance"`
 	ActualRecommendation               *string                       `json:"actual_recommendation"`
-	NoteAndObservations                *string                       `json:"note_and_observations"`
 	Documents                          []*commonDTOs.DocumentFormDTO `json:"documents"`
 	DepartmentIds                      []*uint                       `json:"department_ids"`
 }
@@ -111,4 +110,8 @@ type ViolationReportInvestigationDepartmentDTO struct {
 	ViolationReportInvestigationID uint                                 `json:"violation_report_investigation_id"`
 	DepartmentID                   uint                                 `json:"department_id"`
 	Department                     organizationDTOs.OrganizationUnitDTO `json:"department"`
+}
+
+type ViolationReportInvestigationNoteAndObservationDTO struct {
+	NoteAndObservations *string `json:"note_and_observations"`
 }

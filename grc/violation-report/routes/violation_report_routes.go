@@ -100,6 +100,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	violationReportRoutes.POST("/violation-reports/:id/investigation", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportInvestigationController.CreateViolationReportInvestigation)
 	violationReportRoutes.PUT("/violation-reports/:id/investigation", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportInvestigationController.UpdateViolationReportInvestigation)
 	violationReportRoutes.DELETE("/violation-reports/:id/investigation", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportInvestigationController.DeleteViolationReportInvestigations)
+	violationReportRoutes.PUT("/violation-report-investigation/:investigationId/notes", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportInvestigationController.UpdateInvestigationNoteAndObservations)
 
 	// Violation Report Root Cause Analyses
 	violationReportRoutes.GET("/violation-reports/:id/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportRootCauseAnalysisController.GetAllViolationReportRootCauseAnalyses)
