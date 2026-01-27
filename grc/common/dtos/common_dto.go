@@ -76,6 +76,7 @@ type TaskFormDTO struct {
 	SeverityLevelID                 *uint      `json:"severity_level_id,omitempty"`
 	ResponsibleUserID               uint       `json:"responsible_user_id" binding:"required"`
 	TaskStatusID                    *uint      `json:"task_status_id"`
+	ViolationReportActionPlanID     *uint      `json:"violation_report_action_plan_id,omitempty"`
 }
 
 type AssociatedControlListDTO struct {

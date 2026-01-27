@@ -9,15 +9,18 @@ import (
 )
 
 type ViolationReportModule struct {
-	ViolationReportChannelController           *controllers.ViolationReportChannelController
-	ViolationReportReasonController            *controllers.ViolationReportReasonController
-	ViolationReportCategoryController          *controllers.ViolationReportCategoryController
-	ViolationReportSubCategoryController       *controllers.ViolationReportSubCategoryController
-	ViolationReportStatusController            *controllers.ViolationReportStatusController
-	ViolationReportController                  *controllers.ViolationReportController
-	ViolationReportAssociatedItemController    *controllers.ViolationReportAssociatedItemController
-	ViolationReportInvestigationController     *controllers.ViolationReportInvestigationController
-	ViolationReportRootCauseAnalysisController *controllers.ViolationReportRootCauseAnalysisController
+	ViolationReportChannelController                *controllers.ViolationReportChannelController
+	ViolationReportReasonController                 *controllers.ViolationReportReasonController
+	ViolationReportCategoryController               *controllers.ViolationReportCategoryController
+	ViolationReportSubCategoryController            *controllers.ViolationReportSubCategoryController
+	ViolationReportStatusController                 *controllers.ViolationReportStatusController
+	ViolationReportController                       *controllers.ViolationReportController
+	ViolationReportAssociatedItemController         *controllers.ViolationReportAssociatedItemController
+	ViolationReportInvestigationController          *controllers.ViolationReportInvestigationController
+	ViolationReportRootCauseAnalysisController      *controllers.ViolationReportRootCauseAnalysisController
+	ViolationReportActionPlanController             *controllers.ViolationReportActionPlanController
+	ViolationReportActionPlanStatusUpdateController *controllers.ViolationReportActionPlanStatusUpdateController
+	ViolationReportActionPlanCommentController      *controllers.ViolationReportActionPlanCommentController
 }
 
 func NewViolationReportModule(db *gorm.DB,
@@ -73,16 +76,31 @@ func NewViolationReportModule(db *gorm.DB,
 	violationReportRootCauseAnalysisSvc := services.NewViolationReportRootCauseAnalysisService(violationReportRootCauseAnalysisRepo, sharedModule.ActivityLogService, violationReportSvc)
 	violationReportRootCauseAnalysisController := controllers.NewViolationReportRootCauseAnalysisController(violationReportRootCauseAnalysisSvc)
 
+	violationReportActionPlanRepo := repositories.NewViolationReportActionPlanRepository(db)
+	violationReportActionPlanSvc := services.NewViolationReportActionPlanService(violationReportActionPlanRepo, sharedModule.ActivityLogService, violationReportSvc, masterModule.ActionPlanStatusSvc, masterModule.SeverityLevelSvc, organizationModule.UserSettingSvc, taskModule.TaskService, organizationModule.UserSvc, commonModule.NotificationService, commonModule.DelegateeUserService, masterModule.actionPlanMasterSvc)
+	violationReportActionPlanController := controllers.NewViolationReportActionPlanController(violationReportActionPlanSvc)
+
+	violationReportActionPlanStatusUpdateRepo := repositories.NewViolationReportActionPlanStatusUpdateRepository(db)
+	violationReportActionPlanStatusUpdateSvc := services.NewViolationReportActionPlanStatusUpdateService(violationReportActionPlanStatusUpdateRepo, sharedModule.ActivityLogService, violationReportActionPlanSvc, masterModule.ActionPlanStatusSvc, violationReportSvc, taskModule.TaskService, taskModule.TaskStatusService, organizationModule.UserSvc, commonModule.NotificationService)
+	violationReportActionPlanStatusUpdateController := controllers.NewViolationReportActionPlanStatusUpdateController(violationReportActionPlanStatusUpdateSvc)
+
+	violationReportActionPlanCommentRepo := repositories.NewViolationReportActionPlanCommentRepository(db)
+	violationReportActionPlanCommentSvc := services.NewViolationReportActionPlanCommentService(violationReportActionPlanCommentRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, violationReportActionPlanSvc, commonModule.NotificationService)
+	violationReportActionPlanCommentController := controllers.NewViolationReportActionPlanCommentController(violationReportActionPlanCommentSvc)
+
 	return &ViolationReportModule{
 
-		ViolationReportChannelController:           violationReportChannelController,
-		ViolationReportReasonController:            violationReportReasonController,
-		ViolationReportCategoryController:          violationReportCategoryController,
-		ViolationReportSubCategoryController:       violationReportSubCategoryController,
-		ViolationReportStatusController:            violationReportStatusController,
-		ViolationReportController:                  violationReportController,
-		ViolationReportAssociatedItemController:    violationReportAssociatedItemController,
-		ViolationReportInvestigationController:     violationReportInvestigationController,
-		ViolationReportRootCauseAnalysisController: violationReportRootCauseAnalysisController,
+		ViolationReportChannelController:                violationReportChannelController,
+		ViolationReportReasonController:                 violationReportReasonController,
+		ViolationReportCategoryController:               violationReportCategoryController,
+		ViolationReportSubCategoryController:            violationReportSubCategoryController,
+		ViolationReportStatusController:                 violationReportStatusController,
+		ViolationReportController:                       violationReportController,
+		ViolationReportAssociatedItemController:         violationReportAssociatedItemController,
+		ViolationReportInvestigationController:          violationReportInvestigationController,
+		ViolationReportRootCauseAnalysisController:      violationReportRootCauseAnalysisController,
+		ViolationReportActionPlanController:             violationReportActionPlanController,
+		ViolationReportActionPlanStatusUpdateController: violationReportActionPlanStatusUpdateController,
+		ViolationReportActionPlanCommentController:      violationReportActionPlanCommentController,
 	}
 }
