@@ -24,7 +24,7 @@ INSERT INTO importance_classifications (
     'Urgent importance level',
     N'مستوى أهمية عاجل',
     'active'
-  
+ 
 ),
 (
     'very_urgent',
@@ -33,7 +33,7 @@ INSERT INTO importance_classifications (
     'Very urgent importance level',
     N'مستوى أهمية عاجل جداً',
     'active'
-    
+   
 ),
 (
     'important_and_very_urgent',
@@ -42,9 +42,10 @@ INSERT INTO importance_classifications (
     'Important and very urgent importance level',
     N'مستوى أهمية مهم وعاجل جداً',
     'active'
-  
+ 
 );
 -- +goose StatementEnd
+
 
 -- +goose Down
 -- +goose StatementBegin
@@ -56,3 +57,5 @@ WHERE type IN (
     'important_and_very_urgent'
 );
 -- +goose StatementEnd
+
+

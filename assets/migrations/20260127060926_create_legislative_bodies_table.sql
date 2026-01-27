@@ -7,10 +7,11 @@ CREATE TABLE legislative_bodies (
     description_en VARCHAR(255) NOT NULL,
     description_ar NVARCHAR(255) NOT NULL,
     status VARCHAR(10) NOT NULL,
-    CONSTRAINT CHK_legislative_bodies_status 
+    CONSTRAINT CHK_legislative_bodies_status
         CHECK (status IN ('active', 'inactive'))
 );
 -- +goose StatementEnd
+
 
 -- +goose Down
 -- +goose StatementBegin

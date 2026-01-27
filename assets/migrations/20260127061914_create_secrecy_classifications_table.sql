@@ -12,6 +12,7 @@ CREATE TABLE secrecy_classifications (
 );
 -- +goose StatementEnd
 
+
 -- +goose Down
 -- +goose StatementBegin
 DROP TABLE dbo.secrecy_classifications;
