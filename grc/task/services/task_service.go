@@ -155,6 +155,7 @@ func (ts *TaskService) Create(taskDTO commonDTOs.TaskFormDTO, currentUserID uint
 		SeverityLevelID:                 taskDTO.SeverityLevelID,
 		ResponsibleUserID:               taskDTO.ResponsibleUserID,
 		TaskStatusID:                    taskStatus.ID,
+		ViolationReportActionPlanID:     taskDTO.ViolationReportActionPlanID,
 		CreatedByID:                     currentUserID,
 	}
 	id, err := ts.repo.Create(task, tx...)
