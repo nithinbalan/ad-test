@@ -26,7 +26,7 @@ import (
 )
 
 type ViolationReportServiceInterface interface {
-	GetAll(params *violationReportDTOs.ViolationReportListQueryParamsDTO) (*violationReportDTOs.ViolationReportListResponseDTO, error)
+	GetAll(params *violationReportDTOs.ViolationReportListQueryParamsDTO, currentUserID uint) (*violationReportDTOs.ViolationReportListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*violationReportDTOs.ViolationReportDetailDTO, error)
 	GetByID(id uint) (*models.ViolationReport, error)
 	Create(currentUserID uint, violationReportFormDTO *violationReportDTOs.ViolationReportFormDTO) (uint, error)
@@ -82,8 +82,28 @@ func NewViolationReportService(
 	}
 }
 
-func (irs *ViolationReportService) GetAll(params *violationReportDTOs.ViolationReportListQueryParamsDTO) (*violationReportDTOs.ViolationReportListResponseDTO, error) {
-	return irs.repo.GetAll(params)
+func (irs *ViolationReportService) GetAll(params *violationReportDTOs.ViolationReportListQueryParamsDTO, currentUserID uint) (*violationReportDTOs.ViolationReportListResponseDTO, error) {
+
+	user, err := irs.userSvc.GetFullDetailsByID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var departmentID *uint
+	if user.OrganizationUnit2 != nil {
+		id := uint(user.OrganizationUnit2.ID)
+		departmentID = &id
+	}
+
+	if user.Roles != nil {
+		for _, role := range *user.Roles {
+			if *role.Type == "super-admin" {
+				departmentID = nil
+				break
+			}
+		}
+	}
+	return irs.repo.GetAll(params, departmentID, currentUserID)
 }
 
 func (irs *ViolationReportService) GetByID(id uint) (*models.ViolationReport, error) {

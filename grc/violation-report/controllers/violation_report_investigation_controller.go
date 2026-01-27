@@ -24,7 +24,7 @@ func NewViolationReportInvestigationController(service services.ViolationReportI
 	}
 }
 
-func (iic *ViolationReportInvestigationController) GetAllViolationReportInvestigations(c *gin.Context) {
+func (vric *ViolationReportInvestigationController) GetAllViolationReportInvestigations(c *gin.Context) {
 	violationReportIDStr := c.Param("id")
 
 	violationReportID, err := strconv.ParseUint(violationReportIDStr, 10, 64)
@@ -49,13 +49,13 @@ func (iic *ViolationReportInvestigationController) GetAllViolationReportInvestig
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
-		utility.SendInternalErrResp(iic.db, c, "Invalid page parameter")
+		utility.SendInternalErrResp(vric.db, c, "Invalid page parameter")
 		return
 	}
 
 	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
 	if err != nil {
-		utility.SendInternalErrResp(iic.db, c, "Invalid page_size parameter")
+		utility.SendInternalErrResp(vric.db, c, "Invalid page_size parameter")
 		return
 	}
 
@@ -70,16 +70,16 @@ func (iic *ViolationReportInvestigationController) GetAllViolationReportInvestig
 		QuickFilter:       quickFilter,
 		InvestigationDate: investigationDate,
 	}
-	violationReportInvestigations, err := iic.service.GetAll(uint(violationReportID), &queryParams)
+	violationReportInvestigations, err := vric.service.GetAll(uint(violationReportID), &queryParams)
 
 	if err != nil {
-		utility.SendInternalErrResp(iic.db, c, err.Error())
+		utility.SendInternalErrResp(vric.db, c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, violationReportInvestigations)
 }
 
-func (iic *ViolationReportInvestigationController) GetViolationReportInvestigationDetails(c *gin.Context) {
+func (vric *ViolationReportInvestigationController) GetViolationReportInvestigationDetails(c *gin.Context) {
 	violationReportIDStr := c.Param("id")
 
 	violationReportID, err := strconv.ParseUint(violationReportIDStr, 10, 64)
@@ -87,21 +87,21 @@ func (iic *ViolationReportInvestigationController) GetViolationReportInvestigati
 		utility.SendNotFoundErrResp(c)
 		return
 	}
-	violationReportInvestigation, err := iic.service.GetFullDetailsByID(uint(violationReportID))
+	violationReportInvestigation, err := vric.service.GetFullDetailsByID(uint(violationReportID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
 		default:
-			utility.SendInternalErrResp(iic.db, c, e.Error())
+			utility.SendInternalErrResp(vric.db, c, e.Error())
 			return
 		}
 	}
 	c.JSON(http.StatusOK, violationReportInvestigation)
 }
 
-func (iic *ViolationReportInvestigationController) CreateViolationReportInvestigation(c *gin.Context) {
+func (vric *ViolationReportInvestigationController) CreateViolationReportInvestigation(c *gin.Context) {
 	var violationReportInvestigationFormDTO violationReportDTOs.ViolationReportInvestigationFormDTO
 
 	violationReportIDStr := c.Param("id")
@@ -119,11 +119,11 @@ func (iic *ViolationReportInvestigationController) CreateViolationReportInvestig
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(iic.db, c, err.Error())
+		utility.SendInternalErrResp(vric.db, c, err.Error())
 		return
 	}
 
-	id, err := iic.service.Create(uint(violationReportID), currentUserID, &violationReportInvestigationFormDTO)
+	id, err := vric.service.Create(uint(violationReportID), currentUserID, &violationReportInvestigationFormDTO)
 
 	if err != nil {
 		switch e := err.(type) {
@@ -134,7 +134,7 @@ func (iic *ViolationReportInvestigationController) CreateViolationReportInvestig
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(iic.db, c, e.Error())
+			utility.SendInternalErrResp(vric.db, c, e.Error())
 			return
 		}
 	}
@@ -142,7 +142,7 @@ func (iic *ViolationReportInvestigationController) CreateViolationReportInvestig
 	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
-func (iic *ViolationReportInvestigationController) UpdateViolationReportInvestigation(c *gin.Context) {
+func (vric *ViolationReportInvestigationController) UpdateViolationReportInvestigation(c *gin.Context) {
 	var violationReportInvestigationFormDTO violationReportDTOs.ViolationReportInvestigationFormDTO
 
 	violationReportIDStr := c.Param("id")
@@ -160,11 +160,11 @@ func (iic *ViolationReportInvestigationController) UpdateViolationReportInvestig
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(iic.db, c, err.Error())
+		utility.SendInternalErrResp(vric.db, c, err.Error())
 		return
 	}
 
-	err = iic.service.Update(uint(violationReportID), currentUserID, &violationReportInvestigationFormDTO)
+	err = vric.service.Update(uint(violationReportID), currentUserID, &violationReportInvestigationFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -174,7 +174,7 @@ func (iic *ViolationReportInvestigationController) UpdateViolationReportInvestig
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(iic.db, c, e.Error())
+			utility.SendInternalErrResp(vric.db, c, e.Error())
 			return
 		}
 	}
@@ -182,7 +182,7 @@ func (iic *ViolationReportInvestigationController) UpdateViolationReportInvestig
 	c.Status(http.StatusOK)
 }
 
-func (iic *ViolationReportInvestigationController) DeleteViolationReportInvestigations(c *gin.Context) {
+func (vric *ViolationReportInvestigationController) DeleteViolationReportInvestigations(c *gin.Context) {
 	violationReportIDStr := c.Param("id")
 
 	violationReportID, err := strconv.ParseUint(violationReportIDStr, 10, 64)
@@ -193,11 +193,11 @@ func (iic *ViolationReportInvestigationController) DeleteViolationReportInvestig
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendInternalErrResp(iic.db, c, err.Error())
+		utility.SendInternalErrResp(vric.db, c, err.Error())
 		return
 	}
 
-	failedID, err := iic.service.Delete(uint(violationReportID), currentUserID)
+	failedID, err := vric.service.Delete(uint(violationReportID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -207,7 +207,7 @@ func (iic *ViolationReportInvestigationController) DeleteViolationReportInvestig
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(iic.db, c, e.Error())
+			utility.SendInternalErrResp(vric.db, c, e.Error())
 			return
 		}
 	}
@@ -282,4 +282,43 @@ func (iasuc *ViolationReportInvestigationController) DownloadViolationReportInve
 
 	// Serve the file
 	c.File(violationReportInvestigationDocumentPath)
+}
+
+func (vric *ViolationReportInvestigationController) UpdateInvestigationNoteAndObservations(c *gin.Context) {
+	var investigationNoteAndObservationFormDTO violationReportDTOs.ViolationReportInvestigationNoteAndObservationDTO
+
+	investigationIDStr := c.Param("investigationId")
+	investigationID, err := strconv.ParseUint(investigationIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&investigationNoteAndObservationFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(vric.db, c, err.Error())
+		return
+	}
+
+	// Fix: Remove the extra return value
+	if err := vric.service.UpdateInvestigationNoteAndObservations(uint(investigationID), currentUserID, &investigationNoteAndObservationFormDTO); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(vric.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }
