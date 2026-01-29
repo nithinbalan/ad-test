@@ -11,10 +11,10 @@ import (
 )
 
 type SecrecyClassificationServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SecrecyClassification, error)
-	GetByID(id uint) (*models.SecrecyClassification, error)
-	Create(currentUserID uint, classification *models.SecrecyClassification) (*models.SecrecyClassification, error)
-	Update(id uint, currentUserID uint, classification *models.SecrecyClassification) (*models.SecrecyClassification, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceSecrecyClassification, error)
+	GetByID(id uint) (*models.ComplianceSecrecyClassification, error)
+	Create(currentUserID uint, classification *models.ComplianceSecrecyClassification) (*models.ComplianceSecrecyClassification, error)
+	Update(id uint, currentUserID uint, classification *models.ComplianceSecrecyClassification) (*models.ComplianceSecrecyClassification, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
@@ -36,15 +36,15 @@ func NewSecrecyClassificationService(
 	}
 }
 
-func (scs *SecrecyClassificationService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SecrecyClassification, error) {
+func (scs *SecrecyClassificationService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceSecrecyClassification, error) {
 	return scs.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (scs *SecrecyClassificationService) GetByID(id uint) (*models.SecrecyClassification, error) {
+func (scs *SecrecyClassificationService) GetByID(id uint) (*models.ComplianceSecrecyClassification, error) {
 	return scs.repo.GetByID(id)
 }
 
-func (scs *SecrecyClassificationService) Create(currentUserID uint, classification *models.SecrecyClassification) (*models.SecrecyClassification, error) {
+func (scs *SecrecyClassificationService) Create(currentUserID uint, classification *models.ComplianceSecrecyClassification) (*models.ComplianceSecrecyClassification, error) {
 	if exists, err := scs.repo.ExistsByTitle(classification.TitleEn, classification.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
@@ -59,7 +59,7 @@ func (scs *SecrecyClassificationService) Create(currentUserID uint, classificati
 	go func() {
 		err := scs.activityLogSvc.LogActivity(
 			models.CreateAction,
-			models.SecrecyClassification{}.TableName(),
+			models.ComplianceSecrecyClassification{}.TableName(),
 			classification.ID,
 			createdClassification,
 			currentUserID,
@@ -73,7 +73,7 @@ func (scs *SecrecyClassificationService) Create(currentUserID uint, classificati
 	return createdClassification, nil
 }
 
-func (scs *SecrecyClassificationService) Update(id uint, currentUserID uint, updatedClassification *models.SecrecyClassification) (*models.SecrecyClassification, error) {
+func (scs *SecrecyClassificationService) Update(id uint, currentUserID uint, updatedClassification *models.ComplianceSecrecyClassification) (*models.ComplianceSecrecyClassification, error) {
 	existing, err := scs.repo.GetByID(id)
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func (scs *SecrecyClassificationService) Update(id uint, currentUserID uint, upd
 	go func() {
 		err := scs.activityLogSvc.LogActivity(
 			models.UpdateAction,
-			models.SecrecyClassification{}.TableName(),
+			models.ComplianceSecrecyClassification{}.TableName(),
 			result.ID,
 			changedDataJSON,
 			currentUserID,
@@ -148,7 +148,7 @@ func (scs *SecrecyClassificationService) Delete(ids []uint, currentUserID uint) 
 		go func() {
 			err := scs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
-				models.SecrecyClassification{}.TableName(),
+				models.ComplianceSecrecyClassification{}.TableName(),
 				successfulIds,
 				deletedItems,
 				currentUserID,
@@ -169,7 +169,7 @@ func (scs *SecrecyClassificationService) Activate(ids []uint, currentUserID uint
 		go func() {
 			err := scs.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
-				models.SecrecyClassification{}.TableName(),
+				models.ComplianceSecrecyClassification{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -189,7 +189,7 @@ func (scs *SecrecyClassificationService) Deactivate(ids []uint, currentUserID ui
 		go func() {
 			err := scs.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,
-				models.SecrecyClassification{}.TableName(),
+				models.ComplianceSecrecyClassification{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,

@@ -10,10 +10,10 @@ import (
 
 // Interface
 type SecrecyClassificationRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SecrecyClassification, error)
-	GetByID(id uint) (*models.SecrecyClassification, error)
-	Create(classification *models.SecrecyClassification) (*models.SecrecyClassification, error)
-	Update(id uint, classification *models.SecrecyClassification) (*models.SecrecyClassification, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceSecrecyClassification, error)
+	GetByID(id uint) (*models.ComplianceSecrecyClassification, error)
+	Create(classification *models.ComplianceSecrecyClassification) (*models.ComplianceSecrecyClassification, error)
+	Update(id uint, classification *models.ComplianceSecrecyClassification) (*models.ComplianceSecrecyClassification, error)
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
@@ -30,8 +30,8 @@ func NewSecrecyClassificationRepository(db *gorm.DB) *SecrecyClassificationRepos
 	return &SecrecyClassificationRepository{db: db}
 }
 
-func (repo *SecrecyClassificationRepository) GetAll(sort, sortBy, keyword, status string) ([]*models.SecrecyClassification, error) {
-	var classifications []*models.SecrecyClassification
+func (repo *SecrecyClassificationRepository) GetAll(sort, sortBy, keyword, status string) ([]*models.ComplianceSecrecyClassification, error) {
+	var classifications []*models.ComplianceSecrecyClassification
 	query := repo.db
 
 	if keyword != "" {
@@ -54,8 +54,8 @@ func (repo *SecrecyClassificationRepository) GetAll(sort, sortBy, keyword, statu
 	return classifications, result.Error
 }
 
-func (repo *SecrecyClassificationRepository) GetByID(id uint) (*models.SecrecyClassification, error) {
-	var classification *models.SecrecyClassification
+func (repo *SecrecyClassificationRepository) GetByID(id uint) (*models.ComplianceSecrecyClassification, error) {
+	var classification *models.ComplianceSecrecyClassification
 	result := repo.db.First(&classification, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -67,13 +67,13 @@ func (repo *SecrecyClassificationRepository) GetByID(id uint) (*models.SecrecyCl
 	return classification, nil
 }
 
-func (repo *SecrecyClassificationRepository) Create(classification *models.SecrecyClassification) (*models.SecrecyClassification, error) {
+func (repo *SecrecyClassificationRepository) Create(classification *models.ComplianceSecrecyClassification) (*models.ComplianceSecrecyClassification, error) {
 	result := repo.db.Create(&classification)
 	return classification, result.Error
 }
 
-func (repo *SecrecyClassificationRepository) Update(id uint, updatedClassification *models.SecrecyClassification) (*models.SecrecyClassification, error) {
-	var classification *models.SecrecyClassification
+func (repo *SecrecyClassificationRepository) Update(id uint, updatedClassification *models.ComplianceSecrecyClassification) (*models.ComplianceSecrecyClassification, error) {
+	var classification *models.ComplianceSecrecyClassification
 
 	if err := repo.db.First(&classification, id).Error; err != nil {
 		return nil, err
@@ -87,26 +87,26 @@ func (repo *SecrecyClassificationRepository) Update(id uint, updatedClassificati
 }
 
 func (repo *SecrecyClassificationRepository) Delete(id uint) error {
-	var classification *models.SecrecyClassification
+	var classification *models.ComplianceSecrecyClassification
 	if err := repo.db.First(&classification, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.SecrecyClassification{}, id)
+	result := repo.db.Delete(&models.ComplianceSecrecyClassification{}, id)
 	return result.Error
 }
 
 func (repo *SecrecyClassificationRepository) Activate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 
-	if err := repo.db.Model(&models.SecrecyClassification{}).
+	if err := repo.db.Model(&models.ComplianceSecrecyClassification{}).
 		Where("id IN ? AND status = ?", ids, "inactive").
 		Pluck("id", &idsToUpdate).Error; err != nil {
 		return nil, err
 	}
 
 	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.SecrecyClassification{}).
+		if err := repo.db.Model(&models.ComplianceSecrecyClassification{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "active").Error; err != nil {
 			return nil, err
@@ -119,14 +119,14 @@ func (repo *SecrecyClassificationRepository) Activate(ids []uint) ([]uint, error
 func (repo *SecrecyClassificationRepository) Deactivate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 
-	if err := repo.db.Model(&models.SecrecyClassification{}).
+	if err := repo.db.Model(&models.ComplianceSecrecyClassification{}).
 		Where("id IN ? AND status = ?", ids, "active").
 		Pluck("id", &idsToUpdate).Error; err != nil {
 		return nil, err
 	}
 
 	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.SecrecyClassification{}).
+		if err := repo.db.Model(&models.ComplianceSecrecyClassification{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "inactive").Error; err != nil {
 			return nil, err
@@ -138,7 +138,7 @@ func (repo *SecrecyClassificationRepository) Deactivate(ids []uint) ([]uint, err
 
 func (repo *SecrecyClassificationRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
 	var count int64
-	err := repo.db.Model(&models.SecrecyClassification{}).
+	err := repo.db.Model(&models.ComplianceSecrecyClassification{}).
 		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
 		Count(&count).Error
 	if err != nil {
@@ -149,7 +149,7 @@ func (repo *SecrecyClassificationRepository) ExistsByTitle(titleEn, titleAr stri
 
 func (repo *SecrecyClassificationRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
 	var count int64
-	err := repo.db.Model(&models.SecrecyClassification{}).
+	err := repo.db.Model(&models.ComplianceSecrecyClassification{}).
 		Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, titleEn, titleAr).
 		Count(&count).Error
 	if err != nil {

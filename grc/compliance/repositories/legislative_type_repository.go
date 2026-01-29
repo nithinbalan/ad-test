@@ -10,10 +10,10 @@ import (
 
 // Interfaces
 type LegislationTypeRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.LegislationType, error)
-	GetByID(id uint) (*models.LegislationType, error)
-	Create(body *models.LegislationType) (*models.LegislationType, error)
-	Update(id uint, body *models.LegislationType) (*models.LegislationType, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceLegislationType, error)
+	GetByID(id uint) (*models.ComplianceLegislationType, error)
+	Create(body *models.ComplianceLegislationType) (*models.ComplianceLegislationType, error)
+	Update(id uint, body *models.ComplianceLegislationType) (*models.ComplianceLegislationType, error)
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
@@ -31,8 +31,8 @@ func NewLegislationTypeRepository(db *gorm.DB) *LegislationTypeRepository {
 }
 
 // GetAll
-func (repo *LegislationTypeRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.LegislationType, error) {
-	var items []*models.LegislationType
+func (repo *LegislationTypeRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceLegislationType, error) {
+	var items []*models.ComplianceLegislationType
 	query := repo.db
 
 	if keyword != "" {
@@ -57,8 +57,8 @@ func (repo *LegislationTypeRepository) GetAll(sort string, sortBy string, keywor
 }
 
 // GetByID
-func (repo *LegislationTypeRepository) GetByID(id uint) (*models.LegislationType, error) {
-	var item *models.LegislationType
+func (repo *LegislationTypeRepository) GetByID(id uint) (*models.ComplianceLegislationType, error) {
+	var item *models.ComplianceLegislationType
 	result := repo.db.First(&item, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -71,14 +71,14 @@ func (repo *LegislationTypeRepository) GetByID(id uint) (*models.LegislationType
 }
 
 // Create
-func (repo *LegislationTypeRepository) Create(body *models.LegislationType) (*models.LegislationType, error) {
+func (repo *LegislationTypeRepository) Create(body *models.ComplianceLegislationType) (*models.ComplianceLegislationType, error) {
 	result := repo.db.Create(&body)
 	return body, result.Error
 }
 
 // Update
-func (repo *LegislationTypeRepository) Update(id uint, updatedBody *models.LegislationType) (*models.LegislationType, error) {
-	var body *models.LegislationType
+func (repo *LegislationTypeRepository) Update(id uint, updatedBody *models.ComplianceLegislationType) (*models.ComplianceLegislationType, error) {
+	var body *models.ComplianceLegislationType
 
 	if err := repo.db.First(&body, id).Error; err != nil {
 		return nil, err
@@ -93,12 +93,12 @@ func (repo *LegislationTypeRepository) Update(id uint, updatedBody *models.Legis
 
 // Delete
 func (repo *LegislationTypeRepository) Delete(id uint) error {
-	var body *models.LegislationType
+	var body *models.ComplianceLegislationType
 	if err := repo.db.First(&body, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.LegislationType{}, id)
+	result := repo.db.Delete(&models.ComplianceLegislationType{}, id)
 	return result.Error
 }
 
@@ -106,14 +106,14 @@ func (repo *LegislationTypeRepository) Delete(id uint) error {
 func (repo *LegislationTypeRepository) Activate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 
-	if err := repo.db.Model(&models.LegislationType{}).
+	if err := repo.db.Model(&models.ComplianceLegislationType{}).
 		Where("id IN ? AND status = ?", ids, "inactive").
 		Pluck("id", &idsToUpdate).Error; err != nil {
 		return nil, err
 	}
 
 	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.LegislationType{}).
+		if err := repo.db.Model(&models.ComplianceLegislationType{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "active").Error; err != nil {
 			return nil, err
@@ -127,14 +127,14 @@ func (repo *LegislationTypeRepository) Activate(ids []uint) ([]uint, error) {
 func (repo *LegislationTypeRepository) Deactivate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 
-	if err := repo.db.Model(&models.LegislationType{}).
+	if err := repo.db.Model(&models.ComplianceLegislationType{}).
 		Where("id IN ? AND status = ?", ids, "active").
 		Pluck("id", &idsToUpdate).Error; err != nil {
 		return nil, err
 	}
 
 	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.LegislationType{}).
+		if err := repo.db.Model(&models.ComplianceLegislationType{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "inactive").Error; err != nil {
 			return nil, err
@@ -147,7 +147,7 @@ func (repo *LegislationTypeRepository) Deactivate(ids []uint) ([]uint, error) {
 // ExistsByTitle
 func (repo *LegislationTypeRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
 	var count int64
-	err := repo.db.Model(&models.LegislationType{}).
+	err := repo.db.Model(&models.ComplianceLegislationType{}).
 		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
 		Count(&count).Error
 	if err != nil {
@@ -159,7 +159,7 @@ func (repo *LegislationTypeRepository) ExistsByTitle(titleEn, titleAr string) (b
 // ExistsByTitleExcludingID
 func (repo *LegislationTypeRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
 	var count int64
-	err := repo.db.Model(&models.LegislationType{}).
+	err := repo.db.Model(&models.ComplianceLegislationType{}).
 		Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, titleEn, titleAr).
 		Count(&count).Error
 	if err != nil {

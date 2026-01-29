@@ -1,6 +1,6 @@
 package models
 
-type LegislativeBody struct {
+type ComplianceLegislativeBody struct {
 	ID            uint   `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	TitleEn       string `json:"title_en" binding:"required,max=100" gorm:"type:varchar(100);not null"`
 	TitleAr       string `json:"title_ar" binding:"required,max=100" gorm:"type:nvarchar(100);not null"`
@@ -9,7 +9,7 @@ type LegislativeBody struct {
 	Status        string `json:"status" binding:"required,oneof=active inactive" gorm:"type:varchar(10);not null"`
 }
 
-// TableName overrides the table name used by LegislativeBody to `legislative_bodies`
-func (LegislativeBody) TableName() string {
-	return "legislative_bodies"
+// TableName overrides the table name used by GORM
+func (ComplianceLegislativeBody) TableName() string {
+	return "compliance_legislative_bodies"
 }

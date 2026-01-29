@@ -11,10 +11,10 @@ import (
 )
 
 type LegislationTypeServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.LegislationType, error)
-	GetByID(id uint) (*models.LegislationType, error)
-	Create(currentUserID uint, body *models.LegislationType) (*models.LegislationType, error)
-	Update(id uint, currentUserID uint, body *models.LegislationType) (*models.LegislationType, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceLegislationType, error)
+	GetByID(id uint) (*models.ComplianceLegislationType, error)
+	Create(currentUserID uint, body *models.ComplianceLegislationType) (*models.ComplianceLegislationType, error)
+	Update(id uint, currentUserID uint, body *models.ComplianceLegislationType) (*models.ComplianceLegislationType, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
@@ -27,7 +27,10 @@ type LegislationTypeService struct {
 }
 
 // Constructor
-func NewLegislationTypeService(repo repositories.LegislationTypeRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) LegislationTypeServiceInterface {
+func NewLegislationTypeService(
+	repo repositories.LegislationTypeRepositoryInterface,
+	activityLogSvc services.ActivityLogServiceInterface,
+) LegislationTypeServiceInterface {
 	return &LegislationTypeService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
@@ -35,21 +38,34 @@ func NewLegislationTypeService(repo repositories.LegislationTypeRepositoryInterf
 }
 
 // GetAll
-func (lts *LegislationTypeService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.LegislationType, error) {
+func (lts *LegislationTypeService) GetAll(
+	sort string,
+	sortBy string,
+	keyword string,
+	status string,
+) ([]*models.ComplianceLegislationType, error) {
 	return lts.repo.GetAll(sort, sortBy, keyword, status)
 }
 
 // GetByID
-func (lts *LegislationTypeService) GetByID(id uint) (*models.LegislationType, error) {
+func (lts *LegislationTypeService) GetByID(id uint) (*models.ComplianceLegislationType, error) {
 	return lts.repo.GetByID(id)
 }
 
 // Create
-func (lts *LegislationTypeService) Create(currentUserID uint, body *models.LegislationType) (*models.LegislationType, error) {
+func (lts *LegislationTypeService) Create(
+	currentUserID uint,
+	body *models.ComplianceLegislationType,
+) (*models.ComplianceLegislationType, error) {
+
 	if exists, err := lts.repo.ExistsByTitle(body.TitleEn, body.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
-		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		return nil, utility.NewValidationError(
+			fmt.Errorf("the title must be unique"),
+			"unique",
+			"title",
+		)
 	}
 
 	createdBody, err := lts.repo.Create(body)
@@ -60,7 +76,7 @@ func (lts *LegislationTypeService) Create(currentUserID uint, body *models.Legis
 	go func() {
 		err := lts.activityLogSvc.LogActivity(
 			models.CreateAction,
-			models.LegislationType{}.TableName(),
+			models.ComplianceLegislationType{}.TableName(),
 			body.ID,
 			createdBody,
 			currentUserID,
@@ -75,17 +91,32 @@ func (lts *LegislationTypeService) Create(currentUserID uint, body *models.Legis
 }
 
 // Update
-func (lts *LegislationTypeService) Update(id uint, currentUserID uint, updatedBody *models.LegislationType) (*models.LegislationType, error) {
+func (lts *LegislationTypeService) Update(
+	id uint,
+	currentUserID uint,
+	updatedBody *models.ComplianceLegislationType,
+) (*models.ComplianceLegislationType, error) {
+
 	existingBody, err := lts.repo.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	if updatedBody.TitleEn != existingBody.TitleEn || updatedBody.TitleAr != existingBody.TitleAr {
-		if exists, err := lts.repo.ExistsByTitleExcludingID(id, updatedBody.TitleEn, updatedBody.TitleAr); err != nil {
+	if updatedBody.TitleEn != existingBody.TitleEn ||
+		updatedBody.TitleAr != existingBody.TitleAr {
+
+		if exists, err := lts.repo.ExistsByTitleExcludingID(
+			id,
+			updatedBody.TitleEn,
+			updatedBody.TitleAr,
+		); err != nil {
 			return nil, err
 		} else if exists {
-			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+			return nil, utility.NewValidationError(
+				fmt.Errorf("the title must be unique"),
+				"unique",
+				"title",
+			)
 		}
 	}
 
@@ -108,7 +139,7 @@ func (lts *LegislationTypeService) Update(id uint, currentUserID uint, updatedBo
 	go func() {
 		err := lts.activityLogSvc.LogActivity(
 			models.UpdateAction,
-			models.LegislationType{}.TableName(),
+			models.ComplianceLegislationType{}.TableName(),
 			result.ID,
 			changedDataJSON,
 			currentUserID,
@@ -123,7 +154,11 @@ func (lts *LegislationTypeService) Update(id uint, currentUserID uint, updatedBo
 }
 
 // Delete
-func (lts *LegislationTypeService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (lts *LegislationTypeService) Delete(
+	ids []uint,
+	currentUserID uint,
+) ([]uint, error) {
+
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedBodies []map[string]interface{}
@@ -152,7 +187,7 @@ func (lts *LegislationTypeService) Delete(ids []uint, currentUserID uint) ([]uin
 		go func() {
 			err := lts.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
-				models.LegislationType{}.TableName(),
+				models.ComplianceLegislationType{}.TableName(),
 				successfulIds,
 				deletedBodies,
 				currentUserID,
@@ -170,11 +205,12 @@ func (lts *LegislationTypeService) Delete(ids []uint, currentUserID uint) ([]uin
 // Activate
 func (lts *LegislationTypeService) Activate(ids []uint, currentUserID uint) error {
 	successfulIds, err := lts.repo.Activate(ids)
+
 	if len(successfulIds) > 0 {
 		go func() {
 			err := lts.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
-				models.LegislationType{}.TableName(),
+				models.ComplianceLegislationType{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -185,17 +221,19 @@ func (lts *LegislationTypeService) Activate(ids []uint, currentUserID uint) erro
 			}
 		}()
 	}
+
 	return err
 }
 
 // Deactivate
 func (lts *LegislationTypeService) Deactivate(ids []uint, currentUserID uint) error {
 	successfulIds, err := lts.repo.Deactivate(ids)
+
 	if len(successfulIds) > 0 {
 		go func() {
 			err := lts.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,
-				models.LegislationType{}.TableName(),
+				models.ComplianceLegislationType{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -206,5 +244,6 @@ func (lts *LegislationTypeService) Deactivate(ids []uint, currentUserID uint) er
 			}
 		}()
 	}
+
 	return err
 }

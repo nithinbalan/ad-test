@@ -2,7 +2,8 @@ package models
 
 import "time"
 
-type ImportanceClassification struct {
+// ComplianceImportanceClassification represents an importance classification within compliance
+type ComplianceImportanceClassification struct {
 	ID            uint      `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	TitleEn       string    `json:"title_en" binding:"required,max=100" gorm:"type:varchar(100);not null"`
 	TitleAr       string    `json:"title_ar" binding:"required,max=100" gorm:"type:nvarchar(100);not null"`
@@ -12,6 +13,7 @@ type ImportanceClassification struct {
 	CreatedAt     time.Time `json:"created_at" gorm:"type:datetime;not null"`
 }
 
-func (ImportanceClassification) TableName() string {
-	return "importance_classifications"
+// TableName overrides the table name for compliance module
+func (ComplianceImportanceClassification) TableName() string {
+	return "compliance_importance_classifications"
 }

@@ -10,9 +10,9 @@ import (
 
 // Interface
 type ImportanceClassificationRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ImportanceClassification, error)
-	GetByID(id uint) (*models.ImportanceClassification, error)
-	GetByType(status string) (*models.ImportanceClassification, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceImportanceClassification, error)
+	GetByID(id uint) (*models.ComplianceImportanceClassification, error)
+	GetByType(status string) (*models.ComplianceImportanceClassification, error)
 }
 
 // Implementation
@@ -26,8 +26,8 @@ func NewImportanceClassificationRepository(db *gorm.DB) *ImportanceClassificatio
 	}
 }
 
-func (repo *ImportanceClassificationRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ImportanceClassification, error) {
-	var classifications []*models.ImportanceClassification
+func (repo *ImportanceClassificationRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceImportanceClassification, error) {
+	var classifications []*models.ComplianceImportanceClassification
 	query := repo.db
 
 	if keyword != "" {
@@ -51,8 +51,8 @@ func (repo *ImportanceClassificationRepository) GetAll(sort string, sortBy strin
 	return classifications, result.Error
 }
 
-func (repo *ImportanceClassificationRepository) GetByID(id uint) (*models.ImportanceClassification, error) {
-	var classification *models.ImportanceClassification
+func (repo *ImportanceClassificationRepository) GetByID(id uint) (*models.ComplianceImportanceClassification, error) {
+	var classification *models.ComplianceImportanceClassification
 	result := repo.db.First(&classification, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -64,8 +64,8 @@ func (repo *ImportanceClassificationRepository) GetByID(id uint) (*models.Import
 	return classification, nil
 }
 
-func (repo *ImportanceClassificationRepository) GetByType(status string) (*models.ImportanceClassification, error) {
-	var classification *models.ImportanceClassification
+func (repo *ImportanceClassificationRepository) GetByType(status string) (*models.ComplianceImportanceClassification, error) {
+	var classification *models.ComplianceImportanceClassification
 	result := repo.db.Where("status = ?", status).First(&classification)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {

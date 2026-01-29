@@ -10,10 +10,10 @@ import (
 
 // Interfaces
 type IssuingAuthorityRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.IssuingAuthority, error)
-	GetByID(id uint) (*models.IssuingAuthority, error)
-	Create(authority *models.IssuingAuthority) (*models.IssuingAuthority, error)
-	Update(id uint, authority *models.IssuingAuthority) (*models.IssuingAuthority, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceIssuingAuthority, error)
+	GetByID(id uint) (*models.ComplianceIssuingAuthority, error)
+	Create(authority *models.ComplianceIssuingAuthority) (*models.ComplianceIssuingAuthority, error)
+	Update(id uint, authority *models.ComplianceIssuingAuthority) (*models.ComplianceIssuingAuthority, error)
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
@@ -21,7 +21,7 @@ type IssuingAuthorityRepositoryInterface interface {
 	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
 }
 
-// implementation
+// Implementation
 type IssuingAuthorityRepository struct {
 	db *gorm.DB
 }
@@ -37,9 +37,9 @@ func (repo *IssuingAuthorityRepository) GetAll(
 	sortBy string,
 	keyword string,
 	status string,
-) ([]*models.IssuingAuthority, error) {
+) ([]*models.ComplianceIssuingAuthority, error) {
 
-	var authorities []*models.IssuingAuthority
+	var authorities []*models.ComplianceIssuingAuthority
 
 	query := repo.db
 
@@ -68,8 +68,8 @@ func (repo *IssuingAuthorityRepository) GetAll(
 	return authorities, result.Error
 }
 
-func (repo *IssuingAuthorityRepository) GetByID(id uint) (*models.IssuingAuthority, error) {
-	var authority *models.IssuingAuthority
+func (repo *IssuingAuthorityRepository) GetByID(id uint) (*models.ComplianceIssuingAuthority, error) {
+	var authority *models.ComplianceIssuingAuthority
 	result := repo.db.First(&authority, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -81,17 +81,17 @@ func (repo *IssuingAuthorityRepository) GetByID(id uint) (*models.IssuingAuthori
 	return authority, result.Error
 }
 
-func (repo *IssuingAuthorityRepository) Create(authority *models.IssuingAuthority) (*models.IssuingAuthority, error) {
+func (repo *IssuingAuthorityRepository) Create(authority *models.ComplianceIssuingAuthority) (*models.ComplianceIssuingAuthority, error) {
 	result := repo.db.Create(&authority)
 	return authority, result.Error
 }
 
 func (repo *IssuingAuthorityRepository) Update(
 	id uint,
-	updatedAuthority *models.IssuingAuthority,
-) (*models.IssuingAuthority, error) {
+	updatedAuthority *models.ComplianceIssuingAuthority,
+) (*models.ComplianceIssuingAuthority, error) {
 
-	var authority *models.IssuingAuthority
+	var authority *models.ComplianceIssuingAuthority
 
 	if err := repo.db.First(&authority, id).Error; err != nil {
 		return nil, err
@@ -105,13 +105,13 @@ func (repo *IssuingAuthorityRepository) Update(
 }
 
 func (repo *IssuingAuthorityRepository) Delete(id uint) error {
-	var authority *models.IssuingAuthority
+	var authority *models.ComplianceIssuingAuthority
 
 	if err := repo.db.First(&authority, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.IssuingAuthority{}, id)
+	result := repo.db.Delete(&models.ComplianceIssuingAuthority{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -122,16 +122,14 @@ func (repo *IssuingAuthorityRepository) Delete(id uint) error {
 func (repo *IssuingAuthorityRepository) Activate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 
-	// Fetch inactive records
-	if err := repo.db.Model(&models.IssuingAuthority{}).
+	if err := repo.db.Model(&models.ComplianceIssuingAuthority{}).
 		Where("id IN ? AND status = ?", ids, "inactive").
 		Pluck("id", &idsToUpdate).Error; err != nil {
 		return nil, err
 	}
 
-	// Activate
 	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.IssuingAuthority{}).
+		if err := repo.db.Model(&models.ComplianceIssuingAuthority{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "active").Error; err != nil {
 			return nil, err
@@ -144,16 +142,14 @@ func (repo *IssuingAuthorityRepository) Activate(ids []uint) ([]uint, error) {
 func (repo *IssuingAuthorityRepository) Deactivate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 
-	// Fetch active records
-	if err := repo.db.Model(&models.IssuingAuthority{}).
+	if err := repo.db.Model(&models.ComplianceIssuingAuthority{}).
 		Where("id IN ? AND status = ?", ids, "active").
 		Pluck("id", &idsToUpdate).Error; err != nil {
 		return nil, err
 	}
 
-	// Deactivate
 	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.IssuingAuthority{}).
+		if err := repo.db.Model(&models.ComplianceIssuingAuthority{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "inactive").Error; err != nil {
 			return nil, err
@@ -166,7 +162,7 @@ func (repo *IssuingAuthorityRepository) Deactivate(ids []uint) ([]uint, error) {
 func (repo *IssuingAuthorityRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
 	var count int64
 
-	err := repo.db.Model(&models.IssuingAuthority{}).
+	err := repo.db.Model(&models.ComplianceIssuingAuthority{}).
 		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
 		Count(&count).Error
 
@@ -185,7 +181,7 @@ func (repo *IssuingAuthorityRepository) ExistsByTitleExcludingID(
 
 	var count int64
 
-	err := repo.db.Model(&models.IssuingAuthority{}).
+	err := repo.db.Model(&models.ComplianceIssuingAuthority{}).
 		Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, titleEn, titleAr).
 		Count(&count).Error
 

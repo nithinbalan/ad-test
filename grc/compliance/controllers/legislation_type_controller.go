@@ -58,7 +58,7 @@ func (ltc *LegislationTypeController) GetLegislationTypeDetails(c *gin.Context) 
 
 // Create new Legislation Type
 func (ltc *LegislationTypeController) CreateLegislationType(c *gin.Context) {
-	var legType *models.LegislationType
+	var legType *models.ComplianceLegislationType
 	if err := c.ShouldBindJSON(&legType); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -86,7 +86,7 @@ func (ltc *LegislationTypeController) CreateLegislationType(c *gin.Context) {
 
 // Update Legislation Type
 func (ltc *LegislationTypeController) UpdateLegislationType(c *gin.Context) {
-	var legType *models.LegislationType
+	var legType *models.ComplianceLegislationType
 	typeID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)

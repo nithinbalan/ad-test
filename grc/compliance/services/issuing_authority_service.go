@@ -11,10 +11,10 @@ import (
 )
 
 type IssuingAuthorityServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.IssuingAuthority, error)
-	GetByID(id uint) (*models.IssuingAuthority, error)
-	Create(currentUserID uint, authority *models.IssuingAuthority) (*models.IssuingAuthority, error)
-	Update(id uint, currentUserID uint, authority *models.IssuingAuthority) (*models.IssuingAuthority, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceIssuingAuthority, error)
+	GetByID(id uint) (*models.ComplianceIssuingAuthority, error)
+	Create(currentUserID uint, authority *models.ComplianceIssuingAuthority) (*models.ComplianceIssuingAuthority, error)
+	Update(id uint, currentUserID uint, authority *models.ComplianceIssuingAuthority) (*models.ComplianceIssuingAuthority, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
@@ -36,15 +36,15 @@ func NewIssuingAuthorityService(
 	}
 }
 
-func (ias *IssuingAuthorityService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.IssuingAuthority, error) {
+func (ias *IssuingAuthorityService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceIssuingAuthority, error) {
 	return ias.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (ias *IssuingAuthorityService) GetByID(id uint) (*models.IssuingAuthority, error) {
+func (ias *IssuingAuthorityService) GetByID(id uint) (*models.ComplianceIssuingAuthority, error) {
 	return ias.repo.GetByID(id)
 }
 
-func (ias *IssuingAuthorityService) Create(currentUserID uint, authority *models.IssuingAuthority) (*models.IssuingAuthority, error) {
+func (ias *IssuingAuthorityService) Create(currentUserID uint, authority *models.ComplianceIssuingAuthority) (*models.ComplianceIssuingAuthority, error) {
 	if exists, err := ias.repo.ExistsByTitle(authority.TitleEn, authority.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
@@ -63,7 +63,7 @@ func (ias *IssuingAuthorityService) Create(currentUserID uint, authority *models
 	go func() {
 		err := ias.activityLogSvc.LogActivity(
 			models.CreateAction,
-			models.IssuingAuthority{}.TableName(),
+			models.ComplianceIssuingAuthority{}.TableName(),
 			createdAuthority.ID,
 			createdAuthority,
 			currentUserID,
@@ -80,8 +80,8 @@ func (ias *IssuingAuthorityService) Create(currentUserID uint, authority *models
 func (ias *IssuingAuthorityService) Update(
 	id uint,
 	currentUserID uint,
-	updatedAuthority *models.IssuingAuthority,
-) (*models.IssuingAuthority, error) {
+	updatedAuthority *models.ComplianceIssuingAuthority,
+) (*models.ComplianceIssuingAuthority, error) {
 
 	existingAuthority, err := ias.repo.GetByID(id)
 	if err != nil {
@@ -125,7 +125,7 @@ func (ias *IssuingAuthorityService) Update(
 	go func() {
 		err := ias.activityLogSvc.LogActivity(
 			models.UpdateAction,
-			models.IssuingAuthority{}.TableName(),
+			models.ComplianceIssuingAuthority{}.TableName(),
 			result.ID,
 			changedDataJSON,
 			currentUserID,
@@ -167,7 +167,7 @@ func (ias *IssuingAuthorityService) Delete(ids []uint, currentUserID uint) ([]ui
 		go func() {
 			err := ias.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
-				models.IssuingAuthority{}.TableName(),
+				models.ComplianceIssuingAuthority{}.TableName(),
 				successfulIDs,
 				deletedAuthorities,
 				currentUserID,
@@ -189,7 +189,7 @@ func (ias *IssuingAuthorityService) Activate(ids []uint, currentUserID uint) err
 		go func() {
 			err := ias.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
-				models.IssuingAuthority{}.TableName(),
+				models.ComplianceIssuingAuthority{}.TableName(),
 				successfulIDs,
 				nil,
 				currentUserID,
@@ -211,7 +211,7 @@ func (ias *IssuingAuthorityService) Deactivate(ids []uint, currentUserID uint) e
 		go func() {
 			err := ias.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,
-				models.IssuingAuthority{}.TableName(),
+				models.ComplianceIssuingAuthority{}.TableName(),
 				successfulIDs,
 				nil,
 				currentUserID,
