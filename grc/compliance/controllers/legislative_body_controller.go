@@ -58,7 +58,7 @@ func (lbc *LegislativeBodyController) GetLegislativeBodyDetails(c *gin.Context) 
 
 // Create new Legislative Body
 func (lbc *LegislativeBodyController) CreateLegislativeBody(c *gin.Context) {
-	var body *models.LegislativeBody
+	var body *models.ComplianceLegislativeBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -86,7 +86,7 @@ func (lbc *LegislativeBodyController) CreateLegislativeBody(c *gin.Context) {
 
 // Update Legislative Body
 func (lbc *LegislativeBodyController) UpdateLegislativeBody(c *gin.Context) {
-	var body *models.LegislativeBody
+	var body *models.ComplianceLegislativeBody
 	bodyID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)

@@ -7,9 +7,9 @@ import (
 
 // Interface
 type ImportanceClassificationServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ImportanceClassification, error)
-	GetByID(id uint) (*models.ImportanceClassification, error)
-	GetByType(status string) (*models.ImportanceClassification, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceImportanceClassification, error)
+	GetByID(id uint) (*models.ComplianceImportanceClassification, error)
+	GetByType(status string) (*models.ComplianceImportanceClassification, error)
 }
 
 // Service implementation
@@ -25,15 +25,15 @@ func NewImportanceClassificationService(
 	}
 }
 
-func (ics *ImportanceClassificationService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ImportanceClassification, error) {
+func (ics *ImportanceClassificationService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceImportanceClassification, error) {
 	return ics.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (ics *ImportanceClassificationService) GetByID(id uint) (*models.ImportanceClassification, error) {
+func (ics *ImportanceClassificationService) GetByID(id uint) (*models.ComplianceImportanceClassification, error) {
 	return ics.repo.GetByID(id)
 }
 
-func (ics *ImportanceClassificationService) GetByType(status string) (*models.ImportanceClassification, error) {
+func (ics *ImportanceClassificationService) GetByType(status string) (*models.ComplianceImportanceClassification, error) {
 	classification, err := ics.repo.GetByType(status)
 	if err != nil {
 		return nil, err

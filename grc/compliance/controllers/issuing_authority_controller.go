@@ -56,7 +56,7 @@ func (iac *IssuingAuthorityController) GetIssuingAuthorityDetails(c *gin.Context
 }
 
 func (iac *IssuingAuthorityController) CreateIssuingAuthority(c *gin.Context) {
-	var authority *models.IssuingAuthority
+	var authority *models.ComplianceIssuingAuthority
 
 	if err := c.ShouldBindJSON(&authority); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -85,7 +85,7 @@ func (iac *IssuingAuthorityController) CreateIssuingAuthority(c *gin.Context) {
 }
 
 func (iac *IssuingAuthorityController) UpdateIssuingAuthority(c *gin.Context) {
-	var updatedAuthority *models.IssuingAuthority
+	var updatedAuthority *models.ComplianceIssuingAuthority
 
 	authorityID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

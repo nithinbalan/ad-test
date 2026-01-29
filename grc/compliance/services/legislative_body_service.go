@@ -11,10 +11,10 @@ import (
 )
 
 type LegislativeBodyServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.LegislativeBody, error)
-	GetByID(id uint) (*models.LegislativeBody, error)
-	Create(currentUserID uint, body *models.LegislativeBody) (*models.LegislativeBody, error)
-	Update(id uint, currentUserID uint, body *models.LegislativeBody) (*models.LegislativeBody, error)
+	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceLegislativeBody, error)
+	GetByID(id uint) (*models.ComplianceLegislativeBody, error)
+	Create(currentUserID uint, body *models.ComplianceLegislativeBody) (*models.ComplianceLegislativeBody, error)
+	Update(id uint, currentUserID uint, body *models.ComplianceLegislativeBody) (*models.ComplianceLegislativeBody, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
@@ -35,17 +35,17 @@ func NewLegislativeBodyService(repo repositories.LegislativeBodyRepositoryInterf
 }
 
 // GetAll
-func (lbs *LegislativeBodyService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.LegislativeBody, error) {
+func (lbs *LegislativeBodyService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceLegislativeBody, error) {
 	return lbs.repo.GetAll(sort, sortBy, keyword, status)
 }
 
 // GetByID
-func (lbs *LegislativeBodyService) GetByID(id uint) (*models.LegislativeBody, error) {
+func (lbs *LegislativeBodyService) GetByID(id uint) (*models.ComplianceLegislativeBody, error) {
 	return lbs.repo.GetByID(id)
 }
 
 // Create
-func (lbs *LegislativeBodyService) Create(currentUserID uint, body *models.LegislativeBody) (*models.LegislativeBody, error) {
+func (lbs *LegislativeBodyService) Create(currentUserID uint, body *models.ComplianceLegislativeBody) (*models.ComplianceLegislativeBody, error) {
 	if exists, err := lbs.repo.ExistsByTitle(body.TitleEn, body.TitleAr); err != nil {
 		return nil, err
 	} else if exists {
@@ -60,7 +60,7 @@ func (lbs *LegislativeBodyService) Create(currentUserID uint, body *models.Legis
 	go func() {
 		err := lbs.activityLogSvc.LogActivity(
 			models.CreateAction,
-			models.LegislativeBody{}.TableName(),
+			models.ComplianceLegislativeBody{}.TableName(),
 			body.ID,
 			createdBody,
 			currentUserID,
@@ -75,7 +75,7 @@ func (lbs *LegislativeBodyService) Create(currentUserID uint, body *models.Legis
 }
 
 // Update
-func (lbs *LegislativeBodyService) Update(id uint, currentUserID uint, updatedBody *models.LegislativeBody) (*models.LegislativeBody, error) {
+func (lbs *LegislativeBodyService) Update(id uint, currentUserID uint, updatedBody *models.ComplianceLegislativeBody) (*models.ComplianceLegislativeBody, error) {
 	existingBody, err := lbs.repo.GetByID(id)
 	if err != nil {
 		return nil, err
@@ -108,7 +108,7 @@ func (lbs *LegislativeBodyService) Update(id uint, currentUserID uint, updatedBo
 	go func() {
 		err := lbs.activityLogSvc.LogActivity(
 			models.UpdateAction,
-			models.LegislativeBody{}.TableName(),
+			models.ComplianceLegislativeBody{}.TableName(),
 			result.ID,
 			changedDataJSON,
 			currentUserID,
@@ -152,7 +152,7 @@ func (lbs *LegislativeBodyService) Delete(ids []uint, currentUserID uint) ([]uin
 		go func() {
 			err := lbs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
-				models.LegislativeBody{}.TableName(),
+				models.ComplianceLegislativeBody{}.TableName(),
 				successfulIds,
 				deletedBodies,
 				currentUserID,
@@ -174,7 +174,7 @@ func (lbs *LegislativeBodyService) Activate(ids []uint, currentUserID uint) erro
 		go func() {
 			err := lbs.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
-				models.LegislativeBody{}.TableName(),
+				models.ComplianceLegislativeBody{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -195,7 +195,7 @@ func (lbs *LegislativeBodyService) Deactivate(ids []uint, currentUserID uint) er
 		go func() {
 			err := lbs.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,
-				models.LegislativeBody{}.TableName(),
+				models.ComplianceLegislativeBody{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,

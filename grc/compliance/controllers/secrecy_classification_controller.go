@@ -55,7 +55,7 @@ func (scc *SecrecyClassificationController) GetSecrecyClassificationDetails(c *g
 }
 
 func (scc *SecrecyClassificationController) CreateSecrecyClassification(c *gin.Context) {
-	var classification *models.SecrecyClassification
+	var classification *models.ComplianceSecrecyClassification
 
 	if err := c.ShouldBindJSON(&classification); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -84,7 +84,7 @@ func (scc *SecrecyClassificationController) CreateSecrecyClassification(c *gin.C
 }
 
 func (scc *SecrecyClassificationController) UpdateSecrecyClassification(c *gin.Context) {
-	var updatedClassification *models.SecrecyClassification
+	var updatedClassification *models.ComplianceSecrecyClassification
 
 	classificationID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
