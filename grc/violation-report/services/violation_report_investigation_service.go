@@ -29,7 +29,7 @@ type ViolationReportInvestigationServiceInterface interface {
 	Delete(violationReportID uint, currentUserID uint) (uint, error)
 	GetDocumentPath(violationReportID uint, token string) (string, error)
 
-	UpdateInvestigationNoteAndObservations(violationReportID uint, currentUserID uint, violationReportInvestigationFormDTO *violationReportDTOs.ViolationReportInvestigationNoteAndObservationDTO) error
+	UpdateInvestigationNoteAndObservations(id uint, currentUserID uint, violationReportInvestigationFormDTO *violationReportDTOs.ViolationReportInvestigationNoteAndObservationDTO) error
 }
 
 // Service and implementations
@@ -665,15 +665,12 @@ func (vris *ViolationReportInvestigationService) GetDocumentPath(violationReport
 }
 
 func (vris *ViolationReportInvestigationService) UpdateInvestigationNoteAndObservations(id uint, currentUserID uint, dto *violationReportDTOs.ViolationReportInvestigationNoteAndObservationDTO) error {
-	tx := vris.repo.BeginTransaction()
-
 	// Get existing investigation for audit log
-	existing, err := vris.repo.GetByID(id)
+	existing, err := vris.repo.GetInvestigationByID(id)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
-
+	tx := vris.repo.BeginTransaction()
 	// Update the note
 	if err := vris.repo.UpdateNoteAndObservations(id, dto.NoteAndObservations, tx); err != nil {
 		tx.Rollback()

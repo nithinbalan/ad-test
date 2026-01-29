@@ -869,15 +869,15 @@ func (iaps *IncidentActionPlanService) validateIncidentActionPlanFormDTO(Inciden
 		if _, err := iaps.actionPlanMasterSvc.GetByID(*IncidentActionPlanFormDTO.ActionPlanMasterID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("action plan master does not exist"), "not_exist", "action plan master")
 		}
-	}
 
-	exists, err := iaps.repo.HasActionPlanMasterInIncident(incidentID, *IncidentActionPlanFormDTO.ActionPlanMasterID)
-	if err != nil {
-		return err
-	}
+		exists, err := iaps.repo.HasActionPlanMasterInIncident(incidentID, *IncidentActionPlanFormDTO.ActionPlanMasterID)
+		if err != nil {
+			return err
+		}
 
-	if exists {
-		return utility.NewValidationError(fmt.Errorf("action plan master already used in this incident"), "duplicate", "action plan master")
+		if exists {
+			return utility.NewValidationError(fmt.Errorf("action plan master already used in this incident"), "duplicate", "action plan master")
+		}
 	}
 
 	return nil

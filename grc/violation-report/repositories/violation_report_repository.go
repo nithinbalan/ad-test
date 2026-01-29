@@ -222,6 +222,7 @@ func (repo *ViolationReportRepository) GetFullDetailsByID(id uint, tx ...utility
 	result := db.
 		Preload("ViolationReportChannel").
 		Preload("ViolationReportCategory").
+		Preload("ViolationReportCategory.Department").
 		Preload("ViolationReportSubCategory").
 		Preload("ViolationReportReason").
 		Preload("ViolationReportStatus").
