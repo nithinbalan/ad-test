@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-INSERT INTO importance_classifications (
+INSERT INTO compliance_importance_classifications (
     type,
     title_en,
     title_ar,
@@ -49,7 +49,7 @@ INSERT INTO importance_classifications (
 
 -- +goose Down
 -- +goose StatementBegin
-DELETE FROM importance_classifications
+DELETE FROM compliance_importance_classifications
 WHERE type IN (
     'normal',
     'urgent',
