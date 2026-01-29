@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"jethur/config"
+	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	masterRepositories "jethur/grc/masters/repositories"
@@ -26,7 +27,7 @@ import (
 )
 
 type ViolationReportServiceInterface interface {
-	GetAll(params *violationReportDTOs.ViolationReportListQueryParamsDTO) (*violationReportDTOs.ViolationReportListResponseDTO, error)
+	GetAll(params *violationReportDTOs.ViolationReportListQueryParamsDTO, currentUserID uint) (*violationReportDTOs.ViolationReportListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*violationReportDTOs.ViolationReportDetailDTO, error)
 	GetByID(id uint) (*models.ViolationReport, error)
 	Create(currentUserID uint, violationReportFormDTO *violationReportDTOs.ViolationReportFormDTO) (uint, error)
@@ -82,8 +83,28 @@ func NewViolationReportService(
 	}
 }
 
-func (irs *ViolationReportService) GetAll(params *violationReportDTOs.ViolationReportListQueryParamsDTO) (*violationReportDTOs.ViolationReportListResponseDTO, error) {
-	return irs.repo.GetAll(params)
+func (irs *ViolationReportService) GetAll(params *violationReportDTOs.ViolationReportListQueryParamsDTO, currentUserID uint) (*violationReportDTOs.ViolationReportListResponseDTO, error) {
+
+	user, err := irs.userSvc.GetFullDetailsByID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var departmentID *uint
+	if user.OrganizationUnit2 != nil {
+		id := uint(user.OrganizationUnit2.ID)
+		departmentID = &id
+	}
+
+	if user.Roles != nil {
+		for _, role := range *user.Roles {
+			if *role.Type == "super-admin" {
+				departmentID = nil
+				break
+			}
+		}
+	}
+	return irs.repo.GetAll(params, departmentID, currentUserID)
 }
 
 func (irs *ViolationReportService) GetByID(id uint) (*models.ViolationReport, error) {
@@ -246,6 +267,106 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		// Send notifications to users in the category department
+		if violationReportFormDTO.ViolationReportCategoryID != nil && *violationReportFormDTO.ViolationReportCategoryID != 0 {
+			// Get the violation report with category and department details
+			violationReportWithCategory, err := irs.GetFullDetailsByID(id)
+			if err != nil {
+				utility.LogError("Failed to fetch violation report with category", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			// Check if category and department exist
+			if violationReportWithCategory.ViolationReportCategory != nil &&
+				violationReportWithCategory.ViolationReportCategory.Department != nil {
+
+				departmentID := violationReportWithCategory.ViolationReportCategory.Department.ID
+				departmentUsers, err := irs.userSvc.GetUsersByOrganizationUnit(departmentID)
+				if err != nil {
+					utility.LogError("Failed to fetch department users", map[string]interface{}{
+						"error":        err.Error(),
+						"departmentID": departmentID,
+					})
+					return
+				}
+
+				if len(departmentUsers) > 0 {
+					// Prepare user IDs for notification
+					var userIDs []uint
+					for _, user := range departmentUsers {
+						userIDs = append(userIDs, user.ID)
+					}
+
+					// Prepare notification
+					urlParam := fmt.Sprintf(`{"violation_report_id":%d}`, id)
+					queryParam := ""
+					entity := "violation-report"
+					action := "new-violation-report-create"
+
+					dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+						UserIDs:              userIDs,
+						ModuleIdentifier:     "violation_report",
+						NotificationType:     string(commonDTOs.AssignmentType),
+						HeadingEn:            "New Violation Report Assigned to Your Department",
+						HeadingAr:            "تم تعيين تقرير مخالفة جديد لقسمك",
+						TitleEn:              violationReportFormDTO.TitleEn,
+						TitleAr:              violationReportFormDTO.TitleAr,
+						Entity:               &entity,
+						Action:               &action,
+						URLParam:             urlParam,
+						QueryParam:           queryParam,
+						IsSystemNotification: false,
+						CreatedByID:          &currentUserID,
+					}
+
+					// Get creator details for email
+					createdBy, err := irs.userSvc.GetByID(currentUserID)
+					if err != nil {
+						utility.LogError("Failed to fetch creator user", map[string]interface{}{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					// Prepare email list for all department users
+					var emailTo []string
+					for _, user := range departmentUsers {
+						emailTo = append(emailTo, user.Email)
+					}
+
+					subject := fmt.Sprintf("New Violation Report: %s", violationReportFormDTO.TitleEn)
+					appURL := utility.GetAppURL()
+					emailData := map[string]interface{}{
+						"ViolationReportReferenceNumber": referenceNumber,
+						"ViolationReportTitle":           violationReportFormDTO.TitleEn,
+						"ViolationReportDescription":     violationReportFormDTO.DescriptionEn,
+						"ReportedAt":                     dates.ReportedAt.Format("2006-01-02"),
+						"CreatedByFirstNameEn":           createdBy.FirstNameEn,
+						"CreatedByLastNameEn":            createdBy.LastNameEn,
+						"CreatedOn":                      time.Now().Format("2006-01-02"),
+						"RedirectURL":                    fmt.Sprintf("%s/violation-report/register/%d/overview", appURL, id),
+					}
+
+					emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+						EmailTo:              emailTo,
+						Subject:              subject,
+						TemplateRelativePath: "violation-report/templates/email/violation_report_create_mail.html",
+						EmailData:            emailData,
+					}
+
+					// Send notification and mail
+					err = irs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "violation_report")
+					if err != nil {
+						utility.LogError("Failed to send notifications", map[string]interface{}{
+							"error": err.Error(),
+						})
+					}
+				}
+			}
 		}
 
 	}()

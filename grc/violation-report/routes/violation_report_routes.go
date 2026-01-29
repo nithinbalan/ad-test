@@ -25,6 +25,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	violationReportAssociatedItemController := app.ViolationReportModule.ViolationReportAssociatedItemController
 	violationReportInvestigationController := app.ViolationReportModule.ViolationReportInvestigationController
 	violationReportRootCauseAnalysisController := app.ViolationReportModule.ViolationReportRootCauseAnalysisController
+	violationReportActionPlanController := app.ViolationReportModule.ViolationReportActionPlanController
+	violationReportActionPlanStatusUpdateController := app.ViolationReportModule.ViolationReportActionPlanStatusUpdateController
+	violationReportActionPlanCommentController := app.ViolationReportModule.ViolationReportActionPlanCommentController
 
 	// Violation report channels
 	violationReportRoutes.GET("/violation-report-channels", violationReportChannelController.GetAllViolationReportChannels)
@@ -97,11 +100,41 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	violationReportRoutes.POST("/violation-reports/:id/investigation", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportInvestigationController.CreateViolationReportInvestigation)
 	violationReportRoutes.PUT("/violation-reports/:id/investigation", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportInvestigationController.UpdateViolationReportInvestigation)
 	violationReportRoutes.DELETE("/violation-reports/:id/investigation", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportInvestigationController.DeleteViolationReportInvestigations)
+	violationReportRoutes.PUT("/violation-report-investigation/:investigationId/notes", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportInvestigationController.UpdateInvestigationNoteAndObservations)
 
 	// Violation Report Root Cause Analyses
 	violationReportRoutes.GET("/violation-reports/:id/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportRootCauseAnalysisController.GetAllViolationReportRootCauseAnalyses)
 	violationReportRoutes.POST("/violation-reports/:id/root-cause-analysis", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportRootCauseAnalysisController.CreateViolationReportRootCauseAnalysis)
 	violationReportRoutes.PUT("/violation-reports/:id/root-cause-analysis/:rootCauseAnalysisID", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportRootCauseAnalysisController.UpdateViolationReportRootCauseAnalysis)
 	violationReportRoutes.DELETE("/violation-reports/:id/root-cause-analysis/:rootCauseAnalysisID", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportRootCauseAnalysisController.DeleteViolationReportRootCauseAnalyses)
+
+	// Violation Report Action Plan
+	violationReportRoutes.POST("/violation-report-action-plans/force-delete", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportActionPlanController.DeleteForceViolationReportActionPlans)
+	violationReportRoutes.GET("/violation-report-action-plans/export", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportActionPlanController.GetViolationReportActionPlanExport)
+	violationReportRoutes.GET("/violation-report-action-plans", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportActionPlanController.GetAllViolationReportActionPlans)
+	violationReportRoutes.GET("/violation-reports/:id/action-plans", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportActionPlanController.GetAllViolationReportActionPlans)
+	violationReportRoutes.GET("/violation-reports/:id/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportActionPlanController.GetViolationReportActionPlanDetails)
+	violationReportRoutes.POST("/violation-reports/:id/action-plans", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportActionPlanController.CreateViolationReportActionPlan)
+	violationReportRoutes.PUT("/violation-reports/:id/action-plans/:actionPlanId", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportActionPlanController.UpdateViolationReportActionPlan)
+	violationReportRoutes.POST("/violation-reports/:id/action-plans/delete", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportActionPlanController.DeleteViolationReportActionPlans)
+
+	// ViolationReport Action Plan Status Updates
+	unauthenticatedRoutes.GET("/violation-reports/:id/action-plans/:actionPlanId/status-updates/:statusUpdateId/document-preview", violationReportActionPlanStatusUpdateController.GetViolationReportActionPlanStatusUpdateDocumentPreview)
+	unauthenticatedRoutes.GET("/violation-reports/:id/action-plans/:actionPlanId/status-updates/:statusUpdateId/document-download", violationReportActionPlanStatusUpdateController.DownloadViolationReportActionPlanStatusUpdateDocument)
+	violationReportRoutes.GET("/violation-reports/:id/action-plans/:actionPlanId/status-updates", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportActionPlanStatusUpdateController.GetAllViolationReportActionPlanStatusUpdates)
+	violationReportRoutes.POST("/violation-reports/:id/action-plans/:actionPlanId/status-updates", violationReportActionPlanStatusUpdateController.CreateViolationReportActionPlanStatusUpdate)
+	violationReportRoutes.PUT("/violation-reports/:id/action-plans/:actionPlanId/status-updates/:statusUpdateId", violationReportActionPlanStatusUpdateController.UpdateViolationReportActionPlanStatusUpdate)
+	violationReportRoutes.GET("/violation-reports/:id/action-plans/:actionPlanId/status-updates/latest", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportActionPlanStatusUpdateController.GetLatestViolationReportActionPlanStatusUpdate)
+	violationReportRoutes.PUT("/violation-reports/:id/action-plans/:actionPlanId/approve", violationReportActionPlanStatusUpdateController.ApproveViolationReportActionPlan)
+	violationReportRoutes.PUT("/violation-reports/:id/action-plans/:actionPlanId/revert", violationReportActionPlanStatusUpdateController.RevertViolationReportActionPlan)
+
+	// Violation Report Action Plan Comments
+	unauthenticatedRoutes.GET("/violation-reports/:id/action-plans/:actionPlanId/comments/:commentId/document-download", violationReportActionPlanCommentController.DownloadViolationReportActionPlanCommentDocument)
+	unauthenticatedRoutes.GET("/violation-reports/:id/action-plans/:actionPlanId/comments/:commentId/document-preview", violationReportActionPlanCommentController.GetViolationReportActionPlanCommentDocumentPreview)
+	violationReportRoutes.GET("/violation-reports/:id/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportActionPlanCommentController.GetAllComments)
+	violationReportRoutes.GET("/violation-reports/:id/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportActionPlanCommentController.GetCommentDetails)
+	violationReportRoutes.POST("/violation-reports/:id/action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportActionPlanCommentController.CreateComment)
+	violationReportRoutes.PUT("/violation-reports/:id/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportActionPlanCommentController.UpdateComment)
+	violationReportRoutes.POST("/violation-reports/:id/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportActionPlanCommentController.DeleteComment)
 
 }

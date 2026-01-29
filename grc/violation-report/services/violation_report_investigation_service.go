@@ -28,6 +28,8 @@ type ViolationReportInvestigationServiceInterface interface {
 	Update(violationReportID uint, currentUserID uint, violationReportInvestigationFormDTO *violationReportDTOs.ViolationReportInvestigationFormDTO) error
 	Delete(violationReportID uint, currentUserID uint) (uint, error)
 	GetDocumentPath(violationReportID uint, token string) (string, error)
+
+	UpdateInvestigationNoteAndObservations(id uint, currentUserID uint, violationReportInvestigationFormDTO *violationReportDTOs.ViolationReportInvestigationNoteAndObservationDTO) error
 }
 
 // Service and implementations
@@ -52,15 +54,15 @@ func NewViolationReportInvestigationService(
 	}
 }
 
-func (iis *ViolationReportInvestigationService) GetAll(violationReportID uint, params *violationReportDTOs.ViolationReportInvestigationListQueryParamsDTO) (*violationReportDTOs.ViolationReportInvestigationListResponseDTO, error) {
-	if _, err := iis.violationReportSvc.GetByID(violationReportID); err != nil {
+func (vris *ViolationReportInvestigationService) GetAll(violationReportID uint, params *violationReportDTOs.ViolationReportInvestigationListQueryParamsDTO) (*violationReportDTOs.ViolationReportInvestigationListResponseDTO, error) {
+	if _, err := vris.violationReportSvc.GetByID(violationReportID); err != nil {
 		return nil, err
 	}
-	return iis.repo.GetAll(violationReportID, params)
+	return vris.repo.GetAll(violationReportID, params)
 }
 
-func (iis *ViolationReportInvestigationService) GetByID(violationReportID uint) (*models.ViolationReportInvestigation, error) {
-	violationReportInvestigation, err := iis.repo.GetByID(violationReportID)
+func (vris *ViolationReportInvestigationService) GetByID(violationReportID uint) (*models.ViolationReportInvestigation, error) {
+	violationReportInvestigation, err := vris.repo.GetByID(violationReportID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, violationReportID)
@@ -70,14 +72,14 @@ func (iis *ViolationReportInvestigationService) GetByID(violationReportID uint) 
 	return violationReportInvestigation, nil
 }
 
-func (iis *ViolationReportInvestigationService) GetFullDetailsByID(violationReportID uint, tx ...utility.DatabaseTransaction) (*violationReportDTOs.ViolationReportInvestigationDetailDTO, error) {
-	if _, err := iis.violationReportSvc.GetByID(violationReportID); err != nil {
+func (vris *ViolationReportInvestigationService) GetFullDetailsByID(violationReportID uint, tx ...utility.DatabaseTransaction) (*violationReportDTOs.ViolationReportInvestigationDetailDTO, error) {
+	if _, err := vris.violationReportSvc.GetByID(violationReportID); err != nil {
 		return nil, err
 	}
 	// Initialize your DTO
 	var violationReportInvestigationDTO violationReportDTOs.ViolationReportInvestigationDetailDTO
 
-	violationReportInvestigation, err := iis.repo.GetFullDetailsByID(violationReportID, tx...)
+	violationReportInvestigation, err := vris.repo.GetFullDetailsByID(violationReportID, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, violationReportID)
@@ -101,15 +103,15 @@ func (iis *ViolationReportInvestigationService) GetFullDetailsByID(violationRepo
 	return &violationReportInvestigationDTO, nil
 }
 
-func (iis *ViolationReportInvestigationService) Create(violationReportID uint, currentUserID uint, violationReportInvestigationFormDTO *violationReportDTOs.ViolationReportInvestigationFormDTO) (uint, error) {
-	tx := iis.repo.BeginTransaction()
-	if _, err := iis.violationReportSvc.GetByID(violationReportID); err != nil {
+func (vris *ViolationReportInvestigationService) Create(violationReportID uint, currentUserID uint, violationReportInvestigationFormDTO *violationReportDTOs.ViolationReportInvestigationFormDTO) (uint, error) {
+	tx := vris.repo.BeginTransaction()
+	if _, err := vris.violationReportSvc.GetByID(violationReportID); err != nil {
 		return 0, err
 	}
-	if err := iis.validateViolationReportInvestigationFormDTO(violationReportInvestigationFormDTO); err != nil {
+	if err := vris.validateViolationReportInvestigationFormDTO(violationReportInvestigationFormDTO); err != nil {
 		return 0, err
 	}
-	dates, err := iis.parseViolationReportInvestigationDates(violationReportInvestigationFormDTO)
+	dates, err := vris.parseViolationReportInvestigationDates(violationReportInvestigationFormDTO)
 	if err != nil {
 		return 0, err
 	}
@@ -124,11 +126,10 @@ func (iis *ViolationReportInvestigationService) Create(violationReportID uint, c
 		DisciplinaryProcedure:              violationReportInvestigationFormDTO.DisciplinaryProcedure,
 		IsDisciplinaryRegulatoryCompliance: violationReportInvestigationFormDTO.IsDisciplinaryRegulatoryCompliance,
 		ActualRecommendation:               violationReportInvestigationFormDTO.ActualRecommendation,
-		NoteAndObservations:                violationReportInvestigationFormDTO.NoteAndObservations,
 		CreatedBYID:                        currentUserID,
 	}
 
-	id, err := iis.repo.Create(violationReportInvestigation, tx)
+	id, err := vris.repo.Create(violationReportInvestigation, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -146,7 +147,7 @@ func (iis *ViolationReportInvestigationService) Create(violationReportID uint, c
 	}
 
 	if len(departments) > 0 {
-		if err := iis.repo.CreateDepartments(departments, tx); err != nil {
+		if err := vris.repo.CreateDepartments(departments, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -181,7 +182,7 @@ func (iis *ViolationReportInvestigationService) Create(violationReportID uint, c
 		documents = append(documents, document)
 	}
 	if len(documents) > 0 {
-		if err := iis.repo.CreateDocuments(documents, tx); err != nil {
+		if err := vris.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -197,14 +198,14 @@ func (iis *ViolationReportInvestigationService) Create(violationReportID uint, c
 	tx.Commit()
 
 	go func() {
-		existingViolationReportInvestigation, err := iis.GetFullDetailsByID(violationReportID)
+		existingViolationReportInvestigation, err := vris.GetFullDetailsByID(violationReportID)
 		if err != nil {
 			utility.LogError("Failed to fetch violation report investigation", map[string]interface{}{
 				"error": err.Error(),
 			})
 			return
 		}
-		err = iis.activityLogSvc.LogActivity(
+		err = vris.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.ViolationReportInvestigation{}.TableName(),
 			id,
@@ -228,24 +229,24 @@ func (iis *ViolationReportInvestigationService) Create(violationReportID uint, c
 	return id, nil
 }
 
-func (iis *ViolationReportInvestigationService) Update(violationReportID uint, currentUserID uint, violationReportInvestigationFormDTO *violationReportDTOs.ViolationReportInvestigationFormDTO) error {
-	tx := iis.repo.BeginTransaction()
-	if _, err := iis.violationReportSvc.GetByID(violationReportID); err != nil {
+func (vris *ViolationReportInvestigationService) Update(violationReportID uint, currentUserID uint, violationReportInvestigationFormDTO *violationReportDTOs.ViolationReportInvestigationFormDTO) error {
+	tx := vris.repo.BeginTransaction()
+	if _, err := vris.violationReportSvc.GetByID(violationReportID); err != nil {
 		return err
 	}
-	if err := iis.validateViolationReportInvestigationFormDTO(violationReportInvestigationFormDTO); err != nil {
+	if err := vris.validateViolationReportInvestigationFormDTO(violationReportInvestigationFormDTO); err != nil {
 		return err
 	}
-	dates, err := iis.parseViolationReportInvestigationDates(violationReportInvestigationFormDTO)
+	dates, err := vris.parseViolationReportInvestigationDates(violationReportInvestigationFormDTO)
 	if err != nil {
 		return err
 	}
-	oldViolationReportInvestigation, err := iis.GetFullDetailsByID(violationReportID)
+	oldViolationReportInvestigation, err := vris.GetFullDetailsByID(violationReportID)
 	if err != nil {
 		return err
 	}
 	// Update existing Violation Report Investigation
-	existingViolationReportInvestigation, err := iis.repo.GetByID(violationReportID)
+	existingViolationReportInvestigation, err := vris.repo.GetByID(violationReportID)
 	if err != nil {
 		return err
 	}
@@ -261,16 +262,15 @@ func (iis *ViolationReportInvestigationService) Update(violationReportID uint, c
 	existingViolationReportInvestigation.DisciplinaryProcedure = violationReportInvestigationFormDTO.DisciplinaryProcedure
 	existingViolationReportInvestigation.IsDisciplinaryRegulatoryCompliance = violationReportInvestigationFormDTO.IsDisciplinaryRegulatoryCompliance
 	existingViolationReportInvestigation.ActualRecommendation = violationReportInvestigationFormDTO.ActualRecommendation
-	existingViolationReportInvestigation.NoteAndObservations = violationReportInvestigationFormDTO.NoteAndObservations
 	existingViolationReportInvestigation.UpdatedBYID = &currentUserID
 
-	err = iis.repo.Update(existingViolationReportInvestigation, tx)
+	err = vris.repo.Update(existingViolationReportInvestigation, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 	// Collect existing department IDs
-	existingViolationReportInvestigationDetails, err := iis.repo.GetFullDetailsByID(violationReportID, tx)
+	existingViolationReportInvestigationDetails, err := vris.repo.GetFullDetailsByID(violationReportID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -299,7 +299,7 @@ func (iis *ViolationReportInvestigationService) Update(violationReportID uint, c
 	}
 	// Save the new departments
 	if len(departments) > 0 {
-		if err := iis.repo.CreateDepartments(departments, tx); err != nil {
+		if err := vris.repo.CreateDepartments(departments, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -315,7 +315,7 @@ func (iis *ViolationReportInvestigationService) Update(violationReportID uint, c
 	}
 	// Delete the departments
 	if len(deleteDepartmentIDs) > 0 {
-		if err := iis.repo.DeleteDepartments(deleteDepartmentIDs, tx); err != nil {
+		if err := vris.repo.DeleteDepartments(deleteDepartmentIDs, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -349,7 +349,7 @@ func (iis *ViolationReportInvestigationService) Update(violationReportID uint, c
 			documents = append(documents, document)
 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile {
 			if doc.ID != nil {
-				existingDocument, err := iis.repo.GetDocumentByID(*doc.ID)
+				existingDocument, err := vris.repo.GetDocumentByID(*doc.ID)
 				if err != nil {
 					return err
 				}
@@ -365,13 +365,13 @@ func (iis *ViolationReportInvestigationService) Update(violationReportID uint, c
 
 	// Save Document
 	if len(documents) > 0 {
-		if err := iis.repo.CreateDocuments(documents, tx); err != nil {
+		if err := vris.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
 	if len(deleteDocumentIDs) > 0 {
-		if err := iis.repo.DeleteDocuments(deleteDocumentIDs, tx); err != nil {
+		if err := vris.repo.DeleteDocuments(deleteDocumentIDs, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -402,7 +402,7 @@ func (iis *ViolationReportInvestigationService) Update(violationReportID uint, c
 	tx.Commit()
 
 	go func() {
-		existingViolationReportInvestigation, err := iis.GetFullDetailsByID(violationReportID)
+		existingViolationReportInvestigation, err := vris.GetFullDetailsByID(violationReportID)
 		if err != nil {
 			return
 		}
@@ -463,7 +463,7 @@ func (iis *ViolationReportInvestigationService) Update(violationReportID uint, c
 		}
 		// Log activity if there are any changes
 		if len(changedData) > 0 {
-			err := iis.activityLogSvc.LogActivity(
+			err := vris.activityLogSvc.LogActivity(
 				models.UpdateAction,
 				models.ViolationReportInvestigation{}.TableName(),
 				existingViolationReportInvestigation.ID,
@@ -488,16 +488,16 @@ func (iis *ViolationReportInvestigationService) Update(violationReportID uint, c
 	return nil
 }
 
-func (iis *ViolationReportInvestigationService) Delete(violationReportID uint, currentUserID uint) (uint, error) {
-	tx := iis.repo.BeginTransaction()
+func (vris *ViolationReportInvestigationService) Delete(violationReportID uint, currentUserID uint) (uint, error) {
+	tx := vris.repo.BeginTransaction()
 	var failedId uint
 	var deletedViolationReportInvestigation []map[string]interface{}
 	documentsToDelete := make(map[uint][]*models.ViolationReportInvestigationDocument)
 
-	if _, err := iis.violationReportSvc.GetByID(violationReportID); err != nil {
+	if _, err := vris.violationReportSvc.GetByID(violationReportID); err != nil {
 		return 0, err
 	}
-	violationReportInvestigation, err := iis.repo.GetFullDetailsByID(violationReportID, tx)
+	violationReportInvestigation, err := vris.repo.GetFullDetailsByID(violationReportID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -508,7 +508,7 @@ func (iis *ViolationReportInvestigationService) Delete(violationReportID uint, c
 		for _, dept := range violationReportInvestigation.Departments {
 			deleteDepartmentIds = append(deleteDepartmentIds, &dept.ID)
 		}
-		if err := iis.repo.DeleteDepartments(deleteDepartmentIds, tx); err != nil {
+		if err := vris.repo.DeleteDepartments(deleteDepartmentIds, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -521,12 +521,12 @@ func (iis *ViolationReportInvestigationService) Delete(violationReportID uint, c
 			documentsToDelete[violationReportInvestigation.ID] = append(documentsToDelete[violationReportInvestigation.ID], doc)
 			deleteDocumentIds = append(deleteDocumentIds, &doc.ID)
 		}
-		if err := iis.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
+		if err := vris.repo.DeleteDocuments(deleteDocumentIds, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
 	}
-	if err = iis.repo.Delete(uint(violationReportInvestigation.ID), tx); err != nil {
+	if err = vris.repo.Delete(uint(violationReportInvestigation.ID), tx); err != nil {
 		failedId = uint(violationReportInvestigation.ID)
 		return failedId, err
 	}
@@ -548,7 +548,7 @@ func (iis *ViolationReportInvestigationService) Delete(violationReportID uint, c
 	tx.Commit()
 	// Log successful delete activity
 	go func() {
-		err := iis.activityLogSvc.LogActivity(
+		err := vris.activityLogSvc.LogActivity(
 			models.DeleteAction,
 			models.ViolationReportInvestigation{}.TableName(),
 			uint(violationReportInvestigation.ID),
@@ -565,7 +565,7 @@ func (iis *ViolationReportInvestigationService) Delete(violationReportID uint, c
 	return failedId, nil
 }
 
-func (iis *ViolationReportInvestigationService) validateViolationReportInvestigationFormDTO(violationReportInvestigationFormDTO *violationReportDTOs.ViolationReportInvestigationFormDTO) error {
+func (vris *ViolationReportInvestigationService) validateViolationReportInvestigationFormDTO(violationReportInvestigationFormDTO *violationReportDTOs.ViolationReportInvestigationFormDTO) error {
 	// Validate ActualRecommendation when IsDisciplinaryRegulatoryCompliance is false
 	if violationReportInvestigationFormDTO.IsDisciplinaryRegulatoryCompliance != nil &&
 		!*violationReportInvestigationFormDTO.IsDisciplinaryRegulatoryCompliance {
@@ -597,7 +597,7 @@ func (iis *ViolationReportInvestigationService) validateViolationReportInvestiga
 		}
 
 		// Note: Add department validation here if you have an organization service
-		// if _, err := iis.organizationSvc.GetOrganizationUnitByID(*dept); err != nil {
+		// if _, err := vris.organizationSvc.GetOrganizationUnitByID(*dept); err != nil {
 		// 	return utility.NewValidationError(fmt.Errorf("department does not exist for ID: %d", dept), "not_exist", "department")
 		// }
 
@@ -608,7 +608,7 @@ func (iis *ViolationReportInvestigationService) validateViolationReportInvestiga
 	return nil
 }
 
-func (iis *ViolationReportInvestigationService) parseViolationReportInvestigationDates(dto *violationReportDTOs.ViolationReportInvestigationFormDTO) (*violationReportDTOs.ViolationReportInvestigationParsedDates, error) {
+func (vris *ViolationReportInvestigationService) parseViolationReportInvestigationDates(dto *violationReportDTOs.ViolationReportInvestigationFormDTO) (*violationReportDTOs.ViolationReportInvestigationParsedDates, error) {
 	if dto.InvestigationDate == "" {
 		return nil, utility.NewValidationError(fmt.Errorf("investigation date is required"), "required", "investigation date")
 	}
@@ -625,8 +625,8 @@ func (iis *ViolationReportInvestigationService) parseViolationReportInvestigatio
 	parsed.InvestigationDate = *parsedDate
 	return parsed, nil
 }
-func (iis *ViolationReportInvestigationService) GetDocumentPath(violationReportID uint, token string) (string, error) {
-	existingViolationReportInvestigation, err := iis.GetFullDetailsByID(violationReportID)
+func (vris *ViolationReportInvestigationService) GetDocumentPath(violationReportID uint, token string) (string, error) {
+	existingViolationReportInvestigation, err := vris.GetFullDetailsByID(violationReportID)
 	if err != nil {
 		return "", err
 	}
@@ -662,4 +662,41 @@ func (iis *ViolationReportInvestigationService) GetDocumentPath(violationReportI
 	}
 
 	return fullPath, nil
+}
+
+func (vris *ViolationReportInvestigationService) UpdateInvestigationNoteAndObservations(id uint, currentUserID uint, dto *violationReportDTOs.ViolationReportInvestigationNoteAndObservationDTO) error {
+	// Get existing investigation for audit log
+	existing, err := vris.repo.GetInvestigationByID(id)
+	if err != nil {
+		return err
+	}
+	tx := vris.repo.BeginTransaction()
+	// Update the note
+	if err := vris.repo.UpdateNoteAndObservations(id, dto.NoteAndObservations, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	// Log the activity
+	go func() {
+		changedData := map[string]interface{}{
+			"note_and_observations": map[string]interface{}{
+				"old": existing.NoteAndObservations,
+				"new": dto.NoteAndObservations,
+			},
+		}
+
+		_ = vris.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.ViolationReportInvestigation{}.TableName(),
+			id,
+			changedData,
+			currentUserID,
+			"violation_report", "violation_report_register", "investigation", nil,
+		)
+	}()
+
+	return nil
 }

@@ -18,6 +18,7 @@ type ViolationReportInvestigationRepositoryInterface interface {
 	Create(violationReportInvestigation *models.ViolationReportInvestigation, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(violationReportInvestigation *models.ViolationReportInvestigation, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	GetInvestigationByID(id uint) (*models.ViolationReportInvestigation, error)
 
 	//Department
 	CreateDepartments(departments []*models.ViolationReportInvestigationDepartment, tx ...utility.DatabaseTransaction) error
@@ -27,6 +28,9 @@ type ViolationReportInvestigationRepositoryInterface interface {
 	CreateDocuments(docs []*models.ViolationReportInvestigationDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.ViolationReportInvestigationDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	//Note and Observations
+	UpdateNoteAndObservations(id uint, note *string, tx ...utility.DatabaseTransaction) error
 }
 
 type ViolationReportInvestigationRepository struct {
@@ -355,4 +359,28 @@ func (repo *ViolationReportInvestigationRepository) DeleteDocuments(docIds []*ui
 	}
 
 	return nil
+}
+
+func (repo *ViolationReportInvestigationRepository) UpdateNoteAndObservations(id uint, note *string, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Model(&models.ViolationReportInvestigation{}).
+		Where("id = ?", id).
+		Updates(map[string]interface{}{
+			"note_and_observations": note,
+		}).Error
+}
+
+func (repo *ViolationReportInvestigationRepository) GetInvestigationByID(id uint) (*models.ViolationReportInvestigation, error) {
+	var violationReportInvestigation *models.ViolationReportInvestigation
+
+	result := repo.db.Where("id = ?", id).First(&violationReportInvestigation)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return violationReportInvestigation, nil
+
 }

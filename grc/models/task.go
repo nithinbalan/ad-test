@@ -38,6 +38,7 @@ type Task struct {
 	SeverityLevelID                 *uint      `json:"severity_level_id"`
 	ResponsibleUserID               uint       `json:"responsible_user_id"`
 	TaskStatusID                    uint       `json:"task_status_id" binding:"required"`
+	ViolationReportActionPlanID     *uint      `json:"violation_report_action_plan_id"`
 	DelegateeUserID                 *uint      `json:"delegatee_user_id"`
 	CreatedAt                       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                       *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
@@ -45,23 +46,24 @@ type Task struct {
 	UpdatedByID                     uint       `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	Module                  *Module                  `gorm:"foreignKey:ModuleID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ComplianceActionPlan    *ComplianceActionPlan    `gorm:"foreignKey:ComplianceActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	SLAActionPlan           *SLAActionPlan           `gorm:"foreignKey:SLAActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	IncidentActionPlan      *IncidentActionPlan      `gorm:"foreignKey:IncidentActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ControlActionPlan       *ControlActionPlan       `gorm:"foreignKey:ControlActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RiskActionPlan          *RiskActionPlan          `gorm:"foreignKey:RiskActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`         // New relationship added
-	MeetingActionPlan       *MeetingActionPlan       `gorm:"foreignKey:MeetingActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`      // New relationship added
-	AuditFindingActionPlan  *AuditFindingActionPlan  `gorm:"foreignKey:AuditFindingActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"` // New relationship added
-	ProjectActionPlan       *ProjectActionPlan       `gorm:"foreignKey:ProjectActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ThreatActionPlan        *ThreatActionPlan        `gorm:"foreignKey:ThreatActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	VulnerabilityActionPlan *VulnerabilityActionPlan `gorm:"foreignKey:VulnerabilityActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	SeverityLevel           *SeverityLevel           `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ResponsibleUser         *User                    `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	TaskStatus              *TaskStatus              `gorm:"foreignKey:TaskStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	DelegateeUser           *User                    `gorm:"foreignKey:DelegateeUserID"`
-	CreatedByUser           *User                    `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser           *User                    `gorm:"foreignKey:UpdatedByID"`
+	Module                    *Module                    `gorm:"foreignKey:ModuleID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ComplianceActionPlan      *ComplianceActionPlan      `gorm:"foreignKey:ComplianceActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	SLAActionPlan             *SLAActionPlan             `gorm:"foreignKey:SLAActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	IncidentActionPlan        *IncidentActionPlan        `gorm:"foreignKey:IncidentActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ControlActionPlan         *ControlActionPlan         `gorm:"foreignKey:ControlActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskActionPlan            *RiskActionPlan            `gorm:"foreignKey:RiskActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`         // New relationship added
+	MeetingActionPlan         *MeetingActionPlan         `gorm:"foreignKey:MeetingActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`      // New relationship added
+	AuditFindingActionPlan    *AuditFindingActionPlan    `gorm:"foreignKey:AuditFindingActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"` // New relationship added
+	ProjectActionPlan         *ProjectActionPlan         `gorm:"foreignKey:ProjectActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ThreatActionPlan          *ThreatActionPlan          `gorm:"foreignKey:ThreatActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	VulnerabilityActionPlan   *VulnerabilityActionPlan   `gorm:"foreignKey:VulnerabilityActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	SeverityLevel             *SeverityLevel             `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ResponsibleUser           *User                      `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	TaskStatus                *TaskStatus                `gorm:"foreignKey:TaskStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ViolationReportActionPlan *ViolationReportActionPlan `gorm:"foreignKey:ViolationReportActionPlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	DelegateeUser             *User                      `gorm:"foreignKey:DelegateeUserID"`
+	CreatedByUser             *User                      `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser             *User                      `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by Task to `tasks`

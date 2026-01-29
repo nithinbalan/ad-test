@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	violationReportDTOs "jethur/grc/violation-report/dtos"
 	"jethur/grc/violation-report/services"
@@ -116,7 +115,13 @@ func (vrc *ViolationReportController) GetAllViolationReports(c *gin.Context) {
 		Export:      export,
 	}
 
-	reports, err := vrc.service.GetAll(&queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(vrc.db, c, err.Error())
+		return
+	}
+
+	reports, err := vrc.service.GetAll(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(vrc.db, c, err.Error())
 		return
@@ -167,7 +172,6 @@ func (vrc *ViolationReportController) GetViolationReportDetails(c *gin.Context) 
 }
 
 func (vrc *ViolationReportController) CreateViolationReport(c *gin.Context) {
-	fmt.Println("hi")
 	var form violationReportDTOs.ViolationReportFormDTO
 
 	if err := c.ShouldBindJSON(&form); err != nil {
