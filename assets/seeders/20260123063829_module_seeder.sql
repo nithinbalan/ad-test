@@ -17,8 +17,8 @@ UPDATE modules
 SET
     module_id = @parentConsultationID,
     [order] = 1,
-    identifier = 'consultation',
-    route = '/consultation/requests'
+    identifier = 'consultation_request_register',
+    route = '/consultation-request/register'
 WHERE identifier = 'consultation_request'
   AND module_id IS NOT NULL;
 

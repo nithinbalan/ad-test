@@ -5,7 +5,7 @@
 -- Create Consultation Request main module (NO permissions)
 INSERT INTO modules (identifier, title_en, title_ar, module_id, [order], icon, route)
 VALUES
-    ('consultation_request', 'Consultation Request', 'طلب استشارة', NULL, 15, 'icon-consultation.svg', '/consultations');
+    ('consultation_request', 'Consultation Request', 'طلب استشارة', NULL, 15, 'icon-consultation.svg', '/consultation-request');
 
 
 -- +goose StatementEnd
