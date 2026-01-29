@@ -182,14 +182,14 @@ func (vrapsus *ViolationReportActionPlanStatusUpdateService) Create(ViolationRep
 	if violationReportActionPlanStatusUpdateFormDTO.ActionPlanStatusID == actionPlanStatus.ID && violationReportActionPlan.ReviewUserID != nil {
 		urlParam := fmt.Sprintf(`{"violation_report_id":%d, "action_plan_id":%d}`, ViolationReportID, ViolationReportActionPlanID)
 		taskDTO := commonDTOs.TaskFormDTO{
-			ModuleIdentifier:     "violation_report_register",
-			IncidentActionPlanID: &ViolationReportActionPlanID,
-			Title:                violationReportActionPlan.Title,
-			Description:          violationReportActionPlan.Description,
-			URLParam:             &urlParam,
-			QueryParam:           nil,
-			SeverityLevelID:      violationReportActionPlan.SeverityLevelID,
-			ResponsibleUserID:    *violationReportActionPlan.ReviewUserID,
+			ModuleIdentifier:            "violation_report_register",
+			ViolationReportActionPlanID: &ViolationReportActionPlanID,
+			Title:                       violationReportActionPlan.Title,
+			Description:                 violationReportActionPlan.Description,
+			URLParam:                    &urlParam,
+			QueryParam:                  nil,
+			SeverityLevelID:             violationReportActionPlan.SeverityLevelID,
+			ResponsibleUserID:           *violationReportActionPlan.ReviewUserID,
 		}
 
 		if _, err := vrapsus.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
