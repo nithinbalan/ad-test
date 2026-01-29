@@ -27,9 +27,9 @@ type ConsultationRequest struct {
 	RequestingDepartmentUnit  *OrganizationUnit          `gorm:"foreignKey:RequestingDepartmentUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ConsultedDepartmentUnit   *OrganizationUnit          `gorm:"foreignKey:ConsultedDepartmentUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ConsultationRequestStatus *ConsultationRequestStatus `gorm:"foreignKey:ConsultationRequestStatusID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
-	CreatedByUser             *User                      `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	UpdatedByUser             *User                      `gorm:"foreignKey:UpdatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`	
-	
+	CreatedByUser             *User                      `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	UpdatedByUser             *User                      `gorm:"foreignKey:UpdatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+
 	Comments []*ConsultationRequestComment `gorm:"foreignKey:ConsultationRequestID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 

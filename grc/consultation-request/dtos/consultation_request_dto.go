@@ -23,9 +23,12 @@ type ConsultationRequestListDTO struct {
 	RequestDetails string `json:"request_details"`
 
 	ResponsibleUserID      *uint  `json:"responsible_user_id"`
-	ResponsibleFirstNameEn string `json:"responsible_first_name_en"`
-	ResponsibleLastNameEn  string `json:"responsible_last_name_en"`
-	ResponsibleEmail       string `json:"responsible_email"`
+	ResponsibleFirstNameEn string `json:"responsible_user_first_name_en"`
+	ResponsibleLastNameEn  string `json:"responsible_user_last_name_en"`
+	ResponsibleEmail       string `json:"responsible_user_email"`
+	ResponsibleFirstNameAr string `json:"responsible_user_first_name_ar"` // Arabic first name
+	ResponsibleLastNameAr  string `json:"responsible_user_last_name_ar"`  // Arabic last name
+	ResponsibleInitial     string `json:"responsible_user_initial"`
 
 	ConsultationRequestStatusID uint   `json:"consultation_request_status_id"`
 	StatusTitleEn               string `json:"status_title_en"`
@@ -35,15 +38,25 @@ type ConsultationRequestListDTO struct {
 	ReplyDate *string `json:"reply_date"`
 	Notes     *string `json:"notes"`
 
-	CreatedAt            time.Time `json:"created_at"`
-	CreatedByID          uint      `json:"created_by_id"`
-	CreatedByFirstNameEn string    `json:"created_by_first_name_en"`
-	CreatedByLastNameEn  string    `json:"created_by_last_name_en"`
+	CreatedAt             time.Time `json:"created_at"`
+	CreatedByID           uint      `json:"created_by_id"`
+	CreatedByFirstNameEn  string    `json:"created_by_first_name_en"`
+	CreatedByLastNameEn   string    `json:"created_by_last_name_en"`
+	CreatedByFirstNameAr  string    `json:"created_by_first_name_ar"`
+	CreatedByLastNameAr   string    `json:"created_by_last_name_ar"`
+	CreatedByInitial      string    `json:"created_by_initial"` // initials
+	CreatedByEmail        string    `json:"created_by_email"`
+	CreatedByColor        string    `json:"created_by_color"`
+	CreatedByProfileImage string    `json:"created_by_profile_image_path"`
 
-	UpdatedByID          *uint   `json:"updated_by_id"`
-	UpdatedByFirstNameEn string  `json:"updated_by_first_name_en"`
-	UpdatedByLastNameEn  string  `json:"updated_by_last_name_en"`
-	UpdatedAt            *string `json:"updated_at"`
+	UpdatedByFirstNameEn  string `json:"updated_by_first_name_en"`
+	UpdatedByLastNameEn   string `json:"updated_by_last_name_en"`
+	UpdatedByFirstNameAr  string `json:"updated_by_first_name_ar"` // Arabic first name
+	UpdatedByLastNameAr   string `json:"updated_by_last_name_ar"`  // Arabic last name
+	UpdatedByInitial      string `json:"updated_by_initial"`       // initials
+	UpdatedByEmail        string `json:"updated_by_email"`
+	UpdatedByColor        string `json:"updated_by_color"`
+	UpdatedByProfileImage string `json:"updated_by_profile_image_path"`
 }
 type ConsultationRequestListQueryParamsDTO struct {
 	Sort     string

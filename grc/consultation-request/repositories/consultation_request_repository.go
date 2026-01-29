@@ -54,13 +54,38 @@ func (repo *ConsultationRequestRepository) GetAll(params *dtos.ConsultationReque
 		req_unit.title_ar AS requesting_department_unit_title_ar,
 		con_unit.title_en AS consulted_department_unit_title_en,
 		con_unit.title_ar AS consulted_department_unit_title_ar,
+
+		resp_user.id           AS responsible_user_id,
+		resp_user.first_name_en AS responsible_first_name_en,
 		resp_user.first_name_en AS responsible_first_name_en,
 		resp_user.last_name_en  AS responsible_last_name_en,
+		resp_user.first_name_ar AS responsible_first_name_ar,   -- Arabic first name
+		resp_user.last_name_ar  AS responsible_last_name_ar,    -- Arabic last name
+		resp_user.initial       AS responsible_initial,        -- initials
 		resp_user.email         AS responsible_email,
+		resp_user.color         AS responsible_color,
+		resp_user.profile_image_path AS responsible_profile_image_path,
+	
+		created_user.id           AS created_by_id,
 		created_user.first_name_en AS created_by_first_name_en,
 		created_user.last_name_en  AS created_by_last_name_en,
+		created_user.first_name_ar AS created_by_first_name_ar,   
+		created_user.last_name_ar  AS created_by_last_name_ar,    
+		created_user.initial       AS created_by_initial,         
+		created_user.email         AS created_by_email,
+		created_user.color         AS created_by_color,
+		created_user.profile_image_path AS created_by_profile_image_path,
+
+
+		updated_user.id           AS updated_by_id,
 		updated_user.first_name_en AS updated_by_first_name_en,
-		updated_user.last_name_en  AS updated_by_last_name_en
+		updated_user.last_name_en  AS updated_by_last_name_en,
+		updated_user.first_name_ar AS updated_by_first_name_ar,   
+		updated_user.last_name_ar  AS updated_by_last_name_ar,    
+		updated_user.initial       AS updated_by_initial,         
+		updated_user.email         AS updated_by_email,
+		updated_user.color         AS updated_by_color,
+		updated_user.profile_image_path AS updated_by_profile_image_path
 	`).
 		Joins(`LEFT JOIN consultation_request_statuses ON consultation_request_statuses.id = consultation_requests.consultation_request_status_id`).
 		Joins(`LEFT JOIN organization_units AS req_unit ON req_unit.id = consultation_requests.requesting_department_unit_id`).
