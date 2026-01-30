@@ -204,7 +204,7 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 			}
 		}
 		if !authorized {
-			return 0, utility.NewForbiddenError("you do not have authority to update responsible user")
+			return 0, utility.NewForbiddenError("you do not have authority to update status")
 		}
 	} else {
 		for _, u := range consUsers {
@@ -214,7 +214,7 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 			}
 		}
 		if !authorized {
-			return 0, utility.NewForbiddenError("you do not have authority to update responsible user")
+			return 0, utility.NewForbiddenError("you do not have authority to update status")
 		}
 	}
 
