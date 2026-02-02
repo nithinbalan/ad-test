@@ -80,7 +80,7 @@ type ConsultationRequestFormDTO struct {
 	// Notes                       *string `json:"notes,omitempty"`
 }
 type ConsultationRequestCommentFormDTO struct {
-	ConsultationRequestStatusID uint   `json:"consultation_request_status_id"`
+	ConsultationRequestStatusID *uint  `json:"consultation_request_status_id"`
 	Comment                     string `json:"comment" binding:"required"`
 }
 
@@ -121,14 +121,14 @@ type ConsultationRequestCommentListDTO struct {
 	Comment               string `json:"comment"`                 // The actual comment text
 
 	// Status fields (flattened into the comment DTO)
-	ConsultationRequestStatusID uint      `json:"consultation_request_status_id,omitempty"`
-	StatusTitleEn               string    `json:"status_title_en,omitempty"`
-	StatusTitleAr               string    `json:"status_title_ar,omitempty"`
-	StatusDescriptionEn         string    `json:"status_description_en,omitempty"`
-	StatusDescriptionAr         string    `json:"status_description_ar,omitempty"`
-	StatusType                  string    `json:"status_type,omitempty"`
-	Status                      string    `json:"status,omitempty"`
-	StatusCreatedAt             time.Time `json:"status_created_at,omitempty"`
+	ConsultationRequestStatusID uint       `json:"consultation_request_status_id,omitempty"`
+	StatusTitleEn               string     `json:"status_title_en,omitempty"`
+	StatusTitleAr               string     `json:"status_title_ar,omitempty"`
+	StatusDescriptionEn         string     `json:"status_description_en,omitempty"`
+	StatusDescriptionAr         string     `json:"status_description_ar,omitempty"`
+	StatusType                  string     `json:"status_type,omitempty"`
+	Status                      string     `json:"status,omitempty"`
+	StatusCreatedAt             *time.Time `json:"status_created_at,omitempty"`
 
 	CreatedAt            time.Time `json:"created_at"`
 	CreatedByID          uint      `json:"created_by_id"`

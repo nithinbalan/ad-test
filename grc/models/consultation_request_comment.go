@@ -5,7 +5,7 @@ import "time"
 type ConsultationRequestComment struct {
 	ID                          uint   `json:"id" gorm:"primaryKey;autoIncrement"`
 	ConsultationRequestID       uint   `json:"consultation_request_id" gorm:"not null"`
-	ConsultationRequestStatusID uint   `json:"consultation_request_status_id" gorm:"not null"`
+	ConsultationRequestStatusID *uint  `json:"consultation_request_status_id" gorm:"not null"`
 	Comment                     string `json:"comment" gorm:"type:nvarchar(MAX);not null"`
 
 	// Audit Fields
