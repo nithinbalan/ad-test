@@ -169,7 +169,10 @@ func (repo *ConsultationRequestRepository) GetAllConsultationRequestComments(con
 			consultation_request_comments.created_at,
 			users.id AS created_by_id,
 			users.first_name_en AS created_by_first_name_en,
-			users.last_name_en AS created_by_last_name_en
+			users.last_name_en AS created_by_last_name_en,
+			users.first_name_ar AS created_by_first_name_ar,
+			users.last_name_ar AS created_by_last_name_ar,
+			users.initial As created_by_initial
 		`).
 		Joins(`LEFT JOIN consultation_request_statuses ON consultation_request_statuses.id = consultation_request_comments.consultation_request_status_id`).
 		Joins(`LEFT JOIN users ON users.id = consultation_request_comments.created_by_id`).

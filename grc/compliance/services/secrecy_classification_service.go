@@ -50,7 +50,15 @@ func (scs *SecrecyClassificationService) Create(currentUserID uint, classificati
 	} else if exists {
 		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 	}
-
+	if exists, err := scs.repo.ExistsByType(classification.Type); err != nil {
+		return nil, err
+	} else if exists {
+		return nil, utility.NewValidationError(
+			fmt.Errorf("the type must be unique"),
+			"unique",
+			"type",
+		)
+	}
 	createdClassification, err := scs.repo.Create(classification)
 	if err != nil {
 		return nil, err
@@ -86,7 +94,17 @@ func (scs *SecrecyClassificationService) Update(id uint, currentUserID uint, upd
 			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
 		}
 	}
-
+	if updatedClassification.Type != existing.Type {
+		if exists, err := scs.repo.ExistsByTypeExcludingID(id, updatedClassification.Type); err != nil {
+			return nil, err
+		} else if exists {
+			return nil, utility.NewValidationError(
+				fmt.Errorf("the type must be unique"),
+				"unique",
+				"type",
+			)
+		}
+	}
 	result, err := scs.repo.Update(id, updatedClassification)
 	if err != nil {
 		return nil, err
