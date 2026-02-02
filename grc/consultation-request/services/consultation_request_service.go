@@ -125,17 +125,22 @@ func (s *ConsultationRequestService) Create(currentUserID uint, dto *dtos.Consul
 	if err != nil {
 		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "bcp communication plan responsible unit")
 	}
+	status, err := s.statusSvc.GetByType("new")
+	if err != nil {
+		return 0, err
+	}
 	tx := s.repo.BeginTransaction()
 
 	request := &models.ConsultationRequest{
-		Title:                      dto.Title,
-		ReferenceNumber:            referenceNumber,
-		DateRaised:                 time.Now(),
-		RequestingDepartmentUnitID: responsibleUnitID,
-		ConsultedDepartmentUnitID:  dto.ConsultedDepartmentID,
-		RequestDetails:             dto.RequestDetails,
-		CreatedBYID:                currentUserID,
-		CreatedAt:                  time.Now(),
+		Title:                       dto.Title,
+		ReferenceNumber:             referenceNumber,
+		DateRaised:                  time.Now(),
+		RequestingDepartmentUnitID:  responsibleUnitID,
+		ConsultedDepartmentUnitID:   dto.ConsultedDepartmentID,
+		ConsultationRequestStatusID: &status.ID,
+		RequestDetails:              dto.RequestDetails,
+		CreatedBYID:                 currentUserID,
+		CreatedAt:                   time.Now(),
 	}
 
 	id, err := s.repo.Create(request, tx)
