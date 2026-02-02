@@ -230,7 +230,7 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 
 		authorized := false
 
-		if status.Type == "closed" {
+		if status.Type == "closed" || status.Type == "reopened" {
 			for _, u := range reqUsers {
 				if u.ID == currentUserID {
 					authorized = true
