@@ -276,8 +276,9 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 		return 0, err
 	}
 
-	// 5️⃣ Optional: update consultation request status
-	existingRequest.ConsultationRequestStatusID = dto.ConsultationRequestStatusID
+	if dto.ConsultationRequestStatusID != nil {
+		existingRequest.ConsultationRequestStatusID = dto.ConsultationRequestStatusID
+	}
 	existingRequest.UpdatedByID = &currentUserID
 	existingRequest.UpdatedAt = &now
 
