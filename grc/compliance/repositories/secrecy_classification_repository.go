@@ -12,6 +12,7 @@ import (
 type SecrecyClassificationRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceSecrecyClassification, error)
 	GetByID(id uint) (*models.ComplianceSecrecyClassification, error)
+	GetByType(t string) (*models.ComplianceSecrecyClassification, error)
 	Create(classification *models.ComplianceSecrecyClassification) (*models.ComplianceSecrecyClassification, error)
 	Update(id uint, classification *models.ComplianceSecrecyClassification) (*models.ComplianceSecrecyClassification, error)
 	Delete(id uint) error
@@ -62,6 +63,19 @@ func (repo *SecrecyClassificationRepository) GetByID(id uint) (*models.Complianc
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return classification, nil
+}
+
+func (repo *SecrecyClassificationRepository) GetByType(t string) (*models.ComplianceSecrecyClassification, error) {
+	var classification *models.ComplianceSecrecyClassification
+	result := repo.db.Where("type = ?", t).First(&classification)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, utility.NewResourceNotFoundError(result.Error, t)
 	} else if result.Error != nil {
 		return nil, result.Error
 	}

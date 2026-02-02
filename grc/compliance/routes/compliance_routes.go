@@ -60,6 +60,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceAssessmentControlActionPlanStatusUpdateController := app.ComplianceModule.ComplianceAssessmentControlActionPlanStatusUpdateController
 	complianceAssessmentControlActionPlanCommentController := app.ComplianceModule.ComplianceAssessmentControlActionPlanCommentController
 	complianceDetailDashboardController := app.ComplianceModule.ComplianceDetailDashboardController
+	complianceAssessmentImpactTypeController := app.ComplianceModule.ComplianceAssessmentImpactTypeController
+	complianceAssessmentRatingController := app.ComplianceModule.ComplianceAssessmentRatingController
 
 	// consultationRequestStatusController := app.ComplianceModule.ConsultationRequestStatusController
 	LegislativeBodyController := app.ComplianceModule.LegislativeBodyController
@@ -547,4 +549,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliances/:complianceId/dashboard/overview/action-plans", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetActionPlanOverview)
 	complianceRoutes.GET("/compliances/:complianceId/dashboard/summary/action-plan-statuses", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetActionPlanStatusSummary)
 	complianceRoutes.GET("/compliances/:complianceId/dashboard/summary/action-plan-organization-units", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDetailDashboardController.GetActionPlansByOrganizationUnit)
+
+	complianceRoutes.GET("/compliance-assessment-impact-types", complianceAssessmentImpactTypeController.GetAllComplianceAssessmentImpactTypes)
+	complianceRoutes.GET("/compliance-assessment-impact-types/:id", complianceAssessmentImpactTypeController.GetComplianceAssessmentImpactTypeDetails)
+
+	complianceRoutes.GET("/compliance-assessment-ratings", complianceAssessmentRatingController.GetAllComplianceAssessmentRatings)
+	complianceRoutes.GET("/compliance-assessment-ratings/:id", complianceAssessmentRatingController.GetComplianceAssessmentRatingDetails)
 }

@@ -53,6 +53,8 @@ type ComplianceModule struct {
 	ComplianceAssessmentControlActionPlanStatusUpdateController     *controllers.ComplianceAssessmentControlActionPlanStatusUpdateController
 	ComplianceAssessmentControlActionPlanCommentController          *controllers.ComplianceAssessmentControlActionPlanCommentController
 	ComplianceDetailDashboardController                             *controllers.ComplianceDetailDashboardController
+	ComplianceAssessmentImpactTypeController                        *controllers.ComplianceAssessmentImpactTypeController
+	ComplianceAssessmentRatingController                            *controllers.ComplianceAssessmentRatingController
 	// ConsultationRequestStatusController                             *controllers.ConsultationRequestStatusController
 	LegislativeBodyController          *controllers.LegislativeBodyController
 	LegislationTypeController          *controllers.LegislationTypeController
@@ -97,6 +99,33 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceAssessmentFrameworkValueRepo := repositories.NewComplianceAssessmentFrameworkValueRepository(db)
 	complianceAssessmentFrameworkValueSvc := services.NewComplianceAssessmentFrameworkValueService(complianceAssessmentFrameworkValueRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, complianceAssessmentFrameworkSvc, complianceStatusSvc)
 	complianceAssessmentFrameworkValueController := controllers.NewComplianceAssessmentFrameworkValueController(complianceAssessmentFrameworkValueSvc)
+
+	legislativeBodyRepo := repositories.NewLegislativeBodyRepository(db)
+	legislativeBodySvc := services.NewLegislativeBodyService(legislativeBodyRepo, sharedModule.ActivityLogService)
+	legislativeBodyController := controllers.NewLegislativeBodyController(legislativeBodySvc)
+
+	legislationTypeRepo := repositories.NewLegislationTypeRepository(db)
+	legislationTypeSvc := services.NewLegislationTypeService(legislationTypeRepo, sharedModule.ActivityLogService)
+	legislationTypeController := controllers.NewLegislationTypeController(legislationTypeSvc)
+	issuingAuthorityRepo := repositories.NewIssuingAuthorityRepository(db)
+	issuingAuthoritySvc := services.NewIssuingAuthorityService(issuingAuthorityRepo, sharedModule.ActivityLogService)
+	issuingAuthorityController := controllers.NewIssuingAuthorityController(issuingAuthoritySvc)
+
+	importanceClassificationRepo := repositories.NewImportanceClassificationRepository(db)
+	importanceClassificationSvc := services.NewImportanceClassificationService(importanceClassificationRepo)
+	importanceClassificationController := controllers.NewImportanceClassificationController(importanceClassificationSvc)
+
+	secrecyClassificationRepo := repositories.NewSecrecyClassificationRepository(db)
+	secrecyClassificationSvc := services.NewSecrecyClassificationService(secrecyClassificationRepo, sharedModule.ActivityLogService)
+	secrecyClassificationController := controllers.NewSecrecyClassificationController(secrecyClassificationSvc)
+
+	complianceAssessmentImpactTypeRepo := repositories.NewComplianceAssessmentImpactTypeRepository(db)
+	complianceAssessmentImpactTypeSvc := services.NewComplianceAssessmentImpactTypeService(complianceAssessmentImpactTypeRepo)
+	complianceAssessmentImpactTypeController := controllers.NewComplianceAssessmentImpactTypeController(complianceAssessmentImpactTypeSvc)
+
+	complianceAssessmentRatingRepo := repositories.NewComplianceAssessmentRatingRepository(db)
+	complianceAssessmentRatingSvc := services.NewComplianceAssessmentRatingService(complianceAssessmentRatingRepo)
+	complianceAssessmentRatingController := controllers.NewComplianceAssessmentRatingController(complianceAssessmentRatingSvc)
 
 	complianceRegisterRepo := repositories.NewComplianceRegisterRepository(db)
 	complianceRegisterSvc := services.NewComplianceRegisterService(
@@ -356,25 +385,6 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	// consultationRequestStatusSvc := services.NewConsultationRequestStatusService(consultationRequestStatusRepo)
 	// consultationRequestStatusController := controllers.NewConsultationRequestStatusController(consultationRequestStatusSvc)
 
-	legislativeBodyRepo := repositories.NewLegislativeBodyRepository(db)
-	legislativeBodySvc := services.NewLegislativeBodyService(legislativeBodyRepo, sharedModule.ActivityLogService)
-	legislativeBodyController := controllers.NewLegislativeBodyController(legislativeBodySvc)
-
-	legislationTypeRepo := repositories.NewLegislationTypeRepository(db)
-	legislationTypeSvc := services.NewLegislationTypeService(legislationTypeRepo, sharedModule.ActivityLogService)
-	legislationTypeController := controllers.NewLegislationTypeController(legislationTypeSvc)
-	issuingAuthorityRepo := repositories.NewIssuingAuthorityRepository(db)
-	issuingAuthoritySvc := services.NewIssuingAuthorityService(issuingAuthorityRepo, sharedModule.ActivityLogService)
-	issuingAuthorityController := controllers.NewIssuingAuthorityController(issuingAuthoritySvc)
-
-	importanceClassificationRepo := repositories.NewImportanceClassificationRepository(db)
-	importanceClassificationSvc := services.NewImportanceClassificationService(importanceClassificationRepo)
-	importanceClassificationController := controllers.NewImportanceClassificationController(importanceClassificationSvc)
-
-	secrecyClassificationRepo := repositories.NewSecrecyClassificationRepository(db)
-	secrecyClassificationSvc := services.NewSecrecyClassificationService(secrecyClassificationRepo, sharedModule.ActivityLogService)
-	secrecyClassificationController := controllers.NewSecrecyClassificationController(secrecyClassificationSvc)
-
 	return &ComplianceModule{
 		ComplianceCategoryController:                                    complianceCategoryController,
 		ComplianceStatusController:                                      complianceStatusController,
@@ -420,6 +430,8 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceAssessmentControlActionPlanStatusUpdateController:     complianceAssessmentControlActionPlanStatusUpdateController,
 		ComplianceAssessmentControlActionPlanCommentController:          complianceAssessmentControlActionPlanCommentController,
 		ComplianceDetailDashboardController:                             complianceDetailDashboardController,
+		ComplianceAssessmentImpactTypeController:                        complianceAssessmentImpactTypeController,
+		ComplianceAssessmentRatingController:                            complianceAssessmentRatingController,
 		// ConsultationRequestStatusController:                             consultationRequestStatusController,
 		LegislativeBodyController:          legislativeBodyController,
 		LegislationTypeController:          legislationTypeController,
