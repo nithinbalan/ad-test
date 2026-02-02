@@ -178,43 +178,77 @@ func (s *ConsultationRequestService) Create(currentUserID uint, dto *dtos.Consul
 
 func (s *ConsultationRequestService) CreateConsultationRequestComment(consultationRequestID uint, currentUserID uint, dto *dtos.ConsultationRequestCommentFormDTO) (uint, error) {
 
-	// 1️⃣ Validate consultation request exists
 	existingRequest, err := s.repo.GetByID(consultationRequestID)
 	if err != nil {
 		return 0, utility.NewResourceNotFoundError(err, consultationRequestID)
 	}
-	// 2️⃣ Authorization: user must belong to consulted department
+
 	reqUsers, err := s.userSvc.GetUsersByOrganizationUnit(existingRequest.RequestingDepartmentUnitID)
 	if err != nil {
 		return 0, err
 	}
-	// 2️⃣ Authorization: user must belong to consulted department
+
 	consUsers, err := s.userSvc.GetUsersByOrganizationUnit(existingRequest.ConsultedDepartmentUnitID)
 	if err != nil {
 		return 0, err
 	}
-	authorized := false
+	// authorized := false
 
-	status, err := s.statusSvc.GetByID(dto.ConsultationRequestStatusID)
-	if status.Type == "closed" {
-		for _, u := range reqUsers {
-			if u.ID == currentUserID {
-				authorized = true
-				break
+	// status, err := s.statusSvc.GetByID(dto.ConsultationRequestStatusID)
+	// if status.Type == "closed" {
+	// 	for _, u := range reqUsers {
+	// 		if u.ID == currentUserID {
+	// 			authorized = true
+	// 			break
+	// 		}
+	// 	}
+	// 	if !authorized {
+	// 		return 0, utility.NewForbiddenError("you do not have authority to update status")
+	// 	}
+	// } else {
+	// 	for _, u := range consUsers {
+	// 		if u.ID == currentUserID {
+	// 			authorized = true
+	// 			break
+	// 		}
+	// 	}
+	// 	if !authorized {
+	// 		return 0, utility.NewForbiddenError("you do not have authority to update status")
+	// 	}
+	// }
+	if dto.ConsultationRequestStatusID != nil {
+
+		status, err := s.statusSvc.GetByID(*dto.ConsultationRequestStatusID)
+		if err != nil {
+			return 0, err
+		}
+
+		authorized := false
+
+		if status.Type == "closed" {
+			for _, u := range reqUsers {
+				if u.ID == currentUserID {
+					authorized = true
+					break
+				}
 			}
-		}
-		if !authorized {
-			return 0, utility.NewForbiddenError("you do not have authority to update status")
-		}
-	} else {
-		for _, u := range consUsers {
-			if u.ID == currentUserID {
-				authorized = true
-				break
+			if !authorized {
+				return 0, utility.NewForbiddenError(
+					"you do not have authority to update status",
+				)
 			}
-		}
-		if !authorized {
-			return 0, utility.NewForbiddenError("you do not have authority to update status")
+		} else {
+			for _, u := range consUsers {
+				if u.ID == currentUserID {
+					authorized = true
+					break
+				}
+			}
+			if !authorized {
+				return 0, utility.NewForbiddenError(
+					"you do not have authority to update status",
+				)
+			}
 		}
 	}
 
@@ -238,7 +272,7 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 	}
 
 	// 5️⃣ Optional: update consultation request status
-	existingRequest.ConsultationRequestStatusID = &dto.ConsultationRequestStatusID
+	existingRequest.ConsultationRequestStatusID = dto.ConsultationRequestStatusID
 	existingRequest.UpdatedByID = &currentUserID
 	existingRequest.UpdatedAt = &now
 
