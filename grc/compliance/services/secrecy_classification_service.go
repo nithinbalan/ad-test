@@ -13,6 +13,7 @@ import (
 type SecrecyClassificationServiceInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ComplianceSecrecyClassification, error)
 	GetByID(id uint) (*models.ComplianceSecrecyClassification, error)
+	GetByType(t string) (*models.ComplianceSecrecyClassification, error)
 	Create(currentUserID uint, classification *models.ComplianceSecrecyClassification) (*models.ComplianceSecrecyClassification, error)
 	Update(id uint, currentUserID uint, classification *models.ComplianceSecrecyClassification) (*models.ComplianceSecrecyClassification, error)
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -42,6 +43,10 @@ func (scs *SecrecyClassificationService) GetAll(sort string, sortBy string, keyw
 
 func (scs *SecrecyClassificationService) GetByID(id uint) (*models.ComplianceSecrecyClassification, error) {
 	return scs.repo.GetByID(id)
+}
+
+func (scs *SecrecyClassificationService) GetByType(t string) (*models.ComplianceSecrecyClassification, error) {
+	return scs.repo.GetByType(t)
 }
 
 func (scs *SecrecyClassificationService) Create(currentUserID uint, classification *models.ComplianceSecrecyClassification) (*models.ComplianceSecrecyClassification, error) {
