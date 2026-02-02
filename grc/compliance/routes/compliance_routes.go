@@ -104,6 +104,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/legislative-bodies", LegislativeBodyController.GetAllLegislativeBodies)
 	complianceRoutes.PUT("/legislative-bodies/:id", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislativeBodyController.UpdateLegislativeBody)
 	complianceRoutes.POST("/legislative-bodies/delete", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislativeBodyController.DeleteLegislativeBodies)
+	complianceRoutes.PUT("/legislative-bodies/activate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislativeBodyController.ActivateLegislativeBodies)
+	complianceRoutes.PUT("/legislative-bodies/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislativeBodyController.DeactivateLegislativeBodies)
 
 	// Legislation Type routes
 	complianceRoutes.GET("/legislation-types/:id", LegislationTypeController.GetLegislationTypeDetails)
@@ -111,16 +113,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/legislation-types", LegislationTypeController.GetAllLegislationTypes)
 	complianceRoutes.PUT("/legislation-types/:id", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislationTypeController.UpdateLegislationType)
 	complianceRoutes.POST("/legislation-types/delete", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislationTypeController.DeleteLegislationTypes)
-	complianceRoutes.POST("/legislation-types/activate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislationTypeController.ActivateLegislationTypes)
-	complianceRoutes.POST("/legislation-types/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislationTypeController.DeactivateLegislationTypes)
+	complianceRoutes.PUT("/legislation-types/activate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislationTypeController.ActivateLegislationTypes)
+	complianceRoutes.PUT("/legislation-types/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), LegislationTypeController.DeactivateLegislationTypes)
 	// Issuing Authority routes
 	complianceRoutes.GET("/issuing-authorities/:id", IssuingAuthorityController.GetIssuingAuthorityDetails)
 	complianceRoutes.GET("/issuing-authorities", IssuingAuthorityController.GetAllIssuingAuthorities)
 	complianceRoutes.POST("/issuing-authorities", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), IssuingAuthorityController.CreateIssuingAuthority)
 	complianceRoutes.PUT("/issuing-authorities/:id", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), IssuingAuthorityController.UpdateIssuingAuthority)
 	complianceRoutes.POST("/issuing-authorities/delete", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), IssuingAuthorityController.DeleteIssuingAuthorities)
-	complianceRoutes.POST("/issuing-authorities/activate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), IssuingAuthorityController.ActivateIssuingAuthorities)
-	complianceRoutes.POST("/issuing-authorities/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), IssuingAuthorityController.DeactivateIssuingAuthorities)
+	complianceRoutes.PUT("/issuing-authorities/activate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), IssuingAuthorityController.ActivateIssuingAuthorities)
+	complianceRoutes.PUT("/issuing-authorities/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), IssuingAuthorityController.DeactivateIssuingAuthorities)
 
 	complianceRoutes.GET("/importance-classifications", ImportanceClassificationController.GetAllImportanceClassifications)
 	complianceRoutes.GET("/importance-classifications/:id", ImportanceClassificationController.GetImportanceClassificationDetails)
