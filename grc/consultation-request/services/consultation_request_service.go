@@ -192,30 +192,7 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 	if err != nil {
 		return 0, err
 	}
-	// authorized := false
 
-	// status, err := s.statusSvc.GetByID(dto.ConsultationRequestStatusID)
-	// if status.Type == "closed" {
-	// 	for _, u := range reqUsers {
-	// 		if u.ID == currentUserID {
-	// 			authorized = true
-	// 			break
-	// 		}
-	// 	}
-	// 	if !authorized {
-	// 		return 0, utility.NewForbiddenError("you do not have authority to update status")
-	// 	}
-	// } else {
-	// 	for _, u := range consUsers {
-	// 		if u.ID == currentUserID {
-	// 			authorized = true
-	// 			break
-	// 		}
-	// 	}
-	// 	if !authorized {
-	// 		return 0, utility.NewForbiddenError("you do not have authority to update status")
-	// 	}
-	// }
 	if dto.ConsultationRequestStatusID != nil {
 
 		status, err := s.statusSvc.GetByID(*dto.ConsultationRequestStatusID)
@@ -225,7 +202,7 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 
 		authorized := false
 
-		if status.Type == "closed" {
+		if status.Type == "closed" || status.Type == "reopened" {
 			for _, u := range reqUsers {
 				if u.ID == currentUserID {
 					authorized = true
@@ -252,11 +229,9 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 		}
 	}
 
-	// 3️⃣ Start transaction
 	tx := s.repo.BeginTransaction()
 	now := time.Now()
 
-	// 4️⃣ Create comment model
 	comment := &models.ConsultationRequestComment{
 		ConsultationRequestID:       consultationRequestID,
 		ConsultationRequestStatusID: dto.ConsultationRequestStatusID,
@@ -271,7 +246,6 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 		return 0, err
 	}
 
-	// 5️⃣ Optional: update consultation request status
 	existingRequest.ConsultationRequestStatusID = dto.ConsultationRequestStatusID
 	existingRequest.UpdatedByID = &currentUserID
 	existingRequest.UpdatedAt = &now
@@ -283,7 +257,6 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 
 	tx.Commit()
 
-	// 6️⃣ Async activity logging
 	go func() {
 		fullDetails, err := s.GetFullDetailsByID(consultationRequestID)
 		if err != nil {
