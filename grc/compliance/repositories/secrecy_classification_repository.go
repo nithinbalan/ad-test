@@ -19,6 +19,8 @@ type SecrecyClassificationRepositoryInterface interface {
 	Deactivate(ids []uint) ([]uint, error)
 	ExistsByTitle(titleEn, titleAr string) (bool, error)
 	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
+	ExistsByTypeExcludingID(id uint, t string) (bool, error)
+	ExistsByType(titleAr string) (bool, error)
 }
 
 // Implementation
@@ -151,6 +153,26 @@ func (repo *SecrecyClassificationRepository) ExistsByTitleExcludingID(id uint, t
 	var count int64
 	err := repo.db.Model(&models.ComplianceSecrecyClassification{}).
 		Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, titleEn, titleAr).
+		Count(&count).Error
+	if err != nil {
+		return false, utility.NewInternalServerError(err)
+	}
+	return count > 0, nil
+}
+func (repo *SecrecyClassificationRepository) ExistsByType(t string) (bool, error) {
+	var count int64
+	err := repo.db.Model(&models.ComplianceSecrecyClassification{}).
+		Where("type = ?", t).
+		Count(&count).Error
+	if err != nil {
+		return false, utility.NewInternalServerError(err)
+	}
+	return count > 0, nil
+}
+func (repo *SecrecyClassificationRepository) ExistsByTypeExcludingID(id uint, t string) (bool, error) {
+	var count int64
+	err := repo.db.Model(&models.ComplianceSecrecyClassification{}).
+		Where("id <> ? AND type = ?", id, t).
 		Count(&count).Error
 	if err != nil {
 		return false, utility.NewInternalServerError(err)

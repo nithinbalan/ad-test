@@ -134,4 +134,8 @@ type ConsultationRequestCommentListDTO struct {
 	CreatedByID          uint      `json:"created_by_id"`
 	CreatedByFirstNameEn string    `json:"created_by_first_name_en"`
 	CreatedByLastNameEn  string    `json:"created_by_last_name_en"`
+	CreatedByFirstNameAr string    `json:"created_by_first_name_ar"`
+	CreatedByLastNameAr  string    `json:"created_by_last_name_ar"`
+
+	CreatedByInitial string `json:"created_by_initial"`
 }
