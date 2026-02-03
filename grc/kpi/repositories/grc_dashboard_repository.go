@@ -573,7 +573,7 @@ func (repo *GRCDashboardRepository) GetTopComplianceRegisters(params *kpiDTOs.GR
 			StandardCode:              register.StandardCode,
 			TitleEn:                   register.TitleEn,
 			TitleAr:                   register.TitleAr,
-			TotalScore:                register.TotalScore,
+			TotalScore:                *register.TotalScore,
 			ComplianceStatusTitleEn:   register.ComplianceStatus.TitleEn,
 			ComplianceStatusTitleAr:   register.ComplianceStatus.TitleAr,
 			ComplianceStatusType:      register.ComplianceStatus.Type,

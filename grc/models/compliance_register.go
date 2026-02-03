@@ -6,10 +6,10 @@ import (
 
 type ComplianceRegister struct {
 	ID                              uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	ComplianceCategoryID            uint       `json:"compliance_category_id" binding:"required" gorm:"not null"`
-	ComplianceStatusID              *uint       `json:"compliance_status_id" gorm:"default:null"`
-	ResponsibleUnitID               uint       `json:"responsible_unit_id" binding:"required" gorm:"not null"`
-	ResponsibleUserID               uint       `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	ComplianceCategoryID            *uint      `json:"compliance_category_id" binding:"required" gorm:"not null"`
+	ComplianceStatusID              *uint      `json:"compliance_status_id" gorm:"default:null"`
+	ResponsibleUnitID               *uint      `json:"responsible_unit_id" binding:"required" gorm:"not null"`
+	ResponsibleUserID               *uint      `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	ReviewFrequencyID               *uint      `json:"review_frequency_id" binding:"required" gorm:"default:null"`
 	ReviewResponsibleUserID         *uint      `json:"review_responsible_user_id" binding:"omitempty" gorm:"default:null"`
 	SeverityLevelID                 *uint      `json:"severity_level_id" binding:"omitempty" gorm:"default:null"`
@@ -33,14 +33,28 @@ type ComplianceRegister struct {
 	UpdatedAt                       *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedBYID                     uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID                     *uint      `json:"updated_by_id" gorm:"default:null"`
-	LifecycleStatusID               uint       `json:"lifecycle_status_id" gorm:"not null"`
+	LifecycleStatusID               *uint      `json:"lifecycle_status_id" gorm:"not null"`
 	ComplianceReviewStatusID        *uint      `json:"compliance_review_status_id" gorm:"default:null"`
-	TotalScore                      int        `json:"total_score" gorm:"default:0"`
+	TotalScore                      *int       `json:"total_score" gorm:"default:0"`
 	Score                           *float64   `json:"score" gorm:"type:decimal(10,2)"`
 	ComplianceFolderID              *uint      `json:"compliance_folder_id" binding:"omitempty" gorm:"default:null"`
-	ComplianceAssessmentFrameworkID uint       `json:"compliance_assessment_framework_id" binding:"required" gorm:"not null"`
+	ComplianceAssessmentFrameworkID *uint      `json:"compliance_assessment_framework_id" binding:"required" gorm:"not null"`
 	IsControlAssessment             bool       `json:"is_control_assessment" gorm:"column:is_control_assessment;not null;default:false"`
 	IsRequirementAssessment         bool       `json:"is_requirement_assessment" gorm:"column:is_requirement_assessment;not null;default:false"`
+
+	// New  Compliance Fields
+	LegislativeBodyID                  *uint   `json:"legislative_body_id" gorm:"default:null"`
+	LegislationTypeID                  *uint   `json:"legislation_type_id" gorm:"default:null"`
+	LegislationNo                      *string `json:"legislation_no" gorm:"type:nvarchar(500)"`
+	ImportanceClassificationID         *uint   `json:"importance_classification_id" gorm:"default:null"`
+	SecrecyClassificationID            *uint   `json:"secrecy_classification_id" gorm:"default:null"`
+	Subject                            *string `json:"subject" gorm:"type:nvarchar(max)"`
+	IsApplicable                       bool    `json:"is_applicable default:false"`
+	IsNotApplicable                    bool    `json:"is_not_applicable default:false"`
+	IsRegulationNotificationAssessment bool    `json:"is_regulation_notification_assessment default:false"`
+	IsRiskBasedAssessment              bool    `json:"is_risk_based_assessment default:false"`
+	IsPublic                           bool    `json:"is_public default:false"`
+	IsShared                           bool    `json:"is_shared default:false"`
 
 	// Relationships
 	ComplianceCategory            *ComplianceCategory            `gorm:"foreignKey:ComplianceCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -64,6 +78,13 @@ type ComplianceRegister struct {
 	ComplianceClauses             []*ComplianceClause            `gorm:"foreignKey:ComplianceRegisterID"`
 	ComplianceFolder              *ComplianceFolder              `gorm:"foreignKey:ComplianceFolderID"`
 	ComplianceAssessmentFramework *ComplianceAssessmentFramework `gorm:"foreignKey:ComplianceAssessmentFrameworkID"`
+
+	//New Relations
+	LegislativeBody          *ComplianceLegislativeBody            `gorm:"foreignKey:LegislativeBodyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	LegislationType          *ComplianceLegislationType            `gorm:"foreignKey:LegislationTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ImportanceClassification *ComplianceImportanceClassification   `gorm:"foreignKey:ImportanceClassificationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SecrecyClassification    *ComplianceSecrecyClassification      `gorm:"foreignKey:SecrecyClassificationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	IssuingAuthorities       []*ComplianceRegisterIssuingAuthority `gorm:"foreignKey:ComplianceRegisterID"`
 }
 
 // TableName overrides the table name used by ComplianceRegister to `compliance_register`
