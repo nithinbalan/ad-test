@@ -154,6 +154,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Compliance Register
 	unauthenticatedRoutes.GET("/compliance-register/:id/document-preview", complianceRegisterController.GetComplianceRegisterDocumentPreview)
 	unauthenticatedRoutes.GET("/compliance-register/:id/document-download", complianceRegisterController.DownloadComplianceRegisterDocument)
+
+	// Issuing Authority Documents
+	unauthenticatedRoutes.GET("/issuing-authority/:authorityId/document-preview", complianceRegisterController.GetIssuingAuthorityDocumentPreview)
+	unauthenticatedRoutes.GET("/issuing-authority/:authorityId/document-download", complianceRegisterController.DownloadIssuingAuthorityDocument)
 	complianceRoutes.GET("/compliance-register/export", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceRegisterController.GetComplianceRegisterExport)
 	complianceRoutes.GET("/compliance-register", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceRegisterController.GetAllComplianceRegisters)
 	complianceRoutes.GET("/compliance-register/:id", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceRegisterController.GetComplianceRegisterDetails)
