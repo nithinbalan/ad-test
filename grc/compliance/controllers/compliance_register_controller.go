@@ -433,6 +433,72 @@ func (crc *ComplianceRegisterController) DownloadComplianceRegisterDocument(c *g
 	c.File(complianceDocumentPath)
 }
 
+func (crc *ComplianceRegisterController) GetIssuingAuthorityDocumentPreview(c *gin.Context) {
+	authorityIDStr := c.Param("authorityId")
+	authorityID, err := strconv.ParseUint(authorityIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := crc.service.GetIssuingAuthorityDocumentPath(uint(authorityID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(documentPath)
+}
+
+func (crc *ComplianceRegisterController) DownloadIssuingAuthorityDocument(c *gin.Context) {
+	authorityIDStr := c.Param("authorityId")
+	authorityID, err := strconv.ParseUint(authorityIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := crc.service.GetIssuingAuthorityDocumentPath(uint(authorityID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+		}
+		return
+	}
+	filename := filepath.Base(documentPath)
+
+	// Set the content type and disposition headers for the file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	// Serve the file
+	c.File(documentPath)
+}
+
 func (crc *ComplianceRegisterController) GetComplianceRegisterExport(c *gin.Context) {
 	c.Set("export", true)
 

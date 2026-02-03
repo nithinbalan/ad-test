@@ -44,6 +44,7 @@ type ComplianceRegisterRepositoryInterface interface {
 	CreateIssuingAuthority(authority *models.ComplianceRegisterIssuingAuthority, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateIssuingAuthority(authority *models.ComplianceRegisterIssuingAuthority, tx ...utility.DatabaseTransaction) error
 	DeleteIssuingAuthority(id uint, tx ...utility.DatabaseTransaction) error
+	GetIssuingAuthorityByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRegisterIssuingAuthority, error)
 	GetIssuingAuthoritiesByComplianceRegisterID(complianceRegisterID uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceRegisterIssuingAuthority, error)
 	CreateIssuingAuthorityEntity(entity *models.ComplianceRegisterIssuingAuthorityEntity, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateIssuingAuthorityEntity(entity *models.ComplianceRegisterIssuingAuthorityEntity, tx ...utility.DatabaseTransaction) error
@@ -1456,6 +1457,20 @@ func (repo *ComplianceRegisterRepository) DeleteIssuingAuthority(id uint, tx ...
 	}
 
 	return db.Delete(&models.ComplianceRegisterIssuingAuthority{}, id).Error
+}
+
+func (repo *ComplianceRegisterRepository) GetIssuingAuthorityByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRegisterIssuingAuthority, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var authority models.ComplianceRegisterIssuingAuthority
+	err := db.First(&authority, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &authority, nil
 }
 
 func (repo *ComplianceRegisterRepository) GetIssuingAuthoritiesByComplianceRegisterID(complianceRegisterID uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceRegisterIssuingAuthority, error) {

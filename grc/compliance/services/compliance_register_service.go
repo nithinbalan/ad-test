@@ -40,6 +40,7 @@ type ComplianceRegisterServiceInterface interface {
 	UpdateComplianceTotalScore(complianceID uint, totalScore float64, tx utility.DatabaseTransaction) error
 
 	GetDocumentPath(id uint, token string) (string, error)
+	GetIssuingAuthorityDocumentPath(authorityID uint, token string) (string, error)
 
 	ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO, currentUserID uint) (*os.File, error)
 
@@ -1384,6 +1385,53 @@ func (crs *ComplianceRegisterService) GetDocumentPath(id uint, token string) (st
 	}
 
 	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	// Check if the file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
+}
+
+func (crs *ComplianceRegisterService) GetIssuingAuthorityDocumentPath(authorityID uint, token string) (string, error) {
+	// Get the authority to find the compliance register ID and document
+	authority, err := crs.repo.GetIssuingAuthorityByID(authorityID)
+	if err != nil {
+		return "", fmt.Errorf("authority not found")
+	}
+
+	// Get the document for this authority
+	documents, err := crs.repo.GetDocumentsByAuthorityID(authorityID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get documents")
+	}
+
+	if len(documents) == 0 {
+		return "", fmt.Errorf("no document found for this authority")
+	}
+
+	// Use the first document (since there should be only one per authority)
+	document := documents[0]
+
+	// Decrypt and validate the token
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("invalid token")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" || decryptedFilename != document.Name {
+		return "", fmt.Errorf("invalid token")
+	}
+
+	// Build the storage path for issuing authority documents
+	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(authority.ComplianceRegisterID), 10), "issuing-authority-documents")
 
 	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
 	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
