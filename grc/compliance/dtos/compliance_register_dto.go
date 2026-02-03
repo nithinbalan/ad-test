@@ -10,77 +10,91 @@ import (
 )
 
 type ComplianceRegisterListDTO struct {
-	ID                                    uint   `json:"id"`
-	ComplianceCategoryTitleEn             string `json:"compliance_category_title_en"`
-	ComplianceCategoryTitleAr             string `json:"compliance_category_title_ar"`
-	ComplianceStatusTitleEn               string `json:"compliance_status_title_en"`
-	ComplianceStatusTitleAr               string `json:"compliance_status_title_ar"`
-	ComplianceStatusColorCode             string `json:"compliance_status_color_code"`
-	ResponsibleUnitTitleEn                string `json:"responsible_unit_title_en"`
-	ResponsibleUnitTitleAr                string `json:"responsible_unit_title_ar"`
-	ResponsibleUserID                     uint   `json:"responsible_user_id"`
-	ResponsibleUserFirstNameEn            string `json:"responsible_user_first_name_en"`
-	ResponsibleUserFirstNameAr            string `json:"responsible_user_first_name_ar"`
-	ResponsibleUserLastNameEn             string `json:"responsible_user_last_name_en"`
-	ResponsibleUserLastNameAr             string `json:"responsible_user_last_name_ar"`
-	ResponsibleUserInitial                string `json:"responsible_user_initial"`
-	ResponsibleUserColor                  string `json:"responsible_user_color"`
-	ResponsibleUserEmail                  string `json:"responsible_user_email"`
-	ResponsibleUserProfileImagePath       string `json:"responsible_user_profile_image_path"`
-	ReviewFrequencyTitleEn                string `json:"review_frequency_title_en"`
-	ReviewFrequencyTitleAr                string `json:"review_frequency_title_ar"`
-	ReviewResponsibleUserID               uint   `json:"review_responsible_user_id"`
-	ReviewResponsibleUserFirstNameEn      string `json:"review_responsible_user_first_name_en"`
-	ReviewResponsibleUserFirstNameAr      string `json:"review_responsible_user_first_name_ar"`
-	ReviewResponsibleUserLastNameEn       string `json:"review_responsible_user_last_name_en"`
-	ReviewResponsibleUserLastNameAr       string `json:"review_responsible_user_last_name_ar"`
-	ReviewResponsibleUserInitial          string `json:"review_responsible_user_initial"`
-	ReviewResponsibleUserColor            string `json:"review_responsible_user_color"`
-	ReviewResponsibleUserEmail            string `json:"review_responsible_user_email"`
-	ReviewResponsibleUserProfileImagePath string `json:"review_responsible_user_profile_image_path"`
-	SeverityLevelTitleEn                  string `json:"severity_level_title_en"`
-	SeverityLevelTitleAr                  string `json:"severity_level_title_ar"`
-	SeverityLevelColorCode                string `json:"severity_level_color_code"`
-	ReferenceNumber                       string `json:"reference_number"`
-	StandardCode                          string `json:"standard_code"`
-	TitleEn                               string `json:"title_en"`
-	TitleAr                               string `json:"title_ar"`
-	DescriptionEn                         string `json:"description_en"`
-	DescriptionAr                         string `json:"description_ar"`
-	Version                               string `json:"version"`
-	Deadline                              string `json:"deadline"`
-	IssueDate                             string `json:"issue_date"`
-	ExpiryDate                            string `json:"expiry_date"`
-	NextReviewDate                        string `json:"next_review_date"`
-	LastReviewedDate                      string `json:"last_reviewed_date"`
-	CreatedAt                             string `json:"created_at"`
-	UpdatedAt                             string `json:"updated_at"`
-	CreatedUserID                         uint   `json:"created_user_id"`
-	CreatedUserFirstNameEn                string `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr                string `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn                 string `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr                 string `json:"created_user_last_name_ar"`
-	CreatedUserInitial                    string `json:"created_user_initial"`
-	CreatedUserColor                      string `json:"created_user_color"`
-	CreatedUserEmail                      string `json:"created_user_email"`
-	CreatedUserProfileImagePath           string `json:"created_user_profile_image_path"`
-	UpdatedUserID                         *uint  `json:"updated_user_id"`
-	UpdatedUserFirstNameEn                string `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr                string `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn                 string `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr                 string `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial                    string `json:"updated_user_initial"`
-	UpdatedUserColor                      string `json:"updated_user_color"`
-	UpdatedUserEmail                      string `json:"updated_user_email"`
-	UpdatedUserProfileImagePath           string `json:"updated_user_profile_image_path"`
-	LifecycleStatusTitleEn                string `json:"lifecycle_status_title_en"`
-	LifecycleStatusTitleAr                string `json:"lifecycle_status_title_ar"`
-	LifecycleStatusColorCode              string `json:"lifecycle_status_color_code"`
-	ComplianceAssessmentFrameworkID       *uint  `json:"compliance_assessment_framework_id"`
-	ComplianceAssessmentFrameworkTitleEn  string `json:"compliance_assessment_framework_title_en"`
-	ComplianceAssessmentFrameworkTitleAr  string `json:"compliance_assessment_framework_title_ar"`
-	IsControlAssessment                   bool   `json:"is_control_assessment"`
-	IsRequirementAssessment               bool   `json:"is_requirement_assessment"`
+	ID uint `json:"id"`
+	// ComplianceCategoryTitleEn             string `json:"compliance_category_title_en"`
+	// ComplianceCategoryTitleAr             string `json:"compliance_category_title_ar"`
+	ComplianceStatusTitleEn   string `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr   string `json:"compliance_status_title_ar"`
+	ComplianceStatusColorCode string `json:"compliance_status_color_code"`
+	// ResponsibleUnitTitleEn                string `json:"responsible_unit_title_en"`
+	// ResponsibleUnitTitleAr                string `json:"responsible_unit_title_ar"`
+	// ResponsibleUserID                     uint   `json:"responsible_user_id"`
+	// ResponsibleUserFirstNameEn            string `json:"responsible_user_first_name_en"`
+	// ResponsibleUserFirstNameAr            string `json:"responsible_user_first_name_ar"`
+	// ResponsibleUserLastNameEn             string `json:"responsible_user_last_name_en"`
+	// ResponsibleUserLastNameAr             string `json:"responsible_user_last_name_ar"`
+	// ResponsibleUserInitial                string `json:"responsible_user_initial"`
+	// ResponsibleUserColor                  string `json:"responsible_user_color"`
+	// ResponsibleUserEmail                  string `json:"responsible_user_email"`
+	// ResponsibleUserProfileImagePath       string `json:"responsible_user_profile_image_path"`
+	// ReviewFrequencyTitleEn                string `json:"review_frequency_title_en"`
+	// ReviewFrequencyTitleAr                string `json:"review_frequency_title_ar"`
+	// ReviewResponsibleUserID               uint   `json:"review_responsible_user_id"`
+	// ReviewResponsibleUserFirstNameEn      string `json:"review_responsible_user_first_name_en"`
+	// ReviewResponsibleUserFirstNameAr      string `json:"review_responsible_user_first_name_ar"`
+	// ReviewResponsibleUserLastNameEn       string `json:"review_responsible_user_last_name_en"`
+	// ReviewResponsibleUserLastNameAr       string `json:"review_responsible_user_last_name_ar"`
+	// ReviewResponsibleUserInitial          string `json:"review_responsible_user_initial"`
+	// ReviewResponsibleUserColor            string `json:"review_responsible_user_color"`
+	// ReviewResponsibleUserEmail            string `json:"review_responsible_user_email"`
+	// ReviewResponsibleUserProfileImagePath string `json:"review_responsible_user_profile_image_path"`
+	// SeverityLevelTitleEn                  string `json:"severity_level_title_en"`
+	// SeverityLevelTitleAr                  string `json:"severity_level_title_ar"`
+	// SeverityLevelColorCode                string `json:"severity_level_color_code"`
+	ReferenceNumber string `json:"reference_number"`
+	// StandardCode                          string `json:"standard_code"`
+	TitleEn       string `json:"title_en"`
+	TitleAr       string `json:"title_ar"`
+	DescriptionEn string `json:"description_en"`
+	DescriptionAr string `json:"description_ar"`
+	Version       string `json:"version"`
+	Deadline      string `json:"deadline"`
+	// IssueDate                            string `json:"issue_date"`
+	// ExpiryDate                           string `json:"expiry_date"`
+	// NextReviewDate                       string `json:"next_review_date"`
+	// LastReviewedDate                     string `json:"last_reviewed_date"`
+	CreatedAt                   string `json:"created_at"`
+	UpdatedAt                   string `json:"updated_at"`
+	CreatedUserID               uint   `json:"created_user_id"`
+	CreatedUserFirstNameEn      string `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr      string `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn       string `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr       string `json:"created_user_last_name_ar"`
+	CreatedUserInitial          string `json:"created_user_initial"`
+	CreatedUserColor            string `json:"created_user_color"`
+	CreatedUserEmail            string `json:"created_user_email"`
+	CreatedUserProfileImagePath string `json:"created_user_profile_image_path"`
+	UpdatedUserID               *uint  `json:"updated_user_id"`
+	UpdatedUserFirstNameEn      string `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr      string `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn       string `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr       string `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial          string `json:"updated_user_initial"`
+	UpdatedUserColor            string `json:"updated_user_color"`
+	UpdatedUserEmail            string `json:"updated_user_email"`
+	UpdatedUserProfileImagePath string `json:"updated_user_profile_image_path"`
+	// LifecycleStatusTitleEn               string `json:"lifecycle_status_title_en"`
+	// LifecycleStatusTitleAr               string `json:"lifecycle_status_title_ar"`
+	// LifecycleStatusColorCode             string `json:"lifecycle_status_color_code"`
+	// ComplianceAssessmentFrameworkID      *uint  `json:"compliance_assessment_framework_id"`
+	// ComplianceAssessmentFrameworkTitleEn string `json:"compliance_assessment_framework_title_en"`
+	// ComplianceAssessmentFrameworkTitleAr string `json:"compliance_assessment_framework_title_ar"`
+	// IsControlAssessment                  bool   `json:"is_control_assessment"`
+	IsRequirementAssessment bool `json:"is_requirement_assessment"`
+
+	// New compliance fields
+	LegislativeBodyID               *uint  `json:"legislative_body_id"`
+	LegislativeBodyTitleEn          string `json:"legislative_body_title_en"`
+	LegislativeBodyTitleAr          string `json:"legislative_body_title_ar"`
+	LegislationTypeID               *uint  `json:"legislation_type_id"`
+	LegislationTypeTitleEn          string `json:"legislation_type_title_en"`
+	LegislationTypeTitleAr          string `json:"legislation_type_title_ar"`
+	ImportanceClassificationID      *uint  `json:"importance_classification_id"`
+	ImportanceClassificationTitleEn string `json:"importance_classification_title_en"`
+	ImportanceClassificationTitleAr string `json:"importance_classification_title_ar"`
+	SecrecyClassificationID         *uint  `json:"secrecy_classification_id"`
+	SecrecyClassificationTitleEn    string `json:"secrecy_classification_title_en"`
+	SecrecyClassificationTitleAr    string `json:"secrecy_classification_title_ar"`
 }
 type ComplianceRegisterListQueryParamsDTO struct {
 	Sort                    string
@@ -114,52 +128,75 @@ type ComplianceRegisterListResponseDTO struct {
 }
 
 type ComplianceRegisterFormDTO struct {
-	ComplianceCategoryID            uint                      `json:"compliance_category_id" binding:"required"`
-	ComplianceStatusID              *uint                     `json:"compliance_status_id"`
-	ResponsibleUserID               uint                      `json:"responsible_user_id" binding:"required"`
-	ReviewFrequencyID               *uint                     `json:"review_frequency_id"`
-	ReviewResponsibleUserID         *uint                     `json:"review_responsible_user_id"`
-	SeverityLevelID                 *uint                     `json:"severity_level_id"`
-	TitleEn                         string                    `json:"title_en" binding:"required,max=255"`
-	TitleAr                         string                    `json:"title_ar" binding:"required,max=255"`
-	DescriptionEn                   *string                   `json:"description_en"`
-	DescriptionAr                   *string                   `json:"description_ar"`
-	Version                         *string                   `json:"version" binding:"omitempty,max=45"`
-	Deadline                        *string                   `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
-	IssueDate                       *string                   `json:"issue_date" binding:"omitempty,datetime=2006-01-02"`
-	ExpiryDate                      *string                   `json:"expiry_date" binding:"omitempty,datetime=2006-01-02"`
-	NextReviewDate                  *string                   `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
-	LastReviewedDate                *string                   `json:"last_reviewed_date" binding:"omitempty,datetime=2006-01-02"`
-	LastReviewedUserID              *uint                     `json:"last_reviewed_user_id" binding:"omitempty"`
-	ComplianceReviewStatusID        *uint                     `json:"compliance_review_status_id"`
-	ComplianceAssessmentFrameworkID uint                      `json:"compliance_assessment_framework_id" binding:"required"`
-	LastReviewNote                  *string                   `json:"last_review_note"`
-	StandardCode                    *string                   `json:"standard_code" binding:"omitempty,max=45"`
-	DocumentEn                      ComplianceDocumentFormDTO `json:"document_en" binding:"required"`
-	DocumentAr                      ComplianceDocumentFormDTO `json:"document_ar" binding:"required"`
-	ComplianceFolderID              *uint                     `json:"compliance_folder_id"`
-	IsControlAssessment             bool                      `json:"is_control_assessment"`
-	IsRequirementAssessment         bool                      `json:"is_requirement_assessment"`
+	// Original fields - making some nullable
+	// ComplianceCategoryID            *uint                      `json:"compliance_category_id"`
+	ComplianceStatusID *uint `json:"compliance_status_id"`
+	// ResponsibleUnitID               *uint                      `json:"responsible_unit_id"`
+	// ResponsibleUserID               *uint                      `json:"responsible_user_id"`
+	// ReviewFrequencyID               *uint                      `json:"review_frequency_id"`
+	// ReviewResponsibleUserID         *uint                      `json:"review_responsible_user_id"`
+	// SeverityLevelID                 *uint                      `json:"severity_level_id"`
+	TitleEn       string  `json:"title_en" binding:"omitempty,max=255"`
+	TitleAr       string  `json:"title_ar" binding:"omitempty,max=255"`
+	DescriptionEn *string `json:"description_en"`
+	DescriptionAr *string `json:"description_ar"`
+	Version       *string `json:"version" binding:"omitempty,max=45"`
+	Deadline      *string `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
+	// IssueDate                       *string                    `json:"issue_date" binding:"omitempty,datetime=2006-01-02"`
+	// ExpiryDate                      *string                    `json:"expiry_date" binding:"omitempty,datetime=2006-01-02"`
+	// NextReviewDate                  *string                    `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
+	// LastReviewedDate                *string                    `json:"last_reviewed_date" binding:"omitempty,datetime=2006-01-02"`
+	// LastReviewedUserID              *uint                      `json:"last_reviewed_user_id" binding:"omitempty"`
+	// ComplianceReviewStatusID        *uint                      `json:"compliance_review_status_id"`
+	// ComplianceAssessmentFrameworkID *uint                      `json:"compliance_assessment_framework_id"`
+	// LastReviewNote                  *string                    `json:"last_review_note"`
+	// StandardCode                    *string                    `json:"standard_code" binding:"omitempty,max=45"`
+	// DocumentEn                      *ComplianceDocumentFormDTO `json:"document_en"`
+	// DocumentAr                      *ComplianceDocumentFormDTO `json:"document_ar"`
+	ComplianceFolderID *uint `json:"compliance_folder_id"`
+	// IsControlAssessment             bool                       `json:"is_control_assessment"`
+	IsRequirementAssessment bool `json:"is_requirement_assessment"`
+
+	// New Compliance Fields
+	LegislativeBodyID *uint   `json:"legislative_body_id"`
+	LegislationTypeID *uint   `json:"legislation_type_id"`
+	LegislationNo     *string `json:"legislation_no" binding:"omitempty,max=500"`
+	//ComplianceDeadline                 *string `json:"compliance_deadline" binding:"omitempty,datetime=2006-01-02T15:04:05Z07:00"`
+	ImportanceClassificationID         *uint   `json:"importance_classification_id"`
+	SecrecyClassificationID            *uint   `json:"secrecy_classification_id"`
+	Subject                            *string `json:"subject"`
+	IsApplicable                       bool    `json:"is_applicable"`
+	IsNotApplicable                    bool    `json:"is_not_applicable"`
+	IsRegulationNotificationAssessment bool    `json:"is_regulation_notification_assessment"`
+	IsRiskBasedAssessment              bool    `json:"is_risk_based_assessment"`
+	IsPublic                           bool    `json:"is_public"`
+	IsShared                           bool    `json:"is_shared"`
+
+	// Shared Units (Department IDs for sharing)
+	SharedUnitIDs []*uint `json:"shared_unit_ids"`
+
+	// Issuing Authorities
+	IssuingAuthorities []ComplianceRegisterIssuingAuthorityFormDTO `json:"issuing_authorities"`
 }
 
-type ComplianceDocumentFormDTO struct {
-	ID           *uint  `json:"id,omitempty"`
-	Language     string `json:"language" binding:"required"`
-	URL          string `json:"url"`
-	FileName     string `json:"file_name"`
-	OriginalName string `json:"original_name"`
-	Type         string `json:"type"`
-	Size         int    `json:"size"`
-	IsNewFile    *bool  `json:"is_new_file,omitempty"` // Optional field for indicating if the file is new or updated
-}
+// type ComplianceDocumentFormDTO struct {
+// 	ID           *uint  `json:"id,omitempty"`
+// 	Language     string `json:"language" binding:"required"`
+// 	URL          string `json:"url"`
+// 	FileName     string `json:"file_name"`
+// 	OriginalName string `json:"original_name"`
+// 	Type         string `json:"type"`
+// 	Size         int    `json:"size"`
+// 	IsNewFile    *bool  `json:"is_new_file,omitempty"` // Optional field for indicating if the file is new or updated
+// }
 
 type ComplianceVersionFormDTO struct {
-	ParentComplianceRegisterID *uint                     `json:"parent_compliance_register_id" binding:"required"`
-	Version                    *string                   `json:"version" binding:"omitempty,max=45"`
-	DescriptionEn              *string                   `json:"description_en"`
-	DescriptionAr              *string                   `json:"description_ar"`
-	DocumentEn                 ComplianceDocumentFormDTO `json:"document_en" binding:"required"`
-	DocumentAr                 ComplianceDocumentFormDTO `json:"document_ar" binding:"required"`
+	ParentComplianceRegisterID *uint   `json:"parent_compliance_register_id" binding:"required"`
+	Version                    *string `json:"version" binding:"omitempty,max=45"`
+	DescriptionEn              *string `json:"description_en"`
+	DescriptionAr              *string `json:"description_ar"`
+	// DocumentEn                 ComplianceDocumentFormDTO `json:"document_en" binding:"required"`
+	// DocumentAr                 ComplianceDocumentFormDTO `json:"document_ar" binding:"required"`
 }
 
 type ComplianceDocumentDTO struct {
@@ -199,7 +236,7 @@ type ComplianceRegisterDetailDTO struct {
 	LastReviewedUser                *organizationDTOs.UserMinimalDTO                `json:"last_reviewed_user"`
 	ComplianceReviewStatus          *ComplianceReviewStatusDTO                      `json:"compliance_review_status"`
 	ComplianceCategory              ComplianceCategoryDTO                           `json:"compliance_category"`
-	ComplianceStatus                *ComplianceStatusDTO                             `json:"compliance_status"`
+	ComplianceStatus                *ComplianceStatusDTO                            `json:"compliance_status"`
 	ResponsibleUnit                 settingsDTOs.OrganizationUnitDTO                `json:"responsible_unit"`
 	ResponsibleUser                 organizationDTOs.UserMinimalDTO                 `json:"responsible_user"`
 	ResponsibleUserID               uint                                            `json:"responsible_user_id" binding:"required" gorm:"not null"`
@@ -223,6 +260,28 @@ type ComplianceRegisterDetailDTO struct {
 	IsRequirementAssessment         bool                                            `json:"is_requirement_assessment"`
 	ParentComplianceRegister        *ComplianceRegisterDetailDTO                    `json:"parent" gorm:"-"`
 	ChildComplianceRegister         []*ComplianceRegisterDetailDTO                  `json:"child_version" gorm:"-"`
+
+	// New Compliance Fields
+	LegislativeBodyID                  *uint   `json:"legislative_body_id"`
+	LegislationTypeID                  *uint   `json:"legislation_type_id"`
+	ImportanceClassificationID         *uint   `json:"importance_classification_id"`
+	SecrecyClassificationID            *uint   `json:"secrecy_classification_id"`
+	LegislationNo                      *string `json:"legislation_no"`
+	ComplianceDeadlineString           *string `json:"compliance_deadline"`
+	Subject                            *string `json:"subject"`
+	IsApplicable                       bool    `json:"is_applicable"`
+	IsNotApplicable                    bool    `json:"is_not_applicable"`
+	IsRegulationNotificationAssessment bool    `json:"is_regulation_notification_assessment"`
+	IsRiskBasedAssessment              bool    `json:"is_risk_based_assessment"`
+	IsPublic                           bool    `json:"is_public"`
+	IsShared                           bool    `json:"is_shared"`
+
+	// New Relations
+	LegislativeBody          *ComplianceLegislativeBodyDTO            `json:"legislative_body"`
+	LegislationType          *ComplianceLegislationTypeDTO            `json:"legislation_type"`
+	ImportanceClassification *ComplianceImportanceClassificationDTO   `json:"importance_classification"`
+	SecrecyClassification    *ComplianceSecrecyClassificationDTO      `json:"secrecy_classification"`
+	IssuingAuthorities       []*ComplianceRegisterIssuingAuthorityDTO `json:"issuing_authorities"`
 }
 
 type ComplianceControlDTO struct {
@@ -231,4 +290,55 @@ type ComplianceControlDTO struct {
 	ControlID            uint                              `json:"control_id"`
 	Control              organizationDTOs.ControlDetailDTO `json:"control"`
 	ComplianceClauseID   uint                              `json:"compliance_clause_id"`
+}
+
+// Issuing Authority DTOs - Simplified structure with single entity and document per authority
+type ComplianceRegisterIssuingAuthorityFormDTO struct {
+	ID                 *uint                                              `json:"id,omitempty"`
+	IssuingAuthorityID *uint                                              `json:"issuing_authority_id"`
+	Entity             *ComplianceRegisterIssuingAuthorityEntityFormDTO   `json:"entity"`
+	Document           *ComplianceRegisterIssuingAuthorityDocumentFormDTO `json:"document"`
+}
+
+type ComplianceRegisterIssuingAuthorityEntityFormDTO struct {
+	ID                   *uint   `json:"id,omitempty"`
+	CircularNo           *string `json:"circular_no" binding:"omitempty,max=500"`
+	DateOfReceiving      *string `json:"date_of_receiving" binding:"omitempty,datetime=2006-01-02"`
+	HijriDateOfReceiving *string `json:"hijri_date_of_receiving" binding:"omitempty,datetime=2006-01-02"`
+}
+
+type ComplianceRegisterIssuingAuthorityDocumentFormDTO struct {
+	ID            *uint   `json:"id,omitempty"`
+	URL           *string `json:"url"`
+	FileName      *string `json:"file_name"`
+	Size          *int    `json:"size"`
+	Token         *string `json:"token"`
+	OriginalName  *string `json:"original_name"`
+	Type          *string `json:"type"`
+	IsNewFile     *bool   `json:"is_new_file,omitempty"`
+	IsDeletedFile *bool   `json:"is_deleted_file,omitempty"`
+}
+
+type ComplianceRegisterIssuingAuthorityDTO struct {
+	ID               uint                                           `json:"id"`
+	IssuingAuthority *ComplianceIssuingAuthorityDTO                 `json:"issuing_authority"`
+	Entity           *ComplianceRegisterIssuingAuthorityEntityDTO   `json:"entity"`
+	Document         *ComplianceRegisterIssuingAuthorityDocumentDTO `json:"document"`
+}
+
+type ComplianceRegisterIssuingAuthorityEntityDTO struct {
+	ID                         uint   `json:"id"`
+	CircularNo                 string `json:"circular_no"`
+	DateOfReceivingString      string `json:"date_of_receiving"`
+	HijriDateOfReceivingString string `json:"hijri_date_of_receiving"`
+}
+
+type ComplianceRegisterIssuingAuthorityDocumentDTO struct {
+	ID           uint   `json:"id"`
+	URL          string `json:"url"`
+	Name         string `json:"name"`
+	Size         int    `json:"size"`
+	Token        string `json:"token"`
+	OriginalName string `json:"original_name"`
+	Type         string `json:"type"`
 }

@@ -185,6 +185,12 @@
   "translation": "Total weightage of all KPIs for this objective cannot exceed 100%."
 }
 
+,
+{
+  "id": "document_upload_disabled",
+  "translation": "Document upload is disabled for Secret and Top Secret classifications"
+}
+
 
 
   

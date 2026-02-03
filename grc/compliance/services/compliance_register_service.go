@@ -6,11 +6,10 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"jethur/config"
-	commonDTOs "jethur/grc/common/dtos"
+	//commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
@@ -63,6 +62,10 @@ type ComplianceRegisterService struct {
 	notificationSvc                  commonServices.NotificationServiceInterface
 	complianceFolderSvc              ComplianceFolderServiceInterface
 	complianceAssessmentFrameworkSvc ComplianceAssessmentFrameworkServiceInterface
+	legislativeBodySvc               LegislativeBodyServiceInterface
+	legislationTypeSvc               LegislationTypeServiceInterface
+	importanceClassificationSvc      ImportanceClassificationServiceInterface
+	secrecyClassificationSvc         SecrecyClassificationServiceInterface
 }
 
 func NewComplianceRegisterService(
@@ -79,6 +82,10 @@ func NewComplianceRegisterService(
 	notificationSvc commonServices.NotificationServiceInterface,
 	complianceFolderSvc ComplianceFolderServiceInterface,
 	complianceAssessmentFrameworkSvc ComplianceAssessmentFrameworkServiceInterface,
+	legislativeBodySvc LegislativeBodyServiceInterface,
+	legislationTypeSvc LegislationTypeServiceInterface,
+	importanceClassificationSvc ImportanceClassificationServiceInterface,
+	secrecyClassificationSvc SecrecyClassificationServiceInterface,
 ) ComplianceRegisterServiceInterface {
 	return &ComplianceRegisterService{
 		repo:                             repo,
@@ -94,6 +101,10 @@ func NewComplianceRegisterService(
 		notificationSvc:                  notificationSvc,
 		complianceFolderSvc:              complianceFolderSvc,
 		complianceAssessmentFrameworkSvc: complianceAssessmentFrameworkSvc,
+		legislativeBodySvc:               legislativeBodySvc,
+		legislationTypeSvc:               legislationTypeSvc,
+		importanceClassificationSvc:      importanceClassificationSvc,
+		secrecyClassificationSvc:         secrecyClassificationSvc,
 	}
 }
 
@@ -152,7 +163,22 @@ func (crs ComplianceRegisterService) GetFullDetailsByID(id uint, tx ...utility.D
 
 	complianceDTO.CreatedAt = compliance.CreatedAt
 	complianceDTO.UpdatedAt = compliance.UpdatedAt
-	// todo :- also add extra fields which required in details screen
+
+	// Handle issuing authorities date formatting
+	if len(compliance.IssuingAuthorities) > 0 {
+		for i, authority := range compliance.IssuingAuthorities {
+			if authority.Entity != nil {
+				if !authority.Entity.DateOfReceiving.IsZero() {
+					dateStr := authority.Entity.DateOfReceiving.Format("2006-01-02")
+					complianceDTO.IssuingAuthorities[i].Entity.DateOfReceivingString = dateStr
+				}
+				if !authority.Entity.HijriDateOfReceiving.IsZero() {
+					hijriDateStr := authority.Entity.HijriDateOfReceiving.Format("2006-01-02")
+					complianceDTO.IssuingAuthorities[i].Entity.HijriDateOfReceivingString = hijriDateStr
+				}
+			}
+		}
+	}
 
 	return &complianceDTO, nil
 }
@@ -174,54 +200,66 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		return 0, err
 	}
 
-	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByType("active")
-	if err != nil {
-		return 0, err
-	}
+	// lifecycleStatus, err := crs.lifecycleStatusSvc.GetByType("active")
+	// if err != nil {
+	// 	return 0, err
+	// }
 
-	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentEn); err != nil {
-		return 0, err
-	}
+	// if err := crs.validateComplianceDocumentFormDTO(complianceRegisterFormDTO.DocumentEn); err != nil {
+	// 	return 0, err
+	// }
 
-	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentAr); err != nil {
-		return 0, err
-	}
+	// if err := crs.validateComplianceDocumentFormDTO(complianceRegisterFormDTO.DocumentAr); err != nil {
+	// 	return 0, err
+	// }
 
-	responsibleUnitID, err := crs.userSvc.GetUserPrimaryUnitID(uint(complianceRegisterFormDTO.ResponsibleUserID))
-	if err != nil {
-		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "bcp communication plan responsible unit")
-	}
+	// responsibleUnitID, err := crs.userSvc.GetUserPrimaryUnitID(uint(*complianceRegisterFormDTO.ResponsibleUserID))
+	// if err != nil {
+	// 	return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "bcp communication plan responsible unit")
+	// }
 
 	complianceRegister := &models.ComplianceRegister{
-		ComplianceCategoryID:            complianceRegisterFormDTO.ComplianceCategoryID,
-		ComplianceStatusID:              complianceRegisterFormDTO.ComplianceStatusID,
-		ResponsibleUnitID:               responsibleUnitID,
-		ResponsibleUserID:               complianceRegisterFormDTO.ResponsibleUserID,
-		ReviewFrequencyID:               complianceRegisterFormDTO.ReviewFrequencyID,
-		LastReviewNote:                  complianceRegisterFormDTO.LastReviewNote,
-		ReviewResponsibleUserID:         complianceRegisterFormDTO.ReviewResponsibleUserID,
-		SeverityLevelID:                 complianceRegisterFormDTO.SeverityLevelID,
-		ReferenceNumber:                 referenceNumber,
-		StandardCode:                    complianceRegisterFormDTO.StandardCode,
-		TitleEn:                         complianceRegisterFormDTO.TitleEn,
-		TitleAr:                         complianceRegisterFormDTO.TitleAr,
-		DescriptionEn:                   complianceRegisterFormDTO.DescriptionEn,
-		DescriptionAr:                   complianceRegisterFormDTO.DescriptionAr,
-		Version:                         complianceRegisterFormDTO.Version,
-		Deadline:                        dates.Deadline,
-		IssueDate:                       dates.IssueDate,
-		ExpiryDate:                      dates.ExpiryDate,
-		NextReviewDate:                  dates.NextReviewDate,
-		LastReviewedDate:                dates.LastReviewedDate,
-		LastReviewedUserID:              complianceRegisterFormDTO.LastReviewedUserID,
-		ComplianceReviewStatusID:        complianceRegisterFormDTO.ComplianceReviewStatusID,
-		CreatedBYID:                     currentUserID,
-		LifecycleStatusID:               lifecycleStatus.ID,
-		ComplianceFolderID:              complianceRegisterFormDTO.ComplianceFolderID,
-		ComplianceAssessmentFrameworkID: complianceRegisterFormDTO.ComplianceAssessmentFrameworkID,
-		IsControlAssessment:             complianceRegisterFormDTO.IsControlAssessment,
-		IsRequirementAssessment:         complianceRegisterFormDTO.IsRequirementAssessment,
-		IsLatest:                        true,
+		//ComplianceCategoryID:            complianceRegisterFormDTO.ComplianceCategoryID,
+		ComplianceStatusID: complianceRegisterFormDTO.ComplianceStatusID,
+		//ResponsibleUnitID:               &responsibleUnitID,
+		//ResponsibleUserID:               complianceRegisterFormDTO.ResponsibleUserID,
+		//ReviewFrequencyID:               complianceRegisterFormDTO.ReviewFrequencyID,
+		//LastReviewNote:                  complianceRegisterFormDTO.LastReviewNote,
+		//ReviewResponsibleUserID:         complianceRegisterFormDTO.ReviewResponsibleUserID,
+		//SeverityLevelID:                 complianceRegisterFormDTO.SeverityLevelID,
+		ReferenceNumber: referenceNumber,
+		//StandardCode:                    complianceRegisterFormDTO.StandardCode,
+		TitleEn:       complianceRegisterFormDTO.TitleEn,
+		TitleAr:       complianceRegisterFormDTO.TitleAr,
+		DescriptionEn: complianceRegisterFormDTO.DescriptionEn,
+		DescriptionAr: complianceRegisterFormDTO.DescriptionAr,
+		Version:       complianceRegisterFormDTO.Version,
+		Deadline:      dates.Deadline,
+		//IssueDate:                       dates.IssueDate,
+		//ExpiryDate:                      dates.ExpiryDate,
+		//NextReviewDate:                  dates.NextReviewDate,
+		//LastReviewedDate:                dates.LastReviewedDate,
+		//LastReviewedUserID:              complianceRegisterFormDTO.LastReviewedUserID,
+		//ComplianceReviewStatusID:        complianceRegisterFormDTO.ComplianceReviewStatusID,
+		CreatedBYID: currentUserID,
+		//LifecycleStatusID:               &lifecycleStatus.ID,
+		ComplianceFolderID: complianceRegisterFormDTO.ComplianceFolderID,
+		//ComplianceAssessmentFrameworkID: complianceRegisterFormDTO.ComplianceAssessmentFrameworkID,
+		//IsControlAssessment:             complianceRegisterFormDTO.IsControlAssessment,
+		IsRequirementAssessment: true,
+		IsLatest:                true,
+
+		//New Fields
+		LegislativeBodyID:                  complianceRegisterFormDTO.LegislativeBodyID,
+		LegislationTypeID:                  complianceRegisterFormDTO.LegislationTypeID,
+		LegislationNo:                      complianceRegisterFormDTO.LegislationNo,
+		ImportanceClassificationID:         complianceRegisterFormDTO.ImportanceClassificationID,
+		SecrecyClassificationID:            complianceRegisterFormDTO.SecrecyClassificationID,
+		Subject:                            complianceRegisterFormDTO.Subject,
+		IsApplicable:                       complianceRegisterFormDTO.IsApplicable,
+		IsNotApplicable:                    complianceRegisterFormDTO.IsNotApplicable,
+		IsRegulationNotificationAssessment: complianceRegisterFormDTO.IsRegulationNotificationAssessment,
+		IsRiskBasedAssessment:              complianceRegisterFormDTO.IsRiskBasedAssessment,
 	}
 
 	id, err := crs.repo.Create(complianceRegister, tx)
@@ -247,12 +285,24 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		}
 	}
 
-	if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentEn, tx); err != nil {
+	// if err := crs.handleDocument(currentUserID, id, complianceRegisterFormDTO.DocumentEn, tx); err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
+
+	// if err := crs.handleDocument(currentUserID, id, complianceRegisterFormDTO.DocumentAr, tx); err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
+
+	// Handle issuing authorities
+	if err := crs.handleIssuingAuthorities(currentUserID, id, complianceRegisterFormDTO.IssuingAuthorities, complianceRegisterFormDTO.SecrecyClassificationID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 
-	if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentAr, tx); err != nil {
+	// Handle shared units
+	if err := crs.handleSharedUnits(currentUserID, id, complianceRegisterFormDTO.SharedUnitIDs, complianceRegisterFormDTO.IsShared, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
@@ -288,84 +338,84 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 			utility.LogError("Failed to log activity", fields)
 		}
 
-		// Prepare notification and email
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		entity := "compliance-register"
-		action := "responsible-user-assign"
+		// // Prepare notification and email
+		// urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		// entity := "compliance-register"
+		// action := "responsible-user-assign"
 
-		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserIDs:              []uint{complianceRegisterFormDTO.ResponsibleUserID},
-			ModuleIdentifier:     "compliance",
-			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Compliance Register Responsibility Assigned",
-			HeadingAr:            "تم تعيين مسؤولية سجل الامتثال",
-			TitleEn:              complianceRegisterFormDTO.TitleEn,
-			TitleAr:              complianceRegisterFormDTO.TitleAr,
-			ReferenceNumber:      complianceRegister.ReferenceNumber,
-			Entity:               &entity,
-			Action:               &action,
-			URLParam:             urlParam,
-			IsSystemNotification: false,
-			CreatedByID:          &currentUserID,
-		}
+		// dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+		// 	UserIDs:              []uint{*complianceRegisterFormDTO.ResponsibleUserID},
+		// 	ModuleIdentifier:     "compliance",
+		// 	NotificationType:     string(commonDTOs.AssignmentType),
+		// 	HeadingEn:            "Compliance Register Responsibility Assigned",
+		// 	HeadingAr:            "تم تعيين مسؤولية سجل الامتثال",
+		// 	TitleEn:              complianceRegisterFormDTO.TitleEn,
+		// 	TitleAr:              complianceRegisterFormDTO.TitleAr,
+		// 	ReferenceNumber:      complianceRegister.ReferenceNumber,
+		// 	Entity:               &entity,
+		// 	Action:               &action,
+		// 	URLParam:             urlParam,
+		// 	IsSystemNotification: false,
+		// 	CreatedByID:          &currentUserID,
+		// }
 
-		responsibleUser, err := crs.userSvc.GetByID(complianceRegisterFormDTO.ResponsibleUserID)
-		if err != nil {
-			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
-				"error": err.Error(),
-			})
-			return
-		}
+		// responsibleUser, err := crs.userSvc.GetByID(*complianceRegisterFormDTO.ResponsibleUserID)
+		// if err != nil {
+		// 	utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+		// 		"error": err.Error(),
+		// 	})
+		// 	return
+		// }
 
-		createdBy, err := crs.userSvc.GetByID(currentUserID)
-		if err != nil {
-			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
-				"error": err.Error(),
-			})
-			return
-		}
+		// createdBy, err := crs.userSvc.GetByID(currentUserID)
+		// if err != nil {
+		// 	utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+		// 		"error": err.Error(),
+		// 	})
+		// 	return
+		// }
 
-		// Assuming GetByID returns only an error and no severity level
-		severityLevel, err := crs.severityLevelSvc.GetByID(*complianceRegister.SeverityLevelID)
-		if err != nil {
-			utility.LogError("Failed to fetch severity level", map[string]interface{}{
-				"error":   err.Error(),
-				"levelID": complianceRegister.SeverityLevelID,
-			})
-			return
-		}
+		// // Assuming GetByID returns only an error and no severity level
+		// severityLevel, err := crs.severityLevelSvc.GetByID(*complianceRegister.SeverityLevelID)
+		// if err != nil {
+		// 	utility.LogError("Failed to fetch severity level", map[string]interface{}{
+		// 		"error":   err.Error(),
+		// 		"levelID": complianceRegister.SeverityLevelID,
+		// 	})
+		// 	return
+		// }
 
-		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("Compliance Register/%s: Responsibility Assigned", complianceRegister.TitleEn)
-		appURL := utility.GetAppURL()
+		// emailTo := []string{responsibleUser.Email}
+		// subject := fmt.Sprintf("Compliance Register/%s: Responsibility Assigned", complianceRegister.TitleEn)
+		// appURL := utility.GetAppURL()
 
-		emailData := map[string]interface{}{
-			"FirstNameEn":               responsibleUser.FirstNameEn,
-			"LastNameEn":                responsibleUser.LastNameEn,
-			"ComplianceReferenceNumber": complianceRegister.ReferenceNumber,
-			"ComplianceTitleEn":         complianceRegister.TitleEn,
-			"ComplianceTitleAr":         complianceRegister.TitleAr,
-			"ComplianceDescription":     complianceRegister.DescriptionEn,
-			"SeverityLevel":             severityLevel.TitleEn,
-			"CreatedByFirstNameEn":      createdBy.FirstNameEn,
-			"CreatedByLastNameEn":       createdBy.LastNameEn,
-			"AssignedOn":                time.Now().Format("2006-01-02"),
-			"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d", appURL, id),
-		}
+		// emailData := map[string]interface{}{
+		// 	"FirstNameEn":               responsibleUser.FirstNameEn,
+		// 	"LastNameEn":                responsibleUser.LastNameEn,
+		// 	"ComplianceReferenceNumber": complianceRegister.ReferenceNumber,
+		// 	"ComplianceTitleEn":         complianceRegister.TitleEn,
+		// 	"ComplianceTitleAr":         complianceRegister.TitleAr,
+		// 	"ComplianceDescription":     complianceRegister.DescriptionEn,
+		// 	"SeverityLevel":             severityLevel.TitleEn,
+		// 	"CreatedByFirstNameEn":      createdBy.FirstNameEn,
+		// 	"CreatedByLastNameEn":       createdBy.LastNameEn,
+		// 	"AssignedOn":                time.Now().Format("2006-01-02"),
+		// 	"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d", appURL, id),
+		// }
 
-		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-			EmailTo:              emailTo,
-			Subject:              subject,
-			TemplateRelativePath: "compliance/templates/email/compliance_register_create_responsible_user_mail.html",
-			EmailData:            emailData,
-		}
+		// emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+		// 	EmailTo:              emailTo,
+		// 	Subject:              subject,
+		// 	TemplateRelativePath: "compliance/templates/email/compliance_register_create_responsible_user_mail.html",
+		// 	EmailData:            emailData,
+		// }
 
-		err = crs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_register")
-		if err != nil {
-			utility.LogError("Failed to send notifications", map[string]interface{}{
-				"error": err.Error(),
-			})
-		}
+		// err = crs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_register")
+		// if err != nil {
+		// 	utility.LogError("Failed to send notifications", map[string]interface{}{
+		// 		"error": err.Error(),
+		// 	})
+		// }
 	}()
 
 	return id, nil
@@ -379,7 +429,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		return err
 	}
 
-	oldResponsibleUserID := existingComplianceRegister.ResponsibleUserID
+	//oldResponsibleUserID := existingComplianceRegister.ResponsibleUserID
 
 	if err := crs.validateComplianceRegisterFormDTO(complianceRegisterFormDTO); err != nil {
 		return err
@@ -390,13 +440,13 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		return err
 	}
 
-	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentEn); err != nil {
-		return err
-	}
+	// if err := crs.validateComplianceDocumentFormDTO(complianceRegisterFormDTO.DocumentEn); err != nil {
+	// 	return err
+	// }
 
-	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentAr); err != nil {
-		return err
-	}
+	// if err := crs.validateComplianceDocumentFormDTO(complianceRegisterFormDTO.DocumentAr); err != nil {
+	// 	return err
+	// }
 
 	oldComplianceRegister, err := crs.GetFullDetailsByID(id, tx)
 	if err != nil {
@@ -404,58 +454,70 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		return err
 	}
 
-	if existingComplianceRegister.ResponsibleUserID != complianceRegisterFormDTO.ResponsibleUserID {
-		responsibleUnitID, err := crs.userSvc.GetUserPrimaryUnitID(complianceRegisterFormDTO.ResponsibleUserID)
-		if err != nil {
-			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
-		}
-		existingComplianceRegister.ResponsibleUnitID = responsibleUnitID
-	}
-	hasAssessments, err := crs.repo.HasComplianceAssessments(id, tx)
-	if err != nil {
-		return err
-	}
+	// if existingComplianceRegister.ResponsibleUserID != complianceRegisterFormDTO.ResponsibleUserID {
+	// 	responsibleUnitID, err := crs.userSvc.GetUserPrimaryUnitID(*complianceRegisterFormDTO.ResponsibleUserID)
+	// 	if err != nil {
+	// 		return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
+	// 	}
+	// 	existingComplianceRegister.ResponsibleUnitID = &responsibleUnitID
+	// }
+	// hasAssessments, err := crs.repo.HasComplianceAssessments(id, tx)
+	// if err != nil {
+	// 	return err
+	// }
 
-	if hasAssessments && existingComplianceRegister.ComplianceAssessmentFrameworkID != 0 &&
-		complianceRegisterFormDTO.ComplianceAssessmentFrameworkID != 0 &&
-		existingComplianceRegister.ComplianceAssessmentFrameworkID != complianceRegisterFormDTO.ComplianceAssessmentFrameworkID {
-		return utility.NewForbiddenError("compliance_assessment_framework_cannot_be_changed")
-	}
-	// Prevent changing IsControlAssessment if assessments exist
-	if hasAssessments && existingComplianceRegister.IsControlAssessment != complianceRegisterFormDTO.IsControlAssessment {
-		return utility.NewForbiddenError("is_control_assessment_cannot_be_changed")
-	}
+	// if hasAssessments && existingComplianceRegister.ComplianceAssessmentFrameworkID != nil &&
+	// 	complianceRegisterFormDTO.ComplianceAssessmentFrameworkID != nil &&
+	// 	existingComplianceRegister.ComplianceAssessmentFrameworkID != complianceRegisterFormDTO.ComplianceAssessmentFrameworkID {
+	// 	return utility.NewForbiddenError("compliance_assessment_framework_cannot_be_changed")
+	// }
+	// // Prevent changing IsControlAssessment if assessments exist
+	// if hasAssessments && existingComplianceRegister.IsControlAssessment != complianceRegisterFormDTO.IsControlAssessment {
+	// 	return utility.NewForbiddenError("is_control_assessment_cannot_be_changed")
+	// }
 
-	// Prevent changing IsRequirementAssessment if assessments exist
-	if hasAssessments && existingComplianceRegister.IsRequirementAssessment != complianceRegisterFormDTO.IsRequirementAssessment {
-		return utility.NewForbiddenError("is_requirement_assessment_cannot_be_changed")
-	}
+	// // Prevent changing IsRequirementAssessment if assessments exist
+	// if hasAssessments && existingComplianceRegister.IsRequirementAssessment != complianceRegisterFormDTO.IsRequirementAssessment {
+	// 	return utility.NewForbiddenError("is_requirement_assessment_cannot_be_changed")
+	// }
 
-	existingComplianceRegister.ComplianceCategoryID = complianceRegisterFormDTO.ComplianceCategoryID
+	//existingComplianceRegister.ComplianceCategoryID = complianceRegisterFormDTO.ComplianceCategoryID
 	existingComplianceRegister.ComplianceStatusID = complianceRegisterFormDTO.ComplianceStatusID
-	existingComplianceRegister.ResponsibleUserID = complianceRegisterFormDTO.ResponsibleUserID
-	existingComplianceRegister.ReviewFrequencyID = complianceRegisterFormDTO.ReviewFrequencyID
-	existingComplianceRegister.ReviewResponsibleUserID = complianceRegisterFormDTO.ReviewResponsibleUserID
-	existingComplianceRegister.SeverityLevelID = complianceRegisterFormDTO.SeverityLevelID
-	existingComplianceRegister.StandardCode = complianceRegisterFormDTO.StandardCode
+	// existingComplianceRegister.ResponsibleUserID = complianceRegisterFormDTO.ResponsibleUserID
+	// existingComplianceRegister.ReviewFrequencyID = complianceRegisterFormDTO.ReviewFrequencyID
+	// existingComplianceRegister.ReviewResponsibleUserID = complianceRegisterFormDTO.ReviewResponsibleUserID
+	// existingComplianceRegister.SeverityLevelID = complianceRegisterFormDTO.SeverityLevelID
+	// existingComplianceRegister.StandardCode = complianceRegisterFormDTO.StandardCode
 	existingComplianceRegister.TitleEn = complianceRegisterFormDTO.TitleEn
 	existingComplianceRegister.TitleAr = complianceRegisterFormDTO.TitleAr
 	existingComplianceRegister.DescriptionEn = complianceRegisterFormDTO.DescriptionEn
 	existingComplianceRegister.DescriptionAr = complianceRegisterFormDTO.DescriptionAr
 	existingComplianceRegister.Version = complianceRegisterFormDTO.Version
 	existingComplianceRegister.Deadline = dates.Deadline
-	existingComplianceRegister.IssueDate = dates.IssueDate
-	existingComplianceRegister.ExpiryDate = dates.ExpiryDate
-	existingComplianceRegister.NextReviewDate = dates.NextReviewDate
-	existingComplianceRegister.LastReviewedDate = dates.LastReviewedDate
-	existingComplianceRegister.LastReviewedUserID = complianceRegisterFormDTO.LastReviewedUserID
-	existingComplianceRegister.ComplianceReviewStatusID = complianceRegisterFormDTO.ComplianceReviewStatusID
-	existingComplianceRegister.LastReviewNote = complianceRegisterFormDTO.LastReviewNote
+	// existingComplianceRegister.IssueDate = dates.IssueDate
+	// existingComplianceRegister.ExpiryDate = dates.ExpiryDate
+	// existingComplianceRegister.NextReviewDate = dates.NextReviewDate
+	// existingComplianceRegister.LastReviewedDate = dates.LastReviewedDate
+	// existingComplianceRegister.LastReviewedUserID = complianceRegisterFormDTO.LastReviewedUserID
+	// existingComplianceRegister.ComplianceReviewStatusID = complianceRegisterFormDTO.ComplianceReviewStatusID
+	// existingComplianceRegister.LastReviewNote = complianceRegisterFormDTO.LastReviewNote
 	existingComplianceRegister.UpdatedBYID = &currentUserID
 	existingComplianceRegister.ComplianceFolderID = complianceRegisterFormDTO.ComplianceFolderID
-	existingComplianceRegister.ComplianceAssessmentFrameworkID = complianceRegisterFormDTO.ComplianceAssessmentFrameworkID
-	existingComplianceRegister.IsControlAssessment = complianceRegisterFormDTO.IsControlAssessment
-	existingComplianceRegister.IsRequirementAssessment = complianceRegisterFormDTO.IsRequirementAssessment
+	// existingComplianceRegister.ComplianceAssessmentFrameworkID = complianceRegisterFormDTO.ComplianceAssessmentFrameworkID
+	// existingComplianceRegister.IsControlAssessment = complianceRegisterFormDTO.IsControlAssessment
+	//existingComplianceRegister.IsRequirementAssessment = complianceRegisterFormDTO.IsRequirementAssessment
+
+	//New Fields
+	existingComplianceRegister.LegislativeBodyID = complianceRegisterFormDTO.LegislativeBodyID
+	existingComplianceRegister.LegislationTypeID = complianceRegisterFormDTO.LegislationTypeID
+	existingComplianceRegister.LegislationNo = complianceRegisterFormDTO.LegislationNo
+	existingComplianceRegister.ImportanceClassificationID = complianceRegisterFormDTO.ImportanceClassificationID
+	existingComplianceRegister.SecrecyClassificationID = complianceRegisterFormDTO.SecrecyClassificationID
+	existingComplianceRegister.Subject = complianceRegisterFormDTO.Subject
+	existingComplianceRegister.IsApplicable = complianceRegisterFormDTO.IsApplicable
+	existingComplianceRegister.IsNotApplicable = complianceRegisterFormDTO.IsNotApplicable
+	existingComplianceRegister.IsRegulationNotificationAssessment = complianceRegisterFormDTO.IsRegulationNotificationAssessment
+	existingComplianceRegister.IsRiskBasedAssessment = complianceRegisterFormDTO.IsRiskBasedAssessment
 
 	err = crs.repo.Update(existingComplianceRegister, tx)
 	if err != nil {
@@ -463,106 +525,142 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		return err
 	}
 
-	existingComplianceDocumentEn, err := crs.repo.GetLatestDocumentByComplianceID(id, "en")
-	if err != nil {
+	// existingComplianceDocumentEn, err := crs.repo.GetLatestDocumentByComplianceID(id, "en")
+	// if err != nil {
+	// 	return err
+	// }
+
+	// existingComplianceDocumentAr, err := crs.repo.GetLatestDocumentByComplianceID(id, "ar")
+	// if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	// 	return err
+	// }
+
+	// if complianceRegisterFormDTO.DocumentEn.IsNewFile != nil && *complianceRegisterFormDTO.DocumentEn.IsNewFile {
+	// 	existingComplianceDocumentEnFileName := existingComplianceDocumentEn.Name
+
+	// 	if err := crs.handleDocument(currentUserID, id, complianceRegisterFormDTO.DocumentEn, tx); err != nil {
+	// 		tx.Rollback()
+	// 		return err
+	// 	}
+
+	// 	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
+	// 	if err := utility.RemoveFile(existingComplianceDocumentEnFileName, storagePath); err != nil {
+	// 		tx.Rollback()
+	// 		return err
+	// 	}
+
+	// }
+
+	// if complianceRegisterFormDTO.DocumentAr.IsNewFile != nil && *complianceRegisterFormDTO.DocumentAr.IsNewFile {
+	// 	var existingComplianceDocumentArFileName string
+	// 	if existingComplianceDocumentAr != nil {
+	// 		existingComplianceDocumentArFileName = existingComplianceDocumentAr.Name
+	// 	}
+
+	// 	if err := crs.handleDocument(currentUserID, id, complianceRegisterFormDTO.DocumentAr, tx); err != nil {
+	// 		tx.Rollback()
+	// 		return err
+	// 	}
+
+	// 	if existingComplianceDocumentAr != nil {
+	// 		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
+	// 		if err := utility.RemoveFile(existingComplianceDocumentArFileName, storagePath); err != nil {
+	// 			tx.Rollback()
+	// 			return err
+	// 		}
+	// 	}
+	// }
+
+	// Handle issuing authorities
+	if err := crs.handleIssuingAuthorities(currentUserID, id, complianceRegisterFormDTO.IssuingAuthorities, complianceRegisterFormDTO.SecrecyClassificationID, tx); err != nil {
+		tx.Rollback()
 		return err
 	}
 
-	existingComplianceDocumentAr, err := crs.repo.GetLatestDocumentByComplianceID(id, "ar")
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	// Handle shared units
+	if err := crs.handleSharedUnits(currentUserID, id, complianceRegisterFormDTO.SharedUnitIDs, complianceRegisterFormDTO.IsShared, tx); err != nil {
+		tx.Rollback()
 		return err
-	}
-
-	if complianceRegisterFormDTO.DocumentEn.IsNewFile != nil && *complianceRegisterFormDTO.DocumentEn.IsNewFile {
-		existingComplianceDocumentEnFileName := existingComplianceDocumentEn.Name
-
-		if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentEn, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
-		if err := utility.RemoveFile(existingComplianceDocumentEnFileName, storagePath); err != nil {
-			tx.Rollback()
-			return err
-		}
-
-	}
-
-	if complianceRegisterFormDTO.DocumentAr.IsNewFile != nil && *complianceRegisterFormDTO.DocumentAr.IsNewFile {
-		var existingComplianceDocumentArFileName string
-		if existingComplianceDocumentAr != nil {
-			existingComplianceDocumentArFileName = existingComplianceDocumentAr.Name
-		}
-
-		if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentAr, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		if existingComplianceDocumentAr != nil {
-			storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(id), 10), "documents")
-			if err := utility.RemoveFile(existingComplianceDocumentArFileName, storagePath); err != nil {
-				tx.Rollback()
-				return err
-			}
-		}
 	}
 
 	tx.Commit()
 
 	go func() {
-		existingCompliance, err := crs.GetFullDetailsByID(id)
-		if err != nil {
-			return
-		}
+		// existingCompliance, err := crs.GetFullDetailsByID(id)
+		// if err != nil {
+		// 	return
+		// }
 
 		// Prepare log data
 		changedData := make(map[string]interface{})
 
 		// log changes
 		oldData := map[string]interface{}{
-			"compliance_category":      oldComplianceRegister.ComplianceCategory.TitleEn,
-			"compliance_status":        oldComplianceRegister.ComplianceStatus.TitleEn,
-			"responsible_unit":         oldComplianceRegister.ResponsibleUnit.TitleEn,
-			"responsible_user":         fmt.Sprintf("%s %s", oldComplianceRegister.ResponsibleUser.FirstNameEN, oldComplianceRegister.ResponsibleUser.LastNameEN),
-			"review_frequency":         utility.GetFieldValue(oldComplianceRegister.ReviewFrequency).(string),
-			"review_responsible_user":  utility.GetFieldValue(oldComplianceRegister.ReviewResponsibleUser).(string),
-			"severity_level":           utility.GetFieldValue(oldComplianceRegister.SeverityLevel).(string),
-			"standard_code":            oldComplianceRegister.StandardCode,
-			"title_en":                 oldComplianceRegister.TitleEn,
-			"title_ar":                 oldComplianceRegister.TitleAr,
-			"description_en":           oldComplianceRegister.DescriptionEn,
-			"description_ar":           oldComplianceRegister.DescriptionAr,
-			"version":                  oldComplianceRegister.Version,
-			"dead_line":                oldComplianceRegister.DeadlineString,
-			"issue_date":               oldComplianceRegister.IssueDateString,
-			"expiry_date":              oldComplianceRegister.ExpiryDateString,
-			"last_review_date":         oldComplianceRegister.LastReviewedDateString,
-			"next_review_date":         oldComplianceRegister.NextReviewDateString,
-			"last_review_note":         oldComplianceRegister.LastReviewNote,
-			"last_review_user":         utility.GetFieldValue(oldComplianceRegister.LastReviewedUser).(string),
-			"compliance_review_status": utility.GetFieldValue(oldComplianceRegister.ComplianceReviewStatus).(string),
+			// "compliance_category":      oldComplianceRegister.ComplianceCategory.TitleEn,
+			"compliance_status": oldComplianceRegister.ComplianceStatus.TitleEn,
+			// "responsible_unit":         oldComplianceRegister.ResponsibleUnit.TitleEn,
+			// "responsible_user":         fmt.Sprintf("%s %s", oldComplianceRegister.ResponsibleUser.FirstNameEN, oldComplianceRegister.ResponsibleUser.LastNameEN),
+			// "review_frequency":         utility.GetFieldValue(oldComplianceRegister.ReviewFrequency).(string),
+			// "review_responsible_user":  utility.GetFieldValue(oldComplianceRegister.ReviewResponsibleUser).(string),
+			// "severity_level":           utility.GetFieldValue(oldComplianceRegister.SeverityLevel).(string),
+			// "standard_code":            oldComplianceRegister.StandardCode,
+			"title_en":       oldComplianceRegister.TitleEn,
+			"title_ar":       oldComplianceRegister.TitleAr,
+			"description_en": oldComplianceRegister.DescriptionEn,
+			"description_ar": oldComplianceRegister.DescriptionAr,
+			"version":        oldComplianceRegister.Version,
+			"dead_line":      oldComplianceRegister.DeadlineString,
+			// "issue_date":               oldComplianceRegister.IssueDateString,
+			// "expiry_date":              oldComplianceRegister.ExpiryDateString,
+			// "last_review_date":         oldComplianceRegister.LastReviewedDateString,
+			// "next_review_date":         oldComplianceRegister.NextReviewDateString,
+			// "last_review_note":         oldComplianceRegister.LastReviewNote,
+			// "last_review_user":         utility.GetFieldValue(oldComplianceRegister.LastReviewedUser).(string),
+			"compliance_review_status":              utility.GetFieldValue(oldComplianceRegister.ComplianceReviewStatus).(string),
+			"legislative_body_id":                   oldComplianceRegister.LegislativeBodyID,
+			"legislation_type_id":                   oldComplianceRegister.LegislationTypeID,
+			"legislation_no":                        oldComplianceRegister.LegislationNo,
+			"importance_classification_id":          oldComplianceRegister.ImportanceClassificationID,
+			"secrecy_classification_id":             oldComplianceRegister.SecrecyClassificationID,
+			"subject":                               oldComplianceRegister.Subject,
+			"is_applicable":                         oldComplianceRegister.IsApplicable,
+			"is_not_applicable":                     oldComplianceRegister.IsNotApplicable,
+			"is_regulation_notification_assessment": oldComplianceRegister.IsRegulationNotificationAssessment,
+			"is_risk_based_assessment":              oldComplianceRegister.IsRiskBasedAssessment,
 		}
 
 		newData := map[string]interface{}{
-			"compliance_category":      existingCompliance.ComplianceCategory.TitleEn,
-			"compliance_status":        existingCompliance.ComplianceStatus.TitleEn,
-			"responsible_unit":         existingCompliance.ResponsibleUnit.TitleEn,
-			"responsible_user":         fmt.Sprintf("%s %s", existingCompliance.ResponsibleUser.FirstNameEN, existingCompliance.ResponsibleUser.LastNameEN),
-			"review_frequency":         utility.GetFieldValue(existingCompliance.ReviewFrequency).(string),
-			"review_responsible_user":  utility.GetFieldValue(existingCompliance.ReviewResponsibleUser).(string),
-			"severity_level":           utility.GetFieldValue(existingCompliance.SeverityLevel).(string),
-			"description_ar":           existingCompliance.DescriptionAr,
-			"version":                  existingCompliance.Version,
-			"dead_line":                existingCompliance.DeadlineString,
-			"issue_date":               existingCompliance.IssueDateString,
-			"expiry_date":              existingCompliance.ExpiryDateString,
-			"last_review_date":         existingCompliance.LastReviewedDateString,
-			"next_review_date":         existingCompliance.NextReviewDateString,
-			"last_review_note":         existingCompliance.LastReviewNote,
-			"last_review_user":         utility.GetFieldValue(existingCompliance.LastReviewedUser).(string),
-			"compliance_review_status": utility.GetFieldValue(existingCompliance.ComplianceReviewStatus).(string),
+			// "compliance_category":      oldComplianceRegister.ComplianceCategory.TitleEn,
+			// "compliance_status":        oldComplianceRegister.ComplianceStatus.TitleEn,
+			// "responsible_unit":         oldComplianceRegister.ResponsibleUnit.TitleEn,
+			// "responsible_user":         fmt.Sprintf("%s %s", oldComplianceRegister.ResponsibleUser.FirstNameEN, oldComplianceRegister.ResponsibleUser.LastNameEN),
+			// "review_frequency":         utility.GetFieldValue(oldComplianceRegister.ReviewFrequency).(string),
+			// "review_responsible_user":  utility.GetFieldValue(oldComplianceRegister.ReviewResponsibleUser).(string),
+			// "severity_level":           utility.GetFieldValue(oldComplianceRegister.SeverityLevel).(string),
+			// "standard_code":            oldComplianceRegister.StandardCode,
+			"title_en":       existingComplianceRegister.TitleEn,
+			"title_ar":       existingComplianceRegister.TitleAr,
+			"description_en": existingComplianceRegister.DescriptionEn,
+			"description_ar": existingComplianceRegister.DescriptionAr,
+			"version":        existingComplianceRegister.Version,
+			"dead_line":      existingComplianceRegister.Deadline,
+			// "issue_date":               oldComplianceRegister.IssueDateString,
+			// "expiry_date":              oldComplianceRegister.ExpiryDateString,
+			// "last_review_date":         oldComplianceRegister.LastReviewedDateString,
+			// "next_review_date":         oldComplianceRegister.NextReviewDateString,
+			// "last_review_note":         oldComplianceRegister.LastReviewNote,
+			// "last_review_user":         utility.GetFieldValue(oldComplianceRegister.LastReviewedUser).(string),
+			"compliance_review_status":              utility.GetFieldValue(existingComplianceRegister.ComplianceReviewStatus).(string),
+			"legislative_body_id":                   existingComplianceRegister.LegislativeBodyID,
+			"legislation_type_id":                   existingComplianceRegister.LegislationTypeID,
+			"legislation_no":                        existingComplianceRegister.LegislationNo,
+			"importance_classification_id":          existingComplianceRegister.ImportanceClassificationID,
+			"secrecy_classification_id":             existingComplianceRegister.SecrecyClassificationID,
+			"subject":                               existingComplianceRegister.Subject,
+			"is_applicable":                         existingComplianceRegister.IsApplicable,
+			"is_not_applicable":                     existingComplianceRegister.IsNotApplicable,
+			"is_regulation_notification_assessment": existingComplianceRegister.IsRegulationNotificationAssessment,
+			"is_risk_based_assessment":              existingComplianceRegister.IsRiskBasedAssessment,
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
@@ -592,135 +690,135 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		}
 
 		// Send notifications to old and new responsible users if the responsible user has changed
-		if oldResponsibleUserID != existingComplianceRegister.ResponsibleUserID {
-			// URL param for notifications
-			urlParam := fmt.Sprintf(`{"id":%d}`, id)
-			entity := "compliance-register"
+		// if oldResponsibleUserID != existingComplianceRegister.ResponsibleUserID {
+		// 	// URL param for notifications
+		// 	urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		// 	entity := "compliance-register"
 
-			// Old responsible user notification (Removal)
-			oldResponsibleUserAction := "responsible-user-remove"
-			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserIDs:              []uint{oldResponsibleUserID},
-				ModuleIdentifier:     "compliance",
-				NotificationType:     string(commonDTOs.InformationType),
-				HeadingEn:            "Compliance Register Responsibility Removed",
-				HeadingAr:            "تمت إزالة مسؤولية تسجيل الامتثال",
-				TitleEn:              existingComplianceRegister.TitleEn,
-				TitleAr:              existingComplianceRegister.TitleAr,
-				ReferenceNumber:      existingComplianceRegister.ReferenceNumber,
-				Entity:               &entity,
-				Action:               &oldResponsibleUserAction,
-				URLParam:             urlParam,
-				IsSystemNotification: false,
-				CreatedByID:          &currentUserID,
-			}
+		// 	// Old responsible user notification (Removal)
+		// 	oldResponsibleUserAction := "responsible-user-remove"
+		// 	oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+		// 		UserIDs:              []uint{*oldResponsibleUserID},
+		// 		ModuleIdentifier:     "compliance",
+		// 		NotificationType:     string(commonDTOs.InformationType),
+		// 		HeadingEn:            "Compliance Register Responsibility Removed",
+		// 		HeadingAr:            "تمت إزالة مسؤولية تسجيل الامتثال",
+		// 		TitleEn:              existingComplianceRegister.TitleEn,
+		// 		TitleAr:              existingComplianceRegister.TitleAr,
+		// 		ReferenceNumber:      existingComplianceRegister.ReferenceNumber,
+		// 		Entity:               &entity,
+		// 		Action:               &oldResponsibleUserAction,
+		// 		URLParam:             urlParam,
+		// 		IsSystemNotification: false,
+		// 		CreatedByID:          &currentUserID,
+		// 	}
 
-			// New responsible user notification (Assignment)
-			newResponsibleUserAction := "responsible-user-assign"
-			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserIDs:              []uint{complianceRegisterFormDTO.ResponsibleUserID},
-				ModuleIdentifier:     "compliance",
-				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Compliance Register Responsibility Assigned",
-				HeadingAr:            "تم تعيين مسؤولية سجل الامتثال",
-				TitleEn:              existingComplianceRegister.TitleEn,
-				TitleAr:              existingComplianceRegister.TitleAr,
-				ReferenceNumber:      existingComplianceRegister.ReferenceNumber,
-				Entity:               &entity,
-				Action:               &newResponsibleUserAction,
-				URLParam:             urlParam,
-				IsSystemNotification: false,
-				CreatedByID:          &currentUserID,
-			}
+		// 	// New responsible user notification (Assignment)
+		// 	newResponsibleUserAction := "responsible-user-assign"
+		// 	newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+		// 		UserIDs:              []uint{*complianceRegisterFormDTO.ResponsibleUserID},
+		// 		ModuleIdentifier:     "compliance",
+		// 		NotificationType:     string(commonDTOs.AssignmentType),
+		// 		HeadingEn:            "Compliance Register Responsibility Assigned",
+		// 		HeadingAr:            "تم تعيين مسؤولية سجل الامتثال",
+		// 		TitleEn:              existingComplianceRegister.TitleEn,
+		// 		TitleAr:              existingComplianceRegister.TitleAr,
+		// 		ReferenceNumber:      existingComplianceRegister.ReferenceNumber,
+		// 		Entity:               &entity,
+		// 		Action:               &newResponsibleUserAction,
+		// 		URLParam:             urlParam,
+		// 		IsSystemNotification: false,
+		// 		CreatedByID:          &currentUserID,
+		// 	}
 
-			// Fetch the responsible users' data
-			oldResponsibleUser, err := crs.userSvc.GetByID(oldResponsibleUserID)
-			if err != nil {
-				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
-					"error": err.Error(),
-				})
-				return
-			}
+		// 	// Fetch the responsible users' data
+		// 	oldResponsibleUser, err := crs.userSvc.GetByID(*oldResponsibleUserID)
+		// 	if err != nil {
+		// 		utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+		// 			"error": err.Error(),
+		// 		})
+		// 		return
+		// 	}
 
-			newResponsibleUser, err := crs.userSvc.GetByID(complianceRegisterFormDTO.ResponsibleUserID)
-			if err != nil {
-				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
-					"error": err.Error(),
-				})
-				return
-			}
+		// 	newResponsibleUser, err := crs.userSvc.GetByID(*complianceRegisterFormDTO.ResponsibleUserID)
+		// 	if err != nil {
+		// 		utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+		// 			"error": err.Error(),
+		// 		})
+		// 		return
+		// 	}
 
-			// Fetch details of the user making the assignment
-			updatedByUser, err := crs.userSvc.GetByID(currentUserID)
-			if err != nil {
-				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
-					"error": err.Error(),
-				})
-				return
-			}
+		// 	// Fetch details of the user making the assignment
+		// 	updatedByUser, err := crs.userSvc.GetByID(currentUserID)
+		// 	if err != nil {
+		// 		utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+		// 			"error": err.Error(),
+		// 		})
+		// 		return
+		// 	}
 
-			appURL := utility.GetAppURL()
+		// 	appURL := utility.GetAppURL()
 
-			// Email notification for the old responsible user
-			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
-			oldResponsibleUserSubject := fmt.Sprintf("Compliance Register/%s: Responsibility Removed", existingComplianceRegister.TitleEn)
-			oldResponsibleUserEmailData := map[string]interface{}{
-				"FirstNameEn":               oldResponsibleUser.FirstNameEn,
-				"LastNameEn":                oldResponsibleUser.LastNameEn,
-				"ComplianceReferenceNumber": existingComplianceRegister.ReferenceNumber,
-				"ComplianceTitle":           existingComplianceRegister.TitleEn,
-				"ComplianceTitleAr":         existingComplianceRegister.TitleAr,
-				"ComplianceDescription":     existingComplianceRegister.DescriptionEn,
-				"UpdatedByFirstNameEn":      updatedByUser.FirstNameEn,
-				"UpdatedByLastNameEn":       updatedByUser.LastNameEn,
-				"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d", appURL, id),
-			}
+		// 	// Email notification for the old responsible user
+		// 	oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+		// 	oldResponsibleUserSubject := fmt.Sprintf("Compliance Register/%s: Responsibility Removed", existingComplianceRegister.TitleEn)
+		// 	oldResponsibleUserEmailData := map[string]interface{}{
+		// 		"FirstNameEn":               oldResponsibleUser.FirstNameEn,
+		// 		"LastNameEn":                oldResponsibleUser.LastNameEn,
+		// 		"ComplianceReferenceNumber": existingComplianceRegister.ReferenceNumber,
+		// 		"ComplianceTitle":           existingComplianceRegister.TitleEn,
+		// 		"ComplianceTitleAr":         existingComplianceRegister.TitleAr,
+		// 		"ComplianceDescription":     existingComplianceRegister.DescriptionEn,
+		// 		"UpdatedByFirstNameEn":      updatedByUser.FirstNameEn,
+		// 		"UpdatedByLastNameEn":       updatedByUser.LastNameEn,
+		// 		"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d", appURL, id),
+		// 	}
 
-			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-				EmailTo:              oldResponsibleUserEmailTo,
-				Subject:              oldResponsibleUserSubject,
-				TemplateRelativePath: "compliance/templates/email/compliance_register_remove_responsible_user_mail.html",
-				EmailData:            oldResponsibleUserEmailData,
-			}
+		// 	oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+		// 		EmailTo:              oldResponsibleUserEmailTo,
+		// 		Subject:              oldResponsibleUserSubject,
+		// 		TemplateRelativePath: "compliance/templates/email/compliance_register_remove_responsible_user_mail.html",
+		// 		EmailData:            oldResponsibleUserEmailData,
+		// 	}
 
-			// Email notification for the new responsible user
-			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
-			newResponsibleUserSubject := fmt.Sprintf("Compliance Register/%s: Responsibility Assigned", existingComplianceRegister.TitleEn)
-			newResponsibleUserEmailData := map[string]interface{}{
-				"FirstNameEn":               newResponsibleUser.FirstNameEn,
-				"LastNameEn":                newResponsibleUser.LastNameEn,
-				"ComplianceReferenceNumber": existingComplianceRegister.ReferenceNumber,
-				"ComplianceTitle":           existingComplianceRegister.TitleEn,
-				"ComplianceTitleAr":         existingComplianceRegister.TitleAr,
-				"ComplianceDescription":     existingComplianceRegister.DescriptionEn,
-				"AssignedByFirstNameEn":     updatedByUser.FirstNameEn,
-				"AssignedByLastNameEn":      updatedByUser.LastNameEn,
-				"AssignedOn":                time.Now().Format("2006-01-02"),
-				"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d", appURL, id),
-			}
+		// 	// Email notification for the new responsible user
+		// 	newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+		// 	newResponsibleUserSubject := fmt.Sprintf("Compliance Register/%s: Responsibility Assigned", existingComplianceRegister.TitleEn)
+		// 	newResponsibleUserEmailData := map[string]interface{}{
+		// 		"FirstNameEn":               newResponsibleUser.FirstNameEn,
+		// 		"LastNameEn":                newResponsibleUser.LastNameEn,
+		// 		"ComplianceReferenceNumber": existingComplianceRegister.ReferenceNumber,
+		// 		"ComplianceTitle":           existingComplianceRegister.TitleEn,
+		// 		"ComplianceTitleAr":         existingComplianceRegister.TitleAr,
+		// 		"ComplianceDescription":     existingComplianceRegister.DescriptionEn,
+		// 		"AssignedByFirstNameEn":     updatedByUser.FirstNameEn,
+		// 		"AssignedByLastNameEn":      updatedByUser.LastNameEn,
+		// 		"AssignedOn":                time.Now().Format("2006-01-02"),
+		// 		"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d", appURL, id),
+		// 	}
 
-			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-				EmailTo:              newResponsibleUserEmailTo,
-				Subject:              newResponsibleUserSubject,
-				TemplateRelativePath: "compliance/templates/email/compliance_register_change_responsible_user_mail.html",
-				EmailData:            newResponsibleUserEmailData,
-			}
+		// 	newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+		// 		EmailTo:              newResponsibleUserEmailTo,
+		// 		Subject:              newResponsibleUserSubject,
+		// 		TemplateRelativePath: "compliance/templates/email/compliance_register_change_responsible_user_mail.html",
+		// 		EmailData:            newResponsibleUserEmailData,
+		// 	}
 
-			// Send notifications and emails
-			err = crs.notificationSvc.SendNotification(newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "compliance_register")
-			if err != nil {
-				utility.LogError("Failed to send notifications to new responsible user", map[string]interface{}{
-					"error": err.Error(),
-				})
-			}
+		// 	// Send notifications and emails
+		// 	err = crs.notificationSvc.SendNotification(newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "compliance_register")
+		// 	if err != nil {
+		// 		utility.LogError("Failed to send notifications to new responsible user", map[string]interface{}{
+		// 			"error": err.Error(),
+		// 		})
+		// 	}
 
-			err = crs.notificationSvc.SendNotification(oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "compliance_register")
-			if err != nil {
-				utility.LogError("Failed to send notifications to old responsible user", map[string]interface{}{
-					"error": err.Error(),
-				})
-			}
-		}
+		// 	err = crs.notificationSvc.SendNotification(oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "compliance_register")
+		// 	if err != nil {
+		// 		utility.LogError("Failed to send notifications to old responsible user", map[string]interface{}{
+		// 			"error": err.Error(),
+		// 		})
+		// 	}
+		// }
 	}()
 
 	return nil
@@ -773,6 +871,46 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 			if err := crs.repo.DeleteComplianceStatusUpdates(deleteStatusUpdateIds, tx); err != nil {
 				tx.Rollback()
 				return nil, err
+			}
+		}
+
+		// Delete shared units
+		existingSharedUnits, err := crs.repo.GetSharedUnitsByComplianceRegisterID(id, tx)
+		if err == nil && len(existingSharedUnits) > 0 {
+			var departmentIDs []uint
+			for _, sharedUnit := range existingSharedUnits {
+				departmentIDs = append(departmentIDs, sharedUnit.DepartmentID)
+			}
+			if err := crs.repo.DeleteSharedUnits(id, departmentIDs, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
+		// Delete issuing authorities and their related records
+		if len(complianceRegister.IssuingAuthorities) > 0 {
+			for _, authority := range complianceRegister.IssuingAuthorities {
+				// Delete issuing authority document if exists
+				if authority.Document != nil {
+					if err := crs.repo.DeleteIssuingAuthorityDocument(authority.Document.ID, tx); err != nil {
+						tx.Rollback()
+						return nil, err
+					}
+				}
+
+				// Delete issuing authority entity if exists
+				if authority.Entity != nil {
+					if err := crs.repo.DeleteIssuingAuthorityEntity(authority.Entity.ID, tx); err != nil {
+						tx.Rollback()
+						return nil, err
+					}
+				}
+
+				// Delete the issuing authority itself
+				if err := crs.repo.DeleteIssuingAuthority(authority.ID, tx); err != nil {
+					tx.Rollback()
+					return nil, err
+				}
 			}
 		}
 
@@ -853,67 +991,67 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 			}
 
 			// Send DB and email notifications for each successfully deleted compliance register
-			for _, notification := range notifications {
-				urlParam := ""
-				entity := "compliance-register"
-				action := "delete"
+			// for _, notification := range notifications {
+			// 	urlParam := ""
+			// 	entity := "compliance-register"
+			// 	action := "delete"
 
-				// Prepare DB notification
-				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserIDs:              []uint{*notification.OwnerID},
-					ModuleIdentifier:     "compliance",
-					NotificationType:     string(commonDTOs.DeletionType),
-					HeadingEn:            "Compliance Register Deleted",
-					HeadingAr:            "تم حذف سجل الامتثال",
-					TitleEn:              notification.TitleEn,
-					TitleAr:              notification.TitleAr,
-					ReferenceNumber:      notification.ReferenceNumber,
-					Entity:               &entity,
-					Action:               &action,
-					URLParam:             urlParam,
-					IsSystemNotification: false,
-					CreatedByID:          &currentUserID,
-				}
+			// 	// Prepare DB notification
+			// 	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			// 		UserIDs:              []uint{*notification.OwnerID},
+			// 		ModuleIdentifier:     "compliance",
+			// 		NotificationType:     string(commonDTOs.DeletionType),
+			// 		HeadingEn:            "Compliance Register Deleted",
+			// 		HeadingAr:            "تم حذف سجل الامتثال",
+			// 		TitleEn:              notification.TitleEn,
+			// 		TitleAr:              notification.TitleAr,
+			// 		ReferenceNumber:      notification.ReferenceNumber,
+			// 		Entity:               &entity,
+			// 		Action:               &action,
+			// 		URLParam:             urlParam,
+			// 		IsSystemNotification: false,
+			// 		CreatedByID:          &currentUserID,
+			// 	}
 
-				// Fetch owner details (responsible user)
-				ownerUser, err := crs.userSvc.GetByID(*notification.OwnerID)
-				if err != nil {
-					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
-						"error": err.Error(),
-					})
-					continue
-				}
+			// 	// Fetch owner details (responsible user)
+			// 	ownerUser, err := crs.userSvc.GetByID(*notification.OwnerID)
+			// 	if err != nil {
+			// 		utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+			// 			"error": err.Error(),
+			// 		})
+			// 		continue
+			// 	}
 
-				// Prepare email notification
-				ownerEmailTo := []string{ownerUser.Email}
-				subject := fmt.Sprintf("Compliance Register/%s: Deleted", notification.TitleEn)
-				templateRelativePath := "compliance/templates/email/compliance_register_delete_mail.html"
+			// 	// Prepare email notification
+			// 	ownerEmailTo := []string{ownerUser.Email}
+			// 	subject := fmt.Sprintf("Compliance Register/%s: Deleted", notification.TitleEn)
+			// 	templateRelativePath := "compliance/templates/email/compliance_register_delete_mail.html"
 
-				emailData := map[string]interface{}{
-					"FirstNameEn":               ownerUser.FirstNameEn,
-					"LastNameEn":                ownerUser.LastNameEn,
-					"ComplianceReferenceNumber": notification.ReferenceNumber,
-					"ComplianceTitle":           notification.TitleEn,
-					"ComplianceTitleAr":         notification.TitleAr,
-					"ComplianceDescription":     notification.Description,
-				}
+			// 	emailData := map[string]interface{}{
+			// 		"FirstNameEn":               ownerUser.FirstNameEn,
+			// 		"LastNameEn":                ownerUser.LastNameEn,
+			// 		"ComplianceReferenceNumber": notification.ReferenceNumber,
+			// 		"ComplianceTitle":           notification.TitleEn,
+			// 		"ComplianceTitleAr":         notification.TitleAr,
+			// 		"ComplianceDescription":     notification.Description,
+			// 	}
 
-				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-					EmailTo:              ownerEmailTo,
-					Subject:              subject,
-					TemplateRelativePath: templateRelativePath,
-					EmailData:            emailData,
-				}
+			// 	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			// 		EmailTo:              ownerEmailTo,
+			// 		Subject:              subject,
+			// 		TemplateRelativePath: templateRelativePath,
+			// 		EmailData:            emailData,
+			// 	}
 
-				// Send DB and email notifications
-				err = crs.notificationSvc.SendNotification(
-					dbNotificationDTO, emailNotificationDTO, "compliance_register")
-				if err != nil {
-					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
-						"error": err.Error(),
-					})
-				}
-			}
+			// 	// Send DB and email notifications
+			// 	err = crs.notificationSvc.SendNotification(
+			// 		dbNotificationDTO, emailNotificationDTO, "compliance_register")
+			// 	if err != nil {
+			// 		utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+			// 			"error": err.Error(),
+			// 		})
+			// 	}
+			// }
 		}()
 	}
 
@@ -1023,9 +1161,9 @@ func (crs *ComplianceRegisterService) validateComplianceRegisterFormDTO(complian
 		}
 	}
 
-	if _, err := crs.complianceCategorySvc.GetByID(complianceRegisterFormDTO.ComplianceCategoryID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("compliance category does not exist"), "not_exist", "compliance category")
-	}
+	// if _, err := crs.complianceCategorySvc.GetByID(*complianceRegisterFormDTO.ComplianceCategoryID); err != nil {
+	// 	return utility.NewValidationError(fmt.Errorf("compliance category does not exist"), "not_exist", "compliance category")
+	// }
 
 	if complianceRegisterFormDTO.ComplianceStatusID != nil {
 		if _, err := crs.complianceStatusSvc.GetByID(*complianceRegisterFormDTO.ComplianceStatusID); err != nil {
@@ -1033,19 +1171,124 @@ func (crs *ComplianceRegisterService) validateComplianceRegisterFormDTO(complian
 		}
 	}
 
-	if complianceRegisterFormDTO.ReviewFrequencyID != nil {
-		if _, err := crs.reviewFrequencySvc.GetByID(*complianceRegisterFormDTO.ReviewFrequencyID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not_exist", "review frequency")
+	// if complianceRegisterFormDTO.ReviewFrequencyID != nil {
+	// 	if _, err := crs.reviewFrequencySvc.GetByID(*complianceRegisterFormDTO.ReviewFrequencyID); err != nil {
+	// 		return utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not_exist", "review frequency")
+	// 	}
+	// }
+	// if complianceRegisterFormDTO.SeverityLevelID != nil {
+	// 	if _, err := crs.severityLevelSvc.GetByID(*complianceRegisterFormDTO.SeverityLevelID); err != nil {
+	// 		return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
+	// 	}
+	// }
+	// if complianceRegisterFormDTO.ComplianceAssessmentFrameworkID != nil {
+	// 	if _, err := crs.complianceAssessmentFrameworkSvc.GetByID(*complianceRegisterFormDTO.ComplianceAssessmentFrameworkID); err != nil {
+	// 		return utility.NewValidationError(fmt.Errorf("compliance assessment framework does not exist"), "not_exist", "compliance assessment framework")
+	// 	}
+	// }
+
+	// Validate new compliance fields
+	if complianceRegisterFormDTO.LegislativeBodyID != nil {
+		if _, err := crs.legislativeBodySvc.GetByID(*complianceRegisterFormDTO.LegislativeBodyID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("legislative body does not exist"), "not_exist", "legislative body")
 		}
 	}
-	if complianceRegisterFormDTO.SeverityLevelID != nil {
-		if _, err := crs.severityLevelSvc.GetByID(*complianceRegisterFormDTO.SeverityLevelID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("severity level does not exist"), "not_exist", "severity level")
+
+	if complianceRegisterFormDTO.LegislationTypeID != nil {
+		if _, err := crs.legislationTypeSvc.GetByID(*complianceRegisterFormDTO.LegislationTypeID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("legislation type does not exist"), "not_exist", "legislation type")
 		}
 	}
-	if _, err := crs.complianceAssessmentFrameworkSvc.GetByID(complianceRegisterFormDTO.ComplianceAssessmentFrameworkID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("compliance assessment framework does not exist"), "not_exist", "compliance assessment framework")
+
+	if complianceRegisterFormDTO.ImportanceClassificationID != nil {
+		if _, err := crs.importanceClassificationSvc.GetByID(*complianceRegisterFormDTO.ImportanceClassificationID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("importance classification does not exist"), "not_exist", "importance classification")
+		}
 	}
+
+	if complianceRegisterFormDTO.SecrecyClassificationID != nil {
+		if _, err := crs.secrecyClassificationSvc.GetByID(*complianceRegisterFormDTO.SecrecyClassificationID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("secrecy classification does not exist"), "not_exist", "secrecy classification")
+		}
+	}
+
+	// Validate issuing authorities
+	if err := crs.validateIssuingAuthorities(complianceRegisterFormDTO.IssuingAuthorities); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateIssuingAuthorities validates issuing authorities and their entities/documents
+func (crs *ComplianceRegisterService) validateIssuingAuthorities(issuingAuthorities []complianceDTOs.ComplianceRegisterIssuingAuthorityFormDTO) error {
+	for i, authority := range issuingAuthorities {
+		// Validate issuing authority ID is required
+		if authority.IssuingAuthorityID == nil {
+			return utility.NewValidationError(fmt.Errorf("issuing authority ID is required"), "required", fmt.Sprintf("issuing_authorities[%d].issuing_authority_id", i))
+		}
+
+		// TODO: Add issuing authority service validation when available
+		// if _, err := crs.issuingAuthoritySvc.GetByID(*authority.IssuingAuthorityID); err != nil {
+		// 	return utility.NewValidationError(fmt.Errorf("issuing authority does not exist"), "not_exist", fmt.Sprintf("issuing_authorities[%d].issuing_authority_id", i))
+		// }
+
+		// Validate entity if provided
+		if authority.Entity != nil {
+			if err := crs.validateIssuingAuthorityEntity(authority.Entity, i); err != nil {
+				return err
+			}
+		}
+
+		// Validate document if provided
+		if authority.Document != nil {
+			if err := crs.validateIssuingAuthorityDocument(authority.Document, i); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// validateIssuingAuthorityEntity validates issuing authority entity
+func (crs *ComplianceRegisterService) validateIssuingAuthorityEntity(entity *complianceDTOs.ComplianceRegisterIssuingAuthorityEntityFormDTO, authorityIndex int) error {
+	// Circular number is required if entity is provided
+	if entity.CircularNo == nil || *entity.CircularNo == "" {
+		return utility.NewValidationError(fmt.Errorf("circular number is required"), "required", fmt.Sprintf("issuing_authorities[%d].entity.circular_no", authorityIndex))
+	}
+
+	// Validate date formats if provided
+	if entity.DateOfReceiving != nil && *entity.DateOfReceiving != "" {
+		if _, err := time.Parse("2006-01-02", *entity.DateOfReceiving); err != nil {
+			return utility.NewValidationError(fmt.Errorf("invalid date of receiving format"), "invalid_date", fmt.Sprintf("issuing_authorities[%d].entity.date_of_receiving", authorityIndex))
+		}
+	}
+
+	if entity.HijriDateOfReceiving != nil && *entity.HijriDateOfReceiving != "" {
+		if _, err := time.Parse("2006-01-02", *entity.HijriDateOfReceiving); err != nil {
+			return utility.NewValidationError(fmt.Errorf("invalid hijri date of receiving format"), "invalid_date", fmt.Sprintf("issuing_authorities[%d].entity.hijri_date_of_receiving", authorityIndex))
+		}
+	}
+
+	return nil
+}
+
+// validateIssuingAuthorityDocument validates issuing authority document following the same pattern as validateComplianceDocumentFormDTO
+func (crs *ComplianceRegisterService) validateIssuingAuthorityDocument(document *complianceDTOs.ComplianceRegisterIssuingAuthorityDocumentFormDTO, authorityIndex int) error {
+	// Document name is required if document is provided
+	// Validate document
+	if document == nil {
+		return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
+	}
+
+	// Validate file type if provided (following same pattern as main document validation)
+	// if document.Type != nil {
+	// 	fileType := strings.ToLower(*document.Type)
+	// 	if fileType != ".pdf" {
+	// 		return utility.NewValidationError(fmt.Errorf("only PDF files are allowed"), "invalid_file_type", fmt.Sprintf("issuing_authorities[%d].document.type", authorityIndex))
+	// 	}
+	// }
 
 	return nil
 }
@@ -1062,33 +1305,33 @@ func (crs *ComplianceRegisterService) parseComplianceRegisterDates(dto *complian
 		}
 	}
 
-	if dto.IssueDate != nil {
-		parsed.IssueDate, err = utility.ParseDate(*dto.IssueDate)
-		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid issue date"), "invalid_date", "issue date")
-		}
-	}
+	// if dto.IssueDate != nil {
+	// 	parsed.IssueDate, err = utility.ParseDate(*dto.IssueDate)
+	// 	if err != nil {
+	// 		return nil, utility.NewValidationError(fmt.Errorf("invalid issue date"), "invalid_date", "issue date")
+	// 	}
+	// }
 
-	if dto.ExpiryDate != nil {
-		parsed.ExpiryDate, err = utility.ParseDate(*dto.ExpiryDate)
-		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_date", "expiry date")
-		}
-	}
+	// if dto.ExpiryDate != nil {
+	// 	parsed.ExpiryDate, err = utility.ParseDate(*dto.ExpiryDate)
+	// 	if err != nil {
+	// 		return nil, utility.NewValidationError(fmt.Errorf("invalid expiry date"), "invalid_date", "expiry date")
+	// 	}
+	// }
 
-	if dto.NextReviewDate != nil {
-		parsed.NextReviewDate, err = utility.ParseDate(*dto.NextReviewDate)
-		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid next review date"), "invalid_date", "next review date")
-		}
-	}
+	// if dto.NextReviewDate != nil {
+	// 	parsed.NextReviewDate, err = utility.ParseDate(*dto.NextReviewDate)
+	// 	if err != nil {
+	// 		return nil, utility.NewValidationError(fmt.Errorf("invalid next review date"), "invalid_date", "next review date")
+	// 	}
+	// }
 
-	if dto.LastReviewedDate != nil {
-		parsed.LastReviewedDate, err = utility.ParseDate(*dto.LastReviewedDate)
-		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid last reviewed date"), "invalid_date", "last reviewed date")
-		}
-	}
+	// if dto.LastReviewedDate != nil {
+	// 	parsed.LastReviewedDate, err = utility.ParseDate(*dto.LastReviewedDate)
+	// 	if err != nil {
+	// 		return nil, utility.NewValidationError(fmt.Errorf("invalid last reviewed date"), "invalid_date", "last reviewed date")
+	// 	}
+	// }
 
 	return parsed, nil
 }
@@ -1097,28 +1340,28 @@ func (crs *ComplianceRegisterService) UpdateComplianceTotalScore(complianceID ui
 	return crs.repo.UpdateComplianceTotalScore(complianceID, totalScore, tx)
 }
 
-func (crs *ComplianceRegisterService) validateComplianceDocumentFormDTO(document *complianceDTOs.ComplianceDocumentFormDTO) error {
-	// Validate document
-	if document == nil {
-		return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
-	}
-	// Normalize the file type to lowercase for case-insensitive comparison
-	fileType := strings.ToLower(document.Type)
+// func (crs *ComplianceRegisterService) validateComplianceDocumentFormDTO(document *complianceDTOs.ComplianceDocumentFormDTO) error {
+// 	// Validate document
+// 	if document == nil {
+// 		return utility.NewValidationError(fmt.Errorf("document is required"), "required", "document")
+// 	}
+// 	// Normalize the file type to lowercase for case-insensitive comparison
+// 	fileType := strings.ToLower(document.Type)
 
-	// Validate file type (PDF)
-	if fileType != ".pdf" {
-		return utility.NewValidationError(fmt.Errorf("only PDF files are allowed"), "invalid_file_type", "type")
-	}
+// 	// Validate file type (PDF)
+// 	if fileType != ".pdf" {
+// 		return utility.NewValidationError(fmt.Errorf("only PDF files are allowed"), "invalid_file_type", "type")
+// 	}
 
-	// @todo
-	// Validate file size (if needed)
-	// For example:
-	// if document.Size > MaxFileSize {
-	//     return utility.NewValidationError(fmt.Errorf("file size exceeds the limit"), "invalid_file_size", "file_size")
-	// }
+// 	// @todo
+// 	// Validate file size (if needed)
+// 	// For example:
+// 	// if document.Size > MaxFileSize {
+// 	//     return utility.NewValidationError(fmt.Errorf("file size exceeds the limit"), "invalid_file_size", "file_size")
+// 	// }
 
-	return nil
-}
+// 	return nil
+// }
 
 func (crs *ComplianceRegisterService) GetDocumentPath(id uint, token string) (string, error) {
 	// existingComplianceRegister, err := crs.GetFullDetailsByID(id)
@@ -1157,140 +1400,141 @@ func (crs *ComplianceRegisterService) GetDocumentPath(id uint, token string) (st
 
 func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO, currentUserID uint) (*os.File, error) {
 	// Retrieve user settings for language preference
-	userSetting, err := crs.userSettingSvc.GetUserSetting(currentUserID)
-	if err != nil {
-		return nil, err
-	}
+	// userSetting, err := crs.userSettingSvc.GetUserSetting(currentUserID)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	var headers []string
-	// Define headers based on the user's language setting
-	if userSetting.Language == "ar" {
-		headers = []string{
-			"SL No.",
-			"Reference Number",
-			"Standard Code",
-			"Title (AR)",
-			"Category (AR)",
-			"Deadline",
-			"Issue Date",
-			"Expiry Date",
-			"Description (AR)",
-			"Lifecycle Status (AR)",
-			"Responsible Unit (AR)",
-			"Compliance Status (AR)",
-			"Severity Level (AR)",
-			"Responsible User (AR)",
-			"Review Frequency (AR)",
-			"Review Responsible User (AR)",
-		}
-	} else {
-		headers = []string{
-			"SL No.",
-			"Reference Number",
-			"Standard Code",
-			"Title (EN)",
-			"Category (EN)",
-			"Deadline",
-			"Issue Date",
-			"Expiry Date",
-			"Description (EN)",
-			"Lifecycle Status (EN)",
-			"Responsible Unit (EN)",
-			"Compliance Status (EN)",
-			"Severity Level (EN)",
-			"Responsible User (EN)",
-			"Review Frequency (EN)",
-			"Review Responsible User (EN)",
-		}
-	}
+	// var headers []string
+	// // Define headers based on the user's language setting
+	// if userSetting.Language == "ar" {
+	// 	headers = []string{
+	// 		"SL No.",
+	// 		"Reference Number",
+	// 		"Standard Code",
+	// 		"Title (AR)",
+	// 		"Category (AR)",
+	// 		"Deadline",
+	// 		"Issue Date",
+	// 		"Expiry Date",
+	// 		"Description (AR)",
+	// 		"Lifecycle Status (AR)",
+	// 		"Responsible Unit (AR)",
+	// 		"Compliance Status (AR)",
+	// 		"Severity Level (AR)",
+	// 		"Responsible User (AR)",
+	// 		"Review Frequency (AR)",
+	// 		"Review Responsible User (AR)",
+	// 	}
+	// } else {
+	// 	headers = []string{
+	// 		"SL No.",
+	// 		"Reference Number",
+	// 		"Standard Code",
+	// 		"Title (EN)",
+	// 		"Category (EN)",
+	// 		"Deadline",
+	// 		"Issue Date",
+	// 		"Expiry Date",
+	// 		"Description (EN)",
+	// 		"Lifecycle Status (EN)",
+	// 		"Responsible Unit (EN)",
+	// 		"Compliance Status (EN)",
+	// 		"Severity Level (EN)",
+	// 		"Responsible User (EN)",
+	// 		"Review Frequency (EN)",
+	// 		"Review Responsible User (EN)",
+	// 	}
+	// }
 
-	// Convert data to [][]interface{} based on language preference
-	rows := make([][]interface{}, len(data))
-	for i, item := range data {
-		if userSetting.Language == "ar" {
-			rows[i] = []interface{}{
-				i + 1,
-				item.ReferenceNumber,
-				item.StandardCode,
-				item.TitleAr,
-				item.ComplianceCategoryTitleAr,
-				item.Deadline,
-				item.IssueDate,
-				item.ExpiryDate,
-				item.DescriptionAr,
-				item.LifecycleStatusTitleAr,
-				item.ResponsibleUnitTitleAr,
-				item.ComplianceStatusTitleAr,
-				item.SeverityLevelTitleAr,
-				item.ResponsibleUserFirstNameAr + " " + item.ResponsibleUserLastNameAr,
-				item.ReviewFrequencyTitleAr,
-				item.ReviewResponsibleUserFirstNameAr + " " + item.ReviewResponsibleUserLastNameAr,
-			}
-		} else {
-			rows[i] = []interface{}{
-				i + 1,
-				item.ReferenceNumber,
-				item.StandardCode,
-				item.TitleEn,
-				item.ComplianceCategoryTitleEn,
-				item.Deadline,
-				item.IssueDate,
-				item.ExpiryDate,
-				item.DescriptionEn,
-				item.LifecycleStatusTitleEn,
-				item.ResponsibleUnitTitleEn,
-				item.ComplianceStatusTitleEn,
-				item.SeverityLevelTitleEn,
-				item.ResponsibleUserFirstNameEn + " " + item.ResponsibleUserLastNameEn,
-				item.ReviewFrequencyTitleEn,
-				item.ReviewResponsibleUserFirstNameEn + " " + item.ReviewResponsibleUserLastNameEn,
-			}
-		}
-	}
+	// // Convert data to [][]interface{} based on language preference
+	// rows := make([][]interface{}, len(data))
+	// for i, item := range data {
+	// 	if userSetting.Language == "ar" {
+	// 		rows[i] = []interface{}{
+	// 			i + 1,
+	// 			item.ReferenceNumber,
+	// 			item.StandardCode,
+	// 			item.TitleAr,
+	// 			item.ComplianceCategoryTitleAr,
+	// 			item.Deadline,
+	// 			item.IssueDate,
+	// 			item.ExpiryDate,
+	// 			item.DescriptionAr,
+	// 			item.LifecycleStatusTitleAr,
+	// 			item.ResponsibleUnitTitleAr,
+	// 			item.ComplianceStatusTitleAr,
+	// 			item.SeverityLevelTitleAr,
+	// 			item.ResponsibleUserFirstNameAr + " " + item.ResponsibleUserLastNameAr,
+	// 			item.ReviewFrequencyTitleAr,
+	// 			item.ReviewResponsibleUserFirstNameAr + " " + item.ReviewResponsibleUserLastNameAr,
+	// 		}
+	// 	} else {
+	// 		rows[i] = []interface{}{
+	// 			i + 1,
+	// 			item.ReferenceNumber,
+	// 			item.StandardCode,
+	// 			item.TitleEn,
+	// 			item.ComplianceCategoryTitleEn,
+	// 			item.Deadline,
+	// 			item.IssueDate,
+	// 			item.ExpiryDate,
+	// 			item.DescriptionEn,
+	// 			item.LifecycleStatusTitleEn,
+	// 			item.ResponsibleUnitTitleEn,
+	// 			item.ComplianceStatusTitleEn,
+	// 			item.SeverityLevelTitleEn,
+	// 			item.ResponsibleUserFirstNameEn + " " + item.ResponsibleUserLastNameEn,
+	// 			item.ReviewFrequencyTitleEn,
+	// 			item.ReviewResponsibleUserFirstNameEn + " " + item.ReviewResponsibleUserLastNameEn,
+	// 		}
+	// 	}
+	// }
 	// Generate the Excel file
-	return utility.GenerateExcelFile(headers, rows)
+	// return utility.GenerateExcelFile(headers, rows)
+	return nil, nil
 }
 
-func (crs *ComplianceRegisterService) handleDocument(currentUserID uint, complianceRegisterID uint, documentDTO *complianceDTOs.ComplianceDocumentFormDTO, tx ...utility.DatabaseTransaction) error {
-	if documentDTO == nil {
-		return nil // Skip if no document is provided
-	}
+// func (crs *ComplianceRegisterService) handleDocument(currentUserID uint, complianceRegisterID uint, documentDTO *complianceDTOs.ComplianceDocumentFormDTO, tx ...utility.DatabaseTransaction) error {
+// 	if documentDTO == nil {
+// 		return nil // Skip if no document is provided
+// 	}
 
-	// Generate encrypted token for the file name
-	encryptedFilename, err := utility.EncryptData([]byte(documentDTO.FileName))
-	if err != nil {
-		return fmt.Errorf("failed to encrypt document filename: %w", err)
-	}
+// 	// Generate encrypted token for the file name
+// 	encryptedFilename, err := utility.EncryptData([]byte(documentDTO.FileName))
+// 	if err != nil {
+// 		return fmt.Errorf("failed to encrypt document filename: %w", err)
+// 	}
 
-	// Generate the document URL
-	url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(complianceRegisterID), 10), "documents")
+// 	// Generate the document URL
+// 	url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(complianceRegisterID), 10), "documents")
 
-	// Create a new ComplianceDocument instance
-	complianceDocument := &models.ComplianceDocument{
-		ComplianceRegisterID: complianceRegisterID,
-		Language:             documentDTO.Language,
-		URL:                  url,
-		Name:                 documentDTO.FileName,
-		Size:                 documentDTO.Size,
-		Token:                encryptedFilename,
-		OriginalName:         documentDTO.OriginalName,
-		Type:                 documentDTO.Type,
-		CreatedByID:          currentUserID,
-	}
+// 	// Create a new ComplianceDocument instance
+// 	complianceDocument := &models.ComplianceDocument{
+// 		ComplianceRegisterID: complianceRegisterID,
+// 		Language:             documentDTO.Language,
+// 		URL:                  url,
+// 		Name:                 documentDTO.FileName,
+// 		Size:                 documentDTO.Size,
+// 		Token:                encryptedFilename,
+// 		OriginalName:         documentDTO.OriginalName,
+// 		Type:                 documentDTO.Type,
+// 		CreatedByID:          currentUserID,
+// 	}
 
-	// Save the document record in the database
-	if err := crs.repo.CreateDocument(complianceDocument, tx...); err != nil {
-		return fmt.Errorf("failed to save document record: %w", err)
-	}
+// 	// Save the document record in the database
+// 	if err := crs.repo.CreateDocument(complianceDocument, tx...); err != nil {
+// 		return fmt.Errorf("failed to save document record: %w", err)
+// 	}
 
-	// Store the document file in the storage
-	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceRegisterID), 10), "documents")
-	if err := utility.StoreFile(documentDTO.FileName, storagePath); err != nil {
-		return fmt.Errorf("failed to store document file: %w", err)
-	}
+// 	// Store the document file in the storage
+// 	storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceRegisterID), 10), "documents")
+// 	if err := utility.StoreFile(documentDTO.FileName, storagePath); err != nil {
+// 		return fmt.Errorf("failed to store document file: %w", err)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func (crs *ComplianceRegisterService) CreateComplianceVersion(currentUserID uint, complianceRegisterFormDTO *complianceDTOs.ComplianceVersionFormDTO) (uint, error) {
 	parentCompliance, err := crs.GetByID(*complianceRegisterFormDTO.ParentComplianceRegisterID)
@@ -1305,55 +1549,70 @@ func (crs *ComplianceRegisterService) CreateComplianceVersion(currentUserID uint
 		return 0, err
 	}
 
-	lifecycleStatus, err := crs.lifecycleStatusSvc.GetByType("active")
-	if err != nil {
-		return 0, err
-	}
+	// lifecycleStatus, err := crs.lifecycleStatusSvc.GetByType("active")
+	// if err != nil {
+	// 	return 0, err
+	// }
 
-	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentEn); err != nil {
-		return 0, err
-	}
+	// if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentEn); err != nil {
+	// 	return 0, err
+	// }
 
-	if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentAr); err != nil {
-		return 0, err
-	}
+	// if err := crs.validateComplianceDocumentFormDTO(&complianceRegisterFormDTO.DocumentAr); err != nil {
+	// 	return 0, err
+	// }
 
-	responsibleUnitID, err := crs.userSvc.GetUserPrimaryUnitID(uint(parentCompliance.ResponsibleUserID))
-	if err != nil {
-		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "bcp communication plan responsible unit")
-	}
+	// responsibleUnitID, err := crs.userSvc.GetUserPrimaryUnitID(uint(*parentCompliance.ResponsibleUserID))
+	// if err != nil {
+	// 	return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "bcp communication plan responsible unit")
+	// }
 
 	complianceRegister := &models.ComplianceRegister{
-		ComplianceCategoryID:            parentCompliance.ComplianceCategoryID,
-		ComplianceStatusID:              parentCompliance.ComplianceStatusID,
-		ResponsibleUnitID:               responsibleUnitID,
-		ResponsibleUserID:               parentCompliance.ResponsibleUserID,
-		ReviewFrequencyID:               parentCompliance.ReviewFrequencyID,
-		LastReviewNote:                  parentCompliance.LastReviewNote,
-		ReviewResponsibleUserID:         parentCompliance.ReviewResponsibleUserID,
-		SeverityLevelID:                 parentCompliance.SeverityLevelID,
-		ReferenceNumber:                 referenceNumber,
-		StandardCode:                    parentCompliance.StandardCode,
-		ParentComplianceRegisterID:      complianceRegisterFormDTO.ParentComplianceRegisterID,
-		TitleEn:                         parentCompliance.TitleEn,
-		TitleAr:                         parentCompliance.TitleAr,
-		DescriptionEn:                   complianceRegisterFormDTO.DescriptionEn,
-		DescriptionAr:                   complianceRegisterFormDTO.DescriptionAr,
-		Version:                         complianceRegisterFormDTO.Version,
-		Deadline:                        parentCompliance.Deadline,
-		IssueDate:                       parentCompliance.IssueDate,
-		ExpiryDate:                      parentCompliance.ExpiryDate,
-		NextReviewDate:                  parentCompliance.NextReviewDate,
-		LastReviewedDate:                parentCompliance.LastReviewedDate,
-		LastReviewedUserID:              parentCompliance.LastReviewedUserID,
-		ComplianceReviewStatusID:        parentCompliance.ComplianceReviewStatusID,
-		CreatedBYID:                     currentUserID,
-		LifecycleStatusID:               lifecycleStatus.ID,
-		ComplianceFolderID:              parentCompliance.ComplianceFolderID,
-		ComplianceAssessmentFrameworkID: parentCompliance.ComplianceAssessmentFrameworkID,
-		IsControlAssessment:             parentCompliance.IsControlAssessment,
-		IsRequirementAssessment:         parentCompliance.IsRequirementAssessment,
-		IsLatest:                        true,
+		// ComplianceCategoryID:            parentCompliance.ComplianceCategoryID,
+		ComplianceStatusID: parentCompliance.ComplianceStatusID,
+		// ResponsibleUnitID:               &responsibleUnitID,
+		// ResponsibleUserID:               parentCompliance.ResponsibleUserID,
+		// ReviewFrequencyID:               parentCompliance.ReviewFrequencyID,
+		// LastReviewNote:                  parentCompliance.LastReviewNote,
+		// ReviewResponsibleUserID:         parentCompliance.ReviewResponsibleUserID,
+		// SeverityLevelID:                 parentCompliance.SeverityLevelID,
+		ReferenceNumber: referenceNumber,
+		// StandardCode:                    parentCompliance.StandardCode,
+		ParentComplianceRegisterID: complianceRegisterFormDTO.ParentComplianceRegisterID,
+		TitleEn:                    parentCompliance.TitleEn,
+		TitleAr:                    parentCompliance.TitleAr,
+		DescriptionEn:              complianceRegisterFormDTO.DescriptionEn,
+		DescriptionAr:              complianceRegisterFormDTO.DescriptionAr,
+		Version:                    complianceRegisterFormDTO.Version,
+		Deadline:                   parentCompliance.Deadline,
+		// IssueDate:                       parentCompliance.IssueDate,
+		// ExpiryDate:                      parentCompliance.ExpiryDate,
+		// NextReviewDate:                  parentCompliance.NextReviewDate,
+		// LastReviewedDate:                parentCompliance.LastReviewedDate,
+		// LastReviewedUserID:              parentCompliance.LastReviewedUserID,
+		// ComplianceReviewStatusID:        parentCompliance.ComplianceReviewStatusID,
+		CreatedBYID: currentUserID,
+		// LifecycleStatusID:               &lifecycleStatus.ID,
+		ComplianceFolderID: parentCompliance.ComplianceFolderID,
+		// ComplianceAssessmentFrameworkID: parentCompliance.ComplianceAssessmentFrameworkID,
+		// IsControlAssessment:             parentCompliance.IsControlAssessment,
+		// IsRequirementAssessment:         parentCompliance.IsRequirementAssessment,
+		IsLatest: true,
+
+		// New Compliance Fields from parent
+		LegislativeBodyID: parentCompliance.LegislativeBodyID,
+		LegislationTypeID: parentCompliance.LegislationTypeID,
+		LegislationNo:     parentCompliance.LegislationNo,
+		//ComplianceDeadline:                 parentCompliance.ComplianceDeadline,
+		ImportanceClassificationID:         parentCompliance.ImportanceClassificationID,
+		SecrecyClassificationID:            parentCompliance.SecrecyClassificationID,
+		Subject:                            parentCompliance.Subject,
+		IsApplicable:                       parentCompliance.IsApplicable,
+		IsNotApplicable:                    parentCompliance.IsNotApplicable,
+		IsRegulationNotificationAssessment: parentCompliance.IsRegulationNotificationAssessment,
+		IsRiskBasedAssessment:              parentCompliance.IsRiskBasedAssessment,
+		IsPublic:                           parentCompliance.IsPublic,
+		IsShared:                           parentCompliance.IsShared,
 	}
 
 	parentComplianceRegister, err := crs.GetFullDetailsByID(*complianceRegisterFormDTO.ParentComplianceRegisterID)
@@ -1384,7 +1643,7 @@ func (crs *ComplianceRegisterService) CreateComplianceVersion(currentUserID uint
 		return 0, err
 	}
 
-	complianceRegister.StandardCode = &parentComplianceRegister.StandardCode
+	// complianceRegister.StandardCode = &parentComplianceRegister.StandardCode
 
 	id, err := crs.repo.Create(complianceRegister, tx)
 	if err != nil {
@@ -1408,14 +1667,79 @@ func (crs *ComplianceRegisterService) CreateComplianceVersion(currentUserID uint
 		}
 	}
 
-	if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentEn, tx); err != nil {
-		tx.Rollback()
-		return 0, err
+	// if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentEn, tx); err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
+
+	// if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentAr, tx); err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
+
+	// Copy issuing authorities from parent compliance register
+	if len(parentComplianceRegister.IssuingAuthorities) > 0 {
+		parentIssuingAuthorities := make([]complianceDTOs.ComplianceRegisterIssuingAuthorityFormDTO, 0, len(parentComplianceRegister.IssuingAuthorities))
+		for _, parentAuthority := range parentComplianceRegister.IssuingAuthorities {
+			var issuingAuthorityID *uint
+			if parentAuthority.IssuingAuthority != nil {
+				issuingAuthorityID = &parentAuthority.IssuingAuthority.ID
+			}
+
+			authorityDTO := complianceDTOs.ComplianceRegisterIssuingAuthorityFormDTO{
+				IssuingAuthorityID: issuingAuthorityID,
+			}
+
+			// Copy entity if exists
+			if parentAuthority.Entity != nil {
+				authorityDTO.Entity = &complianceDTOs.ComplianceRegisterIssuingAuthorityEntityFormDTO{
+					CircularNo:           &parentAuthority.Entity.CircularNo,
+					DateOfReceiving:      &parentAuthority.Entity.DateOfReceivingString,
+					HijriDateOfReceiving: &parentAuthority.Entity.HijriDateOfReceivingString,
+				}
+			}
+
+			// Copy document if exists
+			if parentAuthority.Document != nil {
+				authorityDTO.Document = &complianceDTOs.ComplianceRegisterIssuingAuthorityDocumentFormDTO{
+					FileName:     &parentAuthority.Document.Name,
+					URL:          &parentAuthority.Document.URL,
+					OriginalName: &parentAuthority.Document.OriginalName,
+					Type:         &parentAuthority.Document.Type,
+					Size:         &parentAuthority.Document.Size,
+				}
+			}
+
+			parentIssuingAuthorities = append(parentIssuingAuthorities, authorityDTO)
+		}
+
+		// Handle issuing authorities for the new version
+		if err := crs.handleIssuingAuthorities(currentUserID, id, parentIssuingAuthorities, parentCompliance.SecrecyClassificationID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
-	if err := crs.handleDocument(currentUserID, id, &complianceRegisterFormDTO.DocumentAr, tx); err != nil {
-		tx.Rollback()
-		return 0, err
+	// Copy shared units from parent compliance register if it's shared
+	if parentCompliance.IsShared {
+		existingSharedUnits, err := crs.repo.GetSharedUnitsByComplianceRegisterID(*complianceRegisterFormDTO.ParentComplianceRegisterID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		if len(existingSharedUnits) > 0 {
+			sharedUnitIDs := make([]*uint, 0, len(existingSharedUnits))
+			for _, unit := range existingSharedUnits {
+				sharedUnitIDs = append(sharedUnitIDs, &unit.DepartmentID)
+			}
+
+			// Handle shared units for the new version
+			if err := crs.handleSharedUnits(currentUserID, id, sharedUnitIDs, parentCompliance.IsShared, tx); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
 	}
 
 	tx.Commit()
@@ -1450,83 +1774,83 @@ func (crs *ComplianceRegisterService) CreateComplianceVersion(currentUserID uint
 		}
 
 		// Prepare notification and email
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		entity := "compliance-register"
-		action := "responsible-user-assign"
+		// urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		// entity := "compliance-register"
+		// action := "responsible-user-assign"
 
-		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserIDs:              []uint{parentCompliance.ResponsibleUserID},
-			ModuleIdentifier:     "compliance",
-			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Compliance Register Responsibility Assigned",
-			HeadingAr:            "تم تعيين مسؤولية سجل الامتثال",
-			TitleEn:              parentCompliance.TitleEn,
-			TitleAr:              parentCompliance.TitleAr,
-			ReferenceNumber:      complianceRegister.ReferenceNumber,
-			Entity:               &entity,
-			Action:               &action,
-			URLParam:             urlParam,
-			IsSystemNotification: false,
-			CreatedByID:          &currentUserID,
-		}
+		// dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+		// 	UserIDs:              []uint{*parentCompliance.ResponsibleUserID},
+		// 	ModuleIdentifier:     "compliance",
+		// 	NotificationType:     string(commonDTOs.AssignmentType),
+		// 	HeadingEn:            "Compliance Register Responsibility Assigned",
+		// 	HeadingAr:            "تم تعيين مسؤولية سجل الامتثال",
+		// 	TitleEn:              parentCompliance.TitleEn,
+		// 	TitleAr:              parentCompliance.TitleAr,
+		// 	ReferenceNumber:      complianceRegister.ReferenceNumber,
+		// 	Entity:               &entity,
+		// 	Action:               &action,
+		// 	URLParam:             urlParam,
+		// 	IsSystemNotification: false,
+		// 	CreatedByID:          &currentUserID,
+		// }
 
-		responsibleUser, err := crs.userSvc.GetByID(parentCompliance.ResponsibleUserID)
-		if err != nil {
-			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
-				"error": err.Error(),
-			})
-			return
-		}
+		// responsibleUser, err := crs.userSvc.GetByID(*parentCompliance.ResponsibleUserID)
+		// if err != nil {
+		// 	utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+		// 		"error": err.Error(),
+		// 	})
+		// 	return
+		// }
 
-		createdBy, err := crs.userSvc.GetByID(currentUserID)
-		if err != nil {
-			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
-				"error": err.Error(),
-			})
-			return
-		}
+		// createdBy, err := crs.userSvc.GetByID(currentUserID)
+		// if err != nil {
+		// 	utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+		// 		"error": err.Error(),
+		// 	})
+		// 	return
+		// }
 
-		// Assuming GetByID returns only an error and no severity level
-		severityLevel, err := crs.severityLevelSvc.GetByID(*complianceRegister.SeverityLevelID)
-		if err != nil {
-			utility.LogError("Failed to fetch severity level", map[string]interface{}{
-				"error":   err.Error(),
-				"levelID": complianceRegister.SeverityLevelID,
-			})
-			return
-		}
+		// // Assuming GetByID returns only an error and no severity level
+		// severityLevel, err := crs.severityLevelSvc.GetByID(*complianceRegister.SeverityLevelID)
+		// if err != nil {
+		// 	utility.LogError("Failed to fetch severity level", map[string]interface{}{
+		// 		"error":   err.Error(),
+		// 		"levelID": complianceRegister.SeverityLevelID,
+		// 	})
+		// 	return
+		// }
 
-		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("Compliance Register/%s: Responsibility Assigned", complianceRegister.TitleEn)
-		appURL := utility.GetAppURL()
+		// emailTo := []string{responsibleUser.Email}
+		// subject := fmt.Sprintf("Compliance Register/%s: Responsibility Assigned", complianceRegister.TitleEn)
+		// appURL := utility.GetAppURL()
 
-		emailData := map[string]interface{}{
-			"FirstNameEn":               responsibleUser.FirstNameEn,
-			"LastNameEn":                responsibleUser.LastNameEn,
-			"ComplianceReferenceNumber": complianceRegister.ReferenceNumber,
-			"ComplianceTitleEn":         complianceRegister.TitleEn,
-			"ComplianceTitleAr":         complianceRegister.TitleAr,
-			"ComplianceDescription":     complianceRegister.DescriptionEn,
-			"SeverityLevel":             severityLevel.TitleEn,
-			"CreatedByFirstNameEn":      createdBy.FirstNameEn,
-			"CreatedByLastNameEn":       createdBy.LastNameEn,
-			"AssignedOn":                time.Now().Format("2006-01-02"),
-			"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d", appURL, id),
-		}
+		// emailData := map[string]interface{}{
+		// 	"FirstNameEn":               responsibleUser.FirstNameEn,
+		// 	"LastNameEn":                responsibleUser.LastNameEn,
+		// 	"ComplianceReferenceNumber": complianceRegister.ReferenceNumber,
+		// 	"ComplianceTitleEn":         complianceRegister.TitleEn,
+		// 	"ComplianceTitleAr":         complianceRegister.TitleAr,
+		// 	"ComplianceDescription":     complianceRegister.DescriptionEn,
+		// 	"SeverityLevel":             severityLevel.TitleEn,
+		// 	"CreatedByFirstNameEn":      createdBy.FirstNameEn,
+		// 	"CreatedByLastNameEn":       createdBy.LastNameEn,
+		// 	"AssignedOn":                time.Now().Format("2006-01-02"),
+		// 	"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d", appURL, id),
+		// }
 
-		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-			EmailTo:              emailTo,
-			Subject:              subject,
-			TemplateRelativePath: "compliance/templates/email/compliance_register_create_responsible_user_mail.html",
-			EmailData:            emailData,
-		}
+		// emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+		// 	EmailTo:              emailTo,
+		// 	Subject:              subject,
+		// 	TemplateRelativePath: "compliance/templates/email/compliance_register_create_responsible_user_mail.html",
+		// 	EmailData:            emailData,
+		// }
 
-		err = crs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_register")
-		if err != nil {
-			utility.LogError("Failed to send notifications", map[string]interface{}{
-				"error": err.Error(),
-			})
-		}
+		// err = crs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_register")
+		// if err != nil {
+		// 	utility.LogError("Failed to send notifications", map[string]interface{}{
+		// 		"error": err.Error(),
+		// 	})
+		// }
 	}()
 
 	return id, nil
@@ -1613,4 +1937,399 @@ func (crs *ComplianceRegisterService) ForceDelete(ids []uint, currentUserID uint
 	}()
 
 	return nil, nil
+}
+
+// handleIssuingAuthorities handles the creation and update of issuing authorities for a compliance register
+func (crs *ComplianceRegisterService) handleIssuingAuthorities(currentUserID uint, complianceRegisterID uint, issuingAuthorities []complianceDTOs.ComplianceRegisterIssuingAuthorityFormDTO, secrecyClassificationID *uint, tx utility.DatabaseTransaction) error {
+	// Get existing issuing authorities for this compliance register
+	existingAuthorities, err := crs.repo.GetIssuingAuthoritiesByComplianceRegisterID(complianceRegisterID, tx)
+	if err != nil {
+		return err
+	}
+
+	// Create maps to track existing records
+	existingAuthorityIDs := make(map[uint]uint) // map[authorityID]recordID
+	for _, authority := range existingAuthorities {
+		if authority.ID != 0 {
+			existingAuthorityIDs[authority.ID] = authority.ID
+		}
+	}
+
+	// Get new authority IDs from form - also track by issuing_authority_id for authorities without ID
+	newAuthorityIDs := make(map[uint]bool)
+	newIssuingAuthorityIDs := make(map[uint]bool) // Track by issuing_authority_id
+	for _, authorityDTO := range issuingAuthorities {
+		if authorityDTO.ID != nil {
+			newAuthorityIDs[*authorityDTO.ID] = true
+		}
+		if authorityDTO.IssuingAuthorityID != nil {
+			newIssuingAuthorityIDs[*authorityDTO.IssuingAuthorityID] = true
+		}
+	}
+
+	// Process each authority from the request
+	for _, authorityDTO := range issuingAuthorities {
+		if authorityDTO.IssuingAuthorityID == nil {
+			continue
+		}
+
+		authority := &models.ComplianceRegisterIssuingAuthority{
+			ComplianceRegisterID: complianceRegisterID,
+			IssuingAuthorityID:   *authorityDTO.IssuingAuthorityID,
+			CreatedBYID:          currentUserID,
+		}
+
+		// Create or update the issuing authority
+		var authorityID uint
+		if authorityDTO.ID != nil {
+			// Update existing by ID
+			authority.ID = *authorityDTO.ID
+			// Find existing authority to preserve created_at and created_by_id
+			for _, existing := range existingAuthorities {
+				if existing.ID == *authorityDTO.ID {
+					authority.CreatedAt = existing.CreatedAt     // Preserve original created_at
+					authority.CreatedBYID = existing.CreatedBYID // Preserve original created_by_id
+					break
+				}
+			}
+			err := crs.repo.UpdateIssuingAuthority(authority, tx)
+			if err != nil {
+				return err
+			}
+			authorityID = *authorityDTO.ID
+		} else {
+			// Check if authority already exists by issuing_authority_id for this compliance register
+			var existingAuthority *models.ComplianceRegisterIssuingAuthority
+			for _, existing := range existingAuthorities {
+				if existing.IssuingAuthorityID == *authorityDTO.IssuingAuthorityID {
+					existingAuthority = existing
+					break
+				}
+			}
+
+			if existingAuthority != nil {
+				// Update existing authority found by issuing_authority_id
+				authority.ID = existingAuthority.ID
+				authority.CreatedAt = existingAuthority.CreatedAt     // Preserve original created_at
+				authority.CreatedBYID = existingAuthority.CreatedBYID // Preserve original created_by_id
+				err := crs.repo.UpdateIssuingAuthority(authority, tx)
+				if err != nil {
+					return err
+				}
+				authorityID = existingAuthority.ID
+			} else {
+				// Create new authority
+				id, err := crs.repo.CreateIssuingAuthority(authority, tx)
+				if err != nil {
+					return err
+				}
+				authorityID = id
+			}
+		}
+
+		// Handle single entity per authority
+		if authorityDTO.Entity != nil {
+			if authorityDTO.Entity.CircularNo != nil && *authorityDTO.Entity.CircularNo != "" {
+				var dateOfReceiving, hijriDateOfReceiving time.Time
+
+				if authorityDTO.Entity.DateOfReceiving != nil && *authorityDTO.Entity.DateOfReceiving != "" {
+					parsedDate, err := time.Parse("2006-01-02", *authorityDTO.Entity.DateOfReceiving)
+					if err != nil {
+						return utility.NewValidationError(fmt.Errorf("invalid date_of_receiving format"), "invalid_date", "date_of_receiving")
+					}
+					// Convert to UTC to avoid timezone offset issues with SQL Server
+					dateOfReceiving = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 0, 0, 0, 0, time.UTC)
+				}
+
+				if authorityDTO.Entity.HijriDateOfReceiving != nil && *authorityDTO.Entity.HijriDateOfReceiving != "" {
+					parsedDate, err := time.Parse("2006-01-02", *authorityDTO.Entity.HijriDateOfReceiving)
+					if err != nil {
+						return utility.NewValidationError(fmt.Errorf("invalid hijri_date_of_receiving format"), "invalid_format", "hijri_date_of_receiving")
+					}
+					// Convert to UTC to avoid timezone offset issues with SQL Server
+					hijriDateOfReceiving = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 0, 0, 0, 0, time.UTC)
+				}
+
+				if authorityDTO.Entity.ID != nil {
+					// Update existing entity - fetch first to preserve CreatedAt and other fields
+					existingEntity, err := crs.repo.GetIssuingAuthorityEntityByID(*authorityDTO.Entity.ID, tx)
+					if err != nil {
+						return fmt.Errorf("failed to get existing entity: %w", err)
+					}
+
+					// Update only the fields that can be changed
+					existingEntity.CircularNo = *authorityDTO.Entity.CircularNo
+					existingEntity.DateOfReceiving = dateOfReceiving
+					existingEntity.HijriDateOfReceiving = hijriDateOfReceiving
+					// Set updated_at and updated_by fields
+					now := time.Now()
+					existingEntity.UpdatedAt = &now
+					existingEntity.UpdatedBYID = &currentUserID
+
+					err = crs.repo.UpdateIssuingAuthorityEntity(existingEntity, tx)
+					if err != nil {
+						return err
+					}
+				} else {
+					// Create new entity
+					entity := &models.ComplianceRegisterIssuingAuthorityEntity{
+						ComplianceRegisterIssuingAuthorityID: authorityID,
+						CircularNo:                           *authorityDTO.Entity.CircularNo,
+						DateOfReceiving:                      dateOfReceiving,
+						HijriDateOfReceiving:                 hijriDateOfReceiving,
+						CreatedBYID:                          currentUserID,
+						CreatedAt:                            time.Now(),
+					}
+
+					_, err := crs.repo.CreateIssuingAuthorityEntity(entity, tx)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		// Handle single document per authority - ONLY process when explicit flags are provided
+		if authorityDTO.Document != nil &&
+			((authorityDTO.Document.IsDeletedFile != nil && *authorityDTO.Document.IsDeletedFile) ||
+				(authorityDTO.Document.IsNewFile != nil && *authorityDTO.Document.IsNewFile)) {
+
+			// Handle document deletion - ID is required
+			if authorityDTO.Document.IsDeletedFile != nil && *authorityDTO.Document.IsDeletedFile {
+				if authorityDTO.Document.ID == nil {
+					return fmt.Errorf("document ID is required when is_deleted_file is true")
+				}
+
+				// Get existing document to retrieve file name for deletion
+				existingDoc, err := crs.repo.GetIssuingAuthorityDocumentByID(*authorityDTO.Document.ID, tx)
+				if err != nil {
+					return fmt.Errorf("failed to get existing document for deletion: %w", err)
+				}
+
+				// Delete the document record from database
+				err = crs.repo.DeleteIssuingAuthorityDocument(*authorityDTO.Document.ID, tx)
+				if err != nil {
+					return fmt.Errorf("failed to delete document record: %w", err)
+				}
+
+				// Remove the physical file
+				storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceRegisterID), 10), "issuing-authority-documents")
+				if err := utility.RemoveFile(existingDoc.Name, storagePath); err != nil {
+					return fmt.Errorf("failed to remove document file: %w", err)
+				}
+			} else if authorityDTO.Document.IsNewFile != nil && *authorityDTO.Document.IsNewFile {
+				// Handle new document creation - since only single document is allowed per authority,
+				// delete existing document first if it exists, then create new one
+				if authorityDTO.Document.FileName != nil && *authorityDTO.Document.FileName != "" {
+					// Check secrecy classification to prevent document upload for Secret/Top Secret
+					if secrecyClassificationID != nil {
+						secrecyClassification, err := crs.secrecyClassificationSvc.GetByID(*secrecyClassificationID)
+						if err != nil {
+							return fmt.Errorf("failed to get secrecy classification: %w", err)
+						}
+
+						// CR-4: Disable document upload for Secret or Top Secret classifications
+						if secrecyClassification.Type == "secret" || secrecyClassification.Type == "top_secret" {
+							return utility.NewValidationError(
+								fmt.Errorf("document upload is disabled for Secret and Top Secret classifications"),
+								"document_upload_disabled",
+								"secrecy_classification",
+							)
+						}
+					}
+
+					// Check if there's an existing document for this authority and delete it first
+					// Since only single document is allowed, we need to clean up the old one
+					existingAuthorities, err := crs.repo.GetIssuingAuthoritiesByComplianceRegisterID(complianceRegisterID, tx)
+					if err != nil {
+						return fmt.Errorf("failed to get existing authorities: %w", err)
+					}
+
+					// Find the current authority and check if it has an existing document
+					for _, existingAuth := range existingAuthorities {
+						if existingAuth.ID == authorityID && existingAuth.Document != nil {
+							// Delete existing document record
+							err = crs.repo.DeleteIssuingAuthorityDocument(existingAuth.Document.ID, tx)
+							if err != nil {
+								return fmt.Errorf("failed to delete existing document: %w", err)
+							}
+
+							// Remove existing physical file
+							storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceRegisterID), 10), "issuing-authority-documents")
+							if err := utility.RemoveFile(existingAuth.Document.Name, storagePath); err != nil {
+								return fmt.Errorf("failed to remove existing document file: %w", err)
+							}
+							break
+						}
+					}
+
+					// Generate encrypted token for the new file
+					encryptedFilename, err := utility.EncryptData([]byte(*authorityDTO.Document.FileName))
+					if err != nil {
+						return fmt.Errorf("failed to encrypt document filename: %w", err)
+					}
+
+					// Generate the document URL
+					url := utility.GenerateDocumentURL("compliance", "compliance-register", strconv.FormatUint(uint64(complianceRegisterID), 10), "issuing-authority-documents")
+
+					// Create new document
+					document := &models.ComplianceRegisterIssuingAuthorityDocument{
+						ComplianceRegisterIssuingAuthorityID: authorityID,
+						URL:                                  url,
+						Name:                                 *authorityDTO.Document.FileName,
+						Token:                                encryptedFilename,
+						OriginalName:                         *authorityDTO.Document.OriginalName,
+						Type:                                 *authorityDTO.Document.Type,
+						CreatedByID:                          currentUserID,
+						UpdatedByID:                          currentUserID,
+					}
+
+					if authorityDTO.Document.Size != nil {
+						document.Size = *authorityDTO.Document.Size
+					}
+
+					// Create the new document
+					_, err = crs.repo.CreateIssuingAuthorityDocument(document, tx)
+					if err != nil {
+						return err
+					}
+
+					// Store the new document file
+					storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceRegisterID), 10), "issuing-authority-documents")
+					if err := utility.StoreFile(*authorityDTO.Document.FileName, storagePath); err != nil {
+						return fmt.Errorf("failed to store issuing authority document file: %w", err)
+					}
+				}
+			}
+			// Note: When no document flags are passed, we intentionally do nothing
+			// This preserves existing documents without any modifications
+		}
+	}
+
+	// Delete removed issuing authorities and their related data
+	var authorityIDsToDelete []uint
+	for authorityID := range existingAuthorityIDs {
+		// Check if authority exists in new request by ID or by issuing_authority_id
+		existsByID := newAuthorityIDs[authorityID]
+
+		// Also check if this authority's issuing_authority_id is still present in the request
+		var existsByIssuingAuthorityID bool
+		for _, existingAuth := range existingAuthorities {
+			if existingAuth.ID == authorityID && newIssuingAuthorityIDs[existingAuth.IssuingAuthorityID] {
+				existsByIssuingAuthorityID = true
+				break
+			}
+		}
+
+		// Only delete if authority doesn't exist by either ID or issuing_authority_id
+		if !existsByID && !existsByIssuingAuthorityID {
+			authorityIDsToDelete = append(authorityIDsToDelete, authorityID)
+		}
+	}
+
+	// Delete removed authorities and their related entities/documents
+	for _, authorityID := range authorityIDsToDelete {
+		// First, get all documents for this authority to remove physical files
+		documents, err := crs.repo.GetDocumentsByAuthorityID(authorityID, tx)
+		if err != nil {
+			return fmt.Errorf("failed to get documents for authority deletion: %w", err)
+		}
+
+		// Remove all physical files for this authority
+		storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceRegisterID), 10), "issuing-authority-documents")
+		for _, document := range documents {
+			if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+				// Log error but don't fail the transaction - file might already be deleted
+				fmt.Printf("Warning: failed to remove document file %s: %v\n", document.Name, err)
+			}
+		}
+
+		// Delete all documents for this authority from database
+		if err := crs.repo.DeleteIssuingAuthorityDocumentsByAuthorityID(authorityID, tx); err != nil {
+			return fmt.Errorf("failed to delete issuing authority documents: %w", err)
+		}
+
+		// Delete all entities for this authority
+		if err := crs.repo.DeleteIssuingAuthorityEntitiesByAuthorityID(authorityID, tx); err != nil {
+			return fmt.Errorf("failed to delete issuing authority entities: %w", err)
+		}
+
+		// Delete the authority itself
+		if err := crs.repo.DeleteIssuingAuthority(authorityID, tx); err != nil {
+			return fmt.Errorf("failed to delete issuing authority: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// handleSharedUnits handles the creation and update of shared units for a compliance register
+func (crs *ComplianceRegisterService) handleSharedUnits(currentUserID uint, complianceRegisterID uint, sharedUnitIDs []*uint, isShared bool, tx utility.DatabaseTransaction) error {
+	// If not shared or no shared unit IDs, skip processing
+	if !isShared || len(sharedUnitIDs) == 0 {
+		return nil
+	}
+
+	// Get existing shared units for this compliance register
+	existingSharedUnits, err := crs.repo.GetSharedUnitsByComplianceRegisterID(complianceRegisterID, tx)
+	if err != nil {
+		return fmt.Errorf("failed to get existing shared units: %w", err)
+	}
+
+	// Create a map of existing department IDs for quick lookup
+	existingDeptIDs := make(map[uint]bool)
+	for _, unit := range existingSharedUnits {
+		existingDeptIDs[unit.DepartmentID] = true
+	}
+
+	// Prepare new shared units to create
+	var newSharedUnits []*models.ComplianceRegisterSharedUnit
+	var deptIDsToKeep []uint
+
+	for _, unitID := range sharedUnitIDs {
+		if unitID == nil {
+			continue
+		}
+
+		deptIDsToKeep = append(deptIDsToKeep, *unitID)
+
+		// Only create if it doesn't already exist
+		if !existingDeptIDs[*unitID] {
+			sharedUnit := &models.ComplianceRegisterSharedUnit{
+				ComplianceRegisterID: complianceRegisterID,
+				DepartmentID:         *unitID,
+				CreatedBYID:          currentUserID,
+				CreatedAt:            time.Now(),
+			}
+			newSharedUnits = append(newSharedUnits, sharedUnit)
+		}
+	}
+
+	// Create new shared units
+	if len(newSharedUnits) > 0 {
+		if err := crs.repo.CreateSharedUnits(newSharedUnits, tx); err != nil {
+			return fmt.Errorf("failed to create shared units: %w", err)
+		}
+	}
+
+	// Delete shared units that are no longer needed
+	var deptIDsToDelete []uint
+	keepMap := make(map[uint]bool)
+	for _, id := range deptIDsToKeep {
+		keepMap[id] = true
+	}
+
+	for _, unit := range existingSharedUnits {
+		if !keepMap[unit.DepartmentID] {
+			deptIDsToDelete = append(deptIDsToDelete, unit.DepartmentID)
+		}
+	}
+
+	if len(deptIDsToDelete) > 0 {
+		if err := crs.repo.DeleteSharedUnits(complianceRegisterID, deptIDsToDelete, tx); err != nil {
+			return fmt.Errorf("failed to delete shared units: %w", err)
+		}
+	}
+
+	return nil
 }

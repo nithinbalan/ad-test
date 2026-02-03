@@ -39,6 +39,28 @@ type ComplianceRegisterRepositoryInterface interface {
 	UpdateComplianceTotalScore(complianceRegisterID uint, totalScore float64, tx utility.DatabaseTransaction) error
 	HasComplianceAssessments(registerID uint, tx ...utility.DatabaseTransaction) (bool, error)
 	GetAllVersions(parentID uint) ([]*models.ComplianceRegister, error)
+
+	// Issuing Authorities
+	CreateIssuingAuthority(authority *models.ComplianceRegisterIssuingAuthority, tx ...utility.DatabaseTransaction) (uint, error)
+	UpdateIssuingAuthority(authority *models.ComplianceRegisterIssuingAuthority, tx ...utility.DatabaseTransaction) error
+	DeleteIssuingAuthority(id uint, tx ...utility.DatabaseTransaction) error
+	GetIssuingAuthoritiesByComplianceRegisterID(complianceRegisterID uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceRegisterIssuingAuthority, error)
+	CreateIssuingAuthorityEntity(entity *models.ComplianceRegisterIssuingAuthorityEntity, tx ...utility.DatabaseTransaction) (uint, error)
+	UpdateIssuingAuthorityEntity(entity *models.ComplianceRegisterIssuingAuthorityEntity, tx ...utility.DatabaseTransaction) error
+	DeleteIssuingAuthorityEntity(id uint, tx ...utility.DatabaseTransaction) error
+	GetIssuingAuthorityEntityByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRegisterIssuingAuthorityEntity, error)
+	CreateIssuingAuthorityDocument(document *models.ComplianceRegisterIssuingAuthorityDocument, tx ...utility.DatabaseTransaction) (uint, error)
+	UpdateIssuingAuthorityDocument(document *models.ComplianceRegisterIssuingAuthorityDocument, tx ...utility.DatabaseTransaction) error
+	DeleteIssuingAuthorityDocument(id uint, tx ...utility.DatabaseTransaction) error
+	GetIssuingAuthorityDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRegisterIssuingAuthorityDocument, error)
+	GetDocumentsByAuthorityID(authorityID uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceRegisterIssuingAuthorityDocument, error)
+	DeleteIssuingAuthorityDocumentsByAuthorityID(authorityID uint, tx ...utility.DatabaseTransaction) error
+	DeleteIssuingAuthorityEntitiesByAuthorityID(authorityID uint, tx ...utility.DatabaseTransaction) error
+
+	// Shared Units
+	CreateSharedUnits(sharedUnits []*models.ComplianceRegisterSharedUnit, tx ...utility.DatabaseTransaction) error
+	DeleteSharedUnits(complianceRegisterID uint, departmentIDs []uint, tx ...utility.DatabaseTransaction) error
+	GetSharedUnitsByComplianceRegisterID(complianceRegisterID uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceRegisterSharedUnit, error)
 }
 
 type ComplianceRegisterRepository struct {
@@ -65,56 +87,56 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 		Select(`
             compliance_register.*,
 			CONVERT(VARCHAR, compliance_register.deadline, 23) AS deadline,
-        	CONVERT(VARCHAR, compliance_register.issue_date, 23) AS issue_date,
-        	CONVERT(VARCHAR, compliance_register.expiry_date, 23) AS expiry_date,
-       		CONVERT(VARCHAR, compliance_register.next_review_date, 23) AS next_review_date,
-			CONVERT(VARCHAR, compliance_register.last_reviewed_date, 23) AS last_reviewed_date,
-			compliance_assessment_frameworks.id AS compliance_assessment_framework_id,
-			compliance_assessment_frameworks.title_en AS compliance_assessment_framework_title_en,
-			compliance_assessment_frameworks.title_ar AS compliance_assessment_framework_title_ar,
-			compliance_categories.title_en AS compliance_category_title_en,
-			compliance_categories.title_ar AS compliance_category_title_ar,
+        	-- CONVERT(VARCHAR, compliance_register.issue_date, 23) AS issue_date,
+        	-- CONVERT(VARCHAR, compliance_register.expiry_date, 23) AS expiry_date,
+       		-- CONVERT(VARCHAR, compliance_register.next_review_date, 23) AS next_review_date,
+			-- CONVERT(VARCHAR, compliance_register.last_reviewed_date, 23) AS last_reviewed_date,
+			-- compliance_assessment_frameworks.id AS compliance_assessment_framework_id,
+			-- compliance_assessment_frameworks.title_en AS compliance_assessment_framework_title_en,
+			-- compliance_assessment_frameworks.title_ar AS compliance_assessment_framework_title_ar,
+			-- compliance_categories.title_en AS compliance_category_title_en,
+			-- compliance_categories.title_ar AS compliance_category_title_ar,
 			compliance_statuses.title_en AS compliance_status_title_en,
 			compliance_statuses.title_ar AS compliance_status_title_ar,
 			compliance_statuses.color_code AS compliance_status_color_code,
-			organization_units.title_en AS responsible_unit_title_en,
-			organization_units.title_ar AS responsible_unit_title_ar,
-			responsible_user.id AS responsible_user_id,
-			responsible_user.first_name_en AS responsible_user_first_name_en,
-            responsible_user.first_name_ar AS responsible_user_first_name_ar,
-            responsible_user.last_name_en AS responsible_user_last_name_en,
-            responsible_user.last_name_ar AS responsible_user_last_name_ar,
-			responsible_user.initial AS responsible_user_initial,
-            responsible_user.color AS responsible_user_color,
-            responsible_user.email AS responsible_user_email,
-            responsible_user.profile_image_path AS responsible_user_profile_image_path,
-			review_frequencies.title_en AS review_frequency_title_en,
-			review_frequencies.title_ar AS review_frequency_title_ar,
-			review_responsible_user.id AS review_responsible_user_id,
-			review_responsible_user.first_name_en AS review_responsible_user_first_name_en,
-            review_responsible_user.first_name_ar AS review_responsible_user_first_name_ar,
-            review_responsible_user.last_name_en AS review_responsible_user_last_name_en,
-            review_responsible_user.last_name_ar AS review_responsible_user_last_name_ar,
-			review_responsible_user.initial AS review_responsible_user_initial,
-        	review_responsible_user.color AS review_responsible_user_color,
-        	review_responsible_user.email AS review_responsible_user_email,
-        	review_responsible_user.profile_image_path AS review_responsible_user_profile_image_path,  
-			severity_levels.title_en AS severity_level_title_en,
-			severity_levels.title_ar AS severity_level_title_ar,
-			severity_levels.color_code AS severity_level_color_code,
-			lifecycle_statuses.title_en AS lifecycle_status_title_en,
-			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
-			lifecycle_statuses.color_code AS lifecycle_status_color_code,
-        	created_user.id AS created_user_id,
-        	created_user.first_name_en AS created_user_first_name_en,
-        	created_user.first_name_ar AS created_user_first_name_ar,
-        	created_user.last_name_en AS created_user_last_name_en,
-        	created_user.last_name_ar AS created_user_last_name_ar,   
-        	created_user.initial AS created_user_initial,
-        	created_user.color AS created_user_color,
-        	created_user.email AS created_user_email,
-        	created_user.profile_image_path AS created_user_profile_image_path,   
-			updated_user.id AS updated_user_id,
+			-- organization_units.title_en AS responsible_unit_title_en,
+			-- organization_units.title_ar AS responsible_unit_title_ar,
+			-- responsible_user.id AS responsible_user_id,
+			-- responsible_user.first_name_en AS responsible_user_first_name_en,
+            -- responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            -- responsible_user.last_name_en AS responsible_user_last_name_en,
+            -- responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			-- responsible_user.initial AS responsible_user_initial,
+            -- responsible_user.color AS responsible_user_color,
+            -- responsible_user.email AS responsible_user_email,
+            -- responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			-- review_frequencies.title_en AS review_frequency_title_en,
+			-- review_frequencies.title_ar AS review_frequency_title_ar,
+			-- review_responsible_user.id AS review_responsible_user_id,
+			-- review_responsible_user.first_name_en AS review_responsible_user_first_name_en,
+            -- review_responsible_user.first_name_ar AS review_responsible_user_first_name_ar,
+            -- review_responsible_user.last_name_en AS review_responsible_user_last_name_en,
+            -- review_responsible_user.last_name_ar AS review_responsible_user_last_name_ar,
+			-- review_responsible_user.initial AS review_responsible_user_initial,
+        	-- review_responsible_user.color AS review_responsible_user_color,
+        	-- review_responsible_user.email AS review_responsible_user_email,
+        	-- review_responsible_user.profile_image_path AS review_responsible_user_profile_image_path,  
+			-- severity_levels.title_en AS severity_level_title_en,
+			-- severity_levels.title_ar AS severity_level_title_ar,
+			-- severity_levels.color_code AS severity_level_color_code,
+			-- lifecycle_statuses.title_en AS lifecycle_status_title_en,
+			-- lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
+			-- lifecycle_statuses.color_code AS lifecycle_status_color_code,
+        	 created_user.id AS created_user_id,
+        	 created_user.first_name_en AS created_user_first_name_en,
+        	 created_user.first_name_ar AS created_user_first_name_ar,
+        	 created_user.last_name_en AS created_user_last_name_en,
+        	 created_user.last_name_ar AS created_user_last_name_ar,   
+        	 created_user.initial AS created_user_initial,
+        	 created_user.color AS created_user_color,
+        	 created_user.email AS created_user_email,
+        	 created_user.profile_image_path AS created_user_profile_image_path,   
+		 updated_user.id AS updated_user_id,
     		updated_user.first_name_en AS updated_user_first_name_en,
         	updated_user.first_name_ar AS updated_user_first_name_ar,
         	updated_user.last_name_en AS updated_user_last_name_en,
@@ -122,20 +144,40 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			updated_user.initial AS updated_user_initial,
         	updated_user.color AS updated_user_color,
         	updated_user.email AS updated_user_email,
-        	updated_user.profile_image_path AS updated_user_profile_image_path        
+        	updated_user.profile_image_path AS updated_user_profile_image_path,
+        	
+        	-- New compliance fields
+        	legislative_bodies.id AS legislative_body_id,
+        	legislative_bodies.title_en AS legislative_body_title_en,
+        	legislative_bodies.title_ar AS legislative_body_title_ar,
+        	legislation_types.id AS legislation_type_id,
+        	legislation_types.title_en AS legislation_type_title_en,
+        	legislation_types.title_ar AS legislation_type_title_ar,
+        	importance_classifications.id AS importance_classification_id,
+        	importance_classifications.title_en AS importance_classification_title_en,
+        	importance_classifications.title_ar AS importance_classification_title_ar,
+        	secrecy_classifications.id AS secrecy_classification_id,
+        	secrecy_classifications.title_en AS secrecy_classification_title_en,
+        	secrecy_classifications.title_ar AS secrecy_classification_title_ar        
         `).
 		Joins(`
-		    LEFT JOIN compliance_categories ON compliance_categories.id = compliance_register.compliance_category_id
+		    -- LEFT JOIN compliance_categories ON compliance_categories.id = compliance_register.compliance_category_id
 		    LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_register.compliance_status_id
-		    LEFT JOIN organization_units ON organization_units.id = compliance_register.responsible_unit_id
-		    LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_register.responsible_user_id
-		    LEFT JOIN review_frequencies ON review_frequencies.id = compliance_register.review_frequency_id
-			LEFT JOIN users AS review_responsible_user ON review_responsible_user.id = compliance_register.review_responsible_user_id
-		    LEFT JOIN severity_levels ON severity_levels.id = compliance_register.severity_level_id
-			LEFT JOIN compliance_assessment_frameworks ON compliance_assessment_frameworks.id = compliance_register.compliance_assessment_framework_id
-			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = compliance_register.lifecycle_status_id
+		    -- LEFT JOIN organization_units ON organization_units.id = compliance_register.responsible_unit_id
+		    -- LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_register.responsible_user_id
+		    -- LEFT JOIN review_frequencies ON review_frequencies.id = compliance_register.review_frequency_id
+			-- LEFT JOIN users AS review_responsible_user ON review_responsible_user.id = compliance_register.review_responsible_user_id
+		    -- LEFT JOIN severity_levels ON severity_levels.id = compliance_register.severity_level_id
+			-- LEFT JOIN compliance_assessment_frameworks ON compliance_assessment_frameworks.id = compliance_register.compliance_assessment_framework_id
+			-- LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = compliance_register.lifecycle_status_id
 			LEFT JOIN users AS created_user ON created_user.id = compliance_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_register.updated_by_id
+			
+			-- New compliance field joins
+			LEFT JOIN compliance_legislative_bodies AS legislative_bodies ON legislative_bodies.id = compliance_register.legislative_body_id
+			LEFT JOIN compliance_legislation_types AS legislation_types ON legislation_types.id = compliance_register.legislation_type_id
+			LEFT JOIN compliance_importance_classifications AS importance_classifications ON importance_classifications.id = compliance_register.importance_classification_id
+			LEFT JOIN compliance_secrecy_classifications AS secrecy_classifications ON secrecy_classifications.id = compliance_register.secrecy_classification_id
 		`)
 
 	// Apply dynamic filters to the query
@@ -307,40 +349,52 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 	var compliance *models.ComplianceRegister
 
 	result := db.
-		Preload("ComplianceCategory").
+		// Preload("ComplianceCategory").
 		Preload("ComplianceStatus").
-		Preload("ComplianceClauses").
-		Preload("ComplianceClauses.ComplianceRequirements").
-		Preload("ComplianceClauses.ComplianceRequirements.RequiredDocumentTitles").
-		Preload("ResponsibleUnit").
+		// Preload("ComplianceClauses").
+		// Preload("ComplianceClauses.ComplianceRequirements").
+		// Preload("ComplianceClauses.ComplianceRequirements.RequiredDocumentTitles").
+		// Preload("ResponsibleUnit").
 		// Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
-		Preload("ResponsibleUser").
-		Preload("ResponsibleUser.OrganizationUnit1").
-		Preload("ReviewFrequency").
-		Preload("ComplianceReviewStatus").
-		Preload("LastReviewedUser").
-		Preload("ReviewResponsibleUser").
-		Preload("SeverityLevel").
-		Preload("LifecycleStatus").
+		// Preload("ResponsibleUser").
+		// Preload("ResponsibleUser.OrganizationUnit1").
+		// Preload("ReviewFrequency").
+		// Preload("ComplianceReviewStatus").
+		// Preload("LastReviewedUser").
+		// Preload("ReviewResponsibleUser").
+		// Preload("SeverityLevel").
+		// Preload("LifecycleStatus").
 		Preload("ComplianceFolder").
 		Preload("ParentComplianceRegister").
 		Preload("ChildComplianceRegister").
-		Preload("DocumentEn", func(db *gorm.DB) *gorm.DB {
-			return db.Where("language = ?", "en")
-		}).
-		Preload("DocumentAr", func(db *gorm.DB) *gorm.DB {
-			return db.Where("language = ?", "ar")
-		}).
+		// Preload("DocumentEn", func(db *gorm.DB) *gorm.DB {
+		// 	return db.Where("language = ?", "en")
+		// }).
+		// Preload("DocumentAr", func(db *gorm.DB) *gorm.DB {
+		// 	return db.Where("language = ?", "ar")
+		// }).
 		// Preload("Controls").
 		// Preload("Controls.Control.ControlCategory").
 		// Preload("Controls.Control.ControlType").
-		Preload("ComplianceStatusUpdates").
-		Preload("ComplianceAssessmentFramework").
-		Preload("ComplianceAssessmentFramework.AssessmentFrameworkType").
-		Preload("ComplianceAssessmentFramework.Values").
-		Preload("ComplianceAssessmentFramework.Values.ComplianceStatus").
+		// Preload("ComplianceStatusUpdates").
+		// Preload("ComplianceAssessmentFramework").
+		// Preload("ComplianceAssessmentFramework.AssessmentFrameworkType").
+		// Preload("ComplianceAssessmentFramework.Values").
+		// Preload("ComplianceAssessmentFramework.Values.ComplianceStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+
+		// New preloads for compliance fields
+		Preload("LegislativeBody").
+		Preload("LegislationType").
+		Preload("ImportanceClassification").
+		Preload("SecrecyClassification").
+
+		// New preloads for issuing authorities and shared units
+		Preload("IssuingAuthorities").
+		Preload("IssuingAuthorities.IssuingAuthority").
+		Preload("IssuingAuthorities.Entity").
+		Preload("IssuingAuthorities.Document").
 		First(&compliance, id)
 
 	if result.Error != nil {
@@ -1371,4 +1425,212 @@ func (repo *ComplianceRegisterRepository) ForceDelete(id uint, tx ...utility.Dat
 		}
 		return nil
 	})
+}
+
+// Issuing Authority Methods
+func (repo *ComplianceRegisterRepository) CreateIssuingAuthority(authority *models.ComplianceRegisterIssuingAuthority, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(authority).Error; err != nil {
+		return 0, err
+	}
+	return authority.ID, nil
+}
+
+func (repo *ComplianceRegisterRepository) UpdateIssuingAuthority(authority *models.ComplianceRegisterIssuingAuthority, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Save(authority).Error
+}
+
+func (repo *ComplianceRegisterRepository) DeleteIssuingAuthority(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Delete(&models.ComplianceRegisterIssuingAuthority{}, id).Error
+}
+
+func (repo *ComplianceRegisterRepository) GetIssuingAuthoritiesByComplianceRegisterID(complianceRegisterID uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceRegisterIssuingAuthority, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var authorities []*models.ComplianceRegisterIssuingAuthority
+	if err := db.Where("compliance_register_id = ?", complianceRegisterID).
+		Preload("Entity").
+		Preload("Document").
+		Find(&authorities).Error; err != nil {
+		return nil, err
+	}
+
+	return authorities, nil
+}
+
+func (repo *ComplianceRegisterRepository) CreateIssuingAuthorityEntity(entity *models.ComplianceRegisterIssuingAuthorityEntity, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(entity).Error; err != nil {
+		return 0, err
+	}
+	return entity.ID, nil
+}
+
+func (repo *ComplianceRegisterRepository) UpdateIssuingAuthorityEntity(entity *models.ComplianceRegisterIssuingAuthorityEntity, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Save(entity).Error
+}
+
+func (repo *ComplianceRegisterRepository) DeleteIssuingAuthorityEntity(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Delete(&models.ComplianceRegisterIssuingAuthorityEntity{}, id).Error
+}
+
+func (repo *ComplianceRegisterRepository) GetIssuingAuthorityEntityByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRegisterIssuingAuthorityEntity, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var entity *models.ComplianceRegisterIssuingAuthorityEntity
+	if err := db.First(&entity, id).Error; err != nil {
+		return nil, err
+	}
+
+	return entity, nil
+}
+
+func (repo *ComplianceRegisterRepository) CreateIssuingAuthorityDocument(document *models.ComplianceRegisterIssuingAuthorityDocument, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(document).Error; err != nil {
+		return 0, err
+	}
+	return document.ID, nil
+}
+
+func (repo *ComplianceRegisterRepository) UpdateIssuingAuthorityDocument(document *models.ComplianceRegisterIssuingAuthorityDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Save(document).Error
+}
+
+func (repo *ComplianceRegisterRepository) DeleteIssuingAuthorityDocument(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Delete(&models.ComplianceRegisterIssuingAuthorityDocument{}, id).Error
+}
+
+func (repo *ComplianceRegisterRepository) GetIssuingAuthorityDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRegisterIssuingAuthorityDocument, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var document models.ComplianceRegisterIssuingAuthorityDocument
+	err := db.First(&document, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &document, nil
+}
+
+func (repo *ComplianceRegisterRepository) GetDocumentsByAuthorityID(authorityID uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceRegisterIssuingAuthorityDocument, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var documents []*models.ComplianceRegisterIssuingAuthorityDocument
+	err := db.Where("compliance_register_issuing_authority_id = ?", authorityID).Find(&documents).Error
+	if err != nil {
+		return nil, err
+	}
+	return documents, nil
+}
+
+func (repo *ComplianceRegisterRepository) DeleteIssuingAuthorityDocumentsByAuthorityID(authorityID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("compliance_register_issuing_authority_id = ?", authorityID).Delete(&models.ComplianceRegisterIssuingAuthorityDocument{}).Error
+}
+
+func (repo *ComplianceRegisterRepository) DeleteIssuingAuthorityEntitiesByAuthorityID(authorityID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("compliance_register_issuing_authority_id = ?", authorityID).Delete(&models.ComplianceRegisterIssuingAuthorityEntity{}).Error
+}
+
+// CreateSharedUnits creates multiple shared units for a compliance register
+func (repo *ComplianceRegisterRepository) CreateSharedUnits(sharedUnits []*models.ComplianceRegisterSharedUnit, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if len(sharedUnits) == 0 {
+		return nil
+	}
+
+	return db.Create(&sharedUnits).Error
+}
+
+// DeleteSharedUnits deletes shared units for a compliance register by department IDs
+func (repo *ComplianceRegisterRepository) DeleteSharedUnits(complianceRegisterID uint, departmentIDs []uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if len(departmentIDs) == 0 {
+		return nil
+	}
+
+	return db.Where("compliance_register_id = ? AND department_id IN ?", complianceRegisterID, departmentIDs).Delete(&models.ComplianceRegisterSharedUnit{}).Error
+}
+
+// GetSharedUnitsByComplianceRegisterID retrieves all shared units for a compliance register
+func (repo *ComplianceRegisterRepository) GetSharedUnitsByComplianceRegisterID(complianceRegisterID uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceRegisterSharedUnit, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var sharedUnits []*models.ComplianceRegisterSharedUnit
+	err := db.Where("compliance_register_id = ?", complianceRegisterID).Find(&sharedUnits).Error
+	return sharedUnits, err
 }
