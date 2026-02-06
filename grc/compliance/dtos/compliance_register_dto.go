@@ -277,11 +277,12 @@ type ComplianceRegisterDetailDTO struct {
 	IsShared                           bool    `json:"is_shared"`
 
 	// New Relations
-	LegislativeBody          *ComplianceLegislativeBodyDTO            `json:"legislative_body"`
-	LegislationType          *ComplianceLegislationTypeDTO            `json:"legislation_type"`
-	ImportanceClassification *ComplianceImportanceClassificationDTO   `json:"importance_classification"`
-	SecrecyClassification    *ComplianceSecrecyClassificationDTO      `json:"secrecy_classification"`
-	IssuingAuthorities       []*ComplianceRegisterIssuingAuthorityDTO `json:"issuing_authorities"`
+	LegislativeBody              *ComplianceLegislativeBodyDTO            `json:"legislative_body"`
+	LegislationType              *ComplianceLegislationTypeDTO            `json:"legislation_type"`
+	ImportanceClassification     *ComplianceImportanceClassificationDTO   `json:"importance_classification"`
+	SecrecyClassification        *ComplianceSecrecyClassificationDTO      `json:"secrecy_classification"`
+	IssuingAuthorities           []*ComplianceRegisterIssuingAuthorityDTO `json:"issuing_authorities"`
+	ComplianceRegisterSharedUnit *[]ComplianceRegisterSharedUnitDTO       `json:"compliance_register_shared_unit"`
 }
 
 type ComplianceControlDTO struct {
@@ -341,4 +342,12 @@ type ComplianceRegisterIssuingAuthorityDocumentDTO struct {
 	Token        string `json:"token"`
 	OriginalName string `json:"original_name"`
 	Type         string `json:"type"`
+}
+
+type ComplianceRegisterSharedUnitDTO struct {
+	ID                   uint                             `json:"id"`
+	ComplianceRegisterID uint                             `json:"compliance_register_id"`
+	Department           settingsDTOs.OrganizationUnitDTO `json:"department"`
+	CreatedByUser        organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	CreatedAt            time.Time                        `json:"created_at"`
 }

@@ -248,14 +248,14 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			query = query.Where("compliance_statuses.type = ?", "partially_compliant")
 		case "non_compliant":
 			query = query.Where("compliance_statuses.type = ?", "not_implemented")
-		case "archived":
-			query = query.Where("lifecycle_statuses.type = ?", "archived")
-
+			// case "archived":
+			//	query = query.Where("lifecycle_statuses.type = ?", "archived")
 		}
 	}
 
 	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
+		// ...
 		return nil, err
 	}
 
@@ -268,33 +268,53 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			compliance_register.description_en LIKE ? OR
 			compliance_register.description_ar LIKE ? OR
 			compliance_register.standard_code LIKE ? OR
-			compliance_categories.title_en LIKE ? OR
-			compliance_categories.title_ar LIKE ? OR
-			compliance_assessment_frameworks.title_en LIKE ? OR
-			compliance_assessment_frameworks.title_ar LIKE ? OR
+			compliance_register.legislation_no LIKE ? OR
+			compliance_register.subject LIKE ? OR
+			-- compliance_categories.title_en LIKE ? OR
+			-- compliance_categories.title_ar LIKE ? OR
+			-- compliance_assessment_frameworks.title_en LIKE ? OR
+			-- compliance_assessment_frameworks.title_ar LIKE ? OR
 			compliance_statuses.title_en LIKE ? OR
 			compliance_statuses.title_ar LIKE ? OR
-			organization_units.title_en LIKE ? OR
-			organization_units.title_ar LIKE ? OR
-			responsible_user.first_name_en LIKE ? OR
-			responsible_user.first_name_ar LIKE ? OR
-			responsible_user.last_name_en LIKE ? OR
-			responsible_user.last_name_ar LIKE ? OR
-			responsible_user.email LIKE ? OR
-            responsible_user.initial LIKE ? OR
-            responsible_user.color LIKE ? OR
-            responsible_user.profile_image_path LIKE ? OR
-			severity_levels.title_en LIKE ? OR
-			severity_levels.title_ar LIKE ? OR
-			lifecycle_statuses.title_en LIKE ? OR
-			lifecycle_statuses.title_ar LIKE ?)`,
+			-- organization_units.title_en LIKE ? OR
+			-- organization_units.title_ar LIKE ? OR
+			-- responsible_user.first_name_en LIKE ? OR
+			-- responsible_user.first_name_ar LIKE ? OR
+			-- responsible_user.last_name_en LIKE ? OR
+			-- responsible_user.last_name_ar LIKE ? OR
+			-- responsible_user.email LIKE ? OR
+            -- responsible_user.initial LIKE ? OR
+            -- responsible_user.color LIKE ? OR
+            -- responsible_user.profile_image_path LIKE ? OR
+			-- severity_levels.title_en LIKE ? OR
+			-- severity_levels.title_ar LIKE ? OR
+			-- lifecycle_statuses.title_en LIKE ? OR
+			-- lifecycle_statuses.title_ar LIKE ? OR
+			legislative_bodies.title_en LIKE ? OR
+			legislative_bodies.title_ar LIKE ? OR
+			legislation_types.title_en LIKE ? OR
+			legislation_types.title_ar LIKE ? OR
+			importance_classifications.title_en LIKE ? OR
+			importance_classifications.title_ar LIKE ? OR
+			secrecy_classifications.title_en LIKE ? OR
+			secrecy_classifications.title_ar LIKE ? OR
+			created_user.first_name_en LIKE ? OR
+			created_user.first_name_ar LIKE ? OR
+			created_user.last_name_en LIKE ? OR
+			created_user.last_name_ar LIKE ? OR
+			created_user.email LIKE ? OR
+			updated_user.first_name_en LIKE ? OR
+			updated_user.first_name_ar LIKE ? OR
+			updated_user.last_name_en LIKE ? OR
+			updated_user.last_name_ar LIKE ? OR
+			updated_user.email LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -396,6 +416,8 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("IssuingAuthorities.IssuingAuthority").
 		Preload("IssuingAuthorities.Entity").
 		Preload("IssuingAuthorities.Document").
+		Preload("ComplianceRegisterSharedUnit").
+		Preload("ComplianceRegisterSharedUnit.Department").
 		First(&compliance, id)
 
 	if result.Error != nil {

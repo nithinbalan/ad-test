@@ -261,6 +261,8 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		IsNotApplicable:                    complianceRegisterFormDTO.IsNotApplicable,
 		IsRegulationNotificationAssessment: complianceRegisterFormDTO.IsRegulationNotificationAssessment,
 		IsRiskBasedAssessment:              complianceRegisterFormDTO.IsRiskBasedAssessment,
+		IsPublic:                           complianceRegisterFormDTO.IsPublic,
+		IsShared:                           complianceRegisterFormDTO.IsShared,
 	}
 
 	id, err := crs.repo.Create(complianceRegister, tx)
@@ -300,6 +302,12 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 	if err := crs.handleIssuingAuthorities(currentUserID, id, complianceRegisterFormDTO.IssuingAuthorities, complianceRegisterFormDTO.SecrecyClassificationID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	// Validate shared units requirement
+	if complianceRegisterFormDTO.IsShared && len(complianceRegisterFormDTO.SharedUnitIDs) == 0 {
+		tx.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("shared units are required when IsShared is true"), "required", "shared_unit_ids")
 	}
 
 	// Handle shared units
@@ -519,6 +527,8 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	existingComplianceRegister.IsNotApplicable = complianceRegisterFormDTO.IsNotApplicable
 	existingComplianceRegister.IsRegulationNotificationAssessment = complianceRegisterFormDTO.IsRegulationNotificationAssessment
 	existingComplianceRegister.IsRiskBasedAssessment = complianceRegisterFormDTO.IsRiskBasedAssessment
+	existingComplianceRegister.IsPublic = complianceRegisterFormDTO.IsPublic
+	existingComplianceRegister.IsShared = complianceRegisterFormDTO.IsShared
 
 	err = crs.repo.Update(existingComplianceRegister, tx)
 	if err != nil {
@@ -576,6 +586,12 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	if err := crs.handleIssuingAuthorities(currentUserID, id, complianceRegisterFormDTO.IssuingAuthorities, complianceRegisterFormDTO.SecrecyClassificationID, tx); err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	// Validate shared units requirement
+	if complianceRegisterFormDTO.IsShared && len(complianceRegisterFormDTO.SharedUnitIDs) == 0 {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("shared units are required when IsShared is true"), "required", "shared_unit_ids")
 	}
 
 	// Handle shared units

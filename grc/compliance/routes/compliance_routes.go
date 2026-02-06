@@ -69,6 +69,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	IssuingAuthorityController := app.ComplianceModule.IssuingAuthorityController
 	ImportanceClassificationController := app.ComplianceModule.ImportanceClassificationController
 	SecrecyClassificationController := app.ComplianceModule.SecrecyClassificationController
+	complianceAssessmentAcknowledgeDepartmentController := app.ComplianceModule.ComplianceAssessmentAcknowledgeDepartmentController
 
 	// Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -561,4 +562,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	complianceRoutes.GET("/compliance-assessment-ratings", complianceAssessmentRatingController.GetAllComplianceAssessmentRatings)
 	complianceRoutes.GET("/compliance-assessment-ratings/:id", complianceAssessmentRatingController.GetComplianceAssessmentRatingDetails)
+
+	// Compliance Assessment Acknowledge Department Routes
+	complianceRoutes.GET("/compliance-assessments/:assessmentId/acknowledgements", complianceAssessmentAcknowledgeDepartmentController.GetAllAcknowledgements)
+	complianceRoutes.POST("/compliance-assessments/:assessmentId/acknowledgements", complianceAssessmentAcknowledgeDepartmentController.CreateAcknowledgement)
+	complianceRoutes.DELETE("/compliance-assessments/:assessmentId/acknowledgements", complianceAssessmentAcknowledgeDepartmentController.DeleteAcknowledgement)
+	complianceRoutes.GET("/compliance-assessments/:assessmentId/acknowledgements/summary", complianceAssessmentAcknowledgeDepartmentController.GetAcknowledgementSummary)
 }
