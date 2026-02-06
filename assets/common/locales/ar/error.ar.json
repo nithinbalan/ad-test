@@ -188,6 +188,10 @@
 {
   "id": "document_upload_disabled",
   "translation": "تم تعطيل رفع المستندات للتصنيفات السرية وسرية للغاية"
+},
+{
+  "id": "already_acknowledged",
+  "translation": "تم التأكيد على تقييم الامتثال بالفعل"
 }
 
 

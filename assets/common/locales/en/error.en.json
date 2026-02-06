@@ -189,6 +189,10 @@
 {
   "id": "document_upload_disabled",
   "translation": "Document upload is disabled for Secret and Top Secret classifications"
+},
+{
+  "id": "already_acknowledged",
+  "translation": "Compliance Assessment has already been acknowledged"
 }
 
 

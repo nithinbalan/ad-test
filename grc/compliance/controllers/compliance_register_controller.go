@@ -27,7 +27,7 @@ func NewComplianceRegisterController(service services.ComplianceRegisterServiceI
 
 func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "title_en")
+	sortBy := c.DefaultQuery("sort_by", "created_at")
 	status := c.Query("status")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
@@ -47,18 +47,14 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 		}
 	}
 
-	// Define an array of allowed parameter names
+	// Define an array of allowed parameter names (matching repository available fields)
 	allowedParams := []string{
-		"compliance_category_ids",
-		"severity_level_ids",
 		"compliance_status_ids",
-		"responsible_user_ids",
-		"responsible_unit_ids",
-		"review_frequency_ids",
-		"review_responsible_user_ids",
-		"lifecycle_status_ids",
 		"compliance_folder_ids",
-		"compliance_assessment_framework_ids",
+		"legislative_body_ids",
+		"legislation_type_ids",
+		"importance_classification_ids",
+		"secrecy_classification_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -88,30 +84,29 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 		return
 	}
 	validSortFields := map[string]string{
-		"reference_number":                         "compliance_register.reference_number",
-		"standard_code":                            "compliance_register.standard_code",
-		"title_en":                                 "compliance_register.title_en",
-		"title_ar":                                 "compliance_register.title_ar",
-		"description_en":                           "compliance_register.description_en",
-		"description_ar":                           "compliance_register.description_ar",
-		"category_title_en":                        "compliance_categories.title_en",
-		"category_title_ar":                        "compliance_categories.title_ar",
-		"severity_level_en":                        "severity_levels.title_en",
-		"severity_level_ar":                        "severity_levels.title_ar",
-		"responsible_unit_en":                      "organization_units.title_en",
-		"responsible_unit_ar":                      "organization_units.title_ar",
-		"responsible_user_en":                      "responsible_user.first_name_en",
-		"responsible_user_ar":                      "responsible_user.first_name_ar",
-		"review_frequency_title_en":                "review_frequencies.title_en",
-		"review_frequency_title_ar":                "review_frequencies.title_ar",
-		"review_responsible_user_en":               "review_responsible_user.first_name_en",
-		"review_responsible_user_ar":               "review_responsible_user.first_name_ar",
-		"status_en":                                "lifecycle_statuses.title_en",
-		"status_ar":                                "lifecycle_statuses.title_ar",
-		"compliance_status_en":                     "compliance_statuses.title_en",
-		"compliance_status_ar":                     "compliance_statuses.title_ar",
-		"compliance_assessment_framework_title_en": "compliance_assessment_frameworks.title_en",
-		"compliance_assessment_framework_title_ar": "compliance_assessment_frameworks.title_ar",
+		"reference_number":                   "compliance_register.reference_number",
+		"standard_code":                      "compliance_register.standard_code",
+		"title_en":                           "compliance_register.title_en",
+		"title_ar":                           "compliance_register.title_ar",
+		"description_en":                     "compliance_register.description_en",
+		"description_ar":                     "compliance_register.description_ar",
+		"deadline":                           "compliance_register.deadline",
+		"compliance_status_en":               "compliance_statuses.title_en",
+		"compliance_status_ar":               "compliance_statuses.title_ar",
+		"created_at":                         "compliance_register.created_at",
+		"updated_at":                         "compliance_register.updated_at",
+		"legislative_body_title_en":          "legislative_bodies.title_en",
+		"legislative_body_title_ar":          "legislative_bodies.title_ar",
+		"legislation_type_title_en":          "legislation_types.title_en",
+		"legislation_type_title_ar":          "legislation_types.title_ar",
+		"importance_classification_title_en": "importance_classifications.title_en",
+		"importance_classification_title_ar": "importance_classifications.title_ar",
+		"secrecy_classification_title_en":    "secrecy_classifications.title_en",
+		"secrecy_classification_title_ar":    "secrecy_classifications.title_ar",
+		"created_user_first_name_en":         "created_user.first_name_en",
+		"created_user_first_name_ar":         "created_user.first_name_ar",
+		"updated_user_first_name_en":         "updated_user.first_name_en",
+		"updated_user_first_name_ar":         "updated_user.first_name_ar",
 	}
 
 	sortField, valid := validSortFields[sortBy]

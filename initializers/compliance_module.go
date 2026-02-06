@@ -56,11 +56,12 @@ type ComplianceModule struct {
 	ComplianceAssessmentImpactTypeController                        *controllers.ComplianceAssessmentImpactTypeController
 	ComplianceAssessmentRatingController                            *controllers.ComplianceAssessmentRatingController
 	// ConsultationRequestStatusController                             *controllers.ConsultationRequestStatusController
-	LegislativeBodyController          *controllers.LegislativeBodyController
-	LegislationTypeController          *controllers.LegislationTypeController
-	IssuingAuthorityController         *controllers.IssuingAuthorityController
-	ImportanceClassificationController *controllers.ImportanceClassificationController
-	SecrecyClassificationController    *controllers.SecrecyClassificationController
+	LegislativeBodyController                           *controllers.LegislativeBodyController
+	LegislationTypeController                           *controllers.LegislationTypeController
+	IssuingAuthorityController                          *controllers.IssuingAuthorityController
+	ImportanceClassificationController                  *controllers.ImportanceClassificationController
+	SecrecyClassificationController                     *controllers.SecrecyClassificationController
+	ComplianceAssessmentAcknowledgeDepartmentController *controllers.ComplianceAssessmentAcknowledgeDepartmentController
 
 	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
@@ -385,9 +386,16 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceDetailDashboardSvc := services.NewComplianceDetailDashboardService(complianceDetailDashboardRepo)
 	complianceDetailDashboardController := controllers.NewComplianceDetailDashboardController(complianceDetailDashboardSvc)
 
-	// consultationRequestStatusRepo := repositories.NewConsultationRequestStatusRepository(db)
-	// consultationRequestStatusSvc := services.NewConsultationRequestStatusService(consultationRequestStatusRepo)
-	// consultationRequestStatusController := controllers.NewConsultationRequestStatusController(consultationRequestStatusSvc)
+	// Compliance Assessment Acknowledge Department
+	complianceAssessmentAcknowledgeDepartmentRepo := repositories.NewComplianceAssessmentAcknowledgeDepartmentRepository(db)
+	complianceAssessmentAcknowledgeDepartmentSvc := services.NewComplianceAssessmentAcknowledgeDepartmentService(
+		complianceAssessmentAcknowledgeDepartmentRepo,
+		sharedModule.ActivityLogService,
+		complianceAssessmentSvc,
+		organizationModule.UserSvc,
+		settingsModule.OrganizationLevelSvc,
+	)
+	complianceAssessmentAcknowledgeDepartmentController := controllers.NewComplianceAssessmentAcknowledgeDepartmentController(complianceAssessmentAcknowledgeDepartmentSvc)
 
 	return &ComplianceModule{
 		ComplianceCategoryController:                                    complianceCategoryController,
@@ -437,11 +445,12 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceAssessmentImpactTypeController:                        complianceAssessmentImpactTypeController,
 		ComplianceAssessmentRatingController:                            complianceAssessmentRatingController,
 		// ConsultationRequestStatusController:                             consultationRequestStatusController,
-		LegislativeBodyController:          legislativeBodyController,
-		LegislationTypeController:          legislationTypeController,
-		IssuingAuthorityController:         issuingAuthorityController,
-		ImportanceClassificationController: importanceClassificationController,
-		SecrecyClassificationController:    secrecyClassificationController,
+		LegislativeBodyController:                           legislativeBodyController,
+		LegislationTypeController:                           legislationTypeController,
+		IssuingAuthorityController:                          issuingAuthorityController,
+		ImportanceClassificationController:                  importanceClassificationController,
+		SecrecyClassificationController:                     secrecyClassificationController,
+		ComplianceAssessmentAcknowledgeDepartmentController: complianceAssessmentAcknowledgeDepartmentController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,

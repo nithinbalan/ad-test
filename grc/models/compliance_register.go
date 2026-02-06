@@ -80,11 +80,12 @@ type ComplianceRegister struct {
 	ComplianceAssessmentFramework *ComplianceAssessmentFramework `gorm:"foreignKey:ComplianceAssessmentFrameworkID"`
 
 	//New Relations
-	LegislativeBody          *ComplianceLegislativeBody            `gorm:"foreignKey:LegislativeBodyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	LegislationType          *ComplianceLegislationType            `gorm:"foreignKey:LegislationTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ImportanceClassification *ComplianceImportanceClassification   `gorm:"foreignKey:ImportanceClassificationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SecrecyClassification    *ComplianceSecrecyClassification      `gorm:"foreignKey:SecrecyClassificationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	IssuingAuthorities       []*ComplianceRegisterIssuingAuthority `gorm:"foreignKey:ComplianceRegisterID"`
+	LegislativeBody              *ComplianceLegislativeBody            `gorm:"foreignKey:LegislativeBodyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	LegislationType              *ComplianceLegislationType            `gorm:"foreignKey:LegislationTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ImportanceClassification     *ComplianceImportanceClassification   `gorm:"foreignKey:ImportanceClassificationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SecrecyClassification        *ComplianceSecrecyClassification      `gorm:"foreignKey:SecrecyClassificationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	IssuingAuthorities           []*ComplianceRegisterIssuingAuthority `gorm:"foreignKey:ComplianceRegisterID"`
+	ComplianceRegisterSharedUnit *[]ComplianceRegisterSharedUnit       `gorm:"foreignKey:ComplianceRegisterID"`
 }
 
 // TableName overrides the table name used by ComplianceRegister to `compliance_register`
