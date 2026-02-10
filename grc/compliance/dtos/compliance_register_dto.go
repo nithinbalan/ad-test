@@ -248,6 +248,7 @@ type ComplianceRegisterDetailDTO struct {
 	UpdatedAt                       *time.Time                       `json:"updated_at"`
 	CreatedByUser                   organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser                   *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	Note                            *string                          `json:"note"`
 	//LifecycleStatus                 masterDTOs.LifecycleStatusDTO                   `json:"status"`
 	DocumentEn                    *ComplianceDocumentDTO                          `json:"document_en"`
 	DocumentAr                    *ComplianceDocumentDTO                          `json:"document_ar"`
