@@ -100,6 +100,19 @@ type ComplianceRequirementFormDTO struct {
 	ResponsibleUnitIDs       []*uint `json:"responsible_unit_ids"`
 }
 
+type ComplianceRequirementInherentRiskFormDTO struct {
+	ComplianceAssessmentImpactTypeID uint    `json:"compliance_assessment_impact_type_id" binding:"required"`
+	Score                            *int    `json:"score" binding:"required,min=0,max=5"`
+	Comment                          *string `json:"comment"`
+}
+
+type ComplianceRequirementInherentRiskDTO struct {
+	ID                             uint                              `json:"id"`
+	ComplianceAssessmentImpactType ComplianceAssessmentImpactTypeDTO `json:"compliance_assessment_impact_type"`
+	Score                          int                               `json:"score"`
+	Comment                        *string                           `json:"comment"`
+}
+
 type ComplianceRequirementParsedDates struct {
 	Deadline *time.Time
 }
@@ -123,6 +136,9 @@ type ComplianceRequirementDetailDTO struct {
 	ComplianceStatus              *ComplianceStatusDTO                             `json:"compliance_status"`
 	RequiredDocumentTitles        []*ComplianceRequirementRequiredDocumentTitleDTO `json:"required_document_titles"`
 	ResponsibleUnits              []*ComplianceRequirementResponsibleUnitDTO       `json:"responsible_units"`
+	InherentRiskAnalysis          []*ComplianceRequirementInherentRiskDTO          `json:"inherent_risk_analysis"`
+	InherentRiskScore             *float64                                         `json:"inherent_risk_score"`
+	InherentRiskRating            *ComplianceAssessmentRatingDTO                   `json:"inherent_risk_rating"`
 }
 type ComplianceRequirementResponsibleUnitDTO struct {
 	ID                                 uint                                         `json:"id"`

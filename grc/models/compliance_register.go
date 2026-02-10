@@ -55,6 +55,7 @@ type ComplianceRegister struct {
 	IsRiskBasedAssessment              bool    `json:"is_risk_based_assessment default:false"`
 	IsPublic                           bool    `json:"is_public default:false"`
 	IsShared                           bool    `json:"is_shared default:false"`
+	Note                               *string `json:"note" gorm:"type:varchar(max)"`
 
 	// Relationships
 	ComplianceCategory            *ComplianceCategory            `gorm:"foreignKey:ComplianceCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

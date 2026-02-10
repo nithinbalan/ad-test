@@ -530,3 +530,63 @@ func (crc *ComplianceRequirementController) ImportRequirements(c *gin.Context) {
 	c.JSON(http.StatusOK, map[string]interface{}{
 		"created_ids": createdIDs})
 }
+
+// CreateInherentRiskAnalysis creates inherent risk analysis for a compliance requirement
+func (crc *ComplianceRequirementController) CreateInherentRiskAnalysis(c *gin.Context) {
+	requirementIDStr := c.Param("requirementId")
+	requirementID, err := strconv.ParseUint(requirementIDStr, 10, 32)
+	if err != nil {
+		utility.SendInvalidErrResp(c, utility.NewValidationError(err, "invalid", "requirement_id"))
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	var riskAnalysisFormDTO []*complianceDTOs.ComplianceRequirementInherentRiskFormDTO
+	if err := c.ShouldBindJSON(&riskAnalysisFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	err = crc.service.CreateInherentRiskAnalysis(uint(requirementID), currentUserID, riskAnalysisFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+// DeleteInherentRiskAnalysis deletes all inherent risk analysis for a compliance requirement
+func (crc *ComplianceRequirementController) DeleteInherentRiskAnalysis(c *gin.Context) {
+	requirementIDStr := c.Param("requirementId")
+	requirementID, err := strconv.ParseUint(requirementIDStr, 10, 32)
+	if err != nil {
+		utility.SendInvalidErrResp(c, utility.NewValidationError(err, "invalid", "requirement_id"))
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	err = crc.service.DeleteInherentRiskAnalysis(uint(requirementID), currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	c.Status(http.StatusOK)
+}

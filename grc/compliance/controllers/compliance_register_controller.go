@@ -576,3 +576,41 @@ func (crc *ComplianceRegisterController) DeleteForceComplianceRegisters(c *gin.C
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (crc *ComplianceRegisterController) UpdateNote(c *gin.Context) {
+	var noteFormDTO complianceDTOs.ComplianceRegisterNoteDTO
+
+	complianceID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&noteFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	// Fix: Remove the extra return value
+	if err := crc.service.UpdateNote(uint(complianceID), currentUserID, &noteFormDTO); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

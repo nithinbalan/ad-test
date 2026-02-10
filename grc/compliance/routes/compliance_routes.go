@@ -563,9 +563,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliance-assessment-ratings", complianceAssessmentRatingController.GetAllComplianceAssessmentRatings)
 	complianceRoutes.GET("/compliance-assessment-ratings/:id", complianceAssessmentRatingController.GetComplianceAssessmentRatingDetails)
 
+	// Compliance Requirement Inherent Risk Analysis Routes
+	complianceRoutes.POST("/compliance-requirements/:requirementId/inherent-risk-analysis", complianceRequirementController.CreateInherentRiskAnalysis)
+	complianceRoutes.DELETE("/compliance-requirements/:requirementId/delete-inherent-risk-analysis", complianceRequirementController.DeleteInherentRiskAnalysis)
+
 	// Compliance Assessment Acknowledge Department Routes
 	complianceRoutes.GET("/compliance-assessments/:assessmentId/acknowledgements", complianceAssessmentAcknowledgeDepartmentController.GetAllAcknowledgements)
 	complianceRoutes.POST("/compliance-assessments/:assessmentId/acknowledgements", complianceAssessmentAcknowledgeDepartmentController.CreateAcknowledgement)
 	complianceRoutes.DELETE("/compliance-assessments/:assessmentId/acknowledgements", complianceAssessmentAcknowledgeDepartmentController.DeleteAcknowledgement)
 	complianceRoutes.GET("/compliance-assessments/:assessmentId/acknowledgements/summary", complianceAssessmentAcknowledgeDepartmentController.GetAcknowledgementSummary)
+
+	//Compliance Register Note Routes
+	complianceRoutes.PUT("/compliance-register/:id/note", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterController.UpdateNote)
 }

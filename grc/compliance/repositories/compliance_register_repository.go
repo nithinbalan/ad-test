@@ -62,6 +62,9 @@ type ComplianceRegisterRepositoryInterface interface {
 	CreateSharedUnits(sharedUnits []*models.ComplianceRegisterSharedUnit, tx ...utility.DatabaseTransaction) error
 	DeleteSharedUnits(complianceRegisterID uint, departmentIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetSharedUnitsByComplianceRegisterID(complianceRegisterID uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceRegisterSharedUnit, error)
+
+	// Note and Observations
+	UpdateNote(complianceRegisterID uint, note *string, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceRegisterRepository struct {
@@ -372,9 +375,9 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 	result := db.
 		// Preload("ComplianceCategory").
 		Preload("ComplianceStatus").
-		// Preload("ComplianceClauses").
-		// Preload("ComplianceClauses.ComplianceRequirements").
-		// Preload("ComplianceClauses.ComplianceRequirements.RequiredDocumentTitles").
+		Preload("ComplianceClauses").
+		Preload("ComplianceClauses.ComplianceRequirements").
+		Preload("ComplianceClauses.ComplianceRequirements.RequiredDocumentTitles").
 		// Preload("ResponsibleUnit").
 		// Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
 		// Preload("ResponsibleUser").
@@ -397,7 +400,7 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		// Preload("Controls").
 		// Preload("Controls.Control.ControlCategory").
 		// Preload("Controls.Control.ControlType").
-		// Preload("ComplianceStatusUpdates").
+		Preload("ComplianceStatusUpdates").
 		// Preload("ComplianceAssessmentFramework").
 		// Preload("ComplianceAssessmentFramework.AssessmentFrameworkType").
 		// Preload("ComplianceAssessmentFramework.Values").
@@ -1670,4 +1673,16 @@ func (repo *ComplianceRegisterRepository) GetSharedUnitsByComplianceRegisterID(c
 	var sharedUnits []*models.ComplianceRegisterSharedUnit
 	err := db.Where("compliance_register_id = ?", complianceRegisterID).Find(&sharedUnits).Error
 	return sharedUnits, err
+}
+
+func (repo *ComplianceRegisterRepository) UpdateNote(id uint, note *string, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Model(&models.ComplianceRegister{}).
+		Where("id = ?", id).
+		Updates(map[string]interface{}{
+			"note": note,
+		}).Error
 }
