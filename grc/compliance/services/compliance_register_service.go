@@ -46,6 +46,8 @@ type ComplianceRegisterServiceInterface interface {
 
 	CreateComplianceVersion(currentUserID uint, complianceRegisterFormDTO *complianceDTOs.ComplianceVersionFormDTO) (uint, error)
 	GetAllVersions(id uint) ([]*complianceDTOs.ComplianceRegisterDetailDTO, error)
+
+	UpdateNote(id uint, currentUserID uint, dto *complianceDTOs.ComplianceRegisterNoteDTO) error
 }
 
 // Service and implementations
@@ -2394,6 +2396,43 @@ func (crs *ComplianceRegisterService) handleSharedUnits(currentUserID uint, comp
 			return fmt.Errorf("failed to delete shared units: %w", err)
 		}
 	}
+
+	return nil
+}
+
+func (crs *ComplianceRegisterService) UpdateNote(id uint, currentUserID uint, dto *complianceDTOs.ComplianceRegisterNoteDTO) error {
+	// Get existing investigation for audit log
+	existing, err := crs.repo.GetByID(id)
+	if err != nil {
+		return err
+	}
+	tx := crs.repo.BeginTransaction()
+	// Update the note
+	if err := crs.repo.UpdateNote(id, dto.Note, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	// Log the activity
+	go func() {
+		changedData := map[string]interface{}{
+			"note_and_observations": map[string]interface{}{
+				"old": existing.Note,
+				"new": dto.Note,
+			},
+		}
+
+		_ = crs.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.ComplianceRegister{}.TableName(),
+			id,
+			changedData,
+			currentUserID,
+			"compliance", "compliance_register", "update compliance register note", nil,
+		)
+	}()
 
 	return nil
 }

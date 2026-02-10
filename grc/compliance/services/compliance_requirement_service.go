@@ -41,6 +41,10 @@ type ComplianceRequirementServiceInterface interface {
 	ValidateRequirementTemplate(complianceID uint, file io.Reader) ([]map[string]interface{}, error)
 	ValidateImportRequirement(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error)
 	ImportRequirements(complianceID uint, input []map[string]interface{}, currentUserID uint) ([]uint, error)
+
+	// Inherent Risk Analysis methods
+	CreateInherentRiskAnalysis(complianceRequirementID uint, currentUserID uint, riskAnalysisFormDTO []*complianceDTOs.ComplianceRequirementInherentRiskFormDTO) error
+	DeleteInherentRiskAnalysis(complianceRequirementID uint, currentUserID uint) error
 }
 
 // Service and implementations
@@ -1415,6 +1419,100 @@ func (crs *ComplianceRequirementService) calculateComplianceRequirementScore(com
 	normalizedScore := (float64(rawScore) / float64(maxPossibleScore)) * 100
 
 	return int(normalizedScore), nil
+}
+
+// getInherentRiskRatingByScore determines the appropriate risk rating based on the calculated score
+func (crs *ComplianceRequirementService) getInherentRiskRatingByScore(score float64) (*uint, error) {
+	// Get all compliance assessment ratings
+	ratings, err := crs.repo.GetComplianceAssessmentRatings()
+	if err != nil {
+		return nil, err
+	}
+
+	// Find the appropriate rating based on score range
+	for _, rating := range ratings {
+		if rating.ScoreFrom != nil && rating.ScoreTo != nil {
+			if score >= *rating.ScoreFrom && score <= *rating.ScoreTo {
+				return &rating.ID, nil
+			}
+		}
+	}
+
+	return nil, nil // No rating found
+}
+
+// CreateInherentRiskAnalysis creates inherent risk analysis for a compliance requirement
+func (crs *ComplianceRequirementService) CreateInherentRiskAnalysis(complianceRequirementID uint, currentUserID uint, riskAnalysisFormDTO []*complianceDTOs.ComplianceRequirementInherentRiskFormDTO) error {
+	tx := crs.repo.BeginTransaction()
+
+	// Delete existing risk analysis for this requirement
+	if err := crs.repo.DeleteInherentRiskAnalysisByRequirementID(complianceRequirementID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	var riskAnalysisRecords []*models.ComplianceRequirementInherentRiskAnalysis
+	var totalScore float64
+
+	// Create new risk analysis records
+	for _, analysis := range riskAnalysisFormDTO {
+		if analysis.Score == nil {
+			return fmt.Errorf("score is required")
+		}
+		record := &models.ComplianceRequirementInherentRiskAnalysis{
+			ComplianceRequirementID:          complianceRequirementID,
+			ComplianceAssessmentImpactTypeID: analysis.ComplianceAssessmentImpactTypeID,
+			Score:                            *analysis.Score,
+			Comment:                          analysis.Comment,
+			CreatedByID:                      currentUserID,
+			CreatedAt:                        time.Now(),
+		}
+		riskAnalysisRecords = append(riskAnalysisRecords, record)
+		totalScore += float64(*analysis.Score)
+	}
+
+	// Create inherent risk analysis records
+	if err := crs.repo.CreateInherentRiskAnalysis(riskAnalysisRecords, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Calculate and update inherent risk score
+	if len(riskAnalysisFormDTO) > 0 {
+		averageScore := totalScore / float64(len(riskAnalysisFormDTO))
+		ratingID, err := crs.getInherentRiskRatingByScore(averageScore)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		if err := crs.repo.UpdateInherentRiskScore(complianceRequirementID, averageScore, ratingID, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+	return nil
+}
+
+// DeleteInherentRiskAnalysis deletes all inherent risk analysis for a compliance requirement
+func (crs *ComplianceRequirementService) DeleteInherentRiskAnalysis(complianceRequirementID uint, currentUserID uint) error {
+	tx := crs.repo.BeginTransaction()
+
+	// Delete all risk analysis for this requirement
+	if err := crs.repo.DeleteInherentRiskAnalysisByRequirementID(complianceRequirementID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Reset inherent risk score and rating
+	if err := crs.repo.UpdateInherentRiskScore(complianceRequirementID, 0, nil, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+	return nil
 }
 
 func (crs *ComplianceRequirementService) validateComplianceRequirementFormDTO(ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) error {

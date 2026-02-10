@@ -47,6 +47,13 @@ type ComplianceRequirementRepositoryInterface interface {
 	DeleteComplianceRequirmentRequiredDocumentTitles(requiredDocumentTitleIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetResponsibleUnitRowsByRequirementIDs(requirementIDs []uint, out *[]complianceDTOs.ComplianceRequirementResponsibleUnitRowDTO) error
+
+	// Inherent Risk Analysis methods
+	CreateInherentRiskAnalysis(riskAnalysis []*models.ComplianceRequirementInherentRiskAnalysis, tx ...utility.DatabaseTransaction) error
+	DeleteInherentRiskAnalysisByRequirementID(complianceRequirementID uint, tx ...utility.DatabaseTransaction) error
+	GetInherentRiskAnalysisByRequirementID(complianceRequirementID uint) ([]*models.ComplianceRequirementInherentRiskAnalysis, error)
+	UpdateInherentRiskScore(complianceRequirementID uint, score float64, ratingID *uint, tx ...utility.DatabaseTransaction) error
+	GetComplianceAssessmentRatings() ([]*models.ComplianceAssessmentRating, error)
 }
 
 type ComplianceRequirementRepository struct {
@@ -396,6 +403,9 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("Controls.Control.ControlType").
 		Preload("StrategicObjectives.StrategicObjective").
 		Preload("Documents").
+		Preload("InherentRiskAnalysis").
+		Preload("InherentRiskAnalysis.ComplianceAssessmentImpactType").
+		Preload("InherentRiskRating").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("RequiredDocumentTitles").
@@ -742,4 +752,78 @@ func buildClauseOrderExprRows(sort string) string {
 	TRY_CONVERT(INT, PARSENAME(%s, 1)) %s,
 	compliance_requirements.id %s
 	`, padded, dir, padded, dir, padded, dir, padded, dir, dir)
+}
+
+// CreateInherentRiskAnalysis creates inherent risk analysis records
+func (repo *ComplianceRequirementRepository) CreateInherentRiskAnalysis(riskAnalysis []*models.ComplianceRequirementInherentRiskAnalysis, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if len(riskAnalysis) == 0 {
+		return nil
+	}
+
+	return db.Create(&riskAnalysis).Error
+}
+
+// UpdateInherentRiskScore updates the inherent risk score and rating for a compliance requirement
+func (repo *ComplianceRequirementRepository) UpdateInherentRiskScore(complianceRequirementID uint, score float64, ratingID *uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	updates := map[string]interface{}{
+		"inherent_risk_score": score,
+	}
+
+	if ratingID != nil {
+		updates["inherent_risk_rating_id"] = *ratingID
+	}
+
+	return db.Model(&models.ComplianceRequirement{}).
+		Where("id = ?", complianceRequirementID).
+		Updates(updates).Error
+}
+
+// DeleteInherentRiskAnalysisByRequirementID deletes all inherent risk analysis for a compliance requirement
+func (repo *ComplianceRequirementRepository) DeleteInherentRiskAnalysisByRequirementID(complianceRequirementID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("compliance_requirement_id = ?", complianceRequirementID).
+		Delete(&models.ComplianceRequirementInherentRiskAnalysis{}).Error
+}
+
+// GetInherentRiskAnalysisByRequirementID retrieves all inherent risk analysis for a compliance requirement
+func (repo *ComplianceRequirementRepository) GetInherentRiskAnalysisByRequirementID(complianceRequirementID uint) ([]*models.ComplianceRequirementInherentRiskAnalysis, error) {
+	var riskAnalysisList []*models.ComplianceRequirementInherentRiskAnalysis
+
+	err := repo.db.Where("compliance_requirement_id = ?", complianceRequirementID).
+		Find(&riskAnalysisList).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return riskAnalysisList, nil
+}
+
+// GetComplianceAssessmentRatings retrieves all compliance assessment ratings
+func (repo *ComplianceRequirementRepository) GetComplianceAssessmentRatings() ([]*models.ComplianceAssessmentRating, error) {
+	var ratings []*models.ComplianceAssessmentRating
+
+	err := repo.db.Where("status = ?", "active").
+		Order("score_from ASC").
+		Find(&ratings).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return ratings, nil
 }
