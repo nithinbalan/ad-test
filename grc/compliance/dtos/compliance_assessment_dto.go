@@ -112,6 +112,7 @@ type ComplianceAssessmentRequirementDTO struct {
 	ComplianceStatusID      *uint                                                `json:"compliance_status_id"`
 	ComplianceStatus        *ComplianceStatusDTO                                 `json:"compliance_status"`
 	ResponsibleUnits        []*ComplianceAssessmentRequirementResponsibleUnitDTO `json:"responsible_units"`
+	InherentRiskAnalysis    []*ComplianceRequirementInherentRiskDTO              `json:"inherent_risk_analysis"`
 }
 type ComplianceAssessmentRequirementResponsibleUnitDTO struct {
 	ID                                    uint                                               `json:"id"`
@@ -122,6 +123,8 @@ type ComplianceAssessmentRequirementResponsibleUnitDTO struct {
 	RequiredDocumentTitles                []*ComplianceAssessmentRequirementDocumentTitleDTO `json:"required_document_titles"`
 	ActionPlans                           []*ComplianceActionPlanDetailDTO                   `json:"action_plans"`
 	RequirementComments                   []*ComplianceAssessmentRequirementCommentDetailDTO `json:"requirement_comments"`
+	ResidualRiskAnalysis                  []*ComplianceAssessmentRequirementResidualRiskDTO  `json:"residual_risk_analysis"`
+	ResidualControls                      []*ComplianceAssessmentResidualControlDTO          `json:"residual_controls"`
 	CompletedByUser                       *organizationDTOs.UserMinimalDTO                   `json:"completed_by_user"`
 	ComplianceStatusID                    *uint                                              `json:"compliance_status_id"`
 	IsCompleted                           bool                                               `json:"is_completed"`

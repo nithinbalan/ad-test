@@ -62,6 +62,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceDetailDashboardController := app.ComplianceModule.ComplianceDetailDashboardController
 	complianceAssessmentImpactTypeController := app.ComplianceModule.ComplianceAssessmentImpactTypeController
 	complianceAssessmentRatingController := app.ComplianceModule.ComplianceAssessmentRatingController
+	complianceAssessmentRequirementResidualRiskAnalysisController := app.ComplianceModule.ComplianceAssessmentRequirementResidualRiskAnalysisController
 
 	// consultationRequestStatusController := app.ComplianceModule.ConsultationRequestStatusController
 	LegislativeBodyController := app.ComplianceModule.LegislativeBodyController
@@ -568,11 +569,20 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.DELETE("/compliance-requirements/:requirementId/delete-inherent-risk-analysis", complianceRequirementController.DeleteInherentRiskAnalysis)
 
 	// Compliance Assessment Acknowledge Department Routes
-	complianceRoutes.GET("/compliance-assessments/:assessmentId/acknowledgements", complianceAssessmentAcknowledgeDepartmentController.GetAllAcknowledgements)
-	complianceRoutes.POST("/compliance-assessments/:assessmentId/acknowledgements", complianceAssessmentAcknowledgeDepartmentController.CreateAcknowledgement)
-	complianceRoutes.DELETE("/compliance-assessments/:assessmentId/acknowledgements", complianceAssessmentAcknowledgeDepartmentController.DeleteAcknowledgement)
-	complianceRoutes.GET("/compliance-assessments/:assessmentId/acknowledgements/summary", complianceAssessmentAcknowledgeDepartmentController.GetAcknowledgementSummary)
+	complianceRoutes.GET("/compliance-assessments/:assessmentId/acknowledgements", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentAcknowledgeDepartmentController.GetAllAcknowledgements)
+	complianceRoutes.POST("/compliance-assessments/:assessmentId/acknowledgements", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentAcknowledgeDepartmentController.CreateAcknowledgement)
+	complianceRoutes.DELETE("/compliance-assessments/:assessmentId/acknowledgements", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentAcknowledgeDepartmentController.DeleteAcknowledgement)
+	complianceRoutes.GET("/compliance-assessments/:assessmentId/acknowledgements/summary", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentAcknowledgeDepartmentController.GetAcknowledgementSummary)
 
 	//Compliance Register Note Routes
 	complianceRoutes.PUT("/compliance-register/:id/note", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterController.UpdateNote)
+
+	// Compliance Requirement Residual Risk Analysis Routes
+	complianceRoutes.POST("/compliance-assessment-requirement/:responsibleUnitId/residual-risk-analysis", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementResidualRiskAnalysisController.CreateResidualRiskAnalysis)
+	complianceRoutes.DELETE("/compliance-assessment-requirement/:responsibleUnitId/delete-residual-risk-analysis", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementResidualRiskAnalysisController.DeleteResidualRiskAnalysis)
+
+	// Compliance Assessment Residual Control Routes
+	complianceRoutes.GET("/compliance-assessment-requirement/:responsibleUnitId/controls", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentRequirementResidualRiskAnalysisController.GetAllResidualControls)
+	complianceRoutes.POST("/compliance-assessment-requirement/:responsibleUnitId/link-controls", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementResidualRiskAnalysisController.CreateResidualControls)
+	complianceRoutes.DELETE("/compliance-assessment-requirement/:responsibleUnitId/delete-controls", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementResidualRiskAnalysisController.DeleteResidualControls)
 }

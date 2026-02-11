@@ -18,18 +18,23 @@ type ComplianceAssessmentRequirementResponsibleUnit struct {
 	UpdatedBYID                             *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt                               time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                               *time.Time `json:"updated_at" gorm:"type:datetime"`
+	ResidualRiskRatingID                    *uint      `json:"residual_risk_rating_id" gorm:"default:null"`
+	ResidualRiskScore                       *float64   `json:"residual_risk_score" gorm:"type:decimal(10,2)"`
 
 	// Relationships
-	ComplianceAssessmentRequirement       *ComplianceAssessmentRequirement                `gorm:"foreignKey:ComplianceAssessmentRequirementID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
-	ResponsibleUnit                       *OrganizationUnit                               `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
-	ComplianceAssessmentFrameworkValue    *ComplianceAssessmentFrameworkValue             `gorm:"foreignKey:ComplianceAssessmentFrameworkValueID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
-	ComplianceAssessmentRequirementStatus *ComplianceAssessmentRequirementStatus          `gorm:"foreignKey:ComplianceAssessmentRequirementStatusID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
-	RequiredDocumentTitles                []*ComplianceAssessmentRequirementDocumentTitle `gorm:"foreignKey:ComplianceAssessmentRequirementResponsibleUnitID"`
-	ActionPlans                           []*ComplianceActionPlan                         `gorm:"foreignKey:ComplianceAssessmentRequirementResponsibleUnitID"`
-	RequirementComments                   []*ComplianceAssessmentRequirementComment       `gorm:"foreignKey:ComplianceAssessmentRequirementResponsibleUnitID"`
-	CompletedByUser                       *User                                           `gorm:"foreignKey:CompletedByUserID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
-	CreatedByUser                         *User                                           `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
-	UpdatedByUser                         *User                                           `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
+	ComplianceAssessmentRequirement       *ComplianceAssessmentRequirement                       `gorm:"foreignKey:ComplianceAssessmentRequirementID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
+	ResponsibleUnit                       *OrganizationUnit                                      `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
+	ComplianceAssessmentFrameworkValue    *ComplianceAssessmentFrameworkValue                    `gorm:"foreignKey:ComplianceAssessmentFrameworkValueID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
+	ComplianceAssessmentRequirementStatus *ComplianceAssessmentRequirementStatus                 `gorm:"foreignKey:ComplianceAssessmentRequirementStatusID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
+	RequiredDocumentTitles                []*ComplianceAssessmentRequirementDocumentTitle        `gorm:"foreignKey:ComplianceAssessmentRequirementResponsibleUnitID"`
+	ActionPlans                           []*ComplianceActionPlan                                `gorm:"foreignKey:ComplianceAssessmentRequirementResponsibleUnitID"`
+	RequirementComments                   []*ComplianceAssessmentRequirementComment              `gorm:"foreignKey:ComplianceAssessmentRequirementResponsibleUnitID"`
+	CompletedByUser                       *User                                                  `gorm:"foreignKey:CompletedByUserID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
+	CreatedByUser                         *User                                                  `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
+	UpdatedByUser                         *User                                                  `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
+	ResidualRiskRating                    *ComplianceAssessmentRating                            `gorm:"foreignKey:ResidualRiskRatingID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ResidualRiskAnalysis                  []*ComplianceAssessmentRequirementResidualRiskAnalysis `gorm:"foreignKey:ComplianceAssessmentRequirementResponsibleUnitID"`
+	ResidualControls                      []*ComplianceAssessmentResidualControl                 `gorm:"foreignKey:ComplianceAssessmentRequirementResponsibleUnitID"`
 }
 
 func (ComplianceAssessmentRequirementResponsibleUnit) TableName() string {
