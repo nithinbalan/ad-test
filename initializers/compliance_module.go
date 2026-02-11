@@ -56,12 +56,13 @@ type ComplianceModule struct {
 	ComplianceAssessmentImpactTypeController                        *controllers.ComplianceAssessmentImpactTypeController
 	ComplianceAssessmentRatingController                            *controllers.ComplianceAssessmentRatingController
 	// ConsultationRequestStatusController                             *controllers.ConsultationRequestStatusController
-	LegislativeBodyController                           *controllers.LegislativeBodyController
-	LegislationTypeController                           *controllers.LegislationTypeController
-	IssuingAuthorityController                          *controllers.IssuingAuthorityController
-	ImportanceClassificationController                  *controllers.ImportanceClassificationController
-	SecrecyClassificationController                     *controllers.SecrecyClassificationController
-	ComplianceAssessmentAcknowledgeDepartmentController *controllers.ComplianceAssessmentAcknowledgeDepartmentController
+	LegislativeBodyController                                     *controllers.LegislativeBodyController
+	LegislationTypeController                                     *controllers.LegislationTypeController
+	IssuingAuthorityController                                    *controllers.IssuingAuthorityController
+	ImportanceClassificationController                            *controllers.ImportanceClassificationController
+	SecrecyClassificationController                               *controllers.SecrecyClassificationController
+	ComplianceAssessmentAcknowledgeDepartmentController           *controllers.ComplianceAssessmentAcknowledgeDepartmentController
+	ComplianceAssessmentRequirementResidualRiskAnalysisController *controllers.ComplianceAssessmentRequirementResidualRiskAnalysisController
 
 	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
@@ -301,12 +302,18 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceAssessmentRequirementCommentSvc := services.NewComplianceAssessmentRequirementCommentService(complianceAssessmentRequirementCommentRepository, organizationModule.UserSvc, sharedModule.ActivityLogService, complianceAssessmentRequirementSvc, complianceAssessmentSvc, commonModule.NotificationService, complianceAssessmentStatusSvc)
 	complianceAssessmentRequirementCommentController := controllers.NewComplianceAssessmentRequirementCommentController(complianceAssessmentRequirementCommentSvc)
 
+	// Compliance Assessment Requirement Residual Risk Analysis
+	complianceAssessmentRequirementResidualRiskAnalysisRepo := repositories.NewComplianceAssessmentRequirementResidualRiskAnalysisRepository(db)
+	complianceAssessmentRequirementResidualRiskAnalysisSvc := services.NewComplianceAssessmentRequirementResidualRiskAnalysisService(complianceAssessmentRequirementResidualRiskAnalysisRepo, sharedModule.ActivityLogService)
+	complianceAssessmentRequirementResidualRiskAnalysisController := controllers.NewComplianceAssessmentRequirementResidualRiskAnalysisController(complianceAssessmentRequirementResidualRiskAnalysisSvc)
+
 	complianceAssessmentRequirementActionPlanRepo := repositories.NewComplianceActionPlanRepository(db)
 	complianceAssessmentRequirementActionPlanSvc := services.NewComplianceAssessmentRequirementActionPlanService(
 		complianceAssessmentRequirementActionPlanRepo,
 		sharedModule.ActivityLogService,
 		complianceAssessmentSvc,
 		complianceAssessmentRequirementSvc,
+		complianceAssessmentRequirementResidualRiskAnalysisSvc,
 		masterModule.ActionPlanStatusSvc,
 		organizationModule.UserSvc,
 		settingsModule.OrganizationUnitSvc,
@@ -445,12 +452,13 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceAssessmentImpactTypeController:                        complianceAssessmentImpactTypeController,
 		ComplianceAssessmentRatingController:                            complianceAssessmentRatingController,
 		// ConsultationRequestStatusController:                             consultationRequestStatusController,
-		LegislativeBodyController:                           legislativeBodyController,
-		LegislationTypeController:                           legislationTypeController,
-		IssuingAuthorityController:                          issuingAuthorityController,
-		ImportanceClassificationController:                  importanceClassificationController,
-		SecrecyClassificationController:                     secrecyClassificationController,
-		ComplianceAssessmentAcknowledgeDepartmentController: complianceAssessmentAcknowledgeDepartmentController,
+		LegislativeBodyController:                                     legislativeBodyController,
+		LegislationTypeController:                                     legislationTypeController,
+		IssuingAuthorityController:                                    issuingAuthorityController,
+		ImportanceClassificationController:                            importanceClassificationController,
+		SecrecyClassificationController:                               secrecyClassificationController,
+		ComplianceAssessmentAcknowledgeDepartmentController:           complianceAssessmentAcknowledgeDepartmentController,
+		ComplianceAssessmentRequirementResidualRiskAnalysisController: complianceAssessmentRequirementResidualRiskAnalysisController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,

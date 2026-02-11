@@ -24,6 +24,7 @@ type ComplianceActionPlan struct {
 	UpdatedAt                                        *time.Time `json:"updated_at" gorm:"type:datetime"`
 	CreatedByID                                      uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedByID                                      *uint      `json:"updated_by_id" gorm:"default:null"`
+	ComplianceAssessmentImpactTypeID                 uint       `json:"compliance_assessment_impact_type_id" binding:"required" gorm:"default:null"`
 
 	// Relationships
 	ComplianceRegister                             *ComplianceRegister                             `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -39,6 +40,7 @@ type ComplianceActionPlan struct {
 	LatestActionPlanStatusUpdate                   *ComplianceActionPlanStatusUpdate               `gorm:"foreignKey:ComplianceActionPlanID"`
 	CreatedByUser                                  *User                                           `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser                                  *User                                           `gorm:"foreignKey:UpdatedByID"`
+	ComplianceAssessmentImpactType                 *ComplianceAssessmentImpactType                 `gorm:"foreignKey:ComplianceAssessmentImpactTypeID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 // TableName overrides the table name used by ComplianceActionPlan to `compliance_action_plans`

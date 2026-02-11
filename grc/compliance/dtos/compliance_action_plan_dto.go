@@ -88,17 +88,18 @@ type ComplianceActionPlanListResponseDTO struct {
 }
 
 type ComplianceActionPlanFormDTO struct {
-	ComplianceRequirementID *uint   `json:"compliance_requirement_id"`
-	Title                   string  `json:"title" binding:"required"`
-	Description             *string `json:"description" binding:"omitempty"`
-	SeverityLevelID         *uint   `json:"severity_level_id" binding:"omitempty"`
-	ResponsibleUserID       uint    `json:"responsible_user_id" binding:"required"`
-	TargetDate              *string `json:"target_date"`
-	Percentage              *int    `json:"percentage" binding:"omitempty"`
-	Comments                *string `json:"comments" binding:"omitempty"`
-	ReviewUserID            *uint   `json:"review_user_id"`
-	ActionPlanStatusID      uint    `json:"action_plan_status_id"`
-	ResponsibleUnitID       *uint   `json:"responsible_unit_id"  binding:"omitempty"`
+	ComplianceRequirementID          *uint   `json:"compliance_requirement_id"`
+	Title                            string  `json:"title" binding:"required"`
+	Description                      *string `json:"description" binding:"omitempty"`
+	SeverityLevelID                  *uint   `json:"severity_level_id" binding:"omitempty"`
+	ResponsibleUserID                uint    `json:"responsible_user_id" binding:"required"`
+	TargetDate                       *string `json:"target_date"`
+	Percentage                       *int    `json:"percentage" binding:"omitempty"`
+	Comments                         *string `json:"comments" binding:"omitempty"`
+	ReviewUserID                     *uint   `json:"review_user_id"`
+	ActionPlanStatusID               uint    `json:"action_plan_status_id"`
+	ResponsibleUnitID                *uint   `json:"responsible_unit_id"  binding:"omitempty"`
+	ComplianceAssessmentImpactTypeID *uint   `json:"compliance_assessment_impact_type_id" binding:"omitempty" gorm:"default:null"`
 }
 
 type ComplianceActionPlanParsedDates struct {

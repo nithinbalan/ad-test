@@ -38,6 +38,7 @@ type ComplianceAssessmentRequirementActionPlanService struct {
 	activityLogSvc                     logServices.ActivityLogServiceInterface
 	complianceAssessmentSvc            ComplianceAssessmentServiceInterface
 	complianceAssessmentRequirementSvc ComplianceAssessmentRequirementServiceInterface
+	residualRiskAnalysisSvc            ComplianceAssessmentRequirementResidualRiskAnalysisServiceInterface
 	actionPlanStatusSvc                masterServices.ActionPlanStatusServiceInterface
 	userSvc                            organizationServices.UserServiceInterface
 	organizationUnitSvc                settingService.OrganizationUnitServiceInterface
@@ -51,6 +52,7 @@ func NewComplianceAssessmentRequirementActionPlanService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	complianceAssessmentSvc ComplianceAssessmentServiceInterface,
 	complianceAssessmentRequirementSvc ComplianceAssessmentRequirementServiceInterface,
+	residualRiskAnalysisSvc ComplianceAssessmentRequirementResidualRiskAnalysisServiceInterface,
 	actionPlanStatusSvc masterServices.ActionPlanStatusServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
@@ -63,6 +65,7 @@ func NewComplianceAssessmentRequirementActionPlanService(
 		activityLogSvc:                     activityLogSvc,
 		complianceAssessmentSvc:            complianceAssessmentSvc,
 		complianceAssessmentRequirementSvc: complianceAssessmentRequirementSvc,
+		residualRiskAnalysisSvc:            residualRiskAnalysisSvc,
 		actionPlanStatusSvc:                actionPlanStatusSvc,
 		userSvc:                            userSvc,
 		organizationUnitSvc:                organizationUnitSvc,
@@ -190,16 +193,17 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 	complianceAssessmentRequirementActionPlan := &models.ComplianceActionPlan{
 		ComplianceRegisterID:                             nil,
 		ComplianceAssessmentRequirementResponsibleUnitID: &complianceAssessmentRequirementResponsibleUnitID,
-		Title:              ComplianceActionPlanFormDTO.Title,
-		Description:        ComplianceActionPlanFormDTO.Description,
-		ResponsibleUserID:  ComplianceActionPlanFormDTO.ResponsibleUserID,
-		TargetDate:         dates.TargetDate,
-		Percentage:         ComplianceActionPlanFormDTO.Percentage,
-		ActionPlanStatusID: actionPlanStatus.ID,
-		SeverityLevelID:    ComplianceActionPlanFormDTO.SeverityLevelID,
-		ReviewUserID:       ComplianceActionPlanFormDTO.ReviewUserID,
-		Comments:           ComplianceActionPlanFormDTO.Comments,
-		CreatedByID:        currentUserID,
+		Title:                            ComplianceActionPlanFormDTO.Title,
+		Description:                      ComplianceActionPlanFormDTO.Description,
+		ResponsibleUserID:                ComplianceActionPlanFormDTO.ResponsibleUserID,
+		TargetDate:                       dates.TargetDate,
+		Percentage:                       ComplianceActionPlanFormDTO.Percentage,
+		ActionPlanStatusID:               actionPlanStatus.ID,
+		SeverityLevelID:                  ComplianceActionPlanFormDTO.SeverityLevelID,
+		ReviewUserID:                     ComplianceActionPlanFormDTO.ReviewUserID,
+		Comments:                         ComplianceActionPlanFormDTO.Comments,
+		ComplianceAssessmentImpactTypeID: *ComplianceActionPlanFormDTO.ComplianceAssessmentImpactTypeID,
+		CreatedByID:                      currentUserID,
 	}
 
 	if ComplianceActionPlanFormDTO.ResponsibleUserID != 0 {
@@ -248,6 +252,16 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 	if _, err := caraps.taskSvc.Create(taskDTO, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	// Update IsNotApplicable flag for residual control when action plan is created for specific impact type
+	if ComplianceActionPlanFormDTO.ComplianceAssessmentImpactTypeID != nil {
+		// Directly update the residual control for this responsible unit and impact type
+		err = caraps.residualRiskAnalysisSvc.UpdateResidualControlByImpactType(complianceAssessmentRequirementResponsibleUnitID, *ComplianceActionPlanFormDTO.ComplianceAssessmentImpactTypeID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	tx.Commit()
