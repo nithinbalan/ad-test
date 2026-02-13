@@ -9,6 +9,7 @@ type ComplianceImportanceClassification struct {
 	TitleAr       string    `json:"title_ar" binding:"required,max=100" gorm:"type:nvarchar(100);not null"`
 	DescriptionEn string    `json:"description_en" binding:"required,max=255" gorm:"type:varchar(255);not null"`
 	DescriptionAr string    `json:"description_ar" binding:"required,max=255" gorm:"type:nvarchar(255);not null"`
+	Type          string    `json:"type" binding:"required,oneof=normal urgent very_urgent important_and_very_urgent" gorm:"type:varchar(50);not null;unique"`
 	Status        string    `json:"status" binding:"required,oneof=active inactive" gorm:"type:varchar(10);not null"`
 	CreatedAt     time.Time `json:"created_at" gorm:"type:datetime;not null"`
 }
