@@ -14,7 +14,8 @@ CREATE TABLE control_consistencies (
         CHECK (status IN ('active', 'inactive')),
 
     created_at DATETIME NOT NULL,
-    created_by_id INT NOT NULL
+    created_by_id INT NOT NULL,
+    CONSTRAINT FK_control_consistencies_users_1 FOREIGN KEY (created_by_id) REFERENCES users (id) ON DELETE NO ACTION ON UPDATE NO ACTION,
 );
 -- +goose StatementEnd
 
