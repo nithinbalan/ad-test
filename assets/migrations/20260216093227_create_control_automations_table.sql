@@ -11,7 +11,10 @@ CREATE TABLE control_automations (
 
     status VARCHAR(10) NOT NULL DEFAULT 'active',
     CONSTRAINT CHK_automation_levels_status
-        CHECK (status IN ('active', 'inactive'))
+        CHECK (status IN ('active', 'inactive')),
+
+    created_at DATETIME NOT NULL,
+    created_by_id INT NOT NULL
 );
 -- +goose StatementEnd
 
