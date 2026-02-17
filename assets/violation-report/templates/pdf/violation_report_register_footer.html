@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <style>
+    body { margin:0; padding:0; font-family: 'Lexend Deca', sans-serif; font-size: 10px; }
+  </style>
+</head>
+<body>
+  <div style="border-top: 1px solid #DEDEDE; margin-left: 32px; margin-right: 32px;">
+    <div style="padding-right: 32px; padding-top: 10px; overflow: hidden; font-size: 10px; margin-top: 15px;">
+      <div style="float:left; color:#444;">www.jethur.com</div>
+      <div style="float:right; color:#444;">Page <span class="page"></span></div>
+    </div>
+  </div>
+  <script>
+    var vars = {};
+    var query_strings = document.location.search.substring(1).split('&');
+    for (var i in query_strings) {
+      if (query_strings.hasOwnProperty(i)) {
+        var pair = query_strings[i].split('=', 2);
+        vars[pair[0]] = decodeURIComponent(pair[1]);
+      }
+    }
+    document.querySelector('.page').textContent = vars.page || '';
+  </script>
+</body>
+</html>
