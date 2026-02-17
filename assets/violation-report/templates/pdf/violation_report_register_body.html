@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Violation Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        p {
+            margin: 0;
+            padding: 0;
+        }
+
+        @page {
+            size: A4;
+            margin: 0.5in;
+        }
+
+        body {
+            font-family: "Lexend Deca", sans-serif;
+            background: #ffffff;
+            color: #1f2937;
+            font-size: 10.5px;
+            line-height: 1.45;
+            padding: 16px 40px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        /* Section Styles */
+        .section {
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 400;
+            color: #111827;
+            margin-bottom: 10px;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .subsection-title {
+            font-size: 12.5px;
+            font-weight: 400;
+            color: #111827;
+            margin: 14px 0 8px 0;
+        }
+
+        .section-divider {
+            border: none;
+            border-top: 1px solid #e5e7eb;
+            margin: 16px 0;
+        }
+
+        /* Label-Value Pairs */
+        .field-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px 32px;
+            margin-bottom: 16px;
+        }
+
+        .field-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px 32px;
+            margin-bottom: 16px;
+        }
+
+        .field-group {
+            margin-bottom: 12px;
+        }
+
+        .field-label {
+            font-size: 10px;
+            color: #6b7280;
+            font-weight: 400;
+            margin-bottom: 3px;
+        }
+
+        .field-value {
+            font-size: 11px;
+            color: #111827;
+            font-weight: 400;
+            line-height: 1.45;
+        }
+
+        .field-value-large {
+            font-size: 11px;
+            color: #111827;
+            font-weight: 400;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        /* Table Styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0 16px 0;
+            border: 1px solid #eaedf2;
+            border-radius: 10px;
+            background: #ffffff;
+        }
+
+        .data-table th {
+            background-color: #f9fbfc;
+            padding: 10px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 400;
+            color: #1a1a1a;
+            border: 1px solid #eaedf2;
+        }
+
+        .data-table td {
+            font-weight: 300;
+            padding: 10px;
+            font-size: 10.5px;
+            color: #1a1a1a;
+            border: 1px solid #eaedf2;
+            vertical-align: middle;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .table-row-number {
+            color: #6b7280;
+            width: 40px;
+        }
+
+        @media print {
+            .section {
+                page-break-inside: avoid;
+            }
+
+            body {
+                padding: 16px 24px;
+            }
+        }
+
+        @font-face {
+            font-family: 'Lexend Deca';
+            src: url('{{.LexandDecaFont100}}') format('woff');
+            font-weight: 100;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Lexend Deca';
+            src: url('{{.LexandDecaFont200}}') format('woff');
+            font-weight: 200;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Lexend Deca';
+            src: url('{{.LexandDecaFont300}}') format('woff');
+            font-weight: 300;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Lexend Deca';
+            src: url('{{.LexandDecaFont400}}') format('woff');
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Lexend Deca';
+            src: url('{{.LexandDecaFont500}}') format('woff');
+            font-weight: 500;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Lexend Deca';
+            src: url('{{.LexandDecaFont600}}') format('woff');
+            font-weight: 600;
+            font-style: normal;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 1. Overview -->
+    <div class="section">
+        <div class="section-title">1. Overview</div>
+
+        <div style="margin-top: 0;">
+            <div style="width: 30%; display: inline-block; vertical-align: top; margin-bottom: 8px;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">
+                    Reference Number:</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{.Data.ReferenceNumber}}</p>
+            </div>
+            <div style="width: 60%; display: inline-block; vertical-align: top; margin-bottom: 8px;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Title
+                </p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{.Data.Title}}</p>
+            </div>
+        </div>
+
+        <div style="margin-top: 6px;">
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Reported
+                    Date & Time</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{.Data.ReportedAtString}}</p>
+            </div>
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Channel
+                </p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{.Data.ViolationReportChannel.TitleEn}}</p>
+            </div>
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Reason
+                </p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{.Data.ViolationReportReason.TitleEn}}</p>
+            </div>
+        </div>
+
+        <div style="margin-top: 6px;">
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Category
+                </p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{if .Data.ViolationReportCategory}}{{.Data.ViolationReportCategory.TitleEn}}{{else}}-{{end}}</p>
+            </div>
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Sub
+                    Category</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{if .Data.ViolationReportSubCategory}}{{.Data.ViolationReportSubCategory.TitleEn}}{{else}}-{{end}}
+                </p>
+            </div>
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Status
+                </p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{.Data.ViolationReportStatus.TitleEn}}</p>
+            </div>
+        </div>
+
+        <div style="margin-top: 6px;">
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Severity
+                    Level</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{if .Data.SeverityLevel}}{{.Data.SeverityLevel.TitleEn}}{{else}}-{{end}}</p>
+            </div>
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Reported
+                    By</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{.Data.ReportedByUserFirstNameEn}} {{.Data.ReportedByUserLastNameEn}}</p>
+            </div>
+        </div>
+
+        <div style="margin-top: 6px;">
+            <div style="width: 100%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 0 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">
+                    Description</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.5; font-weight: 400; white-space: pre-wrap;">
+                    {{- if .Data.DescriptionEn -}}{{.Data.DescriptionEn}}{{- else -}}-{{- end -}}</p>
+            </div>
+        </div>
+
+        <!-- <div class="subsection-title">Reporter Information</div>
+
+        <div style="margin-top: 0;">
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Reporter
+                    ID</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{if .Data.IDOfReporter}}{{.Data.IDOfReporter}}{{else}}-{{end}}</p>
+            </div>
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Reporter
+                    Name</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{if .Data.NameOfReporter}}{{.Data.NameOfReporter}}{{else}}-{{end}}</p>
+            </div>
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Reporter
+                    Phone</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{if .Data.PhoneOfReporter}}{{.Data.PhoneOfReporter}}{{else}}-{{end}}</p>
+            </div>
+        </div> -->
+
+        <!-- <div style="margin-top: 6px;">
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Reporter
+                    Email</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{if .Data.EmailOfReporter}}{{.Data.EmailOfReporter}}{{else}}-{{end}}</p>
+            </div>
+        </div> -->
+
+        {{if gt (len .Data.Documents) 0}}
+        <div class="subsection-title">Documents</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th class="table-row-number">#</th>
+                    <th>File Name</th>
+                    <th>Type</th>
+                    <th>Size</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range $index, $doc := .Data.Documents}}
+                <tr>
+                    <td class="table-row-number">{{add $index 1}}</td>
+                    <td>{{if $doc.OriginalName}}{{$doc.OriginalName}}{{else}}-{{end}}</td>
+                    <td>{{if $doc.Type}}{{$doc.Type}}{{else}}-{{end}}</td>
+                    <td>{{if $doc.Size}}{{$doc.Size}}{{else}}-{{end}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        {{end}}
+    </div>
+
+    <hr class="section-divider" />
+
+    <!-- 2. Investigation -->
+    {{if .Data.Investigation}}
+    <div class="section">
+        <div class="section-title">2. Investigation Details</div>
+
+        <div style="margin-top: 0;">
+            <div style="width: 100%; display: inline-block; vertical-align: top; margin-bottom: 8px;">
+                <p style="margin: 0 0 0 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Steps
+                    Taken During Investigation</p>
+                <p
+                    style="margin: 0 0 0 0; color: #000; font-size: 12px; line-height: 1.5; font-weight: 400; white-space: pre-wrap;">
+                    {{- if .Data.Investigation.StepsTaken -}}{{.Data.Investigation.StepsTaken}}{{- else -}}-{{- end -}}
+                </p>
+            </div>
+        </div>
+
+        <div style="margin-top: 6px;">
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Date of
+                    Investigation</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{.Data.Investigation.InvestigationDateString}}</p>
+            </div>
+        </div>
+
+        <div style="margin-top: 6px;">
+            <div style="width: 100%; display: inline-block; vertical-align: top; margin-bottom: 8px;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">
+                    Recommended Actions</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.5; font-weight: 400; white-space: pre-wrap;">
+                    {{- if .Data.Investigation.SuggestedRecommendation
+                    -}}{{.Data.Investigation.SuggestedRecommendation}}{{- else -}}-{{- end -}}</p>
+            </div>
+        </div>
+
+        {{if gt (len .Data.Investigation.Departments) 0}}
+        <div style="margin-top: 6px;">
+            <div style="width: 100%; display: inline-block; vertical-align: top; margin-bottom: 8px;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">
+                    Recommendation Sharing Units</p>
+                <ul style="margin: 0 0 10px 20px; padding: 0; color: #000; font-size: 12px; line-height: 1.5;">
+                    {{range .Data.Investigation.Departments}}
+                    <li>{{.Department.TitleEn}}</li>
+                    {{end}}
+                </ul>
+            </div>
+        </div>
+        {{end}}
+
+        <div style="margin-top: 6px;">
+            <div style="width: 100%; display: inline-block; vertical-align: top; margin-bottom: 8px;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Summary
+                    of Findings</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.5; font-weight: 400; white-space: pre-wrap;">
+                    {{- if .Data.Investigation.FindingSummary -}}{{.Data.Investigation.FindingSummary}}{{- else -}}-{{-
+                    end -}}</p>
+            </div>
+        </div>
+
+        <div style="margin-top: 6px;">
+            <div style="width: 100%; display: inline-block; vertical-align: top; margin-bottom: 8px;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">
+                    Disciplinary Actions</p>
+                <p
+                    style="margin: 0 0 0 0; color: #000; font-size: 12px; line-height: 1.5; font-weight: 400; white-space: pre-wrap;">
+                    {{- if .Data.Investigation.DisciplinaryProcedure -}}{{.Data.Investigation.DisciplinaryProcedure}}{{-
+                    else -}}-{{- end -}}</p>
+            </div>
+        </div>
+
+        <div style="margin-top: 6px;">
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">
+                    Regulatory Compliance of Disciplinary Procedures?</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{if .Data.Investigation.IsDisciplinaryRegulatoryCompliance}}Yes{{else if ne
+                    .Data.Investigation.IsDisciplinaryRegulatoryCompliance nil}}No{{else}}-{{end}}</p>
+            </div>
+        </div>
+
+        {{if gt (len .Data.Investigation.Documents) 0}}
+        <div style="margin-top: 6px;">
+            <div style="width: 100%; display: inline-block; vertical-align: top; margin-bottom: 8px;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">
+                    Attachments</p>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="table-row-number">#</th>
+                            <th>File Name</th>
+                            <th>Type</th>
+                            <th>Size</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range $index, $doc := .Data.Investigation.Documents}}
+                        <tr>
+                            <td class="table-row-number">{{add $index 1}}</td>
+                            <td>{{if $doc.OriginalName}}{{$doc.OriginalName}}{{else}}-{{end}}</td>
+                            <td>{{if $doc.Type}}{{$doc.Type}}{{else}}-{{end}}</td>
+                            <td>{{if $doc.Size}}{{$doc.Size}}{{else}}-{{end}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {{end}}
+
+        <div style="margin-top: 6px;">
+            <div style="width: 100%; display: inline-block; vertical-align: top; margin-bottom: 8px;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Notes
+                    and Observations</p>
+                <p
+                    style="margin: 0 0 0 0; color: #000; font-size: 12px; line-height: 1.5; font-weight: 400; white-space: pre-wrap;">
+                    {{- if .Data.Investigation.NoteAndObservations -}}{{.Data.Investigation.NoteAndObservations}}{{-
+                    else -}}-{{- end -}}</p>
+            </div>
+        </div>
+
+        <div style="margin-top: 6px;">
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Created
+                    By</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{.Data.Investigation.CreatedByUserFirstNameEn}} {{.Data.Investigation.CreatedByUserLastNameEn}}</p>
+            </div>
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+                <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Created
+                    At</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+                    {{.Data.Investigation.CreatedAtString}}</p>
+            </div>
+        </div>
+    </div>
+    {{end}}
+
+</body>
+
+</html>
