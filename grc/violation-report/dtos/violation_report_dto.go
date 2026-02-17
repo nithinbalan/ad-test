@@ -155,3 +155,44 @@ type ViolationReportDetailDTO struct {
 type ViolationReportParsedDates struct {
 	ReportedAt time.Time
 }
+
+type ViolationReportExportPDFDTO struct {
+	Title                    string
+	ReferenceNumber          string
+	CreatedAt                string
+	GeneratedAt              string
+	CreatedUserFirstNameEn   string
+	CreatedUserLastNameEn    string
+	ReportedAtString         string
+	IDOfReporter             *uint
+	NameOfReporter           *string
+	PhoneOfReporter          *string
+	EmailOfReporter          *string
+	ViolationReportChannel   ViolationReportChannelDTO
+	ViolationReportReason    ViolationReportReasonDTO
+	ViolationReportCategory  *ViolationReportCategoryDetailsDTO
+	ViolationReportSubCategory *ViolationReportSubCategoryDetailsDTO
+	ViolationReportStatus    ViolationReportStatusDTO
+	SeverityLevel            *masterDTOs.SeverityLevelDTO
+	ReportedByUserFirstNameEn string
+	ReportedByUserLastNameEn  string
+	DescriptionEn            *string
+	DescriptionAr            *string
+	Documents                []*ViolationReportDocumentDTO
+	Investigation            *ViolationReportInvestigationExportDTO
+}
+
+type ViolationReportInvestigationExportDTO struct {
+	StepsTaken                         *string
+	InvestigationDateString            string
+	SuggestedRecommendation            *string
+	Departments                        []*ViolationReportInvestigationDepartmentDTO
+	FindingSummary                     *string
+	DisciplinaryProcedure              *string
+	IsDisciplinaryRegulatoryCompliance *bool
+	Documents                          []*ViolationReportInvestigationDocumentDTO
+	NoteAndObservations                *string
+	CreatedByUserFirstNameEn            string
+	CreatedByUserLastNameEn             string
+	CreatedAtString                     string
+}
