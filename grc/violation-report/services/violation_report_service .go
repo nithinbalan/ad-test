@@ -38,6 +38,7 @@ type ViolationReportServiceInterface interface {
 	ExportViolationReports(data []*violationReportDTOs.ViolationReportListDTO, currentUserID uint) (*os.File, error)
 	CreateViolationReportComment(violationReportID uint, currentUserID uint, dto *dtos.ViolationReportCommentFormDTO) (uint, error)
 	GetAllViolationReportComments(violationReportID uint) ([]*dtos.ViolationReportCommentListDTO, error)
+	DeleteComment(violationReportID uint, ids []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -927,4 +928,70 @@ func (s *ViolationReportService) CreateViolationReportComment(violationReportID 
 
 func (s *ViolationReportService) GetAllViolationReportComments(violationReportID uint) ([]*dtos.ViolationReportCommentListDTO, error) {
 	return s.repo.GetAllViolationReportComments(violationReportID)
+}
+
+func (s *ViolationReportService) DeleteComment(violationReportID uint, ids []uint, currentUserID uint) ([]uint, error) {
+
+	tx := s.repo.BeginTransaction()
+
+	// Validate violation report exists
+	if _, err := s.repo.GetByID(violationReportID); err != nil {
+		return nil, err
+	}
+
+	var failedIDs []uint
+	var successfulIDs []uint
+	var deletedComments []map[string]interface{}
+
+	for _, id := range ids {
+
+		comment, err := s.repo.GetFullCommentDetailsByID(id)
+		if err != nil {
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+
+		// Ensure comment belongs to this violation report
+		if comment.ViolationReportID != violationReportID {
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+
+		if err := s.repo.DeleteComment(id, tx); err != nil {
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+
+		successfulIDs = append(successfulIDs, id)
+
+		deletedComments = append(deletedComments, map[string]interface{}{
+			"id":                  id,
+			"violation_report_id": violationReportID,
+		})
+	}
+
+	if len(failedIDs) > 0 {
+		tx.Rollback()
+		return failedIDs, nil
+	}
+
+	tx.Commit()
+
+	if len(successfulIDs) > 0 {
+		go func() {
+			err := s.activityLogSvc.LogBulkActivities(
+				models.DeleteAction,
+				models.ViolationReportComment{}.TableName(),
+				successfulIDs,
+				deletedComments,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+		}()
+	}
+
+	return failedIDs, nil
 }

@@ -31,6 +31,8 @@ type ViolationReportRepositoryInterface interface {
 	//comment
 	CreateComment(comment *models.ViolationReportComment, tx ...utility.DatabaseTransaction) (uint, error)
 	GetAllViolationReportComments(violationReportID uint) ([]*dtos.ViolationReportCommentListDTO, error)
+	GetFullCommentDetailsByID(id uint) (*models.ViolationReportComment, error)
+	DeleteComment(id uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ViolationReportRepository struct {
@@ -400,4 +402,36 @@ func (repo *ViolationReportRepository) GetAllViolationReportComments(violationRe
 	}
 
 	return comments, nil
+}
+
+func (repo *ViolationReportRepository) GetFullCommentDetailsByID(id uint) (*models.ViolationReportComment, error) {
+
+	var comment models.ViolationReportComment
+
+	if err := repo.db.
+		Preload("ViolationReport").
+		Preload("ViolationReportStatus").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		Where("id = ?", id).
+		First(&comment).Error; err != nil {
+		return nil, err
+	}
+
+	return &comment, nil
+}
+
+func (repo *ViolationReportRepository) DeleteComment(id uint, tx ...utility.DatabaseTransaction) error {
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id = ?", id).
+		Delete(&models.ViolationReportComment{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

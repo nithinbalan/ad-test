@@ -396,3 +396,50 @@ func (vrc *ViolationReportController) GetAllViolationReportComments(c *gin.Conte
 
 	c.JSON(http.StatusOK, comments)
 }
+
+func (vrc *ViolationReportController) DeleteComment(c *gin.Context) {
+
+	violationReportIDStr := c.Param("id")
+	violationReportID, err := strconv.ParseUint(violationReportIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(vrc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := vrc.service.DeleteComment(
+		uint(violationReportID),
+		request.IDs,
+		currentUserID,
+	)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(vrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
