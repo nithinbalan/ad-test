@@ -2,27 +2,38 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/violation-report/dtos"
 	violationReportDTOs "jethur/grc/violation-report/dtos"
 	"jethur/grc/violation-report/services"
 	"jethur/utility"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 type ViolationReportController struct {
-	service services.ViolationReportServiceInterface
-	db      *gorm.DB
+	service              services.ViolationReportServiceInterface
+	investigationService services.ViolationReportInvestigationServiceInterface
+	db                   *gorm.DB
 }
 
 func NewViolationReportController(service services.ViolationReportServiceInterface) *ViolationReportController {
 	return &ViolationReportController{
 		service: service,
+	}
+}
+
+func NewViolationReportControllerWithInvestigation(service services.ViolationReportServiceInterface, investigationService services.ViolationReportInvestigationServiceInterface) *ViolationReportController {
+	return &ViolationReportController{
+		service:              service,
+		investigationService: investigationService,
 	}
 }
 
@@ -332,6 +343,53 @@ func (vrc *ViolationReportController) GetViolationReportExport(c *gin.Context) {
 	c.Set("export", true)
 
 	vrc.GetAllViolationReports(c)
+}
+
+func (vrc *ViolationReportController) ExportViolationReportToPDF(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(vrc.db, c, err.Error())
+		return
+	}
+
+	if vrc.investigationService == nil {
+		utility.SendInternalErrResp(vrc.db, c, "investigation service not available")
+		return
+	}
+
+	fileName, err := vrc.service.ExportViolationReportToPDF(uint(id), uint(currentUserID), vrc.investigationService)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(vrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
+	c.Header("Content-Type", "application/pdf")
+	c.File(fileName)
+	c.Writer.Flush()
+
+	go func() {
+		time.Sleep(2 * time.Second)
+		if err := os.Remove(fileName); err != nil {
+			fmt.Printf("Failed to delete file %s: %v\n", fileName, err)
+		}
+	}()
 }
 
 func (vrc *ViolationReportController) CreateViolationReportComment(c *gin.Context) {

@@ -64,6 +64,9 @@ type ComplianceModule struct {
 	ComplianceAssessmentAcknowledgeDepartmentController           *controllers.ComplianceAssessmentAcknowledgeDepartmentController
 	ComplianceAssessmentRequirementResidualRiskAnalysisController *controllers.ComplianceAssessmentRequirementResidualRiskAnalysisController
 
+	ControlAutomationController  *controllers.ControlAutomationController
+	ControlConsistencyController *controllers.ControlConsistencyController
+
 	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
 	ComplianceActionPlanSvc        services.ComplianceActionPlanServiceInterface
@@ -71,6 +74,8 @@ type ComplianceModule struct {
 	ComplianceActionPlanCommentSvc services.ComplianceActionPlanCommentServiceInterface
 	ComplianceStatusSvc            services.ComplianceStatusServiceInterface
 	ComplianceClausevc             services.ComplianceClauseServiceInterface
+	ControlAutomationSvc           services.ControlAutomationServiceInterface
+	ControlConsistencySvc          services.ControlConsistencyServiceInterface
 }
 
 func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule, taskModule *TaskModule, settingsModule *SettingsModule, commonModule *CommonModule, documentModule *DocumentModule) *ComplianceModule {
@@ -403,6 +408,13 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		settingsModule.OrganizationLevelSvc,
 	)
 	complianceAssessmentAcknowledgeDepartmentController := controllers.NewComplianceAssessmentAcknowledgeDepartmentController(complianceAssessmentAcknowledgeDepartmentSvc)
+	controlAutomationRepo := repositories.NewControlAutomationRepository(db)
+	controlAutomationSvc := services.NewControlAutomationService(controlAutomationRepo, sharedModule.ActivityLogService)
+	controlAutomationController := controllers.NewControlAutomationController(controlAutomationSvc)
+
+	controlConsistencyRepo := repositories.NewControlConsistencyRepository(db)
+	controlConsistencySvc := services.NewControlConsistencyService(controlConsistencyRepo, sharedModule.ActivityLogService)
+	controlConsistencyController := controllers.NewControlConsistencyController(controlConsistencySvc)
 
 	return &ComplianceModule{
 		ComplianceCategoryController:                                    complianceCategoryController,
@@ -459,6 +471,8 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		SecrecyClassificationController:                               secrecyClassificationController,
 		ComplianceAssessmentAcknowledgeDepartmentController:           complianceAssessmentAcknowledgeDepartmentController,
 		ComplianceAssessmentRequirementResidualRiskAnalysisController: complianceAssessmentRequirementResidualRiskAnalysisController,
+		ControlAutomationController:                                     controlAutomationController,
+		ControlConsistencyController:                                    controlConsistencyController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,
@@ -467,5 +481,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceActionPlanCommentSvc: complianceActionPlanCommentSvc,
 		ComplianceStatusSvc:            complianceStatusSvc,
 		ComplianceClausevc:             compilanceClauseSvc,
+		ControlAutomationSvc:           controlAutomationSvc,
+		ControlConsistencySvc:          controlConsistencySvc,
 	}
 }

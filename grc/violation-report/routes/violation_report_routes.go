@@ -65,6 +65,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/violation-reports/:id/document-preview", violationReportController.GetViolationReportDocumentPreview)
 	unauthenticatedRoutes.GET("/violation-reports/:id/document-download", violationReportController.DownloadViolationReportDocument)
 	violationReportRoutes.GET("/violation-reports/export", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportController.GetViolationReportExport)
+	violationReportRoutes.GET("/violation-reports/:id/export-pdf", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportController.ExportViolationReportToPDF)
 	violationReportRoutes.GET("/violation-reports", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportController.GetAllViolationReports)
 	violationReportRoutes.GET("/violation-reports/:id", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportController.GetViolationReportDetails)
 	violationReportRoutes.POST("/violation-reports", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportController.CreateViolationReport)

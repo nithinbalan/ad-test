@@ -57,11 +57,6 @@ func NewViolationReportModule(db *gorm.DB,
 
 	violationReportRepo := repositories.NewViolationReportRepository(db)
 	violationReportSvc := services.NewViolationReportService(violationReportRepo, sharedModule.ActivityLogService, violationReportChannelSvc, violationReportReasonSvc, violationReportCategorySvc, violationReportSubCategorySvc, violationReportStatusSvc, masterModule.SeverityLevelSvc, organizationModule.UserSvc, organizationModule.UserSettingSvc, commonModule.NotificationService, settingsModule.SystemPreferenceSvc)
-	violationReportController := controllers.NewViolationReportController(violationReportSvc)
-
-	violationReportAssociatedItemRepo := repositories.NewViolationReportAssociatedItemRepository(db)
-	violationReportAssociatedItemSvc := services.NewViolationReportAssociatedItemService(violationReportAssociatedItemRepo, violationReportSvc, commonModule.AssociatedItemValidationService)
-	violationReportAssociatedItemController := controllers.NewViolationReportAssociatedItemController(violationReportAssociatedItemSvc)
 
 	violationReportInvestigationRepo := repositories.NewViolationReportInvestigationRepository(db)
 	violationReportInvestigationSvc := services.NewViolationReportInvestigationService(
@@ -70,6 +65,13 @@ func NewViolationReportModule(db *gorm.DB,
 		violationReportSvc,
 		organizationModule.UserSvc,
 	)
+
+	violationReportController := controllers.NewViolationReportControllerWithInvestigation(violationReportSvc, violationReportInvestigationSvc)
+
+	violationReportAssociatedItemRepo := repositories.NewViolationReportAssociatedItemRepository(db)
+	violationReportAssociatedItemSvc := services.NewViolationReportAssociatedItemService(violationReportAssociatedItemRepo, violationReportSvc, commonModule.AssociatedItemValidationService)
+	violationReportAssociatedItemController := controllers.NewViolationReportAssociatedItemController(violationReportAssociatedItemSvc)
+
 	violationReportInvestigationController := controllers.NewViolationReportInvestigationController(violationReportInvestigationSvc)
 
 	violationReportRootCauseAnalysisRepo := repositories.NewViolationReportRootCauseAnalysisRepository(db)
