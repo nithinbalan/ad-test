@@ -71,6 +71,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	ImportanceClassificationController := app.ComplianceModule.ImportanceClassificationController
 	SecrecyClassificationController := app.ComplianceModule.SecrecyClassificationController
 	complianceAssessmentAcknowledgeDepartmentController := app.ComplianceModule.ComplianceAssessmentAcknowledgeDepartmentController
+	controlAutomationController := app.ComplianceModule.ControlAutomationController
+	controlConsistencyController := app.ComplianceModule.ControlConsistencyController
 
 	// Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -585,4 +587,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/compliance-assessment-requirement/:responsibleUnitId/controls", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentRequirementResidualRiskAnalysisController.GetAllResidualControls)
 	complianceRoutes.POST("/compliance-assessment-requirement/:responsibleUnitId/link-controls", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementResidualRiskAnalysisController.CreateResidualControls)
 	complianceRoutes.DELETE("/compliance-assessment-requirement/:responsibleUnitId/delete-controls", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementResidualRiskAnalysisController.DeleteResidualControls)
+
+	// Control Automation Master
+	complianceRoutes.GET("/control-automations", controlAutomationController.GetAllControlAutomations)
+	complianceRoutes.GET("/control-automations/:id", controlAutomationController.GetControlAutomationDetails)
+	complianceRoutes.PUT("/control-automations/activate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), controlAutomationController.ActivateControlAutomations)
+	complianceRoutes.PUT("/control-automations/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), controlAutomationController.DeactivateControlAutomations)
+
+	// Control Consistency Master
+	complianceRoutes.GET("/control-consistencies", controlConsistencyController.GetAllControlConsistencies)
+	complianceRoutes.GET("/control-consistencies/:id", controlConsistencyController.GetControlConsistencyDetails)
+	complianceRoutes.PUT("/control-consistencies/activate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), controlConsistencyController.ActivateControlConsistencies)
+	complianceRoutes.PUT("/control-consistencies/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), controlConsistencyController.DeactivateControlConsistencies)
 }
