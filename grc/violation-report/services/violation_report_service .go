@@ -16,6 +16,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	organizationServices "jethur/grc/organization/services"
 	settingServices "jethur/grc/settings/services"
+	"jethur/grc/violation-report/dtos"
 	violationReportDTOs "jethur/grc/violation-report/dtos"
 	violationReportRepositories "jethur/grc/violation-report/repositories"
 
@@ -35,6 +36,8 @@ type ViolationReportServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetDocumentPath(id uint, token string) (string, error)
 	ExportViolationReports(data []*violationReportDTOs.ViolationReportListDTO, currentUserID uint) (*os.File, error)
+	CreateViolationReportComment(violationReportID uint, currentUserID uint, dto *dtos.ViolationReportCommentFormDTO) (uint, error)
+	GetAllViolationReportComments(violationReportID uint) ([]*dtos.ViolationReportCommentListDTO, error)
 }
 
 // Service and implementations
@@ -846,4 +849,82 @@ func (irs *ViolationReportService) ExportViolationReports(data []*violationRepor
 
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (s *ViolationReportService) CreateViolationReportComment(violationReportID uint, currentUserID uint, dto *dtos.ViolationReportCommentFormDTO) (uint, error) {
+
+	existingReport, err := s.repo.GetByID(violationReportID)
+	if err != nil {
+		return 0, utility.NewResourceNotFoundError(err, violationReportID)
+	}
+
+	//  Start transaction
+	tx := s.repo.BeginTransaction()
+	now := time.Now()
+
+	//  Create comment model
+	comment := &models.ViolationReportComment{
+		ViolationReportID:       violationReportID,
+		ViolationReportStatusID: dto.ViolationReportStatusID,
+		Comment:                 dto.Comment,
+		CreatedByID:             currentUserID,
+		CreatedAt:               now,
+	}
+
+	commentID, err := s.repo.CreateComment(comment, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	// Update main report status if provided
+	if dto.ViolationReportStatusID != nil {
+		existingReport.ViolationReportStatusID = *dto.ViolationReportStatusID
+	}
+
+	existingReport.UpdatedBYID = &currentUserID
+	existingReport.UpdatedAt = &now
+
+	if err := s.repo.Update(existingReport, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	tx.Commit()
+
+	//  Async activity log
+	go func() {
+		fullDetails, err := s.GetFullDetailsByID(violationReportID)
+		if err != nil {
+			return
+		}
+
+		err = s.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.ViolationReportComment{}.TableName(),
+			commentID,
+			fullDetails,
+			currentUserID,
+			"violation_report",
+			"violation",
+			"",
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":   models.CreateAction,
+				"recordID": commentID,
+				"userID":   currentUserID,
+				"error":    err.Error(),
+			}
+			utility.LogError("Failed to log violation report comment activity", fields)
+		}
+	}()
+
+	return commentID, nil
+}
+
+func (s *ViolationReportService) GetAllViolationReportComments(violationReportID uint) ([]*dtos.ViolationReportCommentListDTO, error) {
+	return s.repo.GetAllViolationReportComments(violationReportID)
 }

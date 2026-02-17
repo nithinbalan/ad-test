@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	commonDTOs "jethur/grc/common/dtos"
+	"jethur/grc/violation-report/dtos"
 	violationReportDTOs "jethur/grc/violation-report/dtos"
 	"jethur/grc/violation-report/services"
 	"jethur/utility"
@@ -331,4 +332,67 @@ func (vrc *ViolationReportController) GetViolationReportExport(c *gin.Context) {
 	c.Set("export", true)
 
 	vrc.GetAllViolationReports(c)
+}
+
+func (vrc *ViolationReportController) CreateViolationReportComment(c *gin.Context) {
+
+	var dto dtos.ViolationReportCommentFormDTO
+
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	violationReportID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(vrc.db, c, err.Error())
+		return
+	}
+
+	createdComment, err := vrc.service.CreateViolationReportComment(
+		uint(violationReportID),
+		currentUserID,
+		&dto,
+	)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(vrc.db, c, e.Error())
+		}
+		return
+	}
+
+	c.JSON(http.StatusCreated, createdComment)
+}
+
+func (vrc *ViolationReportController) GetAllViolationReportComments(c *gin.Context) {
+
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	comments, err := vrc.service.GetAllViolationReportComments(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(vrc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, comments)
 }
