@@ -29,7 +29,7 @@ func (repo *ControlConsistencyRepository) GetAll(sort string, sortBy string, key
 
 	var controlConsistencies []*models.ControlConsistency
 
-	query := repo.db
+	query := repo.db.Model(&models.ControlConsistency{})
 
 	if keyword != "" {
 		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
@@ -45,7 +45,7 @@ func (repo *ControlConsistencyRepository) GetAll(sort string, sortBy string, key
 		query = query.Where("status = ?", status)
 	}
 
-	query = query.Order(sortBy + " " + sort)
+	query = query.Preload("CreatedByUser").Order(sortBy + " " + sort)
 	result := query.Find(&controlConsistencies)
 
 	return controlConsistencies, result.Error
@@ -53,7 +53,7 @@ func (repo *ControlConsistencyRepository) GetAll(sort string, sortBy string, key
 
 func (repo *ControlConsistencyRepository) GetByID(id uint) (*models.ControlConsistency, error) {
 	var controlConsistency *models.ControlConsistency
-	result := repo.db.First(&controlConsistency, id)
+	result := repo.db.Preload("CreatedByUser").First(&controlConsistency, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)

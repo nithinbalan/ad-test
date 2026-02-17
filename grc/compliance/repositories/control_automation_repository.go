@@ -29,7 +29,7 @@ func (repo *ControlAutomationRepository) GetAll(sort string, sortBy string, keyw
 
 	var controlAutomations []*models.ControlAutomation
 
-	query := repo.db
+	query := repo.db.Model(&models.ControlAutomation{})
 
 	if keyword != "" {
 		query = query.Where("(title_en LIKE ? OR title_ar LIKE ?)", "%"+keyword+"%", "%"+keyword+"%")
@@ -45,7 +45,7 @@ func (repo *ControlAutomationRepository) GetAll(sort string, sortBy string, keyw
 		query = query.Where("status = ?", status)
 	}
 
-	query = query.Order(sortBy + " " + sort)
+	query = query.Preload("CreatedByUser").Order(sortBy + " " + sort)
 	result := query.Find(&controlAutomations)
 
 	return controlAutomations, result.Error
@@ -53,7 +53,7 @@ func (repo *ControlAutomationRepository) GetAll(sort string, sortBy string, keyw
 
 func (repo *ControlAutomationRepository) GetByID(id uint) (*models.ControlAutomation, error) {
 	var controlAutomation *models.ControlAutomation
-	result := repo.db.First(&controlAutomation, id)
+	result := repo.db.Preload("CreatedByUser").First(&controlAutomation, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, utility.NewResourceNotFoundError(result.Error, id)
@@ -104,5 +104,3 @@ func (repo *ControlAutomationRepository) Deactivate(ids []uint) ([]uint, error) 
 
 	return idsToUpdate, nil
 }
-
-
