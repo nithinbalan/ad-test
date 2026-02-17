@@ -3,6 +3,7 @@ package utility
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"html/template"
 	"io"
@@ -51,7 +52,7 @@ func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath s
 		return "", err
 	}
 
-	// Prepare the data to include image paths and fonts
+	// Prepare the data to include image paths
 	data := map[string]interface{}{
 		"LogoImagePath":     template.HTML(logoImagePath),
 		"CoverBGImagePath":  template.HTML(coverBGImagePath),
@@ -61,14 +62,6 @@ func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath s
 		"LexandDecaFont400": template.URL(lexandDecaFont400),
 		"LexandDecaFont500": template.URL(lexandDecaFont500),
 		"LexandDecaFont600": template.URL(lexandDecaFont600),
-		"Data":              dto,
-		"ApiPath":           config.GetEnv("API_URL", ""),
-	}
-
-	// Prepare the data to include image paths
-	data := map[string]interface{}{
-		"LogoImagePath":    template.HTML(logoImagePath),
-		"CoverBGImagePath": template.HTML(coverBGImagePath),
 		"Data":             dto,
 		"ApiPath":          config.GetEnv("API_URL", ""),
 	}
@@ -77,6 +70,15 @@ func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath s
 		"formatDate": func(date string) string { return date },
 		"safeHTML":   func(content string) template.HTML { return template.HTML(content) },
 		"add":        func(a, b int) int { return a + b },
+		"boolToYesNo": func(b *bool) string {
+			if b == nil {
+				return ""
+			}
+			if *b {
+				return "Yes"
+			}
+			return "No"
+		},
 	})
 
 	// Parse all templates at once
