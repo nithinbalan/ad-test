@@ -2,10 +2,6 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 
 <head>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title>Violation Report</title>
@@ -15,6 +11,7 @@
             padding: 0;
             box-sizing: border-box;
         }
+
         p {
             margin: 0;
             padding: 0;
@@ -156,11 +153,52 @@
                 padding: 16px 24px;
             }
         }
+
+        @font-face {
+            font-family: 'Lexend Deca';
+            src: url('{{.LexandDecaFont100}}') format('woff');
+            font-weight: 100;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Lexend Deca';
+            src: url('{{.LexandDecaFont200}}') format('woff');
+            font-weight: 200;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Lexend Deca';
+            src: url('{{.LexandDecaFont300}}') format('woff');
+            font-weight: 300;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Lexend Deca';
+            src: url('{{.LexandDecaFont400}}') format('woff');
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Lexend Deca';
+            src: url('{{.LexandDecaFont500}}') format('woff');
+            font-weight: 500;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Lexend Deca';
+            src: url('{{.LexandDecaFont600}}') format('woff');
+            font-weight: 600;
+            font-style: normal;
+        }
     </style>
 </head>
 
 <body>
-
     <!-- 1. Overview -->
     <div class="section">
         <div class="section-title">1. Overview</div>
@@ -242,8 +280,7 @@
             <div style="width: 100%; display: inline-block; vertical-align: top;">
                 <p style="margin: 0 0 0 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">
                     Description</p>
-                <p
-                    style=" color: #000; font-size: 12px; line-height: 1.5; font-weight: 400; white-space: pre-wrap;">
+                <p style=" color: #000; font-size: 12px; line-height: 1.5; font-weight: 400; white-space: pre-wrap;">
                     {{- if .Data.DescriptionEn -}}{{.Data.DescriptionEn}}{{- else -}}-{{- end -}}</p>
             </div>
         </div>
@@ -318,7 +355,8 @@
                     Taken During Investigation</p>
                 <p
                     style="margin: 0 0 0 0; color: #000; font-size: 12px; line-height: 1.5; font-weight: 400; white-space: pre-wrap;">
-                    {{- if .Data.Investigation.StepsTaken -}}{{.Data.Investigation.StepsTaken}}{{- else -}}-{{- end -}}</p>
+                    {{- if .Data.Investigation.StepsTaken -}}{{.Data.Investigation.StepsTaken}}{{- else -}}-{{- end -}}
+                </p>
             </div>
         </div>
 
@@ -335,9 +373,9 @@
             <div style="width: 100%; display: inline-block; vertical-align: top; margin-bottom: 8px;">
                 <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">
                     Recommended Actions</p>
-                <p
-                    style=" color: #000; font-size: 12px; line-height: 1.5; font-weight: 400; white-space: pre-wrap;">
-                    {{- if .Data.Investigation.SuggestedRecommendation -}}{{.Data.Investigation.SuggestedRecommendation}}{{- else -}}-{{- end -}}</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.5; font-weight: 400; white-space: pre-wrap;">
+                    {{- if .Data.Investigation.SuggestedRecommendation
+                    -}}{{.Data.Investigation.SuggestedRecommendation}}{{- else -}}-{{- end -}}</p>
             </div>
         </div>
 
@@ -359,9 +397,9 @@
             <div style="width: 100%; display: inline-block; vertical-align: top; margin-bottom: 8px;">
                 <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Summary
                     of Findings</p>
-                <p
-                    style=" color: #000; font-size: 12px; line-height: 1.5; font-weight: 400; white-space: pre-wrap;">
-                    {{- if .Data.Investigation.FindingSummary -}}{{.Data.Investigation.FindingSummary}}{{- else -}}-{{- end -}}</p>
+                <p style=" color: #000; font-size: 12px; line-height: 1.5; font-weight: 400; white-space: pre-wrap;">
+                    {{- if .Data.Investigation.FindingSummary -}}{{.Data.Investigation.FindingSummary}}{{- else -}}-{{-
+                    end -}}</p>
             </div>
         </div>
 
@@ -371,7 +409,8 @@
                     Disciplinary Actions</p>
                 <p
                     style="margin: 0 0 0 0; color: #000; font-size: 12px; line-height: 1.5; font-weight: 400; white-space: pre-wrap;">
-                    {{- if .Data.Investigation.DisciplinaryProcedure -}}{{.Data.Investigation.DisciplinaryProcedure}}{{- else -}}-{{- end -}}</p>
+                    {{- if .Data.Investigation.DisciplinaryProcedure -}}{{.Data.Investigation.DisciplinaryProcedure}}{{-
+                    else -}}-{{- end -}}</p>
             </div>
         </div>
 
@@ -420,7 +459,8 @@
                     and Observations</p>
                 <p
                     style="margin: 0 0 0 0; color: #000; font-size: 12px; line-height: 1.5; font-weight: 400; white-space: pre-wrap;">
-                    {{- if .Data.Investigation.NoteAndObservations -}}{{.Data.Investigation.NoteAndObservations}}{{- else -}}-{{- end -}}</p>
+                    {{- if .Data.Investigation.NoteAndObservations -}}{{.Data.Investigation.NoteAndObservations}}{{-
+                    else -}}-{{- end -}}</p>
             </div>
         </div>
 
