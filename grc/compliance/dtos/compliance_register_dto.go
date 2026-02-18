@@ -13,9 +13,16 @@ type ComplianceRegisterListDTO struct {
 	ID uint `json:"id"`
 	// ComplianceCategoryTitleEn             string `json:"compliance_category_title_en"`
 	// ComplianceCategoryTitleAr             string `json:"compliance_category_title_ar"`
-	ComplianceStatusTitleEn   string `json:"compliance_status_title_en"`
-	ComplianceStatusTitleAr   string `json:"compliance_status_title_ar"`
-	ComplianceStatusColorCode string `json:"compliance_status_color_code"`
+	ComplianceStatusTitleEn            string `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr            string `json:"compliance_status_title_ar"`
+	ComplianceStatusColorCode          string `json:"compliance_status_color_code"`
+	Subject                            string `json:"subject"`
+	IsApplicable                       bool   `json:"is_applicable"`
+	IsNotApplicable                    bool   `json:"is_not_applicable"`
+	IsRegulationNotificationAssessment bool   `json:"is_regulation_notification_assessment"`
+	IsRiskBasedAssessment              bool   `json:"is_risk_based_assessment"`
+	IsPublic                           bool   `json:"is_public"`
+	IsShared                           bool   `json:"is_shared"`
 	// ResponsibleUnitTitleEn                string `json:"responsible_unit_title_en"`
 	// ResponsibleUnitTitleAr                string `json:"responsible_unit_title_ar"`
 	// ResponsibleUserID                     uint   `json:"responsible_user_id"`
