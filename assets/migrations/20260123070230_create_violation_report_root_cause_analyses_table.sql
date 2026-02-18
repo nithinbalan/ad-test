@@ -10,7 +10,7 @@ CREATE TABLE violation_report_root_cause_analyses (
     updated_by_id INT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NULL,
-    CONSTRAINT FK_violation_report_root_cause_analyses FOREIGN KEY (violation_report_id) REFERENCES violation_reportS(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FK_violation_report_root_cause_analyses FOREIGN KEY (violation_report_id) REFERENCES violation_reports(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_violation_report_root_cause_analyses_users_1 FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT FK_violation_report_root_cause_analyses_users_2 FOREIGN KEY (updated_by_id) REFERENCES users(id) ON DELETE NO ACTION ON UPDATE NO ACTION
 );
