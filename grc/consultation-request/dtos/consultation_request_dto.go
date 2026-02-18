@@ -80,9 +80,8 @@ type ConsultationRequestFormDTO struct {
 	// Notes                       *string `json:"notes,omitempty"`
 }
 type ConsultationRequestCommentFormDTO struct {
-	ConsultationRequestStatusID *uint   `json:"consultation_request_status_id"`
-	Comment                     string  `json:"comment" binding:"required"`
-	Reply                       *string `json:"reply"`
+	ConsultationRequestStatusID *uint  `json:"consultation_request_status_id"`
+	Comment                     string `json:"comment" binding:"required"`
 }
 
 type ConsultationRequestDetailDTO struct {

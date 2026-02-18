@@ -233,11 +233,11 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 			}
 		}
 		if status.Type == "reply_sent" {
-			if dto.Reply != nil {
-				existingRequest.Reply = dto.Reply
-				now := time.Now()
-				existingRequest.ReplyDate = &now
-			}
+
+			existingRequest.Reply = &dto.Comment
+			now := time.Now()
+			existingRequest.ReplyDate = &now
+
 		}
 	}
 
