@@ -155,31 +155,56 @@ type ViolationReportDetailDTO struct {
 type ViolationReportParsedDates struct {
 	ReportedAt time.Time
 }
+type ViolationReportCommentFormDTO struct {
+	ViolationReportStatusID *uint  `json:"violation_report_status_id"`
+	Comment                 string `json:"comment" binding:"required"`
+}
+type ViolationReportCommentListDTO struct {
+	ID                uint   `json:"id"`
+	ViolationReportID uint   `json:"violation_report_id"`
+	Comment           string `json:"comment"`
 
+	// Status Info
+	ViolationReportStatusID *uint   `json:"violation_report_status_id"`
+	StatusTitleEn           *string `json:"status_title_en"`
+	StatusTitleAr           *string `json:"status_title_ar"`
+	StatusType              *string `json:"status_type"`
+	Status                  *string `json:"status"`
+
+	// Audit Info
+	CreatedAt time.Time `json:"created_at"`
+
+	CreatedByID          uint   `json:"created_by_id"`
+	CreatedByFirstNameEn string `json:"created_by_first_name_en"`
+	CreatedByLastNameEn  string `json:"created_by_last_name_en"`
+	CreatedByFirstNameAr string `json:"created_by_first_name_ar"`
+	CreatedByLastNameAr  string `json:"created_by_last_name_ar"`
+	CreatedByInitial     string `json:"created_by_initial"`
+}
 type ViolationReportExportPDFDTO struct {
-	Title                    string
-	ReferenceNumber          string
-	CreatedAt                string
-	GeneratedAt              string
-	CreatedUserFirstNameEn   string
-	CreatedUserLastNameEn    string
-	ReportedAtString         string
-	IDOfReporter             *uint
-	NameOfReporter           *string
-	PhoneOfReporter          *string
-	EmailOfReporter          *string
-	ViolationReportChannel   ViolationReportChannelDTO
-	ViolationReportReason    ViolationReportReasonDTO
-	ViolationReportCategory  *ViolationReportCategoryDetailsDTO
+	Title                      string
+	ReferenceNumber            string
+	CreatedAt                  string
+	GeneratedAt                string
+	CreatedUserFirstNameEn     string
+	CreatedUserLastNameEn      string
+	ReportedAtString           string
+	IDOfReporter               *uint
+	NameOfReporter             *string
+	PhoneOfReporter            *string
+	EmailOfReporter            *string
+	ViolationReportChannel     ViolationReportChannelDTO
+	ViolationReportReason      ViolationReportReasonDTO
+	ViolationReportCategory    *ViolationReportCategoryDetailsDTO
 	ViolationReportSubCategory *ViolationReportSubCategoryDetailsDTO
-	ViolationReportStatus    ViolationReportStatusDTO
-	SeverityLevel            *masterDTOs.SeverityLevelDTO
-	ReportedByUserFirstNameEn string
-	ReportedByUserLastNameEn  string
-	DescriptionEn            *string
-	DescriptionAr            *string
-	Documents                []*ViolationReportDocumentDTO
-	Investigation            *ViolationReportInvestigationExportDTO
+	ViolationReportStatus      ViolationReportStatusDTO
+	SeverityLevel              *masterDTOs.SeverityLevelDTO
+	ReportedByUserFirstNameEn  string
+	ReportedByUserLastNameEn   string
+	DescriptionEn              *string
+	DescriptionAr              *string
+	Documents                  []*ViolationReportDocumentDTO
+	Investigation              *ViolationReportInvestigationExportDTO
 }
 
 type ViolationReportInvestigationExportDTO struct {
@@ -192,7 +217,7 @@ type ViolationReportInvestigationExportDTO struct {
 	IsDisciplinaryRegulatoryCompliance *bool
 	Documents                          []*ViolationReportInvestigationDocumentDTO
 	NoteAndObservations                *string
-	CreatedByUserFirstNameEn            string
-	CreatedByUserLastNameEn             string
-	CreatedAtString                     string
+	CreatedByUserFirstNameEn           string
+	CreatedByUserLastNameEn            string
+	CreatedAtString                    string
 }

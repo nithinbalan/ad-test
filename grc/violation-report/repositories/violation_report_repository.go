@@ -4,6 +4,7 @@ import (
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
+	"jethur/grc/violation-report/dtos"
 	violationReportDTOs "jethur/grc/violation-report/dtos"
 	"jethur/utility"
 	"strconv"
@@ -26,6 +27,12 @@ type ViolationReportRepositoryInterface interface {
 	CreateDocuments(docs []*models.ViolationReportDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.ViolationReportDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	//comment
+	CreateComment(comment *models.ViolationReportComment, tx ...utility.DatabaseTransaction) (uint, error)
+	GetAllViolationReportComments(violationReportID uint) ([]*dtos.ViolationReportCommentListDTO, error)
+	GetFullCommentDetailsByID(id uint) (*models.ViolationReportComment, error)
+	DeleteComment(id uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ViolationReportRepository struct {
@@ -335,6 +342,94 @@ func (repo *ViolationReportRepository) DeleteDocuments(docIds []*uint, tx ...uti
 
 	// Delete documents by IDs
 	if err := db.Where("id IN (?)", docIds).Delete(&models.ViolationReportDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ViolationReportRepository) CreateComment(comment *models.ViolationReportComment, tx ...utility.DatabaseTransaction) (uint, error) {
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(comment).Error; err != nil {
+		return 0, err
+	}
+
+	return comment.ID, nil
+}
+
+func (repo *ViolationReportRepository) GetAllViolationReportComments(violationReportID uint) ([]*dtos.ViolationReportCommentListDTO, error) {
+
+	var comments []*dtos.ViolationReportCommentListDTO
+
+	query := repo.db.Table("violation_report_comments").
+		Select(`
+			violation_report_comments.id,
+			violation_report_comments.violation_report_id,
+			violation_report_comments.comment,
+
+			violation_report_statuses.id AS violation_report_status_id,
+			violation_report_statuses.title_en AS status_title_en,
+			violation_report_statuses.title_ar AS status_title_ar,
+			violation_report_statuses.type AS status_type,
+			violation_report_statuses.status AS status,
+
+			violation_report_comments.created_at,
+			users.id AS created_by_id,
+			users.first_name_en AS created_by_first_name_en,
+			users.last_name_en AS created_by_last_name_en,
+			users.first_name_ar AS created_by_first_name_ar,
+			users.last_name_ar AS created_by_last_name_ar,
+			users.initial AS created_by_initial
+		`).
+		Joins(`
+			LEFT JOIN violation_report_statuses 
+			ON violation_report_statuses.id = violation_report_comments.violation_report_status_id
+		`).
+		Joins(`
+			LEFT JOIN users 
+			ON users.id = violation_report_comments.created_by_id
+		`).
+		Where("violation_report_comments.violation_report_id = ?", violationReportID).
+		Order("violation_report_comments.created_at DESC")
+
+	if err := query.Find(&comments).Error; err != nil {
+		return nil, err
+	}
+
+	return comments, nil
+}
+
+func (repo *ViolationReportRepository) GetFullCommentDetailsByID(id uint) (*models.ViolationReportComment, error) {
+
+	var comment models.ViolationReportComment
+
+	if err := repo.db.
+		Preload("ViolationReport").
+		Preload("ViolationReportStatus").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		Where("id = ?", id).
+		First(&comment).Error; err != nil {
+		return nil, err
+	}
+
+	return &comment, nil
+}
+
+func (repo *ViolationReportRepository) DeleteComment(id uint, tx ...utility.DatabaseTransaction) error {
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id = ?", id).
+		Delete(&models.ViolationReportComment{}).Error; err != nil {
 		return err
 	}
 
