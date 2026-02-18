@@ -47,6 +47,9 @@ func (repo *ConsultationRequestRepository) GetAll(params *dtos.ConsultationReque
 	query := repo.db.Table("consultation_requests").
 		Select(`
 		consultation_requests.*,
+		  
+		CONVERT(VARCHAR, consultation_requests.date_raised, 23) AS date_raised,
+		CONVERT(VARCHAR, consultation_requests.reply_date, 23) AS reply_date,
 		consultation_request_statuses.title_en AS status_title_en,
 		consultation_request_statuses.title_ar AS status_title_ar,
 	
