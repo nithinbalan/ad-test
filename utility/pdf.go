@@ -3,6 +3,7 @@ package utility
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"html/template"
 	"io"
@@ -20,10 +21,47 @@ import (
 )
 
 func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath string, coverBGImagePath string) (string, error) {
+	// Read and encode fonts
+	lexandDecaFont100, err := fontToDataURL("fonts/LexendDeca-Thin.woff")
+	if err != nil {
+		return "", err
+	}
+
+	lexandDecaFont200, err := fontToDataURL("fonts/LexendDeca-ExtraLight.woff")
+	if err != nil {
+		return "", err
+	}
+
+	lexandDecaFont300, err := fontToDataURL("fonts/LexendDeca-Light.woff")
+	if err != nil {
+		return "", err
+	}
+	
+	lexandDecaFont400, err := fontToDataURL("fonts/LexendDeca-Regular.woff")
+	if err != nil {
+		return "", err
+	}
+
+	lexandDecaFont500, err := fontToDataURL("fonts/LexendDeca-Medium.woff")
+	if err != nil {
+		return "", err
+	}
+
+	lexandDecaFont600, err := fontToDataURL("fonts/LexendDeca-SemiBold.woff")
+	if err != nil {
+		return "", err
+	}
+
 	// Prepare the data to include image paths
 	data := map[string]interface{}{
-		"LogoImagePath":    template.HTML(logoImagePath),
-		"CoverBGImagePath": template.HTML(coverBGImagePath),
+		"LogoImagePath":     template.HTML(logoImagePath),
+		"CoverBGImagePath":  template.HTML(coverBGImagePath),
+		"LexandDecaFont100": template.URL(lexandDecaFont100),
+		"LexandDecaFont200": template.URL(lexandDecaFont200),
+		"LexandDecaFont300": template.URL(lexandDecaFont300),
+		"LexandDecaFont400": template.URL(lexandDecaFont400),
+		"LexandDecaFont500": template.URL(lexandDecaFont500),
+		"LexandDecaFont600": template.URL(lexandDecaFont600),
 		"Data":             dto,
 		"ApiPath":          config.GetEnv("API_URL", ""),
 	}
@@ -32,6 +70,15 @@ func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath s
 		"formatDate": func(date string) string { return date },
 		"safeHTML":   func(content string) template.HTML { return template.HTML(content) },
 		"add":        func(a, b int) int { return a + b },
+		"boolToYesNo": func(b *bool) string {
+			if b == nil {
+				return ""
+			}
+			if *b {
+				return "Yes"
+			}
+			return "No"
+		},
 	})
 
 	// Parse all templates at once
@@ -594,4 +641,14 @@ func ReadExcelFileWithIntroduction(file io.Reader) ([][]string, error) {
 	}
 
 	return rows, nil
+}
+
+// Helper function to convert font file to base64 data URL
+func fontToDataURL(fontPath string) (string, error) {
+	fontData, err := assets.FS.ReadFile(fontPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read font %s: %w", fontPath, err)
+	}
+	encoded := base64.StdEncoding.EncodeToString(fontData)
+	return "data:font/woff;charset=utf-8;base64," + encoded, nil
 }
