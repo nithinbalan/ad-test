@@ -236,6 +236,12 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("AssessmentRequirements.ResponsibleUnits.RequiredDocumentTitles").
 		Preload("AssessmentRequirements.ResponsibleUnits.ComplianceAssessmentRequirementStatus").
 		Preload("AssessmentRequirements.ResponsibleUnits.ComplianceAssessmentFrameworkValue").
+		Preload("AssessmentRequirements.ResponsibleUnits.ResidualRiskAnalysis").
+		Preload("AssessmentRequirements.ResponsibleUnits.ResidualRiskAnalysis.ComplianceAssessmentImpactType").
+		Preload("AssessmentRequirements.ResponsibleUnits.ResidualRiskRating").
+		Preload("AssessmentRequirements.ResponsibleUnits.ResidualControls").
+		Preload("AssessmentRequirements.ResponsibleUnits.ResidualControls.ComplianceAssessmentImpactType").
+		Preload("AssessmentRequirements.ResponsibleUnits.ResidualControls.Control").
 		Preload("AssessmentRequirements.ComplianceRequirement").
 		Preload("AssessmentRequirements.ComplianceRequirement.ComplianceStatus").
 		Preload("AssessmentRequirements.ComplianceRequirement.ComplianceClause").

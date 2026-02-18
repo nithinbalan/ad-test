@@ -252,6 +252,7 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 		Preload("ComplianceRequirement.SeverityLevel").
 		Preload("ComplianceRequirement.InherentRiskAnalysis").
 		Preload("ComplianceRequirement.InherentRiskAnalysis.ComplianceAssessmentImpactType").
+		Preload("ComplianceRequirement.InherentRiskRating").
 		Preload("ComplianceStatus").
 		Preload("ComplianceAssessmentRequirementStatus").
 		Preload("CreatedByUser").
@@ -285,7 +286,8 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 		Preload("ResponsibleUnits.ResidualRiskAnalysis.ComplianceAssessmentImpactType").
 		Preload("ResponsibleUnits.ResidualControls").
 		Preload("ResponsibleUnits.ResidualControls.ComplianceAssessmentImpactType").
-		Preload("ResponsibleUnits.ResidualControls.Control")
+		Preload("ResponsibleUnits.ResidualControls.Control").
+		Preload("ResponsibleUnits.ResidualRiskRating")
 
 	if err := query.First(&car, requirementId).Error; err != nil {
 		return nil, err

@@ -132,6 +132,8 @@ type ComplianceAssessmentRequirementResponsibleUnitDTO struct {
 	Comments                              *string                                            `json:"comments"`
 	ComplianceAssessmentRequirementStatus *ComplianceAssessmentRequirementStatusDTO          `json:"compliance_assessment_requirement_status"`
 	CompletedAt                           *time.Time                                         `json:"completed_at"` // ⬅️ new field
+	ResidualRiskScore                     *float64                                           `json:"residual_risk_score"`
+	ResidualRiskRating                    *ComplianceAssessmentRatingDTO                     `json:"residual_risk_rating"`
 }
 
 type AssessmentCompletionSummaryDTO struct {
