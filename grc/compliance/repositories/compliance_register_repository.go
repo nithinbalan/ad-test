@@ -91,6 +91,13 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 		Select(`
             compliance_register.*,
 			CONVERT(VARCHAR, compliance_register.deadline, 23) AS deadline,
+			compliance_register.subject,
+    		compliance_register.is_applicable,
+            compliance_register.is_not_applicable,
+            compliance_register.is_regulation_notification_assessment,
+            compliance_register.is_risk_based_assessment,
+            compliance_register.is_public,
+            compliance_register.is_shared,
         	-- CONVERT(VARCHAR, compliance_register.issue_date, 23) AS issue_date,
         	-- CONVERT(VARCHAR, compliance_register.expiry_date, 23) AS expiry_date,
        		-- CONVERT(VARCHAR, compliance_register.next_review_date, 23) AS next_review_date,
