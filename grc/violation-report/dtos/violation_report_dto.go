@@ -165,11 +165,11 @@ type ViolationReportCommentListDTO struct {
 	Comment           string `json:"comment"`
 
 	// Status Info
-	ViolationReportStatusID uint   `json:"violation_report_status_id"`
-	StatusTitleEn           string `json:"status_title_en"`
-	StatusTitleAr           string `json:"status_title_ar"`
-	StatusType              string `json:"status_type"`
-	Status                  string `json:"status"`
+	ViolationReportStatusID *uint   `json:"violation_report_status_id"`
+	StatusTitleEn           *string `json:"status_title_en"`
+	StatusTitleAr           *string `json:"status_title_ar"`
+	StatusType              *string `json:"status_type"`
+	Status                  *string `json:"status"`
 
 	// Audit Info
 	CreatedAt time.Time `json:"created_at"`

@@ -882,14 +882,12 @@ func (s *ViolationReportService) CreateViolationReportComment(violationReportID 
 	// Update main report status if provided
 	if dto.ViolationReportStatusID != nil {
 		existingReport.ViolationReportStatusID = *dto.ViolationReportStatusID
-	}
-
-	existingReport.UpdatedBYID = &currentUserID
-	existingReport.UpdatedAt = &now
-
-	if err := s.repo.Update(existingReport, tx); err != nil {
-		tx.Rollback()
-		return 0, err
+		existingReport.UpdatedBYID = &currentUserID
+		existingReport.UpdatedAt = &now
+		if err := s.repo.Update(existingReport, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	tx.Commit()
