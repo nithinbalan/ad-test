@@ -35,6 +35,7 @@ type ViolationReportServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetDocumentPath(id uint, token string) (string, error)
 	ExportViolationReports(data []*violationReportDTOs.ViolationReportListDTO, currentUserID uint) (*os.File, error)
+	ExportViolationReportToPDF(id uint, currentUserID uint, investigationSvc ViolationReportInvestigationServiceInterface) (string, error)
 }
 
 // Service and implementations
@@ -846,4 +847,111 @@ func (irs *ViolationReportService) ExportViolationReports(data []*violationRepor
 
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (irs *ViolationReportService) ExportViolationReportToPDF(id uint, currentUserID uint, investigationSvc ViolationReportInvestigationServiceInterface) (string, error) {
+	violationReportDTO, err := irs.GetFullDetailsByID(id)
+	if err != nil {
+		return "", err
+	}
+
+	// Fetch investigation data if exists
+	var investigationDTO *violationReportDTOs.ViolationReportInvestigationExportDTO
+	investigationDetail, err := investigationSvc.GetFullDetailsByID(id)
+	if err == nil && investigationDetail != nil {
+		var departments []*violationReportDTOs.ViolationReportInvestigationDepartmentDTO
+		if investigationDetail.Departments != nil {
+			departments = investigationDetail.Departments
+		}
+		investigationDTO = &violationReportDTOs.ViolationReportInvestigationExportDTO{
+			StepsTaken:                         investigationDetail.StepsTaken,
+			InvestigationDateString:            investigationDetail.InvestigationDateString,
+			SuggestedRecommendation:            investigationDetail.SuggestedRecommendation,
+			Departments:                        departments,
+			FindingSummary:                     investigationDetail.FindingSummary,
+			DisciplinaryProcedure:              investigationDetail.DisciplinaryProcedure,
+			IsDisciplinaryRegulatoryCompliance: investigationDetail.IsDisciplinaryRegulatoryCompliance,
+			Documents:                          investigationDetail.Documents,
+			NoteAndObservations:                investigationDetail.NoteAndObservations,
+			CreatedByUserFirstNameEn:           investigationDetail.CreatedByUser.FirstNameEN,
+			CreatedByUserLastNameEn:            investigationDetail.CreatedByUser.LastNameEN,
+			CreatedAtString:                    investigationDetail.CreatedAt.Format("Jan 02, 2006 03:04 PM"),
+		}
+	}
+
+	// Prepare overview data
+	createdAt := violationReportDTO.CreatedAt.Format("2006-01-02")
+	generatedAt := time.Now().Format("Jan 02, 2006")
+	reportedAtString := violationReportDTO.ReportedAt.Format("Jan 02, 2006 03:04 PM")
+
+	var descriptionEn *string
+	if violationReportDTO.DescriptionEn != "" {
+		descriptionEn = &violationReportDTO.DescriptionEn
+	}
+
+	var descriptionAr *string
+	if violationReportDTO.DescriptionAr != "" {
+		descriptionAr = &violationReportDTO.DescriptionAr
+	}
+
+	viewModel := violationReportDTOs.ViolationReportExportPDFDTO{
+		Title:                      violationReportDTO.TitleEn,
+		ReferenceNumber:            violationReportDTO.ReferenceNumber,
+		CreatedAt:                  createdAt,
+		GeneratedAt:                generatedAt,
+		CreatedUserFirstNameEn:     violationReportDTO.CreatedByUser.FirstNameEN,
+		CreatedUserLastNameEn:      violationReportDTO.CreatedByUser.LastNameEN,
+		ReportedAtString:           reportedAtString,
+		IDOfReporter:               violationReportDTO.IDOfReporter,
+		NameOfReporter:             violationReportDTO.NameOfReporter,
+		PhoneOfReporter:            violationReportDTO.PhoneOfReporter,
+		EmailOfReporter:            violationReportDTO.EmailOfReporter,
+		ViolationReportChannel:      violationReportDTO.ViolationReportChannel,
+		ViolationReportReason:       violationReportDTO.ViolationReportReason,
+		ViolationReportCategory:     violationReportDTO.ViolationReportCategory,
+		ViolationReportSubCategory: violationReportDTO.ViolationReportSubCategory,
+		ViolationReportStatus:      violationReportDTO.ViolationReportStatus,
+		SeverityLevel:              violationReportDTO.SeverityLevel,
+		ReportedByUserFirstNameEn:  violationReportDTO.CreatedByUser.FirstNameEN,
+		ReportedByUserLastNameEn:   violationReportDTO.CreatedByUser.LastNameEN,
+		DescriptionEn:             descriptionEn,
+		DescriptionAr:              descriptionAr,
+		Documents:                  violationReportDTO.Documents,
+		Investigation:              investigationDTO,
+	}
+
+	// Body
+	bodyTemplates := []string{"violation-report/templates/pdf/violation_report_register_body.html"}
+	htmlContent, err := utility.GeneratePDFContent(viewModel, bodyTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate HTML content: %w", err)
+	}
+
+	// Cover
+	coverTemplates := []string{"violation-report/templates/pdf/violation_report_register_cover.html"}
+	coverContent, err := utility.GeneratePDFContent(viewModel, coverTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate cover content: %w", err)
+	}
+
+	// Header
+	headerTemplates := []string{"violation-report/templates/pdf/violation_report_register_header.html"}
+	headerContent, err := utility.GeneratePDFContent(viewModel, headerTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate header content: %w", err)
+	}
+
+	// Footer
+	footerTemplates := []string{"violation-report/templates/pdf/violation_report_register_footer.html"}
+	footerContent, err := utility.GeneratePDFContent(viewModel, footerTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate footer content: %w", err)
+	}
+
+	pdfFileName := fmt.Sprintf("ViolationReport_%d.pdf", id)
+	if err := utility.GeneratePDFWithCoverHeaderFooter(coverContent, htmlContent, pdfFileName, headerContent, footerContent); err != nil {
+		return "", fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	return pdfFileName, nil
 }
