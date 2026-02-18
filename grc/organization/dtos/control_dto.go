@@ -87,6 +87,8 @@ type ControlListDTO struct {
 	RiskRatingTitleAr                    *string    `json:"risk_rating_title_ar"`
 	RiskRatingColorCode                  *string    `json:"risk_rating_color_code"`
 	RiskRatingValue                      *uint      `json:"risk_rating_value"`
+	ControlAutomationID                  *uint      `json:"control_automation_id"`
+	ControlConsistencyID                 *uint      `json:"control_consistency_id"`
 }
 
 type ControlMinimalListDTO struct {
@@ -153,6 +155,8 @@ type ControlFormDTO struct {
 	Justification                 *string `json:"justification" binding:"omitempty"`
 	ApplicabilityChangeDate       *string `json:"applicability_change_date" binding:"omitempty,datetime=2006-01-02"`
 	ImplementationGuideline       *string `json:"implementation_guideline" binding:"omitempty"`
+	ControlAutomationID           *uint   `json:"control_automation_id" binding:"omitempty"`
+	ControlConsistencyID          *uint   `json:"control_consistency_id" binding:"omitempty"`
 }
 
 type ControlParsedDates struct {
@@ -207,6 +211,10 @@ type ControlDetailDTO struct {
 	ApplicabilityChangeDateString *string                          `json:"applicability_change_date"`
 	ComplianceStatusID            uint                             `json:"compliance_status_id"`
 	ComplianceStatus              *ComplianceStatusDTO             `json:"compliance_status"`
+	ControlAutomationID           *uint                            `json:"control_automation_id"`
+	ControlConsistencyID          *uint                            `json:"control_consistency_id"`
+	ControlAutomation             *ControlAutomationDetailDTO      `json:"control_automation"`
+	ControlConsistency            *ControlConsistencyDetailDTO     `json:"control_consistency"`
 }
 type ComplianceStatusDTO struct {
 	ID        int    `json:"id"`
@@ -241,6 +249,30 @@ type ControlMailDTO struct {
 	Subject     string `json:"subject"`
 	MessageEn   string `json:"message_en"`
 	RedirectURL string `json:"redirect_url"`
+}
+
+type ControlAutomationDetailDTO struct {
+	ID            uint           `json:"id"`
+	TitleEn       string         `json:"title_en"`
+	TitleAr       string         `json:"title_ar"`
+	Type          string         `json:"type"`
+	Score         float64        `json:"score"`
+	Status        string         `json:"status"`
+	CreatedAt     time.Time      `json:"created_at"`
+	CreatedByID   uint           `json:"created_by_id"`
+	CreatedByUser *UserMinimalDTO `json:"created_by_user"`
+}
+
+type ControlConsistencyDetailDTO struct {
+	ID            uint           `json:"id"`
+	TitleEn       string         `json:"title_en"`
+	TitleAr       string         `json:"title_ar"`
+	Type          string         `json:"type"`
+	Score         float64        `json:"score"`
+	Status        string         `json:"status"`
+	CreatedAt     time.Time      `json:"created_at"`
+	CreatedByID   uint           `json:"created_by_id"`
+	CreatedByUser *UserMinimalDTO `json:"created_by_user"`
 }
 
 type ControlApplicableFormDTO struct {

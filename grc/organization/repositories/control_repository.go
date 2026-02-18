@@ -27,6 +27,8 @@ type ControlRepositoryInterface interface {
 	//lifecycle status
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
+	CheckControlAutomationExists(id uint) (bool, error)
+	CheckControlConsistencyExists(id uint) (bool, error)
 }
 
 type ControlRepository struct {
@@ -343,6 +345,10 @@ func (repo *ControlRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("Risks").
 		Preload("RiskMatrixRating").
 		Preload("RiskMatrixRatingValue").
+		Preload("ControlAutomation").
+		Preload("ControlAutomation.CreatedByUser").
+		Preload("ControlConsistency").
+		Preload("ControlConsistency.CreatedByUser").
 		Preload("LatestControlTest", func(db *gorm.DB) *gorm.DB {
 			return db.Where("id IN (?)", latestControlTestSubQuery).
 				Preload("TestedByUser")
@@ -842,4 +848,20 @@ func (repo *ControlRepository) ForceDelete(id uint, tx ...utility.DatabaseTransa
 
 	// Force hard delete (ignore soft delete)
 	return db.Delete(&models.Control{}, id).Error
+}
+
+func (repo *ControlRepository) CheckControlAutomationExists(id uint) (bool, error) {
+	var count int64
+	if err := repo.db.Model(&models.ControlAutomation{}).Where("id = ?", id).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *ControlRepository) CheckControlConsistencyExists(id uint) (bool, error) {
+	var count int64
+	if err := repo.db.Model(&models.ControlConsistency{}).Where("id = ?", id).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
