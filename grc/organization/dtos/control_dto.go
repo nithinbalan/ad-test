@@ -4,7 +4,6 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
-
 	"time"
 )
 
@@ -88,7 +87,19 @@ type ControlListDTO struct {
 	RiskRatingColorCode                  *string    `json:"risk_rating_color_code"`
 	RiskRatingValue                      *uint      `json:"risk_rating_value"`
 	ControlAutomationID                  *uint      `json:"control_automation_id"`
+	ControlAutomationTitleEn             *string    `json:"control_automation_title_en"`
+	ControlAutomationTitleAr             *string    `json:"control_automation_title_ar"`
+	ControlAutomationType                *string    `json:"control_automation_type"`
+	ControlAutomationScore               *float64   `json:"control_automation_score"`
+	ControlAutomationStatus              *string    `json:"control_automation_status"`
 	ControlConsistencyID                 *uint      `json:"control_consistency_id"`
+	ControlConsistencyTitleEn            *string    `json:"control_consistency_title_en"`
+	ControlConsistencyTitleAr            *string    `json:"control_consistency_title_ar"`
+	ControlConsistencyType               *string    `json:"control_consistency_type"`
+	ControlConsistencyScore              *float64   `json:"control_consistency_score"`
+	ControlConsistencyStatus             *string    `json:"control_consistency_status"`
+	ControlConsistencyDescriptionEn       *string    `json:"control_consistency_description_en"`
+	ControlConsistencyDescriptionAr       *string    `json:"control_consistency_description_ar"`
 }
 
 type ControlMinimalListDTO struct {
@@ -279,3 +290,4 @@ type ControlApplicableFormDTO struct {
 	Justification           *string `json:"justification" binding:"omitempty"`
 	ApplicabilityChangeDate *string `json:"applicability_change_date" binding:"omitempty,datetime=2006-01-02"`
 }
+
