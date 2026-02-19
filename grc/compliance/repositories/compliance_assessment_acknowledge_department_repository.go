@@ -75,6 +75,7 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAll(assessme
             COALESCE(ack_user.color, '') AS color,
             COALESCE(caad.comment, '') AS comment,
             COALESCE(ack_user.profile_image_path, '') AS profile_image_path,
+            organization_units.id AS organization_unit_id,
             organization_units.title_en AS organization_unit_title_en,
             organization_units.title_ar AS organization_unit_title_ar,
             CASE WHEN caad.id IS NOT NULL THEN 1 ELSE 0 END AS acknowledged
@@ -104,6 +105,7 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAll(assessme
             COALESCE(ack_user.color, '') AS color,
             COALESCE(caad.comment, '') AS comment,
             COALESCE(ack_user.profile_image_path, '') AS profile_image_path,
+            organization_units.id AS organization_unit_id,
             organization_units.title_en AS organization_unit_title_en,
             organization_units.title_ar AS organization_unit_title_ar,
             CASE WHEN caad.id IS NOT NULL THEN 1 ELSE 0 END AS acknowledged
@@ -202,6 +204,7 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAllForPublic
             COALESCE(ack_user.color, '') AS color,
             COALESCE(caad.comment, '') AS comment,
             COALESCE(ack_user.profile_image_path, '') AS profile_image_path,
+            organization_units.id AS organization_unit_id,
             organization_units.title_en AS organization_unit_title_en,
             organization_units.title_ar AS organization_unit_title_ar,
             CASE WHEN caad.id IS NOT NULL THEN 1 ELSE 0 END AS acknowledged
@@ -231,6 +234,7 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAllForPublic
             COALESCE(ack_user.color, '') AS color,
             COALESCE(caad.comment, '') AS comment,
             COALESCE(ack_user.profile_image_path, '') AS profile_image_path,
+            organization_units.id AS organization_unit_id,
             organization_units.title_en AS organization_unit_title_en,
             organization_units.title_ar AS organization_unit_title_ar,
             CASE WHEN caad.id IS NOT NULL THEN 1 ELSE 0 END AS acknowledged
@@ -329,6 +333,7 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAllForShared
             COALESCE(ack_user.color, '') AS color,
             COALESCE(caad.comment, '') AS comment,
             COALESCE(ack_user.profile_image_path, '') AS profile_image_path,
+            organization_units.id AS organization_unit_id,
             organization_units.title_en AS organization_unit_title_en,
             organization_units.title_ar AS organization_unit_title_ar,
             CASE WHEN caad.id IS NOT NULL THEN 1 ELSE 0 END AS acknowledged
@@ -358,6 +363,7 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAllForShared
             COALESCE(ack_user.color, '') AS color,
             COALESCE(caad.comment, '') AS comment,
             COALESCE(ack_user.profile_image_path, '') AS profile_image_path,
+            organization_units.id AS organization_unit_id,
             organization_units.title_en AS organization_unit_title_en,
             organization_units.title_ar AS organization_unit_title_ar,
             CASE WHEN caad.id IS NOT NULL THEN 1 ELSE 0 END AS acknowledged
