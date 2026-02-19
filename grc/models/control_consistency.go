@@ -9,6 +9,8 @@ type ControlConsistency struct {
 	Type        string    `json:"type" binding:"required,max=50" gorm:"type:nvarchar(50);not null"`
 	Score       float64   `json:"score" gorm:"type:decimal(4,2);not null"`
 	Status      string    `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
+	DescriptionEn *string   `json:"description_en" gorm:"type:nvarchar(MAX);default:null"`
+	DescriptionAr *string   `json:"description_ar" gorm:"type:nvarchar(MAX);default:null"`
 	CreatedAt   time.Time `json:"created_at" gorm:"type:datetime;not null"`
 	CreatedBYID uint      `json:"created_by_id" gorm:"column:created_by_id;not null"`
 
