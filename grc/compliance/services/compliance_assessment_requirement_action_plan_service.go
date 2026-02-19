@@ -254,10 +254,10 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		return 0, err
 	}
 
-	// Update IsNotApplicable flag for residual control when action plan is created for specific impact type
+	// Create new residual control with is_not_applicable=true when action plan is created for specific impact type
 	if ComplianceActionPlanFormDTO.ComplianceAssessmentImpactTypeID != nil {
-		// Directly update the residual control for this responsible unit and impact type
-		err = caraps.residualRiskAnalysisSvc.UpdateResidualControlByImpactType(complianceAssessmentRequirementResponsibleUnitID, *ComplianceActionPlanFormDTO.ComplianceAssessmentImpactTypeID, tx)
+		// Create residual control for this responsible unit and impact type with is_not_applicable=true
+		err = caraps.residualRiskAnalysisSvc.CreateResidualControlNotApplicable(complianceAssessmentRequirementResponsibleUnitID, *ComplianceActionPlanFormDTO.ComplianceAssessmentImpactTypeID, currentUserID, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err

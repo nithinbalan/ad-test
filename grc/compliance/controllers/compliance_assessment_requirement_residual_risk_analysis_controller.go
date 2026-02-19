@@ -128,13 +128,13 @@ func (carrac *ComplianceAssessmentRequirementResidualRiskAnalysisController) Cre
 		return
 	}
 
-	var residualControlFormDTO []*complianceDTOs.ComplianceAssessmentResidualControlFormDTO
+	var residualControlFormDTO complianceDTOs.ComplianceAssessmentResidualControlFormDTO
 	if err := c.ShouldBindJSON(&residualControlFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	err = carrac.service.CreateControl(uint(responsibleUnitID), currentUserID, residualControlFormDTO)
+	err = carrac.service.CreateControl(uint(responsibleUnitID), currentUserID, &residualControlFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:

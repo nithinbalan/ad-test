@@ -16,8 +16,8 @@ type ComplianceAssessmentRequirementResidualRiskDTO struct {
 }
 
 type ComplianceAssessmentResidualControlFormDTO struct {
-	ComplianceAssessmentImpactTypeID uint `json:"compliance_assessment_impact_type_id" binding:"required"`
-	ControlID                        uint `json:"control_id" binding:"required"`
+	ComplianceAssessmentImpactTypeID uint  `json:"compliance_assessment_impact_type_id" binding:"required"`
+	ControlID                        *uint `json:"control_id"`
 }
 
 type ComplianceAssessmentResidualControlListDTO struct {
@@ -48,9 +48,9 @@ type ComplianceAssessmentResidualControlListResponseDTO struct {
 }
 
 type ComplianceAssessmentResidualControlDTO struct {
-	ID                             uint                              `json:"id"`
-	ComplianceAssessmentImpactType ComplianceAssessmentImpactTypeDTO `json:"compliance_assessment_impact_type"`
-	Control                        organizationDTOs.ControlDetailDTO `json:"control"`
-	LinkControl                    bool                              `json:"link_control"`
-	IsNotApplicable                bool                              `json:"is_not_applicable"`
+	ID                             uint                               `json:"id"`
+	ComplianceAssessmentImpactType ComplianceAssessmentImpactTypeDTO  `json:"compliance_assessment_impact_type"`
+	Control                        *organizationDTOs.ControlDetailDTO `json:"control"`
+	LinkControl                    bool                               `json:"link_control"`
+	IsNotApplicable                bool                               `json:"is_not_applicable"`
 }
