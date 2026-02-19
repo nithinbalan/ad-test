@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
+	"jethur/grc/violation-report/dtos"
 	violationReportDTOs "jethur/grc/violation-report/dtos"
 	"jethur/grc/violation-report/services"
 	"jethur/utility"
@@ -18,9 +19,9 @@ import (
 )
 
 type ViolationReportController struct {
-	service                services.ViolationReportServiceInterface
-	investigationService   services.ViolationReportInvestigationServiceInterface
-	db                     *gorm.DB
+	service              services.ViolationReportServiceInterface
+	investigationService services.ViolationReportInvestigationServiceInterface
+	db                   *gorm.DB
 }
 
 func NewViolationReportController(service services.ViolationReportServiceInterface) *ViolationReportController {
@@ -389,4 +390,114 @@ func (vrc *ViolationReportController) ExportViolationReportToPDF(c *gin.Context)
 			fmt.Printf("Failed to delete file %s: %v\n", fileName, err)
 		}
 	}()
+}
+
+func (vrc *ViolationReportController) CreateViolationReportComment(c *gin.Context) {
+
+	var dto dtos.ViolationReportCommentFormDTO
+
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	violationReportID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(vrc.db, c, err.Error())
+		return
+	}
+
+	createdComment, err := vrc.service.CreateViolationReportComment(
+		uint(violationReportID),
+		currentUserID,
+		&dto,
+	)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(vrc.db, c, e.Error())
+		}
+		return
+	}
+
+	c.JSON(http.StatusCreated, createdComment)
+}
+
+func (vrc *ViolationReportController) GetAllViolationReportComments(c *gin.Context) {
+
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	comments, err := vrc.service.GetAllViolationReportComments(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(vrc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, comments)
+}
+
+func (vrc *ViolationReportController) DeleteComment(c *gin.Context) {
+
+	violationReportIDStr := c.Param("id")
+	violationReportID, err := strconv.ParseUint(violationReportIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(vrc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := vrc.service.DeleteComment(
+		uint(violationReportID),
+		request.IDs,
+		currentUserID,
+	)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(vrc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }

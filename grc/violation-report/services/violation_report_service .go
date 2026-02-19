@@ -16,6 +16,7 @@ import (
 	masterServices "jethur/grc/masters/services"
 	organizationServices "jethur/grc/organization/services"
 	settingServices "jethur/grc/settings/services"
+	"jethur/grc/violation-report/dtos"
 	violationReportDTOs "jethur/grc/violation-report/dtos"
 	violationReportRepositories "jethur/grc/violation-report/repositories"
 
@@ -35,6 +36,9 @@ type ViolationReportServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetDocumentPath(id uint, token string) (string, error)
 	ExportViolationReports(data []*violationReportDTOs.ViolationReportListDTO, currentUserID uint) (*os.File, error)
+	CreateViolationReportComment(violationReportID uint, currentUserID uint, dto *dtos.ViolationReportCommentFormDTO) (uint, error)
+	GetAllViolationReportComments(violationReportID uint) ([]*dtos.ViolationReportCommentListDTO, error)
+	DeleteComment(violationReportID uint, ids []uint, currentUserID uint) ([]uint, error)
 	ExportViolationReportToPDF(id uint, currentUserID uint, investigationSvc ViolationReportInvestigationServiceInterface) (string, error)
 }
 
@@ -810,13 +814,13 @@ func (irs *ViolationReportService) ExportViolationReports(data []*violationRepor
 				report.TitleAr,
 				report.ReportedAt.Format("2006/01/02 03:04 PM"),
 				report.ViolationReportChannelTitleAr,
-				report.ViolationReportCategoryTitleAr,
+				*report.ViolationReportCategoryTitleAr,
 				utility.GetStringValue(report.ViolationReportSubCategoryTitleAr),
 				report.ViolationReportReasonTitleAr,
 				utility.GetStringValue(report.SeverityLevelTitleAr),
 				report.ReportedEntityTitleAr,
-				// utility.GetStringValue(report.NameOfReporter),
-				// utility.GetStringValue(report.PhoneOfReporter),
+				utility.GetStringValue(report.NameOfReporter),
+				utility.GetStringValue(report.PhoneOfReporter),
 				utility.GetStringValue(report.DescriptionAr),
 				report.ViolationReportStatusTitleAr,
 				report.CreatedUserFirstNameAr + " " + report.CreatedUserLastNameAr,
@@ -830,13 +834,13 @@ func (irs *ViolationReportService) ExportViolationReports(data []*violationRepor
 				report.TitleEn,
 				report.ReportedAt.Format("2006/01/02 03:04 PM"),
 				report.ViolationReportChannelTitleEn,
-				report.ViolationReportCategoryTitleEn,
+				*report.ViolationReportCategoryTitleEn,
 				utility.GetStringValue(report.ViolationReportSubCategoryTitleEn),
 				report.ViolationReportReasonTitleEn,
 				utility.GetStringValue(report.SeverityLevelTitleEn),
 				report.ReportedEntityTitleEn,
-				// utility.GetStringValue(report.NameOfReporter),
-				// utility.GetStringValue(report.PhoneOfReporter),
+				utility.GetStringValue(report.NameOfReporter),
+				utility.GetStringValue(report.PhoneOfReporter),
 				utility.GetStringValue(report.DescriptionEn),
 				report.ViolationReportStatusTitleEn,
 				report.CreatedUserFirstNameEn + " " + report.CreatedUserLastNameEn,
@@ -849,6 +853,147 @@ func (irs *ViolationReportService) ExportViolationReports(data []*violationRepor
 	return utility.GenerateExcelFile(headers, rows)
 }
 
+func (s *ViolationReportService) CreateViolationReportComment(violationReportID uint, currentUserID uint, dto *dtos.ViolationReportCommentFormDTO) (uint, error) {
+
+	existingReport, err := s.repo.GetByID(violationReportID)
+	if err != nil {
+		return 0, utility.NewResourceNotFoundError(err, violationReportID)
+	}
+
+	//  Start transaction
+	tx := s.repo.BeginTransaction()
+	now := time.Now()
+
+	//  Create comment model
+	comment := &models.ViolationReportComment{
+		ViolationReportID:       violationReportID,
+		ViolationReportStatusID: dto.ViolationReportStatusID,
+		Comment:                 dto.Comment,
+		CreatedByID:             currentUserID,
+		CreatedAt:               now,
+	}
+
+	commentID, err := s.repo.CreateComment(comment, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	// Update main report status if provided
+	if dto.ViolationReportStatusID != nil {
+		existingReport.ViolationReportStatusID = *dto.ViolationReportStatusID
+		existingReport.UpdatedBYID = &currentUserID
+		existingReport.UpdatedAt = &now
+		if err := s.repo.Update(existingReport, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	tx.Commit()
+
+	//  Async activity log
+	go func() {
+		fullDetails, err := s.GetFullDetailsByID(violationReportID)
+		if err != nil {
+			return
+		}
+
+		err = s.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.ViolationReportComment{}.TableName(),
+			commentID,
+			fullDetails,
+			currentUserID,
+			"violation_report",
+			"violation",
+			"",
+			nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":   models.CreateAction,
+				"recordID": commentID,
+				"userID":   currentUserID,
+				"error":    err.Error(),
+			}
+			utility.LogError("Failed to log violation report comment activity", fields)
+		}
+	}()
+
+	return commentID, nil
+}
+
+func (s *ViolationReportService) GetAllViolationReportComments(violationReportID uint) ([]*dtos.ViolationReportCommentListDTO, error) {
+	return s.repo.GetAllViolationReportComments(violationReportID)
+}
+
+func (s *ViolationReportService) DeleteComment(violationReportID uint, ids []uint, currentUserID uint) ([]uint, error) {
+
+	tx := s.repo.BeginTransaction()
+
+	// Validate violation report exists
+	if _, err := s.repo.GetByID(violationReportID); err != nil {
+		return nil, err
+	}
+
+	var failedIDs []uint
+	var successfulIDs []uint
+	var deletedComments []map[string]interface{}
+
+	for _, id := range ids {
+
+		comment, err := s.repo.GetFullCommentDetailsByID(id)
+		if err != nil {
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+
+		// Ensure comment belongs to this violation report
+		if comment.ViolationReportID != violationReportID {
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+
+		if err := s.repo.DeleteComment(id, tx); err != nil {
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+
+		successfulIDs = append(successfulIDs, id)
+
+		deletedComments = append(deletedComments, map[string]interface{}{
+			"id":                  id,
+			"violation_report_id": violationReportID,
+		})
+	}
+
+	if len(failedIDs) > 0 {
+		tx.Rollback()
+		return failedIDs, nil
+	}
+
+	tx.Commit()
+
+	if len(successfulIDs) > 0 {
+		go func() {
+			err := s.activityLogSvc.LogBulkActivities(
+				models.DeleteAction,
+				models.ViolationReportComment{}.TableName(),
+				successfulIDs,
+				deletedComments,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+			}
+		}()
+	}
+
+	return failedIDs, nil
+}
 func (irs *ViolationReportService) ExportViolationReportToPDF(id uint, currentUserID uint, investigationSvc ViolationReportInvestigationServiceInterface) (string, error) {
 	violationReportDTO, err := irs.GetFullDetailsByID(id)
 	if err != nil {
@@ -906,15 +1051,15 @@ func (irs *ViolationReportService) ExportViolationReportToPDF(id uint, currentUs
 		NameOfReporter:             violationReportDTO.NameOfReporter,
 		PhoneOfReporter:            violationReportDTO.PhoneOfReporter,
 		EmailOfReporter:            violationReportDTO.EmailOfReporter,
-		ViolationReportChannel:      violationReportDTO.ViolationReportChannel,
-		ViolationReportReason:       violationReportDTO.ViolationReportReason,
-		ViolationReportCategory:     violationReportDTO.ViolationReportCategory,
+		ViolationReportChannel:     violationReportDTO.ViolationReportChannel,
+		ViolationReportReason:      violationReportDTO.ViolationReportReason,
+		ViolationReportCategory:    violationReportDTO.ViolationReportCategory,
 		ViolationReportSubCategory: violationReportDTO.ViolationReportSubCategory,
 		ViolationReportStatus:      violationReportDTO.ViolationReportStatus,
 		SeverityLevel:              violationReportDTO.SeverityLevel,
 		ReportedByUserFirstNameEn:  violationReportDTO.CreatedByUser.FirstNameEN,
 		ReportedByUserLastNameEn:   violationReportDTO.CreatedByUser.LastNameEN,
-		DescriptionEn:             descriptionEn,
+		DescriptionEn:              descriptionEn,
 		DescriptionAr:              descriptionAr,
 		Documents:                  violationReportDTO.Documents,
 		Investigation:              investigationDTO,
