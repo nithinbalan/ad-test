@@ -58,24 +58,6 @@ func (caads *ComplianceAssessmentAcknowledgeDepartmentService) GetAll(assessment
 		return nil, fmt.Errorf("assessment is not a regulation notification assessment")
 	}
 
-	// Get user details to check for super admin role
-	user, err := caads.userSvc.GetFullDetailsByID(currentUserID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Check if user has super admin or head-of-compliance role
-	var userIDForFilter *uint
-	userIDForFilter = &currentUserID
-	if user.Roles != nil {
-		for _, role := range *user.Roles {
-			if role.Type != nil && (*role.Type == "super-admin" || *role.Type == "head-of-compliance") {
-				userIDForFilter = nil // No user filtering for super admin
-				break
-			}
-		}
-	}
-
 	// Get organization level settings to determine primary org unit field
 	orgLevel, err := caads.organizationLevelSvc.GetPrimaryLevel()
 	if err != nil {
@@ -92,17 +74,17 @@ func (caads *ComplianceAssessmentAcknowledgeDepartmentService) GetAll(assessment
 	// Check if it's public or shared
 	if assessment.ComplianceRegister.IsPublic {
 		// For public assessments, get all active departments
-		return caads.repo.GetAllForPublicAssessment(assessmentID, userIDForFilter, primaryOrgUnitField, params)
+		return caads.repo.GetAllForPublicAssessment(assessmentID, nil, primaryOrgUnitField, params)
 	} else if assessment.ComplianceRegister.IsShared {
 		// For shared assessments, try to get shared departments first
-		result, err := caads.repo.GetAllForSharedAssessment(assessmentID, uint(assessment.ComplianceRegister.ID), userIDForFilter, primaryOrgUnitField, params)
+		result, err := caads.repo.GetAllForSharedAssessment(assessmentID, uint(assessment.ComplianceRegister.ID), nil, primaryOrgUnitField, params)
 		if err != nil {
 			return nil, err
 		}
 		return result, nil
 	} else {
 		// For non-public/non-shared assessments, use the same active filter as public
-		return caads.repo.GetAllForPublicAssessment(assessmentID, userIDForFilter, primaryOrgUnitField, params)
+		return caads.repo.GetAllForPublicAssessment(assessmentID, nil, primaryOrgUnitField, params)
 	}
 }
 

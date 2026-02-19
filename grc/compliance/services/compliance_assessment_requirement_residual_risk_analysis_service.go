@@ -18,9 +18,10 @@ type ComplianceAssessmentRequirementResidualRiskAnalysisServiceInterface interfa
 	CalculateResidualRiskScore(responsibleUnitID uint) error
 
 	GetAllByResponsibleUnitID(responsibleUnitID uint, params *complianceDTOs.ComplianceAssessmentResidualControlListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentResidualControlListResponseDTO, error)
-	CreateControl(responsibleUnitID uint, currentUserID uint, residualControlFormDTO []*complianceDTOs.ComplianceAssessmentResidualControlFormDTO) error
+	CreateControl(responsibleUnitID uint, currentUserID uint, residualControlFormDTO *complianceDTOs.ComplianceAssessmentResidualControlFormDTO) error
 	DeleteControl(responsibleUnitID uint, currentUserID uint) error
 	UpdateResidualControlByImpactType(responsibleUnitID uint, impactTypeID uint, tx ...utility.DatabaseTransaction) error
+	CreateResidualControlNotApplicable(responsibleUnitID uint, impactTypeID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -185,29 +186,21 @@ func (carras *ComplianceAssessmentRequirementResidualRiskAnalysisService) GetAll
 }
 
 // Create creates residual control mappings for a responsible unit
-func (carras *ComplianceAssessmentRequirementResidualRiskAnalysisService) CreateControl(responsibleUnitID uint, currentUserID uint, residualControlFormDTO []*complianceDTOs.ComplianceAssessmentResidualControlFormDTO) error {
+func (carras *ComplianceAssessmentRequirementResidualRiskAnalysisService) CreateControl(responsibleUnitID uint, currentUserID uint, residualControlFormDTO *complianceDTOs.ComplianceAssessmentResidualControlFormDTO) error {
 	tx := carras.repo.BeginTransaction()
 
-	// Delete existing residual controls for this responsible unit
-	if err := carras.repo.DeleteByResponsibleUnitID(responsibleUnitID, tx); err != nil {
-		tx.Rollback()
-		return err
+	// Create new residual control record
+	record := &models.ComplianceAssessmentResidualControl{
+		ComplianceAssessmentRequirementResponsibleUnitID: responsibleUnitID,
+		ComplianceAssessmentImpactTypeID:                 residualControlFormDTO.ComplianceAssessmentImpactTypeID,
+		ControlID:                                        residualControlFormDTO.ControlID,
+		LinkControl:                                      true,
+		CreatedBYID:                                      currentUserID,
+		CreatedAt:                                        time.Now(),
 	}
 
 	var residualControlRecords []*models.ComplianceAssessmentResidualControl
-
-	// Create new residual control records
-	for _, rcForm := range residualControlFormDTO {
-		record := &models.ComplianceAssessmentResidualControl{
-			ComplianceAssessmentRequirementResponsibleUnitID: responsibleUnitID,
-			ComplianceAssessmentImpactTypeID:                 rcForm.ComplianceAssessmentImpactTypeID,
-			ControlID:                                        &rcForm.ControlID,
-			LinkControl:                                      true,
-			CreatedBYID:                                      currentUserID,
-			CreatedAt:                                        time.Now(),
-		}
-		residualControlRecords = append(residualControlRecords, record)
-	}
+	residualControlRecords = append(residualControlRecords, record)
 
 	// Create residual control records
 	if err := carras.repo.Create(residualControlRecords, tx); err != nil {
@@ -284,4 +277,24 @@ func (carras *ComplianceAssessmentRequirementResidualRiskAnalysisService) Delete
 // UpdateResidualControlByImpactType updates IsNotApplicable flag for residual control by impact type
 func (carcs *ComplianceAssessmentRequirementResidualRiskAnalysisService) UpdateResidualControlByImpactType(responsibleUnitID uint, impactTypeID uint, tx ...utility.DatabaseTransaction) error {
 	return carcs.repo.UpdateResidualControlByImpactType(responsibleUnitID, impactTypeID, tx...)
+}
+
+// CreateResidualControlNotApplicable creates a new residual control record with is_not_applicable=true
+func (carcs *ComplianceAssessmentRequirementResidualRiskAnalysisService) CreateResidualControlNotApplicable(responsibleUnitID uint, impactTypeID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error {
+	// Create new residual control record with is_not_applicable=true
+	record := &models.ComplianceAssessmentResidualControl{
+		ComplianceAssessmentRequirementResponsibleUnitID: responsibleUnitID,
+		ComplianceAssessmentImpactTypeID:                 impactTypeID,
+		ControlID:                                        nil, // No control linked
+		LinkControl:                                      false,
+		IsNotApplicable:                                  true, // Set to true for action plan creation
+		CreatedBYID:                                      currentUserID,
+		CreatedAt:                                        time.Now(),
+	}
+
+	var residualControlRecords []*models.ComplianceAssessmentResidualControl
+	residualControlRecords = append(residualControlRecords, record)
+
+	// Create residual control record
+	return carcs.repo.Create(residualControlRecords, tx...)
 }
