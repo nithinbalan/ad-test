@@ -21,6 +21,7 @@ type ComplianceAssessmentAcknowledgementListDTO struct {
 	Color                   string `json:"color"`
 	Comment                 string `json:"comment"`
 	ProfileImagePath        string `json:"profile_image_path"`
+	OrganizationUnitID      uint   `json:"organization_unit_id"`
 	OrganizationUnitTitleEn string `json:"organization_unit_title_en"`
 	OrganizationUnitTitleAr string `json:"organization_unit_title_ar"`
 	Acknowledged            bool   `json:"acknowledged"`
