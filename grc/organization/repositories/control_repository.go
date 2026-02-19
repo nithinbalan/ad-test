@@ -27,6 +27,8 @@ type ControlRepositoryInterface interface {
 	//lifecycle status
 	GetIDsByLifecycleStatus(ids []uint, status string) ([]uint, error)
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
+	CheckControlAutomationExists(id uint) (bool, error)
+	CheckControlConsistencyExists(id uint) (bool, error)
 }
 
 type ControlRepository struct {
@@ -65,6 +67,18 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 			owner.color AS owner_color,
 			owner.email AS owner_email,
 			owner.profile_image_path AS owner_profile_image_path,
+			control_automations.title_en AS control_automation_title_en,
+			control_automations.title_ar AS control_automation_title_ar,
+			control_automations.type AS control_automation_type,
+			control_automations.score AS control_automation_score,
+			control_automations.status AS control_automation_status,
+			control_consistencies.title_en AS control_consistency_title_en,
+			control_consistencies.title_ar AS control_consistency_title_ar,
+			control_consistencies.type AS control_consistency_type,
+			control_consistencies.score AS control_consistency_score,
+			control_consistencies.status AS control_consistency_status,
+			control_consistencies.description_en AS control_consistency_description_en,
+			control_consistencies.description_ar AS control_consistency_description_ar,
 			review_frequencies.title_en AS review_frequency_title_en,
 			review_frequencies.title_ar AS review_frequency_title_ar,
 			test_responsible_user.id AS test_responsible_user_id,
@@ -114,6 +128,8 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 		Joins("LEFT JOIN control_categories ON control_categories.id = controls.control_category_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = controls.responsible_unit_id").
 		Joins("LEFT JOIN users AS owner ON owner.id = controls.responsible_user_id").
+		Joins("LEFT JOIN control_automations ON control_automations.id = controls.control_automation_id").
+		Joins("LEFT JOIN control_consistencies ON control_consistencies.id = controls.control_consistency_id").
 		Joins("LEFT JOIN control_implementation_statuses ON control_implementation_statuses.id = controls.control_implementation_status_id").
 		Joins("LEFT JOIN control_efficiency_statuses ON control_efficiency_statuses.id = controls.control_efficiency_status_id").
 		Joins("LEFT JOIN review_frequencies ON review_frequencies.id = controls.review_frequency_id").
@@ -343,6 +359,10 @@ func (repo *ControlRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("Risks").
 		Preload("RiskMatrixRating").
 		Preload("RiskMatrixRatingValue").
+		Preload("ControlAutomation").
+		Preload("ControlAutomation.CreatedByUser").
+		Preload("ControlConsistency").
+		Preload("ControlConsistency.CreatedByUser").
 		Preload("LatestControlTest", func(db *gorm.DB) *gorm.DB {
 			return db.Where("id IN (?)", latestControlTestSubQuery).
 				Preload("TestedByUser")
@@ -842,4 +862,20 @@ func (repo *ControlRepository) ForceDelete(id uint, tx ...utility.DatabaseTransa
 
 	// Force hard delete (ignore soft delete)
 	return db.Delete(&models.Control{}, id).Error
+}
+
+func (repo *ControlRepository) CheckControlAutomationExists(id uint) (bool, error) {
+	var count int64
+	if err := repo.db.Model(&models.ControlAutomation{}).Where("id = ?", id).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (repo *ControlRepository) CheckControlConsistencyExists(id uint) (bool, error) {
+	var count int64
+	if err := repo.db.Model(&models.ControlConsistency{}).Where("id = ?", id).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

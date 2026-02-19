@@ -220,6 +220,8 @@ func (cs *ControlService) Create(currentUserID uint, controlFormDTO *organizatio
 		Justification:                 controlFormDTO.Justification,
 		ApplicabilityChangeDate:       dates.ApplicabilityChangeDate,
 		ImplementationGuideline:       controlFormDTO.ImplementationGuideline,
+		ControlAutomationID:           controlFormDTO.ControlAutomationID,
+		ControlConsistencyID:          controlFormDTO.ControlConsistencyID,
 	}
 
 	id, err := cs.repo.Create(control, transaction)
@@ -375,6 +377,8 @@ func (cs *ControlService) Update(id uint, currentUserID uint, controlFormDTO *or
 	existingControl.ImplementationGuideline = controlFormDTO.ImplementationGuideline
 	existingControl.ApplicabilityChangeDate = dates.ApplicabilityChangeDate
 	existingControl.UpdatedByID = &currentUserID
+	existingControl.ControlAutomationID = controlFormDTO.ControlAutomationID
+	existingControl.ControlConsistencyID = controlFormDTO.ControlConsistencyID
 
 	err = cs.repo.Update(existingControl)
 	if err != nil {
@@ -777,6 +781,26 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 
 	if controlFormDTO.TestFrequencyID != nil && controlFormDTO.TestResponsibleUserID == nil {
 		return utility.NewValidationError(fmt.Errorf("test responsible user is required when test frequency is selected"), "required", "test responsible user")
+	}
+
+	if controlFormDTO.ControlAutomationID != nil {
+		exists, err := cs.repo.CheckControlAutomationExists(*controlFormDTO.ControlAutomationID)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return utility.NewValidationError(fmt.Errorf("control automation does not exist"), "not_exist", "control automation")
+		}
+	}
+
+	if controlFormDTO.ControlConsistencyID != nil {
+		exists, err := cs.repo.CheckControlConsistencyExists(*controlFormDTO.ControlConsistencyID)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return utility.NewValidationError(fmt.Errorf("control consistency does not exist"), "not_exist", "control consistency")
+		}
 	}
 
 	if controlFormDTO.IsApplicable {
