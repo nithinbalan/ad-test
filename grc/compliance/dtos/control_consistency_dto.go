@@ -13,6 +13,8 @@ type ControlConsistencyResponseDTO struct {
 	Type          string                           `json:"type"`
 	Score         float64                          `json:"score"`
 	Status        string                           `json:"status"`
+	DescriptionEn *string                          `json:"description_en"`
+	DescriptionAr *string                          `json:"description_ar"`
 	CreatedAt     time.Time                        `json:"created_at"`
 	CreatedByID   uint                             `json:"created_by_id"`
 	CreatedByUser *organizationDTOs.UserMinimalDTO `json:"created_by_user"`
