@@ -79,8 +79,9 @@ type ComplianceAssessmentUpdateFormDTO struct {
 }
 
 type ComplianceAssessmentDetailDTO struct {
-	ID                 int                          `json:"id"`
-	ComplianceRegister *ComplianceRegisterDetailDTO `json:"compliance_register"`
+	ID                   int                          `json:"id"`
+	ComplianceRegisterID *uint                        `json:"compliance_register_id"`
+	ComplianceRegister   *ComplianceRegisterDetailDTO `json:"compliance_register"`
 	// OrganizationUnitID uint                         `json:"organization_unit_id"`
 	ReviewUserID      uint `json:"review_user_id"`
 	SubmittedByUserID uint `json:"submitted_by_user_id"`

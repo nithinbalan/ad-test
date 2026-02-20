@@ -191,7 +191,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 	complianceAssessmentRequirementResponsibleUnitID := uint(complianceAssessmentRequirementResponsibleUnit.ID)
 
 	complianceAssessmentRequirementActionPlan := &models.ComplianceActionPlan{
-		ComplianceRegisterID:                             nil,
+		ComplianceRegisterID:                             complianceAssessment.ComplianceRegisterID,
 		ComplianceAssessmentRequirementResponsibleUnitID: &complianceAssessmentRequirementResponsibleUnitID,
 		Title:                            ComplianceActionPlanFormDTO.Title,
 		Description:                      ComplianceActionPlanFormDTO.Description,
@@ -236,9 +236,9 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		tx.Rollback()
 		return 0, err
 	}
-	urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d, "action_plan_id":%d}`, complianceAssessmentID, requirementID, id)
+	urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, *complianceAssessment.ComplianceRegisterID, id)
 	taskDTO := commonDTOs.TaskFormDTO{
-		ModuleIdentifier:       "compliance_assessment",
+		ModuleIdentifier:       "compliance_register",
 		ComplianceActionPlanID: &id,
 		Title:                  ComplianceActionPlanFormDTO.Title,
 		Description:            ComplianceActionPlanFormDTO.Description,
