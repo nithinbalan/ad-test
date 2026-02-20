@@ -24,7 +24,7 @@ type ComplianceActionPlan struct {
 	UpdatedAt                                        *time.Time `json:"updated_at" gorm:"type:datetime"`
 	CreatedByID                                      uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedByID                                      *uint      `json:"updated_by_id" gorm:"default:null"`
-	ComplianceAssessmentImpactTypeID                 uint       `json:"compliance_assessment_impact_type_id" binding:"required" gorm:"default:null"`
+	ComplianceAssessmentImpactTypeID                 *uint      `json:"compliance_assessment_impact_type_id" binding:"required" gorm:"default:null"`
 
 	// Relationships
 	ComplianceRegister                             *ComplianceRegister                             `gorm:"foreignKey:ComplianceRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
