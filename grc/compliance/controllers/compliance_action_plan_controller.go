@@ -66,6 +66,7 @@ func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.C
 		"severity_level_ids",
 		"responsible_user_ids",
 		"action_plan_status_ids",
+		"ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
