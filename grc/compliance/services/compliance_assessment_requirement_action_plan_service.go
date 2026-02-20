@@ -202,7 +202,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		SeverityLevelID:                  ComplianceActionPlanFormDTO.SeverityLevelID,
 		ReviewUserID:                     ComplianceActionPlanFormDTO.ReviewUserID,
 		Comments:                         ComplianceActionPlanFormDTO.Comments,
-		ComplianceAssessmentImpactTypeID: *ComplianceActionPlanFormDTO.ComplianceAssessmentImpactTypeID,
+		ComplianceAssessmentImpactTypeID: ComplianceActionPlanFormDTO.ComplianceAssessmentImpactTypeID,
 		CreatedByID:                      currentUserID,
 	}
 
