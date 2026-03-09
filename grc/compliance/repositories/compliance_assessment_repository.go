@@ -84,6 +84,8 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
             compliance_assessments.*,
 			compliance_register.title_en AS compliance_register_title_en,
 			compliance_register.title_ar AS compliance_register_title_ar,
+			compliance_register.is_regulation_notification_assessment AS is_regulation_notification_assessment,
+			compliance_register.is_risk_based_assessment AS is_risk_based_assessment,
 			review_user.id AS review_user_id,
 			review_user.first_name_en AS review_user_first_name_en,
             review_user.first_name_ar AS review_user_first_name_ar,
@@ -229,6 +231,10 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values.ComplianceStatus").
 		Preload("ComplianceRegister.ResponsibleUser").
+		Preload("ComplianceRegister.IssuingAuthorities").
+		Preload("ComplianceRegister.IssuingAuthorities.IssuingAuthority").
+		Preload("ComplianceRegister.IssuingAuthorities.Entity").
+		Preload("ComplianceRegister.IssuingAuthorities.Document").
 		Preload("AssessmentRequirements").
 		Preload("AssessmentRequirements.ComplianceStatus").
 		Preload("AssessmentRequirements.ResponsibleUnits").
@@ -838,6 +844,10 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByIDOptimized(id uint,
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values.ComplianceStatus").
 		Preload("ComplianceRegister.ResponsibleUser").
+		Preload("ComplianceRegister.IssuingAuthorities").
+		Preload("ComplianceRegister.IssuingAuthorities.IssuingAuthority").
+		Preload("ComplianceRegister.IssuingAuthorities.Entity").
+		Preload("ComplianceRegister.IssuingAuthorities.Document").
 		Preload("ReviewUser").
 		Preload("ComplianceAssessmentStatus").
 		Preload("SubmittedByUser").

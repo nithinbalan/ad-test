@@ -12,6 +12,8 @@ type ComplianceAssessmentListDTO struct {
 	ComplianceRegisterID                uint       `json:"compliance_register_id"`
 	ComplianceRegisterTitleEn           string     `json:"compliance_register_title_en"`
 	ComplianceRegisterTitleAr           string     `json:"compliance_register_title_ar"`
+	IsRegulationNotificationAssessment  bool       `json:"is_regulation_notification_assessment"`
+	IsRiskBasedAssessment               bool       `json:"is_risk_based_assessment"`
 	Description                         *string    `json:"description"`
 	ReviewUserID                        uint       `json:"review_user_id"`
 	ReviewUserFirstNameEn               string     `json:"review_user_first_name_en"`
