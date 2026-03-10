@@ -27,6 +27,21 @@ func (crc *ConsultationRequestController) GetAllConsultationRequests(c *gin.Cont
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
+
+	// Export flag
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	var err error
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, "Invalid export parameter")
+			return
+		}
+	}
+
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, "Invalid page parameter")
@@ -44,10 +59,30 @@ func (crc *ConsultationRequestController) GetAllConsultationRequests(c *gin.Cont
 		Keyword:  keyword,
 		Page:     page,
 		PageSize: pageSize,
+		Export:   export,
 	}
-	requests, err := crc.service.GetAll(&queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+	requests, err := crc.service.GetAll(&queryParams, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	if export {
+		excelFile, err := crc.service.ExportConsultationRequests(requests.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(crc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Disposition", `attachment; filename="Consultation Requests.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
 		return
 	}
 
@@ -291,4 +326,11 @@ func (crc *ConsultationRequestController) CreateConsultationRequestComment(c *gi
 	}
 
 	c.JSON(http.StatusCreated, createdComment)
+}
+
+// Export consultation requests
+func (crc *ConsultationRequestController) GetConsultationRequestExport(c *gin.Context) {
+	c.Set("export", true)
+
+	crc.GetAllConsultationRequests(c)
 }

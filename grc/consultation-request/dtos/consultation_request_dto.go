@@ -64,6 +64,7 @@ type ConsultationRequestListQueryParamsDTO struct {
 	Keyword  string
 	Page     int
 	PageSize int
+	Export   bool
 }
 type ConsultationRequestListResponseDTO struct {
 	Items      []*ConsultationRequestListDTO `json:"items"`
