@@ -15,7 +15,7 @@ import (
 
 type ConsultationRequestRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *dtos.ConsultationRequestListQueryParamsDTO) (*dtos.ConsultationRequestListResponseDTO, error)
+	GetAll(params *dtos.ConsultationRequestListQueryParamsDTO, departmentID *uint, currentUserID uint) (*dtos.ConsultationRequestListResponseDTO, error)
 	GetByID(id uint) (*models.ConsultationRequest, error)
 	GetFullDetailsByID(id uint) (*models.ConsultationRequest, error)
 	Create(cr *models.ConsultationRequest, tx ...utility.DatabaseTransaction) (uint, error)
@@ -41,7 +41,7 @@ func (repo *ConsultationRequestRepository) BeginTransaction() utility.DatabaseTr
 }
 
 // GetAll with filters, pagination, keyword search
-func (repo *ConsultationRequestRepository) GetAll(params *dtos.ConsultationRequestListQueryParamsDTO) (*dtos.ConsultationRequestListResponseDTO, error) {
+func (repo *ConsultationRequestRepository) GetAll(params *dtos.ConsultationRequestListQueryParamsDTO, departmentID *uint, currentUserID uint) (*dtos.ConsultationRequestListResponseDTO, error) {
 	var requests []*dtos.ConsultationRequestListDTO
 	var totalCount int64
 	query := repo.db.Table("consultation_requests").
@@ -97,6 +97,15 @@ func (repo *ConsultationRequestRepository) GetAll(params *dtos.ConsultationReque
 		Joins(`LEFT JOIN users AS created_user ON created_user.id = consultation_requests.created_by_id`).
 		Joins(`LEFT JOIN users AS updated_user ON updated_user.id = consultation_requests.updated_by_id`)
 
+	// Add department filter if departmentID is provided (non-admin users)
+	if departmentID != nil {
+		query = query.Where(
+			repo.db.Where("consultation_requests.created_by_id = ?", currentUserID).
+				Or("consultation_requests.requesting_department_unit_id = ?", *departmentID).
+				Or("consultation_requests.consulted_department_unit_id = ?", *departmentID),
+		)
+	}
+
 	if params.Keyword != "" {
 		kw := "%" + params.Keyword + "%"
 
@@ -129,14 +138,22 @@ func (repo *ConsultationRequestRepository) GetAll(params *dtos.ConsultationReque
 		return nil, err
 	}
 
-	offset := (params.Page - 1) * params.PageSize
-	query = query.Offset(offset).Limit(params.PageSize)
+	// Skip pagination for export
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
 
 	if err := query.Find(&requests).Error; err != nil {
 		return nil, err
 	}
 
-	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	var totalPages int
+	if !params.Export {
+		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+	} else {
+		totalPages = 1
+	}
 
 	response := &dtos.ConsultationRequestListResponseDTO{
 		Items: requests,

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"jethur/grc/consultation-request/dtos"
@@ -20,7 +21,7 @@ import (
 
 // Interface for dependency injection
 type ConsultationRequestServiceInterface interface {
-	GetAll(params *dtos.ConsultationRequestListQueryParamsDTO) (*dtos.ConsultationRequestListResponseDTO, error)
+	GetAll(params *dtos.ConsultationRequestListQueryParamsDTO, currentUserID uint) (*dtos.ConsultationRequestListResponseDTO, error)
 	GetByID(id uint) (*models.ConsultationRequest, error)
 	GetFullDetailsByID(id uint) (*dtos.ConsultationRequestDetailDTO, error)
 	Create(currentUserID uint, dto *dtos.ConsultationRequestFormDTO) (uint, error)
@@ -30,6 +31,7 @@ type ConsultationRequestServiceInterface interface {
 	UpdateNotes(consultationRequestID uint, notes string, updatedByID uint) error
 	CreateConsultationRequestComment(consultationRequestID uint, currentUserID uint, dto *dtos.ConsultationRequestCommentFormDTO) (uint, error)
 	GetAllConsultationRequestComments(consultationRequestID uint) ([]*dtos.ConsultationRequestCommentListDTO, error)
+	ExportConsultationRequests(data []*dtos.ConsultationRequestListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Implementation
@@ -39,6 +41,7 @@ type ConsultationRequestService struct {
 	activityLogSvc logServices.ActivityLogServiceInterface
 	orgUnitSvc     settingsServices.OrganizationUnitServiceInterface
 	statusSvc      ConsultationRequestStatusServiceInterface
+	userSettingSvc organizationServices.UserSettingServiceInterface
 }
 
 // Constructor
@@ -48,6 +51,7 @@ func NewConsultationRequestService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	orgUnitSvc settingsServices.OrganizationUnitServiceInterface,
 	statusSvc ConsultationRequestStatusServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) *ConsultationRequestService {
 	return &ConsultationRequestService{
 		repo:           repo,
@@ -55,11 +59,31 @@ func NewConsultationRequestService(
 		activityLogSvc: activityLogSvc,
 		orgUnitSvc:     orgUnitSvc,
 		statusSvc:      statusSvc,
+		userSettingSvc: userSettingSvc,
 	}
 }
 
-func (s *ConsultationRequestService) GetAll(params *dtos.ConsultationRequestListQueryParamsDTO) (*dtos.ConsultationRequestListResponseDTO, error) {
-	return s.repo.GetAll(params)
+func (s *ConsultationRequestService) GetAll(params *dtos.ConsultationRequestListQueryParamsDTO, currentUserID uint) (*dtos.ConsultationRequestListResponseDTO, error) {
+	user, err := s.userSvc.GetFullDetailsByID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var departmentID *uint
+	if user.OrganizationUnit2 != nil {
+		id := uint(user.OrganizationUnit2.ID)
+		departmentID = &id
+	}
+
+	if user.Roles != nil {
+		for _, role := range *user.Roles {
+			if *role.Type == "super-admin" {
+				departmentID = nil
+				break
+			}
+		}
+	}
+	return s.repo.GetAll(params, departmentID, currentUserID)
 }
 func (s *ConsultationRequestService) GetAllConsultationRequestComments(consultationRequestID uint) ([]*dtos.ConsultationRequestCommentListDTO, error) {
 	return s.repo.GetAllConsultationRequestComments(consultationRequestID)
@@ -567,4 +591,80 @@ func (s *ConsultationRequestService) validateConsultationRequestDTO(dto *dtos.Co
 	// }
 
 	return nil
+}
+
+func (s *ConsultationRequestService) ExportConsultationRequests(data []*dtos.ConsultationRequestListDTO, currentUserID uint) (*os.File, error) {
+	// Fetch user setting for language preference
+	userSetting, err := s.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	var headers []string
+	// Define headers based on the user's language setting
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Date Raised",
+			"Reply Date",
+			"Status",
+			"Requesting Department",
+			"Consulted Department",
+			"Responsible User",
+			"Request Details",
+			"Notes",
+			"Created By",
+			"Created At",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Reference Number",
+			"Date Raised",
+			"Reply Date",
+			"Status",
+			"Requesting Department",
+			"Consulted Department",
+			"Responsible User",
+			"Request Details",
+			"Notes",
+			"Created By",
+			"Created At",
+		}
+	}
+	// Convert the consultation request data to [][]interface{} based on language setting
+	rows := make([][]interface{}, len(data))
+	for i, request := range data {
+		statusTitle := request.StatusTitleEn
+		requestingDept := request.RequestingDepartmentUnitTitleEn
+		consultedDept := request.ConsultedDepartmentUnitTitleEn
+		responsibleUser := request.ResponsibleFirstNameEn + " " + request.ResponsibleLastNameEn
+		createdBy := request.CreatedByFirstNameEn + " " + request.CreatedByLastNameEn
+
+		if userSetting.Language == "ar" {
+			statusTitle = request.StatusTitleAr
+			requestingDept = request.RequestingDepartmentUnitTitleAr
+			consultedDept = request.ConsultedDepartmentUnitTitleAr
+			responsibleUser = request.ResponsibleFirstNameAr + " " + request.ResponsibleLastNameAr
+			createdBy = request.CreatedByFirstNameAr + " " + request.CreatedByLastNameAr
+		}
+
+		rows[i] = []interface{}{
+			i + 1,
+			request.ReferenceNumber,
+			request.DateRaised,
+			request.ReplyDate,
+			statusTitle,
+			requestingDept,
+			consultedDept,
+			responsibleUser,
+			request.RequestDetails,
+			request.Notes,
+			createdBy,
+			request.CreatedAt,
+		}
+	}
+
+	// Generate the Excel file
+	return utility.GenerateExcelFile(headers, rows)
 }
