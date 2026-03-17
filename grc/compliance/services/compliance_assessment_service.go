@@ -884,6 +884,19 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(com
 					"compliance requirement",
 				)
 			}
+
+			// Check if all requirements have inherent risk score
+			allHaveInherentScore, err := cras.repo.CheckAllRequirementsHaveInherentScore(complianceAssessmentFormDTO.ComplianceRegisterID)
+			if err != nil {
+				return fmt.Errorf("failed to validate inherent risk scores: %w", err)
+			}
+			if !allHaveInherentScore {
+				return utility.NewValidationError(
+					fmt.Errorf("all requirements must have inherent risk analysis completed before creating assessment"),
+					"inherent_risk_analysis_incomplete",
+					"compliance requirement",
+				)
+			}
 		}
 	}
 

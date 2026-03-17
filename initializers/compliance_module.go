@@ -406,6 +406,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		complianceAssessmentSvc,
 		organizationModule.UserSvc,
 		settingsModule.OrganizationLevelSvc,
+		complianceAssessmentStatusSvc,
 	)
 	complianceAssessmentAcknowledgeDepartmentController := controllers.NewComplianceAssessmentAcknowledgeDepartmentController(complianceAssessmentAcknowledgeDepartmentSvc)
 	controlAutomationRepo := repositories.NewControlAutomationRepository(db)
@@ -471,8 +472,8 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		SecrecyClassificationController:                               secrecyClassificationController,
 		ComplianceAssessmentAcknowledgeDepartmentController:           complianceAssessmentAcknowledgeDepartmentController,
 		ComplianceAssessmentRequirementResidualRiskAnalysisController: complianceAssessmentRequirementResidualRiskAnalysisController,
-		ControlAutomationController:                                     controlAutomationController,
-		ControlConsistencyController:                                    controlConsistencyController,
+		ControlAutomationController:                                   controlAutomationController,
+		ControlConsistencyController:                                  controlConsistencyController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,

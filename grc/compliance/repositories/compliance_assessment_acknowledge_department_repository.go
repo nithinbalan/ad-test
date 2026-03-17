@@ -24,6 +24,8 @@ type ComplianceAssessmentAcknowledgeDepartmentRepositoryInterface interface {
 	GetSharedAssessmentAcknowledgmentSummary(assessmentID uint, complianceRegisterID uint) (*complianceDTOs.ComplianceAssessmentAcknowledgmentSummaryDTO, error)
 	GetOrgUnitAcknowledgmentSummary(assessmentID uint, primaryOrgUnitField string) ([]complianceDTOs.ComplianceAssessmentAcknowledgmentOrgUnitSummaryDTO, error)
 	GetPublicAcknowledgmentSummaryByOrgUnit(assessmentID uint) ([]complianceDTOs.ComplianceAssessmentAcknowledgmentOrgUnitSummaryDTO, error)
+	CheckAllDepartmentsAcknowledged(assessmentID uint, primaryOrgUnitField string, isPublic bool, isShared bool, complianceRegisterID uint, tx ...utility.DatabaseTransaction) (bool, error)
+	ComplianceAssessmentUpdateStatus(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error
 }
 
 // Implementation
@@ -588,4 +590,80 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetPublicAcknow
 	}
 
 	return summaries, nil
+}
+
+func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) CheckAllDepartmentsAcknowledged(assessmentID uint, primaryOrgUnitField string, isPublic bool, isShared bool, complianceRegisterID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var totalDepartments int64
+	var acknowledgedDepartments int64
+
+	if isPublic {
+		// For public assessments, count all active organization units
+		if err := db.Model(&models.OrganizationUnit{}).Where("status = ?", "active").Count(&totalDepartments).Error; err != nil {
+			return false, err
+		}
+
+		// Count acknowledged departments
+		if err := db.Model(&models.ComplianceAssessmentAcknowledgeDepartment{}).
+			Where("compliance_assessment_id = ?", assessmentID).
+			Count(&acknowledgedDepartments).Error; err != nil {
+			return false, err
+		}
+	} else if isShared {
+		// For shared assessments, count shared departments using correct table name
+		query := fmt.Sprintf(`
+			SELECT COUNT(DISTINCT organization_units.id)
+			FROM organization_units
+			INNER JOIN compliance_register_shared_units crsu ON crsu.department_id = organization_units.id AND crsu.compliance_register_id = %d
+			WHERE organization_units.status = 'active'`, complianceRegisterID)
+
+		if err := db.Raw(query).Scan(&totalDepartments).Error; err != nil {
+			return false, err
+		}
+
+		// Count acknowledged departments from shared list
+		acknowledgedQuery := fmt.Sprintf(`
+			SELECT COUNT(DISTINCT caad.department_id)
+			FROM compliance_assessment_acknowledge_departments caad
+			INNER JOIN compliance_register_shared_units crsu ON caad.department_id = crsu.department_id AND crsu.compliance_register_id = %d
+			WHERE caad.compliance_assessment_id = %d`, complianceRegisterID, assessmentID)
+
+		if err := db.Raw(acknowledgedQuery).Scan(&acknowledgedDepartments).Error; err != nil {
+			return false, err
+		}
+	} else {
+		// For non-public/non-shared assessments, count based on organization unit field
+		query := fmt.Sprintf(`
+			SELECT COUNT(DISTINCT %s) 
+			FROM users 
+			WHERE %s IS NOT NULL AND status = 'active'`, primaryOrgUnitField, primaryOrgUnitField)
+
+		if err := db.Raw(query).Scan(&totalDepartments).Error; err != nil {
+			return false, err
+		}
+
+		// Count acknowledged departments
+		if err := db.Model(&models.ComplianceAssessmentAcknowledgeDepartment{}).
+			Where("compliance_assessment_id = ?", assessmentID).
+			Count(&acknowledgedDepartments).Error; err != nil {
+			return false, err
+		}
+	}
+
+	return totalDepartments == acknowledgedDepartments && totalDepartments > 0, nil
+}
+
+func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) ComplianceAssessmentUpdateStatus(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(complianceAssessment).Error; err != nil {
+		return err
+	}
+	return nil
 }
