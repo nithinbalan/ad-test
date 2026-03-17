@@ -533,7 +533,11 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 	if err != nil {
 		return err
 	}
-	if complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID == nil {
+	// if complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentFrameworkValueID == nil {
+	// 	return utility.NewForbiddenError("score_not_updated")
+	// }
+
+	if complianceAssessmentRequirementResponsibleUnit.ResidualRiskScore == nil {
 		return utility.NewForbiddenError("score_not_updated")
 	}
 

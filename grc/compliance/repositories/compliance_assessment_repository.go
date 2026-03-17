@@ -24,6 +24,7 @@ type ComplianceAssessmentRepositoryInterface interface {
 	IsAssessmentExists(organizationUnitID uint, compliancRegisterID uint, ids []uint) (bool, error)
 	IsAssessmentExistExcludingID(id uint, organizationUnitID uint, compliancRegisterID uint, ids []uint) (bool, error)
 	HasRequirementForRegister(registerID uint) (bool, error)
+	CheckAllRequirementsHaveInherentScore(registerID uint) (bool, error)
 
 	CreateComplianceAssessmentRequirement(requirements *models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteComplianceAssessmentRequirements(ids []*uint, tx ...utility.DatabaseTransaction) error
@@ -367,6 +368,36 @@ func (repo *ComplianceAssessmentRepository) HasRequirementForRegister(registerID
 	}
 
 	return count > 0, nil
+}
+
+func (repo *ComplianceAssessmentRepository) CheckAllRequirementsHaveInherentScore(registerID uint) (bool, error) {
+	var totalCount int64
+	var withScoreCount int64
+
+	// Count total requirements for the register
+	err := repo.db.
+		Table("compliance_requirements").
+		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
+		Where("compliance_clauses.compliance_register_id = ?", registerID).
+		Count(&totalCount).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	// Count requirements with inherent risk score
+	err = repo.db.
+		Table("compliance_requirements").
+		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
+		Where("compliance_clauses.compliance_register_id = ? AND compliance_requirements.inherent_risk_score IS NOT NULL", registerID).
+		Count(&withScoreCount).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	// Return true only if all requirements have inherent risk scores and there's at least one requirement
+	return totalCount > 0 && totalCount == withScoreCount, nil
 }
 func (repo *ComplianceAssessmentRepository) IsAssessmentExistExcludingID(id uint, organizationUnitID uint, complianceRegisterID uint, ids []uint) (bool, error) {
 	db := repo.db
