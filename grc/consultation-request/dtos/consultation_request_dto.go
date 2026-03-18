@@ -83,6 +83,12 @@ type ConsultationRequestFormDTO struct {
 type ConsultationRequestCommentFormDTO struct {
 	ConsultationRequestStatusID *uint  `json:"consultation_request_status_id"`
 	Comment                     string `json:"comment" binding:"required"`
+	Documents					[]*commonDTOs.DocumentFormDTO `json:"documents"`
+}
+
+type ConsultationRequestCommentUpdateFormDTO struct {
+	Comment   string                        `json:"comment" binding:"required"`
+	Documents []*commonDTOs.DocumentFormDTO `json:"documents"`
 }
 
 type ConsultationRequestDetailDTO struct {
@@ -139,4 +145,17 @@ type ConsultationRequestCommentListDTO struct {
 	CreatedByLastNameAr  string    `json:"created_by_last_name_ar"`
 
 	CreatedByInitial string `json:"created_by_initial"`
+
+	Documents []*ConsultationRequestCommentDocumentDTO `json:"documents" gorm:"-"`
+
+}
+
+type ConsultationRequestCommentDocumentDTO struct {
+	ID           uint   `json:"id"`
+	URL          string `json:"url"`
+	Name         string `json:"name"`
+	Size         int    `json:"size"`
+	Token        string `json:"token"`
+	OriginalName string `json:"original_name"`
+	Type         string `json:"type"`
 }

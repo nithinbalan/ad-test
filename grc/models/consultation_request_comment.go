@@ -19,6 +19,7 @@ type ConsultationRequestComment struct {
 	ConsultationRequestStatus *ConsultationRequestStatus `gorm:"foreignKey:ConsultationRequestStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser             *User                      `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser             *User                      `gorm:"foreignKey:UpdatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Documents                 []*ConsultationRequestCommentDocument `json:"documents" gorm:"foreignKey:ConsultationRequestCommentID"`
 }
 
 // TableName overrides the default table name for GORM

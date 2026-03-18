@@ -5,6 +5,7 @@ import (
 	"jethur/grc/consultation-request/services"
 	"jethur/utility"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -328,9 +329,165 @@ func (crc *ConsultationRequestController) CreateConsultationRequestComment(c *gi
 	c.JSON(http.StatusCreated, createdComment)
 }
 
+func (crc *ConsultationRequestController) UpdateConsultationRequestComment(c *gin.Context) {
+	var dto dtos.ConsultationRequestCommentUpdateFormDTO
+
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	consultationRequestID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	commentID, err := strconv.Atoi(c.Param("commentId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	err = crc.service.UpdateConsultationRequestComment(
+		uint(consultationRequestID),
+		uint(commentID),
+		currentUserID,
+		&dto,
+	)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+		}
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (crc *ConsultationRequestController) DeleteConsultationRequestComment(c *gin.Context) {
+	consultationRequestID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := crc.service.DeleteConsultationRequestComments(uint(consultationRequestID), request.IDs, currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
 // Export consultation requests
 func (crc *ConsultationRequestController) GetConsultationRequestExport(c *gin.Context) {
 	c.Set("export", true)
 
 	crc.GetAllConsultationRequests(c)
+}
+
+
+func (crc *ConsultationRequestController) GetConsultationRequestCommentDocumentPreview(c *gin.Context) {
+	requestID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	commentID, err := strconv.ParseUint(c.Param("commentId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	path, err := crc.service.GetDocumentPath(uint(requestID), uint(commentID), token)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	c.File(path)
+}
+
+func (crc *ConsultationRequestController) DownloadConsultationRequestCommentDocument(c *gin.Context) {
+	requestID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	commentID, err := strconv.ParseUint(c.Param("commentId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	path, err := crc.service.GetDocumentPath(uint(requestID), uint(commentID), token)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	filename := filepath.Base(path)
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	c.File(path)
 }
