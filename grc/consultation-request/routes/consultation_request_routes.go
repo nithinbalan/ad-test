@@ -28,7 +28,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	consultationRequestRoutes.PUT("/consultation-request/:id/responsible-user", middlewares.RolePermissionMiddleware(db, "consultation_request_register", "modify"), consultationRequestController.UpdateConsultationRequestResponsibleUser)
 	consultationRequestRoutes.PUT("/consultation-request/:id/notes", middlewares.RolePermissionMiddleware(db, "consultation_request_register", "modify"), consultationRequestController.UpdateConsultationRequestNotes)
 	consultationRequestRoutes.POST("/consultation-request/:id/comments", middlewares.RolePermissionMiddleware(db, "consultation_request_register", "modify"), consultationRequestController.CreateConsultationRequestComment)
+	consultationRequestRoutes.PUT("/consultation-request/:id/comments/:commentId", middlewares.RolePermissionMiddleware(db, "consultation_request_register", "modify"), consultationRequestController.UpdateConsultationRequestComment)
+	consultationRequestRoutes.POST("/consultation-request/:id/comments/delete", middlewares.RolePermissionMiddleware(db, "consultation_request_register", "modify"), consultationRequestController.DeleteConsultationRequestComment)
 	consultationRequestRoutes.GET("/consultation-request/:id/comments", middlewares.RolePermissionMiddleware(db, "consultation_request_register", "modify"), consultationRequestController.GetAllConsultationRequestComment)
 	consultationRequestRoutes.GET("/consultation-request/export", consultationRequestController.GetConsultationRequestExport)
-
+	consultationRequestRoutes.GET("/consultation-request/:id/comments/:commentId/document-preview", consultationRequestController.GetConsultationRequestCommentDocumentPreview)
+	consultationRequestRoutes.GET("/consultation-request/:id/comments/:commentId/document-download", consultationRequestController.DownloadConsultationRequestCommentDocument)
 }
