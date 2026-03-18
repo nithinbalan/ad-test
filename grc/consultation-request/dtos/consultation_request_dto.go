@@ -88,7 +88,7 @@ type ConsultationRequestCommentFormDTO struct {
 
 type ConsultationRequestCommentUpdateFormDTO struct {
 	Comment   string                        `json:"comment" binding:"required"`
-	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
+	Documents []*commonDTOs.DocumentFormDTO `json:"documents"`
 }
 
 type ConsultationRequestDetailDTO struct {
