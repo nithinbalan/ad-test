@@ -37,7 +37,9 @@ type ViolationReportServiceInterface interface {
 	GetDocumentPath(id uint, token string) (string, error)
 	ExportViolationReports(data []*violationReportDTOs.ViolationReportListDTO, currentUserID uint) (*os.File, error)
 	CreateViolationReportComment(violationReportID uint, currentUserID uint, dto *dtos.ViolationReportCommentFormDTO) (uint, error)
+	UpdateViolationReportComment(violationReportID uint, commentID uint, currentUserID uint, dto *dtos.ViolationReportCommentUpdateFormDTO) error
 	GetAllViolationReportComments(violationReportID uint) ([]*dtos.ViolationReportCommentListDTO, error)
+	GetViolationReportCommentDocumentPath(violationReportID uint, commentID uint, token string) (string, error)
 	DeleteComment(violationReportID uint, ids []uint, currentUserID uint) ([]uint, error)
 	ExportViolationReportToPDF(id uint, currentUserID uint, investigationSvc ViolationReportInvestigationServiceInterface) (string, error)
 }
@@ -879,6 +881,64 @@ func (s *ViolationReportService) CreateViolationReportComment(violationReportID 
 		return 0, err
 	}
 
+	var documents []*models.ViolationReportCommentDocument
+	for _, doc := range dto.Documents {
+		if doc.FileName == "" || doc.Size <= 0 {
+			continue
+		}
+
+		encryptedFilename, err := utility.EncryptData([]byte(doc.FileName))
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		url := utility.GenerateDocumentURL(
+			"violation-report",
+			"violation-report-register",
+			strconv.FormatUint(uint64(violationReportID), 10),
+			"comments",
+			strconv.FormatUint(uint64(commentID), 10),
+			"documents",
+		)
+
+		document := &models.ViolationReportCommentDocument{
+			ViolationReportCommentID: commentID,
+			URL:                      url,
+			Name:                     doc.FileName,
+			Size:                     doc.Size,
+			Token:                    encryptedFilename,
+			OriginalName:             doc.OriginalName,
+			Type:                     doc.Type,
+			CreatedByID:              currentUserID,
+			CreatedAt:                now,
+		}
+
+		documents = append(documents, document)
+	}
+
+	if len(documents) > 0 {
+		if err := s.repo.CreateCommentDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		for _, doc := range documents {
+			storagePath := filepath.Join(
+				"violation-report",
+				"violation-report-register",
+				strconv.FormatUint(uint64(violationReportID), 10),
+				"comments",
+				strconv.FormatUint(uint64(commentID), 10),
+				"documents",
+			)
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+	}
+
 	// Update main report status if provided
 	if dto.ViolationReportStatusID != nil {
 		existingReport.ViolationReportStatusID = *dto.ViolationReportStatusID
@@ -929,6 +989,225 @@ func (s *ViolationReportService) GetAllViolationReportComments(violationReportID
 	return s.repo.GetAllViolationReportComments(violationReportID)
 }
 
+func (s *ViolationReportService) UpdateViolationReportComment(violationReportID uint, commentID uint, currentUserID uint, dto *dtos.ViolationReportCommentUpdateFormDTO) error {
+	if _, err := s.repo.GetByID(violationReportID); err != nil {
+		return utility.NewResourceNotFoundError(err, violationReportID)
+	}
+
+	existingComment, err := s.repo.GetCommentByID(commentID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, commentID)
+		}
+		return err
+	}
+
+	if existingComment.ViolationReportID != violationReportID {
+		return utility.NewResourceNotFoundError(fmt.Errorf("violation report comment not found"), commentID)
+	}
+
+	if existingComment.ViolationReportStatusID != nil {
+		return utility.NewValidationError(
+			fmt.Errorf("comments with status cannot be updated"),
+			"invalid",
+			"comment_id",
+		)
+	}
+
+	tx := s.repo.BeginTransaction()
+	now := time.Now()
+	oldComment := existingComment.Comment
+
+	existingComment.Comment = dto.Comment
+	existingComment.UpdatedByID = &currentUserID
+	existingComment.UpdatedAt = &now
+
+	if err := s.repo.UpdateComment(existingComment, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	var newDocuments []*models.ViolationReportCommentDocument
+	var deleteDocumentIDs []*uint
+	var documentsToDelete []*models.ViolationReportCommentDocument
+
+	for _, doc := range dto.Documents {
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			if doc.FileName == "" || doc.Size <= 0 {
+				continue
+			}
+
+			encryptedFilename, err := utility.EncryptData([]byte(doc.FileName))
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			url := utility.GenerateDocumentURL(
+				"violation-report",
+				"violation-report-register",
+				strconv.FormatUint(uint64(violationReportID), 10),
+				"comments",
+				strconv.FormatUint(uint64(commentID), 10),
+				"documents",
+			)
+
+			document := &models.ViolationReportCommentDocument{
+				ViolationReportCommentID: commentID,
+				URL:                      url,
+				Name:                     doc.FileName,
+				Size:                     doc.Size,
+				Token:                    encryptedFilename,
+				OriginalName:             doc.OriginalName,
+				Type:                     doc.Type,
+				CreatedByID:              currentUserID,
+				CreatedAt:                now,
+			}
+			newDocuments = append(newDocuments, document)
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile && doc.ID != nil {
+			existingDocument, err := s.repo.GetCommentDocumentByID(*doc.ID)
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					tx.Rollback()
+					return utility.NewResourceNotFoundError(err, *doc.ID)
+				}
+				tx.Rollback()
+				return err
+			}
+
+			if existingDocument.ViolationReportCommentID != commentID {
+				tx.Rollback()
+				return utility.NewResourceNotFoundError(fmt.Errorf("violation report comment document not found"), *doc.ID)
+			}
+
+			documentsToDelete = append(documentsToDelete, existingDocument)
+			deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
+		}
+	}
+
+	if len(newDocuments) > 0 {
+		if err := s.repo.CreateCommentDocuments(newDocuments, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if len(deleteDocumentIDs) > 0 {
+		if err := s.repo.DeleteCommentDocuments(deleteDocumentIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, doc := range newDocuments {
+		storagePath := filepath.Join(
+			"violation-report",
+			"violation-report-register",
+			strconv.FormatUint(uint64(violationReportID), 10),
+			"comments",
+			strconv.FormatUint(uint64(commentID), 10),
+			"documents",
+		)
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, doc := range documentsToDelete {
+		storagePath := filepath.Join(
+			"violation-report",
+			"violation-report-register",
+			strconv.FormatUint(uint64(violationReportID), 10),
+			"comments",
+			strconv.FormatUint(uint64(commentID), 10),
+			"documents",
+		)
+		if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	go func() {
+		changedData := utility.CompareFieldChanges(
+			map[string]interface{}{"comment": oldComment},
+			map[string]interface{}{"comment": existingComment.Comment},
+		)
+
+		if len(changedData) == 0 {
+			return
+		}
+
+		if err := s.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.ViolationReportComment{}.TableName(),
+			commentID,
+			changedData,
+			currentUserID,
+			"violation_report",
+			"violation",
+			"",
+			nil,
+		); err != nil {
+			utility.LogError("Failed to log violation report comment update activity", map[string]interface{}{
+				"recordID": commentID,
+				"userID":   currentUserID,
+				"error":    err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (s *ViolationReportService) GetViolationReportCommentDocumentPath(violationReportID uint, commentID uint, token string) (string, error) {
+	comment, err := s.repo.GetCommentByID(commentID)
+	if err != nil {
+		return "", err
+	}
+
+	if comment.ViolationReportID != violationReportID {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	if len(comment.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for this violation report comment")
+	}
+
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	storagePath := filepath.Join(
+		"violation-report",
+		"violation-report-register",
+		strconv.FormatUint(uint64(violationReportID), 10),
+		"comments",
+		strconv.FormatUint(uint64(commentID), 10),
+		"documents",
+	)
+
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
+}
+
 func (s *ViolationReportService) DeleteComment(violationReportID uint, ids []uint, currentUserID uint) ([]uint, error) {
 
 	tx := s.repo.BeginTransaction()
@@ -954,6 +1233,28 @@ func (s *ViolationReportService) DeleteComment(violationReportID uint, ids []uin
 		if comment.ViolationReportID != violationReportID {
 			failedIDs = append(failedIDs, id)
 			continue
+		}
+
+		// Prevent delete if the comment carries status update information.
+		if comment.ViolationReportStatusID != nil {
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+
+		for _, doc := range comment.Documents {
+			storagePath := filepath.Join(
+				"violation-report",
+				"violation-report-register",
+				strconv.FormatUint(uint64(violationReportID), 10),
+				"comments",
+				strconv.FormatUint(uint64(id), 10),
+				"documents",
+			)
+
+			if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
 		}
 
 		if err := s.repo.DeleteComment(id, tx); err != nil {
