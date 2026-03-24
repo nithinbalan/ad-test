@@ -26,6 +26,12 @@ type ConsultationRequestRepositoryInterface interface {
 	///
 	CreateComment(comment *models.ConsultationRequestComment, tx ...utility.DatabaseTransaction) (uint, error)
 	GetAllConsultationRequestComments(consultationRequestID uint) ([]*dtos.ConsultationRequestCommentListDTO, error)
+	GetCommentByID(id uint) (*models.ConsultationRequestComment, error)
+	UpdateComment(comment *models.ConsultationRequestComment, tx ...utility.DatabaseTransaction) error
+	DeleteComment(id uint, tx ...utility.DatabaseTransaction) error
+	CreateDocuments(documents []*models.ConsultationRequestCommentDocument, tx ...utility.DatabaseTransaction) error
+	DeleteDocuments(documentIDs []*uint, tx ...utility.DatabaseTransaction) error
+	GetCommentDocumentByID(id uint) (*models.ConsultationRequestCommentDocument, error)
 }
 
 type ConsultationRequestRepository struct {
@@ -203,6 +209,16 @@ func (repo *ConsultationRequestRepository) GetAllConsultationRequestComments(con
 		return nil, err
 	}
 
+	for _,comment := range comments {
+		var documents []*dtos.ConsultationRequestCommentDocumentDTO
+		repo.db.
+		Model(&models.ConsultationRequestCommentDocument{}).
+		Where("consultation_request_comment_id = ?",comment.ID).
+		Find(&documents)
+
+		comment.Documents = documents
+	}
+
 	return comments, nil
 }
 
@@ -263,6 +279,26 @@ func (repo *ConsultationRequestRepository) CreateComment(comment *models.Consult
 	return comment.ID, nil
 }
 
+func (repo *ConsultationRequestRepository) UpdateComment(comment *models.ConsultationRequestComment, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Model(&models.ConsultationRequestComment{}).
+		Where("id = ?", comment.ID).
+		Updates(comment).Error
+}
+
+func (repo *ConsultationRequestRepository) DeleteComment(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("id = ?", id).Delete(&models.ConsultationRequestComment{}).Error
+}
+
 // Update
 func (repo *ConsultationRequestRepository) Update(cr *models.ConsultationRequest, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
@@ -321,4 +357,39 @@ func (repo *ConsultationRequestRepository) GenerateReferenceNumber() (string, er
 
 	newReferenceNumber := fmt.Sprintf("CONS-%d-%04d", currentYear, lastID+1)
 	return newReferenceNumber, nil
+}
+
+func (repo *ConsultationRequestRepository) GetCommentByID(id uint) (*models.ConsultationRequestComment, error) {
+	var comment models.ConsultationRequestComment
+	if err := repo.db.Preload("Documents").First(&comment, id).Error; err != nil {
+		return nil, err
+	}
+	return &comment, nil
+}
+
+func (repo *ConsultationRequestRepository) CreateDocuments(documents []*models.ConsultationRequestCommentDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(&documents).Error
+}
+
+func (repo *ConsultationRequestRepository) DeleteDocuments(documentIDs []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("id IN (?)", documentIDs).Delete(&models.ConsultationRequestCommentDocument{}).Error
+}
+
+func (repo *ConsultationRequestRepository) GetCommentDocumentByID(id uint) (*models.ConsultationRequestCommentDocument, error) {
+	var document models.ConsultationRequestCommentDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+
+	return &document, nil
 }

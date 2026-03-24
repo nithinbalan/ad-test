@@ -19,6 +19,7 @@ type ViolationReportComment struct {
 	ViolationReportStatus *ViolationReportStatus `gorm:"foreignKey:ViolationReportStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	CreatedByUser         *User                  `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser         *User                  `gorm:"foreignKey:UpdatedByID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Documents             []*ViolationReportCommentDocument `json:"documents" gorm:"foreignKey:ViolationReportCommentID"`
 }
 
 // TableName overrides the default table name for GORM

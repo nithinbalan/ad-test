@@ -23,11 +23,12 @@ type ComplianceAssessmentAcknowledgeDepartmentServiceInterface interface {
 }
 
 type ComplianceAssessmentAcknowledgeDepartmentService struct {
-	repo                 complianceRepositories.ComplianceAssessmentAcknowledgeDepartmentRepositoryInterface
-	activityLogSvc       logServices.ActivityLogServiceInterface
-	assessmentSvc        ComplianceAssessmentServiceInterface
-	userSvc              organizationServices.UserServiceInterface
-	organizationLevelSvc settingServices.OrganizationLevelServiceInterface
+	repo                          complianceRepositories.ComplianceAssessmentAcknowledgeDepartmentRepositoryInterface
+	activityLogSvc                logServices.ActivityLogServiceInterface
+	assessmentSvc                 ComplianceAssessmentServiceInterface
+	userSvc                       organizationServices.UserServiceInterface
+	organizationLevelSvc          settingServices.OrganizationLevelServiceInterface
+	complianceAssessmentStatusSvc ComplianceAssessmentStatusServiceInterface
 }
 
 func NewComplianceAssessmentAcknowledgeDepartmentService(
@@ -36,13 +37,15 @@ func NewComplianceAssessmentAcknowledgeDepartmentService(
 	assessmentSvc ComplianceAssessmentServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	organizationLevelSvc settingServices.OrganizationLevelServiceInterface,
+	complianceAssessmentStatusSvc ComplianceAssessmentStatusServiceInterface,
 ) ComplianceAssessmentAcknowledgeDepartmentServiceInterface {
 	return &ComplianceAssessmentAcknowledgeDepartmentService{
-		repo:                 repo,
-		activityLogSvc:       activityLogSvc,
-		assessmentSvc:        assessmentSvc,
-		userSvc:              userSvc,
-		organizationLevelSvc: organizationLevelSvc,
+		repo:                          repo,
+		activityLogSvc:                activityLogSvc,
+		assessmentSvc:                 assessmentSvc,
+		userSvc:                       userSvc,
+		organizationLevelSvc:          organizationLevelSvc,
+		complianceAssessmentStatusSvc: complianceAssessmentStatusSvc,
 	}
 }
 
@@ -138,6 +141,52 @@ func (caads *ComplianceAssessmentAcknowledgeDepartmentService) Create(assessment
 	if err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	// Get organization level settings to determine primary org unit field
+	orgLevel, err := caads.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	primaryOrgUnitField := "organization_unit_1_id"
+	if orgLevel.Level == 2 {
+		primaryOrgUnitField = "organization_unit_2_id"
+	} else if orgLevel.Level == 3 {
+		primaryOrgUnitField = "organization_unit_3_id"
+	}
+
+	// Check if all departments have acknowledged within the transaction
+	allAcknowledged, err := caads.repo.CheckAllDepartmentsAcknowledged(assessmentID, primaryOrgUnitField, assessment.ComplianceRegister.IsPublic, assessment.ComplianceRegister.IsShared, uint(assessment.ComplianceRegister.ID), tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	// If all departments have acknowledged, update assessment status to "Approved"
+	if allAcknowledged {
+		// Get approved status using GetByType following existing pattern
+		approvedStatus, err := caads.complianceAssessmentStatusSvc.GetByType("approved")
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		// Get the assessment model to update
+		complianceAssessment, err := caads.assessmentSvc.GetByID(assessmentID)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		// Update status to Approved within the same transaction
+		complianceAssessment.ComplianceAssessmentStatusID = approvedStatus.ID
+		err = caads.repo.ComplianceAssessmentUpdateStatus(complianceAssessment, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	// Note: CreateDepartmentAuditLog is not required for compliance as per requirements

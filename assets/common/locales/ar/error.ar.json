@@ -192,6 +192,10 @@
 {
   "id": "already_acknowledged",
   "translation": "تم التأكيد على تقييم الامتثال بالفعل"
+},
+{
+  "id": "inherent_risk_analysis_incomplete",
+  "translation": "تحليل المخاطر الأساسي غير مكتمل"
 }
 
 

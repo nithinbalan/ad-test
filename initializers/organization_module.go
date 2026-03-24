@@ -51,7 +51,10 @@ type OrganizationModule struct {
 	UserDelegationHistoryController         *controllers.UserDelegationController
 	OrganizationUnitsController             *controllers.OrganizationUnitsController
 	OrganizationCartController              *controllers.OrganizationChartController
-	MyDashboardController                     *controllers.MyDashboardController
+	MyDashboardController                   *controllers.MyDashboardController
+	CommitteeTermController                 *controllers.CommitteeTermController
+	CommitteeTypeController                 *controllers.CommitteeTypeController
+	CommitteeClassificationController       *controllers.CommitteeClassificationController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -289,12 +292,24 @@ func NewOrganizationModule(
 	organizationUnitsController := controllers.NewOrganizationUnitsController(organizationUnitsSvc)
 
 	organizationChartRepo := repositories.NewOrganizationChartRepository(db)
-	organizationChartSvc := services.NewOrganizationChartService(organizationChartRepo,settingsModule.OrganizationLevelSvc)
+	organizationChartSvc := services.NewOrganizationChartService(organizationChartRepo, settingsModule.OrganizationLevelSvc)
 	organizationChartController := controllers.NewOrganizationChartController(organizationChartSvc)
 
 	myDashboardRepo := repositories.NewMyDashboardRepository(db)
 	myDashboardSvc := services.NewMyDashboardService(myDashboardRepo)
 	myDashboardController := controllers.NewMyDashboardController(myDashboardSvc, db)
+
+	committeeTermRepo := repositories.NewCommitteeTermRepository(db)
+	committeeTermSvc := services.NewCommitteeTermService(committeeTermRepo)
+	committeeTermController := controllers.NewCommitteeTermController(committeeTermSvc)
+
+	committeeTypeRepo := repositories.NewCommitteeTypeRepository(db)
+	committeeTypeSvc := services.NewCommitteeTypeService(committeeTypeRepo)
+	committeeTypeController := controllers.NewCommitteeTypeController(committeeTypeSvc)
+
+	committeeClassificationRepo := repositories.NewCommitteeClassificationRepository(db)
+	committeeClassificationSvc := services.NewCommitteeClassificationService(committeeClassificationRepo, sharedModule.ActivityLogService)
+	committeeClassificationController := controllers.NewCommitteeClassificationController(committeeClassificationSvc)
 
 	return &OrganizationModule{
 		DesignationController:                   designationController,
@@ -340,7 +355,10 @@ func NewOrganizationModule(
 		UserDelegationHistoryController:    userDelegationHistoryController,
 		OrganizationUnitsController:        organizationUnitsController,
 		OrganizationCartController:         organizationChartController,
-		MyDashboardController:                myDashboardController,
+		MyDashboardController:              myDashboardController,
+		CommitteeTermController:            committeeTermController,
+		CommitteeTypeController:            committeeTypeController,
+		CommitteeClassificationController:  committeeClassificationController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,

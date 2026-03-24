@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"strconv"
 	"time"
 
+	"jethur/config"
 	"jethur/grc/consultation-request/dtos"
 	"jethur/grc/consultation-request/repositories"
 	logServices "jethur/grc/logs/services"
@@ -30,8 +33,11 @@ type ConsultationRequestServiceInterface interface {
 	UpdateResponsibleUser(id uint, newResponsibleUserID uint, currentUserID uint) error
 	UpdateNotes(consultationRequestID uint, notes string, updatedByID uint) error
 	CreateConsultationRequestComment(consultationRequestID uint, currentUserID uint, dto *dtos.ConsultationRequestCommentFormDTO) (uint, error)
+	UpdateConsultationRequestComment(consultationRequestID uint, commentID uint, currentUserID uint, dto *dtos.ConsultationRequestCommentUpdateFormDTO) error
+	DeleteConsultationRequestComments(consultationRequestID uint, ids []uint, currentUserID uint) ([]uint, error)
 	GetAllConsultationRequestComments(consultationRequestID uint) ([]*dtos.ConsultationRequestCommentListDTO, error)
 	ExportConsultationRequests(data []*dtos.ConsultationRequestListDTO, currentUserID uint) (*os.File, error)
+	GetDocumentPath(consultationRequestID uint, commentID uint, token string) (string, error)
 }
 
 // Implementation
@@ -282,6 +288,50 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 		return 0, err
 	}
 
+	var documents []*models.ConsultationRequestCommentDocument
+
+	for _,doc := range dto.Documents {
+		if doc.FileName == "" || doc.Size <= 0 {
+			continue
+		}
+
+		encryptedFileName, err := utility.EncryptData([]byte(doc.FileName))
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		url := utility.GenerateDocumentURL(
+			"consultation-request",
+			"consultation-request",
+			strconv.FormatUint(uint64(consultationRequestID), 10),
+			"comments",
+			strconv.FormatUint(uint64(commentID), 10),
+			"documents",
+		)
+
+		document := &models.ConsultationRequestCommentDocument{
+			ConsultationRequestCommentID: commentID,
+			URL:                          url,
+			Name:                         doc.FileName,
+			Size:                         doc.Size,
+			Token:                        encryptedFileName,
+			OriginalName:                 doc.OriginalName,
+			Type:                         doc.Type,
+			CreatedByID:                  currentUserID,
+			CreatedAt:                    now,
+		}
+
+		documents = append(documents,document)
+	}
+
+	if len(documents) > 0 {
+		if err := s.repo.CreateDocuments(documents,tx); err != nil {
+			tx.Rollback()
+			return 0,err
+		}
+	}
+
 	if dto.ConsultationRequestStatusID != nil {
 		existingRequest.ConsultationRequestStatusID = dto.ConsultationRequestStatusID
 	}
@@ -291,6 +341,22 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 	if err := s.repo.Update(existingRequest, tx); err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	for _,doc := range documents {
+		storagePath := filepath.Join(
+			"consultation-request",
+			"consultation-request",
+			strconv.FormatUint(uint64(consultationRequestID), 10),
+			"comments",
+			strconv.FormatUint(uint64(commentID), 10),
+			"documents",
+		)
+
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	tx.Commit()
@@ -325,6 +391,253 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 	}()
 
 	return commentID, nil
+}
+
+func (s *ConsultationRequestService) UpdateConsultationRequestComment(consultationRequestID uint, commentID uint, currentUserID uint, dto *dtos.ConsultationRequestCommentUpdateFormDTO) error {
+	if _, err := s.repo.GetByID(consultationRequestID); err != nil {
+		return utility.NewResourceNotFoundError(err, consultationRequestID)
+	}
+
+	existingComment, err := s.repo.GetCommentByID(commentID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, commentID)
+		}
+		return err
+	}
+
+	if existingComment.ConsultationRequestID != consultationRequestID {
+		return utility.NewResourceNotFoundError(fmt.Errorf("consultation request comment not found"), commentID)
+	}
+
+	if existingComment.ConsultationRequestStatusID != nil {
+		return utility.NewValidationError(
+			fmt.Errorf("comments with status cannot be updated"),
+			"invalid",
+			"comment_id",
+		)
+	}
+
+	tx := s.repo.BeginTransaction()
+	now := time.Now()
+	oldComment := existingComment.Comment
+
+	existingComment.Comment = dto.Comment
+	existingComment.UpdatedByID = &currentUserID
+	existingComment.UpdatedAt = &now
+
+	if err := s.repo.UpdateComment(existingComment, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	var newDocuments []*models.ConsultationRequestCommentDocument
+	var deleteDocumentIDs []*uint
+	var documentsToDelete []*models.ConsultationRequestCommentDocument
+
+	for _, doc := range dto.Documents {
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			if doc.FileName == "" || doc.Size <= 0 {
+				continue
+			}
+
+			encryptedFileName, err := utility.EncryptData([]byte(doc.FileName))
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			url := utility.GenerateDocumentURL(
+				"consultation-request",
+				"consultation-request",
+				strconv.FormatUint(uint64(consultationRequestID), 10),
+				"comments",
+				strconv.FormatUint(uint64(commentID), 10),
+				"documents",
+			)
+
+			document := &models.ConsultationRequestCommentDocument{
+				ConsultationRequestCommentID: commentID,
+				URL:                          url,
+				Name:                         doc.FileName,
+				Size:                         doc.Size,
+				Token:                        encryptedFileName,
+				OriginalName:                 doc.OriginalName,
+				Type:                         doc.Type,
+				CreatedByID:                  currentUserID,
+				CreatedAt:                    now,
+			}
+
+			newDocuments = append(newDocuments, document)
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile && doc.ID != nil {
+			existingDocument, err := s.repo.GetCommentDocumentByID(*doc.ID)
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					tx.Rollback()
+					return utility.NewResourceNotFoundError(err, *doc.ID)
+				}
+				tx.Rollback()
+				return err
+			}
+
+			if existingDocument.ConsultationRequestCommentID != commentID {
+				tx.Rollback()
+				return utility.NewResourceNotFoundError(fmt.Errorf("consultation request comment document not found"), *doc.ID)
+			}
+
+			documentsToDelete = append(documentsToDelete, existingDocument)
+			deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
+		}
+	}
+
+	if len(newDocuments) > 0 {
+		if err := s.repo.CreateDocuments(newDocuments, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if len(deleteDocumentIDs) > 0 {
+		if err := s.repo.DeleteDocuments(deleteDocumentIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, doc := range newDocuments {
+		storagePath := filepath.Join(
+			"consultation-request",
+			"consultation-request",
+			strconv.FormatUint(uint64(consultationRequestID), 10),
+			"comments",
+			strconv.FormatUint(uint64(commentID), 10),
+			"documents",
+		)
+
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, document := range documentsToDelete {
+		storagePath := filepath.Join(
+			"consultation-request",
+			"consultation-request",
+			strconv.FormatUint(uint64(consultationRequestID), 10),
+			"comments",
+			strconv.FormatUint(uint64(commentID), 10),
+			"documents",
+		)
+
+		if err := utility.RemoveFile(document.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	tx.Commit()
+
+	go func() {
+		changedData := utility.CompareFieldChanges(
+			map[string]interface{}{"comment": oldComment},
+			map[string]interface{}{"comment": existingComment.Comment},
+		)
+
+		if len(changedData) == 0 {
+			return
+		}
+
+		err := s.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.ConsultationRequestComment{}.TableName(),
+			commentID,
+			changedData,
+			currentUserID,
+			"consultation_request",
+			"consultation",
+			"",
+			nil,
+		)
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.ConsultationRequestComment{}.TableName(),
+				"recordID":  commentID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+			utility.LogError("Failed to log consultation request comment update activity", fields)
+		}
+	}()
+
+	return nil
+}
+
+func (s *ConsultationRequestService) DeleteConsultationRequestComments(consultationRequestID uint, ids []uint, currentUserID uint) ([]uint, error) {
+	tx := s.repo.BeginTransaction()
+
+	if _, err := s.repo.GetByID(consultationRequestID); err != nil {
+		return nil, utility.NewResourceNotFoundError(err, consultationRequestID)
+	}
+
+	var failedIDs []uint
+	var successfulIDs []uint
+	var deletedComments []map[string]interface{}
+
+	for _, id := range ids {
+		comment, err := s.repo.GetCommentByID(id)
+		if err != nil {
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+
+		if comment.ConsultationRequestID != consultationRequestID {
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+
+		if comment.ConsultationRequestStatusID != nil {
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+
+		if err := s.repo.DeleteComment(id, tx); err != nil {
+			failedIDs = append(failedIDs, id)
+			continue
+		}
+
+		successfulIDs = append(successfulIDs, id)
+		deletedComments = append(deletedComments, map[string]interface{}{
+			"id":                      id,
+			"consultation_request_id": consultationRequestID,
+		})
+	}
+
+	if len(failedIDs) > 0 {
+		tx.Rollback()
+		return failedIDs, nil
+	}
+
+	tx.Commit()
+
+	if len(successfulIDs) > 0 {
+		go func() {
+			err := s.activityLogSvc.LogBulkActivities(
+				models.DeleteAction,
+				models.ConsultationRequestComment{}.TableName(),
+				successfulIDs,
+				deletedComments,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fmt.Printf("Failed to log consultation request comment bulk delete activity: %v\n", err)
+			}
+		}()
+	}
+
+	return failedIDs, nil
 }
 
 // Update
@@ -667,4 +980,56 @@ func (s *ConsultationRequestService) ExportConsultationRequests(data []*dtos.Con
 
 	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (s *ConsultationRequestService) GetDocumentPath(consultationRequestID uint, commentID uint, token string) (string, error) {
+	existingComment, err := s.repo.GetCommentByID(commentID)
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Println("consultationRequestID", consultationRequestID)
+	if existingComment.ConsultationRequestID != consultationRequestID {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	fmt.Println("existingComment.Documents", existingComment.Documents)
+	if len(existingComment.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for this consultation request comment")
+	}
+
+	fmt.Println("token", token)
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	fmt.Println("decryptedFilenameBytes", decryptedFilenameBytes)
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	fmt.Println("decryptedFilename", decryptedFilename)
+	storagePath := filepath.Join(
+		"consultation-request",
+		"consultation-request",
+		strconv.FormatUint(uint64(consultationRequestID), 10),
+		"comments",
+		strconv.FormatUint(uint64(commentID), 10),
+		"documents",
+	)
+
+	fmt.Println("storagePath", storagePath)
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+
+	fmt.Println("fullPath", fullPath)
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }

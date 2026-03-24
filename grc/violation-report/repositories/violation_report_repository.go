@@ -31,8 +31,13 @@ type ViolationReportRepositoryInterface interface {
 	//comment
 	CreateComment(comment *models.ViolationReportComment, tx ...utility.DatabaseTransaction) (uint, error)
 	GetAllViolationReportComments(violationReportID uint) ([]*dtos.ViolationReportCommentListDTO, error)
+	GetCommentByID(id uint) (*models.ViolationReportComment, error)
 	GetFullCommentDetailsByID(id uint) (*models.ViolationReportComment, error)
+	UpdateComment(comment *models.ViolationReportComment, tx ...utility.DatabaseTransaction) error
 	DeleteComment(id uint, tx ...utility.DatabaseTransaction) error
+	CreateCommentDocuments(docs []*models.ViolationReportCommentDocument, tx ...utility.DatabaseTransaction) error
+	DeleteCommentDocuments(docIDs []*uint, tx ...utility.DatabaseTransaction) error
+	GetCommentDocumentByID(id uint) (*models.ViolationReportCommentDocument, error)
 }
 
 type ViolationReportRepository struct {
@@ -401,7 +406,24 @@ func (repo *ViolationReportRepository) GetAllViolationReportComments(violationRe
 		return nil, err
 	}
 
+	for _, comment := range comments {
+		var documents []*dtos.ViolationReportCommentDocumentDTO
+		repo.db.Model(&models.ViolationReportCommentDocument{}).
+			Where("violation_report_comment_id = ?", comment.ID).
+			Find(&documents)
+		comment.Documents = documents
+	}
+
 	return comments, nil
+}
+
+func (repo *ViolationReportRepository) GetCommentByID(id uint) (*models.ViolationReportComment, error) {
+	var comment models.ViolationReportComment
+	if err := repo.db.Preload("Documents").First(&comment, id).Error; err != nil {
+		return nil, err
+	}
+
+	return &comment, nil
 }
 
 func (repo *ViolationReportRepository) GetFullCommentDetailsByID(id uint) (*models.ViolationReportComment, error) {
@@ -413,6 +435,7 @@ func (repo *ViolationReportRepository) GetFullCommentDetailsByID(id uint) (*mode
 		Preload("ViolationReportStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("Documents").
 		Where("id = ?", id).
 		First(&comment).Error; err != nil {
 		return nil, err
@@ -434,4 +457,42 @@ func (repo *ViolationReportRepository) DeleteComment(id uint, tx ...utility.Data
 	}
 
 	return nil
+}
+
+func (repo *ViolationReportRepository) UpdateComment(comment *models.ViolationReportComment, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Model(&models.ViolationReportComment{}).
+		Where("id = ?", comment.ID).
+		Updates(comment).Error
+}
+
+func (repo *ViolationReportRepository) CreateCommentDocuments(docs []*models.ViolationReportCommentDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(&docs).Error
+}
+
+func (repo *ViolationReportRepository) DeleteCommentDocuments(docIDs []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("id IN (?)", docIDs).Delete(&models.ViolationReportCommentDocument{}).Error
+}
+
+func (repo *ViolationReportRepository) GetCommentDocumentByID(id uint) (*models.ViolationReportCommentDocument, error) {
+	var document models.ViolationReportCommentDocument
+	if err := repo.db.Where("id = ?", id).First(&document).Error; err != nil {
+		return nil, err
+	}
+
+	return &document, nil
 }

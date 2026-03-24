@@ -59,6 +59,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationUnitsController := app.OrganizationModule.OrganizationUnitsController
 	organizationChartUsers := app.OrganizationModule.OrganizationCartController
 	myDashboardController := app.OrganizationModule.MyDashboardController
+	committeeTermController := app.OrganizationModule.CommitteeTermController
+	committeeTypeController := app.OrganizationModule.CommitteeTypeController
+	committeeClassificationController := app.OrganizationModule.CommitteeClassificationController
 
 	// Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
@@ -489,7 +492,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	organizationRoutes.GET("/organization-chart/users", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationChartUsers.GetUsers)
 	organizationRoutes.GET("/organization-chart/users/:id", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationChartUsers.GetUserFullDetails)
-	organizationRoutes.GET("/organization-charts/users", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"),organizationChartUsers.GetUsers)
+	organizationRoutes.GET("/organization-charts/users", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationChartUsers.GetUsers)
 	organizationRoutes.GET("/organization-charts/users/:id", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationChartUsers.GetUserFullDetails)
 	organizationRoutes.PUT("/organization-charts/users/:id/change-reporting-user", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationChartUsers.ChangeReportingUser)
 
@@ -500,4 +503,21 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/my-dashboard/overdue-tasks", myDashboardController.GetOverdueTasks)
 	organizationRoutes.GET("/my-dashboard/assigned-risks", myDashboardController.GetAssignedRisks)
 	organizationRoutes.GET("/my-dashboard/recent-activity", myDashboardController.GetRecentActivity)
+
+	// Committee Term
+	organizationRoutes.GET("/committee-terms", committeeTermController.GetAllCommitteeTerms)
+	organizationRoutes.GET("/committee-terms/:id", committeeTermController.GetCommitteeTermDetails)
+
+	// Committee Type
+	organizationRoutes.GET("/committee-types", committeeTypeController.GetAllCommitteeTypes)
+	organizationRoutes.GET("/committee-types/:id", committeeTypeController.GetCommitteeTypeDetails)
+
+	// Committee Classification
+	organizationRoutes.GET("/committee-classifications", committeeClassificationController.GetAllCommitteeClassifications)
+	organizationRoutes.GET("/committee-classifications/:id", committeeClassificationController.GetCommitteeClassificationDetails)
+	organizationRoutes.POST("/committee-classifications", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), committeeClassificationController.CreateCommitteeClassification)
+	organizationRoutes.PUT("/committee-classifications/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), committeeClassificationController.UpdateCommitteeClassification)
+	organizationRoutes.POST("/committee-classifications/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), committeeClassificationController.DeleteCommitteeClassifications)
+	organizationRoutes.PUT("/committee-classifications/activate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), committeeClassificationController.ActivateCommitteeClassifications)
+	organizationRoutes.PUT("/committee-classifications/deactivate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), committeeClassificationController.DeactivateCommitteeClassifications)
 }

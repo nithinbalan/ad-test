@@ -436,6 +436,49 @@ func (vrc *ViolationReportController) CreateViolationReportComment(c *gin.Contex
 	c.JSON(http.StatusCreated, createdComment)
 }
 
+func (vrc *ViolationReportController) UpdateViolationReportComment(c *gin.Context) {
+	var dto dtos.ViolationReportCommentUpdateFormDTO
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	violationReportID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	commentID, err := strconv.ParseUint(c.Param("commentId"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(vrc.db, c, err.Error())
+		return
+	}
+
+	err = vrc.service.UpdateViolationReportComment(uint(violationReportID), uint(commentID), currentUserID, &dto)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+		default:
+			utility.SendInternalErrResp(vrc.db, c, e.Error())
+		}
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func (vrc *ViolationReportController) GetAllViolationReportComments(c *gin.Context) {
 
 	idStr := c.Param("id")
@@ -500,4 +543,78 @@ func (vrc *ViolationReportController) DeleteComment(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (vrc *ViolationReportController) GetViolationReportCommentDocumentPreview(c *gin.Context) {
+	violationReportID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	commentID, err := strconv.ParseUint(c.Param("commentId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	path, err := vrc.service.GetViolationReportCommentDocumentPath(uint(violationReportID), uint(commentID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(vrc.db, c, err.Error())
+		}
+		return
+	}
+
+	c.File(path)
+}
+
+func (vrc *ViolationReportController) DownloadViolationReportCommentDocument(c *gin.Context) {
+	violationReportID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	commentID, err := strconv.ParseUint(c.Param("commentId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	path, err := vrc.service.GetViolationReportCommentDocumentPath(uint(violationReportID), uint(commentID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(vrc.db, c, err.Error())
+		}
+		return
+	}
+
+	filename := filepath.Base(path)
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+	c.File(path)
 }

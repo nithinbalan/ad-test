@@ -158,6 +158,12 @@ type ViolationReportParsedDates struct {
 type ViolationReportCommentFormDTO struct {
 	ViolationReportStatusID *uint  `json:"violation_report_status_id"`
 	Comment                 string `json:"comment" binding:"required"`
+	Documents               []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
+}
+
+type ViolationReportCommentUpdateFormDTO struct {
+	Comment   string                        `json:"comment" binding:"required"`
+	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }
 type ViolationReportCommentListDTO struct {
 	ID                uint   `json:"id"`
@@ -180,6 +186,17 @@ type ViolationReportCommentListDTO struct {
 	CreatedByFirstNameAr string `json:"created_by_first_name_ar"`
 	CreatedByLastNameAr  string `json:"created_by_last_name_ar"`
 	CreatedByInitial     string `json:"created_by_initial"`
+	Documents            []*ViolationReportCommentDocumentDTO `json:"documents" gorm:"-"`
+}
+
+type ViolationReportCommentDocumentDTO struct {
+	ID           uint   `json:"id"`
+	URL          string `json:"url"`
+	Name         string `json:"name"`
+	Size         int    `json:"size"`
+	Token        string `json:"token"`
+	OriginalName string `json:"original_name"`
+	Type         string `json:"type"`
 }
 type ViolationReportExportPDFDTO struct {
 	Title                      string
