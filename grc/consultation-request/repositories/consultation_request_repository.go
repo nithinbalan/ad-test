@@ -197,7 +197,7 @@ func (repo *ConsultationRequestRepository) GetAllConsultationRequestComments(con
 		Joins(`LEFT JOIN consultation_request_statuses ON consultation_request_statuses.id = consultation_request_comments.consultation_request_status_id`).
 		Joins(`LEFT JOIN users ON users.id = consultation_request_comments.created_by_id`).
 		Where("consultation_request_comments.consultation_request_id = ?", consultationRequestID).
-		Order("consultation_request_comments.created_at DESC")
+		Order("consultation_request_comments.created_at ASC")
 
 	if err := query.Find(&comments).Error; err != nil {
 		return nil, err

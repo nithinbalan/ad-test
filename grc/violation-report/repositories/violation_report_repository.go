@@ -395,7 +395,7 @@ func (repo *ViolationReportRepository) GetAllViolationReportComments(violationRe
 			ON users.id = violation_report_comments.created_by_id
 		`).
 		Where("violation_report_comments.violation_report_id = ?", violationReportID).
-		Order("violation_report_comments.created_at DESC")
+		Order("violation_report_comments.created_at ASC")
 
 	if err := query.Find(&comments).Error; err != nil {
 		return nil, err
