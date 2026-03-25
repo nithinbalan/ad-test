@@ -417,7 +417,9 @@ func (repo *InternalCommitteeRepository) GetParticipantsByNomineeDepartmentID(no
 	}
 
 	var participants []*models.InternalCommitteeVersionNomineeDepartmentParticipant
-	err := db.Where("internal_committee_version_nominee_department_id = ?", nomineeDepartmentID).
+	err := db.Preload("NomineeDepartment").
+		Preload("NomineeDepartment.InternalCommitteeVersion").
+		Where("internal_committee_version_nominee_department_id = ?", nomineeDepartmentID).
 		Find(&participants).Error
 
 	return participants, err

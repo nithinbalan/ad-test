@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
@@ -39,6 +41,8 @@ type InternalCommitteeService struct {
 	committeeTermSvc           CommitteeTermServiceInterface
 	committeeClassificationSvc CommitteeClassificationServiceInterface
 	internalCommitteeStatusSvc InternalCommitteeStatusServiceInterface
+	notificationSvc            commonServices.NotificationServiceInterface
+	organizationUnitsSvc       OrganizationUnitsServiceInterface
 }
 
 func NewInternalCommitteeService(
@@ -50,6 +54,8 @@ func NewInternalCommitteeService(
 	committeeTermSvc CommitteeTermServiceInterface,
 	committeeClassificationSvc CommitteeClassificationServiceInterface,
 	internalCommitteeStatusSvc InternalCommitteeStatusServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
+	organizationUnitsSvc OrganizationUnitsServiceInterface,
 ) InternalCommitteeServiceInterface {
 	return &InternalCommitteeService{
 		repo:                       repo,
@@ -60,6 +66,8 @@ func NewInternalCommitteeService(
 		committeeTermSvc:           committeeTermSvc,
 		committeeClassificationSvc: committeeClassificationSvc,
 		internalCommitteeStatusSvc: internalCommitteeStatusSvc,
+		notificationSvc:            notificationSvc,
+		organizationUnitsSvc:       organizationUnitsSvc,
 	}
 }
 
@@ -256,8 +264,9 @@ func (ics *InternalCommitteeService) Create(currentUserID uint, internalCommitte
 
 	tx.Commit()
 
-	// Log activity asynchronously
+	// Send notifications to department heads
 	go func() {
+
 		newCommittee, err := ics.GetFullDetailsByID(committeeID)
 		if err != nil {
 			return
@@ -286,6 +295,103 @@ func (ics *InternalCommitteeService) Create(currentUserID uint, internalCommitte
 			"internal_committee",
 			nil,
 		)
+
+		for _, nominee := range internalCommitteeFormDTO.NomineeDepartments {
+			// Get department head users directly
+			headUsers, err := ics.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(nominee.NomineeDepartmentID)
+			if err != nil {
+				utility.LogError("Failed to get department head users for notification", map[string]interface{}{
+					"department_id": nominee.NomineeDepartmentID,
+					"error":         err.Error(),
+				})
+				continue
+			}
+
+			if len(headUsers) == 0 {
+				continue
+			}
+
+			// Get committee details for notification
+			committee, err := ics.GetFullDetailsByID(committeeID)
+			if err != nil {
+				utility.LogError("Failed to get committee details for notification", map[string]interface{}{
+					"committee_id": committeeID,
+					"error":        err.Error(),
+				})
+				continue
+			}
+
+			// Get department details
+			department, err := ics.organizationUnitSvc.GetByID(nominee.NomineeDepartmentID)
+			if err != nil {
+				utility.LogError("Failed to get department details for notification", map[string]interface{}{
+					"department_id": nominee.NomineeDepartmentID,
+					"error":         err.Error(),
+				})
+				continue
+			}
+
+			// Create notifications for each department head
+			for _, headUser := range headUsers {
+				urlParam := fmt.Sprintf(`{"id":%d}`, committeeID)
+				entity := "internal_committee"
+				action := "department-nomination"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserIDs:              []uint{headUser.ID},
+					ModuleIdentifier:     "organization",
+					NotificationType:     string(commonDTOs.AssignmentType),
+					ReferenceNumber:      committee.ReferenceNumber,
+					HeadingEn:            fmt.Sprintf("Department Nominated for Committee:%s", newCommittee.LatestVersion.CommitteeNameEn),
+					HeadingAr:            fmt.Sprintf("تم ترشيح الإدارة للجنة:%s", newCommittee.LatestVersion.CommitteeNameAr),
+					TitleEn:              fmt.Sprintf("Your department (%s) has been nominated for committee: %s", department.TitleEn, newCommittee.LatestVersion.CommitteeNameEn),
+					TitleAr:              fmt.Sprintf("لقد تم ترشيح إدارتك (%s) للجنة: %s", department.TitleAr, newCommittee.LatestVersion.CommitteeNameAr),
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				responsibleUser, err := ics.userSvc.GetByID(headUser.ID)
+				if err != nil {
+					utility.LogError("Failed to fetch head user details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+				fmt.Println(newCommittee)
+				emailTo := []string{responsibleUser.Email}
+				subject := fmt.Sprintf("Committee:%s: Department Nomination", newCommittee.LatestVersion.CommitteeNameEn)
+				appURL := utility.GetAppURL()
+				emailData := map[string]interface{}{
+					"FirstNameEn":        responsibleUser.FirstNameEn,
+					"LastNameEn":         responsibleUser.LastNameEn,
+					"DepartmentName":     department.TitleEn,
+					"CommitteeReference": committee.ReferenceNumber,
+					"CommitteeNameEn":    newCommittee.LatestVersion.CommitteeNameEn,
+					"CommitteeNameAr":    newCommittee.LatestVersion.CommitteeNameAr,
+					"MembershipType":     nominee.MembershipType,
+					"NominatedBy":        fmt.Sprintf("%s %s", newCommittee.CreatedByUser.FirstNameEN, newCommittee.CreatedByUser.LastNameEN),
+					"NominatedOn":        newCommittee.CreatedAt.Format("2006-01-02"),
+					"RedirectURL":        fmt.Sprintf("%s/organization/internal-committees/%d", appURL, committeeID),
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              emailTo,
+					Subject:              subject,
+					TemplateRelativePath: "organization/templates/email/internal_committee_nomination_mail.html",
+					EmailData:            emailData,
+				}
+
+				err = ics.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "committee_management")
+				if err != nil {
+					utility.LogError("Failed to send notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			}
+		}
 	}()
 
 	return committeeID, nil
@@ -391,8 +497,9 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 
 	tx.Commit()
 
-	// Log activity asynchronously with changed fields only
+	// Send notifications to department heads
 	go func() {
+
 		newCommittee, err := ics.GetFullDetailsByID(id)
 		if err != nil {
 			return
@@ -434,6 +541,218 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 				"internal_committee",
 				nil,
 			)
+		}
+
+		// Compare old and new nominee departments to identify deleted ones
+		oldDepartmentIDs := make(map[uint]bool)
+		for _, oldNominee := range oldCommittee.LatestVersion.NomineeDepartments {
+			oldDepartmentIDs[oldNominee.NomineeDepartmentID] = true
+		}
+
+		newDepartmentIDs := make(map[uint]bool)
+		for _, newNominee := range internalCommitteeFormDTO.NomineeDepartments {
+			newDepartmentIDs[newNominee.NomineeDepartmentID] = true
+		}
+
+		// Send notifications for deleted departments
+		for _, oldNominee := range oldCommittee.LatestVersion.NomineeDepartments {
+			if !newDepartmentIDs[oldNominee.NomineeDepartmentID] {
+				// This department was removed
+				headUsers, err := ics.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(oldNominee.NomineeDepartmentID)
+				if err != nil {
+					utility.LogError("Failed to get department head users for deletion notification", map[string]interface{}{
+						"department_id": oldNominee.NomineeDepartmentID,
+						"error":         err.Error(),
+					})
+					continue
+				}
+
+				if len(headUsers) == 0 {
+					continue
+				}
+
+				// Get committee details for notification
+				committee, err := ics.GetByID(id)
+				if err != nil {
+					utility.LogError("Failed to get committee details for deletion notification", map[string]interface{}{
+						"committee_id": id,
+						"error":        err.Error(),
+					})
+					continue
+				}
+
+				// Get department details
+				department, err := ics.organizationUnitSvc.GetByID(oldNominee.NomineeDepartmentID)
+				if err != nil {
+					utility.LogError("Failed to get department details for deletion notification", map[string]interface{}{
+						"department_id": oldNominee.NomineeDepartmentID,
+						"error":         err.Error(),
+					})
+					continue
+				}
+
+				// Create notifications for each department head about removal
+				for _, headUser := range headUsers {
+					urlParam := fmt.Sprintf(`{"id":%d}`, id)
+					entity := "internal_committee"
+					action := "department-nomination-removed"
+
+					dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+						UserIDs:              []uint{headUser.ID},
+						ModuleIdentifier:     "organization",
+						NotificationType:     string(commonDTOs.InformationType),
+						ReferenceNumber:      committee.ReferenceNumber,
+						HeadingEn:            fmt.Sprintf("Department Nominated for Removed from Committee:%s", newCommittee.LatestVersion.CommitteeNameEn),
+						HeadingAr:            fmt.Sprintf("تم إزالة ترشيح الإدارة من اللجنة:%s", newCommittee.LatestVersion.CommitteeNameAr),
+						TitleEn:              fmt.Sprintf("Your department (%s) has been removed from committee: %s", department.TitleEn, newCommittee.LatestVersion.CommitteeNameEn),
+						TitleAr:              fmt.Sprintf("لقد تم إزالة ترشيح إدارتك (%s) من اللجنة: %s", department.TitleAr, newCommittee.LatestVersion.CommitteeNameAr),
+						Entity:               &entity,
+						Action:               &action,
+						URLParam:             urlParam,
+						IsSystemNotification: false,
+						CreatedByID:          &currentUserID,
+					}
+
+					responsibleUser, err := ics.userSvc.GetByID(headUser.ID)
+					if err != nil {
+						utility.LogError("Failed to fetch head user details for deletion notification", map[string]interface{}{
+							"error": err.Error(),
+						})
+						continue
+					}
+
+					emailTo := []string{responsibleUser.Email}
+					subject := fmt.Sprintf("Committee:%s: Department Removed", newCommittee.LatestVersion.CommitteeNameEn)
+					appURL := utility.GetAppURL()
+					emailData := map[string]interface{}{
+						"FirstNameEn":        responsibleUser.FirstNameEn,
+						"LastNameEn":         responsibleUser.LastNameEn,
+						"DepartmentName":     department.TitleEn,
+						"CommitteeReference": committee.ReferenceNumber,
+						"CommitteeNameEn":    newCommittee.LatestVersion.CommitteeNameEn,
+						"CommitteeNameAr":    newCommittee.LatestVersion.CommitteeNameAr,
+						"MembershipType":     oldNominee.MembershipType,
+						"RemovedBy":          fmt.Sprintf("%s %s", newCommittee.UpdatedByUser.FirstNameEN, newCommittee.UpdatedByUser.LastNameEN),
+						"RemovedOn":          newCommittee.UpdatedAt.Format("2006-01-02"),
+						"RedirectURL":        fmt.Sprintf("%s/organization/internal-committees/%d", appURL, id),
+					}
+
+					emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+						EmailTo:              emailTo,
+						Subject:              subject,
+						TemplateRelativePath: "organization/templates/email/internal_committee_nomination_removed_mail.html",
+						EmailData:            emailData,
+					}
+
+					err = ics.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "committee_management")
+					if err != nil {
+						utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+							"error": err.Error(),
+						})
+					}
+				}
+			}
+		}
+
+		// Send notifications for new departments (use existing create template)
+		for _, nominee := range internalCommitteeFormDTO.NomineeDepartments {
+			if !oldDepartmentIDs[nominee.NomineeDepartmentID] {
+				// This is a new department
+				// Get department head users directly
+				headUsers, err := ics.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(nominee.NomineeDepartmentID)
+				if err != nil {
+					utility.LogError("Failed to get department head users for notification", map[string]interface{}{
+						"department_id": nominee.NomineeDepartmentID,
+						"error":         err.Error(),
+					})
+					continue
+				}
+
+				if len(headUsers) == 0 {
+					continue
+				}
+
+				// Get committee details for notification
+				committee, err := ics.GetByID(id)
+				if err != nil {
+					utility.LogError("Failed to get committee details for notification", map[string]interface{}{
+						"committee_id": id,
+						"error":        err.Error(),
+					})
+					continue
+				}
+
+				// Get department details
+				department, err := ics.organizationUnitSvc.GetByID(nominee.NomineeDepartmentID)
+				if err != nil {
+					utility.LogError("Failed to get department details for notification", map[string]interface{}{
+						"department_id": nominee.NomineeDepartmentID,
+						"error":         err.Error(),
+					})
+					continue
+				}
+
+				// Create notifications for each department head (new department - use create template)
+				for _, headUser := range headUsers {
+					urlParam := fmt.Sprintf(`{"id":%d}`, id)
+					entity := "internal_committee"
+					action := "department-nomination"
+
+					dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+						UserIDs:              []uint{headUser.ID},
+						ModuleIdentifier:     "organization",
+						NotificationType:     string(commonDTOs.AssignmentType),
+						ReferenceNumber:      committee.ReferenceNumber,
+						HeadingEn:            fmt.Sprintf("Department Nominated for Committee:%s", newCommittee.LatestVersion.CommitteeNameEn),
+						HeadingAr:            fmt.Sprintf("تم ترشيح الإدارة للجنة:%s", newCommittee.LatestVersion.CommitteeNameAr),
+						TitleEn:              fmt.Sprintf("Your department (%s) has been nominated for committee: %s", department.TitleEn, newCommittee.LatestVersion.CommitteeNameEn),
+						TitleAr:              fmt.Sprintf("لقد تم ترشيح إدارتك (%s) للجنة: %s", department.TitleAr, newCommittee.LatestVersion.CommitteeNameAr),
+						Entity:               &entity,
+						Action:               &action,
+						URLParam:             urlParam,
+						IsSystemNotification: false,
+						CreatedByID:          &currentUserID,
+					}
+
+					responsibleUser, err := ics.userSvc.GetByID(headUser.ID)
+					if err != nil {
+						utility.LogError("Failed to fetch head user details for notification", map[string]interface{}{
+							"error": err.Error(),
+						})
+						continue
+					}
+
+					emailTo := []string{responsibleUser.Email}
+					subject := fmt.Sprintf("Committee:%s: Department Nomination", newCommittee.LatestVersion.CommitteeNameEn)
+					appURL := utility.GetAppURL()
+					emailData := map[string]interface{}{
+						"FirstNameEn":        responsibleUser.FirstNameEn,
+						"LastNameEn":         responsibleUser.LastNameEn,
+						"DepartmentName":     department.TitleEn,
+						"CommitteeReference": committee.ReferenceNumber,
+						"CommitteeNameEn":    newCommittee.LatestVersion.CommitteeNameEn,
+						"CommitteeNameAr":    newCommittee.LatestVersion.CommitteeNameAr,
+						"MembershipType":     nominee.MembershipType,
+						"NominatedBy":        fmt.Sprintf("%s %s", newCommittee.UpdatedByUser.FirstNameEN, newCommittee.UpdatedByUser.LastNameEN),
+						"NominatedOn":        newCommittee.UpdatedAt.Format("2006-01-02"),
+						"RedirectURL":        fmt.Sprintf("%s/organization/internal-committees/%d", appURL, id),
+					}
+
+					emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+						EmailTo:              emailTo,
+						Subject:              subject,
+						TemplateRelativePath: "organization/templates/email/internal_committee_nomination_mail.html",
+						EmailData:            emailData,
+					}
+
+					err = ics.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "committee_management")
+					if err != nil {
+						utility.LogError("Failed to send notifications", map[string]interface{}{
+							"error": err.Error(),
+						})
+					}
+				}
+			}
 		}
 	}()
 
@@ -732,6 +1051,103 @@ func (ics *InternalCommitteeService) ReformCommittee(currentUserID uint, reformD
 			"reform_internal_committee",
 			nil,
 		)
+
+		for _, nominee := range reformDTO.NomineeDepartments {
+			// Get department head users directly
+			headUsers, err := ics.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(nominee.NomineeDepartmentID)
+			if err != nil {
+				utility.LogError("Failed to get department head users for notification", map[string]interface{}{
+					"department_id": nominee.NomineeDepartmentID,
+					"error":         err.Error(),
+				})
+				continue
+			}
+
+			if len(headUsers) == 0 {
+				continue
+			}
+
+			// Get committee details for notification
+			committee, err := ics.GetByID(newCommittee.ID)
+			if err != nil {
+				utility.LogError("Failed to get committee details for notification", map[string]interface{}{
+					"committee_id": newCommittee.ID,
+					"error":        err.Error(),
+				})
+				continue
+			}
+
+			// Get department details
+			department, err := ics.organizationUnitSvc.GetByID(nominee.NomineeDepartmentID)
+			if err != nil {
+				utility.LogError("Failed to get department details for notification", map[string]interface{}{
+					"department_id": nominee.NomineeDepartmentID,
+					"error":         err.Error(),
+				})
+				continue
+			}
+
+			// Create notifications for each department head
+			for _, headUser := range headUsers {
+				urlParam := fmt.Sprintf(`{"id":%d}`, newCommittee.ID)
+				entity := "internal_committee"
+				action := "department-nomination"
+
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserIDs:              []uint{headUser.ID},
+					ModuleIdentifier:     "organization",
+					NotificationType:     string(commonDTOs.AssignmentType),
+					ReferenceNumber:      committee.ReferenceNumber,
+					HeadingEn:            fmt.Sprintf("Department Nominated for Committee:%s", newCommittee.LatestVersion.CommitteeNameEn),
+					HeadingAr:            fmt.Sprintf("تم ترشيح الإدارة للجنة:%s", newCommittee.LatestVersion.CommitteeNameAr),
+					TitleEn:              fmt.Sprintf("Your department (%s) has been nominated for committee: %s", department.TitleEn, newCommittee.LatestVersion.CommitteeNameEn),
+					TitleAr:              fmt.Sprintf("لقد تم ترشيح إدارتك (%s) للجنة: %s", department.TitleAr, newCommittee.LatestVersion.CommitteeNameAr),
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				responsibleUser, err := ics.userSvc.GetByID(headUser.ID)
+				if err != nil {
+					utility.LogError("Failed to fetch head user details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+
+				emailTo := []string{responsibleUser.Email}
+				subject := fmt.Sprintf("Committee/%s: Department Nomination", committee.ReferenceNumber)
+				appURL := utility.GetAppURL()
+				emailData := map[string]interface{}{
+					"FirstNameEn":        responsibleUser.FirstNameEn,
+					"LastNameEn":         responsibleUser.LastNameEn,
+					"DepartmentName":     department.TitleEn,
+					"CommitteeReference": committee.ReferenceNumber,
+					"CommitteeNameEn":    newCommittee.LatestVersion.CommitteeNameEn,
+					"CommitteeNameAr":    newCommittee.LatestVersion.CommitteeNameAr,
+					"MembershipType":     nominee.MembershipType,
+					"NominatedBy":        fmt.Sprintf("%s %s", newCommittee.CreatedByUser.FirstNameEN, newCommittee.CreatedByUser.LastNameEN),
+					"NominatedOn":        newCommittee.CreatedAt.Format("2006-01-02"),
+					"RedirectURL":        fmt.Sprintf("%s/organization/internal-committees/%d", appURL, newCommittee.ID),
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              emailTo,
+					Subject:              subject,
+					TemplateRelativePath: "organization/templates/email/internal_committee_nomination_mail.html",
+					EmailData:            emailData,
+				}
+
+				err = ics.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "committee_management")
+				if err != nil {
+					utility.LogError("Failed to send notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			}
+		}
 	}()
 
 	return newVersionID, nil
@@ -828,13 +1244,119 @@ func (ics *InternalCommitteeService) CreateParticipants(currentUserID uint, nomi
 
 	tx.Commit()
 
-	// Log activity asynchronously
+	// Send notifications to assigned participants
 	go func() {
+		// Get participants to access nominee department relationship
+		participants, err := ics.repo.GetParticipantsByNomineeDepartmentID(nomineeDepartmentID)
+		if err != nil || len(participants) == 0 {
+			utility.LogError("Failed to get participants for committee details", map[string]interface{}{
+				"nominee_department_id": nomineeDepartmentID,
+				"error":                 err.Error(),
+			})
+			return
+		}
+
+		// Use first participant to get committee details (all participants belong to same committee)
+		firstParticipant := participants[0]
+		if firstParticipant.NomineeDepartment == nil || firstParticipant.NomineeDepartment.InternalCommitteeVersion == nil {
+			utility.LogError("Missing nominee department or version relationship", map[string]interface{}{
+				"nominee_department_id": nomineeDepartmentID,
+			})
+			return
+		}
+
+		committeeID := firstParticipant.NomineeDepartment.InternalCommitteeVersion.InternalCommitteeID
+
+		// Get full committee details
+		committee, err := ics.GetFullDetailsByID(committeeID)
+		if err != nil {
+			utility.LogError("Failed to get committee details for notification", map[string]interface{}{
+				"committee_id": committeeID,
+				"error":        err.Error(),
+			})
+			return
+		}
+
+		// Get department details
+		department, err := ics.organizationUnitSvc.GetByID(firstParticipant.NomineeDepartment.NomineeDepartmentID)
+		if err != nil {
+			utility.LogError("Failed to get department details for notification", map[string]interface{}{
+				"department_id": firstParticipant.NomineeDepartment.NomineeDepartmentID,
+				"error":         err.Error(),
+			})
+			return
+		}
+
+		// Send notifications to each assigned participant
+		for _, userID := range dto.UserIDs {
+			// Get user details
+			user, err := ics.userSvc.GetByID(userID)
+			if err != nil {
+				utility.LogError("Failed to get user details for notification", map[string]interface{}{
+					"user_id": userID,
+					"error":   err.Error(),
+				})
+				continue
+			}
+
+			urlParam := fmt.Sprintf(`{"id":%d}`, committeeID)
+			entity := "internal_committee"
+			action := "participant-assigned"
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{userID},
+				ModuleIdentifier:     "organization",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				ReferenceNumber:      committee.ReferenceNumber,
+				HeadingEn:            fmt.Sprintf("Department Nominated for Committee:%s", committee.LatestVersion.CommitteeNameEn),
+				HeadingAr:            fmt.Sprintf("تم ترشيح الإدارة للجنة:%s", committee.LatestVersion.CommitteeNameAr),
+				TitleEn:              fmt.Sprintf("Your department (%s) has been nominated for committee: %s", department.TitleEn, committee.LatestVersion.CommitteeNameEn),
+				TitleAr:              fmt.Sprintf("لقد تم ترشيح إدارتك (%s) للجنة: %s", department.TitleAr, committee.LatestVersion.CommitteeNameAr),
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			emailTo := []string{user.Email}
+			subject := fmt.Sprintf("Committee/%s: Participant Assignment", committee.LatestVersion.CommitteeNameEn)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":        user.FirstNameEn,
+				"LastNameEn":         user.LastNameEn,
+				"CommitteeReference": committee.ReferenceNumber,
+				"CommitteeNameEn":    committee.LatestVersion.CommitteeNameEn,
+				"CommitteeNameAr":    committee.LatestVersion.CommitteeNameAr,
+				"DepartmentName":     department.TitleEn,
+				"MembershipType":     firstParticipant.NomineeDepartment.MembershipType,
+				"AssignedBy":         fmt.Sprintf("%s %s", committee.CreatedByUser.FirstNameEN, committee.CreatedByUser.LastNameEN),
+				"AssignedOn":         committee.CreatedAt.Format("2006-01-02"),
+				"RedirectURL":        fmt.Sprintf("%s/organization/internal-committees/%d", appURL, committeeID),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "organization/templates/email/internal_committee_participant_assigned_mail.html",
+				EmailData:            emailData,
+			}
+
+			err = ics.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "committee_management")
+			if err != nil {
+				utility.LogError("Failed to send participant assignment notification", map[string]interface{}{
+					"error":   err.Error(),
+					"user_id": userID,
+				})
+			}
+		}
+
+		// Log activity asynchronously
 		for _, id := range createdIDs {
 			for _, userID := range dto.UserIDs {
 				err := ics.activityLogSvc.LogActivity(
 					models.CreateAction,
-					models.InternalCommitteeVersionNomineeDepartmentParticipant{}.TableName(),
+					"committee_participants",
 					id,
 					map[string]interface{}{
 						"nominee_department_id": nomineeDepartmentID,
@@ -859,6 +1381,24 @@ func (ics *InternalCommitteeService) CreateParticipants(currentUserID uint, nomi
 }
 
 func (ics *InternalCommitteeService) DeleteParticipant(nomineeDepartmentID uint, participantID uint, currentUserID uint) error {
+	// Get participant details before deletion for notification
+	participants, err := ics.repo.GetParticipantsByNomineeDepartmentID(nomineeDepartmentID)
+	if err != nil {
+		return err
+	}
+
+	var deletedParticipant *models.InternalCommitteeVersionNomineeDepartmentParticipant
+	for _, participant := range participants {
+		if participant.ID == participantID {
+			deletedParticipant = participant
+			break
+		}
+	}
+
+	if deletedParticipant == nil {
+		return utility.NewResourceNotFoundError(fmt.Errorf("participant not found"), participantID)
+	}
+
 	tx := ics.repo.BeginTransaction()
 
 	if err := ics.repo.DeleteParticipant(nomineeDepartmentID, participantID, tx); err != nil {
@@ -868,11 +1408,105 @@ func (ics *InternalCommitteeService) DeleteParticipant(nomineeDepartmentID uint,
 
 	tx.Commit()
 
+	// Send removal notification to the deleted participant
+	go func() {
+		// Get committee details through the relationship chain
+		if deletedParticipant.NomineeDepartment == nil || deletedParticipant.NomineeDepartment.InternalCommitteeVersion == nil {
+			utility.LogError("Missing nominee department or version relationship for removal notification", map[string]interface{}{
+				"nominee_department_id": nomineeDepartmentID,
+			})
+			return
+		}
+
+		committeeID := deletedParticipant.NomineeDepartment.InternalCommitteeVersion.InternalCommitteeID
+
+		// Get full committee details
+		committee, err := ics.GetFullDetailsByID(committeeID)
+		if err != nil {
+			utility.LogError("Failed to get committee details for removal notification", map[string]interface{}{
+				"committee_id": committeeID,
+				"error":        err.Error(),
+			})
+			return
+		}
+
+		// Get department details
+		department, err := ics.organizationUnitSvc.GetByID(deletedParticipant.NomineeDepartment.NomineeDepartmentID)
+		if err != nil {
+			utility.LogError("Failed to get department details for removal notification", map[string]interface{}{
+				"department_id": deletedParticipant.NomineeDepartment.NomineeDepartmentID,
+				"error":         err.Error(),
+			})
+			return
+		}
+
+		// Get user details
+		user, err := ics.userSvc.GetByID(deletedParticipant.UserID)
+		if err != nil {
+			utility.LogError("Failed to get user details for removal notification", map[string]interface{}{
+				"user_id": deletedParticipant.UserID,
+				"error":   err.Error(),
+			})
+			return
+		}
+
+		urlParam := fmt.Sprintf(`{"id":%d}`, committeeID)
+		entity := "internal_committee"
+		action := "participant-removed"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{deletedParticipant.UserID},
+			ModuleIdentifier:     "organization",
+			NotificationType:     string(commonDTOs.InformationType),
+			ReferenceNumber:      committee.ReferenceNumber,
+			HeadingEn:            fmt.Sprintf("Committee Participant Removed: %s", committee.LatestVersion.CommitteeNameEn),
+			HeadingAr:            fmt.Sprintf("تم إزالة عضو اللجنة: %s", committee.LatestVersion.CommitteeNameAr),
+			TitleEn:              fmt.Sprintf("You have been removed as a participant from committee: %s", committee.LatestVersion.CommitteeNameEn),
+			TitleAr:              fmt.Sprintf("لقد تم إزالتك كمشارك من اللجنة: %s", committee.LatestVersion.CommitteeNameAr),
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		emailTo := []string{user.Email}
+		subject := fmt.Sprintf("Committee/%s: Participant Removal", committee.LatestVersion.CommitteeNameEn)
+		appURL := utility.GetAppURL()
+		emailData := map[string]interface{}{
+			"FirstNameEn":        user.FirstNameEn,
+			"LastNameEn":         user.LastNameEn,
+			"CommitteeReference": committee.ReferenceNumber,
+			"CommitteeNameEn":    committee.LatestVersion.CommitteeNameEn,
+			"CommitteeNameAr":    committee.LatestVersion.CommitteeNameAr,
+			"DepartmentName":     department.TitleEn,
+			"MembershipType":     deletedParticipant.NomineeDepartment.MembershipType,
+			"RemovedBy":          fmt.Sprintf("%s %s", committee.UpdatedByUser.FirstNameEN, committee.UpdatedByUser.LastNameEN),
+			"RemovedOn":          committee.UpdatedAt.Format("2006-01-02"),
+			"RedirectURL":        fmt.Sprintf("%s/organization/internal-committees/%d", appURL, committeeID),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "organization/templates/email/internal_committee_participant_removed_mail.html",
+			EmailData:            emailData,
+		}
+
+		err = ics.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "committee_management")
+		if err != nil {
+			utility.LogError("Failed to send participant removal notification", map[string]interface{}{
+				"error":   err.Error(),
+				"user_id": deletedParticipant.UserID,
+			})
+		}
+	}()
+
 	// Log activity asynchronously
 	go func() {
 		err := ics.activityLogSvc.LogActivity(
 			models.DeleteAction,
-			models.InternalCommitteeVersionNomineeDepartmentParticipant{}.TableName(),
+			"committee_participants",
 			nomineeDepartmentID,
 			map[string]interface{}{
 				"nominee_department_id": nomineeDepartmentID,

@@ -23,6 +23,7 @@ type OrganizationUnitsRepositoryInterface interface {
 	GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetParentOrganizationUnitWithHead(unitID uint, primaryField string) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error)
+	GetHeadUsersByOrganizationUnitID(organizationUnitID uint) ([]*models.User, error)
 
 	// Organization Unit Report
 	GetAll(params *organizationDTOs.OrganizationUnitReportListQueryParamsDTO) (*organizationDTOs.OrganizationUnitReportListReponseDTO, error)
@@ -1953,4 +1954,19 @@ func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportComplianceSumm
 		return nil, err
 	}
 	return &complianceSummary, nil
+}
+
+// GetHeadUsersByOrganizationUnitID gets all head users for a specific organization unit
+func (repo *OrganizationUnitsRepository) GetHeadUsersByOrganizationUnitID(organizationUnitID uint) ([]*models.User, error) {
+	var users []*models.User
+
+	err := repo.db.
+		Where("organization_unit_2_id = ? AND is_head = ?", organizationUnitID, true).
+		Find(&users).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
