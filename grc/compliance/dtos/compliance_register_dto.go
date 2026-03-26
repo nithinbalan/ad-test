@@ -313,7 +313,7 @@ type ComplianceRegisterIssuingAuthorityEntityFormDTO struct {
 	ID                   *uint   `json:"id,omitempty"`
 	CircularNo           *string `json:"circular_no" binding:"omitempty,max=500"`
 	DateOfReceiving      *string `json:"date_of_receiving" binding:"omitempty,datetime=2006-01-02"`
-	HijriDateOfReceiving *string `json:"hijri_date_of_receiving" binding:"omitempty,datetime=2006-01-02"`
+	HijriDateOfReceiving *string `json:"hijri_date_of_receiving" binding:"omitempty,max=500"`
 }
 
 type ComplianceRegisterIssuingAuthorityDocumentFormDTO struct {

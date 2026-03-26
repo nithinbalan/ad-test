@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"jethur/config"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	"jethur/grc/consultation-request/dtos"
 	"jethur/grc/consultation-request/repositories"
 	logServices "jethur/grc/logs/services"
@@ -42,12 +44,13 @@ type ConsultationRequestServiceInterface interface {
 
 // Implementation
 type ConsultationRequestService struct {
-	repo           repositories.ConsultationRequestRepositoryInterface
-	userSvc        organizationServices.UserServiceInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
-	orgUnitSvc     settingsServices.OrganizationUnitServiceInterface
-	statusSvc      ConsultationRequestStatusServiceInterface
-	userSettingSvc organizationServices.UserSettingServiceInterface
+	repo            repositories.ConsultationRequestRepositoryInterface
+	userSvc         organizationServices.UserServiceInterface
+	activityLogSvc  logServices.ActivityLogServiceInterface
+	orgUnitSvc      settingsServices.OrganizationUnitServiceInterface
+	statusSvc       ConsultationRequestStatusServiceInterface
+	userSettingSvc  organizationServices.UserSettingServiceInterface
+	notificationSvc commonServices.NotificationServiceInterface
 }
 
 // Constructor
@@ -58,14 +61,16 @@ func NewConsultationRequestService(
 	orgUnitSvc settingsServices.OrganizationUnitServiceInterface,
 	statusSvc ConsultationRequestStatusServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) *ConsultationRequestService {
 	return &ConsultationRequestService{
-		repo:           repo,
-		userSvc:        userSvc,
-		activityLogSvc: activityLogSvc,
-		orgUnitSvc:     orgUnitSvc,
-		statusSvc:      statusSvc,
-		userSettingSvc: userSettingSvc,
+		repo:            repo,
+		userSvc:         userSvc,
+		activityLogSvc:  activityLogSvc,
+		orgUnitSvc:      orgUnitSvc,
+		statusSvc:       statusSvc,
+		userSettingSvc:  userSettingSvc,
+		notificationSvc: notificationSvc,
 	}
 }
 
@@ -193,7 +198,7 @@ func (s *ConsultationRequestService) Create(currentUserID uint, dto *dtos.Consul
 			id,
 			fullDetails,
 			currentUserID,
-			"consultation", "consultation_request", "", nil,
+			"consultation_request", "consultation_request_register", "", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -290,7 +295,7 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 
 	var documents []*models.ConsultationRequestCommentDocument
 
-	for _,doc := range dto.Documents {
+	for _, doc := range dto.Documents {
 		if doc.FileName == "" || doc.Size <= 0 {
 			continue
 		}
@@ -322,13 +327,13 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 			CreatedAt:                    now,
 		}
 
-		documents = append(documents,document)
+		documents = append(documents, document)
 	}
 
 	if len(documents) > 0 {
-		if err := s.repo.CreateDocuments(documents,tx); err != nil {
+		if err := s.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
-			return 0,err
+			return 0, err
 		}
 	}
 
@@ -343,7 +348,7 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 		return 0, err
 	}
 
-	for _,doc := range documents {
+	for _, doc := range documents {
 		storagePath := filepath.Join(
 			"consultation-request",
 			"consultation-request",
@@ -375,7 +380,7 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 			fullDetails,
 			currentUserID,
 			"consultation_request",
-			"consultation",
+			"consultation_request_register",
 			"",
 			nil,
 		)
@@ -555,7 +560,7 @@ func (s *ConsultationRequestService) UpdateConsultationRequestComment(consultati
 			changedData,
 			currentUserID,
 			"consultation_request",
-			"consultation",
+			"consultation_request_register",
 			"",
 			nil,
 		)
@@ -687,7 +692,7 @@ func (s *ConsultationRequestService) Update(id uint, dto *dtos.ConsultationReque
 			id,
 			changedDataJSON,
 			currentUserID,
-			"consultation_request", "consultation", "", nil,
+			"consultation_request", "consultation_request_register", "", nil,
 		)
 		if err != nil {
 			fmt.Printf("Failed to log bulk delete activity: %v\n", err)
@@ -745,6 +750,12 @@ func (s *ConsultationRequestService) UpdateResponsibleUser(id uint, responsibleU
 		)
 	}
 
+	// Store the old responsible user ID before updating
+	oldResponsibleUserID := uint(0)
+	if existing.ResponsibleUserID != nil {
+		oldResponsibleUserID = *existing.ResponsibleUserID
+	}
+
 	tx := s.repo.BeginTransaction()
 	now := time.Now()
 
@@ -768,12 +779,143 @@ func (s *ConsultationRequestService) UpdateResponsibleUser(id uint, responsibleU
 			fullDetails,
 			currentUserID,
 			"consultation_request",
-			"consultation",
+			"consultation_request_register",
 			"",
 			nil,
 		)
 		if err != nil {
 			fmt.Printf("Failed to log update responsible user activity: %v\n", err)
+		}
+	}()
+
+	// Send notifications to old and new responsible users if the responsible user has changed
+	go func() {
+		if oldResponsibleUserID != responsibleUserID {
+			// URL param for notifications
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			entity := "consultation-request"
+
+			// Old responsible user notification (Removal)
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{oldResponsibleUserID},
+				ModuleIdentifier:     "consultation_request",
+				NotificationType:     string(commonDTOs.InformationType),
+				HeadingEn:            "Consultation Request Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية طلب الاستشارة",
+				TitleEn:              existing.Title,
+				TitleAr:              existing.Title,
+				ReferenceNumber:      existing.ReferenceNumber,
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			// New responsible user notification (Assignment)
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{responsibleUserID},
+				ModuleIdentifier:     "consultation_request",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Consultation Request Responsibility Assigned",
+				HeadingAr:            "مسؤولية طلب الاستشارة المعينة",
+				TitleEn:              existing.Title,
+				TitleAr:              existing.Title,
+				ReferenceNumber:      existing.ReferenceNumber,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			// Fetch the responsible users' data
+			oldResponsibleUser, err := s.userSvc.GetByID(oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			newResponsibleUser, err := s.userSvc.GetByID(responsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			// Fetch details of the user making the assignment
+			updatedByUser, err := s.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			appURL := utility.GetAppURL()
+
+			// Email notification for the old responsible user
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Consultation Request/%s: Responsibility Removed", existing.Title)
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":                 oldResponsibleUser.FirstNameEn,
+				"LastNameEn":                  oldResponsibleUser.LastNameEn,
+				"ConsultationReferenceNumber": existing.ReferenceNumber,
+				"ConsultationTitle":           existing.Title,
+				"ConsultationDescription":     utility.GetStringValue(existing.RequestDetails),
+				"UpdatedByFirstNameEn":        updatedByUser.FirstNameEn,
+				"UpdatedByLastNameEn":         updatedByUser.LastNameEn,
+				"RedirectURL":                 fmt.Sprintf("%s/consultation-request/register/%d/overview", appURL, id),
+			}
+
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: "consultation-request/templates/email/consultation_request_remove_responsible_user_mail.html",
+				EmailData:            oldResponsibleUserEmailData,
+			}
+
+			// Email notification for the new responsible user
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Consultation Request/%s: Responsibility Assigned", existing.Title)
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":                 newResponsibleUser.FirstNameEn,
+				"LastNameEn":                  newResponsibleUser.LastNameEn,
+				"ConsultationReferenceNumber": existing.ReferenceNumber,
+				"ConsultationTitle":           existing.Title,
+				"ConsultationDescription":     utility.GetStringValue(existing.RequestDetails),
+				"AssignedByFirstNameEn":       updatedByUser.FirstNameEn,
+				"AssignedByLastNameEn":        updatedByUser.LastNameEn,
+				"AssignedOn":                  time.Now().Format("2006-01-02"),
+				"RedirectURL":                 fmt.Sprintf("%s/consultation-request/register/%d/overview", appURL, id),
+			}
+
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: "consultation-request/templates/email/consultation_request_change_responsible_user_mail.html",
+				EmailData:            newResponsibleUserEmailData,
+			}
+
+			// Send notifications and emails
+			err = s.notificationSvc.SendNotification(newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "consultation_request_register")
+			if err != nil {
+				utility.LogError("Failed to send notifications to new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+
+			err = s.notificationSvc.SendNotification(oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "consultation_request_register")
+			if err != nil {
+				utility.LogError("Failed to send notifications to old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
 		}
 	}()
 
@@ -880,7 +1022,7 @@ func (s *ConsultationRequestService) UpdateNotes(id uint, notes string, currentU
 			fullDetails,
 			currentUserID,
 			"consultation_request",
-			"consultation",
+			"consultation_request_register",
 			"",
 			nil,
 		)

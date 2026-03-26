@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"jethur/config"
@@ -175,9 +177,8 @@ func (crs ComplianceRegisterService) GetFullDetailsByID(id uint, tx ...utility.D
 					dateStr := authority.Entity.DateOfReceiving.Format("2006-01-02")
 					complianceDTO.IssuingAuthorities[i].Entity.DateOfReceivingString = dateStr
 				}
-				if !authority.Entity.HijriDateOfReceiving.IsZero() {
-					hijriDateStr := authority.Entity.HijriDateOfReceiving.Format("2006-01-02")
-					complianceDTO.IssuingAuthorities[i].Entity.HijriDateOfReceivingString = hijriDateStr
+				if authority.Entity.HijriDateOfReceiving != "" {
+					complianceDTO.IssuingAuthorities[i].Entity.HijriDateOfReceivingString = authority.Entity.HijriDateOfReceiving
 				}
 			}
 		}
@@ -1284,11 +1285,8 @@ func (crs *ComplianceRegisterService) validateIssuingAuthorityEntity(entity *com
 		}
 	}
 
-	if entity.HijriDateOfReceiving != nil && *entity.HijriDateOfReceiving != "" {
-		if _, err := time.Parse("2006-01-02", *entity.HijriDateOfReceiving); err != nil {
-			return utility.NewValidationError(fmt.Errorf("invalid hijri date of receiving format"), "invalid_date", fmt.Sprintf("issuing_authorities[%d].entity.hijri_date_of_receiving", authorityIndex))
-		}
-	}
+	// Hijri date is stored as string, no parsing validation needed
+	// Frontend should ensure proper format (YYYY-MM-DD)
 
 	return nil
 }
@@ -1464,101 +1462,206 @@ func (crs *ComplianceRegisterService) GetIssuingAuthorityDocumentPath(authorityI
 	return fullPath, nil
 }
 
+// OLD EXPORT FUNCTION - COMMENTED OUT
+// func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO, currentUserID uint) (*os.File, error) {
+// 	// Retrieve user settings for language preference
+// 	// userSetting, err := crs.userSettingSvc.GetUserSetting(currentUserID)
+// 	// if err != nil {
+// 	// 	return nil, err
+// 	// }
+
+// 	// var headers []string
+// 	// // Define headers based on the user's language setting
+// 	// if userSetting.Language == "ar" {
+// 	// 	headers = []string{
+// 	// 		"SL No.",
+// 	// 		"Reference Number",
+// 	// 		"Standard Code",
+// 	// 		"Title (AR)",
+// 	// 		"Category (AR)",
+// 	// 		"Deadline",
+// 	// 		"Issue Date",
+// 	// 		"Expiry Date",
+// 	// 		"Description (AR)",
+// 	// 		"Lifecycle Status (AR)",
+// 	// 		"Responsible Unit (AR)",
+// 	// 		"Compliance Status (AR)",
+// 	// 		"Severity Level (AR)",
+// 	// 		"Responsible User (AR)",
+// 	// 		"Review Frequency (AR)",
+// 	// 		"Review Responsible User (AR)",
+// 	// 	}
+// 	// } else {
+// 	// 	headers = []string{
+// 	// 		"SL No.",
+// 	// 		"Reference Number",
+// 	// 		"Standard Code",
+// 	// 		"Title (EN)",
+// 	// 		"Category (EN)",
+// 	// 		"Deadline",
+// 	// 		"Issue Date",
+// 	// 		"Expiry Date",
+// 	// 		"Description (EN)",
+// 	// 		"Lifecycle Status (EN)",
+// 	// 		"Responsible Unit (EN)",
+// 	// 		"Compliance Status (EN)",
+// 	// 		"Severity Level (EN)",
+// 	// 		"Responsible User (EN)",
+// 	// 		"Review Frequency (EN)",
+// 	// 		"Review Responsible User (EN)",
+// 	// 	}
+// 	// }
+
+// 	// // Convert data to [][]interface{} based on language preference
+// 	// rows := make([][]interface{}, len(data))
+// 	// for i, item := range data {
+// 	// 	if userSetting.Language == "ar" {
+// 	// 		rows[i] = []interface{}{
+// 	// 			i + 1,
+// 	// 			item.ReferenceNumber,
+// 	// 			item.StandardCode,
+// 	// 			item.TitleAr,
+// 	// 			item.ComplianceCategoryTitleAr,
+// 	// 			item.Deadline,
+// 	// 			item.IssueDate,
+// 	// 			item.ExpiryDate,
+// 	// 			item.DescriptionAr,
+// 	// 			item.LifecycleStatusTitleAr,
+// 	// 			item.ResponsibleUnitTitleAr,
+// 	// 			item.ComplianceStatusTitleAr,
+// 	// 			item.SeverityLevelTitleAr,
+// 	// 			item.ResponsibleUserFirstNameAr + " " + item.ResponsibleUserLastNameAr,
+// 	// 			item.ReviewFrequencyTitleAr,
+// 	// 			item.ReviewResponsibleUserFirstNameAr + " " + item.ReviewResponsibleUserLastNameAr,
+// 	// 		}
+// 	// 	} else {
+// 	// 		rows[i] = []interface{}{
+// 	// 			i + 1,
+// 	// 			item.ReferenceNumber,
+// 	// 			item.StandardCode,
+// 	// 			item.TitleEn,
+// 	// 			item.ComplianceCategoryTitleEn,
+// 	// 			item.Deadline,
+// 	// 			item.IssueDate,
+// 	// 			item.ExpiryDate,
+// 	// 			item.DescriptionEn,
+// 	// 			item.LifecycleStatusTitleEn,
+// 	// 			item.ResponsibleUnitTitleEn,
+// 	// 			item.ComplianceStatusTitleEn,
+// 	// 			item.SeverityLevelTitleEn,
+// 	// 			item.ResponsibleUserFirstNameEn + " " + item.ResponsibleUserLastNameEn,
+// 	// 			item.ReviewFrequencyTitleEn,
+// 	// 			item.ReviewResponsibleUserFirstNameEn + " " + item.ReviewResponsibleUserLastNameEn,
+// 	// 		}
+// 	// 	}
+// 	// }
+// 	// Generate the Excel file
+// 	// return utility.GenerateExcelFile(headers, rows)
+// 	return nil, nil
+// }
+
+// NEW EXPORT FUNCTION WITH UPDATED COLUMNS
 func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO, currentUserID uint) (*os.File, error) {
 	// Retrieve user settings for language preference
-	// userSetting, err := crs.userSettingSvc.GetUserSetting(currentUserID)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	userSetting, err := crs.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
 
-	// var headers []string
-	// // Define headers based on the user's language setting
-	// if userSetting.Language == "ar" {
-	// 	headers = []string{
-	// 		"SL No.",
-	// 		"Reference Number",
-	// 		"Standard Code",
-	// 		"Title (AR)",
-	// 		"Category (AR)",
-	// 		"Deadline",
-	// 		"Issue Date",
-	// 		"Expiry Date",
-	// 		"Description (AR)",
-	// 		"Lifecycle Status (AR)",
-	// 		"Responsible Unit (AR)",
-	// 		"Compliance Status (AR)",
-	// 		"Severity Level (AR)",
-	// 		"Responsible User (AR)",
-	// 		"Review Frequency (AR)",
-	// 		"Review Responsible User (AR)",
-	// 	}
-	// } else {
-	// 	headers = []string{
-	// 		"SL No.",
-	// 		"Reference Number",
-	// 		"Standard Code",
-	// 		"Title (EN)",
-	// 		"Category (EN)",
-	// 		"Deadline",
-	// 		"Issue Date",
-	// 		"Expiry Date",
-	// 		"Description (EN)",
-	// 		"Lifecycle Status (EN)",
-	// 		"Responsible Unit (EN)",
-	// 		"Compliance Status (EN)",
-	// 		"Severity Level (EN)",
-	// 		"Responsible User (EN)",
-	// 		"Review Frequency (EN)",
-	// 		"Review Responsible User (EN)",
-	// 	}
-	// }
+	var headers []string
+	// Define headers based on the user's language setting
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"#",
+			"Reference Number",
+			"Title",
+			"Legislative Body",
+			"Legislation Type",
+			"Secrecy Classification",
+			"Importance Classification",
+			"Subject",
+			"Applicability Statement",
+			"Assessment Type",
+		}
+	} else {
+		headers = []string{
+			"#",
+			"Reference Number",
+			"Title",
+			"Legislative Body",
+			"Legislation Type",
+			"Secrecy Classification",
+			"Importance Classification",
+			"Subject",
+			"Applicability Statement",
+			"Assessment Type",
+		}
+	}
 
-	// // Convert data to [][]interface{} based on language preference
-	// rows := make([][]interface{}, len(data))
-	// for i, item := range data {
-	// 	if userSetting.Language == "ar" {
-	// 		rows[i] = []interface{}{
-	// 			i + 1,
-	// 			item.ReferenceNumber,
-	// 			item.StandardCode,
-	// 			item.TitleAr,
-	// 			item.ComplianceCategoryTitleAr,
-	// 			item.Deadline,
-	// 			item.IssueDate,
-	// 			item.ExpiryDate,
-	// 			item.DescriptionAr,
-	// 			item.LifecycleStatusTitleAr,
-	// 			item.ResponsibleUnitTitleAr,
-	// 			item.ComplianceStatusTitleAr,
-	// 			item.SeverityLevelTitleAr,
-	// 			item.ResponsibleUserFirstNameAr + " " + item.ResponsibleUserLastNameAr,
-	// 			item.ReviewFrequencyTitleAr,
-	// 			item.ReviewResponsibleUserFirstNameAr + " " + item.ReviewResponsibleUserLastNameAr,
-	// 		}
-	// 	} else {
-	// 		rows[i] = []interface{}{
-	// 			i + 1,
-	// 			item.ReferenceNumber,
-	// 			item.StandardCode,
-	// 			item.TitleEn,
-	// 			item.ComplianceCategoryTitleEn,
-	// 			item.Deadline,
-	// 			item.IssueDate,
-	// 			item.ExpiryDate,
-	// 			item.DescriptionEn,
-	// 			item.LifecycleStatusTitleEn,
-	// 			item.ResponsibleUnitTitleEn,
-	// 			item.ComplianceStatusTitleEn,
-	// 			item.SeverityLevelTitleEn,
-	// 			item.ResponsibleUserFirstNameEn + " " + item.ResponsibleUserLastNameEn,
-	// 			item.ReviewFrequencyTitleEn,
-	// 			item.ReviewResponsibleUserFirstNameEn + " " + item.ReviewResponsibleUserLastNameEn,
-	// 		}
-	// 	}
-	// }
+	// Convert data to [][]interface{} based on language preference
+	rows := make([][]interface{}, len(data))
+	for i, item := range data {
+		// Determine applicability statement
+		var applicabilityStatement string
+		if item.IsApplicable {
+			applicabilityStatement = "Applicable"
+		} else if item.IsNotApplicable {
+			applicabilityStatement = "Not Applicable"
+		} else {
+			applicabilityStatement = ""
+		}
+
+		// Determine assessment type
+		var assessmentType string
+		if item.IsRegulationNotificationAssessment {
+			assessmentType = "Regulation Notification"
+		} else if item.IsRiskBasedAssessment {
+			assessmentType = "Risk Based Assessment"
+		} else {
+			assessmentType = ""
+		}
+
+		// Strip HTML tags from subject using regex
+		cleanSubject := item.Subject
+		if cleanSubject != "" {
+			// Remove HTML tags using regex pattern
+			re := regexp.MustCompile(`<[^>]*>`)
+			cleanSubject = re.ReplaceAllString(cleanSubject, "")
+			// Clean up extra whitespace
+			cleanSubject = strings.TrimSpace(cleanSubject)
+		}
+
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				item.ReferenceNumber,
+				item.TitleAr,
+				item.LegislativeBodyTitleAr,
+				item.LegislationTypeTitleAr,
+				item.SecrecyClassificationTitleAr,
+				item.ImportanceClassificationTitleAr,
+				cleanSubject,
+				applicabilityStatement,
+				assessmentType,
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				item.ReferenceNumber,
+				item.TitleEn,
+				item.LegislativeBodyTitleEn,
+				item.LegislationTypeTitleEn,
+				item.SecrecyClassificationTitleEn,
+				item.ImportanceClassificationTitleEn,
+				cleanSubject,
+				applicabilityStatement,
+				assessmentType,
+			}
+		}
+	}
+
 	// Generate the Excel file
-	// return utility.GenerateExcelFile(headers, rows)
-	return nil, nil
+	return utility.GenerateExcelFile(headers, rows)
 }
 
 // func (crs *ComplianceRegisterService) handleDocument(currentUserID uint, complianceRegisterID uint, documentDTO *complianceDTOs.ComplianceDocumentFormDTO, tx ...utility.DatabaseTransaction) error {
@@ -2096,7 +2199,8 @@ func (crs *ComplianceRegisterService) handleIssuingAuthorities(currentUserID uin
 		// Handle single entity per authority
 		if authorityDTO.Entity != nil {
 			if authorityDTO.Entity.CircularNo != nil && *authorityDTO.Entity.CircularNo != "" {
-				var dateOfReceiving, hijriDateOfReceiving time.Time
+				var dateOfReceiving time.Time
+				var hijriDateOfReceiving string
 
 				if authorityDTO.Entity.DateOfReceiving != nil && *authorityDTO.Entity.DateOfReceiving != "" {
 					parsedDate, err := time.Parse("2006-01-02", *authorityDTO.Entity.DateOfReceiving)
@@ -2108,12 +2212,8 @@ func (crs *ComplianceRegisterService) handleIssuingAuthorities(currentUserID uin
 				}
 
 				if authorityDTO.Entity.HijriDateOfReceiving != nil && *authorityDTO.Entity.HijriDateOfReceiving != "" {
-					parsedDate, err := time.Parse("2006-01-02", *authorityDTO.Entity.HijriDateOfReceiving)
-					if err != nil {
-						return utility.NewValidationError(fmt.Errorf("invalid hijri_date_of_receiving format"), "invalid_format", "hijri_date_of_receiving")
-					}
-					// Convert to UTC to avoid timezone offset issues with SQL Server
-					hijriDateOfReceiving = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 0, 0, 0, 0, time.UTC)
+					// Store hijri date as string without parsing
+					hijriDateOfReceiving = *authorityDTO.Entity.HijriDateOfReceiving
 				}
 
 				if authorityDTO.Entity.ID != nil {
