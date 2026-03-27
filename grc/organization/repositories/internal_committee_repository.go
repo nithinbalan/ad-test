@@ -30,6 +30,7 @@ type InternalCommitteeRepositoryInterface interface {
 	CreateNomineeDepartments(nomineeDepartments []*models.InternalCommitteeVersionNomineeDepartment, tx ...utility.DatabaseTransaction) error
 	GetNomineeDepartmentsByVersionID(versionID uint, tx ...utility.DatabaseTransaction) ([]*models.InternalCommitteeVersionNomineeDepartment, error)
 	DeleteNomineeDepartmentsByVersionID(versionID uint, tx ...utility.DatabaseTransaction) error
+	GetNomineeDepartmentByID(id uint, tx ...utility.DatabaseTransaction) (*models.InternalCommitteeVersionNomineeDepartment, error)
 
 	// Participant methods
 	CreateParticipant(participant *models.InternalCommitteeVersionNomineeDepartmentParticipant, tx ...utility.DatabaseTransaction) (uint, error)
@@ -219,7 +220,8 @@ func (repo *InternalCommitteeRepository) GetFullDetailsByID(id uint, tx ...utili
 				Preload("InternalCommitteeVersionNomineeDepartments").
 				Preload("InternalCommitteeVersionNomineeDepartments.NomineeDepartment").
 				Preload("InternalCommitteeVersionNomineeDepartments.Participants").
-				Preload("InternalCommitteeVersionNomineeDepartments.Participants.User")
+				Preload("InternalCommitteeVersionNomineeDepartments.Participants.User").
+				Preload("InternalCommitteeVersionNomineeDepartments.Participants.Department")
 		}).
 		First(&internalCommittee, id).Error; err != nil {
 		return nil, err
@@ -359,6 +361,21 @@ func (repo *InternalCommitteeRepository) DeleteNomineeDepartmentsByVersionID(ver
 
 	return db.Where("internal_committee_version_id = ?", versionID).
 		Delete(&models.InternalCommitteeVersionNomineeDepartment{}).Error
+}
+
+func (repo *InternalCommitteeRepository) GetNomineeDepartmentByID(id uint, tx ...utility.DatabaseTransaction) (*models.InternalCommitteeVersionNomineeDepartment, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var nomineeDepartment models.InternalCommitteeVersionNomineeDepartment
+	if err := db.Where("id = ?", id).
+		First(&nomineeDepartment).Error; err != nil {
+		return nil, err
+	}
+
+	return &nomineeDepartment, nil
 }
 
 func (repo *InternalCommitteeRepository) GenerateReferenceNumber() (string, error) {

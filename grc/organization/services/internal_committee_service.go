@@ -1216,6 +1216,12 @@ func (ics *InternalCommitteeService) CreateParticipants(currentUserID uint, nomi
 		}
 	}
 
+	// Fetch nominee department to get NomineeDepartmentID
+	nomineeDepartment, err := ics.repo.GetNomineeDepartmentByID(nomineeDepartmentID)
+	if err != nil {
+		return nil, utility.NewResourceNotFoundError(err, nomineeDepartmentID)
+	}
+
 	tx := ics.repo.BeginTransaction()
 
 	// Delete existing participants for this nominee department
@@ -1229,8 +1235,9 @@ func (ics *InternalCommitteeService) CreateParticipants(currentUserID uint, nomi
 	for _, userID := range dto.UserIDs {
 		participant := &models.InternalCommitteeVersionNomineeDepartmentParticipant{
 			InternalCommitteeVersionNomineeDepartmentID: nomineeDepartmentID,
-			UserID:      userID,
-			CreatedBYID: &currentUserID,
+			UserID:       userID,
+			DepartmentID: nomineeDepartment.NomineeDepartmentID, // Set NomineeDepartmentID to DepartmentID
+			CreatedBYID:  &currentUserID,
 		}
 
 		id, err := ics.repo.CreateParticipant(participant, tx)
