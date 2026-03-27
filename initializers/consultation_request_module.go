@@ -20,7 +20,7 @@ func NewConsultationRequestModule(db *gorm.DB, sharedModule *SharedModule, maste
 	consultationRequestStatusController := controllers.NewConsultationRequestStatusController(consultationRequestStatusSvc)
 
 	consultationRequestRepo := repositories.NewConsultationRequestRepository(db)
-	consultationRequestSvc := services.NewConsultationRequestService(consultationRequestRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, settingsModule.OrganizationUnitSvc, consultationRequestStatusSvc, organizationModule.UserSettingSvc)
+	consultationRequestSvc := services.NewConsultationRequestService(consultationRequestRepo, organizationModule.UserSvc, sharedModule.ActivityLogService, settingsModule.OrganizationUnitSvc, consultationRequestStatusSvc, organizationModule.UserSettingSvc, commonModule.NotificationService)
 	consultationRequestController := controllers.NewConsultationRequestController(consultationRequestSvc)
 	return &ConsultationRequestModule{
 		ConsultationRequestController:       consultationRequestController,

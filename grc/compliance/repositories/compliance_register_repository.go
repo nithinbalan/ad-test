@@ -280,26 +280,8 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			compliance_register.standard_code LIKE ? OR
 			compliance_register.legislation_no LIKE ? OR
 			compliance_register.subject LIKE ? OR
-			-- compliance_categories.title_en LIKE ? OR
-			-- compliance_categories.title_ar LIKE ? OR
-			-- compliance_assessment_frameworks.title_en LIKE ? OR
-			-- compliance_assessment_frameworks.title_ar LIKE ? OR
 			compliance_statuses.title_en LIKE ? OR
 			compliance_statuses.title_ar LIKE ? OR
-			-- organization_units.title_en LIKE ? OR
-			-- organization_units.title_ar LIKE ? OR
-			-- responsible_user.first_name_en LIKE ? OR
-			-- responsible_user.first_name_ar LIKE ? OR
-			-- responsible_user.last_name_en LIKE ? OR
-			-- responsible_user.last_name_ar LIKE ? OR
-			-- responsible_user.email LIKE ? OR
-            -- responsible_user.initial LIKE ? OR
-            -- responsible_user.color LIKE ? OR
-            -- responsible_user.profile_image_path LIKE ? OR
-			-- severity_levels.title_en LIKE ? OR
-			-- severity_levels.title_ar LIKE ? OR
-			-- lifecycle_statuses.title_en LIKE ? OR
-			-- lifecycle_statuses.title_ar LIKE ? OR
 			legislative_bodies.title_en LIKE ? OR
 			legislative_bodies.title_ar LIKE ? OR
 			legislation_types.title_en LIKE ? OR
