@@ -12,6 +12,7 @@ import (
 	settingsDTOs "jethur/grc/settings/dtos"
 	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -26,6 +27,7 @@ type InternalCommitteeServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	ReformCommittee(currentUserID uint, reformDTO *organizationDTOs.ReformInternalCommitteeDTO) (uint, error)
 	GetLatestVersionByID(id uint) (*models.InternalCommittee, error)
+	DisbandCommittee(committeeID uint, currentUserID uint) error
 
 	// Participant methods
 	CreateParticipants(currentUserID uint, nomineeDepartmentID uint, dto *organizationDTOs.InternalCommitteeParticipantFormDTO) ([]uint, error)
@@ -367,7 +369,8 @@ func (ics *InternalCommitteeService) Create(currentUserID uint, internalCommitte
 				emailData := map[string]interface{}{
 					"FirstNameEn":        responsibleUser.FirstNameEn,
 					"LastNameEn":         responsibleUser.LastNameEn,
-					"DepartmentName":     department.TitleEn,
+					"DepartmentNameEn":   department.TitleEn,
+					"DepartmentNameAr":   department.TitleAr,
 					"CommitteeReference": committee.ReferenceNumber,
 					"CommitteeNameEn":    newCommittee.LatestVersion.CommitteeNameEn,
 					"CommitteeNameAr":    newCommittee.LatestVersion.CommitteeNameAr,
@@ -627,7 +630,8 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 					emailData := map[string]interface{}{
 						"FirstNameEn":        responsibleUser.FirstNameEn,
 						"LastNameEn":         responsibleUser.LastNameEn,
-						"DepartmentName":     department.TitleEn,
+						"DepartmentNameEn":   department.TitleEn,
+						"DepartmentNameAr":   department.TitleAr,
 						"CommitteeReference": committee.ReferenceNumber,
 						"CommitteeNameEn":    newCommittee.LatestVersion.CommitteeNameEn,
 						"CommitteeNameAr":    newCommittee.LatestVersion.CommitteeNameAr,
@@ -728,7 +732,8 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 					emailData := map[string]interface{}{
 						"FirstNameEn":        responsibleUser.FirstNameEn,
 						"LastNameEn":         responsibleUser.LastNameEn,
-						"DepartmentName":     department.TitleEn,
+						"DepartmentNameEn":   department.TitleEn,
+						"DepartmentNameAr":   department.TitleAr,
 						"CommitteeReference": committee.ReferenceNumber,
 						"CommitteeNameEn":    newCommittee.LatestVersion.CommitteeNameEn,
 						"CommitteeNameAr":    newCommittee.LatestVersion.CommitteeNameAr,
@@ -1123,7 +1128,8 @@ func (ics *InternalCommitteeService) ReformCommittee(currentUserID uint, reformD
 				emailData := map[string]interface{}{
 					"FirstNameEn":        responsibleUser.FirstNameEn,
 					"LastNameEn":         responsibleUser.LastNameEn,
-					"DepartmentName":     department.TitleEn,
+					"DepartmentNameEn":   department.TitleEn,
+					"DepartmentNameAr":   department.TitleAr,
 					"CommitteeReference": committee.ReferenceNumber,
 					"CommitteeNameEn":    newCommittee.LatestVersion.CommitteeNameEn,
 					"CommitteeNameAr":    newCommittee.LatestVersion.CommitteeNameAr,
@@ -1335,7 +1341,8 @@ func (ics *InternalCommitteeService) CreateParticipants(currentUserID uint, nomi
 				"CommitteeReference": committee.ReferenceNumber,
 				"CommitteeNameEn":    committee.LatestVersion.CommitteeNameEn,
 				"CommitteeNameAr":    committee.LatestVersion.CommitteeNameAr,
-				"DepartmentName":     department.TitleEn,
+				"DepartmentNameEn":   department.TitleEn,
+				"DepartmentNameAr":   department.TitleAr,
 				"MembershipType":     firstParticipant.NomineeDepartment.MembershipType,
 				"AssignedBy":         fmt.Sprintf("%s %s", committee.CreatedByUser.FirstNameEN, committee.CreatedByUser.LastNameEN),
 				"AssignedOn":         committee.CreatedAt.Format("2006-01-02"),
@@ -1486,7 +1493,8 @@ func (ics *InternalCommitteeService) DeleteParticipant(nomineeDepartmentID uint,
 			"CommitteeReference": committee.ReferenceNumber,
 			"CommitteeNameEn":    committee.LatestVersion.CommitteeNameEn,
 			"CommitteeNameAr":    committee.LatestVersion.CommitteeNameAr,
-			"DepartmentName":     department.TitleEn,
+			"DepartmentNameEn":   department.TitleEn,
+			"DepartmentNameAr":   department.TitleAr,
 			"MembershipType":     deletedParticipant.NomineeDepartment.MembershipType,
 			"RemovedBy":          fmt.Sprintf("%s %s", committee.UpdatedByUser.FirstNameEN, committee.UpdatedByUser.LastNameEN),
 			"RemovedOn":          committee.UpdatedAt.Format("2006-01-02"),
@@ -1543,4 +1551,182 @@ func (ics *InternalCommitteeService) GetLatestVersionByID(id uint) (*models.Inte
 		return nil, err
 	}
 	return internalCommittee, nil
+}
+
+func (ics *InternalCommitteeService) DisbandCommittee(committeeID uint, currentUserID uint) error {
+	// Get committee details
+	committee, err := ics.repo.GetFullDetailsByID(committeeID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, committeeID)
+	}
+
+	// Get disbanded status
+	disbandedStatus, err := ics.internalCommitteeStatusSvc.GetByType("disbanded")
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("disbanded status not found"), "not_exist", "status")
+	}
+
+	// Get latest version
+	latestCommittee, err := ics.repo.GetLatestVersionByID(committeeID)
+	if err != nil {
+		return utility.NewResourceNotFoundError(err, committeeID)
+	}
+
+	// Check if latest version exists
+	if len(latestCommittee.InternalCommitteeVersions) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no latest version found for committee"), "not_exist", "version")
+	}
+
+	latestVersion := latestCommittee.InternalCommitteeVersions[0]
+
+	tx := ics.repo.BeginTransaction()
+
+	// Update version status to disbanded
+	if err := ics.repo.UpdateVersionStatus(latestVersion.ID, disbandedStatus.ID, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	// Send notifications to nominee departments asynchronously
+	go func() {
+
+		committeeDetails, err := ics.GetFullDetailsByID(committeeID)
+		if err != nil {
+			utility.LogError("Failed to get committee details for activity logging", map[string]interface{}{
+				"error":       err.Error(),
+				"committeeID": committeeID,
+			})
+			return
+		}
+
+		err = ics.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.InternalCommitteeVersion{}.TableName(),
+			latestVersion.ID,
+			committeeDetails,
+			currentUserID,
+			"organization",
+			"committee_management",
+			"disband committee",
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log disband activity", map[string]interface{}{
+				"error":       err.Error(),
+				"committeeID": committeeID,
+			})
+		}
+		// Get nominee departments for the latest version
+		nomineeDepartments, err := ics.repo.GetNomineeDepartmentsByVersionID(latestVersion.ID)
+		if err != nil {
+			utility.LogError("Failed to fetch nominee departments for disband notifications", map[string]interface{}{
+				"error":       err.Error(),
+				"committeeID": committeeID,
+			})
+			return
+		}
+
+		// Get user making the disband request
+		updatedByUser, err := ics.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch user making disband request", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		appURL := utility.GetAppURL()
+		urlParam := fmt.Sprintf(`{"id":%d}`, committeeID)
+		entity := "internal_committee"
+
+		for _, nomineeDept := range nomineeDepartments {
+			// Get department head users (following existing pattern)
+			headUsers, err := ics.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(nomineeDept.NomineeDepartmentID)
+			if err != nil {
+				utility.LogError("Failed to fetch department head users for disband notification", map[string]interface{}{
+					"error":         err.Error(),
+					"nomineeDeptID": nomineeDept.NomineeDepartmentID,
+					"committeeID":   committeeID,
+				})
+				continue
+			}
+
+			if len(headUsers) == 0 {
+				continue
+			}
+
+			// Get department details
+			department, err := ics.organizationUnitSvc.GetByID(nomineeDept.NomineeDepartmentID)
+			if err != nil {
+				utility.LogError("Failed to fetch department details for disband notification", map[string]interface{}{
+					"error":         err.Error(),
+					"nomineeDeptID": nomineeDept.NomineeDepartmentID,
+					"committeeID":   committeeID,
+				})
+				continue
+			}
+
+			// Collect user IDs and emails for notifications
+			var userIDs []uint
+			var userEmails []string
+
+			for _, user := range headUsers {
+				userIDs = append(userIDs, user.ID)
+				userEmails = append(userEmails, user.Email)
+			}
+
+			// DB Notification
+			action := "committee-disbanded"
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              userIDs,
+				ModuleIdentifier:     "organization",
+				NotificationType:     string(commonDTOs.InformationType),
+				HeadingEn:            "Committee Disbanded",
+				HeadingAr:            "تم حل اللجنة",
+				TitleEn:              latestVersion.CommitteeNameEn,
+				TitleAr:              latestVersion.CommitteeNameAr,
+				ReferenceNumber:      committee.ReferenceNumber,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			// Email Notification
+			subject := fmt.Sprintf("Committee/%s: Disbanded", latestVersion.CommitteeNameEn)
+			emailData := map[string]interface{}{
+				"DepartmentNameEn": department.TitleEn,
+				"DepartmentNameAr": department.TitleAr,
+				"CommitteeNameEn":  latestVersion.CommitteeNameEn,
+				"CommitteeNameAr":  latestVersion.CommitteeNameAr,
+				"ReferenceNumber":  committee.ReferenceNumber,
+				"FirstNameEn":      updatedByUser.FirstNameEn,
+				"LastNameEn":       updatedByUser.LastNameEn,
+				"DisbandDate":      time.Now().Format("2006-01-02"),
+				"RedirectURL":      fmt.Sprintf("%s/organization/internal-committee/%d", appURL, committeeID),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              userEmails,
+				Subject:              subject,
+				TemplateRelativePath: "organization/templates/email/internal_committee_disbanded_mail.html",
+				EmailData:            emailData,
+			}
+
+			// Send notifications
+			err = ics.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "committee_management")
+			if err != nil {
+				utility.LogError("Failed to send disband notifications", map[string]interface{}{
+					"error":         err.Error(),
+					"nomineeDeptID": nomineeDept.NomineeDepartmentID,
+					"committeeID":   committeeID,
+				})
+			}
+		}
+	}()
+
+	return nil
 }
