@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	"jethur/grc/common/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
@@ -364,5 +365,40 @@ func (icc *InternalCommitteeController) DeleteInternalCommitteeParticipant(c *gi
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Participants deleted successfully",
+	})
+}
+
+func (icc *InternalCommitteeController) DisbandInternalCommittee(c *gin.Context) {
+	fmt.Println("Disbanding internal committee...")
+	committeeIdStr := c.Param("committeeId")
+
+	committeeId, err := strconv.ParseUint(committeeIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(icc.db, c, err.Error())
+		return
+	}
+
+	err = icc.service.DisbandCommittee(uint(committeeId), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(icc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Committee disbanded successfully",
 	})
 }
