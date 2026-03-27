@@ -9,52 +9,57 @@ import (
 )
 
 type OrganizationModule struct {
-	DesignationController                   *controllers.DesignationController
-	UserStatusController                    *controllers.UserStatusController
-	UserController                          *controllers.UserController
-	UserSettingController                   *controllers.UserSettingController
-	StrategicProfileController              *controllers.StrategicProfileController
-	StrategicObjectiveController            *controllers.StrategicOBjectiveController
-	ControlCategoryController               *controllers.ControlCategoryController
-	ControlTypeController                   *controllers.ControlTypeController
-	ControlImplementationStatusController   *controllers.ControlImplementationStatusController
-	ControlEfficiencyStatusController       *controllers.ControlEfficiencyStatusController
-	ControlReviewStatusController           *controllers.ControlReviewStatusController
-	ControlController                       *controllers.ControlController
-	ControlTestController                   *controllers.ControlTestController
-	ProcessGroupController                  *controllers.ProcessGroupController
-	ControlActionPlanController             *controllers.ControlActionPlanController
-	ControlActionPlanCommentController      *controllers.ControlActionPlanCommentController
-	ControlActionPlanStatusUpdateController *controllers.ControlActionPlanStatusUpdateController
-	ProcessController                       *controllers.ProcessController
-	UserTaskController                      *controllers.UserTaskController
-	StrategicProfileValueController         *controllers.StrategicProfileValueController
-	ProcessAssociatedItemController         *controllers.ProcessAssociatedItemController
-	ControlAssociatedItemController         *controllers.ControlAssociatedItemController
-	ControlReviewController                 *controllers.ControlReviewController
-	UserProfileController                   *controllers.UserProfileController
-	ProcessDependencyTypeController         *controllers.ProcessDependencyTypeController
-	ProcessDependencySubTypeController      *controllers.ProcessDependencySubTypeController
-	GovernanceReportController              *controllers.GovernanceReportController
-	ProcessDependencyController             *controllers.ProcessDependencyController
-	ProcessCriticalityLevelController       *controllers.ProcessCriticalityLevelController
-	ProcessActivityController               *controllers.ProcessActivityController
-	CompetencyGroupController               *controllers.CompetencyGroupController
-	CompetencyController                    *controllers.CompetencyController
-	CompetencyLevelController               *controllers.CompetencyLevelController
-	JobDescriptionController                *controllers.JobDescriptionController
-	JobDescriptionCompetencyController      *controllers.JobDescriptionCompetencyController
-	UserDocumentTypeController              *controllers.UserDocumentTypeController
-	UserDocumentSubTypeController           *controllers.UserDocumentSubTypeController
-	UserDocumentController                  *controllers.UserDocumentController
-	UserJobDescriptionController            *controllers.UserJobDescriptionController
-	UserDelegationHistoryController         *controllers.UserDelegationController
-	OrganizationUnitsController             *controllers.OrganizationUnitsController
-	OrganizationCartController              *controllers.OrganizationChartController
-	MyDashboardController                   *controllers.MyDashboardController
-	CommitteeTermController                 *controllers.CommitteeTermController
-	CommitteeTypeController                 *controllers.CommitteeTypeController
-	CommitteeClassificationController       *controllers.CommitteeClassificationController
+	DesignationController                     *controllers.DesignationController
+	UserStatusController                      *controllers.UserStatusController
+	UserController                            *controllers.UserController
+	UserSettingController                     *controllers.UserSettingController
+	StrategicProfileController                *controllers.StrategicProfileController
+	StrategicObjectiveController              *controllers.StrategicOBjectiveController
+	ControlCategoryController                 *controllers.ControlCategoryController
+	ControlTypeController                     *controllers.ControlTypeController
+	ControlImplementationStatusController     *controllers.ControlImplementationStatusController
+	ControlEfficiencyStatusController         *controllers.ControlEfficiencyStatusController
+	ControlReviewStatusController             *controllers.ControlReviewStatusController
+	ControlController                         *controllers.ControlController
+	ControlTestController                     *controllers.ControlTestController
+	ProcessGroupController                    *controllers.ProcessGroupController
+	ControlActionPlanController               *controllers.ControlActionPlanController
+	ControlActionPlanCommentController        *controllers.ControlActionPlanCommentController
+	ControlActionPlanStatusUpdateController   *controllers.ControlActionPlanStatusUpdateController
+	ProcessController                         *controllers.ProcessController
+	UserTaskController                        *controllers.UserTaskController
+	StrategicProfileValueController           *controllers.StrategicProfileValueController
+	ProcessAssociatedItemController           *controllers.ProcessAssociatedItemController
+	ControlAssociatedItemController           *controllers.ControlAssociatedItemController
+	ControlReviewController                   *controllers.ControlReviewController
+	UserProfileController                     *controllers.UserProfileController
+	ProcessDependencyTypeController           *controllers.ProcessDependencyTypeController
+	ProcessDependencySubTypeController        *controllers.ProcessDependencySubTypeController
+	GovernanceReportController                *controllers.GovernanceReportController
+	ProcessDependencyController               *controllers.ProcessDependencyController
+	ProcessCriticalityLevelController         *controllers.ProcessCriticalityLevelController
+	ProcessActivityController                 *controllers.ProcessActivityController
+	CompetencyGroupController                 *controllers.CompetencyGroupController
+	CompetencyController                      *controllers.CompetencyController
+	CompetencyLevelController                 *controllers.CompetencyLevelController
+	JobDescriptionController                  *controllers.JobDescriptionController
+	JobDescriptionCompetencyController        *controllers.JobDescriptionCompetencyController
+	UserDocumentTypeController                *controllers.UserDocumentTypeController
+	UserDocumentSubTypeController             *controllers.UserDocumentSubTypeController
+	UserDocumentController                    *controllers.UserDocumentController
+	UserJobDescriptionController              *controllers.UserJobDescriptionController
+	UserDelegationHistoryController           *controllers.UserDelegationController
+	OrganizationUnitsController               *controllers.OrganizationUnitsController
+	OrganizationCartController                *controllers.OrganizationChartController
+	MyDashboardController                     *controllers.MyDashboardController
+	CommitteeTermController                   *controllers.CommitteeTermController
+	CommitteeTypeController                   *controllers.CommitteeTypeController
+	CommitteeClassificationController         *controllers.CommitteeClassificationController
+	InternalCommitteeStatusController         *controllers.InternalCommitteeStatusController
+	InternalCommitteeController               *controllers.InternalCommitteeController
+	InternalCommitteeWorkflowController       *controllers.InternalCommitteeWorkflowController
+	InternalCommitteeWorkflowReviewController *controllers.InternalCommitteeWorkflowReviewController
+	InternalCommitteeReviewCommentController  *controllers.InternalCommitteeReviewCommentController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -303,6 +308,10 @@ func NewOrganizationModule(
 	committeeTermSvc := services.NewCommitteeTermService(committeeTermRepo)
 	committeeTermController := controllers.NewCommitteeTermController(committeeTermSvc)
 
+	internalCommitteeStatusRepo := repositories.NewInternalCommitteeStatusRepository(db)
+	internalCommitteeStatusSvc := services.NewInternalCommitteeStatusService(internalCommitteeStatusRepo)
+	internalCommitteeStatusController := controllers.NewInternalCommitteeStatusController(internalCommitteeStatusSvc)
+
 	committeeTypeRepo := repositories.NewCommitteeTypeRepository(db)
 	committeeTypeSvc := services.NewCommitteeTypeService(committeeTypeRepo)
 	committeeTypeController := controllers.NewCommitteeTypeController(committeeTypeSvc)
@@ -310,6 +319,51 @@ func NewOrganizationModule(
 	committeeClassificationRepo := repositories.NewCommitteeClassificationRepository(db)
 	committeeClassificationSvc := services.NewCommitteeClassificationService(committeeClassificationRepo, sharedModule.ActivityLogService)
 	committeeClassificationController := controllers.NewCommitteeClassificationController(committeeClassificationSvc)
+
+	internalCommitteeRepo := repositories.NewInternalCommitteeRepository(db)
+	internalCommitteeSvc := services.NewInternalCommitteeService(
+		internalCommitteeRepo,
+		sharedModule.ActivityLogService,
+		userSvc,
+		settingsModule.OrganizationUnitSvc,
+		committeeTypeSvc,
+		committeeTermSvc,
+		committeeClassificationSvc,
+		internalCommitteeStatusSvc,
+		commonModule.NotificationService,
+		organizationUnitsSvc,
+	)
+	internalCommitteeController := controllers.NewInternalCommitteeController(internalCommitteeSvc)
+
+	internalCommitteeWorkflowRepo := repositories.NewInternalCommitteeWorkflowRepository(db)
+	internalCommitteeWorkflowSvc := services.NewInternalCommitteeWorkflowService(
+		internalCommitteeWorkflowRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.WorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		userSvc,
+		internalCommitteeSvc,
+		masterModule.WorkflowContextSvc,
+	)
+	internalCommitteeWorkflowSvc.SetInternalCommitteeService(internalCommitteeSvc)
+	internalCommitteeWorkflowController := controllers.NewInternalCommitteeWorkflowController(internalCommitteeWorkflowSvc)
+
+	internalCommitteeWorkflowReviewRepo := repositories.NewInternalCommitteeWorkflowReviewRepository(db)
+	internalCommitteeWorkflowReviewSvc := services.NewInternalCommitteeWorkflowReviewService(
+		internalCommitteeWorkflowReviewRepo,
+		sharedModule.ActivityLogService,
+		internalCommitteeSvc,
+		internalCommitteeWorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		internalCommitteeStatusSvc,
+		userSvc,
+		commonModule.NotificationService,
+	)
+	internalCommitteeWorkflowReviewController := controllers.NewInternalCommitteeWorkflowReviewController(internalCommitteeWorkflowReviewSvc)
+
+	internalCommitteeReviewCommentRepo := repositories.NewInternalCommitteeReviewCommentRepository(db)
+	internalCommitteeReviewCommentSvc := services.NewInternalCommitteeReviewCommentService(internalCommitteeReviewCommentRepo, userSvc, sharedModule.ActivityLogService, internalCommitteeSvc, masterModule.CommentStatusSvc)
+	internalCommitteeReviewCommentController := controllers.NewInternalCommitteeReviewCommentController(internalCommitteeReviewCommentSvc)
 
 	return &OrganizationModule{
 		DesignationController:                   designationController,
@@ -330,35 +384,40 @@ func NewOrganizationModule(
 		ControlActionPlanStatusUpdateController: controlActionPlanStatusUpdateController,
 		ControlActionPlanCommentController:      controlActionPlanCommentController,
 
-		ProcessController:                  processController,
-		UserTaskController:                 userTaskController,
-		StrategicProfileValueController:    strategicProfileValueController,
-		ProcessAssociatedItemController:    processAssociatedItemController,
-		ControlAssociatedItemController:    controlAssociatedItemController,
-		ControlReviewController:            controlReviewController,
-		UserProfileController:              userProfileController,
-		ProcessDependencyTypeController:    processDependencyTypeController,
-		ProcessDependencySubTypeController: processDependencySubTypeController,
-		GovernanceReportController:         governanceReportController,
-		ProcessDependencyController:        processDependencyController,
-		ProcessCriticalityLevelController:  processCriticalityLevelController,
-		ProcessActivityController:          processActivityController,
-		CompetencyGroupController:          competencyGroupController,
-		CompetencyController:               competencyController,
-		CompetencyLevelController:          competencyLevelController,
-		JobDescriptionController:           jobDescriptionController,
-		JobDescriptionCompetencyController: jobDescriptionCompetencyController,
-		UserDocumentTypeController:         userDocumentTypeController,
-		UserDocumentSubTypeController:      userDocumentSubTypeController,
-		UserDocumentController:             userDocumentController,
-		UserJobDescriptionController:       userJobDescriptionController,
-		UserDelegationHistoryController:    userDelegationHistoryController,
-		OrganizationUnitsController:        organizationUnitsController,
-		OrganizationCartController:         organizationChartController,
-		MyDashboardController:              myDashboardController,
-		CommitteeTermController:            committeeTermController,
-		CommitteeTypeController:            committeeTypeController,
-		CommitteeClassificationController:  committeeClassificationController,
+		ProcessController:                         processController,
+		UserTaskController:                        userTaskController,
+		StrategicProfileValueController:           strategicProfileValueController,
+		ProcessAssociatedItemController:           processAssociatedItemController,
+		ControlAssociatedItemController:           controlAssociatedItemController,
+		ControlReviewController:                   controlReviewController,
+		UserProfileController:                     userProfileController,
+		ProcessDependencyTypeController:           processDependencyTypeController,
+		ProcessDependencySubTypeController:        processDependencySubTypeController,
+		GovernanceReportController:                governanceReportController,
+		ProcessDependencyController:               processDependencyController,
+		ProcessCriticalityLevelController:         processCriticalityLevelController,
+		ProcessActivityController:                 processActivityController,
+		CompetencyGroupController:                 competencyGroupController,
+		CompetencyController:                      competencyController,
+		CompetencyLevelController:                 competencyLevelController,
+		JobDescriptionController:                  jobDescriptionController,
+		JobDescriptionCompetencyController:        jobDescriptionCompetencyController,
+		UserDocumentTypeController:                userDocumentTypeController,
+		UserDocumentSubTypeController:             userDocumentSubTypeController,
+		UserDocumentController:                    userDocumentController,
+		UserJobDescriptionController:              userJobDescriptionController,
+		UserDelegationHistoryController:           userDelegationHistoryController,
+		OrganizationUnitsController:               organizationUnitsController,
+		OrganizationCartController:                organizationChartController,
+		MyDashboardController:                     myDashboardController,
+		CommitteeTermController:                   committeeTermController,
+		CommitteeTypeController:                   committeeTypeController,
+		CommitteeClassificationController:         committeeClassificationController,
+		InternalCommitteeStatusController:         internalCommitteeStatusController,
+		InternalCommitteeController:               internalCommitteeController,
+		InternalCommitteeWorkflowController:       internalCommitteeWorkflowController,
+		InternalCommitteeWorkflowReviewController: internalCommitteeWorkflowReviewController,
+		InternalCommitteeReviewCommentController:  internalCommitteeReviewCommentController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,

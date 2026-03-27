@@ -27,6 +27,7 @@ type OrganizationUnitsServiceInterface interface {
 	GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetParentOrganizationUnitWithHead(unitID uint) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error)
+	GetHeadUsersByOrganizationUnitID(organizationUnitID uint) ([]*models.User, error)
 
 	GetAll(params *organizationDTOs.OrganizationUnitReportListQueryParamsDTO) (*organizationDTOs.OrganizationUnitReportListReponseDTO, error)
 	CreateOrganizationUnitReport(currentUserID uint, organizationUnitReportFormDTO *organizationDTOs.OrganizationUnitReportFormDTO) (uint, error)
@@ -1031,4 +1032,9 @@ func (s *OrganizationUnitsService) validateOrganizatoinUnitReportFormDTO(dto *or
 	}
 
 	return nil
+}
+
+// GetHeadUsersByOrganizationUnitID gets all head users for a specific organization unit
+func (s *OrganizationUnitsService) GetHeadUsersByOrganizationUnitID(organizationUnitID uint) ([]*models.User, error) {
+	return s.repo.GetHeadUsersByOrganizationUnitID(organizationUnitID)
 }

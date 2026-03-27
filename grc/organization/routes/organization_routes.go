@@ -62,6 +62,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	committeeTermController := app.OrganizationModule.CommitteeTermController
 	committeeTypeController := app.OrganizationModule.CommitteeTypeController
 	committeeClassificationController := app.OrganizationModule.CommitteeClassificationController
+	internalCommitteeStatusController := app.OrganizationModule.InternalCommitteeStatusController
+	internalCommitteeController := app.OrganizationModule.InternalCommitteeController
+	internalCommitteeWorkflowReviewController := app.OrganizationModule.InternalCommitteeWorkflowReviewController
+	internalCommitteeWorkflowController := app.OrganizationModule.InternalCommitteeWorkflowController
+	internalCommitteeReviewCommentController := app.OrganizationModule.InternalCommitteeReviewCommentController
 
 	// Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
@@ -508,6 +513,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/committee-terms", committeeTermController.GetAllCommitteeTerms)
 	organizationRoutes.GET("/committee-terms/:id", committeeTermController.GetCommitteeTermDetails)
 
+	// Committee Term Status
+	organizationRoutes.GET("/internal-committee-statuses", internalCommitteeStatusController.GetAllInternalCommitteeStatuses)
+	organizationRoutes.GET("/internal-committee-statuses/:id", internalCommitteeStatusController.GetInternalCommitteeStatusDetails)
+
 	// Committee Type
 	organizationRoutes.GET("/committee-types", committeeTypeController.GetAllCommitteeTypes)
 	organizationRoutes.GET("/committee-types/:id", committeeTypeController.GetCommitteeTypeDetails)
@@ -520,4 +529,30 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/committee-classifications/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), committeeClassificationController.DeleteCommitteeClassifications)
 	organizationRoutes.PUT("/committee-classifications/activate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), committeeClassificationController.ActivateCommitteeClassifications)
 	organizationRoutes.PUT("/committee-classifications/deactivate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), committeeClassificationController.DeactivateCommitteeClassifications)
+
+	//Internal Committee
+	organizationRoutes.GET("/internal-committees", internalCommitteeController.GetAllInternalCommittees)
+	organizationRoutes.GET("/internal-committees/:committeeId", internalCommitteeController.GetInternalCommitteeDetails)
+	organizationRoutes.POST("/internal-committees", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.CreateInternalCommittee)
+	organizationRoutes.PUT("/internal-committees/:committeeId", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.UpdateInternalCommittee)
+	organizationRoutes.POST("/internal-committees/reform", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.ReformInternalCommittee)
+	organizationRoutes.POST("/internal-committees/delete", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.DeleteInternalCommittee)
+
+	// Internal Committee Participants
+	organizationRoutes.POST("/internal-committee-nominee-departments/:nomineeDepartmentId/participants", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.CreateInternalCommitteeParticipants)
+	organizationRoutes.DELETE("/internal-committee-nominee-departments/:nomineeDepartmentId/participants/:participantId", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.DeleteInternalCommitteeParticipant)
+
+	//Internal Committee Workflow Review
+	organizationRoutes.POST("/internal-committees/:committeeId/submit", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeWorkflowReviewController.SubmitInternalCommittee)
+	organizationRoutes.POST("/internal-committees/:committeeId/approve", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeWorkflowReviewController.ApproveInternalCommittee)
+	organizationRoutes.POST("/internal-committees/:committeeId/revert", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeWorkflowReviewController.RevertInternalCommittee)
+	organizationRoutes.GET("/internal-committees/:committeeId/workflow-list", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeWorkflowController.GetWorkflowList)
+
+	// Internal Committee Review Comments
+	organizationRoutes.GET("/internal-committees/:committeeId/review-comments", middlewares.RolePermissionMiddleware(db, "committee_management", "view"), internalCommitteeReviewCommentController.GetAllComments)
+	organizationRoutes.GET("/internal-committees/:committeeId/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "committee_management", "view"), internalCommitteeReviewCommentController.GetCommentDetails)
+	organizationRoutes.POST("/internal-committees/:committeeId/review-comments", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeReviewCommentController.CreateComment)
+	organizationRoutes.PUT("/internal-committees/:committeeId/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeReviewCommentController.UpdateComment)
+	organizationRoutes.POST("/internal-committees/:committeeId/review-comments/delete", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeReviewCommentController.DeleteComment)
+	organizationRoutes.PUT("/internal-committees/:committeeId/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeReviewCommentController.ResolveComment)
 }
