@@ -144,9 +144,10 @@ type InternalCommitteeVersionNomineeDepartmentDetailDTO struct {
 }
 
 type InternalCommitteeVersionNomineeDepartmentParticipantDTO struct {
-	ID     uint            `json:"id"`
-	UserID uint            `json:"user_id"`
-	User   *UserMinimalDTO `json:"user"`
+	ID         uint                              `json:"id"`
+	UserID     uint                              `json:"user_id"`
+	User       *UserMinimalDTO                   `json:"user"`
+	Department *settingsDTOs.OrganizationUnitDTO `json:"department"`
 }
 
 type InternalCommitteeParticipantFormDTO struct {
