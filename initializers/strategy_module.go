@@ -35,6 +35,7 @@ type StrategyModule struct {
 	FocusAreaController                             *controllers.FocusAreaController
 	StrategicIntiativeController                    *controllers.StrategicIntiativeController
 	StrategicObjectiveAssociatedItemController      *controllers.StrategicObjectiveAssociatedItemController
+	StrategicInitiativeAssociatedItemController     *controllers.StrategicInitiativeAssociatedItemController
 	StrategyProfileKpiController                    *controllers.StrategyProfileKpiController
 	StrategyProfileProjectActionPlanController      *controllers.StrategyProfileProjectActionPlanController
 	StrategicInitiativeStatusController             *controllers.StrategicInitiativeStatusController
@@ -161,6 +162,9 @@ func NewStrategyModule(db *gorm.DB,
 	strategicObjectiveAssociatedItemRepo := repositories.NewStrategicObectiveAssociatedItemRepository(db)
 	strategicObjectiveAssociatedItemSvc := services.NewstrategicObjectiveAssociatedItemService(strategicObjectiveAssociatedItemRepo, strategicObjectiveSvc, complianceModule.ComplianceClausevc, commonModule.AssociatedItemValidationService)
 	strategicObjectiveAssociatedItemController := controllers.NewStrategicObjectiveAssociatedItemController(strategicObjectiveAssociatedItemSvc)
+	strategicInitiativeAssociatedItemRepo := repositories.NewStrategicInitiativeAssociatedItemRepository(db)
+	strategicInitiativeAssociatedItemSvc := services.NewStrategicInitiativeAssociatedItemService(strategicInitiativeAssociatedItemRepo, strategicIntiativeSvc, commonModule.AssociatedItemValidationService)
+	strategicInitiativeAssociatedItemController := controllers.NewStrategicInitiativeAssociatedItemController(strategicInitiativeAssociatedItemSvc)
 
 	strategyProfileKpiRepo := repositories.NewStrategyProfileKpiRepository(db)
 	strategyProfileKpiSvc := services.NewStrategyProfileKpiService(strategyProfileKpiRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, strategyProfileSvc, strategyProfileStrategicObjectiveSvc, kpiRegisterSvc)
@@ -214,6 +218,7 @@ func NewStrategyModule(db *gorm.DB,
 		FocusAreaController:                             focusAreaController,
 		StrategicIntiativeController:                    strategicIntiativeController,
 		StrategicObjectiveAssociatedItemController:      strategicObjectiveAssociatedItemController,
+		StrategicInitiativeAssociatedItemController:     strategicInitiativeAssociatedItemController,
 		StrategyProfileKpiController:                    strategyProfileKpiController,
 		StrategyProfileProjectActionPlanController:      strategyProfileProjectActionPlanController,
 		StrategicInitiativeStatusController:             strategicInitiativeStatusController,

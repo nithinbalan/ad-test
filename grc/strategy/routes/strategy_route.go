@@ -42,6 +42,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	focusAreaController := app.StrategyModule.FocusAreaController
 	strategicIntiativeController := app.StrategyModule.StrategicIntiativeController
 	strategicObjectiveAssociatedItemController := app.StrategyModule.StrategicObjectiveAssociatedItemController
+	strategicInitiativeAssociatedItemController := app.StrategyModule.StrategicInitiativeAssociatedItemController
 	strategyProfileKpiController := app.StrategyModule.StrategyProfileKpiController
 	strategyProfileProjectActionPlanController := app.StrategyModule.StrategyProfileProjectActionPlanController
 	strategicInitiativeStatusController := app.StrategyModule.StrategicInitiativeStatusController
@@ -244,6 +245,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.GET("/strategic-objectives/:id/risks", middlewares.RolePermissionMiddleware(db, "strategy_profile", "view"), strategicObjectiveAssociatedItemController.GetAllStrategicObjectiveRisks)
 	strategyRoutes.POST("/strategic-objectives/:id/risks", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.CreateStrategicObjectiveRisk)
 	strategyRoutes.DELETE("/strategic-objectives/:id/risks/:riskId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.DeleteStrategicObjectiveRisk)
+	strategyRoutes.GET("/strategic-intiatives/:id/risks", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "view"), strategicInitiativeAssociatedItemController.GetAllStrategicIntiativeRisks)
+	strategyRoutes.POST("/strategic-intiatives/:id/risks", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "modify"), strategicInitiativeAssociatedItemController.CreateStrategicIntiativeRisk)
+	strategyRoutes.DELETE("/strategic-intiatives/:id/risks/:riskId", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "modify"), strategicInitiativeAssociatedItemController.DeleteStrategicIntiativeRisk)
 	// strategic initiative
 	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/strategic-intiatives", strategyProfileStrategicIntiativeController.GetAllStrategyProfileStrategicIntiatives)
 	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/strategic-intiatives/:id", strategyProfileStrategicIntiativeController.GetStrategyProfileStrategicIntiativeDetails)
