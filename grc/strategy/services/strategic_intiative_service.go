@@ -15,7 +15,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 
-	organizationDTOs "jethur/grc/organization/dtos"
 	organizationSvc "jethur/grc/organization/services"
 )
 
@@ -100,33 +99,6 @@ func (sis *StrategicIntiativeService) GetFullDetailsByID(id uint, tx ...utility.
 
 	strategicIntiativeDTO.CreatedAt = strategicIntiative.CreatedAt
 	strategicIntiativeDTO.UpdatedAt = strategicIntiative.UpdatedAt
-
-	if strategicIntiative.OwnerDepartment.ID != 0 {
-		strategicIntiativeDTO.OwnerDepartment = organizationDTOs.OrganizationUnit1DTO{
-			ID:      int(strategicIntiative.OwnerDepartment.ID),
-			TitleEn: strategicIntiative.OwnerDepartment.TitleEn,
-			TitleAr: strategicIntiative.OwnerDepartment.TitleAr,
-			Status:  strategicIntiative.OwnerDepartment.Status,
-		}
-	}
-	if strategicIntiative.StrategicInitiativeStatus.ID != 0 {
-		strategicIntiativeDTO.StrategicInitiativeStatus = dtos.StrategicInitiativeStatusDTO{
-			ID:        strategicIntiative.StrategicInitiativeStatus.ID,
-			TitleEn:   strategicIntiative.StrategicInitiativeStatus.TitleEn,
-			TitleAr:   strategicIntiative.StrategicInitiativeStatus.TitleAr,
-			ColorCode: strategicIntiative.StrategicInitiativeStatus.ColorCode,
-			Type:      strategicIntiative.StrategicInitiativeStatus.Type,
-			Status:    strategicIntiative.StrategicInitiativeStatus.Status,
-		}
-	}
-	if strategicIntiative.ResponsibleUnit.ID != 0 {
-		strategicIntiativeDTO.ResponsibleUnit = organizationDTOs.OrganizationUnit1DTO{
-			ID:      int(strategicIntiative.ResponsibleUnit.ID),
-			TitleEn: strategicIntiative.ResponsibleUnit.TitleEn,
-			TitleAr: strategicIntiative.ResponsibleUnit.TitleAr,
-			Status:  strategicIntiative.ResponsibleUnit.Status,
-		}
-	}
 
 	return &strategicIntiativeDTO, nil
 }
@@ -216,7 +188,7 @@ func (sis *StrategicIntiativeService) Create(currentUserID uint, dto *dtos.Strat
 			id,
 			fullDetails,
 			currentUserID,
-			"organization", "strategy_intiative", "", nil,
+			"organization", "strategy_intiative", "Created Strategic Initiative", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -305,7 +277,7 @@ func (sis *StrategicIntiativeService) Update(id uint, currentUserID uint, dto *d
 			id,
 			fullDetails,
 			currentUserID,
-			"organization", "strategy_intiative", "", nil,
+			"organization", "strategy_intiative", "Updated Strategic Initiative", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log update activity", map[string]interface{}{

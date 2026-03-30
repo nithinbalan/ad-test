@@ -7,15 +7,6 @@ import (
 	"time"
 )
 
-type StrategicInitiativeStatusDTO struct {
-	ID        uint   `json:"id"`
-	TitleEn   string `json:"title_en"`
-	TitleAr   string `json:"title_ar"`
-	ColorCode string `json:"color_code"`
-	Type      string `json:"type"`
-	Status    string `json:"status"`
-}
-
 type StrategicIntiativeListDTO struct {
 	ID            uint    `json:"id"`
 	TitleEn       string  `json:"title_en"`
@@ -144,7 +135,7 @@ type StrategicIntiativeDetailDTO struct {
 	OwnerDepartment   organizationDTOs.OrganizationUnit1DTO `json:"owner_department"`
 
 	StrategicInitiativeStatusID uint                         `json:"strategic_initiative_status_id"`
-	StrategicInitiativeStatus   StrategicInitiativeStatusDTO `json:"strategic_initiative_status"`
+	StrategicInitiativeStatus   StrategicInitiativeStatPlease create StrategicInitiativeStatusDTO separate and reuse it in initiative dtousDTO `json:"strategic_initiative_status"`
 
 	CompletionPercentage   *float64 `json:"completion_percentage"`
 	KPIs                   *string  `json:"kpis"`
