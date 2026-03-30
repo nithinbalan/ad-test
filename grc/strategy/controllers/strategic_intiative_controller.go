@@ -192,3 +192,40 @@ func (sic *StrategicIntiativeController) DeleteStrategicIntiatives(c *gin.Contex
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
+
+func (sic *StrategicIntiativeController) UpdateStrategicIntiativeStatusAndCompletion(c *gin.Context) {
+	strategicIntiativeID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var dto *dtos.StrategicIntiativeStatusCompletionUpdateDTO
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(sic.db, c, err.Error())
+		return
+	}
+
+	err = sic.service.UpdateStatusAndCompletion(uint(strategicIntiativeID), currentUserID, dto)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(sic.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

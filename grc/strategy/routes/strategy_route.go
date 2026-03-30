@@ -44,6 +44,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategicObjectiveAssociatedItemController := app.StrategyModule.StrategicObjectiveAssociatedItemController
 	strategyProfileKpiController := app.StrategyModule.StrategyProfileKpiController
 	strategyProfileProjectActionPlanController := app.StrategyModule.StrategyProfileProjectActionPlanController
+	strategicInitiativeStatusController := app.StrategyModule.StrategicInitiativeStatusController
 
 	// strategy profile
 	strategyRoutes.GET("/strategy-profiles", strategyProfileController.GetAllStrategyProfiles)
@@ -225,9 +226,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// strategic intiative
 	strategyRoutes.GET("/strategic-intiatives", strategicIntiativeController.GetAllStrategicIntiatives)
 	strategyRoutes.GET("/strategic-intiatives/:id", strategicIntiativeController.GetStrategicIntiativeDetails)
-	strategyRoutes.POST("/strategic-intiatives", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicIntiativeController.CreateStrategicIntiative)
-	strategyRoutes.PUT("/strategic-intiatives/:id", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicIntiativeController.UpdateStrategicIntiative)
-	strategyRoutes.POST("/strategic-intiatives/delete", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicIntiativeController.DeleteStrategicIntiatives)
+	strategyRoutes.POST("/strategic-intiatives", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "modify"), strategicIntiativeController.CreateStrategicIntiative)
+	strategyRoutes.PUT("/strategic-intiatives/:id", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "modify"), strategicIntiativeController.UpdateStrategicIntiative)
+	strategyRoutes.POST("/strategic-intiatives/delete", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "modify"), strategicIntiativeController.DeleteStrategicIntiatives)
+	strategyRoutes.PUT("/strategic-intiatives/:id/status-update", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "modify"), strategicIntiativeController.UpdateStrategicIntiativeStatusAndCompletion)
 
 	// strategic objective associated item
 	strategyRoutes.GET("/strategic-objectives/:id/clauses", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.GetAllClauses)
@@ -288,4 +290,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/project-action-plans/:id", strategyProfileProjectActionPlanController.GetStrategyProfileProjectActionPlanDetails)
 	strategyRoutes.POST("/strategy-profiles/:strategyProfileId/project-action-plans", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileProjectActionPlanController.CreateStrategyProfileProjectActionPlan)
 	strategyRoutes.DELETE("/strategy-profiles/:strategyProfileId/project-action-plans/:id", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategyProfileProjectActionPlanController.DeleteStrategyProfileProjectActionPlan)
+
+	strategyRoutes.GET("/strategic-initiative-statuses", strategicInitiativeStatusController.GetAllStrategicInitiativeStatuses)
+	strategyRoutes.GET("/strategic-initiative-statuses/:id", strategicInitiativeStatusController.GetStrategicInitiativeStatusDetails)
 }

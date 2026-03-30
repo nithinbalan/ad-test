@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
@@ -23,27 +24,31 @@ type StrategicIntiativeServiceInterface interface {
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.StrategicIntiativeDetailDTO, error)
 	Create(currentUserID uint, strategicIntiativeFormDTO *dtos.StrategicIntiativeFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, dto *dtos.StrategicIntiativeFormDTO) error
+	UpdateStatusAndCompletion(id uint, currentUserID uint, dto *dtos.StrategicIntiativeStatusCompletionUpdateDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
 type StrategicIntiativeService struct {
-	repo                repositories.StrategicIntiativeRepositoryInterface
-	activityLogSvc      services.ActivityLogServiceInterface
-	organizationUnitSvc settingsSvc.OrganizationUnitServiceInterface
-	userSvc             organizationSvc.UserServiceInterface
+	repo                          repositories.StrategicIntiativeRepositoryInterface
+	strategicInitiativeStatusRepo repositories.StrategicInitiativeStatusRepositoryInterface
+	activityLogSvc                services.ActivityLogServiceInterface
+	organizationUnitSvc           settingsSvc.OrganizationUnitServiceInterface
+	userSvc                       organizationSvc.UserServiceInterface
 }
 
 func NewStrategicIntiativeService(repo repositories.StrategicIntiativeRepositoryInterface,
+	strategicInitiativeStatusRepo repositories.StrategicInitiativeStatusRepositoryInterface,
 	activityLogSvc services.ActivityLogServiceInterface,
 	organizationUnitSvc settingsSvc.OrganizationUnitServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
 ) StrategicIntiativeServiceInterface {
 	return &StrategicIntiativeService{
-		repo:                repo,
-		activityLogSvc:      activityLogSvc,
-		organizationUnitSvc: organizationUnitSvc,
-		userSvc:             userSvc,
+		repo:                          repo,
+		strategicInitiativeStatusRepo: strategicInitiativeStatusRepo,
+		activityLogSvc:                activityLogSvc,
+		organizationUnitSvc:           organizationUnitSvc,
+		userSvc:                       userSvc,
 	}
 }
 
@@ -107,13 +112,26 @@ func (sis *StrategicIntiativeService) Create(currentUserID uint, dto *dtos.Strat
 		tx.Rollback()
 		return 0, err
 	}
-	organizationUnitID, err := sis.userSvc.GetUserPrimaryUnitID(dto.ResponsibleUserID)
+
+	if _, err := sis.organizationUnitSvc.GetByID(dto.ResponsibleUnitID); err != nil {
+		tx.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("responsible unit does not exist"), "not_exist", "responsible_unit")
+	}
+
+	ownerDepartmentID, err := sis.userSvc.GetUserPrimaryUnitID(currentUserID)
 	if err != nil {
-		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
+		tx.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("owner department is not set for the current user"), "not_exist", "owner_department")
 	}
 
 	// Parse dates
 	dates, err := sis.parseStrategicIntiativeDates(dto)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	plannedStatus, err := sis.strategicInitiativeStatusRepo.GetByType("planned")
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -128,8 +146,24 @@ func (sis *StrategicIntiativeService) Create(currentUserID uint, dto *dtos.Strat
 		StartDate:         dates.StartDate,
 		EndDate:           dates.EndDate,
 		ResponsibleUserID: responsibleUser.ID,
-		ResponsibleUnitID: organizationUnitID,
-		CreatedBYID:       currentUserID,
+		ResponsibleUnitID: dto.ResponsibleUnitID,
+		OwnerDepartmentID: ownerDepartmentID,
+
+		ObjectivesEn:           dto.ObjectivesEn,
+		ObjectivesAr:           dto.ObjectivesAr,
+		RecommendationsEn:      dto.RecommendationsEn,
+		RecommendationsAr:      dto.RecommendationsAr,
+		KPIs:                   dto.KPIs,
+		ExpectedBenefitsEn:     dto.ExpectedBenefitsEn,
+		ExpectedBenefitsAr:     dto.ExpectedBenefitsAr,
+		Budget:                 dto.Budget,
+		ResourceRequirementsEn: dto.ResourceRequirementsEn,
+		ResourceRequirementsAr: dto.ResourceRequirementsAr,
+		DependenciesEn:         dto.DependenciesEn,
+		DependenciesAr:         dto.DependenciesAr,
+
+		StrategicInitiativeStatusID: plannedStatus.ID,
+		CreatedBYID:                 currentUserID,
 	}
 
 	// Create
@@ -154,7 +188,7 @@ func (sis *StrategicIntiativeService) Create(currentUserID uint, dto *dtos.Strat
 			id,
 			fullDetails,
 			currentUserID,
-			"strategy", "strategy_intiative", "", nil,
+			"organization", "strategy_intiative", "Created Strategic Initiative", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log activity", map[string]interface{}{
@@ -182,6 +216,15 @@ func (sis *StrategicIntiativeService) Update(id uint, currentUserID uint, dto *d
 		return err
 	}
 
+	if _, err := sis.organizationUnitSvc.GetByID(dto.ResponsibleUnitID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("responsible unit does not exist"), "not_exist", "responsible_unit")
+	}
+
+	ownerDepartmentID, err := sis.userSvc.GetUserPrimaryUnitID(currentUserID)
+	if err != nil {
+		return utility.NewValidationError(fmt.Errorf("owner department is not set for the current user"), "not_exist", "owner_department")
+	}
+
 	// Parse dates
 	dates, err := sis.parseStrategicIntiativeDates(dto)
 	if err != nil {
@@ -196,18 +239,23 @@ func (sis *StrategicIntiativeService) Update(id uint, currentUserID uint, dto *d
 	existing.StartDate = dates.StartDate
 	existing.EndDate = dates.EndDate
 	existing.ResponsibleUserID = responsibleUser.ID
-	existing.UpdatedBYID = &currentUserID
+	existing.ResponsibleUnitID = dto.ResponsibleUnitID
+	existing.OwnerDepartmentID = ownerDepartmentID
 
-	// Resolve Responsible Unit dynamically
-	if dto.ResponsibleUserID != 0 {
-		unitID, err := sis.userSvc.GetUserPrimaryUnitID(dto.ResponsibleUserID)
-		if err != nil {
-			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "organization_unit")
-		}
-		existing.ResponsibleUnitID = unitID
-	} else {
-		existing.ResponsibleUnitID = 0
-	}
+	existing.ObjectivesEn = dto.ObjectivesEn
+	existing.ObjectivesAr = dto.ObjectivesAr
+	existing.RecommendationsEn = dto.RecommendationsEn
+	existing.RecommendationsAr = dto.RecommendationsAr
+	existing.KPIs = dto.KPIs
+	existing.ExpectedBenefitsEn = dto.ExpectedBenefitsEn
+	existing.ExpectedBenefitsAr = dto.ExpectedBenefitsAr
+	existing.Budget = dto.Budget
+	existing.ResourceRequirementsEn = dto.ResourceRequirementsEn
+	existing.ResourceRequirementsAr = dto.ResourceRequirementsAr
+	existing.DependenciesEn = dto.DependenciesEn
+	existing.DependenciesAr = dto.DependenciesAr
+
+	existing.UpdatedBYID = &currentUserID
 
 	// Save
 	err = sis.repo.Update(existing)
@@ -229,7 +277,62 @@ func (sis *StrategicIntiativeService) Update(id uint, currentUserID uint, dto *d
 			id,
 			fullDetails,
 			currentUserID,
-			"strategy", "strategy_intiative", "", nil,
+			"organization", "strategy_intiative", "Updated Strategic Initiative", nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log update activity", map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.StrategicIntiative{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (sis *StrategicIntiativeService) UpdateStatusAndCompletion(id uint, currentUserID uint, dto *dtos.StrategicIntiativeStatusCompletionUpdateDTO) error {
+	if dto.CompletionPercentage < 0 || dto.CompletionPercentage > 100 {
+		return utility.NewValidationError(fmt.Errorf("completion percentage must be between 0 and 100"), "invalid_range", "completion_percentage")
+	}
+
+	existing, err := sis.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	if _, err := sis.strategicInitiativeStatusRepo.GetByID(dto.StrategicInitiativeStatusID); err != nil {
+		return err
+	}
+
+	cp := dto.CompletionPercentage
+	existing.StrategicInitiativeStatusID = dto.StrategicInitiativeStatusID
+	existing.CompletionPercentage = &cp
+	existing.UpdatedBYID = &currentUserID
+	now := time.Now()
+	existing.UpdatedAt = &now
+
+	err = sis.repo.Update(existing)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		fullDetails, err := sis.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch strategic objective details for activity log", map[string]interface{}{"error": err.Error()})
+			return
+		}
+
+		err = sis.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.StrategicIntiative{}.TableName(),
+			id,
+			fullDetails,
+			currentUserID,
+			"organization", "strategy_intiative", "", nil,
 		)
 		if err != nil {
 			utility.LogError("Failed to log update activity", map[string]interface{}{
@@ -300,6 +403,10 @@ func (sis *StrategicIntiativeService) parseStrategicIntiativeDates(dto *dtos.Str
 			return nil, utility.NewValidationError(fmt.Errorf("invalid end date"), "invalid_date", "end_date")
 		}
 		parsed.EndDate = ed
+	}
+
+	if parsed.EndDate.Before(*parsed.StartDate) {
+		return nil, utility.NewValidationError(fmt.Errorf("end date must be after start date"), "invalid_date", "end_date")
 	}
 
 	return parsed, nil
