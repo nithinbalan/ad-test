@@ -135,7 +135,7 @@ type StrategicIntiativeDetailDTO struct {
 	OwnerDepartment   organizationDTOs.OrganizationUnit1DTO `json:"owner_department"`
 
 	StrategicInitiativeStatusID uint                         `json:"strategic_initiative_status_id"`
-	StrategicInitiativeStatus   StrategicInitiativeStatPlease create StrategicInitiativeStatusDTO separate and reuse it in initiative dtousDTO `json:"strategic_initiative_status"`
+	StrategicInitiativeStatus   StrategicInitiativeStatusDTO `json:"strategic_initiative_status"`
 
 	CompletionPercentage   *float64 `json:"completion_percentage"`
 	KPIs                   *string  `json:"kpis"`
