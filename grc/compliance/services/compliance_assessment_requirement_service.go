@@ -811,10 +811,10 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 		tx.Rollback()
 		return err
 	}
-	if err := cars.CalculateComplianceRequirementScores(assessmentID, requirementID, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
+	// if err := cars.CalculateComplianceRequirementScores(assessmentID, requirementID, tx); err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
 	tx.Commit()
 
 	// Log the action

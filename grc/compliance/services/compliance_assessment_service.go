@@ -1208,22 +1208,22 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 		tx.Rollback()
 		return err
 	}
-	assessmentDetails, err := cras.repo.GetMinimalDetailsByID(assessmentID, tx)
-	if err != nil {
-		return err
-	}
-	if assessmentDetails.ComplianceRegister.IsRequirementAssessment {
-		if err := cras.UpdateComplianceRequirementValuesFromModel(assessmentID, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	} else if assessmentDetails.ComplianceRegister.IsControlAssessment {
-		// Control-based scoring
-		if err := cras.UpdateComplianceControlValuesFromModel(assessmentID, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
+	// assessmentDetails, err := cras.repo.GetMinimalDetailsByID(assessmentID, tx)
+	// if err != nil {
+	// 	return err
+	// }
+	// if assessmentDetails.ComplianceRegister.IsRequirementAssessment {
+	// 	if err := cras.UpdateComplianceRequirementValuesFromModel(assessmentID, tx); err != nil {
+	// 		tx.Rollback()
+	// 		return err
+	// 	}
+	// } else if assessmentDetails.ComplianceRegister.IsControlAssessment {
+	// 	// Control-based scoring
+	// 	if err := cras.UpdateComplianceControlValuesFromModel(assessmentID, tx); err != nil {
+	// 		tx.Rollback()
+	// 		return err
+	// 	}
+	// }
 
 	tx.Commit()
 
