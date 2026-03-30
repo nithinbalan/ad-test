@@ -215,7 +215,7 @@ func (repo *ComplianceAssessmentRequirementResidualRiskAnalysisRepository) Updat
 		Updates(updates).Error
 }
 
-func (repo *ComplianceAssessmentRequirementRepository) AssessmentUpdateStatus(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error {
+func (repo *ComplianceAssessmentRequirementResidualRiskAnalysisRepository) AssessmentUpdateStatus(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
