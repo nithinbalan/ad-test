@@ -22,6 +22,8 @@ type ComplianceAssessmentRequirementResidualRiskAnalysisRepositoryInterface inte
 	Create(residualControls []*models.ComplianceAssessmentResidualControl, tx ...utility.DatabaseTransaction) error
 	DeleteByResponsibleUnitID(responsibleUnitID uint, tx ...utility.DatabaseTransaction) error
 	UpdateResidualControlByImpactType(responsibleUnitID uint, impactTypeID uint, tx ...utility.DatabaseTransaction) error
+
+	AssessmentUpdateStatus(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceAssessmentRequirementResidualRiskAnalysisRepository struct {
@@ -211,4 +213,15 @@ func (repo *ComplianceAssessmentRequirementResidualRiskAnalysisRepository) Updat
 	return db.Model(&models.ComplianceAssessmentResidualControl{}).
 		Where("compliance_assessment_requirement_responsible_unit_id = ? AND compliance_assessment_impact_type_id = ?", responsibleUnitID, impactTypeID).
 		Updates(updates).Error
+}
+
+func (repo *ComplianceAssessmentRequirementRepository) AssessmentUpdateStatus(complianceAssessment *models.ComplianceAssessment, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(complianceAssessment).Error; err != nil {
+		return err
+	}
+	return nil
 }

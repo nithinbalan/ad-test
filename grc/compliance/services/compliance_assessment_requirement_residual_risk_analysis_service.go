@@ -26,17 +26,26 @@ type ComplianceAssessmentRequirementResidualRiskAnalysisServiceInterface interfa
 
 // Service and implementations
 type ComplianceAssessmentRequirementResidualRiskAnalysisService struct {
-	repo           complianceRepositories.ComplianceAssessmentRequirementResidualRiskAnalysisRepositoryInterface
-	activityLogSvc logServices.ActivityLogServiceInterface
+	repo                               complianceRepositories.ComplianceAssessmentRequirementResidualRiskAnalysisRepositoryInterface
+	activityLogSvc                     logServices.ActivityLogServiceInterface
+	complianceAssessmentSvc            ComplianceAssessmentServiceInterface
+	complianceAssessmentStatusSvc      ComplianceAssessmentStatusServiceInterface
+	complianceAssessmentRequirementSvc ComplianceAssessmentRequirementServiceInterface
 }
 
 func NewComplianceAssessmentRequirementResidualRiskAnalysisService(
 	repo complianceRepositories.ComplianceAssessmentRequirementResidualRiskAnalysisRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
+	complianceAssessmentSvc ComplianceAssessmentServiceInterface,
+	complianceAssessmentStatusSvc ComplianceAssessmentStatusServiceInterface,
+	complianceAssessmentRequirementSvc ComplianceAssessmentRequirementServiceInterface,
 ) ComplianceAssessmentRequirementResidualRiskAnalysisServiceInterface {
 	return &ComplianceAssessmentRequirementResidualRiskAnalysisService{
-		repo:           repo,
-		activityLogSvc: activityLogSvc,
+		repo:                               repo,
+		activityLogSvc:                     activityLogSvc,
+		complianceAssessmentSvc:            complianceAssessmentSvc,
+		complianceAssessmentStatusSvc:      complianceAssessmentStatusSvc,
+		complianceAssessmentRequirementSvc: complianceAssessmentRequirementSvc,
 	}
 }
 
@@ -62,7 +71,48 @@ func (carras *ComplianceAssessmentRequirementResidualRiskAnalysisService) getRes
 
 // CreateResidualRiskAnalysis creates residual risk analysis for a compliance assessment requirement responsible unit
 func (carras *ComplianceAssessmentRequirementResidualRiskAnalysisService) CreateResidualRiskAnalysis(responsibleUnitID uint, currentUserID uint, riskAnalysisFormDTO []*complianceDTOs.ComplianceAssessmentRequirementResidualRiskFormDTO) error {
+	// Get assessment status types
+	assessmentInProgressStatus, err := carras.complianceAssessmentStatusSvc.GetByType("in_progress")
+	if err != nil {
+		return err
+	}
+
+	assessmentInitiatedStatus, err := carras.complianceAssessmentStatusSvc.GetByType("draft")
+	if err != nil {
+		return err
+	}
+
+	// Get responsible unit to access compliance assessment
+	responsibleUnit, err := carras.complianceAssessmentRequirementSvc.GetComplianceAssessmentRequirementResponsibleUnitByID(responsibleUnitID)
+	if err != nil {
+		return err
+	}
+
+	// Get compliance assessment through the requirement relationship
+	var complianceAssessmentID uint
+	if responsibleUnit.ComplianceAssessmentRequirement != nil {
+		complianceAssessmentID = responsibleUnit.ComplianceAssessmentRequirement.ComplianceAssessmentID
+	} else {
+		return fmt.Errorf("compliance assessment requirement not found")
+	}
+
+	// Get compliance assessment
+	complianceAssessment, err := carras.complianceAssessmentSvc.GetByID(complianceAssessmentID)
+	if err != nil {
+		return err
+	}
+
 	tx := carras.repo.BeginTransaction()
+
+	// Update compliance assessment status from draft to in-progress if needed
+	if complianceAssessment.ComplianceAssessmentStatusID == assessmentInitiatedStatus.ID {
+		complianceAssessment.ComplianceAssessmentStatusID = assessmentInProgressStatus.ID
+		err = carras.repo.AssessmentUpdateStatus(complianceAssessment, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 
 	// Delete existing risk analysis for this responsible unit
 	if err := carras.repo.DeleteResidualRiskAnalysisByResponsibleUnitID(responsibleUnitID, tx); err != nil {
