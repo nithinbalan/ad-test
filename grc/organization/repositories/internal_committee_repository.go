@@ -27,6 +27,7 @@ type InternalCommitteeRepositoryInterface interface {
 	UpdateVersion(version *models.InternalCommitteeVersion, tx ...utility.DatabaseTransaction) error
 	DeleteVersion(id uint, tx ...utility.DatabaseTransaction) error
 	GetVersionsByCommitteeID(committeeID uint, tx ...utility.DatabaseTransaction) ([]*models.InternalCommitteeVersion, error)
+	UpdateVersionStatus(versionID uint, statusID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error
 	CreateNomineeDepartments(nomineeDepartments []*models.InternalCommitteeVersionNomineeDepartment, tx ...utility.DatabaseTransaction) error
 	GetNomineeDepartmentsByVersionID(versionID uint, tx ...utility.DatabaseTransaction) ([]*models.InternalCommitteeVersionNomineeDepartment, error)
 	DeleteNomineeDepartmentsByVersionID(versionID uint, tx ...utility.DatabaseTransaction) error
@@ -321,6 +322,24 @@ func (repo *InternalCommitteeRepository) GetVersionsByCommitteeID(committeeID ui
 	}
 
 	return versions, nil
+}
+
+func (repo *InternalCommitteeRepository) UpdateVersionStatus(versionID uint, statusID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	now := time.Now()
+	updates := map[string]interface{}{
+		"committee_status_id": statusID,
+		"updated_by_id":       currentUserID,
+		"updated_at":          now,
+	}
+
+	return db.Model(&models.InternalCommitteeVersion{}).
+		Where("id = ?", versionID).
+		Updates(updates).Error
 }
 
 func (repo *InternalCommitteeRepository) CreateNomineeDepartments(nomineeDepartments []*models.InternalCommitteeVersionNomineeDepartment, tx ...utility.DatabaseTransaction) error {
