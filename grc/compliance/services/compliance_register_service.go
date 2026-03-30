@@ -12,6 +12,7 @@ import (
 
 	"jethur/config"
 	//commonDTOs "jethur/grc/common/dtos"
+	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
@@ -217,16 +218,16 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 	// 	return 0, err
 	// }
 
-	// responsibleUnitID, err := crs.userSvc.GetUserPrimaryUnitID(uint(*complianceRegisterFormDTO.ResponsibleUserID))
-	// if err != nil {
-	// 	return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "bcp communication plan responsible unit")
-	// }
+	responsibleUnitID, err := crs.userSvc.GetUserPrimaryUnitID(uint(*complianceRegisterFormDTO.ResponsibleUserID))
+	if err != nil {
+		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "bcp communication plan responsible unit")
+	}
 
 	complianceRegister := &models.ComplianceRegister{
 		//ComplianceCategoryID:            complianceRegisterFormDTO.ComplianceCategoryID,
 		ComplianceStatusID: complianceRegisterFormDTO.ComplianceStatusID,
-		//ResponsibleUnitID:               &responsibleUnitID,
-		//ResponsibleUserID:               complianceRegisterFormDTO.ResponsibleUserID,
+		ResponsibleUnitID:  &responsibleUnitID,
+		ResponsibleUserID:  complianceRegisterFormDTO.ResponsibleUserID,
 		//ReviewFrequencyID:               complianceRegisterFormDTO.ReviewFrequencyID,
 		//LastReviewNote:                  complianceRegisterFormDTO.LastReviewNote,
 		//ReviewResponsibleUserID:         complianceRegisterFormDTO.ReviewResponsibleUserID,
@@ -350,84 +351,84 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 			utility.LogError("Failed to log activity", fields)
 		}
 
-		// // Prepare notification and email
-		// urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		// entity := "compliance-register"
-		// action := "responsible-user-assign"
+		// Prepare notification and email
+		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		entity := "compliance-register"
+		action := "responsible-user-assign"
 
-		// dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-		// 	UserIDs:              []uint{*complianceRegisterFormDTO.ResponsibleUserID},
-		// 	ModuleIdentifier:     "compliance",
-		// 	NotificationType:     string(commonDTOs.AssignmentType),
-		// 	HeadingEn:            "Compliance Register Responsibility Assigned",
-		// 	HeadingAr:            "تم تعيين مسؤولية سجل الامتثال",
-		// 	TitleEn:              complianceRegisterFormDTO.TitleEn,
-		// 	TitleAr:              complianceRegisterFormDTO.TitleAr,
-		// 	ReferenceNumber:      complianceRegister.ReferenceNumber,
-		// 	Entity:               &entity,
-		// 	Action:               &action,
-		// 	URLParam:             urlParam,
-		// 	IsSystemNotification: false,
-		// 	CreatedByID:          &currentUserID,
-		// }
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              []uint{*complianceRegisterFormDTO.ResponsibleUserID},
+			ModuleIdentifier:     "compliance",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Compliance Register Responsibility Assigned",
+			HeadingAr:            "تم تعيين مسؤولية سجل الامتثال",
+			TitleEn:              complianceRegisterFormDTO.TitleEn,
+			TitleAr:              complianceRegisterFormDTO.TitleAr,
+			ReferenceNumber:      complianceRegister.ReferenceNumber,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
 
-		// responsibleUser, err := crs.userSvc.GetByID(*complianceRegisterFormDTO.ResponsibleUserID)
-		// if err != nil {
-		// 	utility.LogError("Failed to fetch responsible user", map[string]interface{}{
-		// 		"error": err.Error(),
-		// 	})
-		// 	return
-		// }
+		responsibleUser, err := crs.userSvc.GetByID(*complianceRegisterFormDTO.ResponsibleUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
 
-		// createdBy, err := crs.userSvc.GetByID(currentUserID)
-		// if err != nil {
-		// 	utility.LogError("Failed to fetch responsible user", map[string]interface{}{
-		// 		"error": err.Error(),
-		// 	})
-		// 	return
-		// }
+		createdBy, err := crs.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
 
-		// // Assuming GetByID returns only an error and no severity level
-		// severityLevel, err := crs.severityLevelSvc.GetByID(*complianceRegister.SeverityLevelID)
-		// if err != nil {
-		// 	utility.LogError("Failed to fetch severity level", map[string]interface{}{
-		// 		"error":   err.Error(),
-		// 		"levelID": complianceRegister.SeverityLevelID,
-		// 	})
-		// 	return
-		// }
+		// Assuming GetByID returns only an error and no severity level
+		severityLevel, err := crs.severityLevelSvc.GetByID(*complianceRegister.SeverityLevelID)
+		if err != nil {
+			utility.LogError("Failed to fetch severity level", map[string]interface{}{
+				"error":   err.Error(),
+				"levelID": complianceRegister.SeverityLevelID,
+			})
+			return
+		}
 
-		// emailTo := []string{responsibleUser.Email}
-		// subject := fmt.Sprintf("Compliance Register/%s: Responsibility Assigned", complianceRegister.TitleEn)
-		// appURL := utility.GetAppURL()
+		emailTo := []string{responsibleUser.Email}
+		subject := fmt.Sprintf("Compliance Register/%s: Responsibility Assigned", complianceRegister.TitleEn)
+		appURL := utility.GetAppURL()
 
-		// emailData := map[string]interface{}{
-		// 	"FirstNameEn":               responsibleUser.FirstNameEn,
-		// 	"LastNameEn":                responsibleUser.LastNameEn,
-		// 	"ComplianceReferenceNumber": complianceRegister.ReferenceNumber,
-		// 	"ComplianceTitleEn":         complianceRegister.TitleEn,
-		// 	"ComplianceTitleAr":         complianceRegister.TitleAr,
-		// 	"ComplianceDescription":     complianceRegister.DescriptionEn,
-		// 	"SeverityLevel":             severityLevel.TitleEn,
-		// 	"CreatedByFirstNameEn":      createdBy.FirstNameEn,
-		// 	"CreatedByLastNameEn":       createdBy.LastNameEn,
-		// 	"AssignedOn":                time.Now().Format("2006-01-02"),
-		// 	"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d", appURL, id),
-		// }
+		emailData := map[string]interface{}{
+			"FirstNameEn":               responsibleUser.FirstNameEn,
+			"LastNameEn":                responsibleUser.LastNameEn,
+			"ComplianceReferenceNumber": complianceRegister.ReferenceNumber,
+			"ComplianceTitleEn":         complianceRegister.TitleEn,
+			"ComplianceTitleAr":         complianceRegister.TitleAr,
+			"ComplianceDescription":     complianceRegister.DescriptionEn,
+			"SeverityLevel":             severityLevel.TitleEn,
+			"CreatedByFirstNameEn":      createdBy.FirstNameEn,
+			"CreatedByLastNameEn":       createdBy.LastNameEn,
+			"AssignedOn":                time.Now().Format("2006-01-02"),
+			"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d", appURL, id),
+		}
 
-		// emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-		// 	EmailTo:              emailTo,
-		// 	Subject:              subject,
-		// 	TemplateRelativePath: "compliance/templates/email/compliance_register_create_responsible_user_mail.html",
-		// 	EmailData:            emailData,
-		// }
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "compliance/templates/email/compliance_register_create_responsible_user_mail.html",
+			EmailData:            emailData,
+		}
 
-		// err = crs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_register")
-		// if err != nil {
-		// 	utility.LogError("Failed to send notifications", map[string]interface{}{
-		// 		"error": err.Error(),
-		// 	})
-		// }
+		err = crs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_register")
+		if err != nil {
+			utility.LogError("Failed to send notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
 	}()
 
 	return id, nil
@@ -441,7 +442,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		return err
 	}
 
-	//oldResponsibleUserID := existingComplianceRegister.ResponsibleUserID
+	oldResponsibleUserID := existingComplianceRegister.ResponsibleUserID
 
 	if err := crs.validateComplianceRegisterFormDTO(complianceRegisterFormDTO); err != nil {
 		return err
@@ -466,13 +467,13 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		return err
 	}
 
-	// if existingComplianceRegister.ResponsibleUserID != complianceRegisterFormDTO.ResponsibleUserID {
-	// 	responsibleUnitID, err := crs.userSvc.GetUserPrimaryUnitID(*complianceRegisterFormDTO.ResponsibleUserID)
-	// 	if err != nil {
-	// 		return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
-	// 	}
-	// 	existingComplianceRegister.ResponsibleUnitID = &responsibleUnitID
-	// }
+	if existingComplianceRegister.ResponsibleUserID != complianceRegisterFormDTO.ResponsibleUserID {
+		responsibleUnitID, err := crs.userSvc.GetUserPrimaryUnitID(*complianceRegisterFormDTO.ResponsibleUserID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
+		}
+		existingComplianceRegister.ResponsibleUnitID = &responsibleUnitID
+	}
 	// hasAssessments, err := crs.repo.HasComplianceAssessments(id, tx)
 	// if err != nil {
 	// 	return err
@@ -495,7 +496,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 
 	//existingComplianceRegister.ComplianceCategoryID = complianceRegisterFormDTO.ComplianceCategoryID
 	existingComplianceRegister.ComplianceStatusID = complianceRegisterFormDTO.ComplianceStatusID
-	// existingComplianceRegister.ResponsibleUserID = complianceRegisterFormDTO.ResponsibleUserID
+	existingComplianceRegister.ResponsibleUserID = complianceRegisterFormDTO.ResponsibleUserID
 	// existingComplianceRegister.ReviewFrequencyID = complianceRegisterFormDTO.ReviewFrequencyID
 	// existingComplianceRegister.ReviewResponsibleUserID = complianceRegisterFormDTO.ReviewResponsibleUserID
 	// existingComplianceRegister.SeverityLevelID = complianceRegisterFormDTO.SeverityLevelID
@@ -618,8 +619,8 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		oldData := map[string]interface{}{
 			// "compliance_category":      oldComplianceRegister.ComplianceCategory.TitleEn,
 			"compliance_status": oldComplianceRegister.ComplianceStatus.TitleEn,
-			// "responsible_unit":         oldComplianceRegister.ResponsibleUnit.TitleEn,
-			// "responsible_user":         fmt.Sprintf("%s %s", oldComplianceRegister.ResponsibleUser.FirstNameEN, oldComplianceRegister.ResponsibleUser.LastNameEN),
+			"responsible_unit":  oldComplianceRegister.ResponsibleUnit.TitleEn,
+			"responsible_user":  fmt.Sprintf("%s %s", oldComplianceRegister.ResponsibleUser.FirstNameEN, oldComplianceRegister.ResponsibleUser.LastNameEN),
 			// "review_frequency":         utility.GetFieldValue(oldComplianceRegister.ReviewFrequency).(string),
 			// "review_responsible_user":  utility.GetFieldValue(oldComplianceRegister.ReviewResponsibleUser).(string),
 			// "severity_level":           utility.GetFieldValue(oldComplianceRegister.SeverityLevel).(string),
@@ -651,8 +652,8 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 
 		newData := map[string]interface{}{
 			// "compliance_category":      oldComplianceRegister.ComplianceCategory.TitleEn,
-			// "compliance_status":        oldComplianceRegister.ComplianceStatus.TitleEn,
-			// "responsible_unit":         oldComplianceRegister.ResponsibleUnit.TitleEn,
+			"compliance_status": oldComplianceRegister.ComplianceStatus.TitleEn,
+			"responsible_unit":  oldComplianceRegister.ResponsibleUnit.TitleEn,
 			// "responsible_user":         fmt.Sprintf("%s %s", oldComplianceRegister.ResponsibleUser.FirstNameEN, oldComplianceRegister.ResponsibleUser.LastNameEN),
 			// "review_frequency":         utility.GetFieldValue(oldComplianceRegister.ReviewFrequency).(string),
 			// "review_responsible_user":  utility.GetFieldValue(oldComplianceRegister.ReviewResponsibleUser).(string),
@@ -710,135 +711,135 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		}
 
 		// Send notifications to old and new responsible users if the responsible user has changed
-		// if oldResponsibleUserID != existingComplianceRegister.ResponsibleUserID {
-		// 	// URL param for notifications
-		// 	urlParam := fmt.Sprintf(`{"id":%d}`, id)
-		// 	entity := "compliance-register"
+		if oldResponsibleUserID != existingComplianceRegister.ResponsibleUserID {
+			// URL param for notifications
+			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+			entity := "compliance-register"
 
-		// 	// Old responsible user notification (Removal)
-		// 	oldResponsibleUserAction := "responsible-user-remove"
-		// 	oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-		// 		UserIDs:              []uint{*oldResponsibleUserID},
-		// 		ModuleIdentifier:     "compliance",
-		// 		NotificationType:     string(commonDTOs.InformationType),
-		// 		HeadingEn:            "Compliance Register Responsibility Removed",
-		// 		HeadingAr:            "تمت إزالة مسؤولية تسجيل الامتثال",
-		// 		TitleEn:              existingComplianceRegister.TitleEn,
-		// 		TitleAr:              existingComplianceRegister.TitleAr,
-		// 		ReferenceNumber:      existingComplianceRegister.ReferenceNumber,
-		// 		Entity:               &entity,
-		// 		Action:               &oldResponsibleUserAction,
-		// 		URLParam:             urlParam,
-		// 		IsSystemNotification: false,
-		// 		CreatedByID:          &currentUserID,
-		// 	}
+			// Old responsible user notification (Removal)
+			oldResponsibleUserAction := "responsible-user-remove"
+			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{*oldResponsibleUserID},
+				ModuleIdentifier:     "compliance",
+				NotificationType:     string(commonDTOs.InformationType),
+				HeadingEn:            "Compliance Register Responsibility Removed",
+				HeadingAr:            "تمت إزالة مسؤولية تسجيل الامتثال",
+				TitleEn:              existingComplianceRegister.TitleEn,
+				TitleAr:              existingComplianceRegister.TitleAr,
+				ReferenceNumber:      existingComplianceRegister.ReferenceNumber,
+				Entity:               &entity,
+				Action:               &oldResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
 
-		// 	// New responsible user notification (Assignment)
-		// 	newResponsibleUserAction := "responsible-user-assign"
-		// 	newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-		// 		UserIDs:              []uint{*complianceRegisterFormDTO.ResponsibleUserID},
-		// 		ModuleIdentifier:     "compliance",
-		// 		NotificationType:     string(commonDTOs.AssignmentType),
-		// 		HeadingEn:            "Compliance Register Responsibility Assigned",
-		// 		HeadingAr:            "تم تعيين مسؤولية سجل الامتثال",
-		// 		TitleEn:              existingComplianceRegister.TitleEn,
-		// 		TitleAr:              existingComplianceRegister.TitleAr,
-		// 		ReferenceNumber:      existingComplianceRegister.ReferenceNumber,
-		// 		Entity:               &entity,
-		// 		Action:               &newResponsibleUserAction,
-		// 		URLParam:             urlParam,
-		// 		IsSystemNotification: false,
-		// 		CreatedByID:          &currentUserID,
-		// 	}
+			// New responsible user notification (Assignment)
+			newResponsibleUserAction := "responsible-user-assign"
+			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{*complianceRegisterFormDTO.ResponsibleUserID},
+				ModuleIdentifier:     "compliance",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Compliance Register Responsibility Assigned",
+				HeadingAr:            "تم تعيين مسؤولية سجل الامتثال",
+				TitleEn:              existingComplianceRegister.TitleEn,
+				TitleAr:              existingComplianceRegister.TitleAr,
+				ReferenceNumber:      existingComplianceRegister.ReferenceNumber,
+				Entity:               &entity,
+				Action:               &newResponsibleUserAction,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
 
-		// 	// Fetch the responsible users' data
-		// 	oldResponsibleUser, err := crs.userSvc.GetByID(*oldResponsibleUserID)
-		// 	if err != nil {
-		// 		utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
-		// 			"error": err.Error(),
-		// 		})
-		// 		return
-		// 	}
+			// Fetch the responsible users' data
+			oldResponsibleUser, err := crs.userSvc.GetByID(*oldResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
 
-		// 	newResponsibleUser, err := crs.userSvc.GetByID(*complianceRegisterFormDTO.ResponsibleUserID)
-		// 	if err != nil {
-		// 		utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
-		// 			"error": err.Error(),
-		// 		})
-		// 		return
-		// 	}
+			newResponsibleUser, err := crs.userSvc.GetByID(*complianceRegisterFormDTO.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
 
-		// 	// Fetch details of the user making the assignment
-		// 	updatedByUser, err := crs.userSvc.GetByID(currentUserID)
-		// 	if err != nil {
-		// 		utility.LogError("Failed to fetch assigning user", map[string]interface{}{
-		// 			"error": err.Error(),
-		// 		})
-		// 		return
-		// 	}
+			// Fetch details of the user making the assignment
+			updatedByUser, err := crs.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
 
-		// 	appURL := utility.GetAppURL()
+			appURL := utility.GetAppURL()
 
-		// 	// Email notification for the old responsible user
-		// 	oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
-		// 	oldResponsibleUserSubject := fmt.Sprintf("Compliance Register/%s: Responsibility Removed", existingComplianceRegister.TitleEn)
-		// 	oldResponsibleUserEmailData := map[string]interface{}{
-		// 		"FirstNameEn":               oldResponsibleUser.FirstNameEn,
-		// 		"LastNameEn":                oldResponsibleUser.LastNameEn,
-		// 		"ComplianceReferenceNumber": existingComplianceRegister.ReferenceNumber,
-		// 		"ComplianceTitle":           existingComplianceRegister.TitleEn,
-		// 		"ComplianceTitleAr":         existingComplianceRegister.TitleAr,
-		// 		"ComplianceDescription":     existingComplianceRegister.DescriptionEn,
-		// 		"UpdatedByFirstNameEn":      updatedByUser.FirstNameEn,
-		// 		"UpdatedByLastNameEn":       updatedByUser.LastNameEn,
-		// 		"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d", appURL, id),
-		// 	}
+			// Email notification for the old responsible user
+			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+			oldResponsibleUserSubject := fmt.Sprintf("Compliance Register/%s: Responsibility Removed", existingComplianceRegister.TitleEn)
+			oldResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":               oldResponsibleUser.FirstNameEn,
+				"LastNameEn":                oldResponsibleUser.LastNameEn,
+				"ComplianceReferenceNumber": existingComplianceRegister.ReferenceNumber,
+				"ComplianceTitle":           existingComplianceRegister.TitleEn,
+				"ComplianceTitleAr":         existingComplianceRegister.TitleAr,
+				"ComplianceDescription":     existingComplianceRegister.DescriptionEn,
+				"UpdatedByFirstNameEn":      updatedByUser.FirstNameEn,
+				"UpdatedByLastNameEn":       updatedByUser.LastNameEn,
+				"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d", appURL, id),
+			}
 
-		// 	oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-		// 		EmailTo:              oldResponsibleUserEmailTo,
-		// 		Subject:              oldResponsibleUserSubject,
-		// 		TemplateRelativePath: "compliance/templates/email/compliance_register_remove_responsible_user_mail.html",
-		// 		EmailData:            oldResponsibleUserEmailData,
-		// 	}
+			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              oldResponsibleUserEmailTo,
+				Subject:              oldResponsibleUserSubject,
+				TemplateRelativePath: "compliance/templates/email/compliance_register_remove_responsible_user_mail.html",
+				EmailData:            oldResponsibleUserEmailData,
+			}
 
-		// 	// Email notification for the new responsible user
-		// 	newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
-		// 	newResponsibleUserSubject := fmt.Sprintf("Compliance Register/%s: Responsibility Assigned", existingComplianceRegister.TitleEn)
-		// 	newResponsibleUserEmailData := map[string]interface{}{
-		// 		"FirstNameEn":               newResponsibleUser.FirstNameEn,
-		// 		"LastNameEn":                newResponsibleUser.LastNameEn,
-		// 		"ComplianceReferenceNumber": existingComplianceRegister.ReferenceNumber,
-		// 		"ComplianceTitle":           existingComplianceRegister.TitleEn,
-		// 		"ComplianceTitleAr":         existingComplianceRegister.TitleAr,
-		// 		"ComplianceDescription":     existingComplianceRegister.DescriptionEn,
-		// 		"AssignedByFirstNameEn":     updatedByUser.FirstNameEn,
-		// 		"AssignedByLastNameEn":      updatedByUser.LastNameEn,
-		// 		"AssignedOn":                time.Now().Format("2006-01-02"),
-		// 		"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d", appURL, id),
-		// 	}
+			// Email notification for the new responsible user
+			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+			newResponsibleUserSubject := fmt.Sprintf("Compliance Register/%s: Responsibility Assigned", existingComplianceRegister.TitleEn)
+			newResponsibleUserEmailData := map[string]interface{}{
+				"FirstNameEn":               newResponsibleUser.FirstNameEn,
+				"LastNameEn":                newResponsibleUser.LastNameEn,
+				"ComplianceReferenceNumber": existingComplianceRegister.ReferenceNumber,
+				"ComplianceTitle":           existingComplianceRegister.TitleEn,
+				"ComplianceTitleAr":         existingComplianceRegister.TitleAr,
+				"ComplianceDescription":     existingComplianceRegister.DescriptionEn,
+				"AssignedByFirstNameEn":     updatedByUser.FirstNameEn,
+				"AssignedByLastNameEn":      updatedByUser.LastNameEn,
+				"AssignedOn":                time.Now().Format("2006-01-02"),
+				"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d", appURL, id),
+			}
 
-		// 	newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-		// 		EmailTo:              newResponsibleUserEmailTo,
-		// 		Subject:              newResponsibleUserSubject,
-		// 		TemplateRelativePath: "compliance/templates/email/compliance_register_change_responsible_user_mail.html",
-		// 		EmailData:            newResponsibleUserEmailData,
-		// 	}
+			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              newResponsibleUserEmailTo,
+				Subject:              newResponsibleUserSubject,
+				TemplateRelativePath: "compliance/templates/email/compliance_register_change_responsible_user_mail.html",
+				EmailData:            newResponsibleUserEmailData,
+			}
 
-		// 	// Send notifications and emails
-		// 	err = crs.notificationSvc.SendNotification(newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "compliance_register")
-		// 	if err != nil {
-		// 		utility.LogError("Failed to send notifications to new responsible user", map[string]interface{}{
-		// 			"error": err.Error(),
-		// 		})
-		// 	}
+			// Send notifications and emails
+			err = crs.notificationSvc.SendNotification(newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "compliance_register")
+			if err != nil {
+				utility.LogError("Failed to send notifications to new responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
 
-		// 	err = crs.notificationSvc.SendNotification(oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "compliance_register")
-		// 	if err != nil {
-		// 		utility.LogError("Failed to send notifications to old responsible user", map[string]interface{}{
-		// 			"error": err.Error(),
-		// 		})
-		// 	}
-		// }
+			err = crs.notificationSvc.SendNotification(oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "compliance_register")
+			if err != nil {
+				utility.LogError("Failed to send notifications to old responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
 	}()
 
 	return nil
@@ -1010,68 +1011,68 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
 
-			// Send DB and email notifications for each successfully deleted compliance register
-			// for _, notification := range notifications {
-			// 	urlParam := ""
-			// 	entity := "compliance-register"
-			// 	action := "delete"
+			//Send DB and email notifications for each successfully deleted compliance register
+			for _, notification := range notifications {
+				urlParam := ""
+				entity := "compliance-register"
+				action := "delete"
 
-			// 	// Prepare DB notification
-			// 	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			// 		UserIDs:              []uint{*notification.OwnerID},
-			// 		ModuleIdentifier:     "compliance",
-			// 		NotificationType:     string(commonDTOs.DeletionType),
-			// 		HeadingEn:            "Compliance Register Deleted",
-			// 		HeadingAr:            "تم حذف سجل الامتثال",
-			// 		TitleEn:              notification.TitleEn,
-			// 		TitleAr:              notification.TitleAr,
-			// 		ReferenceNumber:      notification.ReferenceNumber,
-			// 		Entity:               &entity,
-			// 		Action:               &action,
-			// 		URLParam:             urlParam,
-			// 		IsSystemNotification: false,
-			// 		CreatedByID:          &currentUserID,
-			// 	}
+				// Prepare DB notification
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserIDs:              []uint{*notification.OwnerID},
+					ModuleIdentifier:     "compliance",
+					NotificationType:     string(commonDTOs.DeletionType),
+					HeadingEn:            "Compliance Register Deleted",
+					HeadingAr:            "تم حذف سجل الامتثال",
+					TitleEn:              notification.TitleEn,
+					TitleAr:              notification.TitleAr,
+					ReferenceNumber:      notification.ReferenceNumber,
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
 
-			// 	// Fetch owner details (responsible user)
-			// 	ownerUser, err := crs.userSvc.GetByID(*notification.OwnerID)
-			// 	if err != nil {
-			// 		utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
-			// 			"error": err.Error(),
-			// 		})
-			// 		continue
-			// 	}
+				// Fetch owner details (responsible user)
+				ownerUser, err := crs.userSvc.GetByID(*notification.OwnerID)
+				if err != nil {
+					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
+						"error": err.Error(),
+					})
+					continue
+				}
 
-			// 	// Prepare email notification
-			// 	ownerEmailTo := []string{ownerUser.Email}
-			// 	subject := fmt.Sprintf("Compliance Register/%s: Deleted", notification.TitleEn)
-			// 	templateRelativePath := "compliance/templates/email/compliance_register_delete_mail.html"
+				// Prepare email notification
+				ownerEmailTo := []string{ownerUser.Email}
+				subject := fmt.Sprintf("Compliance Register/%s: Deleted", notification.TitleEn)
+				templateRelativePath := "compliance/templates/email/compliance_register_delete_mail.html"
 
-			// 	emailData := map[string]interface{}{
-			// 		"FirstNameEn":               ownerUser.FirstNameEn,
-			// 		"LastNameEn":                ownerUser.LastNameEn,
-			// 		"ComplianceReferenceNumber": notification.ReferenceNumber,
-			// 		"ComplianceTitle":           notification.TitleEn,
-			// 		"ComplianceTitleAr":         notification.TitleAr,
-			// 		"ComplianceDescription":     notification.Description,
-			// 	}
+				emailData := map[string]interface{}{
+					"FirstNameEn":               ownerUser.FirstNameEn,
+					"LastNameEn":                ownerUser.LastNameEn,
+					"ComplianceReferenceNumber": notification.ReferenceNumber,
+					"ComplianceTitle":           notification.TitleEn,
+					"ComplianceTitleAr":         notification.TitleAr,
+					"ComplianceDescription":     notification.Description,
+				}
 
-			// 	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-			// 		EmailTo:              ownerEmailTo,
-			// 		Subject:              subject,
-			// 		TemplateRelativePath: templateRelativePath,
-			// 		EmailData:            emailData,
-			// 	}
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              ownerEmailTo,
+					Subject:              subject,
+					TemplateRelativePath: templateRelativePath,
+					EmailData:            emailData,
+				}
 
-			// 	// Send DB and email notifications
-			// 	err = crs.notificationSvc.SendNotification(
-			// 		dbNotificationDTO, emailNotificationDTO, "compliance_register")
-			// 	if err != nil {
-			// 		utility.LogError("Failed to send deletion notifications", map[string]interface{}{
-			// 			"error": err.Error(),
-			// 		})
-			// 	}
-			// }
+				// Send DB and email notifications
+				err = crs.notificationSvc.SendNotification(
+					dbNotificationDTO, emailNotificationDTO, "compliance_register")
+				if err != nil {
+					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			}
 		}()
 	}
 
