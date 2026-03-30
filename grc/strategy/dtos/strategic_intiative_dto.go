@@ -7,6 +7,15 @@ import (
 	"time"
 )
 
+type StrategicInitiativeStatusDTO struct {
+	ID        uint   `json:"id"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	ColorCode string `json:"color_code"`
+	Type      string `json:"type"`
+	Status    string `json:"status"`
+}
+
 type StrategicIntiativeListDTO struct {
 	ID            uint    `json:"id"`
 	TitleEn       string  `json:"title_en"`
@@ -15,6 +24,31 @@ type StrategicIntiativeListDTO struct {
 	DescriptionAr *string `json:"description_ar"`
 	StartDate     *string `json:"start_date"`
 	EndDate       *string `json:"end_date"`
+
+	ObjectivesEn      *string `json:"objectives_en"`
+	ObjectivesAr      *string `json:"objectives_ar"`
+	RecommendationsEn *string `json:"recommendations_en"`
+	RecommendationsAr *string `json:"recommendations_ar"`
+
+	OwnerDepartmentID      uint    `json:"owner_department_id"`
+	OwnerDepartmentTitleEn *string `json:"owner_department_title_en"`
+	OwnerDepartmentTitleAr *string `json:"owner_department_title_ar"`
+
+	StrategicInitiativeStatusID        uint    `json:"strategic_initiative_status_id"`
+	StrategicInitiativeStatusTitleEn   *string `json:"strategic_initiative_status_title_en"`
+	StrategicInitiativeStatusTitleAr   *string `json:"strategic_initiative_status_title_ar"`
+	StrategicInitiativeStatusColorCode *string `json:"strategic_initiative_status_color_code"`
+	StrategicInitiativeStatusType      *string `json:"strategic_initiative_status_type"`
+
+	CompletionPercentage   *float64 `json:"completion_percentage"`
+	KPIs                   *string  `json:"kpis"`
+	ExpectedBenefitsEn     *string  `json:"expected_benefits_en"`
+	ExpectedBenefitsAr     *string  `json:"expected_benefits_ar"`
+	Budget                 *float64 `json:"budget"`
+	ResourceRequirementsEn *string  `json:"resource_requirements_en"`
+	ResourceRequirementsAr *string  `json:"resource_requirements_ar"`
+	DependenciesEn         *string  `json:"dependencies_en"`
+	DependenciesAr         *string  `json:"dependencies_ar"`
 
 	ResponsibleUserID               uint    `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn      *string `json:"responsible_user_first_name_en"`
@@ -59,6 +93,25 @@ type StrategicIntiativeFormDTO struct {
 	StartDate         *string `json:"start_date"`
 	EndDate           *string `json:"end_date"`
 	ResponsibleUserID uint    `json:"responsible_user_id"`
+	ResponsibleUnitID uint    `json:"responsible_unit_id" binding:"required"`
+
+	ObjectivesEn           *string  `json:"objectives_en"`
+	ObjectivesAr           *string  `json:"objectives_ar"`
+	RecommendationsEn      *string  `json:"recommendations_en"`
+	RecommendationsAr      *string  `json:"recommendations_ar"`
+	KPIs                   *string  `json:"kpis"`
+	ExpectedBenefitsEn     *string  `json:"expected_benefits_en"`
+	ExpectedBenefitsAr     *string  `json:"expected_benefits_ar"`
+	Budget                 *float64 `json:"budget"`
+	ResourceRequirementsEn *string  `json:"resource_requirements_en"`
+	ResourceRequirementsAr *string  `json:"resource_requirements_ar"`
+	DependenciesEn         *string  `json:"dependencies_en"`
+	DependenciesAr         *string  `json:"dependencies_ar"`
+}
+
+type StrategicIntiativeStatusCompletionUpdateDTO struct {
+	StrategicInitiativeStatusID uint    `json:"strategic_initiative_status_id" binding:"required"`
+	CompletionPercentage        float64 `json:"completion_percentage" binding:"required"`
 }
 
 type StrategicIntiativeListQueryParamsDTO struct {
@@ -74,21 +127,44 @@ type StrategicIntiativeListQueryParamsDTO struct {
 }
 
 type StrategicIntiativeDetailDTO struct {
-	ID                uint                                  `json:"id"`
-	TitleEn           string                                `json:"title_en"`
-	TitleAr           string                                `json:"title_ar"`
-	DescriptionEn     *string                               `json:"description_en"`
-	DescriptionAr     *string                               `json:"description_ar"`
-	StartDateString   *string                               `json:"start_date"`
-	EndDateString     *string                               `json:"end_date"`
+	ID              uint    `json:"id"`
+	TitleEn         string  `json:"title_en"`
+	TitleAr         string  `json:"title_ar"`
+	DescriptionEn   *string `json:"description_en"`
+	DescriptionAr   *string `json:"description_ar"`
+	StartDateString *string `json:"start_date"`
+	EndDateString   *string `json:"end_date"`
+
+	ObjectivesEn      *string `json:"objectives_en"`
+	ObjectivesAr      *string `json:"objectives_ar"`
+	RecommendationsEn *string `json:"recommendations_en"`
+	RecommendationsAr *string `json:"recommendations_ar"`
+
+	OwnerDepartmentID uint                                  `json:"owner_department_id"`
+	OwnerDepartment   organizationDTOs.OrganizationUnit1DTO `json:"owner_department"`
+
+	StrategicInitiativeStatusID uint                         `json:"strategic_initiative_status_id"`
+	StrategicInitiativeStatus   StrategicInitiativeStatusDTO `json:"strategic_initiative_status"`
+
+	CompletionPercentage   *float64 `json:"completion_percentage"`
+	KPIs                   *string  `json:"kpis"`
+	ExpectedBenefitsEn     *string  `json:"expected_benefits_en"`
+	ExpectedBenefitsAr     *string  `json:"expected_benefits_ar"`
+	Budget                 *float64 `json:"budget"`
+	ResourceRequirementsEn *string  `json:"resource_requirements_en"`
+	ResourceRequirementsAr *string  `json:"resource_requirements_ar"`
+	DependenciesEn         *string  `json:"dependencies_en"`
+	DependenciesAr         *string  `json:"dependencies_ar"`
+
 	ResponsibleUserID uint                                  `json:"responsible_user_id"`
 	ResponsibleUser   organizationDTOs.UserMinimalDTO       `json:"responsible_user"`
 	ResponsibleUnitID uint                                  `json:"responsible_unit_id"`
 	ResponsibleUnit   organizationDTOs.OrganizationUnit1DTO `json:"responsible_unit"`
-	CreatedAt         time.Time                             `json:"created_at"`
-	UpdatedAt         *time.Time                            `json:"updated_at"`
-	CreatedByUser     organizationDTOs.UserMinimalDTO       `json:"created_by_user"`
-	UpdatedByUser     *organizationDTOs.UserMinimalDTO      `json:"updated_by_user"`
+
+	CreatedAt     time.Time                        `json:"created_at"`
+	UpdatedAt     *time.Time                       `json:"updated_at"`
+	CreatedByUser organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
+	UpdatedByUser *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
 }
 
 type StrategicIntiativeListResponseDTO struct {

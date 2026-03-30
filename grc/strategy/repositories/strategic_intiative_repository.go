@@ -43,7 +43,6 @@ func (repo *StrategicIntiativeRepository) GetAll(params *dtos.StrategicIntiative
 		Select(`
 			strategic_intiatives.*,
 
-
 			responsible_user.first_name_en AS responsible_user_first_name_en,
 			responsible_user.last_name_en AS responsible_user_last_name_en,
 			responsible_user.first_name_ar AS responsible_user_first_name_ar,
@@ -55,6 +54,14 @@ func (repo *StrategicIntiativeRepository) GetAll(params *dtos.StrategicIntiative
 
 			responsible_unit.title_en AS responsible_unit_title_en,
 			responsible_unit.title_ar AS responsible_unit_title_ar,
+
+			owner_department.title_en AS owner_department_title_en,
+			owner_department.title_ar AS owner_department_title_ar,
+
+			strategic_initiative_statuses.title_en AS strategic_initiative_status_title_en,
+			strategic_initiative_statuses.title_ar AS strategic_initiative_status_title_ar,
+			strategic_initiative_statuses.color_code AS strategic_initiative_status_color_code,
+			strategic_initiative_statuses.type AS strategic_initiative_status_type,
 
 			created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
@@ -76,6 +83,8 @@ func (repo *StrategicIntiativeRepository) GetAll(params *dtos.StrategicIntiative
 		`).
 		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = strategic_intiatives.responsible_user_id").
 		Joins("LEFT JOIN organization_units AS responsible_unit ON responsible_unit.id = strategic_intiatives.responsible_unit_id").
+		Joins("LEFT JOIN organization_units AS owner_department ON owner_department.id = strategic_intiatives.owner_department_id").
+		Joins("LEFT JOIN strategic_initiative_statuses ON strategic_initiative_statuses.id = strategic_intiatives.strategic_initiative_status_id").
 		Joins(`LEFT JOIN users AS created_user ON created_user.id = strategic_intiatives.created_by_id`).
 		Joins(`LEFT JOIN users AS updated_user ON updated_user.id = strategic_intiatives.updated_by_id`)
 
@@ -144,6 +153,8 @@ func (repo *StrategicIntiativeRepository) GetFullDetailsByID(id uint, tx ...util
 	result := db.
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUnit").
+		Preload("OwnerDepartment").
+		Preload("StrategicInitiativeStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&strategicIntiative, id)

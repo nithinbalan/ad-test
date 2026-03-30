@@ -37,6 +37,7 @@ type StrategyModule struct {
 	StrategicObjectiveAssociatedItemController      *controllers.StrategicObjectiveAssociatedItemController
 	StrategyProfileKpiController                    *controllers.StrategyProfileKpiController
 	StrategyProfileProjectActionPlanController      *controllers.StrategyProfileProjectActionPlanController
+	StrategicInitiativeStatusController             *controllers.StrategicInitiativeStatusController
 }
 
 func NewStrategyModule(db *gorm.DB,
@@ -152,7 +153,10 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileStrategicObjectiveController := controllers.NewStrategyProfileStrategicObjectiveController(strategyProfileStrategicObjectiveSvc)
 
 	strategicIntiativeRepo := repositories.NewStrategicIntiativeRepository(db)
-	strategicIntiativeSvc := services.NewStrategicIntiativeService(strategicIntiativeRepo, sharedModule.ActivityLogService, settingsModule.OrganizationUnitSvc, organizationModule.UserSvc)
+	strategicInitiativeStatusRepo := repositories.NewStrategicInitiativeStatusRepository(db)
+	strategicInitiativeStatusSvc := services.NewStrategicInitiativeStatusService(strategicInitiativeStatusRepo)
+	strategicInitiativeStatusController := controllers.NewStrategicInitiativeStatusController(strategicInitiativeStatusSvc)
+	strategicIntiativeSvc := services.NewStrategicIntiativeService(strategicIntiativeRepo, strategicInitiativeStatusRepo, sharedModule.ActivityLogService, settingsModule.OrganizationUnitSvc, organizationModule.UserSvc)
 	strategicIntiativeController := controllers.NewStrategicIntiativeController(strategicIntiativeSvc)
 	strategicObjectiveAssociatedItemRepo := repositories.NewStrategicObectiveAssociatedItemRepository(db)
 	strategicObjectiveAssociatedItemSvc := services.NewstrategicObjectiveAssociatedItemService(strategicObjectiveAssociatedItemRepo, strategicObjectiveSvc, complianceModule.ComplianceClausevc, commonModule.AssociatedItemValidationService)
@@ -212,5 +216,6 @@ func NewStrategyModule(db *gorm.DB,
 		StrategicObjectiveAssociatedItemController:      strategicObjectiveAssociatedItemController,
 		StrategyProfileKpiController:                    strategyProfileKpiController,
 		StrategyProfileProjectActionPlanController:      strategyProfileProjectActionPlanController,
+		StrategicInitiativeStatusController:             strategicInitiativeStatusController,
 	}
 }
