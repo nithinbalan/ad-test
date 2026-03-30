@@ -344,7 +344,7 @@ func (repo *ComplianceAssessmentRequirementRepository) CreateComment(comment *mo
 func (repo *ComplianceAssessmentRequirementRepository) GetComplianceAssessmentRequirementResponsibleUnitByID(id uint) (*models.ComplianceAssessmentRequirementResponsibleUnit, error) {
 	var complianceAssessmentRequirementResponsibleUnit *models.ComplianceAssessmentRequirementResponsibleUnit
 
-	result := repo.db.Preload("ResponsibleUnit").First(&complianceAssessmentRequirementResponsibleUnit, id)
+	result := repo.db.Preload("ResponsibleUnit").Preload("ComplianceAssessmentRequirement").First(&complianceAssessmentRequirementResponsibleUnit, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}

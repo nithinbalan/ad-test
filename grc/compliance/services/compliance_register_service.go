@@ -388,19 +388,27 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 			return
 		}
 
-		// Assuming GetByID returns only an error and no severity level
-		severityLevel, err := crs.severityLevelSvc.GetByID(*complianceRegister.SeverityLevelID)
-		if err != nil {
-			utility.LogError("Failed to fetch severity level", map[string]interface{}{
-				"error":   err.Error(),
-				"levelID": complianceRegister.SeverityLevelID,
-			})
-			return
+		// Check if severity level ID is present before fetching
+		var severityLevel *models.SeverityLevel
+		if complianceRegister.SeverityLevelID != nil {
+			severityLevel, err = crs.severityLevelSvc.GetByID(*complianceRegister.SeverityLevelID)
+			if err != nil {
+				utility.LogError("Failed to fetch severity level", map[string]interface{}{
+					"error":   err.Error(),
+					"levelID": complianceRegister.SeverityLevelID,
+				})
+				return
+			}
 		}
 
 		emailTo := []string{responsibleUser.Email}
 		subject := fmt.Sprintf("Compliance Register/%s: Responsibility Assigned", complianceRegister.TitleEn)
 		appURL := utility.GetAppURL()
+
+		severityLevelTitle := "N/A"
+		if severityLevel != nil {
+			severityLevelTitle = severityLevel.TitleEn
+		}
 
 		emailData := map[string]interface{}{
 			"FirstNameEn":               responsibleUser.FirstNameEn,
@@ -409,7 +417,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 			"ComplianceTitleEn":         complianceRegister.TitleEn,
 			"ComplianceTitleAr":         complianceRegister.TitleAr,
 			"ComplianceDescription":     complianceRegister.DescriptionEn,
-			"SeverityLevel":             severityLevel.TitleEn,
+			"SeverityLevel":             severityLevelTitle,
 			"CreatedByFirstNameEn":      createdBy.FirstNameEn,
 			"CreatedByLastNameEn":       createdBy.LastNameEn,
 			"AssignedOn":                time.Now().Format("2006-01-02"),

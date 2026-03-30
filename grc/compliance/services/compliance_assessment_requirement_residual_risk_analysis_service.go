@@ -106,6 +106,7 @@ func (carras *ComplianceAssessmentRequirementResidualRiskAnalysisService) Create
 
 	// Update compliance assessment status from draft to in-progress if needed
 	if complianceAssessment.ComplianceAssessmentStatusID == assessmentInitiatedStatus.ID {
+		fmt.Println("Updating compliance assessment status from draft to in-progress")
 		complianceAssessment.ComplianceAssessmentStatusID = assessmentInProgressStatus.ID
 		err = carras.repo.AssessmentUpdateStatus(complianceAssessment, tx)
 		if err != nil {
