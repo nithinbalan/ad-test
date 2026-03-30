@@ -110,17 +110,17 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			compliance_statuses.title_en AS compliance_status_title_en,
 			compliance_statuses.title_ar AS compliance_status_title_ar,
 			compliance_statuses.color_code AS compliance_status_color_code,
-			-- organization_units.title_en AS responsible_unit_title_en,
-			-- organization_units.title_ar AS responsible_unit_title_ar,
-			-- responsible_user.id AS responsible_user_id,
-			-- responsible_user.first_name_en AS responsible_user_first_name_en,
-            -- responsible_user.first_name_ar AS responsible_user_first_name_ar,
-            -- responsible_user.last_name_en AS responsible_user_last_name_en,
-            -- responsible_user.last_name_ar AS responsible_user_last_name_ar,
-			-- responsible_user.initial AS responsible_user_initial,
-            -- responsible_user.color AS responsible_user_color,
-            -- responsible_user.email AS responsible_user_email,
-            -- responsible_user.profile_image_path AS responsible_user_profile_image_path,
+			 organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			responsible_user.id AS responsible_user_id,
+			responsible_user.first_name_en AS responsible_user_first_name_en,
+            responsible_user.first_name_ar AS responsible_user_first_name_ar,
+            responsible_user.last_name_en AS responsible_user_last_name_en,
+            responsible_user.last_name_ar AS responsible_user_last_name_ar,
+			responsible_user.initial AS responsible_user_initial,
+            responsible_user.color AS responsible_user_color,
+            responsible_user.email AS responsible_user_email,
+            responsible_user.profile_image_path AS responsible_user_profile_image_path,
 			-- review_frequencies.title_en AS review_frequency_title_en,
 			-- review_frequencies.title_ar AS review_frequency_title_ar,
 			-- review_responsible_user.id AS review_responsible_user_id,
@@ -174,8 +174,8 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 		Joins(`
 		    -- LEFT JOIN compliance_categories ON compliance_categories.id = compliance_register.compliance_category_id
 		    LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_register.compliance_status_id
-		    -- LEFT JOIN organization_units ON organization_units.id = compliance_register.responsible_unit_id
-		    -- LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_register.responsible_user_id
+		 	LEFT JOIN organization_units ON organization_units.id = compliance_register.responsible_unit_id
+		    LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_register.responsible_user_id
 		    -- LEFT JOIN review_frequencies ON review_frequencies.id = compliance_register.review_frequency_id
 			-- LEFT JOIN users AS review_responsible_user ON review_responsible_user.id = compliance_register.review_responsible_user_id
 		    -- LEFT JOIN severity_levels ON severity_levels.id = compliance_register.severity_level_id
@@ -367,10 +367,10 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("ComplianceClauses").
 		Preload("ComplianceClauses.ComplianceRequirements").
 		Preload("ComplianceClauses.ComplianceRequirements.RequiredDocumentTitles").
-		// Preload("ResponsibleUnit").
-		// Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
-		// Preload("ResponsibleUser").
-		// Preload("ResponsibleUser.OrganizationUnit1").
+		Preload("ResponsibleUnit").
+		Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
+		Preload("ResponsibleUser").
+		Preload("ResponsibleUser.OrganizationUnit1").
 		// Preload("ReviewFrequency").
 		// Preload("ComplianceReviewStatus").
 		// Preload("LastReviewedUser").

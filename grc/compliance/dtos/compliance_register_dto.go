@@ -23,17 +23,17 @@ type ComplianceRegisterListDTO struct {
 	IsRiskBasedAssessment              bool   `json:"is_risk_based_assessment"`
 	IsPublic                           bool   `json:"is_public"`
 	IsShared                           bool   `json:"is_shared"`
-	// ResponsibleUnitTitleEn                string `json:"responsible_unit_title_en"`
-	// ResponsibleUnitTitleAr                string `json:"responsible_unit_title_ar"`
-	// ResponsibleUserID                     uint   `json:"responsible_user_id"`
-	// ResponsibleUserFirstNameEn            string `json:"responsible_user_first_name_en"`
-	// ResponsibleUserFirstNameAr            string `json:"responsible_user_first_name_ar"`
-	// ResponsibleUserLastNameEn             string `json:"responsible_user_last_name_en"`
-	// ResponsibleUserLastNameAr             string `json:"responsible_user_last_name_ar"`
-	// ResponsibleUserInitial                string `json:"responsible_user_initial"`
-	// ResponsibleUserColor                  string `json:"responsible_user_color"`
-	// ResponsibleUserEmail                  string `json:"responsible_user_email"`
-	// ResponsibleUserProfileImagePath       string `json:"responsible_user_profile_image_path"`
+	ResponsibleUnitTitleEn             string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr             string `json:"responsible_unit_title_ar"`
+	ResponsibleUserID                  uint   `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn         string `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr         string `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn          string `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr          string `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial             string `json:"responsible_user_initial"`
+	ResponsibleUserColor               string `json:"responsible_user_color"`
+	ResponsibleUserEmail               string `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath    string `json:"responsible_user_profile_image_path"`
 	// ReviewFrequencyTitleEn                string `json:"review_frequency_title_en"`
 	// ReviewFrequencyTitleAr                string `json:"review_frequency_title_ar"`
 	// ReviewResponsibleUserID               uint   `json:"review_responsible_user_id"`
@@ -138,8 +138,8 @@ type ComplianceRegisterFormDTO struct {
 	// Original fields - making some nullable
 	// ComplianceCategoryID            *uint                      `json:"compliance_category_id"`
 	ComplianceStatusID *uint `json:"compliance_status_id"`
-	// ResponsibleUnitID               *uint                      `json:"responsible_unit_id"`
-	// ResponsibleUserID               *uint                      `json:"responsible_user_id"`
+	ResponsibleUnitID  *uint `json:"responsible_unit_id"`
+	ResponsibleUserID  *uint `json:"responsible_user_id"`
 	// ReviewFrequencyID               *uint                      `json:"review_frequency_id"`
 	// ReviewResponsibleUserID         *uint                      `json:"review_responsible_user_id"`
 	// SeverityLevelID                 *uint                      `json:"severity_level_id"`
