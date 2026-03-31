@@ -57,6 +57,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	userJobDescriptionController := app.OrganizationModule.UserJobDescriptionController
 	userDelegationHistoryController := app.OrganizationModule.UserDelegationHistoryController
 	organizationUnitsController := app.OrganizationModule.OrganizationUnitsController
+	organizationUnitBusinessContextController := app.OrganizationModule.OrganizationUnitBusinessContextController
 	organizationChartUsers := app.OrganizationModule.OrganizationCartController
 	myDashboardController := app.OrganizationModule.MyDashboardController
 	committeeTermController := app.OrganizationModule.CommitteeTermController
@@ -485,6 +486,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/organization-units/:id/users/:userId", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitsController.UpdatePrimaryOrganizationUnitHead)
 	organizationRoutes.GET("/organization-units/:id/summary", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetOrganizationUnitSummary)
 	organizationRoutes.GET("/organization-units/:id/policies", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetAllPoliciesByOrganizationUnit)
+	organizationRoutes.GET("/organization-units/:id/processes", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetAllProcessesByOrganizationUnit)
 	organizationRoutes.GET("/organization-units/:id/risks", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetAllRiskByOrganizationUnit)
 	organizationRoutes.GET("/organization-units/:id/details", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetParentOrganizationUnitWithHead)
 
@@ -494,6 +496,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/organization-units/reports", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitsController.CreateOrganizationUnitReport)
 	organizationRoutes.DELETE("/organization-units/reports/:id", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitsController.DeleteOrganizationUnitReport)
 	organizationRoutes.GET("/organization-units/reports/:id/export", organizationUnitsController.ExportOrganizationUnitReportToPDF)
+
+	// Organization Unit Business Context
+	organizationRoutes.GET("/organization-units/:id/business-context", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitBusinessContextController.GetAllBusinessContexts)
+	organizationRoutes.GET("/organization-units/:id/business-context/details", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitBusinessContextController.GetBusinessContextDetails)
+	organizationRoutes.POST("/organization-units/:id/business-context", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitBusinessContextController.CreateBusinessContext)
+	organizationRoutes.PUT("/organization-units/:id/business-context", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitBusinessContextController.UpdateBusinessContext)
+	organizationRoutes.DELETE("/organization-units/:id/business-context/delete", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitBusinessContextController.DeleteBusinessContext)
 
 	organizationRoutes.GET("/organization-chart/users", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationChartUsers.GetUsers)
 	organizationRoutes.GET("/organization-chart/users/:id", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationChartUsers.GetUserFullDetails)

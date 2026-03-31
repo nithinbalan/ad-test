@@ -225,6 +225,58 @@ func (osc *OrganizationUnitsController) GetAllPoliciesByOrganizationUnit(c *gin.
 	c.JSON(http.StatusOK, policies)
 }
 
+func (osc *OrganizationUnitsController) GetAllProcessesByOrganizationUnit(c *gin.Context) {
+	unitIDStr := c.Param("id")
+
+	unitID, err := strconv.ParseUint(unitIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.Query("sort_order")
+	sortBy := c.Query("sort_by")
+	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(osc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(osc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      sortBy,
+		Keyword:     keyword,
+		Page:        page,
+		PageSize:    pageSize,
+		QuickFilter: quickFilter,
+	}
+	processes, err := osc.service.GetAllProcessesByOrganizationUnit(uint(unitID), &queryParams)
+
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(osc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, processes)
+}
+
 func (osc *OrganizationUnitsController) GetAllRiskByOrganizationUnit(c *gin.Context) {
 
 	unitIDStr := c.Param("id")

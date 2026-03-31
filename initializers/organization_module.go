@@ -50,6 +50,7 @@ type OrganizationModule struct {
 	UserJobDescriptionController              *controllers.UserJobDescriptionController
 	UserDelegationHistoryController           *controllers.UserDelegationController
 	OrganizationUnitsController               *controllers.OrganizationUnitsController
+	OrganizationUnitBusinessContextController *controllers.OrganizationUnitBusinessContextController
 	OrganizationCartController                *controllers.OrganizationChartController
 	MyDashboardController                     *controllers.MyDashboardController
 	CommitteeTermController                   *controllers.CommitteeTermController
@@ -205,6 +206,23 @@ func NewOrganizationModule(
 	controlAssociatedItemSvc := services.NewControlAssociatedItemService(controlAssociatedItemRepo, controlSvc, controlImplementationStatusSvc, controlEfficiencyStatusRepo, commonModule.AssociatedItemValidationService)
 	controlAssociatedItemController := controllers.NewControlAssociatedItemController(controlAssociatedItemSvc)
 
+	organizationUnitsRepo := repositories.NewOrganizationUnitsRepository(db)
+	organizationUnitsSvc := services.NewOrganizationUnitsService(
+		organizationUnitsRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.OrganizationLevelSvc,
+		userRepo,
+		userSvc,
+		settingsModule.OrganizationUnitSvc,
+		settingsModule.ReportTemplateSettingSvc,
+	)
+	organizationUnitsController := controllers.NewOrganizationUnitsController(organizationUnitsSvc)
+
+	// Organization Unit Business Context Setup
+	organizationUnitBusinessContextRepo := repositories.NewOrganizationUnitBusinessContextRepository(db)
+	organizationUnitBusinessContextSvc := services.NewOrganizationUnitBusinessContextService(organizationUnitBusinessContextRepo, sharedModule.ActivityLogService)
+	organizationUnitBusinessContextController := controllers.NewOrganizationUnitBusinessContextController(organizationUnitBusinessContextSvc)
+
 	controlReviewRepo := repositories.NewControlReviewRepository(db)
 	controlReviewSvc := services.NewControlReviewService(controlReviewRepo, sharedModule.ActivityLogService, controlSvc, masterModule.ReviewFrequencySvc, controlReviewStatusSvc)
 	controlReviewController := controllers.NewControlReviewController(controlReviewSvc)
@@ -226,7 +244,7 @@ func NewOrganizationModule(
 	controlActionPlanCommentController := controllers.NewControlActionPlanCommentController(controlActionPlanCommentSvc)
 
 	processRepo := repositories.NewProcessRepository(db)
-	processSvc := services.NewProcessService(processRepo, sharedModule.ActivityLogService, processGroupSvc, userSvc, masterModule.LifecycleStatusSvc, controlSvc, commonModule.NotificationService, userSettingSvc)
+	processSvc := services.NewProcessService(processRepo, sharedModule.ActivityLogService, processGroupSvc, userSvc, masterModule.LifecycleStatusSvc, controlSvc, commonModule.NotificationService, settingsModule.OrganizationUnitSvc, userSettingSvc, organizationUnitsSvc)
 	processController := controllers.NewProcessController(processSvc)
 
 	userTaskRepo := repositories.NewUserTaskRepository(db)
@@ -283,18 +301,6 @@ func NewOrganizationModule(
 	userDelegationHistoryRepo := repositories.NewUserDelegationRepository(db)
 	userDelegationHistorySvc := services.NewUserDelegationService(userDelegationHistoryRepo, sharedModule.ActivityLogService, userSvc, commonModule.NotificationService, userSettingSvc, taskModule.TaskService)
 	userDelegationHistoryController := controllers.NewUserDelegationController(userDelegationHistorySvc)
-
-	organizationUnitsRepo := repositories.NewOrganizationUnitsRepository(db)
-	organizationUnitsSvc := services.NewOrganizationUnitsService(
-		organizationUnitsRepo,
-		sharedModule.ActivityLogService,
-		settingsModule.OrganizationLevelSvc,
-		userRepo,
-		userSvc,
-		settingsModule.OrganizationUnitSvc,
-		settingsModule.ReportTemplateSettingSvc,
-	)
-	organizationUnitsController := controllers.NewOrganizationUnitsController(organizationUnitsSvc)
 
 	organizationChartRepo := repositories.NewOrganizationChartRepository(db)
 	organizationChartSvc := services.NewOrganizationChartService(organizationChartRepo, settingsModule.OrganizationLevelSvc)
@@ -408,6 +414,7 @@ func NewOrganizationModule(
 		UserJobDescriptionController:              userJobDescriptionController,
 		UserDelegationHistoryController:           userDelegationHistoryController,
 		OrganizationUnitsController:               organizationUnitsController,
+		OrganizationUnitBusinessContextController: organizationUnitBusinessContextController,
 		OrganizationCartController:                organizationChartController,
 		MyDashboardController:                     myDashboardController,
 		CommitteeTermController:                   committeeTermController,
