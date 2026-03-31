@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"jethur/config"
@@ -347,12 +348,14 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 
 					subject := fmt.Sprintf("New Violation Report: %s", violationReportFormDTO.TitleEn)
 					appURL := utility.GetAppURL()
+					sentEmails := map[string]bool{}
 
 					// Send individual email per user so each recipient gets a personalised email
 					for _, user := range departmentUsers {
 						if user.Email == "" {
 							continue
 						}
+						sentEmails[strings.ToLower(strings.TrimSpace(user.Email))] = true
 						emailData := map[string]interface{}{
 							"RecipientFirstNameEn":           user.FirstNameEn,
 							"ViolationReportReferenceNumber": referenceNumber,
@@ -377,6 +380,46 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 								"userID": user.ID,
 								"email":  user.Email,
 							})
+						}
+					}
+
+					// Send email to reporter as well, if provided and not already included
+					if violationReportFormDTO.EmailOfReporter != nil {
+						reporterEmail := strings.TrimSpace(*violationReportFormDTO.EmailOfReporter)
+						if reporterEmail != "" && !sentEmails[strings.ToLower(reporterEmail)] {
+							reporterFirstName := "User"
+							if violationReportFormDTO.NameOfReporter != nil {
+								nameParts := strings.Fields(strings.TrimSpace(*violationReportFormDTO.NameOfReporter))
+								if len(nameParts) > 0 {
+									reporterFirstName = nameParts[0]
+								}
+							}
+
+							emailData := map[string]interface{}{
+								"RecipientFirstNameEn":           reporterFirstName,
+								"ViolationReportReferenceNumber": referenceNumber,
+								"ViolationReportTitle":           violationReportFormDTO.TitleEn,
+								"ViolationReportDescription":     violationReportFormDTO.DescriptionEn,
+								"ReportedAt":                     dates.ReportedAt.Format("2006-01-02"),
+								"CreatedByFirstNameEn":           createdBy.FirstNameEn,
+								"CreatedByLastNameEn":            createdBy.LastNameEn,
+								"CreatedOn":                      time.Now().Format("2006-01-02"),
+								"RedirectURL":                    fmt.Sprintf("%s/violation-report/register/%d/overview", appURL, id),
+							}
+
+							emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+								EmailTo:              []string{reporterEmail},
+								Subject:              subject,
+								TemplateRelativePath: "violation-report/templates/email/violation_report_create_mail.html",
+								EmailData:            emailData,
+							}
+							if err := irs.notificationSvc.SendNotification(nil, emailNotificationDTO, "violation_report"); err != nil {
+								fmt.Printf("failed to send violation report email to reporter (%s): %v\n", reporterEmail, err)
+								utility.LogError("Failed to send email notification for reporter", map[string]interface{}{
+									"error": err.Error(),
+									"email": reporterEmail,
+								})
+							}
 						}
 					}
 				}
@@ -687,6 +730,14 @@ func (irs *ViolationReportService) validateViolationReportFormDTO(violationRepor
 	if len(violationReportFormDTO.Documents) > 0 {
 		if err := irs.validateViolationReportDocumentFormDTO(violationReportFormDTO.Documents, violationReportFormDTO.EvidenceDescription); err != nil {
 			return err
+		}
+	}
+
+	// Validate reporter email format if provided
+	if violationReportFormDTO.EmailOfReporter != nil {
+		email := strings.TrimSpace(*violationReportFormDTO.EmailOfReporter)
+		if email != "" && !utility.IsValidEmail(email) {
+			return utility.NewValidationError(fmt.Errorf("email of reporter is invalid"), "invalid", "email_of_reporter")
 		}
 	}
 
@@ -1053,11 +1104,13 @@ func (s *ViolationReportService) CreateViolationReportComment(violationReportID 
 
 					subject := fmt.Sprintf("Violation Report Status Updated: %s - %s", fullDetails.ReferenceNumber, fullDetails.TitleEn)
 					appURL := utility.GetAppURL()
+					sentEmails := map[string]bool{}
 
 					for _, user := range departmentUsers {
 						if user.Email == "" {
 							continue
 						}
+						sentEmails[strings.ToLower(strings.TrimSpace(user.Email))] = true
 
 						emailData := map[string]interface{}{
 							"RecipientFirstNameEn":           user.FirstNameEn,
@@ -1085,6 +1138,47 @@ func (s *ViolationReportService) CreateViolationReportComment(violationReportID 
 								"userID": user.ID,
 								"email":  user.Email,
 							})
+						}
+					}
+
+					// Send status update email to reporter as well, if provided and not already included
+					if fullDetails.EmailOfReporter != nil {
+						reporterEmail := strings.TrimSpace(*fullDetails.EmailOfReporter)
+						if reporterEmail != "" && !sentEmails[strings.ToLower(reporterEmail)] {
+							reporterFirstName := "User"
+							if fullDetails.NameOfReporter != nil {
+								nameParts := strings.Fields(strings.TrimSpace(*fullDetails.NameOfReporter))
+								if len(nameParts) > 0 {
+									reporterFirstName = nameParts[0]
+								}
+							}
+
+							emailData := map[string]interface{}{
+								"RecipientFirstNameEn":           reporterFirstName,
+								"ViolationReportReferenceNumber": fullDetails.ReferenceNumber,
+								"ViolationReportTitle":           fullDetails.TitleEn,
+								"ViolationReportStatusTitle":     fullDetails.ViolationReportStatus.TitleEn,
+								"ViolationReportDescription":     fullDetails.DescriptionEn,
+								"ReportedAt":                     fullDetails.ReportedAt.Format("2006-01-02"),
+								"CreatedByFirstNameEn":           createdBy.FirstNameEn,
+								"CreatedByLastNameEn":            createdBy.LastNameEn,
+								"CreatedOn":                      time.Now().Format("2006-01-02"),
+								"RedirectURL":                    fmt.Sprintf("%s/violation-report/register/%d/overview", appURL, violationReportID),
+							}
+
+							emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+								EmailTo:              []string{reporterEmail},
+								Subject:              subject,
+								TemplateRelativePath: "violation-report/templates/email/violation_report_status_update_mail.html",
+								EmailData:            emailData,
+							}
+							if err := s.notificationSvc.SendNotification(nil, emailNotificationDTO, "violation_report"); err != nil {
+								fmt.Printf("failed to send violation report status update email to reporter (%s): %v\n", reporterEmail, err)
+								utility.LogError("Failed to send status update email notification for reporter", map[string]interface{}{
+									"error": err.Error(),
+									"email": reporterEmail,
+								})
+							}
 						}
 					}
 				}
