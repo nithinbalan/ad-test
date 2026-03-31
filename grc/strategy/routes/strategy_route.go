@@ -246,7 +246,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.POST("/strategic-objectives/:id/risks", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.CreateStrategicObjectiveRisk)
 	strategyRoutes.DELETE("/strategic-objectives/:id/risks/:riskId", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.DeleteStrategicObjectiveRisk)
 	strategyRoutes.GET("/strategic-intiatives/:id/risks", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "view"), strategicInitiativeAssociatedItemController.GetAllStrategicIntiativeRisks)
-	strategyRoutes.POST("/strategic-intiatives/:id/risks", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "modify"), strategicInitiativeAssociatedItemController.CreateStrategicIntiativeRisk)
+	strategyRoutes.PUT("/strategic-intiatives/:id/risks", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "modify"), strategicInitiativeAssociatedItemController.CreateStrategicIntiativeRisk)
 	strategyRoutes.DELETE("/strategic-intiatives/:id/risks/:riskId", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "modify"), strategicInitiativeAssociatedItemController.DeleteStrategicIntiativeRisk)
 	// strategic initiative
 	strategyRoutes.GET("/strategy-profiles/:strategyProfileId/strategic-intiatives", strategyProfileStrategicIntiativeController.GetAllStrategyProfileStrategicIntiatives)

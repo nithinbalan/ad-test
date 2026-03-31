@@ -299,18 +299,18 @@ func (aivs *AssociatedItemValidationService) ValidateControlMapping(masterID uin
 
 func (aivs *AssociatedItemValidationService) ValidateComplianceMapping(masterID uint, complianceRegisterIDs []uint, tableName string, columnName string) error {
 	if len(complianceRegisterIDs) == 0 {
-		return utility.NewValidationError(fmt.Errorf("no compliance registers provided"), "required", "compliance_register_ids")
+		return utility.NewValidationError(fmt.Errorf("no compliance registers provided"), "required", "clause_ids")
 	}
 
 	seen := make(map[uint]bool)
 	for _, id := range complianceRegisterIDs {
 		if seen[id] {
-			return utility.NewValidationError(fmt.Errorf("duplicate compliance register ID: %d", id), "duplicate", "compliance_register_ids")
+			return utility.NewValidationError(fmt.Errorf("duplicate clause ID: %d", id), "duplicate", "clause_ids")
 		}
 
 		_, err := aivs.repo.ComplianceRegisterExists(id)
 		if err != nil {
-			return utility.NewValidationError(fmt.Errorf("compliance register does not exist: %d", id), "not_exist", "compliance_register_ids")
+			return utility.NewValidationError(fmt.Errorf("clause does not exist: %d", id), "not_exist", "clause_ids")
 		}
 
 		alreadyMapped, err := aivs.repo.IsComplianceRegisterMapped(tableName, columnName, id, masterID)
@@ -319,8 +319,8 @@ func (aivs *AssociatedItemValidationService) ValidateComplianceMapping(masterID 
 		}
 		if alreadyMapped {
 			return utility.NewValidationError(
-				fmt.Errorf("compliance register ID %d already mapped to this %s", id, tableName),
-				"duplicate", "compliance_register_ids")
+				fmt.Errorf("clause ID %d already mapped to this %s", id, tableName),
+				"duplicate", "clause_ids")
 		}
 
 		seen[id] = true

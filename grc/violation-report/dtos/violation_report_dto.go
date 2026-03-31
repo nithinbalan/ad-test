@@ -36,6 +36,7 @@ type ViolationReportListDTO struct {
 	ViolationReportReasonID           uint       `json:"violation_report_reason_id"`
 	ViolationReportReasonTitleEn      string     `json:"violation_report_reason_title_en"`
 	ViolationReportReasonTitleAr      string     `json:"violation_report_reason_title_ar"`
+	EvidenceDescription               *string    `json:"evidence_description"`
 	SeverityLevelID                   *uint      `json:"severity_level_id"`
 	SeverityLevelTitleEn              *string    `json:"severity_level_title_en"`
 	SeverityLevelTitleAr              *string    `json:"severity_level_title_ar"`
@@ -156,8 +157,8 @@ type ViolationReportParsedDates struct {
 	ReportedAt time.Time
 }
 type ViolationReportCommentFormDTO struct {
-	ViolationReportStatusID *uint  `json:"violation_report_status_id"`
-	Comment                 string `json:"comment" binding:"required"`
+	ViolationReportStatusID *uint                         `json:"violation_report_status_id"`
+	Comment                 string                        `json:"comment" binding:"required"`
 	Documents               []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }
 
@@ -180,12 +181,12 @@ type ViolationReportCommentListDTO struct {
 	// Audit Info
 	CreatedAt time.Time `json:"created_at"`
 
-	CreatedByID          uint   `json:"created_by_id"`
-	CreatedByFirstNameEn string `json:"created_by_first_name_en"`
-	CreatedByLastNameEn  string `json:"created_by_last_name_en"`
-	CreatedByFirstNameAr string `json:"created_by_first_name_ar"`
-	CreatedByLastNameAr  string `json:"created_by_last_name_ar"`
-	CreatedByInitial     string `json:"created_by_initial"`
+	CreatedByID          uint                                 `json:"created_by_id"`
+	CreatedByFirstNameEn string                               `json:"created_by_first_name_en"`
+	CreatedByLastNameEn  string                               `json:"created_by_last_name_en"`
+	CreatedByFirstNameAr string                               `json:"created_by_first_name_ar"`
+	CreatedByLastNameAr  string                               `json:"created_by_last_name_ar"`
+	CreatedByInitial     string                               `json:"created_by_initial"`
 	Documents            []*ViolationReportCommentDocumentDTO `json:"documents" gorm:"-"`
 }
 

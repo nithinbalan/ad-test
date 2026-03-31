@@ -88,6 +88,7 @@ func (repo *ViolationReportRepository) GetAll(params *violationReportDTOs.Violat
 			violation_reports.violation_report_reason_id,
 			violation_report_reasons.title_en AS violation_report_reason_title_en,
 			violation_report_reasons.title_ar AS violation_report_reason_title_ar,
+			violation_reports.evidence_description AS evidence_description,
 			violation_reports.severity_level_id,
 			severity_levels.title_en AS severity_level_title_en,
 			severity_levels.title_ar AS severity_level_title_ar,

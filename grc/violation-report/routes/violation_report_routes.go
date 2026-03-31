@@ -87,19 +87,19 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	violationReportRoutes.GET("/violation-reports/:id/documents", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportAssociatedItemController.GetAllViolationReportDocuments)
 	violationReportRoutes.GET("/violation-reports/:id/assets", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportAssociatedItemController.GetAllViolationReportAssets)
 
-	violationReportRoutes.POST("/violation-reports/:id/assets", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportAssociatedItemController.CreateViolationReportAsset)
+	violationReportRoutes.PUT("/violation-reports/:id/assets", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportAssociatedItemController.CreateViolationReportAsset)
 	violationReportRoutes.DELETE("/violation-reports/:id/assets/:assetId", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportAssociatedItemController.DeleteViolationReportAsset)
 
-	violationReportRoutes.POST("/violation-reports/:id/risks", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportAssociatedItemController.CreateViolationReportRisk)
+	violationReportRoutes.PUT("/violation-reports/:id/risks", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportAssociatedItemController.CreateViolationReportRisk)
 	violationReportRoutes.DELETE("/violation-reports/:id/risks/:riskId", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportAssociatedItemController.DeleteViolationReportRisk)
 
-	violationReportRoutes.POST("/violation-reports/:id/documents", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportAssociatedItemController.CreateViolationReportDocument)
+	violationReportRoutes.PUT("/violation-reports/:id/documents", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportAssociatedItemController.CreateViolationReportDocument)
 	violationReportRoutes.DELETE("/violation-reports/:id/documents/:documentId", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportAssociatedItemController.DeleteViolationReportDocument)
 
-	violationReportRoutes.POST("/violation-reports/:id/controls", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportAssociatedItemController.CreateViolationReportControl)
+	violationReportRoutes.PUT("/violation-reports/:id/controls", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportAssociatedItemController.CreateViolationReportControl)
 	violationReportRoutes.DELETE("/violation-reports/:id/controls/:controlId", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportAssociatedItemController.DeleteViolationReportControl)
 
-	violationReportRoutes.POST("/violation-reports/:id/compliance-registers", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportAssociatedItemController.CreateViolationReportComplianceRegister)
+	violationReportRoutes.PUT("/violation-reports/:id/compliance-registers", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportAssociatedItemController.CreateViolationReportComplianceRegister)
 	violationReportRoutes.DELETE("/violation-reports/:id/compliance-registers/:complianceRegisterId", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportAssociatedItemController.DeleteViolationReportComplianceRegister)
 
 	// Violation Report Investigation

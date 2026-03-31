@@ -258,16 +258,16 @@ func (vias *ViolationReportAssociatedItemService) CreateViolationReportComplianc
 	if _, err := vias.violationReportSvc.GetByID(violationReportID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("violation report does not exist for ID: %d", violationReportID), "not_exist", "violation_report_id")
 	}
-	if err := vias.validationSvc.ValidateComplianceMapping(violationReportID, dto.ComplianceRegisterIDs, "violation_report_compliance_registers", "violation_report_id"); err != nil {
+	if err := vias.validationSvc.ValidateComplianceMapping(violationReportID, dto.ClauseIDs, "violation_report_compliance_registers", "violation_report_id"); err != nil {
 		return err
 	}
 	tx := vias.repo.BeginTransaction()
 	var mappings []*models.ViolationReportComplianceRegister
 	currentTime := time.Now()
 
-	for _, complianceRegisterID := range dto.ComplianceRegisterIDs {
+	for _, clauseID := range dto.ClauseIDs {
 		mappings = append(mappings, &models.ViolationReportComplianceRegister{
-			ComplianceRegisterID: complianceRegisterID,
+			ComplianceRegisterID: clauseID,
 			ViolationReportID:    violationReportID,
 			CreatedByID:          currentUserID,
 			CreatedAt:            currentTime,
