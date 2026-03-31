@@ -28,6 +28,7 @@ type InternalCommitteeListDTO struct {
 	TermEndDate                    string `json:"term_end_date"`
 	Justification                  string `json:"justification"`
 	RolesAndResponsibilities       string `json:"roles_and_responsibilities"`
+	CommitteeAuthorities           string `json:"committee_authorities"`
 	CreatedAt                      string `json:"created_at"`
 	UpdatedAt                      string `json:"updated_at"`
 	CreatedUserID                  uint   `json:"created_user_id"`
@@ -78,6 +79,7 @@ type InternalCommitteeFormDTO struct {
 	CommitteeClassificationID uint                                               `json:"committee_classification_id"`
 	Justification             *string                                            `json:"justification"`
 	RolesAndResponsibilities  *string                                            `json:"roles_and_responsibilities"`
+	CommitteeAuthorities      *string                                            `json:"committee_authorities"`
 	NomineeDepartments        []InternalCommitteeVersionNomineeDepartmentFormDTO `json:"nominee_departments"`
 }
 
@@ -116,6 +118,7 @@ type InternalCommitteeVersionDetailDTO struct {
 	CommitteeClassification   *CommitteeClassificationDetailsDTO                    `json:"committee_classification"`
 	Justification             *string                                               `json:"justification"`
 	RolesAndResponsibilities  *string                                               `json:"roles_and_responsibilities"`
+	CommitteeAuthorities      *string                                               `json:"committee_authorities"`
 	CommitteeStatusID         uint                                                  `json:"committee_status_id"`
 	CommitteeStatus           *InternalCommitteeStatusDTO                           `json:"committee_status"`
 	Version                   *float64                                              `json:"version"`
@@ -164,5 +167,6 @@ type ReformInternalCommitteeDTO struct {
 	CommitteeClassificationID uint                                               `json:"committee_classification_id"`
 	Justification             *string                                            `json:"justification"`
 	RolesAndResponsibilities  *string                                            `json:"roles_and_responsibilities"`
+	CommitteeAuthorities      *string                                            `json:"committee_authorities"`
 	NomineeDepartments        []InternalCommitteeVersionNomineeDepartmentFormDTO `json:"nominee_departments"`
 }
