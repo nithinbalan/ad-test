@@ -17,16 +17,17 @@ type OrganizationUnitsDTO struct {
 }
 
 type OrganizationUnitUserPrimaryDetailsDTO struct {
-	ID               uint    `json:"id"`
-	FirstNameEn      string  `json:"first_name_en"`
-	LastNameEn       string  `json:"last_name_en"`
-	FirstNameAr      string  `json:"first_name_ar"`
-	LastNameAr       string  `json:"last_name_ar"`
-	DesignationEn    string  `json:"designation_en"`
-	DesignationAr    string  `json:"designation_ar"`
-	IsHead           bool    `json:"is_head"`
-	Initial          string  `json:"initial"`
-	ProfileImagePath *string `json:"profile_image_path"`
+	ID               uint                     `json:"id"`
+	FirstNameEn      string                   `json:"first_name_en"`
+	LastNameEn       string                   `json:"last_name_en"`
+	FirstNameAr      string                   `json:"first_name_ar"`
+	LastNameAr       string                   `json:"last_name_ar"`
+	DesignationEn    string                   `json:"designation_en"`
+	DesignationAr    string                   `json:"designation_ar"`
+	IsHead           bool                     `json:"is_head"`
+	Initial          string                   `json:"initial"`
+	ProfileImagePath *string                  `json:"profile_image_path"`
+	JobDescriptions  []*JobDescriptionListDTO `json:"job_descriptions" gorm:"-"`
 }
 
 type OrganizationUnitUserPrimaryDetailsQueryParamsDTO struct {
@@ -144,6 +145,17 @@ type OrganizationUnitKeyMatrixDTO struct {
 	TotalPolicies    int64 `json:"total_policies"`
 	TotalProcesses   int64 `json:"total_processes"`
 	TotalCompliances int64 `json:"total_compliances"`
+}
+
+type JobDescriptionListDTO struct {
+	ID                     uint   `json:"id"`
+	JobDescriptionID       uint   `json:"job_description_id"`
+	JobTitleEn             string `json:"job_title_en"`
+	JobTitleAr             string `json:"job_title_ar"`
+	JobDescriptionEn       string `json:"job_description_en"`
+	JobDescriptionAr       string `json:"job_description_ar"`
+	CompetencyGroupTitleEn string `json:"competency_group_title_en"`
+	CompetencyGroupTitleAr string `json:"competency_group_title_ar"`
 }
 
 type OrganizationUnitUserDetailsDTO struct {
