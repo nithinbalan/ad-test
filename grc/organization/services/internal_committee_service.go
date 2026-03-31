@@ -236,6 +236,7 @@ func (ics *InternalCommitteeService) Create(currentUserID uint, internalCommitte
 		CommitteeClassificationID: internalCommitteeFormDTO.CommitteeClassificationID,
 		Justification:             internalCommitteeFormDTO.Justification,
 		RolesAndResponsibilities:  internalCommitteeFormDTO.RolesAndResponsibilities,
+		CommitteeAuthorities:      internalCommitteeFormDTO.CommitteeAuthorities,
 		CommitteeStatusID:         draftStatus.ID,
 		Version:                   &version,
 		IsLatestVersion:           &isLatest,
@@ -284,6 +285,7 @@ func (ics *InternalCommitteeService) Create(currentUserID uint, internalCommitte
 			"committee_classification":   newCommittee.LatestVersion.CommitteeClassification.TitleEn,
 			"justification":              newCommittee.LatestVersion.Justification,
 			"roles_and_responsibilities": newCommittee.LatestVersion.RolesAndResponsibilities,
+			"committee_authorities":      newCommittee.LatestVersion.CommitteeAuthorities,
 		}
 
 		_ = ics.activityLogSvc.LogActivity(
@@ -469,6 +471,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 	latestVersion.CommitteeClassificationID = internalCommitteeFormDTO.CommitteeClassificationID
 	latestVersion.Justification = internalCommitteeFormDTO.Justification
 	latestVersion.RolesAndResponsibilities = internalCommitteeFormDTO.RolesAndResponsibilities
+	latestVersion.CommitteeAuthorities = internalCommitteeFormDTO.CommitteeAuthorities
 	latestVersion.UpdatedBYID = &currentUserID
 
 	if err := ics.repo.UpdateVersion(latestVersion, tx); err != nil {
@@ -517,6 +520,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 			"committee_classification":   oldCommittee.LatestVersion.CommitteeClassification.TitleEn,
 			"justification":              oldCommittee.LatestVersion.Justification,
 			"roles_and_responsibilities": oldCommittee.LatestVersion.RolesAndResponsibilities,
+			"committee_authorities":      oldCommittee.LatestVersion.CommitteeAuthorities,
 		}
 
 		newData := map[string]interface{}{
@@ -528,6 +532,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 			"committee_classification":   newCommittee.LatestVersion.CommitteeClassification.TitleEn,
 			"justification":              newCommittee.LatestVersion.Justification,
 			"roles_and_responsibilities": newCommittee.LatestVersion.RolesAndResponsibilities,
+			"committee_authorities":      newCommittee.LatestVersion.CommitteeAuthorities,
 		}
 
 		changedData := utility.CompareFieldChanges(oldData, newData)
@@ -875,6 +880,7 @@ func (ics *InternalCommitteeService) ReformCommittee(currentUserID uint, reformD
 		CommitteeClassificationID: reformDTO.CommitteeClassificationID,
 		Justification:             reformDTO.Justification,
 		RolesAndResponsibilities:  reformDTO.RolesAndResponsibilities,
+		CommitteeAuthorities:      reformDTO.CommitteeAuthorities,
 		NomineeDepartments:        reformDTO.NomineeDepartments,
 	}
 
@@ -964,6 +970,7 @@ func (ics *InternalCommitteeService) ReformCommittee(currentUserID uint, reformD
 		CommitteeClassificationID: reformDTO.CommitteeClassificationID,
 		Justification:             reformDTO.Justification,
 		RolesAndResponsibilities:  reformDTO.RolesAndResponsibilities,
+		CommitteeAuthorities:      reformDTO.CommitteeAuthorities,
 		CommitteeStatusID:         reformationStatus.ID,
 		Version:                   &newVersionNumber,
 		IsLatestVersion:           &isLatestTrue,
@@ -1043,6 +1050,7 @@ func (ics *InternalCommitteeService) ReformCommittee(currentUserID uint, reformD
 			"committee_classification":   newCommittee.LatestVersion.CommitteeClassification.TitleEn,
 			"justification":              newCommittee.LatestVersion.Justification,
 			"roles_and_responsibilities": newCommittee.LatestVersion.RolesAndResponsibilities,
+			"committee_authorities":      newCommittee.LatestVersion.CommitteeAuthorities,
 		}
 
 		_ = ics.activityLogSvc.LogActivity(
