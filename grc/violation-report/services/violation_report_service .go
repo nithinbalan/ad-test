@@ -307,11 +307,11 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 					entity := "violation-report"
 					action := "new-violation-report-create"
 
-				// Collect all user IDs for bulk DB notification
-				var userIDs []uint
-				for _, user := range departmentUsers {
-					userIDs = append(userIDs, user.ID)
-				}
+					// Collect all user IDs for bulk DB notification
+					var userIDs []uint
+					for _, user := range departmentUsers {
+						userIDs = append(userIDs, user.ID)
+					}
 
 					dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 						UserIDs:              userIDs,
@@ -329,12 +329,12 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 						CreatedByID:          &currentUserID,
 					}
 
-				if err := irs.notificationSvc.SendNotification(dbNotificationDTO, nil, "violation_report"); err != nil {
-					fmt.Printf("failed to send violation report DB notifications: %v\n", err)
-					utility.LogError("Failed to send DB notifications", map[string]interface{}{
-						"error": err.Error(),
-					})
-				}
+					if err := irs.notificationSvc.SendNotification(dbNotificationDTO, nil, "violation_report"); err != nil {
+						fmt.Printf("failed to send violation report DB notifications: %v\n", err)
+						utility.LogError("Failed to send DB notifications", map[string]interface{}{
+							"error": err.Error(),
+						})
+					}
 
 					// Get creator details for email
 					createdBy, err := irs.userSvc.GetByID(currentUserID)
@@ -364,20 +364,20 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 							"CreatedOn":                      time.Now().Format("2006-01-02"),
 							"RedirectURL":                    fmt.Sprintf("%s/violation-report/register/%d/overview", appURL, id),
 						}
-					emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+						emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 							EmailTo:              []string{user.Email},
 							Subject:              subject,
 							TemplateRelativePath: "violation-report/templates/email/violation_report_create_mail.html",
 							EmailData:            emailData,
 						}
-					if err := irs.notificationSvc.SendNotification(nil, emailNotificationDTO, "violation_report"); err != nil {
-						fmt.Printf("failed to send violation report email to user %d (%s): %v\n", user.ID, user.Email, err)
-						utility.LogError("Failed to send email notification for user", map[string]interface{}{
-							"error":  err.Error(),
-							"userID": user.ID,
-							"email":  user.Email,
-						})
-					}
+						if err := irs.notificationSvc.SendNotification(nil, emailNotificationDTO, "violation_report"); err != nil {
+							fmt.Printf("failed to send violation report email to user %d (%s): %v\n", user.ID, user.Email, err)
+							utility.LogError("Failed to send email notification for user", map[string]interface{}{
+								"error":  err.Error(),
+								"userID": user.ID,
+								"email":  user.Email,
+							})
+						}
 					}
 				}
 			}
@@ -987,7 +987,110 @@ func (s *ViolationReportService) CreateViolationReportComment(violationReportID 
 			}
 			utility.LogError("Failed to log violation report comment activity", fields)
 		}
+
 	}()
+
+	// Async status update notifications/email to department users
+	if dto.ViolationReportStatusID != nil {
+		go func() {
+			fullDetails, err := s.GetFullDetailsByID(violationReportID)
+			if err != nil {
+				return
+			}
+
+			if fullDetails.ViolationReportCategory != nil && fullDetails.ViolationReportCategory.Department != nil {
+				departmentID := fullDetails.ViolationReportCategory.Department.ID
+				departmentUsers, err := s.userSvc.GetUsersByOrganizationUnit(departmentID)
+				if err != nil {
+					utility.LogError("Failed to fetch department users for status update notification", map[string]interface{}{
+						"error":        err.Error(),
+						"departmentID": departmentID,
+					})
+					return
+				}
+
+				if len(departmentUsers) > 0 {
+					urlParam := fmt.Sprintf(`{"violation_report_id":%d}`, violationReportID)
+					queryParam := ""
+					entity := "violation-report"
+					action := "violation-report-status-update"
+
+					var userIDs []uint
+					for _, user := range departmentUsers {
+						userIDs = append(userIDs, user.ID)
+					}
+
+					dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+						UserIDs:              userIDs,
+						ModuleIdentifier:     "violation_report",
+						NotificationType:     string(commonDTOs.AssignmentType),
+						HeadingEn:            "Violation Report Status Updated",
+						HeadingAr:            "تم تحديث حالة تقرير المخالفة",
+						TitleEn:              fullDetails.TitleEn,
+						TitleAr:              fullDetails.TitleAr,
+						Entity:               &entity,
+						Action:               &action,
+						URLParam:             urlParam,
+						QueryParam:           queryParam,
+						IsSystemNotification: false,
+						CreatedByID:          &currentUserID,
+					}
+
+					if err := s.notificationSvc.SendNotification(dbNotificationDTO, nil, "violation_report"); err != nil {
+						fmt.Printf("failed to send violation report status update DB notifications: %v\n", err)
+						utility.LogError("Failed to send status update DB notifications", map[string]interface{}{
+							"error": err.Error(),
+						})
+					}
+
+					createdBy, err := s.userSvc.GetByID(currentUserID)
+					if err != nil {
+						utility.LogError("Failed to fetch updater user for status update email", map[string]interface{}{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					subject := fmt.Sprintf("Violation Report Status Updated: %s - %s", fullDetails.ReferenceNumber, fullDetails.TitleEn)
+					appURL := utility.GetAppURL()
+
+					for _, user := range departmentUsers {
+						if user.Email == "" {
+							continue
+						}
+
+						emailData := map[string]interface{}{
+							"RecipientFirstNameEn":           user.FirstNameEn,
+							"ViolationReportReferenceNumber": fullDetails.ReferenceNumber,
+							"ViolationReportTitle":           fullDetails.TitleEn,
+							"ViolationReportStatusTitle":     fullDetails.ViolationReportStatus.TitleEn,
+							"ViolationReportDescription":     fullDetails.DescriptionEn,
+							"ReportedAt":                     fullDetails.ReportedAt.Format("2006-01-02"),
+							"CreatedByFirstNameEn":           createdBy.FirstNameEn,
+							"CreatedByLastNameEn":            createdBy.LastNameEn,
+							"CreatedOn":                      time.Now().Format("2006-01-02"),
+							"RedirectURL":                    fmt.Sprintf("%s/violation-report/register/%d/overview", appURL, violationReportID),
+						}
+
+						emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+							EmailTo:              []string{user.Email},
+							Subject:              subject,
+							TemplateRelativePath: "violation-report/templates/email/violation_report_status_update_mail.html",
+							EmailData:            emailData,
+						}
+						if err := s.notificationSvc.SendNotification(nil, emailNotificationDTO, "violation_report"); err != nil {
+							fmt.Printf("failed to send violation report status update email to user %d (%s): %v\n", user.ID, user.Email, err)
+							utility.LogError("Failed to send status update email notification for user", map[string]interface{}{
+								"error":  err.Error(),
+								"userID": user.ID,
+								"email":  user.Email,
+							})
+						}
+					}
+				}
+			}
+		}()
+	}
 
 	return commentID, nil
 }
