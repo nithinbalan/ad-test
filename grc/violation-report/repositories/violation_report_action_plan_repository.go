@@ -139,10 +139,6 @@ func (repo *ViolationReportActionPlanRepository) GetAll(violationReportID uint, 
 		}
 	}
 
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	if params.Keyword != "" {
 		kw := "%" + params.Keyword + "%"
 		query = query.Where(`
@@ -153,6 +149,10 @@ func (repo *ViolationReportActionPlanRepository) GetAll(violationReportID uint, 
 
 	if violationReportID != 0 {
 		query = query.Where("violation_report_action_plans.violation_report_id = ?", violationReportID)
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
