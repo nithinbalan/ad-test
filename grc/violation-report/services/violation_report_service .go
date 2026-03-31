@@ -302,17 +302,16 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 				}
 
 				if len(departmentUsers) > 0 {
-					// Prepare user IDs for notification
-					var userIDs []uint
-					for _, user := range departmentUsers {
-						userIDs = append(userIDs, user.ID)
-					}
-
-					// Prepare notification
 					urlParam := fmt.Sprintf(`{"violation_report_id":%d}`, id)
 					queryParam := ""
 					entity := "violation-report"
 					action := "new-violation-report-create"
+
+				// Collect all user IDs for bulk DB notification
+				var userIDs []uint
+				for _, user := range departmentUsers {
+					userIDs = append(userIDs, user.ID)
+				}
 
 					dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 						UserIDs:              userIDs,
@@ -330,6 +329,13 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 						CreatedByID:          &currentUserID,
 					}
 
+				if err := irs.notificationSvc.SendNotification(dbNotificationDTO, nil, "violation_report"); err != nil {
+					fmt.Printf("failed to send violation report DB notifications: %v\n", err)
+					utility.LogError("Failed to send DB notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+
 					// Get creator details for email
 					createdBy, err := irs.userSvc.GetByID(currentUserID)
 					if err != nil {
@@ -339,38 +345,39 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 						return
 					}
 
-					// Prepare email list for all department users
-					var emailTo []string
-					for _, user := range departmentUsers {
-						emailTo = append(emailTo, user.Email)
-					}
-
 					subject := fmt.Sprintf("New Violation Report: %s", violationReportFormDTO.TitleEn)
 					appURL := utility.GetAppURL()
-					emailData := map[string]interface{}{
-						"ViolationReportReferenceNumber": referenceNumber,
-						"ViolationReportTitle":           violationReportFormDTO.TitleEn,
-						"ViolationReportDescription":     violationReportFormDTO.DescriptionEn,
-						"ReportedAt":                     dates.ReportedAt.Format("2006-01-02"),
-						"CreatedByFirstNameEn":           createdBy.FirstNameEn,
-						"CreatedByLastNameEn":            createdBy.LastNameEn,
-						"CreatedOn":                      time.Now().Format("2006-01-02"),
-						"RedirectURL":                    fmt.Sprintf("%s/violation-report/register/%d/overview", appURL, id),
-					}
 
+					// Send individual email per user so each recipient gets a personalised email
+					for _, user := range departmentUsers {
+						if user.Email == "" {
+							continue
+						}
+						emailData := map[string]interface{}{
+							"RecipientFirstNameEn":           user.FirstNameEn,
+							"ViolationReportReferenceNumber": referenceNumber,
+							"ViolationReportTitle":           violationReportFormDTO.TitleEn,
+							"ViolationReportDescription":     violationReportFormDTO.DescriptionEn,
+							"ReportedAt":                     dates.ReportedAt.Format("2006-01-02"),
+							"CreatedByFirstNameEn":           createdBy.FirstNameEn,
+							"CreatedByLastNameEn":            createdBy.LastNameEn,
+							"CreatedOn":                      time.Now().Format("2006-01-02"),
+							"RedirectURL":                    fmt.Sprintf("%s/violation-report/register/%d/overview", appURL, id),
+						}
 					emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-						EmailTo:              emailTo,
-						Subject:              subject,
-						TemplateRelativePath: "violation-report/templates/email/violation_report_create_mail.html",
-						EmailData:            emailData,
-					}
-
-					// Send notification and mail
-					err = irs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "violation_report")
-					if err != nil {
-						utility.LogError("Failed to send notifications", map[string]interface{}{
-							"error": err.Error(),
+							EmailTo:              []string{user.Email},
+							Subject:              subject,
+							TemplateRelativePath: "violation-report/templates/email/violation_report_create_mail.html",
+							EmailData:            emailData,
+						}
+					if err := irs.notificationSvc.SendNotification(nil, emailNotificationDTO, "violation_report"); err != nil {
+						fmt.Printf("failed to send violation report email to user %d (%s): %v\n", user.ID, user.Email, err)
+						utility.LogError("Failed to send email notification for user", map[string]interface{}{
+							"error":  err.Error(),
+							"userID": user.ID,
+							"email":  user.Email,
 						})
+					}
 					}
 				}
 			}
