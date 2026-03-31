@@ -8,7 +8,7 @@ type Process struct {
 	ID                          uint       `json:"id" gorm:"primaryKey;autoIncrement"`
 	ProcessGroupID              uint       `json:"process_group_id" gorm:"not null" binding:"required"`
 	ResponsibleUnitID           uint       `json:"owner_unit_id" gorm:"not null" binding:"required"`
-	ResponsibleUserID           uint       `json:"owner_id" gorm:"not null" binding:"required"`
+	ResponsibleUserID           *uint      `json:"owner_id" gorm:"default:null"`
 	LifecycleStatusID           uint       `json:"lifecycle_status_id" gorm:"not null" binding:"required"`
 	ReferenceNumber             string     `json:"reference_number" gorm:"type:varchar(45);not null;unique" binding:"required"`
 	TitleEn                     string     `json:"title_en" gorm:"type:nvarchar(500);not null" binding:"required"`

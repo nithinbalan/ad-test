@@ -101,7 +101,9 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 				}
 				if process != nil {
 					orgUnitID = process.ResponsibleUnitID
-					responsibleUserID = process.ResponsibleUserID
+					if process.ResponsibleUserID != nil {
+						responsibleUserID = *process.ResponsibleUserID
+					}
 				}
 
 			case "control":
