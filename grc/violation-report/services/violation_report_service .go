@@ -144,7 +144,7 @@ func (irs *ViolationReportService) GetFullDetailsByID(id uint, tx ...utility.Dat
 		return nil, err
 	}
 
-	violationReportDTO.ReportedAt = violationReport.ReportedAt.Format("2006-01-02")
+	violationReportDTO.ReportedAtString = violationReport.ReportedAt.Format("2006-01-02")
 	violationReportDTO.CreatedAt = violationReport.CreatedAt
 	violationReportDTO.UpdatedAt = violationReport.UpdatedAt
 
@@ -575,7 +575,7 @@ func (irs *ViolationReportService) Update(id uint, currentUserID uint, violation
 			"description_ar":                oldViolationReport.DescriptionAr,
 			"severity_level":                oldViolationReport.SeverityLevel.TitleEn,
 			"reported_entity":               oldViolationReport.ReportedEntity.TitleEn,
-			"reported_at":                   oldViolationReport.ReportedAt,
+			"reported_at":                   oldViolationReport.ReportedAtString,
 		}
 
 		newData := map[string]interface{}{
@@ -589,7 +589,7 @@ func (irs *ViolationReportService) Update(id uint, currentUserID uint, violation
 			"description_ar":                newViolationReport.DescriptionAr,
 			"severity_level":                newViolationReport.SeverityLevel.TitleEn,
 			"reported_entity":               newViolationReport.ReportedEntity.TitleEn,
-			"reported_at":                   newViolationReport.ReportedAt,
+			"reported_at":                   newViolationReport.ReportedAtString,
 		}
 
 		changedData := utility.CompareFieldChanges(oldData, newData)
@@ -1127,7 +1127,7 @@ func (s *ViolationReportService) CreateViolationReportComment(violationReportID 
 							"ViolationReportTitle":           fullDetails.TitleEn,
 							"ViolationReportStatusTitle":     fullDetails.ViolationReportStatus.TitleEn,
 							"ViolationReportDescription":     fullDetails.DescriptionEn,
-							"ReportedAt":                     fullDetails.ReportedAt,
+							"ReportedAt":                     fullDetails.ReportedAtString,
 							"CreatedByFirstNameEn":           createdBy.FirstNameEn,
 							"CreatedByLastNameEn":            createdBy.LastNameEn,
 							"CreatedOn":                      time.Now().Format("2006-01-02"),
@@ -1168,7 +1168,7 @@ func (s *ViolationReportService) CreateViolationReportComment(violationReportID 
 								"ViolationReportTitle":           fullDetails.TitleEn,
 								"ViolationReportStatusTitle":     fullDetails.ViolationReportStatus.TitleEn,
 								"ViolationReportDescription":     fullDetails.DescriptionEn,
-								"ReportedAt":                     fullDetails.ReportedAt,
+								"ReportedAt":                     fullDetails.ReportedAtString,
 								"CreatedByFirstNameEn":           createdBy.FirstNameEn,
 								"CreatedByLastNameEn":            createdBy.LastNameEn,
 								"CreatedOn":                      time.Now().Format("2006-01-02"),
@@ -1541,7 +1541,7 @@ func (irs *ViolationReportService) ExportViolationReportToPDF(id uint, currentUs
 	// Prepare overview data
 	createdAt := violationReportDTO.CreatedAt.Format("2006-01-02")
 	generatedAt := time.Now().Format("Jan 02, 2006")
-	reportedAtString := violationReportDTO.ReportedAt
+	reportedAtString := violationReportDTO.ReportedAtString
 
 	var descriptionEn *string
 	if violationReportDTO.DescriptionEn != "" {

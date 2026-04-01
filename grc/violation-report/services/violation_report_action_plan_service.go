@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
@@ -131,6 +132,7 @@ func (vraps *ViolationReportActionPlanService) GetFullDetailsByID(violationRepor
 
 	violationReportActionPlanDTO.CreatedAt = violationReportActionPlan.CreatedAt
 	violationReportActionPlanDTO.UpdatedAt = violationReportActionPlan.UpdatedAt
+	violationReportActionPlanDTO.Description = getActionPlanDescriptionValue(violationReportActionPlan.Description)
 
 	return &violationReportActionPlanDTO, nil
 }
@@ -306,7 +308,7 @@ func (vraps *ViolationReportActionPlanService) Create(violationReportID uint, cu
 			"ViolationReportReferenceNumber": violationReport.ReferenceNumber,
 			"ViolationReportTitle":           violationReport.TitleEn,
 			"ActionPlanTitle":                violationReportActionPlanFormDTO.Title,
-			"ActionPlanDescription":          violationReportActionPlanFormDTO.Description,
+			"ActionPlanDescription":          getActionPlanDescriptionValue(violationReportActionPlanFormDTO.Description),
 			"TargetDate":                     dates.TargetDate.Format("2006-01-02"),
 			"AssignedByFirstNameEn":          assignedBy.FirstNameEn,
 			"AssignedByLastNameEn":           assignedBy.LastNameEn,
@@ -539,7 +541,7 @@ func (vraps *ViolationReportActionPlanService) Update(violationReportID uint, id
 					"ViolationReportReferenceNumber": violationReport.ReferenceNumber,
 					"ViolationReportTitle":           violationReport.TitleEn,
 					"ActionPlanTitle":                existingActionPlan.Title,
-					"ActionPlanDescription":          existingActionPlan.Description,
+					"ActionPlanDescription":          getActionPlanDescriptionValue(existingActionPlan.Description),
 					"RedirectURL":                    fmt.Sprintf("%s/violation-report/action-plan?action_plan_id=%d", appURL, id),
 				},
 			}
@@ -554,7 +556,7 @@ func (vraps *ViolationReportActionPlanService) Update(violationReportID uint, id
 					"ViolationReportReferenceNumber": violationReport.ReferenceNumber,
 					"ViolationReportTitle":           violationReport.TitleEn,
 					"ActionPlanTitle":                existingActionPlan.Title,
-					"ActionPlanDescription":          existingActionPlan.Description,
+					"ActionPlanDescription":          getActionPlanDescriptionValue(existingActionPlan.Description),
 					"TargetDate":                     existingActionPlan.TargetDate.Format("2006-01-02"),
 					"AssignedByFirstNameEn":          assignedBy.FirstNameEn,
 					"AssignedByLastNameEn":           assignedBy.LastNameEn,
@@ -721,7 +723,7 @@ func (vraps *ViolationReportActionPlanService) Delete(violationReportID uint, id
 						"ViolationReportReferenceNumber": notification.ReferenceNumber,
 						"ViolationReportTitle":           notification.ViolationTitle,
 						"ActionPlanTitle":                notification.TitleEn,
-						"ActionPlanDescription":          notification.Description,
+						"ActionPlanDescription":          getActionPlanDescriptionValue(notification.Description),
 					},
 				}
 
@@ -740,6 +742,20 @@ func (vraps *ViolationReportActionPlanService) Delete(violationReportID uint, id
 	}
 
 	return failedIds, nil
+}
+
+func getActionPlanDescriptionValue(description *string) string {
+	if strings.TrimSpace(utility.GetStringValue(description)) == "" {
+		return "N/A"
+	}
+	return utility.GetStringValue(description)
+}
+
+func getActionPlanDescriptionStringValue(description string) string {
+	if strings.TrimSpace(description) == "" {
+		return "N/A"
+	}
+	return description
 }
 
 func (vraps *ViolationReportActionPlanService) StatusUpdate(violationReportID uint, id uint, currentUserID uint, violationReportActionPlanStatusUpdateFormDTO *violationReportDTOs.ViolationReportActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error {

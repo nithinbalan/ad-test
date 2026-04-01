@@ -133,7 +133,7 @@ type ViolationReportDetailDTO struct {
 	TitleAr                    string                                `json:"title_ar"`
 	DescriptionEn              string                                `json:"description_en"`
 	DescriptionAr              string                                `json:"description_ar"`
-	ReportedAt                 string                                `json:"reported_at"`
+	ReportedAtString           string                                `json:"reported_at"`
 	IDOfReporter               *uint                                 `json:"id_of_reporter"`
 	NameOfReporter             *string                               `json:"name_of_reporter"`
 	PhoneOfReporter            *string                               `json:"phone_of_reporter"`
