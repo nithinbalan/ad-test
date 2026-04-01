@@ -32,6 +32,7 @@ type InternalCommitteeServiceInterface interface {
 	// Participant methods
 	CreateParticipants(currentUserID uint, nomineeDepartmentID uint, dto *organizationDTOs.InternalCommitteeParticipantFormDTO) ([]uint, error)
 	DeleteParticipant(nomineeDepartmentID uint, participantID uint, currentUserID uint) error
+	ValidateAllDepartmentsHaveParticipants(versionID uint, tx ...utility.DatabaseTransaction) (bool, error)
 }
 
 type InternalCommitteeService struct {
@@ -1238,6 +1239,13 @@ func (ics *InternalCommitteeService) CreateParticipants(currentUserID uint, nomi
 
 	tx := ics.repo.BeginTransaction()
 
+	// Check if any participants exist for this version before deletion
+	hasParticipants, err := ics.repo.HasParticipantsByVersionID(nomineeDepartment.InternalCommitteeVersionID, tx)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
 	// Delete existing participants for this nominee department
 	if err := ics.repo.DeleteParticipantsByNomineeDepartmentID(nomineeDepartmentID, tx); err != nil {
 		tx.Rollback()
@@ -1261,6 +1269,21 @@ func (ics *InternalCommitteeService) CreateParticipants(currentUserID uint, nomi
 		}
 
 		createdIDs = append(createdIDs, id)
+	}
+
+	// Update status to under_nomination only if this is the first time participants are being added
+	if !hasParticipants {
+		underNominationStatus, err := ics.internalCommitteeStatusSvc.GetByType("under_nomination")
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		err = ics.repo.UpdateVersionStatus(nomineeDepartment.InternalCommitteeVersionID, underNominationStatus.ID, currentUserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
 	}
 
 	tx.Commit()
@@ -1737,4 +1760,8 @@ func (ics *InternalCommitteeService) DisbandCommittee(committeeID uint, currentU
 	}()
 
 	return nil
+}
+
+func (ics *InternalCommitteeService) ValidateAllDepartmentsHaveParticipants(versionID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	return ics.repo.ValidateAllDepartmentsHaveParticipants(versionID, tx...)
 }

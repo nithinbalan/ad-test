@@ -88,6 +88,19 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Submit(committeeID uint, cu
 	}
 
 	tx := icwrs.repo.BeginTransaction()
+
+	// Validate that all departments have participants before submission
+	allDepartmentsHaveParticipants, err := icwrs.committeeSvc.ValidateAllDepartmentsHaveParticipants(committeeDTO.LatestVersion.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if !allDepartmentsHaveParticipants {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("all departments must have at least one participant"), "missing_participants", "committee")
+	}
+
 	currentDateStr := time.Now()
 
 	err = icwrs.committeeWorkflowSvc.ValidateWorkflowBeforeCreate("committee_management", tx)

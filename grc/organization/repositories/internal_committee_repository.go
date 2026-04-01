@@ -38,6 +38,8 @@ type InternalCommitteeRepositoryInterface interface {
 	GetParticipantsByNomineeDepartmentID(nomineeDepartmentID uint, tx ...utility.DatabaseTransaction) ([]*models.InternalCommitteeVersionNomineeDepartmentParticipant, error)
 	DeleteParticipantsByNomineeDepartmentID(nomineeDepartmentID uint, tx ...utility.DatabaseTransaction) error
 	DeleteParticipant(nomineeDepartmentID uint, participantID uint, tx ...utility.DatabaseTransaction) error
+	HasParticipantsByVersionID(versionID uint, tx ...utility.DatabaseTransaction) (bool, error)
+	ValidateAllDepartmentsHaveParticipants(versionID uint, tx ...utility.DatabaseTransaction) (bool, error)
 }
 
 type InternalCommitteeRepository struct {
@@ -480,6 +482,57 @@ func (repo *InternalCommitteeRepository) DeleteParticipant(nomineeDepartmentID u
 
 	return db.Where("internal_committee_version_nominee_department_id = ? AND id = ?", nomineeDepartmentID, participantID).
 		Delete(&models.InternalCommitteeVersionNomineeDepartmentParticipant{}).Error
+}
+
+func (repo *InternalCommitteeRepository) HasParticipantsByVersionID(versionID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var count int64
+	err := db.Table("internal_committee_version_nominee_department_participants").
+		Joins("JOIN internal_committee_version_nominee_departments ON internal_committee_version_nominee_departments.id = internal_committee_version_nominee_department_participants.internal_committee_version_nominee_department_id").
+		Where("internal_committee_version_nominee_departments.internal_committee_version_id = ?", versionID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
+
+func (repo *InternalCommitteeRepository) ValidateAllDepartmentsHaveParticipants(versionID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Get count of all nominee departments for this version
+	var totalDepartments int64
+	err := db.Table("internal_committee_version_nominee_departments").
+		Where("internal_committee_version_id = ?", versionID).
+		Count(&totalDepartments).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	// Get count of nominee departments that have at least one participant
+	var departmentsWithParticipants int64
+	err = db.Table("internal_committee_version_nominee_departments").
+		Joins("JOIN internal_committee_version_nominee_department_participants ON internal_committee_version_nominee_department_participants.internal_committee_version_nominee_department_id = internal_committee_version_nominee_departments.id").
+		Where("internal_committee_version_nominee_departments.internal_committee_version_id = ?", versionID).
+		Distinct("internal_committee_version_nominee_departments.id").
+		Count(&departmentsWithParticipants).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	// All departments have participants if counts match
+	return totalDepartments == departmentsWithParticipants, nil
 }
 
 func (repo *InternalCommitteeRepository) GetLatestVersionByID(id uint) (*models.InternalCommittee, error) {
