@@ -6,8 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"jethur/config"
+	commonDTOs "jethur/grc/common/dtos"
+	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	organizationServices "jethur/grc/organization/services"
 	violationReportDTOs "jethur/grc/violation-report/dtos"
@@ -38,6 +41,7 @@ type ViolationReportInvestigationService struct {
 	activityLogSvc     logServices.ActivityLogServiceInterface
 	violationReportSvc ViolationReportServiceInterface
 	userSvc            organizationServices.UserServiceInterface
+	notificationSvc    commonServices.NotificationServiceInterface
 }
 
 func NewViolationReportInvestigationService(
@@ -45,12 +49,14 @@ func NewViolationReportInvestigationService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	violationReportSvc ViolationReportServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
+	notificationSvc commonServices.NotificationServiceInterface,
 ) ViolationReportInvestigationServiceInterface {
 	return &ViolationReportInvestigationService{
 		repo:               repo,
 		activityLogSvc:     activityLogSvc,
 		violationReportSvc: violationReportSvc,
 		userSvc:            userSvc,
+		notificationSvc:    notificationSvc,
 	}
 }
 
@@ -223,6 +229,116 @@ func (vris *ViolationReportInvestigationService) Create(violationReportID uint, 
 			}
 
 			utility.LogError("Failed to log activity", fields)
+		}
+
+		// Send notifications and emails to selected investigation department users
+		userIDSet := make(map[uint]bool)
+		var departmentUsers []*models.User
+		for _, departmentID := range violationReportInvestigationFormDTO.DepartmentIds {
+			if departmentID == nil {
+				continue
+			}
+			users, err := vris.userSvc.GetUsersByOrganizationUnit(*departmentID)
+			if err != nil {
+				utility.LogError("Failed to fetch department users for investigation notification", map[string]interface{}{
+					"error":        err.Error(),
+					"departmentID": *departmentID,
+				})
+				continue
+			}
+			for _, user := range users {
+				if !userIDSet[user.ID] {
+					userIDSet[user.ID] = true
+					departmentUsers = append(departmentUsers, user)
+				}
+			}
+		}
+
+		if len(departmentUsers) == 0 {
+			return
+		}
+
+		var userIDs []uint
+		for _, user := range departmentUsers {
+			userIDs = append(userIDs, user.ID)
+		}
+
+		violationReport, err := vris.violationReportSvc.GetByID(violationReportID)
+		if err != nil {
+			utility.LogError("Failed to fetch violation report for investigation notification", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		urlParam := fmt.Sprintf(`{"violation_report_id":%d}`, violationReportID)
+		queryParam := ""
+		entity := "violation-report-investigation"
+		action := "violation-report-investigation-create"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              userIDs,
+			ModuleIdentifier:     "violation_report",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Violation Report Investigation Created",
+			HeadingAr:            "تم إنشاء تحقيق تقرير مخالفة",
+			TitleEn:              violationReport.TitleEn,
+			TitleAr:              violationReport.TitleAr,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		if err := vris.notificationSvc.SendNotification(dbNotificationDTO, nil, "violation_report"); err != nil {
+			utility.LogError("Failed to send investigation DB notifications", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
+		createdBy, err := vris.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch creator user for investigation email", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		subject := fmt.Sprintf("Violation Report Investigation Created: %s - %s", violationReport.ReferenceNumber, violationReport.TitleEn)
+		appURL := utility.GetAppURL()
+
+		for _, user := range departmentUsers {
+			if user.Email == "" {
+				continue
+			}
+
+			emailData := map[string]interface{}{
+				"RecipientFirstNameEn":           user.FirstNameEn,
+				"ViolationReportReferenceNumber": violationReport.ReferenceNumber,
+				"ViolationReportTitle":           violationReport.TitleEn,
+				"InvestigationDate":              dates.InvestigationDate.Format("2006-01-02"),
+				"CreatedByFirstNameEn":           createdBy.FirstNameEn,
+				"CreatedByLastNameEn":            createdBy.LastNameEn,
+				"CreatedOn":                      time.Now().Format("2006-01-02"),
+				"RedirectURL":                    fmt.Sprintf("%s/violation-report/register/%d/investigation", appURL, violationReportID),
+			}
+
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              []string{user.Email},
+				Subject:              subject,
+				TemplateRelativePath: "violation-report/templates/email/violation_report_investigation_create_mail.html",
+				EmailData:            emailData,
+			}
+
+			if err := vris.notificationSvc.SendNotification(nil, emailNotificationDTO, "violation_report"); err != nil {
+				utility.LogError("Failed to send investigation email notification", map[string]interface{}{
+					"error":  err.Error(),
+					"userID": user.ID,
+					"email":  user.Email,
+				})
+			}
 		}
 	}()
 

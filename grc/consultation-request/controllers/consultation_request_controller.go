@@ -28,6 +28,11 @@ func (crc *ConsultationRequestController) GetAllConsultationRequests(c *gin.Cont
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
+	allowedParams := []string{
+		"requesting_department_unit_ids",
+		"consulted_department_unit_ids",
+	}
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	// Export flag
 	exportFromContext, exists := c.Get("export")
@@ -60,6 +65,7 @@ func (crc *ConsultationRequestController) GetAllConsultationRequests(c *gin.Cont
 		Keyword:  keyword,
 		Page:     page,
 		PageSize: pageSize,
+		Filters:  filters,
 		Export:   export,
 	}
 	currentUserID, err := utility.GetCurrentUserID(c)

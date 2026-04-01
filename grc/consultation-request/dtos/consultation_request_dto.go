@@ -64,6 +64,7 @@ type ConsultationRequestListQueryParamsDTO struct {
 	Keyword  string
 	Page     int
 	PageSize int
+	Filters  map[string][]string
 	Export   bool
 }
 type ConsultationRequestListResponseDTO struct {
