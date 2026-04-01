@@ -8,7 +8,6 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	"jethur/grc/organization/repositories"
 	"jethur/utility"
-	"log"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -113,7 +112,13 @@ func (s *OrganizationUnitBusinessContextService) Create(departmentID uint, curre
 		)
 
 		if err != nil {
-			log.Printf("Failed to log activity: %v", err)
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.CreateAction,
+				"tableName": models.OrganizationUnitBusinessContext{}.TableName(),
+				"recordID":  createdID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
 		}
 	}()
 
@@ -155,7 +160,13 @@ func (s *OrganizationUnitBusinessContextService) Update(departmentID uint, curre
 		)
 
 		if err != nil {
-			log.Printf("Failed to log activity: %v", err)
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.OrganizationUnitBusinessContext{}.TableName(),
+				"recordID":  departmentID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
 		}
 	}()
 
@@ -187,7 +198,13 @@ func (s *OrganizationUnitBusinessContextService) Delete(departmentID uint, curre
 		)
 
 		if err != nil {
-			log.Printf("Failed to log activity: %v", err)
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.DeleteAction,
+				"tableName": models.OrganizationUnitBusinessContext{}.TableName(),
+				"recordID":  departmentID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
 		}
 	}()
 

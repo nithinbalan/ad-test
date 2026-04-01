@@ -199,6 +199,10 @@
 {
   "id": "inherent_risk_analysis_incomplete",
   "translation": "Inherent Risk Analysis is incomplete"
+},
+{
+  "id": "missing_participants",
+  "translation": "All departments must have at least one participant"
 }
 
 
