@@ -221,13 +221,14 @@ func (repo *OrganizationUnitsRepository) GetUsersByOrganizationUnit(params *orga
 
 		// Get job descriptions for all users
 		var jobDescriptions []struct {
-			ID               uint   `json:"id"`
-			UserID           uint   `json:"user_id"`
-			JobDescriptionID uint   `json:"job_description_id"`
-			JobTitleEn       string `json:"job_title_en"`
-			JobTitleAr       string `json:"job_title_ar"`
-			JobDescriptionEn string `json:"job_description_en"`
-			JobDescriptionAr string `json:"job_description_ar"`
+			ID                       uint   `json:"id"`
+			UserID                   uint   `json:"user_id"`
+			JobDescriptionID         uint   `json:"job_description_id"`
+			JobTitleEn               string `json:"job_title_en"`
+			JobTitleAr               string `json:"job_title_ar"`
+			JobDescriptionEn         string `json:"job_description_en"`
+			JobDescriptionAr         string `json:"job_description_ar"`
+			RolesAndResponsibilities string `json:"roles_and_responsibilities"`
 		}
 		jobDescQuery := repo.db.Table("user_job_descriptions").
 			Select(`
@@ -237,7 +238,9 @@ func (repo *OrganizationUnitsRepository) GetUsersByOrganizationUnit(params *orga
 				job_descriptions.title_en AS job_title_en,
 				job_descriptions.title_ar AS job_title_ar,
 				job_descriptions.description_en AS job_description_en,
-				job_descriptions.description_ar AS job_description_ar
+				job_descriptions.description_ar AS job_description_ar,
+				job_descriptions.roles_and_responsibilities AS roles_and_responsibilities
+
 			`).
 			Joins("LEFT JOIN job_descriptions ON job_descriptions.id = user_job_descriptions.job_description_id").
 			Where("user_job_descriptions.user_id IN (?)", userIDs)
@@ -254,14 +257,13 @@ func (repo *OrganizationUnitsRepository) GetUsersByOrganizationUnit(params *orga
 				jobDescMap[userID] = []*organizationDTOs.JobDescriptionListDTO{}
 			}
 			jobDescMap[userID] = append(jobDescMap[userID], &organizationDTOs.JobDescriptionListDTO{
-				ID:                     jobDescriptions[i].ID,
-				JobDescriptionID:       jobDescriptions[i].JobDescriptionID,
-				JobTitleEn:             jobDescriptions[i].JobTitleEn,
-				JobTitleAr:             jobDescriptions[i].JobTitleAr,
-				JobDescriptionEn:       jobDescriptions[i].JobDescriptionEn,
-				JobDescriptionAr:       jobDescriptions[i].JobDescriptionAr,
-				CompetencyGroupTitleEn: "",
-				CompetencyGroupTitleAr: "",
+				ID:                       jobDescriptions[i].ID,
+				JobDescriptionID:         jobDescriptions[i].JobDescriptionID,
+				JobTitleEn:               jobDescriptions[i].JobTitleEn,
+				JobTitleAr:               jobDescriptions[i].JobTitleAr,
+				JobDescriptionEn:         jobDescriptions[i].JobDescriptionEn,
+				JobDescriptionAr:         jobDescriptions[i].JobDescriptionAr,
+				RolesAndResponsibilities: jobDescriptions[i].RolesAndResponsibilities,
 			})
 		}
 
