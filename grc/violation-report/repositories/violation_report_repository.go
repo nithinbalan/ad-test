@@ -64,7 +64,7 @@ func (repo *ViolationReportRepository) GetAll(params *violationReportDTOs.Violat
 		Select(`
 			violation_reports.id,
 			violation_reports.reference_number,
-			violation_reports.reported_at,
+			CONVERT(VARCHAR, violation_reports.reported_at, 23) AS reported_at,
 			violation_reports.violation_report_channel_id,
 			violation_report_channels.title_en AS violation_report_channel_title_en,
 			violation_report_channels.title_ar AS violation_report_channel_title_ar,

@@ -12,7 +12,7 @@ import (
 type ViolationReportListDTO struct {
 	ID                                uint       `json:"id"`
 	ReferenceNumber                   string     `json:"reference_number"`
-	ReportedAt                        time.Time  `json:"reported_at"`
+	ReportedAt                        string     `json:"reported_at"`
 	ViolationReportChannelID          uint       `json:"violation_report_channel_id"`
 	ViolationReportChannelTitleEn     string     `json:"violation_report_channel_title_en"`
 	ViolationReportChannelTitleAr     string     `json:"violation_report_channel_title_ar"`
@@ -133,7 +133,7 @@ type ViolationReportDetailDTO struct {
 	TitleAr                    string                                `json:"title_ar"`
 	DescriptionEn              string                                `json:"description_en"`
 	DescriptionAr              string                                `json:"description_ar"`
-	ReportedAt                 time.Time                             `json:"reported_at"`
+	ReportedAt                 string                                `json:"reported_at"`
 	IDOfReporter               *uint                                 `json:"id_of_reporter"`
 	NameOfReporter             *string                               `json:"name_of_reporter"`
 	PhoneOfReporter            *string                               `json:"phone_of_reporter"`
