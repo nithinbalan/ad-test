@@ -51,6 +51,7 @@ type OrganizationModule struct {
 	UserDelegationHistoryController           *controllers.UserDelegationController
 	OrganizationUnitsController               *controllers.OrganizationUnitsController
 	OrganizationUnitBusinessContextController *controllers.OrganizationUnitBusinessContextController
+	OrganizationUnitAttributeController       *controllers.OrganizationUnitAttributeController
 	OrganizationCartController                *controllers.OrganizationChartController
 	MyDashboardController                     *controllers.MyDashboardController
 	CommitteeTermController                   *controllers.CommitteeTermController
@@ -222,6 +223,11 @@ func NewOrganizationModule(
 	organizationUnitBusinessContextRepo := repositories.NewOrganizationUnitBusinessContextRepository(db)
 	organizationUnitBusinessContextSvc := services.NewOrganizationUnitBusinessContextService(organizationUnitBusinessContextRepo, sharedModule.ActivityLogService)
 	organizationUnitBusinessContextController := controllers.NewOrganizationUnitBusinessContextController(organizationUnitBusinessContextSvc)
+
+	// Organization Unit Attribute Setup
+	organizationUnitAttributeRepo := repositories.NewOrganizationUnitAttributeRepository(db)
+	organizationUnitAttributeSvc := services.NewOrganizationUnitAttributeService(organizationUnitAttributeRepo, sharedModule.ActivityLogService)
+	organizationUnitAttributeController := controllers.NewOrganizationUnitAttributeController(organizationUnitAttributeSvc)
 
 	controlReviewRepo := repositories.NewControlReviewRepository(db)
 	controlReviewSvc := services.NewControlReviewService(controlReviewRepo, sharedModule.ActivityLogService, controlSvc, masterModule.ReviewFrequencySvc, controlReviewStatusSvc)
@@ -415,6 +421,7 @@ func NewOrganizationModule(
 		UserDelegationHistoryController:           userDelegationHistoryController,
 		OrganizationUnitsController:               organizationUnitsController,
 		OrganizationUnitBusinessContextController: organizationUnitBusinessContextController,
+		OrganizationUnitAttributeController:       organizationUnitAttributeController,
 		OrganizationCartController:                organizationChartController,
 		MyDashboardController:                     myDashboardController,
 		CommitteeTermController:                   committeeTermController,
