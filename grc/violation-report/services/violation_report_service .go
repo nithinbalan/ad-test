@@ -346,7 +346,7 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 						return
 					}
 
-					subject := fmt.Sprintf("New Violation Report: %s", violationReportFormDTO.TitleEn)
+					subject := fmt.Sprintf("New Violation Report: %s - %s", referenceNumber, violationReportFormDTO.TitleEn)
 					appURL := utility.GetAppURL()
 					sentEmails := map[string]bool{}
 
@@ -836,8 +836,11 @@ func (irs *ViolationReportService) ExportViolationReports(data []*violationRepor
 			"Reason",
 			"Severity Level",
 			"Reported Entity",
+			"Reporter ID",
 			"Reporter Name",
+			"Reporter Email",
 			"Reporter Phone",
+			"Evidence Description",
 			"Description",
 			"Current Status",
 			"Created By",
@@ -855,8 +858,11 @@ func (irs *ViolationReportService) ExportViolationReports(data []*violationRepor
 			"Reason",
 			"Severity Level",
 			"Reported Entity",
+			"Reporter ID",
 			"Reporter Name",
+			"Reporter Email",
 			"Reporter Phone",
+			"Evidence Description",
 			"Description",
 			"Current Status",
 			"Created By",
@@ -879,8 +885,11 @@ func (irs *ViolationReportService) ExportViolationReports(data []*violationRepor
 				report.ViolationReportReasonTitleAr,
 				utility.GetStringValue(report.SeverityLevelTitleAr),
 				report.ReportedEntityTitleAr,
+				*report.IDOfReporter,
 				utility.GetStringValue(report.NameOfReporter),
+				utility.GetStringValue(report.EmailOfReporter),
 				utility.GetStringValue(report.PhoneOfReporter),
+				utility.GetStringValue(report.EvidenceDescription),
 				utility.GetStringValue(report.DescriptionAr),
 				report.ViolationReportStatusTitleAr,
 				report.CreatedUserFirstNameAr + " " + report.CreatedUserLastNameAr,
@@ -899,8 +908,11 @@ func (irs *ViolationReportService) ExportViolationReports(data []*violationRepor
 				report.ViolationReportReasonTitleEn,
 				utility.GetStringValue(report.SeverityLevelTitleEn),
 				report.ReportedEntityTitleEn,
+				*report.IDOfReporter,
 				utility.GetStringValue(report.NameOfReporter),
+				utility.GetStringValue(report.EmailOfReporter),
 				utility.GetStringValue(report.PhoneOfReporter),
+				utility.GetStringValue(report.EvidenceDescription),
 				utility.GetStringValue(report.DescriptionEn),
 				report.ViolationReportStatusTitleEn,
 				report.CreatedUserFirstNameEn + " " + report.CreatedUserLastNameEn,
