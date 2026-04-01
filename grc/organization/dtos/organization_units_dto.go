@@ -148,14 +148,13 @@ type OrganizationUnitKeyMatrixDTO struct {
 }
 
 type JobDescriptionListDTO struct {
-	ID                     uint   `json:"id"`
-	JobDescriptionID       uint   `json:"job_description_id"`
-	JobTitleEn             string `json:"job_title_en"`
-	JobTitleAr             string `json:"job_title_ar"`
-	JobDescriptionEn       string `json:"job_description_en"`
-	JobDescriptionAr       string `json:"job_description_ar"`
-	CompetencyGroupTitleEn string `json:"competency_group_title_en"`
-	CompetencyGroupTitleAr string `json:"competency_group_title_ar"`
+	ID                       uint   `json:"id"`
+	JobDescriptionID         uint   `json:"job_description_id"`
+	JobTitleEn               string `json:"job_title_en"`
+	JobTitleAr               string `json:"job_title_ar"`
+	JobDescriptionEn         string `json:"job_description_en"`
+	JobDescriptionAr         string `json:"job_description_ar"`
+	RolesAndResponsibilities string `json:"roles_and_responsibilities"`
 }
 
 type OrganizationUnitUserDetailsDTO struct {
