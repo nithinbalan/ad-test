@@ -196,6 +196,10 @@
 {
   "id": "inherent_risk_analysis_incomplete",
   "translation": "تحليل المخاطر الأساسي غير مكتمل"
+},
+{
+  "id": "missing_participants",
+  "translation": "يجب أن تحتوي جميع الأقسام على مشارك واحد على الأقل"
 }
 
 
