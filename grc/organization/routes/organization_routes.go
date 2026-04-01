@@ -58,6 +58,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	userDelegationHistoryController := app.OrganizationModule.UserDelegationHistoryController
 	organizationUnitsController := app.OrganizationModule.OrganizationUnitsController
 	organizationUnitBusinessContextController := app.OrganizationModule.OrganizationUnitBusinessContextController
+	organizationUnitAttributeController := app.OrganizationModule.OrganizationUnitAttributeController
 	organizationChartUsers := app.OrganizationModule.OrganizationCartController
 	myDashboardController := app.OrganizationModule.MyDashboardController
 	committeeTermController := app.OrganizationModule.CommitteeTermController
@@ -503,6 +504,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/organization-units/:id/business-context", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitBusinessContextController.CreateBusinessContext)
 	organizationRoutes.PUT("/organization-units/:id/business-context", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitBusinessContextController.UpdateBusinessContext)
 	organizationRoutes.DELETE("/organization-units/:id/business-context/delete", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitBusinessContextController.DeleteBusinessContext)
+
+	// Organization Unit Attributes
+	organizationRoutes.GET("/organization-units/:id/attributes", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitAttributeController.GetAllAttributes)
+	organizationRoutes.GET("/organization-units/:id/attributes/:attributeId", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitAttributeController.GetAttributeDetails)
+	organizationRoutes.POST("/organization-units/:id/attributes", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitAttributeController.CreateAttribute)
+	organizationRoutes.PUT("/organization-units/:id/attributes/:attributeId", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitAttributeController.UpdateAttribute)
+	organizationRoutes.POST("/organization-units/:id/attributes/delete", middlewares.RolePermissionMiddleware(db, "organization_unit", "modify"), organizationUnitAttributeController.DeleteAttributes)
 
 	organizationRoutes.GET("/organization-chart/users", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationChartUsers.GetUsers)
 	organizationRoutes.GET("/organization-chart/users/:id", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationChartUsers.GetUserFullDetails)
