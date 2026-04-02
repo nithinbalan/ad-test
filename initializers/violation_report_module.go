@@ -64,6 +64,7 @@ func NewViolationReportModule(db *gorm.DB,
 		sharedModule.ActivityLogService,
 		violationReportSvc,
 		organizationModule.UserSvc,
+		commonModule.NotificationService,
 	)
 
 	violationReportController := controllers.NewViolationReportControllerWithInvestigation(violationReportSvc, violationReportInvestigationSvc)

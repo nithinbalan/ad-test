@@ -144,7 +144,7 @@ func (irs *ViolationReportService) GetFullDetailsByID(id uint, tx ...utility.Dat
 		return nil, err
 	}
 
-	violationReportDTO.ReportedAt = violationReport.ReportedAt
+	violationReportDTO.ReportedAtString = violationReport.ReportedAt.Format("2006-01-02")
 	violationReportDTO.CreatedAt = violationReport.CreatedAt
 	violationReportDTO.UpdatedAt = violationReport.UpdatedAt
 
@@ -346,7 +346,7 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 						return
 					}
 
-					subject := fmt.Sprintf("New Violation Report: %s", violationReportFormDTO.TitleEn)
+					subject := fmt.Sprintf("New Violation Report: %s - %s", referenceNumber, violationReportFormDTO.TitleEn)
 					appURL := utility.GetAppURL()
 					sentEmails := map[string]bool{}
 
@@ -575,7 +575,7 @@ func (irs *ViolationReportService) Update(id uint, currentUserID uint, violation
 			"description_ar":                oldViolationReport.DescriptionAr,
 			"severity_level":                oldViolationReport.SeverityLevel.TitleEn,
 			"reported_entity":               oldViolationReport.ReportedEntity.TitleEn,
-			"reported_at":                   oldViolationReport.ReportedAt,
+			"reported_at":                   oldViolationReport.ReportedAtString,
 		}
 
 		newData := map[string]interface{}{
@@ -589,7 +589,7 @@ func (irs *ViolationReportService) Update(id uint, currentUserID uint, violation
 			"description_ar":                newViolationReport.DescriptionAr,
 			"severity_level":                newViolationReport.SeverityLevel.TitleEn,
 			"reported_entity":               newViolationReport.ReportedEntity.TitleEn,
-			"reported_at":                   newViolationReport.ReportedAt,
+			"reported_at":                   newViolationReport.ReportedAtString,
 		}
 
 		changedData := utility.CompareFieldChanges(oldData, newData)
@@ -747,23 +747,20 @@ func (irs *ViolationReportService) validateViolationReportFormDTO(violationRepor
 func (irs *ViolationReportService) parseViolationReportDates(dto *violationReportDTOs.ViolationReportFormDTO, currentUserID uint) (*violationReportDTOs.ViolationReportParsedDates, error) {
 	parsed := &violationReportDTOs.ViolationReportParsedDates{}
 
-	userPreference, err := irs.userSvc.GetCurrentUserDetails(currentUserID)
-	if err != nil {
-		return nil, err
-	}
-
-	timezoneName := userPreference.UserSetting.Timezone.Name
-
-	// If ReportedAt is provided, parse it; otherwise use current time
-	if dto.ReportedAt != "" {
-		reportedAtPtr, err := utility.ConvertToUTC(dto.ReportedAt, timezoneName)
+	// If ReportedAt is provided, parse date only; otherwise use current date
+	if strings.TrimSpace(dto.ReportedAt) != "" {
+		reportedAtPtr, err := utility.ParseDate(strings.TrimSpace(dto.ReportedAt))
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid reported date: %w", err), "invalid_date", "reported_at")
 		}
-		parsed.ReportedAt = *reportedAtPtr
+		if reportedAtPtr != nil {
+			parsed.ReportedAt = *reportedAtPtr
+		}
 	} else {
-		// Automatically set ReportedAt to current time if not provided
-		parsed.ReportedAt = time.Now()
+		currentDate, _ := utility.ParseDate(time.Now().Format("2006-01-02"))
+		if currentDate != nil {
+			parsed.ReportedAt = *currentDate
+		}
 	}
 
 	return parsed, nil
@@ -836,8 +833,11 @@ func (irs *ViolationReportService) ExportViolationReports(data []*violationRepor
 			"Reason",
 			"Severity Level",
 			"Reported Entity",
+			"Reporter ID",
 			"Reporter Name",
+			"Reporter Email",
 			"Reporter Phone",
+			"Evidence Description",
 			"Description",
 			"Current Status",
 			"Created By",
@@ -855,8 +855,11 @@ func (irs *ViolationReportService) ExportViolationReports(data []*violationRepor
 			"Reason",
 			"Severity Level",
 			"Reported Entity",
+			"Reporter ID",
 			"Reporter Name",
+			"Reporter Email",
 			"Reporter Phone",
+			"Evidence Description",
 			"Description",
 			"Current Status",
 			"Created By",
@@ -872,15 +875,18 @@ func (irs *ViolationReportService) ExportViolationReports(data []*violationRepor
 				i + 1,
 				report.ReferenceNumber,
 				report.TitleAr,
-				report.ReportedAt.Format("2006/01/02 03:04 PM"),
+				report.ReportedAt,
 				report.ViolationReportChannelTitleAr,
 				*report.ViolationReportCategoryTitleAr,
 				utility.GetStringValue(report.ViolationReportSubCategoryTitleAr),
 				report.ViolationReportReasonTitleAr,
 				utility.GetStringValue(report.SeverityLevelTitleAr),
 				report.ReportedEntityTitleAr,
+				*report.IDOfReporter,
 				utility.GetStringValue(report.NameOfReporter),
+				utility.GetStringValue(report.EmailOfReporter),
 				utility.GetStringValue(report.PhoneOfReporter),
+				utility.GetStringValue(report.EvidenceDescription),
 				utility.GetStringValue(report.DescriptionAr),
 				report.ViolationReportStatusTitleAr,
 				report.CreatedUserFirstNameAr + " " + report.CreatedUserLastNameAr,
@@ -892,15 +898,18 @@ func (irs *ViolationReportService) ExportViolationReports(data []*violationRepor
 				i + 1,
 				report.ReferenceNumber,
 				report.TitleEn,
-				report.ReportedAt.Format("2006/01/02 03:04 PM"),
+				report.ReportedAt,
 				report.ViolationReportChannelTitleEn,
 				*report.ViolationReportCategoryTitleEn,
 				utility.GetStringValue(report.ViolationReportSubCategoryTitleEn),
 				report.ViolationReportReasonTitleEn,
 				utility.GetStringValue(report.SeverityLevelTitleEn),
 				report.ReportedEntityTitleEn,
+				*report.IDOfReporter,
 				utility.GetStringValue(report.NameOfReporter),
+				utility.GetStringValue(report.EmailOfReporter),
 				utility.GetStringValue(report.PhoneOfReporter),
+				utility.GetStringValue(report.EvidenceDescription),
 				utility.GetStringValue(report.DescriptionEn),
 				report.ViolationReportStatusTitleEn,
 				report.CreatedUserFirstNameEn + " " + report.CreatedUserLastNameEn,
@@ -1118,7 +1127,7 @@ func (s *ViolationReportService) CreateViolationReportComment(violationReportID 
 							"ViolationReportTitle":           fullDetails.TitleEn,
 							"ViolationReportStatusTitle":     fullDetails.ViolationReportStatus.TitleEn,
 							"ViolationReportDescription":     fullDetails.DescriptionEn,
-							"ReportedAt":                     fullDetails.ReportedAt.Format("2006-01-02"),
+							"ReportedAt":                     fullDetails.ReportedAtString,
 							"CreatedByFirstNameEn":           createdBy.FirstNameEn,
 							"CreatedByLastNameEn":            createdBy.LastNameEn,
 							"CreatedOn":                      time.Now().Format("2006-01-02"),
@@ -1159,7 +1168,7 @@ func (s *ViolationReportService) CreateViolationReportComment(violationReportID 
 								"ViolationReportTitle":           fullDetails.TitleEn,
 								"ViolationReportStatusTitle":     fullDetails.ViolationReportStatus.TitleEn,
 								"ViolationReportDescription":     fullDetails.DescriptionEn,
-								"ReportedAt":                     fullDetails.ReportedAt.Format("2006-01-02"),
+								"ReportedAt":                     fullDetails.ReportedAtString,
 								"CreatedByFirstNameEn":           createdBy.FirstNameEn,
 								"CreatedByLastNameEn":            createdBy.LastNameEn,
 								"CreatedOn":                      time.Now().Format("2006-01-02"),
@@ -1532,7 +1541,7 @@ func (irs *ViolationReportService) ExportViolationReportToPDF(id uint, currentUs
 	// Prepare overview data
 	createdAt := violationReportDTO.CreatedAt.Format("2006-01-02")
 	generatedAt := time.Now().Format("Jan 02, 2006")
-	reportedAtString := violationReportDTO.ReportedAt.Format("Jan 02, 2006 03:04 PM")
+	reportedAtString := violationReportDTO.ReportedAtString
 
 	var descriptionEn *string
 	if violationReportDTO.DescriptionEn != "" {

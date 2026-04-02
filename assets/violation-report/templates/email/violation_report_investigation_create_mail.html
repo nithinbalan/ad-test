@@ -1,0 +1,40 @@
+{{ define "content" }}
+<p>Dear {{.RecipientFirstNameEn}},</p>
+<p>
+  A new investigation has been created for a Violation Report assigned to your department.
+</p>
+
+<table style="width: 100%; background-color: #fff; border-collapse: collapse; margin: 20px 0;">
+  <tbody>
+    <tr style="border: 1px solid #EAEDF2;">
+      <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Violation Report Reference Number</th>
+      <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{.ViolationReportReferenceNumber}}</td>
+    </tr>
+    <tr style="border: 1px solid #EAEDF2;">
+      <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Violation Report Title</th>
+      <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{.ViolationReportTitle}}</td>
+    </tr>
+    <tr style="border: 1px solid #EAEDF2;">
+      <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Investigation Date</th>
+      <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{.InvestigationDate}}</td>
+    </tr>
+    <tr style="border: 1px solid #EAEDF2;">
+      <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Created By</th>
+      <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{.CreatedByFirstNameEn}} {{.CreatedByLastNameEn}}</td>
+    </tr>
+    <tr style="border: 1px solid #EAEDF2;">
+      <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">Created On</th>
+      <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">{{.CreatedOn}}</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+  Please review the investigation details by clicking below:
+</p>
+<p style="text-align: center; margin: 24px 0;">
+  <a href="{{.RedirectURL}}" style="display: inline-block; background-color: #2F80ED; color: #fff; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    View Investigation
+  </a>
+</p>
+{{ end }}

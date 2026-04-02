@@ -131,6 +131,13 @@ func (repo *ConsultationRequestRepository) GetAll(params *dtos.ConsultationReque
 		)
 	}
 
+	// Apply dynamic filters
+	for column, values := range params.Filters {
+		if len(values) > 0 {
+			query = query.Where("consultation_requests."+column+" IN (?)", values)
+		}
+	}
+
 	// Sorting
 	if params.SortBy == "" {
 		params.SortBy = "consultation_requests.date_raised"
