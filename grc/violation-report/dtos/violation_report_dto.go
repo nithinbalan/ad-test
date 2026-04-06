@@ -170,6 +170,7 @@ type ViolationReportCommentListDTO struct {
 	ID                uint   `json:"id"`
 	ViolationReportID uint   `json:"violation_report_id"`
 	Comment           string `json:"comment"`
+	IsEdited          bool   `json:"is_edited"`
 
 	// Status Info
 	ViolationReportStatusID *uint   `json:"violation_report_status_id"`
@@ -199,6 +200,26 @@ type ViolationReportCommentDocumentDTO struct {
 	OriginalName string `json:"original_name"`
 	Type         string `json:"type"`
 }
+
+type ViolationReportCommentDetailDTO struct {
+	ID                uint       `json:"id"`
+	ViolationReportID uint       `json:"violation_report_id"`
+	Comment           string     `json:"comment"`
+	IsEdited          bool       `json:"is_edited"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         *time.Time `json:"updated_at"`
+
+	// Status information
+	ViolationReportStatus *ViolationReportStatusDTO `json:"violation_report_status,omitempty"`
+
+	// User information
+	CreatedByUser organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+
+	// Documents
+	Documents []*ViolationReportCommentDocumentDTO `json:"documents"`
+}
+
 type ViolationReportExportPDFDTO struct {
 	Title                      string
 	ReferenceNumber            string

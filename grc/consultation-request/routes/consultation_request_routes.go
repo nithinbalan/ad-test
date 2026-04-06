@@ -31,6 +31,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	consultationRequestRoutes.PUT("/consultation-request/:id/comments/:commentId", middlewares.RolePermissionMiddleware(db, "consultation_request_register", "modify"), consultationRequestController.UpdateConsultationRequestComment)
 	consultationRequestRoutes.POST("/consultation-request/:id/comments/delete", middlewares.RolePermissionMiddleware(db, "consultation_request_register", "modify"), consultationRequestController.DeleteConsultationRequestComment)
 	consultationRequestRoutes.GET("/consultation-request/:id/comments", middlewares.RolePermissionMiddleware(db, "consultation_request_register", "modify"), consultationRequestController.GetAllConsultationRequestComment)
+	consultationRequestRoutes.GET("/consultation-request-comments/:commentId", middlewares.RolePermissionMiddleware(db, "consultation_request_register", "view"), consultationRequestController.GetConsultationRequestCommentDetails)
 	consultationRequestRoutes.GET("/consultation-request/export", consultationRequestController.GetConsultationRequestExport)
 	unauthenticatedRoutes.GET("/consultation-request/:id/comments/:commentId/document-preview", consultationRequestController.GetConsultationRequestCommentDocumentPreview)
 	unauthenticatedRoutes.GET("/consultation-request/:id/comments/:commentId/document-download", consultationRequestController.DownloadConsultationRequestCommentDocument)

@@ -377,6 +377,7 @@ func (repo *ViolationReportRepository) GetAllViolationReportComments(violationRe
 			violation_report_comments.id,
 			violation_report_comments.violation_report_id,
 			violation_report_comments.comment,
+			violation_report_comments.is_edited,
 
 			violation_report_statuses.id AS violation_report_status_id,
 			violation_report_statuses.title_en AS status_title_en,

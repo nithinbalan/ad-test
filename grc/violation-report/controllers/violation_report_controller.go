@@ -545,6 +545,27 @@ func (vrc *ViolationReportController) DeleteComment(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
+func (vrc *ViolationReportController) GetViolationReportCommentDetails(c *gin.Context) {
+	commentID, err := strconv.ParseUint(c.Param("commentId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	comment, err := vrc.service.GetCommentDetailsByID(uint(commentID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(vrc.db, c, e.Error())
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, comment)
+}
+
 func (vrc *ViolationReportController) GetViolationReportCommentDocumentPreview(c *gin.Context) {
 	violationReportID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
