@@ -39,6 +39,7 @@ type StrategyModule struct {
 	StrategyProfileKpiController                    *controllers.StrategyProfileKpiController
 	StrategyProfileProjectActionPlanController      *controllers.StrategyProfileProjectActionPlanController
 	StrategicInitiativeStatusController             *controllers.StrategicInitiativeStatusController
+	StrategyInitiativeStatusUpdateController        *controllers.StrategyInitiativeStatusUpdateController
 }
 
 func NewStrategyModule(db *gorm.DB,
@@ -154,9 +155,17 @@ func NewStrategyModule(db *gorm.DB,
 	strategyProfileStrategicObjectiveController := controllers.NewStrategyProfileStrategicObjectiveController(strategyProfileStrategicObjectiveSvc)
 
 	strategicIntiativeRepo := repositories.NewStrategicIntiativeRepository(db)
+	strategyInitiativeStatusUpdateRepo := repositories.NewStrategyInitiativeStatusUpdateRepository(db)
 	strategicInitiativeStatusRepo := repositories.NewStrategicInitiativeStatusRepository(db)
 	strategicInitiativeStatusSvc := services.NewStrategicInitiativeStatusService(strategicInitiativeStatusRepo)
 	strategicInitiativeStatusController := controllers.NewStrategicInitiativeStatusController(strategicInitiativeStatusSvc)
+	strategyInitiativeStatusUpdateSvc := services.NewStrategyInitiativeStatusUpdateService(
+		strategyInitiativeStatusUpdateRepo,
+		strategicIntiativeRepo,
+		strategicInitiativeStatusRepo,
+		sharedModule.ActivityLogService,
+	)
+	strategyInitiativeStatusUpdateController := controllers.NewStrategyInitiativeStatusUpdateController(strategyInitiativeStatusUpdateSvc)
 	strategicIntiativeSvc := services.NewStrategicIntiativeService(strategicIntiativeRepo, strategicInitiativeStatusRepo, sharedModule.ActivityLogService, settingsModule.OrganizationUnitSvc, organizationModule.UserSvc)
 	strategicIntiativeController := controllers.NewStrategicIntiativeController(strategicIntiativeSvc)
 	strategicObjectiveAssociatedItemRepo := repositories.NewStrategicObectiveAssociatedItemRepository(db)
@@ -222,5 +231,6 @@ func NewStrategyModule(db *gorm.DB,
 		StrategyProfileKpiController:                    strategyProfileKpiController,
 		StrategyProfileProjectActionPlanController:      strategyProfileProjectActionPlanController,
 		StrategicInitiativeStatusController:             strategicInitiativeStatusController,
+		StrategyInitiativeStatusUpdateController:        strategyInitiativeStatusUpdateController,
 	}
 }
