@@ -41,6 +41,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiAssociatedItemController := app.StrategyModule.KpiAssociatedItemController
 	focusAreaController := app.StrategyModule.FocusAreaController
 	strategicIntiativeController := app.StrategyModule.StrategicIntiativeController
+	strategyInitiativeStatusUpdateController := app.StrategyModule.StrategyInitiativeStatusUpdateController
 	strategicObjectiveAssociatedItemController := app.StrategyModule.StrategicObjectiveAssociatedItemController
 	strategicInitiativeAssociatedItemController := app.StrategyModule.StrategicInitiativeAssociatedItemController
 	strategyProfileKpiController := app.StrategyModule.StrategyProfileKpiController
@@ -231,6 +232,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	strategyRoutes.PUT("/strategic-intiatives/:id", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "modify"), strategicIntiativeController.UpdateStrategicIntiative)
 	strategyRoutes.POST("/strategic-intiatives/delete", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "modify"), strategicIntiativeController.DeleteStrategicIntiatives)
 	strategyRoutes.PUT("/strategic-intiatives/:id/status-update", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "modify"), strategicIntiativeController.UpdateStrategicIntiativeStatusAndCompletion)
+	strategyRoutes.GET("/strategic-intiatives/:id/status-updates", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "view"), strategyInitiativeStatusUpdateController.GetAllStrategyInitiativeStatusUpdates)
+	strategyRoutes.POST("/strategic-intiatives/:id/status-updates", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "modify"), strategyInitiativeStatusUpdateController.CreateStrategyInitiativeStatusUpdate)
+	strategyRoutes.PUT("/strategic-intiatives/:id/status-updates/:statusUpdateId", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "modify"), strategyInitiativeStatusUpdateController.UpdateStrategyInitiativeStatusUpdate)
+	strategyRoutes.GET("/strategic-intiatives/:id/status-updates/latest", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "view"), strategyInitiativeStatusUpdateController.GetLatestStrategyInitiativeStatusUpdate)
 
 	// strategic objective associated item
 	strategyRoutes.GET("/strategic-objectives/:id/clauses", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveAssociatedItemController.GetAllClauses)
