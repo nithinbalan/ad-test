@@ -166,7 +166,14 @@ func NewStrategyModule(db *gorm.DB,
 		sharedModule.ActivityLogService,
 	)
 	strategyInitiativeStatusUpdateController := controllers.NewStrategyInitiativeStatusUpdateController(strategyInitiativeStatusUpdateSvc)
-	strategicIntiativeSvc := services.NewStrategicIntiativeService(strategicIntiativeRepo, strategicInitiativeStatusRepo, sharedModule.ActivityLogService, settingsModule.OrganizationUnitSvc, organizationModule.UserSvc)
+	strategicIntiativeSvc := services.NewStrategicIntiativeService(
+		strategicIntiativeRepo,
+		strategyInitiativeStatusUpdateRepo,
+		strategicInitiativeStatusRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.OrganizationUnitSvc,
+		organizationModule.UserSvc,
+	)
 	strategicIntiativeController := controllers.NewStrategicIntiativeController(strategicIntiativeSvc)
 	strategicObjectiveAssociatedItemRepo := repositories.NewStrategicObectiveAssociatedItemRepository(db)
 	strategicObjectiveAssociatedItemSvc := services.NewstrategicObjectiveAssociatedItemService(strategicObjectiveAssociatedItemRepo, strategicObjectiveSvc, complianceModule.ComplianceClausevc, commonModule.AssociatedItemValidationService)
