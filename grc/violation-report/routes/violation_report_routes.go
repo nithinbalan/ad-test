@@ -78,6 +78,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	violationReportRoutes.POST("/violation-report/:id/comments", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportController.CreateViolationReportComment)
 	violationReportRoutes.PUT("/violation-report/:id/comments/:commentId", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportController.UpdateViolationReportComment)
 	violationReportRoutes.GET("/violation-report/:id/comments", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportController.GetAllViolationReportComments)
+	violationReportRoutes.GET("/violation-report-comments/:commentId", middlewares.RolePermissionMiddleware(db, "violation_report_register", "view"), violationReportController.GetViolationReportCommentDetails)
 	violationReportRoutes.DELETE("/violation-report/:id/comments", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportController.DeleteComment)
 
 	//Violation Report Associated Items

@@ -40,6 +40,7 @@ type ViolationReportServiceInterface interface {
 	CreateViolationReportComment(violationReportID uint, currentUserID uint, dto *dtos.ViolationReportCommentFormDTO) (uint, error)
 	UpdateViolationReportComment(violationReportID uint, commentID uint, currentUserID uint, dto *dtos.ViolationReportCommentUpdateFormDTO) error
 	GetAllViolationReportComments(violationReportID uint) ([]*dtos.ViolationReportCommentListDTO, error)
+	GetCommentDetailsByID(commentID uint) (*dtos.ViolationReportCommentDetailDTO, error)
 	GetViolationReportCommentDocumentPath(violationReportID uint, commentID uint, token string) (string, error)
 	DeleteComment(violationReportID uint, ids []uint, currentUserID uint) ([]uint, error)
 	ExportViolationReportToPDF(id uint, currentUserID uint, investigationSvc ViolationReportInvestigationServiceInterface) (string, error)
@@ -938,7 +939,7 @@ func (s *ViolationReportService) CreateViolationReportComment(violationReportID 
 		ViolationReportID:       violationReportID,
 		ViolationReportStatusID: dto.ViolationReportStatusID,
 		Comment:                 dto.Comment,
-		CreatedByID:             currentUserID,
+		CreatedBYID:             currentUserID,
 		CreatedAt:               now,
 	}
 
@@ -1202,6 +1203,25 @@ func (s *ViolationReportService) GetAllViolationReportComments(violationReportID
 	return s.repo.GetAllViolationReportComments(violationReportID)
 }
 
+func (s *ViolationReportService) GetCommentDetailsByID(commentID uint) (*dtos.ViolationReportCommentDetailDTO, error) {
+	comment, err := s.repo.GetFullCommentDetailsByID(commentID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, commentID)
+		}
+		return nil, err
+	}
+
+	var detailDTO dtos.ViolationReportCommentDetailDTO
+	if err := mapstructure.Decode(comment, &detailDTO); err != nil {
+		return nil, err
+	}
+	detailDTO.CreatedAt = comment.CreatedAt
+	detailDTO.UpdatedAt = comment.UpdatedAt
+
+	return &detailDTO, nil
+}
+
 func (s *ViolationReportService) UpdateViolationReportComment(violationReportID uint, commentID uint, currentUserID uint, dto *dtos.ViolationReportCommentUpdateFormDTO) error {
 	if _, err := s.repo.GetByID(violationReportID); err != nil {
 		return utility.NewResourceNotFoundError(err, violationReportID)
@@ -1232,7 +1252,8 @@ func (s *ViolationReportService) UpdateViolationReportComment(violationReportID 
 	oldComment := existingComment.Comment
 
 	existingComment.Comment = dto.Comment
-	existingComment.UpdatedByID = &currentUserID
+	existingComment.IsEdited = true
+	existingComment.UpdatedBYID = &currentUserID
 	existingComment.UpdatedAt = &now
 
 	if err := s.repo.UpdateComment(existingComment, tx); err != nil {

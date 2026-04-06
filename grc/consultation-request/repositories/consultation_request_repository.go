@@ -27,6 +27,7 @@ type ConsultationRequestRepositoryInterface interface {
 	CreateComment(comment *models.ConsultationRequestComment, tx ...utility.DatabaseTransaction) (uint, error)
 	GetAllConsultationRequestComments(consultationRequestID uint) ([]*dtos.ConsultationRequestCommentListDTO, error)
 	GetCommentByID(id uint) (*models.ConsultationRequestComment, error)
+	GetCommentDetailsByID(id uint) (*models.ConsultationRequestComment, error)
 	UpdateComment(comment *models.ConsultationRequestComment, tx ...utility.DatabaseTransaction) error
 	DeleteComment(id uint, tx ...utility.DatabaseTransaction) error
 	CreateDocuments(documents []*models.ConsultationRequestCommentDocument, tx ...utility.DatabaseTransaction) error
@@ -189,6 +190,7 @@ func (repo *ConsultationRequestRepository) GetAllConsultationRequestComments(con
 			consultation_request_comments.id,
 			consultation_request_comments.consultation_request_id,
 			consultation_request_comments.comment,
+			consultation_request_comments.is_edited,
 
 			consultation_request_statuses.id AS consultation_request_status_id,
 			consultation_request_statuses.title_en AS status_title_en,
@@ -216,12 +218,12 @@ func (repo *ConsultationRequestRepository) GetAllConsultationRequestComments(con
 		return nil, err
 	}
 
-	for _,comment := range comments {
+	for _, comment := range comments {
 		var documents []*dtos.ConsultationRequestCommentDocumentDTO
 		repo.db.
-		Model(&models.ConsultationRequestCommentDocument{}).
-		Where("consultation_request_comment_id = ?",comment.ID).
-		Find(&documents)
+			Model(&models.ConsultationRequestCommentDocument{}).
+			Where("consultation_request_comment_id = ?", comment.ID).
+			Find(&documents)
 
 		comment.Documents = documents
 	}
@@ -369,6 +371,19 @@ func (repo *ConsultationRequestRepository) GenerateReferenceNumber() (string, er
 func (repo *ConsultationRequestRepository) GetCommentByID(id uint) (*models.ConsultationRequestComment, error) {
 	var comment models.ConsultationRequestComment
 	if err := repo.db.Preload("Documents").First(&comment, id).Error; err != nil {
+		return nil, err
+	}
+	return &comment, nil
+}
+
+func (repo *ConsultationRequestRepository) GetCommentDetailsByID(id uint) (*models.ConsultationRequestComment, error) {
+	var comment models.ConsultationRequestComment
+	if err := repo.db.
+		Preload("Documents").
+		Preload("ConsultationRequestStatus").
+		Preload("CreatedByUser").
+		Preload("UpdatedByUser").
+		First(&comment, id).Error; err != nil {
 		return nil, err
 	}
 	return &comment, nil

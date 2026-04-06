@@ -38,6 +38,7 @@ type ConsultationRequestServiceInterface interface {
 	UpdateConsultationRequestComment(consultationRequestID uint, commentID uint, currentUserID uint, dto *dtos.ConsultationRequestCommentUpdateFormDTO) error
 	DeleteConsultationRequestComments(consultationRequestID uint, ids []uint, currentUserID uint) ([]uint, error)
 	GetAllConsultationRequestComments(consultationRequestID uint) ([]*dtos.ConsultationRequestCommentListDTO, error)
+	GetCommentDetailsByID(commentID uint) (*dtos.ConsultationRequestCommentDetailDTO, error)
 	ExportConsultationRequests(data []*dtos.ConsultationRequestListDTO, currentUserID uint) (*os.File, error)
 	GetDocumentPath(consultationRequestID uint, commentID uint, token string) (string, error)
 }
@@ -100,6 +101,26 @@ func (s *ConsultationRequestService) GetAllConsultationRequestComments(consultat
 	return s.repo.GetAllConsultationRequestComments(consultationRequestID)
 }
 
+func (s *ConsultationRequestService) GetCommentDetailsByID(commentID uint) (*dtos.ConsultationRequestCommentDetailDTO, error) {
+	comment, err := s.repo.GetCommentDetailsByID(commentID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, commentID)
+		}
+		return nil, err
+	}
+
+	var detailDTO dtos.ConsultationRequestCommentDetailDTO
+	if err := mapstructure.Decode(comment, &detailDTO); err != nil {
+		return nil, err
+	}
+
+	detailDTO.CreatedAt = comment.CreatedAt
+	detailDTO.UpdatedAt = comment.UpdatedAt
+
+	return &detailDTO, nil
+}
+
 func (s *ConsultationRequestService) GetByID(id uint) (*models.ConsultationRequest, error) {
 	request, err := s.repo.GetByID(id)
 	if err != nil {
@@ -137,9 +158,7 @@ func (s *ConsultationRequestService) GetFullDetailsByID(id uint) (*dtos.Consulta
 		detailDTO.ReplyedDate = request.ReplyDate.Format("2006-01-02")
 	}
 
-	if !request.CreatedAt.IsZero() {
-		detailDTO.CreatedDate = request.CreatedAt.Format("2006-01-02")
-	}
+	detailDTO.CreatedAt = request.CreatedAt
 	return &detailDTO, nil
 }
 
@@ -283,7 +302,7 @@ func (s *ConsultationRequestService) CreateConsultationRequestComment(consultati
 		ConsultationRequestID:       consultationRequestID,
 		ConsultationRequestStatusID: dto.ConsultationRequestStatusID,
 		Comment:                     dto.Comment,
-		CreatedByID:                 currentUserID,
+		CreatedBYID:                 currentUserID,
 		CreatedAt:                   now,
 	}
 
@@ -428,7 +447,8 @@ func (s *ConsultationRequestService) UpdateConsultationRequestComment(consultati
 	oldComment := existingComment.Comment
 
 	existingComment.Comment = dto.Comment
-	existingComment.UpdatedByID = &currentUserID
+	existingComment.IsEdited = true
+	existingComment.UpdatedBYID = &currentUserID
 	existingComment.UpdatedAt = &now
 
 	if err := s.repo.UpdateComment(existingComment, tx); err != nil {

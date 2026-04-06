@@ -424,13 +424,33 @@ func (crc *ConsultationRequestController) DeleteConsultationRequestComment(c *gi
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
+func (crc *ConsultationRequestController) GetConsultationRequestCommentDetails(c *gin.Context) {
+	commentID, err := strconv.ParseUint(c.Param("commentId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	comment, err := crc.service.GetCommentDetailsByID(uint(commentID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, comment)
+}
+
 // Export consultation requests
 func (crc *ConsultationRequestController) GetConsultationRequestExport(c *gin.Context) {
 	c.Set("export", true)
 
 	crc.GetAllConsultationRequests(c)
 }
-
 
 func (crc *ConsultationRequestController) GetConsultationRequestCommentDocumentPreview(c *gin.Context) {
 	requestID, err := strconv.ParseUint(c.Param("id"), 10, 64)

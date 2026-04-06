@@ -82,9 +82,9 @@ type ConsultationRequestFormDTO struct {
 	// Notes                       *string `json:"notes,omitempty"`
 }
 type ConsultationRequestCommentFormDTO struct {
-	ConsultationRequestStatusID *uint  `json:"consultation_request_status_id"`
-	Comment                     string `json:"comment" binding:"required"`
-	Documents					[]*commonDTOs.DocumentFormDTO `json:"documents"`
+	ConsultationRequestStatusID *uint                         `json:"consultation_request_status_id"`
+	Comment                     string                        `json:"comment" binding:"required"`
+	Documents                   []*commonDTOs.DocumentFormDTO `json:"documents"`
 }
 
 type ConsultationRequestCommentUpdateFormDTO struct {
@@ -114,7 +114,7 @@ type ConsultationRequestDetailDTO struct {
 
 	// Status
 	ConsultationRequestStatus *ConsultationRequestStatusDTO `json:"consultation_request_status"`
-	CreatedDate               string                        `json:"created_at"`
+	CreatedAt                 time.Time                     `json:"created_at"`
 }
 type ConsultationRequestStatusDTO struct {
 	ID      uint   `json:"id"`
@@ -127,6 +127,7 @@ type ConsultationRequestCommentListDTO struct {
 	ID                    uint   `json:"id"`                      // Comment ID
 	ConsultationRequestID uint   `json:"consultation_request_id"` // Parent request ID
 	Comment               string `json:"comment"`                 // The actual comment text
+	IsEdited              bool   `json:"is_edited"`               // Whether the comment has been edited
 
 	// Status fields (flattened into the comment DTO)
 	ConsultationRequestStatusID uint       `json:"consultation_request_status_id,omitempty"`
@@ -148,7 +149,6 @@ type ConsultationRequestCommentListDTO struct {
 	CreatedByInitial string `json:"created_by_initial"`
 
 	Documents []*ConsultationRequestCommentDocumentDTO `json:"documents" gorm:"-"`
-
 }
 
 type ConsultationRequestCommentDocumentDTO struct {
@@ -159,4 +159,23 @@ type ConsultationRequestCommentDocumentDTO struct {
 	Token        string `json:"token"`
 	OriginalName string `json:"original_name"`
 	Type         string `json:"type"`
+}
+
+type ConsultationRequestCommentDetailDTO struct {
+	ID                    uint       `json:"id"`
+	ConsultationRequestID uint       `json:"consultation_request_id"`
+	Comment               string     `json:"comment"`
+	IsEdited              bool       `json:"is_edited"`
+	CreatedAt             time.Time  `json:"created_at"`
+	UpdatedAt             *time.Time `json:"updated_at"`
+
+	// Status information
+	ConsultationRequestStatus *ConsultationRequestStatusDTO `json:"consultation_request_status,omitempty"`
+
+	// User information
+	CreatedByUser organizationDTOs.UserMinimalDTO  `json:"created_by"`
+	UpdatedByUser *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+
+	// Documents
+	Documents []*ConsultationRequestCommentDocumentDTO `json:"documents"`
 }
