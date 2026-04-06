@@ -63,7 +63,10 @@ WHERE risk_register_id IN (SELECT id FROM @RiskRegisterIds);
 DELETE FROM control_tests
 WHERE risk_register_id IN (SELECT id FROM @RiskRegisterIds);
 
-DELETE FROM risk_documents
+DELETE FROM control_tests
+WHERE risk_register_id IN (SELECT id FROM @RiskRegisterIds);
+
+DELETE FROM risks_strategic_intiatives
 WHERE risk_register_id IN (SELECT id FROM @RiskRegisterIds);
 
 DELETE FROM risk_root_cause_analysis
