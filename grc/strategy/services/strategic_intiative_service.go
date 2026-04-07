@@ -30,14 +30,16 @@ type StrategicIntiativeServiceInterface interface {
 
 // Service and implementations
 type StrategicIntiativeService struct {
-	repo                          repositories.StrategicIntiativeRepositoryInterface
-	strategicInitiativeStatusRepo repositories.StrategicInitiativeStatusRepositoryInterface
+	repo                                repositories.StrategicIntiativeRepositoryInterface
+	strategicInitiativeStatusUpdateRepo repositories.StrategyInitiativeStatusUpdateRepositoryInterface
+	strategicInitiativeStatusRepo       repositories.StrategicInitiativeStatusRepositoryInterface
 	activityLogSvc                services.ActivityLogServiceInterface
 	organizationUnitSvc           settingsSvc.OrganizationUnitServiceInterface
 	userSvc                       organizationSvc.UserServiceInterface
 }
 
 func NewStrategicIntiativeService(repo repositories.StrategicIntiativeRepositoryInterface,
+	strategicInitiativeStatusUpdateRepo repositories.StrategyInitiativeStatusUpdateRepositoryInterface,
 	strategicInitiativeStatusRepo repositories.StrategicInitiativeStatusRepositoryInterface,
 	activityLogSvc services.ActivityLogServiceInterface,
 	organizationUnitSvc settingsSvc.OrganizationUnitServiceInterface,
@@ -45,6 +47,7 @@ func NewStrategicIntiativeService(repo repositories.StrategicIntiativeRepository
 ) StrategicIntiativeServiceInterface {
 	return &StrategicIntiativeService{
 		repo:                          repo,
+		strategicInitiativeStatusUpdateRepo: strategicInitiativeStatusUpdateRepo,
 		strategicInitiativeStatusRepo: strategicInitiativeStatusRepo,
 		activityLogSvc:                activityLogSvc,
 		organizationUnitSvc:           organizationUnitSvc,
@@ -172,6 +175,20 @@ func (sis *StrategicIntiativeService) Create(currentUserID uint, dto *dtos.Strat
 		tx.Rollback()
 		return 0, err
 	}
+
+	statusUpdate := &models.StrategicInitiativeStatusUpdate{
+		StrategyInitiativeID:        id,
+		StrategicInitiativeStatusID: plannedStatus.ID,
+		Comment:                     "Initial strategic initiative status update",
+		CreatedByID:                 currentUserID,
+		Percentage:                  0,
+	}
+
+	if _, err := sis.strategicInitiativeStatusUpdateRepo.Create(statusUpdate, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	tx.Commit()
 
 	// Async activity log
