@@ -82,6 +82,7 @@ type RiskRegisterService struct {
 	assetRegisterSvc          assetServices.AssetRegisterServiceInterface
 	riskInherentEvaluationSvc RiskInherentEvaluationServiceInterface
 	riskSettingsSvc           RiskSettingsServiceInterface
+	organizationUnitSvc       settingsServices.OrganizationUnitServiceInterface
 	riskMatrixLikelihoodSvc   RiskMatrixLikelihoodServiceInterface
 	riskMatrixImpactSvc       RiskMatrixImpactServiceInterface
 	riskResponseStrategySvc   RiskResponseStrategyServiceInterface
@@ -112,6 +113,7 @@ func NewRiskRegisterService(
 	assetRegisterSvc assetServices.AssetRegisterServiceInterface,
 	riskInherentEvaluationSvc RiskInherentEvaluationServiceInterface,
 	riskSettingsSvc RiskSettingsServiceInterface,
+	organizationUnitSvc settingsServices.OrganizationUnitServiceInterface,
 	riskMatrixLikelihoodSvc RiskMatrixLikelihoodServiceInterface,
 	riskMatrixImpactSvc RiskMatrixImpactServiceInterface,
 	riskResponseStrategySvc RiskResponseStrategyServiceInterface,
@@ -140,6 +142,7 @@ func NewRiskRegisterService(
 		assetRegisterSvc:          assetRegisterSvc,
 		riskInherentEvaluationSvc: riskInherentEvaluationSvc,
 		riskSettingsSvc:           riskSettingsSvc,
+		organizationUnitSvc:       organizationUnitSvc,
 		riskMatrixLikelihoodSvc:   riskMatrixLikelihoodSvc,
 		riskMatrixImpactSvc:       riskMatrixImpactSvc,
 		riskResponseStrategySvc:   riskResponseStrategySvc,
@@ -202,6 +205,11 @@ func (rrs RiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databas
 	if risk.ReportedAt != nil {
 		reportedAt := risk.ReportedAt.Format("2006-01-02")
 		riskDTO.ReportedAtString = &reportedAt
+	}
+
+	if risk.RegistrationDate != nil {
+		registrationDate := risk.RegistrationDate.Format("2006-01-02")
+		riskDTO.RegistrationDateString = &registrationDate
 	}
 
 	if risk.NextReviewDate != nil {
@@ -866,10 +874,10 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		return 0, err
 	}
 
-	responsibleUnitID, err := rrs.userSvc.GetUserPrimaryUnitID(uint(riskRegisterFormDTO.ResponsibleUserID))
-	if err != nil {
-		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
-	}
+	// responsibleUnitID, err := rrs.userSvc.GetUserPrimaryUnitID(uint(riskRegisterFormDTO.ResponsibleUserID))
+	// if err != nil {
+	// 	return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
+	// }
 
 	riskMatrix, err := rrs.riskMatrixSvc.GetByType("erm")
 	if err != nil {
@@ -881,12 +889,14 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		return 0, err
 	}
 
+	registrationDate := time.Now()
+
 	riskRegister := &models.RiskRegister{
 		ReferenceNumber:   referenceNumber,
 		RiskCategoryID:    riskRegisterFormDTO.RiskCategoryID,
 		RiskSourceID:      riskRegisterFormDTO.RiskSourceID,
 		RiskMatrixID:      riskMatrix.ID,
-		ResponsibleUnitID: responsibleUnitID,
+		ResponsibleUnitID: riskRegisterFormDTO.ResponsibleUnitID,
 		ResponsibleUserID: riskRegisterFormDTO.ResponsibleUserID,
 		RiskStatusID:      riskStatus.ID,
 		Title:             riskRegisterFormDTO.Title,
@@ -896,6 +906,16 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		NextReviewDate:    dates.NextReviewDate,
 		LastReviewNote:    riskRegisterFormDTO.LastReviewNote,
 		SeverityLevelID:   riskRegisterFormDTO.SeverityLevelID,
+		RiskCode:          riskRegisterFormDTO.RiskCode,
+		RegistrationDate:  &registrationDate,
+		DivisionID:        riskRegisterFormDTO.DivisionID,
+		SectionID:         riskRegisterFormDTO.SectionID,
+		IsStrategic:       riskRegisterFormDTO.IsStrategic,
+		IsOperational:     riskRegisterFormDTO.IsOperational,
+		ExpectedCause:     riskRegisterFormDTO.ExpectedCause,
+		Consequence:       riskRegisterFormDTO.Consequence,
+		IsInternal:        riskRegisterFormDTO.IsInternal,
+		IsExternal:        riskRegisterFormDTO.IsExternal,
 		CreatedBYID:       currentUserID,
 	}
 
@@ -1100,31 +1120,10 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			utility.LogError("Failed to log activity", fields)
 		}
 
-		// Prepare notification and email
+		// Prepare common variables for notifications
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
 		entity := "risk-register"
-		action := "responsible-user-assign"
-		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserIDs:              []uint{riskRegisterFormDTO.ResponsibleUserID},
-			ModuleIdentifier:     "risk",
-			NotificationType:     string(commonDTOs.AssignmentType),
-			HeadingEn:            "Risk Register Responsibility Assigned",
-			HeadingAr:            "مسؤولية تسجيل المخاطر المعينة",
-			TitleEn:              riskRegisterFormDTO.Title,
-			ReferenceNumber:      referenceNumber,
-			Entity:               &entity,
-			Action:               &action,
-			URLParam:             urlParam,
-			IsSystemNotification: false,
-			CreatedByID:          &currentUserID,
-		}
-		responsibleUser, err := rrs.userSvc.GetByID(riskRegisterFormDTO.ResponsibleUserID)
-		if err != nil {
-			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
-				"error": err.Error(),
-			})
-			return
-		}
+
 		createdBy, err := rrs.userSvc.GetByID(currentUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch created by user", map[string]interface{}{
@@ -1132,31 +1131,57 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 			})
 			return
 		}
-		emailTo := []string{responsibleUser.Email}
-		subject := fmt.Sprintf("Risk Register/%s: Responsibility Assigned", riskRegister.Title)
-		appURL := utility.GetAppURL()
-		emailData := map[string]interface{}{
-			"FirstNameEn":          responsibleUser.FirstNameEn,
-			"LastNameEn":           responsibleUser.LastNameEn,
-			"RiskReferenceNumber":  existingRiskRegister.ReferenceNumber,
-			"RiskTitle":            existingRiskRegister.Title,
-			"RiskDescription":      utility.GetStringValue(existingRiskRegister.Description),
-			"CreatedByFirstNameEn": createdBy.FirstNameEn,
-			"CreatedByLastNameEn":  createdBy.LastNameEn,
-			"AssignedOn":           time.Now().Format("2006-01-02"),
-			"RedirectURL":          fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, id),
-		}
-		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-			EmailTo:              emailTo,
-			Subject:              subject,
-			TemplateRelativePath: "risk/templates/email/risk_register_create_responsible_user_mail.html",
-			EmailData:            emailData,
-		}
-		err = rrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "risk")
-		if err != nil {
-			utility.LogError("Failed to send notifications", map[string]interface{}{
-				"error": err.Error(),
-			})
+
+		// Send notification only if responsible user is assigned
+		if riskRegisterFormDTO.ResponsibleUserID != nil {
+			action := "responsible-user-assign"
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{*riskRegisterFormDTO.ResponsibleUserID},
+				ModuleIdentifier:     "risk",
+				NotificationType:     string(commonDTOs.AssignmentType),
+				HeadingEn:            "Risk Register Responsibility Assigned",
+				HeadingAr:            "مسؤولية تسجيل المخاطر المعينة",
+				TitleEn:              riskRegisterFormDTO.Title,
+				ReferenceNumber:      referenceNumber,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+			responsibleUser, err := rrs.userSvc.GetByID(*riskRegisterFormDTO.ResponsibleUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+			emailTo := []string{responsibleUser.Email}
+			subject := fmt.Sprintf("Risk Register/%s: Responsibility Assigned", riskRegister.Title)
+			appURL := utility.GetAppURL()
+			emailData := map[string]interface{}{
+				"FirstNameEn":          responsibleUser.FirstNameEn,
+				"LastNameEn":           responsibleUser.LastNameEn,
+				"RiskReferenceNumber":  existingRiskRegister.ReferenceNumber,
+				"RiskTitle":            existingRiskRegister.Title,
+				"RiskDescription":      utility.GetStringValue(existingRiskRegister.Description),
+				"CreatedByFirstNameEn": createdBy.FirstNameEn,
+				"CreatedByLastNameEn":  createdBy.LastNameEn,
+				"AssignedOn":           time.Now().Format("2006-01-02"),
+				"RedirectURL":          fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, id),
+			}
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              emailTo,
+				Subject:              subject,
+				TemplateRelativePath: "risk/templates/email/risk_register_create_responsible_user_mail.html",
+				EmailData:            emailData,
+			}
+			err = rrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "risk")
+			if err != nil {
+				utility.LogError("Failed to send notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
 		}
 
 		// Fetch risk settings
@@ -1274,17 +1299,18 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 
 	oldResponsibleUserID := existingRiskRegister.ResponsibleUserID
 
-	if existingRiskRegister.ResponsibleUserID != riskRegisterFormDTO.ResponsibleUserID {
-		responsibleUnitID, err := rrs.userSvc.GetUserPrimaryUnitID(uint(riskRegisterFormDTO.ResponsibleUserID))
-		if err != nil {
-			return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
-		}
-		existingRiskRegister.ResponsibleUnitID = responsibleUnitID
-	}
+	// if existingRiskRegister.ResponsibleUserID != riskRegisterFormDTO.ResponsibleUserID {
+	// 	responsibleUnitID, err := rrs.userSvc.GetUserPrimaryUnitID(uint(riskRegisterFormDTO.ResponsibleUserID))
+	// 	if err != nil {
+	// 		return utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "risk responsible unit")
+	// 	}
+	// 	existingRiskRegister.ResponsibleUnitID = responsibleUnitID
+	// }
 
 	existingRiskRegister.RiskCategoryID = riskRegisterFormDTO.RiskCategoryID
 	existingRiskRegister.RiskSourceID = riskRegisterFormDTO.RiskSourceID
 	existingRiskRegister.ResponsibleUserID = riskRegisterFormDTO.ResponsibleUserID
+	existingRiskRegister.ResponsibleUnitID = riskRegisterFormDTO.ResponsibleUnitID
 	existingRiskRegister.Title = riskRegisterFormDTO.Title
 	existingRiskRegister.Description = riskRegisterFormDTO.Description
 	existingRiskRegister.ReportedAt = dates.ReportedAt
@@ -1292,6 +1318,15 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 	existingRiskRegister.NextReviewDate = dates.NextReviewDate
 	existingRiskRegister.LastReviewNote = riskRegisterFormDTO.LastReviewNote
 	existingRiskRegister.SeverityLevelID = riskRegisterFormDTO.SeverityLevelID
+	existingRiskRegister.RiskCode = riskRegisterFormDTO.RiskCode
+	existingRiskRegister.DivisionID = riskRegisterFormDTO.DivisionID
+	existingRiskRegister.SectionID = riskRegisterFormDTO.SectionID
+	existingRiskRegister.IsStrategic = riskRegisterFormDTO.IsStrategic
+	existingRiskRegister.IsOperational = riskRegisterFormDTO.IsOperational
+	existingRiskRegister.ExpectedCause = riskRegisterFormDTO.ExpectedCause
+	existingRiskRegister.Consequence = riskRegisterFormDTO.Consequence
+	existingRiskRegister.IsInternal = riskRegisterFormDTO.IsInternal
+	existingRiskRegister.IsExternal = riskRegisterFormDTO.IsExternal
 	existingRiskRegister.UpdatedBYID = &currentUserID
 
 	if err := rrs.repo.Update(existingRiskRegister, tx); err != nil {
@@ -1557,57 +1592,6 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			urlParam := fmt.Sprintf(`{"id":%d}`, id)
 			entity := "risk-register"
 
-			// Old responsible user notification (Removal)
-			oldResponsibleUserAction := "responsible-user-remove"
-			oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserIDs:              []uint{oldResponsibleUserID},
-				ModuleIdentifier:     "risk",
-				NotificationType:     string(commonDTOs.InformationType),
-				HeadingEn:            "Risk Register Responsibility Removed",
-				HeadingAr:            "تمت إزالة مسؤولية تسجيل المخاطر",
-				TitleEn:              existingRiskRegister.Title,
-				ReferenceNumber:      existingRiskRegister.ReferenceNumber,
-				Entity:               &entity,
-				Action:               &oldResponsibleUserAction,
-				URLParam:             urlParam,
-				IsSystemNotification: false,
-				CreatedByID:          &currentUserID,
-			}
-
-			// New responsible user notification (Assignment)
-			newResponsibleUserAction := "responsible-user-assign"
-			newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserIDs:              []uint{riskRegisterFormDTO.ResponsibleUserID},
-				ModuleIdentifier:     "risk",
-				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Risk Register Responsibility Assigned",
-				HeadingAr:            "مسؤولية تسجيل المخاطر المعينة",
-				TitleEn:              existingRiskRegister.Title,
-				ReferenceNumber:      existingRiskRegister.ReferenceNumber,
-				Entity:               &entity,
-				Action:               &newResponsibleUserAction,
-				URLParam:             urlParam,
-				IsSystemNotification: false,
-				CreatedByID:          &currentUserID,
-			}
-
-			// Fetch the responsible users' data
-			oldResponsibleUser, err := rrs.userSvc.GetByID(oldResponsibleUserID)
-			if err != nil {
-				utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
-					"error": err.Error(),
-				})
-				return
-			}
-
-			newResponsibleUser, err := rrs.userSvc.GetByID(riskRegisterFormDTO.ResponsibleUserID)
-			if err != nil {
-				utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
-					"error": err.Error(),
-				})
-				return
-			}
-
 			// Fetch details of the user making the assignment
 			updatedByUser, err := rrs.userSvc.GetByID(currentUserID)
 			if err != nil {
@@ -1619,62 +1603,111 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 
 			appURL := utility.GetAppURL()
 
-			// Email notification for the old responsible user
-			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
-			oldResponsibleUserSubject := fmt.Sprintf("Risk Register/%s: Responsibility Removed", existingRiskRegister.Title)
-			oldResponsibleUserEmailData := map[string]interface{}{
-				"FirstNameEn":          oldResponsibleUser.FirstNameEn,
-				"LastNameEn":           oldResponsibleUser.LastNameEn,
-				"RiskReferenceNumber":  existingRiskRegister.ReferenceNumber,
-				"RiskTitle":            existingRiskRegister.Title,
-				"RiskDescription":      utility.GetStringValue(existingRiskRegister.Description),
-				"UpdatedByFirstNameEn": updatedByUser.FirstNameEn,
-				"UpdatedByLastNameEn":  updatedByUser.LastNameEn,
-				"RedirectURL":          fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, id),
+			// Send notification to old responsible user if exists
+			if oldResponsibleUserID != nil {
+				oldResponsibleUserAction := "responsible-user-remove"
+				oldResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserIDs:              []uint{*oldResponsibleUserID},
+					ModuleIdentifier:     "risk",
+					NotificationType:     string(commonDTOs.InformationType),
+					HeadingEn:            "Risk Register Responsibility Removed",
+					HeadingAr:            "تمت إزالة مسؤولية تسجيل المخاطر",
+					TitleEn:              existingRiskRegister.Title,
+					ReferenceNumber:      existingRiskRegister.ReferenceNumber,
+					Entity:               &entity,
+					Action:               &oldResponsibleUserAction,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
+
+				oldResponsibleUser, err := rrs.userSvc.GetByID(*oldResponsibleUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch old responsible user", map[string]interface{}{
+						"error": err.Error(),
+					})
+				} else {
+					oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
+					oldResponsibleUserSubject := fmt.Sprintf("Risk Register/%s: Responsibility Removed", existingRiskRegister.Title)
+					oldResponsibleUserEmailData := map[string]interface{}{
+						"FirstNameEn":          oldResponsibleUser.FirstNameEn,
+						"LastNameEn":           oldResponsibleUser.LastNameEn,
+						"RiskReferenceNumber":  existingRiskRegister.ReferenceNumber,
+						"RiskTitle":            existingRiskRegister.Title,
+						"RiskDescription":      utility.GetStringValue(existingRiskRegister.Description),
+						"UpdatedByFirstNameEn": updatedByUser.FirstNameEn,
+						"UpdatedByLastNameEn":  updatedByUser.LastNameEn,
+						"RedirectURL":          fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, id),
+					}
+
+					oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+						EmailTo:              oldResponsibleUserEmailTo,
+						Subject:              oldResponsibleUserSubject,
+						TemplateRelativePath: "risk/templates/email/risk_register_remove_responsible_user_mail.html",
+						EmailData:            oldResponsibleUserEmailData,
+					}
+
+					err = rrs.notificationSvc.SendNotification(oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "risk")
+					if err != nil {
+						utility.LogError("Failed to send notifications to old responsible user", map[string]interface{}{
+							"error": err.Error(),
+						})
+					}
+				}
 			}
 
-			oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-				EmailTo:              oldResponsibleUserEmailTo,
-				Subject:              oldResponsibleUserSubject,
-				TemplateRelativePath: "risk/templates/email/risk_register_remove_responsible_user_mail.html",
-				EmailData:            oldResponsibleUserEmailData,
-			}
+			// Send notification to new responsible user if exists
+			if riskRegisterFormDTO.ResponsibleUserID != nil {
+				newResponsibleUserAction := "responsible-user-assign"
+				newResponsibleUserNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserIDs:              []uint{*riskRegisterFormDTO.ResponsibleUserID},
+					ModuleIdentifier:     "risk",
+					NotificationType:     string(commonDTOs.AssignmentType),
+					HeadingEn:            "Risk Register Responsibility Assigned",
+					HeadingAr:            "مسؤولية تسجيل المخاطر المعينة",
+					TitleEn:              existingRiskRegister.Title,
+					ReferenceNumber:      existingRiskRegister.ReferenceNumber,
+					Entity:               &entity,
+					Action:               &newResponsibleUserAction,
+					URLParam:             urlParam,
+					IsSystemNotification: false,
+					CreatedByID:          &currentUserID,
+				}
 
-			// Email notification for the new responsible user
-			newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
-			newResponsibleUserSubject := fmt.Sprintf("Risk Register/%s: Responsibility Assigned", existingRiskRegister.Title)
-			newResponsibleUserEmailData := map[string]interface{}{
-				"FirstNameEn":           newResponsibleUser.FirstNameEn,
-				"LastNameEn":            newResponsibleUser.LastNameEn,
-				"RiskReferenceNumber":   existingRiskRegister.ReferenceNumber,
-				"RiskTitle":             existingRiskRegister.Title,
-				"RiskDescription":       utility.GetStringValue(existingRiskRegister.Description),
-				"AssignedByFirstNameEn": updatedByUser.FirstNameEn,
-				"AssignedByLastNameEn":  updatedByUser.LastNameEn,
-				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, id),
-			}
+				newResponsibleUser, err := rrs.userSvc.GetByID(*riskRegisterFormDTO.ResponsibleUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch new responsible user", map[string]interface{}{
+						"error": err.Error(),
+					})
+				} else {
+					newResponsibleUserEmailTo := []string{newResponsibleUser.Email}
+					newResponsibleUserSubject := fmt.Sprintf("Risk Register/%s: Responsibility Assigned", existingRiskRegister.Title)
+					newResponsibleUserEmailData := map[string]interface{}{
+						"FirstNameEn":           newResponsibleUser.FirstNameEn,
+						"LastNameEn":            newResponsibleUser.LastNameEn,
+						"RiskReferenceNumber":   existingRiskRegister.ReferenceNumber,
+						"RiskTitle":             existingRiskRegister.Title,
+						"RiskDescription":       utility.GetStringValue(existingRiskRegister.Description),
+						"AssignedByFirstNameEn": updatedByUser.FirstNameEn,
+						"AssignedByLastNameEn":  updatedByUser.LastNameEn,
+						"AssignedOn":            time.Now().Format("2006-01-02"),
+						"RedirectURL":           fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, id),
+					}
 
-			newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-				EmailTo:              newResponsibleUserEmailTo,
-				Subject:              newResponsibleUserSubject,
-				TemplateRelativePath: "risk/templates/email/risk_register_change_responsible_user_mail.html",
-				EmailData:            newResponsibleUserEmailData,
-			}
+					newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+						EmailTo:              newResponsibleUserEmailTo,
+						Subject:              newResponsibleUserSubject,
+						TemplateRelativePath: "risk/templates/email/risk_register_change_responsible_user_mail.html",
+						EmailData:            newResponsibleUserEmailData,
+					}
 
-			// Send notifications and emails
-			err = rrs.notificationSvc.SendNotification(newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "risk")
-			if err != nil {
-				utility.LogError("Failed to send notifications to new responsible user", map[string]interface{}{
-					"error": err.Error(),
-				})
-			}
-
-			err = rrs.notificationSvc.SendNotification(oldResponsibleUserNotificationDTO, oldResponsibleUserEmailNotificationDTO, "risk")
-			if err != nil {
-				utility.LogError("Failed to send notifications to old responsible user", map[string]interface{}{
-					"error": err.Error(),
-				})
+					err = rrs.notificationSvc.SendNotification(newResponsibleUserNotificationDTO, newResponsibleUserEmailNotificationDTO, "risk")
+					if err != nil {
+						utility.LogError("Failed to send notifications to new responsible user", map[string]interface{}{
+							"error": err.Error(),
+						})
+					}
+				}
 			}
 		}
 	}()
@@ -2247,17 +2280,23 @@ func (rrs *RiskRegisterService) ClearRiskRating(riskID uint, updateDTO *riskDTOs
 }
 
 func (rrs *RiskRegisterService) validateRiskRegisterFormDTO(riskRegisterFormDTO *riskDTOs.RiskRegisterFormDTO) error {
-	if _, err := rrs.riskCategorySvc.GetByID(riskRegisterFormDTO.RiskCategoryID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("risk category does not exist"), "not_exist", "risk category")
+
+	if riskRegisterFormDTO.RiskCategoryID == nil {
+		if _, err := rrs.riskCategorySvc.GetByID(*riskRegisterFormDTO.RiskCategoryID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("risk category does not exist"), "not_exist", "risk category")
+		}
 	}
+
 	if riskRegisterFormDTO.RiskSourceID != nil {
 		if _, err := rrs.riskSourceSvc.GetByID(*riskRegisterFormDTO.RiskSourceID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("risk source does not exist"), "not_exist", "risk source")
 		}
 	}
 
-	if _, err := rrs.userSvc.GetByID(riskRegisterFormDTO.ResponsibleUserID); err != nil {
-		return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")
+	if riskRegisterFormDTO.ResponsibleUserID != nil {
+		if _, err := rrs.userSvc.GetByID(*riskRegisterFormDTO.ResponsibleUserID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("responsible user does not exist"), "not_exist", "responsible user")
+		}
 	}
 
 	if riskRegisterFormDTO.ReviewFrequencyID != nil {
@@ -2296,6 +2335,20 @@ func (rrs *RiskRegisterService) validateRiskRegisterFormDTO(riskRegisterFormDTO 
 
 		// Add the asset ID to the map
 		assetIDs[*asset] = true
+	}
+
+	// Validate that division contains the responsible unit
+	if riskRegisterFormDTO.DivisionID != nil && riskRegisterFormDTO.ResponsibleUnitID != nil {
+		if !rrs.organizationUnitSvc.IsUnitUnderParent(*riskRegisterFormDTO.ResponsibleUnitID, *riskRegisterFormDTO.DivisionID) {
+			return utility.NewValidationError(fmt.Errorf("responsible unit must be under the selected division"), "invalid_hierarchy", "responsible_unit")
+		}
+	}
+
+	// Validate that section is under responsible unit
+	if riskRegisterFormDTO.SectionID != nil && riskRegisterFormDTO.ResponsibleUnitID != nil {
+		if !rrs.organizationUnitSvc.IsUnitUnderParent(*riskRegisterFormDTO.SectionID, *riskRegisterFormDTO.ResponsibleUnitID) {
+			return utility.NewValidationError(fmt.Errorf("section must be under the responsible unit"), "invalid_hierarchy", "section")
+		}
 	}
 
 	return nil
@@ -2430,9 +2483,9 @@ func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterL
 
 		// Assign values based on language preference and check for nil pointers
 		if userSetting.Language == "ar" {
-			riskCategory = risk.RiskCategoryTitleAr
-			responsibleUnit = risk.ResponsibleUnitTitleAr
-			responsibleUser = risk.ResponsibleUserFirstNameAr + " " + risk.ResponsibleUserLastNameAr
+			riskCategory = *risk.RiskCategoryTitleAr
+			responsibleUnit = *risk.ResponsibleUnitTitleAr
+			responsibleUser = *risk.ResponsibleUserFirstNameAr + " " + *risk.ResponsibleUserLastNameAr
 			riskSource = utility.GetStringValue(risk.RiskSourceTitleAr)
 			riskStatus = risk.RiskStatusTitleAr
 			riskResponse = risk.RiskResponseStrategyTitleAr
@@ -2445,9 +2498,9 @@ func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterL
 			reviewFrequency = utility.GetStringValue(risk.ReviewFrequencyTitleAr)
 			severityLevel = utility.GetStringValue(risk.SeverityLevelTitleAr)
 		} else {
-			riskCategory = risk.RiskCategoryTitleEn
-			responsibleUnit = risk.ResponsibleUnitTitleEn
-			responsibleUser = risk.ResponsibleUserFirstNameEn + " " + risk.ResponsibleUserLastNameEn
+			riskCategory = *risk.RiskCategoryTitleEn
+			responsibleUnit = *risk.ResponsibleUnitTitleEn
+			responsibleUser = *risk.ResponsibleUserFirstNameEn + " " + *risk.ResponsibleUserLastNameEn
 			riskSource = utility.GetStringValue(risk.RiskSourceTitleEn)
 			riskStatus = risk.RiskStatusTitleEn
 			riskResponse = risk.RiskResponseStrategyTitleEn
@@ -2618,13 +2671,15 @@ func (rrs *RiskRegisterService) ValidateRiskTemplate(file io.Reader) ([]map[stri
 	}
 
 	headers := []string{
-		"RiskCategory", "RiskSource", "ResponsibleUser", "Title", "Description", "ReportedAt",
+		//"RiskCategory",
+		"RiskSource", "ResponsibleUser", "Title", "Description", "ReportedAt",
 		"ReviewFrequency", "NextReviewDate", "InherentLikelihood", "InherentImpact",
 		"RiskResponseStrategy", "ResidualLikelihood", "ResidualImpact", "SeverityLevel",
 	}
 
 	snakeHeaders := []string{
-		"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at",
+		//"risk_category",
+		"risk_source", "responsible_user", "title", "description", "reported_at",
 		"review_frequency", "next_review_date", "inherent_likelihood", "inherent_impact",
 		"risk_response_strategy", "residual_likelihood", "residual_impact", "severity_level",
 	}
@@ -2684,9 +2739,9 @@ func (rs *RiskRegisterService) ImportRisks(input []map[string]interface{}, curre
 		reportedAtStr, _ := record["reported_at"].(string)
 		nextReviewDate, _ := record["next_review_date"].(string)
 		dto := &riskDTOs.RiskRegisterFormDTO{
-			RiskCategoryID:                 record["risk_category_id"].(uint),
+			//RiskCategoryID:                 record["risk_category_id"].(uint),
 			RiskSourceID:                   utility.GetOptionalUintValue(record["risk_source_id"]),
-			ResponsibleUserID:              record["responsible_user_id"].(uint),
+			ResponsibleUserID:              utility.GetOptionalUintValue(record["responsible_user_id"]),
 			Title:                          record["title"].(string),
 			Description:                    utility.GetOptionalStringValue(record["description"]),
 			ReportedAt:                     &reportedAtStr,

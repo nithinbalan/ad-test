@@ -460,6 +460,11 @@ func (rrs *RiskReviewService) Reject(riskID uint, currentUserID uint) error {
 
 func (rrs *RiskReviewService) sendApprovalNotification(id uint, currentUserID uint, riskDetail *riskDTOs.RiskRegisterDetailDTO) {
 	go func() {
+		// Only send notification if responsible user exists
+		if riskDetail.ResponsibleUser == nil {
+			return
+		}
+
 		// Prepare URL and parameters for the notification
 		urlParam := fmt.Sprintf(`{"id":%d}`, riskDetail.ID)
 		entity := "risk-review"
@@ -532,6 +537,11 @@ func (rrs *RiskReviewService) sendApprovalNotification(id uint, currentUserID ui
 
 func (rrs *RiskReviewService) notifyNextLevelUsers(id uint, nextRiskWorkflowLevel *models.RiskWorkflow, riskDetail *riskDTOs.RiskRegisterDetailDTO) {
 	go func() {
+		// Only send notification if responsible user exists
+		if riskDetail.ResponsibleUser == nil {
+			return
+		}
+
 		urlParam := fmt.Sprintf(`{"id":%d}`, riskDetail.ID)
 		entity := "risk-review"
 		action := "review-user-assign"
@@ -600,6 +610,11 @@ func (rrs *RiskReviewService) notifyNextLevelUsers(id uint, nextRiskWorkflowLeve
 
 func (rrs *RiskReviewService) sendRejectedNotification(id uint, currentUserID uint, risk *riskDTOs.RiskRegisterDetailDTO) {
 	go func() {
+		// Only send notification if responsible user exists
+		if risk.ResponsibleUser == nil {
+			return
+		}
+
 		// Prepare URL and parameters for the notification
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
 		entity := "risk-review"

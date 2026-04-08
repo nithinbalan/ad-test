@@ -261,7 +261,7 @@ func (rcs *RiskCommentService) SubmitRisk(riskID uint, currentUserID uint) error
 	}
 
 	// Ensure only the responsible user can submit
-	if risk.ResponsibleUserID != currentUserID {
+	if *risk.ResponsibleUserID != currentUserID {
 		tx.Rollback()
 		return utility.NewForbiddenError("Only the responsible user can submit this risk.")
 	}
@@ -487,7 +487,7 @@ func (rcs *RiskCommentService) RevertRisk(riskID uint, currentUserID uint, comme
 			})
 		}
 
-		responsibleUser, err := rcs.userSvc.GetByID(risk.ResponsibleUserID)
+		responsibleUser, err := rcs.userSvc.GetByID(*risk.ResponsibleUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 				"error": err.Error(),
@@ -633,7 +633,7 @@ func (rcs *RiskCommentService) RejectRisk(riskID uint, currentUserID uint, comme
 			})
 		}
 
-		responsibleUser, err := rcs.userSvc.GetByID(risk.ResponsibleUserID)
+		responsibleUser, err := rcs.userSvc.GetByID(*risk.ResponsibleUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 				"error": err.Error(),
@@ -785,7 +785,7 @@ func (rcs *RiskCommentService) ApproveRisk(riskID uint, currentUserID uint, comm
 			})
 		}
 
-		responsibleUser, err := rcs.userSvc.GetByID(risk.ResponsibleUserID)
+		responsibleUser, err := rcs.userSvc.GetByID(*risk.ResponsibleUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 				"error": err.Error(),
@@ -868,7 +868,7 @@ func (rcs *RiskCommentService) ResubmitRisk(riskID uint, currentUserID uint, com
 	}
 
 	// Ensure only the responsible user can submit
-	if risk.ResponsibleUserID != currentUserID {
+	if *risk.ResponsibleUserID != currentUserID {
 		tx.Rollback()
 		return utility.NewForbiddenError("Only the responsible user can re-submit this risk.")
 	}

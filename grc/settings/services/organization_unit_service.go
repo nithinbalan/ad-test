@@ -23,6 +23,7 @@ type OrganizationUnitServiceInterface interface {
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
 	GetByTitleEn(title string) (*models.OrganizationUnit, error)
+	IsUnitUnderParent(unitID uint, parentID uint) bool
 }
 
 type OrganizationUnitService struct {
@@ -289,4 +290,8 @@ func (ous *OrganizationUnitService) GetByTitleEn(title string) (*models.Organiza
 		return nil, err
 	}
 	return orgUnit, nil
+}
+
+func (ous *OrganizationUnitService) IsUnitUnderParent(unitID uint, parentID uint) bool {
+	return ous.repo.IsUnitUnderParent(unitID, parentID)
 }

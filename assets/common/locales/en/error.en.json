@@ -203,7 +203,13 @@
 {
   "id": "missing_participants",
   "translation": "All departments must have at least one participant"
+},
+
+{
+  "id": "invalid_hierarchy",
+  "translation": "The {{.Field}} must be under the responsible unit"
 }
+
 
 
 
