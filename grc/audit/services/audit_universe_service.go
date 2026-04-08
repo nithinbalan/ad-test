@@ -166,8 +166,8 @@ func (aus *AuditUniverseService) Create(currentUserID uint, auditUniverseFormDTO
 					return fmt.Errorf("failed to get risk: %w", err)
 				}
 				if risk != nil {
-					orgUnitID = risk.ResponsibleUnitID
-					responsibleUserID = risk.ResponsibleUserID
+					orgUnitID = *risk.ResponsibleUnitID
+					responsibleUserID = *risk.ResponsibleUserID
 				}
 
 			case "user":

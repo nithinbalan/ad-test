@@ -22,6 +22,7 @@ type OrganizationUnitRepositoryInterface interface {
 
 	GetAllDescendantUnitIDs(parentID uint) []uint
 	GetByTitleEn(title string) (*models.OrganizationUnit, error)
+	IsUnitUnderParent(unitID uint, parentID uint) bool
 }
 
 type OrganizationUnitRepository struct {
@@ -255,4 +256,18 @@ func (repo *OrganizationUnitRepository) GetByTitleEn(title string) (*models.Orga
 	}
 
 	return organizationUnit, nil
+}
+
+func (repo *OrganizationUnitRepository) IsUnitUnderParent(unitID uint, parentID uint) bool {
+	// Get all descendant IDs of the parent
+	descendantIDs := repo.GetAllDescendantUnitIDs(parentID)
+
+	// Check if the unitID is in the descendant list
+	for _, descendantID := range descendantIDs {
+		if descendantID == unitID {
+			return true
+		}
+	}
+
+	return false
 }

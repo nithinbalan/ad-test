@@ -64,6 +64,14 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
 			CONVERT(VARCHAR, risk_register.reported_at, 23) AS reported_at,
             risk_register.created_at,
             risk_register.updated_at,
+			risk_register.risk_code,
+			CONVERT(VARCHAR, risk_register.registration_date, 23) AS registration_date,
+			risk_register.is_strategic,
+			risk_register.is_operational,
+			risk_register.expected_cause,
+			risk_register.consequence,
+			risk_register.is_internal,
+			risk_register.is_external,
 			risk_register.current_risk_rating_value_id,
             risk_categories.title_en AS risk_category_title_en,
             risk_categories.title_ar AS risk_category_title_ar,
@@ -134,7 +142,14 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
             residual_risk_rating.title_en AS residual_risk_rating_title_en,
             residual_risk_rating.title_ar AS residual_risk_rating_title_ar,
             residual_risk_rating_value.value AS residual_risk_rating_value,
-            residual_risk_rating.color_code AS residual_risk_rating_color_code
+            residual_risk_rating.color_code AS residual_risk_rating_color_code,
+			divisions.id AS division_id,
+            divisions.title_en AS division_title_en,
+            divisions.title_ar AS division_title_ar,
+			sections.id AS section_id,
+            sections.title_en AS section_title_en,
+            sections.title_ar AS section_title_ar
+
         `).
 		Joins(`
             LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
@@ -159,6 +174,8 @@ func (repo *RiskRegisterRepository) GetAll(params *riskDTOs.RiskRegisterListQuer
             LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id
             LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id
             LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
+			LEFT JOIN organization_units AS divisions ON divisions.id = risk_register.division_id
+			LEFT JOIN organization_units AS sections ON sections.id = risk_register.section_id
         `).Where("risk_statuses.type NOT IN (?)", []string{"identified", "submitted", "rejected"})
 
 	if params.RiskAppetiteToleranceLevelID != 0 {
@@ -401,6 +418,8 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("SubmittedByUser").
+		Preload("Division").
+		Preload("Section").
 		Preload("ReviewedByUser").
 		Preload("RiskWorkflows").
 		Preload("RiskWorkflows.RiskWorkflowParticipants").
@@ -585,6 +604,14 @@ func (repo *RiskRegisterRepository) GetAllIdentifiedRisks(params *riskDTOs.RiskR
             risk_register.created_at,
             risk_register.updated_at,
 			risk_register.current_risk_rating_value_id,
+			risk_register.risk_code,
+			CONVERT(VARCHAR, risk_register.registration_date, 23) AS registration_date,
+			risk_register.is_strategic,
+			risk_register.is_operational,
+			risk_register.expected_cause,
+			risk_register.consequence,
+			risk_register.is_internal,
+			risk_register.is_external,
             risk_categories.title_en AS risk_category_title_en,
             risk_categories.title_ar AS risk_category_title_ar,
             risk_sources.title_en AS risk_source_title_en,
@@ -652,7 +679,13 @@ func (repo *RiskRegisterRepository) GetAllIdentifiedRisks(params *riskDTOs.RiskR
             residual_risk_rating.title_en AS residual_risk_rating_title_en,
             residual_risk_rating.title_ar AS residual_risk_rating_title_ar,
             residual_risk_rating_value.value AS residual_risk_rating_value,
-            residual_risk_rating.color_code AS residual_risk_rating_color_code
+            residual_risk_rating.color_code AS residual_risk_rating_color_code,
+			divisions.id AS division_id,
+            divisions.title_en AS division_title_en,
+            divisions.title_ar AS division_title_ar,
+						sections.id AS section_id,
+            sections.title_en AS section_title_en,
+            sections.title_ar AS section_title_ar
         `).
 		Joins(`
             LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
@@ -676,6 +709,8 @@ func (repo *RiskRegisterRepository) GetAllIdentifiedRisks(params *riskDTOs.RiskR
             LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id
             LEFT JOIN risk_matrix_risk_ratings AS residual_risk_rating ON residual_risk_rating.id = risk_register.residual_risk_rating_id
             LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
+			LEFT JOIN organization_units AS divisions ON divisions.id = risk_register.division_id
+						 LEFT JOIN organization_units AS sections ON sections.id = risk_register.section_id
         `).Where("risk_statuses.type IN (?)", []string{"identified", "submitted", "rejected"})
 
 	if params.RiskAppetiteToleranceLevelID != 0 {

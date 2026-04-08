@@ -120,9 +120,9 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByResponsibleUnit(params *riskDTOs.
 	// Initialize map for responsible units
 	responsibleUnitMap := make(map[uint]*riskDTOs.RiskHeatmapResponseByItemDTO)
 	for _, register := range riskRegisters {
-		if _, exists := responsibleUnitMap[register.ResponsibleUnitID]; !exists {
-			responsibleUnitMap[register.ResponsibleUnitID] = &riskDTOs.RiskHeatmapResponseByItemDTO{
-				ItemID:       register.ResponsibleUnitID,
+		if _, exists := responsibleUnitMap[*register.ResponsibleUnitID]; !exists {
+			responsibleUnitMap[*register.ResponsibleUnitID] = &riskDTOs.RiskHeatmapResponseByItemDTO{
+				ItemID:       *register.ResponsibleUnitID,
 				ItemTitleEn:  register.ResponsibleUnit.TitleEn,
 				ItemTitleAr:  register.ResponsibleUnit.TitleAr,
 				HeatmapCells: []*riskDTOs.RiskHeatmapResponseByItemDetailsDTO{},
@@ -131,7 +131,7 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByResponsibleUnit(params *riskDTOs.
 			// Initialize HeatmapCells with all possible values from the risk matrix
 			for _, rating := range riskMatrix.RiskMatrixRiskRating {
 				for _, value := range rating.RiskMatrixRiskRatingValue {
-					responsibleUnitMap[register.ResponsibleUnitID].HeatmapCells = append(responsibleUnitMap[register.ResponsibleUnitID].HeatmapCells, &riskDTOs.RiskHeatmapResponseByItemDetailsDTO{
+					responsibleUnitMap[*register.ResponsibleUnitID].HeatmapCells = append(responsibleUnitMap[*register.ResponsibleUnitID].HeatmapCells, &riskDTOs.RiskHeatmapResponseByItemDetailsDTO{
 						RiskMatrixRiskRatingID:      rating.ID,
 						RiskMatrixRiskRatingTitleEN: rating.TitleEn,
 						RiskMatrixRiskRatingTitleAR: rating.TitleAr,
@@ -147,7 +147,7 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByResponsibleUnit(params *riskDTOs.
 	// Populate each responsible unit's heatmap cells
 	for _, register := range riskRegisters {
 		if register.CurrentRiskRatingID != nil && register.CurrentRiskRatingValueID != nil {
-			unitResponse := responsibleUnitMap[register.ResponsibleUnitID]
+			unitResponse := responsibleUnitMap[*register.ResponsibleUnitID]
 			ratingID := *register.CurrentRiskRatingID
 			valueID := *register.CurrentRiskRatingValueID
 
@@ -189,9 +189,9 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskCategory(params *riskDTOs.Ris
 	// Initialize map for risk categories
 	riskCategoryMap := make(map[uint]*riskDTOs.RiskHeatmapResponseByItemDTO)
 	for _, register := range riskRegisters {
-		if _, exists := riskCategoryMap[register.RiskCategoryID]; !exists {
-			riskCategoryMap[register.RiskCategoryID] = &riskDTOs.RiskHeatmapResponseByItemDTO{
-				ItemID:       register.RiskCategoryID,
+		if _, exists := riskCategoryMap[*register.RiskCategoryID]; !exists {
+			riskCategoryMap[*register.RiskCategoryID] = &riskDTOs.RiskHeatmapResponseByItemDTO{
+				ItemID:       *register.RiskCategoryID,
 				ItemTitleEn:  register.RiskCategory.TitleEn,
 				ItemTitleAr:  register.RiskCategory.TitleAr,
 				HeatmapCells: []*riskDTOs.RiskHeatmapResponseByItemDetailsDTO{},
@@ -200,7 +200,7 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskCategory(params *riskDTOs.Ris
 			// Initialize HeatmapCells with all possible values from the risk matrix
 			for _, rating := range riskMatrix.RiskMatrixRiskRating {
 				for _, value := range rating.RiskMatrixRiskRatingValue {
-					riskCategoryMap[register.RiskCategoryID].HeatmapCells = append(riskCategoryMap[register.RiskCategoryID].HeatmapCells, &riskDTOs.RiskHeatmapResponseByItemDetailsDTO{
+					riskCategoryMap[*register.RiskCategoryID].HeatmapCells = append(riskCategoryMap[*register.RiskCategoryID].HeatmapCells, &riskDTOs.RiskHeatmapResponseByItemDetailsDTO{
 						RiskMatrixRiskRatingID:      rating.ID,
 						RiskMatrixRiskRatingTitleEN: rating.TitleEn,
 						RiskMatrixRiskRatingTitleAR: rating.TitleAr,
@@ -216,7 +216,7 @@ func (rhs *RiskHeatmapService) GetRiskHeatmapByRiskCategory(params *riskDTOs.Ris
 	// Populate each risk category's heatmap cells
 	for _, register := range riskRegisters {
 		if register.CurrentRiskRatingID != nil && register.CurrentRiskRatingValueID != nil {
-			categoryResponse := riskCategoryMap[register.RiskCategoryID]
+			categoryResponse := riskCategoryMap[*register.RiskCategoryID]
 			ratingID := *register.CurrentRiskRatingID
 			valueID := *register.CurrentRiskRatingValueID
 

@@ -14,22 +14,22 @@ import (
 type RiskRegisterListDTO struct {
 	ID                              uint    `json:"id"`
 	ReferenceNumber                 string  `json:"reference_number"`
-	RiskCategoryTitleEn             string  `json:"risk_category_title_en"`
-	RiskCategoryTitleAr             string  `json:"risk_category_title_ar"`
+	RiskCategoryTitleEn             *string `json:"risk_category_title_en"`
+	RiskCategoryTitleAr             *string `json:"risk_category_title_ar"`
 	RiskSourceTitleEn               *string `json:"risk_source_title_en"`
 	RiskSourceTitleAr               *string `json:"risk_source_title_ar"`
-	ResponsibleUnitID               uint    `json:"responsible_unit_id"`
-	ResponsibleUnitTitleEn          string  `json:"responsible_unit_title_en"`
-	ResponsibleUnitTitleAr          string  `json:"responsible_unit_title_ar"`
-	ResponsibleUserID               uint    `json:"responsible_user_id"`
-	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
-	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
-	ResponsibleUserLastNameEn       string  `json:"responsible_user_last_name_en"`
-	ResponsibleUserLastNameAr       string  `json:"responsible_user_last_name_ar"`
-	ResponsibleUserInitial          string  `json:"responsible_user_initial"`
-	ResponsibleUserColor            string  `json:"responsible_user_color"`
-	ResponsibleUserEmail            string  `json:"responsible_user_email"`
-	ResponsibleUserProfileImagePath string  `json:"responsible_user_profile_image_path"`
+	ResponsibleUnitID               *uint   `json:"responsible_unit_id"`
+	ResponsibleUnitTitleEn          *string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr          *string `json:"responsible_unit_title_ar"`
+	ResponsibleUserID               *uint   `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      *string `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      *string `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       *string `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       *string `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          *string `json:"responsible_user_initial"`
+	ResponsibleUserColor            *string `json:"responsible_user_color"`
+	ResponsibleUserEmail            *string `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath *string `json:"responsible_user_profile_image_path"`
 	RiskStatusTitleEn               string  `json:"risk_status_title_en"`
 	RiskStatusTitleAr               string  `json:"risk_status_title_ar"`
 	RiskResponseStrategyTitleEn     string  `json:"risk_response_strategy_title_en"`
@@ -90,6 +90,20 @@ type RiskRegisterListDTO struct {
 	ResidualRiskRatingTitleAr       *string `json:"residual_risk_rating_title_ar"`
 	ResidualRiskRatingValue         *uint   `json:"residual_risk_rating_value"`
 	ResidualRiskRatingColorCode     *string `json:"residual_risk_rating_color_code"`
+	RiskCode                        *string `json:"risk_code"`
+	RegistrationDate                *string `json:"registration_date"`
+	DivisionID                      *uint   `json:"division_id"`
+	DivisionTitleEn                 *string `json:"division_title_en"`
+	DivisionTitleAr                 *string `json:"division_title_ar"`
+	SectionID                       *uint   `json:"section_id"`
+	SectionTitleEn                  *string `json:"section_title_en"`
+	SectionTitleAr                  *string `json:"section_title_ar"`
+	IsStrategic                     bool    `json:"is_strategic"`
+	IsOperational                   bool    `json:"is_operational"`
+	ExpectedCause                   *string `json:"expected_cause"`
+	Consequence                     *string `json:"consequence"`
+	IsInternal                      bool    `json:"is_internal"`
+	IsExternal                      bool    `json:"is_external"`
 }
 
 type RiskRegisterListQueryParamsDTO struct {
@@ -130,10 +144,10 @@ type RiskDocumentDTO struct {
 type RiskRegisterDetailDTO struct {
 	ID                      int                                `json:"id"`
 	ReferenceNumber         string                             `json:"reference_number"`
-	RiskCategory            RiskCategoryDTO                    `json:"risk_category"`
+	RiskCategory            *RiskCategoryDTO                   `json:"risk_category"`
 	RiskSource              *RiskSourceDTO                     `json:"risk_source"`
-	ResponsibleUnit         settingsDTOs.OrganizationUnitDTO   `json:"responsible_unit"`
-	ResponsibleUser         organizationDTOs.UserMinimalDTO    `json:"responsible_user"`
+	ResponsibleUnit         *settingsDTOs.OrganizationUnitDTO  `json:"responsible_unit"`
+	ResponsibleUser         *organizationDTOs.UserMinimalDTO   `json:"responsible_user"`
 	ResponsibleUserID       uint                               `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	RiskStatus              RiskStatusDTO                      `json:"risk_status"`
 	Title                   string                             `json:"title"`
@@ -176,6 +190,16 @@ type RiskRegisterDetailDTO struct {
 	Threats                 []*RiskThreatDTO                   `json:"threats"`
 	MarkedAsAuditableItem   bool                               `json:"marked_as_auditable_item"`
 	AuditableItem           *AuditableItemMinimalRiskDetailDTO `json:"auditable_item"`
+	RiskCode                *string                            `json:"risk_code"`
+	RegistrationDateString  *string                            `json:"registration_date"`
+	Division                *settingsDTOs.OrganizationUnitDTO  `json:"division"`
+	Section                 *settingsDTOs.OrganizationUnitDTO  `json:"section"`
+	IsStrategic             bool                               `json:"is_strategic"`
+	IsOperational           bool                               `json:"is_operational"`
+	ExpectedCause           *string                            `json:"expected_cause"`
+	Consequence             *string                            `json:"consequence"`
+	IsInternal              bool                               `json:"is_internal"`
+	IsExternal              bool                               `json:"is_external"`
 }
 
 type AuditableItemMinimalRiskDetailDTO struct {
@@ -269,12 +293,13 @@ type RiskThreatDTO struct {
 }
 
 type RiskRegisterFormDTO struct {
-	RiskCategoryID    uint                          `json:"risk_category_id" binding:"required"`
+	RiskCategoryID    *uint                         `json:"risk_category_id"`
 	RiskSourceID      *uint                         `json:"risk_source_id"`
-	ResponsibleUserID uint                          `json:"responsible_user_id" binding:"required"`
+	ResponsibleUserID *uint                         `json:"responsible_user_id"`
+	ResponsibleUnitID *uint                         `json:"responsible_unit_id"`
 	Title             string                        `json:"title" binding:"required,max=255"`
 	Description       *string                       `json:"description"`
-	ReportedAt        *string                       `json:"reported_at" binding:"required,datetime=2006-01-02"`
+	ReportedAt        *string                       `json:"reported_at"`
 	ReviewFrequencyID *uint                         `json:"review_frequency_id"`
 	NextReviewDate    *string                       `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
 	LastReviewNote    *string                       `json:"last_review_note" binding:"omitempty"`
@@ -283,11 +308,20 @@ type RiskRegisterFormDTO struct {
 	AssetIds          []*uint                       `json:"asset_ids"`
 	SeverityLevelID   *uint                         `json:"severity_level_id"`
 
-	InherentRiskMatrixLikelihoodID *uint `json:"inherent_risk_matrix_likelihood_id"`
-	InherentRiskMatrixImpactID     *uint `json:"inherent_risk_matrix_impact_id"`
-	RiskResponseStrategyID         *uint `json:"risk_response_strategy_id"`
-	ResidualRiskMatrixLikelihoodID *uint `json:"residual_risk_matrix_likelihood_id"`
-	ResidualRiskMatrixImpactID     *uint `json:"residual_risk_matrix_impact_id"`
+	InherentRiskMatrixLikelihoodID *uint   `json:"inherent_risk_matrix_likelihood_id"`
+	InherentRiskMatrixImpactID     *uint   `json:"inherent_risk_matrix_impact_id"`
+	RiskResponseStrategyID         *uint   `json:"risk_response_strategy_id"`
+	ResidualRiskMatrixLikelihoodID *uint   `json:"residual_risk_matrix_likelihood_id"`
+	ResidualRiskMatrixImpactID     *uint   `json:"residual_risk_matrix_impact_id"`
+	RiskCode                       *string `json:"risk_code"`
+	DivisionID                     *uint   `json:"division_id"`
+	SectionID                      *uint   `json:"section_id"`
+	IsStrategic                    bool    `json:"is_strategic"`
+	IsOperational                  bool    `json:"is_operational"`
+	ExpectedCause                  *string `json:"expected_cause"`
+	Consequence                    *string `json:"consequence"`
+	IsInternal                     bool    `json:"is_internal"`
+	IsExternal                     bool    `json:"is_external"`
 }
 
 type RiskRegisterParsedDates struct {

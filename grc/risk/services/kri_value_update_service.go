@@ -223,7 +223,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 				entity := "kri-value-update"
 				action := "value-update-high"
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserIDs:              []uint{existingRisk.ResponsibleUserID},
+					UserIDs:              []uint{*existingRisk.ResponsibleUserID},
 					ModuleIdentifier:     "risk",
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Kri Value Update",
@@ -235,7 +235,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 					IsSystemNotification: false,
 					CreatedByID:          &currentUserID,
 				}
-				responsibleUser, err := kvus.userSvc.GetByID(existingRisk.ResponsibleUserID)
+				responsibleUser, err := kvus.userSvc.GetByID(*existingRisk.ResponsibleUserID)
 				if err != nil {
 					utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 						"error": err.Error(),
@@ -507,7 +507,7 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 				entity := "kri-value-update"
 				action := "value-update-high"
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserIDs:              []uint{existingRisk.ResponsibleUserID},
+					UserIDs:              []uint{*existingRisk.ResponsibleUserID},
 					ModuleIdentifier:     "risk",
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Kri Value Update",
@@ -519,7 +519,7 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 					IsSystemNotification: false,
 					CreatedByID:          &currentUserID,
 				}
-				responsibleUser, err := kvus.userSvc.GetByID(existingRisk.ResponsibleUserID)
+				responsibleUser, err := kvus.userSvc.GetByID(*existingRisk.ResponsibleUserID)
 				if err != nil {
 					utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 						"error": err.Error(),
@@ -674,7 +674,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 					Description     string
 					ReferenceNumber string
 				}{
-					OwnerID:         &existingRisk.ResponsibleUserID,
+					OwnerID:         existingRisk.ResponsibleUserID,
 					TitleEn:         existingKRIRegister.Title,
 					Description:     *existingKRIRegister.Description,
 					ReferenceNumber: *existingKRIRegister.ReferenceNumber,
@@ -774,7 +774,7 @@ func (kvus *KRIValueUpdateService) Delete(kriRegisterID uint, ids []uint, curren
 					Description     string
 					ReferenceNumber string
 				}{
-					OwnerID:         &existingRisk.ResponsibleUserID,
+					OwnerID:         existingRisk.ResponsibleUserID,
 					TitleEn:         existingKRIRegister.Title,
 					Description:     *existingKRIRegister.Description,
 					ReferenceNumber: *existingKRIRegister.ReferenceNumber,

@@ -308,8 +308,8 @@ func (prs *PotentialRiskService) StatusUpdate(id uint, currentUserID uint, poten
 	if potentialRiskStatusID == confirmedStatus.ID {
 		// Create a new risk register entry
 		riskRegisterFormDTO := &riskDTOs.RiskRegisterFormDTO{
-			RiskCategoryID:    existingPotentialRisk.RiskCategoryID,
-			ResponsibleUserID: currentUserID,
+			RiskCategoryID:    &existingPotentialRisk.RiskCategoryID,
+			ResponsibleUserID: &currentUserID,
 			Title:             existingPotentialRisk.Title,
 			Description:       existingPotentialRisk.Description,
 		}
