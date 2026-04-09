@@ -7,8 +7,10 @@ import (
 
 type RiskMatrixImpactGuidelineListDTO struct {
 	ID                          uint    `json:"id"`
+	RiskImpactCategoryId        uint    `json:"risk_impact_category_id"`
 	RiskImpactCategoryTitleEn   string  `json:"risk_impact_category_title_en"`
 	RiskImpactCategoryTitleAr   string  `json:"risk_impact_category_title_ar"`
+	RiskMatrixImpactId          uint    `json:"risk_matrix_impact_id"`
 	RiskMatrixImpactTitleEn     string  `json:"risk_matrix_impact_title_en"`
 	RiskMatrixImpactTitleAr     string  `json:"risk_matrix_impact_title_ar"`
 	Guideline                   string  `json:"guideline"`

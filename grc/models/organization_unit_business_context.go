@@ -3,16 +3,15 @@ package models
 import "time"
 
 type OrganizationUnitBusinessContext struct {
-	ID                    uint       `gorm:"primaryKey;autoIncrement"`
-	DepartmentID          uint       `json:"department_id" gorm:"not null"`
-	InternalAuditNote     *string    `gorm:"type:text"`
-	ExternalContext       *string    `gorm:"type:text"`
-	OtherFieldHeader      *string    `gorm:"type:text"`
-	OtherFieldDescription *string    `gorm:"type:text"`
-	CreatedBYID           uint       `json:"created_by_id" gorm:"not null;column:created_by_id" binding:"required"`
-	UpdatedBYID           *uint      `json:"updated_by_id" gorm:"default:null;column:updated_by_id" binding:"omitempty"`
-	CreatedAt             time.Time  `json:"created_at" gorm:"type:datetime;not null" binding:"-"`
-	UpdatedAt             *time.Time `json:"updated_at" gorm:"type:datetime;default:null" binding:"omitempty"`
+	ID                         uint       `gorm:"primaryKey;autoIncrement"`
+	DepartmentID               uint       `json:"department_id" gorm:"not null"`
+	InternalAuditNote          *string    `gorm:"type:text"`
+	ExternalContext            *string    `gorm:"type:text"`
+	AnnualObjectiveDescription *string    `gorm:"type:text"`
+	CreatedBYID                uint       `json:"created_by_id" gorm:"not null;column:created_by_id" binding:"required"`
+	UpdatedBYID                *uint      `json:"updated_by_id" gorm:"default:null;column:updated_by_id" binding:"omitempty"`
+	CreatedAt                  time.Time  `json:"created_at" gorm:"type:datetime;not null" binding:"-"`
+	UpdatedAt                  *time.Time `json:"updated_at" gorm:"type:datetime;default:null" binding:"omitempty"`
 
 	Department    *OrganizationUnit `json:"department" gorm:"foreignKey:DepartmentID;constraint:OnDelete:NO ACTION,OnUpdate:NO ACTION"`
 	CreatedByUser *User             `json:"created_by_user" gorm:"foreignKey:CreatedBYID;constraint:OnDelete:NO ACTION,OnUpdate:NO ACTION"`

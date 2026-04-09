@@ -42,8 +42,7 @@ func (repo *OrganizationUnitBusinessContextRepository) GetAll(departmentID uint,
 			ou.title_ar AS department_title_ar,
 			oubc.internal_audit_note,
 			oubc.external_context,
-			oubc.other_field_header,
-			oubc.other_field_description,
+			oubc.annual_objective_description,
 			oubc.created_at,
 			oubc.updated_at,
 			cu.id AS created_user_id,
@@ -72,8 +71,8 @@ func (repo *OrganizationUnitBusinessContextRepository) GetAll(departmentID uint,
 
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
-		query = query.Where("(oubc.internal_audit_note LIKE ? OR oubc.external_context LIKE ? OR oubc.other_field_header LIKE ? OR oubc.other_field_description LIKE ?)",
-			keyword, keyword, keyword, keyword)
+		query = query.Where("(oubc.internal_audit_note LIKE ? OR oubc.external_context LIKE ? OR oubc.annual_objective_description LIKE ?)",
+			keyword, keyword, keyword)
 	}
 
 	sortBy := params.SortBy
