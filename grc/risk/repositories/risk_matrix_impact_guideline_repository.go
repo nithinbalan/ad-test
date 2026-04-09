@@ -17,6 +17,7 @@ type RiskMatrixImpactGuidelineRepositoryInterface interface {
 	Create(guidelines []*models.RiskMatrixImpactGuideline, tx ...utility.DatabaseTransaction) ([]uint, error)
 	Update(riskMatrixImpactGuideline *models.RiskMatrixImpactGuideline) error
 	Delete(id uint) error
+	ExistsByCategoryAndImpact(categoryID uint, impactID uint, excludeID ...uint) (bool, error)
 }
 
 type RiskMatrixImpactGuidelineRepository struct {
@@ -195,4 +196,22 @@ func (repo *RiskMatrixImpactGuidelineRepository) Delete(id uint) error {
 	}
 
 	return nil
+}
+
+// ExistsByCategoryAndImpact checks if a guideline with the given category and impact combination already exists
+// excludeID is optional and used during updates to exclude the current record being updated
+func (repo *RiskMatrixImpactGuidelineRepository) ExistsByCategoryAndImpact(categoryID uint, impactID uint, excludeID ...uint) (bool, error) {
+	query := repo.db.Model(&models.RiskMatrixImpactGuideline{}).Where("risk_impact_category_id = ? AND risk_matrix_impact_id = ?", categoryID, impactID)
+
+	// If excludeID is provided, exclude that record from the check (for update validation)
+	if len(excludeID) > 0 && excludeID[0] > 0 {
+		query = query.Where("id != ?", excludeID[0])
+	}
+
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }

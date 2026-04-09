@@ -145,7 +145,7 @@ func (rmigs *RiskMatrixImpactGuidelineService) Update(id uint, currentUserID uin
 	}
 
 	// Validate the form DTO
-	if err := rmigs.validateRiskMatrixImpactGuidelineUpdateFormDTO(riskMatrixImpactGuidelineUpdateFormDTO); err != nil {
+	if err := rmigs.validateRiskMatrixImpactGuidelineUpdateFormDTO(riskMatrixImpactGuidelineUpdateFormDTO, id); err != nil {
 		return err
 	}
 
@@ -256,8 +256,8 @@ func (rmigs *RiskMatrixImpactGuidelineService) Delete(ids []uint, currentUserID 
 }
 
 func (rmigs *RiskMatrixImpactGuidelineService) validateRiskMatrixImpactGuidelineFormDTO(riskMatrixImpactGuidelineFormDTO *riskDTOs.RiskMatrixImpactGuidelineFormDTO) error {
-	// Check if Guidelines array exists and is not null
-	if riskMatrixImpactGuidelineFormDTO.Guidelines == nil || len(riskMatrixImpactGuidelineFormDTO.Guidelines) == 0 {
+	// Check if Guidelines array is empty
+	if len(riskMatrixImpactGuidelineFormDTO.Guidelines) == 0 {
 		return utility.NewValidationError(fmt.Errorf("guidelines array is required and cannot be empty"), "required", "guidelines")
 	}
 
@@ -271,18 +271,41 @@ func (rmigs *RiskMatrixImpactGuidelineService) validateRiskMatrixImpactGuideline
 		return utility.NewValidationError(fmt.Errorf("risk matrix impact does not exist"), "not_exist", "risk matrix impact")
 	}
 
+	// Check if this combination of category and impact already exists
+	exists, err := rmigs.repo.ExistsByCategoryAndImpact(riskMatrixImpactGuidelineFormDTO.RiskImpactCategoryID, riskMatrixImpactGuidelineFormDTO.RiskMatrixImpactID)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return utility.NewValidationError(fmt.Errorf("guideline for this category and impact combination already exists"), "duplicate", "category_impact_combination")
+	}
+
 	return nil
 }
 
-func (rmigs *RiskMatrixImpactGuidelineService) validateRiskMatrixImpactGuidelineUpdateFormDTO(riskMatrixImpactGuidelineUpdateFormDTO *riskDTOs.RiskMatrixImpactGuidelineUpdateFormDTO) error {
+func (rmigs *RiskMatrixImpactGuidelineService) validateRiskMatrixImpactGuidelineUpdateFormDTO(riskMatrixImpactGuidelineUpdateFormDTO *riskDTOs.RiskMatrixImpactGuidelineUpdateFormDTO, id uint) error {
 	// Validate RiskImpactCategoryID
 	if _, err := rmigs.riskImpactCategorySvc.GetByID(riskMatrixImpactGuidelineUpdateFormDTO.RiskImpactCategoryID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("risk impact category does not exist"), "not_exist", "risk impact category")
 	}
 
+	// Validate RiskMatrixImpactID
+	if _, err := rmigs.riskMatrixImpactSvc.GetByID(riskMatrixImpactGuidelineUpdateFormDTO.RiskMatrixImpactID); err != nil {
+		return utility.NewValidationError(fmt.Errorf("risk matrix impact does not exist"), "not_exist", "risk matrix impact")
+	}
+
 	// Validate Guideline
 	if len(riskMatrixImpactGuidelineUpdateFormDTO.Guideline) == 0 {
 		return utility.NewValidationError(fmt.Errorf("guideline is required"), "required", "guideline")
+	}
+
+	// Check if this combination of category and impact already exists (excluding current record)
+	exists, err := rmigs.repo.ExistsByCategoryAndImpact(riskMatrixImpactGuidelineUpdateFormDTO.RiskImpactCategoryID, riskMatrixImpactGuidelineUpdateFormDTO.RiskMatrixImpactID, id)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return utility.NewValidationError(fmt.Errorf("guideline for this category and impact combination already exists"), "duplicate", "category_impact_combination")
 	}
 
 	return nil
