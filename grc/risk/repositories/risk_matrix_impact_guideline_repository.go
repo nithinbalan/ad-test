@@ -14,6 +14,7 @@ type RiskMatrixImpactGuidelineRepositoryInterface interface {
 	GetAll(params *riskDTOs.RiskMatrixImpactGuidelineListQueryParamsDTO) (*riskDTOs.RiskMatrixImpactGuidelineListResponseDTO, error)
 	GetByID(id uint) (*models.RiskMatrixImpactGuideline, error)
 	GetFullDetailsByID(id uint) (*models.RiskMatrixImpactGuideline, error)
+	GetByCategoryAndImpact(categoryID uint, impactID uint) ([]*models.RiskMatrixImpactGuideline, error)
 	Create(guidelines []*models.RiskMatrixImpactGuideline, tx ...utility.DatabaseTransaction) ([]uint, error)
 	Update(riskMatrixImpactGuideline *models.RiskMatrixImpactGuideline) error
 	Delete(id uint) error
@@ -196,6 +197,17 @@ func (repo *RiskMatrixImpactGuidelineRepository) Delete(id uint) error {
 	}
 
 	return nil
+}
+
+// GetByCategoryAndImpact fetches all guidelines for a given category and impact combination
+func (repo *RiskMatrixImpactGuidelineRepository) GetByCategoryAndImpact(categoryID uint, impactID uint) ([]*models.RiskMatrixImpactGuideline, error) {
+	var guidelines []*models.RiskMatrixImpactGuideline
+
+	if err := repo.db.Where("risk_impact_category_id = ? AND risk_matrix_impact_id = ?", categoryID, impactID).Find(&guidelines).Error; err != nil {
+		return nil, err
+	}
+
+	return guidelines, nil
 }
 
 // ExistsByCategoryAndImpact checks if a guideline with the given category and impact combination already exists

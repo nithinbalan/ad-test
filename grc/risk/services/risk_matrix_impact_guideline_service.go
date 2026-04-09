@@ -17,7 +17,8 @@ type RiskMatrixImpactGuidelineServiceInterface interface {
 	GetAll(params *riskDTOs.RiskMatrixImpactGuidelineListQueryParamsDTO) (*riskDTOs.RiskMatrixImpactGuidelineListResponseDTO, error)
 	GetFullDetailsByID(id uint) (*riskDTOs.RiskMatrixImpactGuidelineDetailsDTO, error)
 	GetByID(id uint) (*models.RiskMatrixImpactGuideline, error)
-	Create(currentUserID uint, riskMatrixImpactGuidelineFormDTO *riskDTOs.RiskMatrixImpactGuidelineFormDTO) ([]uint, error)
+	GetByCategoryAndImpact(categoryID uint, impactID uint) ([]*models.RiskMatrixImpactGuideline, error)
+	Create(currentUserID uint, riskMatrixImpactGuidelineUpdateFormDTO *riskDTOs.RiskMatrixImpactGuidelineUpdateFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, riskMatrixImpactGuidelineUpdateFormDTO *riskDTOs.RiskMatrixImpactGuidelineUpdateFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 }
@@ -83,52 +84,51 @@ func (rmigs RiskMatrixImpactGuidelineService) GetFullDetailsByID(id uint) (*risk
 	return &riskMatrixImpactGuidelineDTO, nil
 }
 
-func (rmigs *RiskMatrixImpactGuidelineService) Create(currentUserID uint, riskMatrixImpactGuidelineFormDTO *riskDTOs.RiskMatrixImpactGuidelineFormDTO) ([]uint, error) {
+func (rmigs *RiskMatrixImpactGuidelineService) GetByCategoryAndImpact(categoryID uint, impactID uint) ([]*models.RiskMatrixImpactGuideline, error) {
+	return rmigs.repo.GetByCategoryAndImpact(categoryID, impactID)
+}
+
+func (rmigs *RiskMatrixImpactGuidelineService) Create(currentUserID uint, riskMatrixImpactGuidelineUpdateFormDTO *riskDTOs.RiskMatrixImpactGuidelineUpdateFormDTO) (uint, error) {
 	tx := rmigs.repo.BeginTransaction()
 
-	if err := rmigs.validateRiskMatrixImpactGuidelineFormDTO(riskMatrixImpactGuidelineFormDTO); err != nil {
-		return nil, err
+	if err := rmigs.validateRiskMatrixImpactGuidelineUpdateFormDTO(riskMatrixImpactGuidelineUpdateFormDTO, 0); err != nil {
+		return 0, err
 	}
 
-	// Create a slice to store the data to be created
-	var guidelinesToCreate []*models.RiskMatrixImpactGuideline
-	// Iterate over each guideline in the form DTO and prepare the data
-	for _, guideline := range riskMatrixImpactGuidelineFormDTO.Guidelines {
-		guideline := &models.RiskMatrixImpactGuideline{
-			RiskImpactCategoryID: riskMatrixImpactGuidelineFormDTO.RiskImpactCategoryID,
-			RiskMatrixImpactID:   riskMatrixImpactGuidelineFormDTO.RiskMatrixImpactID,
-			Guideline:            guideline,
-			Status:               riskMatrixImpactGuidelineFormDTO.Status,
-			CreatedByID:          currentUserID,
-		}
-		guidelinesToCreate = append(guidelinesToCreate, guideline)
+	// Create single guideline with active status
+	guideline := &models.RiskMatrixImpactGuideline{
+		RiskImpactCategoryID: riskMatrixImpactGuidelineUpdateFormDTO.RiskImpactCategoryID,
+		RiskMatrixImpactID:   riskMatrixImpactGuidelineUpdateFormDTO.RiskMatrixImpactID,
+		Guideline:            riskMatrixImpactGuidelineUpdateFormDTO.Guideline,
+		Status:               "active",
+		CreatedByID:          currentUserID,
 	}
 
-	// Call the repository method to create the records in batch
-	ids, err := rmigs.repo.Create(guidelinesToCreate, tx)
+	// Call the repository method to create the record
+	ids, err := rmigs.repo.Create([]*models.RiskMatrixImpactGuideline{guideline}, tx)
 
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return 0, err
 	}
 
 	go func() {
-		err := rmigs.activityLogSvc.LogBulkActivities(
+		err := rmigs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.RiskMatrixImpactGuideline{}.TableName(),
-			ids,
-			guidelinesToCreate,
+			ids[0],
+			guideline,
 			currentUserID,
-			nil,
+			"", "", "", nil,
 		)
 		if err != nil {
 			// @todo - save to log file
-			fmt.Printf("Failed to log bulk activity: %v\n", err)
+			fmt.Printf("Failed to log activity: %v\n", err)
 		}
 	}()
 	tx.Commit()
 
-	return ids, nil
+	return ids[0], nil
 }
 
 func (rmigs *RiskMatrixImpactGuidelineService) Update(id uint, currentUserID uint, riskMatrixImpactGuidelineUpdateFormDTO *riskDTOs.RiskMatrixImpactGuidelineUpdateFormDTO) error {
