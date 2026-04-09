@@ -95,8 +95,8 @@ func (rmigc *RiskMatrixImpactGuidelineController) GetRiskMatrixImpactGuidelineDe
 
 func (rmigc *RiskMatrixImpactGuidelineController) CreateRiskMatrixImpactGuideline(c *gin.Context) {
 
-	var riskMatrixImpactGuidelineFormDTO riskDTOs.RiskMatrixImpactGuidelineFormDTO
-	if err := c.ShouldBindJSON(&riskMatrixImpactGuidelineFormDTO); err != nil {
+	var riskMatrixImpactGuidelineUpdateFormDTO riskDTOs.RiskMatrixImpactGuidelineUpdateFormDTO
+	if err := c.ShouldBindJSON(&riskMatrixImpactGuidelineUpdateFormDTO); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
@@ -106,7 +106,7 @@ func (rmigc *RiskMatrixImpactGuidelineController) CreateRiskMatrixImpactGuidelin
 		return
 	}
 
-	ids, err := rmigc.service.Create(currentUserID, &riskMatrixImpactGuidelineFormDTO)
+	id, err := rmigc.service.Create(currentUserID, &riskMatrixImpactGuidelineUpdateFormDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -118,7 +118,7 @@ func (rmigc *RiskMatrixImpactGuidelineController) CreateRiskMatrixImpactGuidelin
 		}
 	}
 
-	c.JSON(http.StatusCreated, commonDTOs.SuccessfulIDsResponse{SuccessfulIds: ids})
+	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }
 
 func (rmigc *RiskMatrixImpactGuidelineController) UpdateRiskMatrixImpactGuideline(c *gin.Context) {

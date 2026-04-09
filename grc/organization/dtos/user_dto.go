@@ -41,7 +41,7 @@ type UserListDTO struct {
 	UserStatusTitleAr        string  `json:"user_status_title_ar"`
 	UserStatusColorCode      string  `json:"user_status_color_code"`
 	UserStatusIsActive       bool    `json:"user_status_is_active"`
-    ReportingUsersCount      int     `json:"reporting_users_count"`
+	ReportingUsersCount      int     `json:"reporting_users_count"`
 }
 
 type UserListQueryParamsDTO struct {
@@ -217,6 +217,7 @@ type CurrentUserDetailsDTO struct {
 	OrganizationUnit4ID *uint                      `json:"organization_unit_4_id"`
 	OrganizationUnit5ID *uint                      `json:"organization_unit_5_id"`
 	LicenseType         *masterDTOs.LicenseTypeDTO `json:"license_type"`
+	IsHead              bool                       `json:"is_head"`
 
 	// Relationship DTOs
 	OrganizationUnit1 *settingDTOs.OrganizationUnitDTO `json:"organization_unit_1"`
