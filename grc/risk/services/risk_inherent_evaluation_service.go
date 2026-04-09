@@ -209,7 +209,6 @@ func (ries *RiskInherentEvaluationService) Create(
 			RiskEvaluationID:     id,
 			RiskImpactCategoryID: impactEval.RiskImpactCategoryID,
 			RiskMatrixImpactID:   impactEval.RiskMatrixImpactID,
-			IsSelected:           impactEval.IsSelected,
 			CreatedByID:          currentUserID,
 		}
 
@@ -219,10 +218,18 @@ func (ries *RiskInherentEvaluationService) Create(
 			return 0, err
 		}
 
-		for _, guidelineID := range impactEval.RiskMatrixImpactGuidelineIDs {
+		// Auto-fetch guidelines based on category and impact combination
+		guidelines, err := ries.riskMatrixImpactGuidelineSvc.GetByCategoryAndImpact(impactEval.RiskImpactCategoryID, impactEval.RiskMatrixImpactID)
+		if err != nil {
+			transaction.Rollback()
+			return 0, err
+		}
+
+		// Store all fetched guidelines
+		for _, guideline := range guidelines {
 			riskImpactAnalysisGuideline := &models.RiskImpactAnalysisGuideline{
 				RiskImpactAnalysisID:        riskImpactEvaluation.ID,
-				RiskMatrixImpactGuidelineID: guidelineID,
+				RiskMatrixImpactGuidelineID: guideline.ID,
 			}
 			err := ries.repo.CreateRiskImpactAnalysisGuideline(riskImpactAnalysisGuideline, transaction)
 			if err != nil {
@@ -424,7 +431,6 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 			RiskEvaluationID:     id,
 			RiskImpactCategoryID: impactEval.RiskImpactCategoryID,
 			RiskMatrixImpactID:   impactEval.RiskMatrixImpactID,
-			IsSelected:           impactEval.IsSelected,
 			CreatedByID:          currentUserID,
 		}
 		riskImpactAnalysis = append(riskImpactAnalysis, riskImpactEvaluation)
@@ -434,10 +440,18 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 			return err
 		}
 
-		for _, guidelineID := range impactEval.RiskMatrixImpactGuidelineIDs {
+		// Auto-fetch guidelines based on category and impact combination
+		guidelines, err := ries.riskMatrixImpactGuidelineSvc.GetByCategoryAndImpact(impactEval.RiskImpactCategoryID, impactEval.RiskMatrixImpactID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// Store all fetched guidelines
+		for _, guideline := range guidelines {
 			riskImpactAnalysisGuideline := &models.RiskImpactAnalysisGuideline{
 				RiskImpactAnalysisID:        riskImpactEvaluation.ID,
-				RiskMatrixImpactGuidelineID: guidelineID,
+				RiskMatrixImpactGuidelineID: guideline.ID,
 			}
 			err := ries.repo.CreateRiskImpactAnalysisGuideline(riskImpactAnalysisGuideline, tx)
 			if err != nil {
@@ -662,11 +676,6 @@ func (ries *RiskInherentEvaluationService) validateRiskInherentEvaluationFormDTO
 		}
 		if _, err := ries.riskMatrixImpactSvc.GetByID(uint(impactEval.RiskMatrixImpactID)); err != nil {
 			return utility.NewValidationError(fmt.Errorf("risk matrix impact does not exist"), "not_exist", "risk matrix impact")
-		}
-		for _, impactGuidelineID := range impactEval.RiskMatrixImpactGuidelineIDs {
-			if _, err := ries.riskMatrixImpactGuidelineSvc.GetByID(uint(impactGuidelineID)); err != nil {
-				return utility.NewValidationError(fmt.Errorf("risk matrix impact guideline does not exist"), "not_exist", "risk matrix impact guideline")
-			}
 		}
 	}
 

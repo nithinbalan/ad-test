@@ -16,7 +16,6 @@ type RiskImpactAnalysisDTO struct {
 	RiskEvaluationID             uint                             `json:"risk_evaluation_id"`
 	RiskImpactCategory           RiskImpactCategoryDTO            `json:"risk_impact_category"`
 	RiskMatrixImpact             RiskMatrixImpactDTO              `json:"risk_matrix_impact"`
-	IsSelected                   bool                             `json:"is_selected"`
 	RiskImpactAnalysisGuidelines []RiskImpactAnalysisGuidelineDTO `json:"risk_impact_analysis_guidelines"`
 }
 
@@ -44,10 +43,8 @@ type RiskInherentEvaluationFormDTO struct {
 }
 
 type RiskImpactAnalysisFormDTO struct {
-	RiskMatrixImpactGuidelineIDs []uint `json:"risk_matrix_impact_guideline_ids"`
-	RiskImpactCategoryID         uint   `json:"risk_impact_category_id"`
-	RiskMatrixImpactID           uint   `json:"risk_matrix_impact_id"`
-	IsSelected                   bool   `json:"is_selected"`
+	RiskImpactCategoryID uint `json:"risk_impact_category_id"`
+	RiskMatrixImpactID   uint `json:"risk_matrix_impact_id"`
 }
 
 type RiskAppetiteAlignmentFormDTO struct {

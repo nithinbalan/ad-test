@@ -17,6 +17,7 @@ type RiskMatrixImpactGuidelineServiceInterface interface {
 	GetAll(params *riskDTOs.RiskMatrixImpactGuidelineListQueryParamsDTO) (*riskDTOs.RiskMatrixImpactGuidelineListResponseDTO, error)
 	GetFullDetailsByID(id uint) (*riskDTOs.RiskMatrixImpactGuidelineDetailsDTO, error)
 	GetByID(id uint) (*models.RiskMatrixImpactGuideline, error)
+	GetByCategoryAndImpact(categoryID uint, impactID uint) ([]*models.RiskMatrixImpactGuideline, error)
 	Create(currentUserID uint, riskMatrixImpactGuidelineFormDTO *riskDTOs.RiskMatrixImpactGuidelineFormDTO) ([]uint, error)
 	Update(id uint, currentUserID uint, riskMatrixImpactGuidelineUpdateFormDTO *riskDTOs.RiskMatrixImpactGuidelineUpdateFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -81,6 +82,10 @@ func (rmigs RiskMatrixImpactGuidelineService) GetFullDetailsByID(id uint) (*risk
 	//todo :- also add extra fields which required in details screen
 
 	return &riskMatrixImpactGuidelineDTO, nil
+}
+
+func (rmigs *RiskMatrixImpactGuidelineService) GetByCategoryAndImpact(categoryID uint, impactID uint) ([]*models.RiskMatrixImpactGuideline, error) {
+	return rmigs.repo.GetByCategoryAndImpact(categoryID, impactID)
 }
 
 func (rmigs *RiskMatrixImpactGuidelineService) Create(currentUserID uint, riskMatrixImpactGuidelineFormDTO *riskDTOs.RiskMatrixImpactGuidelineFormDTO) ([]uint, error) {
