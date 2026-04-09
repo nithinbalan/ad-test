@@ -209,6 +209,7 @@ func (ries *RiskInherentEvaluationService) Create(
 			RiskEvaluationID:     id,
 			RiskImpactCategoryID: impactEval.RiskImpactCategoryID,
 			RiskMatrixImpactID:   impactEval.RiskMatrixImpactID,
+			IsSelected:           impactEval.IsSelected,
 			CreatedByID:          currentUserID,
 		}
 
@@ -423,6 +424,7 @@ func (ries *RiskInherentEvaluationService) Update(riskID uint, id uint, currentU
 			RiskEvaluationID:     id,
 			RiskImpactCategoryID: impactEval.RiskImpactCategoryID,
 			RiskMatrixImpactID:   impactEval.RiskMatrixImpactID,
+			IsSelected:           impactEval.IsSelected,
 			CreatedByID:          currentUserID,
 		}
 		riskImpactAnalysis = append(riskImpactAnalysis, riskImpactEvaluation)
