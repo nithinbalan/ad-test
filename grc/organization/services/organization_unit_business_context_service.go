@@ -87,13 +87,12 @@ func (s *OrganizationUnitBusinessContextService) Create(departmentID uint, curre
 
 	now := time.Now()
 	context := &models.OrganizationUnitBusinessContext{
-		DepartmentID:          departmentID,
-		InternalAuditNote:     contextForm.InternalAuditNote,
-		ExternalContext:       contextForm.ExternalContext,
-		OtherFieldHeader:      contextForm.OtherFieldHeader,
-		OtherFieldDescription: contextForm.OtherFieldDescription,
-		CreatedBYID:           currentUserID,
-		CreatedAt:             now,
+		DepartmentID:               departmentID,
+		InternalAuditNote:          contextForm.InternalAuditNote,
+		ExternalContext:            contextForm.ExternalContext,
+		AnnualObjectiveDescription: contextForm.AnnualObjectiveDescription,
+		CreatedBYID:                currentUserID,
+		CreatedAt:                  now,
 	}
 
 	createdID, err := s.repo.Create(context)
@@ -136,12 +135,11 @@ func (s *OrganizationUnitBusinessContextService) Update(departmentID uint, curre
 
 	now := time.Now()
 	updatedContext := &models.OrganizationUnitBusinessContext{
-		InternalAuditNote:     contextForm.InternalAuditNote,
-		ExternalContext:       contextForm.ExternalContext,
-		OtherFieldHeader:      contextForm.OtherFieldHeader,
-		OtherFieldDescription: contextForm.OtherFieldDescription,
-		UpdatedBYID:           &currentUserID,
-		UpdatedAt:             &now,
+		InternalAuditNote:          contextForm.InternalAuditNote,
+		ExternalContext:            contextForm.ExternalContext,
+		AnnualObjectiveDescription: contextForm.AnnualObjectiveDescription,
+		UpdatedBYID:                &currentUserID,
+		UpdatedAt:                  &now,
 	}
 
 	err = s.repo.Update(departmentID, updatedContext)

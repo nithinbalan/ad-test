@@ -11,8 +11,7 @@ type OrganizationUnitBusinessContextListDTO struct {
 	DepartmentTitleAr           string     `json:"department_title_ar"`
 	InternalAuditNote           *string    `json:"internal_audit_note"`
 	ExternalContext             *string    `json:"external_context"`
-	OtherFieldHeader            *string    `json:"other_field_header"`
-	OtherFieldDescription       *string    `json:"other_field_description"`
+	AnnualObjectiveDescription  *string    `json:"annual_objective_description"`
 	CreatedAt                   time.Time  `json:"created_at"`
 	UpdatedAt                   *time.Time `json:"updated_at"`
 	CreatedUserID               uint       `json:"created_user_id"`
@@ -46,22 +45,20 @@ type OrganizationUnitBusinessContextListResponseDTO struct {
 }
 
 type OrganizationUnitBusinessContextDetailDTO struct {
-	ID                    uint                 `json:"id"`
-	DepartmentID          uint                 `json:"department_id"`
-	Department            *OrganizationUnitDTO `json:"department"`
-	InternalAuditNote     *string              `json:"internal_audit_note"`
-	ExternalContext       *string              `json:"external_context"`
-	OtherFieldHeader      *string              `json:"other_field_header"`
-	OtherFieldDescription *string              `json:"other_field_description"`
-	CreatedAt             time.Time            `json:"created_at"`
-	UpdatedAt             *time.Time           `json:"updated_at"`
-	CreatedByUser         UserMinimalDTO       `json:"created_by"`
-	UpdatedByUser         *UserMinimalDTO      `json:"updated_by"`
+	ID                         uint                 `json:"id"`
+	DepartmentID               uint                 `json:"department_id"`
+	Department                 *OrganizationUnitDTO `json:"department"`
+	InternalAuditNote          *string              `json:"internal_audit_note"`
+	ExternalContext            *string              `json:"external_context"`
+	AnnualObjectiveDescription *string              `json:"annual_objective_description"`
+	CreatedAt                  time.Time            `json:"created_at"`
+	UpdatedAt                  *time.Time           `json:"updated_at"`
+	CreatedByUser              UserMinimalDTO       `json:"created_by"`
+	UpdatedByUser              *UserMinimalDTO      `json:"updated_by"`
 }
 
 type OrganizationUnitBusinessContextFormDTO struct {
-	InternalAuditNote     *string `json:"internal_audit_note"`
-	ExternalContext       *string `json:"external_context"`
-	OtherFieldHeader      *string `json:"other_field_header"`
-	OtherFieldDescription *string `json:"other_field_description"`
+	InternalAuditNote          *string `json:"internal_audit_note"`
+	ExternalContext            *string `json:"external_context"`
+	AnnualObjectiveDescription *string `json:"annual_objective_description"`
 }
