@@ -59,7 +59,7 @@ func (s *RiskSubCategoryService) Create(currentUserID uint, riskSubCategoryFormD
 		TitleAr:        riskSubCategoryFormDTO.TitleAr,
 		DescriptionEn:  riskSubCategoryFormDTO.DescriptionEn,
 		DescriptionAr:  riskSubCategoryFormDTO.DescriptionAr,
-		Status:         riskSubCategoryFormDTO.Status,
+		Status:         "active",
 	}
 
 	createdItem, err := s.repo.Create(item)
@@ -115,14 +115,13 @@ func (s *RiskSubCategoryService) Update(id uint, currentUserID uint, riskSubCate
 	existingItem.TitleAr = riskSubCategoryFormDTO.TitleAr
 	existingItem.DescriptionEn = riskSubCategoryFormDTO.DescriptionEn
 	existingItem.DescriptionAr = riskSubCategoryFormDTO.DescriptionAr
-	existingItem.Status = riskSubCategoryFormDTO.Status
 
 	_, err = s.repo.Update(id, existingItem)
 	if err != nil {
 		return err
 	}
 
-	fieldsToCompare := []string{"RiskCategoryID", "TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr", "Status"}
+	fieldsToCompare := []string{"RiskCategoryID", "TitleEn", "TitleAr", "DescriptionEn", "DescriptionAr"}
 	changes, err := utility.CompareFields(itemForCompare, existingItem, fieldsToCompare)
 	if err != nil {
 		log.Println("error :", err.Error())

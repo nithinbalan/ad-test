@@ -19,7 +19,6 @@ type RiskSubCategoryFormDTO struct {
 	TitleAr        string  `json:"title_ar" binding:"required,max=100" gorm:"type:nvarchar(100);not null"`
 	DescriptionEn  *string `json:"description_en"`
 	DescriptionAr  *string `json:"description_ar"`
-	Status         string  `json:"status" binding:"required,max=10,oneof=active inactive" gorm:"type:varchar(10);not null"`
 }
 
 type RiskSubCategoryListQueryParamsDTO struct {
