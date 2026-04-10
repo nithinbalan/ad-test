@@ -12,6 +12,8 @@ type RiskModule struct {
 	RiskCategoryController                *controllers.RiskCategoryController
 	PotentialRiskStatusController         *controllers.PotentialRiskStatusController
 	RiskLevelController                   *controllers.RiskLevelController
+	LevelOfMeasurementController          *controllers.LevelOfMeasurementController
+	DistributionStatusController          *controllers.DistributionStatusController
 	PotentialRiskController               *controllers.PotentialRiskController
 	PotentialRiskStatusUpdateController   *controllers.PotentialRiskStatusUpdateController
 	KriCategoryController                 *controllers.KRICategoryController
@@ -84,6 +86,14 @@ func NewRiskModule(db *gorm.DB,
 	riskLevelRepo := repositories.NewRiskLevelRepository(db)
 	riskLevelSvc := services.NewRiskLevelService(riskLevelRepo)
 	riskLevelController := controllers.NewRiskLevelController(riskLevelSvc)
+
+	levelOfMeasurementRepo := repositories.NewLevelOfMeasurementRepository(db)
+	levelOfMeasurementSvc := services.NewLevelOfMeasurementService(levelOfMeasurementRepo)
+	levelOfMeasurementController := controllers.NewLevelOfMeasurementController(levelOfMeasurementSvc)
+
+	distributionStatusRepo := repositories.NewDistributionStatusRepository(db)
+	distributionStatusSvc := services.NewDistributionStatusService(distributionStatusRepo)
+	distributionStatusController := controllers.NewDistributionStatusController(distributionStatusSvc)
 
 	kriCategoryRepository := repositories.NewKRICategoryRepository(db)
 	kriCategorySvc := services.NewKRICategoryService(kriCategoryRepository, sharedModule.ActivityLogService)
@@ -373,6 +383,8 @@ func NewRiskModule(db *gorm.DB,
 		RiskCategoryController:                riskCategoryController,
 		PotentialRiskStatusController:         potentialRiskStatusController,
 		RiskLevelController:                   riskLevelController,
+		LevelOfMeasurementController:          levelOfMeasurementController,
+		DistributionStatusController:          distributionStatusController,
 		PotentialRiskController:               potentialRiskController,
 		PotentialRiskStatusUpdateController:   potentialRiskStatusUpdateController,
 		KriCategoryController:                 kriCategoryController,

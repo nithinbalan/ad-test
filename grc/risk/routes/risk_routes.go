@@ -19,6 +19,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskCategoryController := app.RiskModule.RiskCategoryController
 	potentialRiskStatusController := app.RiskModule.PotentialRiskStatusController
 	riskLevelController := app.RiskModule.RiskLevelController
+	levelOfMeasurementController := app.RiskModule.LevelOfMeasurementController
+	distributionStatusController := app.RiskModule.DistributionStatusController
 	potentialRiskController := app.RiskModule.PotentialRiskController
 	potentialRiskStatusUpdateController := app.RiskModule.PotentialRiskStatusUpdateController
 	kriCategoryController := app.RiskModule.KriCategoryController
@@ -78,6 +80,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	riskRoutes.GET("/risk-levels", riskLevelController.GetAllRiskLevels)
 	riskRoutes.GET("/risk-levels/:id", riskLevelController.GetRiskLevelDetails)
+
+	riskRoutes.GET("/level-of-measurements", levelOfMeasurementController.GetAllLevelOfMeasurements)
+	riskRoutes.GET("/level-of-measurements/:id", levelOfMeasurementController.GetLevelOfMeasurementDetails)
+
+	riskRoutes.GET("/distribution-statuses", distributionStatusController.GetAllDistributionStatuses)
+	riskRoutes.GET("/distribution-statuses/:id", distributionStatusController.GetDistributionStatusDetails)
 
 	riskRoutes.GET("/potential-risks/:id/status-updates", middlewares.RolePermissionMiddleware(db, "potential_risk", "view"), potentialRiskStatusUpdateController.GetAllPotentialRiskStatusUpdates)
 	riskRoutes.POST("/potential-risks/:id/status-updates", middlewares.RolePermissionMiddleware(db, "potential_risk", "modify"), potentialRiskStatusUpdateController.CreatePotentialRiskStatusUpdate)
