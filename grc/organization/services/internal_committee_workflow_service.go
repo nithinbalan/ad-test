@@ -98,6 +98,7 @@ func (icws *InternalCommitteeWorkflowService) GetInternalCommitteeWorkflowList(i
 		ID:                         committeeWorkflow.ID,
 		InternalCommitteeID:        committeeWorkflow.ID,
 		InternalCommitteeVersionID: 0,
+		NextReviewLevel:            nil,
 		SubmittedAt:                nil,
 		SubmittedByUser:            nil,
 		Workflows:                  []*organizationDTOs.WorkflowListDTO{},
@@ -108,6 +109,7 @@ func (icws *InternalCommitteeWorkflowService) GetInternalCommitteeWorkflowList(i
 		for _, version := range committeeWorkflow.InternalCommitteeVersions {
 			if version.IsLatestVersion != nil && *version.IsLatestVersion {
 				dto.InternalCommitteeVersionID = version.ID
+				dto.NextReviewLevel = version.NextReviewLevel
 				dto.SubmittedAt = version.SubmittedAt
 				dto.SubmittedByUser = icws.mapUserToDTO(version.SubmittedByUser)
 				break

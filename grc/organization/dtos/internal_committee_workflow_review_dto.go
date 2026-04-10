@@ -9,6 +9,7 @@ type InternalCommitteeWorkflowListDTO struct {
 	ID                         uint                                   `json:"id"`
 	InternalCommitteeID        uint                                   `json:"internal_committee_id"`
 	InternalCommitteeVersionID uint                                   `json:"internal_committee_version_id"`
+	NextReviewLevel            *int                                   `json:"next_review_level"`
 	SubmittedAt                *time.Time                             `json:"submitted_at"`
 	SubmittedByUser            *UserMinimalDTO                        `json:"submitted_by"`
 	Workflows                  []*WorkflowListDTO                     `json:"workflows"`
