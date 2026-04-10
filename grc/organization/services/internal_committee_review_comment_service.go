@@ -9,6 +9,7 @@ import (
 	"jethur/grc/organization/dtos"
 	"jethur/grc/organization/repositories"
 	"jethur/utility"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -215,6 +216,7 @@ func (service *InternalCommitteeReviewCommentService) Create(committeeID uint, c
 		InternalCommitteeVersionID: latestVersionID,
 		ParentCommentID:            formDTO.ParentCommentID,
 		CreatedBYID:                currentUserID,
+		CreatedAt:                  time.Now(),
 	}
 
 	id, err := service.repo.Create(comment)
