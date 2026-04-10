@@ -19,6 +19,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskCategoryController := app.RiskModule.RiskCategoryController
 	potentialRiskStatusController := app.RiskModule.PotentialRiskStatusController
 	riskLevelController := app.RiskModule.RiskLevelController
+	riskSubCategoryController := app.RiskModule.RiskSubCategoryController
 	levelOfMeasurementController := app.RiskModule.LevelOfMeasurementController
 	distributionStatusController := app.RiskModule.DistributionStatusController
 	potentialRiskController := app.RiskModule.PotentialRiskController
@@ -67,6 +68,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("/risk-categories/delete", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskCategoryController.DeleteRiskCategories)
 	riskRoutes.PUT("/risk-categories/activate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskCategoryController.ActivateRiskCategories)
 	riskRoutes.PUT("/risk-categories/deactivate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskCategoryController.DeactivateRiskCategories)
+
+	riskRoutes.GET("/risk-sub-categories", riskSubCategoryController.GetAllRiskSubCategories)
+	riskRoutes.GET("/risk-sub-categories/:id", riskSubCategoryController.GetRiskSubCategoryDetails)
+	riskRoutes.POST("/risk-sub-categories", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskSubCategoryController.CreateRiskSubCategory)
+	riskRoutes.PUT("/risk-sub-categories/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskSubCategoryController.UpdateRiskSubCategory)
+	riskRoutes.POST("/risk-sub-categories/delete", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskSubCategoryController.DeleteRiskSubCategories)
+	riskRoutes.PUT("/risk-sub-categories/activate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskSubCategoryController.ActivateRiskSubCategories)
+	riskRoutes.PUT("/risk-sub-categories/deactivate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), riskSubCategoryController.DeactivateRiskSubCategories)
 
 	riskRoutes.GET("/potential-risk-statuses", potentialRiskStatusController.GetAllPotentialRiskStatuses)
 	riskRoutes.GET("/potential-risk-statuses/:id", potentialRiskStatusController.GetPotentialRiskStatusDetails)

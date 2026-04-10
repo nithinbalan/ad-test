@@ -12,6 +12,7 @@ type RiskModule struct {
 	RiskCategoryController                *controllers.RiskCategoryController
 	PotentialRiskStatusController         *controllers.PotentialRiskStatusController
 	RiskLevelController                   *controllers.RiskLevelController
+	RiskSubCategoryController             *controllers.RiskSubCategoryController
 	LevelOfMeasurementController          *controllers.LevelOfMeasurementController
 	DistributionStatusController          *controllers.DistributionStatusController
 	PotentialRiskController               *controllers.PotentialRiskController
@@ -86,6 +87,10 @@ func NewRiskModule(db *gorm.DB,
 	riskLevelRepo := repositories.NewRiskLevelRepository(db)
 	riskLevelSvc := services.NewRiskLevelService(riskLevelRepo)
 	riskLevelController := controllers.NewRiskLevelController(riskLevelSvc)
+
+	riskSubCategoryRepo := repositories.NewRiskSubCategoryRepository(db)
+	riskSubCategorySvc := services.NewRiskSubCategoryService(riskSubCategoryRepo, riskCategoryRepo, sharedModule.ActivityLogService)
+	riskSubCategoryController := controllers.NewRiskSubCategoryController(riskSubCategorySvc)
 
 	levelOfMeasurementRepo := repositories.NewLevelOfMeasurementRepository(db)
 	levelOfMeasurementSvc := services.NewLevelOfMeasurementService(levelOfMeasurementRepo)
@@ -383,6 +388,7 @@ func NewRiskModule(db *gorm.DB,
 		RiskCategoryController:                riskCategoryController,
 		PotentialRiskStatusController:         potentialRiskStatusController,
 		RiskLevelController:                   riskLevelController,
+		RiskSubCategoryController:             riskSubCategoryController,
 		LevelOfMeasurementController:          levelOfMeasurementController,
 		DistributionStatusController:          distributionStatusController,
 		PotentialRiskController:               potentialRiskController,
