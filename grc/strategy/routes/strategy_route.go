@@ -184,11 +184,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	strategyRoutes.GET("/strategic-objectives", strategicObjectiveController.GetAllStrategicObjectives)
 	strategyRoutes.GET("/strategic-objectives/:id", strategicObjectiveController.GetStrategicObjectiveDetails)
-	strategyRoutes.POST("/strategic-objectives", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveController.CreateStrategicObjective)
-	strategyRoutes.PUT("/strategic-objectives/:id", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveController.UpdateStrategicObjective)
-	strategyRoutes.POST("/strategic-objectives/delete", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveController.DeleteStrategicObjectives)
-	strategyRoutes.PUT("/strategic-objectives/activate", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveController.ActivateStrategicObjectives)
-	strategyRoutes.PUT("/strategic-objectives/deactivate", middlewares.RolePermissionMiddleware(db, "strategy_profile", "modify"), strategicObjectiveController.DeactivateStrategicObjectives)
+	strategyRoutes.POST("/strategic-objectives", middlewares.RolePermissionMiddleware(db, "strategic_profile", "modify"), strategicObjectiveController.CreateStrategicObjective)
+	strategyRoutes.PUT("/strategic-objectives/:id", middlewares.RolePermissionMiddleware(db, "strategic_profile", "modify"), strategicObjectiveController.UpdateStrategicObjective)
+	strategyRoutes.POST("/strategic-objectives/delete", middlewares.RolePermissionMiddleware(db, "strategic_profile", "modify"), strategicObjectiveController.DeleteStrategicObjectives)
+	strategyRoutes.PUT("/strategic-objectives/activate", middlewares.RolePermissionMiddleware(db, "strategic_profile", "modify"), strategicObjectiveController.ActivateStrategicObjectives)
+	strategyRoutes.PUT("/strategic-objectives/deactivate", middlewares.RolePermissionMiddleware(db, "strategic_profile", "modify"), strategicObjectiveController.DeactivateStrategicObjectives)
 	strategyRoutes.GET("/strategic-objectives/:id/focus-areas", strategicObjectiveController.GetFocusAreasByStrategicObjectiveID)
 	strategyRoutes.GET("/strategic-objectives/:id/risk-summary", strategicObjectiveController.GetRiskSummary)
 
