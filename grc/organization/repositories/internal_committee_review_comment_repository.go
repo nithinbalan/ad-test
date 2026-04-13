@@ -95,6 +95,27 @@ func (repo *InternalCommitteeReviewCommentRepository) GetAll(committeeVersionID 
 		return nil, err
 	}
 
+	for _, comment := range comments {
+
+		var documents []*dtos.InternalCommitteeReviewCommentDocumentDTO
+
+		err := repo.db.
+			Table("internal_committee_review_comment_documents").
+			Select("id, url, name, original_name, token, type, size").
+			Where("internal_committee_review_comment_id = ?", comment.ID).
+			Scan(&documents).Error
+
+		if err != nil {
+			return nil, err
+		}
+
+		if documents == nil {
+			documents = []*dtos.InternalCommitteeReviewCommentDocumentDTO{}
+		}
+
+		comment.Documents = documents
+	}
+
 	// Count query
 	countQuery := repo.db.
 		Table("internal_committee_review_comments").
