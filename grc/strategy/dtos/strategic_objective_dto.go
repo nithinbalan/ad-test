@@ -19,7 +19,7 @@ type StrategicObjectiveListDTO struct {
 	EndDate         *string `json:"end_date"`
 	Status          string  `json:"status"`
 
-	StrategicObjectiveCategoryID      uint   `json:"strategic_objective_category_id"`
+	StrategicObjectiveCategoryID      *uint  `json:"strategic_objective_category_id"`
 	StrategicObjectiveCategoryTitleEn string `json:"strategic_objective_category_title_en"`
 	StrategicObjectiveCategoryTitleAr string `json:"strategic_objective_category_title_ar"`
 
@@ -71,7 +71,7 @@ type StrategicObjectiveListDTO struct {
 type StrategicObjectiveFormDTO struct {
 	TitleEn                      string  `json:"title_en" binding:"required"`
 	TitleAr                      string  `json:"title_ar" binding:"required"`
-	StrategicObjectiveCategoryID uint    `json:"strategic_objective_category_id" binding:"required"`
+	StrategicObjectiveCategoryID *uint   `json:"strategic_objective_category_id"`
 	DescriptionEn                *string `json:"description_en"`
 	DescriptionAr                *string `json:"description_ar"`
 	StartDate                    *string `json:"start_date"`
@@ -79,7 +79,7 @@ type StrategicObjectiveFormDTO struct {
 	ResponsibleUserID            *uint   `json:"responsible_user_id"`
 	ReviewUserID                 *uint   `json:"review_user_id"`
 	ReviewFrequencyID            *uint   `json:"review_frequency_id"`
-	Status                       string  `json:"status"`
+	Status                       string  `json:"status" binding:"omitempty,oneof=active inactive"`
 }
 
 type StrategicObjectiveListQueryParamsDTO struct {
@@ -104,7 +104,7 @@ type StrategicObjectiveDetailDTO struct {
 	StartDateString              *string                                `json:"start_date"`
 	EndDateString                *string                                `json:"end_date"`
 	Status                       string                                 `json:"status"`
-	StrategicObjectiveCategoryID uint                                   `json:"strategic_objective_category_id"`
+	StrategicObjectiveCategoryID *uint                                  `json:"strategic_objective_category_id"`
 	StrategicObjectiveCategory   *StrategicObjectiveCategoryDTO         `json:"strategic_objective_category"`
 	ResponsibleUserID            *uint                                  `json:"responsible_user_id"`
 	ResponsibleUser              *organizationDTOs.UserMinimalDTO       `json:"responsible_user"`

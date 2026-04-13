@@ -145,22 +145,27 @@ func (sos *StrategicObjectiveService) Create(currentUserID uint, dto *dtos.Strat
 		tx.Rollback()
 		return 0, err
 	}
-	var nextReviewDate time.Time
+	var nextReviewDate *time.Time
 	if dto.ReviewFrequencyID != nil {
 		reviewFrequency, err := sos.reviewFrequencySvc.GetByID(*dto.ReviewFrequencyID)
 		if err != nil {
 			return 0, err
 		}
-		nextReviewDate = utility.CalculateNextReviewDate(reviewFrequency.Type)
+		calculated := utility.CalculateNextReviewDate(reviewFrequency.Type)
+		nextReviewDate = &calculated
 	}
 	reviewStatus, err := sos.reviewStatusSvc.GetByType("review-pending")
 	if err != nil {
 		return 0, err
 	}
 
-	organizationUnitID, err := sos.userSvc.GetUserPrimaryUnitID(*dto.ResponsibleUserID)
-	if err != nil {
-		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
+	var organizationUnitID *uint
+	if dto.ResponsibleUserID != nil {
+		unitID, err := sos.userSvc.GetUserPrimaryUnitID(*dto.ResponsibleUserID)
+		if err != nil {
+			return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
+		}
+		organizationUnitID = &unitID
 	}
 
 	// Build model
@@ -174,11 +179,11 @@ func (sos *StrategicObjectiveService) Create(currentUserID uint, dto *dtos.Strat
 		StartDate:                    dates.StartDate,
 		EndDate:                      dates.EndDate,
 		ResponsibleUserID:            dto.ResponsibleUserID,
-		ResponsibleUnitID:            &organizationUnitID,
+		ResponsibleUnitID:            organizationUnitID,
 		ReviewUserID:                 dto.ReviewUserID,
 		ReviewFrequencyID:            dto.ReviewFrequencyID,
-		Status:                       dto.Status,
-		NextReviewDate:               &nextReviewDate,
+		Status:                       "active",
+		NextReviewDate:               nextReviewDate,
 		ReviewStatusID:               &reviewStatus.ID,
 		CreatedBYID:                  currentUserID,
 	}
@@ -246,13 +251,14 @@ func (sos *StrategicObjectiveService) Update(id uint, currentUserID uint, dto *d
 	if err != nil {
 		return err
 	}
-	var nextReviewDate time.Time
+	var nextReviewDate *time.Time
 	if dto.ReviewFrequencyID != nil {
 		reviewFrequency, err := sos.reviewFrequencySvc.GetByID(*dto.ReviewFrequencyID)
 		if err != nil {
 			return err
 		}
-		nextReviewDate = utility.CalculateNextReviewDate(reviewFrequency.Type)
+		calculated := utility.CalculateNextReviewDate(reviewFrequency.Type)
+		nextReviewDate = &calculated
 	}
 	// Update fields
 	existing.TitleEn = dto.TitleEn
@@ -265,8 +271,10 @@ func (sos *StrategicObjectiveService) Update(id uint, currentUserID uint, dto *d
 	existing.ResponsibleUserID = dto.ResponsibleUserID
 	existing.ReviewUserID = dto.ReviewUserID
 	existing.ReviewFrequencyID = dto.ReviewFrequencyID
-	existing.NextReviewDate = &nextReviewDate
-	existing.Status = dto.Status
+	existing.NextReviewDate = nextReviewDate
+	if dto.Status != "" {
+		existing.Status = dto.Status
+	}
 	existing.UpdatedBYID = &currentUserID
 
 	// Resolve Responsible Unit dynamically
@@ -413,9 +421,11 @@ func (sos *StrategicObjectiveService) UpdateStrategicObjective(strategicObjectiv
 
 func (sos *StrategicObjectiveService) validateStrategicObjectiveFormDTO(dto *dtos.StrategicObjectiveFormDTO) error {
 	// Example: validate required category
-	_, err := sos.strategicObjectiveCategorySvc.GetByID(dto.StrategicObjectiveCategoryID)
-	if err != nil {
-		return utility.NewValidationError(fmt.Errorf("invalid strategic objective category"), "not_exist", "strategic_objective_category")
+	if dto.StrategicObjectiveCategoryID != nil {
+		_, err := sos.strategicObjectiveCategorySvc.GetByID(*dto.StrategicObjectiveCategoryID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("invalid strategic objective category"), "not_exist", "strategic_objective_category")
+		}
 	}
 
 	// Validate responsible user exists if given
