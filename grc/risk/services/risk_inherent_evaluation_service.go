@@ -630,7 +630,7 @@ func (ries *RiskInherentEvaluationService) Delete(riskID uint, id uint, currentU
 	}
 
 	if len(tx) == 0 {
-		transaction.Rollback()
+		transaction.Commit()
 	}
 
 	// Log activity
