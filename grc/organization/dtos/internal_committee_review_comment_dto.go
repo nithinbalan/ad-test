@@ -14,8 +14,9 @@ type InternalCommitteeReviewCommentListDTO struct {
 	CommentStatusTitleAr        string                                   `json:"comment_status_title_ar"`
 	CommentStatusColorCode      string                                   `json:"comment_status_color_code"`
 	InternalCommitteeVersionID  uint                                     `json:"internal_committee_version_id"`
+	IsEdited                    bool                                     `json:"is_edited"`
 	CreatedAt                   string                                   `json:"created_at"`
-	CreatedBYID                 uint                                     `json:"created_by_id"`
+	CreatedUserID               uint                                     `json:"created_user_id"`
 	CreatedUserFirstNameEn      string                                   `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr      string                                   `json:"created_user_first_name_ar"`
 	CreatedUserLastNameEn       string                                   `json:"created_user_last_name_en"`
@@ -47,6 +48,7 @@ type InternalCommitteeReviewCommentDetailsDTO struct {
 	CommentStatus              *masterDTOs.WorkflowStatusDTO `json:"comment_status"`
 	InternalCommitteeVersionID uint                          `json:"internal_committee_version_id"`
 	ParentCommentID            *uint                         `json:"parent_comment_id"`
+	IsEdited                   bool                          `json:"is_edited"`
 	CreatedBYID                uint                          `json:"created_by_id"`
 	CreatedByUser              *UserMinimalDTO               `json:"created_by_user"`
 	UpdatedBYID                *uint                         `json:"updated_by_id"`

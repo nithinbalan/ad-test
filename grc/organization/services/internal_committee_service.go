@@ -1018,8 +1018,9 @@ func (ics *InternalCommitteeService) ReformCommittee(currentUserID uint, reformD
 			for _, oldParticipant := range oldParticipants {
 				newParticipant := &models.InternalCommitteeVersionNomineeDepartmentParticipant{
 					InternalCommitteeVersionNomineeDepartmentID: newDept.ID,
-					UserID:      oldParticipant.UserID,
-					CreatedBYID: &currentUserID,
+					UserID:       oldParticipant.UserID,
+					DepartmentID: oldParticipant.DepartmentID,
+					CreatedBYID:  &currentUserID,
 				}
 
 				if _, err := ics.repo.CreateParticipant(newParticipant, tx); err != nil {

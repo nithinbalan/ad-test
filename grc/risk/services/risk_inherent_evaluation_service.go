@@ -71,16 +71,18 @@ func (ries RiskInherentEvaluationService) GetFullDetailsByID(riskID uint, tx ...
 		return nil, err
 	}
 
-	var riskInherentEvaluationDetailsDTO riskDTOs.RiskInherentEvaluationDetailsDTO
-
 	// Get full details from the repository
 	riskInherentEvaluation, err := ries.repo.GetFullDetailsByID(riskID, tx...)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, riskID)
-		}
 		return nil, err
 	}
+
+	// If no inherent evaluation exists, return nil
+	if riskInherentEvaluation == nil {
+		return nil, nil
+	}
+
+	var riskInherentEvaluationDetailsDTO riskDTOs.RiskInherentEvaluationDetailsDTO
 
 	// Map the results to the DTO
 	err = mapstructure.Decode(riskInherentEvaluation, &riskInherentEvaluationDetailsDTO)
