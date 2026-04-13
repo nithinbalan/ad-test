@@ -82,13 +82,14 @@ func (service *InternalCommitteeReviewCommentService) GetAll(committeeID uint, c
 			ID:                          comment.ID,
 			Comment:                     comment.Comment,
 			Level:                       comment.Level,
+			IsEdited:                    comment.IsEdited,
 			CommentStatusID:             comment.CommentStatusID,
 			CommentStatusTitleEn:        comment.CommentStatusTitleEn,
 			CommentStatusTitleAr:        comment.CommentStatusTitleAr,
 			CommentStatusColorCode:      comment.CommentStatusColorCode,
 			InternalCommitteeVersionID:  comment.InternalCommitteeVersionID,
 			CreatedAt:                   comment.CreatedAt,
-			CreatedBYID:                 comment.CreatedBYID,
+			CreatedUserID:               comment.CreatedUserID,
 			CreatedUserFirstNameEn:      comment.CreatedUserFirstNameEn,
 			CreatedUserFirstNameAr:      comment.CreatedUserFirstNameAr,
 			CreatedUserLastNameEn:       comment.CreatedUserLastNameEn,
@@ -239,7 +240,7 @@ func (service *InternalCommitteeReviewCommentService) Create(committeeID uint, c
 			id,
 			existingComment,
 			currentUserID,
-			"", "", "", nil,
+			"organization", "committee_management", "internal_committee_review_comment", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -290,6 +291,7 @@ func (service *InternalCommitteeReviewCommentService) Update(committeeID uint, c
 
 	existingComment.Comment = formDTO.Comment
 	existingComment.UpdatedBYID = &currentUserID
+	existingComment.IsEdited = true
 
 	err = service.repo.Update(existingComment, tx)
 	if err != nil {
@@ -326,7 +328,7 @@ func (service *InternalCommitteeReviewCommentService) Update(committeeID uint, c
 				commentID,
 				changedData,
 				currentUserID,
-				"", "", "", nil,
+				"organization", "committee_management", "internal_committee_review_comment", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{

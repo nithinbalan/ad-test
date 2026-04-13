@@ -77,6 +77,7 @@ func (repo *InternalCommitteeRepository) GetAll(params *organizationDTOs.Interna
 			committee_classifications.title_ar AS committee_classification_title_ar,
 			internal_committee_statuses.title_en AS committee_status_title_en,
 			internal_committee_statuses.title_ar AS committee_status_title_ar,
+			internal_committee_statuses.type AS committee_status_type,
 			internal_committee_statuses.color_code AS committee_status_color_code,
 			CAST(latest_version.version AS VARCHAR) AS version,
 			CONVERT(VARCHAR, latest_version.term_end_date, 23) AS term_end_date,

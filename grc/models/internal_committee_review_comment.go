@@ -10,6 +10,7 @@ type InternalCommitteeReviewComment struct {
 	InternalCommitteeVersionID uint       `json:"internal_committee_version_id" gorm:"not null"`
 	Comment                    string     `json:"comment" binding:"required" gorm:"type:nvarchar(MAX);not null"`
 	Level                      *int       `json:"level"`
+	IsEdited                   bool       `json:"is_edited" gorm:"default:false"`
 	CommentStatusID            uint       `json:"comment_status_id" gorm:"not null"`
 	ParentCommentID            *uint      `json:"internal_committee_review_comment_id" gorm:"column:internal_committee_review_comment_id"` // keeping JSON same as DB column
 	CreatedBYID                uint       `json:"created_by_id" binding:"required" gorm:"not null"`

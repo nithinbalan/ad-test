@@ -649,7 +649,7 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Revert(committeeID uint, cu
 			if version.IsLatestVersion != nil && *version.IsLatestVersion {
 				version.CommitteeStatusID = committeeStatus.ID
 				version.WorkflowStatusID = &revertStatus.ID
-				version.NextReviewLevel = &previousLevel
+				version.NextReviewLevel = nil
 				// Reset submission fields for Level 0 revert
 				version.SubmittedByID = nil
 				version.SubmittedAt = nil

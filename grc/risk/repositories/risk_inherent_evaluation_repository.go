@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -58,6 +59,9 @@ func (repo *RiskInherentEvaluationRepository) GetFullDetailsByID(riskID uint, tx
 		Where("risk_register_id = ? AND type = ?", riskID, "inherent").
 		First(&riskInherentEvaluation)
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, result.Error
 	}
 
