@@ -228,7 +228,8 @@ func (repo *InternalCommitteeRepository) GetFullDetailsByID(id uint, tx ...utili
 				Preload("InternalCommitteeVersionNomineeDepartments.Participants.User").
 				Preload("InternalCommitteeVersionNomineeDepartments.Participants.Department")
 		}).
-		First(&internalCommittee, id).Error; err != nil {
+		First(&internalCommittee, id).
+		Error; err != nil {
 		return nil, err
 	}
 

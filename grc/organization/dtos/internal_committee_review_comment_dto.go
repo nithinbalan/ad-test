@@ -1,6 +1,7 @@
 package dtos
 
 import (
+	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	"time"
 )
@@ -36,25 +37,27 @@ type InternalCommitteeReviewCommentListResponseDTO struct {
 }
 
 type InternalCommitteeReviewCommentFormDTO struct {
-	Comment         string `json:"comment" binding:"required"`
-	ParentCommentID *uint  `json:"parent_comment_id"`
+	Comment         string                        `json:"comment" binding:"required"`
+	ParentCommentID *uint                         `json:"parent_comment_id"`
+	Documents       []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }
 
 type InternalCommitteeReviewCommentDetailsDTO struct {
-	ID                         uint                          `json:"id"`
-	Comment                    string                        `json:"comment"`
-	Level                      *int                          `json:"level"`
-	CommentStatusID            uint                          `json:"comment_status_id"`
-	CommentStatus              *masterDTOs.WorkflowStatusDTO `json:"comment_status"`
-	InternalCommitteeVersionID uint                          `json:"internal_committee_version_id"`
-	ParentCommentID            *uint                         `json:"parent_comment_id"`
-	IsEdited                   bool                          `json:"is_edited"`
-	CreatedBYID                uint                          `json:"created_by_id"`
-	CreatedByUser              *UserMinimalDTO               `json:"created_by_user"`
-	UpdatedBYID                *uint                         `json:"updated_by_id"`
-	UpdatedByUser              *UserMinimalDTO               `json:"updated_by_user"`
-	CreatedAt                  time.Time                     `json:"created_at"`
-	UpdatedAt                  *time.Time                    `json:"updated_at"`
+	ID                         uint                                         `json:"id"`
+	Comment                    string                                       `json:"comment"`
+	Level                      *int                                         `json:"level"`
+	CommentStatusID            uint                                         `json:"comment_status_id"`
+	CommentStatus              *masterDTOs.WorkflowStatusDTO                `json:"comment_status"`
+	InternalCommitteeVersionID uint                                         `json:"internal_committee_version_id"`
+	ParentCommentID            *uint                                        `json:"parent_comment_id"`
+	IsEdited                   bool                                         `json:"is_edited"`
+	CreatedBYID                uint                                         `json:"created_by_id"`
+	CreatedByUser              *UserMinimalDTO                              `json:"created_by_user"`
+	UpdatedBYID                *uint                                        `json:"updated_by_id"`
+	UpdatedByUser              *UserMinimalDTO                              `json:"updated_by_user"`
+	Documents                  []*InternalCommitteeReviewCommentDocumentDTO `json:"documents"`
+	CreatedAt                  time.Time                                    `json:"created_at"`
+	UpdatedAt                  *time.Time                                   `json:"updated_at"`
 }
 
 type InternalCommitteeReviewCommentListQueryParamsDTO struct {
@@ -69,4 +72,14 @@ type InternalCommitteeReviewCommentListQueryParamsDTO struct {
 type StatusCount struct {
 	Status string
 	Count  int
+}
+
+type InternalCommitteeReviewCommentDocumentDTO struct {
+	ID           uint   `json:"id"`
+	URL          string `json:"url"`
+	Name         string `json:"name"`
+	Size         int    `json:"size"`
+	Token        string `json:"token"`
+	OriginalName string `json:"original_name"`
+	Type         string `json:"type"`
 }

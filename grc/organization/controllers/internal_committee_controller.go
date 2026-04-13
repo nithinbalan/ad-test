@@ -140,12 +140,14 @@ func (icc *InternalCommitteeController) GetInternalCommitteeDetails(c *gin.Conte
 
 	internalCommittee, err := icc.service.GetFullDetailsByID(uint(id))
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		default:
+			utility.SendInternalErrResp(icc.db, c, e.Error())
+			return
 		}
-		utility.SendInternalErrResp(icc.db, c, err.Error())
-		return
 	}
 
 	c.JSON(http.StatusOK, internalCommittee)

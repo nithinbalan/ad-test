@@ -3,12 +3,16 @@ package services
 import (
 	"errors"
 	"fmt"
+	"jethur/config"
 	logServices "jethur/grc/logs/services"
 	masterService "jethur/grc/masters/services"
 	"jethur/grc/models"
 	"jethur/grc/organization/dtos"
 	"jethur/grc/organization/repositories"
 	"jethur/utility"
+	"os"
+	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -23,6 +27,7 @@ type InternalCommitteeReviewCommentServiceInterface interface {
 	Update(committeeID uint, id uint, currentUserID uint, dto *dtos.InternalCommitteeReviewCommentFormDTO) error
 	Delete(committeeID uint, ids []uint, currentUserID uint) ([]uint, error)
 	Resolve(committeeID uint, commentID uint, currentUserID uint) error
+	GetDocumentPath(committeeID uint, commentID uint, token string) (string, error)
 }
 
 type InternalCommitteeReviewCommentService struct {
@@ -165,6 +170,25 @@ func (service *InternalCommitteeReviewCommentService) GetFullDetailsByID(committ
 	}
 
 	commentDetail.CreatedAt = comment.CreatedAt
+
+	// Map documents
+	if len(comment.Documents) > 0 {
+		var documentsDTO []*dtos.InternalCommitteeReviewCommentDocumentDTO
+		for _, doc := range comment.Documents {
+			documentDTO := &dtos.InternalCommitteeReviewCommentDocumentDTO{
+				ID:           doc.ID,
+				URL:          *doc.URL,
+				Name:         doc.Name,
+				Size:         *doc.Size,
+				Token:        *doc.Token,
+				OriginalName: *doc.OriginalName,
+				Type:         *doc.Type,
+			}
+			documentsDTO = append(documentsDTO, documentDTO)
+		}
+		commentDetail.Documents = documentsDTO
+	}
+
 	return &commentDetail, nil
 }
 
@@ -209,6 +233,8 @@ func (service *InternalCommitteeReviewCommentService) Create(committeeID uint, c
 		}
 	}
 
+	tx := service.repo.BeginTransaction()
+
 	comment := &models.InternalCommitteeReviewComment{
 		InternalCommitteeID:        committeeID,
 		Comment:                    formDTO.Comment,
@@ -220,10 +246,55 @@ func (service *InternalCommitteeReviewCommentService) Create(committeeID uint, c
 		CreatedAt:                  time.Now(),
 	}
 
-	id, err := service.repo.Create(comment)
+	id, err := service.repo.Create(comment, tx)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
+
+	var documents []*models.InternalCommitteeReviewCommentDocument
+	for _, doc := range formDTO.Documents {
+		// Encrypt the filename
+		dataToEncrypt := []byte(doc.FileName)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		// Construct the URL for the document
+		url := utility.GenerateDocumentURL("organization", "internal-committee", strconv.FormatUint(uint64(committeeID), 10), "review-comments", strconv.FormatUint(uint64(id), 10), "documents")
+
+		document := &models.InternalCommitteeReviewCommentDocument{
+			InternalCommitteeReviewCommentID: id,
+			URL:                              &url,
+			Name:                             doc.FileName,
+			Size:                             &doc.Size,
+			Token:                            &encryptedFilename,
+			OriginalName:                     &doc.OriginalName,
+			Type:                             &doc.Type,
+			CreatedByID:                      currentUserID,
+			CreatedAt:                        time.Now(),
+		}
+
+		documents = append(documents, document)
+	}
+
+	if len(documents) > 0 {
+		if err := service.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		for _, doc := range documents {
+			storagePath := filepath.Join("organization", "internal-committee", strconv.FormatUint(uint64(committeeID), 10), "review-comments", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+	}
+
+	tx.Commit()
 
 	go func() {
 		existingComment, err := service.GetFullDetailsByID(committeeID, id)
@@ -258,8 +329,6 @@ func (service *InternalCommitteeReviewCommentService) Create(committeeID uint, c
 }
 
 func (service *InternalCommitteeReviewCommentService) Update(committeeID uint, commentID uint, currentUserID uint, formDTO *dtos.InternalCommitteeReviewCommentFormDTO) error {
-	tx := service.repo.BeginTransaction()
-
 	if _, err := service.committeeSvc.GetByID(committeeID); err != nil {
 		return err
 	}
@@ -271,7 +340,6 @@ func (service *InternalCommitteeReviewCommentService) Update(committeeID uint, c
 
 	oldComment, err := service.GetFullDetailsByID(committeeID, commentID)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
@@ -289,8 +357,12 @@ func (service *InternalCommitteeReviewCommentService) Update(committeeID uint, c
 		return utility.NewForbiddenError("resolved comments cannot be edited")
 	}
 
+	tx := service.repo.BeginTransaction()
+	now := time.Now()
+
 	existingComment.Comment = formDTO.Comment
 	existingComment.UpdatedBYID = &currentUserID
+	existingComment.UpdatedAt = &now
 	existingComment.IsEdited = true
 
 	err = service.repo.Update(existingComment, tx)
@@ -299,7 +371,89 @@ func (service *InternalCommitteeReviewCommentService) Update(committeeID uint, c
 		return err
 	}
 
+	// Handle documents
+	var newDocuments []*models.InternalCommitteeReviewCommentDocument
+	var deleteDocumentIDs []*uint
+	var documentsToDelete []*models.InternalCommitteeReviewCommentDocument
+
+	for _, doc := range formDTO.Documents {
+		// NEW FILE
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			encryptedFilename, err := utility.EncryptData([]byte(doc.FileName))
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			url := utility.GenerateDocumentURL(
+				"organization",
+				"internal-committee",
+				strconv.FormatUint(uint64(committeeID), 10),
+				"review-comments",
+				strconv.FormatUint(uint64(commentID), 10),
+				"documents",
+			)
+
+			document := &models.InternalCommitteeReviewCommentDocument{
+				InternalCommitteeReviewCommentID: commentID,
+				URL:                              &url,
+				Name:                             doc.FileName,
+				Size:                             &doc.Size,
+				Token:                            &encryptedFilename,
+				OriginalName:                     &doc.OriginalName,
+				Type:                             &doc.Type,
+				CreatedByID:                      currentUserID,
+				CreatedAt:                        now,
+			}
+
+			newDocuments = append(newDocuments, document)
+
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile && doc.ID != nil {
+			// DELETE FILE
+			existingDocument, err := service.repo.GetDocumentByID(*doc.ID)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
+			documentsToDelete = append(documentsToDelete, existingDocument)
+		}
+	}
+
+	if len(newDocuments) > 0 {
+		if err := service.repo.CreateDocuments(newDocuments, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if len(deleteDocumentIDs) > 0 {
+		if err := service.repo.DeleteDocuments(deleteDocumentIDs, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// File system operations
+	for _, doc := range newDocuments {
+		storagePath := filepath.Join("organization", "internal-committee", strconv.FormatUint(uint64(committeeID), 10), "review-comments", strconv.FormatUint(uint64(commentID), 10), "documents")
+		if err := utility.StoreFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, doc := range documentsToDelete {
+		storagePath := filepath.Join("organization", "internal-committee", strconv.FormatUint(uint64(committeeID), 10), "review-comments", strconv.FormatUint(uint64(commentID), 10), "documents")
+		if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	tx.Commit()
+
 	go func() {
 		existingComment, err := service.GetFullDetailsByID(committeeID, commentID)
 		if err != nil {
@@ -355,8 +509,11 @@ func (service *InternalCommitteeReviewCommentService) Delete(committeeID uint, i
 	var failedIDs []uint
 	var successfulIDs []uint
 	var deletedComments []map[string]interface{}
+	var documentsToDelete []*models.InternalCommitteeReviewCommentDocument
+
 	for _, id := range ids {
-		if _, err := service.repo.GetFullDetailsByID(id); err != nil {
+		comment, err := service.repo.GetFullDetailsByID(id)
+		if err != nil {
 			failedIDs = append(failedIDs, id)
 			continue
 		}
@@ -366,7 +523,12 @@ func (service *InternalCommitteeReviewCommentService) Delete(committeeID uint, i
 			"committee": committeeID,
 		})
 
-		err := service.repo.Delete(id, tx)
+		// Collect documents for deletion
+		if len(comment.Documents) > 0 {
+			documentsToDelete = append(documentsToDelete, comment.Documents...)
+		}
+
+		err = service.repo.Delete(id, tx)
 		if err != nil {
 			failedIDs = append(failedIDs, id)
 		} else {
@@ -377,6 +539,15 @@ func (service *InternalCommitteeReviewCommentService) Delete(committeeID uint, i
 	if len(failedIDs) > 0 {
 		tx.Rollback()
 		return failedIDs, nil
+	}
+
+	// Delete files from filesystem after successful DB deletion
+	for _, doc := range documentsToDelete {
+		storagePath := filepath.Join("organization", "internal-committee", strconv.FormatUint(uint64(committeeID), 10), "review-comments", strconv.FormatUint(uint64(doc.InternalCommitteeReviewCommentID), 10), "documents")
+		if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return failedIDs, err
+		}
 	}
 
 	tx.Commit()
@@ -452,4 +623,34 @@ func (service *InternalCommitteeReviewCommentService) buildCommentHierarchy(comm
 	}
 
 	return rootComments
+}
+
+func (service *InternalCommitteeReviewCommentService) GetDocumentPath(committeeID uint, commentID uint, token string) (string, error) {
+
+	comment, err := service.repo.GetFullDetailsByID(commentID)
+	if err != nil {
+		return "", err
+	}
+	if len(comment.Documents) == 0 {
+		return "", fmt.Errorf("no documents found for the audit final report review comment")
+	}
+	decryptedFilenameBytes, err := utility.DecryptData(token)
+	if err != nil {
+		return "", fmt.Errorf("resource not found")
+	}
+
+	decryptedFilename := string(decryptedFilenameBytes)
+	if decryptedFilename == "" {
+		return "", fmt.Errorf("resource not found")
+	}
+	storagePath := filepath.Join("organization", "internal-committee", strconv.FormatUint(uint64(committeeID), 10), "review-comments", strconv.FormatUint(uint64(commentID), 10), "documents")
+	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file not found")
+	} else if err != nil {
+		return "", fmt.Errorf("error accessing file: %w", err)
+	}
+
+	return fullPath, nil
 }
