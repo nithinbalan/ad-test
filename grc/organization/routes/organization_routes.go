@@ -573,4 +573,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/internal-committees/:committeeId/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeReviewCommentController.UpdateComment)
 	organizationRoutes.POST("/internal-committees/:committeeId/review-comments/delete", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeReviewCommentController.DeleteComment)
 	organizationRoutes.PUT("/internal-committees/:committeeId/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeReviewCommentController.ResolveComment)
+
+	unauthenticatedRoutes.GET("/internal-committees/:committeeId/review-comments/:commentId/document-preview", internalCommitteeReviewCommentController.GetDocumentPreview)
+	unauthenticatedRoutes.GET("/internal-committees/:committeeId/review-comments/:commentId/document-download", internalCommitteeReviewCommentController.DownloadDocument)
 }

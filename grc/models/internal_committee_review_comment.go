@@ -19,13 +19,14 @@ type InternalCommitteeReviewComment struct {
 	UpdatedAt                  *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	InternalCommittee        *InternalCommittee                `gorm:"foreignKey:InternalCommitteeID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	InternalCommitteeVersion *InternalCommitteeVersion         `gorm:"foreignKey:InternalCommitteeVersionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ParentComment            *InternalCommitteeReviewComment   `gorm:"foreignKey:ParentCommentID"`
-	ChildComments            []*InternalCommitteeReviewComment `gorm:"foreignKey:ParentCommentID"`
-	CommentStatus            *CommentStatus                    `gorm:"foreignKey:CommentStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser            *User                             `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	UpdatedByUser            *User                             `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	InternalCommittee        *InternalCommittee                        `gorm:"foreignKey:InternalCommitteeID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	InternalCommitteeVersion *InternalCommitteeVersion                 `gorm:"foreignKey:InternalCommitteeVersionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ParentComment            *InternalCommitteeReviewComment           `gorm:"foreignKey:ParentCommentID"`
+	ChildComments            []*InternalCommitteeReviewComment         `gorm:"foreignKey:ParentCommentID"`
+	CommentStatus            *CommentStatus                            `gorm:"foreignKey:CommentStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Documents                []*InternalCommitteeReviewCommentDocument `gorm:"foreignKey:InternalCommitteeReviewCommentID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	CreatedByUser            *User                                     `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	UpdatedByUser            *User                                     `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 func (InternalCommitteeReviewComment) TableName() string {

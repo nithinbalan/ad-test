@@ -16,6 +16,9 @@ type InternalCommitteeReviewCommentRepositoryInterface interface {
 	Create(comment *models.InternalCommitteeReviewComment, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(comment *models.InternalCommitteeReviewComment, tx ...utility.DatabaseTransaction) error
 	Delete(commentID uint, tx ...utility.DatabaseTransaction) error
+	CreateDocuments(documents []*models.InternalCommitteeReviewCommentDocument, tx ...utility.DatabaseTransaction) error
+	DeleteDocuments(documentIDs []*uint, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint) (*models.InternalCommitteeReviewCommentDocument, error)
 }
 
 type InternalCommitteeReviewCommentRepository struct {
@@ -169,6 +172,7 @@ func (repo *InternalCommitteeReviewCommentRepository) GetFullDetailsByID(id uint
 		Preload("CommentStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("Documents").
 		First(&comment, id)
 	if result.Error != nil {
 		return nil, result.Error
@@ -209,4 +213,33 @@ func (repo *InternalCommitteeReviewCommentRepository) Delete(commentID uint, tx 
 
 	result := db.Delete(&models.InternalCommitteeReviewComment{}, commentID)
 	return result.Error
+}
+
+func (repo *InternalCommitteeReviewCommentRepository) CreateDocuments(documents []*models.InternalCommitteeReviewCommentDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Create(&documents)
+	return result.Error
+}
+
+func (repo *InternalCommitteeReviewCommentRepository) DeleteDocuments(documentIDs []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Delete(&models.InternalCommitteeReviewCommentDocument{}, documentIDs)
+	return result.Error
+}
+
+func (repo *InternalCommitteeReviewCommentRepository) GetDocumentByID(id uint) (*models.InternalCommitteeReviewCommentDocument, error) {
+	var document models.InternalCommitteeReviewCommentDocument
+	result := repo.db.First(&document, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &document, nil
 }

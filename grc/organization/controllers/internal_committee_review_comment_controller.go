@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	commonDTOs "jethur/grc/common/dtos"
@@ -282,4 +283,82 @@ func (rrcc *InternalCommitteeReviewCommentController) ResolveComment(c *gin.Cont
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (iarrcc *InternalCommitteeReviewCommentController) GetDocumentPreview(c *gin.Context) {
+	committeeIDStr := c.Param("committeeId")
+	committeeID, err := strconv.ParseUint(committeeIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	commentIDstr := c.Param("commentId")
+	commentID, err := strconv.ParseUint(commentIDstr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := iarrcc.service.GetDocumentPath(uint(committeeID), uint(commentID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(iarrcc.db, c, err.Error())
+		}
+		return
+	}
+	c.File(documentPath)
+}
+
+func (iarrcc *InternalCommitteeReviewCommentController) DownloadDocument(c *gin.Context) {
+	committeeIDStr := c.Param("committeeId")
+	committeeID, err := strconv.ParseUint(committeeIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+	commentIDstr := c.Param("commentId")
+	commentID, err := strconv.ParseUint(commentIDstr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentPath, err := iarrcc.service.GetDocumentPath(uint(committeeID), uint(commentID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(iarrcc.db, c, err.Error())
+		}
+		return
+	}
+
+	filename := filepath.Base(documentPath)
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	c.File(documentPath)
 }
