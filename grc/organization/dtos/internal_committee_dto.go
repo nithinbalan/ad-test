@@ -23,6 +23,7 @@ type InternalCommitteeListDTO struct {
 	CommitteeClassificationTitleAr string `json:"committee_classification_title_ar"`
 	CommitteeStatusTitleEn         string `json:"committee_status_title_en"`
 	CommitteeStatusTitleAr         string `json:"committee_status_title_ar"`
+	CommitteeStatusType            string `json:"committee_status_type"`
 	CommitteeStatusColorCode       string `json:"committee_status_color_code"`
 	Version                        string `json:"version"`
 	TermEndDate                    string `json:"term_end_date"`
