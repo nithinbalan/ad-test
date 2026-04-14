@@ -10,6 +10,7 @@ import (
 
 type InternalCommitteeWorkflowRepositoryInterface interface {
 	GetWorkflowList(internalCommitteeID uint, latestVersionID uint, tx ...utility.DatabaseTransaction) (*models.InternalCommittee, error)
+	GetPreviousVersionWorkflowHistory(internalCommitteeID uint, latestVersionID uint, tx ...utility.DatabaseTransaction) ([]*models.InternalCommitteeWorkflow, error)
 	CreateInternalCommitteeWorkflow(internalCommitteeWorkflow *models.InternalCommitteeWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateInternalCommitteeWorkflow(internalCommitteeWorkflow *models.InternalCommitteeWorkflow, tx ...utility.DatabaseTransaction) error
 	CreateInternalCommitteeWorkflowParticipant(internalCommitteeWorkflowParticipant *models.InternalCommitteeWorkflowParticipant, tx ...utility.DatabaseTransaction) error
@@ -47,7 +48,6 @@ func (repo *InternalCommitteeWorkflowRepository) GetWorkflowList(committeeID uin
 		Preload("InternalCommitteeWorkflows.InternalCommitteeWorkflowParticipants").
 		Preload("InternalCommitteeWorkflows.InternalCommitteeWorkflowParticipants.User").
 		Preload("InternalCommitteeWorkflows.InternalCommitteeWorkflowParticipants.Role").
-		Preload("InternalCommitteeWorkflows.InternalCommitteeWorkflowReviews", "workflow_status_id IN (?)", db.Model(&models.WorkflowStatus{}).Select("id").Where("type IN (?)", []string{"approve", "revert"})).
 		Preload("InternalCommitteeWorkflows.InternalCommitteeWorkflowReviews.WorkflowStatus").
 		Preload("InternalCommitteeWorkflows.InternalCommitteeWorkflowReviews.CreatedByUser").
 		Where("id = ?", committeeID).
@@ -58,6 +58,28 @@ func (repo *InternalCommitteeWorkflowRepository) GetWorkflowList(committeeID uin
 	}
 
 	return &internalCommittee, nil
+}
+
+func (repo *InternalCommitteeWorkflowRepository) GetPreviousVersionWorkflowHistory(committeeID uint, latestVersionID uint, tx ...utility.DatabaseTransaction) ([]*models.InternalCommitteeWorkflow, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var previousWorkflows []*models.InternalCommitteeWorkflow
+	result := db.
+		Where("internal_committee_id = ?", committeeID).
+		Where("internal_committee_version_id != ?", latestVersionID).
+		Preload("InternalCommitteeWorkflowReviews.WorkflowStatus").
+		Preload("InternalCommitteeWorkflowReviews.CreatedByUser").
+		Order("internal_committee_version_id ASC, level ASC").
+		Find(&previousWorkflows)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return previousWorkflows, nil
 }
 
 func (repo *InternalCommitteeWorkflowRepository) CreateInternalCommitteeWorkflow(internalCommitteeWorkflow *models.InternalCommitteeWorkflow, tx ...utility.DatabaseTransaction) (uint, error) {

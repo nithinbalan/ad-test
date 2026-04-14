@@ -6,6 +6,7 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
+	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
@@ -46,6 +47,9 @@ type InternalCommitteeService struct {
 	internalCommitteeStatusSvc InternalCommitteeStatusServiceInterface
 	notificationSvc            commonServices.NotificationServiceInterface
 	organizationUnitsSvc       OrganizationUnitsServiceInterface
+	workflowReviewSvc          InternalCommitteeWorkflowReviewServiceInterface
+	committeeWorkflowSvc       InternalCommitteeWorkflowServiceInterface
+	workflowStatusSvc          masterServices.WorkflowStatusServiceInterface
 }
 
 func NewInternalCommitteeService(
@@ -59,6 +63,9 @@ func NewInternalCommitteeService(
 	internalCommitteeStatusSvc InternalCommitteeStatusServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	organizationUnitsSvc OrganizationUnitsServiceInterface,
+	workflowReviewSvc InternalCommitteeWorkflowReviewServiceInterface,
+	committeeWorkflowSvc InternalCommitteeWorkflowServiceInterface,
+	workflowStatusSvc masterServices.WorkflowStatusServiceInterface,
 ) InternalCommitteeServiceInterface {
 	return &InternalCommitteeService{
 		repo:                       repo,
@@ -71,6 +78,9 @@ func NewInternalCommitteeService(
 		internalCommitteeStatusSvc: internalCommitteeStatusSvc,
 		notificationSvc:            notificationSvc,
 		organizationUnitsSvc:       organizationUnitsSvc,
+		workflowReviewSvc:          workflowReviewSvc,
+		committeeWorkflowSvc:       committeeWorkflowSvc,
+		workflowStatusSvc:          workflowStatusSvc,
 	}
 }
 
@@ -380,7 +390,7 @@ func (ics *InternalCommitteeService) Create(currentUserID uint, internalCommitte
 					"MembershipType":     nominee.MembershipType,
 					"NominatedBy":        fmt.Sprintf("%s %s", newCommittee.CreatedByUser.FirstNameEN, newCommittee.CreatedByUser.LastNameEN),
 					"NominatedOn":        newCommittee.CreatedAt.Format("2006-01-02"),
-					"RedirectURL":        fmt.Sprintf("%s/organization/internal-committees/%d", appURL, committeeID),
+					"RedirectURL":        fmt.Sprintf("%s/organization/committee/%d/overview", appURL, committeeID),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -644,7 +654,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 						"MembershipType":     oldNominee.MembershipType,
 						"RemovedBy":          fmt.Sprintf("%s %s", newCommittee.UpdatedByUser.FirstNameEN, newCommittee.UpdatedByUser.LastNameEN),
 						"RemovedOn":          newCommittee.UpdatedAt.Format("2006-01-02"),
-						"RedirectURL":        fmt.Sprintf("%s/organization/internal-committees/%d", appURL, id),
+						"RedirectURL":        fmt.Sprintf("%s/organization/committee/%d/overview", appURL, id),
 					}
 
 					emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -746,7 +756,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 						"MembershipType":     nominee.MembershipType,
 						"NominatedBy":        fmt.Sprintf("%s %s", newCommittee.UpdatedByUser.FirstNameEN, newCommittee.UpdatedByUser.LastNameEN),
 						"NominatedOn":        newCommittee.UpdatedAt.Format("2006-01-02"),
-						"RedirectURL":        fmt.Sprintf("%s/organization/internal-committees/%d", appURL, id),
+						"RedirectURL":        fmt.Sprintf("%s/organization/committee/%d/overview", appURL, id),
 					}
 
 					emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -1146,7 +1156,7 @@ func (ics *InternalCommitteeService) ReformCommittee(currentUserID uint, reformD
 					"MembershipType":     nominee.MembershipType,
 					"NominatedBy":        fmt.Sprintf("%s %s", newCommittee.CreatedByUser.FirstNameEN, newCommittee.CreatedByUser.LastNameEN),
 					"NominatedOn":        newCommittee.CreatedAt.Format("2006-01-02"),
-					"RedirectURL":        fmt.Sprintf("%s/organization/internal-committees/%d", appURL, newCommittee.ID),
+					"RedirectURL":        fmt.Sprintf("%s/organization/committee/%d/overview", appURL, newCommittee.ID),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -1378,7 +1388,7 @@ func (ics *InternalCommitteeService) CreateParticipants(currentUserID uint, nomi
 				"MembershipType":     firstParticipant.NomineeDepartment.MembershipType,
 				"AssignedBy":         fmt.Sprintf("%s %s", committee.CreatedByUser.FirstNameEN, committee.CreatedByUser.LastNameEN),
 				"AssignedOn":         committee.CreatedAt.Format("2006-01-02"),
-				"RedirectURL":        fmt.Sprintf("%s/organization/internal-committees/%d", appURL, committeeID),
+				"RedirectURL":        fmt.Sprintf("%s/organization/committee/%d/overview", appURL, committeeID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -1530,7 +1540,7 @@ func (ics *InternalCommitteeService) DeleteParticipant(nomineeDepartmentID uint,
 			"MembershipType":     deletedParticipant.NomineeDepartment.MembershipType,
 			"RemovedBy":          fmt.Sprintf("%s %s", committee.UpdatedByUser.FirstNameEN, committee.UpdatedByUser.LastNameEN),
 			"RemovedOn":          committee.UpdatedAt.Format("2006-01-02"),
-			"RedirectURL":        fmt.Sprintf("%s/organization/internal-committees/%d", appURL, committeeID),
+			"RedirectURL":        fmt.Sprintf("%s/organization/committee/%d/overview", appURL, committeeID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -1586,40 +1596,143 @@ func (ics *InternalCommitteeService) GetLatestVersionByID(id uint) (*models.Inte
 }
 
 func (ics *InternalCommitteeService) DisbandCommittee(committeeID uint, currentUserID uint) error {
-	// Get committee details
-	committee, err := ics.repo.GetFullDetailsByID(committeeID)
-	if err != nil {
-		return utility.NewResourceNotFoundError(err, committeeID)
-	}
-
-	// Get disbanded status
-	disbandedStatus, err := ics.internalCommitteeStatusSvc.GetByType("disbanded")
-	if err != nil {
-		return utility.NewValidationError(fmt.Errorf("disbanded status not found"), "not_exist", "status")
-	}
-
-	// Get latest version
-	latestCommittee, err := ics.repo.GetLatestVersionByID(committeeID)
-	if err != nil {
-		return utility.NewResourceNotFoundError(err, committeeID)
-	}
-
-	// Check if latest version exists
-	if len(latestCommittee.InternalCommitteeVersions) == 0 {
-		return utility.NewValidationError(fmt.Errorf("no latest version found for committee"), "not_exist", "version")
-	}
-
-	latestVersion := latestCommittee.InternalCommitteeVersions[0]
-
 	tx := ics.repo.BeginTransaction()
 
-	// Update version status to disbanded
-	if err := ics.repo.UpdateVersionStatus(latestVersion.ID, disbandedStatus.ID, currentUserID, tx); err != nil {
+	// Get existing committee
+	existingCommittee, err := ics.repo.GetByID(committeeID)
+	if err != nil {
+		tx.Rollback()
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, committeeID)
+		}
+		return err
+	}
+
+	// Update committee
+	existingCommittee.UpdatedBYID = &currentUserID
+	if err := ics.repo.Update(existingCommittee, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
 
+	// Get existing versions
+	versions, err := ics.repo.GetVersionsByCommitteeID(committeeID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Find latest version and get its details
+	var latestVersion *models.InternalCommitteeVersion
+	var oldNomineeDepartments []*models.InternalCommitteeVersionNomineeDepartment
+	for _, v := range versions {
+		if v.IsLatestVersion != nil && *v.IsLatestVersion {
+			latestVersion = v
+			oldNomineeDepartments, err = ics.repo.GetNomineeDepartmentsByVersionID(v.ID, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			break
+		}
+	}
+
+	if latestVersion == nil {
+		tx.Rollback()
+		return fmt.Errorf("no latest version found for committee")
+	}
+
+	// Set old version's is_latest to false
+	isLatestFalse := false
+	latestVersion.IsLatestVersion = &isLatestFalse
+	latestVersion.UpdatedBYID = &currentUserID
+	if err := ics.repo.UpdateVersion(latestVersion, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Get draft status
+	draftStatus, err := ics.internalCommitteeStatusSvc.GetByType("draft")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Calculate new version number
+	newVersionNumber := *latestVersion.Version + 1
+	isLatestTrue := true
+
+	// Create new version with disband_required status
+	newVersion := &models.InternalCommitteeVersion{
+		InternalCommitteeID:       committeeID,
+		CommitteeNameEn:           latestVersion.CommitteeNameEn,
+		CommitteeNameAr:           latestVersion.CommitteeNameAr,
+		CommitteeTypeID:           latestVersion.CommitteeTypeID,
+		CommitteeTermID:           latestVersion.CommitteeTermID,
+		TermEndDate:               latestVersion.TermEndDate,
+		CommitteeClassificationID: latestVersion.CommitteeClassificationID,
+		Justification:             latestVersion.Justification,
+		RolesAndResponsibilities:  latestVersion.RolesAndResponsibilities,
+		CommitteeAuthorities:      latestVersion.CommitteeAuthorities,
+		CommitteeStatusID:         draftStatus.ID,
+		IsDisbandRequested:        true,
+		Version:                   &newVersionNumber,
+		IsLatestVersion:           &isLatestTrue,
+		CreatedBYID:               currentUserID,
+	}
+
+	newVersionID, err := ics.repo.CreateVersion(newVersion, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Copy nominee departments and participants from old version
+	for _, oldDept := range oldNomineeDepartments {
+		newDept := &models.InternalCommitteeVersionNomineeDepartment{
+			InternalCommitteeVersionID: newVersionID,
+			NomineeDepartmentID:        oldDept.NomineeDepartmentID,
+			MembershipType:             oldDept.MembershipType,
+			CreatedBYID:                &currentUserID,
+		}
+
+		// Create nominee department
+		var nomineeDepartments []*models.InternalCommitteeVersionNomineeDepartment
+		nomineeDepartments = append(nomineeDepartments, newDept)
+		if err := ics.repo.CreateNomineeDepartments(nomineeDepartments, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// Copy participants from old department
+		oldParticipants, err := ics.repo.GetParticipantsByNomineeDepartmentID(oldDept.ID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		for _, oldParticipant := range oldParticipants {
+			newParticipant := &models.InternalCommitteeVersionNomineeDepartmentParticipant{
+				InternalCommitteeVersionNomineeDepartmentID: newDept.ID,
+				UserID:       oldParticipant.UserID,
+				DepartmentID: oldParticipant.DepartmentID,
+				CreatedBYID:  &currentUserID,
+			}
+
+			if _, err := ics.repo.CreateParticipant(newParticipant, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
 	tx.Commit()
+
+	// Automatically submit for workflow approval
+	submitErr := ics.submitDisbandForWorkflow(committeeID, newVersionID, currentUserID)
+	if submitErr != nil {
+		return submitErr
+	}
 
 	// Send notifications to nominee departments asynchronously
 	go func() {
@@ -1710,16 +1823,16 @@ func (ics *InternalCommitteeService) DisbandCommittee(committeeID uint, currentU
 			}
 
 			// DB Notification
-			action := "committee-disbanded"
+			action := "committee-disband-required"
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserIDs:              userIDs,
 				ModuleIdentifier:     "organization",
 				NotificationType:     string(commonDTOs.InformationType),
-				HeadingEn:            "Committee Disbanded",
-				HeadingAr:            "تم حل اللجنة",
-				TitleEn:              latestVersion.CommitteeNameEn,
-				TitleAr:              latestVersion.CommitteeNameAr,
-				ReferenceNumber:      committee.ReferenceNumber,
+				HeadingEn:            "Committee Disband Required",
+				HeadingAr:            "مطلوب حل اللجنة",
+				TitleEn:              committeeDetails.LatestVersion.CommitteeNameEn,
+				TitleAr:              committeeDetails.LatestVersion.CommitteeNameAr,
+				ReferenceNumber:      committeeDetails.ReferenceNumber,
 				Entity:               &entity,
 				Action:               &action,
 				URLParam:             urlParam,
@@ -1728,13 +1841,13 @@ func (ics *InternalCommitteeService) DisbandCommittee(committeeID uint, currentU
 			}
 
 			// Email Notification
-			subject := fmt.Sprintf("Committee/%s: Disbanded", latestVersion.CommitteeNameEn)
+			subject := fmt.Sprintf("Committee/%s: Disband Required", committeeDetails.LatestVersion.CommitteeNameEn)
 			emailData := map[string]interface{}{
 				"DepartmentNameEn": department.TitleEn,
 				"DepartmentNameAr": department.TitleAr,
-				"CommitteeNameEn":  latestVersion.CommitteeNameEn,
-				"CommitteeNameAr":  latestVersion.CommitteeNameAr,
-				"ReferenceNumber":  committee.ReferenceNumber,
+				"CommitteeNameEn":  committeeDetails.LatestVersion.CommitteeNameEn,
+				"CommitteeNameAr":  committeeDetails.LatestVersion.CommitteeNameAr,
+				"ReferenceNumber":  committeeDetails.ReferenceNumber,
 				"FirstNameEn":      updatedByUser.FirstNameEn,
 				"LastNameEn":       updatedByUser.LastNameEn,
 				"DisbandDate":      time.Now().Format("2006-01-02"),
@@ -1761,6 +1874,11 @@ func (ics *InternalCommitteeService) DisbandCommittee(committeeID uint, currentU
 	}()
 
 	return nil
+}
+
+func (ics *InternalCommitteeService) submitDisbandForWorkflow(committeeID uint, versionID uint, currentUserID uint) error {
+	// Simply call the Submit method from the workflow review service
+	return ics.workflowReviewSvc.Submit(committeeID, currentUserID)
 }
 
 func (ics *InternalCommitteeService) ValidateAllDepartmentsHaveParticipants(versionID uint, tx ...utility.DatabaseTransaction) (bool, error) {

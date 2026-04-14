@@ -84,6 +84,7 @@ func (repo *InternalCommitteeRepository) GetAll(params *organizationDTOs.Interna
 			latest_version.justification,
 			latest_version.roles_and_responsibilities,
 			latest_version.committee_authorities,
+			latest_version.is_disband_requested,
 			CONVERT(VARCHAR, internal_committees.created_at, 120) AS created_at,
 			CONVERT(VARCHAR, internal_committees.updated_at, 120) AS updated_at,
 			created_user.id AS created_user_id,

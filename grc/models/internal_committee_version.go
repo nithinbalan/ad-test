@@ -17,6 +17,7 @@ type InternalCommitteeVersion struct {
 	RolesAndResponsibilities  *string    `json:"roles_and_responsibilities" gorm:"type:nvarchar(max)"`
 	CommitteeAuthorities      *string    `json:"committee_authorities" gorm:"type:nvarchar(max)"`
 	CommitteeStatusID         uint       `json:"committee_status_id" binding:"required" gorm:"not null"`
+	IsDisbandRequested        bool       `json:"is_disband_requested" gorm:"type:bit;default:0"`
 	Version                   *float64   `json:"version" gorm:"type:decimal(4,2)"`
 	IsLatestVersion           *bool      `json:"is_latest_version" gorm:"type:bit"`
 	CreatedBYID               uint       `json:"created_by_id" binding:"required" gorm:"not null"`

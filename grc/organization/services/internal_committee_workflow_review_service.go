@@ -18,6 +18,7 @@ type InternalCommitteeWorkflowReviewServiceInterface interface {
 	Submit(internalCommitteeID uint, currentUserID uint) error
 	Approve(internalCommitteeID uint, currentUserID uint) error
 	Revert(internalCommitteeID uint, currentUserID uint) error
+	SetInternalCommitteeService(svc InternalCommitteeServiceInterface)
 }
 
 type InternalCommitteeWorkflowReviewService struct {
@@ -51,6 +52,10 @@ func NewInternalCommitteeWorkflowReviewService(
 		userSvc:              userSvc,
 		notificationSvc:      notificationSvc,
 	}
+}
+
+func (icwrs *InternalCommitteeWorkflowReviewService) SetInternalCommitteeService(svc InternalCommitteeServiceInterface) {
+	icwrs.committeeSvc = svc
 }
 
 func (icwrs *InternalCommitteeWorkflowReviewService) Submit(committeeID uint, currentUserID uint) error {
@@ -329,8 +334,8 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 		}
 
 		if nextCommitteeWorkflowLevel == nil {
-			// Final approval - set committee status to approved
-			approvedCommitteeStatus, err := icwrs.committeeStatusSvc.GetByType("approved")
+			// Final approval - check if it's disband or regular approval
+			committee, err := icwrs.committeeSvc.GetLatestVersionByID(committeeID)
 			if err != nil {
 				tx.Rollback()
 				return err
@@ -342,16 +347,28 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 				return err
 			}
 
-			committee, err := icwrs.committeeSvc.GetLatestVersionByID(committeeID)
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
-
 			// Update latest version
 			for _, version := range committee.InternalCommitteeVersions {
 				if version.IsLatestVersion != nil && *version.IsLatestVersion {
-					version.CommitteeStatusID = approvedCommitteeStatus.ID
+					// Check if disband is requested
+					var finalCommitteeStatus *models.InternalCommitteeStatus
+					if version.IsDisbandRequested {
+						// Set to disbanded
+						finalCommitteeStatus, err = icwrs.committeeStatusSvc.GetByType("disbanded")
+						if err != nil {
+							tx.Rollback()
+							return err
+						}
+					} else {
+						// Set to approved
+						finalCommitteeStatus, err = icwrs.committeeStatusSvc.GetByType("approved")
+						if err != nil {
+							tx.Rollback()
+							return err
+						}
+					}
+
+					version.CommitteeStatusID = finalCommitteeStatus.ID
 					version.WorkflowStatusID = &approvedWorkflowStatus.ID
 					approvedAt := time.Now()
 					version.ApprovedAt = &approvedAt
@@ -459,8 +476,8 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 		}
 
 		if nextCommitteeWorkflowLevel == nil {
-			// Final approval
-			approvedCommitteeStatus, err := icwrs.committeeStatusSvc.GetByType("approved")
+			// Final approval - check if it's disband or regular approval
+			committee, err := icwrs.committeeSvc.GetLatestVersionByID(committeeID)
 			if err != nil {
 				tx.Rollback()
 				return err
@@ -472,15 +489,27 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 				return err
 			}
 
-			committee, err := icwrs.committeeSvc.GetLatestVersionByID(committeeID)
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
-
 			for _, version := range committee.InternalCommitteeVersions {
 				if version.IsLatestVersion != nil && *version.IsLatestVersion {
-					version.CommitteeStatusID = approvedCommitteeStatus.ID
+					// Check if disband is requested
+					var finalCommitteeStatus *models.InternalCommitteeStatus
+					if version.IsDisbandRequested {
+						// Set to disbanded
+						finalCommitteeStatus, err = icwrs.committeeStatusSvc.GetByType("disbanded")
+						if err != nil {
+							tx.Rollback()
+							return err
+						}
+					} else {
+						// Set to approved
+						finalCommitteeStatus, err = icwrs.committeeStatusSvc.GetByType("approved")
+						if err != nil {
+							tx.Rollback()
+							return err
+						}
+					}
+
+					version.CommitteeStatusID = finalCommitteeStatus.ID
 					version.WorkflowStatusID = &approvedWorkflowStatus.ID
 					approvedAt := time.Now()
 					version.ApprovedAt = &approvedAt

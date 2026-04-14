@@ -565,6 +565,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/internal-committees/:committeeId/approve", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeWorkflowReviewController.ApproveInternalCommittee)
 	organizationRoutes.POST("/internal-committees/:committeeId/revert", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeWorkflowReviewController.RevertInternalCommittee)
 	organizationRoutes.GET("/internal-committees/:committeeId/workflow-list", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeWorkflowController.GetWorkflowList)
+	organizationRoutes.GET("/internal-committees/:committeeId/previous-version-history", middlewares.RolePermissionMiddleware(db, "committee_management", "view"), internalCommitteeWorkflowController.GetPreviousVersionWorkflowHistory)
 
 	// Internal Committee Review Comments
 	organizationRoutes.GET("/internal-committees/:committeeId/review-comments", middlewares.RolePermissionMiddleware(db, "committee_management", "view"), internalCommitteeReviewCommentController.GetAllComments)

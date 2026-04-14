@@ -30,6 +30,7 @@ type InternalCommitteeListDTO struct {
 	Justification                  string `json:"justification"`
 	RolesAndResponsibilities       string `json:"roles_and_responsibilities"`
 	CommitteeAuthorities           string `json:"committee_authorities"`
+	IsDisbandRequested             bool   `json:"is_disband_requested"`
 	CreatedAt                      string `json:"created_at"`
 	UpdatedAt                      string `json:"updated_at"`
 	CreatedUserID                  uint   `json:"created_user_id"`
@@ -124,6 +125,7 @@ type InternalCommitteeVersionDetailDTO struct {
 	CommitteeStatus           *InternalCommitteeStatusDTO                           `json:"committee_status"`
 	Version                   *float64                                              `json:"version"`
 	IsLatestVersion           *bool                                                 `json:"is_latest_version"`
+	IsDisbandRequested        bool                                                  `json:"is_disband_requested"`
 	CreatedByUser             *UserMinimalDTO                                       `json:"created_by"`
 	UpdatedByUser             *UserMinimalDTO                                       `json:"updated_by"`
 	CreatedAt                 time.Time                                             `json:"created_at"`

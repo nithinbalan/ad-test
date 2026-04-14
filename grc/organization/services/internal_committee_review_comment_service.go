@@ -104,6 +104,7 @@ func (service *InternalCommitteeReviewCommentService) GetAll(committeeID uint, c
 			CreatedUserEmail:            comment.CreatedUserEmail,
 			CreatedUserProfileImagePath: comment.CreatedUserProfileImagePath,
 			ParentCommentID:             comment.ParentCommentID,
+			Documents:                   comment.Documents,
 		}
 		dtoMap[comment.ID] = dto
 	}

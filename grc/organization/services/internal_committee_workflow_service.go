@@ -17,6 +17,7 @@ import (
 type InternalCommitteeWorkflowServiceInterface interface {
 	SetInternalCommitteeService(svc InternalCommitteeServiceInterface)
 	GetInternalCommitteeWorkflowList(internalCommitteeID uint) (*organizationDTOs.InternalCommitteeWorkflowListDTO, error)
+	GetPreviousVersionWorkflowHistory(internalCommitteeID uint) ([]*organizationDTOs.InternalCommitteeWorkflowHistoryDTO, error)
 	GetWorkflowListData(internalCommitteeID uint, latestVersionID uint, tx ...utility.DatabaseTransaction) (*models.InternalCommittee, error)
 	CreateInternalCommitteeWorkflow(internalCommitteeWorkflowID uint, workflowType string, currentUserID uint, tx ...utility.DatabaseTransaction) error
 	UpdateInternalCommitteeWorkflow(internalCommitteeWorkflow *models.InternalCommitteeWorkflow, tx ...utility.DatabaseTransaction) error
@@ -165,6 +166,48 @@ func (icws *InternalCommitteeWorkflowService) GetInternalCommitteeWorkflowList(i
 
 	dto.History = icws.buildWorkflowHistory(committeeWorkflow)
 	return dto, nil
+}
+
+func (icws *InternalCommitteeWorkflowService) GetPreviousVersionWorkflowHistory(internalCommitteeID uint) ([]*organizationDTOs.InternalCommitteeWorkflowHistoryDTO, error) {
+	committee, err := icws.committeeSvc.GetLatestVersionByID(internalCommitteeID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get latest version ID
+	var latestVersionID uint
+	for _, version := range committee.InternalCommitteeVersions {
+		if version.IsLatestVersion != nil && *version.IsLatestVersion {
+			latestVersionID = version.ID
+			break
+		}
+	}
+
+	if latestVersionID == 0 {
+		return nil, fmt.Errorf("no latest version found for committee")
+	}
+
+	// Get previous version workflows from repository
+	previousWorkflows, err := icws.repo.GetPreviousVersionWorkflowHistory(internalCommitteeID, latestVersionID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build history from previous version workflows
+	var history []*organizationDTOs.InternalCommitteeWorkflowHistoryDTO
+	for _, workflow := range previousWorkflows {
+		for _, review := range workflow.InternalCommitteeWorkflowReviews {
+			createdAt := review.CreatedAt
+			history = append(history, &organizationDTOs.InternalCommitteeWorkflowHistoryDTO{
+				ID:             review.ID,
+				WorkflowStatus: icws.mapWorkflowStatusToDTO(review.WorkflowStatus),
+				CreatedAt:      createdAt,
+				CreatedByUser:  icws.mapUserToDTO(review.CreatedByUser),
+			})
+		}
+	}
+
+	return history, nil
 }
 
 func (icws *InternalCommitteeWorkflowService) CreateInternalCommitteeWorkflow(internalCommitteeID uint, contextType string, currentUserID uint, tx ...utility.DatabaseTransaction) error {
