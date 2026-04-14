@@ -29,6 +29,7 @@ type WorkflowListDTO struct {
 
 type InternalCommitteeWorkflowHistoryDTO struct {
 	ID             uint                         `json:"id"`
+	Level          int                          `json:"level"`
 	WorkflowStatus masterDTOs.WorkflowStatusDTO `json:"workflow_status"`
 	CreatedByUser  *UserMinimalDTO              `json:"created_by"`
 	CreatedAt      time.Time                    `json:"created_at"`

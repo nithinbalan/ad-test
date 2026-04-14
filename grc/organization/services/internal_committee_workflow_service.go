@@ -11,6 +11,7 @@ import (
 	settingDTOs "jethur/grc/settings/dtos"
 	settinsSvc "jethur/grc/settings/services"
 	"jethur/utility"
+	"sort"
 	"time"
 )
 
@@ -200,12 +201,18 @@ func (icws *InternalCommitteeWorkflowService) GetPreviousVersionWorkflowHistory(
 			createdAt := review.CreatedAt
 			history = append(history, &organizationDTOs.InternalCommitteeWorkflowHistoryDTO{
 				ID:             review.ID,
+				Level:          workflow.Level,
 				WorkflowStatus: icws.mapWorkflowStatusToDTO(review.WorkflowStatus),
 				CreatedAt:      createdAt,
 				CreatedByUser:  icws.mapUserToDTO(review.CreatedByUser),
 			})
 		}
 	}
+
+	// Sort history by created_at in ascending order
+	sort.Slice(history, func(i, j int) bool {
+		return history[i].CreatedAt.Before(history[j].CreatedAt)
+	})
 
 	return history, nil
 }
@@ -457,6 +464,7 @@ func (icws *InternalCommitteeWorkflowService) buildWorkflowHistory(committee *mo
 			createdAt := review.CreatedAt
 			history = append(history, &organizationDTOs.InternalCommitteeWorkflowHistoryDTO{
 				ID:             review.ID,
+				Level:          workflow.Level,
 				WorkflowStatus: icws.mapWorkflowStatusToDTO(review.WorkflowStatus),
 				CreatedAt:      createdAt,
 				CreatedByUser:  icws.mapUserToDTO(review.CreatedByUser),
