@@ -73,6 +73,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceAssessmentAcknowledgeDepartmentController := app.ComplianceModule.ComplianceAssessmentAcknowledgeDepartmentController
 	controlAutomationController := app.ComplianceModule.ControlAutomationController
 	controlConsistencyController := app.ComplianceModule.ControlConsistencyController
+	controlEffectivenessRatingController := app.ComplianceModule.ControlEffectivenessRatingController
 
 	// Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -599,4 +600,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.GET("/control-consistencies/:id", controlConsistencyController.GetControlConsistencyDetails)
 	complianceRoutes.PUT("/control-consistencies/activate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), controlConsistencyController.ActivateControlConsistencies)
 	complianceRoutes.PUT("/control-consistencies/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), controlConsistencyController.DeactivateControlConsistencies)
+
+	// Control Effectiveness Rating Master
+	complianceRoutes.GET("/control-effectiveness-ratings", controlEffectivenessRatingController.GetAllControlEffectivenessRatings)
+	complianceRoutes.GET("/control-effectiveness-ratings/:id", controlEffectivenessRatingController.GetControlEffectivenessRatingDetails)
 }
