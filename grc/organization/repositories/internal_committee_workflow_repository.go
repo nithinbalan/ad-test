@@ -69,7 +69,9 @@ func (repo *InternalCommitteeWorkflowRepository) GetPreviousVersionWorkflowHisto
 	var previousWorkflows []*models.InternalCommitteeWorkflow
 	result := db.
 		Where("internal_committee_id = ?", committeeID).
-		Where("internal_committee_version_id != ?", latestVersionID).
+		Preload("InternalCommitteeWorkflowReviews", func(db *gorm.DB) *gorm.DB {
+			return db.Order("internal_committee_workflow_reviews.created_at ASC")
+		}).
 		Preload("InternalCommitteeWorkflowReviews.WorkflowStatus").
 		Preload("InternalCommitteeWorkflowReviews.CreatedByUser").
 		Order("internal_committee_version_id ASC, level ASC").
