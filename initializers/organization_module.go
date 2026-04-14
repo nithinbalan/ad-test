@@ -333,6 +333,33 @@ func NewOrganizationModule(
 	committeeClassificationController := controllers.NewCommitteeClassificationController(committeeClassificationSvc)
 
 	internalCommitteeRepo := repositories.NewInternalCommitteeRepository(db)
+	internalCommitteeWorkflowReviewRepo := repositories.NewInternalCommitteeWorkflowReviewRepository(db)
+	internalCommitteeWorkflowRepo := repositories.NewInternalCommitteeWorkflowRepository(db)
+
+	// Create workflow service first (without committee service dependency initially)
+	internalCommitteeWorkflowSvc := services.NewInternalCommitteeWorkflowService(
+		internalCommitteeWorkflowRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.WorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		userSvc,
+		nil, // Will be set later via SetInternalCommitteeService
+		masterModule.WorkflowContextSvc,
+	)
+
+	// Create workflow review service (without committee service dependency initially)
+	internalCommitteeWorkflowReviewSvc := services.NewInternalCommitteeWorkflowReviewService(
+		internalCommitteeWorkflowReviewRepo,
+		sharedModule.ActivityLogService,
+		nil, // Will be set later
+		internalCommitteeWorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		internalCommitteeStatusSvc,
+		userSvc,
+		commonModule.NotificationService,
+	)
+
+	// Create committee service with all dependencies including workflow services
 	internalCommitteeSvc := services.NewInternalCommitteeService(
 		internalCommitteeRepo,
 		sharedModule.ActivityLogService,
@@ -344,33 +371,17 @@ func NewOrganizationModule(
 		internalCommitteeStatusSvc,
 		commonModule.NotificationService,
 		organizationUnitsSvc,
+		internalCommitteeWorkflowReviewSvc,
+		internalCommitteeWorkflowSvc,
+		masterModule.WorkflowStatusSvc,
 	)
 	internalCommitteeController := controllers.NewInternalCommitteeController(internalCommitteeSvc)
 
-	internalCommitteeWorkflowRepo := repositories.NewInternalCommitteeWorkflowRepository(db)
-	internalCommitteeWorkflowSvc := services.NewInternalCommitteeWorkflowService(
-		internalCommitteeWorkflowRepo,
-		sharedModule.ActivityLogService,
-		settingsModule.WorkflowSvc,
-		masterModule.WorkflowStatusSvc,
-		userSvc,
-		internalCommitteeSvc,
-		masterModule.WorkflowContextSvc,
-	)
+	// Set the circular references
 	internalCommitteeWorkflowSvc.SetInternalCommitteeService(internalCommitteeSvc)
-	internalCommitteeWorkflowController := controllers.NewInternalCommitteeWorkflowController(internalCommitteeWorkflowSvc)
+	internalCommitteeWorkflowReviewSvc.SetInternalCommitteeService(internalCommitteeSvc)
 
-	internalCommitteeWorkflowReviewRepo := repositories.NewInternalCommitteeWorkflowReviewRepository(db)
-	internalCommitteeWorkflowReviewSvc := services.NewInternalCommitteeWorkflowReviewService(
-		internalCommitteeWorkflowReviewRepo,
-		sharedModule.ActivityLogService,
-		internalCommitteeSvc,
-		internalCommitteeWorkflowSvc,
-		masterModule.WorkflowStatusSvc,
-		internalCommitteeStatusSvc,
-		userSvc,
-		commonModule.NotificationService,
-	)
+	internalCommitteeWorkflowController := controllers.NewInternalCommitteeWorkflowController(internalCommitteeWorkflowSvc)
 	internalCommitteeWorkflowReviewController := controllers.NewInternalCommitteeWorkflowReviewController(internalCommitteeWorkflowReviewSvc)
 
 	internalCommitteeReviewCommentRepo := repositories.NewInternalCommitteeReviewCommentRepository(db)
