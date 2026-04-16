@@ -211,7 +211,7 @@ func (rcas *RiskInherentControlAnalysisService) Update(riskID uint, id uint, cur
 		return err
 	}
 
-	existingRiskControlAnalysis.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
+	existingRiskControlAnalysis.ControlEfficiencyStatusID = *controlTestFormDTO.ControlEfficiencyStatusID
 	existingRiskControlAnalysis.ControlImplementationStatusID = controlTestFormDTO.ControlImplementationStatusID
 	existingRiskControlAnalysis.ControlTestID = testId
 	existingRiskControlAnalysis.Score = controlTestFormDTO.Score

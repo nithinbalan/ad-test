@@ -12,11 +12,19 @@ type ControlTestListDTO struct {
 	ControlImplementationStatusTitleEn   string                    `json:"control_implementation_status_title_en"`
 	ControlImplementationStatusTitleAr   string                    `json:"control_implementation_status_title_ar"`
 	ControlImplementationStatusColorCode string                    `json:"control_implementation_status_color_code"`
-	ControlEfficiencyStatusTitleEn       string                    `json:"control_efficiency_status_title_en"`
-	ControlEfficiencyStatusTitleAr       string                    `json:"control_efficiency_status_title_ar"`
-	ControlEfficiencyStatusColorCode     string                    `json:"control_efficiency_status_color_code"`
+	ControlEfficiencyStatusTitleEn       *string                   `json:"control_efficiency_status_title_en"`
+	ControlEfficiencyStatusTitleAr       *string                   `json:"control_efficiency_status_title_ar"`
+	ControlEfficiencyStatusColorCode     *string                   `json:"control_efficiency_status_color_code"`
 	Description                          *string                   `json:"description"`
 	Score                                *uint                     `json:"score"`
+	ControlEffectivenessScore            *float64                  `json:"control_effectiveness_score"`
+	ControlEffectivenessRatingID         *uint                     `json:"control_effectiveness_rating_id"`
+	ControlEffectivenessRatingTitleEn    *string                   `json:"control_effectiveness_rating_title_en"`
+	ControlEffectivenessRatingTitleAr    *string                   `json:"control_effectiveness_rating_title_ar"`
+	ControlEffectivenessRatingMinScore   *float64                  `json:"control_effectiveness_rating_min_score"`
+	ControlEffectivenessRatingMaxScore   *float64                  `json:"control_effectiveness_rating_max_score"`
+	ControlEffectivenessRatingType       *string                   `json:"control_effectiveness_rating_type"`
+	RiskReduction                        *float64                  `json:"risk_reduction"`
 	Comments                             *string                   `json:"comments"`
 	TestedSource                         string                    `json:"tested_source"`
 	TestedByUserID                       uint                      `json:"tested_by_user_id"`
@@ -49,21 +57,24 @@ type ControlTestListResponseDTO struct {
 }
 
 type ControlTestDetailsDTO struct {
-	ID             uint       `json:"id"`
-	ControlID      uint       `json:"control_id"`
-	Title          string     `json:"title"`
-	Description    *string    `json:"description"`
-	Score          *uint      `json:"score"`
-	Comments       *string    `json:"comments"`
-	TestedSource   string     `json:"tested_source"`
-	TestedAtString *string    `json:"tested_at"`
-	UpdatedAt      *time.Time `json:"updated_at"`
+	ID                         uint                           `json:"id"`
+	ControlID                  uint                           `json:"control_id"`
+	Title                      string                         `json:"title"`
+	Description                *string                        `json:"description"`
+	Score                      *uint                          `json:"score"`
+	ControlEffectivenessScore  *float64                       `json:"control_effectiveness_score"`
+	ControlEffectivenessRating *ControlEffectivenessRatingDTO `json:"control_effectiveness_rating"`
+	RiskReduction              *float64                       `json:"risk_reduction"`
+	Comments                   *string                        `json:"comments"`
+	TestedSource               string                         `json:"tested_source"`
+	TestedAtString             *string                        `json:"tested_at"`
+	UpdatedAt                  *time.Time                     `json:"updated_at"`
 
 	ControlImplementationStatus ControlImplementationStatusDTO `json:"control_implementation_status"`
-	ControlEfficiencyStatus     ControlEfficiencyStatusDTO     `json:"control_efficiency_status"`
+	ControlEfficiencyStatus     *ControlEfficiencyStatusDTO    `json:"control_efficiency_status"`
 	TestedByUser                UserMinimalDTO                 `json:"tested_by_user"`
 	UpdatedByUser               *UserMinimalDTO                `json:"updated_by_user"`
-	Documents                   []*ControlTestDocumentDTO      `json:"documents"`
+	Documents                   []ControlTestDocumentDTO       `json:"documents" binding:"required"`
 }
 
 type ControlTestListQueryParamsDTO struct {
@@ -94,7 +105,7 @@ type ControlTestDocumentDTO struct {
 
 type ControlTestFormDTO struct {
 	ControlImplementationStatusID uint                          `json:"control_implementation_status_id" binding:"required"`
-	ControlEfficiencyStatusID     uint                          `json:"control_efficiency_status_id" binding:"required"`
+	ControlEfficiencyStatusID     *uint                         `json:"control_efficiency_status_id,omitempty" binding:"omitempty"`
 	Title                         string                        `json:"title" binding:"required"`
 	Description                   *string                       `json:"description"  binding:"omitempty"`
 	Score                         *uint                         `json:"score" binding:"omitempty"`

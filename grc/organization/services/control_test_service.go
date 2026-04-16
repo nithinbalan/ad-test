@@ -10,9 +10,11 @@ import (
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
 	"jethur/utility"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -37,6 +39,7 @@ type ControlTestService struct {
 	controlImplementationStatusSvc ControlImplementationStatusServiceInterface
 	controlEfficiencyStatusSvc     ControlEfficiencyStatusServiceInterface
 	reviewFrequencySvc             masterServices.ReviewFrequencyServiceInterface
+	controlEffectivenessRatingSvc  ControlEffectivenessRatingServiceInterface
 }
 
 func NewControlTestService(
@@ -46,6 +49,7 @@ func NewControlTestService(
 	controlImplementationStatusSvc ControlImplementationStatusServiceInterface,
 	controlEfficiencyStatusSvc ControlEfficiencyStatusServiceInterface,
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
+	controlEffectivenessRatingSvc ControlEffectivenessRatingServiceInterface,
 ) ControlTestServiceInterface {
 	return &ControlTestService{
 		repo:                           repo,
@@ -54,6 +58,7 @@ func NewControlTestService(
 		controlImplementationStatusSvc: controlImplementationStatusSvc,
 		controlEfficiencyStatusSvc:     controlEfficiencyStatusSvc,
 		reviewFrequencySvc:             reviewFrequencySvc,
+		controlEffectivenessRatingSvc:  controlEffectivenessRatingSvc,
 	}
 }
 
@@ -129,6 +134,18 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, riskID
 		testedSource = "direct"
 	}
 
+	// Calculate control effectiveness
+	effectivenessScore, effectivenessRatingID, riskReduction, err := cts.CalculateControlEffectiveness(controlID, *dates.TestedAt, transaction)
+	if err != nil {
+		return 0, err
+	}
+
+	// Get control model for updating
+	control, err = cts.controlSvc.GetByID(controlID, transaction)
+	if err != nil {
+		return 0, err
+	}
+
 	controlTest := &models.ControlTest{
 		RiskRegisterID:                riskID,
 		ControlID:                     controlID,
@@ -137,6 +154,9 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, riskID
 		Title:                         controlTestFormDTO.Title,
 		Description:                   controlTestFormDTO.Description,
 		Score:                         controlTestFormDTO.Score,
+		ControlEffectivenessScore:     &effectivenessScore,
+		ControlEffectivenessRatingID:  effectivenessRatingID,
+		RiskReduction:                 &riskReduction,
 		Comments:                      controlTestFormDTO.Comments,
 		TestedSource:                  testedSource,
 		TestedBy:                      currentUserID,
@@ -157,9 +177,14 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, riskID
 		control.NextTestDate = &nextTestDate
 	}
 
-	control.ControlEfficiencyStatusID = &controlTestFormDTO.ControlEfficiencyStatusID
+	if controlTestFormDTO.ControlEfficiencyStatusID != nil {
+		control.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
+	}
 	control.ControlImplementationStatusID = &controlTestFormDTO.ControlImplementationStatusID
 	control.EfficiencyScore = controlTestFormDTO.Score
+	control.ControlEffectivenessScore = &effectivenessScore
+	control.ControlEffectivenessRatingID = effectivenessRatingID
+	control.RiskReduction = &riskReduction
 	control.LastTestDate = dates.TestedAt
 	control.UpdatedByID = &currentUserID
 
@@ -263,12 +288,22 @@ func (cts *ControlTestService) Update(controlID uint, id uint, currentUserID uin
 		return err
 	}
 
+	// Calculate control effectiveness
+	effectivenessScore, effectivenessRatingID, riskReduction, err := cts.CalculateControlEffectiveness(controlID, *dates.TestedAt, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	existingControlTest.ControlImplementationStatusID = controlTestFormDTO.ControlImplementationStatusID
 	existingControlTest.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
 	existingControlTest.Title = controlTestFormDTO.Title
 	existingControlTest.Description = controlTestFormDTO.Description
 	existingControlTest.Comments = controlTestFormDTO.Comments
 	existingControlTest.Score = controlTestFormDTO.Score
+	existingControlTest.ControlEffectivenessScore = &effectivenessScore
+	existingControlTest.ControlEffectivenessRatingID = effectivenessRatingID
+	existingControlTest.RiskReduction = &riskReduction
 	existingControlTest.TestedAt = *dates.TestedAt
 	existingControlTest.UpdatedByID = &currentUserID
 
@@ -288,9 +323,14 @@ func (cts *ControlTestService) Update(controlID uint, id uint, currentUserID uin
 		control.NextTestDate = &nextTestDate
 	}
 
-	control.ControlEfficiencyStatusID = &controlTestFormDTO.ControlEfficiencyStatusID
+	if controlTestFormDTO.ControlEfficiencyStatusID != nil {
+		control.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
+	}
 	control.ControlImplementationStatusID = &controlTestFormDTO.ControlImplementationStatusID
 	control.EfficiencyScore = controlTestFormDTO.Score
+	control.ControlEffectivenessScore = &effectivenessScore
+	control.ControlEffectivenessRatingID = effectivenessRatingID
+	control.RiskReduction = &riskReduction
 	control.LastTestDate = dates.TestedAt
 	control.UpdatedByID = &currentUserID
 
@@ -404,7 +444,7 @@ func (cts *ControlTestService) Delete(controlID uint, ids []uint, currentUserID 
 
 		if controlTest.Documents != nil && len(controlTest.Documents) > 0 {
 			for _, document := range controlTest.Documents {
-				documentsToDelete[id] = append(documentsToDelete[id], document)
+				documentsToDelete[id] = append(documentsToDelete[id], &document)
 				deleteDocumentIds = append(deleteDocumentIds, &document.ID)
 			}
 
@@ -466,8 +506,10 @@ func (cts *ControlTestService) validateControlTestFormDTO(controlTestFormDTO *or
 		return utility.NewValidationError(fmt.Errorf("control implementation status does not exist"), "not_exist", "control implementation status")
 	}
 
-	if _, err := cts.controlEfficiencyStatusSvc.GetByID(uint(controlTestFormDTO.ControlEfficiencyStatusID)); err != nil {
-		return utility.NewValidationError(fmt.Errorf("control efficiency status does not exist"), "not_exist", "control efficiency status")
+	if controlTestFormDTO.ControlEfficiencyStatusID != nil {
+		if _, err := cts.controlEfficiencyStatusSvc.GetByID(uint(*controlTestFormDTO.ControlEfficiencyStatusID)); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control efficiency status does not exist"), "not_exist", "control efficiency status")
+		}
 	}
 
 	return nil
@@ -532,6 +574,115 @@ func (cts *ControlTestService) GetTrendAnalysis(controlID uint) ([]*organization
 	}
 
 	return scores, nil
+}
+
+func (cts *ControlTestService) CalculateControlEffectiveness(controlID uint, testedAt time.Time, tx ...utility.DatabaseTransaction) (score float64, ratingID *uint, reductionPercent float64, err error) {
+	// Fetch full control details with all relationships needed for calculation
+	// This includes: ControlType, ControlAutomation, ControlConsistency, AssociatedDocuments, LastTestDate
+	control, err := cts.controlSvc.GetFullDetailsByID(controlID, tx...)
+	if err != nil {
+		return 0, nil, 0, err
+	}
+
+	// 1. TYPE SCORE (Preventive = 1, Others = 0)
+	var typeScore float64 = 0
+	isPreventive := false
+	if control.ControlType.Type == "preventive" {
+		typeScore = 1
+		isPreventive = true
+	}
+
+	// 2. DOCUMENTATION SCORE (Has associated document = 1, No = 0)
+	var documentationScore float64 = 0
+	hasDocumentation := false
+	// Check if control has associated documents by querying the count
+	if len(control.AssociatedDocuments) > 0 {
+		documentationScore = 1
+		hasDocumentation = true
+	}
+
+	// 3. AUTOMATION SCORE
+	var automationScore float64 = 0
+	if control.ControlAutomation != nil {
+		automationScore = control.ControlAutomation.Score
+	}
+
+	// 4. CONSISTENCY SCORE
+	var consistencyScore float64 = 0
+	if control.ControlConsistency != nil {
+		consistencyScore = control.ControlConsistency.Score
+	}
+
+	// 5. EVIDENCE AGE SCORE (Based on last test date before this test)
+	var evidenceAgeScore float64 = 0
+
+	// Use the control's LastTestDate (previous test) to calculate evidence age
+	// If no previous test exists, evidence is considered very old (score = 0)
+	if control.LastTestDateString != nil {
+		testedAt, err := time.Parse("2006-01-02", *control.LastTestDateString)
+		if err != nil {
+			return 0, nil, 0, err
+		}
+		monthsSinceEvidence := time.Since(testedAt).Hours() / 24 / 30
+
+		if monthsSinceEvidence < 2 {
+			evidenceAgeScore = 1
+		} else if monthsSinceEvidence < 6 {
+			evidenceAgeScore = 0.75
+		} else if monthsSinceEvidence < 12 {
+			evidenceAgeScore = 0.5
+		} else {
+			evidenceAgeScore = 0
+		}
+	} else {
+		// No previous test exists, evidence age score is 0
+		evidenceAgeScore = 0
+	}
+
+	// TOTAL SCORE (0-5)
+	totalScore := typeScore + documentationScore + automationScore + consistencyScore + evidenceAgeScore
+
+	// Round to 2 decimal places
+	totalScore = math.Round(totalScore*100) / 100
+
+	// DETERMINE RATING BASED ON SCORE RANGES
+	var effectivenessRatingID *uint
+	var riskReduction float64
+
+	// Get all effectiveness ratings
+	ratings, err := cts.controlEffectivenessRatingSvc.GetAll("", "", "", "", "")
+	if err != nil {
+		return 0, nil, 0, err
+	}
+
+	// Find matching rating based on score range
+	for _, rating := range ratings {
+		if totalScore >= rating.MinScore && totalScore <= rating.MaxScore {
+			effectivenessRatingID = &rating.ID
+			riskReduction = rating.ReductionPercent
+			break
+		}
+	}
+
+	// Special case: If Partially Effective, check additional conditions
+	// Partially Effective only if: Documentation=1 AND Preventive=1 AND Score >= 3.5
+	if effectivenessRatingID != nil {
+		rating, _ := cts.controlEffectivenessRatingSvc.GetByID(*effectivenessRatingID)
+		if rating != nil && rating.Type == "partially_effective" {
+			if !(hasDocumentation && isPreventive && totalScore >= 3.5) {
+				// Find "Improvement Needed" rating instead
+				for _, r := range ratings {
+					if r.Type == "improvement_needed" {
+						effectivenessRatingID = &r.ID
+						riskReduction = r.ReductionPercent
+						break
+					}
+				}
+			}
+		}
+	}
+
+	return totalScore, effectivenessRatingID, riskReduction, nil
 }
 
 func (cts *ControlTestService) GetDocumentPath(controlID, controlTestID, id uint, token string) (string, error) {
