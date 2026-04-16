@@ -12,7 +12,7 @@ import (
 type ControlTestRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(controlID uint, params *organizationDTOs.ControlTestListQueryParamsDTO) (*organizationDTOs.ControlTestListResponseDTO, error)
-	GetByID(id uint) (*models.ControlTest, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ControlTest, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ControlTest, error)
 	Create(controlTest *models.ControlTest, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(controlTest *models.ControlTest, tx ...utility.DatabaseTransaction) error
@@ -190,10 +190,14 @@ func (repo *ControlTestRepository) GetAll(controlID uint, params *organizationDT
 	return response, nil
 }
 
-func (repo *ControlTestRepository) GetByID(id uint) (*models.ControlTest, error) {
+func (repo *ControlTestRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ControlTest, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
 	var controlTest *models.ControlTest
 
-	result := repo.db.First(&controlTest, id)
+	result := db.First(&controlTest, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}

@@ -5,17 +5,18 @@ import (
 )
 
 type RiskEvaluation struct {
-	ID                          uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	Type                        string     `json:"type" binding:"required,max=10,oneof=inherent residual" gorm:"type:varchar(10);not null"`
-	RiskRegisterID              uint       `json:"risk_register_id" binding:"required" gorm:"not null"`
-	RiskMatrixLikelihoodID      uint       `json:"risk_matrix_likelihood_id" binding:"required" gorm:"not null"`
-	RiskMatrixImpactID          uint       `json:"risk_matrix_impact_id" binding:"required" gorm:"not null"`
-	RiskMatrixRiskRatingID      uint       `json:"risk_matrix_risk_rating_id" binding:"required" gorm:"not null"`
-	RiskMatrixRiskRatingValueID uint       `json:"risk_matrix_risk_rating_value_id" binding:"required" gorm:"not null"`
-	CreatedByID                 uint       `json:"created_by_id" gorm:"not null"`
-	CreatedAt                   time.Time  `json:"created_at" gorm:"type:datetime;not null"`
-	UpdatedAt                   *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
-	UpdatedByID                 *uint      `json:"updated_by_id" gorm:"default:null"`
+	ID                               uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	Type                             string     `json:"type" binding:"required,max=10,oneof=inherent residual" gorm:"type:varchar(10);not null"`
+	RiskRegisterID                   uint       `json:"risk_register_id" binding:"required" gorm:"not null"`
+	RiskMatrixLikelihoodID           uint       `json:"risk_matrix_likelihood_id" binding:"required" gorm:"not null"`
+	RiskMatrixImpactID               uint       `json:"risk_matrix_impact_id" binding:"required" gorm:"not null"`
+	RiskMatrixRiskRatingID           uint       `json:"risk_matrix_risk_rating_id" binding:"required" gorm:"not null"`
+	RiskMatrixRiskRatingValueID      uint       `json:"risk_matrix_risk_rating_value_id" binding:"required" gorm:"not null"`
+	AverageControlEffectivenessScore *float64   `json:"average_control_effectiveness_score" gorm:"type:decimal(3,2);default:null"`
+	CreatedByID                      uint       `json:"created_by_id" gorm:"not null"`
+	CreatedAt                        time.Time  `json:"created_at" gorm:"type:datetime;not null"`
+	UpdatedAt                        *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
+	UpdatedByID                      *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
 	RiskRegister              *RiskRegister              `gorm:"foreignKey:RiskRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

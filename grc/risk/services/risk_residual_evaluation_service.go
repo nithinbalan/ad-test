@@ -133,6 +133,40 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 		return 0, err
 	}
 
+	// Get inherent evaluation to use as base for residual calculation
+	inherentEvaluation, err := ries.riskInherentEvaluationSvc.GetFullDetailsByID(riskID, transaction)
+	if err != nil {
+		transaction.Rollback()
+		return 0, err
+	}
+	if inherentEvaluation == nil {
+		transaction.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("inherent evaluation must be completed before creating residual evaluation"), "not_exist", "inherent evaluation")
+	}
+
+	// Get control analyses to calculate average risk reduction
+	controlAnalyses, err := ries.repo.GetControlAnalysesByRiskID(riskID)
+	if err != nil {
+		transaction.Rollback()
+		return 0, err
+	}
+
+	// Calculate average risk reduction from control analyses
+	var totalRiskReduction float64
+	var controlCount int
+	for _, ca := range controlAnalyses {
+		if ca.RiskReduction != nil {
+			totalRiskReduction += *ca.RiskReduction
+			controlCount++
+		}
+	}
+
+	var averageRiskReduction *float64
+	if controlCount > 0 {
+		avg := totalRiskReduction / float64(controlCount)
+		averageRiskReduction = &avg
+	}
+
 	riskMatrixType, err := ries.riskMatrixSvc.GetByType("erm")
 	if err != nil {
 		transaction.Rollback()
@@ -163,29 +197,29 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 		}
 	}
 
-	impact, err := ries.riskMatrixImpactSvc.GetByID(residualEvaluationFormDTO.RiskMatrixImpactID)
-	if err != nil {
-		transaction.Rollback()
-		return 0, err
+	// Use inherent evaluation's likelihood and impact as base (for guideline purposes)
+	// Calculate residual score: Inherent Risk Rating Value × Average Risk Reduction
+	var residualScore uint
+	if averageRiskReduction != nil {
+		// Residual Risk Score = Inherent Risk Rating Value × (1 - Average Risk Reduction)
+		// For example: 20 (critical) × (1 - 0.75) = 5 (medium)
+		residualScore = uint(float64(inherentEvaluation.RiskMatrixRiskRatingValue.Value) * (1 - *averageRiskReduction))
+	} else {
+		// If no control analysis exists, residual = inherent
+		residualScore = inherentEvaluation.RiskMatrixRiskRatingValue.Value
 	}
-	likelihood, err := ries.riskMatrixLikelihoodSvc.GetByID(residualEvaluationFormDTO.RiskMatrixLikelihoodID)
-	if err != nil {
-		transaction.Rollback()
-		return 0, err
-	}
-	calculationMethod := riskMatrix.CalculationType
 
-	score := ries.riskMatrixRiskRatingValueSvc.EvaluateScore(impact, likelihood, calculationMethod)
-	riskRating, _ := ries.riskMatrixRiskRatingValueSvc.FindRiskRatingValue(riskRatingValueArray, score)
+	riskRating, _ := ries.riskMatrixRiskRatingValueSvc.FindRiskRatingValue(riskRatingValueArray, residualScore)
 
 	riskResidualEvaluation := &models.RiskEvaluation{
-		RiskRegisterID:              riskID,
-		Type:                        "residual",
-		RiskMatrixLikelihoodID:      residualEvaluationFormDTO.RiskMatrixLikelihoodID,
-		RiskMatrixImpactID:          residualEvaluationFormDTO.RiskMatrixImpactID,
-		RiskMatrixRiskRatingID:      riskRating.RiskMatrixRiskRatingID,
-		RiskMatrixRiskRatingValueID: riskRating.RiskMatrixRiskRatingValueID,
-		CreatedByID:                 currentUserID,
+		RiskRegisterID:                   riskID,
+		Type:                             "residual",
+		RiskMatrixLikelihoodID:           inherentEvaluation.RiskMatrixLikelihood.ID,
+		RiskMatrixImpactID:               inherentEvaluation.RiskMatrixImpact.ID,
+		RiskMatrixRiskRatingID:           riskRating.RiskMatrixRiskRatingID,
+		RiskMatrixRiskRatingValueID:      riskRating.RiskMatrixRiskRatingValueID,
+		AverageControlEffectivenessScore: averageRiskReduction,
+		CreatedByID:                      currentUserID,
 	}
 
 	id, err := ries.repo.Create(riskResidualEvaluation, transaction)
@@ -324,18 +358,55 @@ func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentU
 		return err
 	}
 
+	// Get inherent evaluation to use as base for residual calculation
+	inherentEvaluation, err := ries.riskInherentEvaluationSvc.GetFullDetailsByID(riskID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if inherentEvaluation == nil {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("inherent evaluation must be completed before updating residual evaluation"), "not_exist", "inherent evaluation")
+	}
+
+	// Get control analyses to calculate average risk reduction
+	controlAnalyses, err := ries.repo.GetControlAnalysesByRiskID(riskID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Calculate average risk reduction from control analyses
+	var totalRiskReduction float64
+	var controlCount int
+	for _, ca := range controlAnalyses {
+		if ca.RiskReduction != nil {
+			totalRiskReduction += *ca.RiskReduction
+			controlCount++
+		}
+	}
+
+	var averageRiskReduction *float64
+	if controlCount > 0 {
+		avg := totalRiskReduction / float64(controlCount)
+		averageRiskReduction = &avg
+	}
+
 	riskMatrixType, err := ries.riskMatrixSvc.GetByType("erm")
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	riskMatrix, err := ries.riskMatrixSvc.GetDetailsByID(riskMatrixType.ID)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	oldRiskEvaluation, err := ries.GetFullDetailsByID(riskID)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -377,28 +448,31 @@ func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentU
 		}
 	}
 
-	impact, err := ries.riskMatrixImpactSvc.GetByID(residualEvaluationFormDTO.RiskMatrixImpactID)
-	if err != nil {
-		return err
+	// Use inherent evaluation's likelihood and impact as base (for guideline purposes)
+	// Calculate residual score: Inherent Risk Rating Value × Average Risk Reduction
+	var residualScore uint
+	if averageRiskReduction != nil {
+		// Residual Risk Score = Inherent Risk Rating Value × (1 - Average Risk Reduction)
+		// For example: 20 (critical) × (1 - 0.75) = 5 (medium)
+		residualScore = uint(float64(inherentEvaluation.RiskMatrixRiskRatingValue.Value) * (1 - *averageRiskReduction))
+	} else {
+		// If no control analysis exists, residual = inherent
+		residualScore = inherentEvaluation.RiskMatrixRiskRatingValue.Value
 	}
-	likelihood, err := ries.riskMatrixLikelihoodSvc.GetByID(residualEvaluationFormDTO.RiskMatrixLikelihoodID)
-	if err != nil {
-		return err
-	}
-	calculationMethod := riskMatrix.CalculationType
 
-	score := ries.riskMatrixRiskRatingValueSvc.EvaluateScore(impact, likelihood, calculationMethod)
-	riskRating, _ := ries.riskMatrixRiskRatingValueSvc.FindRiskRatingValue(riskRatingValueArray, score)
+	riskRating, _ := ries.riskMatrixRiskRatingValueSvc.FindRiskRatingValue(riskRatingValueArray, residualScore)
 
 	existingRiskResidualEvaluation, err := ries.GetByID(riskID, id)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
-	existingRiskResidualEvaluation.RiskMatrixImpactID = residualEvaluationFormDTO.RiskMatrixImpactID
-	existingRiskResidualEvaluation.RiskMatrixLikelihoodID = residualEvaluationFormDTO.RiskMatrixLikelihoodID
+	existingRiskResidualEvaluation.RiskMatrixImpactID = inherentEvaluation.RiskMatrixImpact.ID
+	existingRiskResidualEvaluation.RiskMatrixLikelihoodID = inherentEvaluation.RiskMatrixLikelihood.ID
 	existingRiskResidualEvaluation.RiskMatrixRiskRatingID = riskRating.RiskMatrixRiskRatingID
 	existingRiskResidualEvaluation.RiskMatrixRiskRatingValueID = riskRating.RiskMatrixRiskRatingValueID
+	existingRiskResidualEvaluation.AverageControlEffectivenessScore = averageRiskReduction
 	existingRiskResidualEvaluation.UpdatedByID = &currentUserID
 
 	if err := ries.repo.Update(existingRiskResidualEvaluation, tx); err != nil {

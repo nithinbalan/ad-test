@@ -44,6 +44,9 @@ func (repo *RiskResidualControlAnalysisRepository) GetAll(riskID uint, params *r
 			risk_control_analyses.type,
 			risk_control_analyses.control_test_id,
 			risk_control_analyses.score,
+			risk_control_analyses.control_effectiveness_score,
+			risk_control_analyses.control_effectiveness_rating_id,
+			risk_control_analyses.risk_reduction,
 			controls.id AS control_id,
 			controls.code AS control_code,
 			controls.reference_number AS control_reference_number,
@@ -71,6 +74,11 @@ func (repo *RiskResidualControlAnalysisRepository) GetAll(riskID uint, params *r
 			control_efficiency_statuses.title_en AS control_efficiency_status_title_en,
 			control_efficiency_statuses.title_ar AS control_efficiency_status_title_ar,
 			control_efficiency_statuses.color_code AS control_efficiency_status_color_code,
+			control_effectiveness_ratings.title_en AS control_effectiveness_rating_title_en,
+			control_effectiveness_ratings.title_ar AS control_effectiveness_rating_title_ar,
+			control_effectiveness_ratings.min_score AS control_effectiveness_rating_min_score,
+			control_effectiveness_ratings.max_score AS control_effectiveness_rating_max_score,
+			control_effectiveness_ratings.type AS control_effectiveness_rating_type,
             created_user.id AS created_user_id,
             created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -91,6 +99,7 @@ func (repo *RiskResidualControlAnalysisRepository) GetAll(riskID uint, params *r
 			LEFT JOIN users AS owner ON owner.id = controls.responsible_user_id
             LEFT JOIN control_efficiency_statuses ON control_efficiency_statuses.id = risk_control_analyses.control_efficiency_status_id
             LEFT JOIN control_implementation_statuses ON control_implementation_statuses.id = risk_control_analyses.control_implementation_status_id
+            LEFT JOIN control_effectiveness_ratings ON control_effectiveness_ratings.id = risk_control_analyses.control_effectiveness_rating_id
             LEFT JOIN users AS created_user ON created_user.id = risk_control_analyses.created_by_id
         `).
 		Where(`risk_controls.risk_register_id = ? AND risk_control_analyses.type = 'residual'`, riskID)
@@ -142,6 +151,7 @@ func (repo *RiskResidualControlAnalysisRepository) GetFullDetailsByID(id uint) (
 		Preload("RiskControl").
 		Preload("ControlEfficiencyStatus").
 		Preload("ControlImplementationStatus").
+		Preload("ControlEffectivenessRating").
 		Where("type = ?", "residual").
 		First(&riskControlAnalysis, id)
 	if result.Error != nil {

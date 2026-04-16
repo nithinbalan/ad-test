@@ -20,6 +20,7 @@ type RiskResidualEvaluationRepositoryInterface interface {
 	CreateRiskAppetiteAlignments(alignments []*models.RiskAppetiteAlignment, tx ...utility.DatabaseTransaction) error
 	DeleteRiskImpactAnalysesByRiskEvaluationID(riskEvaluationID uint, tx ...utility.DatabaseTransaction) error
 	DeleteRiskAppetiteAlignmentsByRiskEvaluationID(riskEvaluationID uint, tx ...utility.DatabaseTransaction) error
+	GetControlAnalysesByRiskID(riskID uint) ([]*models.RiskControlAnalysis, error)
 }
 
 type RiskResidualEvaluationRepository struct {
@@ -188,4 +189,20 @@ func (repo *RiskResidualEvaluationRepository) DeleteRiskAppetiteAlignmentsByRisk
 		return err
 	}
 	return nil
+}
+
+func (repo *RiskResidualEvaluationRepository) GetControlAnalysesByRiskID(riskID uint) ([]*models.RiskControlAnalysis, error) {
+	var controlAnalyses []*models.RiskControlAnalysis
+
+	result := repo.db.
+		Joins("JOIN risk_controls ON risk_controls.id = risk_control_analyses.risk_control_id").
+		Where("risk_controls.risk_register_id = ?", riskID).
+		Where("risk_control_analyses.type = ?", "inherent").
+		Find(&controlAnalyses)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return controlAnalyses, nil
 }
