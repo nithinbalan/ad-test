@@ -98,8 +98,16 @@ type ControlListDTO struct {
 	ControlConsistencyType               *string    `json:"control_consistency_type"`
 	ControlConsistencyScore              *float64   `json:"control_consistency_score"`
 	ControlConsistencyStatus             *string    `json:"control_consistency_status"`
-	ControlConsistencyDescriptionEn       *string    `json:"control_consistency_description_en"`
-	ControlConsistencyDescriptionAr       *string    `json:"control_consistency_description_ar"`
+	ControlConsistencyDescriptionEn      *string    `json:"control_consistency_description_en"`
+	ControlConsistencyDescriptionAr      *string    `json:"control_consistency_description_ar"`
+	ControlEffectivenessScore            *float64   `json:"control_effectiveness_score"`
+	ControlEffectivenessRatingID         *uint      `json:"control_effectiveness_rating_id"`
+	ControlEffectivenessRatingTitleEn    *string    `json:"control_effectiveness_rating_title_en"`
+	ControlEffectivenessRatingTitleAr    *string    `json:"control_effectiveness_rating_title_ar"`
+	ControlEffectivenessRatingMinScore   *float64   `json:"control_effectiveness_rating_min_score"`
+	ControlEffectivenessRatingMaxScore   *float64   `json:"control_effectiveness_rating_max_score"`
+	ControlEffectivenessRatingType       *string    `json:"control_effectiveness_rating_type"`
+	RiskReduction                        *float64   `json:"risk_reduction"`
 }
 
 type ControlMinimalListDTO struct {
@@ -188,7 +196,7 @@ type ControlDetailDTO struct {
 	Description                   *string                          `json:"description"`
 	Objective                     *string                          `json:"objective"`
 	ControlType                   ControlTypeDTO                   `json:"control_type"`
-	ControlCategory               *ControlCategoryDTO               `json:"control_category"`
+	ControlCategory               *ControlCategoryDTO              `json:"control_category"`
 	ResponsibleUnit               settingsDTOs.OrganizationUnitDTO `json:"owner_unit"`
 	ResponsibleUserID             *uint                            `json:"owner_id"`
 	Responsibleuser               *UserMinimalDTO                  `json:"owner"`
@@ -226,6 +234,10 @@ type ControlDetailDTO struct {
 	ControlConsistencyID          *uint                            `json:"control_consistency_id"`
 	ControlAutomation             *ControlAutomationDetailDTO      `json:"control_automation"`
 	ControlConsistency            *ControlConsistencyDetailDTO     `json:"control_consistency"`
+	AssociatedDocuments           []ControlAssociatedDocumentDTO   `json:"associated_documents"`
+	ControlEffectivenessScore     *float64                         `json:"control_effectiveness_score"`
+	ControlEffectivenessRating    *ControlEffectivenessRatingDTO   `json:"control_effectiveness_rating"`
+	RiskReduction                 *float64                         `json:"risk_reduction"`
 }
 type ComplianceStatusDTO struct {
 	ID        int    `json:"id"`
@@ -263,26 +275,26 @@ type ControlMailDTO struct {
 }
 
 type ControlAutomationDetailDTO struct {
-	ID            uint           `json:"id"`
-	TitleEn       string         `json:"title_en"`
-	TitleAr       string         `json:"title_ar"`
-	Type          string         `json:"type"`
-	Score         float64        `json:"score"`
-	Status        string         `json:"status"`
-	CreatedAt     time.Time      `json:"created_at"`
-	CreatedByID   uint           `json:"created_by_id"`
+	ID            uint            `json:"id"`
+	TitleEn       string          `json:"title_en"`
+	TitleAr       string          `json:"title_ar"`
+	Type          string          `json:"type"`
+	Score         float64         `json:"score"`
+	Status        string          `json:"status"`
+	CreatedAt     time.Time       `json:"created_at"`
+	CreatedByID   uint            `json:"created_by_id"`
 	CreatedByUser *UserMinimalDTO `json:"created_by_user"`
 }
 
 type ControlConsistencyDetailDTO struct {
-	ID            uint           `json:"id"`
-	TitleEn       string         `json:"title_en"`
-	TitleAr       string         `json:"title_ar"`
-	Type          string         `json:"type"`
-	Score         float64        `json:"score"`
-	Status        string         `json:"status"`
-	CreatedAt     time.Time      `json:"created_at"`
-	CreatedByID   uint           `json:"created_by_id"`
+	ID            uint            `json:"id"`
+	TitleEn       string          `json:"title_en"`
+	TitleAr       string          `json:"title_ar"`
+	Type          string          `json:"type"`
+	Score         float64         `json:"score"`
+	Status        string          `json:"status"`
+	CreatedAt     time.Time       `json:"created_at"`
+	CreatedByID   uint            `json:"created_by_id"`
 	CreatedByUser *UserMinimalDTO `json:"created_by_user"`
 }
 
@@ -291,3 +303,9 @@ type ControlApplicableFormDTO struct {
 	ApplicabilityChangeDate *string `json:"applicability_change_date" binding:"omitempty,datetime=2006-01-02"`
 }
 
+type ControlAssociatedDocumentDTO struct {
+	ID         uint                          `json:"id"`
+	ControlID  uint                          `json:"control_id"`
+	DocumentID uint                          `json:"document_id"`
+	Documents  []*commonDTOs.DocumentFormDTO `json:"documents"`
+}

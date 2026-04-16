@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"jethur/grc/compliance/services"
+	"jethur/grc/organization/services"
 	"jethur/utility"
 	"net/http"
 	"strconv"

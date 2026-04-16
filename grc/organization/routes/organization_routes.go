@@ -69,6 +69,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	internalCommitteeWorkflowReviewController := app.OrganizationModule.InternalCommitteeWorkflowReviewController
 	internalCommitteeWorkflowController := app.OrganizationModule.InternalCommitteeWorkflowController
 	internalCommitteeReviewCommentController := app.OrganizationModule.InternalCommitteeReviewCommentController
+	controlEffectivenessRatingController := app.OrganizationModule.ControlEffectivenessRatingController
 
 	// Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
@@ -577,4 +578,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	unauthenticatedRoutes.GET("/internal-committees/:committeeId/review-comments/:commentId/document-preview", internalCommitteeReviewCommentController.GetDocumentPreview)
 	unauthenticatedRoutes.GET("/internal-committees/:committeeId/review-comments/:commentId/document-download", internalCommitteeReviewCommentController.DownloadDocument)
+
+	// Control Effectiveness Rating Master
+	organizationRoutes.GET("/control-effectiveness-ratings", controlEffectivenessRatingController.GetAllControlEffectivenessRatings)
+	organizationRoutes.GET("/control-effectiveness-ratings/:id", controlEffectivenessRatingController.GetControlEffectivenessRatingDetails)
 }
