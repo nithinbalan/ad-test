@@ -64,9 +64,8 @@ type ComplianceModule struct {
 	ComplianceAssessmentAcknowledgeDepartmentController           *controllers.ComplianceAssessmentAcknowledgeDepartmentController
 	ComplianceAssessmentRequirementResidualRiskAnalysisController *controllers.ComplianceAssessmentRequirementResidualRiskAnalysisController
 
-	ControlAutomationController          *controllers.ControlAutomationController
-	ControlConsistencyController         *controllers.ControlConsistencyController
-	ControlEffectivenessRatingController *controllers.ControlEffectivenessRatingController
+	ControlAutomationController  *controllers.ControlAutomationController
+	ControlConsistencyController *controllers.ControlConsistencyController
 
 	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
 	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
@@ -418,10 +417,6 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	controlConsistencySvc := services.NewControlConsistencyService(controlConsistencyRepo, sharedModule.ActivityLogService)
 	controlConsistencyController := controllers.NewControlConsistencyController(controlConsistencySvc)
 
-	controlEffectivenessRatingRepo := repositories.NewControlEffectivenessRatingRepository(db)
-	controlEffectivenessRatingSvc := services.NewControlEffectivenessRatingService(controlEffectivenessRatingRepo)
-	controlEffectivenessRatingController := controllers.NewControlEffectivenessRatingController(controlEffectivenessRatingSvc)
-
 	return &ComplianceModule{
 		ComplianceCategoryController:                                    complianceCategoryController,
 		ComplianceStatusController:                                      complianceStatusController,
@@ -479,7 +474,6 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceAssessmentRequirementResidualRiskAnalysisController: complianceAssessmentRequirementResidualRiskAnalysisController,
 		ControlAutomationController:                                   controlAutomationController,
 		ControlConsistencyController:                                  controlConsistencyController,
-		ControlEffectivenessRatingController:                          controlEffectivenessRatingController,
 
 		ComplianceRequirementSvc:       complianceRequirementSvc,
 		ComplianceRegisterSvc:          complianceRegisterSvc,

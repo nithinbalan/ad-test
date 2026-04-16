@@ -62,6 +62,7 @@ type OrganizationModule struct {
 	InternalCommitteeWorkflowController       *controllers.InternalCommitteeWorkflowController
 	InternalCommitteeWorkflowReviewController *controllers.InternalCommitteeWorkflowReviewController
 	InternalCommitteeReviewCommentController  *controllers.InternalCommitteeReviewCommentController
+	ControlEffectivenessRatingController      *controllers.ControlEffectivenessRatingController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -175,6 +176,10 @@ func NewOrganizationModule(
 	strategicProfileValueSvc := services.NewStrategicProfileValueService(strategicProfileValueRepo, sharedModule.ActivityLogService, strategicProfileRepo)
 	strategicProfileValueController := controllers.NewStrategicProfileValueController(strategicProfileValueSvc)
 
+	controlEffectivenessRatingRepo := repositories.NewControlEffectivenessRatingRepository(db)
+	controlEffectivenessRatingSvc := services.NewControlEffectivenessRatingService(controlEffectivenessRatingRepo)
+	controlEffectivenessRatingController := controllers.NewControlEffectivenessRatingController(controlEffectivenessRatingSvc)
+
 	controlReviewStatusRepo := repositories.NewControlReviewStatusRepository(db)
 	controlReviewStatusSvc := services.NewControlReviewStatusService(controlReviewStatusRepo)
 	controlReviewStatusController := controllers.NewControlReviewStatusController(controlReviewStatusSvc)
@@ -200,7 +205,8 @@ func NewOrganizationModule(
 		controlSvc,
 		controlImplementationStatusSvc,
 		controlEfficiencyStatusSvc,
-		masterModule.ReviewFrequencySvc)
+		masterModule.ReviewFrequencySvc,
+		controlEffectivenessRatingSvc)
 	controlTestController := controllers.NewControlTestController(controlTestSvc)
 
 	controlAssociatedItemRepo := repositories.NewControlAssociatedItemRepository(db)
@@ -443,6 +449,7 @@ func NewOrganizationModule(
 		InternalCommitteeWorkflowController:       internalCommitteeWorkflowController,
 		InternalCommitteeWorkflowReviewController: internalCommitteeWorkflowReviewController,
 		InternalCommitteeReviewCommentController:  internalCommitteeReviewCommentController,
+		ControlEffectivenessRatingController:      controlEffectivenessRatingController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,

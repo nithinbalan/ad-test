@@ -21,6 +21,9 @@ type Control struct {
 	Description                   *string    `json:"description,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
 	ComplianceStatusID            *uint      `json:"compliance_status_id" gorm:"default:null"`
 	EfficiencyScore               *uint      `json:"efficiency_score" gorm:"default:0;check:efficiency_score >= 0 AND efficiency_score <= 100" binding:"omitempty"`
+	ControlEffectivenessScore     *float64   `json:"control_effectiveness_score,omitempty" gorm:"type:decimal(3,2);default:null;check:control_effectiveness_score >= 0 AND control_effectiveness_score <= 5" binding:"omitempty"`
+	ControlEffectivenessRatingID  *uint      `json:"control_effectiveness_rating_id,omitempty" gorm:"default:null" binding:"omitempty"`
+	RiskReduction                 *float64   `json:"risk_reduction,omitempty" gorm:"type:decimal(5,2);default:null;check:risk_reduction >= 0 AND risk_reduction <= 100" binding:"omitempty"`
 	Objective                     *string    `json:"objective,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
 	ReviewFrequencyID             *uint      `json:"review_frequency_id,omitempty" gorm:"default:null" binding:"omitempty"`
 	LastReviewDate                *time.Time `json:"last_review_date,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
@@ -53,6 +56,7 @@ type Control struct {
 	ResponsibleUser             *User                        `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ControlImplementationStatus *ControlImplementationStatus `gorm:"foreignKey:ControlImplementationStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ControlEfficiencyStatus     *ControlEfficiencyStatus     `gorm:"foreignKey:ControlEfficiencyStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ControlEffectivenessRating  *ControlEffectivenessRating  `gorm:"foreignKey:ControlEffectivenessRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ControlAutomation           *ControlAutomation           `gorm:"foreignKey:ControlAutomationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ControlConsistency          *ControlConsistency          `gorm:"foreignKey:ControlConsistencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ReviewFrequency             *ReviewFrequency             `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -67,6 +71,7 @@ type Control struct {
 	RiskMatrixRatingValue       *RiskMatrixRiskRatingValue   `gorm:"foreignKey:RiskMatrixRiskRatingValueID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Risks                       []*RiskControl               `gorm:"foreignKey:ControlID"`
 	ComplianceStatus            *ComplianceStatus            `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	AssociatedDocuments         []*ControlAssociatedDocument `gorm:"foreignKey:ControlID"`
 	CreatedByUser               *User                        `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser               *User                        `gorm:"foreignKey:UpdatedByID"`
 }
