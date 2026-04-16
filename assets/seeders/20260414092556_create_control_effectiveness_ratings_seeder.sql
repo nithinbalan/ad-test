@@ -1,7 +1,5 @@
 -- +goose Up
 -- +goose StatementBegin
-TRUNCATE TABLE control_effectiveness_ratings;
-
 INSERT INTO control_effectiveness_ratings
 (title_en, title_ar, type, min_score, max_score, reduction_percent, status)
 VALUES
