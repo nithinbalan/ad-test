@@ -7,6 +7,7 @@ import (
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/utility"
 	"strconv"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -75,6 +76,14 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			units.code_en AS unit_code_en,
 			units.code_ar AS unit_code_ar,
 			units.color_code AS unit_color_code,
+			level_of_measurements.title_en AS level_of_measurement_title_en,
+			level_of_measurements.title_ar AS level_of_measurement_title_ar,
+			risk_responsible_units.title_en AS risk_responsible_unit_title_en,
+			risk_responsible_units.title_ar AS risk_responsible_unit_title_ar,
+			risk_sub_categories.title_en AS risk_sub_category_title_en,
+			risk_sub_categories.title_ar AS risk_sub_category_title_ar,
+			distribution_statuses.title_en AS distribution_status_title_en,
+			distribution_statuses.title_ar AS distribution_status_title_ar,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
@@ -101,6 +110,10 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			LEFT JOIN review_frequencies ON review_frequencies.id = kri_register.review_frequency_id
 			LEFT JOIN risk_levels ON risk_levels.id = kri_register.risk_level_id
 			LEFT JOIN units ON units.id = kri_register.unit_id
+			LEFT JOIN level_of_measurements ON level_of_measurements.id = kri_register.level_of_measurement_id
+			LEFT JOIN organization_units AS risk_responsible_units ON risk_responsible_units.id = kri_register.risk_responsible_unit_id
+			LEFT JOIN risk_sub_categories ON risk_sub_categories.id = kri_register.risk_sub_category_id
+			LEFT JOIN distribution_statuses ON distribution_statuses.id = kri_register.distribution_status_id
 			LEFT JOIN users AS created_user ON created_user.id = kri_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = kri_register.updated_by_id
 		`)
@@ -148,45 +161,59 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
-		query = query.Where(`
-			kri_register.title LIKE ? OR
-			kri_register.calculation_type LIKE ? OR
-			kri_register.description LIKE ? OR
-			kri_register.reference_number LIKE ? OR
-			kri_register.low_threshold LIKE ? OR
-			kri_register.medium_threshold LIKE ? OR
-			kri_register.high_threshold LIKE ? OR
-			kri_register.current_value LIKE ? OR
-			kri_categories.title_en LIKE ? OR
-			kri_categories.title_ar LIKE ? OR
-			units.title_en LIKE ? OR
-			units.title_ar LIKE ? OR
-			units.code_en LIKE ? OR
-			units.code_ar LIKE ? OR
-			organization_units.title_en LIKE ? OR
-			organization_units.title_ar LIKE ? OR
-			review_frequencies.title_en LIKE ? OR
-			review_frequencies.title_ar LIKE ? OR
-			risk_levels.title_en LIKE ? OR
-			risk_levels.title_ar LIKE ? OR
-			responsible_user.first_name_en LIKE ? OR
-			responsible_user.first_name_ar LIKE ? OR
-			responsible_user.last_name_en LIKE ? OR
-			responsible_user.last_name_ar LIKE ? OR
-			created_user.first_name_en LIKE ? OR
-			created_user.first_name_ar LIKE ? OR
-			created_user.last_name_en LIKE ? OR
-			created_user.last_name_ar LIKE ? OR
-    		updated_user.first_name_en LIKE ? OR
-			updated_user.first_name_ar LIKE ? OR
-			updated_user.last_name_en LIKE ? OR
-			updated_user.last_name_ar LIKE ?
-		`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword)
+		searchColumns := []string{
+			"kri_register.title",
+			"kri_register.calculation_type",
+			"kri_register.description",
+			"kri_register.reference_number",
+			"kri_register.low_threshold",
+			"kri_register.medium_threshold",
+			"kri_register.high_threshold",
+			"kri_register.current_value",
+			"kri_register.annual_target",
+			"kri_register.review_target",
+			"kri_categories.title_en",
+			"kri_categories.title_ar",
+			"units.title_en",
+			"units.title_ar",
+			"units.code_en",
+			"units.code_ar",
+			"organization_units.title_en",
+			"organization_units.title_ar",
+			"review_frequencies.title_en",
+			"review_frequencies.title_ar",
+			"risk_levels.title_en",
+			"risk_levels.title_ar",
+			"level_of_measurements.title_en",
+			"level_of_measurements.title_ar",
+			"risk_responsible_units.title_en",
+			"risk_responsible_units.title_ar",
+			"risk_sub_categories.title_en",
+			"risk_sub_categories.title_ar",
+			"distribution_statuses.title_en",
+			"distribution_statuses.title_ar",
+			"responsible_user.first_name_en",
+			"responsible_user.first_name_ar",
+			"responsible_user.last_name_en",
+			"responsible_user.last_name_ar",
+			"created_user.first_name_en",
+			"created_user.first_name_ar",
+			"created_user.last_name_en",
+			"created_user.last_name_ar",
+			"updated_user.first_name_en",
+			"updated_user.first_name_ar",
+			"updated_user.last_name_en",
+			"updated_user.last_name_ar",
+		}
+
+		conditions := make([]string, 0, len(searchColumns))
+		args := make([]interface{}, 0, len(searchColumns))
+		for _, col := range searchColumns {
+			conditions = append(conditions, col+" LIKE ?")
+			args = append(args, keyword)
+		}
+
+		query = query.Where(strings.Join(conditions, " OR "), args...)
 	}
 
 	// Sort by the specified column and order
@@ -249,6 +276,10 @@ func (repo *KRIRegisterRepository) GetFullDetailsByID(id uint) (*models.KRIRegis
 		Preload("ReviewFrequency").
 		Preload("RiskLevel").
 		Preload("Unit").
+		Preload("LevelOfMeasurement").
+		Preload("RiskResponsibleUnit").
+		Preload("RiskSubCategory").
+		Preload("DistributionStatus").
 		Preload("ValueUpdates").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").

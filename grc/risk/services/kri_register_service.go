@@ -14,6 +14,7 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
+	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -38,15 +39,19 @@ type KRIRegisterServiceInterface interface {
 
 // Service and implementations
 type KRIRegisterService struct {
-	repo               riskRepositories.KRIRegisterRepositoryInterface
-	activityLogSvc     logServices.ActivityLogServiceInterface
-	kriCategorySvc     KRICategoryServiceInterface
-	userSvc            organizationServices.UserServiceInterface
-	riskLevelSvc       RiskLevelServiceInterface
-	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface
-	unitSvc            masterServices.UnitServiceInterface
-	userSettingSvc     organizationServices.UserSettingServiceInterface
-	notificationSvc    commonServices.NotificationServiceInterface
+	repo                riskRepositories.KRIRegisterRepositoryInterface
+	activityLogSvc      logServices.ActivityLogServiceInterface
+	kriCategorySvc      KRICategoryServiceInterface
+	userSvc             organizationServices.UserServiceInterface
+	riskLevelSvc        RiskLevelServiceInterface
+	riskSubCategorySvc  RiskSubCategoryServiceInterface
+	levelMeasureSvc     LevelOfMeasurementServiceInterface
+	distributionSvc     DistributionStatusServiceInterface
+	organizationUnitSvc settingsServices.OrganizationUnitServiceInterface
+	reviewFrequencySvc  masterServices.ReviewFrequencyServiceInterface
+	unitSvc             masterServices.UnitServiceInterface
+	userSettingSvc      organizationServices.UserSettingServiceInterface
+	notificationSvc     commonServices.NotificationServiceInterface
 }
 
 func NewKRIRegisterService(
@@ -55,21 +60,29 @@ func NewKRIRegisterService(
 	kriCategorySvc KRICategoryServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	riskLevelSvc RiskLevelServiceInterface,
+	riskSubCategorySvc RiskSubCategoryServiceInterface,
+	levelMeasureSvc LevelOfMeasurementServiceInterface,
+	distributionSvc DistributionStatusServiceInterface,
+	organizationUnitSvc settingsServices.OrganizationUnitServiceInterface,
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
 	unitSvc masterServices.UnitServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 ) KRIRegisterServiceInterface {
 	return &KRIRegisterService{
-		repo:               repo,
-		activityLogSvc:     activityLogSvc,
-		kriCategorySvc:     kriCategorySvc,
-		userSvc:            userSvc,
-		riskLevelSvc:       riskLevelSvc,
-		reviewFrequencySvc: reviewFrequencySvc,
-		unitSvc:            unitSvc,
-		userSettingSvc:     userSettingSvc,
-		notificationSvc:    notificationSvc,
+		repo:                repo,
+		activityLogSvc:      activityLogSvc,
+		kriCategorySvc:      kriCategorySvc,
+		userSvc:             userSvc,
+		riskLevelSvc:        riskLevelSvc,
+		riskSubCategorySvc:  riskSubCategorySvc,
+		levelMeasureSvc:     levelMeasureSvc,
+		distributionSvc:     distributionSvc,
+		organizationUnitSvc: organizationUnitSvc,
+		reviewFrequencySvc:  reviewFrequencySvc,
+		unitSvc:             unitSvc,
+		userSettingSvc:      userSettingSvc,
+		notificationSvc:     notificationSvc,
 	}
 }
 
@@ -115,7 +128,22 @@ func (krs KRIRegisterService) GetFullDetailsByID(id uint) (*riskDTOs.KRIRegister
 	kriRegisterDTO.CreatedAt = kriRegister.CreatedAt
 	kriRegisterDTO.UpdatedAt = kriRegister.UpdatedAt
 
-	// todo :- also add extra fields which required in details screen
+	// Compute actual threshold values from stored percentages and annual_target
+	if kriRegister.AnnualTarget != nil {
+		annualTarget := *kriRegister.AnnualTarget
+		if kriRegister.MinimumSusceptibilityPercent != nil {
+			v := annualTarget * (*kriRegister.MinimumSusceptibilityPercent / 100)
+			kriRegisterDTO.MinimumSusceptibility = &v
+		}
+		if kriRegister.MaximumSusceptibilityPercent != nil {
+			v := annualTarget * (*kriRegister.MaximumSusceptibilityPercent / 100)
+			kriRegisterDTO.MaximumSusceptibility = &v
+		}
+		if kriRegister.MaximumTolerablePercent != nil {
+			v := annualTarget * (*kriRegister.MaximumTolerablePercent / 100)
+			kriRegisterDTO.MaximumTolerable = &v
+		}
+	}
 
 	return &kriRegisterDTO, nil
 }
@@ -150,23 +178,32 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 	}
 
 	kriRegister := &models.KRIRegister{
-		ReferenceNumber:   &referenceNumber,
-		KRICategoryID:     kriRegisterFormDTO.KRICategoryID,
-		ResponsibleUnitID: organizationUnitID,
-		ResponsibleUserID: kriRegisterFormDTO.ResponsibleUserID,
-		ReviewFrequencyID: kriRegisterFormDTO.ReviewFrequencyID,
-		RiskLevelID:       riskLevelID,
-		UnitID:            &kriRegisterFormDTO.UnitID,
-		Title:             kriRegisterFormDTO.Title,
-		Description:       &kriRegisterFormDTO.Description,
-		CalculationType:   kriRegisterFormDTO.CalculationType,
-		LowThreshold:      kriRegisterFormDTO.LowThreshold,
-		MediumThreshold:   kriRegisterFormDTO.MediumThreshold,
-		CurrentValue:      kriRegisterFormDTO.CurrentValue,
-		NextReviewDate:    *dates.NextReviewDate,
-		LastReviewNote:    kriRegisterFormDTO.LastReviewNote,
-		CreatedBYID:       currentUserID,
-		UpdatedAt:         nil,
+		ReferenceNumber:       &referenceNumber,
+		KRICategoryID:         kriRegisterFormDTO.KRICategoryID,
+		ResponsibleUnitID:     organizationUnitID,
+		ResponsibleUserID:     kriRegisterFormDTO.ResponsibleUserID,
+		ReviewFrequencyID:     kriRegisterFormDTO.ReviewFrequencyID,
+		RiskLevelID:           riskLevelID,
+		UnitID:                &kriRegisterFormDTO.UnitID,
+		LevelOfMeasurementID:  kriRegisterFormDTO.LevelOfMeasurementID,
+		RiskResponsibleUnitID: kriRegisterFormDTO.RiskResponsibleUnitID,
+		RiskSubCategoryID:     kriRegisterFormDTO.RiskSubCategoryID,
+		AnnualTarget:          kriRegisterFormDTO.AnnualTarget,
+		ReviewTarget:          kriRegisterFormDTO.ReviewTarget,
+		DistributionStatusID:  kriRegisterFormDTO.DistributionStatusID,
+		Title:                 kriRegisterFormDTO.Title,
+		Description:           &kriRegisterFormDTO.Description,
+		CalculationType:       kriRegisterFormDTO.CalculationType,
+		LowThreshold:          kriRegisterFormDTO.LowThreshold,
+		MediumThreshold:       kriRegisterFormDTO.MediumThreshold,
+		CurrentValue:          kriRegisterFormDTO.CurrentValue,
+		NextReviewDate:        *dates.NextReviewDate,
+		LastReviewNote:        kriRegisterFormDTO.LastReviewNote,
+		MinimumSusceptibilityPercent: kriRegisterFormDTO.MinimumSusceptibilityPercent,
+		MaximumSusceptibilityPercent: kriRegisterFormDTO.MaximumSusceptibilityPercent,
+		MaximumTolerablePercent:      kriRegisterFormDTO.MaximumTolerablePercent,
+		CreatedBYID:           currentUserID,
+		UpdatedAt:             nil,
 	}
 	if kriRegisterFormDTO.LastReviewedDate != "" {
 		kriRegister.LastReviewedDate = dates.LastReviewedDate
@@ -325,11 +362,20 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 	existingKRIRegister.ResponsibleUserID = kriRegisterFormDTO.ResponsibleUserID
 	existingKRIRegister.ReviewFrequencyID = kriRegisterFormDTO.ReviewFrequencyID
 	existingKRIRegister.UnitID = &kriRegisterFormDTO.UnitID
+	existingKRIRegister.LevelOfMeasurementID = kriRegisterFormDTO.LevelOfMeasurementID
+	existingKRIRegister.RiskResponsibleUnitID = kriRegisterFormDTO.RiskResponsibleUnitID
+	existingKRIRegister.RiskSubCategoryID = kriRegisterFormDTO.RiskSubCategoryID
+	existingKRIRegister.AnnualTarget = kriRegisterFormDTO.AnnualTarget
+	existingKRIRegister.ReviewTarget = kriRegisterFormDTO.ReviewTarget
+	existingKRIRegister.DistributionStatusID = kriRegisterFormDTO.DistributionStatusID
 	existingKRIRegister.Title = kriRegisterFormDTO.Title
 	existingKRIRegister.Description = &kriRegisterFormDTO.Description
 	existingKRIRegister.CalculationType = kriRegisterFormDTO.CalculationType
 	existingKRIRegister.LowThreshold = kriRegisterFormDTO.LowThreshold
 	existingKRIRegister.MediumThreshold = kriRegisterFormDTO.MediumThreshold
+	existingKRIRegister.MinimumSusceptibilityPercent = kriRegisterFormDTO.MinimumSusceptibilityPercent
+	existingKRIRegister.MaximumSusceptibilityPercent = kriRegisterFormDTO.MaximumSusceptibilityPercent
+	existingKRIRegister.MaximumTolerablePercent = kriRegisterFormDTO.MaximumTolerablePercent
 
 	if kriRegisterFormDTO.LastReviewedDate != "" {
 		existingKRIRegister.LastReviewedDate = dates.LastReviewedDate
@@ -352,35 +398,53 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 		changedData := make(map[string]interface{})
 		// log changes
 		oldData := map[string]interface{}{
-			"title":            oldKriRegister.Title,
-			"description":      oldKriRegister.Description,
-			"kri_category":     oldKriRegister.KRICategory.TitleEn,
-			"responsible_user": fmt.Sprintf("%s %s", oldKriRegister.ResponsibleUser.FirstNameEN, oldKriRegister.ResponsibleUser.LastNameEN),
-			"review_frequency": oldKriRegister.ReviewFrequency.TitleEn,
-			"risk_level":       utility.GetFieldValue(oldKriRegister.RiskLevel).(string),
-			"unit":             oldKriRegister.Unit,
-			"calculation_type": oldKriRegister.CalculationType,
-			"low_threshold":    oldKriRegister.LowThreshold,
-			"medium_threshold": oldKriRegister.MediumThreshold,
-			"high_threshold":   oldKriRegister.HighThreshold,
-			"current_value":    oldKriRegister.CurrentValue,
-			"last_review_note": oldKriRegister.LastReviewNote,
+			"title":                 oldKriRegister.Title,
+			"description":           oldKriRegister.Description,
+			"kri_category":          oldKriRegister.KRICategory.TitleEn,
+			"responsible_user":      fmt.Sprintf("%s %s", oldKriRegister.ResponsibleUser.FirstNameEN, oldKriRegister.ResponsibleUser.LastNameEN),
+			"review_frequency":      oldKriRegister.ReviewFrequency.TitleEn,
+			"risk_level":            utility.GetFieldValue(oldKriRegister.RiskLevel).(string),
+			"unit":                  oldKriRegister.Unit,
+			"level_of_measurement":  utility.GetFieldValue(oldKriRegister.LevelOfMeasurement),
+			"risk_responsible_unit": utility.GetFieldValue(oldKriRegister.RiskResponsibleUnit),
+			"risk_sub_category":     utility.GetFieldValue(oldKriRegister.RiskSubCategory),
+			"annual_target":         oldKriRegister.AnnualTarget,
+			"review_target":         oldKriRegister.ReviewTarget,
+			"distribution_status":   utility.GetFieldValue(oldKriRegister.DistributionStatus),
+			"calculation_type":      oldKriRegister.CalculationType,
+			"low_threshold":         oldKriRegister.LowThreshold,
+			"medium_threshold":      oldKriRegister.MediumThreshold,
+			"high_threshold":        oldKriRegister.HighThreshold,
+			"current_value":         oldKriRegister.CurrentValue,
+			"last_review_note":      oldKriRegister.LastReviewNote,
+			"minimum_susceptibility_percent": oldKriRegister.MinimumSusceptibilityPercent,
+			"maximum_susceptibility_percent": oldKriRegister.MaximumSusceptibilityPercent,
+			"maximum_tolerable_percent":      oldKriRegister.MaximumTolerablePercent,
 		}
 
 		newData := map[string]interface{}{
-			"title":            existingKri.Title,
-			"description":      existingKri.Description,
-			"kri_category":     existingKri.KRICategory.TitleEn,
-			"responsible_user": fmt.Sprintf("%s %s", existingKri.ResponsibleUser.FirstNameEN, existingKri.ResponsibleUser.LastNameEN),
-			"review_frequency": existingKri.ReviewFrequency.TitleEn,
-			"risk_level":       utility.GetFieldValue(existingKri.RiskLevel).(string),
-			"unit":             existingKri.Unit,
-			"calculation_type": existingKri.CalculationType,
-			"low_threshold":    existingKri.LowThreshold,
-			"medium_threshold": existingKri.MediumThreshold,
-			"high_threshold":   existingKri.HighThreshold,
-			"current_value":    existingKri.CurrentValue,
-			"last_review_note": existingKri.LastReviewNote,
+			"title":                 existingKri.Title,
+			"description":           existingKri.Description,
+			"kri_category":          existingKri.KRICategory.TitleEn,
+			"responsible_user":      fmt.Sprintf("%s %s", existingKri.ResponsibleUser.FirstNameEN, existingKri.ResponsibleUser.LastNameEN),
+			"review_frequency":      existingKri.ReviewFrequency.TitleEn,
+			"risk_level":            utility.GetFieldValue(existingKri.RiskLevel).(string),
+			"unit":                  existingKri.Unit,
+			"level_of_measurement":  utility.GetFieldValue(existingKri.LevelOfMeasurement),
+			"risk_responsible_unit": utility.GetFieldValue(existingKri.RiskResponsibleUnit),
+			"risk_sub_category":     utility.GetFieldValue(existingKri.RiskSubCategory),
+			"annual_target":         existingKri.AnnualTarget,
+			"review_target":         existingKri.ReviewTarget,
+			"distribution_status":   utility.GetFieldValue(existingKri.DistributionStatus),
+			"calculation_type":      existingKri.CalculationType,
+			"low_threshold":         existingKri.LowThreshold,
+			"medium_threshold":      existingKri.MediumThreshold,
+			"high_threshold":        existingKri.HighThreshold,
+			"current_value":         existingKri.CurrentValue,
+			"last_review_note":      existingKri.LastReviewNote,
+			"minimum_susceptibility_percent": existingKri.MinimumSusceptibilityPercent,
+			"maximum_susceptibility_percent": existingKri.MaximumSusceptibilityPercent,
+			"maximum_tolerable_percent":      existingKri.MaximumTolerablePercent,
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
@@ -708,6 +772,59 @@ func (krs *KRIRegisterService) validateKRIRegisterFormDTO(kriRegisterFormDTO *ri
 
 	if _, err := krs.reviewFrequencySvc.GetByID(kriRegisterFormDTO.ReviewFrequencyID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not_exist", "review frequency")
+	}
+
+	if kriRegisterFormDTO.LevelOfMeasurementID != nil {
+		if _, err := krs.levelMeasureSvc.GetByID(*kriRegisterFormDTO.LevelOfMeasurementID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("level of measurement does not exist"), "not_exist", "level of measurement")
+		}
+	}
+
+	if kriRegisterFormDTO.RiskResponsibleUnitID != nil {
+		if _, err := krs.organizationUnitSvc.GetByID(*kriRegisterFormDTO.RiskResponsibleUnitID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("risk responsible unit does not exist"), "not_exist", "risk responsible unit")
+		}
+	}
+
+	if kriRegisterFormDTO.RiskSubCategoryID != nil {
+		if _, err := krs.riskSubCategorySvc.GetByID(*kriRegisterFormDTO.RiskSubCategoryID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("risk sub category does not exist"), "not_exist", "risk sub category")
+		}
+	}
+
+	if kriRegisterFormDTO.DistributionStatusID != nil {
+		if _, err := krs.distributionSvc.GetByID(*kriRegisterFormDTO.DistributionStatusID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("distribution status does not exist"), "not_exist", "distribution status")
+		}
+	}
+
+	// Susceptibility fields: range check (0–100)
+	if kriRegisterFormDTO.MinimumSusceptibilityPercent != nil {
+		if *kriRegisterFormDTO.MinimumSusceptibilityPercent < 0 || *kriRegisterFormDTO.MinimumSusceptibilityPercent > 100 {
+			return utility.NewValidationError(fmt.Errorf("minimum susceptibility must be between 0 and 100"), "out_of_range", "minimum susceptibility")
+		}
+	}
+	if kriRegisterFormDTO.MaximumSusceptibilityPercent != nil {
+		if *kriRegisterFormDTO.MaximumSusceptibilityPercent < 0 || *kriRegisterFormDTO.MaximumSusceptibilityPercent > 100 {
+			return utility.NewValidationError(fmt.Errorf("maximum susceptibility must be between 0 and 100"), "out_of_range", "maximum susceptibility")
+		}
+	}
+	if kriRegisterFormDTO.MaximumTolerablePercent != nil {
+		if *kriRegisterFormDTO.MaximumTolerablePercent < 0 || *kriRegisterFormDTO.MaximumTolerablePercent > 100 {
+			return utility.NewValidationError(fmt.Errorf("maximum tolerable must be between 0 and 100"), "out_of_range", "maximum tolerable")
+		}
+	}
+
+	// Ordering constraint: maximum_tolerable_percent < maximum_susceptibility_percent < minimum_susceptibility_percent
+	if kriRegisterFormDTO.MaximumSusceptibilityPercent != nil && kriRegisterFormDTO.MinimumSusceptibilityPercent != nil {
+		if *kriRegisterFormDTO.MaximumSusceptibilityPercent >= *kriRegisterFormDTO.MinimumSusceptibilityPercent {
+			return utility.NewValidationError(fmt.Errorf("maximum susceptibility must be less than minimum susceptibility"), "invalid_range", "maximum susceptibility")
+		}
+	}
+	if kriRegisterFormDTO.MaximumTolerablePercent != nil && kriRegisterFormDTO.MaximumSusceptibilityPercent != nil {
+		if *kriRegisterFormDTO.MaximumTolerablePercent >= *kriRegisterFormDTO.MaximumSusceptibilityPercent {
+			return utility.NewValidationError(fmt.Errorf("maximum tolerable must be less than maximum susceptibility"), "invalid_range", "maximum tolerable")
+		}
 	}
 
 	if id == nil {

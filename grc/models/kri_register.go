@@ -5,19 +5,28 @@ import (
 )
 
 type KRIRegister struct {
-	ID                uint    `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	ReferenceNumber   *string `json:"reference_number"`
-	KRICategoryID     uint    `json:"kri_category_id" binding:"required" gorm:"not null"`
-	ResponsibleUnitID uint    `json:"responsible_unit_id" binding:"required" gorm:"not null"`
-	ResponsibleUserID uint    `json:"responsible_user_id" gorm:"not null"`
-	ReviewFrequencyID uint    `json:"review_frequency_id" binding:"required" gorm:"not null"`
-	RiskLevelID       *uint   `json:"risk_level_id"`
-	UnitID            *uint   `json:"unit_id" binding:"required" gorm:"not null"`
-	Title             string  `json:"title" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
-	Description       *string `json:"description" gorm:"type:nvarchar(max)"`
-	CalculationType   string  `json:"calculation_type" binding:"required,oneof=automatic, manual" gorm:"type:varchar(10);not null"`
-	LowThreshold      *int    `json:"low_threshold" gorm:"type:int;null"`
-	MediumThreshold   *int    `json:"medium_threshold" gorm:"type:int;null"`
+	ID                    uint     `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	ReferenceNumber       *string  `json:"reference_number"`
+	KRICategoryID         uint     `json:"kri_category_id" binding:"required" gorm:"not null"`
+	ResponsibleUnitID     uint     `json:"responsible_unit_id" binding:"required" gorm:"not null"`
+	ResponsibleUserID     uint     `json:"responsible_user_id" gorm:"not null"`
+	ReviewFrequencyID     uint     `json:"review_frequency_id" binding:"required" gorm:"not null"`
+	RiskLevelID           *uint    `json:"risk_level_id"`
+	UnitID                *uint    `json:"unit_id" binding:"required" gorm:"not null"`
+	LevelOfMeasurementID  *uint    `json:"level_of_measurement_id"`
+	RiskResponsibleUnitID *uint    `json:"risk_responsible_unit_id"`
+	RiskSubCategoryID     *uint    `json:"risk_sub_category_id"`
+	AnnualTarget          *float64 `json:"annual_target"`
+	ReviewTarget          *float64 `json:"review_target"`
+	DistributionStatusID  *uint    `json:"distribution_status_id"`
+	MinimumSusceptibilityPercent *float64 `json:"minimum_susceptibility_percent" gorm:"type:decimal(5,2);null"`
+	MaximumSusceptibilityPercent *float64 `json:"maximum_susceptibility_percent" gorm:"type:decimal(5,2);null"`
+	MaximumTolerablePercent      *float64 `json:"maximum_tolerable_percent" gorm:"type:decimal(5,2);null"`
+	Title                 string   `json:"title" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
+	Description           *string  `json:"description" gorm:"type:nvarchar(max)"`
+	CalculationType       string   `json:"calculation_type" binding:"required,oneof=automatic, manual" gorm:"type:varchar(10);not null"`
+	LowThreshold          *int     `json:"low_threshold" gorm:"type:int;null"`
+	MediumThreshold       *int     `json:"medium_threshold" gorm:"type:int;null"`
 	// HighThreshold     *int       `json:"high_threshold" gorm:"type:int;null"`
 	CurrentValue     *int       `json:"current_value" gorm:"type:int;null"`
 	LastReviewedDate *time.Time `json:"last_reviewed_date" gorm:"type:date"`
@@ -29,15 +38,19 @@ type KRIRegister struct {
 	UpdatedBYID      *uint      `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	KRICategory     *KRICategory      `gorm:"foreignKey:KRICategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUnit *OrganizationUnit `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewFrequency *ReviewFrequency  `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	RiskLevel       *RiskLevel        `gorm:"foreignKey:RiskLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Unit            *Unit             `gorm:"foreignKey:UnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser   *User             `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser   *User             `gorm:"foreignKey:UpdatedBYID"`
-	ValueUpdates    []*KRIValueUpdate `gorm:"foreignKey:KRIRegisterID"`
+	KRICategory         *KRICategory        `gorm:"foreignKey:KRICategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit     *OrganizationUnit   `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser     *User               `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewFrequency     *ReviewFrequency    `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskLevel           *RiskLevel          `gorm:"foreignKey:RiskLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Unit                *Unit               `gorm:"foreignKey:UnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser       *User               `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser       *User               `gorm:"foreignKey:UpdatedBYID"`
+	ValueUpdates        []*KRIValueUpdate   `gorm:"foreignKey:KRIRegisterID"`
+	LevelOfMeasurement  *LevelOfMeasurement `gorm:"foreignKey:LevelOfMeasurementID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RiskResponsibleUnit *OrganizationUnit   `gorm:"foreignKey:RiskResponsibleUnitID"`
+	RiskSubCategory     *RiskSubCategory    `gorm:"foreignKey:RiskSubCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	DistributionStatus  *DistributionStatus `gorm:"foreignKey:DistributionStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by KRIRegister to `kri_register`
