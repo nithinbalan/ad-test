@@ -17,14 +17,13 @@ type ControlTestListDTO struct {
 	ControlEfficiencyStatusColorCode     *string                   `json:"control_efficiency_status_color_code"`
 	Description                          *string                   `json:"description"`
 	Score                                *uint                     `json:"score"`
-	EffectivenessScore                   *float64                  `json:"effectiveness_score"`
-	EffectivenessRatingID                *uint                     `json:"effectiveness_rating_id"`
-	EffectivenessRatingTitleEn           *string                   `json:"effectiveness_rating_title_en"`
-	EffectivenessRatingTitleAr           *string                   `json:"effectiveness_rating_title_ar"`
-	EffectivenessRatingMinScore          *float64                  `json:"effectiveness_rating_min_score"`
-	EffectivenessRatingMaxScore          *float64                  `json:"effectiveness_rating_max_score"`
-	EffectivenessRatingType              *string                   `json:"effectiveness_rating_type"`
-	EffectivenessRatingColorCode         *string                   `json:"effectiveness_rating_color_code"`
+	ControlEffectivenessScore            *float64                  `json:"control_effectiveness_score"`
+	ControlEffectivenessRatingID         *uint                     `json:"control_effectiveness_rating_id"`
+	ControlEffectivenessRatingTitleEn    *string                   `json:"control_effectiveness_rating_title_en"`
+	ControlEffectivenessRatingTitleAr    *string                   `json:"control_effectiveness_rating_title_ar"`
+	ControlEffectivenessRatingMinScore   *float64                  `json:"control_effectiveness_rating_min_score"`
+	ControlEffectivenessRatingMaxScore   *float64                  `json:"control_effectiveness_rating_max_score"`
+	ControlEffectivenessRatingType       *string                   `json:"control_effectiveness_rating_type"`
 	RiskReduction                        *float64                  `json:"risk_reduction"`
 	Comments                             *string                   `json:"comments"`
 	TestedSource                         string                    `json:"tested_source"`
@@ -58,24 +57,24 @@ type ControlTestListResponseDTO struct {
 }
 
 type ControlTestDetailsDTO struct {
-	ID                  uint       `json:"id"`
-	ControlID           uint       `json:"control_id"`
-	Title               string     `json:"title"`
-	Description         *string    `json:"description"`
-	Score               *uint      `json:"score"`
-	EffectivenessScore  *float64   `json:"effectiveness_score"`
-	EffectivenessRating *string    `json:"effectiveness_rating"`
-	RiskReduction       *float64   `json:"risk_reduction"`
-	Comments            *string    `json:"comments"`
-	TestedSource        string     `json:"tested_source"`
-	TestedAtString      *string    `json:"tested_at"`
-	UpdatedAt           *time.Time `json:"updated_at"`
+	ID                         uint                           `json:"id"`
+	ControlID                  uint                           `json:"control_id"`
+	Title                      string                         `json:"title"`
+	Description                *string                        `json:"description"`
+	Score                      *uint                          `json:"score"`
+	ControlEffectivenessScore  *float64                       `json:"control_effectiveness_score"`
+	ControlEffectivenessRating *ControlEffectivenessRatingDTO `json:"control_effectiveness_rating"`
+	RiskReduction              *float64                       `json:"risk_reduction"`
+	Comments                   *string                        `json:"comments"`
+	TestedSource               string                         `json:"tested_source"`
+	TestedAtString             *string                        `json:"tested_at"`
+	UpdatedAt                  *time.Time                     `json:"updated_at"`
 
 	ControlImplementationStatus ControlImplementationStatusDTO `json:"control_implementation_status"`
 	ControlEfficiencyStatus     *ControlEfficiencyStatusDTO    `json:"control_efficiency_status"`
 	TestedByUser                UserMinimalDTO                 `json:"tested_by_user"`
 	UpdatedByUser               *UserMinimalDTO                `json:"updated_by_user"`
-	Documents                   []*ControlTestDocumentDTO      `json:"documents"`
+	Documents                   []ControlTestDocumentDTO       `json:"documents" binding:"required"`
 }
 
 type ControlTestListQueryParamsDTO struct {

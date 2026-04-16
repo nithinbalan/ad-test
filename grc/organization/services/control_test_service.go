@@ -135,7 +135,13 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, riskID
 	}
 
 	// Calculate control effectiveness
-	effectivenessScore, effectivenessRatingID, riskReduction, err := cts.CalculateControlEffectiveness(control, *dates.TestedAt)
+	effectivenessScore, effectivenessRatingID, riskReduction, err := cts.CalculateControlEffectiveness(controlID, *dates.TestedAt, transaction)
+	if err != nil {
+		return 0, err
+	}
+
+	// Get control model for updating
+	control, err = cts.controlSvc.GetByID(controlID, transaction)
 	if err != nil {
 		return 0, err
 	}
@@ -283,7 +289,7 @@ func (cts *ControlTestService) Update(controlID uint, id uint, currentUserID uin
 	}
 
 	// Calculate control effectiveness
-	effectivenessScore, effectivenessRatingID, riskReduction, err := cts.CalculateControlEffectiveness(control, *dates.TestedAt)
+	effectivenessScore, effectivenessRatingID, riskReduction, err := cts.CalculateControlEffectiveness(controlID, *dates.TestedAt, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -438,7 +444,7 @@ func (cts *ControlTestService) Delete(controlID uint, ids []uint, currentUserID 
 
 		if controlTest.Documents != nil && len(controlTest.Documents) > 0 {
 			for _, document := range controlTest.Documents {
-				documentsToDelete[id] = append(documentsToDelete[id], document)
+				documentsToDelete[id] = append(documentsToDelete[id], &document)
 				deleteDocumentIds = append(deleteDocumentIds, &document.ID)
 			}
 
@@ -570,15 +576,20 @@ func (cts *ControlTestService) GetTrendAnalysis(controlID uint) ([]*organization
 	return scores, nil
 }
 
-func (cts *ControlTestService) CalculateControlEffectiveness(control *models.Control, testedAt time.Time) (score float64, ratingID *uint, reductionPercent float64, err error) {
+func (cts *ControlTestService) CalculateControlEffectiveness(controlID uint, testedAt time.Time, tx ...utility.DatabaseTransaction) (score float64, ratingID *uint, reductionPercent float64, err error) {
+	// Fetch full control details with all relationships needed for calculation
+	// This includes: ControlType, ControlAutomation, ControlConsistency, AssociatedDocuments, LastTestDate
+	control, err := cts.controlSvc.GetFullDetailsByID(controlID, tx...)
+	if err != nil {
+		return 0, nil, 0, err
+	}
+
 	// 1. TYPE SCORE (Preventive = 1, Others = 0)
 	var typeScore float64 = 0
 	isPreventive := false
-	if control.ControlType != nil {
-		if control.ControlType.Type == "preventive" {
-			typeScore = 1
-			isPreventive = true
-		}
+	if control.ControlType.Type == "preventive" {
+		typeScore = 1
+		isPreventive = true
 	}
 
 	// 2. DOCUMENTATION SCORE (Has associated document = 1, No = 0)
@@ -602,17 +613,29 @@ func (cts *ControlTestService) CalculateControlEffectiveness(control *models.Con
 		consistencyScore = control.ControlConsistency.Score
 	}
 
-	// 5. EVIDENCE AGE SCORE (Based on last test date)
+	// 5. EVIDENCE AGE SCORE (Based on last test date before this test)
 	var evidenceAgeScore float64 = 0
-	monthsSinceEvidence := time.Since(testedAt).Hours() / 24 / 30
 
-	if monthsSinceEvidence < 2 {
-		evidenceAgeScore = 1
-	} else if monthsSinceEvidence < 6 {
-		evidenceAgeScore = 0.75
-	} else if monthsSinceEvidence < 12 {
-		evidenceAgeScore = 0.5
+	// Use the control's LastTestDate (previous test) to calculate evidence age
+	// If no previous test exists, evidence is considered very old (score = 0)
+	if control.LastTestDateString != nil {
+		testedAt, err := time.Parse("2006-01-02", *control.LastTestDateString)
+		if err != nil {
+			return 0, nil, 0, err
+		}
+		monthsSinceEvidence := time.Since(testedAt).Hours() / 24 / 30
+
+		if monthsSinceEvidence < 2 {
+			evidenceAgeScore = 1
+		} else if monthsSinceEvidence < 6 {
+			evidenceAgeScore = 0.75
+		} else if monthsSinceEvidence < 12 {
+			evidenceAgeScore = 0.5
+		} else {
+			evidenceAgeScore = 0
+		}
 	} else {
+		// No previous test exists, evidence age score is 0
 		evidenceAgeScore = 0
 	}
 

@@ -122,7 +122,13 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 			risk_matrix_risk_ratings.title_en AS risk_rating_title_en,
 			risk_matrix_risk_ratings.title_ar AS risk_rating_title_ar,
 			risk_matrix_risk_ratings.color_code AS risk_rating_color_code,
-			risk_matrix_risk_rating_values.value AS risk_rating_value  
+			risk_matrix_risk_rating_values.value AS risk_rating_value,
+			control_effectiveness_ratings.id AS control_effectiveness_rating_id,
+			control_effectiveness_ratings.title_en AS control_effectiveness_rating_title_en,
+			control_effectiveness_ratings.title_ar AS control_effectiveness_rating_title_ar,
+			control_effectiveness_ratings.min_score AS control_effectiveness_rating_min_score,
+			control_effectiveness_ratings.max_score AS control_effectiveness_rating_max_score,
+			control_effectiveness_ratings.type AS control_effectiveness_rating_type
 		`).
 		Joins("LEFT JOIN control_types ON control_types.id = controls.control_type_id").
 		Joins("LEFT JOIN control_categories ON control_categories.id = controls.control_category_id").
@@ -139,7 +145,8 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 		Joins("LEFT JOIN users AS created_user ON created_user.id = controls.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = controls.updated_by_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = controls.risk_matrix_risk_rating_id").
-		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id")
+		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id").
+		Joins("LEFT JOIN control_effectiveness_ratings ON control_effectiveness_ratings.id = controls.control_effectiveness_rating_id")
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -363,6 +370,8 @@ func (repo *ControlRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("ControlAutomation.CreatedByUser").
 		Preload("ControlConsistency").
 		Preload("ControlConsistency.CreatedByUser").
+		Preload("AssociatedDocuments").
+		Preload("ControlEffectivenessRating").
 		Preload("LatestControlTest", func(db *gorm.DB) *gorm.DB {
 			return db.Where("id IN (?)", latestControlTestSubQuery).
 				Preload("TestedByUser")

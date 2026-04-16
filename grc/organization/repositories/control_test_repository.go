@@ -78,10 +78,19 @@ func (repo *ControlTestRepository) GetAll(controlID uint, params *organizationDT
         	updated_by_user.email AS updated_user_email,
         	updated_by_user.profile_image_path AS updated_user_profile_image_path, 
         	CONVERT(VARCHAR, control_tests.tested_at, 23) AS tested_at,
-			control_tests.updated_at
+			control_tests.updated_at,
+			control_tests.control_effectiveness_score,
+			control_tests.risk_reduction,
+			control_effectiveness_ratings.id AS control_effectiveness_rating_id,
+			control_effectiveness_ratings.title_en AS control_effectiveness_rating_title_en,
+			control_effectiveness_ratings.title_ar AS control_effectiveness_rating_title_ar,
+			control_effectiveness_ratings.min_score AS control_effectiveness_rating_min_score,
+			control_effectiveness_ratings.max_score AS control_effectiveness_rating_max_score,
+			control_effectiveness_ratings.type AS control_effectiveness_rating_type
         `).
 		Joins("LEFT JOIN control_implementation_statuses ON control_implementation_statuses.id = control_tests.control_implementation_status_id").
 		Joins("LEFT JOIN control_efficiency_statuses ON control_efficiency_statuses.id = control_tests.control_efficiency_status_id").
+		Joins("LEFT JOIN control_effectiveness_ratings ON control_effectiveness_ratings.id = control_tests.control_effectiveness_rating_id").
 		Joins("LEFT JOIN users AS tested_by_user ON tested_by_user.id = control_tests.tested_by").
 		Joins("LEFT JOIN users AS updated_by_user ON updated_by_user.id = control_tests.updated_by_id").
 		Where("control_tests.control_id = ?", controlID)
@@ -204,6 +213,7 @@ func (repo *ControlTestRepository) GetFullDetailsByID(id uint, tx ...utility.Dat
 		Preload("Documents").
 		Preload("ControlImplementationStatus").
 		Preload("ControlEfficiencyStatus").
+		Preload("ControlEffectivenessRating").
 		Preload("TestedByUser").
 		Preload("UpdatedByUser").
 		First(&controlTest, id)
