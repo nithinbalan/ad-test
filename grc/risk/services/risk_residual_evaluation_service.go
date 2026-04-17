@@ -201,9 +201,8 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 	// Calculate residual score: Inherent Risk Rating Value × Average Risk Reduction
 	var residualScore uint
 	if averageRiskReduction != nil {
-		// Residual Risk Score = Inherent Risk Rating Value × (1 - Average Risk Reduction)
-		// For example: 20 (critical) × (1 - 0.75) = 5 (medium)
-		residualScore = uint(float64(inherentEvaluation.RiskMatrixRiskRatingValue.Value) * (1 - *averageRiskReduction))
+		// Residual Risk Score = Inherent Risk Rating Value × (Average Risk Reduction)
+		residualScore = uint(float64(inherentEvaluation.RiskMatrixRiskRatingValue.Value) * (*averageRiskReduction))
 	} else {
 		// If no control analysis exists, residual = inherent
 		residualScore = inherentEvaluation.RiskMatrixRiskRatingValue.Value
