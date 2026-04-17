@@ -61,6 +61,10 @@ func (repo *RiskActionPlanRepository) GetAll(riskID uint, params *riskDTOs.RiskA
         severity_levels.title_en AS severity_level_title_en,
         severity_levels.title_ar AS severity_level_title_ar,
         severity_levels.color_code AS severity_level_color_code,
+		responsible_unit.id AS responsible_unit_id,
+		responsible_unit.title_en AS responsible_unit_title_en,
+		responsible_unit.title_ar AS responsible_unit_title_ar,
+		CONVERT(VARCHAR, risk_action_plans.start_date, 23) AS start_date,
 		CONVERT(VARCHAR, risk_action_plans.target_date, 23) AS target_date,
 		responsible_user.id AS responsible_user_id,
         responsible_user.first_name_en AS responsible_user_first_name_en,
@@ -97,12 +101,13 @@ func (repo *RiskActionPlanRepository) GetAll(riskID uint, params *riskDTOs.RiskA
 		updated_user.initial AS updated_user_initial,
         updated_user.color AS updated_user_color,
         updated_user.email AS updated_user_email,
-        updated_user.profile_image_path AS updated_user_profile_image_path 
+        updated_user.profile_image_path AS updated_user_profile_image_path
     `).
 		Joins(`
 		LEFT JOIN risk_register ON risk_register.id = risk_action_plans.risk_register_id
         LEFT JOIN action_plan_statuses ON action_plan_statuses.id = risk_action_plans.action_plan_status_id
         LEFT JOIN severity_levels ON severity_levels.id = risk_action_plans.severity_level_id
+		LEFT JOIN organization_units AS responsible_unit ON responsible_unit.id = risk_action_plans.responsible_unit_id
         LEFT JOIN users AS responsible_user ON responsible_user.id = risk_action_plans.responsible_user_id
 		LEFT JOIN users AS review_user ON review_user.id = risk_action_plans.review_user_id
         LEFT JOIN users AS created_user ON created_user.id = risk_action_plans.created_by_id
@@ -235,8 +240,8 @@ func (repo *RiskActionPlanRepository) GetFullDetailsByID(id uint) (*models.RiskA
 		Preload("RiskRegister").
 		Preload("RiskRegister.Controls").
 		Preload("SeverityLevel").
+		Preload("ResponsibleUnit").
 		Preload("ResponsibleUser").
-		Preload("SeverityLevel").
 		Preload("ActionPlanStatus").
 		Preload("ActionPlanStatusUpdates").
 		Preload("Controls").
