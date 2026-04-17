@@ -371,6 +371,7 @@ func (repo *ControlRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("ControlConsistency").
 		Preload("ControlConsistency.CreatedByUser").
 		Preload("AssociatedDocuments").
+		Preload("AssociatedDocuments.Document").
 		Preload("ControlEffectivenessRating").
 		Preload("LatestControlTest", func(db *gorm.DB) *gorm.DB {
 			return db.Where("id IN (?)", latestControlTestSubQuery).
