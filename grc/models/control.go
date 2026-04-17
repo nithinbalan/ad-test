@@ -71,7 +71,7 @@ type Control struct {
 	RiskMatrixRatingValue       *RiskMatrixRiskRatingValue   `gorm:"foreignKey:RiskMatrixRiskRatingValueID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Risks                       []*RiskControl               `gorm:"foreignKey:ControlID"`
 	ComplianceStatus            *ComplianceStatus            `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	AssociatedDocuments         []*ControlAssociatedDocument `gorm:"foreignKey:ControlID"`
+	AssociatedDocuments         []*DocumentControl           `gorm:"foreignKey:ControlID"`
 	CreatedByUser               *User                        `gorm:"foreignKey:CreatedByID"`
 	UpdatedByUser               *User                        `gorm:"foreignKey:UpdatedByID"`
 }

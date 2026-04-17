@@ -148,12 +148,12 @@ func (repo *InternalCommitteeRepository) GetAll(params *organizationDTOs.Interna
 	// Apply quick filters
 	for _, quickFilter := range params.QuickFilter {
 		switch quickFilter {
-		case "draft":
-			query = query.Where("internal_committee_statuses.type = ?", "draft")
-		case "submitted":
-			query = query.Where("internal_committee_statuses.type = ?", "submitted")
+		case "disbanded":
+			query = query.Where("internal_committee_statuses.type = ?", "disbanded")
 		case "approved":
 			query = query.Where("internal_committee_statuses.type = ?", "approved")
+		case "permanent":
+			query = query.Where("committee_terms.type = ?", "permanent")
 		}
 	}
 

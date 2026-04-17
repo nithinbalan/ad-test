@@ -304,8 +304,18 @@ type ControlApplicableFormDTO struct {
 }
 
 type ControlAssociatedDocumentDTO struct {
-	ID         uint                          `json:"id"`
-	ControlID  uint                          `json:"control_id"`
-	DocumentID uint                          `json:"document_id"`
-	Documents  []*commonDTOs.DocumentFormDTO `json:"documents"`
+	ID         uint         `json:"id"`
+	ControlID  uint         `json:"control_id"`
+	DocumentID uint         `json:"document_id"`
+	Document   *DocumentDTO `json:"document"`
+}
+
+type DocumentDTO struct {
+	ID           uint   `json:"id"`
+	URL          string `json:"url"`
+	Name         string `json:"name"`
+	Size         int    `json:"size"`
+	Token        string `json:"token"`
+	OriginalName string `json:"original_name"`
+	Type         string `json:"type"`
 }
