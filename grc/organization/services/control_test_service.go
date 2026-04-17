@@ -22,7 +22,7 @@ import (
 
 type ControlTestServiceInterface interface {
 	GetAll(controlID uint, params *organizationDTOs.ControlTestListQueryParamsDTO) (*organizationDTOs.ControlTestListResponseDTO, error)
-	GetByID(id uint) (*models.ControlTest, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ControlTest, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ControlTestDetailsDTO, error)
 	Create(controlID uint, currentUserID uint, riskID *uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO, testedSource string, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(controlID uint, id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error
@@ -71,8 +71,8 @@ func (cts *ControlTestService) GetAll(controlID uint, params *organizationDTOs.C
 	return cts.repo.GetAll(controlID, params)
 }
 
-func (cts *ControlTestService) GetByID(id uint) (*models.ControlTest, error) {
-	controlTest, err := cts.repo.GetByID(id)
+func (cts *ControlTestService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ControlTest, error) {
+	controlTest, err := cts.repo.GetByID(id, tx...)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -273,9 +273,10 @@ func (cts *ControlTestService) Update(controlID uint, id uint, currentUserID uin
 		return err
 	}
 
-	existingControlTest, err := cts.GetByID(id)
+	existingControlTest, err := cts.GetByID(id, tx)
 
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
