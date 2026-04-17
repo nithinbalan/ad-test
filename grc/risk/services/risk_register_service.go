@@ -1549,7 +1549,10 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			"risk_source":      utility.GetFieldValue(oldRiskRegister.RiskSource).(string),
 			"reported_at":      oldRiskRegister.ReportedAtString,
 			"next_review_date": oldRiskRegister.NextReviewDateString,
-			"responsible_user": fmt.Sprintf("%s %s", oldRiskRegister.ResponsibleUser.FirstNameEN, oldRiskRegister.ResponsibleUser.LastNameEN),
+		}
+
+		if oldRiskRegister.ResponsibleUser != nil {
+			oldData["responsible_user"] = fmt.Sprintf("%s %s", oldRiskRegister.ResponsibleUser.FirstNameEN, oldRiskRegister.ResponsibleUser.LastNameEN)
 		}
 
 		newData := map[string]interface{}{
@@ -1559,8 +1562,12 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 			"risk_source":      utility.GetFieldValue(existingRisk.RiskSource).(string),
 			"reported_at":      existingRisk.ReportedAtString,
 			"next_review_date": existingRisk.NextReviewDateString,
-			"responsible_user": fmt.Sprintf("%s %s", existingRisk.ResponsibleUser.FirstNameEN, existingRisk.ResponsibleUser.LastNameEN),
 		}
+
+		if existingRisk.ResponsibleUser != nil {
+			newData["responsible_user"] = fmt.Sprintf("%s %s", existingRisk.ResponsibleUser.FirstNameEN, existingRisk.ResponsibleUser.LastNameEN)
+		}
+
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
 		for k, v := range fieldChanges {

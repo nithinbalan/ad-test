@@ -55,6 +55,7 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
 			controls.title_ar AS control_title_ar,
             control_types.title_en AS control_type_title_en,
 			control_types.title_ar AS control_type_title_ar,
+			control_types.type AS control_type,
 			control_categories.title_en AS control_category_title_en,
 			control_categories.title_ar AS control_category_title_ar,
 			organization_units.title_en AS owner_unit_title_en,
@@ -79,6 +80,9 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
 			control_effectiveness_ratings.min_score AS control_effectiveness_rating_min_score,
 			control_effectiveness_ratings.max_score AS control_effectiveness_rating_max_score,
 			control_effectiveness_ratings.type AS control_effectiveness_rating_type,
+			control_automation.type AS control_automation_type,
+			control_consistency.type AS control_consistency_type,
+			(SELECT TOP 1 CONVERT(VARCHAR, ct.tested_at, 23) FROM control_tests ct WHERE ct.control_id = controls.id ORDER BY ct.tested_at DESC) AS last_test_date,
             created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -100,6 +104,8 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
             LEFT JOIN control_efficiency_statuses ON control_efficiency_statuses.id = risk_control_analyses.control_efficiency_status_id
             LEFT JOIN control_implementation_statuses ON control_implementation_statuses.id = risk_control_analyses.control_implementation_status_id
             LEFT JOIN control_effectiveness_ratings ON control_effectiveness_ratings.id = risk_control_analyses.control_effectiveness_rating_id
+            LEFT JOIN control_automations AS control_automation ON control_automation.id = controls.control_automation_id
+            LEFT JOIN control_consistencies AS control_consistency ON control_consistency.id = controls.control_consistency_id
             LEFT JOIN users AS created_user ON created_user.id = risk_control_analyses.created_by_id
         `).
 		Where(`risk_controls.risk_register_id = ? AND risk_control_analyses.type = 'inherent'`, riskID)

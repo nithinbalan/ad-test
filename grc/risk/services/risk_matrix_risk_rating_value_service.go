@@ -14,6 +14,7 @@ type RiskMatrixRiskRatingValueServiceInterface interface {
 	GetRiskMatrix() ([][]*riskDTOs.RiskMatrixRiskRatingResponseDTO, error)
 	EvaluateScore(impact *models.RiskMatrixImpact, likelihood *models.RiskMatrixLikelihood, calculationMethod string) uint
 	FindRiskRatingValue(riskRatingValues []*riskDTOs.RiskMatrixRiskRatingDataDTO, score uint) (*riskDTOs.RiskMatrixRiskRatingDataDTO, bool)
+	FindClosestRiskRatingValue(riskRatingValues []*riskDTOs.RiskMatrixRiskRatingDataDTO, score uint) (*riskDTOs.RiskMatrixRiskRatingDataDTO, bool)
 }
 
 // Service and implementations
@@ -224,4 +225,40 @@ func (rmrrvs *RiskMatrixRiskRatingValueService) FindRiskRatingValue(riskRatingVa
 		}
 	}
 	return nil, false
+}
+
+// FindClosestRiskRatingValue finds the closest risk rating value to the given score
+func (rmrrvs *RiskMatrixRiskRatingValueService) FindClosestRiskRatingValue(riskRatingValues []*riskDTOs.RiskMatrixRiskRatingDataDTO, score uint) (*riskDTOs.RiskMatrixRiskRatingDataDTO, bool) {
+	if len(riskRatingValues) == 0 {
+		return nil, false
+	}
+
+	// First try exact match
+	for _, riskRatingValue := range riskRatingValues {
+		if riskRatingValue.Value == score {
+			return riskRatingValue, true
+		}
+	}
+
+	// If no exact match, find the closest value
+	var closestValue *riskDTOs.RiskMatrixRiskRatingDataDTO
+	var minDifference uint
+	firstIteration := true
+
+	for _, riskRatingValue := range riskRatingValues {
+		var difference uint
+		if riskRatingValue.Value > score {
+			difference = riskRatingValue.Value - score
+		} else {
+			difference = score - riskRatingValue.Value
+		}
+
+		if firstIteration || difference < minDifference {
+			minDifference = difference
+			closestValue = riskRatingValue
+			firstIteration = false
+		}
+	}
+
+	return closestValue, closestValue != nil
 }

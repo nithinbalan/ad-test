@@ -75,16 +75,18 @@ func (ries RiskResidualEvaluationService) GetFullDetailsByID(riskID uint) (*risk
 		return nil, err
 	}
 
-	var riskResidualEvaluationDetailsDTO riskDTOs.RiskResidualEvaluationDetailsDTO
-
 	// Get full details from the repository
 	riskResidualEvaluation, err := ries.repo.GetFullDetailsByID(riskID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, riskID)
-		}
 		return nil, err
 	}
+
+	// If no residual evaluation exists, return nil
+	if riskResidualEvaluation == nil {
+		return nil, nil
+	}
+
+	var riskResidualEvaluationDetailsDTO riskDTOs.RiskResidualEvaluationDetailsDTO
 
 	// Map the results to the DTO
 	err = mapstructure.Decode(riskResidualEvaluation, &riskResidualEvaluationDetailsDTO)
@@ -145,7 +147,7 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 	}
 
 	// Get control analyses to calculate average risk reduction
-	controlAnalyses, err := ries.repo.GetControlAnalysesByRiskID(riskID)
+	controlAnalyses, err := ries.repo.GetControlAnalysesByRiskID(riskID, transaction)
 	if err != nil {
 		transaction.Rollback()
 		return 0, err
@@ -201,14 +203,20 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 	// Calculate residual score: Inherent Risk Rating Value × Average Risk Reduction
 	var residualScore uint
 	if averageRiskReduction != nil {
-		// Residual Risk Score = Inherent Risk Rating Value × (Average Risk Reduction)
-		residualScore = uint(float64(inherentEvaluation.RiskMatrixRiskRatingValue.Value) * (*averageRiskReduction))
+		// Residual Risk Score = Inherent Risk Rating Value × (Average Risk Reduction / 100)
+		// Average Risk Reduction is stored as percentage (0-100), so divide by 100
+		// Add 0.5 for proper rounding (e.g., 2.75 becomes 3 instead of 2)
+		residualScore = uint(float64(inherentEvaluation.RiskMatrixRiskRatingValue.Value)*(*averageRiskReduction/100) + 0.5)
 	} else {
 		// If no control analysis exists, residual = inherent
 		residualScore = inherentEvaluation.RiskMatrixRiskRatingValue.Value
 	}
 
-	riskRating, _ := ries.riskMatrixRiskRatingValueSvc.FindRiskRatingValue(riskRatingValueArray, residualScore)
+	riskRating, found := ries.riskMatrixRiskRatingValueSvc.FindClosestRiskRatingValue(riskRatingValueArray, residualScore)
+	if !found || riskRating == nil {
+		transaction.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("no risk rating found for score %d", residualScore), "not_found", "risk rating")
+	}
 
 	riskResidualEvaluation := &models.RiskEvaluation{
 		RiskRegisterID:                   riskID,
@@ -369,7 +377,7 @@ func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentU
 	}
 
 	// Get control analyses to calculate average risk reduction
-	controlAnalyses, err := ries.repo.GetControlAnalysesByRiskID(riskID)
+	controlAnalyses, err := ries.repo.GetControlAnalysesByRiskID(riskID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -451,15 +459,21 @@ func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentU
 	// Calculate residual score: Inherent Risk Rating Value × Average Risk Reduction
 	var residualScore uint
 	if averageRiskReduction != nil {
-		// Residual Risk Score = Inherent Risk Rating Value × (1 - Average Risk Reduction)
-		// For example: 20 (critical) × (1 - 0.75) = 5 (medium)
-		residualScore = uint(float64(inherentEvaluation.RiskMatrixRiskRatingValue.Value) * (1 - *averageRiskReduction))
+		// Residual Risk Score = Inherent Risk Rating Value × (1 - Average Risk Reduction / 100)
+		// Average Risk Reduction is stored as percentage (0-100), so divide by 100
+		// For example: 20 (critical) × (1 - 75/100) = 20 × 0.25 = 5 (medium)
+		// Add 0.5 for proper rounding (e.g., 2.75 becomes 3 instead of 2)
+		residualScore = uint(float64(inherentEvaluation.RiskMatrixRiskRatingValue.Value)*(1-*averageRiskReduction/100) + 0.5)
 	} else {
 		// If no control analysis exists, residual = inherent
 		residualScore = inherentEvaluation.RiskMatrixRiskRatingValue.Value
 	}
 
-	riskRating, _ := ries.riskMatrixRiskRatingValueSvc.FindRiskRatingValue(riskRatingValueArray, residualScore)
+	riskRating, found := ries.riskMatrixRiskRatingValueSvc.FindClosestRiskRatingValue(riskRatingValueArray, residualScore)
+	if !found || riskRating == nil {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("no risk rating found for score %d", residualScore), "not_found", "risk rating")
+	}
 
 	existingRiskResidualEvaluation, err := ries.GetByID(riskID, id)
 	if err != nil {

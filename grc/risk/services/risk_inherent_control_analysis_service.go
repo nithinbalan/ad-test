@@ -58,7 +58,27 @@ func (rcas *RiskInherentControlAnalysisService) GetAll(riskID uint, params *risk
 	if _, err := rcas.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
 	}
-	return rcas.repo.GetAll(riskID, params)
+
+	controlAnalyses, err := rcas.repo.GetAll(riskID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	// Populate associated documents for each control
+	for _, analysis := range controlAnalyses {
+		if analysis.ControlID > 0 {
+			control, err := rcas.controlSvc.GetFullDetailsByID(analysis.ControlID)
+			if err == nil && control != nil && len(control.AssociatedDocuments) > 0 {
+				analysis.AssociatedDocuments = control.AssociatedDocuments
+			} else {
+				analysis.AssociatedDocuments = []organizationDTOs.ControlAssociatedDocumentDTO{}
+			}
+		} else {
+			analysis.AssociatedDocuments = []organizationDTOs.ControlAssociatedDocumentDTO{}
+		}
+	}
+
+	return controlAnalyses, nil
 }
 
 func (rcas RiskInherentControlAnalysisService) GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.RiskControlAnalysisDetailDTO, error) {
