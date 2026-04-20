@@ -13,8 +13,8 @@ type RiskResidualEvaluationDetailsDTO struct {
 }
 
 type RiskResidualEvaluationFormDTO struct {
-	RiskMatrixLikelihoodID uint                            `json:"risk_matrix_likelihood_id" binding:"required"`
-	RiskMatrixImpactID     uint                            `json:"risk_matrix_impact_id" binding:"required"`
+	RiskMatrixLikelihoodID uint                            `json:"risk_matrix_likelihood_id"`
+	RiskMatrixImpactID     uint                            `json:"risk_matrix_impact_id"`
 	RiskImpactAnalyses     []*RiskImpactAnalysisFormDTO    `json:"risk_impact_analyses"`
 	RiskAppetiteAlignments []*RiskAppetiteAlignmentFormDTO `json:"risk_appetite_alignments"`
 }
