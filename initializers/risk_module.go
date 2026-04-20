@@ -50,6 +50,9 @@ type RiskModule struct {
 	RiskCommentController                 *controllers.RiskCommentController
 	RiskReportController                  *controllers.RiskReportController
 	KRIAssociatedItemController           *controllers.KRIAssociatedItemController
+	KRIRegisterWorkflowController         *controllers.KRIRegisterWorkflowController
+	KRIRegisterReviewController           *controllers.KRIRegisterReviewController
+	KRIRegisterReviewCommentController    *controllers.KRIRegisterReviewCommentController
 	RiskWorkflowController                *controllers.RiskWorkflowController
 	RiskReviewController                  *controllers.RiskReviewController
 	RiskReviewCommentController           *controllers.RiskReviewCommentController
@@ -57,6 +60,9 @@ type RiskModule struct {
 	RiskRegisterSvc         services.RiskRegisterServiceInterface
 	RiskHeatMapSvc          services.RiskHeatmapServiceInterface
 	KriRegisterSvc          services.KRIRegisterServiceInterface
+	KRIWorkflowSvc          services.KRIRegisterWorkflowServiceInterface
+	KRIReviewSvc            services.KRIRegisterReviewServiceInterface
+	KRIReviewCommentSvc     services.KRIRegisterReviewCommentServiceInterface
 	RiskActionPlanSvc       services.RiskActionPlanServiceInterface
 	RiskLevelSvc            services.RiskLevelServiceInterface
 	RiskResponseStrategySvc services.RiskResponseStrategyServiceInterface
@@ -124,6 +130,42 @@ func NewRiskModule(db *gorm.DB,
 		commonModule.NotificationService,
 	)
 	kriRegisterController := controllers.NewKRIRegisterController(kriRegisterSvc)
+
+	kriRegisterWorkflowRepo := repositories.NewKRIRegisterWorkflowRepository(db)
+	kriRegisterWorkflowSvc := services.NewKRIRegisterWorkflowService(
+		kriRegisterWorkflowRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.WorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		masterModule.WorkflowContextSvc,
+	)
+	kriRegisterSvc.SetKRIWorkflowService(kriRegisterWorkflowSvc)
+	kriRegisterWorkflowSvc.SetKRIRegisterService(kriRegisterSvc)
+	kriRegisterWorkflowController := controllers.NewKRIRegisterWorkflowController(kriRegisterWorkflowSvc)
+
+	kriRegisterReviewRepo := repositories.NewKRIRegisterReviewRepository(db)
+	kriRegisterReviewSvc := services.NewKRIRegisterReviewService(
+		kriRegisterReviewRepo,
+		sharedModule.ActivityLogService,
+		kriRegisterSvc,
+		kriRegisterWorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+		taskModule.TaskService,
+	)
+	kriRegisterReviewController := controllers.NewKRIRegisterReviewController(kriRegisterReviewSvc)
+
+	kriRegisterReviewCommentRepo := repositories.NewKRIRegisterReviewCommentRepository(db)
+	kriRegisterReviewCommentSvc := services.NewKRIRegisterReviewCommentService(
+		kriRegisterReviewCommentRepo,
+		organizationModule.UserSvc,
+		sharedModule.ActivityLogService,
+		kriRegisterSvc,
+		masterModule.CommentStatusSvc,
+	)
+	kriRegisterReviewCommentController := controllers.NewKRIRegisterReviewCommentController(kriRegisterReviewCommentSvc)
 
 	kriValueUpdateRepo := repositories.NewKRIValueUpdateRepository(db)
 	kriValueUpdateSvc := services.NewKRIValueUpdateService(kriValueUpdateRepo, sharedModule.ActivityLogService, kriRegisterSvc, masterModule.ReviewFrequencySvc, organizationModule.UserSvc, commonModule.NotificationService)
@@ -430,6 +472,9 @@ func NewRiskModule(db *gorm.DB,
 		RiskCommentController:                 riskCommentController,
 		RiskReportController:                  riskReportController,
 		KRIAssociatedItemController:           kriAssociatedItemController,
+		KRIRegisterWorkflowController:         kriRegisterWorkflowController,
+		KRIRegisterReviewController:           kriRegisterReviewController,
+		KRIRegisterReviewCommentController:    kriRegisterReviewCommentController,
 		RiskWorkflowController:                riskWorkflowController,
 		RiskReviewController:                  riskReviewController,
 		RiskReviewCommentController:           riskReviewCommentController,
@@ -437,6 +482,9 @@ func NewRiskModule(db *gorm.DB,
 		RiskRegisterSvc:         riskRegisterSvc,
 		RiskHeatMapSvc:          riskHeatmapSvc,
 		KriRegisterSvc:          kriRegisterSvc,
+		KRIWorkflowSvc:          kriRegisterWorkflowSvc,
+		KRIReviewSvc:            kriRegisterReviewSvc,
+		KRIReviewCommentSvc:     kriRegisterReviewCommentSvc,
 		RiskActionPlanSvc:       riskActionPlanSvc,
 		RiskLevelSvc:            riskLevelSvc,
 		RiskResponseStrategySvc: riskResponseStrategySvc,

@@ -16,11 +16,11 @@ import (
 type KRIRegisterRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *riskDTOs.KRIRegisterListQueryParamsDTO) (*riskDTOs.KRIRegisterListResponseDTO, error)
-	GetByID(id uint) (*models.KRIRegister, error)
-	GetFullDetailsByID(id uint) (*models.KRIRegister, error)
-	Create(kriRegister *models.KRIRegister) (uint, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.KRIRegister, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.KRIRegister, error)
+	Create(kriRegister *models.KRIRegister, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(kriRegister *models.KRIRegister, tx ...utility.DatabaseTransaction) error
-	Delete(id uint) error
+	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	ForceDelete(id uint, tx ...utility.DatabaseTransaction) error
 	ExistsByTitle(Title string, KRICategoryID uint) (bool, error)
 	ExistsByTitleExcludingID(id uint, Title string, KRICategoryID uint) (bool, error)
@@ -84,6 +84,11 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			risk_sub_categories.title_ar AS risk_sub_category_title_ar,
 			distribution_statuses.title_en AS distribution_status_title_en,
 			distribution_statuses.title_ar AS distribution_status_title_ar,
+			workflow_statuses.id AS workflow_status_id,
+			workflow_statuses.title_en AS workflow_status_title_en,
+			workflow_statuses.title_ar AS workflow_status_title_ar,
+			workflow_statuses.type AS workflow_status_type,
+			workflow_statuses.color_code AS workflow_status_color_code,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
@@ -114,6 +119,7 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			LEFT JOIN organization_units AS risk_responsible_units ON risk_responsible_units.id = kri_register.risk_responsible_unit_id
 			LEFT JOIN risk_sub_categories ON risk_sub_categories.id = kri_register.risk_sub_category_id
 			LEFT JOIN distribution_statuses ON distribution_statuses.id = kri_register.distribution_status_id
+			LEFT JOIN workflow_statuses ON workflow_statuses.id = kri_register.workflow_status_id
 			LEFT JOIN users AS created_user ON created_user.id = kri_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = kri_register.updated_by_id
 		`)
@@ -254,10 +260,15 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 	return response, nil
 }
 
-func (repo *KRIRegisterRepository) GetByID(id uint) (*models.KRIRegister, error) {
+func (repo *KRIRegisterRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.KRIRegister, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var kriRegister *models.KRIRegister
 
-	result := repo.db.First(&kriRegister, id)
+	result := db.First(&kriRegister, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -266,10 +277,15 @@ func (repo *KRIRegisterRepository) GetByID(id uint) (*models.KRIRegister, error)
 
 }
 
-func (repo *KRIRegisterRepository) GetFullDetailsByID(id uint) (*models.KRIRegister, error) {
+func (repo *KRIRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.KRIRegister, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
 	var kriRegister *models.KRIRegister // Declare the variable inside the function
 
-	result := repo.db.
+	result := db.
 		Preload("KRICategory").
 		Preload("ResponsibleUnit").
 		Preload("ResponsibleUser").
@@ -283,6 +299,12 @@ func (repo *KRIRegisterRepository) GetFullDetailsByID(id uint) (*models.KRIRegis
 		Preload("ValueUpdates").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("SubmittedBy").
+		Preload("ApprovedBy").
+		Preload("WorkflowStatus").
+		Preload("KRIRegisterWorkflows").
+		Preload("KRIRegisterWorkflows.KRIRegisterWorkflowParticipants").
+		Preload("KRIRegisterWorkflows.KRIRegisterWorkflowReviews").
 		First(&kriRegister, id)
 
 	if result.Error != nil {
@@ -292,8 +314,12 @@ func (repo *KRIRegisterRepository) GetFullDetailsByID(id uint) (*models.KRIRegis
 	return kriRegister, nil
 }
 
-func (repo *KRIRegisterRepository) Create(kriRegister *models.KRIRegister) (uint, error) {
-	if err := repo.db.Create(kriRegister).Error; err != nil {
+func (repo *KRIRegisterRepository) Create(kriRegister *models.KRIRegister, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(kriRegister).Error; err != nil {
 		return 0, err
 	}
 	return kriRegister.ID, nil
@@ -310,14 +336,13 @@ func (repo *KRIRegisterRepository) Update(kriRegister *models.KRIRegister, tx ..
 	return nil
 }
 
-func (repo *KRIRegisterRepository) Delete(id uint) error {
-
-	var kriRegister *models.KRIRegister
-	if err := repo.db.First(&kriRegister, id).Error; err != nil {
-		return err
+func (repo *KRIRegisterRepository) Delete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
 	}
 
-	result := repo.db.Delete(&models.KRIRegister{}, id)
+	result := db.Delete(&models.KRIRegister{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -434,6 +459,16 @@ func (repo *KRIRegisterRepository) ForceDelete(id uint, tx ...utility.DatabaseTr
 		 WHERE ku.kri_register_id = ?`,
 
 		`DELETE FROM kri_value_updates WHERE kri_register_id = ?`,
+		`DELETE krwr
+		 FROM kri_register_workflow_reviews AS krwr
+		 JOIN kri_register_workflows AS krw ON krw.id = krwr.kri_register_workflow_id
+		 WHERE krw.kri_register_id = ?`,
+		`DELETE krwp
+		 FROM kri_register_workflow_participants AS krwp
+		 JOIN kri_register_workflows AS krw ON krw.id = krwp.kri_register_workflow_id
+		 WHERE krw.kri_register_id = ?`,
+		`DELETE FROM kri_register_workflows WHERE kri_register_id = ?`,
+		`DELETE FROM kri_register_review_comments WHERE kri_register_id = ?`,
 		`DELETE FROM risk_kris WHERE kri_register_id = ?`,
 		`DELETE FROM kri_processes WHERE kri_register_id = ?`,
 		`DELETE FROM kri_kpis WHERE kri_register_id = ?`,

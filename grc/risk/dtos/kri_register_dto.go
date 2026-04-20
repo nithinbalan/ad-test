@@ -81,6 +81,11 @@ type KRIRegisterListDTO struct {
 	UpdatedUserColor                *string  `json:"updated_user_color"`
 	UpdatedUserEmail                *string  `json:"updated_user_email"`
 	UpdatedUserProfileImagePath     *string  `json:"updated_user_profile_image_path"`
+	WorkflowStatusID                *uint    `json:"workflow_status_id"`
+	WorkflowStatusTitleEn           *string  `json:"workflow_status_title_en"`
+	WorkflowStatusTitleAr           *string  `json:"workflow_status_title_ar"`
+	WorkflowStatusType              *string  `json:"workflow_status_type"`
+	WorkflowStatusColorCode         *string  `json:"workflow_status_color_code"`
 }
 
 type KRIRegisterListQueryParamsDTO struct {
@@ -107,25 +112,25 @@ type KRIRegisterListResponseDTO struct {
 }
 
 type KRIRegisterFormDTO struct {
-	KRICategoryID         uint     `json:"kri_category_id" binding:"required"`
-	ResponsibleUserID     uint     `json:"responsible_user_id" binding:"required"`
-	ReviewFrequencyID     uint     `json:"review_frequency_id" binding:"required" gorm:"default:not null"`
-	UnitID                uint     `json:"unit_id" binding:"required"`
-	LevelOfMeasurementID  *uint    `json:"level_of_measurement_id"`
-	RiskResponsibleUnitID *uint    `json:"risk_responsible_unit_id"`
-	RiskSubCategoryID     *uint    `json:"risk_sub_category_id"`
-	AnnualTarget          *float64 `json:"annual_target"`
-	ReviewTarget          *float64 `json:"review_target"`
-	DistributionStatusID  *uint    `json:"distribution_status_id"`
-	Title                 string   `json:"title" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
-	Description           string   `json:"description" gorm:"type:nvarchar(max)"`
-	CalculationType       string   `json:"calculation_type" binding:"required,oneof=automatic manual" gorm:"type:varchar(10);not null"`
-	LowThreshold          *int     `json:"low_threshold" gorm:"type:int;null"`
-	MediumThreshold       *int     `json:"medium_threshold" gorm:"type:int;null"`
-	CurrentValue          *int     `json:"current_value" gorm:"type:int;null"`
-	LastReviewedDate      string   `json:"last_reviewed_date" binding:"omitempty" gorm:"type:date"`
-	NextReviewDate        string   `json:"next_review_date" binding:"required" gorm:"type:date;not null"`
-	LastReviewNote        *string  `json:"last_review_note" gorm:"type:nvarchar(max)"`
+	KRICategoryID                uint     `json:"kri_category_id" binding:"required"`
+	ResponsibleUserID            uint     `json:"responsible_user_id" binding:"required"`
+	ReviewFrequencyID            uint     `json:"review_frequency_id" binding:"required" gorm:"default:not null"`
+	UnitID                       uint     `json:"unit_id" binding:"required"`
+	LevelOfMeasurementID         *uint    `json:"level_of_measurement_id"`
+	RiskResponsibleUnitID        *uint    `json:"risk_responsible_unit_id"`
+	RiskSubCategoryID            *uint    `json:"risk_sub_category_id"`
+	AnnualTarget                 *float64 `json:"annual_target"`
+	ReviewTarget                 *float64 `json:"review_target"`
+	DistributionStatusID         *uint    `json:"distribution_status_id"`
+	Title                        string   `json:"title" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
+	Description                  string   `json:"description" gorm:"type:nvarchar(max)"`
+	CalculationType              string   `json:"calculation_type" binding:"required,oneof=automatic manual" gorm:"type:varchar(10);not null"`
+	LowThreshold                 *int     `json:"low_threshold" gorm:"type:int;null"`
+	MediumThreshold              *int     `json:"medium_threshold" gorm:"type:int;null"`
+	CurrentValue                 *int     `json:"current_value" gorm:"type:int;null"`
+	LastReviewedDate             string   `json:"last_reviewed_date" binding:"omitempty" gorm:"type:date"`
+	NextReviewDate               string   `json:"next_review_date" binding:"required" gorm:"type:date;not null"`
+	LastReviewNote               *string  `json:"last_review_note" gorm:"type:nvarchar(max)"`
 	MinimumSusceptibilityPercent *float64 `json:"minimum_susceptibility_percent"`
 	MaximumSusceptibilityPercent *float64 `json:"maximum_susceptibility_percent"`
 	MaximumTolerablePercent      *float64 `json:"maximum_tolerable_percent"`
@@ -177,19 +182,28 @@ type KRIRegisterDetailsDTO struct {
 	LastReviewedDateString string                            `json:"last_reviewed_date"`
 	NextReviewDateString   string                            `json:"next_review_date"`
 	LastReviewNote         *string                           `json:"last_review_note"`
+	SubmittedByID          *uint                             `json:"submitted_by"`
+	SubmittedAtString      *string                           `json:"submitted_at"`
+	NextReviewLevel        *int                              `json:"next_review_level"`
+	WorkflowStatusID       *uint                             `json:"workflow_status_id"`
+	WorkflowStatus         *masterDTOs.WorkflowStatusDTO     `json:"workflow_status"`
+	ApprovedByID           *uint                             `json:"approved_by"`
+	ApprovedAtString       *string                           `json:"approved_at"`
+	SubmittedBy            *organizationDTOs.UserMinimalDTO  `json:"submitted_by_user"`
+	ApprovedBy             *organizationDTOs.UserMinimalDTO  `json:"approved_by_user"`
 	// Stored percentage inputs
 	MinimumSusceptibilityPercent *float64 `json:"minimum_susceptibility_percent"`
 	MaximumSusceptibilityPercent *float64 `json:"maximum_susceptibility_percent"`
 	MaximumTolerablePercent      *float64 `json:"maximum_tolerable_percent"`
 	// Computed threshold values (percent * annual_target / 100)
-	MinimumSusceptibility *float64 `json:"minimum_susceptibility"`
-	MaximumSusceptibility *float64 `json:"maximum_susceptibility"`
-	MaximumTolerable      *float64 `json:"maximum_tolerable"`
-	CreatedAt              time.Time                         `json:"created_at"`
-	UpdatedAt              *time.Time                        `json:"updated_at"`
-	CreatedByUser          organizationDTOs.UserMinimalDTO   `json:"created_by_user"`
-	UpdatedByUser          organizationDTOs.UserMinimalDTO   `json:"updated_by_user"`
-	ValueUpdates           []*KRIValueUpdateDetailsDTO       `json:"value_updates"`
+	MinimumSusceptibility *float64                        `json:"minimum_susceptibility"`
+	MaximumSusceptibility *float64                        `json:"maximum_susceptibility"`
+	MaximumTolerable      *float64                        `json:"maximum_tolerable"`
+	CreatedAt             time.Time                       `json:"created_at"`
+	UpdatedAt             *time.Time                      `json:"updated_at"`
+	CreatedByUser         organizationDTOs.UserMinimalDTO `json:"created_by_user"`
+	UpdatedByUser         organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
+	ValueUpdates          []*KRIValueUpdateDetailsDTO     `json:"value_updates"`
 }
 
 type KRIRegisterParsedDates struct {
