@@ -70,6 +70,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	internalCommitteeWorkflowController := app.OrganizationModule.InternalCommitteeWorkflowController
 	internalCommitteeReviewCommentController := app.OrganizationModule.InternalCommitteeReviewCommentController
 	controlEffectivenessRatingController := app.OrganizationModule.ControlEffectivenessRatingController
+	controlStatusController := app.OrganizationModule.ControlStatusController
 
 	// Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
@@ -582,4 +583,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Control Effectiveness Rating Master
 	organizationRoutes.GET("/control-effectiveness-ratings", controlEffectivenessRatingController.GetAllControlEffectivenessRatings)
 	organizationRoutes.GET("/control-effectiveness-ratings/:id", controlEffectivenessRatingController.GetControlEffectivenessRatingDetails)
+
+	// Control Status Master
+	organizationRoutes.GET("/control-statuses", controlStatusController.GetAllControlStatuses)
+	organizationRoutes.GET("/control-statuses/:id", controlStatusController.GetControlStatusDetails)
 }

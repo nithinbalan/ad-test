@@ -7,6 +7,7 @@ import (
 
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
@@ -37,6 +38,8 @@ type RiskResidualEvaluationService struct {
 	riskAppetiteStatementSvc     RiskAppetiteStatementServiceInterface
 	riskInherentEvaluationSvc    RiskInherentEvaluationServiceInterface
 	riskTimelineSvc              RiskTimelineServiceInterface
+	controlStatusSvc             organizationServices.ControlStatusServiceInterface
+	controlSvc                   organizationServices.ControlServiceInterface
 }
 
 func NewRiskResidualEvaluationService(
@@ -52,6 +55,8 @@ func NewRiskResidualEvaluationService(
 	riskAppetiteStatementSvc RiskAppetiteStatementServiceInterface,
 	riskInherentEvaluationSvc RiskInherentEvaluationServiceInterface,
 	riskTimelineSvc RiskTimelineServiceInterface,
+	controlStatusSvc organizationServices.ControlStatusServiceInterface,
+	controlSvc organizationServices.ControlServiceInterface,
 ) RiskResidualEvaluationServiceInterface {
 	return &RiskResidualEvaluationService{
 		repo:                         repo,
@@ -66,6 +71,8 @@ func NewRiskResidualEvaluationService(
 		riskAppetiteStatementSvc:     riskAppetiteStatementSvc,
 		riskInherentEvaluationSvc:    riskInherentEvaluationSvc,
 		riskTimelineSvc:              riskTimelineSvc,
+		controlStatusSvc:             controlStatusSvc,
+		controlSvc:                   controlSvc,
 	}
 }
 
@@ -203,10 +210,10 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 	// Calculate residual score: Inherent Risk Rating Value × Average Risk Reduction
 	var residualScore uint
 	if averageRiskReduction != nil {
-		// Residual Risk Score = Inherent Risk Rating Value × (Average Risk Reduction / 100)
+		// Residual Risk Score = Inherent Risk Rating Value × (1-Average Risk Reduction / 100)
 		// Average Risk Reduction is stored as percentage (0-100), so divide by 100
 		// Add 0.5 for proper rounding (e.g., 2.75 becomes 3 instead of 2)
-		residualScore = uint(float64(inherentEvaluation.RiskMatrixRiskRatingValue.Value)*(*averageRiskReduction/100) + 0.5)
+		residualScore = uint(float64(inherentEvaluation.RiskMatrixRiskRatingValue.Value)*(1-*averageRiskReduction/100) + 0.5)
 	} else {
 		// If no control analysis exists, residual = inherent
 		residualScore = inherentEvaluation.RiskMatrixRiskRatingValue.Value
@@ -327,6 +334,32 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 	if err := ries.riskTimelineSvc.Update(riskID, timelineFormDTO, timelineType.ID, transaction); err != nil {
 		transaction.Rollback()
 		return 0, err
+	}
+
+	// Update control status based on residual risk rating
+	// If residual risk is critical or high = needs improvement, otherwise = doesn't need improvement
+	var controlStatusType string
+	if riskRating.RiskRatingTitleType == "critical" || riskRating.RiskRatingTitleType == "high" {
+		controlStatusType = "needs_improvement"
+	} else {
+		controlStatusType = "doesnt_need_improvement"
+	}
+
+	controlStatus, err := ries.controlStatusSvc.GetByType(controlStatusType)
+	if err != nil {
+		transaction.Rollback()
+		return 0, err
+	}
+
+	// Update all controls associated with this risk
+	for _, ca := range controlAnalyses {
+		if ca.RiskControl != nil && ca.RiskControl.Control != nil {
+			controlID := ca.RiskControl.Control.ID
+			if err := ries.controlSvc.UpdateControlStatus(controlID, controlStatus.ID, transaction); err != nil {
+				transaction.Rollback()
+				return 0, err
+			}
+		}
 	}
 
 	if len(tx) == 0 {
@@ -577,6 +610,33 @@ func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentU
 			return err
 		}
 	}
+
+	// Update control status based on residual risk rating
+	// If residual risk is critical or high = needs improvement, otherwise = doesn't need improvement
+	var controlStatusType string
+	if riskRating.RiskRatingTitleType == "critical" || riskRating.RiskRatingTitleType == "high" {
+		controlStatusType = "needs_improvement"
+	} else {
+		controlStatusType = "doesnt_need_improvement"
+	}
+
+	controlStatus, err := ries.controlStatusSvc.GetByType(controlStatusType)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Update all controls associated with this risk
+	for _, ca := range controlAnalyses {
+		if ca.RiskControl != nil && ca.RiskControl.Control != nil {
+			controlID := ca.RiskControl.Control.ID
+			if err := ries.controlSvc.UpdateControlStatus(controlID, controlStatus.ID, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
 	tx.Commit()
 	go func() {
 		existingRiskEvaluation, err := ries.GetFullDetailsByID(riskID)

@@ -62,6 +62,11 @@ type ControlListDTO struct {
 	LifecycleStatusTitleEn               string     `json:"lifecycle_status_title_en"`
 	LifecycleStatusTitleAr               string     `json:"lifecycle_status_title_ar"`
 	LifecycleStatusColorCode             string     `json:"lifecycle_status_color_code"`
+	ControlStatusID                      *uint      `json:"control_status_id"`
+	ControlStatusTitleEn                 *string    `json:"control_status_title_en"`
+	ControlStatusTitleAr                 *string    `json:"control_status_title_ar"`
+	ControlStatusColorCode               *string    `json:"control_status_color_code"`
+	ControlStatusType                    *string    `json:"control_status_type"`
 	CreatedUserID                        uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn               string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr               string     `json:"created_user_first_name_ar"`
@@ -221,6 +226,7 @@ type ControlDetailDTO struct {
 	LatestControlTest             ControlTestDetailsDTO            `json:"latest_control_test"`
 	LatestControlReview           *ControlReviewDTO                `json:"control_review"`
 	MarkedAsAuditableItem         bool                             `json:"marked_as_auditable_item"`
+	ControlStatus                 *ControlStatusDTO                `json:"control_status"`
 	Risks                         []*ControlRiskDTO                `json:"risks"`
 	RiskMatrixRating              *RiskMatrixRiskRatingDTO         `json:"risk_matrix_risk_rating"`
 	RiskMatrixRatingValue         *RiskMatrixRiskRatingValueDTO    `json:"risk_matrix_rating_value"`

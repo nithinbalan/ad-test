@@ -47,6 +47,11 @@ type RiskControlAnalysisListDTO struct {
 	ControlConsistencyType               *string                                         `json:"control_consistency_type"`
 	AssociatedDocuments                  []organizationDTOs.ControlAssociatedDocumentDTO `json:"associated_documents" gorm:"-"`
 	LastTestDate                         *string                                         `json:"last_test_date"`
+	ControlStatusID                      *uint                                           `json:"control_status_id"`
+	ControlStatusTitleEn                 *string                                         `json:"control_status_title_en"`
+	ControlStatusTitleAr                 *string                                         `json:"control_status_title_ar"`
+	ControlStatusColorCode               *string                                         `json:"control_status_color_code"`
+	ControlStatusType                    *string                                         `json:"control_status_type"`
 	CreatedAt                            string                                          `json:"created_at"`
 	CreatedUserID                        uint                                            `json:"created_user_id"`
 	CreatedUserFirstNameEn               string                                          `json:"created_user_first_name_en"`
