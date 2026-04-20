@@ -58,7 +58,27 @@ func (rcas *RiskInherentControlAnalysisService) GetAll(riskID uint, params *risk
 	if _, err := rcas.riskRegisterSvc.GetByID(riskID); err != nil {
 		return nil, err
 	}
-	return rcas.repo.GetAll(riskID, params)
+
+	controlAnalyses, err := rcas.repo.GetAll(riskID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	// Populate associated documents for each control
+	for _, analysis := range controlAnalyses {
+		if analysis.ControlID > 0 {
+			control, err := rcas.controlSvc.GetFullDetailsByID(analysis.ControlID)
+			if err == nil && control != nil && len(control.AssociatedDocuments) > 0 {
+				analysis.AssociatedDocuments = control.AssociatedDocuments
+			} else {
+				analysis.AssociatedDocuments = []organizationDTOs.ControlAssociatedDocumentDTO{}
+			}
+		} else {
+			analysis.AssociatedDocuments = []organizationDTOs.ControlAssociatedDocumentDTO{}
+		}
+	}
+
+	return controlAnalyses, nil
 }
 
 func (rcas RiskInherentControlAnalysisService) GetFullDetailsByID(riskID uint, id uint) (*riskDTOs.RiskControlAnalysisDetailDTO, error) {
@@ -123,7 +143,7 @@ func (rcas *RiskInherentControlAnalysisService) Create(riskID uint, currentUserI
 		riskControlAnalysis := &models.RiskControlAnalysis{
 			RiskControlID:                 riskControl.ID,
 			Type:                          "inherent",
-			ControlEfficiencyStatusID:     *control.ControlEfficiencyStatusID,
+			ControlEfficiencyStatusID:     control.ControlEfficiencyStatusID,
 			ControlImplementationStatusID: *control.ControlImplementationStatusID,
 			Score:                         control.EfficiencyScore,
 			CreatedByID:                   currentUserID,
@@ -211,10 +231,22 @@ func (rcas *RiskInherentControlAnalysisService) Update(riskID uint, id uint, cur
 		return err
 	}
 
-	existingRiskControlAnalysis.ControlEfficiencyStatusID = *controlTestFormDTO.ControlEfficiencyStatusID
+	// Get the created control test to retrieve calculated effectiveness values (within transaction)
+	controlTest, err := rcas.controlTestSvc.GetByID(testId, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	fmt.Println("controlTest", controlTest)
+
+	existingRiskControlAnalysis.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
 	existingRiskControlAnalysis.ControlImplementationStatusID = controlTestFormDTO.ControlImplementationStatusID
 	existingRiskControlAnalysis.ControlTestID = testId
 	existingRiskControlAnalysis.Score = controlTestFormDTO.Score
+	existingRiskControlAnalysis.ControlEffectivenessScore = controlTest.ControlEffectivenessScore
+	existingRiskControlAnalysis.ControlEffectivenessRatingID = controlTest.ControlEffectivenessRatingID
+	existingRiskControlAnalysis.RiskReduction = controlTest.RiskReduction
 	existingRiskControlAnalysis.CreatedByID = currentUserID
 	existingRiskControlAnalysis.CreatedAt = time.Now()
 

@@ -131,12 +131,15 @@ func (raps RiskActionPlanService) GetFullDetailsByID(riskID uint, id uint) (*ris
 		return nil, err
 	}
 
+	if riskActionPlan.StartDate != nil {
+		startDate := riskActionPlan.StartDate.Format("2006-01-02")
+		riskActionPlanDTO.StartDateString = &startDate
+	}
+
 	if riskActionPlan.TargetDate != nil {
 		targetDate := riskActionPlan.TargetDate.Format("2006-01-02")
 		riskActionPlanDTO.TargetDateString = &targetDate
 	}
-
-	// todo :- also add extra fields which required in details screen
 
 	return &riskActionPlanDTO, nil
 }
@@ -172,11 +175,15 @@ func (raps *RiskActionPlanService) Create(riskID uint, currentUserID uint, RiskA
 		Title:              RiskActionPlanFormDTO.Title,
 		Description:        RiskActionPlanFormDTO.Description,
 		SeverityLevelID:    RiskActionPlanFormDTO.SeverityLevelID,
+		ResponsibleUnitID:  RiskActionPlanFormDTO.ResponsibleUnitID,
 		ResponsibleUserID:  RiskActionPlanFormDTO.ResponsibleUserID,
 		ReviewUserID:       RiskActionPlanFormDTO.ReviewUserID,
+		StartDate:          dates.StartDate,
 		TargetDate:         dates.TargetDate,
+		Cost:               RiskActionPlanFormDTO.Cost,
 		Percentage:         RiskActionPlanFormDTO.Percentage,
 		Comments:           RiskActionPlanFormDTO.Comments,
+		Notes:              RiskActionPlanFormDTO.Notes,
 		ActionPlanStatusID: actionPlanStatus.ID,
 		CreatedBYID:        currentUserID,
 	}
@@ -421,10 +428,14 @@ func (raps *RiskActionPlanService) Update(riskID uint, id uint, currentUserID ui
 	existingRiskActionPlan.Title = RiskActionPlanFormDTO.Title
 	existingRiskActionPlan.Description = RiskActionPlanFormDTO.Description
 	existingRiskActionPlan.SeverityLevelID = RiskActionPlanFormDTO.SeverityLevelID
+	existingRiskActionPlan.ResponsibleUnitID = RiskActionPlanFormDTO.ResponsibleUnitID
 	existingRiskActionPlan.ResponsibleUserID = RiskActionPlanFormDTO.ResponsibleUserID
 	existingRiskActionPlan.ReviewUserID = RiskActionPlanFormDTO.ReviewUserID
+	existingRiskActionPlan.StartDate = dates.StartDate
 	existingRiskActionPlan.TargetDate = dates.TargetDate
+	existingRiskActionPlan.Cost = RiskActionPlanFormDTO.Cost
 	existingRiskActionPlan.Comments = RiskActionPlanFormDTO.Comments
+	existingRiskActionPlan.Notes = RiskActionPlanFormDTO.Notes
 	existingRiskActionPlan.UpdatedBYID = &currentUserID
 
 	if RiskActionPlanFormDTO.ResponsibleUserID != 0 && oldResponsibleUserID != RiskActionPlanFormDTO.ResponsibleUserID {
@@ -1006,7 +1017,14 @@ func (raps *RiskActionPlanService) parseRiskActionPlanDates(dto *riskDTOs.RiskAc
 	parsed := &riskDTOs.RiskActionPlanParsedDates{}
 
 	var err error
-	if *dto.TargetDate != "" {
+	if dto.StartDate != nil && *dto.StartDate != "" {
+		parsed.StartDate, err = utility.ParseDate(*dto.StartDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid start date"), "invalid_date", "start date")
+		}
+	}
+
+	if dto.TargetDate != nil && *dto.TargetDate != "" {
 		parsed.TargetDate, err = utility.ParseDate(*dto.TargetDate)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid target date"), "invalid_date", "target date")

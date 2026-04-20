@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"jethur/grc/models"
 	"jethur/utility"
 
@@ -20,6 +21,7 @@ type RiskResidualEvaluationRepositoryInterface interface {
 	CreateRiskAppetiteAlignments(alignments []*models.RiskAppetiteAlignment, tx ...utility.DatabaseTransaction) error
 	DeleteRiskImpactAnalysesByRiskEvaluationID(riskEvaluationID uint, tx ...utility.DatabaseTransaction) error
 	DeleteRiskAppetiteAlignmentsByRiskEvaluationID(riskEvaluationID uint, tx ...utility.DatabaseTransaction) error
+	GetControlAnalysesByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]*models.RiskControlAnalysis, error)
 }
 
 type RiskResidualEvaluationRepository struct {
@@ -54,6 +56,9 @@ func (repo *RiskResidualEvaluationRepository) GetFullDetailsByID(riskID uint) (*
 		Where("risk_register_id = ? AND type = ?", riskID, "residual").
 		First(&riskResidualEvaluation)
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, result.Error
 	}
 
@@ -188,4 +193,25 @@ func (repo *RiskResidualEvaluationRepository) DeleteRiskAppetiteAlignmentsByRisk
 		return err
 	}
 	return nil
+}
+
+func (repo *RiskResidualEvaluationRepository) GetControlAnalysesByRiskID(riskID uint, tx ...utility.DatabaseTransaction) ([]*models.RiskControlAnalysis, error) {
+	var controlAnalyses []*models.RiskControlAnalysis
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.
+		Joins("JOIN risk_controls ON risk_controls.id = risk_control_analyses.risk_control_id").
+		Where("risk_controls.risk_register_id = ?", riskID).
+		Where("risk_control_analyses.type = ?", "inherent").
+		Find(&controlAnalyses)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return controlAnalyses, nil
 }

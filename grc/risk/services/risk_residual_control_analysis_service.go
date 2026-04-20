@@ -123,7 +123,7 @@ func (rcas *RiskResidualControlAnalysisService) Create(riskID uint, currentUserI
 		riskControlAnalysis := &models.RiskControlAnalysis{
 			RiskControlID:                 riskControl.ID,
 			Type:                          "residual",
-			ControlEfficiencyStatusID:     *control.ControlEfficiencyStatusID,
+			ControlEfficiencyStatusID:     control.ControlEfficiencyStatusID,
 			ControlImplementationStatusID: *control.ControlImplementationStatusID,
 			CreatedByID:                   currentUserID,
 			CreatedAt:                     time.Now(),
@@ -207,10 +207,21 @@ func (rcas *RiskResidualControlAnalysisService) Update(riskID uint, id uint, cur
 		tx.Rollback()
 		return err
 	}
-	existingRiskControlAnalysis.ControlEfficiencyStatusID = *controlTestFormDTO.ControlEfficiencyStatusID
+
+	// Get the created control test to retrieve calculated effectiveness values (within transaction)
+	controlTest, err := rcas.controlTestSvc.GetByID(testId, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingRiskControlAnalysis.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
 	existingRiskControlAnalysis.ControlImplementationStatusID = controlTestFormDTO.ControlImplementationStatusID
 	existingRiskControlAnalysis.ControlTestID = testId
 	existingRiskControlAnalysis.Score = controlTestFormDTO.Score
+	existingRiskControlAnalysis.ControlEffectivenessScore = controlTest.ControlEffectivenessScore
+	existingRiskControlAnalysis.ControlEffectivenessRatingID = controlTest.ControlEffectivenessRatingID
+	existingRiskControlAnalysis.RiskReduction = controlTest.RiskReduction
 	existingRiskControlAnalysis.CreatedByID = currentUserID // todo (tested_by or currentUserID)
 	existingRiskControlAnalysis.CreatedAt = time.Now()
 
