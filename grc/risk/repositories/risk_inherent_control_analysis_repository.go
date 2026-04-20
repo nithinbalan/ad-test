@@ -83,6 +83,11 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
 			control_automation.type AS control_automation_type,
 			control_consistency.type AS control_consistency_type,
 			CONVERT(VARCHAR, latest_control_test.tested_at, 23) AS last_test_date,
+			control_statuses.id AS control_status_id,
+			control_statuses.title_en AS control_status_title_en,
+			control_statuses.title_ar AS control_status_title_ar,
+			control_statuses.type AS control_status_type,
+			control_statuses.color_code AS control_status_color_code,
             created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -111,6 +116,7 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
                 FROM control_tests ct
                 GROUP BY ct.control_id
             ) AS latest_control_test_ids ON latest_control_test_ids.control_id = controls.id
+			LEFT JOIN control_statuses ON control_statuses.id = controls.control_status_id
             LEFT JOIN control_tests AS latest_control_test ON latest_control_test.id = latest_control_test_ids.latest_test_id
             LEFT JOIN users AS created_user ON created_user.id = risk_control_analyses.created_by_id
         `).

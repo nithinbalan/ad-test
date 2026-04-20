@@ -63,6 +63,7 @@ type OrganizationModule struct {
 	InternalCommitteeWorkflowReviewController *controllers.InternalCommitteeWorkflowReviewController
 	InternalCommitteeReviewCommentController  *controllers.InternalCommitteeReviewCommentController
 	ControlEffectivenessRatingController      *controllers.ControlEffectivenessRatingController
+	ControlStatusController                   *controllers.ControlStatusController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -76,6 +77,7 @@ type OrganizationModule struct {
 	ProcessDependencySvc           services.ProcessDependencyServiceInterface
 	JobDescriptionSvc              services.JobDescriptionServiceInterface
 	GovernanceReportSvc            services.GovernanceReportServiceInterface
+	ControlStatusSvc               services.ControlStatusServiceInterface
 }
 
 func NewOrganizationModule(
@@ -394,6 +396,10 @@ func NewOrganizationModule(
 	internalCommitteeReviewCommentSvc := services.NewInternalCommitteeReviewCommentService(internalCommitteeReviewCommentRepo, userSvc, sharedModule.ActivityLogService, internalCommitteeSvc, masterModule.CommentStatusSvc)
 	internalCommitteeReviewCommentController := controllers.NewInternalCommitteeReviewCommentController(internalCommitteeReviewCommentSvc)
 
+	controlStatusRepo := repositories.NewControlStatusRepository(db)
+	controlStatusSvc := services.NewControlStatusService(controlStatusRepo)
+	controlStatusController := controllers.NewControlStatusController(controlStatusSvc)
+
 	return &OrganizationModule{
 		DesignationController:                   designationController,
 		UserStatusController:                    userStatusController,
@@ -450,6 +456,7 @@ func NewOrganizationModule(
 		InternalCommitteeWorkflowReviewController: internalCommitteeWorkflowReviewController,
 		InternalCommitteeReviewCommentController:  internalCommitteeReviewCommentController,
 		ControlEffectivenessRatingController:      controlEffectivenessRatingController,
+		ControlStatusController:                   controlStatusController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,
@@ -463,5 +470,6 @@ func NewOrganizationModule(
 		ProcessDependencySvc:           processDependencySvc,
 		JobDescriptionSvc:              jobDescriptionSvc,
 		GovernanceReportSvc:            governanceReportSvc,
+		ControlStatusSvc:               controlStatusSvc,
 	}
 }
