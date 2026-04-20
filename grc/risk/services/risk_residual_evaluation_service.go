@@ -218,11 +218,23 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 		return 0, utility.NewValidationError(fmt.Errorf("no risk rating found for score %d", residualScore), "not_found", "risk rating")
 	}
 
+	// Use form values if provided, otherwise inherit from inherent evaluation
+	likelihoodID := inherentEvaluation.RiskMatrixLikelihood.ID
+	impactID := inherentEvaluation.RiskMatrixImpact.ID
+
+	if residualEvaluationFormDTO.RiskMatrixLikelihoodID > 0 {
+		likelihoodID = residualEvaluationFormDTO.RiskMatrixLikelihoodID
+	}
+
+	if residualEvaluationFormDTO.RiskMatrixImpactID > 0 {
+		impactID = residualEvaluationFormDTO.RiskMatrixImpactID
+	}
+
 	riskResidualEvaluation := &models.RiskEvaluation{
 		RiskRegisterID:                   riskID,
 		Type:                             "residual",
-		RiskMatrixLikelihoodID:           inherentEvaluation.RiskMatrixLikelihood.ID,
-		RiskMatrixImpactID:               inherentEvaluation.RiskMatrixImpact.ID,
+		RiskMatrixLikelihoodID:           likelihoodID,
+		RiskMatrixImpactID:               impactID,
 		RiskMatrixRiskRatingID:           riskRating.RiskMatrixRiskRatingID,
 		RiskMatrixRiskRatingValueID:      riskRating.RiskMatrixRiskRatingValueID,
 		AverageControlEffectivenessScore: averageRiskReduction,
@@ -734,12 +746,18 @@ func (ries *RiskResidualEvaluationService) Delete(riskID uint, id uint, currentU
 }
 
 func (ries *RiskResidualEvaluationService) validateRiskResidualEvaluationFormDTO(residualEvaluationFormDTO *riskDTOs.RiskResidualEvaluationFormDTO) error {
-	if _, err := ries.riskMatrixImpactSvc.GetByID(uint(residualEvaluationFormDTO.RiskMatrixImpactID)); err != nil {
-		return utility.NewValidationError(fmt.Errorf("risk matrix impact does not exist"), "not_exist", "risk matrix impact")
+	// Only validate RiskMatrixLikelihoodID and RiskMatrixImpactID if they are provided
+	// Otherwise they will be inherited from inherent evaluation
+	if residualEvaluationFormDTO.RiskMatrixImpactID > 0 {
+		if _, err := ries.riskMatrixImpactSvc.GetByID(uint(residualEvaluationFormDTO.RiskMatrixImpactID)); err != nil {
+			return utility.NewValidationError(fmt.Errorf("risk matrix impact does not exist"), "not_exist", "risk matrix impact")
+		}
 	}
 
-	if _, err := ries.riskMatrixLikelihoodSvc.GetByID(uint(residualEvaluationFormDTO.RiskMatrixLikelihoodID)); err != nil {
-		return utility.NewValidationError(fmt.Errorf("risk matrix likelihood does not exist"), "not_exist", "risk matrix likelihood")
+	if residualEvaluationFormDTO.RiskMatrixLikelihoodID > 0 {
+		if _, err := ries.riskMatrixLikelihoodSvc.GetByID(uint(residualEvaluationFormDTO.RiskMatrixLikelihoodID)); err != nil {
+			return utility.NewValidationError(fmt.Errorf("risk matrix likelihood does not exist"), "not_exist", "risk matrix likelihood")
+		}
 	}
 
 	for _, appetiteAlignment := range residualEvaluationFormDTO.RiskAppetiteAlignments {
