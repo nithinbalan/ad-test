@@ -82,7 +82,7 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
 			control_effectiveness_ratings.type AS control_effectiveness_rating_type,
 			control_automation.type AS control_automation_type,
 			control_consistency.type AS control_consistency_type,
-			(SELECT TOP 1 CONVERT(VARCHAR, ct.tested_at, 23) FROM control_tests ct WHERE ct.control_id = controls.id ORDER BY ct.tested_at DESC) AS last_test_date,
+			CONVERT(VARCHAR, latest_control_test.tested_at, 23) AS last_test_date,
             created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -106,6 +106,12 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
             LEFT JOIN control_effectiveness_ratings ON control_effectiveness_ratings.id = risk_control_analyses.control_effectiveness_rating_id
             LEFT JOIN control_automations AS control_automation ON control_automation.id = controls.control_automation_id
             LEFT JOIN control_consistencies AS control_consistency ON control_consistency.id = controls.control_consistency_id
+            LEFT JOIN (
+                SELECT ct.control_id, MAX(ct.id) as latest_test_id
+                FROM control_tests ct
+                GROUP BY ct.control_id
+            ) AS latest_control_test_ids ON latest_control_test_ids.control_id = controls.id
+            LEFT JOIN control_tests AS latest_control_test ON latest_control_test.id = latest_control_test_ids.latest_test_id
             LEFT JOIN users AS created_user ON created_user.id = risk_control_analyses.created_by_id
         `).
 		Where(`risk_controls.risk_register_id = ? AND risk_control_analyses.type = 'inherent'`, riskID)
