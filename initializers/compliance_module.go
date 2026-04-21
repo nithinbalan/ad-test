@@ -297,7 +297,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 
 	complianceAssessmentRepo := repositories.NewComplianceAssessmentRepository(db)
 	complianceAssessmentRequirementRepo := repositories.NewComplianceAssessmentRequirementRepository(db)
-	complianceAssessmentSvc := services.NewComplianceAssessmentService(complianceAssessmentRepo, complianceAssessmentRequirementRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, complianceRegisterSvc, masterModule.ApplicabilitySvc, complianceAssessmentStatusSvc, commonModule.NotificationService, compilanceClauseSvc, complianceStatusSvc)
+	complianceAssessmentSvc := services.NewComplianceAssessmentService(complianceAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, organizationModule.UserSettingSvc, complianceRegisterSvc, masterModule.ApplicabilitySvc, complianceAssessmentStatusSvc, commonModule.NotificationService, compilanceClauseSvc, complianceStatusSvc)
 	complianceAssessmentController := controllers.NewComplianceAssessmentController(complianceAssessmentSvc)
 
 	complianceAssessmentRequirementSvc := services.NewComplianceAssessmentRequirementService(complianceAssessmentRequirementRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, complianceRegisterSvc, complianceAssessmentSvc, complianceAssessmentRequirementStatusSvc, commonModule.NotificationService, complianceAssessmentFrameworkSvc, complianceAssessmentStatusSvc, complianceStatusSvc)

@@ -37,6 +37,8 @@ type ComplianceRegister struct {
 	ComplianceReviewStatusID        *uint      `json:"compliance_review_status_id" gorm:"default:null"`
 	TotalScore                      *int       `json:"total_score" gorm:"default:0"`
 	Score                           *float64   `json:"score" gorm:"type:decimal(10,2)"`
+	AverageResidualRiskScore        *float64   `json:"average_residual_risk_score" gorm:"type:decimal(10,2)"`
+	AverageResidualRiskRatingID     *uint      `json:"average_residual_risk_rating_id" gorm:"default:null"`
 	ComplianceFolderID              *uint      `json:"compliance_folder_id" binding:"omitempty" gorm:"default:null"`
 	ComplianceAssessmentFrameworkID *uint      `json:"compliance_assessment_framework_id" binding:"required" gorm:"not null"`
 	IsControlAssessment             bool       `json:"is_control_assessment" gorm:"column:is_control_assessment;not null;default:false"`
@@ -79,6 +81,7 @@ type ComplianceRegister struct {
 	ComplianceClauses             []*ComplianceClause            `gorm:"foreignKey:ComplianceRegisterID"`
 	ComplianceFolder              *ComplianceFolder              `gorm:"foreignKey:ComplianceFolderID"`
 	ComplianceAssessmentFramework *ComplianceAssessmentFramework `gorm:"foreignKey:ComplianceAssessmentFrameworkID"`
+	AverageResidualRiskRating     *ComplianceAssessmentRating    `gorm:"foreignKey:AverageResidualRiskRatingID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 
 	//New Relations
 	LegislativeBody              *ComplianceLegislativeBody            `gorm:"foreignKey:LegislativeBodyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

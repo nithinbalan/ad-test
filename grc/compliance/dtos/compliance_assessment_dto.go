@@ -48,6 +48,12 @@ type ComplianceAssessmentListDTO struct {
 	UpdatedUserColor                    *string    `json:"updated_user_color"`
 	UpdatedUserEmail                    *string    `json:"updated_user_email"`
 	UpdatedUserProfileImagePath         *string    `json:"updated_user_profile_image_path"`
+	AverageResidualRiskScore            *float64   `json:"average_residual_risk_score"`
+	AverageResidualRiskRatingID         *uint      `json:"average_residual_risk_rating_id"`
+	AverageResidualRiskRatingTitleEn    *string    `json:"average_residual_risk_rating_title_en"`
+	AverageResidualRiskRatingTitleAr    *string    `json:"average_residual_risk_rating_title_ar"`
+	AverageResidualRiskRatingColorCode  *string    `json:"average_residual_risk_rating_color_code"`
+	AverageResidualRiskRatingType       *string    `json:"average_residual_risk_rating_type"`
 }
 
 type ComplianceAssessmentListQueryParamsDTO struct {
@@ -91,6 +97,8 @@ type ComplianceAssessmentDetailDTO struct {
 	ReviewUser                 *organizationDTOs.UserMinimalDTO      `json:"review_user"`
 	Description                *string                               `json:"description"`
 	ComplianceAssessmentStatus ComplianceAssessmentStatusDTO         `json:"compliance_assessment_status"`
+	AverageResidualRiskScore   *float64                              `json:"average_residual_risk_score"`
+	AverageResidualRiskRating  *ComplianceAssessmentRatingDTO        `json:"average_residual_risk_rating"`
 	SubmittedByUser            *organizationDTOs.UserMinimalDTO      `json:"submitted_by_user"`
 	SubmittedAt                *time.Time                            `json:"submitted_at"`
 	ReviewedByUser             *organizationDTOs.UserMinimalDTO      `json:"reviewed_by_user"`
@@ -105,17 +113,19 @@ type ComplianceAssessmentDetailDTO struct {
 }
 
 type ComplianceAssessmentRequirementDTO struct {
-	ID                      *uint                                                `json:"id"`
-	ComplianceAssessmentID  uint                                                 `json:"compliance_assessment_id"`
-	ComplianceRequirementID uint                                                 `json:"compliance_requirement_id"`
-	ComplianceRequirement   ComplianceRequirementDetailDTO                       `json:"compliance_requirement"`
-	IsCompleted             bool                                                 `json:"is_completed"`
-	Score                   *int                                                 `json:"score"`
-	Comments                *string                                              `json:"comments"`
-	ComplianceStatusID      *uint                                                `json:"compliance_status_id"`
-	ComplianceStatus        *ComplianceStatusDTO                                 `json:"compliance_status"`
-	ResponsibleUnits        []*ComplianceAssessmentRequirementResponsibleUnitDTO `json:"responsible_units"`
-	InherentRiskAnalysis    []*ComplianceRequirementInherentRiskDTO              `json:"inherent_risk_analysis"`
+	ID                             *uint                                                `json:"id"`
+	ComplianceAssessmentID         uint                                                 `json:"compliance_assessment_id"`
+	ComplianceRequirementID        uint                                                 `json:"compliance_requirement_id"`
+	ComplianceRequirement          ComplianceRequirementDetailDTO                       `json:"compliance_requirement"`
+	IsCompleted                    bool                                                 `json:"is_completed"`
+	Score                          *int                                                 `json:"score"`
+	Comments                       *string                                              `json:"comments"`
+	ComplianceStatusID             *uint                                                `json:"compliance_status_id"`
+	ComplianceStatus               *ComplianceStatusDTO                                 `json:"compliance_status"`
+	ResponsibleUnits               []*ComplianceAssessmentRequirementResponsibleUnitDTO `json:"responsible_units"`
+	InherentRiskAnalysis           []*ComplianceRequirementInherentRiskDTO              `json:"inherent_risk_analysis"`
+	AverageResidualRatingRiskScore *float64                                             `json:"average_residual_rating_risk_score"`
+	AverageResidualRiskRating      *ComplianceAssessmentRatingDTO                       `json:"average_residual_risk_rating"`
 }
 type ComplianceAssessmentRequirementResponsibleUnitDTO struct {
 	ID                                    uint                                               `json:"id"`
