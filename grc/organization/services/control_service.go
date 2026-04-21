@@ -48,6 +48,7 @@ type ControlServiceInterface interface {
 	ValidateControlTemplate(file io.Reader) ([]map[string]interface{}, error)
 	ValidateImportControls(input []map[string]interface{}) ([]map[string]interface{}, error)
 	ImportControls(input []map[string]interface{}, currentUserID uint) ([]uint, error)
+	UpdateControlStatus(controlID uint, controlStatusID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ControlService struct {
@@ -1471,4 +1472,8 @@ func (cs *ControlService) ForceDelete(ids []uint, currentUserID uint) ([]uint, e
 	}()
 
 	return nil, nil
+}
+
+func (cs *ControlService) UpdateControlStatus(controlID uint, controlStatusID uint, tx ...utility.DatabaseTransaction) error {
+	return cs.repo.UpdateControlStatus(controlID, controlStatusID, tx...)
 }

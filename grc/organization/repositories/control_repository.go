@@ -29,6 +29,7 @@ type ControlRepositoryInterface interface {
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
 	CheckControlAutomationExists(id uint) (bool, error)
 	CheckControlConsistencyExists(id uint) (bool, error)
+	UpdateControlStatus(controlID uint, controlStatusID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ControlRepository struct {
@@ -95,6 +96,11 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 			lifecycle_statuses.title_en AS lifecycle_status_title_en,
 			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
 			lifecycle_statuses.color_code AS lifecycle_status_color_code,
+			control_statuses.id AS control_status_id,
+			control_statuses.title_en AS control_status_title_en,
+			control_statuses.title_ar AS control_status_title_ar,
+			control_statuses.type AS control_status_type,
+			control_statuses.color_code AS control_status_color_code,
 			control_implementation_statuses.title_en AS control_implementation_status_title_en,
 			control_implementation_statuses.title_ar AS control_implementation_status_title_ar,
 			control_implementation_statuses.color_code AS control_implementation_status_color_code,
@@ -141,6 +147,7 @@ func (repo *ControlRepository) GetAll(params *organizationDTOs.ControlListQueryP
 		Joins("LEFT JOIN review_frequencies ON review_frequencies.id = controls.review_frequency_id").
 		Joins("LEFT JOIN users AS test_responsible_user ON test_responsible_user.id = controls.test_responsible_user_id").
 		Joins("LEFT JOIN review_frequencies AS test_frequencies ON test_frequencies.id = controls.test_frequency_id").
+		Joins("LEFT JOIN control_statuses ON control_statuses.id = controls.control_status_id").
 		Joins("LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = controls.lifecycle_status_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = controls.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = controls.updated_by_id").
@@ -361,6 +368,7 @@ func (repo *ControlRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("ControlReviewStatus").
 		Preload("TestFrequency").
 		Preload("LifecycleStatus").
+		Preload("ControlStatus").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("Risks").
@@ -888,4 +896,18 @@ func (repo *ControlRepository) CheckControlConsistencyExists(id uint) (bool, err
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (repo *ControlRepository) UpdateControlStatus(controlID uint, controlStatusID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Model(&models.Control{}).Where("id = ?", controlID).Update("control_status_id", controlStatusID)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
 }
