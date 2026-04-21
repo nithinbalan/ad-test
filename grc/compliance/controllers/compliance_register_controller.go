@@ -55,6 +55,7 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 		"legislation_type_ids",
 		"importance_classification_ids",
 		"secrecy_classification_ids",
+		"average_residual_risk_rating_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

@@ -8,6 +8,8 @@ type ComplianceAssessment struct {
 	// PrimaryUnitID                uint       `json:"organization_unit_id" binding:"required" gorm:"column:organization_unit_id;not null"`
 	ReviewUserID                 uint       `json:"review_user_id" binding:"required"`
 	ComplianceAssessmentStatusID uint       `json:"compliance_assessment_status_id" gorm:"not null;default:1"`
+	AverageResidualRiskScore     *float64   `json:"average_residual_risk_score" gorm:"type:decimal(10,2)"`
+	AverageResidualRiskRatingID  *uint      `json:"average_residual_risk_rating_id" gorm:"default:null"`
 	SubmittedBy                  *uint      `json:"submitted_by"`
 	SubmittedAt                  *time.Time `json:"submitted_at"`
 	ReviewedBy                   *uint      `json:"reviewed_by"`
@@ -22,6 +24,7 @@ type ComplianceAssessment struct {
 	// OrganizationUnit           *OrganizationUnit                  `gorm:"foreignKey:PrimaryUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ReviewUser                 *User                              `gorm:"foreignKey:ReviewUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceAssessmentStatus *ComplianceAssessmentStatus        `gorm:"foreignKey:ComplianceAssessmentStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	AverageResidualRiskRating  *ComplianceAssessmentRating        `gorm:"foreignKey:AverageResidualRiskRatingID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	SubmittedByUser            *User                              `gorm:"foreignKey:SubmittedBy"`
 	ReviewedByUser             *User                              `gorm:"foreignKey:ReviewedBy"`
 	CreatedByUser              *User                              `gorm:"foreignKey:CreatedBYID"`

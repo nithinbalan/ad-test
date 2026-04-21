@@ -204,6 +204,7 @@ func (repo *RiskResidualEvaluationRepository) GetControlAnalysesByRiskID(riskID 
 	}
 
 	result := db.
+		Preload("RiskControl.Control").
 		Joins("JOIN risk_controls ON risk_controls.id = risk_control_analyses.risk_control_id").
 		Where("risk_controls.risk_register_id = ?", riskID).
 		Where("risk_control_analyses.type = ?", "inherent").

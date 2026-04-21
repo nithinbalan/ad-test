@@ -46,6 +46,10 @@ type ComplianceAssessmentRepositoryInterface interface {
 	UpdateComplianceAssessmentRequirementStatus(assessmentReqID uint, complianceStatusID uint, score float64, tx ...utility.DatabaseTransaction) error
 	UpdateComplianceAssessmentControlStatus(complianceControlID uint, complianceStatusID uint, score float64, tx ...utility.DatabaseTransaction) error
 	UpdateClauseComplianceStatus(clauseID uint, statusID uint, score float64, tx ...utility.DatabaseTransaction) error
+	UpdateAverageResidualScoreAndRating(assessmentID uint, averageScore float64, ratingID *uint, tx ...utility.DatabaseTransaction) error
+	UpdateRequirementAverageResidualScoreAndRating(requirementID uint, averageScore float64, ratingID *uint, tx ...utility.DatabaseTransaction) error
+	UpdateRegisterAverageResidualScoreAndRating(registerID uint, averageScore float64, ratingID *uint, tx ...utility.DatabaseTransaction) error
+	GetComplianceAssessmentRatings() ([]*models.ComplianceAssessmentRating, error)
 	CreateComplianceAssessmentControl(control *models.ComplianceAssessmentControl, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceAssessmentControls(ids []*uint, tx ...utility.DatabaseTransaction) error
 	HasControlForRegister(registerID uint) (bool, error)
@@ -100,6 +104,11 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
 			compliance_assessment_statuses.title_ar AS compliance_assessment_status_title_ar,
 			compliance_assessment_statuses.color_code AS compliance_assessment_status_color_code,
 			compliance_assessment_statuses.type AS compliance_assessment_status_type,
+			average_residual_rating.id AS average_residual_risk_rating_id,
+			average_residual_rating.title_en AS average_residual_risk_rating_title_en,
+			average_residual_rating.title_ar AS average_residual_risk_rating_title_ar,
+			average_residual_rating.color_code AS average_residual_risk_rating_color_code,
+			average_residual_rating.type AS average_residual_risk_rating_type,
         	created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
         	created_user.first_name_ar AS created_user_first_name_ar,
@@ -123,6 +132,7 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
 		    LEFT JOIN compliance_register ON compliance_register.id = compliance_assessments.compliance_register_id
 		    LEFT JOIN users AS review_user ON review_user.id = compliance_assessments.review_user_id
 			LEFT JOIN compliance_assessment_statuses ON compliance_assessment_statuses.id = compliance_assessments.compliance_assessment_status_id
+			LEFT JOIN compliance_assessment_ratings AS average_residual_rating ON average_residual_rating.id = compliance_assessments.average_residual_risk_rating_id
 			LEFT JOIN users AS created_user ON created_user.id = compliance_assessments.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_assessments.updated_by_id
 		`)
@@ -232,12 +242,15 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values.ComplianceStatus").
 		Preload("ComplianceRegister.ResponsibleUser").
+		Preload("ComplianceRegister.AverageResidualRiskRating").
 		Preload("ComplianceRegister.IssuingAuthorities").
 		Preload("ComplianceRegister.IssuingAuthorities.IssuingAuthority").
 		Preload("ComplianceRegister.IssuingAuthorities.Entity").
 		Preload("ComplianceRegister.IssuingAuthorities.Document").
+		Preload("AverageResidualRiskRating").
 		Preload("AssessmentRequirements").
 		Preload("AssessmentRequirements.ComplianceStatus").
+		Preload("AssessmentRequirements.AverageResidualRiskRating").
 		Preload("AssessmentRequirements.ResponsibleUnits").
 		Preload("AssessmentRequirements.ResponsibleUnits.ResponsibleUnit").
 		Preload("AssessmentRequirements.ResponsibleUnits.RequiredDocumentTitles").
@@ -875,6 +888,7 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByIDOptimized(id uint,
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values").
 		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values.ComplianceStatus").
 		Preload("ComplianceRegister.ResponsibleUser").
+		Preload("AverageResidualRiskRating").
 		Preload("ComplianceRegister.IssuingAuthorities").
 		Preload("ComplianceRegister.IssuingAuthorities.IssuingAuthority").
 		Preload("ComplianceRegister.IssuingAuthorities.Entity").
@@ -1608,4 +1622,96 @@ func (repo *ComplianceAssessmentRepository) ForceDelete(id uint, tx ...utility.D
 
 	/* ================= ROOT ================= */
 	return db.Delete(&models.ComplianceAssessment{}, id).Error
+}
+
+func (repo *ComplianceAssessmentRepository) UpdateAverageResidualScoreAndRating(assessmentID uint, averageScore float64, ratingID *uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	updates := map[string]interface{}{
+		"average_residual_risk_score":     averageScore,
+		"average_residual_risk_rating_id": ratingID,
+	}
+
+	fmt.Printf("[REPO] Updating assessment %d with score=%v, ratingID=%v\n", assessmentID, averageScore, ratingID)
+
+	result := db.Model(&models.ComplianceAssessment{}).
+		Where("id = ?", assessmentID).
+		Updates(updates)
+
+	fmt.Printf("[REPO] Assessment update - Rows affected: %d, Error: %v\n", result.RowsAffected, result.Error)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}
+
+func (repo *ComplianceAssessmentRepository) UpdateRequirementAverageResidualScoreAndRating(requirementID uint, averageScore float64, ratingID *uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	updates := map[string]interface{}{
+		"average_residual_risk_score":     averageScore,
+		"average_residual_risk_rating_id": ratingID,
+	}
+
+	fmt.Printf("[REPO] Updating requirement %d with score=%v, ratingID=%v\n", requirementID, averageScore, ratingID)
+
+	result := db.Model(&models.ComplianceAssessmentRequirement{}).
+		Where("id = ?", requirementID).
+		Updates(updates)
+
+	fmt.Printf("[REPO] Requirement update - Rows affected: %d, Error: %v\n", result.RowsAffected, result.Error)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}
+
+func (repo *ComplianceAssessmentRepository) UpdateRegisterAverageResidualScoreAndRating(registerID uint, averageScore float64, ratingID *uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	updates := map[string]interface{}{
+		"average_residual_risk_score":     averageScore,
+		"average_residual_risk_rating_id": ratingID,
+	}
+
+	fmt.Printf("[REPO] Updating register %d with score=%v, ratingID=%v\n", registerID, averageScore, ratingID)
+
+	result := db.Model(&models.ComplianceRegister{}).
+		Where("id = ?", registerID).
+		Updates(updates)
+
+	fmt.Printf("[REPO] Register update - Rows affected: %d, Error: %v\n", result.RowsAffected, result.Error)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}
+
+func (repo *ComplianceAssessmentRepository) GetComplianceAssessmentRatings() ([]*models.ComplianceAssessmentRating, error) {
+	var ratings []*models.ComplianceAssessmentRating
+
+	result := repo.db.Where("status = ?", "active").
+		Order("score_from ASC").
+		Find(&ratings)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return ratings, nil
 }

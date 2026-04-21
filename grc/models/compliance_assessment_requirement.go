@@ -9,6 +9,8 @@ type ComplianceAssessmentRequirement struct {
 	ComplianceStatusID                      *uint      `json:"compliance_status_id"`
 	ComplianceAssessmentRequirementStatusID *uint      `json:"compliance_assessment_requirement_status_id" gorm:"default:null"`
 	Score                                   *float64   `json:"score" gorm:"type:decimal(10,2)"`
+	AverageResidualRiskScore                *float64   `json:"average_residual_risk_score" gorm:"type:decimal(10,2)"`
+	AverageResidualRiskRatingID             *uint      `json:"average_residual_risk_rating_id" gorm:"default:null"`
 	IsAllCompleted                          bool       `json:"is_all_completed" gorm:"column:is_all_completed;not null;default:false"`
 	CreatedAt                               time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                               *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
@@ -20,6 +22,7 @@ type ComplianceAssessmentRequirement struct {
 	ComplianceRequirement                 *ComplianceRequirement                            `gorm:"foreignKey:ComplianceRequirementID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceStatus                      *ComplianceStatus                                 `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceAssessmentRequirementStatus *ComplianceAssessmentRequirementStatus            `gorm:"foreignKey:ComplianceAssessmentRequirementStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	AverageResidualRiskRating             *ComplianceAssessmentRating                       `gorm:"foreignKey:AverageResidualRiskRatingID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	CreatedByUser                         *User                                             `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser                         *User                                             `gorm:"foreignKey:UpdatedBYID"`
 	ResponsibleUnits                      []*ComplianceAssessmentRequirementResponsibleUnit `gorm:"foreignKey:ComplianceAssessmentRequirementID"`

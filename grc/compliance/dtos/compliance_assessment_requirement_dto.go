@@ -8,31 +8,37 @@ import (
 )
 
 type ComplianceAssessmentRequirementListDTO struct {
-	ID                                             uint    `json:"id"`
-	ClauseID                                       uint    `json:"clause_id"`
-	ClauseDescriptionEn                            *string `json:"clause_description_en"`
-	ClauseDescriptionAr                            *string `json:"clause_description_ar"`
-	ComplianceClauseNo                             string  `json:"compliance_clause_no"`
-	ComplianceClauseTitleEn                        string  `json:"compliance_clause_title_en"`
-	ComplianceClauseTitleAr                        string  `json:"compliance_clause_title_ar"`
-	ComplianceRequirementID                        uint    `json:"compliance_requirement_id"`
-	ComplianceAssessmentRequirementStatusID        *uint   `json:"compliance_assessment_requirement_status_id"`
-	ComplianceRequirementTitleEn                   string  `json:"compliance_requirement_title_en"`
-	ComplianceRequirementTitleAr                   string  `json:"compliance_requirement_title_ar"`
-	ComplianceRequirementCategoryTitleEn           string  `json:"compliance_requirement_category_title_en"`
-	ComplianceRequirementCategoryTitleAr           string  `json:"compliance_requirement_category_title_ar"`
-	SeverityLevelID                                uint    `json:"severity_level_id"`
-	SeverityLevelTitleEn                           string  `json:"severity_level_title_en"`
-	SeverityLevelTitleAr                           string  `json:"severity_level_title_ar"`
-	SeverityLevelColorCode                         string  `json:"severity_level_color_code"`
-	SeverityLevelType                              string  `json:"severity_level_type"`
-	ComplianceAssessmentRequirementStatusTitleEn   string  `json:"compliance_assessment_requirement_status_title_en"`
-	ComplianceAssessmentRequirementStatusTitleAr   string  `json:"compliance_assessment_requirement_status_title_ar"`
-	ComplianceAssessmentRequirementStatusColorCode string  `json:"compliance_assessment_requirement_status_color_code"`
-	ComplianceAssessmentRequirementStatusType      string  `json:"compliance_assessment_requirement_status_type"`
-	CreatedAt                                      string  `json:"created_at"`
-	UpdatedAt                                      *string `json:"updated_at"`
-	IsAllCompleted                                 bool    `json:"is_all_completed"`
+	ID                                             uint     `json:"id"`
+	ClauseID                                       uint     `json:"clause_id"`
+	ClauseDescriptionEn                            *string  `json:"clause_description_en"`
+	ClauseDescriptionAr                            *string  `json:"clause_description_ar"`
+	ComplianceClauseNo                             string   `json:"compliance_clause_no"`
+	ComplianceClauseTitleEn                        string   `json:"compliance_clause_title_en"`
+	ComplianceClauseTitleAr                        string   `json:"compliance_clause_title_ar"`
+	ComplianceRequirementID                        uint     `json:"compliance_requirement_id"`
+	ComplianceAssessmentRequirementStatusID        *uint    `json:"compliance_assessment_requirement_status_id"`
+	ComplianceRequirementTitleEn                   string   `json:"compliance_requirement_title_en"`
+	ComplianceRequirementTitleAr                   string   `json:"compliance_requirement_title_ar"`
+	ComplianceRequirementCategoryTitleEn           string   `json:"compliance_requirement_category_title_en"`
+	ComplianceRequirementCategoryTitleAr           string   `json:"compliance_requirement_category_title_ar"`
+	SeverityLevelID                                uint     `json:"severity_level_id"`
+	SeverityLevelTitleEn                           string   `json:"severity_level_title_en"`
+	SeverityLevelTitleAr                           string   `json:"severity_level_title_ar"`
+	SeverityLevelColorCode                         string   `json:"severity_level_color_code"`
+	SeverityLevelType                              string   `json:"severity_level_type"`
+	ComplianceAssessmentRequirementStatusTitleEn   string   `json:"compliance_assessment_requirement_status_title_en"`
+	ComplianceAssessmentRequirementStatusTitleAr   string   `json:"compliance_assessment_requirement_status_title_ar"`
+	ComplianceAssessmentRequirementStatusColorCode string   `json:"compliance_assessment_requirement_status_color_code"`
+	ComplianceAssessmentRequirementStatusType      string   `json:"compliance_assessment_requirement_status_type"`
+	CreatedAt                                      string   `json:"created_at"`
+	UpdatedAt                                      *string  `json:"updated_at"`
+	IsAllCompleted                                 bool     `json:"is_all_completed"`
+	AverageResidualRiskScore                       *float64 `json:"average_residual_risk_score"`
+	AverageResidualRiskRatingID                    *uint    `json:"average_residual_risk_rating_id"`
+	AverageResidualRiskRatingTitleEn               *string  `json:"average_residual_risk_rating_title_en"`
+	AverageResidualRiskRatingTitleAr               *string  `json:"average_residual_risk_rating_title_ar"`
+	AverageResidualRiskRatingColorCode             *string  `json:"average_residual_risk_rating_color_code"`
+	AverageResidualRiskRatingType                  *string  `json:"average_residual_risk_rating_type"`
 }
 
 type ComplianceAssessmentRequirementListResponseDTO struct {
@@ -56,6 +62,8 @@ type ComplianceAssessmentRequirementDetailDTO struct {
 	ResponsibleUnit                       *ComplianceAssessmentRequirementResponsibleUnitDTO   `json:"responsible_unit"`
 	CompletedByUser                       *organizationDTOs.UserMinimalDTO                     `json:"completed_by_user"`
 	IsAllCompleted                        bool                                                 `json:"is_all_completed"`
+	AverageResidualRiskScore              *float64                                             `json:"average_residual_risk_score"`
+	AverageResidualRiskRating             *ComplianceAssessmentRatingDTO                       `json:"average_residual_risk_rating"`
 }
 
 type ComplianceAssessmentRequirementUpdateFormDTO struct {
