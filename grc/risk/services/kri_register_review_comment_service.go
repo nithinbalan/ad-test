@@ -58,6 +58,9 @@ func (krcs *KRIRegisterReviewCommentService) GetAll(kriRegisterID uint, currentU
 	}
 
 	comments, err := krcs.repo.GetAll(kriRegisterID, currentUserID, params)
+	if err != nil {
+		return nil, err
+	}
 	dtoMap := make(map[uint]*riskDTOs.KRIRegisterReviewCommentListDTO)
 	var roots []*riskDTOs.KRIRegisterReviewCommentListDTO
 
@@ -71,7 +74,7 @@ func (krcs *KRIRegisterReviewCommentService) GetAll(kriRegisterID uint, currentU
 			CommentStatusColorCode:      comment.CommentStatusColorCode,
 			KRIRegisterID:               comment.KRIRegisterID,
 			Level:                       comment.Level,
-			CreatedBYID:                 comment.CreatedBYID,
+			CreatedUserID:               comment.CreatedUserID,
 			CreatedUserFirstNameEn:      comment.CreatedUserFirstNameEn,
 			CreatedUserFirstNameAr:      comment.CreatedUserFirstNameAr,
 			CreatedUserLastNameEn:       comment.CreatedUserLastNameEn,

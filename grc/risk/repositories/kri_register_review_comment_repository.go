@@ -36,6 +36,10 @@ func (repo *KRIRegisterReviewCommentRepository) GetAll(kriRegisterID uint, curre
 	var comments []*riskDTOs.KRIRegisterReviewCommentListDTO
 	var statusCounts []riskDTOs.StatusCount
 
+	if params == nil {
+		params = &riskDTOs.KRIRegisterReviewCommentListQueryParamsDTO{}
+	}
+
 	query := repo.db.
 		Table("kri_register_review_comments").
 		Joins("LEFT JOIN comment_statuses ON comment_statuses.id = kri_register_review_comments.comment_status_id").
@@ -69,7 +73,7 @@ func (repo *KRIRegisterReviewCommentRepository) GetAll(kriRegisterID uint, curre
         kri_register_review_comments.kri_register_id,
         kri_register_review_comments.level,
         kri_register_review_comments.created_at,
-        kri_register_review_comments.created_by_id,
+        kri_register_review_comments.created_by_id AS created_user_id,
         kri_register_review_comments.parent_comment_id AS parent_comment_id,
         comment_statuses.title_en AS comment_status_title_en,
         comment_statuses.title_ar AS comment_status_title_ar,
