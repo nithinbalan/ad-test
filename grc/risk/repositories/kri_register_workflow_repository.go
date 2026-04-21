@@ -41,7 +41,9 @@ func (repo *KRIRegisterWorkflowRepository) GetWorkflowList(kriRegisterID uint) (
 		Preload("KRIRegisterWorkflows.KRIRegisterWorkflowParticipants").
 		Preload("KRIRegisterWorkflows.KRIRegisterWorkflowParticipants.User").
 		Preload("KRIRegisterWorkflows.KRIRegisterWorkflowParticipants.Role").
-		Preload("KRIRegisterWorkflows.KRIRegisterWorkflowReviews", "workflow_status_id IN (?)", repo.db.Model(&models.WorkflowStatus{}).Select("id").Where("type IN (?)", []string{"approve", "reject"})).
+		Preload("KRIRegisterWorkflows.KRIRegisterWorkflowReviews", func(db *gorm.DB) *gorm.DB {
+			return db.Order("kri_register_workflow_reviews.created_at ASC")
+		}).
 		Preload("KRIRegisterWorkflows.KRIRegisterWorkflowReviews.WorkflowStatus").
 		Preload("KRIRegisterWorkflows.KRIRegisterWorkflowReviews.CreatedByUser").
 		Where("id = ?", kriRegisterID).

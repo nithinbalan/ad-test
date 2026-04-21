@@ -13,6 +13,7 @@ import (
 	settingDTOs "jethur/grc/settings/dtos"
 	settingsSvc "jethur/grc/settings/services"
 	"jethur/utility"
+	"sort"
 	"time"
 )
 
@@ -81,9 +82,11 @@ func (arws *KRIRegisterWorkflowService) GetKRIRegisterWorkflowList(kriRegisterID
 	dto := &riskDTOs.KRIRegisterWorkflowListDTO{
 		ID:                   kriRegisterWorkflow.ID,
 		KRIRegisterID:        kriRegisterWorkflow.ID,
+		NextReviewLevel:      kriRegisterWorkflow.NextReviewLevel,
 		SubmittedAt:          kriRegisterWorkflow.SubmittedAt,
 		SubmittedByUser:      arws.mapUserToDTO(kriRegisterWorkflow.SubmittedBy),
 		KRIRegisterWorkflows: []*riskDTOs.WorkflowListDTO{},
+		History:              []*riskDTOs.KRIRegisterWorkflowHistoryDTO{},
 	}
 
 	for _, workflow := range kriRegisterWorkflow.KRIRegisterWorkflows {
@@ -123,6 +126,7 @@ func (arws *KRIRegisterWorkflowService) GetKRIRegisterWorkflowList(kriRegisterID
 		dto.KRIRegisterWorkflows = append(dto.KRIRegisterWorkflows, workflowDTO)
 	}
 
+	dto.History = arws.buildWorkflowHistory(kriRegisterWorkflow)
 	return dto, nil
 }
 
@@ -318,6 +322,28 @@ func (arws *KRIRegisterWorkflowService) mapWorkflowStatusToDTO(status *models.Wo
 		Status:    status.Status,
 		Type:      status.Type,
 	}
+}
+
+func (arws *KRIRegisterWorkflowService) buildWorkflowHistory(kriRegister *models.KRIRegister) []*riskDTOs.KRIRegisterWorkflowHistoryDTO {
+	var history []*riskDTOs.KRIRegisterWorkflowHistoryDTO
+
+	for _, workflow := range kriRegister.KRIRegisterWorkflows {
+		for _, review := range workflow.KRIRegisterWorkflowReviews {
+			history = append(history, &riskDTOs.KRIRegisterWorkflowHistoryDTO{
+				ID:             review.ID,
+				Level:          workflow.Level,
+				WorkflowStatus: arws.mapWorkflowStatusToDTO(review.WorkflowStatus),
+				CreatedAt:      review.CreatedAt,
+				CreatedByUser:  arws.mapUserToDTO(review.CreatedByUser),
+			})
+		}
+	}
+
+	sort.Slice(history, func(i, j int) bool {
+		return history[i].CreatedAt.Before(history[j].CreatedAt)
+	})
+
+	return history
 }
 
 func (arws *KRIRegisterWorkflowService) ValidateWorkflowBeforeCreate(contextType string, tx ...utility.DatabaseTransaction) error {
