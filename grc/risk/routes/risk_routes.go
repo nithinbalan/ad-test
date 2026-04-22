@@ -36,6 +36,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskMatrixRiskRatingValueController := app.RiskModule.RiskMatrixRiskRatingValueController
 	riskSourceController := app.RiskModule.RiskSourceController
 	riskStatusController := app.RiskModule.RiskStatusController
+	riskRegisterUpdatePlanStatusController := app.RiskModule.RiskRegisterUpdatePlanStatusController
 	riskRegisterController := app.RiskModule.RiskRegisterController
 	riskRootCauseAnalysisController := app.RiskModule.RiskRootCauseAnalysisController
 	riskAppetiteToleranceLevelController := app.RiskModule.RiskAppetiteToleranceLevelController
@@ -192,6 +193,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Risk Status
 	riskRoutes.GET("/risk-statuses", riskStatusController.GetAllRiskStatuses)
 	riskRoutes.GET("/risk-statuses/:id", riskStatusController.GetRiskStatusDetails)
+
+	riskRoutes.GET("/risk-register-update-plan-statuses", riskRegisterUpdatePlanStatusController.GetAllRiskRegisterUpdatePlanStatuses)
+	riskRoutes.GET("/risk-register-update-plan-statuses/:id", riskRegisterUpdatePlanStatusController.GetRiskRegisterUpdatePlanStatusDetails)
 
 	// Risk Register
 	unauthenticatedRoutes.GET("/risk-register/:id/document-preview", riskRegisterController.GetRiskRegisterDocumentPreview)
