@@ -460,13 +460,17 @@ func (rcas *RiskInherentControlAnalysisService) GetControlSummary(riskID uint) (
 	efficiencyDetails := make(map[string]models.ControlEfficiencyStatus)
 
 	for _, rca := range riskControlAnalyses {
-		implStatus := rca.ControlImplementationStatus.Type
-		implementationStatusCount[implStatus]++
-		implementationDetails[implStatus] = *rca.ControlImplementationStatus
+		if rca.ControlImplementationStatus != nil {
+			implStatus := rca.ControlImplementationStatus.Type
+			implementationStatusCount[implStatus]++
+			implementationDetails[implStatus] = *rca.ControlImplementationStatus
+		}
 
-		effStatus := rca.ControlEfficiencyStatus.Type
-		efficiencyStatusCount[effStatus]++
-		efficiencyDetails[effStatus] = *rca.ControlEfficiencyStatus
+		if rca.ControlEfficiencyStatus != nil {
+			effStatus := rca.ControlEfficiencyStatus.Type
+			efficiencyStatusCount[effStatus]++
+			efficiencyDetails[effStatus] = *rca.ControlEfficiencyStatus
+		}
 	}
 
 	totalControls := len(riskControlAnalyses)
