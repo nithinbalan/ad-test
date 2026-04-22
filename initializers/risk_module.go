@@ -29,6 +29,7 @@ type RiskModule struct {
 	RiskMatrixRiskRatingValueController   *controllers.RiskMatrixRiskRatingValueController
 	RiskSourceController                  *controllers.RiskSourceController
 	RiskStatusController                  *controllers.RiskStatusController
+	RiskRegisterUpdatePlanStatusController *controllers.RiskRegisterUpdatePlanStatusController
 	RiskRegisterController                *controllers.RiskRegisterController
 	RiskRootCauseAnalysisController       *controllers.RiskRootCauseAnalysisController
 	RiskAppetiteToleranceLevelController  *controllers.RiskAppetiteToleranceLevelController
@@ -193,6 +194,10 @@ func NewRiskModule(db *gorm.DB,
 	riskStatusRepo := repositories.NewRiskStatusRepository(db)
 	riskStatusSvc := services.NewRiskStatusService(riskStatusRepo)
 	riskStatusController := controllers.NewRiskStatusController(riskStatusSvc)
+
+	riskRegisterUpdatePlanStatusRepo := repositories.NewRiskRegisterUpdatePlanStatusRepository(db)
+	riskRegisterUpdatePlanStatusSvc := services.NewRiskRegisterUpdatePlanStatusService(riskRegisterUpdatePlanStatusRepo)
+	riskRegisterUpdatePlanStatusController := controllers.NewRiskRegisterUpdatePlanStatusController(riskRegisterUpdatePlanStatusSvc)
 
 	riskWorkflowRepo := repositories.NewRiskWorkflowRepository(db)
 	riskWorkflowSvc := services.NewRiskWorkflowService(
@@ -409,6 +414,7 @@ func NewRiskModule(db *gorm.DB,
 		RiskMatrixRiskRatingValueController:   riskMatrixRiskRatingValueController,
 		RiskSourceController:                  riskSourceController,
 		RiskStatusController:                  riskStatusController,
+		RiskRegisterUpdatePlanStatusController: riskRegisterUpdatePlanStatusController,
 		RiskRegisterController:                riskRegisterController,
 		RiskRootCauseAnalysisController:       riskRootCauseAnalysisController,
 		RiskAppetiteToleranceLevelController:  riskAppetiteToleranceLevelController,
