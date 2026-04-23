@@ -61,6 +61,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskWorkflowController := app.RiskModule.RiskWorkflowController
 	riskReviewController := app.RiskModule.RiskReviewController
 	riskReviewCommentController := app.RiskModule.RiskReviewCommentController
+	kriRegisterWorkflowController := app.RiskModule.KRIRegisterWorkflowController
+	kriRegisterReviewController := app.RiskModule.KRIRegisterReviewController
+	kriRegisterReviewCommentController := app.RiskModule.KRIRegisterReviewCommentController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -130,6 +133,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/kri-register/:id/trends", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriRegisterController.GetKRITrendAnalysis)
 	riskRoutes.POST("/kri-register/delete", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriRegisterController.DeleteKRIRegisters)
 	riskRoutes.POST("/kri-register/force-delete", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriRegisterController.DeleteForceKRIRegisters)
+	riskRoutes.POST("/kri-register/:id/submit", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriRegisterReviewController.SubmitKRIRegister)
+	riskRoutes.POST("/kri-register/:id/approve", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriRegisterReviewController.ApproveKRIRegister)
+	riskRoutes.POST("/kri-register/:id/reject", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriRegisterReviewController.RejectKRIRegister)
+	riskRoutes.GET("/kri-register/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriRegisterWorkflowController.GetWorkflowList)
+
+	riskRoutes.GET("/kri-register/:id/review-comments", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriRegisterReviewCommentController.GetAllComments)
+	riskRoutes.GET("/kri-register/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriRegisterReviewCommentController.GetCommentDetails)
+	riskRoutes.POST("/kri-register/:id/review-comments", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriRegisterReviewCommentController.CreateComment)
+	riskRoutes.PUT("/kri-register/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriRegisterReviewCommentController.UpdateComment)
+	riskRoutes.POST("/kri-register/:id/review-comments/delete", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriRegisterReviewCommentController.DeleteComment)
+	riskRoutes.PUT("/kri-register/:id/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriRegisterReviewCommentController.ResolveComment)
 
 	unauthenticatedRoutes.GET("/kri-register/:id/value-updates/:updateId/document-preview", kriValueUpdateController.GetKRIValueUpdateDocumentPreview)
 	unauthenticatedRoutes.GET("/kri-register/:id/value-updates/:updateId/document-download", kriValueUpdateController.DownloadKRIValueUpdateDocument)

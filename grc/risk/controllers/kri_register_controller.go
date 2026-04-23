@@ -200,6 +200,9 @@ func (krc *KRIRegisterController) CreateKRIRegister(c *gin.Context) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(krc.db, c, e.Error())
 			return

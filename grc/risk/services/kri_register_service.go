@@ -22,9 +22,10 @@ import (
 )
 
 type KRIRegisterServiceInterface interface {
+	SetKRIWorkflowService(svc KRIRegisterWorkflowServiceInterface)
 	GetAll(params *riskDTOs.KRIRegisterListQueryParamsDTO) (*riskDTOs.KRIRegisterListResponseDTO, error)
-	GetFullDetailsByID(id uint) (*riskDTOs.KRIRegisterDetailsDTO, error)
-	GetByID(id uint) (*models.KRIRegister, error)
+	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*riskDTOs.KRIRegisterDetailsDTO, error)
+	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.KRIRegister, error)
 	Create(currentUserID uint, kriRegisterFormDTO *riskDTOs.KRIRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, kriRegisterFormDTO *riskDTOs.KRIRegisterFormDTO) error
 	UpdateValue(kriRegister *models.KRIRegister, tx utility.DatabaseTransaction) error
@@ -52,6 +53,7 @@ type KRIRegisterService struct {
 	unitSvc             masterServices.UnitServiceInterface
 	userSettingSvc      organizationServices.UserSettingServiceInterface
 	notificationSvc     commonServices.NotificationServiceInterface
+	kriWorkflowSvc      KRIRegisterWorkflowServiceInterface
 }
 
 func NewKRIRegisterService(
@@ -86,12 +88,16 @@ func NewKRIRegisterService(
 	}
 }
 
+func (krs *KRIRegisterService) SetKRIWorkflowService(svc KRIRegisterWorkflowServiceInterface) {
+	krs.kriWorkflowSvc = svc
+}
+
 func (krs *KRIRegisterService) GetAll(params *riskDTOs.KRIRegisterListQueryParamsDTO) (*riskDTOs.KRIRegisterListResponseDTO, error) {
 	return krs.repo.GetAll(params)
 }
 
-func (krs KRIRegisterService) GetByID(id uint) (*models.KRIRegister, error) {
-	kriRegister, err := krs.repo.GetByID(id)
+func (krs KRIRegisterService) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.KRIRegister, error) {
+	kriRegister, err := krs.repo.GetByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -101,10 +107,10 @@ func (krs KRIRegisterService) GetByID(id uint) (*models.KRIRegister, error) {
 	return kriRegister, nil
 }
 
-func (krs KRIRegisterService) GetFullDetailsByID(id uint) (*riskDTOs.KRIRegisterDetailsDTO, error) {
+func (krs KRIRegisterService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*riskDTOs.KRIRegisterDetailsDTO, error) {
 	var kriRegisterDTO riskDTOs.KRIRegisterDetailsDTO
 
-	kriRegister, err := krs.repo.GetFullDetailsByID(id)
+	kriRegister, err := krs.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
@@ -123,6 +129,14 @@ func (krs KRIRegisterService) GetFullDetailsByID(id uint) (*riskDTOs.KRIRegister
 	if kriRegister.LastReviewedDate != nil {
 		kriRegisterLastReviewedDate := kriRegister.LastReviewedDate.Format("2006-01-02")
 		kriRegisterDTO.LastReviewedDateString = kriRegisterLastReviewedDate
+	}
+	if kriRegister.SubmittedAt != nil {
+		submittedAt := kriRegister.SubmittedAt.Format("2006-01-02 15:04:05")
+		kriRegisterDTO.SubmittedAtString = &submittedAt
+	}
+	if kriRegister.ApprovedAt != nil {
+		approvedAt := kriRegister.ApprovedAt.Format("2006-01-02 15:04:05")
+		kriRegisterDTO.ApprovedAtString = &approvedAt
 	}
 
 	kriRegisterDTO.CreatedAt = kriRegister.CreatedAt
@@ -149,21 +163,33 @@ func (krs KRIRegisterService) GetFullDetailsByID(id uint) (*riskDTOs.KRIRegister
 }
 
 func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *riskDTOs.KRIRegisterFormDTO) (uint, error) {
+	tx := krs.repo.BeginTransaction()
+
+	err := krs.kriWorkflowSvc.ValidateWorkflowBeforeCreate("kri_register", tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	if err := krs.validateKRIRegisterFormDTO(kriRegisterFormDTO, nil); err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 	dates, err := krs.parseKRIRegisterDates(kriRegisterFormDTO)
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 	referenceNumber, err := krs.repo.GenerateReferenceNumber()
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
 	var organizationUnitID uint
 	unitID, err := krs.userSvc.GetUserPrimaryUnitID(kriRegisterFormDTO.ResponsibleUserID)
 	if err != nil {
+		tx.Rollback()
 		return 0, utility.NewValidationError(fmt.Errorf("responsible unit not set forthe responsible user"), "not_exist", "responsible unit")
 	}
 	organizationUnitID = unitID
@@ -172,45 +198,53 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 	if kriRegisterFormDTO.CurrentValue != nil {
 		riskLevel, err := krs.DetermineRiskLevel(*kriRegisterFormDTO.CurrentValue, kriRegisterFormDTO.LowThreshold, kriRegisterFormDTO.MediumThreshold)
 		if err != nil {
+			tx.Rollback()
 			return 0, err
 		}
 		riskLevelID = &riskLevel.ID
 	}
 
 	kriRegister := &models.KRIRegister{
-		ReferenceNumber:       &referenceNumber,
-		KRICategoryID:         kriRegisterFormDTO.KRICategoryID,
-		ResponsibleUnitID:     organizationUnitID,
-		ResponsibleUserID:     kriRegisterFormDTO.ResponsibleUserID,
-		ReviewFrequencyID:     kriRegisterFormDTO.ReviewFrequencyID,
-		RiskLevelID:           riskLevelID,
-		UnitID:                &kriRegisterFormDTO.UnitID,
-		LevelOfMeasurementID:  kriRegisterFormDTO.LevelOfMeasurementID,
-		RiskResponsibleUnitID: kriRegisterFormDTO.RiskResponsibleUnitID,
-		RiskSubCategoryID:     kriRegisterFormDTO.RiskSubCategoryID,
-		AnnualTarget:          kriRegisterFormDTO.AnnualTarget,
-		ReviewTarget:          kriRegisterFormDTO.ReviewTarget,
-		DistributionStatusID:  kriRegisterFormDTO.DistributionStatusID,
-		Title:                 kriRegisterFormDTO.Title,
-		Description:           &kriRegisterFormDTO.Description,
-		CalculationType:       kriRegisterFormDTO.CalculationType,
-		LowThreshold:          kriRegisterFormDTO.LowThreshold,
-		MediumThreshold:       kriRegisterFormDTO.MediumThreshold,
-		CurrentValue:          kriRegisterFormDTO.CurrentValue,
-		NextReviewDate:        *dates.NextReviewDate,
-		LastReviewNote:        kriRegisterFormDTO.LastReviewNote,
+		ReferenceNumber:              &referenceNumber,
+		KRICategoryID:                kriRegisterFormDTO.KRICategoryID,
+		ResponsibleUnitID:            organizationUnitID,
+		ResponsibleUserID:            kriRegisterFormDTO.ResponsibleUserID,
+		ReviewFrequencyID:            kriRegisterFormDTO.ReviewFrequencyID,
+		RiskLevelID:                  riskLevelID,
+		UnitID:                       &kriRegisterFormDTO.UnitID,
+		LevelOfMeasurementID:         kriRegisterFormDTO.LevelOfMeasurementID,
+		RiskResponsibleUnitID:        kriRegisterFormDTO.RiskResponsibleUnitID,
+		RiskSubCategoryID:            kriRegisterFormDTO.RiskSubCategoryID,
+		AnnualTarget:                 kriRegisterFormDTO.AnnualTarget,
+		ReviewTarget:                 kriRegisterFormDTO.ReviewTarget,
+		DistributionStatusID:         kriRegisterFormDTO.DistributionStatusID,
+		Title:                        kriRegisterFormDTO.Title,
+		Description:                  &kriRegisterFormDTO.Description,
+		CalculationType:              kriRegisterFormDTO.CalculationType,
+		LowThreshold:                 kriRegisterFormDTO.LowThreshold,
+		MediumThreshold:              kriRegisterFormDTO.MediumThreshold,
+		CurrentValue:                 kriRegisterFormDTO.CurrentValue,
+		NextReviewDate:               *dates.NextReviewDate,
+		LastReviewNote:               kriRegisterFormDTO.LastReviewNote,
 		MinimumSusceptibilityPercent: kriRegisterFormDTO.MinimumSusceptibilityPercent,
 		MaximumSusceptibilityPercent: kriRegisterFormDTO.MaximumSusceptibilityPercent,
 		MaximumTolerablePercent:      kriRegisterFormDTO.MaximumTolerablePercent,
-		CreatedBYID:           currentUserID,
-		UpdatedAt:             nil,
+		CreatedBYID:                  currentUserID,
+		UpdatedAt:                    nil,
 	}
 	if kriRegisterFormDTO.LastReviewedDate != "" {
 		kriRegister.LastReviewedDate = dates.LastReviewedDate
 	}
 
-	id, err := krs.repo.Create(kriRegister)
+	id, err := krs.repo.Create(kriRegister, tx)
 	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	err = krs.kriWorkflowSvc.CreateKRIRegisterWorkflow(id, "kri_register", currentUserID, tx)
+	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
@@ -225,8 +259,13 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 		Remarks:         &initialValue,
 		CreatedByID:     currentUserID,
 	}
-	_, err = krs.repo.CreateInitialKriValueUpdate(kriValueUpdate)
+	_, err = krs.repo.CreateInitialKriValueUpdate(kriValueUpdate, tx)
 	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	if err := tx.Commit(); err != nil {
 		return 0, err
 	}
 
@@ -259,7 +298,6 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 			utility.LogError("Failed to log activity", fields)
 		}
 
-		// Prepare notification and email
 		urlParam := fmt.Sprintf(`{"id":%d}`, id)
 		entity := "kri-register"
 		action := "responsible-user-assign"
@@ -269,7 +307,7 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 			ModuleIdentifier:     "risk",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "KRI Register Responsibililty Assigned",
-			HeadingAr:            "مهمة تسجيل KRI",
+			HeadingAr:            "KRI Register Responsibililty Assigned",
 			TitleEn:              kriRegisterFormDTO.Title,
 			ReferenceNumber:      referenceNumber,
 			Entity:               &entity,
@@ -398,50 +436,50 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 		changedData := make(map[string]interface{})
 		// log changes
 		oldData := map[string]interface{}{
-			"title":                 oldKriRegister.Title,
-			"description":           oldKriRegister.Description,
-			"kri_category":          oldKriRegister.KRICategory.TitleEn,
-			"responsible_user":      fmt.Sprintf("%s %s", oldKriRegister.ResponsibleUser.FirstNameEN, oldKriRegister.ResponsibleUser.LastNameEN),
-			"review_frequency":      oldKriRegister.ReviewFrequency.TitleEn,
-			"risk_level":            utility.GetFieldValue(oldKriRegister.RiskLevel).(string),
-			"unit":                  oldKriRegister.Unit,
-			"level_of_measurement":  utility.GetFieldValue(oldKriRegister.LevelOfMeasurement),
-			"risk_responsible_unit": utility.GetFieldValue(oldKriRegister.RiskResponsibleUnit),
-			"risk_sub_category":     utility.GetFieldValue(oldKriRegister.RiskSubCategory),
-			"annual_target":         oldKriRegister.AnnualTarget,
-			"review_target":         oldKriRegister.ReviewTarget,
-			"distribution_status":   utility.GetFieldValue(oldKriRegister.DistributionStatus),
-			"calculation_type":      oldKriRegister.CalculationType,
-			"low_threshold":         oldKriRegister.LowThreshold,
-			"medium_threshold":      oldKriRegister.MediumThreshold,
-			"high_threshold":        oldKriRegister.HighThreshold,
-			"current_value":         oldKriRegister.CurrentValue,
-			"last_review_note":      oldKriRegister.LastReviewNote,
+			"title":                          oldKriRegister.Title,
+			"description":                    oldKriRegister.Description,
+			"kri_category":                   oldKriRegister.KRICategory.TitleEn,
+			"responsible_user":               fmt.Sprintf("%s %s", oldKriRegister.ResponsibleUser.FirstNameEN, oldKriRegister.ResponsibleUser.LastNameEN),
+			"review_frequency":               oldKriRegister.ReviewFrequency.TitleEn,
+			"risk_level":                     utility.GetFieldValue(oldKriRegister.RiskLevel).(string),
+			"unit":                           oldKriRegister.Unit,
+			"level_of_measurement":           utility.GetFieldValue(oldKriRegister.LevelOfMeasurement),
+			"risk_responsible_unit":          utility.GetFieldValue(oldKriRegister.RiskResponsibleUnit),
+			"risk_sub_category":              utility.GetFieldValue(oldKriRegister.RiskSubCategory),
+			"annual_target":                  oldKriRegister.AnnualTarget,
+			"review_target":                  oldKriRegister.ReviewTarget,
+			"distribution_status":            utility.GetFieldValue(oldKriRegister.DistributionStatus),
+			"calculation_type":               oldKriRegister.CalculationType,
+			"low_threshold":                  oldKriRegister.LowThreshold,
+			"medium_threshold":               oldKriRegister.MediumThreshold,
+			"high_threshold":                 oldKriRegister.HighThreshold,
+			"current_value":                  oldKriRegister.CurrentValue,
+			"last_review_note":               oldKriRegister.LastReviewNote,
 			"minimum_susceptibility_percent": oldKriRegister.MinimumSusceptibilityPercent,
 			"maximum_susceptibility_percent": oldKriRegister.MaximumSusceptibilityPercent,
 			"maximum_tolerable_percent":      oldKriRegister.MaximumTolerablePercent,
 		}
 
 		newData := map[string]interface{}{
-			"title":                 existingKri.Title,
-			"description":           existingKri.Description,
-			"kri_category":          existingKri.KRICategory.TitleEn,
-			"responsible_user":      fmt.Sprintf("%s %s", existingKri.ResponsibleUser.FirstNameEN, existingKri.ResponsibleUser.LastNameEN),
-			"review_frequency":      existingKri.ReviewFrequency.TitleEn,
-			"risk_level":            utility.GetFieldValue(existingKri.RiskLevel).(string),
-			"unit":                  existingKri.Unit,
-			"level_of_measurement":  utility.GetFieldValue(existingKri.LevelOfMeasurement),
-			"risk_responsible_unit": utility.GetFieldValue(existingKri.RiskResponsibleUnit),
-			"risk_sub_category":     utility.GetFieldValue(existingKri.RiskSubCategory),
-			"annual_target":         existingKri.AnnualTarget,
-			"review_target":         existingKri.ReviewTarget,
-			"distribution_status":   utility.GetFieldValue(existingKri.DistributionStatus),
-			"calculation_type":      existingKri.CalculationType,
-			"low_threshold":         existingKri.LowThreshold,
-			"medium_threshold":      existingKri.MediumThreshold,
-			"high_threshold":        existingKri.HighThreshold,
-			"current_value":         existingKri.CurrentValue,
-			"last_review_note":      existingKri.LastReviewNote,
+			"title":                          existingKri.Title,
+			"description":                    existingKri.Description,
+			"kri_category":                   existingKri.KRICategory.TitleEn,
+			"responsible_user":               fmt.Sprintf("%s %s", existingKri.ResponsibleUser.FirstNameEN, existingKri.ResponsibleUser.LastNameEN),
+			"review_frequency":               existingKri.ReviewFrequency.TitleEn,
+			"risk_level":                     utility.GetFieldValue(existingKri.RiskLevel).(string),
+			"unit":                           existingKri.Unit,
+			"level_of_measurement":           utility.GetFieldValue(existingKri.LevelOfMeasurement),
+			"risk_responsible_unit":          utility.GetFieldValue(existingKri.RiskResponsibleUnit),
+			"risk_sub_category":              utility.GetFieldValue(existingKri.RiskSubCategory),
+			"annual_target":                  existingKri.AnnualTarget,
+			"review_target":                  existingKri.ReviewTarget,
+			"distribution_status":            utility.GetFieldValue(existingKri.DistributionStatus),
+			"calculation_type":               existingKri.CalculationType,
+			"low_threshold":                  existingKri.LowThreshold,
+			"medium_threshold":               existingKri.MediumThreshold,
+			"high_threshold":                 existingKri.HighThreshold,
+			"current_value":                  existingKri.CurrentValue,
+			"last_review_note":               existingKri.LastReviewNote,
 			"minimum_susceptibility_percent": existingKri.MinimumSusceptibilityPercent,
 			"maximum_susceptibility_percent": existingKri.MaximumSusceptibilityPercent,
 			"maximum_tolerable_percent":      existingKri.MaximumTolerablePercent,
@@ -614,6 +652,8 @@ func (krs *KRIRegisterService) UpdateValue(kriRegister *models.KRIRegister, tx u
 }
 
 func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := krs.repo.BeginTransaction()
+
 	var failedIds []uint
 	var successfulIds []uint
 
@@ -628,14 +668,14 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 	var deletedKriRegister []map[string]interface{}
 
 	for _, id := range ids {
-
-		_, err := krs.repo.GetByID(id)
+		_, err := krs.repo.GetByID(id, tx)
 		if err != nil {
 			continue
 		}
 
-		kriRegister, err := krs.repo.GetFullDetailsByID(id)
+		kriRegister, err := krs.repo.GetFullDetailsByID(id, tx)
 		if err != nil {
+			tx.Rollback()
 			return nil, err
 		}
 
@@ -644,19 +684,55 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 			for _, update := range kriRegister.ValueUpdates {
 				deleteStatusUpdateIds = append(deleteStatusUpdateIds, &update.ID)
 			}
-			if err := krs.repo.DeleteKriValueUpdates(deleteStatusUpdateIds); err != nil {
+			if err := krs.repo.DeleteKriValueUpdates(deleteStatusUpdateIds, tx); err != nil {
 				failedIds = append(failedIds, id)
 				continue
 			}
 		}
-		err = krs.repo.Delete(id)
+
+		var deleteKRIWorkflowIds []*uint
+		var deleteKRIWorkflowParticipantIds []*uint
+		var deleteKRIWorkflowReviewIds []*uint
+		if len(kriRegister.KRIRegisterWorkflows) > 0 {
+			for _, kriWorkflow := range kriRegister.KRIRegisterWorkflows {
+				deleteKRIWorkflowIds = append(deleteKRIWorkflowIds, &kriWorkflow.ID)
+
+				if len(kriWorkflow.KRIRegisterWorkflowParticipants) > 0 {
+					for _, participant := range kriWorkflow.KRIRegisterWorkflowParticipants {
+						deleteKRIWorkflowParticipantIds = append(deleteKRIWorkflowParticipantIds, &participant.ID)
+					}
+				}
+
+				if len(kriWorkflow.KRIRegisterWorkflowReviews) > 0 {
+					for _, review := range kriWorkflow.KRIRegisterWorkflowReviews {
+						deleteKRIWorkflowReviewIds = append(deleteKRIWorkflowReviewIds, &review.ID)
+					}
+				}
+			}
+		}
+
+		if err := krs.kriWorkflowSvc.DeleteKRIRegisterWorkflowParticipants(deleteKRIWorkflowParticipantIds, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		if err := krs.kriWorkflowSvc.DeleteKRIRegisterReviews(deleteKRIWorkflowReviewIds, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		if err := krs.kriWorkflowSvc.DeleteKRIRegisterWorkflows(deleteKRIWorkflowIds, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		err = krs.repo.Delete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
 		} else {
 			successfulIds = append(successfulIds, id)
 		}
 
-		// Prepare notification data before deletion
 		notifications = append(notifications, struct {
 			OwnerID         *uint
 			TitleEn         string
@@ -666,8 +742,8 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		}{
 			OwnerID:         &kriRegister.ResponsibleUserID,
 			TitleEn:         kriRegister.Title,
-			Description:     *kriRegister.Description,
-			ReferenceNumber: *kriRegister.ReferenceNumber,
+			Description:     utility.GetStringValue(kriRegister.Description),
+			ReferenceNumber: utility.GetStringValue(kriRegister.ReferenceNumber),
 		})
 
 		deletedKriRegister = append(deletedKriRegister, map[string]interface{}{
@@ -676,10 +752,19 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 		})
 	}
 
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	if err := tx.Commit(); err != nil {
+		return ids, err
+	}
+
 	if len(successfulIds) > 0 {
 		go func() {
 			err := krs.activityLogSvc.LogBulkActivities(
-				models.DeleteAction, // Make sure this action constant is defined appropriately
+				models.DeleteAction,
 				models.KRIRegister{}.TableName(),
 				successfulIds,
 				deletedKriRegister,
@@ -687,23 +772,20 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 				nil,
 			)
 			if err != nil {
-				// @todo - save to log file
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
 
-			// Send DB and email notifications for each successfully deleted kri register
 			for _, notification := range notifications {
 				urlParam := ""
 				entity := "kri-register"
 				action := "delete"
 
-				// Prepare DB notification
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 					UserIDs:              []uint{*notification.OwnerID},
 					ModuleIdentifier:     "risk",
 					NotificationType:     string(commonDTOs.DeletionType),
 					HeadingEn:            "KRI Register Deleted",
-					HeadingAr:            "تم حذف تسجيل KRI",
+					HeadingAr:            "KRI Register Deleted",
 					TitleEn:              notification.TitleEn,
 					TitleAr:              notification.TitleAr,
 					ReferenceNumber:      notification.ReferenceNumber,
@@ -714,7 +796,6 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 					CreatedByID:          &currentUserID,
 				}
 
-				// Fetch owner details (responsible user)
 				ownerUser, err := krs.userSvc.GetByID(*notification.OwnerID)
 				if err != nil {
 					utility.LogError("Failed to fetch owner details for notification", map[string]interface{}{
@@ -723,7 +804,6 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 					continue
 				}
 
-				// Prepare email notification
 				ownerEmailTo := []string{ownerUser.Email}
 				subject := fmt.Sprintf("KRI Register/%s: Deleted", notification.TitleEn)
 				templateRelativePath := "risk/templates/email/kri_register_delete_mail.html"
@@ -743,9 +823,7 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 					EmailData:            emailData,
 				}
 
-				// Send DB and email notifications
-				err = krs.notificationSvc.SendNotification(
-					dbNotificationDTO, emailNotificationDTO, "kri_register")
+				err = krs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "kri_register")
 				if err != nil {
 					utility.LogError("Failed to send deletion notifications", map[string]interface{}{
 						"error": err.Error(),
