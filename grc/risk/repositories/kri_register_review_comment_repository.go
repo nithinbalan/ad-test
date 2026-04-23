@@ -70,6 +70,7 @@ func (repo *KRIRegisterReviewCommentRepository) GetAll(kriRegisterID uint, curre
 	query = query.Select(`
         kri_register_review_comments.id,
         kri_register_review_comments.comment,
+        kri_register_review_comments.isEdited AS is_edited,
         kri_register_review_comments.kri_register_id,
         kri_register_review_comments.level,
         kri_register_review_comments.created_at,

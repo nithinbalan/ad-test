@@ -896,12 +896,20 @@ func (krs *KRIRegisterService) validateKRIRegisterFormDTO(kriRegisterFormDTO *ri
 	// Ordering constraint: maximum_tolerable_percent < maximum_susceptibility_percent < minimum_susceptibility_percent
 	if kriRegisterFormDTO.MaximumSusceptibilityPercent != nil && kriRegisterFormDTO.MinimumSusceptibilityPercent != nil {
 		if *kriRegisterFormDTO.MaximumSusceptibilityPercent >= *kriRegisterFormDTO.MinimumSusceptibilityPercent {
-			return utility.NewValidationError(fmt.Errorf("maximum susceptibility must be less than minimum susceptibility"), "invalid_range", "maximum susceptibility")
+			return utility.NewValidationError(
+				fmt.Errorf("maximum_susceptibility_percent must be less than minimum_susceptibility_percent"),
+				"kri_maximum_susceptibility_percent_invalid_range",
+				"maximum_susceptibility_percent",
+			)
 		}
 	}
 	if kriRegisterFormDTO.MaximumTolerablePercent != nil && kriRegisterFormDTO.MaximumSusceptibilityPercent != nil {
 		if *kriRegisterFormDTO.MaximumTolerablePercent >= *kriRegisterFormDTO.MaximumSusceptibilityPercent {
-			return utility.NewValidationError(fmt.Errorf("maximum tolerable must be less than maximum susceptibility"), "invalid_range", "maximum tolerable")
+			return utility.NewValidationError(
+				fmt.Errorf("maximum_tolerable_percent must be less than maximum_susceptibility_percent"),
+				"kri_maximum_tolerable_percent_invalid_range",
+				"maximum_tolerable_percent",
+			)
 		}
 	}
 

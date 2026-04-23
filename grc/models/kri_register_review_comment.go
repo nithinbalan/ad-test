@@ -9,6 +9,7 @@ type KRIRegisterReviewComment struct {
 	CommentStatusID uint       `json:"comment_status_id" gorm:"not null"`
 	Level           *int       `json:"level"`
 	ParentCommentID *uint      `json:"parent_comment_id"`
+	IsEdited        bool       `json:"is_edited" gorm:"column:isEdited;not null;default:false"`
 	CreatedBYID     uint       `json:"created_by_id" binding:"required" gorm:"not null"`
 	UpdatedBYID     *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt       time.Time  `json:"created_at" gorm:"type:datetime;not null"`
