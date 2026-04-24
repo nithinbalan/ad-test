@@ -677,15 +677,10 @@ func (repo *OrganizationUnitsRepository) GetAllProcessesByOrganizationUnit(unitI
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
-	if params.SortBy == "" {
-		params.SortBy = "processes.title_en"
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc"
-	}
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize
