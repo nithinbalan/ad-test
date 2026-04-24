@@ -10,6 +10,7 @@ import (
 type InternalCommitteeWorkflowReviewRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	CreateInternalCommitteeWorkflowReview(committeeReview *models.InternalCommitteeWorkflowReview, tx ...utility.DatabaseTransaction) error
+	CreateInternalCommitteeWorkflowReviewHistory(historyReview *models.InternalCommitteeWorkflowReviewHistory, tx ...utility.DatabaseTransaction) error
 
 	UpdateInternalCommitteeVersion(version *models.InternalCommitteeVersion, tx ...utility.DatabaseTransaction) error
 }
@@ -33,6 +34,17 @@ func (repo *InternalCommitteeWorkflowReviewRepository) CreateInternalCommitteeWo
 		db = tx[0].DB()
 	}
 	if err := db.Create(committeeReview).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *InternalCommitteeWorkflowReviewRepository) CreateInternalCommitteeWorkflowReviewHistory(historyReview *models.InternalCommitteeWorkflowReviewHistory, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(historyReview).Error; err != nil {
 		return err
 	}
 	return nil

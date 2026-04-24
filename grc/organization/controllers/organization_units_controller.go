@@ -199,9 +199,34 @@ func (osc *OrganizationUnitsController) GetAllPoliciesByOrganizationUnit(c *gin.
 		return
 	}
 
+	validSortFields := map[string]string{
+		"type_ar":             "document_types.title_ar",
+		"type_en":             "document_types.title_en",
+		"title_ar":            "documents.title_ar",
+		"title_en":            "documents.title_en",
+		"responsible_user_en": "responsible_user.first_name_en",
+		"responsible_user_ar": "responsible_user.first_name_ar",
+		"category_en":         "document_categories.title_en",
+		"category_ar":         "document_categories.title_ar",
+		"status_en":           "document_statuses.title_ar",
+		"status_ar":           "document_statuses.title_en",
+		"created_at":          "documents.created_at",
+		"created_by_en":       "CONCAT_WS(' ', created_user.first_name_en, created_user.last_name_en)",
+		"created_by_ar":       "CONCAT_WS(' ', created_user.first_name_ar, created_user.last_name_ar)",
+		"responsible_unit_en": "organization_units.title_en",
+		"responsible_unit_ar": "organization_units.title_ar",
+	}
+
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      sortField,
 		Keyword:     keyword,
 		Page:        page,
 		PageSize:    pageSize,
@@ -239,6 +264,16 @@ func (osc *OrganizationUnitsController) GetAllProcessesByOrganizationUnit(c *gin
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"process_group_ids",
+		"responsible_unit_ids",
+		"responsible_user_ids",
+		"lifecycle_status_ids",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(osc.db, c, "Invalid page parameter")
@@ -251,12 +286,35 @@ func (osc *OrganizationUnitsController) GetAllProcessesByOrganizationUnit(c *gin
 		return
 	}
 
+	validSortFields := map[string]string{
+		"reference_number":     "processes.reference_number",
+		"title_en":             "processes.title_en",
+		"title_ar":             "processes.title_ar",
+		"description":          "processes.description",
+		"process_group_en":     "process_groups.title_en",
+		"process_group_ar":     "process_groups.title_ar",
+		"organization_unit_en": "organization_units.title_en",
+		"organization_unit_ar": "organization_units.title_ar",
+		"owner_en":             "owner.first_name_en",
+		"owner_ar":             "owner.first_name_ar",
+		"status_en":            "lifecycle_statuses.title_en",
+		"status_ar":            "lifecycle_statuses.title_ar",
+	}
+
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
 		Sort:        sort,
-		SortBy:      sortBy,
+		SortBy:      sortField,
 		Keyword:     keyword,
 		Page:        page,
 		PageSize:    pageSize,
+		Filters:     filters,
 		QuickFilter: quickFilter,
 	}
 	processes, err := osc.service.GetAllProcessesByOrganizationUnit(uint(unitID), &queryParams)
@@ -270,7 +328,7 @@ func (osc *OrganizationUnitsController) GetAllProcessesByOrganizationUnit(c *gin
 			utility.SendInvalidErrResp(c, e)
 			return
 		default:
-			utility.SendInternalErrResp(osc.db, c, e.Error())
+			utility.SendInternalErrResp(osc.db, c, err.Error())
 			return
 		}
 	}
@@ -287,10 +345,70 @@ func (osc *OrganizationUnitsController) GetAllRiskByOrganizationUnit(c *gin.Cont
 		return
 	}
 
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
 	valueStr := c.Query("value")
+
+	// Define an array of allowed parameter names
+	allowedParams := []string{
+		"risk_category_ids",
+		"risk_source_ids",
+		"responsible_unit_ids",
+		"responsible_user_ids",
+		"risk_status_ids",
+		"review_frequency_ids",
+		"inherent_risk_rating_ids",
+		"residual_risk_rating_ids",
+		"current_likelihood_ids",
+		"current_impact_ids",
+		"current_risk_rating_ids",
+		"risk_response_strategy_ids",
+	}
+
+	validSortFields := map[string]string{
+		"reference_number":          "risk_register.reference_number",
+		"title":                     "risk_register.title",
+		"description":               "risk_register.description",
+		"risk_category_en":          "risk_categories.title_en",
+		"risk_category_ar":          "risk_categories.title_ar",
+		"organization_unit_en":      "organization_units.title_en",
+		"organization_unit_ar":      "organization_units.title_ar",
+		"responsible_user_en":       "users.first_name_en",
+		"responsible_user_ar":       "users.first_name_ar",
+		"risk_source_en":            "risk_sources.title_en",
+		"risk_source_ar":            "risk_sources.title_ar",
+		"risk_status_en":            "risk_statuses.title_en",
+		"risk_status_ar":            "risk_statuses.title_ar",
+		"inherent_likelihood_en":    "inherent_likelihood.title_en",
+		"inherent_likelihood_ar":    "inherent_likelihood.title_ar",
+		"inherent_impact_en":        "inherent_impact.title_en",
+		"inherent_impact_ar":        "inherent_impact.title_ar",
+		"inherent_risk_rating_en":   "inherent_risk_rating.title_en",
+		"inherent_risk_rating_ar":   "inherent_risk_rating.title_ar",
+		"risk_response_strategy_en": "risk_response_strategies.title_en",
+		"risk_response_strategy_ar": "risk_response_strategies.title_ar",
+		"residual_likelihood_en":    "residual_likelihood.title_en",
+		"residual_likelihood_ar":    "residual_likelihood.title_ar",
+		"residual_impact_en":        "residual_impact.title_en",
+		"residual_impact_ar":        "residual_impact.title_ar",
+		"residual_risk_rating_en":   "residual_risk_rating.title_en",
+		"residual_risk_rating_ar":   "residual_risk_rating.title_ar",
+		"reported_at":               "risk_register.reported_at",
+		"review_frequency_en":       "review_frequencies.title_en",
+		"review_frequency_ar":       "review_frequencies.title_ar",
+		"next_review_date":          "risk_register.next_review_date",
+	}
+
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -312,20 +430,16 @@ func (osc *OrganizationUnitsController) GetAllRiskByOrganizationUnit(c *gin.Cont
 			return
 		}
 	}
-	allowedParams := []string{
-		"current_likelihood_ids",
-		"current_impact_ids",
-	}
-	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
 	queryParams := commonDTOs.AssociatedItemListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortBy,
-		Keyword:  keyword,
-		Value:    value,
-		Page:     page,
-		PageSize: pageSize,
-		Filters:  filters,
+		Sort:        sort,
+		SortBy:      dbField,
+		Keyword:     keyword,
+		Page:        page,
+		PageSize:    pageSize,
+		Value:       value,
+		Filters:     filters,
+		QuickFilter: quickFilter,
 	}
 	risks, err := osc.service.GetAllRiskByOrganizationUnit(uint(unitID), &queryParams)
 

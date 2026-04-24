@@ -11,6 +11,7 @@ import (
 type InternalCommitteeWorkflowRepositoryInterface interface {
 	GetWorkflowList(internalCommitteeID uint, latestVersionID uint, tx ...utility.DatabaseTransaction) (*models.InternalCommittee, error)
 	GetPreviousVersionWorkflowHistory(internalCommitteeID uint, latestVersionID uint, tx ...utility.DatabaseTransaction) ([]*models.InternalCommitteeWorkflow, error)
+	GetWorkflowHistoryFromHistoryTable(internalCommitteeID uint, latestVersionID uint, tx ...utility.DatabaseTransaction) ([]*models.InternalCommitteeWorkflowReviewHistory, error)
 	CreateInternalCommitteeWorkflow(internalCommitteeWorkflow *models.InternalCommitteeWorkflow, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateInternalCommitteeWorkflow(internalCommitteeWorkflow *models.InternalCommitteeWorkflow, tx ...utility.DatabaseTransaction) error
 	CreateInternalCommitteeWorkflowParticipant(internalCommitteeWorkflowParticipant *models.InternalCommitteeWorkflowParticipant, tx ...utility.DatabaseTransaction) error
@@ -82,6 +83,29 @@ func (repo *InternalCommitteeWorkflowRepository) GetPreviousVersionWorkflowHisto
 	}
 
 	return previousWorkflows, nil
+}
+
+func (repo *InternalCommitteeWorkflowRepository) GetWorkflowHistoryFromHistoryTable(committeeID uint, latestVersionID uint, tx ...utility.DatabaseTransaction) ([]*models.InternalCommitteeWorkflowReviewHistory, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var historyRecords []*models.InternalCommitteeWorkflowReviewHistory
+	result := db.
+		Joins("JOIN internal_committee_workflows ON internal_committee_workflows.id = internal_committee_workflow_review_history.internal_committee_workflow_id").
+		Where("internal_committee_workflows.internal_committee_id = ? AND internal_committee_workflows.internal_committee_version_id = ?", committeeID, latestVersionID).
+		Preload("InternalCommitteeWorkflow").
+		Preload("WorkflowStatus").
+		Preload("CreatedByUser").
+		Order("internal_committee_workflow_review_history.created_at ASC").
+		Find(&historyRecords)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return historyRecords, nil
 }
 
 func (repo *InternalCommitteeWorkflowRepository) CreateInternalCommitteeWorkflow(internalCommitteeWorkflow *models.InternalCommitteeWorkflow, tx ...utility.DatabaseTransaction) (uint, error) {
