@@ -133,7 +133,12 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 			compliance_assessment_requirement_statuses.title_en AS compliance_assessment_requirement_status_title_en,
 			compliance_assessment_requirement_statuses.title_ar AS compliance_assessment_requirement_status_title_ar,
 			compliance_assessment_requirement_statuses.color_code AS compliance_assessment_requirement_status_color_code,
-			compliance_assessment_requirement_statuses.type AS compliance_assessment_requirement_status_type
+			compliance_assessment_requirement_statuses.type AS compliance_assessment_requirement_status_type,
+			average_residual_rating.id AS average_residual_risk_rating_id,
+			average_residual_rating.title_en AS average_residual_risk_rating_title_en,
+			average_residual_rating.title_ar AS average_residual_risk_rating_title_ar,
+			average_residual_rating.color_code AS average_residual_risk_rating_color_code,
+			average_residual_rating.type AS average_residual_risk_rating_type
 		`).
 		Joins(`
 			LEFT JOIN compliance_requirements ON compliance_requirements.id = compliance_assessment_requirements.compliance_requirement_id
@@ -142,6 +147,7 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
 			LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_assessment_requirements.compliance_status_id
 			LEFT JOIN compliance_assessment_requirement_statuses ON compliance_assessment_requirement_statuses.id = compliance_assessment_requirements.compliance_assessment_requirement_status_id
+			LEFT JOIN compliance_assessment_ratings AS average_residual_rating ON average_residual_rating.id = compliance_assessment_requirements.average_residual_risk_rating_id
 
 		`).
 		Where("compliance_assessment_requirements.compliance_assessment_id = ?", assessmentID)
@@ -255,6 +261,7 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 		Preload("ComplianceRequirement.InherentRiskRating").
 		Preload("ComplianceStatus").
 		Preload("ComplianceAssessmentRequirementStatus").
+		Preload("AverageResidualRiskRating").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser")
 

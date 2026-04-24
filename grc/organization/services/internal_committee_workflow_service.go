@@ -131,21 +131,49 @@ func (icws *InternalCommitteeWorkflowService) GetInternalCommitteeWorkflowList(i
 		var lastApprovedAt time.Time
 		var lastRevertedAt time.Time
 
+		// Determine if this level is currently under review or needs re-approval
+		isCurrentLevel := dto.NextReviewLevel != nil && *dto.NextReviewLevel == workflow.Level
+
+		// Check if this level needs re-approval using tagged switch
+		// When Level N is reverted, NextReviewLevel becomes N-1
+		// We need to clear: Level N-1 (current review level) and Level N (reverted level)
+		needsReapproval := false
+		if dto.NextReviewLevel != nil {
+			switch workflow.Level {
+			case *dto.NextReviewLevel:
+				// Current review level needs reapproval
+				needsReapproval = true
+			case *dto.NextReviewLevel + 1:
+				// Reverted level needs reapproval
+				needsReapproval = true
+			}
+		}
+
 		// Only show approved_users and rejected_user if workflow status matches
 		// This allows us to keep review history while showing correct current state
 		if workflow.WorkflowStatus != nil {
 			for _, review := range workflow.InternalCommitteeWorkflowReviews {
 				userDTO := icws.mapUserToDTO(review.CreatedByUser)
 
-				// Only show approved users if current workflow status is "approve"
-				if review.WorkflowStatus.Type == "approve" && workflow.WorkflowStatus.Type == "approve" {
-					workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, userDTO)
-					if lastApprovedAt.IsZero() || review.CreatedAt.After(lastApprovedAt) {
-						lastApprovedAt = review.CreatedAt
+				// Show approved users based on workflow status and current review level
+				if review.WorkflowStatus.Type == "approve" {
+					// Show approved users if workflow is fully approved and doesn't need re-approval
+					if workflow.WorkflowStatus.Type == "approve" && !needsReapproval {
+						workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, userDTO)
+						if lastApprovedAt.IsZero() || review.CreatedAt.After(lastApprovedAt) {
+							lastApprovedAt = review.CreatedAt
+						}
+					} else if isCurrentLevel && (workflow.WorkflowStatus.Type == "pending" || workflow.WorkflowStatus.Type == "revert") {
+						// Show partial approvals for current level when pending or reverted
+						// Old approval reviews are deleted during revert, so only new approvals will show
+						workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, userDTO)
+						if lastApprovedAt.IsZero() || review.CreatedAt.After(lastApprovedAt) {
+							lastApprovedAt = review.CreatedAt
+						}
 					}
 				}
 
-				// Only show rejected user if current workflow status is "revert"
+				// Show rejected user only if this level's workflow status is "revert"
 				if review.WorkflowStatus.Type == "revert" && workflow.WorkflowStatus.Type == "revert" {
 					workflowDTO.RejectedUser = userDTO
 					if lastRevertedAt.IsZero() || review.CreatedAt.After(lastRevertedAt) {
@@ -189,7 +217,7 @@ func (icws *InternalCommitteeWorkflowService) GetPreviousVersionWorkflowHistory(
 	}
 
 	// Get previous version workflows from repository
-	previousWorkflows, err := icws.repo.GetPreviousVersionWorkflowHistory(internalCommitteeID, latestVersionID)
+	previousWorkflows, err := icws.repo.GetWorkflowHistoryFromHistoryTable(internalCommitteeID, latestVersionID)
 	if err != nil {
 		return nil, err
 	}
@@ -197,16 +225,14 @@ func (icws *InternalCommitteeWorkflowService) GetPreviousVersionWorkflowHistory(
 	// Build history from previous version workflows
 	var history []*organizationDTOs.InternalCommitteeWorkflowHistoryDTO
 	for _, workflow := range previousWorkflows {
-		for _, review := range workflow.InternalCommitteeWorkflowReviews {
-			createdAt := review.CreatedAt
-			history = append(history, &organizationDTOs.InternalCommitteeWorkflowHistoryDTO{
-				ID:             review.ID,
-				Level:          workflow.Level,
-				WorkflowStatus: icws.mapWorkflowStatusToDTO(review.WorkflowStatus),
-				CreatedAt:      createdAt,
-				CreatedByUser:  icws.mapUserToDTO(review.CreatedByUser),
-			})
-		}
+		createdAt := workflow.CreatedAt
+		history = append(history, &organizationDTOs.InternalCommitteeWorkflowHistoryDTO{
+			ID:             workflow.ID,
+			Level:          workflow.InternalCommitteeWorkflow.Level,
+			WorkflowStatus: icws.mapWorkflowStatusToDTO(workflow.WorkflowStatus),
+			CreatedAt:      createdAt,
+			CreatedByUser:  icws.mapUserToDTO(workflow.CreatedByUser),
+		})
 	}
 
 	// Sort history by created_at in ascending order
@@ -459,17 +485,34 @@ func (icws *InternalCommitteeWorkflowService) mapWorkflowStatusToDTO(status *mod
 func (icws *InternalCommitteeWorkflowService) buildWorkflowHistory(committee *models.InternalCommittee) []*organizationDTOs.InternalCommitteeWorkflowHistoryDTO {
 	var history []*organizationDTOs.InternalCommitteeWorkflowHistoryDTO
 
-	for _, workflow := range committee.InternalCommitteeWorkflows {
-		for _, review := range workflow.InternalCommitteeWorkflowReviews {
-			createdAt := review.CreatedAt
-			history = append(history, &organizationDTOs.InternalCommitteeWorkflowHistoryDTO{
-				ID:             review.ID,
-				Level:          workflow.Level,
-				WorkflowStatus: icws.mapWorkflowStatusToDTO(review.WorkflowStatus),
-				CreatedAt:      createdAt,
-				CreatedByUser:  icws.mapUserToDTO(review.CreatedByUser),
-			})
+	// Get latest version ID
+	var latestVersionID uint
+	for _, version := range committee.InternalCommitteeVersions {
+		if version.IsLatestVersion != nil && *version.IsLatestVersion {
+			latestVersionID = version.ID
+			break
 		}
+	}
+
+	if latestVersionID == 0 {
+		return history
+	}
+
+	// Fetch complete history from history table
+	historyRecords, err := icws.repo.GetWorkflowHistoryFromHistoryTable(committee.ID, latestVersionID)
+	if err != nil {
+		return history
+	}
+
+	// Build history DTOs from history records
+	for _, record := range historyRecords {
+		history = append(history, &organizationDTOs.InternalCommitteeWorkflowHistoryDTO{
+			ID:             record.ID,
+			Level:          record.InternalCommitteeWorkflow.Level,
+			WorkflowStatus: icws.mapWorkflowStatusToDTO(record.WorkflowStatus),
+			CreatedAt:      record.CreatedAt,
+			CreatedByUser:  icws.mapUserToDTO(record.CreatedByUser),
+		})
 	}
 
 	return history

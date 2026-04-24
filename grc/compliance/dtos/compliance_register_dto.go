@@ -13,27 +13,33 @@ type ComplianceRegisterListDTO struct {
 	ID uint `json:"id"`
 	// ComplianceCategoryTitleEn             string `json:"compliance_category_title_en"`
 	// ComplianceCategoryTitleAr             string `json:"compliance_category_title_ar"`
-	ComplianceStatusTitleEn            string `json:"compliance_status_title_en"`
-	ComplianceStatusTitleAr            string `json:"compliance_status_title_ar"`
-	ComplianceStatusColorCode          string `json:"compliance_status_color_code"`
-	Subject                            string `json:"subject"`
-	IsApplicable                       bool   `json:"is_applicable"`
-	IsNotApplicable                    bool   `json:"is_not_applicable"`
-	IsRegulationNotificationAssessment bool   `json:"is_regulation_notification_assessment"`
-	IsRiskBasedAssessment              bool   `json:"is_risk_based_assessment"`
-	IsPublic                           bool   `json:"is_public"`
-	IsShared                           bool   `json:"is_shared"`
-	ResponsibleUnitTitleEn             string `json:"responsible_unit_title_en"`
-	ResponsibleUnitTitleAr             string `json:"responsible_unit_title_ar"`
-	ResponsibleUserID                  uint   `json:"responsible_user_id"`
-	ResponsibleUserFirstNameEn         string `json:"responsible_user_first_name_en"`
-	ResponsibleUserFirstNameAr         string `json:"responsible_user_first_name_ar"`
-	ResponsibleUserLastNameEn          string `json:"responsible_user_last_name_en"`
-	ResponsibleUserLastNameAr          string `json:"responsible_user_last_name_ar"`
-	ResponsibleUserInitial             string `json:"responsible_user_initial"`
-	ResponsibleUserColor               string `json:"responsible_user_color"`
-	ResponsibleUserEmail               string `json:"responsible_user_email"`
-	ResponsibleUserProfileImagePath    string `json:"responsible_user_profile_image_path"`
+	ComplianceStatusTitleEn            string   `json:"compliance_status_title_en"`
+	ComplianceStatusTitleAr            string   `json:"compliance_status_title_ar"`
+	ComplianceStatusColorCode          string   `json:"compliance_status_color_code"`
+	Subject                            string   `json:"subject"`
+	IsApplicable                       bool     `json:"is_applicable"`
+	IsNotApplicable                    bool     `json:"is_not_applicable"`
+	IsRegulationNotificationAssessment bool     `json:"is_regulation_notification_assessment"`
+	IsRiskBasedAssessment              bool     `json:"is_risk_based_assessment"`
+	IsPublic                           bool     `json:"is_public"`
+	IsShared                           bool     `json:"is_shared"`
+	ResponsibleUnitTitleEn             string   `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr             string   `json:"responsible_unit_title_ar"`
+	ResponsibleUserID                  uint     `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn         string   `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr         string   `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn          string   `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr          string   `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial             string   `json:"responsible_user_initial"`
+	ResponsibleUserColor               string   `json:"responsible_user_color"`
+	ResponsibleUserEmail               string   `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath    string   `json:"responsible_user_profile_image_path"`
+	AverageResidualRiskScore           *float64 `json:"average_residual_risk_score"`
+	AverageResidualRiskRatingID        *uint    `json:"average_residual_risk_rating_id"`
+	AverageResidualRiskRatingTitleEn   *string  `json:"average_residual_risk_rating_title_en"`
+	AverageResidualRiskRatingTitleAr   *string  `json:"average_residual_risk_rating_title_ar"`
+	AverageResidualRiskRatingColorCode *string  `json:"average_residual_risk_rating_color_code"`
+	AverageResidualRiskRatingType      *string  `json:"average_residual_risk_rating_type"`
 	// ReviewFrequencyTitleEn                string `json:"review_frequency_title_en"`
 	// ReviewFrequencyTitleAr                string `json:"review_frequency_title_ar"`
 	// ReviewResponsibleUserID               uint   `json:"review_responsible_user_id"`
@@ -148,7 +154,7 @@ type ComplianceRegisterFormDTO struct {
 	DescriptionEn *string `json:"description_en"`
 	DescriptionAr *string `json:"description_ar"`
 	Version       *string `json:"version" binding:"omitempty,max=45"`
-	Deadline      *string `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
+	Deadline      *string `json:"deadline"`
 	// IssueDate                       *string                    `json:"issue_date" binding:"omitempty,datetime=2006-01-02"`
 	// ExpiryDate                      *string                    `json:"expiry_date" binding:"omitempty,datetime=2006-01-02"`
 	// NextReviewDate                  *string                    `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`
@@ -270,19 +276,21 @@ type ComplianceRegisterDetailDTO struct {
 	ChildComplianceRegister       []*ComplianceRegisterDetailDTO                  `json:"child_version" gorm:"-"`
 
 	// New Compliance Fields
-	LegislativeBodyID                  *uint   `json:"legislative_body_id"`
-	LegislationTypeID                  *uint   `json:"legislation_type_id"`
-	ImportanceClassificationID         *uint   `json:"importance_classification_id"`
-	SecrecyClassificationID            *uint   `json:"secrecy_classification_id"`
-	LegislationNo                      *string `json:"legislation_no"`
-	ComplianceDeadlineString           *string `json:"compliance_deadline"`
-	Subject                            *string `json:"subject"`
-	IsApplicable                       bool    `json:"is_applicable"`
-	IsNotApplicable                    bool    `json:"is_not_applicable"`
-	IsRegulationNotificationAssessment bool    `json:"is_regulation_notification_assessment"`
-	IsRiskBasedAssessment              bool    `json:"is_risk_based_assessment"`
-	IsPublic                           bool    `json:"is_public"`
-	IsShared                           bool    `json:"is_shared"`
+	LegislativeBodyID                  *uint                          `json:"legislative_body_id"`
+	LegislationTypeID                  *uint                          `json:"legislation_type_id"`
+	ImportanceClassificationID         *uint                          `json:"importance_classification_id"`
+	SecrecyClassificationID            *uint                          `json:"secrecy_classification_id"`
+	LegislationNo                      *string                        `json:"legislation_no"`
+	ComplianceDeadlineString           *string                        `json:"compliance_deadline"`
+	Subject                            *string                        `json:"subject"`
+	IsApplicable                       bool                           `json:"is_applicable"`
+	IsNotApplicable                    bool                           `json:"is_not_applicable"`
+	IsRegulationNotificationAssessment bool                           `json:"is_regulation_notification_assessment"`
+	IsRiskBasedAssessment              bool                           `json:"is_risk_based_assessment"`
+	IsPublic                           bool                           `json:"is_public"`
+	IsShared                           bool                           `json:"is_shared"`
+	AverageResidualRiskScore           *float64                       `json:"average_residual_risk_score"`
+	AverageResidualRiskRating          *ComplianceAssessmentRatingDTO `json:"average_residual_risk_rating"`
 
 	// New Relations
 	LegislativeBody              *ComplianceLegislativeBodyDTO            `json:"legislative_body"`

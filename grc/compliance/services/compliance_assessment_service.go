@@ -49,7 +49,6 @@ type ComplianceAssessmentServiceInterface interface {
 // Service and implementations
 type ComplianceAssessmentService struct {
 	repo                          complianceRepositories.ComplianceAssessmentRepositoryInterface
-	requirementRepo               complianceRepositories.ComplianceAssessmentRequirementRepositoryInterface
 	activityLogSvc                logServices.ActivityLogServiceInterface
 	userSvc                       organizationServices.UserServiceInterface
 	userSettingSvc                organizationServices.UserSettingServiceInterface
@@ -63,7 +62,6 @@ type ComplianceAssessmentService struct {
 
 func NewComplianceAssessmentService(
 	repo complianceRepositories.ComplianceAssessmentRepositoryInterface,
-	requirementRepo complianceRepositories.ComplianceAssessmentRequirementRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
@@ -76,7 +74,6 @@ func NewComplianceAssessmentService(
 ) ComplianceAssessmentServiceInterface {
 	return &ComplianceAssessmentService{
 		repo:                          repo,
-		requirementRepo:               requirementRepo,
 		activityLogSvc:                activityLogSvc,
 		userSvc:                       userSvc,
 		userSettingSvc:                userSettingSvc,
@@ -1208,22 +1205,91 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 		tx.Rollback()
 		return err
 	}
-	// assessmentDetails, err := cras.repo.GetMinimalDetailsByID(assessmentID, tx)
-	// if err != nil {
-	// 	return err
-	// }
-	// if assessmentDetails.ComplianceRegister.IsRequirementAssessment {
-	// 	if err := cras.UpdateComplianceRequirementValuesFromModel(assessmentID, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-	// } else if assessmentDetails.ComplianceRegister.IsControlAssessment {
-	// 	// Control-based scoring
-	// 	if err := cras.UpdateComplianceControlValuesFromModel(assessmentID, tx); err != nil {
-	// 		tx.Rollback()
-	// 		return err
-	// 	}
-	// }
+
+	// Get assessment details to calculate average residual score and rating
+	assessmentDetails, err := cras.repo.GetFullDetailsByID(assessmentID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// STEP 1: First, update all requirement averages from their responsible units
+	for _, req := range assessmentDetails.AssessmentRequirements {
+		if req == nil {
+			continue
+		}
+
+		// Calculate average residual score from all responsible units for this requirement
+		var totalResidualScore float64
+		var countWithScore int
+
+		for _, ru := range req.ResponsibleUnits {
+			if ru != nil && ru.ResidualRiskScore != nil {
+				totalResidualScore += *ru.ResidualRiskScore
+				countWithScore++
+
+			}
+		}
+
+		// If at least one responsible unit has a residual score, calculate and update requirement average
+		if countWithScore > 0 {
+			requirementAverageScore := totalResidualScore / float64(countWithScore)
+
+			// Get the rating based on the average score
+			requirementRatingID, err := cras.getResidualRiskRatingByScore(requirementAverageScore)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Update the requirement with average residual score and rating
+			if err := cras.repo.UpdateRequirementAverageResidualScoreAndRating(req.ID, requirementAverageScore, requirementRatingID, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Update the in-memory object so we can use it for assessment calculation
+			req.AverageResidualRiskScore = &requirementAverageScore
+			req.AverageResidualRiskRatingID = requirementRatingID
+		}
+	}
+
+	// STEP 2: Now calculate assessment average from all requirement averages
+	var totalResidualScore float64
+	var countWithScore int
+
+	for _, req := range assessmentDetails.AssessmentRequirements {
+		if req != nil && req.AverageResidualRiskScore != nil {
+			totalResidualScore += *req.AverageResidualRiskScore
+			countWithScore++
+		}
+	}
+
+	// If at least one requirement has a residual score, calculate average and cascade
+	if countWithScore > 0 {
+		assessmentAverageScore := totalResidualScore / float64(countWithScore)
+
+		// Get the rating based on the average score
+		assessmentRatingID, err := cras.getResidualRiskRatingByScore(assessmentAverageScore)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// Update the assessment with average residual score and rating
+		if err := cras.repo.UpdateAverageResidualScoreAndRating(assessmentID, assessmentAverageScore, assessmentRatingID, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// STEP 3: Finally cascade to compliance register - use the same assessment average
+		registerID := assessmentDetails.ComplianceRegisterID
+
+		if err := cras.repo.UpdateRegisterAverageResidualScoreAndRating(registerID, assessmentAverageScore, assessmentRatingID, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 
 	tx.Commit()
 
@@ -2757,4 +2823,27 @@ func derefUintPtr(p *uint) uint {
 		return 0
 	}
 	return *p
+}
+
+func (cras *ComplianceAssessmentService) getResidualRiskRatingByScore(score float64) (*uint, error) {
+	// Get all compliance assessment ratings
+	ratings, err := cras.repo.GetComplianceAssessmentRatings()
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("[SERVICE] Total ratings found: %d\n", len(ratings))
+
+	// Find the appropriate rating based on score range
+	for _, rating := range ratings {
+		if rating.ScoreFrom != nil && rating.ScoreTo != nil {
+			fmt.Printf("[SERVICE] Checking rating ID %d: ScoreFrom=%v, ScoreTo=%v, Score=%v\n", rating.ID, *rating.ScoreFrom, *rating.ScoreTo, score)
+			if score >= *rating.ScoreFrom && score <= *rating.ScoreTo {
+				fmt.Printf("[SERVICE] Match found! Rating ID: %d\n", rating.ID)
+				return &rating.ID, nil
+			}
+		}
+	}
+
+	fmt.Printf("[SERVICE] No rating found for score: %v\n", score)
+	return nil, nil // No rating found
 }

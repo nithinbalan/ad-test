@@ -352,13 +352,15 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 	}
 
 	// Update all controls associated with this risk
-	for _, ca := range controlAnalyses {
+	for i, ca := range controlAnalyses {
 		if ca.RiskControl != nil && ca.RiskControl.Control != nil {
 			controlID := ca.RiskControl.Control.ID
 			if err := ries.controlSvc.UpdateControlStatus(controlID, controlStatus.ID, transaction); err != nil {
 				transaction.Rollback()
 				return 0, err
 			}
+		} else {
+			fmt.Printf("Skipping Control Analysis %d: RiskControl or Control is nil\n", i)
 		}
 	}
 

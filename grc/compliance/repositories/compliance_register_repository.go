@@ -169,7 +169,12 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
         	importance_classifications.title_ar AS importance_classification_title_ar,
         	secrecy_classifications.id AS secrecy_classification_id,
         	secrecy_classifications.title_en AS secrecy_classification_title_en,
-        	secrecy_classifications.title_ar AS secrecy_classification_title_ar        
+        	secrecy_classifications.title_ar AS secrecy_classification_title_ar,
+        	average_residual_rating.id AS average_residual_risk_rating_id,
+        	average_residual_rating.title_en AS average_residual_risk_rating_title_en,
+        	average_residual_rating.title_ar AS average_residual_risk_rating_title_ar,
+        	average_residual_rating.color_code AS average_residual_risk_rating_color_code,
+        	average_residual_rating.type AS average_residual_risk_rating_type        
         `).
 		Joins(`
 		    -- LEFT JOIN compliance_categories ON compliance_categories.id = compliance_register.compliance_category_id
@@ -189,12 +194,17 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			LEFT JOIN compliance_legislation_types AS legislation_types ON legislation_types.id = compliance_register.legislation_type_id
 			LEFT JOIN compliance_importance_classifications AS importance_classifications ON importance_classifications.id = compliance_register.importance_classification_id
 			LEFT JOIN compliance_secrecy_classifications AS secrecy_classifications ON secrecy_classifications.id = compliance_register.secrecy_classification_id
+			LEFT JOIN compliance_assessment_ratings AS average_residual_rating ON average_residual_rating.id = compliance_register.average_residual_risk_rating_id
 		`)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			if columnName == "average_residual_risk_rating_id" {
+				query = query.Where("compliance_register.average_residual_risk_rating_id IN (?)", values)
+			} else {
+				query = query.Where(columnName+" IN (?)", values)
+			}
 		}
 	}
 
@@ -258,6 +268,10 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			query = query.Where("compliance_statuses.type = ?", "partially_compliant")
 		case "non_compliant":
 			query = query.Where("compliance_statuses.type = ?", "not_implemented")
+		case "critical":
+			query = query.Where("average_residual_rating.type = ?", "critical")
+		case "high":
+			query = query.Where("average_residual_rating.type = ?", "high")
 			// case "archived":
 			//	query = query.Where("lifecycle_statuses.type = ?", "archived")
 		}
@@ -371,6 +385,7 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("ResponsibleUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
+		Preload("AverageResidualRiskRating").
 		// Preload("ReviewFrequency").
 		// Preload("ComplianceReviewStatus").
 		// Preload("LastReviewedUser").
@@ -402,6 +417,7 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("LegislationType").
 		Preload("ImportanceClassification").
 		Preload("SecrecyClassification").
+		Preload("AverageResidualRiskRating").
 
 		// New preloads for issuing authorities and shared units
 		Preload("IssuingAuthorities").

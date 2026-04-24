@@ -29,6 +29,7 @@ type RiskModule struct {
 	RiskMatrixRiskRatingValueController   *controllers.RiskMatrixRiskRatingValueController
 	RiskSourceController                  *controllers.RiskSourceController
 	RiskStatusController                  *controllers.RiskStatusController
+	RiskRegisterUpdatePlanStatusController *controllers.RiskRegisterUpdatePlanStatusController
 	RiskRegisterController                *controllers.RiskRegisterController
 	RiskRootCauseAnalysisController       *controllers.RiskRootCauseAnalysisController
 	RiskAppetiteToleranceLevelController  *controllers.RiskAppetiteToleranceLevelController
@@ -236,6 +237,10 @@ func NewRiskModule(db *gorm.DB,
 	riskStatusSvc := services.NewRiskStatusService(riskStatusRepo)
 	riskStatusController := controllers.NewRiskStatusController(riskStatusSvc)
 
+	riskRegisterUpdatePlanStatusRepo := repositories.NewRiskRegisterUpdatePlanStatusRepository(db)
+	riskRegisterUpdatePlanStatusSvc := services.NewRiskRegisterUpdatePlanStatusService(riskRegisterUpdatePlanStatusRepo)
+	riskRegisterUpdatePlanStatusController := controllers.NewRiskRegisterUpdatePlanStatusController(riskRegisterUpdatePlanStatusSvc)
+
 	riskWorkflowRepo := repositories.NewRiskWorkflowRepository(db)
 	riskWorkflowSvc := services.NewRiskWorkflowService(
 		riskWorkflowRepo,
@@ -391,13 +396,13 @@ func NewRiskModule(db *gorm.DB,
 	riskHeatmapSvc := services.NewRiskHeatmapService(riskHeatmapRepo, riskMatrixSvc, riskMatrixRiskRatingValueSvc, riskRegisterSvc)
 	riskHeatmapController := controllers.NewRiskHeatmapController(riskHeatmapSvc)
 
-	riskInherentControlAnalysisRepo := repositories.NewRiskInherentControlAnalysisRepository(db)
-	riskInherentControlAnalysisSvc := services.NewRiskInherentControlAnalysisService(riskInherentControlAnalysisRepo, sharedModule.ActivityLogService, riskRegisterSvc, organizationModule.ControlSvc, organizationModule.ControlTestSvc, riskTimelineSvc)
-	riskInherentControlAnalysisController := controllers.NewRiskInherentControlAnalysisController(riskInherentControlAnalysisSvc)
-
 	riskResidualEvaluationRepo := repositories.NewRiskResidualEvaluationRepository(db)
 	riskResidualEvaluationSvc := services.NewRiskResidualEvaluationService(riskResidualEvaluationRepo, sharedModule.ActivityLogService, riskRegisterSvc, riskMatrixSvc, riskMatrixRiskRatingValueSvc, riskMatrixImpactSvc, riskMatrixLikelihoodSvc, riskImpactCategorySvc, riskMatrixImpactGuidelineSvc, riskAppetiteStatementSvc, riskInherentEvaluationSvc, riskTimelineSvc, organizationModule.ControlStatusSvc, organizationModule.ControlSvc)
 	riskResidualEvaluationController := controllers.NewRiskResidualEvaluationController(riskResidualEvaluationSvc)
+
+	riskInherentControlAnalysisRepo := repositories.NewRiskInherentControlAnalysisRepository(db)
+	riskInherentControlAnalysisSvc := services.NewRiskInherentControlAnalysisService(riskInherentControlAnalysisRepo, sharedModule.ActivityLogService, riskRegisterSvc, organizationModule.ControlSvc, organizationModule.ControlTestSvc, riskTimelineSvc, riskResidualEvaluationSvc)
+	riskInherentControlAnalysisController := controllers.NewRiskInherentControlAnalysisController(riskInherentControlAnalysisSvc)
 
 	riskRegisterSvc.SetRiskResidualEvaluationService(riskResidualEvaluationSvc)
 
@@ -451,6 +456,7 @@ func NewRiskModule(db *gorm.DB,
 		RiskMatrixRiskRatingValueController:   riskMatrixRiskRatingValueController,
 		RiskSourceController:                  riskSourceController,
 		RiskStatusController:                  riskStatusController,
+		RiskRegisterUpdatePlanStatusController: riskRegisterUpdatePlanStatusController,
 		RiskRegisterController:                riskRegisterController,
 		RiskRootCauseAnalysisController:       riskRootCauseAnalysisController,
 		RiskAppetiteToleranceLevelController:  riskAppetiteToleranceLevelController,

@@ -17,6 +17,7 @@ type OrganizationUnitsRepositoryInterface interface {
 	GetOrganizationUnitsHierarchies(sort string, sortBy string) ([]models.OrganizationUnit, error)
 	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint, level uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
 	GetComplianceSummaryByUnit(unitID uint) (int64, int64, []organizationDTOs.ComplianceStatusCountDTO, error)
+	GetCriticalComplianceCountByUnit(unitID uint) (int64, error)
 	GetOpenRiskCountByUnit(unitID uint) (int64, error)
 	GetControlEfficiencyByUnit(unitID uint) (*organizationDTOs.ControlEfficiencyStatusDTO, error)
 	SetAllIsLatestFalse(orgUnitID uint, primaryField string, tx ...utility.DatabaseTransaction) error
@@ -293,7 +294,7 @@ func (repo *OrganizationUnitsRepository) GetComplianceSummaryByUnit(unitID uint)
 	var compliant, total int64
 	var statuses []organizationDTOs.ComplianceStatusCountDTO
 
-	// Step 1: compliant + total
+	// Step 1: critical count + total from compliance registers
 	const q1 = `
 		SELECT 
 			COALESCE(SUM(CASE WHEN cs.type = 'compliant' THEN 1 ELSE 0 END), 0) AS compliant,
@@ -308,7 +309,7 @@ func (repo *OrganizationUnitsRepository) GetComplianceSummaryByUnit(unitID uint)
 		WHERE carru.responsible_unit_id = ?
 		  AND carrs.type = 'approved'
 		  AND cs.type NOT IN ('exempt','not_applicable')
-	`
+		`
 	if err := repo.db.Raw(q1, unitID).Row().Scan(&compliant, &total); err != nil {
 		return 0, 0, nil, err
 	}
@@ -346,6 +347,23 @@ func (repo *OrganizationUnitsRepository) GetComplianceSummaryByUnit(unitID uint)
 	}
 
 	return compliant, total, statuses, nil
+}
+
+func (repo *OrganizationUnitsRepository) GetCriticalComplianceCountByUnit(unitID uint) (int64, error) {
+	var count int64
+	query := `
+		SELECT COUNT(*)
+		FROM compliance_register cr
+		JOIN compliance_assessment_ratings car
+			ON car.id = cr.average_residual_risk_rating_id
+		WHERE cr.responsible_unit_id = ?
+		  AND cr.is_latest = 1
+		  AND car.type = 'critical'
+	`
+	if err := repo.db.Raw(query, unitID).Scan(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func (repo *OrganizationUnitsRepository) GetOpenRiskCountByUnit(unitID uint) (int64, error) {
@@ -491,6 +509,8 @@ func (repo *OrganizationUnitsRepository) GetAllPoliciesByOrganizationUnit(unitID
 		query = query.Where(`
 			(documents.title_en LIKE ? OR
 			documents.title_ar LIKE ? OR
+			document_types.title_en LIKE ? OR
+			document_types.title_ar LIKE ? OR
 			documents.reference_number LIKE ? OR
 			document_categories.title_en LIKE ? OR
 			document_categories.title_ar LIKE ? OR
@@ -805,7 +825,43 @@ func (repo *OrganizationUnitsRepository) GetAllRiskByOrganizationUnit(unitID uin
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
-		query = query.Where("risk_register.title LIKE ?", keyword)
+		query = query.Where(`
+			(risk_register.title LIKE ? OR
+			risk_register.description LIKE ? OR
+			risk_register.reference_number LIKE ? OR
+			risk_categories.title_en LIKE ? OR
+			risk_categories.title_ar LIKE ? OR
+			risk_sources.title_en LIKE ? OR
+			risk_sources.title_ar LIKE ? OR
+			users.first_name_en LIKE ? OR
+			users.first_name_ar LIKE ? OR
+			users.last_name_en LIKE ? OR
+			users.last_name_ar LIKE ? OR
+			risk_statuses.title_en LIKE ? OR
+			risk_statuses.title_ar LIKE ? OR
+			organization_units.title_en LIKE ? OR
+			organization_units.title_ar LIKE ? OR
+			current_risk_rating.title_en LIKE ? OR
+			current_risk_rating.title_ar LIKE ? OR
+			current_impact.title_en LIKE ? OR
+			current_impact.title_ar LIKE ? OR
+			current_likelihood.title_en LIKE ? OR
+			current_likelihood.title_ar LIKE ? OR
+			CONVERT(VARCHAR, risk_register.reported_at, 23) LIKE ? OR
+			created_user.first_name_en LIKE ? OR
+			created_user.first_name_ar LIKE ? OR
+			created_user.last_name_en LIKE ? OR
+			created_user.last_name_ar LIKE ? OR
+			updated_user.first_name_en LIKE ? OR
+			updated_user.first_name_ar LIKE ? OR
+			updated_user.last_name_en LIKE ? OR
+			updated_user.last_name_ar LIKE ? OR
+			review_frequencies.title_en LIKE ? OR
+			review_frequencies.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	// Filter by risk rating value
@@ -813,14 +869,7 @@ func (repo *OrganizationUnitsRepository) GetAllRiskByOrganizationUnit(unitID uin
 		query = query.Where("current_risk_rating_value.value = ?", params.Value)
 	}
 
-	// Sorting defaults
-	if params.SortBy == "" {
-		params.SortBy = "risk_register.title"
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc"
-	}
-
+	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
 			query = query.Where(columnName+" IN (?)", values)

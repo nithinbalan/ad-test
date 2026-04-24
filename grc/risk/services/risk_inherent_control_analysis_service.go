@@ -28,12 +28,13 @@ type RiskInherentControlAnalysisServiceInterface interface {
 
 // Service and implementations
 type RiskInherentControlAnalysisService struct {
-	repo            riskRepositories.RiskInherentControlAnalysisRepositoryInterface
-	activityLogSvc  logServices.ActivityLogServiceInterface
-	riskRegisterSvc RiskRegisterServiceInterface
-	controlSvc      organizationServices.ControlServiceInterface
-	controlTestSvc  organizationServices.ControlTestServiceInterface
-	riskTimelineSvc RiskTimelineServiceInterface
+	repo                      riskRepositories.RiskInherentControlAnalysisRepositoryInterface
+	activityLogSvc            logServices.ActivityLogServiceInterface
+	riskRegisterSvc           RiskRegisterServiceInterface
+	controlSvc                organizationServices.ControlServiceInterface
+	controlTestSvc            organizationServices.ControlTestServiceInterface
+	riskTimelineSvc           RiskTimelineServiceInterface
+	riskResidualEvaluationSvc RiskResidualEvaluationServiceInterface
 }
 
 func NewRiskInherentControlAnalysisService(
@@ -43,14 +44,16 @@ func NewRiskInherentControlAnalysisService(
 	controlSvc organizationServices.ControlServiceInterface,
 	controlTestSvc organizationServices.ControlTestServiceInterface,
 	riskTimelineSvc RiskTimelineServiceInterface,
+	riskResidualEvaluationSvc RiskResidualEvaluationServiceInterface,
 ) RiskInherentControlAnalysisServiceInterface {
 	return &RiskInherentControlAnalysisService{
-		repo:            repo,
-		activityLogSvc:  activityLogSvc,
-		riskRegisterSvc: riskRegisterSvc,
-		controlSvc:      controlSvc,
-		controlTestSvc:  controlTestSvc,
-		riskTimelineSvc: riskTimelineSvc,
+		repo:                      repo,
+		activityLogSvc:            activityLogSvc,
+		riskRegisterSvc:           riskRegisterSvc,
+		controlSvc:                controlSvc,
+		controlTestSvc:            controlTestSvc,
+		riskTimelineSvc:           riskTimelineSvc,
+		riskResidualEvaluationSvc: riskResidualEvaluationSvc,
 	}
 }
 
@@ -238,8 +241,6 @@ func (rcas *RiskInherentControlAnalysisService) Update(riskID uint, id uint, cur
 		return err
 	}
 
-	fmt.Println("controlTest", controlTest)
-
 	existingRiskControlAnalysis.ControlEfficiencyStatusID = controlTestFormDTO.ControlEfficiencyStatusID
 	existingRiskControlAnalysis.ControlImplementationStatusID = controlTestFormDTO.ControlImplementationStatusID
 	existingRiskControlAnalysis.ControlTestID = testId
@@ -257,6 +258,59 @@ func (rcas *RiskInherentControlAnalysisService) Update(riskID uint, id uint, cur
 	}
 
 	tx.Commit()
+
+	// Automatically create or update residual risk evaluation after control analysis update
+	go func() {
+		// Check if residual evaluation already exists for this risk
+		residualEvaluation, err := rcas.riskResidualEvaluationSvc.GetFullDetailsByID(riskID)
+		if err == nil && residualEvaluation != nil {
+			// Residual evaluation exists - update it to recalculate with new control analysis values
+			residualEvaluationFormDTO := &riskDTOs.RiskResidualEvaluationFormDTO{
+				RiskImpactAnalyses:     []*riskDTOs.RiskImpactAnalysisFormDTO{},
+				RiskAppetiteAlignments: []*riskDTOs.RiskAppetiteAlignmentFormDTO{},
+			}
+
+			// Preserve existing impact analyses
+			for _, ia := range residualEvaluation.RiskImpactAnalyses {
+				residualEvaluationFormDTO.RiskImpactAnalyses = append(residualEvaluationFormDTO.RiskImpactAnalyses, &riskDTOs.RiskImpactAnalysisFormDTO{
+					RiskImpactCategoryID: uint(ia.RiskImpactCategory.ID),
+					RiskMatrixImpactID:   uint(ia.RiskMatrixImpact.ID),
+				})
+			}
+
+			// Preserve existing appetite alignments
+			for _, aa := range residualEvaluation.RiskAppetiteAlignments {
+				residualEvaluationFormDTO.RiskAppetiteAlignments = append(residualEvaluationFormDTO.RiskAppetiteAlignments, &riskDTOs.RiskAppetiteAlignmentFormDTO{
+					RiskAppetiteStatementID:      uint(aa.RiskAppetiteStatement.ID),
+					RiskAppetiteToleranceLevelID: uint(aa.RiskAppetiteToleranceLevel.ID),
+				})
+			}
+
+			// Update residual evaluation to recalculate with new control analysis values
+			err = rcas.riskResidualEvaluationSvc.Update(riskID, residualEvaluation.ID, currentUserID, residualEvaluationFormDTO)
+			if err != nil {
+				utility.LogError("Failed to auto-update residual risk evaluation", map[string]interface{}{
+					"riskID": riskID,
+					"error":  err.Error(),
+				})
+			}
+		} else {
+			// Residual evaluation doesn't exist - create it automatically
+			residualEvaluationFormDTO := &riskDTOs.RiskResidualEvaluationFormDTO{
+				RiskImpactAnalyses:     []*riskDTOs.RiskImpactAnalysisFormDTO{},
+				RiskAppetiteAlignments: []*riskDTOs.RiskAppetiteAlignmentFormDTO{},
+			}
+
+			// Create new residual evaluation
+			_, err = rcas.riskResidualEvaluationSvc.Create(riskID, currentUserID, residualEvaluationFormDTO)
+			if err != nil {
+				utility.LogError("Failed to auto-create residual risk evaluation", map[string]interface{}{
+					"riskID": riskID,
+					"error":  err.Error(),
+				})
+			}
+		}
+	}()
 
 	existingControlAnalysis, err := rcas.GetFullDetailsByID(riskID, id)
 	if err != nil {
@@ -406,13 +460,17 @@ func (rcas *RiskInherentControlAnalysisService) GetControlSummary(riskID uint) (
 	efficiencyDetails := make(map[string]models.ControlEfficiencyStatus)
 
 	for _, rca := range riskControlAnalyses {
-		implStatus := rca.ControlImplementationStatus.Type
-		implementationStatusCount[implStatus]++
-		implementationDetails[implStatus] = *rca.ControlImplementationStatus
+		if rca.ControlImplementationStatus != nil {
+			implStatus := rca.ControlImplementationStatus.Type
+			implementationStatusCount[implStatus]++
+			implementationDetails[implStatus] = *rca.ControlImplementationStatus
+		}
 
-		effStatus := rca.ControlEfficiencyStatus.Type
-		efficiencyStatusCount[effStatus]++
-		efficiencyDetails[effStatus] = *rca.ControlEfficiencyStatus
+		if rca.ControlEfficiencyStatus != nil {
+			effStatus := rca.ControlEfficiencyStatus.Type
+			efficiencyStatusCount[effStatus]++
+			efficiencyDetails[effStatus] = *rca.ControlEfficiencyStatus
+		}
 	}
 
 	totalControls := len(riskControlAnalyses)
