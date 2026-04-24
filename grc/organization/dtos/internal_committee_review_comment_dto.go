@@ -14,6 +14,7 @@ type InternalCommitteeReviewCommentListDTO struct {
 	CommentStatusTitleEn        string                                       `json:"comment_status_title_en"`
 	CommentStatusTitleAr        string                                       `json:"comment_status_title_ar"`
 	CommentStatusColorCode      string                                       `json:"comment_status_color_code"`
+	CommentStatusType           string                                       `json:"comment_status_type"`
 	InternalCommitteeVersionID  uint                                         `json:"internal_committee_version_id"`
 	IsEdited                    bool                                         `json:"is_edited"`
 	CreatedAt                   string                                       `json:"created_at"`

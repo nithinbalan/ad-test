@@ -192,6 +192,11 @@ func (s *OrganizationUnitsService) GetOrganizationUnitSummary(unitID uint) (*org
 		}
 	}
 
+	// Critical Compliance Count
+	if criticalCount, err := s.repo.GetCriticalComplianceCountByUnit(unitID); err == nil {
+		dto.CriticalComplianceCount = criticalCount
+	}
+
 	// Risks
 	if riskCount, err := s.repo.GetOpenRiskCountByUnit(unitID); err == nil {
 		dto.OpenRiskCount = riskCount

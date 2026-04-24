@@ -63,6 +63,7 @@ type ComplianceStatusCountDTO struct {
 type OrganizationUnitSummaryDTO struct {
 	ResponsibleUnitID        uint                        `json:"responsible_unit_id"`
 	ComplianceStatus         *OverallComplianceStatusDTO `json:"compliance_status"`
+	CriticalComplianceCount  int64                       `json:"critical_compliance_count"`
 	OpenRiskCount            int64                       `json:"open_risk"`
 	OverallControlEfficiency *ControlEfficiencyStatusDTO `json:"overall_control_efficiency"`
 }

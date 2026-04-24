@@ -624,11 +624,26 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 		changedData := make(map[string]interface{})
 
 		// log changes
+		oldComplianceStatus := ""
+		if oldComplianceRegister.ComplianceStatus != nil {
+			oldComplianceStatus = oldComplianceRegister.ComplianceStatus.TitleEn
+		}
+
+		oldResponsibleUnit := ""
+		if oldComplianceRegister.ResponsibleUnit.ID != 0 {
+			oldResponsibleUnit = oldComplianceRegister.ResponsibleUnit.TitleEn
+		}
+
+		oldResponsibleUser := ""
+		if oldComplianceRegister.ResponsibleUser.ID != 0 {
+			oldResponsibleUser = fmt.Sprintf("%s %s", oldComplianceRegister.ResponsibleUser.FirstNameEN, oldComplianceRegister.ResponsibleUser.LastNameEN)
+		}
+
 		oldData := map[string]interface{}{
 			// "compliance_category":      oldComplianceRegister.ComplianceCategory.TitleEn,
-			"compliance_status": oldComplianceRegister.ComplianceStatus.TitleEn,
-			"responsible_unit":  oldComplianceRegister.ResponsibleUnit.TitleEn,
-			"responsible_user":  fmt.Sprintf("%s %s", oldComplianceRegister.ResponsibleUser.FirstNameEN, oldComplianceRegister.ResponsibleUser.LastNameEN),
+			"compliance_status": oldComplianceStatus,
+			"responsible_unit":  oldResponsibleUnit,
+			"responsible_user":  oldResponsibleUser,
 			// "review_frequency":         utility.GetFieldValue(oldComplianceRegister.ReviewFrequency).(string),
 			// "review_responsible_user":  utility.GetFieldValue(oldComplianceRegister.ReviewResponsibleUser).(string),
 			// "severity_level":           utility.GetFieldValue(oldComplianceRegister.SeverityLevel).(string),
@@ -660,8 +675,8 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 
 		newData := map[string]interface{}{
 			// "compliance_category":      oldComplianceRegister.ComplianceCategory.TitleEn,
-			"compliance_status": oldComplianceRegister.ComplianceStatus.TitleEn,
-			"responsible_unit":  oldComplianceRegister.ResponsibleUnit.TitleEn,
+			"compliance_status": oldComplianceStatus,
+			"responsible_unit":  oldResponsibleUnit,
 			// "responsible_user":         fmt.Sprintf("%s %s", oldComplianceRegister.ResponsibleUser.FirstNameEN, oldComplianceRegister.ResponsibleUser.LastNameEN),
 			// "review_frequency":         utility.GetFieldValue(oldComplianceRegister.ReviewFrequency).(string),
 			// "review_responsible_user":  utility.GetFieldValue(oldComplianceRegister.ReviewResponsibleUser).(string),
