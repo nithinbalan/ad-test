@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"jethur/config"
@@ -39,6 +40,7 @@ type KRIValueUpdateService struct {
 	repo               riskRepositories.KRIValueUpdateRepositoryInterface
 	activityLogSvc     logServices.ActivityLogServiceInterface
 	kriRegisterSvc     KRIRegisterServiceInterface
+	distributionSvc    DistributionStatusServiceInterface
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface
 	userSvc            organizationServices.UserServiceInterface
 	notificationSvc    commonServices.NotificationServiceInterface
@@ -48,6 +50,7 @@ func NewKRIValueUpdateService(
 	repo riskRepositories.KRIValueUpdateRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	kriRegisterSvc KRIRegisterServiceInterface,
+	distributionSvc DistributionStatusServiceInterface,
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
@@ -56,6 +59,7 @@ func NewKRIValueUpdateService(
 		repo:               repo,
 		activityLogSvc:     activityLogSvc,
 		kriRegisterSvc:     kriRegisterSvc,
+		distributionSvc:    distributionSvc,
 		reviewFrequencySvc: reviewFrequencySvc,
 		userSvc:            userSvc,
 		notificationSvc:    notificationSvc,
@@ -89,11 +93,18 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 	if err != nil {
 		return 0, err
 	}
+
+	calculatedValue, err := kvus.calculateFinalValue(existingKRIRegister, nil, kriValueUpdateFormDTO.Value)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	kriValueUpdate := &models.KRIValueUpdate{
 		KRIRegisterID:   kriRegisterID,
 		UnitID:          *existingKRIRegister.UnitID,
 		ReviewedDate:    *dates.ReviewedDate,
-		Value:           &kriValueUpdateFormDTO.Value,
+		Value:           &calculatedValue,
 		LowThreshold:    existingKRIRegister.LowThreshold,
 		MediumThreshold: existingKRIRegister.MediumThreshold,
 		Remarks:         kriValueUpdateFormDTO.Remarks,
@@ -114,12 +125,12 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 		return 0, err
 	}
 
-	riskLevel, err := kvus.kriRegisterSvc.DetermineRiskLevel(kriValueUpdateFormDTO.Value, existingKRIRegister.LowThreshold, existingKRIRegister.MediumThreshold)
+	riskLevel, err := kvus.kriRegisterSvc.DetermineRiskLevel(calculatedValue, existingKRIRegister.LowThreshold, existingKRIRegister.MediumThreshold)
 	if err != nil {
 		return 0, err
 	}
 
-	existingKRIRegister.CurrentValue = &kriValueUpdateFormDTO.Value
+	existingKRIRegister.CurrentValue = &calculatedValue
 	existingKRIRegister.RiskLevelID = &riskLevel.ID
 	existingKRIRegister.LastReviewNote = kriValueUpdateFormDTO.Remarks
 	existingKRIRegister.LastReviewedDate = dates.ReviewedDate
@@ -204,7 +215,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 
 			utility.LogError("Failed to log activity", fields)
 		}
-		kriValue := kriValueUpdateFormDTO.Value
+		kriValue := calculatedValue
 
 		if existingKRIRegister.MediumThreshold != nil && kriValue > *existingKRIRegister.MediumThreshold {
 			// Get Risks associated with the given kri
@@ -330,11 +341,17 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 		return err
 	}
 
+	calculatedValue, err := kvus.calculateFinalValue(existingKRIRegister, existingKRIUpdate, kriValueUpdateFormDTO.Value)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	// Update KRI Value Update
 	existingKRIUpdate.KRIRegisterID = kriRegisterID
 	existingKRIUpdate.ReviewedDate = *dates.ReviewedDate
 	existingKRIUpdate.UnitID = *existingKRIRegister.UnitID
-	existingKRIUpdate.Value = &kriValueUpdateFormDTO.Value
+	existingKRIUpdate.Value = &calculatedValue
 	existingKRIUpdate.Remarks = kriValueUpdateFormDTO.Remarks
 	existingKRIRegister.UpdatedBYID = &currentUserID
 
@@ -351,12 +368,12 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 
 	nextReviewDate := utility.CalculateNextReviewDate(reviewFrequency.Type)
 
-	riskLevel, err := kvus.kriRegisterSvc.DetermineRiskLevel(kriValueUpdateFormDTO.Value, existingKRIRegister.LowThreshold, existingKRIRegister.MediumThreshold)
+	riskLevel, err := kvus.kriRegisterSvc.DetermineRiskLevel(calculatedValue, existingKRIRegister.LowThreshold, existingKRIRegister.MediumThreshold)
 	if err != nil {
 		return err
 	}
 
-	existingKRIRegister.CurrentValue = &kriValueUpdateFormDTO.Value
+	existingKRIRegister.CurrentValue = &calculatedValue
 	existingKRIRegister.RiskLevelID = &riskLevel.ID
 	existingKRIRegister.LastReviewNote = kriValueUpdateFormDTO.Remarks
 	existingKRIRegister.LastReviewedDate = dates.ReviewedDate
@@ -489,7 +506,7 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 				utility.LogError("Failed to log activity", fields)
 			}
 		}
-		kriValue := kriValueUpdateFormDTO.Value
+		kriValue := calculatedValue
 		if existingKRIRegister.MediumThreshold != nil && kriValue > *existingKRIRegister.MediumThreshold {
 			// Get Risks associated with the given kri
 			existingRisks, err := kvus.repo.GetRisksByKriID(kriRegisterID)
@@ -929,4 +946,40 @@ func (kvus *KRIValueUpdateService) parseKRIValueUpdateDates(dto *riskDTOs.KRIVal
 	}
 
 	return parsed, nil
+}
+
+func (kvus *KRIValueUpdateService) calculateFinalValue(existingKRIRegister *models.KRIRegister, existingKRIUpdate *models.KRIValueUpdate, newValue int) (int, error) {
+	distributionType, err := kvus.getDistributionType(existingKRIRegister.DistributionStatusID)
+	if err != nil {
+		return 0, err
+	}
+
+	if distributionType == "cumulative" {
+		previousValue := 0
+		if existingKRIRegister.CurrentValue != nil {
+			previousValue = *existingKRIRegister.CurrentValue
+		}
+
+		// For latest record updates, avoid double counting the existing stored value.
+		if existingKRIUpdate != nil && existingKRIUpdate.IsLatest && existingKRIUpdate.Value != nil {
+			previousValue -= *existingKRIUpdate.Value
+		}
+
+		return previousValue + newValue, nil
+	}
+
+	return newValue, nil
+}
+
+func (kvus *KRIValueUpdateService) getDistributionType(distributionStatusID *uint) (string, error) {
+	if distributionStatusID == nil {
+		return "", nil
+	}
+
+	distributionStatus, err := kvus.distributionSvc.GetByID(*distributionStatusID)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.ToLower(strings.TrimSpace(distributionStatus.Type)), nil
 }

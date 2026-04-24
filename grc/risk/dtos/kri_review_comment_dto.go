@@ -9,6 +9,7 @@ import (
 type KRIRegisterReviewCommentListDTO struct {
 	ID                          uint                               `json:"id"`
 	Comment                     string                             `json:"comment" binding:"required"`
+	IsEdited                    bool                               `json:"is_edited"`
 	CommentStatusTitleEn        string                             `json:"comment_status_title_en"`
 	CommentStatusTitleAr        string                             `json:"comment_status_title_ar"`
 	CommentStatusType           string                             `json:"comment_status_type"`
@@ -43,6 +44,7 @@ type KRIRegisterReviewCommentFormDTO struct {
 type KRIRegisterReviewCommentDetailDTO struct {
 	ID            uint                            `json:"id"`
 	Comment       string                          `json:"comment"`
+	IsEdited      bool                            `json:"is_edited"`
 	KRIRegisterID uint                            `json:"kri_register_id"`
 	CreatedAt     time.Time                       `json:"created_at"`
 	CreatedByUser organizationDTOs.UserMinimalDTO `json:"created_by"`
