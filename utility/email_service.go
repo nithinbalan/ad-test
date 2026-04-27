@@ -7,6 +7,7 @@ import (
 	"jethur/assets"
 	"jethur/config"
 	"jethur/grc/common/dtos"
+	"strings"
 
 	"crypto/tls"
 
@@ -137,4 +138,51 @@ func createEmailMessage(to []string, subject, body string, attachments []string,
 	}
 
 	return message
+}
+
+// RenderEmailBody renders a template with the given data and returns the final HTML string.
+// Used by the email queue to store rendered body before sending.
+func RenderEmailBody(templateRelativePath string, templateData interface{}, emailTemplateSettingsData *dtos.EmailTemplateAndSocialDTO) (string, error) {
+	templates, err := parseEmailTemplates(templateRelativePath, emailTemplateSettingsData)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse template '%s': %w", templateRelativePath, err)
+	}
+
+	var body bytes.Buffer
+	if err := templates.Execute(&body, templateData); err != nil {
+		return "", fmt.Errorf("failed to execute template '%s': %w", templateRelativePath, err)
+	}
+
+	return body.String(), nil
+}
+
+func SanitizeEmails(emails []string) []string {
+	var cleaned []string
+
+	for _, email := range emails {
+		e := strings.TrimSpace(email)
+		e = strings.Trim(e, `"`)
+
+		if e == "" || e == "[]" || e == "[" || e == "]" {
+			continue
+		}
+
+		cleaned = append(cleaned, e)
+	}
+
+	return cleaned
+}
+
+func DedupeEmails(emails []string) []string {
+	emailMap := make(map[string]struct{})
+	var result []string
+
+	for _, email := range emails {
+		if _, exists := emailMap[email]; !exists {
+			emailMap[email] = struct{}{}
+			result = append(result, email)
+		}
+	}
+
+	return result
 }

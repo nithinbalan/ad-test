@@ -87,44 +87,39 @@ func GenerateDocumentURL(endpoint, resourceType string, ids ...interface{}) stri
 	return url.String()
 }
 
-func CopyFileFromPaths(srcDir, dstDir, fileName string) error {
-	storagePath := config.GetEnv("STORAGE_PATH", "")
-	srcPath := filepath.Join(storagePath, srcDir, fileName)
-	dstPath := filepath.Join(storagePath, dstDir, fileName)
-
-	// Open the source file for reading
-	sourceFile, err := os.Open(srcPath)
+// CopyFile copies a file between two absolute paths.
+// Used internally and by callers that already hold absolute paths.
+func CopyFile(src, dst string) error {
+	sourceFile, err := os.Open(src)
 	if err != nil {
 		return fmt.Errorf("cannot open source file: %w", err)
 	}
 	defer sourceFile.Close()
 
-	// Ensure that the destination directory exists
-	destinationDir := filepath.Dir(dstPath) // Get the directory part of dstPath
-	if err := os.MkdirAll(destinationDir, 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
 		return fmt.Errorf("failed to create destination directory: %w", err)
 	}
 
-	// Create the destination file for writing
-	destinationFile, err := os.Create(dstPath)
+	destinationFile, err := os.Create(dst)
 	if err != nil {
 		return fmt.Errorf("cannot create destination file: %w", err)
 	}
 	defer destinationFile.Close()
 
-	// Copy the contents of the source file to the destination file
-	_, err = io.Copy(destinationFile, sourceFile)
-	if err != nil {
+	if _, err = io.Copy(destinationFile, sourceFile); err != nil {
 		return fmt.Errorf("failed to copy file contents: %w", err)
 	}
 
-	// Commit the file contents to stable storage
-	err = destinationFile.Sync()
-	if err != nil {
-		return fmt.Errorf("failed to sync file contents: %w", err)
-	}
+	return destinationFile.Sync()
+}
 
-	return nil
+// CopyFileFromPaths copies a file using relative dirs and a filename under STORAGE_PATH.
+// Delegates to CopyFile to avoid duplicating the copy logic.
+func CopyFileFromPaths(srcDir, dstDir, fileName string) error {
+	storagePath := config.GetEnv("STORAGE_PATH", "")
+	srcPath := filepath.Join(storagePath, srcDir, fileName)
+	dstPath := filepath.Join(storagePath, dstDir, fileName)
+	return CopyFile(srcPath, dstPath)
 }
 
 // ConvertDocxToPDF converts a DOCX file to a PDF file. by  using LibreOffice:
