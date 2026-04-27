@@ -859,7 +859,7 @@ func (ries RiskResidualEvaluationService) GetHistoryByRiskID(riskID uint) ([]*ri
 	}
 
 	// Get history records
-	histories, err := ries.repo.GetHistoryByRiskEvaluationID(residualEvaluation.ID)
+	histories, err := ries.repo.GetHistoryByRiskID(riskID)
 	if err != nil {
 		return nil, err
 	}
