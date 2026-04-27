@@ -29,6 +29,10 @@ type ComplianceDashboardRepositoryInterface interface {
 	GetActionPlansByOrganizationUnit(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]kpiDTOs.ComplianceActionPlanByOrganizationUnitDTO, error)
 
 	GetTopCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]complianceDTOs.ComplianceRegisterListDTO, error)
+
+	GetComplianceRegisterRatingDistribution(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]kpiDTOs.ComplianceRatingBucketDTO, error)
+	GetComplianceAssessmentRatingDistribution(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]kpiDTOs.ComplianceRatingBucketDTO, error)
+	GetComplianceRegisterClassificationSummary(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceRegisterClassificationSummaryDTO, error)
 }
 
 type ComplianceDashboardRepository struct {
@@ -47,7 +51,7 @@ func (repo *ComplianceDashboardRepository) GetComplianceOverview(params *kpiDTOs
 	registerQuery := repo.db.Model(&models.ComplianceRegister{}).
 		Select(`
 			COUNT(*) AS total_compliance_registers,
-			COALESCE(AVG(score), 0) AS organization_compliance_score
+			COALESCE(AVG(average_residual_risk_score), 0) AS organization_compliance_score
 		`)
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -203,12 +207,13 @@ func (repo *ComplianceDashboardRepository) GetHighPerformanceCompliances(params 
             compliance_register.standard_code AS compliance_standard_code,
 			compliance_register.title_en AS compliance_title_en,
 			compliance_register.title_ar AS compliance_title_ar,
-            AVG(COALESCE(compliance_register.score, 0)) AS score
+            AVG(COALESCE(compliance_register.average_residual_risk_score, 0)) AS score
         `).
-		Where("compliance_register.score IS NOT NULL").
+		Where("compliance_register.average_residual_risk_score IS NOT NULL").
 		Group("compliance_register.standard_code, compliance_register.title_en, compliance_register.title_ar").
-		Having("AVG(compliance_register.score) > ?", 75).
-		Order("score DESC")
+		Having("AVG(compliance_register.average_residual_risk_score) <= ?", 1).
+		Order("score ASC").
+		Limit(5)
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -229,12 +234,13 @@ func (repo *ComplianceDashboardRepository) GetLeastPerformanceCompliances(params
             compliance_register.standard_code AS compliance_standard_code,
 			compliance_register.title_en AS compliance_title_en,
 			compliance_register.title_ar AS compliance_title_ar,
-            AVG(COALESCE(compliance_register.score, 0)) AS score
+            AVG(COALESCE(compliance_register.average_residual_risk_score, 0)) AS score
         `).
-		Where("compliance_register.score IS NOT NULL").
+		Where("compliance_register.average_residual_risk_score IS NOT NULL").
 		Group("compliance_register.standard_code, compliance_register.title_en, compliance_register.title_ar").
-		Having("AVG(compliance_register.score) <= ?", 75).
-		Order("score ASC")
+		Having("AVG(compliance_register.average_residual_risk_score) >= ?", 3).
+		Order("score DESC").
+		Limit(5)
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_register.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -1135,4 +1141,135 @@ func (repo *ComplianceDashboardRepository) GetTopCompliances(params *kpiDTOs.Com
 	}
 
 	return compliances, nil
+}
+
+func (repo *ComplianceDashboardRepository) GetComplianceRegisterRatingDistribution(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]kpiDTOs.ComplianceRatingBucketDTO, error) {
+	results := []kpiDTOs.ComplianceRatingBucketDTO{}
+
+	query := repo.db.Table("compliance_register AS cr").
+		Select(`
+        car.id AS rating_id,
+        car.title_en AS rating_title_en,
+        car.title_ar AS rating_title_ar,
+        car.color_code AS rating_color_code,
+        car.type AS rating_type,
+        car.score_from AS rating_score_from,
+        car.score_to AS rating_score_to,
+        car.status AS rating_status,
+        COUNT(*) AS count
+    `).
+		Joins(`
+        LEFT JOIN compliance_assessment_ratings AS car 
+        ON car.id = cr.average_residual_risk_rating_id
+    `).
+		Group(`
+        car.id,
+        car.title_en,
+        car.title_ar,
+        car.color_code,
+        car.type,
+        car.score_from,
+        car.score_to,
+        car.status
+    `).
+		Where(`cr.average_residual_risk_rating_id IS NOT NULL`)
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("cr.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+func (repo *ComplianceDashboardRepository) GetComplianceAssessmentRatingDistribution(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]kpiDTOs.ComplianceRatingBucketDTO, error) {
+	results := []kpiDTOs.ComplianceRatingBucketDTO{}
+
+	query := repo.db.Table("compliance_assessments AS ca").
+		Select(`
+        car.id AS rating_id,
+        car.title_en AS rating_title_en,
+        car.title_ar AS rating_title_ar,
+        car.color_code AS rating_color_code,
+        car.type AS rating_type,
+        car.score_from AS rating_score_from,
+        car.score_to AS rating_score_to,
+        car.status AS rating_status,
+        COUNT(*) AS count
+    `).
+		Joins(`
+        LEFT JOIN compliance_assessment_ratings AS car 
+        ON car.id = ca.average_residual_risk_rating_id
+    `).
+		Group(`
+        car.id,
+        car.title_en,
+        car.title_ar,
+        car.color_code,
+        car.type,
+        car.score_from,
+        car.score_to,
+        car.status
+    `).
+		Where(`ca.average_residual_risk_rating_id IS NOT NULL`)
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("ca.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+func (repo *ComplianceDashboardRepository) GetComplianceRegisterClassificationSummary(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceRegisterClassificationSummaryDTO, error) {
+	result := &kpiDTOs.ComplianceRegisterClassificationSummaryDTO{}
+
+	query := repo.db.Table("compliance_register").
+		Select(`
+            SUM(CASE WHEN is_applicable = 1 THEN 1 ELSE 0 END) AS applicable_count,
+            SUM(CASE WHEN is_not_applicable = 1 THEN 1 ELSE 0 END) AS not_applicable_count,
+            SUM(CASE WHEN is_regulation_notification_assessment = 1 THEN 1 ELSE 0 END) AS regulation_notification_count,
+            SUM(CASE WHEN is_risk_based_assessment = 1 THEN 1 ELSE 0 END) AS risk_based_assessment_count,
+            SUM(CASE WHEN is_public = 1 THEN 1 ELSE 0 END) AS public_count,
+            SUM(CASE WHEN is_shared = 1 THEN 1 ELSE 0 END) AS shared_count
+        `)
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where(
+			"created_at BETWEEN ? AND ?",
+			params.DateFrom+" 00:00:00",
+			params.DateTo+" 23:59:59",
+		)
+	}
+
+	requirementQuery := repo.db.Table("compliance_requirements cr").
+		Joins(`
+            LEFT JOIN compliance_controls cc 
+            ON cc.compliance_requirement_id = cr.id
+        `).
+		Where("cc.id IS NULL")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		requirementQuery = requirementQuery.Joins(`
+            INNER JOIN compliance_register crg 
+            ON crg.id = cr.compliance_clause_id
+        `).Where(
+			"crg.created_at BETWEEN ? AND ?",
+			params.DateFrom+" 00:00:00",
+			params.DateTo+" 23:59:59",
+		)
+	}
+
+	if err := requirementQuery.
+		Count(&result.RequirementsWithNoControl).Error; err != nil {
+		return nil, err
+	}
+
+	if err := query.Scan(result).Error; err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }

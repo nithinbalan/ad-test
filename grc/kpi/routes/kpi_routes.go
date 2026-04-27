@@ -93,6 +93,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/compliance/summary/action-plan-organization-units", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetActionPlansByOrganizationUnit)
 
 	kpiRoutes.GET("/kpis/compliance/top-twenty-compliances", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetTopCompliances)
+	kpiRoutes.GET("/kpis/compliance/summary/rating-distribution", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetComplianceCountByRating)
+	kpiRoutes.GET("/kpis/compliance/summary/register-classification", middlewares.RolePermissionMiddleware(db, "compliance_dashboard", "view"), complianceDashboardController.GetComplianceRegisterClassificationSummary)
 
 	// KRI Dashboard
 	kpiRoutes.GET("/kpis/kri/overview", middlewares.RolePermissionMiddleware(db, "kri_dashboard", "view"), kriDashboardController.GetKRIOverview)
