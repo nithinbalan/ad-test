@@ -136,6 +136,30 @@ func (rrec *RiskResidualEvaluationController) UpdateRiskResidualEvaluation(c *gi
 	c.Status(http.StatusOK)
 }
 
+func (rrec *RiskResidualEvaluationController) GetRiskResidualEvaluationHistory(c *gin.Context) {
+	riskIDStr := c.Param("riskId")
+
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	histories, err := rrec.service.GetHistoryByRiskID(uint(riskID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrec.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, histories)
+}
+
 func (rrec *RiskResidualEvaluationController) DeleteRiskResidualEvaluation(c *gin.Context) {
 	riskIDStr := c.Param("riskId")
 

@@ -8,6 +8,7 @@ type ControlEffectivenessRating struct {
 	MinScore         float64 `json:"min_score" gorm:"column:min_score;type:decimal(5,2);not null"`
 	MaxScore         float64 `json:"max_score" gorm:"column:max_score;type:decimal(5,2);not null"`
 	ReductionPercent float64 `json:"reduction_percent" gorm:"column:reduction_percent;type:decimal(5,1);not null"`
+	ColorCode        string  `json:"color_code" gorm:"column:color_code;type:varchar(7);not null"`
 	Status           string  `json:"status" gorm:"column:status;type:varchar(20);not null"`
 }
 

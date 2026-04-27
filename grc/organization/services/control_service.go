@@ -757,7 +757,7 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 	}
 
 	if controlFormDTO.ControlEfficiencyStatusID != nil {
-		if _, err := cs.controlImplementationStatusSvc.GetByID(uint(*controlFormDTO.ControlEfficiencyStatusID)); err != nil {
+		if _, err := cs.controlEfficiencyStatusSvc.GetByID(uint(*controlFormDTO.ControlEfficiencyStatusID)); err != nil {
 			return utility.NewValidationError(fmt.Errorf("control efficiency status does not exist"), "not_exist", "control efficiency status")
 		}
 	}
@@ -808,9 +808,7 @@ func (cs *ControlService) validateControlFormDTO(controlFormDTO *organizationDTO
 		if controlFormDTO.ControlImplementationStatusID == nil {
 			return utility.NewValidationError(fmt.Errorf("control implementation status is required when control is applicable"), "required", "control implementation status id")
 		}
-		if controlFormDTO.ControlEfficiencyStatusID == nil {
-			return utility.NewValidationError(fmt.Errorf("control efficiency status is required when control is applicable"), "required", "control efficiency status id")
-		}
+
 	}
 
 	return nil

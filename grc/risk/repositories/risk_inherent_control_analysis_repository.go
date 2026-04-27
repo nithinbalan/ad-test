@@ -17,7 +17,7 @@ type RiskInherentControlAnalysisRepositoryInterface interface {
 	Update(riskControlAnalysis *models.RiskControlAnalysis, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	GetAllControlsByRiskID(riskID uint) ([]*models.RiskControl, error)
-	GetControlSummary(riskID uint) ([]models.RiskControlAnalysis, error)
+	GetControlSummary(riskID uint) ([]models.ControlTest, error)
 }
 
 type RiskInherentControlAnalysisRepository struct {
@@ -223,19 +223,19 @@ func (repo *RiskInherentControlAnalysisRepository) GetAllControlsByRiskID(riskID
 	return riskControls, nil
 }
 
-func (repo *RiskInherentControlAnalysisRepository) GetControlSummary(riskID uint) ([]models.RiskControlAnalysis, error) {
-	var riskControlAnalyses []models.RiskControlAnalysis
+func (repo *RiskInherentControlAnalysisRepository) GetControlSummary(riskID uint) ([]models.ControlTest, error) {
+	var controlTests []models.ControlTest
 
 	result := repo.db.
 		Preload("ControlEfficiencyStatus").
 		Preload("ControlImplementationStatus").
-		Joins("JOIN risk_controls ON risk_controls.id = risk_control_analyses.risk_control_id").
-		Where("risk_controls.risk_register_id = ?", riskID).
-		Where("risk_control_analyses.type = ?", "inherent").
-		Find(&riskControlAnalyses)
+		Preload("ControlEffectivenessRating").
+		Where("risk_register_id = ?", riskID).
+		Where("tested_source = ?", "risk").
+		Find(&controlTests)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return riskControlAnalyses, nil
+	return controlTests, nil
 }

@@ -153,10 +153,10 @@ func (repo *ControlTestRepository) GetAll(controlID uint, params *organizationDT
 
 	// Sort by the specified column and order
 	if params.SortBy == "" {
-		params.SortBy = "title" // Default sort by title_en if no sortBy is specified
+		params.SortBy = "id" // Default sort by id if no sortBy is specified
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
+		params.Sort = "desc" // Default order is descending if not specified
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
