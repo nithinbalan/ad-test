@@ -133,3 +133,30 @@ type ComplianceActionPlanByOrganizationUnitDTO struct {
 	OrganizationUnitColorCode string `json:"organization_unit_color_code"`
 	TotalActionPlans          int64  `json:"total_action_plans"`
 }
+
+type ComplianceRatingDistributionDTO struct {
+	Registers   []ComplianceRatingBucketDTO `json:"registers"`
+	Assessments []ComplianceRatingBucketDTO `json:"assessments"`
+}
+
+type ComplianceRatingBucketDTO struct {
+	Count           int64    `json:"count"`
+	RatingID        uint     `json:"rating_id"`
+	RatingTitleEn   string   `json:"rating_title_en"`
+	RatingTitleAr   string   `json:"rating_title_ar"`
+	RatingColorCode string   `json:"rating_color_code"`
+	RatingType      string   `json:"rating_type"`
+	RatingScoreFrom *float64 `json:"rating_score_from"`
+	RatingScoreTo   *float64 `json:"rating_score_to"`
+	RatingStatus    string   `json:"rating_status"`
+}
+
+type ComplianceRegisterClassificationSummaryDTO struct {
+	ApplicableCount             int64 `json:"applicable_count"`
+	NotApplicableCount          int64 `json:"not_applicable_count"`
+	RegulationNotificationCount int64 `json:"regulation_notification_count"`
+	RiskBasedAssessmentCount    int64 `json:"risk_based_assessment_count"`
+	PublicCount                 int64 `json:"public_count"`
+	SharedCount                 int64 `json:"shared_count"`
+	RequirementsWithNoControl   int64 `json:"requirements_with_no_control"`
+}
