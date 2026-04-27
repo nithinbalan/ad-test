@@ -22,6 +22,7 @@ type RiskResidualEvaluationServiceInterface interface {
 	Create(riskID uint, currentUserID uint, residualEvaluationFormDTO *riskDTOs.RiskResidualEvaluationFormDTO, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskID uint, id uint, currentUserID uint, residualEvaluationFormDTO *riskDTOs.RiskResidualEvaluationFormDTO) error
 	Delete(riskID uint, id uint, currentUserID uint) (uint, error)
+	GetHistoryByRiskID(riskID uint) ([]*riskDTOs.RiskResidualEvaluationHistoryDTO, error)
 }
 
 // Service and implementations
@@ -250,6 +251,23 @@ func (ries *RiskResidualEvaluationService) Create(riskID uint, currentUserID uin
 
 	id, err := ries.repo.Create(riskResidualEvaluation, transaction)
 	if err != nil {
+		transaction.Rollback()
+		return 0, err
+	}
+
+	// Create history record after creating residual evaluation
+	history := &models.RiskResidualEvaluationHistory{
+		RiskEvaluationID:                 id,
+		RiskRegisterID:                   riskID,
+		RiskMatrixLikelihoodID:           likelihoodID,
+		RiskMatrixRiskRatingID:           riskRating.RiskMatrixRiskRatingID,
+		RiskMatrixRiskRatingValueID:      riskRating.RiskMatrixRiskRatingValueID,
+		AverageControlEffectivenessScore: averageRiskReduction,
+		CreatedBYID:                      currentUserID,
+		CreatedAt:                        time.Now(),
+	}
+
+	if err := ries.repo.CreateHistory(history, transaction); err != nil {
 		transaction.Rollback()
 		return 0, err
 	}
@@ -540,6 +558,23 @@ func (ries *RiskResidualEvaluationService) Update(riskID uint, id uint, currentU
 		return err
 	}
 
+	// Create another history record after update to capture new values
+	historyAfterUpdate := &models.RiskResidualEvaluationHistory{
+		RiskEvaluationID:                 existingRiskResidualEvaluation.ID,
+		RiskRegisterID:                   existingRiskResidualEvaluation.RiskRegisterID,
+		RiskMatrixLikelihoodID:           existingRiskResidualEvaluation.RiskMatrixLikelihoodID,
+		RiskMatrixRiskRatingID:           existingRiskResidualEvaluation.RiskMatrixRiskRatingID,
+		RiskMatrixRiskRatingValueID:      existingRiskResidualEvaluation.RiskMatrixRiskRatingValueID,
+		AverageControlEffectivenessScore: existingRiskResidualEvaluation.AverageControlEffectivenessScore,
+		CreatedBYID:                      currentUserID,
+		CreatedAt:                        time.Now(),
+	}
+
+	if err := ries.repo.CreateHistory(historyAfterUpdate, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	err = ries.riskRegisterSvc.UpdateRiskRating(riskID, currentUserID, existingRiskResidualEvaluation, tx, "residual")
 	if err != nil {
 		tx.Rollback()
@@ -805,6 +840,49 @@ func (ries *RiskResidualEvaluationService) Delete(riskID uint, id uint, currentU
 	}()
 
 	return failedId, nil
+}
+
+func (ries RiskResidualEvaluationService) GetHistoryByRiskID(riskID uint) ([]*riskDTOs.RiskResidualEvaluationHistoryDTO, error) {
+	// Check if risk register exists
+	if _, err := ries.riskRegisterSvc.GetByID(riskID); err != nil {
+		return nil, err
+	}
+
+	// Get residual evaluation for this risk
+	residualEvaluation, err := ries.repo.GetFullDetailsByID(riskID)
+	if err != nil {
+		return nil, err
+	}
+
+	if residualEvaluation == nil {
+		return []*riskDTOs.RiskResidualEvaluationHistoryDTO{}, nil
+	}
+
+	// Get history records
+	histories, err := ries.repo.GetHistoryByRiskEvaluationID(residualEvaluation.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Map histories to DTOs
+	var historyDTOs []*riskDTOs.RiskResidualEvaluationHistoryDTO
+
+	err = mapstructure.Decode(histories, &historyDTOs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Format created_at (because mapstructure won't format time)
+	for _, dto := range historyDTOs {
+		for _, history := range histories {
+			if dto.ID == history.ID {
+				dto.CreatedAtString = history.CreatedAt.Format("2006-01-02")
+				break
+			}
+		}
+	}
+
+	return historyDTOs, nil
 }
 
 func (ries *RiskResidualEvaluationService) validateRiskResidualEvaluationFormDTO(residualEvaluationFormDTO *riskDTOs.RiskResidualEvaluationFormDTO) error {

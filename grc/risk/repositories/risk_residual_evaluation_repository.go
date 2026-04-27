@@ -15,6 +15,8 @@ type RiskResidualEvaluationRepositoryInterface interface {
 	Create(riskResidualEvaluation *models.RiskEvaluation, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(riskResidualEvaluation *models.RiskEvaluation, tx ...utility.DatabaseTransaction) error
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
+	CreateHistory(history *models.RiskResidualEvaluationHistory, tx ...utility.DatabaseTransaction) error
+	GetHistoryByRiskEvaluationID(riskEvaluationID uint) ([]*models.RiskResidualEvaluationHistory, error)
 
 	CreateRiskImpactAnalysis(riskImpactAnalysis *models.RiskImpactAnalysis, tx ...utility.DatabaseTransaction) error
 	CreateRiskImpactAnalysisGuideline(riskImpactAnalysisGuideline *models.RiskImpactAnalysisGuideline, tx ...utility.DatabaseTransaction) error
@@ -113,6 +115,36 @@ func (repo *RiskResidualEvaluationRepository) Delete(id uint, tx ...utility.Data
 	}
 
 	return nil
+}
+
+func (repo *RiskResidualEvaluationRepository) CreateHistory(history *models.RiskResidualEvaluationHistory, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(history).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *RiskResidualEvaluationRepository) GetHistoryByRiskEvaluationID(riskEvaluationID uint) ([]*models.RiskResidualEvaluationHistory, error) {
+	var histories []*models.RiskResidualEvaluationHistory
+
+	result := repo.db.
+		Preload("RiskMatrixLikelihood").
+		Preload("RiskMatrixRiskRating").
+		Preload("RiskMatrixRiskRatingValue").
+		Where("risk_evaluation_id = ?", riskEvaluationID).
+		Order("created_at DESC").
+		Find(&histories)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return histories, nil
 }
 
 func (repo *RiskResidualEvaluationRepository) CreateRiskImpactAnalysis(riskImpactAnalysis *models.RiskImpactAnalysis, tx ...utility.DatabaseTransaction) error {
