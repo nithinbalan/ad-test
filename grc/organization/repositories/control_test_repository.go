@@ -86,7 +86,8 @@ func (repo *ControlTestRepository) GetAll(controlID uint, params *organizationDT
 			control_effectiveness_ratings.title_ar AS control_effectiveness_rating_title_ar,
 			control_effectiveness_ratings.min_score AS control_effectiveness_rating_min_score,
 			control_effectiveness_ratings.max_score AS control_effectiveness_rating_max_score,
-			control_effectiveness_ratings.type AS control_effectiveness_rating_type
+			control_effectiveness_ratings.type AS control_effectiveness_rating_type,
+			control_effectiveness_ratings.color_code AS control_effectiveness_rating_color_code
         `).
 		Joins("LEFT JOIN control_implementation_statuses ON control_implementation_statuses.id = control_tests.control_implementation_status_id").
 		Joins("LEFT JOIN control_efficiency_statuses ON control_efficiency_statuses.id = control_tests.control_efficiency_status_id").

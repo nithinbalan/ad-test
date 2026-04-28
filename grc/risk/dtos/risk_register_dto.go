@@ -296,7 +296,7 @@ type RiskRegisterFormDTO struct {
 	RiskCategoryID    *uint                         `json:"risk_category_id"`
 	RiskSourceID      *uint                         `json:"risk_source_id"`
 	ResponsibleUserID *uint                         `json:"responsible_user_id"`
-	ResponsibleUnitID *uint                         `json:"responsible_unit_id"`
+	ResponsibleUnitID *uint                         `json:"responsible_unit_id" binding:"required"`
 	Title             string                        `json:"title" binding:"required,max=255"`
 	Description       *string                       `json:"description"`
 	ReportedAt        *string                       `json:"reported_at"`
@@ -314,7 +314,7 @@ type RiskRegisterFormDTO struct {
 	ResidualRiskMatrixLikelihoodID *uint   `json:"residual_risk_matrix_likelihood_id"`
 	ResidualRiskMatrixImpactID     *uint   `json:"residual_risk_matrix_impact_id"`
 	RiskCode                       *string `json:"risk_code"`
-	DivisionID                     *uint   `json:"division_id"`
+	DivisionID                     uint    `json:"division_id" binding:"required"`
 	SectionID                      *uint   `json:"section_id"`
 	IsStrategic                    bool    `json:"is_strategic"`
 	IsOperational                  bool    `json:"is_operational"`

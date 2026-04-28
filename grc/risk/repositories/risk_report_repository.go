@@ -70,6 +70,9 @@ type RiskReportRepositoryInterface interface {
 	GetAllRiskComplianceRequirements(riskID uint) ([]*commonDTOs.AssociatedClauseListDTO, error)
 	GetAllRiskIncidents(riskID uint) ([]*commonDTOs.AssociatedIncidentListDTO, error)
 	GetAllRiskRootCauseAnalyses(riskID uint) ([]*dtos.RiskRegisterExportRootCauseAnalysisDTO, error)
+	GetAllRiskAppetiteStatements(riskID uint, evaluationType string) ([]*dtos.RiskRegisterExportRiskAppetiteStatementDTO, error)
+	GetLatestRiskClosure(riskID uint) (*dtos.RiskRegisterExportClosureDTO, error)
+	GetAllRiskControlTests(riskID uint) ([]models.ControlTest, error)
 }
 
 type RiskReportRepository struct {
@@ -824,7 +827,11 @@ func (repo *RiskReportRepository) GetAllRiskControls(riskID uint) ([]*commonDTOs
 	query := repo.db.Table("risk_controls").
 		Select(`
 		control_implementation_statuses.title_en AS control_implementation_status_title_en,
-		control_efficiency_statuses.title_en AS control_efficiency_status_title_en,
+		control_effectiveness_ratings.title_en AS control_effectiveness_rating_title_en,
+		control_effectiveness_ratings.color_code AS control_effectiveness_rating_color_code,
+		control_effectiveness_ratings.type AS control_effectiveness_rating_type,
+		controls.control_effectiveness_score,
+		controls.risk_reduction,
 		risk_matrix_risk_rating_values.value AS risk_rating_value,
 		controls.reference_number,
 		controls.title_en,
@@ -833,14 +840,21 @@ func (repo *RiskReportRepository) GetAllRiskControls(riskID uint) ([]*commonDTOs
 		controls.last_review_date,
 		test_responsible_user.first_name_en AS test_responsible_user_first_name_en,
 		test_responsible_user.last_name_en AS test_responsible_user_last_name_en,
-		test_responsible_user.initial AS test_responsible_user_initial
+		test_responsible_user.initial AS test_responsible_user_initial,
+		control_types.title_en AS control_type_title_en,
+		control_statuses.title_en AS control_status_title_en,
+		control_statuses.title_ar AS control_status_title_ar,
+		control_statuses.color_code AS control_status_color_code,
+		control_statuses.type AS control_status_type
 	`).
 		Joins(`
 		LEFT JOIN controls ON controls.id = risk_controls.control_id
 		LEFT JOIN users AS test_responsible_user ON controls.test_responsible_user_id = test_responsible_user.id
 		LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id
-		LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id
+		LEFT JOIN control_effectiveness_ratings ON controls.control_effectiveness_rating_id = control_effectiveness_ratings.id
+		LEFT JOIN control_types ON controls.control_type_id = control_types.id
 		LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = controls.risk_matrix_risk_rating_value_id
+		LEFT JOIN control_statuses ON controls.control_status_id = control_statuses.id
 	`).Where("risk_controls.risk_register_id = ?", riskID)
 
 	err := query.Scan(&controlList).Error
@@ -1068,4 +1082,117 @@ func (repo *RiskReportRepository) GetAllRiskRootCauseAnalyses(riskID uint) ([]*d
 	}
 
 	return rootCauses, nil
+}
+
+// GetAllRiskAppetiteStatements fetches risk appetite statements for a risk register by evaluation type (inherent/residual)
+func (repo *RiskReportRepository) GetAllRiskAppetiteStatements(riskID uint, evaluationType string) ([]*dtos.RiskRegisterExportRiskAppetiteStatementDTO, error) {
+	var rowList []dtos.RiskRegisterExportRiskAppetiteStatementDTO
+
+	query := repo.db.Table("risk_appetite_alignments").
+		Select(`
+			risk_appetite_tolerance_levels.title_en AS status_title_en,
+			risk_appetite_tolerance_levels.color_code AS status_color_code,
+			risk_appetite_tolerance_levels.type AS tolerance_type,
+			risk_appetite_statements.statement_en AS description
+		`).
+		Joins(`
+			INNER JOIN risk_evaluations ON risk_evaluations.id = risk_appetite_alignments.risk_evaluation_id
+			INNER JOIN risk_appetite_statements ON risk_appetite_statements.id = risk_appetite_alignments.risk_appetite_statement_id
+			INNER JOIN risk_appetite_tolerance_levels ON risk_appetite_tolerance_levels.id = risk_appetite_alignments.risk_appetite_tolerance_level_id
+		`).
+		Where("risk_evaluations.risk_register_id = ? AND risk_evaluations.type = ?", riskID, evaluationType)
+
+	err := query.Scan(&rowList).Error
+	if err != nil {
+		return nil, err
+	}
+
+	statements := make([]*dtos.RiskRegisterExportRiskAppetiteStatementDTO, 0, len(rowList))
+	for _, row := range rowList {
+		// Determine status class based on tolerance type
+		statusClass := "medium"
+		if row.ToleranceType == "above" || row.ToleranceType == "significantly_above" {
+			statusClass = "high"
+		} else if row.ToleranceType == "below" || row.ToleranceType == "marginally_below" {
+			statusClass = "low"
+		} else if row.ToleranceType == "within" {
+			statusClass = "within"
+		}
+
+		statement := &dtos.RiskRegisterExportRiskAppetiteStatementDTO{
+			StatusTitleEn:   row.StatusTitleEn,
+			StatusClass:     statusClass,
+			StatusColorCode: row.StatusColorCode,
+			Description:     row.Description,
+		}
+		statements = append(statements, statement)
+	}
+
+	return statements, nil
+}
+
+// GetLatestRiskClosure fetches the latest risk closure for a risk register
+func (repo *RiskReportRepository) GetLatestRiskClosure(riskID uint) (*dtos.RiskRegisterExportClosureDTO, error) {
+	var result struct {
+		Justification        string  `gorm:"column:justification"`
+		LessonsLearned       *string `gorm:"column:lesson_learned"`
+		WhatWorkedWell       *string `gorm:"column:what_worked_well"`
+		WhatNeedsImprovement *string `gorm:"column:improvements"`
+		KeyTakeaways         *string `gorm:"column:takeaways"`
+	}
+
+	err := repo.db.Table("risk_closures").
+		Select(`
+			justification,
+			lesson_learned,
+			what_worked_well,
+			improvements,
+			takeaways
+		`).
+		Where("risk_register_id = ?", riskID).
+		Order("created_at DESC").
+		Limit(1).
+		Scan(&result).Error
+
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil // Return nil if no closure found
+		}
+		return nil, err
+	}
+
+	closure := &dtos.RiskRegisterExportClosureDTO{
+		Justification:        &result.Justification,
+		LessonsLearned:       result.LessonsLearned,
+		WhatWorkedWell:       result.WhatWorkedWell,
+		WhatNeedsImprovement: result.WhatNeedsImprovement,
+		KeyTakeaways:         result.KeyTakeaways,
+	}
+
+	// Handle empty justification as nil
+	if result.Justification == "" {
+		closure.Justification = nil
+	}
+
+	return closure, nil
+}
+
+func (repo *RiskReportRepository) GetAllRiskControlTests(riskID uint) ([]models.ControlTest, error) {
+	var controlTests []models.ControlTest
+
+	err := repo.db.
+		Preload("ControlImplementationStatus").
+		Preload("ControlEfficiencyStatus").
+		Preload("ControlEffectivenessRating").
+		Preload("Control").
+		Preload("TestedByUser").
+		Where("risk_register_id = ?", riskID).
+		Where("tested_source = ?", "risk").
+		Order("id DESC").
+		Find(&controlTests).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return controlTests, nil
 }

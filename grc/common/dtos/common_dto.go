@@ -100,9 +100,12 @@ type AssociatedControlListDTO struct {
 	ControlImplementationStatusTitleEn   string     `json:"control_implementation_status_title_en"`
 	ControlImplementationStatusTitleAr   string     `json:"control_implementation_status_title_ar"`
 	ControlImplementationStatusColorCode string     `json:"control_implementation_status_color_code"`
-	ControlEfficiencyStatusTitleEn       string     `json:"control_efficiency_status_title_en"`
-	ControlEfficiencyStatusTitleAr       string     `json:"control_efficiency_status_title_ar"`
-	ControlEfficiencyStatusColorCode     string     `json:"control_efficiency_status_color_code"`
+	ControlEffectivenessRatingTitleEn    string     `json:"control_effectiveness_rating_title_en"`
+	ControlEffectivenessRatingTitleAr    string     `json:"control_effectiveness_rating_title_ar"`
+	ControlEffectivenessRatingColorCode  string     `json:"control_effectiveness_rating_color_code"`
+	ControlEffectivenessRatingType       string     `json:"control_effectiveness_rating_type"`
+	ControlEffectivenessScore            *float64   `json:"control_effectiveness_score"`
+	RiskReduction                        *float64   `json:"risk_reduction"`
 	ReferenceNumber                      string     `json:"reference_number"`
 	Code                                 *string    `json:"code"`
 	TitleEn                              string     `json:"title_en"`
@@ -159,6 +162,11 @@ type AssociatedControlListDTO struct {
 	RiskRatingTitleAr                    *string    `json:"risk_rating_title_ar"`
 	RiskRatingColorCode                  *string    `json:"risk_rating_color_code"`
 	RiskRatingValue                      *uint      `json:"risk_rating_value"`
+	ControlStatusTitleEn                 string     `json:"control_status_title_en"`
+	ControlStatusTitleAr                 string     `json:"control_status_title_ar"`
+	ControlStatusColorCode               string     `json:"control_status_color_code"`
+	ControlStatusType                    string     `json:"control_status_type"`
+	ControlTestDescription               string     `json:"control_test_description"`
 }
 
 type AssociatedRiskListDTO struct {
