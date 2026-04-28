@@ -665,15 +665,16 @@ func (cts *ControlTestService) CalculateControlEffectiveness(controlID uint, tes
 		}
 	}
 
-	// Special case: If Partially Effective, check additional conditions
-	// Partially Effective only if: Documentation=1 AND Preventive=1 AND Score >= 3.5
+	// Special case: Partially Effective requires additional conditions
+	// Only assign Partially Effective if: Documentation=1 AND Preventive=1 AND Score >= 3.5 AND Score < 5.0
 	if effectivenessRatingID != nil {
 		rating, _ := cts.controlEffectivenessRatingSvc.GetByID(*effectivenessRatingID)
 		if rating != nil && rating.Type == "partially_effective" {
-			if !(hasDocumentation && isPreventive && totalScore >= 3.5) {
-				// Find "Improvement Needed" rating instead
+			// Check if all conditions are met for Partially Effective
+			if !(hasDocumentation && isPreventive && totalScore >= 3.5 && totalScore < 5.0) {
+				// Conditions not met - find rating based on score alone without special requirements
 				for _, r := range ratings {
-					if r.Type == "improvement_needed" {
+					if r.Type != "partially_effective" && totalScore >= r.MinScore && totalScore <= r.MaxScore {
 						effectivenessRatingID = &r.ID
 						riskReduction = r.ReductionPercent
 						break

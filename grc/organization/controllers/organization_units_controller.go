@@ -259,8 +259,8 @@ func (osc *OrganizationUnitsController) GetAllProcessesByOrganizationUnit(c *gin
 		return
 	}
 
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
@@ -270,20 +270,6 @@ func (osc *OrganizationUnitsController) GetAllProcessesByOrganizationUnit(c *gin
 		"responsible_unit_ids",
 		"responsible_user_ids",
 		"lifecycle_status_ids",
-	}
-
-	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
-
-	page, err := utility.ParseQueryParamToInt(c, "page", 1)
-	if err != nil {
-		utility.SendInternalErrResp(osc.db, c, "Invalid page parameter")
-		return
-	}
-
-	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
-	if err != nil {
-		utility.SendInternalErrResp(osc.db, c, "Invalid page_size parameter")
-		return
 	}
 
 	validSortFields := map[string]string{
@@ -305,6 +291,20 @@ func (osc *OrganizationUnitsController) GetAllProcessesByOrganizationUnit(c *gin
 	if !valid {
 		err := errors.New("invalid 'sort_by' parameter")
 		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(osc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(osc.db, c, "Invalid page_size parameter")
 		return
 	}
 

@@ -27,6 +27,8 @@ type ComplianceDashboardServiceInterface interface {
 	GetActionPlansByOrganizationUnit(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]kpiDTOs.ComplianceActionPlanByOrganizationUnitDTO, error)
 
 	GetTopCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]complianceDTOs.ComplianceRegisterListDTO, error)
+	GetComplianceRatingDistribution(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceRatingDistributionDTO, error)
+	GetComplianceRegisterClassificationSummary(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceRegisterClassificationSummaryDTO, error)
 }
 
 type ComplianceDashboardService struct {
@@ -107,4 +109,25 @@ func (cds *ComplianceDashboardService) GetActionPlansByOrganizationUnit(params *
 
 func (cds *ComplianceDashboardService) GetTopCompliances(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) ([]complianceDTOs.ComplianceRegisterListDTO, error) {
 	return cds.repo.GetTopCompliances(params)
+}
+
+func (cds *ComplianceDashboardService) GetComplianceRatingDistribution(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceRatingDistributionDTO, error) {
+	registers, err := cds.repo.GetComplianceRegisterRatingDistribution(params)
+	if err != nil {
+		return nil, err
+	}
+
+	assessments, err := cds.repo.GetComplianceAssessmentRatingDistribution(params)
+	if err != nil {
+		return nil, err
+	}
+
+	return &kpiDTOs.ComplianceRatingDistributionDTO{
+		Registers:   registers,
+		Assessments: assessments,
+	}, nil
+}
+
+func (cds *ComplianceDashboardService) GetComplianceRegisterClassificationSummary(params *kpiDTOs.ComplianceDashboardQueryParamsDTO) (*kpiDTOs.ComplianceRegisterClassificationSummaryDTO, error) {
+	return cds.repo.GetComplianceRegisterClassificationSummary(params)
 }

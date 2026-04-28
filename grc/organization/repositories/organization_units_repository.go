@@ -522,7 +522,7 @@ func (repo *OrganizationUnitsRepository) GetAllPoliciesByOrganizationUnit(unitID
 			organization_units.title_ar LIKE ? OR
 			document_statuses.title_en LIKE ? OR
 			document_statuses.title_ar LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if params.SortBy == "" {
@@ -677,15 +677,10 @@ func (repo *OrganizationUnitsRepository) GetAllProcessesByOrganizationUnit(unitI
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
-	if params.SortBy == "" {
-		params.SortBy = "processes.title_en"
-	}
-	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc"
-	}
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize

@@ -235,7 +235,6 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 
 	// Only create compliance requirements and controls if it's a risk-based assessment
 	if compliance.IsRiskBasedAssessment {
-		fmt.Println("Risk-based assessment")
 		for _, clause := range compliance.ComplianceClauses {
 			clauseDetails, err := cras.complianceClauseSvc.GetFullDetailsByID(clause.ID)
 			if err != nil {
@@ -269,10 +268,10 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 						deadline = &parsedDeadline
 					}
 
-					// applicabilityStatus, err := cras.applicablityStatusSvc.GetByType("applicable")
-					// if err != nil {
-					// 	return err
-					// }
+					applicabilityStatus, err := cras.applicablityStatusSvc.GetByType("applicable")
+					if err != nil {
+						return err
+					}
 
 					for _, ru := range complianceRequirement.ResponsibleUnits {
 						// Step 1: Create ComplianceAssessmentRequirementResponsibleUnit one-by-one
@@ -287,35 +286,35 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 							return err
 						}
 
-						// // Step 2: Create associated DocumentTitles using the created unit's ID
-						// var requirementDocumentTitles []*models.ComplianceAssessmentRequirementDocumentTitle
+						// Step 2: Create associated DocumentTitles using the created unit's ID
+						var requirementDocumentTitles []*models.ComplianceAssessmentRequirementDocumentTitle
 
-						// for _, documentTitle := range complianceRequirement.RequiredDocumentTitles {
-						// 	doc := &models.ComplianceAssessmentRequirementDocumentTitle{
-						// 		ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
-						// 		RequiredDocumentTitleID:                          &documentTitle.RequiredDocumentTitleID,
-						// 		ApplicabilityStatusID:                            applicabilityStatus.ID,
-						// 		CreatedBYID:                                      currentUserID,
-						// 	}
-						// 	requirementDocumentTitles = append(requirementDocumentTitles, doc)
-						// }
+						for _, documentTitle := range complianceRequirement.RequiredDocumentTitles {
+							doc := &models.ComplianceAssessmentRequirementDocumentTitle{
+								ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
+								RequiredDocumentTitleID:                          &documentTitle.RequiredDocumentTitleID,
+								ApplicabilityStatusID:                            applicabilityStatus.ID,
+								CreatedBYID:                                      currentUserID,
+							}
+							requirementDocumentTitles = append(requirementDocumentTitles, doc)
+						}
 
-						// // Add an empty document title (with nil RequiredDocumentTitleID)
-						// emptyDoc := &models.ComplianceAssessmentRequirementDocumentTitle{
-						// 	ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
-						// 	RequiredDocumentTitleID:                          nil,
-						// 	ApplicabilityStatusID:                            applicabilityStatus.ID,
-						// 	CreatedBYID:                                      currentUserID,
-						// }
-						// requirementDocumentTitles = append(requirementDocumentTitles, emptyDoc)
+						// Add an empty document title (with nil RequiredDocumentTitleID)
+						emptyDoc := &models.ComplianceAssessmentRequirementDocumentTitle{
+							ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
+							RequiredDocumentTitleID:                          nil,
+							ApplicabilityStatusID:                            applicabilityStatus.ID,
+							CreatedBYID:                                      currentUserID,
+						}
+						requirementDocumentTitles = append(requirementDocumentTitles, emptyDoc)
 
-						// // Bulk insert documents for this unit
-						// if len(requirementDocumentTitles) > 0 {
-						// 	if err := cras.repo.CreateComplianceAssessmentRequirementDocumentTitle(requirementDocumentTitles, tx); err != nil {
-						// 		tx.Rollback()
-						// 		return err
-						// 	}
-						// }
+						// Bulk insert documents for this unit
+						if len(requirementDocumentTitles) > 0 {
+							if err := cras.repo.CreateComplianceAssessmentRequirementDocumentTitle(requirementDocumentTitles, tx); err != nil {
+								tx.Rollback()
+								return err
+							}
+						}
 					}
 
 				}
