@@ -80,6 +80,7 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
 			control_effectiveness_ratings.min_score AS control_effectiveness_rating_min_score,
 			control_effectiveness_ratings.max_score AS control_effectiveness_rating_max_score,
 			control_effectiveness_ratings.type AS control_effectiveness_rating_type,
+			control_effectiveness_ratings.color_code AS control_effectiveness_rating_color_code,
 			control_automation.type AS control_automation_type,
 			control_consistency.type AS control_consistency_type,
 			CONVERT(VARCHAR, latest_control_test.tested_at, 23) AS last_test_date,

@@ -24,6 +24,7 @@ type ControlTestListDTO struct {
 	ControlEffectivenessRatingMinScore   *float64                  `json:"control_effectiveness_rating_min_score"`
 	ControlEffectivenessRatingMaxScore   *float64                  `json:"control_effectiveness_rating_max_score"`
 	ControlEffectivenessRatingType       *string                   `json:"control_effectiveness_rating_type"`
+	ControlEffectivenessRatingColorCode  *string                   `json:"control_effectiveness_rating_color_code"`
 	RiskReduction                        *float64                  `json:"risk_reduction"`
 	Comments                             *string                   `json:"comments"`
 	TestedSource                         string                    `json:"tested_source"`

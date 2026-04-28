@@ -45,7 +45,7 @@ type RiskRegister struct {
 
 	RiskCode         *string    `json:"risk_code" gorm:"type:nvarchar(500);default:null"`
 	RegistrationDate *time.Time `json:"registration_date" gorm:"type:datetime;default:null"`
-	DivisionID       *uint      `json:"division_id" gorm:"default:null"`
+	DivisionID       uint       `json:"division_id" binding:"required"`
 	SectionID        *uint      `json:"section_id" gorm:"default:null"`
 	IsStrategic      bool       `json:"is_strategic" gorm:"not null;default:false"`
 	IsOperational    bool       `json:"is_operational" gorm:"not null;default:false"`
