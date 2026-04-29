@@ -23,15 +23,16 @@ type RiskReviewServiceInterface interface {
 }
 
 type RiskReviewService struct {
-	repo              repositories.RiskReviewRepositoryInterface
-	logService        logServices.ActivityLogServiceInterface
-	riskSvc           RiskRegisterServiceInterface
-	riskWorkflowSvc   RiskWorkflowServiceInterface
-	workflowStatusSvc masterServices.WorkflowStatusServiceInterface
-	riskStatusSvc     RiskStatusServiceInterface
-	userSvc           organizationSvc.UserServiceInterface
-	notificationSvc   commonServices.NotificationServiceInterface
-	taskSvc           taskServices.TaskServiceInterface
+	repo                 repositories.RiskReviewRepositoryInterface
+	logService           logServices.ActivityLogServiceInterface
+	riskSvc              RiskRegisterServiceInterface
+	riskWorkflowSvc      RiskWorkflowServiceInterface
+	workflowStatusSvc    masterServices.WorkflowStatusServiceInterface
+	riskStatusSvc        RiskStatusServiceInterface
+	userSvc              organizationSvc.UserServiceInterface
+	notificationSvc      commonServices.NotificationServiceInterface
+	taskSvc              taskServices.TaskServiceInterface
+	organizationUnitsSvc organizationSvc.OrganizationUnitsServiceInterface
 }
 
 func NewRiskReviewService(
@@ -44,17 +45,19 @@ func NewRiskReviewService(
 	userSvc organizationSvc.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	taskSvc taskServices.TaskServiceInterface,
+	organizationUnitsSvc organizationSvc.OrganizationUnitsServiceInterface,
 ) RiskReviewServiceInterface {
 	return &RiskReviewService{
-		repo:              repo,
-		logService:        logService,
-		riskSvc:           riskSvc,
-		riskWorkflowSvc:   riskWorkflowSvc,
-		workflowStatusSvc: workflowStatusSvc,
-		riskStatusSvc:     riskStatusSvc,
-		userSvc:           userSvc,
-		notificationSvc:   notificationSvc,
-		taskSvc:           taskSvc,
+		repo:                 repo,
+		logService:           logService,
+		riskSvc:              riskSvc,
+		riskWorkflowSvc:      riskWorkflowSvc,
+		workflowStatusSvc:    workflowStatusSvc,
+		riskStatusSvc:        riskStatusSvc,
+		userSvc:              userSvc,
+		notificationSvc:      notificationSvc,
+		taskSvc:              taskSvc,
+		organizationUnitsSvc: organizationUnitsSvc,
 	}
 }
 
@@ -460,8 +463,43 @@ func (rrs *RiskReviewService) Reject(riskID uint, currentUserID uint) error {
 
 func (rrs *RiskReviewService) sendApprovalNotification(id uint, currentUserID uint, riskDetail *riskDTOs.RiskRegisterDetailDTO) {
 	go func() {
-		// Only send notification if responsible user exists
-		if riskDetail.ResponsibleUser == nil {
+		var notificationUserIDs []uint
+		var emailTo []string
+
+		// If responsible user is assigned, add them to notification
+		if riskDetail.ResponsibleUser != nil {
+			notificationUserIDs = append(notificationUserIDs, uint(riskDetail.ResponsibleUser.ID))
+			emailTo = append(emailTo, riskDetail.ResponsibleUser.Email)
+		}
+
+		// Also send notification to responsible unit head
+		if riskDetail.ResponsibleUnit != nil {
+			headUsers, err := rrs.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(uint(riskDetail.ResponsibleUnit.ID))
+			if err != nil {
+				utility.LogError("Failed to get responsible unit head users for notification", map[string]interface{}{
+					"unit_id": riskDetail.ResponsibleUnit.ID,
+					"error":   err.Error(),
+				})
+			} else {
+				for _, headUser := range headUsers {
+					// Avoid duplicate notifications if the head user is also the responsible user
+					alreadyNotified := false
+					for _, notifiedUserID := range notificationUserIDs {
+						if notifiedUserID == headUser.ID {
+							alreadyNotified = true
+							break
+						}
+					}
+					if !alreadyNotified {
+						notificationUserIDs = append(notificationUserIDs, headUser.ID)
+						emailTo = append(emailTo, headUser.Email)
+					}
+				}
+			}
+		}
+
+		// Send notification if there are recipients
+		if len(notificationUserIDs) == 0 {
 			return
 		}
 
@@ -472,7 +510,7 @@ func (rrs *RiskReviewService) sendApprovalNotification(id uint, currentUserID ui
 
 		// Create the database notification DTO
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserIDs:              []uint{uint(riskDetail.ResponsibleUser.ID)},
+			UserIDs:              notificationUserIDs,
 			ModuleIdentifier:     "risk",
 			NotificationType:     string(commonDTOs.ApprovalType),
 			HeadingEn:            "Risk Approval",
@@ -496,9 +534,23 @@ func (rrs *RiskReviewService) sendApprovalNotification(id uint, currentUserID ui
 			return
 		}
 
+		// Use responsible user details for email if available, otherwise use unit head
+		var firstNameEn, lastNameEn string
+		if riskDetail.ResponsibleUser != nil {
+			firstNameEn = riskDetail.ResponsibleUser.FirstNameEN
+			lastNameEn = riskDetail.ResponsibleUser.LastNameEN
+		}
+		if firstNameEn == "" && len(emailTo) > 0 {
+			// Fallback to first recipient's name
+			firstUser, _ := rrs.userSvc.GetByID(notificationUserIDs[0])
+			if firstUser != nil {
+				firstNameEn = firstUser.FirstNameEn
+				lastNameEn = firstUser.LastNameEn
+			}
+		}
+
 		// Prepare email details
 		appURL := utility.GetAppURL()
-		emailTo := []string{riskDetail.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Risk %s: Approval Notification", riskDetail.Title)
 		urlParam = fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, riskDetail.ID)
 
@@ -509,8 +561,8 @@ func (rrs *RiskReviewService) sendApprovalNotification(id uint, currentUserID ui
 		emailData := map[string]interface{}{
 			"Title":                 riskDetail.Title,
 			"Description":           riskDetail.Description,
-			"FirstNameEn":           riskDetail.ResponsibleUser.FirstNameEN,
-			"LastNameEn":            riskDetail.ResponsibleUser.LastNameEN,
+			"FirstNameEn":           firstNameEn,
+			"LastNameEn":            lastNameEn,
 			"ApprovedByFirstNameEn": approvedByUser.FirstNameEn,
 			"ApprovedByLastNameEn":  approvedByUser.LastNameEn,
 			"ApprovedAt":            time.Now().Format("2006-01-02"),
@@ -537,8 +589,43 @@ func (rrs *RiskReviewService) sendApprovalNotification(id uint, currentUserID ui
 
 func (rrs *RiskReviewService) notifyNextLevelUsers(id uint, nextRiskWorkflowLevel *models.RiskWorkflow, riskDetail *riskDTOs.RiskRegisterDetailDTO) {
 	go func() {
-		// Only send notification if responsible user exists
-		if riskDetail.ResponsibleUser == nil {
+		var notificationUserIDs []uint
+		var emailTo []string
+
+		// If responsible user is assigned, add them to notification
+		if riskDetail.ResponsibleUser != nil {
+			notificationUserIDs = append(notificationUserIDs, uint(riskDetail.ResponsibleUser.ID))
+			emailTo = append(emailTo, riskDetail.ResponsibleUser.Email)
+		}
+
+		// Also send notification to responsible unit head
+		if riskDetail.ResponsibleUnit != nil {
+			headUsers, err := rrs.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(uint(riskDetail.ResponsibleUnit.ID))
+			if err != nil {
+				utility.LogError("Failed to get responsible unit head users for notification", map[string]interface{}{
+					"unit_id": riskDetail.ResponsibleUnit.ID,
+					"error":   err.Error(),
+				})
+			} else {
+				for _, headUser := range headUsers {
+					// Avoid duplicate notifications if the head user is also the responsible user
+					alreadyNotified := false
+					for _, notifiedUserID := range notificationUserIDs {
+						if notifiedUserID == headUser.ID {
+							alreadyNotified = true
+							break
+						}
+					}
+					if !alreadyNotified {
+						notificationUserIDs = append(notificationUserIDs, headUser.ID)
+						emailTo = append(emailTo, headUser.Email)
+					}
+				}
+			}
+		}
+
+		// Send notification if there are recipients
+		if len(notificationUserIDs) == 0 {
 			return
 		}
 
@@ -546,72 +633,111 @@ func (rrs *RiskReviewService) notifyNextLevelUsers(id uint, nextRiskWorkflowLeve
 		entity := "risk-review"
 		action := "review-user-assign"
 
-		for _, participant := range nextRiskWorkflowLevel.RiskWorkflowParticipants {
-			responsibleUser, err := rrs.userSvc.GetByID(participant.UserID)
-			if err != nil {
-				utility.LogError("Failed to fetch review user", map[string]interface{}{
-					"error": err.Error(),
-				})
-				continue
-			}
+		createdByID := uint(riskDetail.ResponsibleUserID)
+		// Prepare database notification DTO
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              notificationUserIDs,
+			ModuleIdentifier:     "risk",
+			NotificationType:     string(commonDTOs.ReviewType),
+			HeadingEn:            "Risk Review",
+			HeadingAr:            "مراجعة المخاطر",
+			ReferenceNumber:      riskDetail.ReferenceNumber,
+			TitleEn:              riskDetail.Title,
+			TitleAr:              riskDetail.Title,
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			IsSystemNotification: false,
+			CreatedByID:          &createdByID,
+		}
 
-			createdByID := uint(riskDetail.ResponsibleUserID)
-			// Prepare database notification DTO
-			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserIDs:              []uint{participant.UserID},
-				ModuleIdentifier:     "risk",
-				NotificationType:     string(commonDTOs.ReviewType),
-				HeadingEn:            "Risk Review",
-				HeadingAr:            "مراجعة المخاطر",
-				ReferenceNumber:      riskDetail.ReferenceNumber,
-				TitleEn:              riskDetail.Title,
-				TitleAr:              riskDetail.Title,
-				Entity:               &entity,
-				Action:               &action,
-				URLParam:             urlParam,
-				IsSystemNotification: false,
-				CreatedByID:          &createdByID,
+		// Use responsible user details for email if available, otherwise use unit head
+		var firstNameEn, lastNameEn string
+		if riskDetail.ResponsibleUser != nil {
+			firstNameEn = riskDetail.ResponsibleUser.FirstNameEN
+			lastNameEn = riskDetail.ResponsibleUser.LastNameEN
+		}
+		if firstNameEn == "" && len(emailTo) > 0 {
+			// Fallback to first recipient's name
+			firstUser, _ := rrs.userSvc.GetByID(notificationUserIDs[0])
+			if firstUser != nil {
+				firstNameEn = firstUser.FirstNameEn
+				lastNameEn = firstUser.LastNameEn
 			}
+		}
 
-			// Prepare email notification DTO
-			emailTo := []string{responsibleUser.Email}
-			subject := fmt.Sprintf("Risk %s: Review Assigned", riskDetail.Title)
-			appURL := utility.GetAppURL()
-			urlParam = fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, riskDetail.ID)
+		// Prepare email notification DTO
+		subject := fmt.Sprintf("Risk %s: Review Assigned", riskDetail.Title)
+		appURL := utility.GetAppURL()
+		urlParam = fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, riskDetail.ID)
 
-			emailData := map[string]interface{}{
-				"FirstNameEn":           responsibleUser.FirstNameEn,
-				"LastNameEn":            responsibleUser.LastNameEn,
-				"Title":                 riskDetail.Title,
-				"Description":           riskDetail.Description,
-				"AssignedByFirstNameEn": riskDetail.ResponsibleUser.FirstNameEN,
-				"AssignedByLastNameEn":  riskDetail.ResponsibleUser.LastNameEN,
-				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           urlParam,
-			}
+		emailData := map[string]interface{}{
+			"FirstNameEn":           firstNameEn,
+			"LastNameEn":            lastNameEn,
+			"Title":                 riskDetail.Title,
+			"Description":           riskDetail.Description,
+			"AssignedByFirstNameEn": firstNameEn,
+			"AssignedByLastNameEn":  lastNameEn,
+			"AssignedOn":            time.Now().Format("2006-01-02"),
+			"RedirectURL":           urlParam,
+		}
 
-			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-				EmailTo:              emailTo,
-				Subject:              subject,
-				TemplateRelativePath: "risk/templates/email/risk_workflow_review_user_mail.html",
-				EmailData:            emailData,
-			}
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              subject,
+			TemplateRelativePath: "risk/templates/email/risk_workflow_review_user_mail.html",
+			EmailData:            emailData,
+		}
 
-			// Send both database and email notifications
-			err = rrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "risk")
-			if err != nil {
-				utility.LogError("Failed to send next level review notification", map[string]interface{}{
-					"error": err.Error(),
-				})
-			}
+		// Send both database and email notifications
+		err := rrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "risk")
+		if err != nil {
+			utility.LogError("Failed to send next level review notification", map[string]interface{}{
+				"error": err.Error(),
+			})
 		}
 	}()
 }
 
 func (rrs *RiskReviewService) sendRejectedNotification(id uint, currentUserID uint, risk *riskDTOs.RiskRegisterDetailDTO) {
 	go func() {
-		// Only send notification if responsible user exists
-		if risk.ResponsibleUser == nil {
+		var notificationUserIDs []uint
+		var emailTo []string
+
+		// If responsible user is assigned, add them to notification
+		if risk.ResponsibleUser != nil {
+			notificationUserIDs = append(notificationUserIDs, uint(risk.ResponsibleUser.ID))
+			emailTo = append(emailTo, risk.ResponsibleUser.Email)
+		}
+
+		// Also send notification to responsible unit head
+		if risk.ResponsibleUnit != nil {
+			headUsers, err := rrs.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(uint(risk.ResponsibleUnit.ID))
+			if err != nil {
+				utility.LogError("Failed to get responsible unit head users for notification", map[string]interface{}{
+					"unit_id": risk.ResponsibleUnit.ID,
+					"error":   err.Error(),
+				})
+			} else {
+				for _, headUser := range headUsers {
+					// Avoid duplicate notifications if the head user is also the responsible user
+					alreadyNotified := false
+					for _, notifiedUserID := range notificationUserIDs {
+						if notifiedUserID == headUser.ID {
+							alreadyNotified = true
+							break
+						}
+					}
+					if !alreadyNotified {
+						notificationUserIDs = append(notificationUserIDs, headUser.ID)
+						emailTo = append(emailTo, headUser.Email)
+					}
+				}
+			}
+		}
+
+		// Send notification if there are recipients
+		if len(notificationUserIDs) == 0 {
 			return
 		}
 
@@ -622,7 +748,7 @@ func (rrs *RiskReviewService) sendRejectedNotification(id uint, currentUserID ui
 
 		// Create the database notification DTO
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserIDs:              []uint{uint(risk.ResponsibleUser.ID)},
+			UserIDs:              notificationUserIDs,
 			ModuleIdentifier:     "risk",
 			NotificationType:     string(commonDTOs.RejectType),
 			HeadingEn:            "Risk Rejected",
@@ -646,15 +772,29 @@ func (rrs *RiskReviewService) sendRejectedNotification(id uint, currentUserID ui
 			return
 		}
 
+		// Use responsible user details for email if available, otherwise use unit head
+		var firstNameEn, lastNameEn string
+		if risk.ResponsibleUser != nil {
+			firstNameEn = risk.ResponsibleUser.FirstNameEN
+			lastNameEn = risk.ResponsibleUser.LastNameEN
+		}
+		if firstNameEn == "" && len(emailTo) > 0 {
+			// Fallback to first recipient's name
+			firstUser, _ := rrs.userSvc.GetByID(notificationUserIDs[0])
+			if firstUser != nil {
+				firstNameEn = firstUser.FirstNameEn
+				lastNameEn = firstUser.LastNameEn
+			}
+		}
+
 		// Prepare email details
 		appURL := utility.GetAppURL()
-		emailTo := []string{risk.ResponsibleUser.Email}
 		subject := fmt.Sprintf("Risk %s: Rejected Notification", risk.Title)
 		urlParam = fmt.Sprintf("%s/risk/identified-risk/%d/workflow", appURL, risk.ID)
 
 		emailData := map[string]interface{}{
-			"FirstNameEn":           risk.ResponsibleUser.FirstNameEN,
-			"LastNameEn":            risk.ResponsibleUser.LastNameEN,
+			"FirstNameEn":           firstNameEn,
+			"LastNameEn":            lastNameEn,
 			"Title":                 risk.Title,
 			"RejectedByFirstNameEn": rejectedByUser.FirstNameEn,
 			"RejectedByLastNameEn":  rejectedByUser.LastNameEn,

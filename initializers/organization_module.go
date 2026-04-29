@@ -67,6 +67,7 @@ type OrganizationModule struct {
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
+	OrganizationUnitsSvc           services.OrganizationUnitsServiceInterface
 	ControlSvc                     services.ControlServiceInterface
 	ProcessSvc                     services.ProcessServiceInterface
 	StrategicObjectiveSvc          services.StrategicObjectiveServiceInterface
@@ -460,6 +461,7 @@ func NewOrganizationModule(
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,
+		OrganizationUnitsSvc:           organizationUnitsSvc,
 		ControlSvc:                     controlSvc,
 		ProcessSvc:                     processSvc,
 		StrategicObjectiveSvc:          strategicObjectiveSvc,
