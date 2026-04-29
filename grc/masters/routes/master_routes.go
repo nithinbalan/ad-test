@@ -44,6 +44,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	workflowContextController := app.MasterModule.WorkflowContextController
 	commentStatusController := app.MasterModule.CommentStatusController
 	actionPlanMasterController := app.MasterModule.ActionPlanMasterController
+	emailStatusController := app.MasterModule.EmailStatusController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -174,4 +175,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	masterRoutes.POST("/action-plan-masters/delete", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), actionPlanMasterController.DeleteActionPlanMasters)
 	masterRoutes.PUT("/action-plan-masters/activate", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), actionPlanMasterController.ActivateActionPlanMasters)
 	masterRoutes.PUT("/action-plan-masters/deactivate", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), actionPlanMasterController.DeactivateActionPlanMasters)
+
+	masterRoutes.GET("/email-statuses", emailStatusController.GetAllEmailStatuses)
+	masterRoutes.GET("/email-statuses/:id", emailStatusController.GetEmailStatusDetails)
 }
