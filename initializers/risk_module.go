@@ -9,54 +9,54 @@ import (
 )
 
 type RiskModule struct {
-	RiskCategoryController                *controllers.RiskCategoryController
-	PotentialRiskStatusController         *controllers.PotentialRiskStatusController
-	RiskLevelController                   *controllers.RiskLevelController
-	RiskSubCategoryController             *controllers.RiskSubCategoryController
-	LevelOfMeasurementController          *controllers.LevelOfMeasurementController
-	DistributionStatusController          *controllers.DistributionStatusController
-	PotentialRiskController               *controllers.PotentialRiskController
-	PotentialRiskStatusUpdateController   *controllers.PotentialRiskStatusUpdateController
-	KriCategoryController                 *controllers.KRICategoryController
-	KriRegisterController                 *controllers.KRIRegisterController
-	KriValueUpdateController              *controllers.KRIValueUpdateController
-	RiskAppetiteStatementController       *controllers.RiskAppetiteStatementController
-	RiskImpactCategoryController          *controllers.RiskImpactCategoryController
-	RiskMatrixImpactController            *controllers.RiskMatrixImpactController
-	RiskMatrixImpactGuidelineController   *controllers.RiskMatrixImpactGuidelineController
-	RiskMatrixLikelihoodController        *controllers.RiskMatrixLikelihoodController
-	RiskMatrixRiskRatingController        *controllers.RiskMatrixRiskRatingController
-	RiskMatrixRiskRatingValueController   *controllers.RiskMatrixRiskRatingValueController
-	RiskSourceController                  *controllers.RiskSourceController
-	RiskStatusController                  *controllers.RiskStatusController
+	RiskCategoryController                 *controllers.RiskCategoryController
+	PotentialRiskStatusController          *controllers.PotentialRiskStatusController
+	RiskLevelController                    *controllers.RiskLevelController
+	RiskSubCategoryController              *controllers.RiskSubCategoryController
+	LevelOfMeasurementController           *controllers.LevelOfMeasurementController
+	DistributionStatusController           *controllers.DistributionStatusController
+	PotentialRiskController                *controllers.PotentialRiskController
+	PotentialRiskStatusUpdateController    *controllers.PotentialRiskStatusUpdateController
+	KriCategoryController                  *controllers.KRICategoryController
+	KriRegisterController                  *controllers.KRIRegisterController
+	KriValueUpdateController               *controllers.KRIValueUpdateController
+	RiskAppetiteStatementController        *controllers.RiskAppetiteStatementController
+	RiskImpactCategoryController           *controllers.RiskImpactCategoryController
+	RiskMatrixImpactController             *controllers.RiskMatrixImpactController
+	RiskMatrixImpactGuidelineController    *controllers.RiskMatrixImpactGuidelineController
+	RiskMatrixLikelihoodController         *controllers.RiskMatrixLikelihoodController
+	RiskMatrixRiskRatingController         *controllers.RiskMatrixRiskRatingController
+	RiskMatrixRiskRatingValueController    *controllers.RiskMatrixRiskRatingValueController
+	RiskSourceController                   *controllers.RiskSourceController
+	RiskStatusController                   *controllers.RiskStatusController
 	RiskRegisterUpdatePlanStatusController *controllers.RiskRegisterUpdatePlanStatusController
-	RiskRegisterController                *controllers.RiskRegisterController
-	RiskRootCauseAnalysisController       *controllers.RiskRootCauseAnalysisController
-	RiskAppetiteToleranceLevelController  *controllers.RiskAppetiteToleranceLevelController
-	RiskInherentEvaluationController      *controllers.RiskInherentEvaluationController
-	RiskActionPlanController              *controllers.RiskActionPlanController
-	RiskActionPlanStatusUpdateController  *controllers.RiskActionPlanStatusUpdateController
-	RiskActionPlanCommentController       *controllers.RiskActionPlanCommentController
-	RiskAssociatedItemController          *controllers.RiskAssociatedItemController
-	RiskResponseStrategyController        *controllers.RiskResponseStrategyController
-	RiskTreatmentGuidelineController      *controllers.RiskTreatmentGuidelineController
-	RiskHeatmapController                 *controllers.RiskHeatmapController
-	RiskInherentControlAnalysisController *controllers.RiskInherentControlAnalysisController
-	RiskResidualEvaluationController      *controllers.RiskResidualEvaluationController
-	RiskResidualControlAnalysisController *controllers.RiskResidualControlAnalysisController
-	RiskKriController                     *controllers.RiskKriController
-	RiskTimelineController                *controllers.RiskTimelineController
-	RiskSettingsController                *controllers.RiskSettingsController
-	RiskClosureController                 *controllers.RiskClosureController
-	RiskCommentController                 *controllers.RiskCommentController
-	RiskReportController                  *controllers.RiskReportController
-	KRIAssociatedItemController           *controllers.KRIAssociatedItemController
-	KRIRegisterWorkflowController         *controllers.KRIRegisterWorkflowController
-	KRIRegisterReviewController           *controllers.KRIRegisterReviewController
-	KRIRegisterReviewCommentController    *controllers.KRIRegisterReviewCommentController
-	RiskWorkflowController                *controllers.RiskWorkflowController
-	RiskReviewController                  *controllers.RiskReviewController
-	RiskReviewCommentController           *controllers.RiskReviewCommentController
+	RiskRegisterController                 *controllers.RiskRegisterController
+	RiskRootCauseAnalysisController        *controllers.RiskRootCauseAnalysisController
+	RiskAppetiteToleranceLevelController   *controllers.RiskAppetiteToleranceLevelController
+	RiskInherentEvaluationController       *controllers.RiskInherentEvaluationController
+	RiskActionPlanController               *controllers.RiskActionPlanController
+	RiskActionPlanStatusUpdateController   *controllers.RiskActionPlanStatusUpdateController
+	RiskActionPlanCommentController        *controllers.RiskActionPlanCommentController
+	RiskAssociatedItemController           *controllers.RiskAssociatedItemController
+	RiskResponseStrategyController         *controllers.RiskResponseStrategyController
+	RiskTreatmentGuidelineController       *controllers.RiskTreatmentGuidelineController
+	RiskHeatmapController                  *controllers.RiskHeatmapController
+	RiskInherentControlAnalysisController  *controllers.RiskInherentControlAnalysisController
+	RiskResidualEvaluationController       *controllers.RiskResidualEvaluationController
+	RiskResidualControlAnalysisController  *controllers.RiskResidualControlAnalysisController
+	RiskKriController                      *controllers.RiskKriController
+	RiskTimelineController                 *controllers.RiskTimelineController
+	RiskSettingsController                 *controllers.RiskSettingsController
+	RiskClosureController                  *controllers.RiskClosureController
+	RiskCommentController                  *controllers.RiskCommentController
+	RiskReportController                   *controllers.RiskReportController
+	KRIAssociatedItemController            *controllers.KRIAssociatedItemController
+	KRIRegisterWorkflowController          *controllers.KRIRegisterWorkflowController
+	KRIRegisterReviewController            *controllers.KRIRegisterReviewController
+	KRIRegisterReviewCommentController     *controllers.KRIRegisterReviewCommentController
+	RiskWorkflowController                 *controllers.RiskWorkflowController
+	RiskReviewController                   *controllers.RiskReviewController
+	RiskReviewCommentController            *controllers.RiskReviewCommentController
 
 	RiskRegisterSvc         services.RiskRegisterServiceInterface
 	RiskHeatMapSvc          services.RiskHeatmapServiceInterface
@@ -288,6 +288,7 @@ func NewRiskModule(db *gorm.DB,
 		nil,
 		riskSettingsSvc,
 		settingsModule.OrganizationUnitSvc,
+		organizationModule.OrganizationUnitsSvc,
 		riskMatrixLikelihoodSvc,
 		riskMatrixImpactSvc,
 		riskResponseStrategySvc,
@@ -312,7 +313,8 @@ func NewRiskModule(db *gorm.DB,
 		riskStatusSvc,
 		organizationModule.UserSvc,
 		commonModule.NotificationService,
-		taskModule.TaskService)
+		taskModule.TaskService,
+		organizationModule.OrganizationUnitsSvc)
 	riskReviewController := controllers.NewRiskReviewController(riskReviewSvc)
 
 	riskReviewCommentRepo := repositories.NewRiskReviewCommentRepository(db)
@@ -436,54 +438,54 @@ func NewRiskModule(db *gorm.DB,
 	kriAssociatedItemController := controllers.NewKRIAssociatedItemController(kriAssociatedItemSvc)
 
 	return &RiskModule{
-		RiskCategoryController:                riskCategoryController,
-		PotentialRiskStatusController:         potentialRiskStatusController,
-		RiskLevelController:                   riskLevelController,
-		RiskSubCategoryController:             riskSubCategoryController,
-		LevelOfMeasurementController:          levelOfMeasurementController,
-		DistributionStatusController:          distributionStatusController,
-		PotentialRiskController:               potentialRiskController,
-		PotentialRiskStatusUpdateController:   potentialRiskStatusUpdateController,
-		KriCategoryController:                 kriCategoryController,
-		KriRegisterController:                 kriRegisterController,
-		KriValueUpdateController:              kriValueUpdateController,
-		RiskAppetiteStatementController:       riskAppetiteStatementController,
-		RiskImpactCategoryController:          riskImpactCategoryController,
-		RiskMatrixImpactController:            riskMatrixImpactController,
-		RiskMatrixImpactGuidelineController:   riskMatrixImpactGuidelineController,
-		RiskMatrixLikelihoodController:        riskMatrixLikelihoodController,
-		RiskMatrixRiskRatingController:        riskMatrixRiskRatingController,
-		RiskMatrixRiskRatingValueController:   riskMatrixRiskRatingValueController,
-		RiskSourceController:                  riskSourceController,
-		RiskStatusController:                  riskStatusController,
+		RiskCategoryController:                 riskCategoryController,
+		PotentialRiskStatusController:          potentialRiskStatusController,
+		RiskLevelController:                    riskLevelController,
+		RiskSubCategoryController:              riskSubCategoryController,
+		LevelOfMeasurementController:           levelOfMeasurementController,
+		DistributionStatusController:           distributionStatusController,
+		PotentialRiskController:                potentialRiskController,
+		PotentialRiskStatusUpdateController:    potentialRiskStatusUpdateController,
+		KriCategoryController:                  kriCategoryController,
+		KriRegisterController:                  kriRegisterController,
+		KriValueUpdateController:               kriValueUpdateController,
+		RiskAppetiteStatementController:        riskAppetiteStatementController,
+		RiskImpactCategoryController:           riskImpactCategoryController,
+		RiskMatrixImpactController:             riskMatrixImpactController,
+		RiskMatrixImpactGuidelineController:    riskMatrixImpactGuidelineController,
+		RiskMatrixLikelihoodController:         riskMatrixLikelihoodController,
+		RiskMatrixRiskRatingController:         riskMatrixRiskRatingController,
+		RiskMatrixRiskRatingValueController:    riskMatrixRiskRatingValueController,
+		RiskSourceController:                   riskSourceController,
+		RiskStatusController:                   riskStatusController,
 		RiskRegisterUpdatePlanStatusController: riskRegisterUpdatePlanStatusController,
-		RiskRegisterController:                riskRegisterController,
-		RiskRootCauseAnalysisController:       riskRootCauseAnalysisController,
-		RiskAppetiteToleranceLevelController:  riskAppetiteToleranceLevelController,
-		RiskInherentEvaluationController:      riskInherentEvaluationController,
-		RiskActionPlanController:              riskActionPlanController,
-		RiskActionPlanStatusUpdateController:  riskActionPlanStatusUpdateController,
-		RiskActionPlanCommentController:       riskActionPlanCommentController,
-		RiskAssociatedItemController:          riskAssociatedItemController,
-		RiskResponseStrategyController:        riskResponseStrategyController,
-		RiskTreatmentGuidelineController:      riskTreatmentGuidelineController,
-		RiskHeatmapController:                 riskHeatmapController,
-		RiskInherentControlAnalysisController: riskInherentControlAnalysisController,
-		RiskResidualEvaluationController:      riskResidualEvaluationController,
-		RiskResidualControlAnalysisController: riskResidualControlAnalysisController,
-		RiskKriController:                     riskKriController,
-		RiskTimelineController:                riskTimelineController,
-		RiskSettingsController:                riskSettingsController,
-		RiskClosureController:                 riskClosureController,
-		RiskCommentController:                 riskCommentController,
-		RiskReportController:                  riskReportController,
-		KRIAssociatedItemController:           kriAssociatedItemController,
-		KRIRegisterWorkflowController:         kriRegisterWorkflowController,
-		KRIRegisterReviewController:           kriRegisterReviewController,
-		KRIRegisterReviewCommentController:    kriRegisterReviewCommentController,
-		RiskWorkflowController:                riskWorkflowController,
-		RiskReviewController:                  riskReviewController,
-		RiskReviewCommentController:           riskReviewCommentController,
+		RiskRegisterController:                 riskRegisterController,
+		RiskRootCauseAnalysisController:        riskRootCauseAnalysisController,
+		RiskAppetiteToleranceLevelController:   riskAppetiteToleranceLevelController,
+		RiskInherentEvaluationController:       riskInherentEvaluationController,
+		RiskActionPlanController:               riskActionPlanController,
+		RiskActionPlanStatusUpdateController:   riskActionPlanStatusUpdateController,
+		RiskActionPlanCommentController:        riskActionPlanCommentController,
+		RiskAssociatedItemController:           riskAssociatedItemController,
+		RiskResponseStrategyController:         riskResponseStrategyController,
+		RiskTreatmentGuidelineController:       riskTreatmentGuidelineController,
+		RiskHeatmapController:                  riskHeatmapController,
+		RiskInherentControlAnalysisController:  riskInherentControlAnalysisController,
+		RiskResidualEvaluationController:       riskResidualEvaluationController,
+		RiskResidualControlAnalysisController:  riskResidualControlAnalysisController,
+		RiskKriController:                      riskKriController,
+		RiskTimelineController:                 riskTimelineController,
+		RiskSettingsController:                 riskSettingsController,
+		RiskClosureController:                  riskClosureController,
+		RiskCommentController:                  riskCommentController,
+		RiskReportController:                   riskReportController,
+		KRIAssociatedItemController:            kriAssociatedItemController,
+		KRIRegisterWorkflowController:          kriRegisterWorkflowController,
+		KRIRegisterReviewController:            kriRegisterReviewController,
+		KRIRegisterReviewCommentController:     kriRegisterReviewCommentController,
+		RiskWorkflowController:                 riskWorkflowController,
+		RiskReviewController:                   riskReviewController,
+		RiskReviewCommentController:            riskReviewCommentController,
 
 		RiskRegisterSvc:         riskRegisterSvc,
 		RiskHeatMapSvc:          riskHeatmapSvc,
