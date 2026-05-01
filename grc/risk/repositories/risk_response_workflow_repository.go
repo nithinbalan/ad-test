@@ -15,7 +15,6 @@ type RiskResponseWorkflowRepositoryInterface interface {
 	DeleteRiskResponseWorkflowParticipants(participantIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteRiskResponseWorkflowReviews(reviewIds []*uint, tx ...utility.DatabaseTransaction) error
 	DeleteRiskResponseWorkflows(workflowIds []*uint, tx ...utility.DatabaseTransaction) error
-	DeleteByRiskResponseID(riskResponseID uint, tx ...utility.DatabaseTransaction) error
 
 	GetRiskResponseWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskResponseWorkflow, error)
 	GetRiskResponseWorkflowByLevel(riskResponseID uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.RiskResponseWorkflow, error)
@@ -237,40 +236,6 @@ func (repo *RiskResponseWorkflowRepository) DeleteRiskResponseWorkflows(workflow
 	}
 
 	if err := db.Where("id IN (?)", workflowIds).Delete(&models.RiskResponseWorkflow{}).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (repo *RiskResponseWorkflowRepository) DeleteByRiskResponseID(riskResponseID uint, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-
-	// Get workflow IDs for this risk response
-	var workflowIDs []uint
-	if err := db.Model(&models.RiskResponseWorkflow{}).Where("risk_response_id = ?", riskResponseID).Pluck("id", &workflowIDs).Error; err != nil {
-		return err
-	}
-
-	if len(workflowIDs) == 0 {
-		return nil
-	}
-
-	// Delete workflow participants
-	if err := db.Where("risk_response_workflow_id IN (?)", workflowIDs).Delete(&models.RiskResponseWorkflowParticipant{}).Error; err != nil {
-		return err
-	}
-
-	// Delete workflow reviews
-	if err := db.Where("risk_response_workflow_id IN (?)", workflowIDs).Delete(&models.RiskResponseWorkflowReview{}).Error; err != nil {
-		return err
-	}
-
-	// Delete workflows
-	if err := db.Where("id IN (?)", workflowIDs).Delete(&models.RiskResponseWorkflow{}).Error; err != nil {
 		return err
 	}
 
