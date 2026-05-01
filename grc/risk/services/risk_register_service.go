@@ -63,36 +63,38 @@ type RiskRegisterServiceInterface interface {
 
 // Service and implementations
 type RiskRegisterService struct {
-	repo                      riskRepositories.RiskRegisterRepositoryInterface
-	activityLogSvc            logServices.ActivityLogServiceInterface
-	riskCategorySvc           RiskCategoryServiceInterface
-	riskSourceSvc             RiskSourceServiceInterface
-	userSvc                   organizationServices.UserServiceInterface
-	riskStatusSvc             RiskStatusServiceInterface
-	reviewFrequencySvc        masterServices.ReviewFrequencyServiceInterface
-	controlSvc                organizationServices.ControlServiceInterface
-	complianceRequirementSvc  complianceServices.ComplianceRequirementServiceInterface
-	processSvc                organizationServices.ProcessServiceInterface
-	strategicObjectiveSvc     organizationServices.StrategicObjectiveServiceInterface
-	slaRegisterSvc            complianceServices.SLARegisterServiceInterface
-	riskMatrixSvc             RiskMatrixServiceInterface
-	riskTimelineSvc           RiskTimelineServiceInterface
-	userSettingSvc            organizationServices.UserSettingServiceInterface
-	notificationSvc           commonServices.NotificationServiceInterface
-	assetRegisterSvc          assetServices.AssetRegisterServiceInterface
-	riskInherentEvaluationSvc RiskInherentEvaluationServiceInterface
-	riskSettingsSvc           RiskSettingsServiceInterface
-	organizationUnitSvc       settingsServices.OrganizationUnitServiceInterface
-	organizationUnitsSvc      organizationServices.OrganizationUnitsServiceInterface
-	riskMatrixLikelihoodSvc   RiskMatrixLikelihoodServiceInterface
-	riskMatrixImpactSvc       RiskMatrixImpactServiceInterface
-	riskResponseStrategySvc   RiskResponseStrategyServiceInterface
-	riskResidualEvaluationSvc RiskResidualEvaluationServiceInterface
-	riskWorkflowSvc           RiskWorkflowServiceInterface
-	severityLevelSvc          masterServices.SeverityLevelServiceInterface
-	riskTemplateSettingSvc    settingsServices.RiskTemplateSettingServiceInterface
-	riskReportRepo            riskRepositories.RiskReportRepositoryInterface
-	riskResponseSvc           RiskResponseServiceInterface
+	repo                          riskRepositories.RiskRegisterRepositoryInterface
+	activityLogSvc                logServices.ActivityLogServiceInterface
+	riskCategorySvc               RiskCategoryServiceInterface
+	riskSourceSvc                 RiskSourceServiceInterface
+	userSvc                       organizationServices.UserServiceInterface
+	riskStatusSvc                 RiskStatusServiceInterface
+	reviewFrequencySvc            masterServices.ReviewFrequencyServiceInterface
+	controlSvc                    organizationServices.ControlServiceInterface
+	complianceRequirementSvc      complianceServices.ComplianceRequirementServiceInterface
+	processSvc                    organizationServices.ProcessServiceInterface
+	strategicObjectiveSvc         organizationServices.StrategicObjectiveServiceInterface
+	slaRegisterSvc                complianceServices.SLARegisterServiceInterface
+	riskMatrixSvc                 RiskMatrixServiceInterface
+	riskTimelineSvc               RiskTimelineServiceInterface
+	userSettingSvc                organizationServices.UserSettingServiceInterface
+	notificationSvc               commonServices.NotificationServiceInterface
+	assetRegisterSvc              assetServices.AssetRegisterServiceInterface
+	riskInherentEvaluationSvc     RiskInherentEvaluationServiceInterface
+	riskSettingsSvc               RiskSettingsServiceInterface
+	organizationUnitSvc           settingsServices.OrganizationUnitServiceInterface
+	organizationUnitsSvc          organizationServices.OrganizationUnitsServiceInterface
+	riskMatrixLikelihoodSvc       RiskMatrixLikelihoodServiceInterface
+	riskMatrixImpactSvc           RiskMatrixImpactServiceInterface
+	riskResponseStrategySvc       RiskResponseStrategyServiceInterface
+	riskResidualEvaluationSvc     RiskResidualEvaluationServiceInterface
+	riskWorkflowSvc               RiskWorkflowServiceInterface
+	severityLevelSvc              masterServices.SeverityLevelServiceInterface
+	riskTemplateSettingSvc        settingsServices.RiskTemplateSettingServiceInterface
+	riskReportRepo                riskRepositories.RiskReportRepositoryInterface
+	riskResponseSvc               RiskResponseServiceInterface
+	riskResponseWorkflowRepo      riskRepositories.RiskResponseWorkflowRepositoryInterface
+	riskResponseReviewCommentRepo riskRepositories.RiskResponseReviewCommentRepositoryInterface
 }
 
 func NewRiskRegisterService(
@@ -125,37 +127,41 @@ func NewRiskRegisterService(
 	riskReportRepo riskRepositories.RiskReportRepositoryInterface,
 	riskTemplateSettingSvc settingsServices.RiskTemplateSettingServiceInterface,
 	riskResponseSvc RiskResponseServiceInterface,
+	riskResponseWorkflowRepo riskRepositories.RiskResponseWorkflowRepositoryInterface,
+	riskResponseReviewCommentRepo riskRepositories.RiskResponseReviewCommentRepositoryInterface,
 ) RiskRegisterServiceInterface {
 	return &RiskRegisterService{
-		repo:                      repo,
-		activityLogSvc:            activityLogSvc,
-		riskCategorySvc:           riskCategorySvc,
-		riskSourceSvc:             riskSourceSvc,
-		userSvc:                   userSvc,
-		riskStatusSvc:             riskStatusSvc,
-		reviewFrequencySvc:        reviewFrequencySvc,
-		controlSvc:                controlSvc,
-		complianceRequirementSvc:  complianceRequirementSvc,
-		processSvc:                processSvc,
-		strategicObjectiveSvc:     strategicObjectiveSvc,
-		slaRegisterSvc:            slaRegisterSvc,
-		riskMatrixSvc:             riskMatrixSvc,
-		riskTimelineSvc:           riskTimelineSvc,
-		userSettingSvc:            userSettingSvc,
-		notificationSvc:           notificationSvc,
-		assetRegisterSvc:          assetRegisterSvc,
-		riskInherentEvaluationSvc: riskInherentEvaluationSvc,
-		riskSettingsSvc:           riskSettingsSvc,
-		organizationUnitSvc:       organizationUnitSvc,
-		organizationUnitsSvc:      organizationUnitsSvc,
-		riskMatrixLikelihoodSvc:   riskMatrixLikelihoodSvc,
-		riskMatrixImpactSvc:       riskMatrixImpactSvc,
-		riskResponseStrategySvc:   riskResponseStrategySvc,
-		riskResidualEvaluationSvc: riskResidualEvaluationSvc,
-		severityLevelSvc:          severityLevelSvc,
-		riskReportRepo:            riskReportRepo,
-		riskTemplateSettingSvc:    riskTemplateSettingSvc,
-		riskResponseSvc:           riskResponseSvc,
+		repo:                          repo,
+		activityLogSvc:                activityLogSvc,
+		riskCategorySvc:               riskCategorySvc,
+		riskSourceSvc:                 riskSourceSvc,
+		userSvc:                       userSvc,
+		riskStatusSvc:                 riskStatusSvc,
+		reviewFrequencySvc:            reviewFrequencySvc,
+		controlSvc:                    controlSvc,
+		complianceRequirementSvc:      complianceRequirementSvc,
+		processSvc:                    processSvc,
+		strategicObjectiveSvc:         strategicObjectiveSvc,
+		slaRegisterSvc:                slaRegisterSvc,
+		riskMatrixSvc:                 riskMatrixSvc,
+		riskTimelineSvc:               riskTimelineSvc,
+		userSettingSvc:                userSettingSvc,
+		notificationSvc:               notificationSvc,
+		assetRegisterSvc:              assetRegisterSvc,
+		riskInherentEvaluationSvc:     riskInherentEvaluationSvc,
+		riskSettingsSvc:               riskSettingsSvc,
+		organizationUnitSvc:           organizationUnitSvc,
+		organizationUnitsSvc:          organizationUnitsSvc,
+		riskMatrixLikelihoodSvc:       riskMatrixLikelihoodSvc,
+		riskMatrixImpactSvc:           riskMatrixImpactSvc,
+		riskResponseStrategySvc:       riskResponseStrategySvc,
+		riskResidualEvaluationSvc:     riskResidualEvaluationSvc,
+		severityLevelSvc:              severityLevelSvc,
+		riskReportRepo:                riskReportRepo,
+		riskTemplateSettingSvc:        riskTemplateSettingSvc,
+		riskResponseSvc:               riskResponseSvc,
+		riskResponseWorkflowRepo:      riskResponseWorkflowRepo,
+		riskResponseReviewCommentRepo: riskResponseReviewCommentRepo,
 	}
 }
 
@@ -1564,11 +1570,40 @@ func (rrs *RiskRegisterService) DeleteResponseStrategy(riskID uint, currentUserI
 		return err
 	}
 
-	existingRisk.RiskResponseStrategyID = nil
+	// Get risk response by risk register ID
+	riskResponse, err := rrs.riskResponseSvc.GetByRiskRegisterID(riskID, tx)
+	if err != nil {
+		// If no risk response exists, just clear the strategy
+		existingRisk.RiskResponseStrategyID = nil
+		if err := rrs.repo.Update(existingRisk, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	} else {
+		// Delete workflow-related data
+		if err := rrs.riskResponseWorkflowRepo.DeleteByRiskResponseID(riskResponse.ID, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 
-	if err := rrs.repo.Update(existingRisk, tx); err != nil {
-		tx.Rollback()
-		return err
+		// Delete review comments
+		if err := rrs.riskResponseReviewCommentRepo.DeleteByRiskResponseID(riskResponse.ID, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// Delete risk response
+		if err := rrs.riskResponseSvc.DeleteByRiskRegisterID(riskID, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		existingRisk.RiskResponseStrategyID = nil
+
+		if err := rrs.repo.Update(existingRisk, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	// update timeline

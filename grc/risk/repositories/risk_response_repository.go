@@ -15,6 +15,7 @@ type RiskResponseRepositoryInterface interface {
 	GetByRiskRegisterID(riskRegisterID uint, tx ...utility.DatabaseTransaction) (*models.RiskResponse, error)
 	Create(riskResponse *models.RiskResponse, tx ...utility.DatabaseTransaction) error
 	Update(riskResponse *models.RiskResponse, tx ...utility.DatabaseTransaction) error
+	DeleteByRiskRegisterID(riskRegisterID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskResponseRepository struct {
@@ -121,4 +122,13 @@ func (repo *RiskResponseRepository) Update(riskResponse *models.RiskResponse, tx
 	}
 
 	return db.Save(riskResponse).Error
+}
+
+func (repo *RiskResponseRepository) DeleteByRiskRegisterID(riskRegisterID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("risk_register_id = ?", riskRegisterID).Delete(&models.RiskResponse{}).Error
 }

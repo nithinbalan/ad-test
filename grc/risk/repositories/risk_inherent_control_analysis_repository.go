@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/utility"
 
@@ -42,33 +43,31 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
 		Select(`
             risk_control_analyses.id,
 			risk_control_analyses.type,
-			risk_control_analyses.control_test_id,
-			risk_control_analyses.score,
-			risk_control_analyses.control_effectiveness_score,
-			risk_control_analyses.control_effectiveness_rating_id,
-			risk_control_analyses.risk_reduction,
-			controls.id AS control_id,
-			controls.code AS control_code,
+			risk_controls.control_id,
+			latest_control_test.id AS control_test_id,
 			controls.reference_number AS control_reference_number,
-			controls.description AS control_description,
+			controls.code AS control_code,
 			controls.title_en AS control_title_en,
 			controls.title_ar AS control_title_ar,
-            control_types.title_en AS control_type_title_en,
+			CAST(risk_control_analyses.score AS VARCHAR) AS score,
+			controls.description AS control_description,
+			control_types.title_en AS control_type_title_en,
 			control_types.title_ar AS control_type_title_ar,
 			control_types.type AS control_type,
 			control_categories.title_en AS control_category_title_en,
 			control_categories.title_ar AS control_category_title_ar,
 			organization_units.title_en AS owner_unit_title_en,
 			organization_units.title_ar AS owner_unit_title_ar,
-			owner.id AS owner_id,
+			controls.responsible_user_id AS owner_id,
 			owner.first_name_en AS owner_first_name_en,
 			owner.first_name_ar AS owner_first_name_ar,
 			owner.last_name_en AS owner_last_name_en,
 			owner.last_name_ar AS owner_last_name_ar,
 			owner.initial AS owner_initial,
-            owner.color AS owner_color,
-            owner.email AS owner_email,
-            owner.profile_image_path AS owner_profile_image_path,
+			owner.color AS owner_color,
+			owner.email AS owner_email,
+			owner.profile_image_path AS owner_profile_image_path,
+			risk_control_analyses.type,
 			control_implementation_statuses.title_en AS control_implementation_status_title_en,
 			control_implementation_statuses.title_ar AS control_implementation_status_title_ar,
 			control_implementation_statuses.color_code AS control_implementation_status_color_code,
@@ -84,6 +83,17 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
 			control_automation.type AS control_automation_type,
 			control_consistency.type AS control_consistency_type,
 			CONVERT(VARCHAR, latest_control_test.tested_at, 23) AS last_test_date,
+			latest_control_test.title AS control_test_title,
+			latest_control_test.description AS control_test_description,
+			latest_control_test.comments AS control_test_comments,
+			latest_control_test.score AS control_test_score,
+			latest_control_test.control_effectiveness_score AS control_test_effectiveness_score,
+			latest_control_test.risk_reduction AS control_test_risk_reduction,
+			CONVERT(VARCHAR, latest_control_test.tested_at, 23) AS control_test_tested_at,
+			tested_by.first_name_en AS control_test_tested_by_first_name_en,
+			tested_by.last_name_en AS control_test_tested_by_last_name_en,
+			tested_by.initial AS control_test_tested_by_initial,
+			tested_by.color AS control_test_tested_by_color,
 			control_statuses.id AS control_status_id,
 			control_statuses.title_en AS control_status_title_en,
 			control_statuses.title_ar AS control_status_title_ar,
@@ -119,6 +129,7 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
             ) AS latest_control_test_ids ON latest_control_test_ids.control_id = controls.id
 			LEFT JOIN control_statuses ON control_statuses.id = controls.control_status_id
             LEFT JOIN control_tests AS latest_control_test ON latest_control_test.id = latest_control_test_ids.latest_test_id
+            LEFT JOIN users AS tested_by ON tested_by.id = latest_control_test.tested_by
             LEFT JOIN users AS created_user ON created_user.id = risk_control_analyses.created_by_id
         `).
 		Where(`risk_controls.risk_register_id = ? AND risk_control_analyses.type = 'inherent'`, riskID)
@@ -145,6 +156,31 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
 	// Execute the query
 	if err := query.Find(&riskControlAnalyses).Error; err != nil {
 		return nil, err
+	}
+
+	// Load control test documents for each analysis
+	for _, analysis := range riskControlAnalyses {
+		if analysis.ControlTestID != nil {
+			var documents []organizationDTOs.ControlTestDocumentDTO
+
+			err := repo.db.
+				Table("control_test_documents").
+				Select("id, control_test_id, url, name, original_name, token, type, size").
+				Where("control_test_id = ?", *analysis.ControlTestID).
+				Scan(&documents).Error
+
+			if err != nil {
+				return nil, err
+			}
+
+			if documents == nil {
+				documents = []organizationDTOs.ControlTestDocumentDTO{}
+			}
+
+			analysis.ControlTestDocuments = documents
+		} else {
+			analysis.ControlTestDocuments = []organizationDTOs.ControlTestDocumentDTO{}
+		}
 	}
 
 	return riskControlAnalyses, nil

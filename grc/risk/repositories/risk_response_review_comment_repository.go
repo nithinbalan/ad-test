@@ -19,6 +19,7 @@ type RiskResponseReviewCommentRepositoryInterface interface {
 	CreateDocuments(documents []*models.RiskResponseReviewCommentDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.RiskResponseReviewCommentDocument, error)
 	DeleteDocuments(documentIDs []*uint, tx ...utility.DatabaseTransaction) error
+	DeleteByRiskResponseID(riskResponseID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskResponseReviewCommentRepository struct {
@@ -95,6 +96,26 @@ func (repo *RiskResponseReviewCommentRepository) GetAll(riskResponseID uint, cur
 
 	if err := query.Scan(&comments).Error; err != nil {
 		return nil, err
+	}
+
+	for _, comment := range comments {
+		var documents []*riskDTOs.RiskResponseReviewCommentDocumentDTO
+
+		err := repo.db.
+			Table("risk_response_review_comment_documents").
+			Select("id, url, name, original_name, token, type, size").
+			Where("risk_response_review_comment_id = ?", comment.ID).
+			Scan(&documents).Error
+
+		if err != nil {
+			return nil, err
+		}
+
+		if documents == nil {
+			documents = []*riskDTOs.RiskResponseReviewCommentDocumentDTO{}
+		}
+
+		comment.Documents = documents
 	}
 
 	countQuery := repo.db.
@@ -250,6 +271,35 @@ func (repo *RiskResponseReviewCommentRepository) DeleteDocuments(documentIDs []*
 	}
 
 	if err := db.Where("id IN ?", documentIDs).Delete(&models.RiskResponseReviewCommentDocument{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *RiskResponseReviewCommentRepository) DeleteByRiskResponseID(riskResponseID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Get comment IDs for this risk response
+	var commentIDs []uint
+	if err := db.Model(&models.RiskResponseReviewComment{}).Where("risk_response_id = ?", riskResponseID).Pluck("id", &commentIDs).Error; err != nil {
+		return err
+	}
+
+	if len(commentIDs) == 0 {
+		return nil
+	}
+
+	// Delete comment documents
+	if err := db.Where("risk_response_review_comment_id IN (?)", commentIDs).Delete(&models.RiskResponseReviewCommentDocument{}).Error; err != nil {
+		return err
+	}
+
+	// Delete comments
+	if err := db.Where("id IN (?)", commentIDs).Delete(&models.RiskResponseReviewComment{}).Error; err != nil {
 		return err
 	}
 
