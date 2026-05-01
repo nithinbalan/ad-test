@@ -64,6 +64,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kriRegisterWorkflowController := app.RiskModule.KRIRegisterWorkflowController
 	kriRegisterReviewController := app.RiskModule.KRIRegisterReviewController
 	kriRegisterReviewCommentController := app.RiskModule.KRIRegisterReviewCommentController
+	riskResponseController := app.RiskModule.RiskResponseController
+	riskResponseWorkflowController := app.RiskModule.RiskResponseWorkflowController
+	riskResponseReviewController := app.RiskModule.RiskResponseReviewController
+	riskResponseReviewCommentController := app.RiskModule.RiskResponseReviewCommentController
 
 	riskRoutes.GET("/risk-categories", riskCategoryController.GetAllRiskCategories)
 	riskRoutes.GET("/risk-categories/:id", riskCategoryController.GetRiskCategoryDetails)
@@ -482,4 +486,22 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/identified-risks/:id/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "identified_risk", "modify"), riskReviewCommentController.ResolveComment)
 
 	riskRoutes.GET("/risks/:riskId/export-pdf", riskRegisterController.ExportRiskRegisterToPDF)
+
+	riskRoutes.GET("/risk-response-details/:riskId", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskResponseController.GetRiskResponseDetails)
+
+	riskRoutes.POST("/risk-response/:id/submit", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskResponseReviewController.SubmitRiskResponse)
+	riskRoutes.POST("/risk-response/:id/approve", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskResponseReviewController.ApproveRiskResponse)
+	riskRoutes.POST("/risk-response/:id/revert", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskResponseReviewController.RejectRiskResponse)
+	riskRoutes.POST("/risk-response/:id/reopen", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskResponseReviewController.ReopenRiskResponse)
+	riskRoutes.GET("/risk-response/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskResponseWorkflowController.GetWorkflowList)
+
+	riskRoutes.GET("/risk-response/:id/review-comments", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskResponseReviewCommentController.GetAllComments)
+	riskRoutes.GET("/risk-response/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk_register", "view"), riskResponseReviewCommentController.GetCommentDetails)
+	riskRoutes.POST("/risk-response/:id/review-comments", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskResponseReviewCommentController.CreateComment)
+	riskRoutes.PUT("/risk-response/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskResponseReviewCommentController.UpdateComment)
+	riskRoutes.POST("/risk-response/:id/review-comments/delete", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskResponseReviewCommentController.DeleteComments)
+	riskRoutes.PUT("/risk-response/:id/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "risk_register", "modify"), riskResponseReviewCommentController.ResolveComment)
+
+	unauthenticatedRoutes.GET("/risk-response/:id/review-comments/:commentId/document-preview", riskResponseReviewCommentController.GetDocumentPreview)
+	unauthenticatedRoutes.GET("/risk-response/:id/review-comments/:commentId/document-download", riskResponseReviewCommentController.DownloadDocument)
 }

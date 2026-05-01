@@ -57,6 +57,10 @@ type RiskModule struct {
 	RiskWorkflowController                 *controllers.RiskWorkflowController
 	RiskReviewController                   *controllers.RiskReviewController
 	RiskReviewCommentController            *controllers.RiskReviewCommentController
+	RiskResponseWorkflowController         *controllers.RiskResponseWorkflowController
+	RiskResponseReviewController           *controllers.RiskResponseReviewController
+	RiskResponseReviewCommentController    *controllers.RiskResponseReviewCommentController
+	RiskResponseController                 *controllers.RiskResponseController
 
 	RiskRegisterSvc         services.RiskRegisterServiceInterface
 	RiskHeatMapSvc          services.RiskHeatmapServiceInterface
@@ -253,6 +257,10 @@ func NewRiskModule(db *gorm.DB,
 
 	riskRegisterRepo := repositories.NewRiskRegisterRepository(db)
 
+	riskResponseRepo := repositories.NewRiskResponseRepository(db)
+	riskResponseSvc := services.NewRiskResponseService(riskResponseRepo)
+	riskResponseController := controllers.NewRiskResponseController(riskResponseSvc)
+
 	riskTimelineRepo := repositories.NewRiskTimelineRepository(db)
 	riskTimelineSvc := services.NewRiskTimelineService(riskTimelineRepo, riskRegisterRepo)
 	riskTimelineController := controllers.NewRiskTimelineController(riskTimelineSvc)
@@ -296,6 +304,7 @@ func NewRiskModule(db *gorm.DB,
 		masterModule.SeverityLevelSvc,
 		riskReportRepo,
 		settingsModule.RiskTemplateSettingSvc,
+		riskResponseSvc,
 	)
 	riskRegisterController := controllers.NewRiskRegisterController(riskRegisterSvc)
 
@@ -437,6 +446,43 @@ func NewRiskModule(db *gorm.DB,
 	kriAssociatedItemSvc := services.NewKRIAssociatedItemService(kriAssociatedItemRepo, kriRegisterSvc, commonModule.AssociatedItemValidationService)
 	kriAssociatedItemController := controllers.NewKRIAssociatedItemController(kriAssociatedItemSvc)
 
+	riskResponseWorkflowRepo := repositories.NewRiskResponseWorkflowRepository(db)
+	riskResponseReviewRepo := repositories.NewRiskResponseReviewRepository(db)
+	riskResponseWorkflowSvc := services.NewRiskResponseWorkflowService(
+		riskResponseWorkflowRepo,
+		riskResponseReviewRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.WorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		masterModule.WorkflowContextSvc,
+		commonModule.NotificationService,
+	)
+	riskResponseWorkflowSvc.SetRiskResponseService(riskResponseSvc)
+	riskResponseWorkflowController := controllers.NewRiskResponseWorkflowController(riskResponseWorkflowSvc)
+
+	riskResponseReviewSvc := services.NewRiskResponseReviewService(
+		riskResponseReviewRepo,
+		sharedModule.ActivityLogService,
+		riskResponseSvc,
+		riskResponseWorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+		taskModule.TaskService,
+	)
+	riskResponseReviewController := controllers.NewRiskResponseReviewController(riskResponseReviewSvc)
+
+	riskResponseReviewCommentRepo := repositories.NewRiskResponseReviewCommentRepository(db)
+	riskResponseReviewCommentSvc := services.NewRiskResponseReviewCommentService(
+		riskResponseReviewCommentRepo,
+		organizationModule.UserSvc,
+		sharedModule.ActivityLogService,
+		riskResponseSvc,
+		masterModule.CommentStatusSvc,
+	)
+	riskResponseReviewCommentController := controllers.NewRiskResponseReviewCommentController(riskResponseReviewCommentSvc)
+
 	return &RiskModule{
 		RiskCategoryController:                 riskCategoryController,
 		PotentialRiskStatusController:          potentialRiskStatusController,
@@ -486,6 +532,10 @@ func NewRiskModule(db *gorm.DB,
 		RiskWorkflowController:                 riskWorkflowController,
 		RiskReviewController:                   riskReviewController,
 		RiskReviewCommentController:            riskReviewCommentController,
+		RiskResponseWorkflowController:         riskResponseWorkflowController,
+		RiskResponseReviewController:           riskResponseReviewController,
+		RiskResponseReviewCommentController:    riskResponseReviewCommentController,
+		RiskResponseController:                 riskResponseController,
 
 		RiskRegisterSvc:         riskRegisterSvc,
 		RiskHeatMapSvc:          riskHeatmapSvc,
