@@ -151,7 +151,7 @@ func (rrs *RiskResponseReviewService) Submit(riskResponseID uint, currentUserID 
 
 	// Send notifications asynchronously
 	go func() {
-		urlParam := fmt.Sprintf(`{"id":%d}`, riskResponseID)
+		urlParam := fmt.Sprintf(`{"id":%d}`, riskResponseDetail.RiskRegister.ID)
 		entity := "risk-response-review"
 		action := "review-user-assign"
 
@@ -203,7 +203,7 @@ func (rrs *RiskResponseReviewService) Submit(riskResponseID uint, currentUserID 
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%srisk/identified-risk/%d/overview", appURL, riskResponseDetail.RiskRegister.ID),
+				"RedirectURL":           fmt.Sprintf("%srisk/risk-register/%d/risk-response", appURL, riskResponseDetail.RiskRegister.ID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -539,7 +539,7 @@ func (rrs *RiskResponseReviewService) Reopen(riskResponseID uint, currentUserID 
 
 	tx := rrs.repo.BeginTransaction()
 
-	workflowStatus, err := rrs.workflowStatusSvc.GetByType("changes_requested")
+	workflowStatus, err := rrs.workflowStatusSvc.GetByType("reopen")
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -585,7 +585,7 @@ func (rrs *RiskResponseReviewService) Reopen(riskResponseID uint, currentUserID 
 
 	go func() {
 
-		urlParam := fmt.Sprintf(`{"id":%d}`, riskResponseID)
+		urlParam := fmt.Sprintf(`{"id":%d}`, riskResponseDetail.RiskRegister.ID)
 		entity := "risk-response-review"
 		action := "reopened"
 
@@ -636,7 +636,7 @@ func (rrs *RiskResponseReviewService) Reopen(riskResponseID uint, currentUserID 
 		appURL := utility.GetAppURL()
 		emailTo := []string{createdByUser.Email}
 		subject := "Risk Response: Review Reopened"
-		redirectURL := fmt.Sprintf("%srisk/identified-risk/%d/overview", appURL, riskResponseID)
+		redirectURL := fmt.Sprintf("%srisk/risk-register/%d/risk-response", appURL, riskResponseDetail.RiskRegister.ID)
 
 		emailData := map[string]interface{}{
 			"FirstNameEn":           createdByUser.FirstNameEn,
@@ -673,7 +673,7 @@ func (rrs *RiskResponseReviewService) sendApprovalNotification(id uint, currentU
 			return
 		}
 
-		urlParam := fmt.Sprintf(`{"id":%d}`, riskDetail.ID)
+		urlParam := fmt.Sprintf(`{"id":%d}`, riskDetail.RiskRegister.ID)
 		entity := "risk-response-review"
 		action := "approval"
 
@@ -718,7 +718,7 @@ func (rrs *RiskResponseReviewService) sendApprovalNotification(id uint, currentU
 			"ApprovedByFirstNameEn": approvedByUser.FirstNameEn,
 			"ApprovedByLastNameEn":  approvedByUser.LastNameEn,
 			"ApprovedAt":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%srisk/identified-risk/%d/overview", appURL, id),
+			"RedirectURL":           fmt.Sprintf("%srisk/risk-register/%d/risk-response", appURL, riskDetail.RiskRegister.ID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -743,7 +743,7 @@ func (rrs *RiskResponseReviewService) notifyNextLevelUsers(id uint, nextWorkflow
 			return
 		}
 
-		urlParam := fmt.Sprintf(`{"id":%d}`, riskDetail.ID)
+		urlParam := fmt.Sprintf(`{"id":%d}`, riskDetail.RiskRegister.ID)
 		entity := "risk-response-review"
 		action := "review-user-assign"
 
@@ -801,7 +801,7 @@ func (rrs *RiskResponseReviewService) notifyNextLevelUsers(id uint, nextWorkflow
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%srisk/identified-risk/%d/overview", appURL, id),
+				"RedirectURL":           fmt.Sprintf("%srisk/risk-register/%d/risk-response", appURL, riskDetail.RiskRegister.ID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -841,7 +841,7 @@ func (rrs *RiskResponseReviewService) sendRejectedNotification(id uint, currentU
 			return
 		}
 
-		urlParam := fmt.Sprintf(`{"id":%d}`, id)
+		urlParam := fmt.Sprintf(`{"id":%d}`, riskResponseDetail.RiskRegister.ID)
 		entity := "risk-response-review"
 		action := "rejected"
 
@@ -886,7 +886,7 @@ func (rrs *RiskResponseReviewService) sendRejectedNotification(id uint, currentU
 			"RejectedByFirstNameEn": rejectedByUser.FirstNameEn,
 			"RejectedByLastNameEn":  rejectedByUser.LastNameEn,
 			"RejectedAt":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%srisk/identified-risk/%d/overview", appURL, id),
+			"RedirectURL":           fmt.Sprintf("%srisk/risk-register/%d/risk-response", appURL, riskResponseDetail.RiskRegister.ID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
