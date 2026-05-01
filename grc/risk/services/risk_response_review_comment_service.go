@@ -91,6 +91,7 @@ func (rrcs *RiskResponseReviewCommentService) GetAll(riskResponseID uint, curren
 			CreatedUserProfileImagePath: comment.CreatedUserProfileImagePath,
 			CreatedAt:                   comment.CreatedAt,
 			ParentCommentID:             comment.ParentCommentID,
+			Documents:                   comment.Documents,
 		}
 		dtoMap[comment.ID] = dto
 	}
