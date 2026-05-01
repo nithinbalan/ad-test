@@ -92,6 +92,7 @@ type RiskRegisterService struct {
 	severityLevelSvc          masterServices.SeverityLevelServiceInterface
 	riskTemplateSettingSvc    settingsServices.RiskTemplateSettingServiceInterface
 	riskReportRepo            riskRepositories.RiskReportRepositoryInterface
+	riskResponseSvc           RiskResponseServiceInterface
 }
 
 func NewRiskRegisterService(
@@ -123,6 +124,7 @@ func NewRiskRegisterService(
 	severityLevelSvc masterServices.SeverityLevelServiceInterface,
 	riskReportRepo riskRepositories.RiskReportRepositoryInterface,
 	riskTemplateSettingSvc settingsServices.RiskTemplateSettingServiceInterface,
+	riskResponseSvc RiskResponseServiceInterface,
 ) RiskRegisterServiceInterface {
 	return &RiskRegisterService{
 		repo:                      repo,
@@ -153,6 +155,7 @@ func NewRiskRegisterService(
 		severityLevelSvc:          severityLevelSvc,
 		riskReportRepo:            riskReportRepo,
 		riskTemplateSettingSvc:    riskTemplateSettingSvc,
+		riskResponseSvc:           riskResponseSvc,
 	}
 }
 
@@ -1518,6 +1521,12 @@ func (rrs *RiskRegisterService) UpdateResponseStrategy(riskID uint, currentUserI
 		return err
 	}
 
+	// Create RiskResponse if not exists (only with risk_id, other fields null)
+	if err := rrs.riskResponseSvc.CreateIfNotExists(riskID, currentUserID, transaction); err != nil {
+		transaction.Rollback()
+		return err
+	}
+
 	// update timeline
 	// todo
 	timelineType, err := rrs.riskTimelineSvc.GetByType("risk_response")
@@ -1561,6 +1570,7 @@ func (rrs *RiskRegisterService) DeleteResponseStrategy(riskID uint, currentUserI
 		tx.Rollback()
 		return err
 	}
+
 	// update timeline
 	// todo
 	timelineType, err := rrs.riskTimelineSvc.GetByType("risk_response")

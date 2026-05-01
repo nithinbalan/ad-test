@@ -218,6 +218,13 @@
   "translation": "The {{.Field}} must be under the responsible unit"
 }
 
+,
+{
+  "id": "residual_risk_rating",
+  "translation": "Residual risk rating must be 'high' or 'critical' to submit risk response for review"
+}
+
+
 
 
 

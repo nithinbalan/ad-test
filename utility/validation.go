@@ -441,6 +441,16 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			})
 			errors = append(errors, errorMessage)
 
+		case "residual_risk_rating":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "residual_risk_rating",
+				TemplateData: map[string]interface{}{
+					"Field": translatedFieldName,
+				},
+			})
+			errors = append(errors, errorMessage)
+
 		}
 
 		return errors
