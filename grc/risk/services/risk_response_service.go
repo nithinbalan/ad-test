@@ -20,6 +20,7 @@ type RiskResponseServiceInterface interface {
 	GetByRiskRegisterID(riskRegisterID uint, tx ...utility.DatabaseTransaction) (*models.RiskResponse, error)
 	CreateIfNotExists(riskRegisterID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error
 	Update(riskResponse *models.RiskResponse, tx ...utility.DatabaseTransaction) error
+	DeleteByRiskRegisterID(riskRegisterID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskResponseService struct {
@@ -109,4 +110,8 @@ func (svc *RiskResponseService) CreateIfNotExists(riskRegisterID uint, currentUs
 
 func (svc *RiskResponseService) Update(riskResponse *models.RiskResponse, tx ...utility.DatabaseTransaction) error {
 	return svc.repo.Update(riskResponse, tx...)
+}
+
+func (svc *RiskResponseService) DeleteByRiskRegisterID(riskRegisterID uint, tx ...utility.DatabaseTransaction) error {
+	return svc.repo.DeleteByRiskRegisterID(riskRegisterID, tx...)
 }
