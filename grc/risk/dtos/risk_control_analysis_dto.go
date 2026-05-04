@@ -42,6 +42,7 @@ type RiskControlAnalysisListDTO struct {
 	ControlEffectivenessRatingMinScore   *float64                                        `json:"control_effectiveness_rating_min_score"`
 	ControlEffectivenessRatingMaxScore   *float64                                        `json:"control_effectiveness_rating_max_score"`
 	ControlEffectivenessRatingType       *string                                         `json:"control_effectiveness_rating_type"`
+	ControlEffectivenessRatingColorCode  *string                                         `json:"control_effectiveness_rating_color_code"`
 	RiskReduction                        *float64                                        `json:"risk_reduction"`
 	ControlAutomationType                *string                                         `json:"control_automation_type"`
 	ControlConsistencyType               *string                                         `json:"control_consistency_type"`
@@ -52,6 +53,18 @@ type RiskControlAnalysisListDTO struct {
 	ControlStatusTitleAr                 *string                                         `json:"control_status_title_ar"`
 	ControlStatusColorCode               *string                                         `json:"control_status_color_code"`
 	ControlStatusType                    *string                                         `json:"control_status_type"`
+	ControlTestTitle                     *string                                         `json:"control_test_title"`
+	ControlTestDescription               *string                                         `json:"control_test_description"`
+	ControlTestComments                  *string                                         `json:"control_test_comments"`
+	ControlTestScore                     *uint                                           `json:"control_test_score"`
+	ControlTestEffectivenessScore        *float64                                        `json:"control_test_effectiveness_score"`
+	ControlTestRiskReduction             *float64                                        `json:"control_test_risk_reduction"`
+	ControlTestTestedAt                  *string                                         `json:"control_test_tested_at"`
+	ControlTestTestedByFirstNameEn       *string                                         `json:"control_test_tested_by_first_name_en"`
+	ControlTestTestedByLastNameEn        *string                                         `json:"control_test_tested_by_last_name_en"`
+	ControlTestTestedByInitial           *string                                         `json:"control_test_tested_by_initial"`
+	ControlTestTestedByColor             *string                                         `json:"control_test_tested_by_color"`
+	ControlTestDocuments                 []organizationDTOs.ControlTestDocumentDTO       `json:"control_test_documents" gorm:"-"`
 	CreatedAt                            string                                          `json:"created_at"`
 	CreatedUserID                        uint                                            `json:"created_user_id"`
 	CreatedUserFirstNameEn               string                                          `json:"created_user_first_name_en"`

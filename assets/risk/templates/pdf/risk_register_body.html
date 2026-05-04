@@ -4,12 +4,50 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700&display=swap"
-    rel="stylesheet" />
   <title>Risk Report</title>
   <style>
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont100}}') format('woff');
+      font-weight: 100;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont200}}') format('woff');
+      font-weight: 200;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont300}}') format('woff');
+      font-weight: 300;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont400}}') format('woff');
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont500}}') format('woff');
+      font-weight: 500;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Lexend Deca';
+      src: url('{{.LexandDecaFont600}}') format('woff');
+      font-weight: 600;
+      font-style: normal;
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -22,188 +60,431 @@
     }
 
     body {
-      font-family: 'Lexend Deca', Arial, sans-serif;
+      font-family: "Lexend Deca", sans-serif;
       background: #ffffff;
       color: #1f2937;
-      font-size: 11px;
-      line-height: 1.4;
-      padding: 24px 32px;
+      font-size: 10.5px;
+      line-height: 1.45;
+      padding: 16px 40px;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    
+
     table {
       border-collapse: collapse;
     }
 
+    /* Section Styles */
     .section {
-      margin-bottom: 28px;
+      margin-bottom: 20px;
       page-break-inside: avoid;
     }
 
     .section-title {
       font-size: 16px;
-      font-weight: 480;
+      font-weight: 400;
       color: #111827;
-      margin-bottom: 8px;
-      padding-bottom: 4px;
+      margin-bottom: 10px;
+      padding-bottom: 0;
+      border-bottom: none;
     }
 
     .subsection-title {
-      font-size: 12px;
+      font-size: 12.5px;
       font-weight: 400;
       color: #111827;
-      margin: 6px 0 10px 0;
+      margin: 14px 0 8px 0;
     }
 
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
+    .section-divider {
+      border: none;
+      border-top: 1px solid #e5e7eb;
+      margin: 16px 0;
+    }
+
+    /* Label-Value Pairs */
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px 32px;
+      margin-bottom: 16px;
+    }
+
+    .field-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px 32px;
+      margin-bottom: 16px;
+    }
+
+    .field-group {
       margin-bottom: 12px;
     }
 
-    .data-table td {
-      padding: 5px 8px 5px 0;
-      vertical-align: top;
-      font-size: 11px;
-    }
-
-    .label {
+    .field-label {
+      font-size: 10px;
       color: #6b7280;
       font-weight: 400;
+      margin-bottom: 3px;
     }
 
-    .value {
+    .field-value {
+      font-size: 11px;
       color: #111827;
       font-weight: 400;
+      line-height: 1.45;
     }
 
+    .field-value-large {
+      font-size: 11px;
+      color: #111827;
+      font-weight: 400;
+      line-height: 1.5;
+      margin-top: 6px;
+    }
+
+    /* Badges */
     .badge {
       display: inline-block;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 400;
+      padding: 3px 10px;
+      border-radius: 5px;
+      font-size: 10px;
+      font-weight: 500;
       line-height: 1.2;
-      vertical-align: baseline;
       white-space: nowrap;
-      box-sizing: border-box;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
 
+    .badge-high,
     .badge-red {
-      background-color: #fef2f2;
-      color: #dc2626;
-      border: 1px solid #fecaca;
+      background-color: #dc2626;
+      color: #ffffff;
     }
 
-    .badge-orange {
-      background-color: #fff7ed;
-      color: #ea580c;
-      border: 1px solid #fed7aa;
-    }
-
+    .badge-medium,
     .badge-yellow {
-      background-color: #fefce8;
-      color: #ca8a04;
-      border: 1px solid #fef08a;
+      background-color: #f59e0b;
+      color: #ffffff;
     }
 
+    .badge-low,
     .badge-green {
-      background-color: #f0fdf4;
-      color: #16a34a;
-      border: 1px solid #bbf7d0;
+      background-color: #16a34a;
+      color: #ffffff;
     }
 
-    .badge-blue {
-      background-color: #eff6ff;
-      color: #2563eb;
-      border: 1px solid #bfdbfe;
+    .badge-implemented {
+      background-color: #16a34a;
+      color: #ffffff;
     }
 
-    .card {
-      border: 1px solid #d1d5db;
-      border-radius: 4px;
-      padding: 14px 16px;
-      margin-bottom: 12px;
-      background: #ffffffba;
-      page-break-inside: avoid;
-    }
-    
-    .card-inline {
-      border: 1px solid #d1d5db;
-      border-radius: 4px;
-      padding: 14px 16px;
-      margin-bottom: 12px;
-      background: #ffffff;
-      page-break-inside: avoid;
+    .badge-inefficient {
+      background-color: #dc2626;
+      color: #ffffff;
     }
 
-    .card-header {
-      font-size: 12px;
-      font-weight: 600;
-      color: #111827;
-      margin-bottom: 12px;
+    .badge-in-progress {
+      background-color: #f59e0b;
+      color: #ffffff;
     }
 
-    .card-table {
+    .badge-below {
+      background-color: #dc2626;
+      color: #ffffff;
+    }
+
+    .badge-within {
+      background-color: #16a34a;
+      color: #ffffff;
+    }
+
+    .badge-moderate {
+      background-color: #f59e0b;
+      color: #ffffff;
+    }
+
+    /* Tables */
+    .data-table {
       width: 100%;
       border-collapse: collapse;
+      margin: 8px 0 16px 0;
+      border: 1px solid #eaedf2;
+      border-radius: 10px;
+      background: #ffffff;
     }
 
-    .card-table td {
-      padding: 4px 8px 4px 0;
-      vertical-align: top;
+    .data-table th {
+      background-color: #f9fbfc;
+      padding: 10px;
+      text-align: left;
       font-size: 11px;
+      font-weight: 400;
+      color: #1a1a1a;
+      border: 1px solid #eaedf2;
     }
 
-    .card-label {
+    .data-table td {
+      font-weight: 300;
+      padding: 10px;
+      font-size: 10.5px;
+      color: #1a1a1a;
+      border: 1px solid #eaedf2;
+      vertical-align: middle;
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .table-row-number {
       color: #6b7280;
-      font-size: 10px;
+      width: 40px;
     }
 
-    .card-value {
-      color: #111827;
-      font-size: 11px;
-      line-height: 1.5;
-    }
-    
-    .card-value .badge {
-      margin-top: 2px;
-      margin-bottom: 2px;
+    /* User with Avatar */
+    .user-with-avatar {
+      display: inline;
     }
 
+    /* RCA Section */
     .rca-item {
-      margin-bottom: 10px;
+      margin-bottom: 16px;
     }
 
     .rca-question {
+      font-size: 12px;
       color: #111827;
-      font-size: 11px;
-      margin-bottom: 2px;
+      font-weight: 400;
+      margin-bottom: 6px;
     }
 
     .rca-answer {
+      font-size: 12px;
       color: #374151;
-      font-size: 11px;
-      padding-left: 12px;
+      padding-left: 16px;
+      line-height: 1.6;
     }
 
+    .rca-answer::before {
+      content: "• ";
+      color: #374151;
+    }
+
+    /* Risk Analysis Cards */
+    .risk-analysis-container {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 20px;
+    }
+
+    .risk-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 16px;
+      flex: 1;
+    }
+
+    .risk-card-label {
+      font-size: 11px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+
+    .risk-card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+
+    .risk-card-description {
+      font-size: 10px;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+
+    .risk-rating-section {
+      flex: 1.5;
+    }
+
+    .risk-rating-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+
+    .risk-rating-value {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .risk-rating-high {
+      color: #dc2626;
+    }
+
+    .risk-rating-medium {
+      color: #f59e0b;
+    }
+
+    .risk-rating-low {
+      color: #16a34a;
+    }
+
+    .risk-bar {
+      display: flex;
+      height: 24px;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .risk-bar-segment {
+      flex: 1;
+    }
+
+    .risk-bar-green {
+      background-color: #22c55e;
+    }
+
+    .risk-bar-yellow {
+      background-color: #eab308;
+    }
+
+    .risk-bar-orange {
+      background-color: #f97316;
+    }
+
+    .risk-bar-red {
+      background-color: #ef4444;
+    }
+
+    .risk-bar-indicator {
+      position: relative;
+    }
+
+    .risk-bar-indicator::after {
+      content: "▼";
+      position: absolute;
+      top: -16px;
+      right: 0;
+      font-size: 12px;
+      color: #374151;
+    }
+
+    .risk-formula {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 8px;
+    }
+
+    .risk-transition {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 8px;
+    }
+
+    .risk-transition .high {
+      color: #dc2626;
+      font-weight: 500;
+    }
+
+    .risk-transition .medium {
+      color: #f59e0b;
+      font-weight: 500;
+    }
+
+    /* Control Stats */
+    .control-stats {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 20px;
+      padding: 16px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .control-stat {
+      flex: 1;
+    }
+
+    .control-stat-icon {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+
+    .control-stat-label {
+      font-size: 11px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+
+    .control-stat-value {
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .control-stat-sub {
+      font-size: 10px;
+      color: #6b7280;
+    }
+
+    /* Response Strategy Card */
+    .strategy-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .strategy-badge {
+      margin-bottom: 12px;
+    }
+
+    .strategy-description {
+      font-size: 12px;
+      color: #374151;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .strategy-meta {
+      display: flex;
+      gap: 48px;
+    }
+
+    /* Risk Closure */
+    .closure-content {
+      margin-bottom: 20px;
+    }
+
+    .closure-heading {
+      font-size: 12px;
+      font-weight: 300;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+
+    .closure-text {
+      font-weight: 400;
+      font-size: 12px;
+      color: #374151;
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+
+    /* Empty State */
     .empty-state {
       color: #9ca3af;
       font-size: 11px;
       font-style: italic;
-      padding: 12px 0;
+      padding: 20px 0;
       text-align: center;
-    }
-
-    .subsection {
-      margin-bottom: 16px;
-    }
-    
-    .keep-together {
-      page-break-inside: avoid;
     }
 
     @media print {
@@ -213,10 +494,6 @@
 
       body {
         padding: 16px 24px;
-      }
-      
-      .card, .card-inline {
-        page-break-inside: avoid;
       }
     }
   </style>
@@ -229,588 +506,988 @@
     <div class="section-title">1. Basic Risk Information</div>
 
     <div class="subsection-title">1.1 Basic Risk Information</div>
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Ref No:</span><br /><span
-            class="card-value">{{.Data.ReferenceNumber}}</span></td>
-        <td style="width:25%;"><span class="card-label">Category:</span><br /><span
-            class="card-value">{{.Data.RiskCategoryTitleEn}}</span></td>
-        <td style="width:25%;"><span class="card-label">Risk Title:</span><br /><span
-            class="card-value">{{.Data.Title}}</span></td>
-        <td style="width:25%;"><span class="card-label">Risk Source:</span><br /><span class="card-value">{{if
-            .Data.RiskSourceTitleEn}}{{.Data.RiskSourceTitleEn}}{{else}}-{{end}}</span></td>
-      </tr>
-      <tr>
-        <td><span class="card-label">Risk Date:</span><br /><span class="card-value">{{.Data.StartDate}}</span></td>
-        <td><span class="card-label">Department:</span><br /><span
-            class="card-value">{{.Data.ResponsibleUnitTitleEn}}</span></td>
-        <td colspan="2"></td>
-      </tr>
-    </table>
 
-    <div class="card-label" style="margin-top: 8px;">Description:</div>
-    <div class="card-value" style="margin-top: 4px; line-height: 1.5;">{{if
-      .Data.Description}}{{.Data.Description}}{{else}}-{{end}}</div>
+    <div style="margin-top: 0;">
+      <div style="width: 30%; display: inline-block; vertical-align: top; margin-bottom: 8px;">
+        <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Ref No:</p>
+        <p style="margin: 0 0 10px 0; color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+          {{.Data.ReferenceNumber}}</p>
+      </div>
+      <div style="width: 30%; display: inline-block; vertical-align: top; margin-bottom: 8px;">
+        <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Risk Code:</p>
+        <p style="margin: 0 0 10px 0; color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+          {{.Data.RiskCode}}</p>
+      </div>
+      <div style="width: 30%; display: inline-block; vertical-align: top; margin-bottom: 8px;">
+        <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Risk Level:</p>
+        <p style="margin: 0 0 10px 0; color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">{{if .Data.IsStrategic}}Strategic{{else if .Data.IsOperational}}Operational{{else}}-{{end}}
+        </p>
+      </div>
+    </div>
 
-    <div class="subsection-title">1.2 Responsible Parties</div>
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Responsible Unit:</span><br /><span
-            class="card-value">{{.Data.ResponsibleUnitTitleEn}}</span></td>
-        <td style="width:25%;"><span class="card-label">Responsible User:</span><br /><span class="card-value">{{if
-            .Data.ResponsibleUserFirstNameEn}}{{.Data.ResponsibleUserFirstNameEn}}
-            {{.Data.ResponsibleUserLastNameEn}}{{else}}-{{end}}</span></td>
-        <td colspan="2"></td>
-      </tr>
-    </table>
+    <div style="margin-top: 6px;">
+      <div style="width: 100%; display: inline-block; vertical-align: top;">
+        <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Title</p>
+        <p style="margin: 0 0 10px 0; color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">{{.Data.Title}}</p>
+      </div>
+    </div>
+
+        <div style="margin-top: 6px;">
+      <div style="width: 100%; display: inline-block; vertical-align: top;">
+        <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Description</p>
+        <p style="margin: 0 0 10px 0; color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">{{if
+          .Data.Description}}{{safeHTML .Data.Description}}{{else}}-{{end}}</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 6px;">
+      <div style="width: 30%; display: inline-block; vertical-align: top;">
+        <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Responsible User</p>
+        <p style="margin: 0 0 10px 0; color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+          {{if .Data.ResponsibleUserFirstNameEn}}{{.Data.ResponsibleUserFirstNameEn}} {{.Data.ResponsibleUserLastNameEn}}{{else}}-{{end}}
+        </p>
+      </div>
+      <div style="width: 30%; display: inline-block; vertical-align: top;">
+        <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Division</p>
+        <p style="margin: 0 0 10px 0; color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+          {{.Data.DivisionTitleEn}}</p>
+      </div>
+            <div style="width: 30%; display: inline-block; vertical-align: top;">
+        <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Department</p>
+        <p style="margin: 0 0 10px 0; color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+          {{.Data.ResponsibleUnitTitleEn}}</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 6px;">
+      <div style="width: 30%; display: inline-block; vertical-align: top;">
+        <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Section</p>
+        <p style="margin: 0 0 10px 0; color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">{{if
+          .Data.SectionTitleEn}}{{.Data.SectionTitleEn}}{{else}}-{{end}}</p>
+      </div>
+
+       <div style="width: 30%; display: inline-block; vertical-align: top;">
+        <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Risk Date</p>
+        <p style="margin: 0 0 10px 0; color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+          {{.Data.RegistrationDate}}</p>
+      </div>
+      <div style="width: 30%; display: inline-block; vertical-align: top;">
+        <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Created By
+        </p>
+        <p style="margin: 0 0 10px 0; color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">{{.Data.CreatedUserFirstNameEn}} {{.Data.CreatedUserLastNameEn}}</p>
+      </div>
+    </div>
+
+    <div class="subsection-title">1.2 Risk Analysis</div>
+
+    <div style="margin-top: 0;">
+      <div style="width: 30%; display: inline-block; vertical-align: top;">
+        <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Risk Classification>
+        <p style="margin: 0 0 10px 0; color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">
+          {{.Data.RiskCategoryTitleEn}}</p>
+      </div>
+            <div style="width: 50%; display: inline-block; vertical-align: top; margin-bottom: 8px;">
+        <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Source :</p>
+        <p style="margin: 0 0 10px 0; color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">{{if .Data.IsInternal}}Internal{{else if .Data.IsExternal}}External{{else}}-{{end}}
+        </p>
+      </div>
+    </div>
+
+    <div style="margin-top: 6px;">
+      <div style="width: 100%; display: inline-block; vertical-align: top;">
+        <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Expected Cause:</p>
+        <p style="margin: 0 0 10px 0; color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">{{.Data.ExpectedCause}}</p>
+      </div>
+    </div>
+     <div style="margin-top: 6px;">
+      <div style="width: 100%; display: inline-block; vertical-align: top;">
+        <p style="margin: 0 0 2px 0; color: #000; font-size: 11px; line-height: 1.4; font-weight: 300;">Consequence:</p>
+        <p style="margin: 0 0 10px 0; color: #000; font-size: 12px; line-height: 1.4; font-weight: 400;">{{if
+          .Data.Consequence}}{{.Data.Consequence}}{{else}}-{{end}}</p>
+      </div>
+    </div>
   </div>
 
-  <!-- 2. Submission & Review History -->
-  <div class="section">
-    <div class="section-title">2. Submission &amp; Review History</div>
+  <hr class="section-divider" />
 
-    <div class="subsection-title">2.1 Review Information</div>
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Review Frequency:</span><br /><span class="card-value">{{if
-            .Data.ReviewFrequencyTitleEn}}{{.Data.ReviewFrequencyTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Next Review Date:</span><br /><span class="card-value">{{if
-            .Data.NextReviewDateString}}{{.Data.NextReviewDateString}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Last Review Note:</span><br /><span class="card-value">{{if
-            .Data.LastReviewNote}}{{.Data.LastReviewNote}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Next Review Level:</span><br /><span class="card-value">{{if
-            .Data.NextReviewLevel}}{{.Data.NextReviewLevel}}{{else}}-{{end}}</span></td>
-      </tr>
-      <tr>
-        <td><span class="card-label">Submitted By:</span><br /><span class="card-value">{{if
-            .Data.SubmittedByUserFirstNameEn}}{{.Data.SubmittedByUserFirstNameEn}}
-            {{.Data.SubmittedByUserLastNameEn}}{{else}}-{{end}}</span></td>
-        <td><span class="card-label">Submitted At:</span><br /><span class="card-value">{{if
-            .Data.SubmittedAtString}}{{.Data.SubmittedAtString}}{{else}}-{{end}}</span></td>
-        <td><span class="card-label">Reviewed By:</span><br /><span class="card-value">{{if
-            .Data.UpdatedByUserFirstNameEn}}{{.Data.UpdatedByUserFirstNameEn}}
-            {{.Data.UpdatedByUserLastNameEn}}{{else}}-{{end}}</span></td>
-        <td><span class="card-label">Created By:</span><br /><span class="card-value">{{.Data.CreatedUserFirstNameEn}}
-            {{.Data.CreatedUserLastNameEn}}</span></td>
-      </tr>
-      <tr>
-        <td><span class="card-label">Created At:</span><br /><span class="card-value">{{.Data.CreatedAt}}</ span></td>
-        <td><span class="card-label">Last Modified By:</span><br /><span class="card-value">{{if
-            .Data.UpdatedByUserFirstNameEn}}{{.Data.UpdatedByUserFirstNameEn}}
-            {{.Data.UpdatedByUserLastNameEn}}{{else}}-{{end}}</span></td>
-        <td><span class="card-label">Last Modified At:</span><br /><span class="card-value">{{if
-            .Data.UpdatedAtString}}{{.Data.UpdatedAtString}}{{else}}-{{end}}</span></td>
-        <td></td>
-      </tr>
-    </table>
-
-    <div class="subsection-title">2.2 Severity Level</div>
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Severity Level:</span><br /><span class="card-value">{{if
-            .Data.SeverityLevelTitleEn}}<span
-              class="badge badge-red">{{.Data.SeverityLevelTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td colspan="3"></td>
-      </tr>
-    </table>
-  </div>
-
-  <!-- 3. Risk Ratings -->
-  <div class="section">
-    <div class="section-title">3. Risk Ratings</div>
-
-    <div class="subsection-title">3.1 Current Risk Rating</div>
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Likelihood Level:</span><br /><span class="card-value">{{if
-            .Data.CurrentLikelihoodTitleEn}}<span
-              class="badge badge-blue">{{.Data.CurrentLikelihoodTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Likelihood Value:</span><br /><span class="card-value">{{if
-            .Data.CurrentLikelihoodScore}}{{.Data.CurrentLikelihoodScore}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Likelihood Description:</span><br /><span
-            class="card-value">{{if
-            .Data.CurrentLikelihoodDescriptionEn}}{{.Data.CurrentLikelihoodDescriptionEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Impact:</span><br /><span class="card-value">{{if
-            .Data.CurrentImpactTitleEn}}<span
-              class="badge badge-red">{{.Data.CurrentImpactTitleEn}}</span>{{else}}-{{end}}</span></td>
-      </tr>
-      <tr>
-        <td><span class="card-label">Impact Value:</span><br /><span class="card-value">{{if
-            .Data.CurrentImpactScore}}{{.Data.CurrentImpactScore}}{{else}}-{{end}}</span></td>
-        <td><span class="card-label">Impact Description:</span><br /><span class="card-value">{{if
-            .Data.CurrentImpactDescriptionEn}}{{.Data.CurrentImpactDescriptionEn}}{{else}}-{{end}}</span></td>
-        <td><span class="card-label">Overall Rating:</span><br /><span class="card-value">{{if
-            .Data.CurrentRiskRatingTitleEn}}<span
-              class="badge badge-red">{{.Data.CurrentRiskRatingTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td><span class="card-label">Risk Score:</span><br /><span class="card-value">{{if
-            .Data.CurrentRiskRatingValue}}{{.Data.CurrentRiskRatingValue}}{{else}}-{{end}}</span></td>
-      </tr>
-    </table>
-
-    <div class="subsection-title">3.2 Inherent Risk Rating</div>
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Likelihood Level:</span><br /><span class="card-value">{{if
-            .Data.InherentLikelihoodTitleEn}}<span
-              class="badge badge-red">{{.Data.InherentLikelihoodTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Impact Level:</span><br /><span class="card-value">{{if
-            .Data.InherentImpactTitleEn}}<span
-              class="badge badge-red">{{.Data.InherentImpactTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Overall Rating:</span><br /><span class="card-value">{{if
-            .Data.InherentRiskRatingTitleEn}}<span
-              class="badge badge-red">{{.Data.InherentRiskRatingTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Risk Score:</span><br /><span class="card-value">{{if
-            .Data.InherentRiskRatingValue}}{{.Data.InherentRiskRatingValue}}{{else}}-{{end}}</span></td>
-      </tr>
-    </table>
-
-    <div class="subsection-title">3.3 Residual Risk Rating</div>
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Likelihood Level:</span><br /><span class="card-value">{{if
-            .Data.ResidualLikelihoodTitleEn}}<span
-              class="badge badge-green">{{.Data.ResidualLikelihoodTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Impact Level:</span><br /><span class="card-value">{{if
-            .Data.ResidualImpactTitleEn}}<span
-              class="badge badge-red">{{.Data.ResidualImpactTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Overall Rating:</span><br /><span class="card-value">{{if
-            .Data.ResidualRiskRatingTitleEn}}<span
-              class="badge badge-yellow">{{.Data.ResidualRiskRatingTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Risk Score:</span><br /><span class="card-value">{{if
-            .Data.ResidualRiskRatingValue}}{{.Data.ResidualRiskRatingValue}}{{else}}-{{end}}</span></td>
-      </tr>
-    </table>
-  </div>
-
-  <!-- 4. Risk Response Strategy Section -->
-  <div class="section">
-    <div class="section-title">4. Risk Response Strategy Section</div>
-
-    <div class="subsection-title">4.1 Strategy Information</div>
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Risk Response Strategy:</span><br /><span
-            class="card-value">{{if
-            .Data.RiskResponseStrategyTitleEn}}{{.Data.RiskResponseStrategyTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Strategy Title:</span><br /><span class="card-value">{{if
-            .Data.RiskResponseStrategyTitleEn}}{{.Data.RiskResponseStrategyTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:50%;" colspan="2"><span class="card-label">Strategy Description:</span><br /><span
-            class="card-value">{{if
-            .Data.RiskResponseStrategyDescription}}{{.Data.RiskResponseStrategyDescription}}{{else}}-{{end}}</span></td>
-      </tr>
-    </table>
-
-    <div class="subsection-title">4.2 Risk Treatment Guidance</div>
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Treatment Guidance:</span><br /><span class="card-value">{{if
-            .Data.RiskResponseStrategyTreatmentGuidance}}{{.Data.RiskResponseStrategyTreatmentGuidance}}{{else}}-{{end}}</span>
-        </td>
-        <td colspan="3"></td>
-      </tr>
-    </table>
-  </div>
-
-  <!-- 5. Root Cause Analysis (RCA) -->
+  <!-- 2. Root Cause Analysis (RCA) -->
   {{if .Data.RootCauseAnalyses}}
   <div class="section">
-    <div class="section-title">5. Root Cause Analysis (RCA)</div>
+    <div class="section-title">2. Root Cause Analysis (RCA)</div>
     {{range .Data.RootCauseAnalyses}}
     <div class="rca-item">
       <div class="rca-question">{{.Why}}. {{.Question}}?</div>
-      <div class="rca-answer">• {{.Answer}}</div>
+      <div class="rca-answer">{{.Answer}}</div>
     </div>
     {{end}}
+  </div>
+  <hr class="section-divider" />
+  {{end}}
+
+  <!-- 3. Associated Items Section -->
+  <div class="section">
+    <div class="section-title">3. Associated Items Section</div>
+
+    <!-- 3.1 Strategic Objectives -->
+    {{if gt (len .Data.StrategicObjectives) 0}}
+    <div class="subsection-title">3.1 Strategic Objectives</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Title</th>
+          <th>Category</th>
+          <th>Start Date</th>
+          <th>End Date</th>
+          <th>Responsible Unit</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $index, $obj := .Data.StrategicObjectives}}
+        <tr>
+          <td class="table-row-number">{{add $index 1}}</td>
+          <td style="width: 30%;">{{if $obj.TitleEn}}{{$obj.TitleEn}}{{else}}-{{end}}</td>
+          <td>{{if $obj.StrategicObjectiveCategoryTitleEn}}{{$obj.StrategicObjectiveCategoryTitleEn}}{{else}}-{{end}}
+          </td>
+          <td>{{if $obj.StartDate}}{{$obj.StartDate}}{{else}}-{{end}}</td>
+          <td>{{if $obj.EndDate}}{{$obj.EndDate}}{{else}}-{{end}}</td>
+          <td>{{if $obj.ResponsibleUnitTitleEn}}{{$obj.ResponsibleUnitTitleEn}}{{else}}-{{end}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{end}}
+
+    <!-- 3.2 KPIs -->
+    {{if gt (len .Data.KPIs) 0}}
+    <div class="subsection-title">3.2 KPIs</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Title</th>
+          <th>Category</th>
+          <th>Responsible User</th>
+          <th>Frequency</th>
+          <th>Target Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $index, $kpi := .Data.KPIs}}
+        <tr>
+          <td class="table-row-number">{{add $index 1}}</td>
+          <td>{{if $kpi.Title}}{{$kpi.Title}}{{else}}-{{end}}</td>
+          <td>{{if $kpi.KPICategoryTitleEn}}{{$kpi.KPICategoryTitleEn}}{{else}}-{{end}}</td>
+          <td>{{if $kpi.ResponsibleUserFirstNameEn}}{{if
+            $kpi.ResponsibleUserLastNameEn}}{{$kpi.ResponsibleUserFirstNameEn}}
+            {{$kpi.ResponsibleUserLastNameEn}}{{else}}{{$kpi.ResponsibleUserFirstNameEn}}{{end}}{{else}}-{{end}}</td>
+          <td>{{if $kpi.ReviewFrequencyTitleEn}}{{$kpi.ReviewFrequencyTitleEn}}{{else}}-{{end}}</td>
+          <td>{{if $kpi.TargetValue}}{{$kpi.TargetValue}}{{else}}-{{end}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{end}}
+
+    <!-- 3.3 Compliance -->
+    {{$hasClauses := false}}
+    {{range .Data.ComplianceRequirements}}
+    {{if gt (len .Clauses) 0}}
+    {{$hasClauses = true}}
+    {{end}}
+    {{end}}
+    {{if $hasClauses}}
+    <div class="subsection-title">3.3 Compliance</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Title</th>
+          <th>Clause No</th>
+          <th>Clause Title</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $index, $compliance := .Data.ComplianceRequirements}}
+        {{range $clauseIndex, $clause := $compliance.Clauses}}
+        <tr>
+          <td class="table-row-number">{{add $index 1}}</td>
+          <td>{{if $compliance.ComplianceRegisterTitleEn}}{{$compliance.ComplianceRegisterTitleEn}}{{else}}-{{end}}</td>
+          <td>{{$clause.ClauseNo}}</td>
+          <td>{{$clause.ClauseTitleEn}}</td>
+        </tr>
+        {{end}}
+        {{end}}
+      </tbody>
+    </table>
+    {{end}}
+
+    <!-- 3.4 Process -->
+    {{if gt (len .Data.Processes) 0}}
+    <div class="subsection-title">3.4 Process</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Title</th>
+          <th>Process Group</th>
+          <th>Responsible User</th>
+          <th>Risk rating</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $index, $process := .Data.Processes}}
+        <tr>
+          <td class="table-row-number">{{add $index 1}}</td>
+          <td>{{if $process.TitleEn}}{{$process.TitleEn}}{{else}}-{{end}}</td>
+          <td>{{if $process.ProcessGroupTitleEn}}{{$process.ProcessGroupTitleEn}}{{else}}-{{end}}</td>
+          <td>{{if $process.OwnerFirstNameEn}}{{if $process.OwnerLastNameEn}}{{$process.OwnerFirstNameEn}}
+            {{$process.OwnerLastNameEn}}{{else}}{{$process.OwnerFirstNameEn}}{{end}}{{else}}-{{end}}</td>
+          <td>{{if $process.RiskRatingTitleEn}}
+            <span
+              style="background:#f9fbfc; color: {{if $process.RiskRatingColorCode}}{{$process.RiskRatingColorCode}}{{else}}#b6630a{{end}}; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid {{if $process.RiskRatingColorCode}}{{$process.RiskRatingColorCode}}{{else}}#edd7bf{{end}}; display:inline-block;">
+              {{$process.RiskRatingTitleEn}}
+            </span>
+            {{else}}-{{end}}
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{end}}
+
+    <!-- 3.5 Controls -->
+    {{if gt (len .Data.Controls) 0}}
+    <div class="subsection-title">3.5 Controls</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Title</th>
+          <th>Type</th>
+          <th>Implementation Status</th>
+          <th>Effectiveness Rating</th>
+          <th>Last Test Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $index, $control := .Data.Controls}}
+        <tr>
+          <td class="table-row-number">{{add $index 1}}</td>
+          <td>{{$control.TitleEn}}</td>
+          <td>{{if $control.ControlTypeTitleEn}}{{$control.ControlTypeTitleEn}}{{else if
+            $control.Code}}{{$control.Code}}{{else}}-{{end}}</td>
+          <td>{{if $control.ImplementationStatusTitleEnValue}}<span
+              style="background:#e5f4f0; color:#0e7b61; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #afd6cc; display:inline-block;">{{$control.ImplementationStatusTitleEnValue}}</span>{{else}}-{{end}}
+          </td>
+          <td>{{if $control.ControlEffectivenessRatingTitleEnValue}}
+            {{if eq $control.ControlEffectivenessRatingType "control_missing"}}
+            <span
+              style="background:#f7ced0; color:#FF0000; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #FF0000; display:inline-block;">{{$control.ControlEffectivenessRatingTitleEnValue}}</span>
+            {{else if eq $control.ControlEffectivenessRatingType "ineffective"}}
+            <span
+              style="background:#ffe1dd; color:#DC3545; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #DC354580; display:inline-block;">{{$control.ControlEffectivenessRatingTitleEnValue}}</span>
+            {{else if eq $control.ControlEffectivenessRatingType "improvement_needed"}}
+            <span
+              style="background:#fefedd; color:#FFC107; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #FFC107; display:inline-block;">{{$control.ControlEffectivenessRatingTitleEnValue}}</span>
+            {{else if eq $control.ControlEffectivenessRatingType "partially_effective"}}
+            <span
+              style="background:#dcfed0; color:#90DD75; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #90DD75; display:inline-block;">{{$control.ControlEffectivenessRatingTitleEnValue}}</span>
+            {{else if eq $control.ControlEffectivenessRatingType "very_effective"}}
+            <span
+              style="background:#dcfed0; color:#28A745; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #28A745; display:inline-block;">{{$control.ControlEffectivenessRatingTitleEnValue}}</span>
+            {{else}}
+            <span
+              style="background:#f9fbfc; color:#4b5563; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #eaedf2; display:inline-block;">{{$control.ControlEffectivenessRatingTitleEnValue}}</span>
+            {{end}}
+            {{else}}-{{end}}
+          </td>
+          <td>{{if $control.TestedAtString}}{{$control.TestedAtString}}{{else}}-{{end}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{end}}
+
+    <!-- 3.6 Documents -->
+    {{if gt (len .Data.Documents) 0}}
+    <div class="subsection-title">3.6 Documents</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Type</th>
+          <th>Title</th>
+          <th>Category</th>
+          <th>Responsible User</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $index, $doc := .Data.Documents}}
+        <tr>
+          <td class="table-row-number">{{add $index 1}}</td>
+          <td>{{if $doc.DocumentTypeTitleEn}}{{$doc.DocumentTypeTitleEn}}{{else}}-{{end}}</td>
+          <td>{{if $doc.TitleEn}}{{$doc.TitleEn}}{{else}}-{{end}}</td>
+          <td>{{if $doc.DocumentCategoryTitleEn}}{{$doc.DocumentCategoryTitleEn}}{{else}}-{{end}}</td>
+          <td>{{if $doc.ResponsibleUserFirstNameEn}}{{if
+            $doc.ResponsibleUserLastNameEn}}{{$doc.ResponsibleUserFirstNameEn}}
+            {{$doc.ResponsibleUserLastNameEn}}{{else}}{{$doc.ResponsibleUserFirstNameEn}}{{end}}{{else}}-{{end}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{end}}
+
+    <!-- 3.7 Assets -->
+    {{if gt (len .Data.Assets) 0}}
+    <div class="subsection-title">3.7 Assets</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Type</th>
+          <th>Title</th>
+          <th>Category</th>
+          <th>Responsible User</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $index, $asset := .Data.Assets}}
+        <tr>
+          <td class="table-row-number">{{add $index 1}}</td>
+          <td>{{if $asset.AssetTypeTitleEn}}{{$asset.AssetTypeTitleEn}}{{else}}-{{end}}</td>
+          <td>{{if $asset.TitleEn}}{{$asset.TitleEn}}{{else}}-{{end}}</td>
+          <td>{{if $asset.CategoryTitleEn}}{{$asset.CategoryTitleEn}}{{else}}-{{end}}</td>
+          <td>{{if $asset.ResponsibleUserFirstNameEn}}{{if
+            $asset.ResponsibleUserLastNameEn}}{{$asset.ResponsibleUserFirstNameEn}}
+            {{$asset.ResponsibleUserLastNameEn}}{{else}}{{$asset.ResponsibleUserFirstNameEn}}{{end}}{{else}}-{{end}}
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{end}}
+
+    <!-- 3.8 Incidents -->
+    {{if gt (len .Data.Incidents) 0}}
+    <div class="subsection-title">3.8 Incidents</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Title</th>
+          <th>Location</th>
+          <th>Incident At</th>
+          <th>Incident Category</th>
+          <th>Severity Level</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $index, $incident := .Data.Incidents}}
+        <tr>
+          <td class="table-row-number">{{add $index 1}}</td>
+          <td>{{if $incident.Title}}{{$incident.Title}}{{else}}-{{end}}</td>
+          <td>{{if $incident.Location}}{{$incident.Location}}{{else}}-{{end}}</td>
+          <td>{{if $incident.IncidentAt}}{{$incident.IncidentAt.Format "02 Jan 2006"}}{{else}}-{{end}}</td>
+          <td>{{if $incident.IncidentCategoryTitleEn}}{{$incident.IncidentCategoryTitleEn}}{{else}}-{{end}}</td>
+          <td>{{if $incident.SeverityLevelTitleEn}}
+            {{if eq $incident.SeverityLevelTitleEn "High"}}
+            <span
+              style="background:#fff8f8; color:#db0015; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #eec2c5; display:inline-block;">{{$incident.SeverityLevelTitleEn}}</span>
+            {{else if eq $incident.SeverityLevelTitleEn "Medium"}}
+            <span
+              style="background:#fffcf8; color:#b6630a; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #edd7bf; display:inline-block;">{{$incident.SeverityLevelTitleEn}}</span>
+            {{else if eq $incident.SeverityLevelTitleEn "Low"}}
+            <span
+              style="background:#e5f4f0; color:#0e7b61; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #afd6cc; display:inline-block;">{{$incident.SeverityLevelTitleEn}}</span>
+            {{else}}
+            <span
+              style="background:#f9fbfc; color:#4b5563; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #eaedf2; display:inline-block;">{{$incident.SeverityLevelTitleEn}}</span>
+            {{end}}
+            {{else}}-{{end}}
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{end}}
+  </div>
+
+  <hr class="section-divider" />
+
+  <!-- 4. Risk Analysis -->
+  <div class="section">
+    <div class="section-title">4. Risk Analysis</div>
+
+    <div class="subsection-title">4.1 Inherent Risk Analysis</div>
+
+    {{if or .Data.InherentImpactTitleEn .Data.InherentLikelihoodTitleEn .Data.InherentRiskRatingTitleEn}}
+    
+    <div style="width:100%; display:table; font-size:11px; font-weight:300; color:#1a1a1a;">
+      <div style="display:table-cell; width:49%; vertical-align:top; padding-right:10px;">
+        <div
+          style="border:1px solid #EAEDF2; border-radius:10px; padding:10px 12px; background:#ffffff; border-left:4px solid #C29152; margin-bottom:8px;">
+          <div style="font-size:11px; color:#1a1a1a; margin-bottom:4px; font-weight:400;">Impact Category</div>
+          <div style="font-size:12.5px; font-weight:400; margin-bottom:6px;">{{if
+            .Data.InherentImpactCategoryTitleEn}}{{.Data.InherentImpactCategoryTitleEn}}{{else}}-{{end}}
+          </div>
+          <div style="font-size:11px; color:#1a1a1a; margin-bottom:4px; font-weight:400;">Guideline</div>
+          <div style="font-size:10.5px; line-height:1.4; color:#1a1a1a;">{{if
+            .Data.InherentImpactGuideline}}{{.Data.InherentImpactGuideline}}{{else}}-{{end}}</div>
+        </div>
+      </div>
+      <div style="display:table-cell; width:49%; vertical-align:top;">
+        <div style="border:1px solid #EAEDF2; border-radius:10px; padding:12px 14px; background:#FCFCFC;">
+          <div style="font-size:16px; font-weight:500; margin-bottom:15px;">Inherent Risk Rating</div>
+          <div
+            style="font-size:16px; font-weight:bold; margin-bottom:20px; color: {{if .Data.InherentRiskRatingColorCode}}{{.Data.InherentRiskRatingColorCode}}{{else}}#DB0015{{end}};">
+            {{if .Data.InherentRiskRatingTitleEn}}{{.Data.InherentRiskRatingTitleEn}}
+            ({{.Data.InherentRiskRatingValue}}){{else}}-{{end}}
+          </div>
+
+          <div style="position:relative; margin:8px 0 10px;">
+
+            <!-- POINTER -->
+            <div style="position:absolute;
+                     left: {{if .Data.InherentRiskPointerPosition}}{{.Data.InherentRiskPointerPosition}}{{else}}82{{end}}%;
+                     top:-6px;
+                     width:0;
+                     height:0;
+                     border-left:6px solid transparent;
+                     border-right:6px solid transparent;
+                     border-top:8px solid #111;
+                     z-index:2;">
+            </div>
+
+            <!-- CONTINUOUS GRADIENT BAR -->
+            <div style="
+              height:25px;
+              width:100%;
+              border-radius:6px;
+              background:#22c55e;
+              background:-webkit-linear-gradient(left,
+                #22c55e 0%,
+                #a3e635 25%,
+                #facc15 50%,
+                #fb923c 75%,
+                #ef4444 100%
+              );
+              background:linear-gradient(to right,
+                #22c55e 0%,
+                #a3e635 25%,
+                #facc15 50%,
+                #fb923c 75%,
+                #ef4444 100%
+              );
+            ">
+            </div>
+
+          </div>
+
+          <div style="font-size:15px; color:#525967; font-weight:400;">
+            {{if .Data.InherentLikelihoodTitleEn}}{{.Data.InherentLikelihoodTitleEn}}{{else}}Moderate{{end}} -
+            {{.Data.InherentLikelihoodScore}} (Likelihood) × {{if
+            .Data.InherentImpactTitleEn}}{{.Data.InherentImpactTitleEn}}{{else}}Major{{end}} -
+            {{.Data.InherentImpactScore}} (Impact)
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Second row: Impact and Likelihood cards -->
+    <div style="width:100%; display:table; font-size:11px; font-weight:300; color:#1a1a1a; margin-top:8px;">
+      <div style="display:table-cell; width:49%; vertical-align:top; padding-right:10px;">
+        <div
+          style="border:1px solid #EAEDF2; border-radius:10px; padding:10px 12px; background:#ffffff; border-left:4px solid #C29152; margin-bottom:8px;">
+          <div style="font-size:11px; color:#1a1a1a; margin-bottom:4px; font-weight:400;">Impact</div>
+          <div style="font-size:12.5px; font-weight:400; margin-bottom:6px;">{{if
+            .Data.InherentImpactTitleEn}}{{.Data.InherentImpactTitleEn}} ({{.Data.InherentImpactScore}}){{else}}-{{end}}
+          </div>
+          <div style="font-size:10.5px; line-height:1.4; color:#1a1a1a;">{{if
+            .Data.InherentImpactDescriptionEn}}{{.Data.InherentImpactDescriptionEn}}{{else}}-{{end}}</div>
+        </div>
+        <div
+          style="border:1px solid #EAEDF2; border-radius:10px; padding:10px 12px; background:#ffffff; border-left:4px solid #C29152;">
+          <div style="font-size:11px; color:#1a1a1a; margin-bottom:4px; font-weight:400;">Likelihood</div>
+          <div style="font-size:12.5px; font-weight:400; margin-bottom:6px;">{{if
+            .Data.InherentLikelihoodTitleEn}}{{.Data.InherentLikelihoodTitleEn}}
+            ({{.Data.InherentLikelihoodScore}}){{else}}-{{end}}</div>
+          <div style="font-size:10.5px; line-height:1.4; color:#1a1a1a;">{{if
+            .Data.InherentLikelihoodDescriptionEn}}{{.Data.InherentLikelihoodDescriptionEn}}{{else}}-{{end}}</div>
+        </div>
+      </div>
+      <div style="display:table-cell; width:49%; vertical-align:top;">
+        <!-- Empty cell to maintain layout balance -->
+      </div>
+    </div>
+    {{else}}
+    <div class="empty-state">No risk analysis data available for this risk.</div>
+    {{end}}
+
+    {{if gt (len .Data.RiskAppetiteStatements) 0}}
+    <div class="subsection-title">4.2 Risk Appetite Statement Analysis Details</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Status</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $index, $statement := .Data.RiskAppetiteStatements}}
+        <tr>
+          <td class="table-row-number">{{add $index 1}}</td>
+          <td><span
+              style="background: {{if $statement.StatusColorCode}}{{$statement.StatusColorCode}}{{else}}#6b7280{{end}}; color:#ffffff; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid {{if $statement.StatusColorCode}}{{$statement.StatusColorCode}}{{else}}#6b7280{{end}}; display:inline-block;">{{$statement.StatusTitleEn}}</span>
+          </td>
+          <td>{{$statement.Description}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{end}}
+  </div>
+
+  <hr class="section-divider" />
+
+  <!-- 5. Control Analysis -->
+  <div class="section">
+    <div class="section-title">5. Inherent Control Analysis</div>
+
+    {{if gt (len .Data.Controls) 0}}
+    <!-- Show only the latest test/control -->
+    {{range $index, $control := .Data.Controls}}
+    {{if eq $index 0}} <!-- Show only the first (latest) control -->
+    <div style="border:1px solid #EAEDF2; border-radius:10px; padding:15px; background:#ffffff; margin-bottom:10px;">
+      <!-- First row: Reference Number and Control Code -->
+      <div style="width:100%; display:table; margin-bottom:8px;">
+        <div style="display:table-cell; width:30%; vertical-align:top; padding-right:10px;">
+          <p style="margin:0 0 2px 0; color:#000; font-size:11px; font-weight:300;">Reference Number</p>
+          <p style="margin:0 0 10px 0; color:#000; font-size:12px; font-weight:400;">{{$control.ReferenceNumber}}</p>
+        </div>
+        <div style="display:table-cell; width:30%; vertical-align:top; padding-right:10px;">
+          <p style="margin:0 0 2px 0; color:#000; font-size:11px; font-weight:300;">Control Code</p>
+          <p style="margin:0 0 10px 0; color:#000; font-size:12px; font-weight:400;">{{$control.Code}}</p>
+        </div>
+  
+        <div style="display:table-cell; width:30%; vertical-align:top;">
+          <p style="margin:0 0 2px 0; color:#000; font-size:11px; font-weight:300;">Control Status</p>
+          <p style="margin:0 0 10px 0;">
+             {{if $control.ControlStatusTitleEnValue}}
+           {{if eq $control.ControlStatusTypeValue "needs_improvement"}}
+            <span style="background:#f7ced0; color:#DC3545 ; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #DC3545; display:inline-block;">{{$control.ControlStatusTitleEnValue}}</span>
+            {{else if eq $control.ControlStatusTypeValue "doesnt_need_improvement"}}
+            <span style="background:#dcfed0; color:#28A745; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #28A745; display:inline-block;">{{$control.ControlStatusTitleEnValue}}</span>
+            {{end}}
+            {{else}}-
+            {{end}}
+          </p>
+        </div>
+      </div>
+
+      <div style="margin-bottom:8px;">
+        <p style="margin:0 0 2px 0; color:#000; font-size:11px; font-weight:300;">Title</p>
+        <p style="margin:0 0 10px 0; color:#000; font-size:12px; line-height:1.4; font-weight:400;">{{$control.TitleEn}}</p>
+      </div>
+      
+      <!-- Third row: Tested At and Risk Reduction -->
+      <div style="width:100%; display:table;">
+                <div style="display:table-cell; width:30%; vertical-align:top; padding-right:10px;">
+          <p style="margin:0 0 2px 0; color:#000; font-size:11px; font-weight:300;">Control Effectiveness Score</p>
+          <p style="margin:0 0 10px 0; color:#000; font-size:12px; font-weight:400;">
+            {{if $control.ControlEffectivenessScore}}{{$control.ControlEffectivenessScore}}{{else}}-{{end}}
+          </p>
+        </div>
+        <div style="display:table-cell; width:30%; vertical-align:top;">
+          <p style="margin:0 0 2px 0; color:#000; font-size:11px; font-weight:300;">Risk Reduction</p>
+          <p style="margin:0 0 10px 0; color:#000; font-size:12px; font-weight:400;">
+            {{if $control.RiskReduction}}{{$control.RiskReduction}}%{{else}}-{{end}}
+          </p>
+        </div>
+        <div style="display:table-cell; width:30%; vertical-align:top;">
+          <p style="margin:0 0 2px 0; color:#000; font-size:11px; font-weight:300;">Implementation Status</p>
+          <p style="margin:0 0 10px 0;">
+            {{if $control.ImplementationStatusTitleEnValue}}
+            <span style="background:#e5f4f0; color:#0e7b61; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #afd6cc; display:inline-block;">{{$control.ImplementationStatusTitleEnValue}}</span>
+            {{else}}-
+            {{end}}
+          </p>
+        </div>
+      </div>
+
+       <div style="width:100%; display:table;">
+        <div style="display:table-cell; width:30%; vertical-align:top; padding-right:10px;">
+          <p style="margin:0 0 2px 0; color:#000; font-size:11px; font-weight:300;">Tested At</p>
+          <p style="margin:0 0 10px 0; color:#000; font-size:12px; font-weight:400;">
+            {{if $control.TestedAtString}}{{$control.TestedAtString}}{{else}}-{{end}}
+          </p>
+        </div>
+          <div style="display:table-cell; width:30%; vertical-align:top; padding-right:10px;">
+          <p style="margin:0 0 2px 0; color:#000; font-size:11px; font-weight:300;">Effectiveness Rating</p>
+          <p style="margin:0 0 10px 0; color:#000; font-size:12px; font-weight:400;">
+            {{if $control.ControlEffectivenessRatingTitleEnValue}}
+            {{if eq $control.ControlEffectivenessRatingType "control_missing"}}
+            <span style="background:#f7ced0; color:#FF0000; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #FF0000; display:inline-block;">{{$control.ControlEffectivenessRatingTitleEnValue}}</span>
+            {{else if eq $control.ControlEffectivenessRatingType "ineffective"}}
+            <span style="background:#ffe1dd; color:#DC3545; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #DC354580; display:inline-block;">{{$control.ControlEffectivenessRatingTitleEnValue}}</span>
+            {{else if eq $control.ControlEffectivenessRatingType "improvement_needed"}}
+            <span
+              style="background:#fefedd; color:#FFC107; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #FFC107; display:inline-block;">{{$control.ControlEffectivenessRatingTitleEnValue}}</span>
+            {{else if eq $control.ControlEffectivenessRatingType "partially_effective"}}
+            <span
+              style="background:#dcfed0; color:#90DD75; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #90DD75; display:inline-block;">{{$control.ControlEffectivenessRatingTitleEnValue}}</span>
+            {{else if eq $control.ControlEffectivenessRatingType "very_effective"}}
+            <span
+              style="background:#dcfed0; color:#28A745; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #28A745; display:inline-block;">{{$control.ControlEffectivenessRatingTitleEnValue}}</span>
+            {{else}}
+            <span style="background:#f9fbfc; color:#4b5563; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #eaedf2; display:inline-block;">{{$control.ControlEffectivenessRatingTitleEnValue}}</span>
+            {{end}}
+            {{else}}-
+            {{end}}
+          </p>
+        </div>
+        <div style="display:table-cell; width:30%; vertical-align:top;">
+          <p style="margin:0 0 2px 0; color:#000; font-size:11px; font-weight:300;">Tested By</p>
+          <p style="margin:0 0 10px 0; color:#000; font-size:12px; font-weight:400;">
+            {{if $control.TestedByUserInitial}}
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <span style="display:inline-block; width:24px; height:24px; border-radius:50%; background:#165D31; color:#fff; text-align:center; line-height:24px; font-size:10px; font-weight:200;">{{$control.TestedByUserInitial}}</span>
+              <span>{{$control.TestedByUserFirstNameEn}} {{$control.TestedByUserLastNameEn}}</span>
+            </span>
+            {{else}}-{{end}}
+          </p>
+        </div>
+      </div>
+    </div>
+    {{end}}
+    {{end}}
+    {{end}}
+
+  </div>
+
+  <hr class="section-divider" />
+
+    <!-- 6. Residual Risk Analysis -->
+  <div class="section">
+    <div class="section-title">6. Residual Risk Analysis</div>
+
+    <div class="subsection-title">6.1 Risk Analysis</div>
+
+    {{if .Data.InherentRiskRatingValue}}
+    <div style="width:100%; display:table; font-size:11px; font-weight:300; color:#1a1a1a;">
+      <!-- Left: Control Effectiveness Rating Table -->
+      <div style="display:table-cell; width:49%; vertical-align:top; padding-right:10px;">
+        <table style="width:100%; border-collapse:collapse; background:#ffffff; border:1px solid #EAEDF2; border-radius:8px;">
+          <thead>
+            <tr style="background:#F9FAFB; border-bottom:1px solid #EAEDF2;">
+              <th style="padding:10px; text-align:left; font-size:11px; font-weight:500; color:#1a1a1a;">Control Score</th>
+              <th style="padding:10px; text-align:left; font-size:11px; font-weight:500; color:#1a1a1a;">Title</th>
+              <th style="padding:10px; text-align:left; font-size:11px; font-weight:500; color:#1a1a1a;">Reduction (%)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{if .Data.ControlEffectivenessRatings}}
+            {{range .Data.ControlEffectivenessRatings}}
+            <tr style="border-bottom:1px solid #EAEDF2;">
+              <td style="padding:10px; font-size:11px; color:#1a1a1a;">{{.MinScore}} - {{.MaxScore}}</td>
+              <td style="padding:10px; font-size:11px; color:#1a1a1a;">
+                {{if eq .TitleEn "Control missing"}}
+                <span style="background:#f7ced0; color:#FF0000; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #FF0000; display:inline-block;">{{.TitleEn}}</span>
+                {{else if eq .TitleEn "Ineffective"}}
+                <span style="background:#ffe1dd; color:#DC3545; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #DC3545; display:inline-block;">{{.TitleEn}}</span>
+                {{else if eq .TitleEn "Improvement Needed"}}
+                <span style="background:#fefedd; color:#FFC107; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #FFC107; display:inline-block;">{{.TitleEn}}</span>
+                {{else if eq .TitleEn "Partially Effective"}}
+                <span style="background:#dcfed0; color:#90DD75; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #90DD75; display:inline-block;">{{.TitleEn}}</span>
+                {{else if eq .TitleEn "Very Effective"}}
+                <span style="background:#dcfed0; color:#28A745; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid #28A745; display:inline-block;">{{.TitleEn}}</span>
+                {{else}}
+                {{.TitleEn}}
+                {{end}}
+              </td>
+              <td style="padding:10px; font-size:11px; color:#1a1a1a;">{{.ReductionPercent}}</td>
+            </tr>
+            {{end}}
+            {{else}}
+            <tr>
+              <td colspan="3" style="padding:10px; text-align:center; font-size:11px; color:#6b7280;">No ratings available</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Right: Risk Rating Card -->
+      <div style="display:table-cell; width:49%; vertical-align:top;">
+        <div style="border:1px solid #EAEDF2; border-radius:10px; padding:12px 14px; background:#FCFCFC;">
+          <div style="font-size:16px; font-weight:500; margin-bottom:15px;">Risk Rating</div>
+          <div
+            style="font-size:16px; font-weight:bold; margin-bottom:20px; color: {{if .Data.ResidualRiskRatingColorCode}}{{.Data.ResidualRiskRatingColorCode}}{{else}}#B6630A{{end}};">
+            {{if .Data.ResidualRiskRatingTitleEn}}{{.Data.ResidualRiskRatingTitleEn}}
+            ({{.Data.ResidualRiskRatingValue}}){{else}}-{{end}}
+          </div>
+
+          <div style="position:relative; margin:8px 0 10px;">
+            <!-- POINTER -->
+            <div style="
+                position:absolute;
+                left: {{if .Data.ResidualRiskPointerPosition}}{{.Data.ResidualRiskPointerPosition}}{{else}}62{{end}}%;
+                top:-6px;
+                width:0;
+                height:0;
+                border-left:6px solid transparent;
+                border-right:6px solid transparent;
+                border-top:8px solid #111;
+                z-index:2;
+              ">
+            </div>
+
+            <!-- CONTINUOUS GRADIENT BAR -->
+            <div style="
+                height:25px;
+                width:100%;
+                border-radius:6px;
+                background:#22c55e;
+                background:-webkit-linear-gradient(left,
+                  #22c55e 0%,
+                  #a3e635 25%,
+                  #facc15 50%,
+                  #fb923c 75%,
+                  #ef4444 100%
+                );
+                background:linear-gradient(to right,
+                  #22c55e 0%,
+                  #a3e635 25%,
+                  #facc15 50%,
+                  #fb923c 75%,
+                  #ef4444 100%
+                );
+              ">
+            </div>
+          </div>
+          
+          <div style="font-size:13px; color:#525967; font-weight:400; margin-top:10px;">
+            Inherent Risk ({{if .Data.InherentRiskRatingValue}}{{.Data.InherentRiskRatingValue}}{{else}}-{{end}}) × (1 - Average Reduction% ({{if .Data.AverageControlEffectivenessScore}}{{.Data.AverageControlEffectivenessScore}}{{else}}0{{end}}))
+          </div>
+        </div>
+      </div>
+    </div>
+    {{else}}
+    <div class="empty-state">No residual risk analysis data available for this risk.</div>
+    {{end}}
+
+    {{if gt (len .Data.ResidualRiskAppetiteStatements) 0}}
+    <div class="subsection-title">6.2 Risk Appetite Statement Analysis Details</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Status</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $index, $statement := .Data.ResidualRiskAppetiteStatements}}
+        <tr>
+          <td class="table-row-number">{{add $index 1}}</td>
+          <td><span
+              style="background: {{if $statement.StatusColorCode}}{{$statement.StatusColorCode}}{{else}}#6b7280{{end}}; color:#ffffff; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid {{if $statement.StatusColorCode}}{{$statement.StatusColorCode}}{{else}}#6b7280{{end}}; display:inline-block;">{{$statement.StatusTitleEn}}</span>
+          </td>
+          <td>{{$statement.Description}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{end}}
+  </div>
+
+  <hr class="section-divider" />
+
+  <!-- 7. Risk Response Strategy -->
+  <div class="section">
+    <div class="section-title">7. Risk Response Strategy</div>
+
+    <div class="strategy-card">
+      <div class="strategy-badge">
+        <span style="padding: 4px 10px; font-weight: 300;" class="badge badge-moderate">{{if
+          .Data.RiskResponseStrategyTitleEn}}{{.Data.RiskResponseStrategyTitleEn}}{{else}}Moderate{{end}}</span>
+      </div>
+      <div style="font-weight: 300;" class="strategy-description">{{if
+        .Data.RiskResponseStrategyDescription}}{{.Data.RiskResponseStrategyDescription}}{{else}}Risk event that would
+        affect the business continuity of Almarai and is fundamental to achieving goals and objectives or will have
+        critical impact on achieving desired outcomes, to the extent that one or more critical objectives will not be
+        achieved.{{end}}</div>
+      <table style="width:100%; border-collapse:collapse; margin-top:18px; background:#fff; border-radius:8px;">
+        <tr>
+          <td style="vertical-align:top; padding:0; width:15%;">
+            <span style="display:block; font-size:13px; color:#000; margin-bottom:3px; font-weight:300;">Updated
+              By:</span>
+            <span style="display:block; font-size:13px; color:#000; font-weight:400; margin-bottom:6px;">
+              {{if .Data.UpdatedByUserFirstNameEn}}{{.Data.UpdatedByUserFirstNameEn}}
+              {{.Data.UpdatedByUserLastNameEn}}{{else}}-{{end}}
+            </span>
+          </td>
+          <hr style="border: none; border-top: 0.5px solid #DEDEDE; margin: 16px 0;" />
+          <td style="vertical-align:top; padding:0; width:46%;">
+            <span style="display:block; font-size:13px; color:#000; margin-bottom:3px; font-weight:300;">Updated
+              at:</span>
+            <span style="display:block; font-size:13px; color:#000; font-weight:400; margin-bottom:6px;">
+              {{if .Data.UpdatedAtString}}{{.Data.UpdatedAtString}}{{else}}-{{end}}
+            </span>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <hr class="section-divider" />
+
+  <!-- 8. Risk Mitigation & Action Plans Section -->
+  <div class="section">
+    <div class="section-title">8. Risk Mitigation & Action Plans Section</div>
+    {{if gt (len .Data.ActionPlans) 0}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Action title</th>
+          <th>Proposed Controls</th>
+          <th>Responsible User</th>
+          <th>Target Date</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $index, $plan := .Data.ActionPlans}}
+        <tr>
+          <td class="table-row-number">{{add $index 1}}</td>
+          <td>{{if $plan.ActionPlanTitle}}{{$plan.ActionPlanTitle}}{{else}}-{{end}}</td>
+          <td>{{if $plan.ProposedControls}}{{$plan.ProposedControls}}{{else}}-{{end}}</td>
+          <td>{{if $plan.ResponsibleUserNameEn}}{{$plan.ResponsibleUserNameEn}}{{else}}-{{end}}</td>
+          <td>{{if $plan.TargetDate}}{{$plan.TargetDate.Format "02 Jan 2006"}}{{else}}-{{end}}</td>
+          <td>{{if $plan.ActionPlanStatusTitleEn}}
+            <span
+              style="background:#f9fbfc; color: {{if $plan.ActionPlanStatusColorCode}}{{$plan.ActionPlanStatusColorCode}}{{else}}#0e7b61{{end}}; padding:3px 8px; border-radius:5px; font-size:10px; border:1px solid {{if $plan.ActionPlanStatusColorCode}}{{$plan.ActionPlanStatusColorCode}}{{else}}#afd6cc{{end}}; display:inline-block;">
+              {{$plan.ActionPlanStatusTitleEn}}
+            </span>
+            {{else}}-{{end}}
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{end}}
+  </div>
+
+  <hr class="section-divider" />
+
+  <!-- 9. KRI -->
+  {{if gt (len .Data.KeyRiskIdentifiers) 0}}
+  <div class="section">
+    <div class="section-title">9. KRI</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="table-row-number">#</th>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Current Value</th>
+          <th>Unit</th>
+          <th>Low Threshold</th>
+          <th>Medium Threshold</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $index, $kri := .Data.KeyRiskIdentifiers}}
+        <tr>
+          <td class="table-row-number">{{add $index 1}}</td>
+          <td>{{if $kri.Title}}{{$kri.Title}}{{else}}-{{end}}</td>
+          <td>{{if $kri.Description}}{{$kri.Description}}{{else}}-{{end}}</td>
+          <td>{{if $kri.CurrentValue}}{{$kri.CurrentValue}}{{else}}-{{end}}</td>
+          <td>{{if $kri.UnitTitleEn}}{{$kri.UnitTitleEn}}{{else}}-{{end}}</td>
+          <td>{{if $kri.LowThreshold}}{{$kri.LowThreshold}}{{else}}-{{end}}</td>
+          <td>{{if $kri.MediumThreshold}}{{$kri.MediumThreshold}}{{else}}-{{end}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
   </div>
   {{end}}
 
-  <!-- 6. Risk Analysis Details -->
+  <hr class="section-divider" />
+
+  <!-- 10. Risk Closure -->
   <div class="section">
-    <div class="section-title">6. Risk Analysis Details</div>
+    <div class="section-title">10. Risk Closure</div>
 
-    <div class="subsection-title">6.1 Impact Analysis</div>
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Impact Level:</span><br /><span class="card-value">{{if
-            .Data.CurrentImpactTitleEn}}<span
-              class="badge badge-red">{{.Data.CurrentImpactTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Impact Value:</span><br /><span class="card-value">{{if
-            .Data.CurrentImpactScore}}{{.Data.CurrentImpactScore}}{{else}}-{{end}}</span></td>
-        <td style="width:50%;" colspan="2"><span class="card-label">Description:</span><br /><span
-            class="card-value">{{if
-            .Data.CurrentImpactDescriptionEn}}{{.Data.CurrentImpactDescriptionEn}}{{else}}-{{end}}</span></td>
-      </tr>
-    </table>
+    {{if or .Data.ClosureJustification .Data.LessonsLearned .Data.WhatWorkedWell .Data.WhatNeedsImprovement
+    .Data.KeyTakeaways}}
+    {{if .Data.ClosureJustification}}
+    <div class="closure-content">
+      <div class="closure-heading">Justification:</div>
+      <div class="closure-text">{{safeHTML .Data.ClosureJustification}}</div>
+    </div>
+    {{end}}
 
-    <div class="subsection-title">6.2 Likelihood Analysis</div>
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Likelihood Level:</span><br /><span class="card-value">{{if
-            .Data.CurrentLikelihoodTitleEn}}<span
-              class="badge badge-blue">{{.Data.CurrentLikelihoodTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Likelihood Value:</span><br /><span class="card-value">{{if
-            .Data.CurrentLikelihoodScore}}{{.Data.CurrentLikelihoodScore}}{{else}}-{{end}}</span></td>
-        <td style="width:50%;" colspan="2"><span class="card-label">Description:</span><br /><span
-            class="card-value">{{if
-            .Data.CurrentLikelihoodDescriptionEn}}{{.Data.CurrentLikelihoodDescriptionEn}}{{else}}-{{end}}</span></td>
-      </tr>
-    </table>
+    {{if .Data.LessonsLearned}}
+    <div class="closure-content">
+      <div class="closure-heading">Lessons Learned:</div>
+      <div class="closure-text">{{safeHTML .Data.LessonsLearned}}</div>
+    </div>
+    {{end}}
 
-    <div class="subsection-title">6.3 Risk Appetite Alignment</div>
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Aligned with Risk Appetite:</span><br /><span
-            class="card-value">No</span></td>
-        <td style="width:75%;" colspan="3"><span class="card-label">Details:</span><br /><span
-            class="card-value">Exceeds approved cybersecurity risk tolerance</span></td>
-      </tr>
-    </table>
-  </div>
+    {{if .Data.WhatWorkedWell}}
+    <div class="closure-content">
+      <div class="closure-heading">What Worked Well:</div>
+      <div class="closure-text">{{safeHTML .Data.WhatWorkedWell}}</div>
+    </div>
+    {{end}}
 
-  <!-- 7. Control Analysis -->
-  <div class="section">
-    <div class="section-title">7. Control Analysis</div>
+    {{if .Data.WhatNeedsImprovement}}
+    <div class="closure-content">
+      <div class="closure-heading">What Needs Improvement:</div>
+      <div class="closure-text">{{safeHTML .Data.WhatNeedsImprovement}}</div>
+    </div>
+    {{end}}
 
-    <div class="subsection-title">7.1 Control Performance Overview</div>
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Implemented Controls:</span><br /><span class="card-value">{{if
-            .Data.Controls}}{{len .Data.Controls}}{{else}}0{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Not Implemented Controls:</span><br /><span
-            class="card-value">0</span></td>
-        <td style="width:25%;"><span class="card-label">Efficient Controls:</span><br /><span
-            class="card-value">0</span></td>
-        <td style="width:25%;"><span class="card-label">Inefficient Controls:</span><br /><span
-            class="card-value">0</span></td>
-      </tr>
-    </table>
-
-    <div class="subsection-title">7.2 Control Details</div>
-    {{if .Data.Controls}}
-    {{range .Data.Controls}}
-    <div class="card-inline">
-      <table class="card-table" style="border-collapse: collapse;">
-        <tr>
-          <td style="width:18%;"><span class="card-label">Control Reference:</span><br /><span
-              class="card-value">{{.ReferenceNumber}}</span></td>
-          <td style="width:32%;"><span class="card-label">Control Title:</span><br /><span
-              class="card-value">{{.TitleEn}}</span></td>
-          <td style="width:18%;"><span class="card-label">Control Code:</span><br /><span
-              class="card-value">{{.Code}}</span></td>
-          <td style="width:32%;"><span class="card-label">Test Score:</span><br /><span class="card-value">{{if
-              .TestScore}}{{.TestScore}} / 100{{else}}-{{end}}</span></td>
-        </tr>
-        <tr>
-          <td><span class="card-label">Implementation Status:</span><br /><span class="card-value">{{if
-              .ImplementationStatusTitleEn}}<span
-                class="badge badge-green">{{.ImplementationStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Efficiency Status:</span><br /><span class="card-value">{{if
-              .EfficiencyStatusTitleEn}}<span
-                class="badge badge-red">{{.EfficiencyStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Tested At:</span><br /><span class="card-value">{{if
-              .TestedAtString}}{{.TestedAtString}}{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Tested By:</span><br /><span class="card-value">{{if
-              .TestedByUserFirstNameEn}}{{.TestedByUserFirstNameEn}} {{.TestedByUserLastNameEn}}{{if
-              .TestedByUserInitial}} ({{.TestedByUserInitial}}){{end}}{{else}}-{{end}}</span></td>
-        </tr>
-      </table>
+    {{if .Data.KeyTakeaways}}
+    <div class="closure-content">
+      <div class="closure-heading">Key Takeaways:</div>
+      <div class="closure-text">{{safeHTML .Data.KeyTakeaways}}</div>
     </div>
     {{end}}
     {{else}}
-    <div class="empty-state">No controls associated</div>
+    <div class="empty-state">No risk closure information available for this risk.</div>
     {{end}}
   </div>
 
-  <!-- 8. Residual Control Analysis Section -->
+  <hr class="section-divider" />
+
+  <!-- 11. Review -->
+  {{if gt (len .Data.Reviews) 0}}
   <div class="section">
-    <div class="section-title">8. Residual Control Analysis Section</div>
-
-    <div class="subsection-title">8.1 Residual Control Analysis Details</div>
-    {{if .Data.Controls}}
-    {{range .Data.Controls}}
-    <div class="card">
-      <table class="card-table" style="border-collapse: collapse;">
+    <div class="section-title">11. Review</div>
+    <table class="data-table">
+      <thead>
         <tr>
-          <td style="width:18%;"><span class="card-label">Control Reference:</span><br /><span
-              class="card-value">{{.ReferenceNumber}}</span></td>
-          <td style="width:32%;"><span class="card-label">Control Title:</span><br /><span
-              class="card-value">{{.TitleEn}}</span></td>
-          <td style="width:18%;"><span class="card-label">Control Code:</span><br /><span
-              class="card-value">{{.Code}}</span></td>
-          <td style="width:32%;"><span class="card-label">Test Score:</span><br /><span class="card-value">{{if
-              .TestScore}}{{.TestScore}} / 100{{else}}-{{end}}</span></td>
+          <th>Reviewer</th>
+          <th>Date</th>
+          <th>Status</th>
         </tr>
+      </thead>
+      <tbody>
+        {{range .Data.Reviews}}
         <tr>
-          <td><span class="card-label">Implementation Status:</span><br /><span class="card-value">{{if
-              .ImplementationStatusTitleEn}}<span
-                class="badge badge-green">{{.ImplementationStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Efficiency Status:</span><br /><span class="card-value">{{if
-              .EfficiencyStatusTitleEn}}<span
-                class="badge badge-red">{{.EfficiencyStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Tested At:</span><br /><span class="card-value">{{if
-              .TestedAtString}}{{.TestedAtString}}{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Tested By:</span><br /><span class="card-value">{{if
-              .TestedByUserFirstNameEn}}{{.TestedByUserFirstNameEn}} {{.TestedByUserLastNameEn}}{{if
-              .TestedByUserInitial}} ({{.TestedByUserInitial}}){{end}}{{else}}-{{end}}</span></td>
+          <td>{{if .ReviewerNameEn}}{{.ReviewerNameEn}}{{else}}-{{end}}</td>
+          <td>{{if .ReviewDateString}}{{.ReviewDateString}}{{else}}-{{end}}</td>
+          <td>{{if .StatusTitleEn}}{{.StatusTitleEn}}{{else}}-{{end}}</td>
         </tr>
-      </table>
-    </div>
-    {{end}}
-    {{else}}
-    <div class="empty-state">No controls associated</div>
-    {{end}}
-  </div>
-
-  <!-- 9. Risk Mitigation & Action Plans Section -->
-  <div class="section">
-    <div class="section-title">9. Risk Mitigation &amp; Action Plans Section</div>
-    {{if .Data.ActionPlans}}
-    {{range $index, $plan := .Data.ActionPlans}}
-    <div class="card">
-      <div class="card-header">Action Plan {{add $index 1}}</div>
-      <table class="card-table" style="border-collapse: collapse;">
-        <tr>
-          <td style="width:18%;"><span class="card-label">Title:</span><br /><span class="card-value">{{if
-              $plan.ActionPlanTitle}}{{$plan.ActionPlanTitle}}{{else}}-{{end}}</span></td>
-          <td style="width:32%;"><span class="card-label">Description:</span><br /><span class="card-value">{{if
-              $plan.ActionPlanDescription}}{{$plan.ActionPlanDescription}}{{else}}-{{end}}</span></td>
-          <td style="width:18%;"><span class="card-label">Severity Level:</span><br /><span class="card-value">{{if
-              $plan.SeverityLevelTitleEn}}<span
-                class="badge badge-red">{{$plan.SeverityLevelTitleEn}}</span>{{else}}-{{end}}</span></td>
-          <td style="width:32%;"><span class="card-label">Responsible User:</span><br /><span class="card-value">{{if
-              $plan.ResponsibleUserNameEn}}{{$plan.ResponsibleUserNameEn}}{{else}}-{{end}}</span></td>
-        </tr>
-        <tr>
-          <td><span class="card-label">Target Date:</span><br /><span class="card-value">{{if
-              $plan.TargetDate}}{{$plan.TargetDate.Format "02 Jan 2006"}}{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Completion:</span><br /><span class="card-value">-</span></td>
-          <td><span class="card-label">Status:</span><br /><span class="card-value">{{if
-              $plan.ActionPlanStatusTitleEn}}<span
-                class="badge badge-blue">{{$plan.ActionPlanStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Proposed Controls:</span><br /><span class="card-value">{{if
-              $plan.ProposedControls}}{{$plan.ProposedControls}}{{else}}-{{end}}</span></td>
-        </tr>
-        <tr>
-          <td><span class="card-label">Latest Update:</span><br /><span class="card-value">-</span></td>
-          <td><span class="card-label">Comments:</span><br /><span class="card-value">-</span></td>
-          <td colspan="2"></td>
-        </tr>
-      </table>
-    </div>
-    {{end}}
-    {{else}}
-    <div class="empty-state">No action plans associated</div>
-    {{end}}
-  </div>
-
-  <!-- 10. Key Risk Indicators (KRI) Section -->
-  <div class="section">
-    <div class="section-title">10. Key Risk Indicators (KRI) Section</div>
-    {{if .Data.KeyRiskIdentifiers}}
-    {{range $index, $kri := .Data.KeyRiskIdentifiers}}
-    <div class="card">
-      <div class="card-header">KRI {{add $index 1}}</div>
-      <table class="card-table" style="border-collapse: collapse;">
-        <tr>
-          <td style="width:18%;"><span class="card-label">KRI Reference:</span><br /><span class="card-value">{{if
-              $kri.RiskReferenceNumber}}{{$kri.RiskReferenceNumber}}{{else}}-{{end}}</span></td>
-          <td style="width:32%;"><span class="card-label">Title:</span><br /><span class="card-value">{{if
-              $kri.Title}}{{$kri.Title}}{{else}}-{{end}}</span></td>
-          <td style="width:18%;"><span class="card-label">Description:</span><br /><span class="card-value">{{if
-              $kri.Description}}{{$kri.Description}}{{else}}-{{end}}</span></td>
-          <td style="width:32%;"><span class="card-label">Category:</span><br /><span class="card-value">{{if
-              $.Data.RiskCategoryTitleEn}}{{$.Data.RiskCategoryTitleEn}}{{else}}-{{end}}</span></td>
-        </tr>
-        <tr>
-          <td><span class="card-label">Current Value:</span><br /><span class="card-value">{{if
-              $kri.CurrentValue}}{{$kri.CurrentValue}}{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Low Threshold:</span><br /><span class="card-value">{{if
-              $kri.LowThreshold}}{{$kri.LowThreshold}}{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Medium Threshold:</span><br /><span class="card-value">{{if
-              $kri.MediumThreshold}}{{$kri.MediumThreshold}}{{else}}-{{end}}</span></td>
-          <td><span class="card-label">Unit:</span><br /><span class="card-value">{{if
-              $kri.UnitTitleEn}}{{$kri.UnitTitleEn}}{{else}}-{{end}}</span></td>
-        </tr>
-        <tr>
-          <td colspan="4"><span class="card-label">Responsible User:</span><br /><span class="card-value">{{if
-              $.Data.ResponsibleUserFirstNameEn}}{{$.Data.ResponsibleUserFirstNameEn}}
-              {{$.Data.ResponsibleUserLastNameEn}}{{if $.Data.ResponsibleUserInitial}}
-              ({{$.Data.ResponsibleUserInitial}}){{end}}{{else}}-{{end}}</span></td>
-        </tr>
-      </table>
-    </div>
-    {{end}}
-    {{else}}
-    <div class="empty-state">No KRIs associated</div>
-    {{end}}
-  </div>
-
-  <!-- 11. Associated Items Section -->
-  <div class="section">
-    <div class="section-title">11. Associated Items Section</div>
-
-    <div class="subsection-title">11.1 Assets</div>
-    {{if gt (len .Data.Assets) 0}}
-    {{range .Data.Assets}}
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Asset Title:</span><br /><span class="card-value">{{if
-            .TitleEn}}{{.TitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Asset Type:</span><br /><span class="card-value">{{if
-            .AssetTypeTitleEn}}{{.AssetTypeTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Reference Number:</span><br /><span class="card-value">{{if
-            .ReferenceNumber}}{{.ReferenceNumber}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Description:</span><br /><span class="card-value">{{if
-            .Description}}{{.Description}}{{else}}-{{end}}</span></td>
-      </tr>
-    </table>
-    {{end}}
-    {{else}}
-    <div class="empty-state">No associated assets</div>
-    {{end}}
-
-    <div class="subsection-title">11.2 Incidents</div>
-    {{if gt (len .Data.Incidents) 0}}
-    {{range .Data.Incidents}}
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Incident Title:</span><br /><span class="card-value">{{if
-            .Title}}{{.Title}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Reference Number:</span><br /><span class="card-value">{{if
-            .ReferenceNumber}}{{.ReferenceNumber}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Incident Date:</span><br /><span class="card-value">-</span>
-        </td>
-        <td style="width:25%;"><span class="card-label">Status:</span><br /><span class="card-value">{{if
-            .IncidentStatusTitleEn}}<span
-              class="badge badge-green">{{.IncidentStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
-      </tr>
-    </table>
-    {{end}}
-    {{else}}
-    <div class="empty-state">No associated incidents</div>
-    {{end}}
-
-    <div class="subsection-title">11.3 Documents</div>
-    {{if gt (len .Data.Documents) 0}}
-    {{range .Data.Documents}}
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Document Title:</span><br /><span class="card-value">{{if
-            .TitleEn}}{{.TitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Document Type:</span><br /><span class="card-value">{{if
-            .DocumentTypeTitleEn}}{{.DocumentTypeTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Category:</span><br /><span class="card-value">{{if
-            .DocumentCategoryTitleEn}}{{.DocumentCategoryTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Status:</span><br /><span class="card-value">{{if
-            .DocumentStatusTitleEn}}<span
-              class="badge badge-blue">{{.DocumentStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
-      </tr>
-    </table>
-    {{end}}
-    {{else}}
-    <div class="empty-state">No associated documents</div>
-    {{end}}
-
-    <div class="subsection-title">11.4 Processes</div>
-    {{if gt (len .Data.Processes) 0}}
-    {{range .Data.Processes}}
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Process Reference:</span><br /><span class="card-value">{{if
-            .ReferenceNumber}}{{.ReferenceNumber}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Process Title:</span><br /><span class="card-value">{{if
-            .TitleEn}}{{.TitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Process Group:</span><br /><span class="card-value">{{if
-            .ProcessGroupTitleEn}}{{.ProcessGroupTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Status:</span><br /><span class="card-value">{{if
-            .LifecycleStatusTitleEn}}<span
-              class="badge badge-blue">{{.LifecycleStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
-      </tr>
-    </table>
-    {{end}}
-    {{else}}
-    <div class="empty-state">No associated processes</div>
-    {{end}}
-
-    <div class="subsection-title">11.5 KPIs</div>
-    {{if gt (len .Data.KPIs) 0}}
-    {{range .Data.KPIs}}
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">KPI Reference:</span><br /><span class="card-value">{{if
-            .ReferenceNumber}}{{.ReferenceNumber}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">KPI Title:</span><br /><span class="card-value">{{if
-            .Title}}{{.Title}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Category:</span><br /><span class="card-value">{{if
-            .KPICategoryTitleEn}}{{.KPICategoryTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Status:</span><br /><span class="card-value">{{if
-            .KPIStatusTitleEn}}<span class="badge badge-blue">{{.KPIStatusTitleEn}}</span>{{else}}-{{end}}</span></td>
-      </tr>
-    </table>
-    {{end}}
-    {{else}}
-    <div class="empty-state">No associated KPIs</div>
-    {{end}}
-
-    <div class="subsection-title">11.6 Strategic Objectives</div>
-    {{if gt (len .Data.StrategicObjectives) 0}}
-    {{range .Data.StrategicObjectives}}
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Reference Number:</span><br /><span class="card-value">{{if
-            .ReferenceNumber}}{{.ReferenceNumber}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Title:</span><br /><span class="card-value">{{if
-            .TitleEn}}{{.TitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Category:</span><br /><span class="card-value">{{if
-            .StrategicObjectiveCategoryTitleEn}}{{.StrategicObjectiveCategoryTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Status:</span><br /><span class="card-value">{{if .Status}}<span
-              class="badge badge-blue">{{.Status}}</span>{{else}}-{{end}}</span></td>
-      </tr>
-    </table>
-    {{end}}
-    {{else}}
-    <div class="empty-state">No associated strategic objectives</div>
-    {{end}}
-
-    <div class="subsection-title">11.7 Compliance Requirements</div>
-    {{if gt (len .Data.ComplianceRequirements) 0}}
-    {{range .Data.ComplianceRequirements}}
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Compliance Register:</span><br /><span class="card-value">{{if
-            .ComplianceRegisterTitleEn}}{{.ComplianceRegisterTitleEn}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Clauses:</span><br /><span class="card-value">{{if gt (len
-            .Clauses) 0}}{{range $index, $clause := .Clauses}}{{if $index}},
-            {{end}}{{$clause.ClauseNo}}{{end}}{{else}}-{{end}}</span></td>
-        <td style="width:50%;" colspan="2"><span class="card-label">Clause Details:</span><br /><span
-            class="card-value">{{if gt (len .Clauses) 0}}{{range .Clauses}}{{.ClauseNo}}:
-            {{.ClauseTitleEn}}<br />{{end}}{{else}}-{{end}}</span></td>
-      </tr>
-    </table>
-    {{end}}
-    {{else}}
-    <div class="empty-state">No associated compliance requirements</div>
-    {{end}}
-  </div>
-
-  <!-- 12. Risk Closure -->
-  <div class="section">
-    <div class="section-title">12. Risk Closure</div>
-    <table class="card-table" style="margin-bottom:12px; border-collapse: collapse;">
-      <tr>
-        <td style="width:25%;"><span class="card-label">Justification:</span><br /><span class="card-value">Risk reduced
-            to acceptable level after PAM rollout</span></td>
-        <td style="width:25%;"><span class="card-label">Final Risk Rating:</span><br /><span class="card-value">{{if
-            .Data.ResidualRiskRatingTitleEn}}<span
-              class="badge badge-yellow">{{.Data.ResidualRiskRatingTitleEn}}</span>{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Created By:</span><br /><span class="card-value">{{if
-            .Data.ResponsibleUserFirstNameEn}}{{.Data.ResponsibleUserFirstNameEn}}
-            {{.Data.ResponsibleUserLastNameEn}}{{if .Data.ResponsibleUserInitial}}
-            ({{.Data.ResponsibleUserInitial}}){{end}}{{else}}-{{end}}</span></td>
-        <td style="width:25%;"><span class="card-label">Created At:</span><br /><span class="card-value">-</span></td>
-      </tr>
+        {{end}}
+      </tbody>
     </table>
   </div>
+  {{end}}
 
 </body>
 

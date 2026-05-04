@@ -35,6 +35,10 @@ type RiskRegisterRepositoryInterface interface {
 
 	GetAllRiskTitles() ([]string, error)
 	GetAllIdentifiedRisks(params *riskDTOs.RiskRegisterListQueryParamsDTO) (*riskDTOs.RiskRegisterListResponseDTO, error)
+
+	//
+	DeleteByRiskResponseID(riskResponseID uint, tx ...utility.DatabaseTransaction) error
+	DeleteByRiskResponseReviewCommentID(riskResponseReviewCommentID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskRegisterRepository struct {
@@ -401,6 +405,8 @@ func (repo *RiskRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("KRIs").
 		Preload("Assets").
 		Preload("Controls").
+		Preload("Controls.Control").
+		Preload("Controls.Control.ControlEffectivenessRating").
 		Preload("CurrentLikelihood").
 		Preload("CurrentImpact").
 		Preload("CurrentRiskRating").
@@ -1321,4 +1327,67 @@ func (repo *RiskRegisterRepository) ForceDelete(id uint, tx ...utility.DatabaseT
 		return tx.Delete(&models.RiskRegister{}, id).Error
 	})
 
+}
+
+func (repo *RiskRegisterRepository) DeleteByRiskResponseID(riskResponseID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Get workflow IDs for this risk response
+	var workflowIDs []uint
+	if err := db.Model(&models.RiskResponseWorkflow{}).Where("risk_response_id = ?", riskResponseID).Pluck("id", &workflowIDs).Error; err != nil {
+		return err
+	}
+
+	if len(workflowIDs) == 0 {
+		return nil
+	}
+
+	// Delete workflow participants
+	if err := db.Where("risk_response_workflow_id IN (?)", workflowIDs).Delete(&models.RiskResponseWorkflowParticipant{}).Error; err != nil {
+		return err
+	}
+
+	// Delete workflow reviews
+	if err := db.Where("risk_response_workflow_id IN (?)", workflowIDs).Delete(&models.RiskResponseWorkflowReview{}).Error; err != nil {
+		return err
+	}
+
+	// Delete workflows
+	if err := db.Where("id IN (?)", workflowIDs).Delete(&models.RiskResponseWorkflow{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *RiskRegisterRepository) DeleteByRiskResponseReviewCommentID(riskResponseID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	// Get comment IDs for this risk response
+	var commentIDs []uint
+	if err := db.Model(&models.RiskResponseReviewComment{}).Where("risk_response_id = ?", riskResponseID).Pluck("id", &commentIDs).Error; err != nil {
+		return err
+	}
+
+	if len(commentIDs) == 0 {
+		return nil
+	}
+
+	// Delete comment documents
+	if err := db.Where("risk_response_review_comment_id IN (?)", commentIDs).Delete(&models.RiskResponseReviewCommentDocument{}).Error; err != nil {
+		return err
+	}
+
+	// Delete comments
+	if err := db.Where("id IN (?)", commentIDs).Delete(&models.RiskResponseReviewComment{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

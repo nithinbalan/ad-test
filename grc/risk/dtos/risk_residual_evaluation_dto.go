@@ -18,3 +18,13 @@ type RiskResidualEvaluationFormDTO struct {
 	RiskImpactAnalyses     []*RiskImpactAnalysisFormDTO    `json:"risk_impact_analyses"`
 	RiskAppetiteAlignments []*RiskAppetiteAlignmentFormDTO `json:"risk_appetite_alignments"`
 }
+
+type RiskResidualEvaluationHistoryDTO struct {
+	ID                               uint                         `json:"id"`
+	RiskEvaluationID                 uint                         `json:"risk_evaluation_id"`
+	RiskMatrixLikelihood             RiskMatrixLikelihoodDTO      `json:"risk_matrix_likelihood"`
+	RiskMatrixRiskRating             RiskMatrixRiskRatingDTO      `json:"risk_matrix_risk_rating"`
+	RiskMatrixRiskRatingValue        RiskMatrixRiskRatingValueDTO `json:"risk_matrix_risk_rating_value"`
+	AverageControlEffectivenessScore *float64                     `json:"average_control_effectiveness_score"`
+	CreatedAtString                  string                       `json:"created_at"`
+}

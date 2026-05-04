@@ -180,13 +180,8 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Submit(committeeID uint, cu
 		return err
 	}
 
-	committeeReview := &models.InternalCommitteeWorkflowReview{
-		InternalCommitteeWorkflowID: committeeWorkflowLevel.ID,
-		WorkflowStatusID:            submitStatus.ID,
-		CreatedBYID:                 currentUserID,
-	}
-
-	if err := icwrs.repo.CreateInternalCommitteeWorkflowReview(committeeReview, tx); err != nil {
+	// Create submit review in both current and history tables
+	if err := icwrs.createReviewWithHistory(committeeWorkflowLevel.ID, submitStatus.ID, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -305,12 +300,8 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 			return utility.NewForbiddenError("you have no permission to approve")
 		}
 
-		committeeReview := &models.InternalCommitteeWorkflowReview{
-			InternalCommitteeWorkflowID: currentCommitteeWorkflow.ID,
-			WorkflowStatusID:            workflowStatus.ID,
-			CreatedBYID:                 currentUserID,
-		}
-		if err := icwrs.repo.CreateInternalCommitteeWorkflowReview(committeeReview, tx); err != nil {
+		// Create approval review in both current and history tables
+		if err := icwrs.createReviewWithHistory(currentCommitteeWorkflow.ID, workflowStatus.ID, currentUserID, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -435,12 +426,8 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 			return utility.NewForbiddenError("you have no permission to approve")
 		}
 
-		committeeReview := &models.InternalCommitteeWorkflowReview{
-			InternalCommitteeWorkflowID: currentCommitteeWorkflow.ID,
-			WorkflowStatusID:            workflowStatus.ID,
-			CreatedBYID:                 currentUserID,
-		}
-		if err := icwrs.repo.CreateInternalCommitteeWorkflowReview(committeeReview, tx); err != nil {
+		// Create approval review in both current and history tables
+		if err := icwrs.createReviewWithHistory(currentCommitteeWorkflow.ID, workflowStatus.ID, currentUserID, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -452,6 +439,27 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 				return err
 			}
 			if !allApproved {
+				// Update workflow status to pending if it was reverted
+				if currentCommitteeWorkflow.WorkflowStatus != nil && currentCommitteeWorkflow.WorkflowStatus.Type == "revert" {
+					pendingStatus, err := icwrs.workflowStatusSvc.GetByType("pending")
+					if err != nil {
+						tx.Rollback()
+						return err
+					}
+
+					committeeWorkflow, err := icwrs.committeeWorkflowSvc.GetInternalCommitteeWorkflowByID(currentCommitteeWorkflow.ID, tx)
+					if err != nil {
+						tx.Rollback()
+						return err
+					}
+
+					committeeWorkflow.WorkflowStatusID = pendingStatus.ID
+					if err := icwrs.committeeWorkflowSvc.UpdateInternalCommitteeWorkflow(committeeWorkflow, tx); err != nil {
+						tx.Rollback()
+						return err
+					}
+				}
+
 				tx.Commit()
 				return nil
 			}
@@ -603,14 +611,8 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Revert(committeeID uint, cu
 		return err
 	}
 
-	// Create revert review for current level
-	committeeWorkflowReview := &models.InternalCommitteeWorkflowReview{
-		InternalCommitteeWorkflowID: currentCommitteeWorkflow.ID,
-		WorkflowStatusID:            revertStatus.ID,
-		CreatedBYID:                 currentUserID,
-	}
-
-	if err := icwrs.repo.CreateInternalCommitteeWorkflowReview(committeeWorkflowReview, tx); err != nil {
+	// Create revert review in both current and history tables
+	if err := icwrs.createReviewWithHistory(currentCommitteeWorkflow.ID, revertStatus.ID, currentUserID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -632,27 +634,38 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Revert(committeeID uint, cu
 	// Calculate previous level
 	previousLevel := currentLevel - 1
 
-	// 2. Reset only level N-1 (previous level) and levels > N
+	// 2. Reset level N-1 (previous level), level N (reverted level), and levels > N
 	for _, workflow := range committeeWorkflowList.InternalCommitteeWorkflows {
 		// Skip levels below previous level - they should remain approved
 		if workflow.Level < previousLevel {
 			continue
 		}
 
-		// Skip current level - already marked as reverted above
-		if workflow.Level == currentLevel {
-			continue
-		}
+		// Reset level N-1 (previous level), level N (reverted level), and all levels > N
+		if workflow.Level >= previousLevel {
 
-		// Reset level N-1 (previous level) and all levels > N
-		if workflow.Level == previousLevel || workflow.Level > currentLevel {
+			// Delete old approval reviews from current table (history is preserved)
+			var reviewsToDelete []*uint
+			for _, review := range workflow.InternalCommitteeWorkflowReviews {
+				if review.WorkflowStatus != nil && review.WorkflowStatus.Type == "approve" {
+					reviewsToDelete = append(reviewsToDelete, &review.ID)
+				}
+			}
 
-			// Don't delete reviews - keep them for history
-			// Just update workflow status to pending
-			workflow.WorkflowStatusID = pendingStatus.ID
-			if err := icwrs.committeeWorkflowSvc.UpdateInternalCommitteeWorkflow(workflow, tx); err != nil {
-				tx.Rollback()
-				return err
+			if len(reviewsToDelete) > 0 {
+				if err := icwrs.committeeWorkflowSvc.DeleteInternalCommitteeReviews(reviewsToDelete, tx); err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
+
+			// Update workflow status to pending (except current level which is already reverted)
+			if workflow.Level != currentLevel {
+				workflow.WorkflowStatusID = pendingStatus.ID
+				if err := icwrs.committeeWorkflowSvc.UpdateInternalCommitteeWorkflow(workflow, tx); err != nil {
+					tx.Rollback()
+					return err
+				}
 			}
 		}
 	}
@@ -714,8 +727,17 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Revert(committeeID uint, cu
 
 	tx.Commit()
 
+	// Fetch fresh committee data after commit to get updated NextReviewLevel
+	updatedCommitteeDetail, err := icwrs.committeeSvc.GetFullDetailsByID(committeeID)
+	if err != nil {
+		utility.LogError("Failed to fetch updated committee details for notification", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return nil
+	}
+
 	// Notifications should be sent AFTER commit succeeds
-	icwrs.sendRevertNotification(committeeID, currentUserID, committeeDetail)
+	icwrs.sendRevertNotification(committeeID, currentUserID, updatedCommitteeDetail)
 
 	return nil
 }
@@ -867,10 +889,36 @@ func (icwrs *InternalCommitteeWorkflowReviewService) sendRevertNotification(id u
 		entity := "internal-committee-review"
 		action := "reverted"
 
-		createdByUserID := uint(committee.CreatedByUser.ID)
+		// Get previous level (NextReviewLevel) participants to notify
+		var notificationUserIDs []uint
+		var emailRecipients []string
+
+		if committee.LatestVersion.NextReviewLevel != nil {
+			// Get the workflow for the previous level that needs re-approval
+			previousLevelWorkflow, err := icwrs.committeeWorkflowSvc.GetInternalCommitteeWorkflowByLevel(
+				committee.LatestVersion.ID,
+				*committee.LatestVersion.NextReviewLevel,
+			)
+			if err == nil && previousLevelWorkflow != nil {
+				// Collect participant user IDs and emails
+				for _, participant := range previousLevelWorkflow.InternalCommitteeWorkflowParticipants {
+					notificationUserIDs = append(notificationUserIDs, participant.UserID)
+					if participant.User != nil {
+						emailRecipients = append(emailRecipients, participant.User.Email)
+					}
+				}
+			}
+		}
+
+		// If no participants found, fallback to created by user
+		if len(notificationUserIDs) == 0 {
+			createdByUserID := uint(committee.CreatedByUser.ID)
+			notificationUserIDs = []uint{createdByUserID}
+			emailRecipients = []string{committee.CreatedByUser.Email}
+		}
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserIDs:              []uint{createdByUserID},
+			UserIDs:              notificationUserIDs,
 			ModuleIdentifier:     "organization",
 			NotificationType:     string(commonDTOs.RejectType),
 			HeadingEn:            "Internal Committee Rejected",
@@ -893,41 +941,71 @@ func (icwrs *InternalCommitteeWorkflowReviewService) sendRevertNotification(id u
 			return
 		}
 
-		createdByUser, err := icwrs.userSvc.GetByID(createdByUserID)
-		if err != nil {
-			utility.LogError("Failed to fetch created by user", map[string]interface{}{
-				"error": err.Error(),
-			})
-			return
-		}
-
 		appURL := utility.GetAppURL()
-		emailTo := []string{createdByUser.Email}
 		subject := fmt.Sprintf("Internal Committee %s: Rejected Notification", committee.LatestVersion.CommitteeNameEn)
 		redirectURL := fmt.Sprintf("%s/organization/internal-committee/%d/workflow", appURL, committee.ID)
 
-		emailData := map[string]interface{}{
-			"FirstNameEn":           createdByUser.FirstNameEn,
-			"LastNameEn":            createdByUser.LastNameEn,
-			"Title":                 committee.LatestVersion.CommitteeNameEn,
-			"RejectedByFirstNameEn": rejectedByUser.FirstNameEn,
-			"RejectedByLastNameEn":  rejectedByUser.LastNameEn,
-			"RejectedAt":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           redirectURL,
-		}
+		// Send individual emails to each recipient with their name
+		for _, userID := range notificationUserIDs {
+			recipientUser, err := icwrs.userSvc.GetByID(userID)
+			if err != nil {
+				utility.LogError("Failed to fetch recipient user", map[string]interface{}{
+					"error":  err.Error(),
+					"userID": userID,
+				})
+				continue
+			}
 
-		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-			EmailTo:              emailTo,
-			Subject:              subject,
-			TemplateRelativePath: "organization/templates/email/committee_workflow_revert_user_mail.html",
-			EmailData:            emailData,
-		}
+			emailData := map[string]interface{}{
+				"FirstNameEn":           recipientUser.FirstNameEn,
+				"LastNameEn":            recipientUser.LastNameEn,
+				"Title":                 committee.LatestVersion.CommitteeNameEn,
+				"RejectedByFirstNameEn": rejectedByUser.FirstNameEn,
+				"RejectedByLastNameEn":  rejectedByUser.LastNameEn,
+				"RejectedAt":            time.Now().Format("2006-01-02"),
+				"RedirectURL":           redirectURL,
+			}
 
-		err = icwrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "committee_management")
-		if err != nil {
-			utility.LogError("Failed to send rejected notification email", map[string]interface{}{
-				"error": err.Error(),
-			})
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              []string{recipientUser.Email},
+				Subject:              subject,
+				TemplateRelativePath: "organization/templates/email/committee_workflow_revert_user_mail.html",
+				EmailData:            emailData,
+			}
+
+			err = icwrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "committee_management")
+			if err != nil {
+				utility.LogError("Failed to send rejected notification email", map[string]interface{}{
+					"error": err.Error(),
+					"email": recipientUser.Email,
+				})
+			}
 		}
 	}()
+}
+
+// Helper function to create review in both current and history tables
+func (icwrs *InternalCommitteeWorkflowReviewService) createReviewWithHistory(workflowID uint, statusID uint, userID uint, tx utility.DatabaseTransaction) error {
+	// Create in current reviews table
+	committeeReview := &models.InternalCommitteeWorkflowReview{
+		InternalCommitteeWorkflowID: workflowID,
+		WorkflowStatusID:            statusID,
+		CreatedBYID:                 userID,
+	}
+	if err := icwrs.repo.CreateInternalCommitteeWorkflowReview(committeeReview, tx); err != nil {
+		return err
+	}
+
+	// Create in history table for audit trail
+	historyReview := &models.InternalCommitteeWorkflowReviewHistory{
+		InternalCommitteeWorkflowID: workflowID,
+		WorkflowStatusID:            statusID,
+		CreatedBYID:                 userID,
+		CreatedAt:                   time.Now(),
+	}
+	if err := icwrs.repo.CreateInternalCommitteeWorkflowReviewHistory(historyReview, tx); err != nil {
+		return err
+	}
+
+	return nil
 }

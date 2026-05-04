@@ -154,7 +154,7 @@ type ComplianceRegisterFormDTO struct {
 	DescriptionEn *string `json:"description_en"`
 	DescriptionAr *string `json:"description_ar"`
 	Version       *string `json:"version" binding:"omitempty,max=45"`
-	Deadline      *string `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
+	Deadline      *string `json:"deadline"`
 	// IssueDate                       *string                    `json:"issue_date" binding:"omitempty,datetime=2006-01-02"`
 	// ExpiryDate                      *string                    `json:"expiry_date" binding:"omitempty,datetime=2006-01-02"`
 	// NextReviewDate                  *string                    `json:"next_review_date" binding:"omitempty,datetime=2006-01-02"`

@@ -38,6 +38,7 @@ type MasterModule struct {
 	WorkflowContextController        *controllers.WorkflowContextController
 	CommentStatusController          *controllers.CommentStatusController
 	ActionPlanMasterController       *controllers.ActionPlanMasterController
+	EmailStatusController            *controllers.EmailStatusController
 
 	ReviewFrequencySvc        services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc          services.SeverityLevelServiceInterface
@@ -67,6 +68,7 @@ type MasterModule struct {
 	WorkflowContextSvc        services.WorkflowContextServiceInterface
 	CommentStatusSvc          services.CommentStatusServiceInterface
 	actionPlanMasterSvc       services.ActionPlanMasterServiceInterface
+	EmailStatusSvc            services.EmailStatusServiceInterface
 }
 
 func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
@@ -209,6 +211,10 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	actionPlanMasterSvc := services.NewActionPlanMasterService(actionPlanMasterRepo, sharedModule.ActivityLogService, severityLevelSvc)
 	actionPlanMasterController := controllers.NewActionPlanMasterController(actionPlanMasterSvc)
 
+	emailStatusRepo := repositories.NewEmailStatusRepository(db)
+	emailStatusSvc := services.NewEmailStatusService(emailStatusRepo)
+	emailStatusController := controllers.NewEmailStatusController(emailStatusSvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:        reviewFrequencyController,
 		SeverityLevelController:          severityLevelController,
@@ -239,6 +245,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		WorkflowContextController:        workflowContextController,
 		CommentStatusController:          commentStatusController,
 		ActionPlanMasterController:       actionPlanMasterController,
+		EmailStatusController:            emailStatusController,
 
 		ReviewFrequencySvc:        reviewFrequencySvc,
 		SeverityLevelSvc:          severityLevelSvc,
@@ -268,5 +275,6 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		WorkflowContextSvc:        workflowContextSvc,
 		CommentStatusSvc:          commentStatusSvc,
 		actionPlanMasterSvc:       actionPlanMasterSvc,
+		EmailStatusSvc:            emailStatusSvc,
 	}
 }

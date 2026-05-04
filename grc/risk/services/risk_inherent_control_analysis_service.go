@@ -438,42 +438,51 @@ func (rcas *RiskInherentControlAnalysisService) Delete(riskID uint, ids []uint, 
 }
 
 func (rcas *RiskInherentControlAnalysisService) GetControlSummary(riskID uint) (map[string]interface{}, error) {
-	riskControlAnalyses, err := rcas.repo.GetControlSummary(riskID)
+	controlTests, err := rcas.repo.GetControlSummary(riskID)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(riskControlAnalyses) == 0 {
+	if len(controlTests) == 0 {
 		return map[string]interface{}{
-			"total_control_score":       0,
-			"implementation_status":     []map[string]interface{}{},
-			"efficiency_percentage":     0,
-			"implementation_percentage": 0,
-			"total_efficiency":          []map[string]interface{}{},
-			"total_control_count":       0,
+			"total_control_score":          0,
+			"implementation_status":        []map[string]interface{}{},
+			"efficiency_percentage":        0,
+			"implementation_percentage":    0,
+			"total_efficiency":             []map[string]interface{}{},
+			"total_control_count":          0,
+			"control_effectiveness_rating": []map[string]interface{}{},
 		}, nil
 	}
 
 	implementationStatusCount := make(map[string]int)
 	efficiencyStatusCount := make(map[string]int)
+	effectivenessRatingCount := make(map[string]int)
 	implementationDetails := make(map[string]models.ControlImplementationStatus)
 	efficiencyDetails := make(map[string]models.ControlEfficiencyStatus)
+	effectivenessRatingDetails := make(map[uint]models.ControlEffectivenessRating)
 
-	for _, rca := range riskControlAnalyses {
-		if rca.ControlImplementationStatus != nil {
-			implStatus := rca.ControlImplementationStatus.Type
+	for _, ct := range controlTests {
+		if ct.ControlImplementationStatus != nil {
+			implStatus := ct.ControlImplementationStatus.Type
 			implementationStatusCount[implStatus]++
-			implementationDetails[implStatus] = *rca.ControlImplementationStatus
+			implementationDetails[implStatus] = *ct.ControlImplementationStatus
 		}
 
-		if rca.ControlEfficiencyStatus != nil {
-			effStatus := rca.ControlEfficiencyStatus.Type
+		if ct.ControlEfficiencyStatus != nil {
+			effStatus := ct.ControlEfficiencyStatus.Type
 			efficiencyStatusCount[effStatus]++
-			efficiencyDetails[effStatus] = *rca.ControlEfficiencyStatus
+			efficiencyDetails[effStatus] = *ct.ControlEfficiencyStatus
+		}
+
+		if ct.ControlEffectivenessRating != nil {
+			ratingType := ct.ControlEffectivenessRating.Type
+			effectivenessRatingCount[ratingType]++
+			effectivenessRatingDetails[ct.ControlEffectivenessRating.ID] = *ct.ControlEffectivenessRating
 		}
 	}
 
-	totalControls := len(riskControlAnalyses)
+	totalControls := len(controlTests)
 
 	implementationStatus := make([]map[string]interface{}, 0)
 	for status, count := range implementationStatusCount {
@@ -501,13 +510,29 @@ func (rcas *RiskInherentControlAnalysisService) GetControlSummary(riskID uint) (
 		})
 	}
 
+	effectivenessRatings := make([]map[string]interface{}, 0)
+	for _, rating := range effectivenessRatingDetails {
+		count := effectivenessRatingCount[rating.Type]
+		effectivenessRatings = append(effectivenessRatings, map[string]interface{}{
+			"id":         rating.ID,
+			"type":       rating.Type,
+			"title_en":   rating.TitleEn,
+			"title_ar":   rating.TitleAr,
+			"count":      count,
+			"min_score":  rating.MinScore,
+			"color_code": rating.ColorCode,
+			"max_score":  rating.MaxScore,
+		})
+	}
+
 	summary := map[string]interface{}{
-		"total_control_score":       (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
-		"implementation_status":     implementationStatus,
-		"efficiency_percentage":     (float64(efficiencyStatusCount["efficient"]) / float64(totalControls)) * 100,
-		"implementation_percentage": (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
-		"total_efficiency":          efficiencyStatus,
-		"total_control_count":       totalControls,
+		"total_control_score":          (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
+		"implementation_status":        implementationStatus,
+		"efficiency_percentage":        (float64(efficiencyStatusCount["efficient"]) / float64(totalControls)) * 100,
+		"implementation_percentage":    (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
+		"total_efficiency":             efficiencyStatus,
+		"total_control_count":          totalControls,
+		"control_effectiveness_rating": effectivenessRatings,
 	}
 
 	return summary, nil

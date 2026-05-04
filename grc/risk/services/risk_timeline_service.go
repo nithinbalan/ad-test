@@ -111,12 +111,12 @@ func (rts *RiskTimelineService) Update(riskID uint, riskTimelineFormDTO *riskDTO
 }
 
 func (rts *RiskTimelineService) Delete(riskID uint, tx ...utility.DatabaseTransaction) error {
-	if _, err := rts.riskRegisterRepo.GetByID(riskID); err != nil {
+	if _, err := rts.riskRegisterRepo.GetByID(riskID, tx...); err != nil {
 		return err
 	}
 
 	// Delete the entry
-	if err := rts.repo.Delete(riskID); err != nil {
+	if err := rts.repo.Delete(riskID, tx...); err != nil {
 		return err
 	}
 

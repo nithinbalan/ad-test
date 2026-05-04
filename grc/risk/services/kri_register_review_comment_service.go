@@ -68,6 +68,7 @@ func (krcs *KRIRegisterReviewCommentService) GetAll(kriRegisterID uint, currentU
 		dto := &riskDTOs.KRIRegisterReviewCommentListDTO{
 			ID:                          comment.ID,
 			Comment:                     comment.Comment,
+			IsEdited:                    comment.IsEdited,
 			CommentStatusTitleEn:        comment.CommentStatusTitleEn,
 			CommentStatusTitleAr:        comment.CommentStatusTitleAr,
 			CommentStatusType:           comment.CommentStatusType,
@@ -230,6 +231,10 @@ func (krcs *KRIRegisterReviewCommentService) Update(kriRegisterID uint, id uint,
 	}
 
 	existingComment.Comment = commentFormDTO.Comment
+	existingComment.IsEdited = true
+	now := time.Now()
+	existingComment.UpdatedBYID = &currentUserID
+	existingComment.UpdatedAt = &now
 	err = krcs.repo.Update(existingComment, tx)
 	if err != nil {
 		tx.Rollback()

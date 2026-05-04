@@ -445,3 +445,44 @@ func (edc *ComplianceDashboardController) GetTopCompliances(c *gin.Context) {
 
 	c.JSON(http.StatusOK, summary)
 }
+
+func (cdc *ComplianceDashboardController) GetComplianceCountByRating(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := kpiDTOs.ComplianceDashboardQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+
+	summary, err := cdc.service.GetComplianceRatingDistribution(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(cdc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, summary)
+}
+
+func (cdc *ComplianceDashboardController) GetComplianceRegisterClassificationSummary(c *gin.Context) {
+    dateFrom := c.Query("date_from")
+    dateTo := c.Query("date_to")
+
+    params := kpiDTOs.ComplianceDashboardQueryParamsDTO{
+        DateFrom: dateFrom,
+        DateTo:   dateTo,
+    }
+
+    result, err := cdc.service.GetComplianceRegisterClassificationSummary(&params)
+    if err != nil {
+        utility.SendInternalErrResp(cdc.db, c, err.Error())
+        return
+    }
+
+    c.JSON(http.StatusOK, result)
+}

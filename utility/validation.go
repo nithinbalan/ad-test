@@ -335,6 +335,32 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			})
 			errors = append(errors, errorMessage)
 
+		case "kri_maximum_susceptibility_percent_invalid_range":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "kri_maximum_susceptibility_percent_invalid_range",
+				TemplateData: map[string]interface{}{
+					"Field": translatedFieldName,
+				},
+			})
+			if errorMessage == "" {
+				errorMessage = ve.Error()
+			}
+			errors = append(errors, errorMessage)
+
+		case "kri_maximum_tolerable_percent_invalid_range":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "kri_maximum_tolerable_percent_invalid_range",
+				TemplateData: map[string]interface{}{
+					"Field": translatedFieldName,
+				},
+			})
+			if errorMessage == "" {
+				errorMessage = ve.Error()
+			}
+			errors = append(errors, errorMessage)
+
 		case "document_not_published":
 			var errorMessage string
 			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
@@ -409,6 +435,16 @@ func ExtractValidationErrors(c *gin.Context, err error) []string {
 			var errorMessage string
 			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
 				MessageID: "invalid_hierarchy",
+				TemplateData: map[string]interface{}{
+					"Field": translatedFieldName,
+				},
+			})
+			errors = append(errors, errorMessage)
+
+		case "residual_risk_rating":
+			var errorMessage string
+			errorMessage, _ = loc.Localize(&i18n.LocalizeConfig{
+				MessageID: "residual_risk_rating",
 				TemplateData: map[string]interface{}{
 					"Field": translatedFieldName,
 				},

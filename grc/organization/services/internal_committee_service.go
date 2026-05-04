@@ -131,6 +131,11 @@ func (ics *InternalCommitteeService) GetFullDetailsByID(id uint, tx ...utility.D
 			versionDTO.TermEndDateString = &termEndDateStr
 		}
 
+		versionDTO.CreatedAt = latestVersion.CreatedAt
+		if latestVersion.UpdatedAt != nil {
+			versionDTO.UpdatedAt = latestVersion.UpdatedAt
+		}
+
 		// Manually map nominee departments with participants
 		if len(latestVersion.InternalCommitteeVersionNomineeDepartments) > 0 {
 			var nomineeDepartmentsDTO []*organizationDTOs.InternalCommitteeVersionNomineeDepartmentDetailDTO
@@ -187,6 +192,11 @@ func (ics *InternalCommitteeService) GetFullDetailsByID(id uint, tx ...utility.D
 		}
 
 		internalCommitteeDTO.LatestVersion = &versionDTO
+	}
+
+	internalCommitteeDTO.CreatedAt = internalCommittee.CreatedAt
+	if internalCommittee.UpdatedAt != nil {
+		internalCommitteeDTO.UpdatedAt = internalCommittee.UpdatedAt
 	}
 
 	return &internalCommitteeDTO, nil
@@ -1342,6 +1352,16 @@ func (ics *InternalCommitteeService) CreateParticipants(currentUserID uint, nomi
 			return
 		}
 
+		// Get department head (current user) who is assigning the participants
+		departmentHead, err := ics.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to get department head details for notification", map[string]interface{}{
+				"user_id": currentUserID,
+				"error":   err.Error(),
+			})
+			return
+		}
+
 		// Send notifications to each assigned participant
 		for _, userID := range dto.UserIDs {
 			// Get user details
@@ -1386,8 +1406,8 @@ func (ics *InternalCommitteeService) CreateParticipants(currentUserID uint, nomi
 				"DepartmentNameEn":   department.TitleEn,
 				"DepartmentNameAr":   department.TitleAr,
 				"MembershipType":     firstParticipant.NomineeDepartment.MembershipType,
-				"AssignedBy":         fmt.Sprintf("%s %s", committee.CreatedByUser.FirstNameEN, committee.CreatedByUser.LastNameEN),
-				"AssignedOn":         committee.CreatedAt.Format("2006-01-02"),
+				"AssignedBy":         fmt.Sprintf("%s %s", departmentHead.FirstNameEn, departmentHead.LastNameEn),
+				"AssignedOn":         time.Now().Format("2006-01-02"),
 				"RedirectURL":        fmt.Sprintf("%s/organization/committee/%d/overview", appURL, committeeID),
 			}
 
@@ -1506,6 +1526,16 @@ func (ics *InternalCommitteeService) DeleteParticipant(nomineeDepartmentID uint,
 			return
 		}
 
+		// Get department head (current user) who is removing the participant
+		departmentHead, err := ics.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to get department head details for removal notification", map[string]interface{}{
+				"user_id": currentUserID,
+				"error":   err.Error(),
+			})
+			return
+		}
+
 		urlParam := fmt.Sprintf(`{"id":%d}`, committeeID)
 		entity := "internal_committee"
 		action := "participant-removed"
@@ -1538,8 +1568,8 @@ func (ics *InternalCommitteeService) DeleteParticipant(nomineeDepartmentID uint,
 			"DepartmentNameEn":   department.TitleEn,
 			"DepartmentNameAr":   department.TitleAr,
 			"MembershipType":     deletedParticipant.NomineeDepartment.MembershipType,
-			"RemovedBy":          fmt.Sprintf("%s %s", committee.UpdatedByUser.FirstNameEN, committee.UpdatedByUser.LastNameEN),
-			"RemovedOn":          committee.UpdatedAt.Format("2006-01-02"),
+			"RemovedBy":          fmt.Sprintf("%s %s", departmentHead.FirstNameEn, departmentHead.LastNameEn),
+			"RemovedOn":          time.Now().Format("2006-01-02"),
 			"RedirectURL":        fmt.Sprintf("%s/organization/committee/%d/overview", appURL, committeeID),
 		}
 

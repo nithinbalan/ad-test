@@ -172,6 +172,14 @@
     "translation": "{{.Field}} must have a valid score range. The scoreMin should be less than scoreMax, and both values must be between 0 and 100."
   },
   {
+    "id": "kri_maximum_susceptibility_percent_invalid_range",
+    "translation": "Invalid value relationship: maximum susceptibility percent must be less than minimum susceptibility percent, and both fields must be between 0 and 100."
+  },
+  {
+    "id": "kri_maximum_tolerable_percent_invalid_range",
+    "translation": "Invalid value relationship: maximum tolerable percent must be less than maximum susceptibility percent, and both fields must be between 0 and 100."
+  },
+  {
     "id": "document_not_published",
     "translation": "Document must be published to continue."
   },
@@ -209,6 +217,13 @@
   "id": "invalid_hierarchy",
   "translation": "The {{.Field}} must be under the responsible unit"
 }
+
+,
+{
+  "id": "residual_risk_rating",
+  "translation": "Residual risk rating must be 'high' or 'critical' to submit risk response for review"
+}
+
 
 
 
