@@ -265,7 +265,7 @@ func (rrupc *RiskRegisterUpdatePlanController) CreateERMDepartmentEvaluation(c *
 		return
 	}
 
-	response, err := rrupc.service.CreateERMDepartmentEvaluation(uint(id), currentUserID)
+	err = rrupc.service.CreateERMDepartmentEvaluation(uint(id), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -277,10 +277,10 @@ func (rrupc *RiskRegisterUpdatePlanController) CreateERMDepartmentEvaluation(c *
 		}
 	}
 
-	c.JSON(http.StatusOK, response)
+	c.Status(http.StatusOK)
 }
 
-func (rrupc *RiskRegisterUpdatePlanController) UpdateERMDepartmentEvaluation(c *gin.Context) {
+func (rrupc *RiskRegisterUpdatePlanController) UpdateERMDepartmentEvaluationRisks(c *gin.Context) {
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -301,7 +301,7 @@ func (rrupc *RiskRegisterUpdatePlanController) UpdateERMDepartmentEvaluation(c *
 		return
 	}
 
-	response, err := rrupc.service.UpdateERMDepartmentEvaluation(uint(id), currentUserID, &formDTO)
+	err = rrupc.service.MapRisksToTimeline(uint(id), currentUserID, &formDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -316,10 +316,10 @@ func (rrupc *RiskRegisterUpdatePlanController) UpdateERMDepartmentEvaluation(c *
 		}
 	}
 
-	c.JSON(http.StatusCreated, response)
+	c.Status(http.StatusOK)
 }
 
-func (rrupc *RiskRegisterUpdatePlanController) GetERMDepartmentEvaluation(c *gin.Context) {
+func (rrupc *RiskRegisterUpdatePlanController) GetERMDepartmentEvaluationRisks(c *gin.Context) {
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -364,37 +364,37 @@ func (rrupc *RiskRegisterUpdatePlanController) GetERMDepartmentEvaluation(c *gin
 	}
 
 	validSortFields := map[string]string{
-		"reference_number":          "risk_register.reference_number",
-		"title":                     "risk_register.title",
-		"description":               "risk_register.description",
-		"risk_category_en":          "risk_categories.title_en",
-		"risk_category_ar":          "risk_categories.title_ar",
-		"organization_unit_en":      "organization_units.title_en",
-		"organization_unit_ar":      "organization_units.title_ar",
-		"responsible_user_en":       "users.first_name_en",
-		"responsible_user_ar":       "users.first_name_ar",
-		"risk_source_en":            "risk_sources.title_en",
-		"risk_source_ar":            "risk_sources.title_ar",
-		"risk_status_en":            "risk_statuses.title_en",
-		"risk_status_ar":            "risk_statuses.title_ar",
-		"inherent_likelihood_en":    "inherent_likelihood.title_en",
-		"inherent_likelihood_ar":    "inherent_likelihood.title_ar",
-		"inherent_impact_en":        "inherent_impact.title_en",
-		"inherent_impact_ar":        "inherent_impact.title_ar",
-		"inherent_risk_rating_en":   "inherent_risk_rating.title_en",
-		"inherent_risk_rating_ar":   "inherent_risk_rating.title_ar",
-		"risk_response_strategy_en": "risk_response_strategies.title_en",
-		"risk_response_strategy_ar": "risk_response_strategies.title_ar",
-		"residual_likelihood_en":    "residual_likelihood.title_en",
-		"residual_likelihood_ar":    "residual_likelihood.title_ar",
-		"residual_impact_en":        "residual_impact.title_en",
-		"residual_impact_ar":        "residual_impact.title_ar",
-		"residual_risk_rating_en":   "residual_risk_rating.title_en",
-		"residual_risk_rating_ar":   "residual_risk_rating.title_ar",
-		"reported_at":               "risk_register.reported_at",
-		"review_frequency_en":       "review_frequencies.title_en",
-		"review_frequency_ar":       "review_frequencies.title_ar",
-		"next_review_date":          "risk_register.next_review_date",
+		"reference_number":          "rr.reference_number",
+		"title":                     "rr.title",
+		"description":               "rr.description",
+		"risk_category_en":          "rc.title_en",
+		"risk_category_ar":          "rc.title_ar",
+		"organization_unit_en":      "ru.title_en",
+		"organization_unit_ar":      "ru.title_ar",
+		"responsible_user_en":       "u.first_name_en",
+		"responsible_user_ar":       "u.first_name_ar",
+		"risk_source_en":            "rs.title_en",
+		"risk_source_ar":            "rs.title_ar",
+		"risk_status_en":            "rst.title_en",
+		"risk_status_ar":            "rst.title_ar",
+		"inherent_likelihood_en":    "ill.title_en",
+		"inherent_likelihood_ar":    "ill.title_ar",
+		"inherent_impact_en":        "iil.title_en",
+		"inherent_impact_ar":        "iil.title_ar",
+		"inherent_risk_rating_en":   "irr.title_en",
+		"inherent_risk_rating_ar":   "irr.title_ar",
+		"risk_response_strategy_en": "rrs.title_en",
+		"risk_response_strategy_ar": "rrs.title_ar",
+		"residual_likelihood_en":    "rll.title_en",
+		"residual_likelihood_ar":    "rll.title_ar",
+		"residual_impact_en":        "ril.title_en",
+		"residual_impact_ar":        "ril.title_ar",
+		"residual_risk_rating_en":   "rrr.title_en",
+		"residual_risk_rating_ar":   "rrr.title_ar",
+		"reported_at":               "rr.reported_at",
+		"review_frequency_en":       "rf.title_en",
+		"review_frequency_ar":       "rf.title_ar",
+		"next_review_date":          "rr.next_review_date",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -464,7 +464,7 @@ func (rrupc *RiskRegisterUpdatePlanController) GetERMDepartmentEvaluation(c *gin
 		RiskAppetiteToleranceLevelID: riskAppetiteToleranceLevelID,
 	}
 
-	mappedRisks, err := rrupc.service.GetERMDepartmentEvaluation(uint(id), &queryParams)
+	mappedRisks, err := rrupc.service.GetERMDeptEvaluationRisks(uint(id), &queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -479,35 +479,35 @@ func (rrupc *RiskRegisterUpdatePlanController) GetERMDepartmentEvaluation(c *gin
 	c.JSON(http.StatusOK, mappedRisks)
 }
 
-func (rrupc *RiskRegisterUpdatePlanController) DeleteERMDepartmentEvaluation(c *gin.Context) {
-	idStr := c.Param("ermEvaluationId")
+// func (rrupc *RiskRegisterUpdatePlanController) DeleteERMDepartmentEvaluation(c *gin.Context) {
+// 	idStr := c.Param("ermEvaluationId")
 
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
+// 	id, err := strconv.ParseUint(idStr, 10, 32)
+// 	if err != nil {
+// 		utility.SendNotFoundErrResp(c)
+// 		return
+// 	}
 
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(rrupc.db, c, err.Error())
-		return
-	}
+// 	currentUserID, err := utility.GetCurrentUserID(c)
+// 	if err != nil {
+// 		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+// 		return
+// 	}
 
-	err = rrupc.service.DeleteERMDepartmentEvaluation(uint(id), currentUserID)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		default:
-			utility.SendInternalErrResp(rrupc.db, c, e.Error())
-			return
-		}
-	}
+// 	err = rrupc.service.DeleteERMDepartmentEvaluation(uint(id), currentUserID)
+// 	if err != nil {
+// 		switch e := err.(type) {
+// 		case *utility.ResourceNotFoundError:
+// 			utility.SendNotFoundErrResp(c)
+// 			return
+// 		default:
+// 			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+// 			return
+// 		}
+// 	}
 
-	c.Status(http.StatusOK)
-}
+// 	c.Status(http.StatusOK)
+// }
 
 // Introductory Meeting Document Operations
 
@@ -599,77 +599,77 @@ func (rrupc *RiskRegisterUpdatePlanController) GetIntroductoryMeetingDocuments(c
 	c.JSON(http.StatusOK, gin.H{"documents": documents})
 }
 
-func (rrupc *RiskRegisterUpdatePlanController) CreateIntroductoryMeetingDocuments(c *gin.Context) {
-	var formDTO riskDTOs.IntroductoryMeetingDocumentFormDTO
+// func (rrupc *RiskRegisterUpdatePlanController) CreateIntroductoryMeetingDocuments(c *gin.Context) {
+// 	var formDTO riskDTOs.IntroductoryMeetingDocumentFormDTO
 
-	planIDStr := c.Param("id")
-	planID, err := strconv.ParseUint(planIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
+// 	planIDStr := c.Param("id")
+// 	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+// 	if err != nil {
+// 		utility.SendNotFoundErrResp(c)
+// 		return
+// 	}
 
-	if err := c.ShouldBindJSON(&formDTO); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
+// 	if err := c.ShouldBindJSON(&formDTO); err != nil {
+// 		utility.SendInvalidErrResp(c, err)
+// 		return
+// 	}
 
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(rrupc.db, c, err.Error())
-		return
-	}
+// 	currentUserID, err := utility.GetCurrentUserID(c)
+// 	if err != nil {
+// 		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+// 		return
+// 	}
 
-	err = rrupc.service.CreateIntroductoryMeetingDocuments(uint(planID), currentUserID, formDTO.Documents)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(rrupc.db, c, e.Error())
-			return
-		}
-	}
+// 	err = rrupc.service.CreateIntroductoryMeetingDocuments(uint(planID), currentUserID, formDTO.Documents)
+// 	if err != nil {
+// 		switch e := err.(type) {
+// 		case *utility.ResourceNotFoundError:
+// 			utility.SendNotFoundErrResp(c)
+// 			return
+// 		case *utility.ValidationError:
+// 			utility.SendInvalidErrResp(c, e)
+// 			return
+// 		default:
+// 			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+// 			return
+// 		}
+// 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Documents updated successfully"})
-}
+// 	c.JSON(http.StatusOK, gin.H{"message": "Documents updated successfully"})
+// }
 
 // Business Context Operations
 
-func (rrupc *RiskRegisterUpdatePlanController) CreateBusinessContext(c *gin.Context) {
-	planIDStr := c.Param("id")
-	planID, err := strconv.ParseUint(planIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
+// func (rrupc *RiskRegisterUpdatePlanController) CreateBusinessContext(c *gin.Context) {
+// 	planIDStr := c.Param("id")
+// 	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+// 	if err != nil {
+// 		utility.SendNotFoundErrResp(c)
+// 		return
+// 	}
 
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(rrupc.db, c, err.Error())
-		return
-	}
+// 	currentUserID, err := utility.GetCurrentUserID(c)
+// 	if err != nil {
+// 		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+// 		return
+// 	}
 
-	err = rrupc.service.CreateBusinessContext(uint(planID), currentUserID)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		default:
-			utility.SendInternalErrResp(rrupc.db, c, e.Error())
-			return
-		}
-	}
+// 	err = rrupc.service.CreateBusinessContext(uint(planID), currentUserID)
+// 	if err != nil {
+// 		switch e := err.(type) {
+// 		case *utility.ResourceNotFoundError:
+// 			utility.SendNotFoundErrResp(c)
+// 			return
+// 		default:
+// 			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+// 			return
+// 		}
+// 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Business contexts created successfully"})
-}
+// 	c.JSON(http.StatusCreated, gin.H{"message": "Business contexts created successfully"})
+// }
 
-func (rrupc *RiskRegisterUpdatePlanController) GetBusinessContextByPlanID(c *gin.Context) {
+func (rrupc *RiskRegisterUpdatePlanController) GetBusinessContext(c *gin.Context) {
 	planIDStr := c.Param("id")
 	planID, err := strconv.ParseUint(planIDStr, 10, 32)
 	if err != nil {
@@ -692,9 +692,9 @@ func (rrupc *RiskRegisterUpdatePlanController) GetBusinessContextByPlanID(c *gin
 	c.JSON(http.StatusOK, gin.H{"business_contexts": businessContexts})
 }
 
-func (rrupc *RiskRegisterUpdatePlanController) UpdateBusinessContextStatus(c *gin.Context) {
-	businessContextIDStr := c.Param("businessContextId")
-	businessContextID, err := strconv.ParseUint(businessContextIDStr, 10, 32)
+func (rrupc *RiskRegisterUpdatePlanController) UpdateBusinessContext(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
@@ -712,7 +712,7 @@ func (rrupc *RiskRegisterUpdatePlanController) UpdateBusinessContextStatus(c *gi
 		return
 	}
 
-	err = rrupc.service.UpdateBusinessContextStatus(uint(businessContextID), currentUserID, &formDTO)
+	err = rrupc.service.UpdateBusinessContextStatus(uint(planID), currentUserID, &formDTO)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

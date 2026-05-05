@@ -53,6 +53,7 @@ type Process struct {
 	AuditableItems            []*AuditableItem             `gorm:"foreignKey:ProcessID"`
 	BusinessImpactAssessments []*BusinessImpactAssessment  `gorm:"foreignKey:ProcessID"`
 	ProcessDependencies       []*ProcessDependency         `gorm:"foreignKey:ProcessID"`
+	ProcessActivities         []*ProcessActivity           `gorm:"foreignKey:ProcessID"`
 	RtoUnit                   *TimeUnit                    `gorm:"foreignKey:RtoUnitId"`
 	MtpdUnit                  *TimeUnit                    `gorm:"foreignKey:MtpdUnitId"`
 	RpoUnit                   *TimeUnit                    `gorm:"foreignKey:RpoUnitId"`

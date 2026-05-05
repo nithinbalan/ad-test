@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
 	"jethur/config"
-	commonDTOs "jethur/grc/common/dtos"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -31,21 +29,37 @@ type RiskRegisterUpdatePlanServiceInterface interface {
 	Update(id uint, currentUserID uint, formDTO *riskDTOs.RiskRegisterUpdatePlanFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
-	// ERM Department Evaluation Operations
-	CreateERMDepartmentEvaluation(planID uint, currentUserID uint) (*riskDTOs.AutoFetchRisksResponseDTO, error)
-	UpdateERMDepartmentEvaluation(planID uint, currentUserID uint, formDTO *riskDTOs.MapRisksToUpdatePlanDTO) (*riskDTOs.MapRisksToUpdatePlanResponseDTO, error)
-	GetERMDepartmentEvaluation(planID uint, params *riskDTOs.ERMDeptEvaluationListQueryParamsDTO) (*riskDTOs.ERMDeptEvaluationListResponseDTO, error)
-	DeleteERMDepartmentEvaluation(id uint, currentUserID uint) error
+	// ERM Department Evaluation - Auto Fetch All
+	CreateERMDepartmentEvaluation(planID uint, currentUserID uint) error
+
+	// ERM Department Evaluation - Risks
+	MapRisksToTimeline(planID uint, currentUserID uint, formDTO *riskDTOs.MapRisksToUpdatePlanDTO) error
+	GetERMDeptEvaluationRisks(planID uint, params *riskDTOs.ERMDeptEvaluationListQueryParamsDTO) (*riskDTOs.ERMDeptEvaluationListResponseDTO, error)
+
+	// ERM Department Evaluation - Processes
+	MapProcessesToTimeline(planID uint, currentUserID uint, formDTO *riskDTOs.MapProcessesToUpdatePlanDTO) error
+	GetERMDeptEvaluationProcesses(timelineID uint, params *riskDTOs.ERMDeptEvaluationListQueryParamsDTO) (*riskDTOs.ERMDeptEvaluationProcessListResponseDTO, error)
+
+	// ERM Department Evaluation - Controls
+	MapControlsToTimeline(planID uint, currentUserID uint, formDTO *riskDTOs.MapControlsToUpdatePlanDTO) error
+	GetERMDeptEvaluationControls(timelineID uint, params *riskDTOs.ERMDeptEvaluationListQueryParamsDTO) (*riskDTOs.ERMDeptEvaluationControlListResponseDTO, error)
+
+	// Timeline Operations
+	MarkTimelineAsCompleted(timelineID uint, currentUserID uint) error
+	MarkTimelineAsNotApplicable(timelineID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error
 
 	// Introductory Meeting Document Operations
 	GetIntroductoryMeetingDocuments(planID uint) ([]*riskDTOs.IntroductoryMeetingDocumentDTO, error)
-	CreateIntroductoryMeetingDocuments(planID uint, currentUserID uint, documents []*commonDTOs.DocumentFormDTO) error
+	//CreateIntroductoryMeetingDocuments(planID uint, currentUserID uint, documents []*commonDTOs.DocumentFormDTO) error
 	GetIntroductoryMeetingDocumentPath(planID uint, token string) (string, error)
 
 	// Business Context Operations
-	CreateBusinessContext(planID uint, currentUserID uint) error
+	//CreateBusinessContext(planID uint, currentUserID uint) error
 	GetBusinessContextByPlanID(planID uint) ([]*riskDTOs.BusinessContextDetailDTO, error)
 	UpdateBusinessContextStatus(id uint, currentUserID uint, formDTO *riskDTOs.UpdateBusinessContextStatusFormDTO) error
+
+	// Timeline Operations
+	RecalculatePercentage(planID uint) error
 }
 
 type RiskRegisterUpdatePlanService struct {
@@ -53,6 +67,7 @@ type RiskRegisterUpdatePlanService struct {
 	activityLogSvc      logServices.ActivityLogServiceInterface
 	userSvc             organizationServices.UserServiceInterface
 	organizationUnitSvc settingsServices.OrganizationUnitServiceInterface
+	timelineTypeSvc     RiskUpdatePlanTimelineTypeServiceInterface
 }
 
 func NewRiskRegisterUpdatePlanService(
@@ -60,12 +75,14 @@ func NewRiskRegisterUpdatePlanService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	organizationUnitSvc settingsServices.OrganizationUnitServiceInterface,
+	timelineTypeSvc RiskUpdatePlanTimelineTypeServiceInterface,
 ) RiskRegisterUpdatePlanServiceInterface {
 	return &RiskRegisterUpdatePlanService{
 		repo:                repo,
 		activityLogSvc:      activityLogSvc,
 		userSvc:             userSvc,
 		organizationUnitSvc: organizationUnitSvc,
+		timelineTypeSvc:     timelineTypeSvc,
 	}
 }
 
@@ -160,6 +177,40 @@ func (s *RiskRegisterUpdatePlanService) Create(currentUserID uint, formDTO *risk
 			tx.Rollback()
 			return 0, err
 		}
+	}
+
+	// Automatically create 14 timelines (one for each timeline type)
+	timelineTypes, err := s.repo.GetAllTimelineTypes()
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	now := time.Now()
+	for _, timelineType := range timelineTypes {
+		// Mark "risk_register_update_plan" type as completed since the plan is being created
+		isCompleted := timelineType.Type == "risk_register_update_plan"
+
+		timeline := &models.RiskUpdatePlanTimeline{
+			RiskUpdatePlanID:             planID,
+			RiskUpdatePlanTimelineTypeID: timelineType.ID,
+			IsBusinessContextUpdated:     false,
+			IsNotApplicable:              false,
+			IsCompleted:                  isCompleted,
+			CreatedBYID:                  currentUserID,
+			CreatedAt:                    now,
+		}
+
+		if err := s.repo.CreateTimeline(timeline, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	// Calculate and update initial percentage (should be ~7.14% since 1 out of 14 is completed)
+	if err := s.repo.CalculateAndUpdatePercentage(planID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
 	}
 
 	tx.Commit()
@@ -322,7 +373,13 @@ func (s *RiskRegisterUpdatePlanService) Delete(ids []uint, currentUserID uint) (
 			"end_date":         plan.EndDateString,
 		})
 
-		// Delete team members first
+		// Delete timelines first
+		if err := s.repo.DeleteTimelinesByPlanID(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		// Delete team members
 		if err := s.repo.DeleteTeamMembersByPlanID(id, tx); err != nil {
 			failedIds = append(failedIds, id)
 			continue
@@ -438,250 +495,331 @@ func (s *RiskRegisterUpdatePlanService) parseRiskRegisterUpdatePlanDates(dto *ri
 
 // ERM Department Evaluation Operations
 
-func (s *RiskRegisterUpdatePlanService) CreateERMDepartmentEvaluation(planID uint, currentUserID uint) (*riskDTOs.AutoFetchRisksResponseDTO, error) {
-	// Get the plan to retrieve business unit ID
-	plan, err := s.repo.GetByID(planID)
+// ============================================
+// ERM Department Evaluation - Auto Fetch All
+// ============================================
+
+func (s *RiskRegisterUpdatePlanService) CreateERMDepartmentEvaluation(planID uint, currentUserID uint) error {
+	plan, err := s.GetByID(planID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, planID)
-		}
-		return nil, err
-	}
-
-	// Get all risks for the business unit
-	riskIDs, err := s.repo.GetRisksByBusinessUnitID(plan.BusinessUnitID)
-	if err != nil {
-		return nil, err
-	}
-
-	response := &riskDTOs.AutoFetchRisksResponseDTO{
-		TotalRisks:  len(riskIDs),
-		MappedCount: 0,
-		FailedCount: 0,
-		FailedIDs:   []uint{},
-	}
-
-	if len(riskIDs) == 0 {
-		return response, nil
-	}
-
-	tx := s.repo.BeginTransaction()
-
-	// Map each risk
-	for _, riskID := range riskIDs {
-		// Check if already mapped
-		alreadyMapped, err := s.repo.CheckRiskAlreadyMapped(planID, riskID)
-		if err != nil {
-			response.FailedCount++
-			response.FailedIDs = append(response.FailedIDs, riskID)
-			continue
-		}
-
-		if alreadyMapped {
-			continue // Skip already mapped risks
-		}
-
-		evaluation := &models.RiskUpdatePlanErmDeptEvaluation{
-			RiskRegisterUpdatePlanID: planID,
-			RiskRegisterID:           riskID,
-			CreatedBYID:              currentUserID,
-			CreatedAt:                time.Now(),
-		}
-
-		if err := s.repo.CreateERMDepartmentEvaluation(evaluation, tx); err != nil {
-			response.FailedCount++
-			response.FailedIDs = append(response.FailedIDs, riskID)
-			continue
-		}
-
-		response.MappedCount++
-	}
-
-	if response.FailedCount > 0 && response.MappedCount == 0 {
-		tx.Rollback()
-		return nil, fmt.Errorf("failed to map any risks")
-	}
-
-	tx.Commit()
-
-	// Log activity
-	go func() {
-		err := s.activityLogSvc.LogActivity(
-			models.CreateAction,
-			models.RiskUpdatePlanErmDeptEvaluation{}.TableName(),
-			planID,
-			map[string]interface{}{
-				"total_risks":  response.TotalRisks,
-				"mapped_count": response.MappedCount,
-			},
-			currentUserID,
-			"risk", "risk_update_plan_evaluation", "auto_fetch", nil,
-		)
-		if err != nil {
-			utility.LogError("Failed to log activity", map[string]interface{}{
-				"action": models.CreateAction,
-				"planID": planID,
-				"userID": currentUserID,
-				"error":  err.Error(),
-			})
-		}
-	}()
-
-	return response, nil
-}
-
-func (s *RiskRegisterUpdatePlanService) UpdateERMDepartmentEvaluation(planID uint, currentUserID uint, formDTO *riskDTOs.MapRisksToUpdatePlanDTO) (*riskDTOs.MapRisksToUpdatePlanResponseDTO, error) {
-	tx := s.repo.BeginTransaction()
-
-	// Verify plan exists
-	if _, err := s.repo.GetByID(planID); err != nil {
-		tx.Rollback()
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, planID)
-		}
-		return nil, err
-	}
-
-	// Get existing mapped risk IDs
-	existingRiskIDs, err := s.repo.GetExistingMappedRiskIDs(planID, tx)
-	if err != nil {
-		tx.Rollback()
-		return nil, err
-	}
-
-	// Create maps for comparison
-	existingRisks := make(map[uint]bool)
-	for _, riskID := range existingRiskIDs {
-		existingRisks[riskID] = true
-	}
-
-	newRisks := make(map[uint]bool)
-	for _, riskID := range formDTO.RiskRegisterIDs {
-		newRisks[riskID] = true
-	}
-
-	// Find risks to add (in new but not in existing)
-	var risksToAdd []*models.RiskUpdatePlanErmDeptEvaluation
-	now := time.Now()
-	for riskID := range newRisks {
-		if !existingRisks[riskID] {
-			risksToAdd = append(risksToAdd, &models.RiskUpdatePlanErmDeptEvaluation{
-				RiskRegisterUpdatePlanID: planID,
-				RiskRegisterID:           riskID,
-				CreatedBYID:              currentUserID,
-				CreatedAt:                now,
-			})
-		}
-	}
-
-	// Add new risks
-	if len(risksToAdd) > 0 {
-		for _, evaluation := range risksToAdd {
-			if err := s.repo.CreateERMDepartmentEvaluation(evaluation, tx); err != nil {
-				tx.Rollback()
-				return nil, err
-			}
-		}
-	}
-
-	// Find risks to delete (in existing but not in new)
-	var deleteRiskIDs []uint
-	for existingID := range existingRisks {
-		if !newRisks[existingID] {
-			deleteRiskIDs = append(deleteRiskIDs, existingID)
-		}
-	}
-
-	// Delete removed risks
-	if len(deleteRiskIDs) > 0 {
-		if err := s.repo.DeleteERMDepartmentEvaluationsByRiskIDs(planID, deleteRiskIDs, tx); err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-	}
-
-	tx.Commit()
-
-	// Prepare response
-	response := &riskDTOs.MapRisksToUpdatePlanResponseDTO{
-		SuccessCount: len(risksToAdd),
-		FailedCount:  0,
-		FailedIDs:    []uint{},
-	}
-
-	// Log activity
-	go func() {
-		err := s.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.RiskUpdatePlanErmDeptEvaluation{}.TableName(),
-			planID,
-			map[string]interface{}{
-				"added_count":   len(risksToAdd),
-				"deleted_count": len(deleteRiskIDs),
-			},
-			currentUserID,
-			"risk", "risk_update_plan_evaluation", "update", nil,
-		)
-		if err != nil {
-			utility.LogError("Failed to log activity", map[string]interface{}{
-				"action": models.UpdateAction,
-				"planID": planID,
-				"userID": currentUserID,
-				"error":  err.Error(),
-			})
-		}
-	}()
-
-	return response, nil
-}
-
-func (s *RiskRegisterUpdatePlanService) GetERMDepartmentEvaluation(planID uint, params *riskDTOs.ERMDeptEvaluationListQueryParamsDTO) (*riskDTOs.ERMDeptEvaluationListResponseDTO, error) {
-	// Verify plan exists
-	_, err := s.repo.GetByID(planID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, planID)
-		}
-		return nil, err
-	}
-
-	return s.repo.GetERMDepartmentEvaluation(planID, params)
-}
-
-func (s *RiskRegisterUpdatePlanService) DeleteERMDepartmentEvaluation(id uint, currentUserID uint) error {
-	tx := s.repo.BeginTransaction()
-
-	if err := s.repo.DeleteERMDepartmentEvaluation(id, tx); err != nil {
-		tx.Rollback()
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return utility.NewResourceNotFoundError(err, id)
-		}
 		return err
 	}
 
-	tx.Commit()
+	// Get timeline type for ERM Department Evaluation
+	timelineType, err := s.timelineTypeSvc.GetByType("erm_department_evaluation")
+	if err != nil {
+		return err
+	}
 
-	// Log activity
-	go func() {
-		err := s.activityLogSvc.LogActivity(
-			models.DeleteAction,
-			models.RiskUpdatePlanErmDeptEvaluation{}.TableName(),
-			id,
-			nil,
-			currentUserID,
-			"risk", "risk_update_plan_evaluation", "delete", nil,
-		)
-		if err != nil {
-			utility.LogError("Failed to log activity", map[string]interface{}{
-				"action": models.DeleteAction,
-				"id":     id,
-				"userID": currentUserID,
-				"error":  err.Error(),
-			})
-		}
-	}()
+	tx := s.repo.BeginTransaction()
 
-	return nil
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Fetch risks, processes, and controls for the business unit
+	riskIDs, err := s.repo.GetRisksByBusinessUnitID(plan.BusinessUnitID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	processIDs, err := s.repo.GetProcessesByBusinessUnitID(plan.BusinessUnitID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	controlIDs, err := s.repo.GetControlsByBusinessUnitID(plan.BusinessUnitID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Create risk mappings
+	riskMappings := make([]*models.RiskUpdatePlanRisk, 0, len(riskIDs))
+	for _, riskID := range riskIDs {
+		riskMappings = append(riskMappings, &models.RiskUpdatePlanRisk{
+			RiskUpdatePlanTimelineID: timeline.ID,
+			RiskRegisterID:           riskID,
+			CreatedBYID:              &currentUserID,
+			CreatedAt:                time.Now(),
+		})
+	}
+
+	if err := s.repo.CreateRiskMappings(riskMappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Create process mappings
+	processMappings := make([]*models.RiskUpdatePlanProcess, 0, len(processIDs))
+	for _, processID := range processIDs {
+		processMappings = append(processMappings, &models.RiskUpdatePlanProcess{
+			RiskUpdatePlanTimelineID: timeline.ID,
+			ProcessID:                processID,
+			CreatedBYID:              &currentUserID,
+			CreatedAt:                time.Now(),
+		})
+	}
+
+	if err := s.repo.CreateProcessMappings(processMappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Create control mappings
+	controlMappings := make([]*models.RiskUpdatePlanControl, 0, len(controlIDs))
+	for _, controlID := range controlIDs {
+		controlMappings = append(controlMappings, &models.RiskUpdatePlanControl{
+			RiskUpdatePlanTimelineID: timeline.ID,
+			ControlID:                controlID,
+			CreatedBYID:              &currentUserID,
+			CreatedAt:                time.Now(),
+		})
+	}
+
+	if err := s.repo.CreateControlMappings(controlMappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Mark timeline as completed
+	if err := s.repo.UpdateTimelineCompletion(timeline.ID, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Recalculate percentage
+	if err := s.repo.CalculateAndUpdatePercentage(planID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// ============================================
+// ERM Department Evaluation - Risks
+// ============================================
+
+func (s *RiskRegisterUpdatePlanService) MapRisksToTimeline(planID uint, currentUserID uint, formDTO *riskDTOs.MapRisksToUpdatePlanDTO) error {
+	// Get timeline type for ERM Department Evaluation
+	timelineType, err := s.timelineTypeSvc.GetByType("erm_department_evaluation")
+	if err != nil {
+		return err
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Delete all existing risk mappings for this timeline
+	if err := s.repo.DeleteAllRiskMappingsByTimelineID(timeline.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Create new risk mappings
+	riskMappings := make([]*models.RiskUpdatePlanRisk, 0, len(formDTO.RiskRegisterIDs))
+	for _, riskID := range formDTO.RiskRegisterIDs {
+		riskMappings = append(riskMappings, &models.RiskUpdatePlanRisk{
+			RiskUpdatePlanTimelineID: timeline.ID,
+			RiskRegisterID:           riskID,
+			CreatedBYID:              &currentUserID,
+			CreatedAt:                time.Now(),
+		})
+	}
+
+	if err := s.repo.CreateRiskMappings(riskMappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (s *RiskRegisterUpdatePlanService) GetERMDeptEvaluationRisks(planID uint, params *riskDTOs.ERMDeptEvaluationListQueryParamsDTO) (*riskDTOs.ERMDeptEvaluationListResponseDTO, error) {
+	// Get timeline type for ERM Department Evaluation
+	timelineType, err := s.timelineTypeSvc.GetByType("erm_department_evaluation")
+	if err != nil {
+		return nil, err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.repo.GetERMDeptEvaluationRisks(timeline.ID, params)
+}
+
+// ============================================
+// ERM Department Evaluation - Processes
+// ============================================
+
+func (s *RiskRegisterUpdatePlanService) MapProcessesToTimeline(planID uint, currentUserID uint, formDTO *riskDTOs.MapProcessesToUpdatePlanDTO) error {
+	// Get timeline type for ERM Department Evaluation
+	timelineType, err := s.timelineTypeSvc.GetByType("erm_department_evaluation")
+	if err != nil {
+		return err
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Delete all existing process mappings for this timeline
+	if err := s.repo.DeleteAllProcessMappingsByTimelineID(timeline.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Create new process mappings
+	processMappings := make([]*models.RiskUpdatePlanProcess, 0, len(formDTO.ProcessIDs))
+	for _, processID := range formDTO.ProcessIDs {
+		processMappings = append(processMappings, &models.RiskUpdatePlanProcess{
+			RiskUpdatePlanTimelineID: timeline.ID,
+			ProcessID:                processID,
+			CreatedBYID:              &currentUserID,
+			CreatedAt:                time.Now(),
+		})
+	}
+
+	if err := s.repo.CreateProcessMappings(processMappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (s *RiskRegisterUpdatePlanService) GetERMDeptEvaluationProcesses(timelineID uint, params *riskDTOs.ERMDeptEvaluationListQueryParamsDTO) (*riskDTOs.ERMDeptEvaluationProcessListResponseDTO, error) {
+	return s.repo.GetERMDeptEvaluationProcesses(timelineID, params)
+}
+
+// ============================================
+// ERM Department Evaluation - Controls
+// ============================================
+
+func (s *RiskRegisterUpdatePlanService) MapControlsToTimeline(planID uint, currentUserID uint, formDTO *riskDTOs.MapControlsToUpdatePlanDTO) error {
+	// Get timeline type for ERM Department Evaluation
+	timelineType, err := s.timelineTypeSvc.GetByType("erm_department_evaluation")
+	if err != nil {
+		return err
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Delete all existing control mappings for this timeline
+	if err := s.repo.DeleteAllControlMappingsByTimelineID(timeline.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Create new control mappings
+	controlMappings := make([]*models.RiskUpdatePlanControl, 0, len(formDTO.ControlIDs))
+	for _, controlID := range formDTO.ControlIDs {
+		controlMappings = append(controlMappings, &models.RiskUpdatePlanControl{
+			RiskUpdatePlanTimelineID: timeline.ID,
+			ControlID:                controlID,
+			CreatedBYID:              &currentUserID,
+			CreatedAt:                time.Now(),
+		})
+	}
+
+	if err := s.repo.CreateControlMappings(controlMappings, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (s *RiskRegisterUpdatePlanService) GetERMDeptEvaluationControls(timelineID uint, params *riskDTOs.ERMDeptEvaluationListQueryParamsDTO) (*riskDTOs.ERMDeptEvaluationControlListResponseDTO, error) {
+	return s.repo.GetERMDeptEvaluationControls(timelineID, params)
+}
+
+// ============================================
+// Timeline Operations
+// ============================================
+
+func (s *RiskRegisterUpdatePlanService) MarkTimelineAsCompleted(timelineID uint, currentUserID uint) error {
+	tx := s.repo.BeginTransaction()
+
+	// Get timeline to get plan ID
+	var timeline models.RiskUpdatePlanTimeline
+	if err := tx.DB().First(&timeline, timelineID).Error; err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, timelineID)
+	}
+
+	// Mark timeline as completed
+	if err := s.repo.UpdateTimelineCompletion(timelineID, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Recalculate percentage
+	if err := s.repo.CalculateAndUpdatePercentage(timeline.RiskUpdatePlanID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (s *RiskRegisterUpdatePlanService) MarkTimelineAsNotApplicable(timelineID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error {
+	tx := s.repo.BeginTransaction()
+
+	// Get timeline to get plan ID
+	var timeline models.RiskUpdatePlanTimeline
+	if err := tx.DB().First(&timeline, timelineID).Error; err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, timelineID)
+	}
+
+	// Update timeline - mark as not applicable and completed
+	now := time.Now()
+	timeline.IsNotApplicable = true
+	timeline.IsCompleted = true
+	timeline.Justification = &formDTO.Justification
+	timeline.UpdatedBYID = &currentUserID
+	timeline.UpdatedAt = &now
+
+	if err := tx.DB().Save(&timeline).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Recalculate percentage
+	if err := s.repo.CalculateAndUpdatePercentage(timeline.RiskUpdatePlanID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }
 
 // Introductory Meeting Document Operations
@@ -720,142 +858,142 @@ func (s *RiskRegisterUpdatePlanService) GetIntroductoryMeetingDocuments(planID u
 	return documentDTOs, nil
 }
 
-func (s *RiskRegisterUpdatePlanService) CreateIntroductoryMeetingDocuments(planID uint, currentUserID uint, documents []*commonDTOs.DocumentFormDTO) error {
-	// Verify plan exists
-	_, err := s.repo.GetByID(planID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return utility.NewResourceNotFoundError(err, planID)
-		}
-		return err
-	}
+// func (s *RiskRegisterUpdatePlanService) CreateIntroductoryMeetingDocuments(planID uint, currentUserID uint, documents []*commonDTOs.DocumentFormDTO) error {
+// 	// Verify plan exists
+// 	_, err := s.repo.GetByID(planID)
+// 	if err != nil {
+// 		if errors.Is(err, gorm.ErrRecordNotFound) {
+// 			return utility.NewResourceNotFoundError(err, planID)
+// 		}
+// 		return err
+// 	}
 
-	tx := s.repo.BeginTransaction()
+// 	tx := s.repo.BeginTransaction()
 
-	// Handle documents
-	var newDocuments []*models.RiskUpdatePlanIntroductoryMeetingDocument
-	var deleteDocumentIDs []*uint
-	var documentsToDelete []*models.RiskUpdatePlanIntroductoryMeetingDocument
+// 	// Handle documents
+// 	var newDocuments []*models.RiskUpdatePlanIntroductoryMeetingDocument
+// 	var deleteDocumentIDs []*uint
+// 	var documentsToDelete []*models.RiskUpdatePlanIntroductoryMeetingDocument
 
-	now := time.Now()
+// 	now := time.Now()
 
-	for _, doc := range documents {
-		// NEW FILE
-		if doc.IsNewFile != nil && *doc.IsNewFile {
-			encryptedFilename, err := utility.EncryptData([]byte(doc.FileName))
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
+// 	for _, doc := range documents {
+// 		// NEW FILE
+// 		if doc.IsNewFile != nil && *doc.IsNewFile {
+// 			encryptedFilename, err := utility.EncryptData([]byte(doc.FileName))
+// 			if err != nil {
+// 				tx.Rollback()
+// 				return err
+// 			}
 
-			url := utility.GenerateDocumentURL(
-				"risk",
-				"risk-register-update-plan",
-				strconv.FormatUint(uint64(planID), 10),
-				"introductory-meeting-documents",
-			)
+// 			url := utility.GenerateDocumentURL(
+// 				"risk",
+// 				"risk-register-update-plan",
+// 				strconv.FormatUint(uint64(planID), 10),
+// 				"introductory-meeting-documents",
+// 			)
 
-			document := &models.RiskUpdatePlanIntroductoryMeetingDocument{
-				RiskRegisterUpdatePlanID: planID,
-				URL:                      &url,
-				Name:                     &doc.FileName,
-				Size:                     &doc.Size,
-				Token:                    &encryptedFilename,
-				OriginalName:             &doc.OriginalName,
-				Type:                     &doc.Type,
-				CreatedBYID:              &currentUserID,
-				CreatedAt:                now,
-			}
+// 			document := &models.RiskUpdatePlanIntroductoryMeetingDocument{
+// 				RiskRegisterUpateTimeID: planID,
+// 				URL:                      &url,
+// 				Name:                     &doc.FileName,
+// 				Size:                     &doc.Size,
+// 				Token:                    &encryptedFilename,
+// 				OriginalName:             &doc.OriginalName,
+// 				Type:                     &doc.Type,
+// 				CreatedBYID:              &currentUserID,
+// 				CreatedAt:                now,
+// 			}
 
-			newDocuments = append(newDocuments, document)
+// 			newDocuments = append(newDocuments, document)
 
-		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile && doc.ID != nil {
-			// DELETE FILE
-			existingDocument, err := s.repo.GetIntroductoryMeetingDocumentByID(*doc.ID)
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
+// 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile && doc.ID != nil {
+// 			// DELETE FILE
+// 			existingDocument, err := s.repo.GetIntroductoryMeetingDocumentByID(*doc.ID)
+// 			if err != nil {
+// 				tx.Rollback()
+// 				return err
+// 			}
 
-			// Verify document belongs to the plan
-			if existingDocument.RiskRegisterUpdatePlanID != planID {
-				tx.Rollback()
-				return utility.NewResourceNotFoundError(fmt.Errorf("document not found"), *doc.ID)
-			}
+// 			// Verify document belongs to the plan
+// 			if existingDocument.RiskRegisterUpdatePlanID != planID {
+// 				tx.Rollback()
+// 				return utility.NewResourceNotFoundError(fmt.Errorf("document not found"), *doc.ID)
+// 			}
 
-			deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
-			documentsToDelete = append(documentsToDelete, existingDocument)
-		}
-	}
+// 			deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
+// 			documentsToDelete = append(documentsToDelete, existingDocument)
+// 		}
+// 	}
 
-	// Create new documents
-	if len(newDocuments) > 0 {
-		for _, doc := range newDocuments {
-			_, err := s.repo.CreateIntroductoryMeetingDocument(doc, tx)
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
-		}
-	}
+// 	// Create new documents
+// 	if len(newDocuments) > 0 {
+// 		for _, doc := range newDocuments {
+// 			_, err := s.repo.CreateIntroductoryMeetingDocument(doc, tx)
+// 			if err != nil {
+// 				tx.Rollback()
+// 				return err
+// 			}
+// 		}
+// 	}
 
-	// Delete documents
-	if len(deleteDocumentIDs) > 0 {
-		for _, docID := range deleteDocumentIDs {
-			if err := s.repo.DeleteIntroductoryMeetingDocument(*docID, tx); err != nil {
-				tx.Rollback()
-				return err
-			}
-		}
-	}
+// 	// Delete documents
+// 	if len(deleteDocumentIDs) > 0 {
+// 		for _, docID := range deleteDocumentIDs {
+// 			if err := s.repo.DeleteIntroductoryMeetingDocument(*docID, tx); err != nil {
+// 				tx.Rollback()
+// 				return err
+// 			}
+// 		}
+// 	}
 
-	// File system operations - store new files
-	for _, doc := range newDocuments {
-		storagePath := filepath.Join("risk", "risk-register-update-plan", strconv.FormatUint(uint64(planID), 10), "introductory-meeting-documents")
-		if err := utility.StoreFile(*doc.Name, storagePath); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
+// 	// File system operations - store new files
+// 	for _, doc := range newDocuments {
+// 		storagePath := filepath.Join("risk", "risk-register-update-plan", strconv.FormatUint(uint64(planID), 10), "introductory-meeting-documents")
+// 		if err := utility.StoreFile(*doc.Name, storagePath); err != nil {
+// 			tx.Rollback()
+// 			return err
+// 		}
+// 	}
 
-	// File system operations - delete files
-	for _, doc := range documentsToDelete {
-		storagePath := filepath.Join("risk", "risk-register-update-plan", strconv.FormatUint(uint64(planID), 10), "introductory-meeting-documents")
-		if doc.Name != nil {
-			if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
-				tx.Rollback()
-				return err
-			}
-		}
-	}
+// 	// File system operations - delete files
+// 	for _, doc := range documentsToDelete {
+// 		storagePath := filepath.Join("risk", "risk-register-update-plan", strconv.FormatUint(uint64(planID), 10), "introductory-meeting-documents")
+// 		if doc.Name != nil {
+// 			if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
+// 				tx.Rollback()
+// 				return err
+// 			}
+// 		}
+// 	}
 
-	tx.Commit()
+// 	tx.Commit()
 
-	// Log activity
-	go func() {
-		err := s.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.RiskUpdatePlanIntroductoryMeetingDocument{}.TableName(),
-			planID,
-			map[string]interface{}{
-				"new_documents_count":     len(newDocuments),
-				"deleted_documents_count": len(documentsToDelete),
-			},
-			currentUserID,
-			"risk", "risk_register_update_plan", "documents_update", nil,
-		)
-		if err != nil {
-			utility.LogError("Failed to log activity", map[string]interface{}{
-				"action": models.UpdateAction,
-				"planID": planID,
-				"userID": currentUserID,
-				"error":  err.Error(),
-			})
-		}
-	}()
+// 	// Log activity
+// 	go func() {
+// 		err := s.activityLogSvc.LogActivity(
+// 			models.UpdateAction,
+// 			models.RiskUpdatePlanIntroductoryMeetingDocument{}.TableName(),
+// 			planID,
+// 			map[string]interface{}{
+// 				"new_documents_count":     len(newDocuments),
+// 				"deleted_documents_count": len(documentsToDelete),
+// 			},
+// 			currentUserID,
+// 			"risk", "risk_register_update_plan", "documents_update", nil,
+// 		)
+// 		if err != nil {
+// 			utility.LogError("Failed to log activity", map[string]interface{}{
+// 				"action": models.UpdateAction,
+// 				"planID": planID,
+// 				"userID": currentUserID,
+// 				"error":  err.Error(),
+// 			})
+// 		}
+// 	}()
 
-	return nil
-}
+// 	return nil
+// }
 
 func (s *RiskRegisterUpdatePlanService) GetIntroductoryMeetingDocumentPath(planID uint, token string) (string, error) {
 	// Verify plan exists
@@ -905,112 +1043,112 @@ func (s *RiskRegisterUpdatePlanService) GetIntroductoryMeetingDocumentPath(planI
 
 // Business Context Operations
 
-func (s *RiskRegisterUpdatePlanService) CreateBusinessContext(planID uint, currentUserID uint) error {
-	// Verify plan exists
-	_, err := s.repo.GetByID(planID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return utility.NewResourceNotFoundError(err, planID)
-		}
-		return err
-	}
+// func (s *RiskRegisterUpdatePlanService) CreateBusinessContext(planID uint, currentUserID uint) error {
+// 	// Verify plan exists
+// 	_, err := s.repo.GetByID(planID)
+// 	if err != nil {
+// 		if errors.Is(err, gorm.ErrRecordNotFound) {
+// 			return utility.NewResourceNotFoundError(err, planID)
+// 		}
+// 		return err
+// 	}
 
-	// Get business unit ID from plan
-	businessUnitID, err := s.repo.GetBusinessUnitIDByPlanID(planID)
-	if err != nil {
-		return err
-	}
+// 	// Get business unit ID from plan
+// 	businessUnitID, err := s.repo.GetBusinessUnitIDByPlanID(planID)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	tx := s.repo.BeginTransaction()
+// 	tx := s.repo.BeginTransaction()
 
-	// Get all business context IDs for the business unit
-	businessContextIDs, err := s.repo.GetBusinessContextIDsByBusinessUnit(businessUnitID, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+// 	// Get all business context IDs for the business unit
+// 	businessContextIDs, err := s.repo.GetBusinessContextIDsByBusinessUnit(businessUnitID, tx)
+// 	if err != nil {
+// 		tx.Rollback()
+// 		return err
+// 	}
 
-	// Get all process IDs for the business unit
-	processIDs, err := s.repo.GetProcessIDsByBusinessUnit(businessUnitID, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+// 	// Get all process IDs for the business unit
+// 	processIDs, err := s.repo.GetProcessIDsByBusinessUnit(businessUnitID, tx)
+// 	if err != nil {
+// 		tx.Rollback()
+// 		return err
+// 	}
 
-	// Get all control IDs for the business unit
-	controlIDs, err := s.repo.GetControlIDsByBusinessUnit(businessUnitID, tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+// 	// Get all control IDs for the business unit
+// 	controlIDs, err := s.repo.GetControlIDsByBusinessUnit(businessUnitID, tx)
+// 	if err != nil {
+// 		tx.Rollback()
+// 		return err
+// 	}
 
-	// Create business context records
-	for _, bcID := range businessContextIDs {
-		businessContext := &models.RiskUpdatePlanBusinessContext{
-			RiskRegisterUpdatePlanID: planID,
-			BusinessContextID:        &bcID,
-			CreatedBYID:              &currentUserID,
-		}
-		if err := s.repo.CreateBusinessContext(businessContext, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
+// 	// Create business context records
+// 	for _, bcID := range businessContextIDs {
+// 		businessContext := &models.RiskUpdatePlanBusinessContext{
+// 			RiskRegisterUpdatePlanID: planID,
+// 			BusinessContextID:        &bcID,
+// 			CreatedBYID:              &currentUserID,
+// 		}
+// 		if err := s.repo.CreateBusinessContext(businessContext, tx); err != nil {
+// 			tx.Rollback()
+// 			return err
+// 		}
+// 	}
 
-	// Create process records
-	for _, processID := range processIDs {
-		businessContext := &models.RiskUpdatePlanBusinessContext{
-			RiskRegisterUpdatePlanID: planID,
-			ProcessID:                &processID,
-			CreatedBYID:              &currentUserID,
-		}
-		if err := s.repo.CreateBusinessContext(businessContext, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
+// 	// Create process records
+// 	for _, processID := range processIDs {
+// 		businessContext := &models.RiskUpdatePlanBusinessContext{
+// 			RiskRegisterUpdatePlanID: planID,
+// 			ProcessID:                &processID,
+// 			CreatedBYID:              &currentUserID,
+// 		}
+// 		if err := s.repo.CreateBusinessContext(businessContext, tx); err != nil {
+// 			tx.Rollback()
+// 			return err
+// 		}
+// 	}
 
-	// Create control records
-	for _, controlID := range controlIDs {
-		businessContext := &models.RiskUpdatePlanBusinessContext{
-			RiskRegisterUpdatePlanID: planID,
-			ControlID:                &controlID,
-			CreatedBYID:              &currentUserID,
-		}
-		if err := s.repo.CreateBusinessContext(businessContext, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
+// 	// Create control records
+// 	for _, controlID := range controlIDs {
+// 		businessContext := &models.RiskUpdatePlanBusinessContext{
+// 			RiskRegisterUpdatePlanID: planID,
+// 			ControlID:                &controlID,
+// 			CreatedBYID:              &currentUserID,
+// 		}
+// 		if err := s.repo.CreateBusinessContext(businessContext, tx); err != nil {
+// 			tx.Rollback()
+// 			return err
+// 		}
+// 	}
 
-	tx.Commit()
+// 	tx.Commit()
 
-	// Log activity
-	go func() {
-		err := s.activityLogSvc.LogActivity(
-			models.CreateAction,
-			models.RiskUpdatePlanBusinessContext{}.TableName(),
-			planID,
-			map[string]interface{}{
-				"plan_id":          planID,
-				"business_unit_id": businessUnitID,
-				"total_created":    len(businessContextIDs) + len(processIDs) + len(controlIDs),
-			},
-			currentUserID,
-			"risk", "risk_update_plan_business_context", "create_all", nil,
-		)
-		if err != nil {
-			utility.LogError("Failed to log activity", map[string]interface{}{
-				"action": models.CreateAction,
-				"planID": planID,
-				"userID": currentUserID,
-				"error":  err.Error(),
-			})
-		}
-	}()
+// 	// Log activity
+// 	go func() {
+// 		err := s.activityLogSvc.LogActivity(
+// 			models.CreateAction,
+// 			models.RiskUpdatePlanBusinessContext{}.TableName(),
+// 			planID,
+// 			map[string]interface{}{
+// 				"plan_id":          planID,
+// 				"business_unit_id": businessUnitID,
+// 				"total_created":    len(businessContextIDs) + len(processIDs) + len(controlIDs),
+// 			},
+// 			currentUserID,
+// 			"risk", "risk_update_plan_business_context", "create_all", nil,
+// 		)
+// 		if err != nil {
+// 			utility.LogError("Failed to log activity", map[string]interface{}{
+// 				"action": models.CreateAction,
+// 				"planID": planID,
+// 				"userID": currentUserID,
+// 				"error":  err.Error(),
+// 			})
+// 		}
+// 	}()
 
-	return nil
-}
+// 	return nil
+// }
 
 func (s *RiskRegisterUpdatePlanService) GetBusinessContextByPlanID(planID uint) ([]*riskDTOs.BusinessContextDetailDTO, error) {
 
@@ -1060,7 +1198,7 @@ func (s *RiskRegisterUpdatePlanService) UpdateBusinessContextStatus(id uint, cur
 	tx := s.repo.BeginTransaction()
 
 	// Update status
-	if err := s.repo.UpdateBusinessContextStatus(id, formDTO.IsBusinessContextUpdated, tx); err != nil {
+	if err := s.repo.UpdateBusinessContextStatus(id, *formDTO.IsBusinessContextUpdated, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -1074,7 +1212,7 @@ func (s *RiskRegisterUpdatePlanService) UpdateBusinessContextStatus(id uint, cur
 			models.RiskUpdatePlanBusinessContext{}.TableName(),
 			id,
 			map[string]interface{}{
-				"is_business_context_updated": formDTO.IsBusinessContextUpdated,
+				"is_business_context_updated": *formDTO.IsBusinessContextUpdated,
 			},
 			currentUserID,
 			"risk", "risk_update_plan_business_context", "update_status", nil,
@@ -1088,6 +1226,30 @@ func (s *RiskRegisterUpdatePlanService) UpdateBusinessContextStatus(id uint, cur
 			})
 		}
 	}()
+
+	return nil
+}
+
+// Timeline Operations
+
+func (s *RiskRegisterUpdatePlanService) RecalculatePercentage(planID uint) error {
+	// Verify plan exists
+	_, err := s.repo.GetByID(planID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, planID)
+		}
+		return err
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	if err := s.repo.CalculateAndUpdatePercentage(planID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
 
 	return nil
 }

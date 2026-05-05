@@ -32,6 +32,7 @@ type RiskRegisterUpdatePlanListDTO struct {
 	StartDate                      string  `json:"start_date"`
 	EndDate                        string  `json:"end_date"`
 	Notes                          *string `json:"notes"`
+	TotalPercentageCompleted       *int    `json:"total_percentage_completed"`
 	CreatedAt                      string  `json:"created_at"`
 	UpdatedAt                      *string `json:"updated_at"`
 	CreatedUserID                  uint    `json:"created_user_id"`
@@ -86,7 +87,10 @@ type RiskRegisterUpdatePlanDetailDTO struct {
 	StartDateString                string                                       `json:"start_date"`
 	EndDateString                  string                                       `json:"end_date"`
 	Notes                          *string                                      `json:"notes"`
+	TotalPercentageCompleted       *int                                         `json:"total_percentage_completed"`
+	IsBusinessContextUpdated       bool                                         `json:"is_business_context_updated"`
 	TeamMembers                    []*RiskRegisterUpdatePlanTeamMemberDetailDTO `json:"team_members"`
+	Timelines                      []*RiskUpdatePlanTimelineDetailDTO           `json:"timelines"`
 	CreatedAt                      time.Time                                    `json:"created_at"`
 	UpdatedAt                      *time.Time                                   `json:"updated_at"`
 	CreatedByUser                  *organizationDTOs.UserMinimalDTO             `json:"created_by"`
@@ -105,6 +109,18 @@ type RiskRegisterUpdatePlanTeamMemberDetailDTO struct {
 	User      *organizationDTOs.UserMinimalDTO `json:"user"`
 	CreatedAt time.Time                        `json:"created_at"`
 	UpdatedAt *time.Time                       `json:"updated_at"`
+}
+
+type RiskUpdatePlanTimelineDetailDTO struct {
+	ID                           uint                           `json:"id"`
+	RiskUpdatePlanID             uint                           `json:"risk_update_plan_id"`
+	RiskUpdatePlanTimelineTypeID uint                           `json:"risk_update_plan_timeline_type_id"`
+	RiskUpdatePlanTimelineType   *RiskUpdatePlanTimelineTypeDTO `json:"risk_update_plan_timeline_type"`
+	IsBusinessContextUpdated     bool                           `json:"is_business_context_updated"`
+	IsNotApplicable              bool                           `json:"is_not_applicable"`
+	IsCompleted                  bool                           `json:"is_completed"`
+	CreatedAt                    time.Time                      `json:"created_at"`
+	UpdatedAt                    *time.Time                     `json:"updated_at"`
 }
 
 type RiskRegisterUpdatePlanFormDTO struct {
@@ -282,19 +298,131 @@ type IntroductoryMeetingDocumentFormDTO struct {
 
 // Business Context DTOs
 type UpdateBusinessContextStatusFormDTO struct {
-	IsBusinessContextUpdated bool `json:"is_business_context_updated" binding:"required"`
+	IsBusinessContextUpdated *bool `json:"is_business_context_updated" binding:"required"`
 }
-
 type BusinessContextDetailDTO struct {
 	ID                       uint                                                       `json:"id"`
 	RiskRegisterUpdatePlanID uint                                                       `json:"risk_register_update_plan_id"`
-	BusinessContextID        *uint                                                      `json:"business_context_id"`
-	ProcessID                *uint                                                      `json:"process_id"`
-	ControlID                *uint                                                      `json:"control_id"`
-	IsBusinessContextUpdated bool                                                       `json:"is_business_context_updated"`
+	RiskRegisterUpdatePlan   RiskRegisterUpdatePlanDetailDTO                            `json:"risk_register_update_plan"`
 	BusinessContext          *organizationDTOs.OrganizationUnitBusinessContextDetailDTO `json:"business_context"`
 	Process                  *organizationDTOs.ProcessDetailDTO                         `json:"process"`
 	Control                  *organizationDTOs.ControlDetailDTO                         `json:"control"`
 	CreatedAt                time.Time                                                  `json:"created_at"`
 	CreatedByUser            *organizationDTOs.UserMinimalDTO                           `json:"created_by"`
+}
+
+// ERM Department Evaluation - Process DTOs
+type ERMDeptEvaluationProcessListDTO struct {
+	ID                          uint       `json:"id"`
+	RiskUpdatePlanTimelineID    uint       `json:"risk_update_plan_timeline_id"`
+	ProcessID                   uint       `json:"process_id"`
+	ReferenceNumber             string     `json:"reference_number"`
+	TitleEn                     string     `json:"title_en"`
+	TitleAr                     string     `json:"title_ar"`
+	Description                 *string    `json:"description"`
+	ProcessGroupTitleEn         string     `json:"process_group_title_en"`
+	ProcessGroupTitleAr         string     `json:"process_group_title_ar"`
+	OwnerUnitTitleEn            *string    `json:"owner_unit_title_en"`
+	OwnerUnitTitleAr            *string    `json:"owner_unit_title_ar"`
+	OwnerID                     *uint      `json:"owner_id"`
+	OwnerFirstNameEn            *string    `json:"owner_first_name_en"`
+	OwnerFirstNameAr            *string    `json:"owner_first_name_ar"`
+	OwnerLastNameEn             *string    `json:"owner_last_name_en"`
+	OwnerLastNameAr             *string    `json:"owner_last_name_ar"`
+	OwnerInitial                string     `json:"owner_initial"`
+	OwnerColor                  string     `json:"owner_color"`
+	OwnerEmail                  string     `json:"owner_email"`
+	OwnerProfileImagePath       string     `json:"owner_profile_image_path"`
+	LifecycleStatusTitleEn      string     `json:"lifecycle_status_title_en"`
+	LifecycleStatusTitleAr      string     `json:"lifecycle_status_title_ar"`
+	LifecycleStatusColorCode    string     `json:"lifecycle_status_color_code"`
+	RiskRatingTitleEn           *string    `json:"risk_rating_title_en"`
+	RiskRatingTitleAr           *string    `json:"risk_rating_title_ar"`
+	RiskRatingColorCode         *string    `json:"risk_rating_color_code"`
+	RiskRatingValue             *uint      `json:"risk_rating_value"`
+	CreatedAt                   time.Time  `json:"created_at"`
+	UpdatedAt                   *time.Time `json:"updated_at"`
+	CreatedUserID               uint       `json:"created_user_id"`
+	CreatedUserFirstNameEn      string     `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr      string     `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn       string     `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr       string     `json:"created_user_last_name_ar"`
+	CreatedUserInitial          string     `json:"created_user_initial"`
+	CreatedUserColor            string     `json:"created_user_color"`
+	CreatedUserEmail            string     `json:"created_user_email"`
+	CreatedUserProfileImagePath string     `json:"created_user_profile_image_path"`
+}
+
+type ERMDeptEvaluationProcessListResponseDTO struct {
+	Items      []*ERMDeptEvaluationProcessListDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO       `json:"pagination"`
+}
+
+type MapProcessesToUpdatePlanDTO struct {
+	ProcessIDs []uint `json:"process_ids" binding:"required,min=1"`
+}
+
+// ERM Department Evaluation - Control DTOs
+type ERMDeptEvaluationControlListDTO struct {
+	ID                                   uint       `json:"id"`
+	RiskUpdatePlanTimelineID             uint       `json:"risk_update_plan_timeline_id"`
+	ControlID                            uint       `json:"control_id"`
+	ReferenceNumber                      string     `json:"reference_number"`
+	Code                                 *string    `json:"code"`
+	TitleEn                              string     `json:"title_en"`
+	TitleAr                              string     `json:"title_ar"`
+	Description                          *string    `json:"description"`
+	ControlTypeTitleEn                   string     `json:"control_type_title_en"`
+	ControlTypeTitleAr                   string     `json:"control_type_title_ar"`
+	ControlCategoryTitleEn               string     `json:"control_category_title_en"`
+	ControlCategoryTitleAr               string     `json:"control_category_title_ar"`
+	OwnerUnitTitleEn                     *string    `json:"owner_unit_title_en"`
+	OwnerUnitTitleAr                     *string    `json:"owner_unit_title_ar"`
+	OwnerID                              *uint      `json:"owner_id"`
+	OwnerFirstNameEn                     *string    `json:"owner_first_name_en"`
+	OwnerFirstNameAr                     *string    `json:"owner_first_name_ar"`
+	OwnerLastNameEn                      *string    `json:"owner_last_name_en"`
+	OwnerLastNameAr                      *string    `json:"owner_last_name_ar"`
+	OwnerInitial                         string     `json:"owner_initial"`
+	OwnerColor                           string     `json:"owner_color"`
+	OwnerEmail                           string     `json:"owner_email"`
+	OwnerProfileImagePath                string     `json:"owner_profile_image_path"`
+	ControlImplementationStatusTitleEn   string     `json:"control_implementation_status_title_en"`
+	ControlImplementationStatusTitleAr   string     `json:"control_implementation_status_title_ar"`
+	ControlImplementationStatusColorCode string     `json:"control_implementation_status_color_code"`
+	ControlEfficiencyStatusTitleEn       string     `json:"control_efficiency_status_title_en"`
+	ControlEfficiencyStatusTitleAr       string     `json:"control_efficiency_status_title_ar"`
+	ControlEfficiencyStatusColorCode     string     `json:"control_efficiency_status_color_code"`
+	LifecycleStatusTitleEn               string     `json:"lifecycle_status_title_en"`
+	LifecycleStatusTitleAr               string     `json:"lifecycle_status_title_ar"`
+	LifecycleStatusColorCode             string     `json:"lifecycle_status_color_code"`
+	RiskRatingTitleEn                    *string    `json:"risk_rating_title_en"`
+	RiskRatingTitleAr                    *string    `json:"risk_rating_title_ar"`
+	RiskRatingColorCode                  *string    `json:"risk_rating_color_code"`
+	RiskRatingValue                      *uint      `json:"risk_rating_value"`
+	CreatedAt                            time.Time  `json:"created_at"`
+	UpdatedAt                            *time.Time `json:"updated_at"`
+	CreatedUserID                        uint       `json:"created_user_id"`
+	CreatedUserFirstNameEn               string     `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr               string     `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn                string     `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr                string     `json:"created_user_last_name_ar"`
+	CreatedUserInitial                   string     `json:"created_user_initial"`
+	CreatedUserColor                     string     `json:"created_user_color"`
+	CreatedUserEmail                     string     `json:"created_user_email"`
+	CreatedUserProfileImagePath          string     `json:"created_user_profile_image_path"`
+}
+
+type ERMDeptEvaluationControlListResponseDTO struct {
+	Items      []*ERMDeptEvaluationControlListDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO       `json:"pagination"`
+}
+
+type MapControlsToUpdatePlanDTO struct {
+	ControlIDs []uint `json:"control_ids" binding:"required,min=1"`
+}
+
+// Timeline Not Applicable DTO
+type MarkTimelineNotApplicableDTO struct {
+	Justification string `json:"justification" binding:"required"`
 }

@@ -13,6 +13,7 @@ type RiskRegisterUpdatePlan struct {
 	StartDate                      time.Time  `json:"start_date" binding:"required" gorm:"type:datetime;not null"`
 	EndDate                        time.Time  `json:"end_date" binding:"required" gorm:"type:datetime;not null"`
 	Notes                          *string    `json:"notes" gorm:"type:nvarchar(max);default:null"`
+	TotalPercentageCompleted       *int       `json:"total_percentage_completed" gorm:"default:null"`
 	CreatedBYID                    uint       `json:"created_by_id" binding:"required"`
 	UpdatedBYID                    *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt                      time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
@@ -30,6 +31,7 @@ type RiskRegisterUpdatePlan struct {
 	RiskRegisterUpdatePlanStatus *RiskRegisterUpdatePlanStatus       `gorm:"foreignKey:RiskRegisterUpdatePlanStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	RiskChampion                 *User                               `gorm:"foreignKey:RiskChampionID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	TeamMembers                  []*RiskRegisterUpdatePlanTeamMember `gorm:"foreignKey:RiskRegisterUpdatePlanID;constraint:OnUpdate:NO ACTION,OnDelete:CASCADE"`
+	Timelines                    []*RiskUpdatePlanTimeline           `gorm:"foreignKey:RiskUpdatePlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	CreatedByUser                *User                               `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	UpdatedByUser                *User                               `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	SubmittedByUser              *User                               `gorm:"foreignKey:SubmittedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`

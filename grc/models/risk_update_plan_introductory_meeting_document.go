@@ -5,8 +5,8 @@ import (
 )
 
 type RiskUpdatePlanIntroductoryMeetingDocument struct {
-	ID                       uint       `json:"id" gorm:"primary_key;auto_increment"`
-	RiskRegisterUpdatePlanID uint       `json:"risk_register_update_plan_id" gorm:"not null"`
+	ID                       uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	RiskUpdatePlanTimelineID uint       `json:"risk_update_plan_timeline_id" binding:"required" gorm:"not null"`
 	URL                      *string    `json:"url" gorm:"type:varchar(1000);default:null"`
 	Name                     *string    `json:"name" gorm:"type:nvarchar(255);default:null"`
 	Size                     *int       `json:"size" gorm:"default:null"`
@@ -19,7 +19,7 @@ type RiskUpdatePlanIntroductoryMeetingDocument struct {
 	UpdatedAt                *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	RiskRegisterUpdatePlan *RiskRegisterUpdatePlan `gorm:"foreignKey:RiskRegisterUpdatePlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskUpdatePlanTimeline *RiskUpdatePlanTimeline `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	CreatedByUser          *User                   `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	UpdatedByUser          *User                   `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }

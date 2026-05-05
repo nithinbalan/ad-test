@@ -163,6 +163,7 @@ type ProcessDetailDTO struct {
 	ImpactJustification      *string                           `json:"impact_justification"`
 	CriticalityJustification *string                           `json:"criticality_justification"`
 	ProcessCriticalityLevel  *ProcessCriticalityLevelDTO       `json:"process_criticality_level"`
+	ProcessActivities        []ProcessActivityDetailDTO        `json:"process_activities"`
 }
 type AuditableItemMinimalDetailDTO struct {
 	ID                  uint                             `json:"id"`
