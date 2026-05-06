@@ -556,6 +556,24 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.PUT("/risk-register-update-plans/:id/business-context-status", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.UpdateBusinessContextStatus)
 	riskRoutes.POST("/risk-register-update-plans/:id/mark-business-context-not-applicable", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.MarkBusinessContextAsNotApplicable)
 
+	// Leadership Assessment Operations
+	riskRoutes.GET("/risk-register-update-plans/:id/leadership-assessment-users", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanController.GetLeadershipAssessmentUsers)
+	riskRoutes.POST("/risk-register-update-plans/:id/leadership-assessments", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.CreateLeadershipAssessment)
+	riskRoutes.POST("/risk-register-update-plans/:id/mark-leadership-assessment-not-applicable", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.MarkLeadershipAssessmentAsNotApplicable)
+	riskRoutes.GET("/risk-register-update-plans/:id/leadership-assessment-documents", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanController.GetLeadershipAssessmentDocuments)
+	riskRoutes.POST("/risk-register-update-plans/:id/leadership-assessment-documents", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.CreateLeadershipAssessmentDocuments)
+	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/leadership-assessment-documents/preview", riskRegisterUpdatePlanController.GetLeadershipAssessmentDocumentPreview)
+	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/leadership-assessment-documents/download", riskRegisterUpdatePlanController.DownloadLeadershipAssessmentDocument)
+
+	// Risk Team Assessment Operations
+	riskRoutes.GET("/risk-register-update-plans/:id/risk-team-assessment-user", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanController.GetRiskTeamAssessmentUser)
+	riskRoutes.POST("/risk-register-update-plans/:id/risk-team-assessments", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.CreateRiskTeamAssessment)
+	riskRoutes.POST("/risk-register-update-plans/:id/mark-risk-team-assessment-not-applicable", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.MarkRiskTeamAssessmentAsNotApplicable)
+	riskRoutes.GET("/risk-register-update-plans/:id/risk-team-assessment-documents", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanController.GetRiskTeamAssessmentDocuments)
+	riskRoutes.POST("/risk-register-update-plans/:id/risk-team-assessment-documents", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.CreateRiskTeamAssessmentDocuments)
+	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/risk-team-assessment-documents/preview", riskRegisterUpdatePlanController.GetRiskTeamAssessmentDocumentPreview)
+	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/risk-team-assessment-documents/download", riskRegisterUpdatePlanController.DownloadRiskTeamAssessmentDocument)
+
 	// Risk Update Plan Timeline Types
 	riskRoutes.GET("/risk-update-plan-timeline-types", riskUpdatePlanTimelineTypeController.GetAllRiskUpdatePlanTimelineTypes)
 	riskRoutes.GET("/risk-update-plan-timeline-types/:id", riskUpdatePlanTimelineTypeController.GetRiskUpdatePlanTimelineTypeDetails)

@@ -10,7 +10,7 @@ type RiskUpdatePlanIntroductoryMeetingDocument struct {
 	URL                      *string    `json:"url" gorm:"type:varchar(1000);default:null"`
 	Name                     *string    `json:"name" gorm:"type:nvarchar(255);default:null"`
 	Size                     *int       `json:"size" gorm:"default:null"`
-	Token                    *string    `json:"token" gorm:"type:varchar(255);default:null"`
+	Token                    *string    `json:"token" gorm:"type:nvarchar(max);default:null"`
 	OriginalName             *string    `json:"original_name" gorm:"type:nvarchar(255);default:null"`
 	Type                     *string    `json:"type" gorm:"type:varchar(255);default:null"`
 	CreatedBYID              *uint      `json:"created_by_id" gorm:"default:null"`

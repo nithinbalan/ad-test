@@ -74,6 +74,22 @@ type RiskRegisterUpdatePlanServiceInterface interface {
 	UpdateBusinessContextStatus(id uint, currentUserID uint, formDTO *riskDTOs.UpdateBusinessContextStatusFormDTO) error
 	MarkBusinessContextAsNotApplicable(planID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error
 
+	// Leadership Assessment Operations
+	GetLeadershipAssessmentUsers(planID uint, params *riskDTOs.UserListQueryParamsDTO) (*riskDTOs.LeaderShipAssessmentUserListResponseDTO, error)
+	CreateLeadershipAssessment(planID uint, currentUserID uint) error
+	MarkLeadershipAssessmentAsNotApplicable(planID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error
+	GetLeadershipAssessmentDocuments(planID uint) ([]*riskDTOs.LeadershipAssessmentDocumentDTO, error)
+	CreateLeadershipAssessmentDocuments(planID uint, currentUserID uint, documents []*commonDTOs.DocumentFormDTO) error
+	GetLeadershipAssessmentDocumentPath(planID uint, token string) (string, error)
+
+	// Risk Team Assessment Operations
+	GetRiskTeamAssessmentUser(planID uint) (*riskDTOs.RiskTeamAssessmentUserListDTO, error)
+	CreateRiskTeamAssessment(planID uint, currentUserID uint) error
+	MarkRiskTeamAssessmentAsNotApplicable(planID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error
+	GetRiskTeamAssessmentDocuments(planID uint) ([]*riskDTOs.RiskTeamAssessmentDocumentDTO, error)
+	CreateRiskTeamAssessmentDocuments(planID uint, currentUserID uint, documents []*commonDTOs.DocumentFormDTO) error
+	GetRiskTeamAssessmentDocumentPath(planID uint, token string) (string, error)
+
 	// Timeline Operations
 	RecalculatePercentage(planID uint) error
 }
@@ -2002,4 +2018,697 @@ func (s *RiskRegisterUpdatePlanService) RecalculatePercentage(planID uint) error
 	tx.Commit()
 
 	return nil
+}
+
+// Leadership Assessment Operations
+
+func (s *RiskRegisterUpdatePlanService) GetLeadershipAssessmentUsers(planID uint, params *riskDTOs.UserListQueryParamsDTO) (*riskDTOs.LeaderShipAssessmentUserListResponseDTO, error) {
+	// Get timeline type for Leadership Assessment
+	timelineType, err := s.timelineTypeSvc.GetByType("leadership_assessment")
+	if err != nil {
+		return nil, err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.repo.GetLeadershipAssessmentUsers(timeline.ID, params)
+}
+
+func (s *RiskRegisterUpdatePlanService) CreateLeadershipAssessment(planID uint, currentUserID uint) error {
+	plan, err := s.GetByID(planID)
+	if err != nil {
+		return err
+	}
+
+	// Get timeline type for Leadership Assessment
+	timelineType, err := s.timelineTypeSvc.GetByType("leadership_assessment")
+	if err != nil {
+		return err
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Fetch users for the business unit
+	users, err := s.userSvc.GetUsersByOrganizationUnit(plan.BusinessUnitID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Create leadership assessment mappings
+	assessments := make([]*models.RiskUpdatePlanLeadershipAssessment, 0, len(users))
+	for _, user := range users {
+		assessments = append(assessments, &models.RiskUpdatePlanLeadershipAssessment{
+			RiskUpdatePlanTimelineID: timeline.ID,
+			UserID:                   user.ID,
+			CreatedBYID:              &currentUserID,
+			CreatedAt:                time.Now(),
+		})
+	}
+
+	if err := s.repo.CreateLeadershipAssessments(assessments, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Mark timeline as completed
+	if err := s.repo.UpdateTimelineCompletion(timeline.ID, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Recalculate percentage
+	if err := s.repo.CalculateAndUpdatePercentage(planID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (s *RiskRegisterUpdatePlanService) MarkLeadershipAssessmentAsNotApplicable(planID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error {
+	_, err := s.repo.GetByID(planID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, planID)
+		}
+		return err
+	}
+
+	timelineType, err := s.timelineTypeSvc.GetByType("leadership_assessment")
+	if err != nil {
+		return err
+	}
+
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return err
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	if err := s.repo.DeleteLeadershipAssessmentsByTimelineID(timeline.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	now := time.Now()
+	timeline.IsNotApplicable = true
+	timeline.IsCompleted = true
+	timeline.Justification = &formDTO.Justification
+	timeline.UpdatedBYID = &currentUserID
+	timeline.UpdatedAt = &now
+
+	if err := tx.DB().Save(&timeline).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.CalculateAndUpdatePercentage(planID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (s *RiskRegisterUpdatePlanService) GetLeadershipAssessmentDocuments(planID uint) ([]*riskDTOs.LeadershipAssessmentDocumentDTO, error) {
+	timelineType, err := s.timelineTypeSvc.GetByType("leadership_assessment")
+	if err != nil {
+		return nil, err
+	}
+
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	documents, err := s.repo.GetLeadershipDocumentsByTimelineID(timeline.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var documentDTOs []*riskDTOs.LeadershipAssessmentDocumentDTO
+	for _, doc := range documents {
+		dto := &riskDTOs.LeadershipAssessmentDocumentDTO{
+			ID:           &doc.ID,
+			URL:          doc.URL,
+			Name:         doc.Name,
+			Token:        doc.Token,
+			OriginalName: doc.OriginalName,
+			Type:         doc.Type,
+			Size:         doc.Size,
+		}
+		documentDTOs = append(documentDTOs, dto)
+	}
+
+	return documentDTOs, nil
+}
+
+func (s *RiskRegisterUpdatePlanService) CreateLeadershipAssessmentDocuments(planID uint, currentUserID uint, documents []*commonDTOs.DocumentFormDTO) error {
+	// Verify plan exists
+	_, err := s.repo.GetByID(planID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, planID)
+		}
+		return err
+	}
+
+	// Get timeline type for Leadership Assessment
+	timelineType, err := s.timelineTypeSvc.GetByType("leadership_assessment")
+	if err != nil {
+		return err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return err
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	// Handle documents
+	var newDocuments []*models.RiskUpdatePlanLeadershipDocument
+	var deleteDocumentIDs []*uint
+	var documentsToDelete []*models.RiskUpdatePlanLeadershipDocument
+
+	now := time.Now()
+
+	for _, doc := range documents {
+
+		// NEW FILE
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+
+			encryptedFilename, err := utility.EncryptData([]byte(doc.FileName))
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			url := utility.GenerateDocumentURL(
+				"risk",
+				"risk-register-update-plan",
+				strconv.FormatUint(uint64(planID), 10),
+				"leadership-assessment-documents",
+			)
+
+			document := &models.RiskUpdatePlanLeadershipDocument{
+				RiskUpdatePlanLeadershipAssessmentID: timeline.ID,
+				URL:                                  &url,
+				Name:                                 &doc.FileName,
+				Size:                                 &doc.Size,
+				Token:                                &encryptedFilename,
+				OriginalName:                         &doc.OriginalName,
+				Type:                                 &doc.Type,
+				CreatedBYID:                          &currentUserID,
+				CreatedAt:                            now,
+			}
+
+			newDocuments = append(newDocuments, document)
+
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile && doc.ID != nil {
+
+			// DELETE FILE
+			existingDocument, err := s.repo.GetLeadershipDocumentByID(*doc.ID)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Verify document belongs to this timeline
+			if existingDocument.RiskUpdatePlanLeadershipAssessmentID != timeline.ID {
+				tx.Rollback()
+				return utility.NewResourceNotFoundError(fmt.Errorf("document not found"), *doc.ID)
+			}
+
+			deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
+			documentsToDelete = append(documentsToDelete, existingDocument)
+		}
+	}
+
+	// Create new documents
+	if len(newDocuments) > 0 {
+		for _, doc := range newDocuments {
+			_, err := s.repo.CreateLeadershipDocument(doc, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	// Delete documents
+	if len(deleteDocumentIDs) > 0 {
+		for _, docID := range deleteDocumentIDs {
+			if err := s.repo.DeleteLeadershipDocument(*docID, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	// File system operations - store new files
+	for _, doc := range newDocuments {
+		storagePath := filepath.Join(
+			"risk",
+			"risk-register-update-plan",
+			strconv.FormatUint(uint64(planID), 10),
+			"leadership-assessment-documents",
+		)
+
+		if err := utility.StoreFile(*doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// File system operations - delete files
+	for _, doc := range documentsToDelete {
+		storagePath := filepath.Join(
+			"risk",
+			"risk-register-update-plan",
+			strconv.FormatUint(uint64(planID), 10),
+			"leadership-assessment-documents",
+		)
+
+		if doc.Name != nil {
+			if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	tx.Commit()
+
+	// Log activity
+	go func() {
+		err := s.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.RiskUpdatePlanLeadershipDocument{}.TableName(),
+			planID,
+			map[string]interface{}{
+				"new_documents_count":     len(newDocuments),
+				"deleted_documents_count": len(documentsToDelete),
+			},
+			currentUserID,
+			"risk", "risk_register_update_plan", "documents_update", nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action": models.UpdateAction,
+				"planID": planID,
+				"userID": currentUserID,
+				"error":  err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (s *RiskRegisterUpdatePlanService) GetLeadershipAssessmentDocumentPath(planID uint, token string) (string, error) {
+	timelineType, err := s.timelineTypeSvc.GetByType("leadership_assessment")
+	if err != nil {
+		return "", err
+	}
+
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return "", err
+	}
+
+	documents, err := s.repo.GetLeadershipDocumentsByTimelineID(timeline.ID)
+	if err != nil {
+		return "", err
+	}
+
+	for _, doc := range documents {
+		if doc.Token != nil && *doc.Token == token {
+			decryptedFilename, err := utility.DecryptData(*doc.Token)
+			if err != nil {
+				return "", err
+			}
+
+			storagePath := filepath.Join(
+				"risk",
+				"risk-register-update-plan",
+				strconv.FormatUint(uint64(planID), 10),
+				"leadership-assessment-documents",
+			)
+			baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+			fullPath := filepath.Join(baseStoragePath, storagePath, string(decryptedFilename))
+
+			if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+				return "", utility.NewResourceNotFoundError(err, 0)
+			}
+
+			return fullPath, nil
+		}
+	}
+
+	return "", utility.NewResourceNotFoundError(fmt.Errorf("document not found"), 0)
+}
+
+// Risk Team Assessment Operations
+
+func (s *RiskRegisterUpdatePlanService) GetRiskTeamAssessmentUser(planID uint) (*riskDTOs.RiskTeamAssessmentUserListDTO, error) {
+
+	timelineType, err := s.timelineTypeSvc.GetByType("risk_team_assessment")
+	if err != nil {
+		return nil, err
+	}
+
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	assessments, err := s.repo.GetRiskTeamAssessmentUsers(timeline.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(assessments) == 0 {
+		return nil, utility.NewResourceNotFoundError(fmt.Errorf("no risk team assessment found"), planID)
+	}
+
+	var dto riskDTOs.RiskTeamAssessmentUserListDTO
+
+	err = mapstructure.Decode(assessments[0], &dto)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto, nil
+}
+
+func (s *RiskRegisterUpdatePlanService) CreateRiskTeamAssessment(planID uint, currentUserID uint) error {
+	plan, err := s.GetByID(planID)
+	if err != nil {
+		return err
+	}
+
+	timelineType, err := s.timelineTypeSvc.GetByType("risk_team_assessment")
+	if err != nil {
+		return err
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	assessments := make([]*models.RiskUpdatePlanRiskTeamAssessment, 0, 1)
+	assessments = append(assessments, &models.RiskUpdatePlanRiskTeamAssessment{
+		RiskUpdatePlanTimelineID: timeline.ID,
+		RiskChampionID:           plan.RiskChampionID,
+		CreatedBYID:              &currentUserID,
+		CreatedAt:                time.Now(),
+	})
+
+	if err := s.repo.CreateRiskTeamAssessments(assessments, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.UpdateTimelineCompletion(timeline.ID, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.CalculateAndUpdatePercentage(planID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (s *RiskRegisterUpdatePlanService) MarkRiskTeamAssessmentAsNotApplicable(planID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error {
+	_, err := s.repo.GetByID(planID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, planID)
+		}
+		return err
+	}
+
+	timelineType, err := s.timelineTypeSvc.GetByType("risk_team_assessment")
+	if err != nil {
+		return err
+	}
+
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return err
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	if err := s.repo.DeleteRiskTeamAssessmentsByTimelineID(timeline.ID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	now := time.Now()
+	timeline.IsNotApplicable = true
+	timeline.IsCompleted = true
+	timeline.Justification = &formDTO.Justification
+	timeline.UpdatedBYID = &currentUserID
+	timeline.UpdatedAt = &now
+
+	if err := tx.DB().Save(&timeline).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.repo.CalculateAndUpdatePercentage(planID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (s *RiskRegisterUpdatePlanService) GetRiskTeamAssessmentDocuments(planID uint) ([]*riskDTOs.RiskTeamAssessmentDocumentDTO, error) {
+	timelineType, err := s.timelineTypeSvc.GetByType("risk_team_assessment")
+	if err != nil {
+		return nil, err
+	}
+
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	documents, err := s.repo.GetRiskTeamDocumentsByTimelineID(timeline.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var documentDTOs []*riskDTOs.RiskTeamAssessmentDocumentDTO
+	for _, doc := range documents {
+		dto := &riskDTOs.RiskTeamAssessmentDocumentDTO{
+			ID:           &doc.ID,
+			URL:          doc.URL,
+			Name:         doc.Name,
+			Token:        doc.Token,
+			OriginalName: doc.OriginalName,
+			Type:         doc.Type,
+			Size:         doc.Size,
+		}
+		documentDTOs = append(documentDTOs, dto)
+	}
+
+	return documentDTOs, nil
+}
+
+func (s *RiskRegisterUpdatePlanService) CreateRiskTeamAssessmentDocuments(planID uint, currentUserID uint, documents []*commonDTOs.DocumentFormDTO) error {
+	_, err := s.repo.GetByID(planID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, planID)
+		}
+		return err
+	}
+
+	timelineType, err := s.timelineTypeSvc.GetByType("risk_team_assessment")
+	if err != nil {
+		return err
+	}
+
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return err
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	var newDocuments []*models.RiskUpdatePlanRiskTeamDocument
+	var deleteDocumentIDs []*uint
+	var documentsToDelete []*models.RiskUpdatePlanRiskTeamDocument
+
+	now := time.Now()
+
+	for _, doc := range documents {
+
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+
+			encryptedFilename, err := utility.EncryptData([]byte(doc.FileName))
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			url := utility.GenerateDocumentURL(
+				"risk",
+				"risk-register-update-plan",
+				strconv.FormatUint(uint64(planID), 10),
+				"risk-team-assessment-documents",
+			)
+
+			document := &models.RiskUpdatePlanRiskTeamDocument{
+				RiskUpdatePlanRiskTeamAssessmentID: timeline.ID,
+				URL:                                &url,
+				Name:                               &doc.FileName,
+				Size:                               &doc.Size,
+				Token:                              &encryptedFilename,
+				OriginalName:                       &doc.OriginalName,
+				Type:                               &doc.Type,
+				CreatedBYID:                        &currentUserID,
+				CreatedAt:                          now,
+			}
+
+			newDocuments = append(newDocuments, document)
+
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile && doc.ID != nil {
+
+			existingDocument, err := s.repo.GetRiskTeamDocumentByID(*doc.ID)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if existingDocument.RiskUpdatePlanRiskTeamAssessmentID != timeline.ID {
+				tx.Rollback()
+				return utility.NewResourceNotFoundError(fmt.Errorf("document not found"), *doc.ID)
+			}
+
+			deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
+			documentsToDelete = append(documentsToDelete, existingDocument)
+		}
+	}
+
+	if len(newDocuments) > 0 {
+		for _, doc := range newDocuments {
+			_, err := s.repo.CreateRiskTeamDocument(doc, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	if len(deleteDocumentIDs) > 0 {
+		for _, docID := range deleteDocumentIDs {
+			if err := s.repo.DeleteRiskTeamDocument(*docID, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	for _, doc := range newDocuments {
+		storagePath := filepath.Join(
+			"risk",
+			"risk-register-update-plan",
+			strconv.FormatUint(uint64(planID), 10),
+			"risk-team-assessment-documents",
+		)
+
+		if err := utility.StoreFile(*doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, doc := range documentsToDelete {
+		storagePath := filepath.Join(
+			"risk",
+			"risk-register-update-plan",
+			strconv.FormatUint(uint64(planID), 10),
+			"risk-team-assessment-documents",
+		)
+
+		if doc.Name != nil {
+			if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
+func (s *RiskRegisterUpdatePlanService) GetRiskTeamAssessmentDocumentPath(planID uint, token string) (string, error) {
+	timelineType, err := s.timelineTypeSvc.GetByType("risk_team_assessment")
+	if err != nil {
+		return "", err
+	}
+
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return "", err
+	}
+
+	documents, err := s.repo.GetRiskTeamDocumentsByTimelineID(timeline.ID)
+	if err != nil {
+		return "", err
+	}
+
+	for _, doc := range documents {
+		if doc.Token != nil && *doc.Token == token {
+			decryptedFilename, err := utility.DecryptData(*doc.Token)
+			if err != nil {
+				return "", err
+			}
+
+			storagePath := filepath.Join(
+				"risk",
+				"risk-register-update-plan",
+				strconv.FormatUint(uint64(planID), 10),
+				"risk-team-assessment-documents",
+			)
+			baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+			fullPath := filepath.Join(baseStoragePath, storagePath, string(decryptedFilename))
+
+			if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+				return "", utility.NewResourceNotFoundError(err, 0)
+			}
+
+			return fullPath, nil
+		}
+	}
+
+	return "", utility.NewResourceNotFoundError(fmt.Errorf("document not found"), 0)
 }

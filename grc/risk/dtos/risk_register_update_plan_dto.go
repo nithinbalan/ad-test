@@ -577,3 +577,87 @@ type MapControlsToUpdatePlanDTO struct {
 type MarkTimelineNotApplicableDTO struct {
 	Justification string `json:"justification" binding:"required"`
 }
+
+type LeaderShipAssessmentUserListDTO struct {
+	ID                       uint    `json:"id"`
+	FirstNameEn              string  `json:"first_name_en"`
+	LastNameEn               string  `json:"last_name_en"`
+	FirstNameAr              string  `json:"first_name_ar"`
+	LastNameAr               string  `json:"last_name_ar"`
+	OrganizationUnit1TitleEn string  `json:"organization_unit_1_title_en" gorm:"column:organization_unit_1_title_en"`
+	OrganizationUnit2TitleEn string  `json:"organization_unit_2_title_en,omitempty" gorm:"column:organization_unit_2_title_en"`
+	OrganizationUnit3TitleEn string  `json:"organization_unit_3_title_en,omitempty" gorm:"column:organization_unit_3_title_en"`
+	OrganizationUnit4TitleEn string  `json:"organization_unit_4_title_en,omitempty" gorm:"column:organization_unit_4_title_en"`
+	OrganizationUnit5TitleEn string  `json:"organization_unit_5_title_en,omitempty" gorm:"column:organization_unit_5_title_en"`
+	OrganizationUnit1TitleAr string  `json:"organization_unit_1_title_ar" gorm:"column:organization_unit_1_title_ar"`
+	OrganizationUnit2TitleAr string  `json:"organization_unit_2_title_ar,omitempty" gorm:"column:organization_unit_2_title_ar"`
+	OrganizationUnit3TitleAr string  `json:"organization_unit_3_title_ar,omitempty" gorm:"column:organization_unit_3_title_ar"`
+	OrganizationUnit4TitleAr string  `json:"organization_unit_4_title_ar,omitempty" gorm:"column:organization_unit_4_title_ar"`
+	OrganizationUnit5TitleAr string  `json:"organization_unit_5_title_ar,omitempty" gorm:"column:organization_unit_5_title_ar"`
+	DesignationTitleEn       string  `json:"designation_title_en"`
+	DesignationTitleAr       string  `json:"designation_title_ar"`
+	RolesEn                  string  `json:"roles_en"`
+	RolesAr                  string  `json:"roles_ar"`
+	LicenseTypeID            *uint   `json:"license_type_id"`
+	LicenseTypeTitleEn       *string `json:"license_type_title_en"`
+	LicenseTypeTitleAr       *string `json:"license_type_title_ar"`
+	LicenseTypeType          *string `json:"license_type_type"`
+	LicenseTypeColorCode     *string `json:"license_type_color_code"`
+	Email                    string  `json:"email"`
+	ProfileImagePath         *string `json:"profile_image_path"`
+	Initial                  string  `json:"initial"`
+	Color                    string  `json:"color"`
+	MobileNumber             string  `json:"mobile_number"`
+	UserStatusTitleEn        string  `json:"user_status_title_en"`
+	UserStatusTitleAr        string  `json:"user_status_title_ar"`
+	UserStatusColorCode      string  `json:"user_status_color_code"`
+	UserStatusIsActive       bool    `json:"user_status_is_active"`
+	ReportingUsersCount      int     `json:"reporting_users_count"`
+}
+
+type LeaderShipAssessmentUserListResponseDTO struct {
+	Items      []*LeaderShipAssessmentUserListDTO `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO       `json:"pagination"`
+}
+
+type LeadershipAssessmentDocumentDTO struct {
+	ID           *uint   `json:"id"`
+	URL          *string `json:"url"`
+	Name         *string `json:"name"`
+	Size         *int    `json:"size"`
+	Token        *string `json:"token"`
+	OriginalName *string `json:"original_name"`
+	Type         *string `json:"type"`
+}
+
+type RiskTeamAssessmentUserListDTO struct {
+	ID                       uint                             `json:"id"`
+	RiskUpdatePlanTimelineID uint                             `json:"risk_update_plan_timeline_id"`
+	RiskChampionID           uint                             `json:"risk_champion_id"`
+	RiskChampion             *organizationDTOs.UserDetailsDTO `json:"risk_champion"`
+	CreatedAt                time.Time                        `json:"created_at"`
+	UpdatedAt                *time.Time                       `json:"updated_at"`
+}
+
+type RiskTeamAssessmentDocumentDTO struct {
+	ID           *uint   `json:"id"`
+	URL          *string `json:"url"`
+	Name         *string `json:"name"`
+	Size         *int    `json:"size"`
+	Token        *string `json:"token"`
+	OriginalName *string `json:"original_name"`
+	Type         *string `json:"type"`
+}
+
+type UserListQueryParamsDTO struct {
+	Sort        string              `json:"sort"`
+	SortBy      string              `json:"sort_by"`
+	Keyword     string              `json:"keyword"`
+	Page        int                 `json:"page"`
+	PageSize    int                 `json:"page_size"`
+	QuickFilter []string            `json:"quick_filter"`
+	DateFrom    string              `json:"date_from"`
+	DateTo      string              `json:"date_to"`
+	Filters     map[string][]string `json:"filters"`
+	Export      bool                `json:"export"`
+}

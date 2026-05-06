@@ -1471,3 +1471,455 @@ func (rrupc *RiskRegisterUpdatePlanController) MarkBusinessContextAsNotApplicabl
 
 	c.Status(http.StatusOK)
 }
+
+// Leadership Assessment Operations
+
+func (rrupc *RiskRegisterUpdatePlanController) GetLeadershipAssessmentUsers(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "first_name_en")
+	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
+
+	export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, "Invalid export parameter")
+		return
+	}
+
+	allowedParams := []string{
+		"designation_ids",
+		"user_status_ids",
+		"license_type_ids",
+	}
+
+	validSortFields := map[string]string{
+		"first_name_en":  "users.first_name_en",
+		"first_name_ar":  "users.first_name_ar",
+		"email":          "users.email",
+		"mobile_number":  "users.mobile_number",
+		"designation_en": "designations.title_en",
+		"designation_ar": "designations.title_ar",
+		"user_status_en": "user_statuses.title_en",
+		"user_status_ar": "user_statuses.title_ar",
+		"name_en":        "CONCAT(users.first_name_en, ' ', users.last_name_en)",
+		"name_ar":        "CONCAT(users.first_name_ar, ' ', users.last_name_ar)",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	queryParams := riskDTOs.UserListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      dbField,
+		Keyword:     keyword,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+		Export:      export,
+	}
+
+	users, err := rrupc.service.GetLeadershipAssessmentUsers(uint(planID), &queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) CreateLeadershipAssessment(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	err = rrupc.service.CreateLeadershipAssessment(uint(planID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) MarkLeadershipAssessmentAsNotApplicable(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	var formDTO riskDTOs.MarkTimelineNotApplicableDTO
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	err = rrupc.service.MarkLeadershipAssessmentAsNotApplicable(uint(planID), currentUserID, &formDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) GetLeadershipAssessmentDocuments(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documents, err := rrupc.service.GetLeadershipAssessmentDocuments(uint(planID))
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, documents)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) CreateLeadershipAssessmentDocuments(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	var documents []*commonDTOs.DocumentFormDTO
+	if err := c.ShouldBindJSON(&documents); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	err = rrupc.service.CreateLeadershipAssessmentDocuments(uint(planID), currentUserID, documents)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) GetLeadershipAssessmentDocumentPreview(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendInvalidErrResp(c, errors.New("token is required"))
+		return
+	}
+
+	filePath, err := rrupc.service.GetLeadershipAssessmentDocumentPath(uint(planID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, err.Error())
+			return
+		}
+	}
+
+	c.File(filePath)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) DownloadLeadershipAssessmentDocument(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendInvalidErrResp(c, errors.New("token is required"))
+		return
+	}
+
+	filePath, err := rrupc.service.GetLeadershipAssessmentDocumentPath(uint(planID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, err.Error())
+			return
+		}
+	}
+
+	c.FileAttachment(filePath, filepath.Base(filePath))
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) GetRiskTeamAssessmentUser(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	user, err := rrupc.service.GetRiskTeamAssessmentUser(uint(planID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) CreateRiskTeamAssessment(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	err = rrupc.service.CreateRiskTeamAssessment(uint(planID), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) MarkRiskTeamAssessmentAsNotApplicable(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	var formDTO riskDTOs.MarkTimelineNotApplicableDTO
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	err = rrupc.service.MarkRiskTeamAssessmentAsNotApplicable(uint(planID), currentUserID, &formDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) GetRiskTeamAssessmentDocuments(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documents, err := rrupc.service.GetRiskTeamAssessmentDocuments(uint(planID))
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, documents)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) CreateRiskTeamAssessmentDocuments(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	var documents []*commonDTOs.DocumentFormDTO
+	if err := c.ShouldBindJSON(&documents); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	err = rrupc.service.CreateRiskTeamAssessmentDocuments(uint(planID), currentUserID, documents)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) GetRiskTeamAssessmentDocumentPreview(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendInvalidErrResp(c, errors.New("token is required"))
+		return
+	}
+
+	filePath, err := rrupc.service.GetRiskTeamAssessmentDocumentPath(uint(planID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, err.Error())
+			return
+		}
+	}
+
+	c.File(filePath)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) DownloadRiskTeamAssessmentDocument(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendInvalidErrResp(c, errors.New("token is required"))
+		return
+	}
+
+	filePath, err := rrupc.service.GetRiskTeamAssessmentDocumentPath(uint(planID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, err.Error())
+			return
+		}
+	}
+
+	c.FileAttachment(filePath, filepath.Base(filePath))
+}
