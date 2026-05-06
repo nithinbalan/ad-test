@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -49,8 +50,14 @@ type RiskRegisterUpdatePlanRepositoryInterface interface {
 	// Introductory Meeting Documents
 	CreateIntroductoryMeetingDocument(document *models.RiskUpdatePlanIntroductoryMeetingDocument, tx ...utility.DatabaseTransaction) (uint, error)
 	GetIntroductoryMeetingDocumentByID(id uint) (*models.RiskUpdatePlanIntroductoryMeetingDocument, error)
-	GetIntroductoryMeetingDocumentsByPlanID(planID uint) ([]*models.RiskUpdatePlanIntroductoryMeetingDocument, error)
+	GetIntroductoryMeetingDocumentsByTimelineID(timelineID uint) ([]*models.RiskUpdatePlanIntroductoryMeetingDocument, error)
 	DeleteIntroductoryMeetingDocument(id uint, tx ...utility.DatabaseTransaction) error
+
+	// Self-Awareness Training Documents
+	CreateSelfAwarenessTrainingDocument(document *models.RiskUpdatePlanSelfAwarenessTraining, tx ...utility.DatabaseTransaction) (uint, error)
+	GetSelfAwarenessTrainingDocumentByID(id uint) (*models.RiskUpdatePlanSelfAwarenessTraining, error)
+	GetSelfAwarenessTrainingDocumentsByTimelineID(timelineID uint) ([]*models.RiskUpdatePlanSelfAwarenessTraining, error)
+	DeleteSelfAwarenessTrainingDocument(id uint, tx ...utility.DatabaseTransaction) error
 
 	// ERM Department Evaluation Documents
 	CreateERMDeptDocument(document *models.RiskUpdatePlanErmDeptDocument, tx ...utility.DatabaseTransaction) (uint, error)
@@ -60,10 +67,12 @@ type RiskRegisterUpdatePlanRepositoryInterface interface {
 
 	// Business Context Operations
 	CreateBusinessContext(businessContext *models.RiskUpdatePlanBusinessContext, tx ...utility.DatabaseTransaction) error
-	GetBusinessContextByPlanID(planID uint) ([]*models.RiskUpdatePlanBusinessContext, error)
+	GetBusinessContextByTimelineID(timelineID uint) ([]*models.RiskUpdatePlanBusinessContext, error)
 	GetBusinessContextByID(id uint) (*models.RiskUpdatePlanBusinessContext, error)
+	UpdateBusinessContext(businessContext *models.RiskUpdatePlanBusinessContext, tx ...utility.DatabaseTransaction) error
 	UpdateBusinessContextStatus(id uint, status bool, tx ...utility.DatabaseTransaction) error
 	GetBusinessUnitIDByPlanID(planID uint) (uint, error)
+	GetOrganizationUnitBusinessContextByBusinessUnit(businessUnitID uint) (*models.OrganizationUnitBusinessContext, error)
 	GetBusinessContextIDsByBusinessUnit(businessUnitID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 	GetProcessIDsByBusinessUnit(businessUnitID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
 	GetControlIDsByBusinessUnit(businessUnitID uint, tx ...utility.DatabaseTransaction) ([]uint, error)
@@ -1014,9 +1023,9 @@ func (repo *RiskRegisterUpdatePlanRepository) GetIntroductoryMeetingDocumentByID
 	return &document, nil
 }
 
-func (repo *RiskRegisterUpdatePlanRepository) GetIntroductoryMeetingDocumentsByPlanID(planID uint) ([]*models.RiskUpdatePlanIntroductoryMeetingDocument, error) {
+func (repo *RiskRegisterUpdatePlanRepository) GetIntroductoryMeetingDocumentsByTimelineID(timelineID uint) ([]*models.RiskUpdatePlanIntroductoryMeetingDocument, error) {
 	var documents []*models.RiskUpdatePlanIntroductoryMeetingDocument
-	if err := repo.db.Where("risk_register_update_plan_id = ?", planID).Find(&documents).Error; err != nil {
+	if err := repo.db.Where("risk_update_plan_timeline_id = ?", timelineID).Find(&documents).Error; err != nil {
 		return nil, err
 	}
 
@@ -1030,6 +1039,52 @@ func (repo *RiskRegisterUpdatePlanRepository) DeleteIntroductoryMeetingDocument(
 	}
 
 	if err := db.Delete(&models.RiskUpdatePlanIntroductoryMeetingDocument{}, id).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Self-Awareness Training Document Methods
+
+func (repo *RiskRegisterUpdatePlanRepository) CreateSelfAwarenessTrainingDocument(document *models.RiskUpdatePlanSelfAwarenessTraining, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(document).Error; err != nil {
+		return 0, err
+	}
+
+	return document.ID, nil
+}
+
+func (repo *RiskRegisterUpdatePlanRepository) GetSelfAwarenessTrainingDocumentByID(id uint) (*models.RiskUpdatePlanSelfAwarenessTraining, error) {
+	var document models.RiskUpdatePlanSelfAwarenessTraining
+	if err := repo.db.First(&document, id).Error; err != nil {
+		return nil, err
+	}
+
+	return &document, nil
+}
+
+func (repo *RiskRegisterUpdatePlanRepository) GetSelfAwarenessTrainingDocumentsByTimelineID(timelineID uint) ([]*models.RiskUpdatePlanSelfAwarenessTraining, error) {
+	var documents []*models.RiskUpdatePlanSelfAwarenessTraining
+	if err := repo.db.Where("risk_update_plan_timeline_id = ?", timelineID).Find(&documents).Error; err != nil {
+		return nil, err
+	}
+
+	return documents, nil
+}
+
+func (repo *RiskRegisterUpdatePlanRepository) DeleteSelfAwarenessTrainingDocument(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Delete(&models.RiskUpdatePlanSelfAwarenessTraining{}, id).Error; err != nil {
 		return err
 	}
 
@@ -1097,46 +1152,12 @@ func (repo *RiskRegisterUpdatePlanRepository) CreateBusinessContext(businessCont
 	return nil
 }
 
-func (repo *RiskRegisterUpdatePlanRepository) GetBusinessContextByPlanID(planID uint) ([]*models.RiskUpdatePlanBusinessContext, error) {
+func (repo *RiskRegisterUpdatePlanRepository) GetBusinessContextByTimelineID(timelineID uint) ([]*models.RiskUpdatePlanBusinessContext, error) {
 	var businessContexts []*models.RiskUpdatePlanBusinessContext
 	if err := repo.db.
-		Preload("BusinessContext").
-		Preload("RiskRegisterUpdatePlan").
-		Preload("BusinessContext.Department").
-		Preload("BusinessContext.CreatedByUser").
-		Preload("BusinessContext.UpdatedByUser").
-		Preload("Process").
-		Preload("Process.ProcessGroup").
-		Preload("Process.ResponsibleUnit").
-		Preload("Process.ResponsibleUser").
-		Preload("Process.LifecycleStatus").
-		Preload("Process.Risks").
-		Preload("Process.RiskMatrixRating").
-		Preload("Process.RiskMatrixRatingValue").
-		Preload("Process.RtoUnit").
-		Preload("Process.MtpdUnit").
-		Preload("Process.RpoUnit").
-		Preload("Process.RiskLevel").
-		Preload("Process.ProcessCriticalityLevel").
-		Preload("Process.LastAssessedByUser").
-		Preload("Process.ProcessActivities").
-		Preload("Process.ProcessActivities.CreatedByUser").
-		Preload("Control").
-		Preload("Control.ControlType").
-		Preload("Control.ControlCategory").
-		Preload("Control.ResponsibleUnit").
-		Preload("Control.ResponsibleUser").
-		Preload("Control.ControlImplementationStatus").
-		Preload("Control.ReviewFrequency").
-		Preload("Control.CreatedByUser").
-		Preload("Control.UpdatedByUser").
-		Preload("Control.RiskMatrixRating").
-		Preload("Control.RiskMatrixRatingValue").
-		Preload("Control.ControlAutomation").
-		Preload("Control.ControlConsistency").
-		Preload("Control.ControlEffectivenessRating").
+		Preload("RiskUpdatePlanTimeline").
 		Preload("CreatedByUser").
-		Where("risk_register_update_plan_id = ?", planID).
+		Where("risk_update_plan_timeline_id = ?", timelineID).
 		Find(&businessContexts).Error; err != nil {
 		return nil, err
 	}
@@ -1147,57 +1168,7 @@ func (repo *RiskRegisterUpdatePlanRepository) GetBusinessContextByPlanID(planID 
 func (repo *RiskRegisterUpdatePlanRepository) GetBusinessContextByID(id uint) (*models.RiskUpdatePlanBusinessContext, error) {
 	var businessContext models.RiskUpdatePlanBusinessContext
 	if err := repo.db.
-		Preload("BusinessContext").
-		Preload("BusinessContext.Department").
-		Preload("BusinessContext.CreatedByUser").
-		Preload("BusinessContext.UpdatedByUser").
-		Preload("Process").
-		Preload("Process.ProcessGroup").
-		Preload("Process.ResponsibleUnit").
-		Preload("Process.ResponsibleUser").
-		Preload("Process.ResponsibleUser.OrganizationUnit1").
-		Preload("Process.LifecycleStatus").
-		Preload("Process.Risks").
-		Preload("Process.RiskMatrixRating").
-		Preload("Process.RiskMatrixRatingValue").
-		Preload("Process.CreatedByUser").
-		Preload("Process.CreatedByUser.OrganizationUnit1").
-		Preload("Process.UpdatedByUser").
-		Preload("Process.UpdatedByUser.OrganizationUnit1").
-		Preload("Process.RtoUnit").
-		Preload("Process.MtpdUnit").
-		Preload("Process.RpoUnit").
-		Preload("Process.RiskLevel").
-		Preload("Process.ProcessCriticalityLevel").
-		Preload("Process.LastAssessedByUser").
-		Preload("Process.ProcessActivities").
-		Preload("Control").
-		Preload("Control.ControlType").
-		Preload("Control.ControlCategory").
-		Preload("Control.ResponsibleUnit").
-		Preload("Control.ResponsibleUser").
-		Preload("Control.ResponsibleUser.OrganizationUnit1").
-		Preload("Control.ControlImplementationStatus").
-		Preload("Control.ControlEfficiencyStatus").
-		Preload("Control.TestResponsibleUser").
-		Preload("Control.TestResponsibleUser.OrganizationUnit1").
-		Preload("Control.ReviewFrequency").
-		Preload("Control.ControlReviewStatus").
-		Preload("Control.TestFrequency").
-		Preload("Control.LifecycleStatus").
-		Preload("Control.ControlStatus").
-		Preload("Control.CreatedByUser").
-		Preload("Control.UpdatedByUser").
-		Preload("Control.Risks").
-		Preload("Control.RiskMatrixRating").
-		Preload("Control.RiskMatrixRatingValue").
-		Preload("Control.ControlAutomation").
-		Preload("Control.ControlAutomation.CreatedByUser").
-		Preload("Control.ControlConsistency").
-		Preload("Control.ControlConsistency.CreatedByUser").
-		Preload("Control.AssociatedDocuments").
-		Preload("Control.AssociatedDocuments.Document").
-		Preload("Control.ControlEffectivenessRating").
+		Preload("RiskUpdatePlanTimeline").
 		Preload("CreatedByUser").
 		First(&businessContext, id).Error; err != nil {
 		return nil, err
@@ -1206,13 +1177,22 @@ func (repo *RiskRegisterUpdatePlanRepository) GetBusinessContextByID(id uint) (*
 	return &businessContext, nil
 }
 
+func (repo *RiskRegisterUpdatePlanRepository) UpdateBusinessContext(businessContext *models.RiskUpdatePlanBusinessContext, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Save(businessContext).Error
+}
+
 func (repo *RiskRegisterUpdatePlanRepository) UpdateBusinessContextStatus(id uint, status bool, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 
-	if err := db.Model(&models.RiskRegisterUpdatePlan{}).
+	if err := db.Model(&models.RiskUpdatePlanTimeline{}).
 		Where("id = ?", id).
 		Update("is_business_context_updated", status).Error; err != nil {
 		return err
@@ -1230,6 +1210,18 @@ func (repo *RiskRegisterUpdatePlanRepository) GetBusinessUnitIDByPlanID(planID u
 	}
 
 	return businessUnitID, nil
+}
+
+func (repo *RiskRegisterUpdatePlanRepository) GetOrganizationUnitBusinessContextByBusinessUnit(businessUnitID uint) (*models.OrganizationUnitBusinessContext, error) {
+	var orgBusinessContext models.OrganizationUnitBusinessContext
+	if err := repo.db.Where("department_id = ?", businessUnitID).First(&orgBusinessContext).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &orgBusinessContext, nil
 }
 
 func (repo *RiskRegisterUpdatePlanRepository) GetBusinessContextIDsByBusinessUnit(businessUnitID uint, tx ...utility.DatabaseTransaction) ([]uint, error) {

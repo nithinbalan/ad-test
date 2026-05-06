@@ -55,13 +55,24 @@ type RiskRegisterUpdatePlanServiceInterface interface {
 
 	// Introductory Meeting Document Operations
 	GetIntroductoryMeetingDocuments(planID uint) ([]*riskDTOs.IntroductoryMeetingDocumentDTO, error)
-	//CreateIntroductoryMeetingDocuments(planID uint, currentUserID uint, documents []*commonDTOs.DocumentFormDTO) error
+	CreateIntroductoryMeetingDocuments(planID uint, currentUserID uint, documents []*commonDTOs.DocumentFormDTO) error
 	GetIntroductoryMeetingDocumentPath(planID uint, token string) (string, error)
+	// Introductory Meeting - Operations
+	MarkIntroductoryMeetingAsNotApplicable(planID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error
+
+	// Self-Awareness Training Document Operations
+	GetSelfAwarenessTrainingDocuments(planID uint) ([]*riskDTOs.SelfAwarenessTrainingDocumentDTO, error)
+	CreateSelfAwarenessTrainingDocuments(planID uint, currentUserID uint, documents []*commonDTOs.DocumentFormDTO) error
+	GetSelfAwarenessTrainingDocumentPath(planID uint, token string) (string, error)
+	// Self-Awareness Training - Operations
+	MarkSelfAwarenessTrainingAsNotApplicable(planID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error
 
 	// Business Context Operations
-	//CreateBusinessContext(planID uint, currentUserID uint) error
+	CreateBusinessContext(planID uint, currentUserID uint) error
 	GetBusinessContextByPlanID(planID uint) ([]*riskDTOs.BusinessContextDetailDTO, error)
+	UpdateBusinessContext(id uint, currentUserID uint, formDTO *riskDTOs.UpdateBusinessContextFormDTO) error
 	UpdateBusinessContextStatus(id uint, currentUserID uint, formDTO *riskDTOs.UpdateBusinessContextStatusFormDTO) error
+	MarkBusinessContextAsNotApplicable(planID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error
 
 	// Timeline Operations
 	RecalculatePercentage(planID uint) error
@@ -1063,17 +1074,108 @@ func (s *RiskRegisterUpdatePlanService) GetERMDeptEvaluationDocumentPath(planID 
 				return "", err
 			}
 
-			// Build file path
-			storagePath := filepath.Join("risk", "risk-register-update-plan", fmt.Sprintf("%d", planID), "erm-dept-evaluation-documents")
+			// Construct file path
+			storagePath := filepath.Join(
+				"risk",
+				"risk-register-update-plan",
+				strconv.FormatUint(uint64(planID), 10),
+				"erm-dept-evaluation-documents",
+			)
 			baseStoragePath := config.GetEnv("STORAGE_PATH", "")
-			filePath := filepath.Join(baseStoragePath, storagePath, string(decryptedFilename))
+			fullPath := filepath.Join(baseStoragePath, storagePath, string(decryptedFilename))
 
-			// Check if file exists
-			if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			// Check if the file exists
+			if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 				return "", utility.NewResourceNotFoundError(err, 0)
 			}
 
-			return filePath, nil
+			return fullPath, nil
+		}
+	}
+
+	return "", utility.NewResourceNotFoundError(errors.New("document not found"), 0)
+}
+
+// Introductory Meeting Operations
+
+func (s *RiskRegisterUpdatePlanService) MarkIntroductoryMeetingAsNotApplicable(planID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error {
+	// Get timeline type for Introductory Meeting
+	timelineType, err := s.timelineTypeSvc.GetByType("introductory_meeting")
+	if err != nil {
+		return err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return err
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	// Update timeline - mark as not applicable and completed
+	now := time.Now()
+	timeline.IsNotApplicable = true
+	timeline.IsCompleted = true
+	timeline.Justification = &formDTO.Justification
+	timeline.UpdatedBYID = &currentUserID
+	timeline.UpdatedAt = &now
+
+	if err := tx.DB().Save(&timeline).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Recalculate percentage
+	if err := s.repo.CalculateAndUpdatePercentage(planID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// Introductory Meeting Document Operations
+
+func (s *RiskRegisterUpdatePlanService) GetIntroductoryMeetingDocumentPath(planID uint, token string) (string, error) {
+	// Get timeline type for Introductory Meeting
+	timelineType, err := s.timelineTypeSvc.GetByType("introductory_meeting")
+	if err != nil {
+		return "", err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return "", err
+	}
+
+	// Get all documents for this timeline
+	documents, err := s.repo.GetIntroductoryMeetingDocumentsByTimelineID(timeline.ID)
+	if err != nil {
+		return "", err
+	}
+
+	// Find document with matching token
+	for _, doc := range documents {
+		if doc.Token != nil && *doc.Token == token {
+			// Decrypt filename
+			decryptedFilename, err := utility.DecryptData(*doc.Token)
+			if err != nil {
+				return "", err
+			}
+
+			// Construct file path
+			storagePath := filepath.Join("risk", "risk-register-update-plan", strconv.FormatUint(uint64(planID), 10), "introductory-meeting-documents")
+			baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+			fullPath := filepath.Join(baseStoragePath, storagePath, string(decryptedFilename))
+
+			// Check if the file exists
+			if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+				return "", utility.NewResourceNotFoundError(err, 0)
+			}
+
+			return fullPath, nil
 		}
 	}
 
@@ -1083,17 +1185,20 @@ func (s *RiskRegisterUpdatePlanService) GetERMDeptEvaluationDocumentPath(planID 
 // Introductory Meeting Document Operations
 
 func (s *RiskRegisterUpdatePlanService) GetIntroductoryMeetingDocuments(planID uint) ([]*riskDTOs.IntroductoryMeetingDocumentDTO, error) {
-	// Verify plan exists
-	_, err := s.repo.GetByID(planID)
+	// Get timeline type for Introductory Meeting
+	timelineType, err := s.timelineTypeSvc.GetByType("introductory_meeting")
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utility.NewResourceNotFoundError(err, planID)
-		}
 		return nil, err
 	}
 
-	// Get documents
-	documents, err := s.repo.GetIntroductoryMeetingDocumentsByPlanID(planID)
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get documents by timeline ID
+	documents, err := s.repo.GetIntroductoryMeetingDocumentsByTimelineID(timeline.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -1116,300 +1221,170 @@ func (s *RiskRegisterUpdatePlanService) GetIntroductoryMeetingDocuments(planID u
 	return documentDTOs, nil
 }
 
-// func (s *RiskRegisterUpdatePlanService) CreateIntroductoryMeetingDocuments(planID uint, currentUserID uint, documents []*commonDTOs.DocumentFormDTO) error {
-// 	// Verify plan exists
-// 	_, err := s.repo.GetByID(planID)
-// 	if err != nil {
-// 		if errors.Is(err, gorm.ErrRecordNotFound) {
-// 			return utility.NewResourceNotFoundError(err, planID)
-// 		}
-// 		return err
-// 	}
-
-// 	tx := s.repo.BeginTransaction()
-
-// 	// Handle documents
-// 	var newDocuments []*models.RiskUpdatePlanIntroductoryMeetingDocument
-// 	var deleteDocumentIDs []*uint
-// 	var documentsToDelete []*models.RiskUpdatePlanIntroductoryMeetingDocument
-
-// 	now := time.Now()
-
-// 	for _, doc := range documents {
-// 		// NEW FILE
-// 		if doc.IsNewFile != nil && *doc.IsNewFile {
-// 			encryptedFilename, err := utility.EncryptData([]byte(doc.FileName))
-// 			if err != nil {
-// 				tx.Rollback()
-// 				return err
-// 			}
-
-// 			url := utility.GenerateDocumentURL(
-// 				"risk",
-// 				"risk-register-update-plan",
-// 				strconv.FormatUint(uint64(planID), 10),
-// 				"introductory-meeting-documents",
-// 			)
-
-// 			document := &models.RiskUpdatePlanIntroductoryMeetingDocument{
-// 				RiskRegisterUpateTimeID: planID,
-// 				URL:                      &url,
-// 				Name:                     &doc.FileName,
-// 				Size:                     &doc.Size,
-// 				Token:                    &encryptedFilename,
-// 				OriginalName:             &doc.OriginalName,
-// 				Type:                     &doc.Type,
-// 				CreatedBYID:              &currentUserID,
-// 				CreatedAt:                now,
-// 			}
-
-// 			newDocuments = append(newDocuments, document)
-
-// 		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile && doc.ID != nil {
-// 			// DELETE FILE
-// 			existingDocument, err := s.repo.GetIntroductoryMeetingDocumentByID(*doc.ID)
-// 			if err != nil {
-// 				tx.Rollback()
-// 				return err
-// 			}
-
-// 			// Verify document belongs to the plan
-// 			if existingDocument.RiskRegisterUpdatePlanID != planID {
-// 				tx.Rollback()
-// 				return utility.NewResourceNotFoundError(fmt.Errorf("document not found"), *doc.ID)
-// 			}
-
-// 			deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
-// 			documentsToDelete = append(documentsToDelete, existingDocument)
-// 		}
-// 	}
-
-// 	// Create new documents
-// 	if len(newDocuments) > 0 {
-// 		for _, doc := range newDocuments {
-// 			_, err := s.repo.CreateIntroductoryMeetingDocument(doc, tx)
-// 			if err != nil {
-// 				tx.Rollback()
-// 				return err
-// 			}
-// 		}
-// 	}
-
-// 	// Delete documents
-// 	if len(deleteDocumentIDs) > 0 {
-// 		for _, docID := range deleteDocumentIDs {
-// 			if err := s.repo.DeleteIntroductoryMeetingDocument(*docID, tx); err != nil {
-// 				tx.Rollback()
-// 				return err
-// 			}
-// 		}
-// 	}
-
-// 	// File system operations - store new files
-// 	for _, doc := range newDocuments {
-// 		storagePath := filepath.Join("risk", "risk-register-update-plan", strconv.FormatUint(uint64(planID), 10), "introductory-meeting-documents")
-// 		if err := utility.StoreFile(*doc.Name, storagePath); err != nil {
-// 			tx.Rollback()
-// 			return err
-// 		}
-// 	}
-
-// 	// File system operations - delete files
-// 	for _, doc := range documentsToDelete {
-// 		storagePath := filepath.Join("risk", "risk-register-update-plan", strconv.FormatUint(uint64(planID), 10), "introductory-meeting-documents")
-// 		if doc.Name != nil {
-// 			if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
-// 				tx.Rollback()
-// 				return err
-// 			}
-// 		}
-// 	}
-
-// 	tx.Commit()
-
-// 	// Log activity
-// 	go func() {
-// 		err := s.activityLogSvc.LogActivity(
-// 			models.UpdateAction,
-// 			models.RiskUpdatePlanIntroductoryMeetingDocument{}.TableName(),
-// 			planID,
-// 			map[string]interface{}{
-// 				"new_documents_count":     len(newDocuments),
-// 				"deleted_documents_count": len(documentsToDelete),
-// 			},
-// 			currentUserID,
-// 			"risk", "risk_register_update_plan", "documents_update", nil,
-// 		)
-// 		if err != nil {
-// 			utility.LogError("Failed to log activity", map[string]interface{}{
-// 				"action": models.UpdateAction,
-// 				"planID": planID,
-// 				"userID": currentUserID,
-// 				"error":  err.Error(),
-// 			})
-// 		}
-// 	}()
-
-// 	return nil
-// }
-
-func (s *RiskRegisterUpdatePlanService) GetIntroductoryMeetingDocumentPath(planID uint, token string) (string, error) {
+func (s *RiskRegisterUpdatePlanService) CreateIntroductoryMeetingDocuments(planID uint, currentUserID uint, documents []*commonDTOs.DocumentFormDTO) error {
 	// Verify plan exists
 	_, err := s.repo.GetByID(planID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", utility.NewResourceNotFoundError(err, planID)
+			return utility.NewResourceNotFoundError(err, planID)
 		}
-		return "", err
+		return err
 	}
 
-	// Get documents for the plan
-	documents, err := s.repo.GetIntroductoryMeetingDocumentsByPlanID(planID)
+	// Get timeline type for Introductory Meeting
+	timelineType, err := s.timelineTypeSvc.GetByType("introductory_meeting")
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	if len(documents) == 0 {
-		return "", fmt.Errorf("no documents found for the plan")
-	}
-
-	// Decrypt the token
-	decryptedFilenameBytes, err := utility.DecryptData(token)
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
 	if err != nil {
-		return "", fmt.Errorf("resource not found")
+		return err
 	}
 
-	decryptedFilename := string(decryptedFilenameBytes)
-	if decryptedFilename == "" {
-		return "", fmt.Errorf("resource not found")
+	tx := s.repo.BeginTransaction()
+
+	// Handle documents
+	var newDocuments []*models.RiskUpdatePlanIntroductoryMeetingDocument
+	var deleteDocumentIDs []*uint
+	var documentsToDelete []*models.RiskUpdatePlanIntroductoryMeetingDocument
+
+	now := time.Now()
+
+	for _, doc := range documents {
+		// NEW FILE
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+			encryptedFilename, err := utility.EncryptData([]byte(doc.FileName))
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			url := utility.GenerateDocumentURL(
+				"risk",
+				"risk-register-update-plan",
+				strconv.FormatUint(uint64(planID), 10),
+				"introductory-meeting-documents",
+			)
+
+			document := &models.RiskUpdatePlanIntroductoryMeetingDocument{
+				RiskUpdatePlanTimelineID: timeline.ID,
+				URL:                      &url,
+				Name:                     &doc.FileName,
+				Size:                     &doc.Size,
+				Token:                    &encryptedFilename,
+				OriginalName:             &doc.OriginalName,
+				Type:                     &doc.Type,
+				CreatedBYID:              &currentUserID,
+				CreatedAt:                now,
+			}
+
+			newDocuments = append(newDocuments, document)
+
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile && doc.ID != nil {
+			// DELETE FILE
+			existingDocument, err := s.repo.GetIntroductoryMeetingDocumentByID(*doc.ID)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Verify document belongs to this timeline
+			if existingDocument.RiskUpdatePlanTimelineID != timeline.ID {
+				tx.Rollback()
+				return utility.NewResourceNotFoundError(fmt.Errorf("document not found"), *doc.ID)
+			}
+
+			deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
+			documentsToDelete = append(documentsToDelete, existingDocument)
+		}
 	}
 
-	// Construct file path
-	storagePath := filepath.Join("risk", "risk-register-update-plan", fmt.Sprintf("%d", planID), "introductory-meeting-documents")
-	baseStoragePath := config.GetEnv("STORAGE_PATH", "")
-	fullPath := filepath.Join(baseStoragePath, storagePath, decryptedFilename)
-
-	// Check if the file exists
-	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-		return "", fmt.Errorf("file not found")
-	} else if err != nil {
-		return "", fmt.Errorf("error accessing file: %w", err)
+	// Create new documents
+	if len(newDocuments) > 0 {
+		for _, doc := range newDocuments {
+			_, err := s.repo.CreateIntroductoryMeetingDocument(doc, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
 	}
 
-	return fullPath, nil
+	// Delete documents
+	if len(deleteDocumentIDs) > 0 {
+		for _, docID := range deleteDocumentIDs {
+			if err := s.repo.DeleteIntroductoryMeetingDocument(*docID, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	// File system operations - store new files
+	for _, doc := range newDocuments {
+		storagePath := filepath.Join("risk", "risk-register-update-plan", strconv.FormatUint(uint64(planID), 10), "introductory-meeting-documents")
+		if err := utility.StoreFile(*doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// File system operations - delete files
+	for _, doc := range documentsToDelete {
+		storagePath := filepath.Join("risk", "risk-register-update-plan", strconv.FormatUint(uint64(planID), 10), "introductory-meeting-documents")
+		if doc.Name != nil {
+			if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	// Mark timeline as completed
+	if err := s.repo.UpdateTimelineCompletion(timeline.ID, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Recalculate percentage
+	if err := s.repo.CalculateAndUpdatePercentage(planID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	// Log activity
+	go func() {
+		err := s.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.RiskUpdatePlanIntroductoryMeetingDocument{}.TableName(),
+			planID,
+			map[string]interface{}{
+				"new_documents_count":     len(newDocuments),
+				"deleted_documents_count": len(documentsToDelete),
+			},
+			currentUserID,
+			"risk", "risk_register_update_plan", "documents_update", nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action": models.UpdateAction,
+				"planID": planID,
+				"userID": currentUserID,
+				"error":  err.Error(),
+			})
+		}
+	}()
+
+	return nil
 }
 
-// Business Context Operations
+// Self-Awareness Training Document Operations
 
-// func (s *RiskRegisterUpdatePlanService) CreateBusinessContext(planID uint, currentUserID uint) error {
-// 	// Verify plan exists
-// 	_, err := s.repo.GetByID(planID)
-// 	if err != nil {
-// 		if errors.Is(err, gorm.ErrRecordNotFound) {
-// 			return utility.NewResourceNotFoundError(err, planID)
-// 		}
-// 		return err
-// 	}
-
-// 	// Get business unit ID from plan
-// 	businessUnitID, err := s.repo.GetBusinessUnitIDByPlanID(planID)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	tx := s.repo.BeginTransaction()
-
-// 	// Get all business context IDs for the business unit
-// 	businessContextIDs, err := s.repo.GetBusinessContextIDsByBusinessUnit(businessUnitID, tx)
-// 	if err != nil {
-// 		tx.Rollback()
-// 		return err
-// 	}
-
-// 	// Get all process IDs for the business unit
-// 	processIDs, err := s.repo.GetProcessIDsByBusinessUnit(businessUnitID, tx)
-// 	if err != nil {
-// 		tx.Rollback()
-// 		return err
-// 	}
-
-// 	// Get all control IDs for the business unit
-// 	controlIDs, err := s.repo.GetControlIDsByBusinessUnit(businessUnitID, tx)
-// 	if err != nil {
-// 		tx.Rollback()
-// 		return err
-// 	}
-
-// 	// Create business context records
-// 	for _, bcID := range businessContextIDs {
-// 		businessContext := &models.RiskUpdatePlanBusinessContext{
-// 			RiskRegisterUpdatePlanID: planID,
-// 			BusinessContextID:        &bcID,
-// 			CreatedBYID:              &currentUserID,
-// 		}
-// 		if err := s.repo.CreateBusinessContext(businessContext, tx); err != nil {
-// 			tx.Rollback()
-// 			return err
-// 		}
-// 	}
-
-// 	// Create process records
-// 	for _, processID := range processIDs {
-// 		businessContext := &models.RiskUpdatePlanBusinessContext{
-// 			RiskRegisterUpdatePlanID: planID,
-// 			ProcessID:                &processID,
-// 			CreatedBYID:              &currentUserID,
-// 		}
-// 		if err := s.repo.CreateBusinessContext(businessContext, tx); err != nil {
-// 			tx.Rollback()
-// 			return err
-// 		}
-// 	}
-
-// 	// Create control records
-// 	for _, controlID := range controlIDs {
-// 		businessContext := &models.RiskUpdatePlanBusinessContext{
-// 			RiskRegisterUpdatePlanID: planID,
-// 			ControlID:                &controlID,
-// 			CreatedBYID:              &currentUserID,
-// 		}
-// 		if err := s.repo.CreateBusinessContext(businessContext, tx); err != nil {
-// 			tx.Rollback()
-// 			return err
-// 		}
-// 	}
-
-// 	tx.Commit()
-
-// 	// Log activity
-// 	go func() {
-// 		err := s.activityLogSvc.LogActivity(
-// 			models.CreateAction,
-// 			models.RiskUpdatePlanBusinessContext{}.TableName(),
-// 			planID,
-// 			map[string]interface{}{
-// 				"plan_id":          planID,
-// 				"business_unit_id": businessUnitID,
-// 				"total_created":    len(businessContextIDs) + len(processIDs) + len(controlIDs),
-// 			},
-// 			currentUserID,
-// 			"risk", "risk_update_plan_business_context", "create_all", nil,
-// 		)
-// 		if err != nil {
-// 			utility.LogError("Failed to log activity", map[string]interface{}{
-// 				"action": models.CreateAction,
-// 				"planID": planID,
-// 				"userID": currentUserID,
-// 				"error":  err.Error(),
-// 			})
-// 		}
-// 	}()
-
-// 	return nil
-// }
-
-func (s *RiskRegisterUpdatePlanService) GetBusinessContextByPlanID(planID uint) ([]*riskDTOs.BusinessContextDetailDTO, error) {
-
+func (s *RiskRegisterUpdatePlanService) GetSelfAwarenessTrainingDocuments(planID uint) ([]*riskDTOs.SelfAwarenessTrainingDocumentDTO, error) {
 	// Verify plan exists
 	_, err := s.repo.GetByID(planID)
 	if err != nil {
@@ -1419,33 +1394,480 @@ func (s *RiskRegisterUpdatePlanService) GetBusinessContextByPlanID(planID uint) 
 		return nil, err
 	}
 
-	// Get business contexts
-	businessContexts, err := s.repo.GetBusinessContextByPlanID(planID)
+	// Get timeline type for Self-Awareness Training
+	timelineType, err := s.timelineTypeSvc.GetByType("self_awareness_training")
+	if err != nil {
+		return nil, err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get documents by timeline ID
+	documents, err := s.repo.GetSelfAwarenessTrainingDocumentsByTimelineID(timeline.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var dtos []*riskDTOs.SelfAwarenessTrainingDocumentDTO
+	for _, doc := range documents {
+		dto := &riskDTOs.SelfAwarenessTrainingDocumentDTO{
+			ID:           &doc.ID,
+			URL:          doc.URL,
+			Name:         doc.Name,
+			Token:        doc.Token,
+			OriginalName: doc.OriginalName,
+			Type:         doc.Type,
+			Size:         doc.Size,
+		}
+		dtos = append(dtos, dto)
+	}
+
+	return dtos, nil
+}
+
+func (s *RiskRegisterUpdatePlanService) CreateSelfAwarenessTrainingDocuments(planID uint, currentUserID uint, documents []*commonDTOs.DocumentFormDTO) error {
+
+	// Verify plan exists
+	_, err := s.repo.GetByID(planID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, planID)
+		}
+		return err
+	}
+
+	// Get timeline type for Self-Awareness Training
+	timelineType, err := s.timelineTypeSvc.GetByType("self_awareness_training")
+	if err != nil {
+		return err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return err
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	// Handle documents
+	var newDocuments []*models.RiskUpdatePlanSelfAwarenessTraining
+	var deleteDocumentIDs []*uint
+	var documentsToDelete []*models.RiskUpdatePlanSelfAwarenessTraining
+
+	now := time.Now()
+
+	for _, doc := range documents {
+
+		// NEW FILE
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+
+			encryptedFilename, err := utility.EncryptData([]byte(doc.FileName))
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			url := utility.GenerateDocumentURL(
+				"risk",
+				"risk-register-update-plan",
+				strconv.FormatUint(uint64(planID), 10),
+				"self-awareness-training-documents",
+			)
+
+			document := &models.RiskUpdatePlanSelfAwarenessTraining{
+				RiskUpdatePlanTimelineID: timeline.ID,
+				URL:                      &url,
+				Name:                     &doc.FileName,
+				Size:                     &doc.Size,
+				Token:                    &encryptedFilename,
+				OriginalName:             &doc.OriginalName,
+				Type:                     &doc.Type,
+				CreatedBYID:              &currentUserID,
+				CreatedAt:                now,
+			}
+
+			newDocuments = append(newDocuments, document)
+
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile && doc.ID != nil {
+
+			// DELETE FILE
+			existingDocument, err := s.repo.GetSelfAwarenessTrainingDocumentByID(*doc.ID)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Verify document belongs to this timeline
+			if existingDocument.RiskUpdatePlanTimelineID != timeline.ID {
+				tx.Rollback()
+				return utility.NewResourceNotFoundError(fmt.Errorf("document not found"), *doc.ID)
+			}
+
+			deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
+			documentsToDelete = append(documentsToDelete, existingDocument)
+		}
+	}
+
+	// Create new documents
+	if len(newDocuments) > 0 {
+		for _, doc := range newDocuments {
+			_, err := s.repo.CreateSelfAwarenessTrainingDocument(doc, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	// Delete documents
+	if len(deleteDocumentIDs) > 0 {
+		for _, docID := range deleteDocumentIDs {
+			if err := s.repo.DeleteSelfAwarenessTrainingDocument(*docID, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	// File system operations - store new files
+	for _, doc := range newDocuments {
+		storagePath := filepath.Join(
+			"risk",
+			"risk-register-update-plan",
+			strconv.FormatUint(uint64(planID), 10),
+			"self-awareness-training-documents",
+		)
+
+		if err := utility.StoreFile(*doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// File system operations - delete files
+	for _, doc := range documentsToDelete {
+		storagePath := filepath.Join(
+			"risk",
+			"risk-register-update-plan",
+			strconv.FormatUint(uint64(planID), 10),
+			"self-awareness-training-documents",
+		)
+
+		if doc.Name != nil {
+			if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	// Mark timeline as completed
+	if err := s.repo.UpdateTimelineCompletion(timeline.ID, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Recalculate percentage
+	if err := s.repo.CalculateAndUpdatePercentage(planID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	// Log activity
+	go func() {
+		err := s.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.RiskUpdatePlanSelfAwarenessTraining{}.TableName(),
+			planID,
+			map[string]interface{}{
+				"new_documents_count":     len(newDocuments),
+				"deleted_documents_count": len(documentsToDelete),
+			},
+			currentUserID,
+			"risk", "risk_register_update_plan", "documents_update", nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action": models.UpdateAction,
+				"planID": planID,
+				"userID": currentUserID,
+				"error":  err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (s *RiskRegisterUpdatePlanService) GetSelfAwarenessTrainingDocumentPath(planID uint, token string) (string, error) {
+
+	// Get timeline type for Self-Awareness Training
+	timelineType, err := s.timelineTypeSvc.GetByType("self_awareness_training")
+	if err != nil {
+		return "", err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return "", err
+	}
+
+	// Get all documents for this timeline
+	documents, err := s.repo.GetSelfAwarenessTrainingDocumentsByTimelineID(timeline.ID)
+	if err != nil {
+		return "", err
+	}
+
+	// Find document with matching token
+	for _, doc := range documents {
+		if doc.Token != nil && *doc.Token == token {
+
+			// Decrypt filename
+			decryptedFilename, err := utility.DecryptData(*doc.Token)
+			if err != nil {
+				return "", err
+			}
+
+			// Construct file path
+			storagePath := filepath.Join(
+				"risk",
+				"risk-register-update-plan",
+				strconv.FormatUint(uint64(planID), 10),
+				"self-awareness-training-documents",
+			)
+
+			baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+			fullPath := filepath.Join(baseStoragePath, storagePath, string(decryptedFilename))
+
+			// Check if file exists
+			if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+				return "", utility.NewResourceNotFoundError(err, 0)
+			}
+
+			return fullPath, nil
+		}
+	}
+
+	return "", utility.NewResourceNotFoundError(errors.New("document not found"), 0)
+}
+
+func (s *RiskRegisterUpdatePlanService) MarkSelfAwarenessTrainingAsNotApplicable(planID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error {
+	// Get timeline type for Self-Awareness Training
+	timelineType, err := s.timelineTypeSvc.GetByType("self_awareness_training")
+	if err != nil {
+		return err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return err
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	// Update timeline - mark as not applicable and completed
+	now := time.Now()
+	timeline.IsNotApplicable = true
+	timeline.IsCompleted = true
+	timeline.Justification = &formDTO.Justification
+	timeline.UpdatedBYID = &currentUserID
+	timeline.UpdatedAt = &now
+
+	if err := tx.DB().Save(&timeline).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Recalculate percentage
+	if err := s.repo.CalculateAndUpdatePercentage(planID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// Business Context Operations
+
+func (s *RiskRegisterUpdatePlanService) CreateBusinessContext(planID uint, currentUserID uint) error {
+	// Verify plan exists
+	_, err := s.repo.GetByID(planID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, planID)
+		}
+		return err
+	}
+
+	// Get timeline type for Business Context
+	timelineType, err := s.timelineTypeSvc.GetByType("business_context")
+	if err != nil {
+		return err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return err
+	}
+
+	// Get business unit ID from plan
+	businessUnitID, err := s.repo.GetBusinessUnitIDByPlanID(planID)
+	if err != nil {
+		return err
+	}
+
+	// Get OrganizationUnitBusinessContext data
+	orgBusinessContext, err := s.repo.GetOrganizationUnitBusinessContextByBusinessUnit(businessUnitID)
+	if err != nil {
+		return err
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	// Create a single business context record with data from OrganizationUnitBusinessContext
+	businessContext := &models.RiskUpdatePlanBusinessContext{
+		RiskUpdatePlanTimelineID:   timeline.ID,
+		InternalAuditNote:          orgBusinessContext.InternalAuditNote,
+		ExternalContext:            orgBusinessContext.ExternalContext,
+		AnnualObjectiveDescription: orgBusinessContext.AnnualObjectiveDescription,
+		CreatedBYID:                &currentUserID,
+		CreatedAt:                  time.Now(),
+	}
+
+	if err := s.repo.CreateBusinessContext(businessContext, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Mark timeline as completed
+	if err := s.repo.UpdateTimelineCompletion(timeline.ID, currentUserID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Recalculate percentage
+	if err := s.repo.CalculateAndUpdatePercentage(planID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	// Log activity
+	go func() {
+		err := s.activityLogSvc.LogActivity(
+			models.CreateAction,
+			models.RiskUpdatePlanBusinessContext{}.TableName(),
+			planID,
+			map[string]interface{}{
+				"plan_id":          planID,
+				"business_unit_id": businessUnitID,
+				"timeline_id":      timeline.ID,
+			},
+			currentUserID,
+			"risk", "risk_update_plan_business_context", "create", nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action": models.CreateAction,
+				"planID": planID,
+				"userID": currentUserID,
+				"error":  err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (s *RiskRegisterUpdatePlanService) MarkBusinessContextAsNotApplicable(planID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error {
+	// Get timeline type for Business Context
+	timelineType, err := s.timelineTypeSvc.GetByType("business_context")
+	if err != nil {
+		return err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return err
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	// Update timeline - mark as not applicable and completed
+	now := time.Now()
+	timeline.IsNotApplicable = true
+	timeline.IsCompleted = true
+	timeline.Justification = &formDTO.Justification
+	timeline.UpdatedBYID = &currentUserID
+	timeline.UpdatedAt = &now
+
+	if err := tx.DB().Save(&timeline).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Recalculate percentage
+	if err := s.repo.CalculateAndUpdatePercentage(planID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (s *RiskRegisterUpdatePlanService) GetBusinessContextByPlanID(planID uint) ([]*riskDTOs.BusinessContextDetailDTO, error) {
+	// Verify plan exists
+	_, err := s.repo.GetByID(planID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, planID)
+		}
+		return nil, err
+	}
+
+	// Get timeline type for Business Context
+	timelineType, err := s.timelineTypeSvc.GetByType("business_context")
+	if err != nil {
+		return nil, err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get business contexts by timeline ID
+	businessContexts, err := s.repo.GetBusinessContextByTimelineID(timeline.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	var dtos []*riskDTOs.BusinessContextDetailDTO
 
-	for _, businessContext := range businessContexts {
-		var dto riskDTOs.BusinessContextDetailDTO
-
-		err := mapstructure.Decode(businessContext, &dto)
-		if err != nil {
-			return nil, err
-		}
-
-		dto.CreatedAt = businessContext.CreatedAt
-
-		dtos = append(dtos, &dto)
+	err = mapstructure.Decode(businessContexts, &dtos)
+	if err != nil {
+		return nil, err
 	}
 
 	return dtos, nil
 }
 
-func (s *RiskRegisterUpdatePlanService) UpdateBusinessContextStatus(id uint, currentUserID uint, formDTO *riskDTOs.UpdateBusinessContextStatusFormDTO) error {
-	// Verify business context exists
-	_, err := s.repo.GetBusinessContextByID(id)
+func (s *RiskRegisterUpdatePlanService) UpdateBusinessContext(id uint, currentUserID uint, formDTO *riskDTOs.UpdateBusinessContextFormDTO) error {
+	// Get existing business context
+	businessContext, err := s.repo.GetBusinessContextByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return utility.NewResourceNotFoundError(err, id)
@@ -1453,10 +1875,80 @@ func (s *RiskRegisterUpdatePlanService) UpdateBusinessContextStatus(id uint, cur
 		return err
 	}
 
+	// Update fields from DTO
+	if formDTO.InternalAuditNote != nil {
+		businessContext.InternalAuditNote = formDTO.InternalAuditNote
+	}
+	if formDTO.ExternalContext != nil {
+		businessContext.ExternalContext = formDTO.ExternalContext
+	}
+	if formDTO.AnnualObjectiveDescription != nil {
+		businessContext.AnnualObjectiveDescription = formDTO.AnnualObjectiveDescription
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	// Update business context
+	if err := s.repo.UpdateBusinessContext(businessContext, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	// Log activity
+	go func() {
+		err := s.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.RiskUpdatePlanBusinessContext{}.TableName(),
+			id,
+			map[string]interface{}{
+				"internal_audit_note":          formDTO.InternalAuditNote,
+				"external_context":             formDTO.ExternalContext,
+				"annual_objective_description": formDTO.AnnualObjectiveDescription,
+			},
+			currentUserID,
+			"risk", "risk_update_plan_business_context", "update", nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action": models.UpdateAction,
+				"id":     id,
+				"userID": currentUserID,
+				"error":  err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (s *RiskRegisterUpdatePlanService) UpdateBusinessContextStatus(id uint, currentUserID uint, formDTO *riskDTOs.UpdateBusinessContextStatusFormDTO) error {
+	// Verify plan exists
+	_, err := s.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, id)
+		}
+		return err
+	}
+
+	// Get timeline type for Business Context
+	timelineType, err := s.timelineTypeSvc.GetByType("business_context")
+	if err != nil {
+		return err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(id, timelineType.ID)
+	if err != nil {
+		return err
+	}
+
 	tx := s.repo.BeginTransaction()
 
 	// Update status
-	if err := s.repo.UpdateBusinessContextStatus(id, *formDTO.IsBusinessContextUpdated, tx); err != nil {
+	if err := s.repo.UpdateBusinessContextStatus(timeline.ID, *formDTO.IsBusinessContextUpdated, tx); err != nil {
 		tx.Rollback()
 		return err
 	}

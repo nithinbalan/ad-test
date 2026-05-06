@@ -535,9 +535,26 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// riskRoutes.DELETE("/risk-register-update-plans/erm-evaluations/:ermEvaluationId", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.DeleteERMDepartmentEvaluation)
 	// Introductory Meeting Documents
 	riskRoutes.GET("/risk-register-update-plans/:id/introductory-meeting-documents", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanController.GetIntroductoryMeetingDocuments)
-	//riskRoutes.POST("/risk-register-update-plans/:id/introductory-meeting-documents", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.CreateIntroductoryMeetingDocuments)
+	riskRoutes.POST("/risk-register-update-plans/:id/introductory-meeting-documents", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.CreateIntroductoryMeetingDocuments)
+	// Introductory Meeting - Operations
+	riskRoutes.POST("/risk-register-update-plans/:id/mark-introductory-meeting-not-applicable", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.MarkIntroductoryMeetingAsNotApplicable)
 	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/introductory-meeting-documents/preview", riskRegisterUpdatePlanController.GetIntroductoryMeetingDocumentPreview)
 	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/introductory-meeting-documents/download", riskRegisterUpdatePlanController.DownloadIntroductoryMeetingDocument)
+
+	// Self-Awareness Training Documents
+	riskRoutes.GET("/risk-register-update-plans/:id/self-awareness-trainings", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanController.GetSelfAwarenessTrainingDocuments)
+	riskRoutes.POST("/risk-register-update-plans/:id/self-awareness-trainings", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.CreateSelfAwarenessTrainingDocuments)
+	// Self-Awareness Training - Operations
+	riskRoutes.POST("/risk-register-update-plans/:id/mark-self-awareness-training-not-applicable", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.MarkSelfAwarenessTrainingAsNotApplicable)
+	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/self-awareness-trainings/preview", riskRegisterUpdatePlanController.GetSelfAwarenessTrainingDocumentPreview)
+	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/self-awareness-trainings/download", riskRegisterUpdatePlanController.DownloadSelfAwarenessTrainingDocument)
+
+	// Business Context Operations
+	riskRoutes.GET("/risk-register-update-plans/:id/business-context", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanController.GetBusinessContext)
+	riskRoutes.POST("/risk-register-update-plans/:id/business-context", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.CreateBusinessContext)
+	riskRoutes.PUT("/risk-update-plan-business-context/:businessContextId", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.UpdateBusinessContext)
+	riskRoutes.PUT("/risk-register-update-plans/:id/business-context-status", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.UpdateBusinessContextStatus)
+	riskRoutes.POST("/risk-register-update-plans/:id/mark-business-context-not-applicable", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.MarkBusinessContextAsNotApplicable)
 
 	// Risk Update Plan Timeline Types
 	riskRoutes.GET("/risk-update-plan-timeline-types", riskUpdatePlanTimelineTypeController.GetAllRiskUpdatePlanTimelineTypes)

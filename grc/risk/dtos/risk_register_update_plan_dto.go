@@ -311,19 +311,40 @@ type ERMDeptEvaluationDocumentFormDTO struct {
 	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
 }
 
+// Self-Awareness Training Document DTOs
+type SelfAwarenessTrainingDocumentDTO struct {
+	ID           *uint   `json:"id"`
+	URL          *string `json:"url"`
+	Name         *string `json:"name"`
+	Token        *string `json:"token"`
+	OriginalName *string `json:"original_name"`
+	Type         *string `json:"type"`
+	Size         *int    `json:"size"`
+}
+
+type SelfAwarenessTrainingDocumentFormDTO struct {
+	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
+}
+
 // ERM Department Evaluation DTOs
 type UpdateBusinessContextStatusFormDTO struct {
 	IsBusinessContextUpdated *bool `json:"is_business_context_updated" binding:"required"`
 }
+
+type UpdateBusinessContextFormDTO struct {
+	InternalAuditNote          *string `json:"internal_audit_note"`
+	ExternalContext            *string `json:"external_context"`
+	AnnualObjectiveDescription *string `json:"annual_objective_description"`
+}
+
 type BusinessContextDetailDTO struct {
-	ID                       uint                                                       `json:"id"`
-	RiskRegisterUpdatePlanID uint                                                       `json:"risk_register_update_plan_id"`
-	RiskRegisterUpdatePlan   RiskRegisterUpdatePlanDetailDTO                            `json:"risk_register_update_plan"`
-	BusinessContext          *organizationDTOs.OrganizationUnitBusinessContextDetailDTO `json:"business_context"`
-	Process                  *organizationDTOs.ProcessDetailDTO                         `json:"process"`
-	Control                  *organizationDTOs.ControlDetailDTO                         `json:"control"`
-	CreatedAt                time.Time                                                  `json:"created_at"`
-	CreatedByUser            *organizationDTOs.UserMinimalDTO                           `json:"created_by"`
+	ID                         uint                             `json:"id"`
+	RiskUpdatePlanTimeline     *RiskUpdatePlanTimelineDetailDTO `json:"risk_update_plan_timeline"`
+	InternalAuditNote          *string                          `json:"internal_audit_note"`
+	ExternalContext            *string                          `json:"external_context"`
+	AnnualObjectiveDescription *string                          `json:"annual_objective_description"`
+	CreatedAt                  time.Time                        `json:"created_at"`
+	CreatedByUser              *organizationDTOs.UserMinimalDTO `json:"created_by"`
 }
 
 // ERM Department Evaluation - Process DTOs
