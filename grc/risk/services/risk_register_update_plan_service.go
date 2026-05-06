@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"jethur/config"
+	commonDTOs "jethur/grc/common/dtos"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
@@ -38,15 +40,18 @@ type RiskRegisterUpdatePlanServiceInterface interface {
 
 	// ERM Department Evaluation - Processes
 	MapProcessesToTimeline(planID uint, currentUserID uint, formDTO *riskDTOs.MapProcessesToUpdatePlanDTO) error
-	GetERMDeptEvaluationProcesses(timelineID uint, params *riskDTOs.ERMDeptEvaluationListQueryParamsDTO) (*riskDTOs.ERMDeptEvaluationProcessListResponseDTO, error)
+	GetERMDeptEvaluationProcesses(planID uint, params *riskDTOs.ERMDeptEvaluationListQueryParamsDTO) (*riskDTOs.ERMDeptEvaluationProcessListResponseDTO, error)
 
 	// ERM Department Evaluation - Controls
 	MapControlsToTimeline(planID uint, currentUserID uint, formDTO *riskDTOs.MapControlsToUpdatePlanDTO) error
-	GetERMDeptEvaluationControls(timelineID uint, params *riskDTOs.ERMDeptEvaluationListQueryParamsDTO) (*riskDTOs.ERMDeptEvaluationControlListResponseDTO, error)
+	GetERMDeptEvaluationControls(planID uint, params *riskDTOs.ERMDeptEvaluationListQueryParamsDTO) (*riskDTOs.ERMDeptEvaluationControlListResponseDTO, error)
+	// ERM Department Evaluation - Operations
+	MarkERMDeptEvaluationAsNotApplicable(planID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error
 
-	// Timeline Operations
-	MarkTimelineAsCompleted(timelineID uint, currentUserID uint) error
-	MarkTimelineAsNotApplicable(timelineID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error
+	// ERM Department Evaluation - Documents
+	GetERMDeptEvaluationDocuments(planID uint) ([]*riskDTOs.ERMDeptEvaluationDocumentDTO, error)
+	CreateERMDeptEvaluationDocuments(planID uint, currentUserID uint, documents []*commonDTOs.DocumentFormDTO) error
+	GetERMDeptEvaluationDocumentPath(planID uint, token string) (string, error)
 
 	// Introductory Meeting Document Operations
 	GetIntroductoryMeetingDocuments(planID uint) ([]*riskDTOs.IntroductoryMeetingDocumentDTO, error)
@@ -708,8 +713,20 @@ func (s *RiskRegisterUpdatePlanService) MapProcessesToTimeline(planID uint, curr
 	return tx.Commit()
 }
 
-func (s *RiskRegisterUpdatePlanService) GetERMDeptEvaluationProcesses(timelineID uint, params *riskDTOs.ERMDeptEvaluationListQueryParamsDTO) (*riskDTOs.ERMDeptEvaluationProcessListResponseDTO, error) {
-	return s.repo.GetERMDeptEvaluationProcesses(timelineID, params)
+func (s *RiskRegisterUpdatePlanService) GetERMDeptEvaluationProcesses(planID uint, params *riskDTOs.ERMDeptEvaluationListQueryParamsDTO) (*riskDTOs.ERMDeptEvaluationProcessListResponseDTO, error) {
+	// Get timeline type for ERM Department Evaluation
+	timelineType, err := s.timelineTypeSvc.GetByType("erm_department_evaluation")
+	if err != nil {
+		return nil, err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.repo.GetERMDeptEvaluationProcesses(timeline.ID, params)
 }
 
 // ============================================
@@ -757,48 +774,40 @@ func (s *RiskRegisterUpdatePlanService) MapControlsToTimeline(planID uint, curre
 	return tx.Commit()
 }
 
-func (s *RiskRegisterUpdatePlanService) GetERMDeptEvaluationControls(timelineID uint, params *riskDTOs.ERMDeptEvaluationListQueryParamsDTO) (*riskDTOs.ERMDeptEvaluationControlListResponseDTO, error) {
-	return s.repo.GetERMDeptEvaluationControls(timelineID, params)
+func (s *RiskRegisterUpdatePlanService) GetERMDeptEvaluationControls(planID uint, params *riskDTOs.ERMDeptEvaluationListQueryParamsDTO) (*riskDTOs.ERMDeptEvaluationControlListResponseDTO, error) {
+	// Get timeline type for ERM Department Evaluation
+	timelineType, err := s.timelineTypeSvc.GetByType("erm_department_evaluation")
+	if err != nil {
+		return nil, err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.repo.GetERMDeptEvaluationControls(timeline.ID, params)
 }
 
 // ============================================
-// Timeline Operations
+// ERM Department Evaluation Operations
 // ============================================
 
-func (s *RiskRegisterUpdatePlanService) MarkTimelineAsCompleted(timelineID uint, currentUserID uint) error {
-	tx := s.repo.BeginTransaction()
-
-	// Get timeline to get plan ID
-	var timeline models.RiskUpdatePlanTimeline
-	if err := tx.DB().First(&timeline, timelineID).Error; err != nil {
-		tx.Rollback()
-		return utility.NewResourceNotFoundError(err, timelineID)
-	}
-
-	// Mark timeline as completed
-	if err := s.repo.UpdateTimelineCompletion(timelineID, currentUserID, tx); err != nil {
-		tx.Rollback()
+func (s *RiskRegisterUpdatePlanService) MarkERMDeptEvaluationAsNotApplicable(planID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error {
+	// Get timeline type for ERM Department Evaluation
+	timelineType, err := s.timelineTypeSvc.GetByType("erm_department_evaluation")
+	if err != nil {
 		return err
 	}
 
-	// Recalculate percentage
-	if err := s.repo.CalculateAndUpdatePercentage(timeline.RiskUpdatePlanID, tx); err != nil {
-		tx.Rollback()
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
 		return err
 	}
 
-	return tx.Commit()
-}
-
-func (s *RiskRegisterUpdatePlanService) MarkTimelineAsNotApplicable(timelineID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error {
 	tx := s.repo.BeginTransaction()
-
-	// Get timeline to get plan ID
-	var timeline models.RiskUpdatePlanTimeline
-	if err := tx.DB().First(&timeline, timelineID).Error; err != nil {
-		tx.Rollback()
-		return utility.NewResourceNotFoundError(err, timelineID)
-	}
 
 	// Update timeline - mark as not applicable and completed
 	now := time.Now()
@@ -814,12 +823,261 @@ func (s *RiskRegisterUpdatePlanService) MarkTimelineAsNotApplicable(timelineID u
 	}
 
 	// Recalculate percentage
-	if err := s.repo.CalculateAndUpdatePercentage(timeline.RiskUpdatePlanID, tx); err != nil {
+	if err := s.repo.CalculateAndUpdatePercentage(planID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	return tx.Commit()
+}
+
+// ERM Department Evaluation Document Operations
+
+func (s *RiskRegisterUpdatePlanService) GetERMDeptEvaluationDocuments(planID uint) ([]*riskDTOs.ERMDeptEvaluationDocumentDTO, error) {
+	// Get timeline type for ERM Department Evaluation
+	timelineType, err := s.timelineTypeSvc.GetByType("erm_department_evaluation")
+	if err != nil {
+		return nil, err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get documents
+	documents, err := s.repo.GetERMDeptDocumentsByTimelineID(timeline.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to DTOs
+	var documentDTOs []*riskDTOs.ERMDeptEvaluationDocumentDTO
+	for _, doc := range documents {
+		dto := &riskDTOs.ERMDeptEvaluationDocumentDTO{
+			ID:           &doc.ID,
+			URL:          doc.URL,
+			Name:         doc.Name,
+			Token:        doc.Token,
+			OriginalName: doc.OriginalName,
+			Type:         doc.Type,
+			Size:         doc.Size,
+		}
+		documentDTOs = append(documentDTOs, dto)
+	}
+
+	return documentDTOs, nil
+}
+
+func (s *RiskRegisterUpdatePlanService) CreateERMDeptEvaluationDocuments(planID uint, currentUserID uint, documents []*commonDTOs.DocumentFormDTO) error {
+
+	// Verify plan exists
+	_, err := s.repo.GetByID(planID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, planID)
+		}
+		return err
+	}
+
+	// Get timeline type for ERM Department Evaluation
+	timelineType, err := s.timelineTypeSvc.GetByType("erm_department_evaluation")
+	if err != nil {
+		return err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return err
+	}
+
+	tx := s.repo.BeginTransaction()
+
+	// Handle documents
+	var newDocuments []*models.RiskUpdatePlanErmDeptDocument
+	var deleteDocumentIDs []*uint
+	var documentsToDelete []*models.RiskUpdatePlanErmDeptDocument
+
+	now := time.Now()
+
+	for _, doc := range documents {
+
+		// NEW FILE
+		if doc.IsNewFile != nil && *doc.IsNewFile {
+
+			encryptedFilename, err := utility.EncryptData([]byte(doc.FileName))
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			url := utility.GenerateDocumentURL(
+				"risk",
+				"risk-register-update-plan",
+				strconv.FormatUint(uint64(planID), 10),
+				"erm-dept-evaluation-documents",
+			)
+
+			document := &models.RiskUpdatePlanErmDeptDocument{
+				RiskUpdatePlanTimelineID: timeline.ID,
+				URL:                      &url,
+				Name:                     &doc.FileName,
+				Size:                     &doc.Size,
+				Token:                    &encryptedFilename,
+				OriginalName:             &doc.OriginalName,
+				Type:                     &doc.Type,
+				CreatedBYID:              &currentUserID,
+				CreatedAt:                now,
+			}
+
+			newDocuments = append(newDocuments, document)
+
+		} else if doc.IsDeletedFile != nil && *doc.IsDeletedFile && doc.ID != nil {
+
+			// DELETE FILE
+			existingDocument, err := s.repo.GetERMDeptDocumentByID(*doc.ID)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Verify document belongs to this timeline
+			if existingDocument.RiskUpdatePlanTimelineID != timeline.ID {
+				tx.Rollback()
+				return utility.NewResourceNotFoundError(fmt.Errorf("document not found"), *doc.ID)
+			}
+
+			deleteDocumentIDs = append(deleteDocumentIDs, &existingDocument.ID)
+			documentsToDelete = append(documentsToDelete, existingDocument)
+		}
+	}
+
+	// Create new documents
+	if len(newDocuments) > 0 {
+		for _, doc := range newDocuments {
+			_, err := s.repo.CreateERMDeptDocument(doc, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	// Delete documents
+	if len(deleteDocumentIDs) > 0 {
+		for _, docID := range deleteDocumentIDs {
+			if err := s.repo.DeleteERMDeptDocument(*docID, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	// File system operations - store new files
+	for _, doc := range newDocuments {
+		storagePath := filepath.Join(
+			"risk",
+			"risk-register-update-plan",
+			strconv.FormatUint(uint64(planID), 10),
+			"erm-dept-evaluation-documents",
+		)
+
+		if err := utility.StoreFile(*doc.Name, storagePath); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// File system operations - delete files
+	for _, doc := range documentsToDelete {
+		storagePath := filepath.Join(
+			"risk",
+			"risk-register-update-plan",
+			strconv.FormatUint(uint64(planID), 10),
+			"erm-dept-evaluation-documents",
+		)
+
+		if doc.Name != nil {
+			if err := utility.RemoveFile(*doc.Name, storagePath); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	tx.Commit()
+
+	// Log activity
+	go func() {
+		err := s.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.RiskUpdatePlanErmDeptDocument{}.TableName(),
+			planID,
+			map[string]interface{}{
+				"new_documents_count":     len(newDocuments),
+				"deleted_documents_count": len(documentsToDelete),
+			},
+			currentUserID,
+			"risk", "risk_register_update_plan", "documents_update", nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action": models.UpdateAction,
+				"planID": planID,
+				"userID": currentUserID,
+				"error":  err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (s *RiskRegisterUpdatePlanService) GetERMDeptEvaluationDocumentPath(planID uint, token string) (string, error) {
+	// Get timeline type for ERM Department Evaluation
+	timelineType, err := s.timelineTypeSvc.GetByType("erm_department_evaluation")
+	if err != nil {
+		return "", err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := s.repo.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		return "", err
+	}
+
+	// Get all documents for this timeline
+	documents, err := s.repo.GetERMDeptDocumentsByTimelineID(timeline.ID)
+	if err != nil {
+		return "", err
+	}
+
+	// Find document with matching token
+	for _, doc := range documents {
+		if doc.Token != nil && *doc.Token == token {
+			// Decrypt filename
+			decryptedFilename, err := utility.DecryptData(*doc.Token)
+			if err != nil {
+				return "", err
+			}
+
+			// Build file path
+			storagePath := filepath.Join("risk", "risk-register-update-plan", fmt.Sprintf("%d", planID), "erm-dept-evaluation-documents")
+			baseStoragePath := config.GetEnv("STORAGE_PATH", "")
+			filePath := filepath.Join(baseStoragePath, storagePath, string(decryptedFilename))
+
+			// Check if file exists
+			if _, err := os.Stat(filePath); os.IsNotExist(err) {
+				return "", utility.NewResourceNotFoundError(err, 0)
+			}
+
+			return filePath, nil
+		}
+	}
+
+	return "", utility.NewResourceNotFoundError(errors.New("document not found"), 0)
 }
 
 // Introductory Meeting Document Operations

@@ -319,6 +319,246 @@ func (rrupc *RiskRegisterUpdatePlanController) UpdateERMDepartmentEvaluationRisk
 	c.Status(http.StatusOK)
 }
 
+func (rrupc *RiskRegisterUpdatePlanController) UpdateERMDepartmentEvaluationProcesses(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var formDTO riskDTOs.MapProcessesToUpdatePlanDTO
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	err = rrupc.service.MapProcessesToTimeline(uint(id), currentUserID, &formDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) UpdateERMDepartmentEvaluationControls(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var formDTO riskDTOs.MapControlsToUpdatePlanDTO
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	err = rrupc.service.MapControlsToTimeline(uint(id), currentUserID, &formDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) MarkERMDeptEvaluationAsNotApplicable(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var formDTO riskDTOs.MarkTimelineNotApplicableDTO
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	err = rrupc.service.MarkERMDeptEvaluationAsNotApplicable(uint(id), currentUserID, &formDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) GetERMDeptEvaluationDocuments(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documents, err := rrupc.service.GetERMDeptEvaluationDocuments(uint(id))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, documents)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) CreateERMDeptEvaluationDocuments(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var formDTO riskDTOs.ERMDeptEvaluationDocumentFormDTO
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	err = rrupc.service.CreateERMDeptEvaluationDocuments(uint(id), currentUserID, formDTO.Documents)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) GetERMDeptEvaluationDocumentPreview(c *gin.Context) {
+	idStr := c.Param("id")
+	token := c.Query("token")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if token == "" {
+		utility.SendInvalidErrResp(c, errors.New("token is required"))
+		return
+	}
+
+	filePath, err := rrupc.service.GetERMDeptEvaluationDocumentPath(uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, err.Error())
+			return
+		}
+	}
+
+	c.File(filePath)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) DownloadERMDeptEvaluationDocument(c *gin.Context) {
+	idStr := c.Param("id")
+	token := c.Query("token")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if token == "" {
+		utility.SendInvalidErrResp(c, errors.New("token is required"))
+		return
+	}
+
+	filePath, err := rrupc.service.GetERMDeptEvaluationDocumentPath(uint(id), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, err.Error())
+			return
+		}
+	}
+
+	c.FileAttachment(filePath, filepath.Base(filePath))
+}
+
 func (rrupc *RiskRegisterUpdatePlanController) GetERMDepartmentEvaluationRisks(c *gin.Context) {
 	idStr := c.Param("id")
 
@@ -477,6 +717,230 @@ func (rrupc *RiskRegisterUpdatePlanController) GetERMDepartmentEvaluationRisks(c
 	}
 
 	c.JSON(http.StatusOK, mappedRisks)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) GetERMDepartmentEvaluationProcesses(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Parse query parameters
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
+	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
+
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(rrupc.db, c, "Invalid export parameter")
+			return
+		}
+	}
+
+	// Define allowed filter parameters
+	allowedParams := []string{
+		"process_group_ids",
+		"owner_unit_ids",
+		"owner_ids",
+		"lifecycle_status_ids",
+	}
+
+	validSortFields := map[string]string{
+		"reference_number":     "p.reference_number",
+		"title_en":             "p.title_en",
+		"title_ar":             "p.title_ar",
+		"description":          "p.description",
+		"process_group_en":     "pg.title_en",
+		"process_group_ar":     "pg.title_ar",
+		"organization_unit_en": "ou.title_en",
+		"organization_unit_ar": "ou.title_ar",
+		"owner_en":             "u.first_name_en",
+		"owner_ar":             "u.first_name_ar",
+		"status_en":            "ls.title_en",
+		"status_ar":            "ls.title_ar",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	queryParams := riskDTOs.ERMDeptEvaluationListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      dbField,
+		Keyword:     keyword,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
+	}
+
+	mappedProcesses, err := rrupc.service.GetERMDeptEvaluationProcesses(uint(id), &queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, mappedProcesses)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) GetERMDepartmentEvaluationControls(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	// Parse query parameters
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
+	keyword := c.Query("keyword")
+	quickFilter := c.QueryArray("quick_filter")
+
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(rrupc.db, c, "Invalid export parameter")
+			return
+		}
+	}
+
+	// Define allowed filter parameters
+	allowedParams := []string{
+		"control_type_ids",
+		"control_category_ids",
+		"responsible_unit_ids",
+		"responsible_user_ids",
+		"control_implementation_status_ids",
+		"control_efficiency_status_ids",
+		"test_responsible_user_ids",
+		"lifecycle_status_ids",
+		"risk_matrix_risk_rating_ids",
+	}
+
+	validSortFields := map[string]string{
+		"reference_number":         "c.reference_number",
+		"code":                     "c.code",
+		"title_en":                 "c.title_en",
+		"title_ar":                 "c.title_ar",
+		"description":              "c.description",
+		"objective":                "c.objective",
+		"control_category_en":      "cc.title_en",
+		"control_category_ar":      "cc.title_ar",
+		"control_type_en":          "ct.title_en",
+		"control_type_ar":          "ct.title_ar",
+		"owner_en":                 "owner.first_name_en",
+		"owner_ar":                 "owner.first_name_ar",
+		"review_frequency_en":      "rf.title_en",
+		"review_frequency_ar":      "rf.title_ar",
+		"implementation_status_en": "cis.title_en",
+		"implementation_status_ar": "cis.title_ar",
+		"implementation_date":      "c.implemented_at",
+		"efficiency_status_en":     "ces.title_en",
+		"efficiency_status_ar":     "ces.title_ar",
+		"last_test_date":           "c.last_test_date",
+		"next_test_date":           "c.next_test_date",
+		"test_frequency_en":        "tf.title_en",
+		"test_frequency_ar":        "tf.title_ar",
+		"last_review_note":         "c.last_review_note",
+		"next_review_date":         "c.next_review_date",
+		"status_en":                "ls.title_en",
+		"status_ar":                "ls.title_ar",
+	}
+
+	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	queryParams := riskDTOs.ERMDeptEvaluationListQueryParamsDTO{
+		Sort:        sort,
+		SortBy:      dbField,
+		Keyword:     keyword,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+		Export:      export,
+		DateFrom:    dateFrom,
+		DateTo:      dateTo,
+	}
+
+	mappedControls, err := rrupc.service.GetERMDeptEvaluationControls(uint(id), &queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, mappedControls)
 }
 
 // func (rrupc *RiskRegisterUpdatePlanController) DeleteERMDepartmentEvaluation(c *gin.Context) {

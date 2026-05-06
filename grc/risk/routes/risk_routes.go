@@ -514,10 +514,24 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("/risk-register-update-plans", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.CreateRiskRegisterUpdatePlan)
 	riskRoutes.PUT("/risk-register-update-plans/:id", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.UpdateRiskRegisterUpdatePlan)
 	riskRoutes.POST("/risk-register-update-plans/delete", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.DeleteRiskRegisterUpdatePlan)
-	// ERM Department Evaluation - Risk Mapping
+	// ERM Department Evaluation
 	riskRoutes.POST("/risk-register-update-plans/:id/create-erm-evaluation", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.CreateERMDepartmentEvaluation)
+	// ERM Department Evaluation - Risks
 	riskRoutes.POST("/risk-register-update-plans/:id/update-erm-evaluation-risks", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.UpdateERMDepartmentEvaluationRisks)
 	riskRoutes.GET("/risk-register-update-plans/:id/erm-evaluations-risks", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanController.GetERMDepartmentEvaluationRisks)
+	// ERM Department Evaluation - Processes
+	riskRoutes.POST("/risk-register-update-plans/:id/update-erm-evaluation-processes", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.UpdateERMDepartmentEvaluationProcesses)
+	riskRoutes.GET("/risk-register-update-plans/:id/erm-evaluations-processes", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanController.GetERMDepartmentEvaluationProcesses)
+	// ERM Department Evaluation - Controls
+	riskRoutes.POST("/risk-register-update-plans/:id/update-erm-evaluation-controls", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.UpdateERMDepartmentEvaluationControls)
+	riskRoutes.GET("/risk-register-update-plans/:id/erm-evaluations-controls", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanController.GetERMDepartmentEvaluationControls)
+	// ERM Department Evaluation - Operations
+	riskRoutes.POST("/risk-register-update-plans/:id/mark-erm-evaluation-not-applicable", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.MarkERMDeptEvaluationAsNotApplicable)
+	// ERM Department Evaluation - Documents
+	riskRoutes.GET("/risk-register-update-plans/:id/erm-dept-evaluation-documents", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanController.GetERMDeptEvaluationDocuments)
+	riskRoutes.POST("/risk-register-update-plans/:id/erm-dept-evaluation-documents", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.CreateERMDeptEvaluationDocuments)
+	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/erm-dept-evaluation-documents/preview", riskRegisterUpdatePlanController.GetERMDeptEvaluationDocumentPreview)
+	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/erm-dept-evaluation-documents/download", riskRegisterUpdatePlanController.DownloadERMDeptEvaluationDocument)
 	// riskRoutes.DELETE("/risk-register-update-plans/erm-evaluations/:ermEvaluationId", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.DeleteERMDepartmentEvaluation)
 	// Introductory Meeting Documents
 	riskRoutes.GET("/risk-register-update-plans/:id/introductory-meeting-documents", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanController.GetIntroductoryMeetingDocuments)

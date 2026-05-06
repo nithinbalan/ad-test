@@ -296,7 +296,22 @@ type IntroductoryMeetingDocumentFormDTO struct {
 	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
 }
 
-// Business Context DTOs
+// ERM Department Evaluation Document DTOs
+type ERMDeptEvaluationDocumentDTO struct {
+	ID           *uint   `json:"id"`
+	URL          *string `json:"url"`
+	Name         *string `json:"name"`
+	Token        *string `json:"token"`
+	OriginalName *string `json:"original_name"`
+	Type         *string `json:"type"`
+	Size         *int    `json:"size"`
+}
+
+type ERMDeptEvaluationDocumentFormDTO struct {
+	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
+}
+
+// ERM Department Evaluation DTOs
 type UpdateBusinessContextStatusFormDTO struct {
 	IsBusinessContextUpdated *bool `json:"is_business_context_updated" binding:"required"`
 }
@@ -312,45 +327,100 @@ type BusinessContextDetailDTO struct {
 }
 
 // ERM Department Evaluation - Process DTOs
+type ProcessActivityDTO struct {
+	ID                uint       `json:"id"`
+	TitleEn           string     `json:"title_en"`
+	TitleAr           string     `json:"title_ar"`
+	DescriptionEn     *string    `json:"description_en"`
+	DescriptionAr     *string    `json:"description_ar"`
+	Sequence          int        `json:"sequence"`
+	EstimatedDuration *string    `json:"estimated_duration"`
+	ExpectedOutput    string     `json:"expected_output"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         *time.Time `json:"updated_at"`
+}
+
 type ERMDeptEvaluationProcessListDTO struct {
-	ID                          uint       `json:"id"`
-	RiskUpdatePlanTimelineID    uint       `json:"risk_update_plan_timeline_id"`
-	ProcessID                   uint       `json:"process_id"`
-	ReferenceNumber             string     `json:"reference_number"`
-	TitleEn                     string     `json:"title_en"`
-	TitleAr                     string     `json:"title_ar"`
-	Description                 *string    `json:"description"`
-	ProcessGroupTitleEn         string     `json:"process_group_title_en"`
-	ProcessGroupTitleAr         string     `json:"process_group_title_ar"`
-	OwnerUnitTitleEn            *string    `json:"owner_unit_title_en"`
-	OwnerUnitTitleAr            *string    `json:"owner_unit_title_ar"`
-	OwnerID                     *uint      `json:"owner_id"`
-	OwnerFirstNameEn            *string    `json:"owner_first_name_en"`
-	OwnerFirstNameAr            *string    `json:"owner_first_name_ar"`
-	OwnerLastNameEn             *string    `json:"owner_last_name_en"`
-	OwnerLastNameAr             *string    `json:"owner_last_name_ar"`
-	OwnerInitial                string     `json:"owner_initial"`
-	OwnerColor                  string     `json:"owner_color"`
-	OwnerEmail                  string     `json:"owner_email"`
-	OwnerProfileImagePath       string     `json:"owner_profile_image_path"`
-	LifecycleStatusTitleEn      string     `json:"lifecycle_status_title_en"`
-	LifecycleStatusTitleAr      string     `json:"lifecycle_status_title_ar"`
-	LifecycleStatusColorCode    string     `json:"lifecycle_status_color_code"`
-	RiskRatingTitleEn           *string    `json:"risk_rating_title_en"`
-	RiskRatingTitleAr           *string    `json:"risk_rating_title_ar"`
-	RiskRatingColorCode         *string    `json:"risk_rating_color_code"`
-	RiskRatingValue             *uint      `json:"risk_rating_value"`
-	CreatedAt                   time.Time  `json:"created_at"`
-	UpdatedAt                   *time.Time `json:"updated_at"`
-	CreatedUserID               uint       `json:"created_user_id"`
-	CreatedUserFirstNameEn      string     `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr      string     `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn       string     `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr       string     `json:"created_user_last_name_ar"`
-	CreatedUserInitial          string     `json:"created_user_initial"`
-	CreatedUserColor            string     `json:"created_user_color"`
-	CreatedUserEmail            string     `json:"created_user_email"`
-	CreatedUserProfileImagePath string     `json:"created_user_profile_image_path"`
+	ID                               uint                 `json:"id"`
+	RiskUpdatePlanTimelineID         uint                 `json:"risk_update_plan_timeline_id"`
+	ProcessID                        uint                 `json:"process_id"`
+	ReferenceNumber                  string               `json:"reference_number"`
+	TitleEn                          string               `json:"title_en"`
+	TitleAr                          string               `json:"title_ar"`
+	Description                      *string              `json:"description"`
+	MarkedAsAuditableItem            bool                 `json:"marked_as_auditable_item"`
+	ProcessGroupTitleEn              string               `json:"process_group_title_en"`
+	ProcessGroupTitleAr              string               `json:"process_group_title_ar"`
+	Rto                              *uint                `json:"rto"`
+	RtoUnitId                        *uint                `json:"rto_unit_id"`
+	RtoUnitTitleEn                   *string              `json:"rto_unit_title_en"`
+	RtoUnitTitleAr                   *string              `json:"rto_unit_title_ar"`
+	Mtpd                             *uint                `json:"mtpd"`
+	MtpdUnitId                       *uint                `json:"mtpd_unit_id"`
+	MtpdUnitTitleEn                  *string              `json:"mtpd_unit_title_en"`
+	MtpdUnitTitleAr                  *string              `json:"mtpd_unit_title_ar"`
+	Rpo                              *uint                `json:"rpo"`
+	RpoUnitId                        *uint                `json:"rpo_unit_id"`
+	RpoUnitTitleEn                   *string              `json:"rpo_unit_title_en"`
+	RpoUnitTitleAr                   *string              `json:"rpo_unit_title_ar"`
+	IsBiaPerformed                   bool                 `json:"is_bia_performed"`
+	LastAssessedAt                   *time.Time           `json:"last_assessed_at"`
+	LastAssessedUserID               *uint                `json:"last_assessed_user_id"`
+	LastAssessedUserFirstNameEn      *string              `json:"last_assessed_user_first_name_en"`
+	LastAssessedUserFirstNameAr      *string              `json:"last_assessed_user_first_name_ar"`
+	LastAssessedUserLastNameEn       *string              `json:"last_assessed_user_last_name_en"`
+	LastAssessedUserLastNameAr       *string              `json:"last_assessed_user_last_name_ar"`
+	LastAssessedUserInitial          *string              `json:"last_assessed_user_initial"`
+	LastAssessedUserColor            *string              `json:"last_assessed_user_color"`
+	LastAssessedUserEmail            *string              `json:"last_assessed_user_email"`
+	LastAssessedUserProfileImagePath *string              `json:"last_assessed_user_profile_image_path"`
+	OwnerUnitTitleEn                 *string              `json:"owner_unit_title_en"`
+	OwnerUnitTitleAr                 *string              `json:"owner_unit_title_ar"`
+	OwnerID                          *uint                `json:"owner_id"`
+	OwnerFirstNameEn                 *string              `json:"owner_first_name_en"`
+	OwnerFirstNameAr                 *string              `json:"owner_first_name_ar"`
+	OwnerLastNameEn                  *string              `json:"owner_last_name_en"`
+	OwnerLastNameAr                  *string              `json:"owner_last_name_ar"`
+	OwnerInitial                     string               `json:"owner_initial"`
+	OwnerColor                       string               `json:"owner_color"`
+	OwnerEmail                       string               `json:"owner_email"`
+	OwnerProfileImagePath            string               `json:"owner_profile_image_path"`
+	LifecycleStatusTitleEn           string               `json:"lifecycle_status_title_en"`
+	LifecycleStatusTitleAr           string               `json:"lifecycle_status_title_ar"`
+	LifecycleStatusColorCode         string               `json:"lifecycle_status_color_code"`
+	ProcessCriticalityLevelID        uint                 `json:"process_criticality_level_id"`
+	ProcessCriticalityLevelTitleEn   string               `json:"process_criticality_level_title_en"`
+	ProcessCriticalityLevelTitleAr   string               `json:"process_criticality_level_title_ar"`
+	CreatedUserID                    uint                 `json:"created_user_id"`
+	CreatedUserFirstNameEn           string               `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr           string               `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn            string               `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr            string               `json:"created_user_last_name_ar"`
+	CreatedUserInitial               string               `json:"created_user_initial"`
+	CreatedUserColor                 string               `json:"created_user_color"`
+	CreatedUserEmail                 string               `json:"created_user_email"`
+	CreatedUserProfileImagePath      string               `json:"created_user_profile_image_path"`
+	UpdatedUserID                    *uint                `json:"updated_user_id"`
+	UpdatedUserFirstNameEn           *string              `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr           *string              `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn            *string              `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr            *string              `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial               string               `json:"updated_user_initial"`
+	UpdatedUserColor                 string               `json:"updated_user_color"`
+	UpdatedUserEmail                 string               `json:"updated_user_email"`
+	UpdatedUserProfileImagePath      string               `json:"updated_user_profile_image_path"`
+	CreatedAt                        time.Time            `json:"created_at"`
+	UpdatedAt                        *time.Time           `json:"updated_at"`
+	RiskRatingTitleEn                *string              `json:"risk_rating_title_en"`
+	RiskRatingTitleAr                *string              `json:"risk_rating_title_ar"`
+	RiskRatingColorCode              *string              `json:"risk_rating_color_code"`
+	RiskRatingValue                  *uint                `json:"risk_rating_value"`
+	RiskLevelID                      *uint                `json:"risk_level_id"`
+	RiskLevelTitleEn                 *string              `json:"risk_level_title_en"`
+	RiskLevelTitleAr                 *string              `json:"risk_level_title_ar"`
+	RiskLevelColorCode               *string              `json:"risk_level_color_code"`
+	RiskLevelType                    *string              `json:"risk_level_type"`
+	Activities                       []ProcessActivityDTO `json:"activities" gorm:"-"`
 }
 
 type ERMDeptEvaluationProcessListResponseDTO struct {
@@ -367,11 +437,6 @@ type ERMDeptEvaluationControlListDTO struct {
 	ID                                   uint       `json:"id"`
 	RiskUpdatePlanTimelineID             uint       `json:"risk_update_plan_timeline_id"`
 	ControlID                            uint       `json:"control_id"`
-	ReferenceNumber                      string     `json:"reference_number"`
-	Code                                 *string    `json:"code"`
-	TitleEn                              string     `json:"title_en"`
-	TitleAr                              string     `json:"title_ar"`
-	Description                          *string    `json:"description"`
 	ControlTypeTitleEn                   string     `json:"control_type_title_en"`
 	ControlTypeTitleAr                   string     `json:"control_type_title_ar"`
 	ControlCategoryTitleEn               string     `json:"control_category_title_en"`
@@ -393,15 +458,43 @@ type ERMDeptEvaluationControlListDTO struct {
 	ControlEfficiencyStatusTitleEn       string     `json:"control_efficiency_status_title_en"`
 	ControlEfficiencyStatusTitleAr       string     `json:"control_efficiency_status_title_ar"`
 	ControlEfficiencyStatusColorCode     string     `json:"control_efficiency_status_color_code"`
+	ReferenceNumber                      string     `json:"reference_number"`
+	Code                                 *string    `json:"code"`
+	TitleEn                              string     `json:"title_en"`
+	TitleAr                              string     `json:"title_ar"`
+	Description                          *string    `json:"description"`
+	Objective                            *string    `json:"objective"`
+	ReviewFrequencyTitleEn               string     `json:"review_frequency_title_en"`
+	ReviewFrequencyTitleAr               string     `json:"review_frequency_title_ar"`
+	LastReviewDate                       *time.Time `json:"last_review_date"`
+	NextReviewDate                       *time.Time `json:"next_review_date"`
+	LastReviewNote                       *string    `json:"last_review_note"`
+	TestResponsibleUserID                uint       `json:"test_responsible_user_id"`
+	TestResponsibleUserFirstNameEn       string     `json:"test_responsible_user_first_name_en"`
+	TestResponsibleUserFirstNameAr       string     `json:"test_responsible_user_first_name_ar"`
+	TestResponsibleUserLastNameEn        string     `json:"test_responsible_user_last_name_en"`
+	TestResponsibleUserLastNameAr        string     `json:"test_responsible_user_last_name_ar"`
+	TestResponsibleUserInitial           string     `json:"test_responsible_user_initial"`
+	TestResponsibleUserColor             string     `json:"test_responsible_user_color"`
+	TestResponsibleUserEmail             string     `json:"test_responsible_user_email"`
+	TestResponsibleUserProfileImagePath  string     `json:"test_responsible_user_profile_image_path"`
+	TestFrequencyTitleEn                 *string    `json:"test_frequency_title_en"`
+	TestFrequencyTitleAr                 *string    `json:"test_frequency_title_ar"`
+	LastTestDate                         *time.Time `json:"last_test_date"`
+	NextTestDate                         *time.Time `json:"next_test_date"`
+	ImplementedAt                        *time.Time `json:"implemented_at"`
+	IsApplicable                         bool       `json:"is_applicable"`
+	Justification                        *string    `json:"justification"`
+	ImplementationGuideline              *string    `json:"implementation_guideline"`
+	ApplicabilityChangeDate              *string    `json:"applicability_change_date"`
 	LifecycleStatusTitleEn               string     `json:"lifecycle_status_title_en"`
 	LifecycleStatusTitleAr               string     `json:"lifecycle_status_title_ar"`
 	LifecycleStatusColorCode             string     `json:"lifecycle_status_color_code"`
-	RiskRatingTitleEn                    *string    `json:"risk_rating_title_en"`
-	RiskRatingTitleAr                    *string    `json:"risk_rating_title_ar"`
-	RiskRatingColorCode                  *string    `json:"risk_rating_color_code"`
-	RiskRatingValue                      *uint      `json:"risk_rating_value"`
-	CreatedAt                            time.Time  `json:"created_at"`
-	UpdatedAt                            *time.Time `json:"updated_at"`
+	ControlStatusID                      *uint      `json:"control_status_id"`
+	ControlStatusTitleEn                 *string    `json:"control_status_title_en"`
+	ControlStatusTitleAr                 *string    `json:"control_status_title_ar"`
+	ControlStatusColorCode               *string    `json:"control_status_color_code"`
+	ControlStatusType                    *string    `json:"control_status_type"`
 	CreatedUserID                        uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn               string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr               string     `json:"created_user_first_name_ar"`
@@ -411,6 +504,43 @@ type ERMDeptEvaluationControlListDTO struct {
 	CreatedUserColor                     string     `json:"created_user_color"`
 	CreatedUserEmail                     string     `json:"created_user_email"`
 	CreatedUserProfileImagePath          string     `json:"created_user_profile_image_path"`
+	UpdatedUserID                        *uint      `json:"updated_user_id"`
+	UpdatedUserFirstNameEn               *string    `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr               *string    `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn                *string    `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr                *string    `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial                   string     `json:"updated_user_initial"`
+	UpdatedUserColor                     string     `json:"updated_user_color"`
+	UpdatedUserEmail                     string     `json:"updated_user_email"`
+	UpdatedUserProfileImagePath          string     `json:"updated_user_profile_image_path"`
+	CreatedAt                            time.Time  `json:"created_at"`
+	UpdatedAt                            *time.Time `json:"updated_at"`
+	RiskRatingTitleEn                    *string    `json:"risk_rating_title_en"`
+	RiskRatingTitleAr                    *string    `json:"risk_rating_title_ar"`
+	RiskRatingColorCode                  *string    `json:"risk_rating_color_code"`
+	RiskRatingValue                      *uint      `json:"risk_rating_value"`
+	ControlAutomationID                  *uint      `json:"control_automation_id"`
+	ControlAutomationTitleEn             *string    `json:"control_automation_title_en"`
+	ControlAutomationTitleAr             *string    `json:"control_automation_title_ar"`
+	ControlAutomationType                *string    `json:"control_automation_type"`
+	ControlAutomationScore               *float64   `json:"control_automation_score"`
+	ControlAutomationStatus              *string    `json:"control_automation_status"`
+	ControlConsistencyID                 *uint      `json:"control_consistency_id"`
+	ControlConsistencyTitleEn            *string    `json:"control_consistency_title_en"`
+	ControlConsistencyTitleAr            *string    `json:"control_consistency_title_ar"`
+	ControlConsistencyType               *string    `json:"control_consistency_type"`
+	ControlConsistencyScore              *float64   `json:"control_consistency_score"`
+	ControlConsistencyStatus             *string    `json:"control_consistency_status"`
+	ControlConsistencyDescriptionEn      *string    `json:"control_consistency_description_en"`
+	ControlConsistencyDescriptionAr      *string    `json:"control_consistency_description_ar"`
+	ControlEffectivenessScore            *float64   `json:"control_effectiveness_score"`
+	ControlEffectivenessRatingID         *uint      `json:"control_effectiveness_rating_id"`
+	ControlEffectivenessRatingTitleEn    *string    `json:"control_effectiveness_rating_title_en"`
+	ControlEffectivenessRatingTitleAr    *string    `json:"control_effectiveness_rating_title_ar"`
+	ControlEffectivenessRatingMinScore   *float64   `json:"control_effectiveness_rating_min_score"`
+	ControlEffectivenessRatingMaxScore   *float64   `json:"control_effectiveness_rating_max_score"`
+	ControlEffectivenessRatingType       *string    `json:"control_effectiveness_rating_type"`
+	RiskReduction                        *float64   `json:"risk_reduction"`
 }
 
 type ERMDeptEvaluationControlListResponseDTO struct {
