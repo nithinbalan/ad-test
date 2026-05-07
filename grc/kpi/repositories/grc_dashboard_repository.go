@@ -559,7 +559,7 @@ func (repo *GRCDashboardRepository) GetTopComplianceRegisters(params *kpiDTOs.GR
 		query = query.Where("created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
-	query = query.Limit(5)
+	query = query.Where("compliance_status_id IS NOT NULL").Limit(5)
 
 	err := query.Find(&complianceRegisters).Error
 	if err != nil {
