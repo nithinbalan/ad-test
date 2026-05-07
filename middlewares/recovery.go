@@ -14,11 +14,13 @@ func RecoveryWithDatabaseLog(db *gorm.DB) gin.HandlerFunc {
 		defer func() {
 			if err := recover(); err != nil {
 				stack := string(debug.Stack())
-				errorMessage := fmt.Sprintf("Recovered from panic: %v\nStack trace: %s", err, stack)
+				rid := CurrentRequestID(c)
+				errorMessage := fmt.Sprintf("Recovered from panic: %v\nrequest_id=%s\nStack trace: %s", err, rid, stack)
 
 				utility.LogError(errorMessage, map[string]interface{}{
-					"error": err,
-					"stack": stack,
+					"error":      err,
+					"stack":      stack,
+					"request_id": rid,
 				})
 
 				utility.SendInternalErrResp(db, c, fmt.Sprintf("%v\n%s", err, stack))

@@ -18,6 +18,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	activityLogController := app.SharedModule.ActivityLogController
 	taskSchedularLogController := app.SharedModule.TaskSchedularLogController
 	emailLogController := app.SharedModule.EmailLogController
+	apiRequestLogController := app.SharedModule.APIRequestLogController
 
 	//Activity Log
 	logRoutes.GET("/activity-logs", middlewares.RolePermissionMiddleware(db, "log", "view"), activityLogController.GetAllActivityLogs)
@@ -28,5 +29,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	logRoutes.GET("/email-logs", middlewares.RolePermissionMiddleware(db, "log", "view"), emailLogController.GetAllEmailLogs)
 	logRoutes.GET("/email-logs/summary", middlewares.RolePermissionMiddleware(db, "log", "view"), emailLogController.GetSummary)
 	logRoutes.GET("/email-logs/:logId", middlewares.RolePermissionMiddleware(db, "log", "view"), emailLogController.GetEmailLogDetails)
+
+	logRoutes.GET("/api-request-logs", middlewares.RolePermissionMiddleware(db, "log", "view"), apiRequestLogController.GetAllAPIRequestLogs)
+	logRoutes.GET("/api-request-logs/summary", middlewares.RolePermissionMiddleware(db, "log", "view"), apiRequestLogController.GetAPIRequestLogsSummary)
 
 }

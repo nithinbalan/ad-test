@@ -12,6 +12,7 @@ type SharedModule struct {
 	ActivityLogController      *controllers.ActivityLogController
 	TaskSchedularLogController *controllers.TaskSchedularLogController
 	EmailLogController         *controllers.EmailLogController
+	APIRequestLogController    *controllers.APIRequestLogController
 
 	ActivityLogService services.ActivityLogServiceInterface
 }
@@ -28,10 +29,15 @@ func NewSharedModule(db *gorm.DB) *SharedModule {
 	emailLogSvc := services.NewEmailLogService(emailLogRepo)
 	emailLogController := controllers.NewEmailLogController(emailLogSvc)
 
+	apiRequestLogRepo := repositories.NewAPIRequestLogRepository(db)
+	apiRequestLogSvc := services.NewAPIRequestLogService(apiRequestLogRepo)
+	apiRequestLogController := controllers.NewAPIRequestLogController(db, apiRequestLogSvc)
+
 	return &SharedModule{
 		ActivityLogController:      activityLogController,
 		TaskSchedularLogController: taskSchedularLogController,
 		EmailLogController:         emailLogController,
+		APIRequestLogController:    apiRequestLogController,
 
 		ActivityLogService: activityLogSvc,
 	}
