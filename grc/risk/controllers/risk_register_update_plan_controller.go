@@ -1648,13 +1648,13 @@ func (rrupc *RiskRegisterUpdatePlanController) CreateLeadershipAssessmentDocumen
 		return
 	}
 
-	var documents []*commonDTOs.DocumentFormDTO
-	if err := c.ShouldBindJSON(&documents); err != nil {
+	var documentsWrapper riskDTOs.LeadershipAssessmentDocumenFormDTO
+	if err := c.ShouldBindJSON(&documentsWrapper); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	err = rrupc.service.CreateLeadershipAssessmentDocuments(uint(planID), currentUserID, documents)
+	err = rrupc.service.CreateLeadershipAssessmentDocuments(uint(planID), currentUserID, documentsWrapper.Documents)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -1855,13 +1855,13 @@ func (rrupc *RiskRegisterUpdatePlanController) CreateRiskTeamAssessmentDocuments
 		return
 	}
 
-	var documents []*commonDTOs.DocumentFormDTO
-	if err := c.ShouldBindJSON(&documents); err != nil {
+	var documentsWrapper riskDTOs.RiskTeamAssessmentDocumenFormDTO
+	if err := c.ShouldBindJSON(&documentsWrapper); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
 	}
 
-	err = rrupc.service.CreateRiskTeamAssessmentDocuments(uint(planID), currentUserID, documents)
+	err = rrupc.service.CreateRiskTeamAssessmentDocuments(uint(planID), currentUserID, documentsWrapper.Documents)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -2615,4 +2615,74 @@ func (rrupc *RiskRegisterUpdatePlanController) MarkRiskWorkshopAssessmentAsNotAp
 	}
 
 	c.Status(http.StatusOK)
+}
+
+// Risk Analysis
+
+func (rrupc *RiskRegisterUpdatePlanController) GetRiskAnalysisList(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title")
+	keyword := c.Query("keyword")
+
+	validSortFields := map[string]string{
+		"reference_number":           "rr.reference_number",
+		"title":                      "rr.title",
+		"description":                "rr.description",
+		"inherent_likelihood_en":     "ill.title_en",
+		"inherent_likelihood_ar":     "ill.title_ar",
+		"inherent_impact_en":         "iil.title_en",
+		"inherent_impact_ar":         "iil.title_ar",
+		"inherent_risk_rating_en":    "irr.title_en",
+		"inherent_risk_rating_ar":    "irr.title_ar",
+		"inherent_risk_rating_value": "irrv.value",
+		"residual_likelihood_en":     "rll.title_en",
+		"residual_likelihood_ar":     "rll.title_ar",
+		"residual_impact_en":         "ril.title_en",
+		"residual_impact_ar":         "ril.title_ar",
+		"residual_risk_rating_en":    "rrr.title_en",
+		"residual_risk_rating_ar":    "rrr.title_ar",
+		"residual_risk_rating_value": "rrrv.value",
+	}
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	queryParams := riskDTOs.RiskRegisterUpdatePlanListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   dbField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	risks, err := rrupc.service.GetRiskAnalysisList(uint(planID), &queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, risks)
 }

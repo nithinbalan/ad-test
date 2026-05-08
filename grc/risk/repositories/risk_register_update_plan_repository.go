@@ -102,10 +102,10 @@ type RiskRegisterUpdatePlanRepositoryInterface interface {
 	CreateRiskIdentification(riskRegister *models.RiskRegister, tx ...utility.DatabaseTransaction) (uint, error)
 	UpdateRiskIdentification(riskRegister *models.RiskRegister, tx ...utility.DatabaseTransaction) error
 	DeleteRiskIdentification(id uint, tx ...utility.DatabaseTransaction) error
-	CountRisksByPlanID(planID uint, tx ...utility.DatabaseTransaction) (int64, error)
 
 	//Control Register Update
 	GetControlCountsByImplementationStatus(planID uint) (*riskDTOs.ControlRegisterUpdatedDTO, error)
+	CountRisksByPlanID(planID uint, tx ...utility.DatabaseTransaction) (int64, error)
 	UpdateControlTestPlanID(controlTestID uint, planID uint, tx ...utility.DatabaseTransaction) error
 
 	// Risk Assessment Workshop Documents
@@ -119,6 +119,9 @@ type RiskRegisterUpdatePlanRepositoryInterface interface {
 	GetRiskWorkshopAssessmentDocumentByID(id uint) (*models.RiskUpdatePlanRiskWorkshopAssessmentDocument, error)
 	GetRiskWorkshopAssessmentDocumentsByTimelineID(timelineID uint) ([]*models.RiskUpdatePlanRiskWorkshopAssessmentDocument, error)
 	DeleteRiskWorkshopAssessmentDocument(id uint, tx ...utility.DatabaseTransaction) error
+
+	// Risk Analysis
+	GetRiskAnalysisList(planID uint, params *riskDTOs.RiskRegisterUpdatePlanListQueryParamsDTO) (*riskDTOs.RiskAnalysisListResponseDTO, error)
 
 	// Timeline Operations
 	GetAllTimelineTypes() ([]*models.RiskUpdatePlanTimelineType, error)
@@ -1591,8 +1594,7 @@ func (repo *RiskRegisterUpdatePlanRepository) GetLeadershipDocumentsByTimelineID
 	var documents []*models.RiskUpdatePlanLeadershipDocument
 
 	err := repo.db.
-		Joins("INNER JOIN risk_update_plan_leadership_assessments ON risk_update_plan_leadership_assessments.id = risk_update_plan_leadership_documents.risk_update_plan_leadership_assessment_id").
-		Where("risk_update_plan_leadership_assessments.risk_update_plan_timeline_id = ?", timelineID).
+		Where("risk_update_plan_timeline_id = ?", timelineID).
 		Find(&documents).Error
 
 	if err != nil {
@@ -1696,8 +1698,7 @@ func (repo *RiskRegisterUpdatePlanRepository) GetRiskTeamDocumentsByTimelineID(t
 	var documents []*models.RiskUpdatePlanRiskTeamDocument
 
 	err := repo.db.
-		Joins("INNER JOIN risk_update_plan_risk_team_assessments ON risk_update_plan_risk_team_assessments.id = risk_update_plan_risk_team_documents.risk_update_plan_risk_team_assessment_id").
-		Where("risk_update_plan_risk_team_assessments.risk_update_plan_timeline_id = ?", timelineID).
+		Where("risk_update_plan_timeline_id = ?", timelineID).
 		Find(&documents).Error
 
 	if err != nil {
@@ -2205,4 +2206,132 @@ func (repo *RiskRegisterUpdatePlanRepository) DeleteRiskWorkshopAssessmentDocume
 	}
 
 	return nil
+}
+
+// Risk Analysis
+
+func (repo *RiskRegisterUpdatePlanRepository) GetRiskAnalysisList(planID uint, params *riskDTOs.RiskRegisterUpdatePlanListQueryParamsDTO) (*riskDTOs.RiskAnalysisListResponseDTO, error) {
+	var risks []*riskDTOs.RiskAnalysisListDTO
+	var totalCount int64
+
+	query := repo.db.Table("risk_register AS rr").
+		Select(`
+			rr.id,
+			rr.reference_number,
+			rr.title,
+			rr.description,
+			ill.title_en AS inherent_likelihood_title_en,
+			ill.title_ar AS inherent_likelihood_title_ar,
+			iil.title_en AS inherent_impact_title_en,
+			iil.title_ar AS inherent_impact_title_ar,
+			irr.title_en AS inherent_risk_rating_title_en,
+			irr.title_ar AS inherent_risk_rating_title_ar,
+			irrv.value AS inherent_risk_rating_value,
+			irr.color_code AS inherent_risk_rating_color_code,
+			rll.title_en AS residual_likelihood_title_en,
+			rll.title_ar AS residual_likelihood_title_ar,
+			ril.title_en AS residual_impact_title_en,
+			ril.title_ar AS residual_impact_title_ar,
+			rrr.title_en AS residual_risk_rating_title_en,
+			rrr.title_ar AS residual_risk_rating_title_ar,
+			rrrv.value AS residual_risk_rating_value,
+			rrr.color_code AS residual_risk_rating_color_code
+		`).
+		Joins("LEFT JOIN risk_matrix_likelihoods AS ill ON ill.id = rr.inherent_likelihood_id").
+		Joins("LEFT JOIN risk_matrix_impacts AS iil ON iil.id = rr.inherent_impact_id").
+		Joins("LEFT JOIN risk_matrix_risk_ratings AS irr ON irr.id = rr.inherent_risk_rating_id").
+		Joins("LEFT JOIN risk_matrix_risk_rating_values AS irrv ON irrv.id = rr.inherent_risk_rating_value_id").
+		Joins("LEFT JOIN risk_matrix_likelihoods AS rll ON rll.id = rr.residual_likelihood_id").
+		Joins("LEFT JOIN risk_matrix_impacts AS ril ON ril.id = rr.residual_impact_id").
+		Joins("LEFT JOIN risk_matrix_risk_ratings AS rrr ON rrr.id = rr.residual_risk_rating_id").
+		Joins("LEFT JOIN risk_matrix_risk_rating_values AS rrrv ON rrrv.id = rr.residual_risk_rating_value_id").
+		Where("rr.risk_register_update_plan_id = ?", planID)
+
+	// Apply search keyword if exists
+	if params.Keyword != "" {
+		keyword := "%" + params.Keyword + "%"
+		query = query.Where(`
+			(rr.title LIKE ? OR
+			rr.description LIKE ? OR
+			rr.reference_number LIKE ? OR
+			ill.title_en LIKE ? OR
+			ill.title_ar LIKE ? OR
+			iil.title_en LIKE ? OR
+			iil.title_ar LIKE ? OR
+			irr.title_en LIKE ? OR
+			irr.title_ar LIKE ? OR
+			rll.title_en LIKE ? OR
+			rll.title_ar LIKE ? OR
+			ril.title_en LIKE ? OR
+			ril.title_ar LIKE ? OR
+			rrr.title_en LIKE ? OR
+			rrr.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	// Count total results
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Apply pagination only if not exporting
+	if !params.Export {
+		offset := (params.Page - 1) * params.PageSize
+		query = query.Offset(offset).Limit(params.PageSize)
+	}
+
+	if err := query.Find(&risks).Error; err != nil {
+		return nil, err
+	}
+
+	// Fetch impact categories and guidelines for each risk
+	for _, risk := range risks {
+		var impactCategories []riskDTOs.RiskAnalysisImpactCategoryDTO
+
+		err := repo.db.Table("risk_impact_categories AS ric").
+			Select("ric.id, ric.title_en, ric.title_ar").
+			Where("ric.status = ?", "active").
+			Find(&impactCategories).Error
+
+		if err != nil {
+			return nil, err
+		}
+
+		// Fetch guidelines for each impact category
+		for i := range impactCategories {
+			var guidelines []riskDTOs.RiskAnalysisGuidelineDTO
+
+			err := repo.db.Table("risk_matrix_impact_guidelines AS rmig").
+				Select("rmig.id, rmig.guideline").
+				Joins("INNER JOIN risk_register AS rr ON rr.inherent_impact_id = rmig.risk_matrix_impact_id OR rr.residual_impact_id = rmig.risk_matrix_impact_id").
+				Where("rmig.risk_impact_category_id = ? AND rr.id = ? AND rmig.status = ?", impactCategories[i].ID, risk.ID, "active").
+				Group("rmig.id, rmig.guideline").
+				Find(&guidelines).Error
+
+			if err != nil {
+				return nil, err
+			}
+
+			impactCategories[i].Guidelines = guidelines
+		}
+
+		risk.ImpactCategories = impactCategories
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &riskDTOs.RiskAnalysisListResponseDTO{
+		Items: risks,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
+	return response, nil
 }

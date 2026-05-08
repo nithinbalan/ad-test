@@ -630,6 +630,10 @@ type LeadershipAssessmentDocumentDTO struct {
 	Type         *string `json:"type"`
 }
 
+type LeadershipAssessmentDocumenFormDTO struct {
+	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
+}
+
 type RiskTeamAssessmentUserListDTO struct {
 	ID                       uint                             `json:"id"`
 	RiskUpdatePlanTimelineID uint                             `json:"risk_update_plan_timeline_id"`
@@ -647,6 +651,10 @@ type RiskTeamAssessmentDocumentDTO struct {
 	Token        *string `json:"token"`
 	OriginalName *string `json:"original_name"`
 	Type         *string `json:"type"`
+}
+
+type RiskTeamAssessmentDocumenFormDTO struct {
+	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
 }
 
 type UserListQueryParamsDTO struct {
@@ -803,6 +811,49 @@ type ControlRegisterUpdatedDTO struct {
 	PartiallyImplemented *ControlCountByStatusDTO `json:"partially_implemented"`
 	Implemented          *ControlCountByStatusDTO `json:"implemented"`
 	NotApplicable        int64                    `json:"not_applicable"`
+}
+
+// Risk Analysis
+
+type RiskAnalysisListDTO struct {
+	ID                          uint                            `json:"id"`
+	ReferenceNumber             string                          `json:"reference_number"`
+	Title                       string                          `json:"title"`
+	Description                 *string                         `json:"description"`
+	InherentLikelihoodTitleEn   *string                         `json:"inherent_likelihood_title_en"`
+	InherentLikelihoodTitleAr   *string                         `json:"inherent_likelihood_title_ar"`
+	InherentImpactTitleEn       *string                         `json:"inherent_impact_title_en"`
+	InherentImpactTitleAr       *string                         `json:"inherent_impact_title_ar"`
+	InherentRiskRatingTitleEn   *string                         `json:"inherent_risk_rating_title_en"`
+	InherentRiskRatingTitleAr   *string                         `json:"inherent_risk_rating_title_ar"`
+	InherentRiskRatingValue     *uint                           `json:"inherent_risk_rating_value"`
+	InherentRiskRatingColorCode *string                         `json:"inherent_risk_rating_color_code"`
+	ResidualLikelihoodTitleEn   *string                         `json:"residual_likelihood_title_en"`
+	ResidualLikelihoodTitleAr   *string                         `json:"residual_likelihood_title_ar"`
+	ResidualImpactTitleEn       *string                         `json:"residual_impact_title_en"`
+	ResidualImpactTitleAr       *string                         `json:"residual_impact_title_ar"`
+	ResidualRiskRatingTitleEn   *string                         `json:"residual_risk_rating_title_en"`
+	ResidualRiskRatingTitleAr   *string                         `json:"residual_risk_rating_title_ar"`
+	ResidualRiskRatingValue     *uint                           `json:"residual_risk_rating_value"`
+	ResidualRiskRatingColorCode *string                         `json:"residual_risk_rating_color_code"`
+	ImpactCategories            []RiskAnalysisImpactCategoryDTO `json:"impact_categories"`
+}
+
+type RiskAnalysisImpactCategoryDTO struct {
+	ID         uint                       `json:"id"`
+	TitleEn    string                     `json:"title_en"`
+	TitleAr    string                     `json:"title_ar"`
+	Guidelines []RiskAnalysisGuidelineDTO `json:"guidelines"`
+}
+
+type RiskAnalysisGuidelineDTO struct {
+	ID        uint   `json:"id"`
+	Guideline string `json:"guideline"`
+}
+
+type RiskAnalysisListResponseDTO struct {
+	Items      []*RiskAnalysisListDTO       `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
 type UpdatePlanControlTestFormDTO struct {

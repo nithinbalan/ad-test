@@ -602,6 +602,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/risk-workshop-assessment-documents/preview", riskRegisterUpdatePlanController.GetRiskWorkshopAssessmentDocumentPreview)
 	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/risk-workshop-assessment-documents/download", riskRegisterUpdatePlanController.DownloadRiskWorkshopAssessmentDocument)
 
+	// Risk Analysis Operations
+	riskRoutes.GET("/risk-register-update-plans/:id/risk-analysis", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanController.GetRiskAnalysisList)
+
 	// Risk Update Plan Timeline Types
 	riskRoutes.GET("/risk-update-plan-timeline-types", riskUpdatePlanTimelineTypeController.GetAllRiskUpdatePlanTimelineTypes)
 	riskRoutes.GET("/risk-update-plan-timeline-types/:id", riskUpdatePlanTimelineTypeController.GetRiskUpdatePlanTimelineTypeDetails)

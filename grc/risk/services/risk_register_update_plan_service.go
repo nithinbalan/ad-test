@@ -118,6 +118,9 @@ type RiskRegisterUpdatePlanServiceInterface interface {
 	// Risk Workshop Assessment - Operations
 	MarkRiskWorkshopAssessmentAsNotApplicable(planID uint, currentUserID uint, formDTO *riskDTOs.MarkTimelineNotApplicableDTO) error
 
+	//// Risk Analysis
+	GetRiskAnalysisList(planID uint, params *riskDTOs.RiskRegisterUpdatePlanListQueryParamsDTO) (*riskDTOs.RiskAnalysisListResponseDTO, error)
+
 	// Timeline Operations
 	RecalculatePercentage(planID uint) error
 }
@@ -2281,15 +2284,15 @@ func (s *RiskRegisterUpdatePlanService) CreateLeadershipAssessmentDocuments(plan
 			)
 
 			document := &models.RiskUpdatePlanLeadershipDocument{
-				RiskUpdatePlanLeadershipAssessmentID: timeline.ID,
-				URL:                                  &url,
-				Name:                                 &doc.FileName,
-				Size:                                 &doc.Size,
-				Token:                                &encryptedFilename,
-				OriginalName:                         &doc.OriginalName,
-				Type:                                 &doc.Type,
-				CreatedBYID:                          &currentUserID,
-				CreatedAt:                            now,
+				RiskUpdatePlanTimelineID: timeline.ID,
+				URL:                      &url,
+				Name:                     &doc.FileName,
+				Size:                     &doc.Size,
+				Token:                    &encryptedFilename,
+				OriginalName:             &doc.OriginalName,
+				Type:                     &doc.Type,
+				CreatedBYID:              &currentUserID,
+				CreatedAt:                now,
 			}
 
 			newDocuments = append(newDocuments, document)
@@ -2304,7 +2307,7 @@ func (s *RiskRegisterUpdatePlanService) CreateLeadershipAssessmentDocuments(plan
 			}
 
 			// Verify document belongs to this timeline
-			if existingDocument.RiskUpdatePlanLeadershipAssessmentID != timeline.ID {
+			if existingDocument.RiskUpdatePlanTimelineID != timeline.ID {
 				tx.Rollback()
 				return utility.NewResourceNotFoundError(fmt.Errorf("document not found"), *doc.ID)
 			}
@@ -2640,15 +2643,15 @@ func (s *RiskRegisterUpdatePlanService) CreateRiskTeamAssessmentDocuments(planID
 			)
 
 			document := &models.RiskUpdatePlanRiskTeamDocument{
-				RiskUpdatePlanRiskTeamAssessmentID: timeline.ID,
-				URL:                                &url,
-				Name:                               &doc.FileName,
-				Size:                               &doc.Size,
-				Token:                              &encryptedFilename,
-				OriginalName:                       &doc.OriginalName,
-				Type:                               &doc.Type,
-				CreatedBYID:                        &currentUserID,
-				CreatedAt:                          now,
+				RiskUpdatePlanTimelineID: timeline.ID,
+				URL:                      &url,
+				Name:                     &doc.FileName,
+				Size:                     &doc.Size,
+				Token:                    &encryptedFilename,
+				OriginalName:             &doc.OriginalName,
+				Type:                     &doc.Type,
+				CreatedBYID:              &currentUserID,
+				CreatedAt:                now,
 			}
 
 			newDocuments = append(newDocuments, document)
@@ -2661,7 +2664,7 @@ func (s *RiskRegisterUpdatePlanService) CreateRiskTeamAssessmentDocuments(planID
 				return err
 			}
 
-			if existingDocument.RiskUpdatePlanRiskTeamAssessmentID != timeline.ID {
+			if existingDocument.RiskUpdatePlanTimelineID != timeline.ID {
 				tx.Rollback()
 				return utility.NewResourceNotFoundError(fmt.Errorf("document not found"), *doc.ID)
 			}
@@ -4431,4 +4434,19 @@ func (s *RiskRegisterUpdatePlanService) MarkRiskWorkshopAssessmentAsNotApplicabl
 	tx.Commit()
 
 	return nil
+}
+
+// Risk Analysis
+
+func (rrups *RiskRegisterUpdatePlanService) GetRiskAnalysisList(planID uint, params *riskDTOs.RiskRegisterUpdatePlanListQueryParamsDTO) (*riskDTOs.RiskAnalysisListResponseDTO, error) {
+	// Verify plan exists
+	_, err := rrups.repo.GetByID(planID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, planID)
+		}
+		return nil, err
+	}
+
+	return rrups.repo.GetRiskAnalysisList(planID, params)
 }
