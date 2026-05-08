@@ -53,6 +53,7 @@ type RiskRegister struct {
 	Consequence      *string    `json:"consequence" gorm:"default:null"`
 	IsInternal       bool       `json:"is_internal" gorm:"not null;default:false"`
 	IsExternal       bool       `json:"is_external" gorm:"not null;default:false"`
+	RiskRegisterUpdatePlanID *uint      `json:"risk_register_update_plan_id" gorm:"default:null"`
 
 	// Relationships
 	RiskCategory            *RiskCategory              `gorm:"foreignKey:RiskCategoryID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
@@ -81,6 +82,7 @@ type RiskRegister struct {
 	UpdatedByUser           *User                      `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	Section                 *OrganizationUnit          `gorm:"foreignKey:SectionID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	Division                *OrganizationUnit          `gorm:"foreignKey:DivisionID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskRegisterUpdatePlan  *RiskRegisterUpdatePlan    `gorm:"foreignKey:RiskRegisterUpdatePlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 
 	Documents              *[]RiskDocument              `gorm:"foreignKey:RiskRegisterID"`
 	ComplianceRequirements []*RiskComplianceRequirement `gorm:"foreignKey:RiskRegisterID"`

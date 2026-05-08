@@ -574,6 +574,34 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/risk-team-assessment-documents/preview", riskRegisterUpdatePlanController.GetRiskTeamAssessmentDocumentPreview)
 	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/risk-team-assessment-documents/download", riskRegisterUpdatePlanController.DownloadRiskTeamAssessmentDocument)
 
+	// Risk Identification Operations
+	riskRoutes.GET("/risk-register-update-plans/:id/risk-identifications", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanController.GetAllRiskIdentifications)
+	riskRoutes.POST("/risk-register-update-plans/:id/risk-identifications", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.CreateRiskIdentification)
+	riskRoutes.PUT("/risk-register-update-plans/:id/risk-identifications/:riskId", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.UpdateRiskIdentification)
+	riskRoutes.POST("/risk-register-update-plans/:id/risk-identifications/delete", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.DeleteRiskIdentification)
+	riskRoutes.POST("/risk-register-update-plans/:id/mark-risk-identification-not-applicable", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.MarkRiskIdentificationAsNotApplicable)
+
+	// Control Register Update Operations
+	riskRoutes.GET("/risk-register-update-plans/:id/control-counts", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanController.GetControlCountsByImplementationStatus)
+	riskRoutes.POST("/risk-register-update-plans/:id/control-tests", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.CreateControlTest)
+	riskRoutes.POST("/risk-register-update-plans/:id/mark-control-register-update-not-applicable", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.MarkControlRegisterUpdateAsNotApplicable)
+
+	// Risk Assessment Workshop Documents
+	riskRoutes.GET("/risk-register-update-plans/:id/risk-assessment-workshop-documents", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanController.GetRiskAssessmentWorkshopDocuments)
+	riskRoutes.POST("/risk-register-update-plans/:id/risk-assessment-workshop-documents", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.CreateRiskAssessmentWorkshopDocuments)
+	// Risk Assessment Workshop - Operations
+	riskRoutes.POST("/risk-register-update-plans/:id/mark-risk-assessment-workshop-not-applicable", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.MarkRiskAssessmentWorkshopAsNotApplicable)
+	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/risk-assessment-workshop-documents/preview", riskRegisterUpdatePlanController.GetRiskAssessmentWorkshopDocumentPreview)
+	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/risk-assessment-workshop-documents/download", riskRegisterUpdatePlanController.DownloadRiskAssessmentWorkshopDocument)
+
+	// Risk Workshop Assessment Documents
+	riskRoutes.GET("/risk-register-update-plans/:id/risk-workshop-assessment-documents", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanController.GetRiskWorkshopAssessmentDocuments)
+	riskRoutes.POST("/risk-register-update-plans/:id/risk-workshop-assessment-documents", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.CreateRiskWorkshopAssessmentDocuments)
+	// Risk Workshop Assessment - Operations
+	riskRoutes.POST("/risk-register-update-plans/:id/mark-risk-workshop-assessment-not-applicable", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.MarkRiskWorkshopAssessmentAsNotApplicable)
+	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/risk-workshop-assessment-documents/preview", riskRegisterUpdatePlanController.GetRiskWorkshopAssessmentDocumentPreview)
+	unauthenticatedRoutes.GET("/risk-register-update-plans/:id/risk-workshop-assessment-documents/download", riskRegisterUpdatePlanController.DownloadRiskWorkshopAssessmentDocument)
+
 	// Risk Update Plan Timeline Types
 	riskRoutes.GET("/risk-update-plan-timeline-types", riskUpdatePlanTimelineTypeController.GetAllRiskUpdatePlanTimelineTypes)
 	riskRoutes.GET("/risk-update-plan-timeline-types/:id", riskUpdatePlanTimelineTypeController.GetRiskUpdatePlanTimelineTypeDetails)

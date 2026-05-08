@@ -490,7 +490,7 @@ func NewRiskModule(db *gorm.DB,
 	riskUpdatePlanTimelineTypeController := controllers.NewRiskUpdatePlanTimelineTypeController(riskUpdatePlanTimelineTypeSvc)
 
 	riskRegisterUpdatePlanRepo := repositories.NewRiskRegisterUpdatePlanRepository(db)
-	riskRegisterUpdatePlanSvc := services.NewRiskRegisterUpdatePlanService(riskRegisterUpdatePlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, settingsModule.OrganizationUnitSvc, riskUpdatePlanTimelineTypeSvc)
+	riskRegisterUpdatePlanSvc := services.NewRiskRegisterUpdatePlanService(riskRegisterUpdatePlanRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, settingsModule.OrganizationUnitSvc, riskUpdatePlanTimelineTypeSvc, riskRegisterSvc, riskStatusSvc, riskMatrixSvc, organizationModule.OrganizationUnitsSvc, commonModule.NotificationService, riskSettingsSvc, riskCategorySvc, riskSourceSvc, organizationModule.ControlTestSvc)
 	riskRegisterUpdatePlanController := controllers.NewRiskRegisterUpdatePlanController(riskRegisterUpdatePlanSvc)
 
 	return &RiskModule{

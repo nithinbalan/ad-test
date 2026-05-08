@@ -436,45 +436,6 @@ func (rrupc *RiskRegisterUpdatePlanController) MarkERMDeptEvaluationAsNotApplica
 	c.Status(http.StatusOK)
 }
 
-func (rrupc *RiskRegisterUpdatePlanController) MarkIntroductoryMeetingAsNotApplicable(c *gin.Context) {
-	idStr := c.Param("id")
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	var formDTO riskDTOs.MarkTimelineNotApplicableDTO
-	if err := c.ShouldBindJSON(&formDTO); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
-
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(rrupc.db, c, err.Error())
-		return
-	}
-
-	err = rrupc.service.MarkIntroductoryMeetingAsNotApplicable(uint(id), currentUserID, &formDTO)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ResourceNotFoundError:
-			utility.SendNotFoundErrResp(c)
-			return
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(rrupc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.Status(http.StatusOK)
-}
-
 func (rrupc *RiskRegisterUpdatePlanController) GetERMDeptEvaluationDocuments(c *gin.Context) {
 	idStr := c.Param("id")
 
@@ -1102,6 +1063,45 @@ func (rrupc *RiskRegisterUpdatePlanController) GetIntroductoryMeetingDocuments(c
 	c.JSON(http.StatusOK, gin.H{"documents": documents})
 }
 
+func (rrupc *RiskRegisterUpdatePlanController) MarkIntroductoryMeetingAsNotApplicable(c *gin.Context) {
+	idStr := c.Param("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var formDTO riskDTOs.MarkTimelineNotApplicableDTO
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	err = rrupc.service.MarkIntroductoryMeetingAsNotApplicable(uint(id), currentUserID, &formDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func (rrupc *RiskRegisterUpdatePlanController) CreateIntroductoryMeetingDocuments(c *gin.Context) {
 	var formDTO riskDTOs.IntroductoryMeetingDocumentFormDTO
 
@@ -1724,7 +1724,17 @@ func (rrupc *RiskRegisterUpdatePlanController) DownloadLeadershipAssessmentDocum
 		}
 	}
 
-	c.FileAttachment(filePath, filepath.Base(filePath))
+	filename := filepath.Base(filePath)
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	c.File(filePath)
 }
 
 func (rrupc *RiskRegisterUpdatePlanController) GetRiskTeamAssessmentUser(c *gin.Context) {
@@ -1921,5 +1931,688 @@ func (rrupc *RiskRegisterUpdatePlanController) DownloadRiskTeamAssessmentDocumen
 		}
 	}
 
-	c.FileAttachment(filePath, filepath.Base(filePath))
+	filename := filepath.Base(filePath)
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	c.File(filePath)
+}
+
+//Risk Identification
+
+func (rrupc *RiskRegisterUpdatePlanController) GetAllRiskIdentifications(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title")
+	keyword := c.Query("keyword")
+
+	validSortFields := map[string]string{
+		"reference_number":          "risk_register.reference_number",
+		"title":                     "risk_register.title",
+		"description":               "risk_register.description",
+		"risk_category_en":          "risk_categories.title_en",
+		"risk_category_ar":          "risk_categories.title_ar",
+		"organization_unit_en":      "organization_units.title_en",
+		"organization_unit_ar":      "organization_units.title_ar",
+		"responsible_user_en":       "users.first_name_en",
+		"responsible_user_ar":       "users.first_name_ar",
+		"risk_source_en":            "risk_sources.title_en",
+		"risk_source_ar":            "risk_sources.title_ar",
+		"risk_status_en":            "risk_statuses.title_en",
+		"risk_status_ar":            "risk_statuses.title_ar",
+		"inherent_likelihood_en":    "inherent_likelihood.title_en",
+		"inherent_likelihood_ar":    "inherent_likelihood.title_ar",
+		"inherent_impact_en":        "inherent_impact.title_en",
+		"inherent_impact_ar":        "inherent_impact.title_ar",
+		"inherent_risk_rating_en":   "inherent_risk_rating.title_en",
+		"inherent_risk_rating_ar":   "inherent_risk_rating.title_ar",
+		"risk_response_strategy_en": "risk_response_strategies.title_en",
+		"risk_response_strategy_ar": "risk_response_strategies.title_ar",
+		"residual_likelihood_en":    "residual_likelihood.title_en",
+		"residual_likelihood_ar":    "residual_likelihood.title_ar",
+		"residual_impact_en":        "residual_impact.title_en",
+		"residual_impact_ar":        "residual_impact.title_ar",
+		"residual_risk_rating_en":   "residual_risk_rating.title_en",
+		"residual_risk_rating_ar":   "residual_risk_rating.title_ar",
+		"reported_at":               "risk_register.reported_at",
+		"review_frequency_en":       "review_frequencies.title_en",
+		"review_frequency_ar":       "review_frequencies.title_ar",
+		"next_review_date":          "risk_register.next_review_date",
+	}
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	queryParams := riskDTOs.RiskRegisterUpdatePlanListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   dbField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	risks, err := rrupc.service.GetAllRiskIdentifications(uint(planID), &queryParams)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, risks)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) CreateRiskIdentification(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var riskRegisterFormDTO riskDTOs.UpdatePlanRiskRegisterFormDTO
+
+	if err := c.ShouldBindJSON(&riskRegisterFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	id, err := rrupc.service.CreateRiskIdentification(uint(planID), currentUserID, &riskRegisterFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) UpdateRiskIdentification(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	riskIDStr := c.Param("riskId")
+	riskID, err := strconv.ParseUint(riskIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var riskRegisterFormDTO riskDTOs.UpdatePlanRiskRegisterFormDTO
+
+	if err := c.ShouldBindJSON(&riskRegisterFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	err = rrupc.service.UpdateRiskIdentification(uint(planID), uint(riskID), currentUserID, &riskRegisterFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) DeleteRiskIdentification(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := rrupc.service.DeleteRiskIdentification(uint(planID), request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) MarkRiskIdentificationAsNotApplicable(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	var formDTO riskDTOs.MarkTimelineNotApplicableDTO
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	err = rrupc.service.MarkRiskIdentificationAsNotApplicable(uint(planID), currentUserID, &formDTO)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, err.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+//Control Register Update
+
+func (rrupc *RiskRegisterUpdatePlanController) GetControlCountsByImplementationStatus(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	counts, err := rrupc.service.GetControlCountsByImplementationStatus(uint(planID))
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, counts)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) CreateControlTest(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var controlTestFormDTO riskDTOs.UpdatePlanControlTestFormDTO
+	if err := c.ShouldBindJSON(&controlTestFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	id, err := rrupc.service.CreateControlTest(uint(planID), currentUserID, &controlTestFormDTO)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, err)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, err.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) MarkControlRegisterUpdateAsNotApplicable(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var formDTO riskDTOs.MarkTimelineNotApplicableDTO
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	err = rrupc.service.MarkControlRegisterUpdateAsNotApplicable(uint(planID), currentUserID, &formDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+// Risk Assessment Workshop Document Operations
+
+func (rrupc *RiskRegisterUpdatePlanController) GetRiskAssessmentWorkshopDocumentPreview(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendInvalidErrResp(c, errors.New("token is required"))
+		return
+	}
+
+	documentPath, err := rrupc.service.GetRiskAssessmentWorkshopDocumentPath(uint(planID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, err.Error())
+			return
+		}
+	}
+
+	c.File(documentPath)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) DownloadRiskAssessmentWorkshopDocument(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendInvalidErrResp(c, errors.New("token is required"))
+		return
+	}
+
+	documentPath, err := rrupc.service.GetRiskAssessmentWorkshopDocumentPath(uint(planID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, err.Error())
+			return
+		}
+	}
+
+	filename := filepath.Base(documentPath)
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	c.File(documentPath)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) GetRiskAssessmentWorkshopDocuments(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documents, err := rrupc.service.GetRiskAssessmentWorkshopDocuments(uint(planID))
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, err.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"documents": documents})
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) CreateRiskAssessmentWorkshopDocuments(c *gin.Context) {
+	var formDTO riskDTOs.RiskAssessmentWorkshopDocumentFormDTO
+
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	err = rrupc.service.CreateRiskAssessmentWorkshopDocuments(uint(planID), currentUserID, formDTO.Documents)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, err)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) MarkRiskAssessmentWorkshopAsNotApplicable(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var formDTO riskDTOs.MarkTimelineNotApplicableDTO
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	err = rrupc.service.MarkRiskAssessmentWorkshopAsNotApplicable(uint(planID), currentUserID, &formDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+// Risk Workshop Assessment Document Operations
+
+func (rrupc *RiskRegisterUpdatePlanController) GetRiskWorkshopAssessmentDocumentPreview(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendInvalidErrResp(c, errors.New("token is required"))
+		return
+	}
+
+	documentPath, err := rrupc.service.GetRiskWorkshopAssessmentDocumentPath(uint(planID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, err.Error())
+			return
+		}
+	}
+
+	c.File(documentPath)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) DownloadRiskWorkshopAssessmentDocument(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	token := c.Query("token")
+	if token == "" {
+		utility.SendInvalidErrResp(c, errors.New("token is required"))
+		return
+	}
+
+	documentPath, err := rrupc.service.GetRiskWorkshopAssessmentDocumentPath(uint(planID), token)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, err.Error())
+			return
+		}
+	}
+
+	filename := filepath.Base(documentPath)
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Expires", "0")
+	c.Header("Cache-Control", "must-revalidate")
+	c.Header("Pragma", "public")
+
+	c.File(documentPath)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) GetRiskWorkshopAssessmentDocuments(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documents, err := rrupc.service.GetRiskWorkshopAssessmentDocuments(uint(planID))
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, err.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"documents": documents})
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) CreateRiskWorkshopAssessmentDocuments(c *gin.Context) {
+	var formDTO riskDTOs.RiskWorkshopAssessmentDocumentFormDTO
+
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	err = rrupc.service.CreateRiskWorkshopAssessmentDocuments(uint(planID), currentUserID, formDTO.Documents)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, err)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (rrupc *RiskRegisterUpdatePlanController) MarkRiskWorkshopAssessmentAsNotApplicable(c *gin.Context) {
+	planIDStr := c.Param("id")
+	planID, err := strconv.ParseUint(planIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var formDTO riskDTOs.MarkTimelineNotApplicableDTO
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	err = rrupc.service.MarkRiskWorkshopAssessmentAsNotApplicable(uint(planID), currentUserID, &formDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
 }
