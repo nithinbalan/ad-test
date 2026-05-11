@@ -111,12 +111,6 @@ func (repo *RiskUpdatePlanRiskAnalysisRepository) GetRiskAnalysisList(planID uin
 		return nil, err
 	}
 
-	// Apply pagination only if not exporting
-	if !params.Export {
-		offset := (params.Page - 1) * params.PageSize
-		query = query.Offset(offset).Limit(params.PageSize)
-	}
-
 	if err := query.Find(&risks).Error; err != nil {
 		return nil, err
 	}

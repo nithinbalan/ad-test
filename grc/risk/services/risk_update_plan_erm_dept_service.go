@@ -70,14 +70,14 @@ func (rupeds *RiskUpdatePlanERMDeptService) CreateERMDepartmentEvaluation(planID
 		return err
 	}
 
-	tx := rupeds.repo.BeginTransaction()
-
-	// Get timeline by plan ID and timeline type ID
+	// Get timeline by plan ID and timeline type ID (pre-validation)
 	timeline, err := rupeds.riskUpdatePlanSvc.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
+
+	// All pre-validation passed, start transaction
+	tx := rupeds.repo.BeginTransaction()
 
 	// Fetch risks, processes, and controls for the business unit
 	riskIDs, err := rupeds.repo.GetRisksByBusinessUnitID(plan.BusinessUnitID)
@@ -172,14 +172,14 @@ func (rupeds *RiskUpdatePlanERMDeptService) MapRisksToTimeline(planID uint, curr
 		return err
 	}
 
-	tx := rupeds.repo.BeginTransaction()
-
-	// Get timeline by plan ID and timeline type ID
+	// Get timeline by plan ID and timeline type ID (pre-validation)
 	timeline, err := rupeds.riskUpdatePlanSvc.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
+
+	// All pre-validation passed, start transaction
+	tx := rupeds.repo.BeginTransaction()
 
 	// Delete all existing risk mappings for this timeline
 	if err := rupeds.repo.DeleteAllRiskMappingsByTimelineID(timeline.ID, tx); err != nil {
@@ -233,14 +233,14 @@ func (rupeds *RiskUpdatePlanERMDeptService) MapProcessesToTimeline(planID uint, 
 		return err
 	}
 
-	tx := rupeds.repo.BeginTransaction()
-
-	// Get timeline by plan ID and timeline type ID
+	// Get timeline by plan ID and timeline type ID (pre-validation)
 	timeline, err := rupeds.riskUpdatePlanSvc.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
+
+	// All pre-validation passed, start transaction
+	tx := rupeds.repo.BeginTransaction()
 
 	// Delete all existing process mappings for this timeline
 	if err := rupeds.repo.DeleteAllProcessMappingsByTimelineID(timeline.ID, tx); err != nil {
@@ -294,14 +294,14 @@ func (rupeds *RiskUpdatePlanERMDeptService) MapControlsToTimeline(planID uint, c
 		return err
 	}
 
-	tx := rupeds.repo.BeginTransaction()
-
-	// Get timeline by plan ID and timeline type ID
+	// Get timeline by plan ID and timeline type ID (pre-validation)
 	timeline, err := rupeds.riskUpdatePlanSvc.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
+
+	// All pre-validation passed, start transaction
+	tx := rupeds.repo.BeginTransaction()
 
 	// Delete all existing control mappings for this timeline
 	if err := rupeds.repo.DeleteAllControlMappingsByTimelineID(timeline.ID, tx); err != nil {

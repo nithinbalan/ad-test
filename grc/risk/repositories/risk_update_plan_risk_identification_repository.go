@@ -213,12 +213,6 @@ func (repo *RiskUpdatePlanRiskIdentificationRepository) GetAllRiskIdentification
 		return nil, err
 	}
 
-	// Apply pagination only if not exporting
-	if !params.Export {
-		offset := (params.Page - 1) * params.PageSize
-		query = query.Offset(offset).Limit(params.PageSize)
-	}
-
 	if err := query.Find(&riskRegisters).Error; err != nil {
 		return nil, err
 	}

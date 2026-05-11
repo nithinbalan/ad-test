@@ -32,21 +32,6 @@ func (rrupc *RiskRegisterUpdatePlanController) GetAllRiskRegisterUpdatePlan(c *g
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
-	// Convert the export parameter to a boolean
-	exportFromContext, exists := c.Get("export")
-	var export bool
-	var err error
-
-	if exists {
-		export = exportFromContext.(bool)
-	} else {
-		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
-		if err != nil {
-			utility.SendInternalErrResp(rrupc.db, c, "Invalid export parameter")
-			return
-		}
-	}
-
 	// Allowed filters
 	allowedParams := []string{
 		"division_ids",
@@ -99,19 +84,11 @@ func (rrupc *RiskRegisterUpdatePlanController) GetAllRiskRegisterUpdatePlan(c *g
 		PageSize:    pageSize,
 		Filters:     filters,
 		QuickFilter: quickFilter,
-		Export:      export,
 	}
 
 	response, err := rrupc.service.GetAll(&queryParams)
 	if err != nil {
 		utility.SendInternalErrResp(rrupc.db, c, err.Error())
-		return
-	}
-
-	// If export is true, generate and return Excel file
-	if export {
-		// TODO: Implement export functionality
-		c.JSON(http.StatusNotImplemented, gin.H{"message": "Export not implemented yet"})
 		return
 	}
 
