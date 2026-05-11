@@ -141,23 +141,9 @@ type RiskRegisterUpdatePlanParsedDates struct {
 	EndDate   time.Time
 }
 
-// Auto-fetch risks based on business unit (first call)
-type AutoFetchRisksResponseDTO struct {
-	TotalRisks  int    `json:"total_risks"`
-	MappedCount int    `json:"mapped_count"`
-	FailedCount int    `json:"failed_count"`
-	FailedIDs   []uint `json:"failed_ids"`
-}
-
-// Manual mapping of additional risks (second call)
+// ERM DEPARTMENT RISK
 type MapRisksToUpdatePlanDTO struct {
 	RiskRegisterIDs []uint `json:"risk_register_ids" binding:"required,min=1"`
-}
-
-type MapRisksToUpdatePlanResponseDTO struct {
-	SuccessCount int    `json:"success_count"`
-	FailedCount  int    `json:"failed_count"`
-	FailedIDs    []uint `json:"failed_ids"`
 }
 
 // List mapped risks
@@ -257,94 +243,9 @@ type ERMDeptEvaluationRiskListDTO struct {
 	IsExternal                      bool    `json:"is_external"`
 }
 
-type ERMDeptEvaluationListQueryParamsDTO struct {
-	Sort                         string
-	SortBy                       string
-	Keyword                      string
-	Page                         int
-	PageSize                     int
-	Value                        int
-	Filters                      map[string][]string
-	QuickFilter                  []string
-	ReportedAtFrom               string
-	ReportedAtTo                 string
-	NextReviewDateFrom           string
-	NextReviewDateTo             string
-	Export                       bool
-	DateFrom                     string
-	DateTo                       string
-	RiskAppetiteToleranceLevelID uint
-}
-
 type ERMDeptEvaluationListResponseDTO struct {
 	Items      []*ERMDeptEvaluationRiskListDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO    `json:"pagination"`
-}
-
-// Introductory Meeting Document DTOs
-type IntroductoryMeetingDocumentDTO struct {
-	ID           *uint   `json:"id"`
-	URL          *string `json:"url"`
-	Name         *string `json:"name"`
-	Token        *string `json:"token"`
-	OriginalName *string `json:"original_name"`
-	Type         *string `json:"type"`
-	Size         *int    `json:"size"`
-}
-
-type IntroductoryMeetingDocumentFormDTO struct {
-	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
-}
-
-// ERM Department Evaluation Document DTOs
-type ERMDeptEvaluationDocumentDTO struct {
-	ID           *uint   `json:"id"`
-	URL          *string `json:"url"`
-	Name         *string `json:"name"`
-	Token        *string `json:"token"`
-	OriginalName *string `json:"original_name"`
-	Type         *string `json:"type"`
-	Size         *int    `json:"size"`
-}
-
-type ERMDeptEvaluationDocumentFormDTO struct {
-	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
-}
-
-// Self-Awareness Training Document DTOs
-type SelfAwarenessTrainingDocumentDTO struct {
-	ID           *uint   `json:"id"`
-	URL          *string `json:"url"`
-	Name         *string `json:"name"`
-	Token        *string `json:"token"`
-	OriginalName *string `json:"original_name"`
-	Type         *string `json:"type"`
-	Size         *int    `json:"size"`
-}
-
-type SelfAwarenessTrainingDocumentFormDTO struct {
-	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
-}
-
-// ERM Department Evaluation DTOs
-type UpdateBusinessContextStatusFormDTO struct {
-	IsBusinessContextUpdated *bool `json:"is_business_context_updated" binding:"required"`
-}
-
-type UpdateBusinessContextFormDTO struct {
-	InternalAuditNote          *string `json:"internal_audit_note"`
-	ExternalContext            *string `json:"external_context"`
-	AnnualObjectiveDescription *string `json:"annual_objective_description"`
-}
-
-type BusinessContextDetailDTO struct {
-	ID                         uint                             `json:"id"`
-	RiskUpdatePlanTimeline     *RiskUpdatePlanTimelineDetailDTO `json:"risk_update_plan_timeline"`
-	InternalAuditNote          *string                          `json:"internal_audit_note"`
-	ExternalContext            *string                          `json:"external_context"`
-	AnnualObjectiveDescription *string                          `json:"annual_objective_description"`
-	CreatedAt                  time.Time                        `json:"created_at"`
-	CreatedByUser              *organizationDTOs.UserMinimalDTO `json:"created_by"`
 }
 
 // ERM Department Evaluation - Process DTOs
@@ -573,11 +474,33 @@ type MapControlsToUpdatePlanDTO struct {
 	ControlIDs []uint `json:"control_ids" binding:"required,min=1"`
 }
 
+// ERM Department Evaluation DTOs
+type UpdateBusinessContextStatusFormDTO struct {
+	IsBusinessContextUpdated *bool `json:"is_business_context_updated" binding:"required"`
+}
+
+type UpdateBusinessContextFormDTO struct {
+	InternalAuditNote          *string `json:"internal_audit_note"`
+	ExternalContext            *string `json:"external_context"`
+	AnnualObjectiveDescription *string `json:"annual_objective_description"`
+}
+
+type BusinessContextDetailDTO struct {
+	ID                         uint                             `json:"id"`
+	RiskUpdatePlanTimeline     *RiskUpdatePlanTimelineDetailDTO `json:"risk_update_plan_timeline"`
+	InternalAuditNote          *string                          `json:"internal_audit_note"`
+	ExternalContext            *string                          `json:"external_context"`
+	AnnualObjectiveDescription *string                          `json:"annual_objective_description"`
+	CreatedAt                  time.Time                        `json:"created_at"`
+	CreatedByUser              *organizationDTOs.UserMinimalDTO `json:"created_by"`
+}
+
 // Timeline Not Applicable DTO
 type MarkTimelineNotApplicableDTO struct {
 	Justification string `json:"justification" binding:"required"`
 }
 
+// LeaderShip Assessment DTO
 type LeaderShipAssessmentUserListDTO struct {
 	ID                       uint    `json:"id"`
 	FirstNameEn              string  `json:"first_name_en"`
@@ -620,20 +543,7 @@ type LeaderShipAssessmentUserListResponseDTO struct {
 	Pagination commonDTOs.PaginationInfoDTO       `json:"pagination"`
 }
 
-type LeadershipAssessmentDocumentDTO struct {
-	ID           *uint   `json:"id"`
-	URL          *string `json:"url"`
-	Name         *string `json:"name"`
-	Size         *int    `json:"size"`
-	Token        *string `json:"token"`
-	OriginalName *string `json:"original_name"`
-	Type         *string `json:"type"`
-}
-
-type LeadershipAssessmentDocumenFormDTO struct {
-	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
-}
-
+// Risk Team Assessment DTO
 type RiskTeamAssessmentUserListDTO struct {
 	ID                       uint                             `json:"id"`
 	RiskUpdatePlanTimelineID uint                             `json:"risk_update_plan_timeline_id"`
@@ -641,33 +551,6 @@ type RiskTeamAssessmentUserListDTO struct {
 	RiskChampion             *organizationDTOs.UserDetailsDTO `json:"risk_champion"`
 	CreatedAt                time.Time                        `json:"created_at"`
 	UpdatedAt                *time.Time                       `json:"updated_at"`
-}
-
-type RiskTeamAssessmentDocumentDTO struct {
-	ID           *uint   `json:"id"`
-	URL          *string `json:"url"`
-	Name         *string `json:"name"`
-	Size         *int    `json:"size"`
-	Token        *string `json:"token"`
-	OriginalName *string `json:"original_name"`
-	Type         *string `json:"type"`
-}
-
-type RiskTeamAssessmentDocumenFormDTO struct {
-	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
-}
-
-type UserListQueryParamsDTO struct {
-	Sort        string              `json:"sort"`
-	SortBy      string              `json:"sort_by"`
-	Keyword     string              `json:"keyword"`
-	Page        int                 `json:"page"`
-	PageSize    int                 `json:"page_size"`
-	QuickFilter []string            `json:"quick_filter"`
-	DateFrom    string              `json:"date_from"`
-	DateTo      string              `json:"date_to"`
-	Filters     map[string][]string `json:"filters"`
-	Export      bool                `json:"export"`
 }
 
 // Risk Identification
@@ -798,6 +681,7 @@ type UpdatePlanRiskRegisterFormDTO struct {
 	IsExternal                     bool    `json:"is_external"`
 }
 
+// CONTROL REGISTER
 type ControlCountByStatusDTO struct {
 	ImplementationStatusType string `json:"implementation_status_type"`
 	TitleEn                  string `json:"title_en"`
@@ -811,6 +695,19 @@ type ControlRegisterUpdatedDTO struct {
 	PartiallyImplemented *ControlCountByStatusDTO `json:"partially_implemented"`
 	Implemented          *ControlCountByStatusDTO `json:"implemented"`
 	NotApplicable        int64                    `json:"not_applicable"`
+}
+
+type UpdatePlanControlTestFormDTO struct {
+	ControlID                     uint                          `json:"control_id" binding:"required"`
+	ControlImplementationStatusID uint                          `json:"control_implementation_status_id" binding:"required"`
+	ControlEfficiencyStatusID     *uint                         `json:"control_efficiency_status_id,omitempty" binding:"omitempty"`
+	Title                         string                        `json:"title" binding:"required"`
+	Description                   *string                       `json:"description"  binding:"omitempty"`
+	Score                         *uint                         `json:"score" binding:"omitempty"`
+	Comments                      *string                       `json:"comments" binding:"omitempty"`
+	TestedAt                      *string                       `json:"tested_at" binding:"required"` // assuming this will be a date in string format
+	TestedBy                      uint                          `json:"tested_by" binding:"required"`
+	Documents                     []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }
 
 // Risk Analysis
@@ -828,22 +725,14 @@ type RiskAnalysisListDTO struct {
 	InherentRiskRatingTitleAr   *string                         `json:"inherent_risk_rating_title_ar"`
 	InherentRiskRatingValue     *uint                           `json:"inherent_risk_rating_value"`
 	InherentRiskRatingColorCode *string                         `json:"inherent_risk_rating_color_code"`
-	ResidualLikelihoodTitleEn   *string                         `json:"residual_likelihood_title_en"`
-	ResidualLikelihoodTitleAr   *string                         `json:"residual_likelihood_title_ar"`
-	ResidualImpactTitleEn       *string                         `json:"residual_impact_title_en"`
-	ResidualImpactTitleAr       *string                         `json:"residual_impact_title_ar"`
-	ResidualRiskRatingTitleEn   *string                         `json:"residual_risk_rating_title_en"`
-	ResidualRiskRatingTitleAr   *string                         `json:"residual_risk_rating_title_ar"`
-	ResidualRiskRatingValue     *uint                           `json:"residual_risk_rating_value"`
-	ResidualRiskRatingColorCode *string                         `json:"residual_risk_rating_color_code"`
-	ImpactCategories            []RiskAnalysisImpactCategoryDTO `json:"impact_categories"`
+	ImpactCategories            []RiskAnalysisImpactCategoryDTO `json:"impact_categories" gorm:"-"`
 }
 
 type RiskAnalysisImpactCategoryDTO struct {
 	ID         uint                       `json:"id"`
 	TitleEn    string                     `json:"title_en"`
 	TitleAr    string                     `json:"title_ar"`
-	Guidelines []RiskAnalysisGuidelineDTO `json:"guidelines"`
+	Guidelines []RiskAnalysisGuidelineDTO `json:"guidelines" gorm:"-"`
 }
 
 type RiskAnalysisGuidelineDTO struct {
@@ -856,21 +745,236 @@ type RiskAnalysisListResponseDTO struct {
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
-type UpdatePlanControlTestFormDTO struct {
-	ControlID                     uint                          `json:"control_id" binding:"required"`
-	ControlImplementationStatusID uint                          `json:"control_implementation_status_id" binding:"required"`
-	ControlEfficiencyStatusID     *uint                         `json:"control_efficiency_status_id,omitempty" binding:"omitempty"`
-	Title                         string                        `json:"title" binding:"required"`
-	Description                   *string                       `json:"description"  binding:"omitempty"`
-	Score                         *uint                         `json:"score" binding:"omitempty"`
-	Comments                      *string                       `json:"comments" binding:"omitempty"`
-	TestedAt                      *string                       `json:"tested_at" binding:"required"` // assuming this will be a date in string format
-	TestedBy                      uint                          `json:"tested_by" binding:"required"`
-	Documents                     []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
+type RiskAnalysisFormDTO struct {
+	Analysis []*UpdatePlanInherentEvaluationItemDTO `json:"analysis" binding:"required"`
 }
 
-// Risk Assessment Workshop Document DTOs
-type RiskAssessmentWorkshopDocumentDTO struct {
+type UpdatePlanInherentEvaluationItemDTO struct {
+	RiskRegisterID         uint                                   `json:"risk_register_id" binding:"required"`
+	RiskMatrixLikelihoodID uint                                   `json:"risk_matrix_likelihood_id" binding:"required"`
+	RiskMatrixImpactID     uint                                   `json:"risk_matrix_impact_id" binding:"required"`
+	RiskImpactAnalyses     []*UpdatePlanRiskImpactAnalysisFormDTO `json:"risk_impact_analyses"`
+}
+
+type UpdatePlanRiskImpactAnalysisFormDTO struct {
+	RiskImpactCategoryID uint `json:"risk_impact_category_id"`
+	RiskMatrixImpactID   uint `json:"risk_matrix_impact_id"`
+}
+
+// Risk Control Associations
+
+type RiskControlAssociationFormDTO struct {
+	Residual []*UpdatePlanResidualControlItemDTO `json:"residual" binding:"required"`
+}
+type UpdatePlanResidualControlItemDTO struct {
+	RiskRegisterID uint `json:"risk_register_id" binding:"required"`
+	ControlID      uint `json:"control_id" binding:"required"`
+}
+
+type RiskControlAssociationListDTO struct {
+	ID                              uint                                  `json:"id"`
+	ReferenceNumber                 string                                `json:"reference_number"`
+	RiskCategoryTitleEn             *string                               `json:"risk_category_title_en"`
+	RiskCategoryTitleAr             *string                               `json:"risk_category_title_ar"`
+	RiskSourceTitleEn               *string                               `json:"risk_source_title_en"`
+	RiskSourceTitleAr               *string                               `json:"risk_source_title_ar"`
+	ResponsibleUnitID               *uint                                 `json:"responsible_unit_id"`
+	ResponsibleUnitTitleEn          *string                               `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr          *string                               `json:"responsible_unit_title_ar"`
+	ResponsibleUserID               *uint                                 `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      *string                               `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      *string                               `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       *string                               `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       *string                               `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          *string                               `json:"responsible_user_initial"`
+	ResponsibleUserColor            *string                               `json:"responsible_user_color"`
+	ResponsibleUserEmail            *string                               `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath *string                               `json:"responsible_user_profile_image_path"`
+	RiskStatusTitleEn               string                                `json:"risk_status_title_en"`
+	RiskStatusTitleAr               string                                `json:"risk_status_title_ar"`
+	RiskResponseStrategyTitleEn     string                                `json:"risk_response_strategy_title_en"`
+	RiskResponseStrategyTitleAr     string                                `json:"risk_response_strategy_title_ar"`
+	RiskStatusType                  string                                `json:"risk_status_type"`
+	RiskStatusColorCode             string                                `json:"risk_status_color_code"`
+	Title                           string                                `json:"title"`
+	Description                     *string                               `json:"description"`
+	ReportedAt                      *string                               `json:"reported_at"`
+	ReviewFrequencyTitleEn          *string                               `json:"review_frequency_title_en"`
+	ReviewFrequencyTitleAr          *string                               `json:"review_frequency_title_ar"`
+	NextReviewDate                  *string                               `json:"next_review_date"`
+	CurrentRiskRatingValueID        *uint                                 `json:"current_risk_rating_value_id"`
+	Comments                        *string                               `json:"comments"`
+	SeverityLevelTitleEn            *string                               `json:"severity_level_title_en"`
+	SeverityLevelTitleAr            *string                               `json:"severity_level_title_ar"`
+	CreatedAt                       string                                `json:"created_at"`
+	UpdatedAt                       *string                               `json:"updated_at"`
+	CreatedUserID                   uint                                  `json:"created_user_id"`
+	CreatedUserFirstNameEn          string                                `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr          string                                `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn           string                                `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr           string                                `json:"created_user_last_name_ar"`
+	CreatedUserInitial              string                                `json:"created_user_initial"`
+	CreatedUserColor                string                                `json:"created_user_color"`
+	CreatedUserEmail                string                                `json:"created_user_email"`
+	CreatedUserProfileImagePath     string                                `json:"created_user_profile_image_path"`
+	UpdatedUserID                   *uint                                 `json:"updated_user_id"`
+	UpdatedUserFirstNameEn          *string                               `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr          *string                               `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn           *string                               `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr           *string                               `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial              string                                `json:"updated_user_initial"`
+	UpdatedUserColor                string                                `json:"updated_user_color"`
+	UpdatedUserEmail                string                                `json:"updated_user_email"`
+	UpdatedUserProfileImagePath     string                                `json:"updated_user_profile_image_path"`
+	CurrentLikelihoodTitleEn        *string                               `json:"current_likelihood_title_en"`
+	CurrentLikelihoodTitleAr        *string                               `json:"current_likelihood_title_ar"`
+	CurrentImpactTitleEn            *string                               `json:"current_impact_title_en"`
+	CurrentImpactTitleAr            *string                               `json:"current_impact_title_ar"`
+	CurrentRiskRatingTitleEn        *string                               `json:"current_risk_rating_title_en"`
+	CurrentRiskRatingTitleAr        *string                               `json:"current_risk_rating_title_ar"`
+	CurrentRiskRatingValue          *uint                                 `json:"current_risk_rating_value"`
+	CurrentRiskRatingColorCode      *string                               `json:"current_risk_rating_color_code"`
+	InherentLikelihoodTitleEn       *string                               `json:"inherent_likelihood_title_en"`
+	InherentLikelihoodTitleAr       *string                               `json:"inherent_likelihood_title_ar"`
+	InherentImpactTitleEn           *string                               `json:"inherent_impact_title_en"`
+	InherentImpactTitleAr           *string                               `json:"inherent_impact_title_ar"`
+	InherentRiskRatingTitleEn       *string                               `json:"inherent_risk_rating_title_en"`
+	InherentRiskRatingTitleAr       *string                               `json:"inherent_risk_rating_title_ar"`
+	InherentRiskRatingValue         *uint                                 `json:"inherent_risk_rating_value"`
+	InherentRiskRatingColorCode     *string                               `json:"inherent_risk_rating_color_code"`
+	ResidualLikelihoodTitleEn       *string                               `json:"residual_likelihood_title_en"`
+	ResidualLikelihoodTitleAr       *string                               `json:"residual_likelihood_title_ar"`
+	ResidualImpactTitleEn           *string                               `json:"residual_impact_title_en"`
+	ResidualImpactTitleAr           *string                               `json:"residual_impact_title_ar"`
+	ResidualRiskRatingTitleEn       *string                               `json:"residual_risk_rating_title_en"`
+	ResidualRiskRatingTitleAr       *string                               `json:"residual_risk_rating_title_ar"`
+	ResidualRiskRatingValue         *uint                                 `json:"residual_risk_rating_value"`
+	ResidualRiskRatingColorCode     *string                               `json:"residual_risk_rating_color_code"`
+	RiskCode                        *string                               `json:"risk_code"`
+	RegistrationDate                *string                               `json:"registration_date"`
+	DivisionID                      *uint                                 `json:"division_id"`
+	DivisionTitleEn                 *string                               `json:"division_title_en"`
+	DivisionTitleAr                 *string                               `json:"division_title_ar"`
+	SectionID                       *uint                                 `json:"section_id"`
+	SectionTitleEn                  *string                               `json:"section_title_en"`
+	SectionTitleAr                  *string                               `json:"section_title_ar"`
+	IsStrategic                     bool                                  `json:"is_strategic"`
+	IsOperational                   bool                                  `json:"is_operational"`
+	ExpectedCause                   *string                               `json:"expected_cause"`
+	Consequence                     *string                               `json:"consequence"`
+	IsInternal                      bool                                  `json:"is_internal"`
+	IsExternal                      bool                                  `json:"is_external"`
+	ControlAnalysis                 *RiskControlAssociationAnalysisDTO    `json:"control_analysis" gorm:"-"`
+	ActionPlans                     []RiskControlAssociationActionPlanDTO `json:"action_plans" gorm:"-"`
+}
+
+type RiskControlAssociationAnalysisDTO struct {
+	ID                                 uint     `json:"id"`
+	Type                               string   `json:"type"`
+	RiskControlID                      uint     `json:"risk_control_id"`
+	ControlID                          uint     `json:"control_id"`
+	ControlTitleEn                     string   `json:"control_title_en"`
+	ControlTitleAr                     string   `json:"control_title_ar"`
+	ControlEfficiencyStatusID          *uint    `json:"control_efficiency_status_id"`
+	ControlEfficiencyStatusTitleEn     *string  `json:"control_efficiency_status_title_en"`
+	ControlEfficiencyStatusTitleAr     *string  `json:"control_efficiency_status_title_ar"`
+	ControlImplementationStatusID      uint     `json:"control_implementation_status_id"`
+	ControlImplementationStatusTitleEn string   `json:"control_implementation_status_title_en"`
+	ControlImplementationStatusTitleAr string   `json:"control_implementation_status_title_ar"`
+	Score                              *uint    `json:"score"`
+	ControlEffectivenessScore          *float64 `json:"control_effectiveness_score"`
+	ControlEffectivenessRatingID       *uint    `json:"control_effectiveness_rating_id"`
+	ControlEffectivenessRatingTitleEn  *string  `json:"control_effectiveness_rating_title_en"`
+	ControlEffectivenessRatingTitleAr  *string  `json:"control_effectiveness_rating_title_ar"`
+	RiskReduction                      *float64 `json:"risk_reduction"`
+}
+
+type RiskControlAssociationActionPlanDTO struct {
+	ID                              uint    `json:"id"`
+	RiskRegisterID                  uint    `json:"risk_register_id"`
+	Title                           string  `json:"title"`
+	Description                     *string `json:"description"`
+	SeverityLevelID                 *uint   `json:"severity_level_id"`
+	SeverityLevelTitleEn            *string `json:"severity_level_title_en"`
+	SeverityLevelTitleAr            *string `json:"severity_level_title_ar"`
+	ResponsibleUnitID               *uint   `json:"responsible_unit_id"`
+	ResponsibleUnitTitleEn          *string `json:"responsible_unit_title_en"`
+	ResponsibleUnitTitleAr          *string `json:"responsible_unit_title_ar"`
+	ResponsibleUserID               uint    `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn      string  `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr      string  `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn       string  `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr       string  `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial          string  `json:"responsible_user_initial"`
+	ResponsibleUserColor            string  `json:"responsible_user_color"`
+	ResponsibleUserEmail            string  `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath string  `json:"responsible_user_profile_image_path"`
+	Comments                        *string `json:"comments"`
+	StartDate                       *string `json:"start_date"`
+	TargetDate                      *string `json:"target_date"`
+	Cost                            *int    `json:"cost"`
+	ActionPlanStatusID              uint    `json:"action_plan_status_id"`
+	ActionPlanStatusTitleEn         string  `json:"action_plan_status_title_en"`
+	ActionPlanStatusTitleAr         string  `json:"action_plan_status_title_ar"`
+	ActionPlanStatusType            string  `json:"action_plan_status_type"`
+	ActionPlanStatusColorCode       string  `json:"action_plan_status_color_code"`
+	ReviewUserID                    *uint   `json:"review_user_id"`
+	ReviewUserFirstNameEn           *string `json:"review_user_first_name_en"`
+	ReviewUserFirstNameAr           *string `json:"review_user_first_name_ar"`
+	ReviewUserLastNameEn            *string `json:"review_user_last_name_en"`
+	ReviewUserLastNameAr            *string `json:"review_user_last_name_ar"`
+	ReviewUserInitial               *string `json:"review_user_initial"`
+	ReviewUserColor                 *string `json:"review_user_color"`
+	ReviewUserEmail                 *string `json:"review_user_email"`
+	ReviewUserProfileImagePath      *string `json:"review_user_profile_image_path"`
+	Percentage                      *uint   `json:"percentage"`
+	Notes                           *string `json:"notes"`
+	DelegateeUserID                 *uint   `json:"delegatee_user_id"`
+	DelegateeUserFirstNameEn        *string `json:"delegatee_user_first_name_en"`
+	DelegateeUserFirstNameAr        *string `json:"delegatee_user_first_name_ar"`
+	DelegateeUserLastNameEn         *string `json:"delegatee_user_last_name_en"`
+	DelegateeUserLastNameAr         *string `json:"delegatee_user_last_name_ar"`
+	DelegateeUserInitial            *string `json:"delegatee_user_initial"`
+	DelegateeUserColor              *string `json:"delegatee_user_color"`
+	DelegateeUserEmail              *string `json:"delegatee_user_email"`
+	DelegateeUserProfileImagePath   *string `json:"delegatee_user_profile_image_path"`
+	CreatedAt                       string  `json:"created_at"`
+	UpdatedAt                       *string `json:"updated_at"`
+	CreatedUserID                   uint    `json:"created_user_id"`
+	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr          string  `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn           string  `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr           string  `json:"created_user_last_name_ar"`
+	CreatedUserInitial              string  `json:"created_user_initial"`
+	CreatedUserColor                string  `json:"created_user_color"`
+	CreatedUserEmail                string  `json:"created_user_email"`
+	CreatedUserProfileImagePath     string  `json:"created_user_profile_image_path"`
+	UpdatedUserID                   *uint   `json:"updated_user_id"`
+	UpdatedUserFirstNameEn          *string `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr          *string `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn           *string `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr           *string `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial              *string `json:"updated_user_initial"`
+	UpdatedUserColor                *string `json:"updated_user_color"`
+	UpdatedUserEmail                *string `json:"updated_user_email"`
+	UpdatedUserProfileImagePath     *string `json:"updated_user_profile_image_path"`
+}
+
+//COMMON DTOS
+
+type CommonListQueryParamsDTO struct {
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Page     int
+	PageSize int
+}
+
+type CommonDocumentFormDTO struct {
+	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
+}
+
+type CommonDocumentDTO struct {
 	ID           *uint   `json:"id"`
 	URL          *string `json:"url"`
 	Name         *string `json:"name"`
@@ -880,21 +984,7 @@ type RiskAssessmentWorkshopDocumentDTO struct {
 	Size         *int    `json:"size"`
 }
 
-type RiskAssessmentWorkshopDocumentFormDTO struct {
-	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
-}
-
-// Risk Workshop Assessment Document DTOs
-type RiskWorkshopAssessmentDocumentDTO struct {
-	ID           *uint   `json:"id"`
-	URL          *string `json:"url"`
-	Name         *string `json:"name"`
-	Token        *string `json:"token"`
-	OriginalName *string `json:"original_name"`
-	Type         *string `json:"type"`
-	Size         *int    `json:"size"`
-}
-
-type RiskWorkshopAssessmentDocumentFormDTO struct {
-	Documents []*commonDTOs.DocumentFormDTO `json:"documents" binding:"required"`
+type RiskMitigationUpdatePlanFormDTO struct {
+	RiskRegisterID         uint  `json:"risk_register_id" validate:"required"`
+	RiskResponseStrategyID *uint `json:"risk_response_strategy_id"`
 }
