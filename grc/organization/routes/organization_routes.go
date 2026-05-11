@@ -62,6 +62,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationChartUsers := app.OrganizationModule.OrganizationCartController
 	myDashboardController := app.OrganizationModule.MyDashboardController
 	committeeTermController := app.OrganizationModule.CommitteeTermController
+	committeeMemberTypeController := app.OrganizationModule.CommitteeMemberTypeController
 	committeeTypeController := app.OrganizationModule.CommitteeTypeController
 	committeeClassificationController := app.OrganizationModule.CommitteeClassificationController
 	internalCommitteeStatusController := app.OrganizationModule.InternalCommitteeStatusController
@@ -532,6 +533,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/committee-terms", committeeTermController.GetAllCommitteeTerms)
 	organizationRoutes.GET("/committee-terms/:id", committeeTermController.GetCommitteeTermDetails)
 
+	// Committee Member Type
+	organizationRoutes.GET("/committee-member-types", committeeMemberTypeController.GetAllCommitteeMemberTypes)
+	organizationRoutes.GET("/committee-member-types/:id", committeeMemberTypeController.GetCommitteeMemberTypeDetails)
+
 	// Committee Term Status
 	organizationRoutes.GET("/internal-committee-statuses", internalCommitteeStatusController.GetAllInternalCommitteeStatuses)
 	organizationRoutes.GET("/internal-committee-statuses/:id", internalCommitteeStatusController.GetInternalCommitteeStatusDetails)
@@ -539,6 +544,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Committee Type
 	organizationRoutes.GET("/committee-types", committeeTypeController.GetAllCommitteeTypes)
 	organizationRoutes.GET("/committee-types/:id", committeeTypeController.GetCommitteeTypeDetails)
+	organizationRoutes.POST("/committee-types", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), committeeTypeController.CreateCommitteeType)
+	organizationRoutes.PUT("/committee-types/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), committeeTypeController.UpdateCommitteeType)
+	organizationRoutes.POST("/committee-types/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), committeeTypeController.DeleteCommitteeTypes)
 
 	// Committee Classification
 	organizationRoutes.GET("/committee-classifications", committeeClassificationController.GetAllCommitteeClassifications)
