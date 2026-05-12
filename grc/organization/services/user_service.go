@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/go-ldap/ldap/v3"
 	"github.com/mitchellh/mapstructure"
@@ -866,10 +867,24 @@ func (as *UserService) CreateUserLoginHistory(user *models.User, loginStatus str
 }
 
 func generateInitial(firstName, lastName string) string {
-	firstInitial := string(firstName[0])
-	lastInitial := string(lastName[0])
+	firstName = strings.TrimSpace(firstName)
+	lastName = strings.TrimSpace(lastName)
 
-	return strings.ToUpper(firstInitial + lastInitial)
+	firstInitial := firstRune(firstName)
+	lastInitial := firstRune(lastName)
+
+	if firstInitial == "" && lastInitial == "" {
+		return ""
+	}
+
+	return firstInitial + lastInitial
+}
+
+func firstRune(value string) string {
+	for _, r := range value {
+		return string(unicode.ToUpper(r))
+	}
+	return ""
 }
 
 func (us *UserService) GetUserPrimaryUnitID(userID uint) (uint, error) {
