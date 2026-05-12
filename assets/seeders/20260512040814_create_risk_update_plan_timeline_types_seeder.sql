@@ -1,78 +1,49 @@
 -- +goose Up
 -- +goose StatementBegin
-DECLARE @riskModuleID INT;
-DECLARE @superAdminRoleID INT;
-DECLARE @viewPermissionTypeID INT, @modifyPermissionTypeID INT, @managePermissionTypeID INT;
- 
--- Get parent module ID
-SELECT @riskModuleID = id FROM modules WHERE identifier = 'risk';
- 
--- Insert new submodule: risk_register_update_plan
-INSERT INTO modules (identifier, title_en, title_ar, module_id, [order], icon, route)
+
+INSERT INTO risk_update_plan_timeline_types (title_en, title_ar, color_code, type)
 VALUES
-    ('risk_register_update_plan', 'Risk Register Update Plan', 'خطة تحديث سجل المخاطر', @riskModuleID, 9, NULL, '/risk/risk-register-update-plan');
- 
--- Get role and permission type IDs
-SELECT @superAdminRoleID = id FROM roles WHERE is_super_admin = 1;
-SELECT @viewPermissionTypeID = id FROM role_permission_types WHERE type = 'view';
-SELECT @modifyPermissionTypeID = id FROM role_permission_types WHERE type = 'modify';
-SELECT @managePermissionTypeID = id FROM role_permission_types WHERE type = 'manage';
- 
--- Get the ID of the new submodule
-DECLARE @riskRegisterUpdatePlanModuleID INT;
-SELECT @riskRegisterUpdatePlanModuleID = id FROM modules WHERE identifier = 'risk_register_update_plan';
- 
--- Assign view, modify, and manage permissions to super admin
-IF NOT EXISTS (
-    SELECT 1 FROM role_permissions
-    WHERE role_id = @superAdminRoleID
-    AND module_id = @riskRegisterUpdatePlanModuleID
-    AND role_permission_type_id = @viewPermissionTypeID
-)
-BEGIN
-    INSERT INTO role_permissions (role_id, module_id, role_permission_type_id, is_granted, created_by, created_at)
-    VALUES (@superAdminRoleID, @riskRegisterUpdatePlanModuleID, @viewPermissionTypeID, 1, @superAdminRoleID, GETDATE());
-END
- 
-IF NOT EXISTS (
-    SELECT 1 FROM role_permissions
-    WHERE role_id = @superAdminRoleID
-    AND module_id = @riskRegisterUpdatePlanModuleID
-    AND role_permission_type_id = @modifyPermissionTypeID
-)
-BEGIN
-    INSERT INTO role_permissions (role_id, module_id, role_permission_type_id, is_granted, created_by, created_at)
-    VALUES (@superAdminRoleID, @riskRegisterUpdatePlanModuleID, @modifyPermissionTypeID, 1, @superAdminRoleID, GETDATE());
-END
- 
-IF NOT EXISTS (
-    SELECT 1 FROM role_permissions
-    WHERE role_id = @superAdminRoleID
-    AND module_id = @riskRegisterUpdatePlanModuleID
-    AND role_permission_type_id = @managePermissionTypeID
-)
-BEGIN
-    INSERT INTO role_permissions (role_id, module_id, role_permission_type_id, is_granted, created_by, created_at)
-    VALUES (@superAdminRoleID, @riskRegisterUpdatePlanModuleID, @managePermissionTypeID, 1, @superAdminRoleID, GETDATE());
-END
+('Risk Register Update Plan', N'خطة تحديث سجل المخاطر', '#90DD75', 'risk_register_update_plan'),
+('ERM Department Evaluation', N'تقييم قسم إدارة المخاطر', '#90DD75', 'erm_department_evaluation'),
+('Introductory Meeting', N'الاجتماع التمهيدي', '#90DD75', 'introductory_meeting'),
+('Business Context', N'سياق العمل', '#90DD75', 'business_context'),
+('Self-Awareness Training', N'تدريب الوعي الذاتي', '#90DD75', 'self_awareness_training'),
+('Leadership Assessment', N'تقييم القيادة', '#90DD75', 'leadership_assessment'),
+('Risk Team Assessment', N'تقييم فريق المخاطر', '#90DD75', 'risk_team_assessment'),
+('Risk Identification', N'تحديد المخاطر', '#90DD75', 'risk_identification'),
 
--- Update the order for existing submodules
-UPDATE modules SET [order] = 10 WHERE identifier = 'risk_report';
+('Control Register Updated', N'تحديث سجل الضوابط', '#FFFF00', 'control_register_updated'),
 
+('Risk Assessment Workshop', N'ورشة تقييم المخاطر', '#FFC879', 'risk_assessment_workshop'),
+('Risk Workshop Assessment', N'تقييم ورشة المخاطر', '#FFC879', 'risk_workshop_assessment'),
+('Risk Analysis', N'تحليل المخاطر', '#FFC879', 'risk_analysis'),
+
+('Risk Control Association', N'ارتباط الضوابط', '#0E7B61', 'risk_control_association'),
+
+('Risk Mitigation', N'تخفيف المخاطر', '#DB0015', 'risk_mitigation');
 
 -- +goose StatementEnd
- 
+
+
 -- +goose Down
 -- +goose StatementBegin
--- Remove permissions for 'risk_register_update_plan' submodule
-DELETE FROM role_permissions
-WHERE module_id IN (
-    SELECT id FROM modules WHERE identifier = 'risk_register_update_plan'
+
+DELETE FROM risk_update_plan_timeline_types
+WHERE type IN (
+    'risk_register_update_plan',
+    'erm_department_evaluation',
+    'introductory_meeting',
+    'business_context',
+    'self_awareness_training',
+    'leadership_assessment',
+    'risk_team_assessment',
+    'risk_identification',
+    'control_register_updated',
+    'risk_assessment_workshop',
+    'risk_workshop_assessment',
+    'risk_analysis',
+    'risk_control_association',
+    'risk_mitigation'
 );
- 
--- Remove 'risk_register_update_plan' submodule
-DELETE FROM modules
-WHERE identifier = 'risk_register_update_plan';
--- revert module orders back
-UPDATE modules SET [order] = 9 WHERE identifier = 'risk_report';
+
 -- +goose StatementEnd
