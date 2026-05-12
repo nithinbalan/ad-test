@@ -99,6 +99,12 @@ func (ruplas *RiskUpdatePlanLeadershipAssessmentService) CreateLeadershipAssessm
 		return err
 	}
 
+	// Validate that users exist for the business unit
+	if len(users) == 0 {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("no users found for this business unit"), "not_exist", "leadership assessment users")
+	}
+
 	// Create leadership assessment mappings
 	assessments := make([]*models.RiskUpdatePlanLeadershipAssessment, 0, len(users))
 	for _, user := range users {

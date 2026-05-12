@@ -31,6 +31,9 @@ type RiskRegisterUpdatePlanServiceInterface interface {
 	UpdateTimelineCompletion(timelineID uint, currentUserID uint, tx ...utility.DatabaseTransaction) error
 	CalculateAndUpdatePercentage(planID uint, tx ...utility.DatabaseTransaction) error
 	MarkTimelineAsIncomplete(timelineID uint, tx ...utility.DatabaseTransaction) error
+
+	// Get by plan ID
+	GetByPlanID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskRegisterUpdatePlan, error)
 }
 
 type RiskRegisterUpdatePlanService struct {
@@ -485,4 +488,16 @@ func (s *RiskRegisterUpdatePlanService) CalculateAndUpdatePercentage(planID uint
 
 func (s *RiskRegisterUpdatePlanService) MarkTimelineAsIncomplete(timelineID uint, tx ...utility.DatabaseTransaction) error {
 	return s.repo.MarkTimelineAsIncomplete(timelineID, tx...)
+}
+
+func (s *RiskRegisterUpdatePlanService) GetByPlanID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskRegisterUpdatePlan, error) {
+	plan, err := s.repo.GetByPlanID(id, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	return plan, nil
 }

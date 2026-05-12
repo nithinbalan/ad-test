@@ -32,6 +32,7 @@ type RiskRegisterUpdatePlanRepositoryInterface interface {
 	CalculateAndUpdatePercentage(planID uint, tx ...utility.DatabaseTransaction) error
 	DeleteTimelinesByPlanID(planID uint, tx ...utility.DatabaseTransaction) error
 	MarkTimelineAsIncomplete(timelineID uint, tx ...utility.DatabaseTransaction) error
+	GetByPlanID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskRegisterUpdatePlan, error)
 }
 
 type RiskRegisterUpdatePlanRepository struct {
@@ -368,7 +369,7 @@ func (repo *RiskRegisterUpdatePlanRepository) CalculateAndUpdatePercentage(planI
 		return nil
 	}
 
-	// Count completed timelines (is_completed = true OR is_not_applicable = true)
+	// Count completed timelines (is_completed = true)
 	var completedCount int64
 	if err := db.Model(&models.RiskUpdatePlanTimeline{}).
 		Where("risk_update_plan_id = ? AND is_completed = ?", planID, true).
@@ -376,8 +377,23 @@ func (repo *RiskRegisterUpdatePlanRepository) CalculateAndUpdatePercentage(planI
 		return err
 	}
 
-	// Calculate percentage: (completedCount / totalCount) * 100
-	percentage := int((float64(completedCount) / float64(totalCount)) * 100)
+	// Get the plan to check if ApprovedBYID is set
+	var plan models.RiskRegisterUpdatePlan
+	if err := db.Select("approved_by_id").Where("id = ?", planID).First(&plan).Error; err != nil {
+		return err
+	}
+
+	// Total steps = timeline count + 1 (final approval step)
+	totalSteps := float64(totalCount + 1)
+
+	// Completed steps = completed timelines + (1 if approved, else 0)
+	completedSteps := float64(completedCount)
+	if plan.ApprovedBYID != nil {
+		completedSteps += 1
+	}
+
+	// Calculate percentage: (completedSteps / totalSteps) * 100
+	percentage := int((completedSteps / totalSteps) * 100)
 
 	// Update the plan's total_percentage_completed
 	if err := db.Model(&models.RiskRegisterUpdatePlan{}).
@@ -400,4 +416,18 @@ func (repo *RiskRegisterUpdatePlanRepository) DeleteTimelinesByPlanID(planID uin
 	}
 
 	return nil
+}
+
+func (repo *RiskRegisterUpdatePlanRepository) GetByPlanID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskRegisterUpdatePlan, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var plan models.RiskRegisterUpdatePlan
+	if err := db.First(&plan, id).Error; err != nil {
+		return nil, err
+	}
+
+	return &plan, nil
 }

@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
@@ -77,6 +78,11 @@ func (rupbcs *RiskUpdatePlanBusinessContextService) CreateBusinessContext(planID
 	orgBusinessContext, err := rupbcs.repo.GetOrganizationUnitBusinessContextByBusinessUnit(businessUnitID)
 	if err != nil {
 		return err
+	}
+
+	// Validate that business context data exists
+	if orgBusinessContext == nil {
+		return utility.NewValidationError(fmt.Errorf("no business context data found for this business unit"), "not_exist", "business context")
 	}
 
 	tx := rupbcs.repo.BeginTransaction()

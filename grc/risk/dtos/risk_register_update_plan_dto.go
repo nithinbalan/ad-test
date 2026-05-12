@@ -4,6 +4,7 @@ import (
 	"time"
 
 	commonDTOs "jethur/grc/common/dtos"
+	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
 )
@@ -99,7 +100,7 @@ type RiskRegisterUpdatePlanDetailDTO struct {
 	ApprovedByUser                 *organizationDTOs.UserMinimalDTO             `json:"approved_by"`
 	ApprovedAt                     *time.Time                                   `json:"approved_at"`
 	NextReviewLevel                *int                                         `json:"next_review_level"`
-	WorkflowStatusID               *uint                                        `json:"workflow_status_id"`
+	WorkflowStatus                 *masterDTOs.WorkflowStatusDTO                `json:"workflow_status"`
 }
 
 type RiskRegisterUpdatePlanTeamMemberDetailDTO struct {

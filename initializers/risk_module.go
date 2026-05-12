@@ -76,6 +76,9 @@ type RiskModule struct {
 	RiskUpdatePlanRiskAnalysisController           *controllers.RiskUpdatePlanRiskAnalysisController
 	RiskUpdatePlanRiskControlAssociationController *controllers.RiskUpdatePlanRiskControlAssociationController
 	RiskUpdatePlanRiskMitigationController         *controllers.RiskUpdatePlanRiskMitigationController
+	RiskRegisterUpdatePlanWorkflowController       *controllers.RiskRegisterUpdatePlanWorkflowController
+	RiskRegisterUpdatePlanReviewController         *controllers.RiskRegisterUpdatePlanReviewController
+	RiskRegisterUpdatePlanReviewCommentController  *controllers.RiskUpdatePlanReviewCommentController
 
 	RiskRegisterSvc         services.RiskRegisterServiceInterface
 	RiskHeatMapSvc          services.RiskHeatmapServiceInterface
@@ -698,6 +701,43 @@ func NewRiskModule(db *gorm.DB,
 	)
 	riskUpdatePlanRiskMitigationController := controllers.NewRiskUpdatePlanRiskMitigationController(riskUpdatePlanRiskMitigationSvc)
 
+	// Risk Register Update Plan Workflow
+	riskRegisterUpdatePlanWorkflowRepo := repositories.NewRiskRegisterUpdatePlanWorkflowRepository(db)
+	riskRegisterUpdatePlanWorkflowSvc := services.NewRiskRegisterUpdatePlanWorkflowService(
+		riskRegisterUpdatePlanWorkflowRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.WorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		masterModule.WorkflowContextSvc,
+		commonModule.NotificationService,
+	)
+	riskRegisterUpdatePlanWorkflowSvc.SetRiskRegisterUpdatePlanService(riskRegisterUpdatePlanSvc)
+	riskRegisterUpdatePlanWorkflowController := controllers.NewRiskRegisterUpdatePlanWorkflowController(riskRegisterUpdatePlanWorkflowSvc)
+
+	// Risk Register Update Plan Review
+	riskRegisterUpdatePlanReviewRepo := repositories.NewRiskRegisterUpdatePlanReviewRepository(db)
+	riskRegisterUpdatePlanReviewSvc := services.NewRiskRegisterUpdatePlanReviewService(
+		riskRegisterUpdatePlanReviewRepo,
+		sharedModule.ActivityLogService,
+		riskRegisterUpdatePlanSvc,
+		riskRegisterUpdatePlanWorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+	)
+	riskRegisterUpdatePlanReviewController := controllers.NewRiskRegisterUpdatePlanReviewController(riskRegisterUpdatePlanReviewSvc)
+
+	riskRegisterUpdatePlanReviewCommentRepo := repositories.NewRiskUpdatePlanReviewCommentRepository(db)
+	riskRegisterUpdatePlanReviewCommentSvc := services.NewRiskUpdatePlanReviewCommentService(
+		riskRegisterUpdatePlanReviewCommentRepo,
+		organizationModule.UserSvc,
+		sharedModule.ActivityLogService,
+		riskRegisterUpdatePlanSvc,
+		masterModule.CommentStatusSvc,
+	)
+	riskRegisterUpdatePlanReviewCommentController := controllers.NewRiskUpdatePlanReviewCommentController(riskRegisterUpdatePlanReviewCommentSvc)
+
 	return &RiskModule{
 		RiskCategoryController:                         riskCategoryController,
 		PotentialRiskStatusController:                  potentialRiskStatusController,
@@ -766,6 +806,9 @@ func NewRiskModule(db *gorm.DB,
 		RiskUpdatePlanRiskAnalysisController:           riskUpdatePlanRiskAnalysisController,
 		RiskUpdatePlanRiskControlAssociationController: riskUpdatePlanRiskControlAssociationController,
 		RiskUpdatePlanRiskMitigationController:         riskUpdatePlanRiskMitigationController,
+		RiskRegisterUpdatePlanWorkflowController:       riskRegisterUpdatePlanWorkflowController,
+		RiskRegisterUpdatePlanReviewController:         riskRegisterUpdatePlanReviewController,
+		RiskRegisterUpdatePlanReviewCommentController:  riskRegisterUpdatePlanReviewCommentController,
 
 		RiskRegisterSvc:         riskRegisterSvc,
 		RiskHeatMapSvc:          riskHeatmapSvc,

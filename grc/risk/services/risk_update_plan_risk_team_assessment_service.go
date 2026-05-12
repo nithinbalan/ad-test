@@ -106,6 +106,12 @@ func (ruprtas *RiskUpdatePlanRiskTeamAssessmentService) CreateRiskTeamAssessment
 		return err
 	}
 
+	// Validate that risk champion exists
+	if plan.RiskChampionID == 0 {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("no risk champion assigned for this plan"), "not_exist", "risk champion")
+	}
+
 	assessments := make([]*models.RiskUpdatePlanRiskTeamAssessment, 0, 1)
 	assessments = append(assessments, &models.RiskUpdatePlanRiskTeamAssessment{
 		RiskUpdatePlanTimelineID: timeline.ID,

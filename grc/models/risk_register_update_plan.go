@@ -26,17 +26,18 @@ type RiskRegisterUpdatePlan struct {
 	WorkflowStatusID               *uint      `json:"workflow_status_id" gorm:"default:null"`
 
 	// Relationships
-	Division                     *OrganizationUnit                   `gorm:"foreignKey:DivisionID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	BusinessUnit                 *OrganizationUnit                   `gorm:"foreignKey:BusinessUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RiskRegisterUpdatePlanStatus *RiskRegisterUpdatePlanStatus       `gorm:"foreignKey:RiskRegisterUpdatePlanStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RiskChampion                 *User                               `gorm:"foreignKey:RiskChampionID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	TeamMembers                  []*RiskRegisterUpdatePlanTeamMember `gorm:"foreignKey:RiskRegisterUpdatePlanID;constraint:OnUpdate:NO ACTION,OnDelete:CASCADE"`
-	Timelines                    []*RiskUpdatePlanTimeline           `gorm:"foreignKey:RiskUpdatePlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	CreatedByUser                *User                               `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	UpdatedByUser                *User                               `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	SubmittedByUser              *User                               `gorm:"foreignKey:SubmittedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ApprovedByUser               *User                               `gorm:"foreignKey:ApprovedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	WorkflowStatus               *WorkflowStatus                     `gorm:"foreignKey:WorkflowStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	Division                        *OrganizationUnit                   `gorm:"foreignKey:DivisionID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	BusinessUnit                    *OrganizationUnit                   `gorm:"foreignKey:BusinessUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskRegisterUpdatePlanStatus    *RiskRegisterUpdatePlanStatus       `gorm:"foreignKey:RiskRegisterUpdatePlanStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskChampion                    *User                               `gorm:"foreignKey:RiskChampionID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	TeamMembers                     []*RiskRegisterUpdatePlanTeamMember `gorm:"foreignKey:RiskRegisterUpdatePlanID;constraint:OnUpdate:NO ACTION,OnDelete:CASCADE"`
+	Timelines                       []*RiskUpdatePlanTimeline           `gorm:"foreignKey:RiskUpdatePlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskRegisterUpdatePlanWorkflows []*RiskRegisterUpdatePlanWorkflow   `gorm:"foreignKey:RiskRegisterUpdatePlanID"`
+	CreatedByUser                   *User                               `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	UpdatedByUser                   *User                               `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	SubmittedByUser                 *User                               `gorm:"foreignKey:SubmittedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ApprovedByUser                  *User                               `gorm:"foreignKey:ApprovedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	WorkflowStatus                  *WorkflowStatus                     `gorm:"foreignKey:WorkflowStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 // TableName overrides the table name used by GORM
