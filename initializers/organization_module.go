@@ -55,6 +55,7 @@ type OrganizationModule struct {
 	OrganizationCartController                *controllers.OrganizationChartController
 	MyDashboardController                     *controllers.MyDashboardController
 	CommitteeTermController                   *controllers.CommitteeTermController
+	CommitteeMemberTypeController             *controllers.CommitteeMemberTypeController
 	CommitteeTypeController                   *controllers.CommitteeTypeController
 	CommitteeClassificationController         *controllers.CommitteeClassificationController
 	InternalCommitteeStatusController         *controllers.InternalCommitteeStatusController
@@ -329,12 +330,16 @@ func NewOrganizationModule(
 	committeeTermSvc := services.NewCommitteeTermService(committeeTermRepo)
 	committeeTermController := controllers.NewCommitteeTermController(committeeTermSvc)
 
+	committeeMemberTypeRepo := repositories.NewCommitteeMemberTypeRepository(db)
+	committeeMemberTypeSvc := services.NewCommitteeMemberTypeService(committeeMemberTypeRepo)
+	committeeMemberTypeController := controllers.NewCommitteeMemberTypeController(committeeMemberTypeSvc)
+
 	internalCommitteeStatusRepo := repositories.NewInternalCommitteeStatusRepository(db)
 	internalCommitteeStatusSvc := services.NewInternalCommitteeStatusService(internalCommitteeStatusRepo)
 	internalCommitteeStatusController := controllers.NewInternalCommitteeStatusController(internalCommitteeStatusSvc)
 
 	committeeTypeRepo := repositories.NewCommitteeTypeRepository(db)
-	committeeTypeSvc := services.NewCommitteeTypeService(committeeTypeRepo)
+	committeeTypeSvc := services.NewCommitteeTypeService(committeeTypeRepo, sharedModule.ActivityLogService)
 	committeeTypeController := controllers.NewCommitteeTypeController(committeeTypeSvc)
 
 	committeeClassificationRepo := repositories.NewCommitteeClassificationRepository(db)
@@ -449,6 +454,7 @@ func NewOrganizationModule(
 		OrganizationCartController:                organizationChartController,
 		MyDashboardController:                     myDashboardController,
 		CommitteeTermController:                   committeeTermController,
+		CommitteeMemberTypeController:             committeeMemberTypeController,
 		CommitteeTypeController:                   committeeTypeController,
 		CommitteeClassificationController:         committeeClassificationController,
 		InternalCommitteeStatusController:         internalCommitteeStatusController,
