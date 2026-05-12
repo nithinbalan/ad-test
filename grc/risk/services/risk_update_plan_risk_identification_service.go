@@ -133,11 +133,6 @@ func (rrupids *RiskUpdatePlanRiskIdentificationService) CreateRiskIdentification
 		return 0, err
 	}
 
-	referenceNumber, err := rrupids.repo.GenerateReferenceNumber()
-	if err != nil {
-		return 0, err
-	}
-
 	riskMatrix, err := rrupids.riskMatrixSvc.GetByType("erm")
 	if err != nil {
 		return 0, err
@@ -151,7 +146,6 @@ func (rrupids *RiskUpdatePlanRiskIdentificationService) CreateRiskIdentification
 	registrationDate := time.Now()
 
 	riskRegister := &models.RiskRegister{
-		ReferenceNumber:          referenceNumber,
 		RiskCategoryID:           riskRegisterFormDTO.RiskCategoryID,
 		RiskSourceID:             riskRegisterFormDTO.RiskSourceID,
 		RiskMatrixID:             riskMatrix.ID,
@@ -298,7 +292,6 @@ func (rrupids *RiskUpdatePlanRiskIdentificationService) CreateRiskIdentification
 				HeadingEn:            "Risk Register Responsibility Assigned",
 				HeadingAr:            "مسؤولية تسجيل المخاطر المعينة",
 				TitleEn:              riskRegisterFormDTO.Title,
-				ReferenceNumber:      referenceNumber,
 				Entity:               &entity,
 				Action:               &action,
 				URLParam:             urlParam,
@@ -592,7 +585,6 @@ func (rrupids *RiskUpdatePlanRiskIdentificationService) UpdateRiskIdentification
 					HeadingEn:            "Risk Register Responsibility Removed",
 					HeadingAr:            "تمت إزالة مسؤولية تسجيل المخاطر",
 					TitleEn:              existingRiskRegister.Title,
-					ReferenceNumber:      existingRiskRegister.ReferenceNumber,
 					Entity:               &entity,
 					Action:               &oldResponsibleUserAction,
 					URLParam:             urlParam,
@@ -688,7 +680,6 @@ func (rrupids *RiskUpdatePlanRiskIdentificationService) UpdateRiskIdentification
 					HeadingEn:            "Risk Register Responsibility Assigned",
 					HeadingAr:            "مسؤولية تسجيل المخاطر المعينة",
 					TitleEn:              existingRiskRegister.Title,
-					ReferenceNumber:      existingRiskRegister.ReferenceNumber,
 					Entity:               &entity,
 					Action:               &newResponsibleUserAction,
 					URLParam:             urlParam,

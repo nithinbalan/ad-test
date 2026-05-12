@@ -96,16 +96,26 @@ func (ruprms *RiskUpdatePlanRiskMitigationService) UpdateRiskMitigation(planID u
 		return err
 	}
 
-	// Update timeline completion
-	if err := ruprms.riskUpdatePlanSvc.UpdateTimelineCompletion(timeline.ID, currentUserID, tx); err != nil {
+	// Count risk mitigations
+	riskMitigationCount, err := ruprms.repo.CountRiskMitigationsByPlanID(planID, tx)
+	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// Calculate and update percentage
-	if err := ruprms.riskUpdatePlanSvc.CalculateAndUpdatePercentage(planID, tx); err != nil {
-		tx.Rollback()
-		return err
+	// Only update timeline completion and percentage when count is 1
+	if riskMitigationCount == 1 {
+		// Update timeline completion
+		if err := ruprms.riskUpdatePlanSvc.UpdateTimelineCompletion(timeline.ID, currentUserID, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// Calculate and update percentage
+		if err := ruprms.riskUpdatePlanSvc.CalculateAndUpdatePercentage(planID, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	if err := tx.Commit(); err != nil {

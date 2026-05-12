@@ -58,7 +58,11 @@ type RiskRegisterServiceInterface interface {
 	ValidateImportRisks(input []map[string]interface{}) ([]map[string]interface{}, error)
 	ImportRisks(input []map[string]interface{}, currentUserID uint) ([]uint, error)
 
+	GenerateReferenceNumber() (string, error)
+
 	GetAllIdentifiedRisks(params *riskDTOs.RiskRegisterListQueryParamsDTO) (*riskDTOs.RiskRegisterListResponseDTO, error)
+
+	UpdateRisk(risk *models.RiskRegister, tx ...utility.DatabaseTransaction) error
 }
 
 // Service and implementations
@@ -275,7 +279,7 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 	registrationDate := time.Now()
 
 	riskRegister := &models.RiskRegister{
-		ReferenceNumber:   referenceNumber,
+		ReferenceNumber:   &referenceNumber,
 		RiskCategoryID:    riskRegisterFormDTO.RiskCategoryID,
 		RiskSourceID:      riskRegisterFormDTO.RiskSourceID,
 		RiskMatrixID:      riskMatrix.ID,
@@ -1057,7 +1061,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 					HeadingEn:            "Risk Register Responsibility Removed",
 					HeadingAr:            "تمت إزالة مسؤولية تسجيل المخاطر",
 					TitleEn:              existingRiskRegister.Title,
-					ReferenceNumber:      existingRiskRegister.ReferenceNumber,
+					ReferenceNumber:      *existingRiskRegister.ReferenceNumber,
 					Entity:               &entity,
 					Action:               &oldResponsibleUserAction,
 					URLParam:             urlParam,
@@ -1153,7 +1157,7 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 					HeadingEn:            "Risk Register Responsibility Assigned",
 					HeadingAr:            "مسؤولية تسجيل المخاطر المعينة",
 					TitleEn:              existingRiskRegister.Title,
-					ReferenceNumber:      existingRiskRegister.ReferenceNumber,
+					ReferenceNumber:      *existingRiskRegister.ReferenceNumber,
 					Entity:               &entity,
 					Action:               &newResponsibleUserAction,
 					URLParam:             urlParam,
@@ -3581,4 +3585,12 @@ func fetchRootCauseAnalysesForExport(riskID uint, riskReportRepo riskRepositorie
 	}
 
 	return result, nil
+}
+
+func (s *RiskRegisterService) GenerateReferenceNumber() (string, error) {
+	return s.repo.GenerateReferenceNumber()
+}
+
+func (s *RiskRegisterService) UpdateRisk(risk *models.RiskRegister, tx ...utility.DatabaseTransaction) error {
+	return s.repo.Update(risk, tx...)
 }

@@ -33,6 +33,12 @@ type RiskRegisterUpdatePlanRepositoryInterface interface {
 	DeleteTimelinesByPlanID(planID uint, tx ...utility.DatabaseTransaction) error
 	MarkTimelineAsIncomplete(timelineID uint, tx ...utility.DatabaseTransaction) error
 	GetByPlanID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskRegisterUpdatePlan, error)
+
+	// Plan Status Operations
+	UpdatePlanStatus(planID uint, statusID uint, tx ...utility.DatabaseTransaction) error
+
+	// Risk Operations
+	GetRisksByPlanID(planID uint, tx ...utility.DatabaseTransaction) ([]*models.RiskRegister, error)
 }
 
 type RiskRegisterUpdatePlanRepository struct {
@@ -430,4 +436,34 @@ func (repo *RiskRegisterUpdatePlanRepository) GetByPlanID(id uint, tx ...utility
 	}
 
 	return &plan, nil
+}
+
+func (repo *RiskRegisterUpdatePlanRepository) UpdatePlanStatus(planID uint, statusID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Model(&models.RiskRegisterUpdatePlan{}).
+		Where("id = ?", planID).
+		Update("risk_register_update_plan_status_id", statusID).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *RiskRegisterUpdatePlanRepository) GetRisksByPlanID(planID uint, tx ...utility.DatabaseTransaction) ([]*models.RiskRegister, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var risks []*models.RiskRegister
+	err := db.Where("risk_register_update_plan_id = ?", planID).Find(&risks).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return risks, nil
 }

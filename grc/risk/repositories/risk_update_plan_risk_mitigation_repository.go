@@ -11,6 +11,7 @@ type RiskUpdatePlanRiskMitigationRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	UpdateRiskResponseStrategy(riskID uint, responseStrategyID *uint, tx ...utility.DatabaseTransaction) error
 	GetRiskByID(riskID uint, tx ...utility.DatabaseTransaction) (*models.RiskRegister, error)
+	CountRiskMitigationsByPlanID(planID uint, tx ...utility.DatabaseTransaction) (int64, error)
 }
 
 type RiskUpdatePlanRiskMitigationRepository struct {
@@ -55,4 +56,21 @@ func (repo *RiskUpdatePlanRiskMitigationRepository) GetRiskByID(riskID uint, tx 
 	}
 
 	return &risk, nil
+}
+
+func (repo *RiskUpdatePlanRiskMitigationRepository) CountRiskMitigationsByPlanID(planID uint, tx ...utility.DatabaseTransaction) (int64, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var count int64
+	err := db.Model(&models.RiskRegister{}).
+		Where("risk_register_update_plan_id = ? AND risk_response_strategy_id IS NOT NULL", planID).
+		Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }

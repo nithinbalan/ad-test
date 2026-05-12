@@ -28,6 +28,8 @@ type RiskRegisterUpdatePlanReviewService struct {
 	workflowStatusSvc                 masterServices.WorkflowStatusServiceInterface
 	userSvc                           organizationSvc.UserServiceInterface
 	notificationSvc                   commonServices.NotificationServiceInterface
+	planStatusSvc                     RiskRegisterUpdatePlanStatusServiceInterface
+	riskRegisterSvc                   RiskRegisterServiceInterface
 }
 
 func NewRiskRegisterUpdatePlanReviewService(
@@ -38,6 +40,8 @@ func NewRiskRegisterUpdatePlanReviewService(
 	workflowStatusSvc masterServices.WorkflowStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	planStatusSvc RiskRegisterUpdatePlanStatusServiceInterface,
+	riskRegisterSvc RiskRegisterServiceInterface,
 ) RiskRegisterUpdatePlanReviewServiceInterface {
 	return &RiskRegisterUpdatePlanReviewService{
 		repo:                              repo,
@@ -47,6 +51,8 @@ func NewRiskRegisterUpdatePlanReviewService(
 		workflowStatusSvc:                 workflowStatusSvc,
 		userSvc:                           userSvc,
 		notificationSvc:                   notificationSvc,
+		planStatusSvc:                     planStatusSvc,
+		riskRegisterSvc:                   riskRegisterSvc,
 	}
 }
 
@@ -342,6 +348,39 @@ func (rruprs *RiskRegisterUpdatePlanReviewService) Approve(riskRegisterUpdatePla
 				tx.Rollback()
 				return err
 			}
+
+			// Update plan status to completed
+			completedStatus, err := rruprs.planStatusSvc.GetByType("completed")
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if err := rruprs.riskRegisterUpdatePlanSvc.UpdatePlanStatus(riskRegisterUpdatePlanID, uint(completedStatus.ID), tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Get all risks under the plan and generate reference numbers
+			risks, err := rruprs.riskRegisterUpdatePlanSvc.GetRisksByPlanID(riskRegisterUpdatePlanID, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			for _, risk := range risks {
+				referenceNumber, err := rruprs.riskRegisterSvc.GenerateReferenceNumber()
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+
+				risk.ReferenceNumber = &referenceNumber
+				if err := rruprs.riskRegisterSvc.UpdateRisk(risk, tx); err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
 		}
 
 		if err := tx.Commit(); err != nil {
@@ -452,6 +491,39 @@ func (rruprs *RiskRegisterUpdatePlanReviewService) Approve(riskRegisterUpdatePla
 			if err := rruprs.riskRegisterUpdatePlanSvc.CalculateAndUpdatePercentage(riskRegisterUpdatePlanID, tx); err != nil {
 				tx.Rollback()
 				return err
+			}
+
+			// Update plan status to completed
+			completedStatus, err := rruprs.planStatusSvc.GetByType("completed")
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if err := rruprs.riskRegisterUpdatePlanSvc.UpdatePlanStatus(riskRegisterUpdatePlanID, uint(completedStatus.ID), tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Get all risks under the plan and generate reference numbers
+			risks, err := rruprs.riskRegisterUpdatePlanSvc.GetRisksByPlanID(riskRegisterUpdatePlanID, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			for _, risk := range risks {
+				referenceNumber, err := rruprs.riskRegisterSvc.GenerateReferenceNumber()
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+
+				risk.ReferenceNumber = &referenceNumber
+				if err := rruprs.riskRegisterSvc.UpdateRisk(risk, tx); err != nil {
+					tx.Rollback()
+					return err
+				}
 			}
 		}
 

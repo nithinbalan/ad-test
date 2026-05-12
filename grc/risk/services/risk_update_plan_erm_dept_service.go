@@ -40,6 +40,7 @@ type RiskUpdatePlanERMDeptService struct {
 	timelineTypeSvc   RiskUpdatePlanTimelineTypeServiceInterface
 	riskRegisterSvc   RiskRegisterServiceInterface
 	activityLogSvc    logServices.ActivityLogServiceInterface
+	planStatusSvc     RiskRegisterUpdatePlanStatusServiceInterface
 }
 
 func NewRiskUpdatePlanERMDeptService(
@@ -48,6 +49,7 @@ func NewRiskUpdatePlanERMDeptService(
 	timelineTypeSvc RiskUpdatePlanTimelineTypeServiceInterface,
 	riskRegisterSvc RiskRegisterServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
+	planStatusSvc RiskRegisterUpdatePlanStatusServiceInterface,
 ) RiskUpdatePlanERMDeptServiceInterface {
 	return &RiskUpdatePlanERMDeptService{
 		repo:              repo,
@@ -55,6 +57,7 @@ func NewRiskUpdatePlanERMDeptService(
 		timelineTypeSvc:   timelineTypeSvc,
 		riskRegisterSvc:   riskRegisterSvc,
 		activityLogSvc:    activityLogSvc,
+		planStatusSvc:     planStatusSvc,
 	}
 }
 
@@ -160,6 +163,19 @@ func (rupeds *RiskUpdatePlanERMDeptService) CreateERMDepartmentEvaluation(planID
 
 	// Recalculate percentage
 	if err := rupeds.riskUpdatePlanSvc.CalculateAndUpdatePercentage(planID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Update plan status to in_progress
+	inProgressStatus, err := rupeds.planStatusSvc.GetByType("in_progress")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Update the plan status using the repository method
+	if err := rupeds.riskUpdatePlanSvc.UpdatePlanStatus(planID, uint(inProgressStatus.ID), tx); err != nil {
 		tx.Rollback()
 		return err
 	}

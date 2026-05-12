@@ -6,7 +6,7 @@ import (
 
 type RiskRegister struct {
 	ID                        uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	ReferenceNumber           string     `json:"reference_number" binding:"required,max=45" gorm:"type:varchar(45);not null;unique"`
+	ReferenceNumber           *string    `json:"reference_number" binding:"omitempty,max=45" gorm:"type:varchar(45);unique"`
 	RiskCategoryID            *uint      `json:"risk_category_id"`
 	RiskSourceID              *uint      `json:"risk_source_id" gorm:"default:null"`
 	RiskMatrixID              uint       `json:"risk_matrix_id" binding:"required"`

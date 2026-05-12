@@ -1,13 +1,10 @@
 package repositories
 
 import (
-	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/utility"
-	"strconv"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -20,7 +17,6 @@ type RiskUpdatePlanRiskIdentificationRepositoryInterface interface {
 	UpdateRiskIdentification(riskRegister *models.RiskRegister, tx ...utility.DatabaseTransaction) error
 	DeleteRiskIdentification(id uint, tx ...utility.DatabaseTransaction) error
 	CountRisksByPlanID(planID uint, tx ...utility.DatabaseTransaction) (int64, error)
-	GenerateReferenceNumber() (string, error)
 }
 
 type RiskUpdatePlanRiskIdentificationRepository struct {
@@ -332,33 +328,4 @@ func (repo *RiskUpdatePlanRiskIdentificationRepository) CountRisksByPlanID(planI
 	}
 
 	return count, nil
-}
-
-func (repo *RiskUpdatePlanRiskIdentificationRepository) GenerateReferenceNumber() (string, error) {
-	var lastReferenceNumber string
-	err := repo.db.Model(&models.RiskRegister{}).
-		Select("reference_number").
-		Order("reference_number desc").
-		Where("reference_number LIKE ?", "RRUP-%").
-		Limit(1).
-		Pluck("reference_number", &lastReferenceNumber).
-		Error
-
-	if err != nil {
-		return "", err
-	}
-
-	lastDigits := "0000"
-	if lastReferenceNumber != "" && len(lastReferenceNumber) >= 4 {
-		lastDigits = lastReferenceNumber[len(lastReferenceNumber)-4:]
-	}
-
-	currentYear := time.Now().Year()
-	lastReferenceID, err := strconv.ParseUint(lastDigits, 10, 64)
-	if err != nil {
-		return "", err
-	}
-	newReferenceNumber := fmt.Sprintf("%s-%d-%04d", "RRUP", currentYear, lastReferenceID+1)
-
-	return newReferenceNumber, nil
 }

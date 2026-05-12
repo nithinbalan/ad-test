@@ -555,6 +555,7 @@ func NewRiskModule(db *gorm.DB,
 		riskUpdatePlanTimelineTypeSvc,
 		riskRegisterSvc,
 		sharedModule.ActivityLogService,
+		riskRegisterUpdatePlanStatusSvc,
 	)
 	riskUpdatePlanERMDeptController := controllers.NewRiskUpdatePlanERMDeptController(riskUpdatePlanERMDeptSvc)
 
@@ -725,6 +726,8 @@ func NewRiskModule(db *gorm.DB,
 		masterModule.WorkflowStatusSvc,
 		organizationModule.UserSvc,
 		commonModule.NotificationService,
+		riskRegisterUpdatePlanStatusSvc,
+		riskRegisterSvc,
 	)
 	riskRegisterUpdatePlanReviewController := controllers.NewRiskRegisterUpdatePlanReviewController(riskRegisterUpdatePlanReviewSvc)
 

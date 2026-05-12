@@ -810,7 +810,7 @@ func (raps *RiskActionPlanService) Delete(riskID uint, ids []uint, currentUserID
 			TitleEn:         riskActionPlan.Title,
 			TitleAr:         riskActionPlan.Title,
 			Description:     &description,
-			ReferenceNumber: riskActionPlan.RiskRegister.ReferenceNumber,
+			ReferenceNumber: *riskActionPlan.RiskRegister.ReferenceNumber,
 			RiskTitle:       riskActionPlan.RiskRegister.Title,
 		})
 

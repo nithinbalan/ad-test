@@ -34,6 +34,12 @@ type RiskRegisterUpdatePlanServiceInterface interface {
 
 	// Get by plan ID
 	GetByPlanID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskRegisterUpdatePlan, error)
+
+	// Plan Status Operations
+	UpdatePlanStatus(planID uint, statusID uint, tx ...utility.DatabaseTransaction) error
+
+	// Risk Operations
+	GetRisksByPlanID(planID uint, tx ...utility.DatabaseTransaction) ([]*models.RiskRegister, error)
 }
 
 type RiskRegisterUpdatePlanService struct {
@@ -500,4 +506,12 @@ func (s *RiskRegisterUpdatePlanService) GetByPlanID(id uint, tx ...utility.Datab
 	}
 
 	return plan, nil
+}
+
+func (s *RiskRegisterUpdatePlanService) UpdatePlanStatus(planID uint, statusID uint, tx ...utility.DatabaseTransaction) error {
+	return s.repo.UpdatePlanStatus(planID, statusID, tx...)
+}
+
+func (s *RiskRegisterUpdatePlanService) GetRisksByPlanID(planID uint, tx ...utility.DatabaseTransaction) ([]*models.RiskRegister, error) {
+	return s.repo.GetRisksByPlanID(planID, tx...)
 }
