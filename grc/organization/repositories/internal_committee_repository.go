@@ -120,7 +120,19 @@ func (repo *InternalCommitteeRepository) GetAll(params *organizationDTOs.Interna
 	// Apply dynamic filters
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			switch columnName {
+			case "committee_member_type_id":
+				query = query.Where(`
+					EXISTS (
+						SELECT 1
+						FROM internal_committee_version_nominee_departments AS nominee_departments
+						WHERE nominee_departments.internal_committee_version_id = latest_version.id
+						AND nominee_departments.committee_member_type_id IN (?)
+					)
+				`, values)
+			default:
+				query = query.Where(columnName+" IN (?)", values)
+			}
 		}
 	}
 
@@ -224,6 +236,7 @@ func (repo *InternalCommitteeRepository) GetFullDetailsByID(id uint, tx ...utili
 				Preload("ApprovedByUser").
 				Preload("WorkflowStatus").
 				Preload("InternalCommitteeVersionNomineeDepartments").
+				Preload("InternalCommitteeVersionNomineeDepartments.CommitteeMemberType").
 				Preload("InternalCommitteeVersionNomineeDepartments.NomineeDepartment").
 				Preload("InternalCommitteeVersionNomineeDepartments.Participants").
 				Preload("InternalCommitteeVersionNomineeDepartments.Participants.User").
@@ -460,6 +473,7 @@ func (repo *InternalCommitteeRepository) GetParticipantsByNomineeDepartmentID(no
 
 	var participants []*models.InternalCommitteeVersionNomineeDepartmentParticipant
 	err := db.Preload("NomineeDepartment").
+		Preload("NomineeDepartment.CommitteeMemberType").
 		Preload("NomineeDepartment.InternalCommitteeVersion").
 		Where("internal_committee_version_nominee_department_id = ?", nomineeDepartmentID).
 		Find(&participants).Error

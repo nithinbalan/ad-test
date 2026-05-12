@@ -380,6 +380,7 @@ func NewOrganizationModule(
 		userSvc,
 		settingsModule.OrganizationUnitSvc,
 		committeeTypeSvc,
+		committeeMemberTypeSvc,
 		committeeTermSvc,
 		committeeClassificationSvc,
 		internalCommitteeStatusSvc,
