@@ -42,6 +42,7 @@ type InternalCommitteeService struct {
 	userSvc                    UserServiceInterface
 	organizationUnitSvc        settingsServices.OrganizationUnitServiceInterface
 	committeeTypeSvc           CommitteeTypeServiceInterface
+	committeeMemberTypeSvc     CommitteeMemberTypeServiceInterface
 	committeeTermSvc           CommitteeTermServiceInterface
 	committeeClassificationSvc CommitteeClassificationServiceInterface
 	internalCommitteeStatusSvc InternalCommitteeStatusServiceInterface
@@ -58,6 +59,7 @@ func NewInternalCommitteeService(
 	userSvc UserServiceInterface,
 	organizationUnitSvc settingsServices.OrganizationUnitServiceInterface,
 	committeeTypeSvc CommitteeTypeServiceInterface,
+	committeeMemberTypeSvc CommitteeMemberTypeServiceInterface,
 	committeeTermSvc CommitteeTermServiceInterface,
 	committeeClassificationSvc CommitteeClassificationServiceInterface,
 	internalCommitteeStatusSvc InternalCommitteeStatusServiceInterface,
@@ -73,6 +75,7 @@ func NewInternalCommitteeService(
 		userSvc:                    userSvc,
 		organizationUnitSvc:        organizationUnitSvc,
 		committeeTypeSvc:           committeeTypeSvc,
+		committeeMemberTypeSvc:     committeeMemberTypeSvc,
 		committeeTermSvc:           committeeTermSvc,
 		committeeClassificationSvc: committeeClassificationSvc,
 		internalCommitteeStatusSvc: internalCommitteeStatusSvc,
@@ -144,7 +147,17 @@ func (ics *InternalCommitteeService) GetFullDetailsByID(id uint, tx ...utility.D
 					ID:                         nomineeDept.ID,
 					InternalCommitteeVersionID: nomineeDept.InternalCommitteeVersionID,
 					NomineeDepartmentID:        nomineeDept.NomineeDepartmentID,
-					MembershipType:             nomineeDept.MembershipType,
+					CommitteeMemberTypeID:      nomineeDept.CommitteeMemberTypeID,
+					MembershipTypeID:           nomineeDept.CommitteeMemberTypeID,
+				}
+
+				if nomineeDept.CommitteeMemberType != nil {
+					nomineeDeptDTO.MembershipType = &organizationDTOs.InternalCommitteeNomineeMembershipTypeDetailDTO{
+						ID:      nomineeDept.CommitteeMemberType.ID,
+						TitleEn: nomineeDept.CommitteeMemberType.TitleEn,
+						TitleAr: nomineeDept.CommitteeMemberType.TitleAr,
+						Status:  nomineeDept.CommitteeMemberType.Status,
+					}
 				}
 
 				// Map nominee department
@@ -273,10 +286,11 @@ func (ics *InternalCommitteeService) Create(currentUserID uint, internalCommitte
 	// Create nominee departments
 	var nomineeDepartments []*models.InternalCommitteeVersionNomineeDepartment
 	for _, nominee := range internalCommitteeFormDTO.NomineeDepartments {
+		committeeMemberTypeID := ics.resolveNomineeCommitteeMemberTypeID(nominee)
 		nomineeDepartments = append(nomineeDepartments, &models.InternalCommitteeVersionNomineeDepartment{
 			InternalCommitteeVersionID: versionID,
 			NomineeDepartmentID:        nominee.NomineeDepartmentID,
-			MembershipType:             nominee.MembershipType,
+			CommitteeMemberTypeID:      committeeMemberTypeID,
 			CreatedBYID:                &currentUserID,
 		})
 	}
@@ -397,7 +411,7 @@ func (ics *InternalCommitteeService) Create(currentUserID uint, internalCommitte
 					"CommitteeReference": committee.ReferenceNumber,
 					"CommitteeNameEn":    newCommittee.LatestVersion.CommitteeNameEn,
 					"CommitteeNameAr":    newCommittee.LatestVersion.CommitteeNameAr,
-					"MembershipType":     nominee.MembershipType,
+					"MembershipType":     ics.getCommitteeMemberTypeTitle(ics.resolveNomineeCommitteeMemberTypeID(nominee)),
 					"NominatedBy":        fmt.Sprintf("%s %s", newCommittee.CreatedByUser.FirstNameEN, newCommittee.CreatedByUser.LastNameEN),
 					"NominatedOn":        newCommittee.CreatedAt.Format("2006-01-02"),
 					"RedirectURL":        fmt.Sprintf("%s/organization/committee/%d/overview", appURL, committeeID),
@@ -509,10 +523,11 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 	// Create new nominee departments
 	var nomineeDepartments []*models.InternalCommitteeVersionNomineeDepartment
 	for _, nominee := range internalCommitteeFormDTO.NomineeDepartments {
+		committeeMemberTypeID := ics.resolveNomineeCommitteeMemberTypeID(nominee)
 		nomineeDepartments = append(nomineeDepartments, &models.InternalCommitteeVersionNomineeDepartment{
 			InternalCommitteeVersionID: latestVersion.ID,
 			NomineeDepartmentID:        nominee.NomineeDepartmentID,
-			MembershipType:             nominee.MembershipType,
+			CommitteeMemberTypeID:      committeeMemberTypeID,
 			CreatedBYID:                &currentUserID,
 		})
 	}
@@ -661,7 +676,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 						"CommitteeReference": committee.ReferenceNumber,
 						"CommitteeNameEn":    newCommittee.LatestVersion.CommitteeNameEn,
 						"CommitteeNameAr":    newCommittee.LatestVersion.CommitteeNameAr,
-						"MembershipType":     oldNominee.MembershipType,
+						"MembershipType":     ics.getCommitteeMemberTypeTitle(oldNominee.CommitteeMemberTypeID),
 						"RemovedBy":          fmt.Sprintf("%s %s", newCommittee.UpdatedByUser.FirstNameEN, newCommittee.UpdatedByUser.LastNameEN),
 						"RemovedOn":          newCommittee.UpdatedAt.Format("2006-01-02"),
 						"RedirectURL":        fmt.Sprintf("%s/organization/committee/%d/overview", appURL, id),
@@ -763,7 +778,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 						"CommitteeReference": committee.ReferenceNumber,
 						"CommitteeNameEn":    newCommittee.LatestVersion.CommitteeNameEn,
 						"CommitteeNameAr":    newCommittee.LatestVersion.CommitteeNameAr,
-						"MembershipType":     nominee.MembershipType,
+						"MembershipType":     ics.getCommitteeMemberTypeTitle(ics.resolveNomineeCommitteeMemberTypeID(nominee)),
 						"NominatedBy":        fmt.Sprintf("%s %s", newCommittee.UpdatedByUser.FirstNameEN, newCommittee.UpdatedByUser.LastNameEN),
 						"NominatedOn":        newCommittee.UpdatedAt.Format("2006-01-02"),
 						"RedirectURL":        fmt.Sprintf("%s/organization/committee/%d/overview", appURL, id),
@@ -1017,10 +1032,11 @@ func (ics *InternalCommitteeService) ReformCommittee(currentUserID uint, reformD
 
 	// Create new nominee departments and copy participants if department matches
 	for _, newDeptDTO := range reformDTO.NomineeDepartments {
+		committeeMemberTypeID := ics.resolveNomineeCommitteeMemberTypeID(newDeptDTO)
 		newDept := &models.InternalCommitteeVersionNomineeDepartment{
 			InternalCommitteeVersionID: newVersionID,
 			NomineeDepartmentID:        newDeptDTO.NomineeDepartmentID,
-			MembershipType:             newDeptDTO.MembershipType,
+			CommitteeMemberTypeID:      committeeMemberTypeID,
 			CreatedBYID:                &currentUserID,
 		}
 
@@ -1163,7 +1179,7 @@ func (ics *InternalCommitteeService) ReformCommittee(currentUserID uint, reformD
 					"CommitteeReference": committee.ReferenceNumber,
 					"CommitteeNameEn":    newCommittee.LatestVersion.CommitteeNameEn,
 					"CommitteeNameAr":    newCommittee.LatestVersion.CommitteeNameAr,
-					"MembershipType":     nominee.MembershipType,
+					"MembershipType":     ics.getCommitteeMemberTypeTitle(ics.resolveNomineeCommitteeMemberTypeID(nominee)),
 					"NominatedBy":        fmt.Sprintf("%s %s", newCommittee.CreatedByUser.FirstNameEN, newCommittee.CreatedByUser.LastNameEN),
 					"NominatedOn":        newCommittee.CreatedAt.Format("2006-01-02"),
 					"RedirectURL":        fmt.Sprintf("%s/organization/committee/%d/overview", appURL, newCommittee.ID),
@@ -1218,9 +1234,45 @@ func (ics *InternalCommitteeService) validateInternalCommitteeForm(internalCommi
 		if _, err := ics.organizationUnitSvc.GetByID(nominee.NomineeDepartmentID); err != nil {
 			return utility.NewValidationError(err, "not_exist", "nominee_department")
 		}
+
+		committeeMemberTypeID := ics.resolveNomineeCommitteeMemberTypeID(nominee)
+		if committeeMemberTypeID != nil {
+			if _, err := ics.committeeMemberTypeSvc.GetByID(*committeeMemberTypeID); err != nil {
+				return utility.NewValidationError(err, "not_exist", "committee_member_type")
+			}
+		}
 	}
 
 	return nil
+}
+
+func (ics *InternalCommitteeService) getCommitteeMemberTypeTitle(committeeMemberTypeID *uint) string {
+	if committeeMemberTypeID == nil {
+		return ""
+	}
+
+	committeeMemberType, err := ics.committeeMemberTypeSvc.GetByID(*committeeMemberTypeID)
+	if err != nil || committeeMemberType == nil {
+		return ""
+	}
+
+	return committeeMemberType.TitleEn
+}
+
+func (ics *InternalCommitteeService) resolveNomineeCommitteeMemberTypeID(nominee organizationDTOs.InternalCommitteeVersionNomineeDepartmentFormDTO) *uint {
+	return nominee.CommitteeMemberTypeID
+}
+
+func (ics *InternalCommitteeService) getCommitteeMemberTypeTitleFromNomineeDepartment(nomineeDepartment *models.InternalCommitteeVersionNomineeDepartment) string {
+	if nomineeDepartment == nil {
+		return ""
+	}
+
+	if nomineeDepartment.CommitteeMemberType != nil {
+		return nomineeDepartment.CommitteeMemberType.TitleEn
+	}
+
+	return ics.getCommitteeMemberTypeTitle(nomineeDepartment.CommitteeMemberTypeID)
 }
 
 func (ics *InternalCommitteeService) parseInternalCommitteeDates(internalCommitteeFormDTO *organizationDTOs.InternalCommitteeFormDTO) (*organizationDTOs.InternalCommitteeParsedDates, error) {
@@ -1405,7 +1457,7 @@ func (ics *InternalCommitteeService) CreateParticipants(currentUserID uint, nomi
 				"CommitteeNameAr":    committee.LatestVersion.CommitteeNameAr,
 				"DepartmentNameEn":   department.TitleEn,
 				"DepartmentNameAr":   department.TitleAr,
-				"MembershipType":     firstParticipant.NomineeDepartment.MembershipType,
+				"MembershipType":     ics.getCommitteeMemberTypeTitleFromNomineeDepartment(firstParticipant.NomineeDepartment),
 				"AssignedBy":         fmt.Sprintf("%s %s", departmentHead.FirstNameEn, departmentHead.LastNameEn),
 				"AssignedOn":         time.Now().Format("2006-01-02"),
 				"RedirectURL":        fmt.Sprintf("%s/organization/committee/%d/overview", appURL, committeeID),
@@ -1567,7 +1619,7 @@ func (ics *InternalCommitteeService) DeleteParticipant(nomineeDepartmentID uint,
 			"CommitteeNameAr":    committee.LatestVersion.CommitteeNameAr,
 			"DepartmentNameEn":   department.TitleEn,
 			"DepartmentNameAr":   department.TitleAr,
-			"MembershipType":     deletedParticipant.NomineeDepartment.MembershipType,
+			"MembershipType":     ics.getCommitteeMemberTypeTitleFromNomineeDepartment(deletedParticipant.NomineeDepartment),
 			"RemovedBy":          fmt.Sprintf("%s %s", departmentHead.FirstNameEn, departmentHead.LastNameEn),
 			"RemovedOn":          time.Now().Format("2006-01-02"),
 			"RedirectURL":        fmt.Sprintf("%s/organization/committee/%d/overview", appURL, committeeID),
@@ -1722,7 +1774,7 @@ func (ics *InternalCommitteeService) DisbandCommittee(committeeID uint, currentU
 		newDept := &models.InternalCommitteeVersionNomineeDepartment{
 			InternalCommitteeVersionID: newVersionID,
 			NomineeDepartmentID:        oldDept.NomineeDepartmentID,
-			MembershipType:             oldDept.MembershipType,
+			CommitteeMemberTypeID:      oldDept.CommitteeMemberTypeID,
 			CreatedBYID:                &currentUserID,
 		}
 

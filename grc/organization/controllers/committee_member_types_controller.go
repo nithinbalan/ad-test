@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"jethur/grc/organization/services"
 	"jethur/utility"
 	"net/http"
@@ -22,12 +23,26 @@ func NewCommitteeMemberTypeController(service services.CommitteeMemberTypeServic
 }
 
 func (cmtc *CommitteeMemberTypeController) GetAllCommitteeMemberTypes(c *gin.Context) {
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 
-	committeeMemberTypes, err := cmtc.service.GetAll(sort, sortBy, keyword, status)
+	validSortFields := map[string]string{
+		"id":       "committee_member_types.id",
+		"title_en": "committee_member_types.title_en",
+		"title_ar": "committee_member_types.title_ar",
+		"status":   "committee_member_types.status",
+	}
+
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	committeeMemberTypes, err := cmtc.service.GetAll(sort, sortField, keyword, status)
 	if err != nil {
 		utility.SendInternalErrResp(cmtc.db, c, err.Error())
 		return

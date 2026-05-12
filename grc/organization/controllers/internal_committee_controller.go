@@ -55,6 +55,7 @@ func (icc *InternalCommitteeController) GetAllInternalCommittees(c *gin.Context)
 		"committee_classification_ids",
 		"committee_status_ids",
 		"requesting_entity_ids",
+		"committee_member_type_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

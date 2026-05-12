@@ -86,8 +86,8 @@ type InternalCommitteeFormDTO struct {
 }
 
 type InternalCommitteeVersionNomineeDepartmentFormDTO struct {
-	NomineeDepartmentID uint    `json:"nominee_department_id"`
-	MembershipType      *string `json:"membership_type"`
+	NomineeDepartmentID   uint  `json:"nominee_department_id"`
+	CommitteeMemberTypeID *uint `json:"committee_member_type_id"`
 }
 
 type InternalCommitteeParsedDates struct {
@@ -144,9 +144,18 @@ type InternalCommitteeVersionNomineeDepartmentDetailDTO struct {
 	ID                         uint                                                      `json:"id"`
 	InternalCommitteeVersionID uint                                                      `json:"internal_committee_version_id"`
 	NomineeDepartmentID        uint                                                      `json:"nominee_department_id"`
+	CommitteeMemberTypeID      *uint                                                     `json:"committee_member_type_id"`
+	MembershipTypeID           *uint                                                     `json:"membership_type_id"`
 	NomineeDepartment          *settingsDTOs.OrganizationUnitDTO                         `json:"nominee_department"`
-	MembershipType             *string                                                   `json:"membership_type"`
+	MembershipType             *InternalCommitteeNomineeMembershipTypeDetailDTO          `json:"membership_type"`
 	Participants               []InternalCommitteeVersionNomineeDepartmentParticipantDTO `json:"participants"`
+}
+
+type InternalCommitteeNomineeMembershipTypeDetailDTO struct {
+	ID      uint   `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+	Status  string `json:"status"`
 }
 
 type InternalCommitteeVersionNomineeDepartmentParticipantDTO struct {

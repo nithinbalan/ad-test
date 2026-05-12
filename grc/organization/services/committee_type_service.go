@@ -116,13 +116,6 @@ func (cts *CommitteeTypeService) Update(id uint, currentUserID uint, ctDTO *dtos
 		return err
 	}
 
-	updatedCT := &models.CommitteeType{
-		TitleEn: ctDTO.TitleEn,
-		TitleAr: ctDTO.TitleAr,
-		Type:    ctDTO.Type,
-		Status:  ctDTO.Status,
-	}
-
 	existingCT.TitleEn = ctDTO.TitleEn
 	existingCT.TitleAr = ctDTO.TitleAr
 	existingCT.Type = ctDTO.Type
@@ -134,7 +127,7 @@ func (cts *CommitteeTypeService) Update(id uint, currentUserID uint, ctDTO *dtos
 	}
 
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "Type", "Status"}
-	changes, err := utility.CompareFields(&oldCT, updatedCT, fieldsToCompare)
+	changes, err := utility.CompareFields(&oldCT, existingCT, fieldsToCompare)
 	if err != nil {
 		log.Println("compare error:", err)
 	}
@@ -166,8 +159,10 @@ func (cts *CommitteeTypeService) Delete(ids []uint, currentUserID uint) ([]uint,
 	var successfulIds []uint
 
 	for _, id := range ids {
+
 		_, err := cts.repo.GetByID(id)
 		if err != nil {
+			failedIds = append(failedIds, id)
 			continue
 		}
 
@@ -180,11 +175,11 @@ func (cts *CommitteeTypeService) Delete(ids []uint, currentUserID uint) ([]uint,
 	}
 
 	if len(successfulIds) > 0 {
-		go func() {
+		go func(ids []uint) {
 			err := cts.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
 				models.CommitteeType{}.TableName(),
-				successfulIds,
+				ids,
 				nil,
 				currentUserID,
 				nil,
@@ -192,7 +187,7 @@ func (cts *CommitteeTypeService) Delete(ids []uint, currentUserID uint) ([]uint,
 			if err != nil {
 				log.Printf("Failed to log activity: %v", err)
 			}
-		}()
+		}(append([]uint(nil), successfulIds...))
 	}
 
 	return failedIds, nil
@@ -221,6 +216,7 @@ func (cts *CommitteeTypeService) validateCommitteeTypeFormDTO(ctDTO *dtos.Commit
 }
 
 func (cts *CommitteeTypeService) applyDefaults(ctDTO *dtos.CommitteeTypeFormDTO) {
+	// Keep this in sync with CommitteeTypeFormDTO validation: empty values are treated as defaults.
 	if ctDTO.Type == "" {
 		ctDTO.Type = "other"
 	}
