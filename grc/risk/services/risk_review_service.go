@@ -124,7 +124,7 @@ func (rrs *RiskReviewService) Submit(riskID uint, currentUserID uint) error {
 				UserIDs:              []uint{participant.User.ID},
 				ModuleIdentifier:     "risk",
 				NotificationType:     string(commonDTOs.ReviewType),
-				ReferenceNumber:      riskRegister.ReferenceNumber,
+				ReferenceNumber:      *riskRegister.ReferenceNumber,
 				HeadingEn:            "Risk Review",
 				HeadingAr:            "مراجعة المخاطر",
 				TitleEn:              riskRegister.Title,

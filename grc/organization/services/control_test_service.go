@@ -24,6 +24,7 @@ type ControlTestServiceInterface interface {
 	GetAll(controlID uint, params *organizationDTOs.ControlTestListQueryParamsDTO) (*organizationDTOs.ControlTestListResponseDTO, error)
 	GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.ControlTest, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*organizationDTOs.ControlTestDetailsDTO, error)
+	GetLatestByControlID(controlID uint, tx ...utility.DatabaseTransaction) (*models.ControlTest, error)
 	Create(controlID uint, currentUserID uint, riskID *uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO, testedSource string, tx ...utility.DatabaseTransaction) (uint, error)
 	Update(controlID uint, id uint, currentUserID uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO) error
 	Delete(controlID uint, ids []uint, currentUserID uint) ([]uint, error)
@@ -104,6 +105,18 @@ func (cts *ControlTestService) GetFullDetailsByID(id uint, tx ...utility.Databas
 
 	controlTestDetailsDTO.UpdatedAt = controlTest.UpdatedAt
 	return &controlTestDetailsDTO, nil
+}
+
+func (cts *ControlTestService) GetLatestByControlID(controlID uint, tx ...utility.DatabaseTransaction) (*models.ControlTest, error) {
+	controlTest, err := cts.repo.GetLatestByControlID(controlID, tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, controlID)
+		}
+		return nil, err
+	}
+	return controlTest, nil
+
 }
 
 func (cts *ControlTestService) Create(controlID uint, currentUserID uint, riskID *uint, controlTestFormDTO *organizationDTOs.ControlTestFormDTO, testedSource string, tx ...utility.DatabaseTransaction) (uint, error) {

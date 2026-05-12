@@ -22,6 +22,7 @@ type ControlTest struct {
 	TestedBy                      uint       `json:"tested_by" gorm:"not null" binding:"required"`
 	UpdatedAt                     *time.Time `json:"updated_at,omitempty" gorm:"type:datetime" binding:"omitempty"`
 	UpdatedByID                   *uint      `json:"updated_by_id,omitempty" gorm:"default:null" binding:"omitempty"`
+	RiskRegisterUpdatePlanID      *uint      `json:"risk_register_update_plan_id" gorm:"default:null"`
 
 	// Foreign key relationships
 	Risk                        *RiskRegister                `json:"risk" gorm:"foreignKey:RiskRegisterID"`
@@ -32,6 +33,7 @@ type ControlTest struct {
 	TestedByUser                *User                        `json:"tested_by_user" gorm:"foreignKey:TestedBy"`
 	UpdatedByUser               *User                        `json:"updated_by_id_user" gorm:"foreignKey:UpdatedByID"`
 	Documents                   []*ControlTestDocument       `json:"documents" gorm:"foreignKey:ControlTestID"`
+	RiskRegisterUpdatePlan      *RiskRegisterUpdatePlan      `gorm:"foreignKey:RiskRegisterUpdatePlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 // TableName overrides the table name used by User to `control_tests`

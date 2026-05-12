@@ -6,7 +6,7 @@ import (
 
 type RiskRegister struct {
 	ID                        uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	ReferenceNumber           string     `json:"reference_number" binding:"required,max=45" gorm:"type:varchar(45);not null;unique"`
+	ReferenceNumber           *string    `json:"reference_number" binding:"omitempty,max=45" gorm:"type:varchar(45);unique"`
 	RiskCategoryID            *uint      `json:"risk_category_id"`
 	RiskSourceID              *uint      `json:"risk_source_id" gorm:"default:null"`
 	RiskMatrixID              uint       `json:"risk_matrix_id" binding:"required"`
@@ -43,16 +43,17 @@ type RiskRegister struct {
 	CreatedAt                 time.Time  `json:"created_at" binding:"required" gorm:"type:datetime;not null"`
 	UpdatedAt                 *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 
-	RiskCode         *string    `json:"risk_code" gorm:"type:nvarchar(500);default:null"`
-	RegistrationDate *time.Time `json:"registration_date" gorm:"type:datetime;default:null"`
-	DivisionID       uint       `json:"division_id" binding:"required"`
-	SectionID        *uint      `json:"section_id" gorm:"default:null"`
-	IsStrategic      bool       `json:"is_strategic" gorm:"not null;default:false"`
-	IsOperational    bool       `json:"is_operational" gorm:"not null;default:false"`
-	ExpectedCause    *string    `json:"expected_cause" gorm:"default:null"`
-	Consequence      *string    `json:"consequence" gorm:"default:null"`
-	IsInternal       bool       `json:"is_internal" gorm:"not null;default:false"`
-	IsExternal       bool       `json:"is_external" gorm:"not null;default:false"`
+	RiskCode                 *string    `json:"risk_code" gorm:"type:nvarchar(500);default:null"`
+	RegistrationDate         *time.Time `json:"registration_date" gorm:"type:datetime;default:null"`
+	DivisionID               uint       `json:"division_id" binding:"required"`
+	SectionID                *uint      `json:"section_id" gorm:"default:null"`
+	IsStrategic              bool       `json:"is_strategic" gorm:"not null;default:false"`
+	IsOperational            bool       `json:"is_operational" gorm:"not null;default:false"`
+	ExpectedCause            *string    `json:"expected_cause" gorm:"default:null"`
+	Consequence              *string    `json:"consequence" gorm:"default:null"`
+	IsInternal               bool       `json:"is_internal" gorm:"not null;default:false"`
+	IsExternal               bool       `json:"is_external" gorm:"not null;default:false"`
+	RiskRegisterUpdatePlanID *uint      `json:"risk_register_update_plan_id" gorm:"default:null"`
 
 	// Relationships
 	RiskCategory            *RiskCategory              `gorm:"foreignKey:RiskCategoryID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
@@ -81,6 +82,7 @@ type RiskRegister struct {
 	UpdatedByUser           *User                      `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	Section                 *OrganizationUnit          `gorm:"foreignKey:SectionID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	Division                *OrganizationUnit          `gorm:"foreignKey:DivisionID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskRegisterUpdatePlan  *RiskRegisterUpdatePlan    `gorm:"foreignKey:RiskRegisterUpdatePlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 
 	Documents              *[]RiskDocument              `gorm:"foreignKey:RiskRegisterID"`
 	ComplianceRequirements []*RiskComplianceRequirement `gorm:"foreignKey:RiskRegisterID"`

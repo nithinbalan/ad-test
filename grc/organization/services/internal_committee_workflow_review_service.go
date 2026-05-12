@@ -372,8 +372,14 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 				}
 			}
 		} else {
-			// Move to next level - set status to in_review
+			// Move to next level - set status to in_review and workflow status to submit
 			inReviewStatus, err := icwrs.committeeStatusSvc.GetByType("in_review")
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			submitStatus, err := icwrs.workflowStatusSvc.GetByType("submit")
 			if err != nil {
 				tx.Rollback()
 				return err
@@ -388,6 +394,7 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 			for _, version := range committee.InternalCommitteeVersions {
 				if version.IsLatestVersion != nil && *version.IsLatestVersion {
 					version.CommitteeStatusID = inReviewStatus.ID
+					version.WorkflowStatusID = &submitStatus.ID
 					version.NextReviewLevel = &nextCommitteeWorkflowLevel.Level
 					if err := icwrs.repo.UpdateInternalCommitteeVersion(version, tx); err != nil {
 						tx.Rollback()
@@ -530,8 +537,14 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 				}
 			}
 		} else {
-			// Move to next level - set status to in_review
+			// Move to next level - set status to in_review and workflow status to submit
 			inReviewStatus, err := icwrs.committeeStatusSvc.GetByType("in_review")
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			submitStatus, err := icwrs.workflowStatusSvc.GetByType("submit")
 			if err != nil {
 				tx.Rollback()
 				return err
@@ -548,6 +561,7 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 				if version.IsLatestVersion != nil && *version.IsLatestVersion {
 					latestVersionID = version.ID
 					version.CommitteeStatusID = inReviewStatus.ID
+					version.WorkflowStatusID = &submitStatus.ID
 					version.NextReviewLevel = &nextCommitteeWorkflowLevel.Level
 					if err := icwrs.repo.UpdateInternalCommitteeVersion(version, tx); err != nil {
 						tx.Rollback()
