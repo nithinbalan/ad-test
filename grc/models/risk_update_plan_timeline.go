@@ -16,16 +16,23 @@ type RiskUpdatePlanTimeline struct {
 	UpdatedAt                    *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	RiskUpdatePlan               *RiskRegisterUpdatePlan                      `gorm:"foreignKey:RiskUpdatePlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RiskUpdatePlanTimelineType   *RiskUpdatePlanTimelineType                  `gorm:"foreignKey:RiskUpdatePlanTimelineTypeID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ErmDeptDocuments             []*RiskUpdatePlanErmDeptDocument             `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	IntroductoryMeetingDocuments []*RiskUpdatePlanIntroductoryMeetingDocument `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	BusinessContexts             []*RiskUpdatePlanBusinessContext             `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	Risks                        []*RiskUpdatePlanRisk                        `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	Controls                     []*RiskUpdatePlanControl                     `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	Processes                    []*RiskUpdatePlanProcess                     `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	CreatedByUser                *User                                        `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	UpdatedByUser                *User                                        `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskUpdatePlan                  *RiskRegisterUpdatePlan                         `gorm:"foreignKey:RiskUpdatePlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskUpdatePlanTimelineType      *RiskUpdatePlanTimelineType                     `gorm:"foreignKey:RiskUpdatePlanTimelineTypeID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ErmDeptDocuments                []*RiskUpdatePlanErmDeptDocument                `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	IntroductoryMeetingDocuments    []*RiskUpdatePlanIntroductoryMeetingDocument    `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	BusinessContexts                []*RiskUpdatePlanBusinessContext                `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	Risks                           []*RiskUpdatePlanRisk                           `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	Controls                        []*RiskUpdatePlanControl                        `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	Processes                       []*RiskUpdatePlanProcess                        `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	LeadershipAssessments           []*RiskUpdatePlanLeadershipAssessment           `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	LeadershipDocuments             []*RiskUpdatePlanLeadershipDocument             `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskAssessmentWorkshopDocuments []*RiskUpdatePlanRiskAssessmentWorkshopDocument `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskTeamAssessments             []*RiskUpdatePlanRiskTeamAssessment             `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskTeamDocuments               []*RiskUpdatePlanRiskTeamDocument               `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RiskWorkshopAssessmentDocuments []*RiskUpdatePlanRiskWorkshopAssessmentDocument `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	SelfAwarenessTrainings          []*RiskUpdatePlanSelfAwarenessTraining          `gorm:"foreignKey:RiskUpdatePlanTimelineID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CreatedByUser                   *User                                           `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	UpdatedByUser                   *User                                           `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 // TableName overrides the table name used by RiskUpdatePlanTimeline to `risk_update_plan_timelines`
