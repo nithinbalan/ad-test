@@ -186,6 +186,26 @@ func (repo *RiskRegisterUpdatePlanRepository) GetFullDetailsByID(id uint, tx ...
 		Preload("TeamMembers.User").
 		Preload("Timelines").
 		Preload("Timelines.RiskUpdatePlanTimelineType").
+		Preload("Timelines.ErmDeptDocuments").
+		Preload("Timelines.IntroductoryMeetingDocuments").
+		Preload("Timelines.BusinessContexts").
+		Preload("Timelines.Risks").
+		Preload("Timelines.Risks.RiskRegister").
+		Preload("Timelines.Controls").
+		Preload("Timelines.Controls.Control").
+		Preload("Timelines.Processes").
+		Preload("Timelines.Processes.Process").
+		Preload("Timelines.LeadershipAssessments").
+		Preload("Timelines.LeadershipAssessments.User").
+		Preload("Timelines.LeadershipDocuments").
+		Preload("Timelines.RiskAssessmentWorkshopDocuments").
+		Preload("Timelines.RiskTeamAssessments").
+		Preload("Timelines.RiskTeamAssessments.RiskChampion").
+		Preload("Timelines.RiskTeamDocuments").
+		Preload("Timelines.RiskWorkshopAssessmentDocuments").
+		Preload("Timelines.SelfAwarenessTrainings").
+		Preload("Timelines.CreatedByUser").
+		Preload("Timelines.UpdatedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("SubmittedByUser").
