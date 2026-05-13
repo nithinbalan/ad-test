@@ -39,6 +39,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	taeRecoveryActionPlanCommentController := app.BusinessContinuityModule.TaeRecoveryActionPlanCommentController
 	bcpRiskAnalysisController := app.BusinessContinuityModule.BcpRiskAnalysisController
 	bcpAssociatedItemController := app.BusinessContinuityModule.BcpAssociatedItemController
+	businessContinuityDurationUnitController := app.BusinessContinuityModule.BusinessContinuityDurationUnitController
+	jobTeamController := app.BusinessContinuityModule.JobTeamController
 	// businessfunctionAssociatedItemController := app.BusinessContinuityModule.BusinessFunctionAssociateItemController
 
 	// bcp phase
@@ -241,5 +243,16 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	businessContinuityRoutes.GET("/business-continuity-plans/:id/clauses", middlewares.RolePermissionMiddleware(db, "bcp", "view"), bcpAssociatedItemController.GetAllClauses)
 	businessContinuityRoutes.PUT("/business-continuity-plans/:id/clauses", middlewares.RolePermissionMiddleware(db, "bcp", "modify"), bcpAssociatedItemController.UpdateClauses)
+
+	// business continuity duration units
+	businessContinuityRoutes.GET("/business-continuity-duration-units", businessContinuityDurationUnitController.GetAllBusinessContinuityDurationUnits)
+	businessContinuityRoutes.GET("/business-continuity-duration-units/:id", businessContinuityDurationUnitController.GetBusinessContinuityDurationUnitDetails)
+
+	// job teams
+	businessContinuityRoutes.GET("/job-teams", jobTeamController.GetAllJobTeams)
+	businessContinuityRoutes.GET("/job-teams/:id", middlewares.RolePermissionMiddleware(db, "common_setting", "view"), jobTeamController.GetJobTeamDetails)
+	businessContinuityRoutes.POST("/job-teams", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), jobTeamController.CreateJobTeam)
+	businessContinuityRoutes.PUT("/job-teams/:id", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), jobTeamController.UpdateJobTeam)
+	businessContinuityRoutes.POST("/job-teams/delete", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), jobTeamController.DeleteJobTeams)
 
 }

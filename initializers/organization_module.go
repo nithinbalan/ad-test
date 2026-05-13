@@ -80,6 +80,7 @@ type OrganizationModule struct {
 	JobDescriptionSvc              services.JobDescriptionServiceInterface
 	GovernanceReportSvc            services.GovernanceReportServiceInterface
 	ControlStatusSvc               services.ControlStatusServiceInterface
+	DesignationSvc                 services.DesignationServiceInterface
 }
 
 func NewOrganizationModule(
@@ -480,5 +481,6 @@ func NewOrganizationModule(
 		JobDescriptionSvc:              jobDescriptionSvc,
 		GovernanceReportSvc:            governanceReportSvc,
 		ControlStatusSvc:               controlStatusSvc,
+		DesignationSvc:                 designationSvc,
 	}
 }
