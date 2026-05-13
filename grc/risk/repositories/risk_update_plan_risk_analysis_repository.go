@@ -40,11 +40,13 @@ func (repo *RiskUpdatePlanRiskAnalysisRepository) GetRiskAnalysisList(planID uin
 
 	// Build UNION query to get risks from both sources
 	unionQuery := `
-		SELECT 
+		SELECT
 			rr.id AS id,
 			rr.reference_number AS reference_number,
 			rr.title AS title,
 			rr.description AS description,
+			rr.inherent_likelihood_id AS inherent_likelihood_id,
+			rr.inherent_impact_id AS inherent_impact_id,
 			ill.title_en AS inherent_likelihood_title_en,
 			ill.title_ar AS inherent_likelihood_title_ar,
 			iil.title_en AS inherent_impact_title_en,
@@ -59,14 +61,16 @@ func (repo *RiskUpdatePlanRiskAnalysisRepository) GetRiskAnalysisList(planID uin
 		LEFT JOIN risk_matrix_risk_ratings AS irr ON irr.id = rr.inherent_risk_rating_id
 		LEFT JOIN risk_matrix_risk_rating_values AS irrv ON irrv.id = rr.inherent_risk_rating_value_id
 		WHERE rr.risk_register_update_plan_id = ?
-		
+
 		UNION
-		
-		SELECT 
+
+		SELECT
 			rr.id AS id,
 			rr.reference_number AS reference_number,
 			rr.title AS title,
 			rr.description AS description,
+			rr.inherent_likelihood_id AS inherent_likelihood_id,
+			rr.inherent_impact_id AS inherent_impact_id,
 			ill.title_en AS inherent_likelihood_title_en,
 			ill.title_ar AS inherent_likelihood_title_ar,
 			iil.title_en AS inherent_impact_title_en,
