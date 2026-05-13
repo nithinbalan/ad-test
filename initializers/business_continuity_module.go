@@ -33,6 +33,8 @@ type BusinessContinuityModule struct {
 	BcpRiskAnalysisController                        *controllers.BcpRiskAnalysisController
 	BcpAssociatedItemController                      *controllers.BcpAssociatedItemController
 	BusinessFunctionAssociateItemController          *controllers.BusinessFunctionAssociatedItemController
+	BusinessContinuityDurationUnitController         *controllers.BusinessContinuityDurationUnitController
+	JobTeamController                                *controllers.JobTeamController
 
 	BusinessFunctionSvc                  services.BusinessFunctionServiceInterface
 	BcpTeamSvc                           services.BcpTeamServiceInterface
@@ -163,6 +165,14 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	businessFunctionAssociatedItemSvc := services.NewBusinessFunctionAssociatedItemService(businessFunctionAssociatedItemRepo, businessFunctionSvc, commonModule.AssociatedItemValidationService)
 	businessFunctionAssociatedItemController := controllers.NewBusinessFunctionAssociatedItemController(businessFunctionAssociatedItemSvc)
 
+	businessContinuityDurationUnitRepo := repositories.NewBusinessContinuityDurationUnitRepository(db)
+	businessContinuityDurationUnitSvc := services.NewBusinessContinuityDurationUnitService(businessContinuityDurationUnitRepo)
+	businessContinuityDurationUnitController := controllers.NewBusinessContinuityDurationUnitController(businessContinuityDurationUnitSvc)
+
+	jobTeamRepo := repositories.NewJobTeamRepository(db)
+	jobTeamSvc := services.NewJobTeamService(jobTeamRepo, sharedModule.ActivityLogService, organizationModule.DesignationSvc)
+	jobTeamController := controllers.NewJobTeamController(jobTeamSvc)
+
 	return &BusinessContinuityModule{
 		BusinessFunctionController:                       businessFunctionController,
 		BusinessImpactAssessmentController:               businessImpactAssessmentController,
@@ -188,6 +198,8 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		BcpRiskAnalysisController:                        bcpRiskAnalysisController,
 		BcpAssociatedItemController:                      bcpAssociatedItemController,
 		BusinessFunctionAssociateItemController:          businessFunctionAssociatedItemController,
+		BusinessContinuityDurationUnitController:         businessContinuityDurationUnitController,
+		JobTeamController:                                jobTeamController,
 
 		BusinessFunctionSvc:                  businessFunctionSvc,
 		BcpTeamSvc:                           bcpTeamSvc,
