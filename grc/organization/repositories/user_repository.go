@@ -16,6 +16,7 @@ import (
 type UserRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
+	GetUsersWithPrimaryUnit(primaryLevelID uint, params *userDTOs.PrimaryUnitUserListQueryParamsDTO) (*userDTOs.PrimaryUnitUserListResponseDTO, error)
 	GetAllUsers(primaryOrgUnitField string) ([]*userDTOs.UserPrimaryDetailsDTO, error)
 	GetByID(id uint) (*models.User, error)
 	GetFullDetailsByID(id uint) (*models.User, error)
@@ -224,6 +225,99 @@ func (repo *UserRepository) GetAll(params *userDTOs.UserListQueryParamsDTO) (*us
 			TotalCount:  totalCount,
 		},
 	}
+	return response, nil
+}
+func (repo *UserRepository) GetUsersWithPrimaryUnit(primaryLevelID uint, params *userDTOs.PrimaryUnitUserListQueryParamsDTO) (*userDTOs.PrimaryUnitUserListResponseDTO, error) {
+	var users []*userDTOs.PrimaryUnitUserListDTO
+	var totalCount int64
+
+	query := repo.db.Table("users").
+		Select(`
+			users.id,
+			users.first_name_en,
+			users.last_name_en,
+			users.first_name_ar,
+			users.last_name_ar,
+			users.email,
+			users.mobile_number,
+			users.is_ad_user,
+
+			designations.title_en AS designation_title_en,
+			license_types.type AS license_type_type,
+			user_statuses.is_active AS user_status_is_active
+		`).
+		Joins("INNER JOIN organization_units org1 ON org1.id = users.organization_unit_1_id").
+		Joins("LEFT JOIN organization_units org2 ON org2.id = users.organization_unit_2_id").
+		Joins("LEFT JOIN organization_units org3 ON org3.id = users.organization_unit_3_id").
+		Joins("LEFT JOIN organization_units org4 ON org4.id = users.organization_unit_4_id").
+		Joins("LEFT JOIN organization_units org5 ON org5.id = users.organization_unit_5_id").
+		Joins("LEFT JOIN designations ON designations.id = users.designation_id").
+		Joins("LEFT JOIN license_types ON license_types.id = users.license_type_id").
+		Joins("LEFT JOIN user_statuses ON user_statuses.id = users.user_status_id").
+		Where(`
+			users.user_status_id = ? AND (
+				org1.organization_level_id = ? OR
+				org2.organization_level_id = ? OR
+				org3.organization_level_id = ? OR
+				org4.organization_level_id = ? OR
+				org5.organization_level_id = ?
+			)
+		`,
+			1,
+			primaryLevelID,
+			primaryLevelID,
+			primaryLevelID,
+			primaryLevelID,
+			primaryLevelID,
+		)
+
+	// Keyword search
+	if params.Keyword != "" {
+		like := "%" + params.Keyword + "%"
+		query = query.Where(`
+		(
+			users.first_name_en LIKE ? OR
+			users.last_name_en LIKE ? OR
+			users.first_name_ar LIKE ? OR
+			users.last_name_ar LIKE ? OR
+			users.email LIKE ? OR
+			users.mobile_number LIKE ? OR
+			designations.title_en LIKE ?
+		)
+		`,
+			like, like, like, like,
+			like, like,
+			like,
+		)
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Sort
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	// Pagination
+	offset := (params.Page - 1) * params.PageSize
+	query = query.Offset(offset).Limit(params.PageSize)
+
+	if err := query.Find(&users).Error; err != nil {
+		return nil, err
+	}
+
+	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
+
+	response := &userDTOs.PrimaryUnitUserListResponseDTO{
+		Items: users,
+		Pagination: commonDTOs.PaginationInfoDTO{
+			CurrentPage: params.Page,
+			PageSize:    params.PageSize,
+			TotalPages:  totalPages,
+			TotalCount:  totalCount,
+		},
+	}
+
 	return response, nil
 }
 

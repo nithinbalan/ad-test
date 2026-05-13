@@ -60,6 +60,30 @@ type UserListQueryParamsDTO struct {
 	DateTo      string
 }
 
+type PrimaryUnitUserListQueryParamsDTO struct {
+	Sort     string
+	SortBy   string
+	Keyword  string
+	Page     int
+	PageSize int
+}
+type PrimaryUnitUserListDTO struct {
+	ID                 uint    `json:"id"`
+	FirstNameEn        string  `json:"first_name_en"`
+	LastNameEn         string  `json:"last_name_en"`
+	FirstNameAr        string  `json:"first_name_ar"`
+	LastNameAr         string  `json:"last_name_ar"`
+	DesignationTitleEn string  `json:"designation_title_en"`
+	LicenseTypeType    *string `json:"license_type_type"`
+	Email              string  `json:"email"`
+	MobileNumber       *string `json:"mobile_number"`
+	UserStatusIsActive bool    `json:"user_status_is_active"`
+	IsADUser           bool    `json:"is_ad_user"`
+}
+type PrimaryUnitUserListResponseDTO struct {
+	Items      []*PrimaryUnitUserListDTO    `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
 type UserListResponseDTO struct {
 	Items      []*UserListDTO               `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
@@ -84,7 +108,7 @@ type UserFormDTO struct {
 	Password            string  `json:"password" binding:"omitempty"`
 	IsSentEmail         bool    `json:"is_sent_email"`
 	ReportingUserID     *uint   `json:"reporting_user_id"`
-	LicenseTypeID       *uint   `json:"license_type_id" binding:"required"`
+	LicenseTypeID       *uint   `json:"license_type_id"`
 }
 
 type UserUpdateDTO struct {

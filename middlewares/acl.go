@@ -91,3 +91,88 @@ func RolePermissionMiddleware(db *gorm.DB, moduleIdentifier string, requiredPerm
 		c.Next()
 	}
 }
+
+func RolePermissionMiddlewareWithPassive(db *gorm.DB, moduleIdentifier string, requiredPermissionType string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.Query("access_checking") == "false" {
+			c.Set("is_passive_access", false)
+			c.Next()
+			return
+		}
+
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			c.Abort()
+			return
+		}
+
+		// 1) Load the user's roles, with their license type, so we can split
+		//    them into active vs passive buckets.
+		var userRoles []models.UserRole
+		if err := db.Preload("Role.LicenseType").
+			Where("user_id = ?", currentUserID).
+			Find(&userRoles).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching user roles"})
+			c.Abort()
+			return
+		}
+
+		var activeRoleIDs, passiveRoleIDs []uint
+		for _, ur := range userRoles {
+			if ur.Role.IsSuperAdmin {
+				// super-admin always wins, treated as active
+				c.Set("is_passive_access", false)
+				c.Next()
+				return
+			}
+			if ur.Role.LicenseType != nil && ur.Role.LicenseType.Type == "passive" {
+				passiveRoleIDs = append(passiveRoleIDs, ur.RoleID)
+			} else {
+				activeRoleIDs = append(activeRoleIDs, ur.RoleID)
+			}
+		}
+
+		// 2) Active track — does any active role grant the required permission
+		//    on this module? If yes, allow and mark this access as active.
+		if len(activeRoleIDs) > 0 {
+			var count int64
+			db.Table("role_permissions").
+				Joins("JOIN modules ON modules.id = role_permissions.module_id").
+				Joins("JOIN role_permission_types rpt ON rpt.id = role_permissions.role_permission_type_id").
+				Where("role_permissions.role_id IN ?", activeRoleIDs).
+				Where("modules.identifier = ?", moduleIdentifier).
+				Where("role_permissions.is_granted = ?", true).
+				Where("rpt.type = ?", requiredPermissionType).
+				Count(&count)
+			if count > 0 {
+				c.Set("is_passive_access", false)
+				c.Next()
+				return
+			}
+		}
+
+		// 3) Passive track — only valid on is_passive modules and only via
+		//    the passive_enabled permission type.
+		if len(passiveRoleIDs) > 0 {
+			var count int64
+			db.Table("role_permissions").
+				Joins("JOIN modules ON modules.id = role_permissions.module_id").
+				Joins("JOIN role_permission_types rpt ON rpt.id = role_permissions.role_permission_type_id").
+				Where("role_permissions.role_id IN ?", passiveRoleIDs).
+				Where("modules.identifier = ?", moduleIdentifier).
+				Where("modules.is_passive = ?", true).
+				Where("role_permissions.is_granted = ?", true).
+				Where("rpt.type = ?", "passive_enabled").
+				Count(&count)
+			if count > 0 {
+				c.Set("is_passive_access", true)
+				c.Next()
+				return
+			}
+		}
+
+		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden: insufficient permissions"})
+		c.Abort()
+	}
+}

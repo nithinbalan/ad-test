@@ -33,6 +33,7 @@ import (
 
 type UserServiceInterface interface {
 	GetAll(params *userDTOs.UserListQueryParamsDTO) (*userDTOs.UserListResponseDTO, error)
+	GetAllUsersWithPrimaryUnit(params *userDTOs.PrimaryUnitUserListQueryParamsDTO) (*userDTOs.PrimaryUnitUserListResponseDTO, error)
 	GetAllUsers() ([]*userDTOs.UserPrimaryDetailsDTO, error)
 	GetByID(id uint) (*models.User, error)
 	GetFullDetailsByID(id uint) (*userDTOs.UserDetailsDTO, error)
@@ -224,6 +225,20 @@ func (us *UserService) GetUsersByOrganizationUnit(departmentUnitID uint) ([]*mod
 	return us.repo.GetUsersByOrganizationUnit(primaryOrgUnitField, departmentUnitID)
 }
 
+func (us *UserService) GetAllUsersWithPrimaryUnit(params *userDTOs.PrimaryUnitUserListQueryParamsDTO) (*userDTOs.PrimaryUnitUserListResponseDTO, error) {
+	primaryLevel, err := us.organizationLevelSvc.GetPrimaryLevel()
+	if err != nil {
+		return nil, err
+	}
+
+	responsibleUsers, err := us.repo.GetUsersWithPrimaryUnit(primaryLevel.ID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return responsibleUsers, nil
+}
+
 func (us *UserService) GetByID(id uint) (*models.User, error) {
 	user, err := us.repo.GetByID(id)
 
@@ -321,9 +336,30 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		return 0, err
 	}
 
+	// Set User License Type From Roles
+	licenseType := "passive"
+	for _, roleId := range userFormDTO.RoleIDs {
+		role, err := us.roleSvc.GetByID(roleId)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		if role.LicenseType != nil && role.LicenseType.Type == "active" {
+			licenseType = "active"
+			break
+		}
+	}
+	// Find LicenseID From Type
+	license, err := us.licenseTypeSvc.GetByType(licenseType)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	if systemPreference != nil && systemPreference.LicenseKeyDetails != nil {
 		if systemPreference.LicenseKeyDetails.LicenseKey != nil && *systemPreference.LicenseKeyDetails.LicenseKey != "" {
-			if err := us.validateLicenseKey(nil, *systemPreference.LicenseKeyDetails.LicenseKey, userFormDTO); err != nil {
+			if err := us.validateLicenseKey(nil, *systemPreference.LicenseKeyDetails.LicenseKey, license.ID); err != nil {
 				return 0, err
 			}
 		}
@@ -378,7 +414,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		Initial:             initial,
 		Color:               color,
 		ReportingUserID:     userFormDTO.ReportingUserID,
-		LicenseTypeID:       userFormDTO.LicenseTypeID,
+		LicenseTypeID:       &license.ID,
 	}
 
 	userID, err := us.repo.Create(user, tx)
@@ -548,9 +584,31 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 		return err
 	}
 
+	// Set User License Type From Roles
+	licenseType := "passive"
+	for _, roleId := range userFormDTO.RoleIDs {
+		role, err := us.roleSvc.GetByID(roleId)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		if role.LicenseType != nil && role.LicenseType.Type == "active" {
+			licenseType = "active"
+			break
+		}
+	}
+
+	// Find LicenseID From Type
+	license, err := us.licenseTypeSvc.GetByType(licenseType)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	if systemPreference != nil && systemPreference.LicenseKeyDetails != nil {
 		if systemPreference.LicenseKeyDetails.LicenseKey != nil && *systemPreference.LicenseKeyDetails.LicenseKey != "" {
-			if err := us.validateLicenseKey(&id, *systemPreference.LicenseKeyDetails.LicenseKey, userFormDTO); err != nil {
+			if err := us.validateLicenseKey(&id, *systemPreference.LicenseKeyDetails.LicenseKey, license.ID); err != nil {
 				return err
 			}
 		}
@@ -578,7 +636,7 @@ func (us *UserService) Update(id uint, currentUserID uint, userFormDTO *userDTOs
 	existingUser.UpdatedByID = &currentUserID
 	existingUser.UserStatusID = userFormDTO.UserStatusID
 	existingUser.ReportingUserID = userFormDTO.ReportingUserID
-	existingUser.LicenseTypeID = userFormDTO.LicenseTypeID
+	existingUser.LicenseTypeID = &license.ID
 
 	err = us.repo.Update(existingUser, tx)
 	if err != nil {
@@ -778,22 +836,22 @@ func (us *UserService) validateUserFormDTO(id *uint, userFormDTO *userDTOs.UserF
 		return utility.NewValidationError(fmt.Errorf("designation does not exist"), "not_exist", "designation")
 	}
 
-	_, err = us.licenseTypeSvc.GetByID(*userFormDTO.LicenseTypeID)
-	if err != nil {
-		return utility.NewValidationError(fmt.Errorf("license type does not exist"), "not_exist", "license type")
-	}
+	// _, err = us.licenseTypeSvc.GetByID(*userFormDTO.LicenseTypeID)
+	// if err != nil {
+	// 	return utility.NewValidationError(fmt.Errorf("license type does not exist"), "not_exist", "license type")
+	// }
 
 	if len(userFormDTO.RoleIDs) == 0 {
 		return utility.NewValidationError(fmt.Errorf("no roles provided, at least one role is required"), "required", "role")
 	} else {
 		for _, roleID := range userFormDTO.RoleIDs {
-			role, err := us.roleSvc.GetByID(roleID)
+			_, err := us.roleSvc.GetByID(roleID)
 			if err != nil {
 				return utility.NewValidationError(fmt.Errorf("role does not exist"), "not_exist", "role")
 			}
-			if *role.LicenseTypeID != *userFormDTO.LicenseTypeID {
-				return utility.NewValidationError(fmt.Errorf("role does not exist in license type"), "not_exist", "role")
-			}
+			// if *role.LicenseTypeID != *userFormDTO.LicenseTypeID {
+			// 	return utility.NewValidationError(fmt.Errorf("role does not exist in license type"), "not_exist", "role")
+			// }
 
 		}
 	}
@@ -1167,7 +1225,7 @@ func (us *UserService) DecodeMaxUsersFromLicense(licenseKey string) (float64, er
 	return maxUsers, nil
 }
 
-func (us *UserService) validateLicenseKey(id *uint, licenseKey string, userFormDTO *userDTOs.UserFormDTO) error {
+func (us *UserService) validateLicenseKey(id *uint, licenseKey string, licenseTypeID uint) error {
 
 	claims, err := utility.DecryptLicenseKey(licenseKey)
 	if err != nil {
@@ -1200,7 +1258,7 @@ func (us *UserService) validateLicenseKey(id *uint, licenseKey string, userFormD
 	}
 
 	if id == nil {
-		if *userFormDTO.LicenseTypeID == activeLicenseType.ID {
+		if licenseTypeID == activeLicenseType.ID {
 			licenseType := "active"
 			err = us.checkLicenseLimits(int(totalActiveUserCount), int(maxActiveUsers), &licenseType)
 			if err != nil {
@@ -1208,7 +1266,7 @@ func (us *UserService) validateLicenseKey(id *uint, licenseKey string, userFormD
 			}
 		}
 
-		if *userFormDTO.LicenseTypeID == passiveLicenseType.ID {
+		if licenseTypeID == passiveLicenseType.ID {
 			licenseType := "passive"
 			err = us.checkLicenseLimits(int(totalPassiveUserCount), int(maxPassiveUsers), &licenseType)
 			if err != nil {
@@ -1230,8 +1288,8 @@ func (us *UserService) validateLicenseKey(id *uint, licenseKey string, userFormD
 		if err != nil {
 			return err
 		}
-		if existingUser.LicenseTypeID != userFormDTO.LicenseTypeID {
-			if *userFormDTO.LicenseTypeID == activeLicenseType.ID {
+		if existingUser.LicenseTypeID != nil || *existingUser.LicenseTypeID != licenseTypeID {
+			if licenseTypeID == activeLicenseType.ID {
 				licenseType := "active"
 				err = us.checkLicenseLimits(int(totalActiveUserCount), int(maxActiveUsers), &licenseType)
 				if err != nil {
@@ -1239,7 +1297,7 @@ func (us *UserService) validateLicenseKey(id *uint, licenseKey string, userFormD
 				}
 			}
 
-			if *userFormDTO.LicenseTypeID == passiveLicenseType.ID {
+			if licenseTypeID == passiveLicenseType.ID {
 				licenseType := "passive"
 				err = us.checkLicenseLimits(int(totalPassiveUserCount), int(maxPassiveUsers), &licenseType)
 				if err != nil {
