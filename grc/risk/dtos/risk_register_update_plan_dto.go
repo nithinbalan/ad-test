@@ -716,6 +716,8 @@ type RiskAnalysisListDTO struct {
 	ReferenceNumber             string                          `json:"reference_number"`
 	Title                       string                          `json:"title"`
 	Description                 *string                         `json:"description"`
+	InherentLikelihoodID        *uint                           `json:"inherent_likelihood_id"`
+	InherentImpactID            *uint                           `json:"inherent_impact_id"`
 	InherentLikelihoodTitleEn   *string                         `json:"inherent_likelihood_title_en"`
 	InherentLikelihoodTitleAr   *string                         `json:"inherent_likelihood_title_ar"`
 	InherentImpactTitleEn       *string                         `json:"inherent_impact_title_en"`
