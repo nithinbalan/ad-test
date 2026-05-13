@@ -119,8 +119,27 @@ type RiskUpdatePlanTimelineDetailDTO struct {
 	IsBusinessContextUpdated     bool                           `json:"is_business_context_updated"`
 	IsNotApplicable              bool                           `json:"is_not_applicable"`
 	IsCompleted                  bool                           `json:"is_completed"`
+	Justification                *string                        `json:"justification"`
 	CreatedAt                    time.Time                      `json:"created_at"`
 	UpdatedAt                    *time.Time                     `json:"updated_at"`
+	CreatedBYID                  uint                           `json:"created_by_id"`
+	UpdatedBYID                  *uint                          `json:"updated_by_id"`
+	// Relationships
+	ErmDeptDocuments                []*RiskUpdatePlanErmDeptDocumentDTO                `json:"erm_dept_documents"`
+	IntroductoryMeetingDocuments    []*RiskUpdatePlanIntroductoryMeetingDocumentDTO    `json:"introductory_meeting_documents"`
+	BusinessContexts                []*RiskUpdatePlanBusinessContextDTO                `json:"business_contexts"`
+	Risks                           []*RiskUpdatePlanRiskDTO                           `json:"risks"`
+	Controls                        []*RiskUpdatePlanControlDTO                        `json:"controls"`
+	Processes                       []*RiskUpdatePlanProcessDTO                        `json:"processes"`
+	LeadershipAssessments           []*RiskUpdatePlanLeadershipAssessmentDTO           `json:"leadership_assessments"`
+	LeadershipDocuments             []*RiskUpdatePlanLeadershipDocumentDTO             `json:"leadership_documents"`
+	RiskAssessmentWorkshopDocuments []*RiskUpdatePlanRiskAssessmentWorkshopDocumentDTO `json:"risk_assessment_workshop_documents"`
+	RiskTeamAssessments             []*RiskUpdatePlanRiskTeamAssessmentDTO             `json:"risk_team_assessments"`
+	RiskTeamDocuments               []*RiskUpdatePlanRiskTeamDocumentDTO               `json:"risk_team_documents"`
+	RiskWorkshopAssessmentDocuments []*RiskUpdatePlanRiskWorkshopAssessmentDocumentDTO `json:"risk_workshop_assessment_documents"`
+	SelfAwarenessTrainings          []*RiskUpdatePlanSelfAwarenessTrainingDTO          `json:"self_awareness_trainings"`
+	CreatedByUser                   *organizationDTOs.UserMinimalDTO                   `json:"created_by"`
+	UpdatedByUser                   *organizationDTOs.UserMinimalDTO                   `json:"updated_by"`
 }
 
 type RiskRegisterUpdatePlanFormDTO struct {
@@ -717,6 +736,8 @@ type RiskAnalysisListDTO struct {
 	ReferenceNumber             string                          `json:"reference_number"`
 	Title                       string                          `json:"title"`
 	Description                 *string                         `json:"description"`
+	InherentLikelihoodID        *uint                           `json:"inherent_likelihood_id"`
+	InherentImpactID            *uint                           `json:"inherent_impact_id"`
 	InherentLikelihoodTitleEn   *string                         `json:"inherent_likelihood_title_en"`
 	InherentLikelihoodTitleAr   *string                         `json:"inherent_likelihood_title_ar"`
 	InherentImpactTitleEn       *string                         `json:"inherent_impact_title_en"`
@@ -957,7 +978,167 @@ type RiskControlAssociationActionPlanDTO struct {
 	UpdatedUserInitial              *string `json:"updated_user_initial"`
 	UpdatedUserColor                *string `json:"updated_user_color"`
 	UpdatedUserEmail                *string `json:"updated_user_email"`
-	UpdatedUserProfileImagePath     *string `json:"updated_user_profile_image_path"`
+	UpdatedUserProfileImagePath     string  `json:"updated_user_profile_image_path"`
+}
+
+// Timeline Detail Related DTOs
+type RiskUpdatePlanErmDeptDocumentDTO struct {
+	ID                       uint       `json:"id"`
+	RiskUpdatePlanTimelineID uint       `json:"risk_update_plan_timeline_id"`
+	URL                      *string    `json:"url"`
+	Name                     *string    `json:"name"`
+	Size                     *int       `json:"size"`
+	Token                    *string    `json:"token"`
+	OriginalName             *string    `json:"original_name"`
+	Type                     *string    `json:"type"`
+	CreatedBYID              *uint      `json:"created_by_id"`
+	UpdatedBYID              *uint      `json:"updated_by_id"`
+	CreatedAt                time.Time  `json:"created_at"`
+	UpdatedAt                *time.Time `json:"updated_at"`
+}
+
+type RiskUpdatePlanIntroductoryMeetingDocumentDTO struct {
+	ID                       uint       `json:"id"`
+	RiskUpdatePlanTimelineID uint       `json:"risk_update_plan_timeline_id"`
+	URL                      *string    `json:"url"`
+	Name                     *string    `json:"name"`
+	Size                     *int       `json:"size"`
+	Token                    *string    `json:"token"`
+	OriginalName             *string    `json:"original_name"`
+	Type                     *string    `json:"type"`
+	CreatedBYID              *uint      `json:"created_by_id"`
+	UpdatedBYID              *uint      `json:"updated_by_id"`
+	CreatedAt                time.Time  `json:"created_at"`
+	UpdatedAt                *time.Time `json:"updated_at"`
+}
+
+type RiskUpdatePlanBusinessContextDTO struct {
+	ID                       uint       `json:"id"`
+	RiskUpdatePlanTimelineID uint       `json:"risk_update_plan_timeline_id"`
+	Title                    string     `json:"title"`
+	Description              *string    `json:"description"`
+	CreatedAt                time.Time  `json:"created_at"`
+	UpdatedAt                *time.Time `json:"updated_at"`
+}
+
+type RiskUpdatePlanRiskDTO struct {
+	ID                       uint                   `json:"id"`
+	RiskUpdatePlanTimelineID uint                   `json:"risk_update_plan_timeline_id"`
+	RiskRegisterID           uint                   `json:"risk_register_id"`
+	RiskRegister             *RiskRegisterDetailDTO `json:"risk_register"`
+	CreatedBYID              *uint                  `json:"created_by_id"`
+	CreatedAt                time.Time              `json:"created_at"`
+}
+
+type RiskUpdatePlanControlDTO struct {
+	ID                       uint                               `json:"id"`
+	RiskUpdatePlanTimelineID uint                               `json:"risk_update_plan_timeline_id"`
+	ControlID                uint                               `json:"control_id"`
+	Control                  *organizationDTOs.ControlDetailDTO `json:"control"`
+	CreatedBYID              *uint                              `json:"created_by_id"`
+	CreatedAt                time.Time                          `json:"created_at"`
+}
+
+type RiskUpdatePlanProcessDTO struct {
+	ID                       uint                               `json:"id"`
+	RiskUpdatePlanTimelineID uint                               `json:"risk_update_plan_timeline_id"`
+	ProcessID                uint                               `json:"process_id"`
+	Process                  *organizationDTOs.ProcessDetailDTO `json:"process"`
+	CreatedBYID              *uint                              `json:"created_by_id"`
+	CreatedAt                time.Time                          `json:"created_at"`
+}
+
+type RiskUpdatePlanLeadershipAssessmentDTO struct {
+	ID                       uint                             `json:"id"`
+	RiskUpdatePlanTimelineID uint                             `json:"risk_update_plan_timeline_id"`
+	UserID                   uint                             `json:"user_id"`
+	User                     *organizationDTOs.UserMinimalDTO `json:"user"`
+	CreatedBYID              *uint                            `json:"created_by_id"`
+	UpdatedBYID              *uint                            `json:"updated_by_id"`
+	CreatedAt                time.Time                        `json:"created_at"`
+	UpdatedAt                *time.Time                       `json:"updated_at"`
+}
+
+type RiskUpdatePlanLeadershipDocumentDTO struct {
+	ID                       uint       `json:"id"`
+	RiskUpdatePlanTimelineID uint       `json:"risk_update_plan_timeline_id"`
+	URL                      *string    `json:"url"`
+	Name                     *string    `json:"name"`
+	Size                     *int       `json:"size"`
+	Token                    *string    `json:"token"`
+	OriginalName             *string    `json:"original_name"`
+	Type                     *string    `json:"type"`
+	CreatedBYID              *uint      `json:"created_by_id"`
+	UpdatedBYID              *uint      `json:"updated_by_id"`
+	CreatedAt                time.Time  `json:"created_at"`
+	UpdatedAt                *time.Time `json:"updated_at"`
+}
+
+type RiskUpdatePlanRiskAssessmentWorkshopDocumentDTO struct {
+	ID                       uint       `json:"id"`
+	RiskUpdatePlanTimelineID uint       `json:"risk_update_plan_timeline_id"`
+	URL                      *string    `json:"url"`
+	Name                     *string    `json:"name"`
+	Size                     *int       `json:"size"`
+	Token                    *string    `json:"token"`
+	OriginalName             *string    `json:"original_name"`
+	Type                     *string    `json:"type"`
+	CreatedBYID              *uint      `json:"created_by_id"`
+	UpdatedBYID              *uint      `json:"updated_by_id"`
+	CreatedAt                time.Time  `json:"created_at"`
+	UpdatedAt                *time.Time `json:"updated_at"`
+}
+
+type RiskUpdatePlanRiskTeamAssessmentDTO struct {
+	ID                       uint                             `json:"id"`
+	RiskUpdatePlanTimelineID uint                             `json:"risk_update_plan_timeline_id"`
+	RiskChampionID           uint                             `json:"risk_champion_id"`
+	RiskChampion             *organizationDTOs.UserMinimalDTO `json:"risk_champion"`
+	CreatedBYID              *uint                            `json:"created_by_id"`
+	UpdatedBYID              *uint                            `json:"updated_by_id"`
+	CreatedAt                time.Time                        `json:"created_at"`
+	UpdatedAt                *time.Time                       `json:"updated_at"`
+}
+
+type RiskUpdatePlanRiskTeamDocumentDTO struct {
+	ID                       uint       `json:"id"`
+	RiskUpdatePlanTimelineID uint       `json:"risk_update_plan_timeline_id"`
+	URL                      *string    `json:"url"`
+	Name                     *string    `json:"name"`
+	Size                     *int       `json:"size"`
+	Token                    *string    `json:"token"`
+	OriginalName             *string    `json:"original_name"`
+	Type                     *string    `json:"type"`
+	CreatedBYID              *uint      `json:"created_by_id"`
+	UpdatedBYID              *uint      `json:"updated_by_id"`
+	CreatedAt                time.Time  `json:"created_at"`
+	UpdatedAt                *time.Time `json:"updated_at"`
+}
+
+type RiskUpdatePlanRiskWorkshopAssessmentDocumentDTO struct {
+	ID                       uint       `json:"id"`
+	RiskUpdatePlanTimelineID uint       `json:"risk_update_plan_timeline_id"`
+	URL                      *string    `json:"url"`
+	Name                     *string    `json:"name"`
+	Size                     *int       `json:"size"`
+	Token                    *string    `json:"token"`
+	OriginalName             *string    `json:"original_name"`
+	Type                     *string    `json:"type"`
+	CreatedBYID              *uint      `json:"created_by_id"`
+	UpdatedBYID              *uint      `json:"updated_by_id"`
+	CreatedAt                time.Time  `json:"created_at"`
+	UpdatedAt                *time.Time `json:"updated_at"`
+}
+
+type RiskUpdatePlanSelfAwarenessTrainingDTO struct {
+	ID                       uint       `json:"id"`
+	RiskUpdatePlanTimelineID uint       `json:"risk_update_plan_timeline_id"`
+	Title                    string     `json:"title"`
+	Description              *string    `json:"description"`
+	CreatedBYID              *uint      `json:"created_by_id"`
+	UpdatedBYID              *uint      `json:"updated_by_id"`
+	CreatedAt                time.Time  `json:"created_at"`
+	UpdatedAt                *time.Time `json:"updated_at"`
 }
 
 //COMMON DTOS
