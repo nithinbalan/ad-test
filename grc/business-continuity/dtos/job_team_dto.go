@@ -11,6 +11,8 @@ type JobTeamListDTO struct {
 	ID                          uint                 `json:"id"`
 	TitleEn                     string               `json:"title_en"`
 	TitleAr                     string               `json:"title_ar"`
+	Scope                       *string              `json:"scope"`
+	Objective                   *string              `json:"objective"`
 	TeamLeadDesignationID       uint                 `json:"team_lead_designation_id"`
 	TeamLeadDesignationTitleEn  string               `json:"team_lead_designation_title_en"`
 	TeamLeadDesignationTitleAr  string               `json:"team_lead_designation_title_ar"`
