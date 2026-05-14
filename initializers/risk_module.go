@@ -556,6 +556,7 @@ func NewRiskModule(db *gorm.DB,
 		riskRegisterSvc,
 		sharedModule.ActivityLogService,
 		riskRegisterUpdatePlanStatusSvc,
+		organizationModule.ControlSvc,
 	)
 	riskUpdatePlanERMDeptController := controllers.NewRiskUpdatePlanERMDeptController(riskUpdatePlanERMDeptSvc)
 
