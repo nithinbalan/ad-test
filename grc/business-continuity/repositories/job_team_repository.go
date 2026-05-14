@@ -41,12 +41,13 @@ func (repo *JobTeamRepository) GetAll(params *bcDTOs.JobTeamListQueryParamsDTO) 
 	var jobTeams []*models.JobTeam
 	var totalCount int64
 
-	// Build the base query with preloading relationships
+	// Build the base query with preloading relationships and joins
 	query := repo.db.Preload("TeamLeadDesignation").
 		Preload("JobTeamMembers").
 		Preload("JobTeamMembers.Designation").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Joins("LEFT JOIN designations ON designations.id = job_teams.team_lead_designation_id").
 		Model(&models.JobTeam{})
 
 	// Apply dynamic filters to the query
@@ -56,18 +57,22 @@ func (repo *JobTeamRepository) GetAll(params *bcDTOs.JobTeamListQueryParamsDTO) 
 		}
 	}
 
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, 0, err
-	}
-
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
             (job_teams.title_en LIKE ? OR
-            job_teams.title_ar LIKE ?)`,
-			keyword, keyword)
+            job_teams.title_ar LIKE ? OR
+            job_teams.scope LIKE ? OR
+            job_teams.objective LIKE ? OR
+            designations.title_en LIKE ? OR
+            designations.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	// Calculate total count for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, 0, err
 	}
 
 	// Sort by the specified column and order
