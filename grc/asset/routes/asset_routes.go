@@ -49,6 +49,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetControlAnalysisController := app.AssetModule.AssetControlAnalysisController
 	assetKriController := app.AssetModule.AssetKriController
 	tenableController := app.AssetModule.TenableController
+	systemRegisterRecoveryToolController := app.AssetModule.SystemRegisterRecoveryToolController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -342,5 +343,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("/tenable/assets", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), tenableController.GetAllAssets)
 	assetRoutes.POST("/tenable/assets/validate", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableController.ValidateTenableAssets)
 	assetRoutes.POST("/tenable/assets/import", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableController.ImportAssets)
+
+	// System Register Recovery Tools
+	assetRoutes.GET("/system-register-recovery-tools", systemRegisterRecoveryToolController.GetAllSystemRegisterRecoveryTools)
+	assetRoutes.GET("/system-register-recovery-tools/:id", systemRegisterRecoveryToolController.GetSystemRegisterRecoveryToolDetails)
+	assetRoutes.POST("/system-register-recovery-tools", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterRecoveryToolController.CreateSystemRegisterRecoveryTool)
+	assetRoutes.PUT("/system-register-recovery-tools/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterRecoveryToolController.UpdateSystemRegisterRecoveryTool)
+	assetRoutes.POST("/system-register-recovery-tools/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterRecoveryToolController.DeleteSystemRegisterRecoveryTools)
+	assetRoutes.PUT("/system-register-recovery-tools/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterRecoveryToolController.ActivateSystemRegisterRecoveryTools)
+	assetRoutes.PUT("/system-register-recovery-tools/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterRecoveryToolController.DeactivateSystemRegisterRecoveryTools)
 
 }

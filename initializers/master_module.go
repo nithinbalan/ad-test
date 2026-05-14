@@ -39,6 +39,7 @@ type MasterModule struct {
 	CommentStatusController          *controllers.CommentStatusController
 	ActionPlanMasterController       *controllers.ActionPlanMasterController
 	EmailStatusController            *controllers.EmailStatusController
+	LocationController               *controllers.LocationController
 
 	ReviewFrequencySvc        services.ReviewFrequencyServiceInterface
 	SeverityLevelSvc          services.SeverityLevelServiceInterface
@@ -46,6 +47,7 @@ type MasterModule struct {
 	QuestionGroupService      services.QuestionGroupServiceInterface
 	ChecklistSvc              services.ChecklistServiceInterface
 	ChecklistQuestionSvc      services.ChecklistQuestionServiceInterface
+	LocationSvc               services.LocationServiceInterface
 	ActionPlanStatusSvc       services.ActionPlanStatusServiceInterface
 	CurrencySvc               services.CurrencyServiceInterface
 	TimezoneSvc               services.TimezoneServiceInterface
@@ -215,6 +217,11 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 	emailStatusSvc := services.NewEmailStatusService(emailStatusRepo)
 	emailStatusController := controllers.NewEmailStatusController(emailStatusSvc)
 
+	//Locations
+	locationRepo := repositories.NewLocationRepository(db)
+	locationSvc := services.NewLocationService(locationRepo, sharedModule.ActivityLogService)
+	locationController := controllers.NewLocationController(locationSvc)
+
 	return &MasterModule{
 		ReviewFrequencyController:        reviewFrequencyController,
 		SeverityLevelController:          severityLevelController,
@@ -222,6 +229,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		QuestionGroupController:          questionGroupController,
 		ChecklistController:              checklistController,
 		ChecklistQuestionController:      checklistQuestionController,
+		LocationController:               locationController,
 		AtionPlanStatusController:        actionPlanStatusController,
 		CurrencyController:               currencyController,
 		TimezoneController:               timezoneController,
@@ -253,6 +261,7 @@ func NewMasterModule(db *gorm.DB, sharedModule *SharedModule) *MasterModule {
 		QuestionGroupService:      questionGroupSvc,
 		ChecklistSvc:              checklistSvc,
 		ChecklistQuestionSvc:      checklistQuestionSvc,
+		LocationSvc:               locationSvc,
 		ActionPlanStatusSvc:       actionPlanStatusSvc,
 		CurrencySvc:               currencySvc,
 		TimezoneSvc:               timezoneSvc,
