@@ -63,6 +63,8 @@ func (jts *JobTeamService) GetAll(params *bcDTOs.JobTeamListQueryParamsDTO) (*bc
 			ID:                          jobTeam.ID,
 			TitleEn:                     jobTeam.TitleEn,
 			TitleAr:                     jobTeam.TitleAr,
+			Scope:                       jobTeam.Scope,
+			Objective:                   jobTeam.Objective,
 			TeamLeadDesignationID:       jobTeam.TeamLeadDesignationID,
 			TeamLeadDesignationTitleEn:  getSafeString(jobTeam.TeamLeadDesignation, func(d *models.Designation) string { return d.TitleEn }),
 			TeamLeadDesignationTitleAr:  getSafeString(jobTeam.TeamLeadDesignation, func(d *models.Designation) string { return d.TitleAr }),
