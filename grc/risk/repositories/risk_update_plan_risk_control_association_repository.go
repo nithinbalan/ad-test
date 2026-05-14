@@ -238,6 +238,7 @@ func (repo *RiskUpdatePlanRiskControlAssociationRepository) GetRiskControlAssoci
 			users.profile_image_path AS responsible_user_profile_image_path,
 			risk_statuses.title_en AS risk_status_title_en,
 			risk_statuses.title_ar AS risk_status_title_ar,
+			risk_response_strategies.id AS risk_response_strategy_id,
 			risk_response_strategies.title_en AS risk_response_strategy_title_en,
 			risk_response_strategies.title_ar AS risk_response_strategy_title_ar,
 			risk_statuses.color_code AS risk_status_color_code,

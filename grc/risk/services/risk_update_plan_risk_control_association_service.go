@@ -212,6 +212,12 @@ func (rupras *RiskUpdatePlanRiskControlAssociationService) CreateRiskControlAsso
 		control := controlDetailsMap[riskControl.ControlID]
 		latestControlTest := controlTestMap[riskControl.ControlID]
 
+		// Validate that control test exists
+		if latestControlTest == nil {
+			tx.Rollback()
+			return utility.NewValidationError(fmt.Errorf("control test not completed for control ID %d", riskControl.ControlID), "not_exist", "control test")
+		}
+
 		riskControlAnalysis := &models.RiskControlAnalysis{
 			RiskControlID:                 riskControl.ID,
 			Type:                          "inherent",
