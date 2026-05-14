@@ -51,6 +51,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	tenableController := app.AssetModule.TenableController
 	systemRegisterRecoveryToolController := app.AssetModule.SystemRegisterRecoveryToolController
 	systemRegisterController := app.AssetModule.SystemRegisterController
+	systemRegisterAssociatedItemController := app.AssetModule.SystemRegisterAssociatedItemController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -361,5 +362,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/system-registers/:id", middlewares.RolePermissionMiddleware(db, "system_register", "modify"), systemRegisterController.UpdateSystemRegister)
 	assetRoutes.POST("/system-registers/delete", middlewares.RolePermissionMiddleware(db, "system_register", "modify"), systemRegisterController.DeleteSystemRegisters)
 	assetRoutes.GET("/system-registers/export", middlewares.RolePermissionMiddleware(db, "system_register", "view"), systemRegisterController.GetSystemRegistersExport)
+
+	// System Register Associated Items - SLAs
+	assetRoutes.GET("/system-registers/:id/slas", middlewares.RolePermissionMiddleware(db, "system_register", "view"), systemRegisterAssociatedItemController.GetAllSystemRegisterSLAs)
+	assetRoutes.POST("/system-registers/:id/slas", middlewares.RolePermissionMiddleware(db, "system_register", "modify"), systemRegisterAssociatedItemController.CreateSystemRegisterSLAs)
+	assetRoutes.DELETE("/system-registers/:id/slas/:slaId", middlewares.RolePermissionMiddleware(db, "system_register", "modify"), systemRegisterAssociatedItemController.DeleteSystemRegisterSLA)
+
+	// System Register Associated Items - Processes
+	assetRoutes.GET("/system-registers/:id/processes", middlewares.RolePermissionMiddleware(db, "system_register", "view"), systemRegisterAssociatedItemController.GetAllSystemRegisterProcesses)
+	assetRoutes.POST("/system-registers/:id/processes", middlewares.RolePermissionMiddleware(db, "system_register", "modify"), systemRegisterAssociatedItemController.CreateSystemRegisterProcesses)
+	assetRoutes.DELETE("/system-registers/:id/processes/:processId", middlewares.RolePermissionMiddleware(db, "system_register", "modify"), systemRegisterAssociatedItemController.DeleteSystemRegisterProcess)
 
 }

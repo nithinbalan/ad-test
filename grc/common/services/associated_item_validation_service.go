@@ -14,6 +14,7 @@ type AssociatedItemValidationServiceInterface interface {
 	ValidateIncidentMapping(masterID uint, incidentIDs []uint, tableName string, columnName string) error
 	ValidateStrtegicObjectiveMapping(masterID uint, strategicObjectiveIds []uint, tableName string, columnName string) error
 	ValidateAssetMapping(masterID uint, assetIDs []uint, tableName string, columnName string) error
+	ValidateSLAMapping(masterID uint, slaIDs []uint, tableName string, columnName string) error
 	ValidateProcessMapping(masterID uint, processIds []uint, tableName string, columnName string) error
 	ValidateKPIMapping(masterID uint, kpiIds []uint, tableName string, columnName string) error
 	ValidateControlMapping(masterID uint, controlIds []uint, tableName string, columnName string) error
@@ -193,6 +194,38 @@ func (aivs *AssociatedItemValidationService) ValidateAssetMapping(masterID uint,
 			return utility.NewValidationError(
 				fmt.Errorf("asset ID %d already mapped to this %s", id, tableName),
 				"duplicate", "asset")
+		}
+
+		seen[id] = true
+	}
+
+	return nil
+}
+
+func (aivs *AssociatedItemValidationService) ValidateSLAMapping(masterID uint, slaIDs []uint, tableName string, columnName string) error {
+	if len(slaIDs) == 0 {
+		return utility.NewValidationError(fmt.Errorf("no SLA provided"), "required", "sla_id")
+	}
+
+	seen := make(map[uint]bool)
+	for _, id := range slaIDs {
+		if seen[id] {
+			return utility.NewValidationError(fmt.Errorf("duplicate SLA ID: %d", id), "duplicate", "sla_id")
+		}
+
+		_, err := aivs.repo.SLAExists(id)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("SLA does not exist: %d", id), "not_exist", "sla_id")
+		}
+
+		alreadyMapped, err := aivs.repo.IsSLAMapped(tableName, columnName, id, masterID)
+		if err != nil {
+			return fmt.Errorf("failed to check mapping: %v", err)
+		}
+		if alreadyMapped {
+			return utility.NewValidationError(
+				fmt.Errorf("SLA ID %d already mapped to this %s", id, tableName),
+				"duplicate", "sla_id")
 		}
 
 		seen[id] = true
