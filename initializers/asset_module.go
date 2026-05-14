@@ -42,6 +42,7 @@ type AssetModule struct {
 	AssetKriController                            *controllers.AssetKriController
 	TenableController                             *controllers.TenableController
 	SystemRegisterRecoveryToolController          *controllers.SystemRegisterRecoveryToolController
+	SystemRegisterController                      *controllers.SystemRegisterController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -266,6 +267,18 @@ func NewAssetModule(db *gorm.DB,
 	systemRegisterRecoveryToolSvc := services.NewSystemRegisterRecoveryToolService(systemRegisterRecoveryToolRepo, sharedModule.ActivityLogService)
 	systemRegisterRecoveryToolController := controllers.NewSystemRegisterRecoveryToolController(systemRegisterRecoveryToolSvc)
 
+	systemRegisterRepo := repositories.NewSystemRegisterRepository(db)
+	systemRegisterSvc := services.NewSystemRegisterService(
+		systemRegisterRepo,
+		sharedModule.ActivityLogService,
+		organizationModule.UserSvc,
+		organizationModule.DesignationSvc,
+		masterModule.LocationSvc,
+		systemRegisterRecoveryToolSvc,
+		organizationModule.UserSettingSvc,
+	)
+	systemRegisterController := controllers.NewSystemRegisterController(systemRegisterSvc)
+
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
 		AssetCategoryController:                       assetCategoryController,
@@ -300,6 +313,7 @@ func NewAssetModule(db *gorm.DB,
 		AssetKriController:                            assetKriController,
 		TenableController:                             tenableController,
 		SystemRegisterRecoveryToolController:          systemRegisterRecoveryToolController,
+		SystemRegisterController:                      systemRegisterController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}

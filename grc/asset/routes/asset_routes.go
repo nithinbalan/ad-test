@@ -50,6 +50,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetKriController := app.AssetModule.AssetKriController
 	tenableController := app.AssetModule.TenableController
 	systemRegisterRecoveryToolController := app.AssetModule.SystemRegisterRecoveryToolController
+	systemRegisterController := app.AssetModule.SystemRegisterController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -352,5 +353,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/system-register-recovery-tools/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterRecoveryToolController.DeleteSystemRegisterRecoveryTools)
 	assetRoutes.PUT("/system-register-recovery-tools/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterRecoveryToolController.ActivateSystemRegisterRecoveryTools)
 	assetRoutes.PUT("/system-register-recovery-tools/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterRecoveryToolController.DeactivateSystemRegisterRecoveryTools)
+
+	// System Register
+	assetRoutes.GET("/system-registers", middlewares.RolePermissionMiddleware(db, "system_register", "view"), systemRegisterController.GetAllSystemRegisters)
+	assetRoutes.GET("/system-registers/:id", middlewares.RolePermissionMiddleware(db, "system_register", "view"), systemRegisterController.GetSystemRegisterDetails)
+	assetRoutes.POST("/system-registers", middlewares.RolePermissionMiddleware(db, "system_register", "modify"), systemRegisterController.CreateSystemRegister)
+	assetRoutes.PUT("/system-registers/:id", middlewares.RolePermissionMiddleware(db, "system_register", "modify"), systemRegisterController.UpdateSystemRegister)
+	assetRoutes.POST("/system-registers/delete", middlewares.RolePermissionMiddleware(db, "system_register", "modify"), systemRegisterController.DeleteSystemRegisters)
+	assetRoutes.GET("/system-registers/export", middlewares.RolePermissionMiddleware(db, "system_register", "view"), systemRegisterController.GetSystemRegistersExport)
 
 }
