@@ -813,6 +813,7 @@ type RiskControlAssociationListDTO struct {
 	ResponsibleUserProfileImagePath *string                               `json:"responsible_user_profile_image_path"`
 	RiskStatusTitleEn               string                                `json:"risk_status_title_en"`
 	RiskStatusTitleAr               string                                `json:"risk_status_title_ar"`
+	RiskResponseStrategyID          *uint                                 `json:"risk_response_strategy_id"`
 	RiskResponseStrategyTitleEn     string                                `json:"risk_response_strategy_title_en"`
 	RiskResponseStrategyTitleAr     string                                `json:"risk_response_strategy_title_ar"`
 	RiskStatusType                  string                                `json:"risk_status_type"`
