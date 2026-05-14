@@ -57,9 +57,9 @@ func (caads *ComplianceAssessmentAcknowledgeDepartmentService) GetAll(assessment
 	}
 
 	// Check if the compliance register has IsRegulationNotificationAssessment = true
-	if !assessment.ComplianceRegister.IsRegulationNotificationAssessment {
-		return nil, fmt.Errorf("assessment is not a regulation notification assessment")
-	}
+	// if !assessment.ComplianceRegister.IsRegulationNotificationAssessment {
+	// 	return nil, fmt.Errorf("assessment is not a regulation notification assessment")
+	// }
 
 	// Get organization level settings to determine primary org unit field
 	orgLevel, err := caads.organizationLevelSvc.GetPrimaryLevel()
@@ -102,10 +102,10 @@ func (caads *ComplianceAssessmentAcknowledgeDepartmentService) Create(assessment
 	}
 
 	// Check if the compliance register has IsRegulationNotificationAssessment = true
-	if !assessment.ComplianceRegister.IsRegulationNotificationAssessment {
-		tx.Rollback()
-		return 0, utility.NewForbiddenError("assessment_is_not_a_regulation_notification_assessment")
-	}
+	// if !assessment.ComplianceRegister.IsRegulationNotificationAssessment {
+	// 	tx.Rollback()
+	// 	return 0, utility.NewForbiddenError("assessment_is_not_a_regulation_notification_assessment")
+	// }
 
 	// Get user's primary organization unit ID
 	organizationUnitID, err := caads.userSvc.GetUserPrimaryUnitID(currentUserID)
@@ -225,17 +225,17 @@ func (caads *ComplianceAssessmentAcknowledgeDepartmentService) Delete(assessment
 	var deletedUser []map[string]interface{}
 
 	// Get assessment details
-	assessment, err := caads.assessmentSvc.GetFullDetailsByID(assessmentID, nil)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
+	// assessment, err := caads.assessmentSvc.GetFullDetailsByID(assessmentID, nil)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return 0, err
+	// }
+	//
 	// Check if the compliance register has IsRegulationNotificationAssessment = true
-	if !assessment.ComplianceRegister.IsRegulationNotificationAssessment {
-		tx.Rollback()
-		return 0, utility.NewForbiddenError("assessment_is_not_a_regulation_notification_assessment")
-	}
+	// if !assessment.ComplianceRegister.IsRegulationNotificationAssessment {
+	// 	tx.Rollback()
+	// 	return 0, utility.NewForbiddenError("assessment_is_not_a_regulation_notification_assessment")
+	// }
 
 	// Get user's primary organization unit ID
 	organizationUnitID, err := caads.userSvc.GetUserPrimaryUnitID(currentUserID)
@@ -304,9 +304,9 @@ func (caads *ComplianceAssessmentAcknowledgeDepartmentService) GetAssessmentAckn
 	}
 
 	// Check if the compliance register has IsRegulationNotificationAssessment = true
-	if !assessment.ComplianceRegister.IsRegulationNotificationAssessment {
-		return nil, utility.NewForbiddenError("assessment_is_not_a_regulation_notification_assessment")
-	}
+	// if !assessment.ComplianceRegister.IsRegulationNotificationAssessment {
+	// 	return nil, utility.NewForbiddenError("assessment_is_not_a_regulation_notification_assessment")
+	// }
 
 	// Get organization level settings
 	orgLevel, err := caads.organizationLevelSvc.GetPrimaryLevel()
@@ -342,9 +342,9 @@ func (caads *ComplianceAssessmentAcknowledgeDepartmentService) GetAssessmentAckn
 	}
 
 	// Check if the compliance register has IsRegulationNotificationAssessment = true
-	if !assessment.ComplianceRegister.IsRegulationNotificationAssessment {
-		return nil, utility.NewForbiddenError("assessment_is_not_a_regulation_notification_assessment")
-	}
+	// if !assessment.ComplianceRegister.IsRegulationNotificationAssessment {
+	// 	return nil, utility.NewForbiddenError("assessment_is_not_a_regulation_notification_assessment")
+	// }
 
 	// Get organization level settings
 	orgLevel, err := caads.organizationLevelSvc.GetPrimaryLevel()

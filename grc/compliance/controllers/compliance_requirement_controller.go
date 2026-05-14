@@ -107,6 +107,22 @@ func (crc *ComplianceRequirementController) GetAllComplianceRequirements(c *gin.
 		DateTo:       dateTo,
 		Export:       export,
 	}
+	if isRegulationNotificationAssessmentStr := c.Query("is_regulation_notification_assessment"); isRegulationNotificationAssessmentStr != "" {
+		val, err := strconv.ParseBool(isRegulationNotificationAssessmentStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, err)
+			return
+		}
+		queryParams.IsRegulationNotificationAssessment = &val
+	}
+	if isRiskBasedAssessmentStr := c.Query("is_risk_based_assessment"); isRiskBasedAssessmentStr != "" {
+		val, err := strconv.ParseBool(isRiskBasedAssessmentStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, err)
+			return
+		}
+		queryParams.IsRiskBasedAssessment = &val
+	}
 
 	complianceRequirements, err := crc.service.GetAll(uint(complianceID), &queryParams)
 	if err != nil {
@@ -221,6 +237,22 @@ func (crc *ComplianceRequirementController) GetComplianceRequirementsByID(c *gin
 		QuickFilter:  quickFilter,
 		DeadlineFrom: deadlineFrom,
 		DeadlineTo:   deadlineTo,
+	}
+	if isRegulationNotificationAssessmentStr := c.Query("is_regulation_notification_assessment"); isRegulationNotificationAssessmentStr != "" {
+		val, err := strconv.ParseBool(isRegulationNotificationAssessmentStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, err)
+			return
+		}
+		queryParams.IsRegulationNotificationAssessment = &val
+	}
+	if isRiskBasedAssessmentStr := c.Query("is_risk_based_assessment"); isRiskBasedAssessmentStr != "" {
+		val, err := strconv.ParseBool(isRiskBasedAssessmentStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, err)
+			return
+		}
+		queryParams.IsRiskBasedAssessment = &val
 	}
 
 	complianceRequirements, err := crc.service.GetRequirementsByComplianceID(uint(complianceID), &queryParams)

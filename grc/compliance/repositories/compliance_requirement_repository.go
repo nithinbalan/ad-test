@@ -120,6 +120,18 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 	if complianceID != 0 {
 		query = query.Where("compliance_clauses.compliance_register_id = ?", complianceID)
 	}
+	if params.IsRegulationNotificationAssessment != nil {
+		query = query.Where(
+			"compliance_requirements.is_regulation_notification_assessment = ?",
+			*params.IsRegulationNotificationAssessment,
+		)
+	}
+	if params.IsRiskBasedAssessment != nil {
+		query = query.Where(
+			"compliance_requirements.is_risk_based_assessment = ?",
+			*params.IsRiskBasedAssessment,
+		)
+	}
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
@@ -166,14 +178,17 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 			compliance_requirements.title_ar LIKE ? OR
 			compliance_requirement_categories.title_en LIKE ? OR
 			compliance_requirement_categories.title_ar LIKE ? OR
-			severity_levels.title_en LIKE ? OR
-			severity_levels.title_ar LIKE ? OR
-			compliance_requirements.deadline LIKE ? OR
-			compliance_statuses.title_en LIKE ? OR
-			compliance_statuses.title_ar LIKE ?)`,
+				severity_levels.title_en LIKE ? OR
+				severity_levels.title_ar LIKE ? OR
+				compliance_requirements.deadline LIKE ? OR
+				compliance_statuses.title_en LIKE ? OR
+				compliance_statuses.title_ar LIKE ? OR
+				CAST(compliance_requirements.is_regulation_notification_assessment AS VARCHAR) LIKE ? OR
+				CAST(compliance_requirements.is_risk_based_assessment AS VARCHAR) LIKE ?)`,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword,
+			keyword, keyword)
 	}
 
 	if params.SortBy == "" {
@@ -227,40 +242,53 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by_id").
 		Where("compliance_clauses.compliance_register_id = ?", complianceID)
 
-	// Apply same filters for counting
-	for column, values := range params.Filters {
-		if len(values) > 0 {
-			countQuery = countQuery.Where(column+" IN (?)", values)
-		}
-	}
-	if params.DeadlineFrom != "" {
-		countQuery = countQuery.Where("compliance_requirements.deadline >= ?", params.DeadlineFrom)
-	}
-	if params.DeadlineTo != "" {
-		countQuery = countQuery.Where("compliance_requirements.deadline <= ?", params.DeadlineTo)
-	}
-	if params.DateFrom != "" && params.DateTo != "" {
-		countQuery = countQuery.Where(
-			"compliance_requirements.created_at BETWEEN ? AND ?",
-			params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59",
-		)
-	}
-	for _, filter := range params.QuickFilter {
-		switch filter {
-		case "severe":
-			countQuery = countQuery.Where("severity_levels.type = ?", "high")
-		case "non_compliant":
-			countQuery = countQuery.Where("compliance_statuses.type = ?", "not_implemented")
-		case "non_compliant_due":
-			countQuery = countQuery.Where(
-				"compliance_statuses.type = ? AND compliance_requirements.deadline < ?",
-				"not_implemented", time.Now(),
+	applyCommonFilters := func(q *gorm.DB) *gorm.DB {
+		if params.IsRegulationNotificationAssessment != nil {
+			q = q.Where(
+				"compliance_requirements.is_regulation_notification_assessment = ?",
+				*params.IsRegulationNotificationAssessment,
 			)
 		}
-	}
-	if params.Keyword != "" {
-		keyword := "%" + params.Keyword + "%"
-		countQuery = countQuery.Where(`
+		if params.IsRiskBasedAssessment != nil {
+			q = q.Where(
+				"compliance_requirements.is_risk_based_assessment = ?",
+				*params.IsRiskBasedAssessment,
+			)
+		}
+
+		for column, values := range params.Filters {
+			if len(values) > 0 {
+				q = q.Where(column+" IN (?)", values)
+			}
+		}
+		if params.DeadlineFrom != "" {
+			q = q.Where("compliance_requirements.deadline >= ?", params.DeadlineFrom)
+		}
+		if params.DeadlineTo != "" {
+			q = q.Where("compliance_requirements.deadline <= ?", params.DeadlineTo)
+		}
+		if params.DateFrom != "" && params.DateTo != "" {
+			q = q.Where(
+				"compliance_requirements.created_at BETWEEN ? AND ?",
+				params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59",
+			)
+		}
+		for _, filter := range params.QuickFilter {
+			switch filter {
+			case "severe":
+				q = q.Where("severity_levels.type = ?", "high")
+			case "non_compliant":
+				q = q.Where("compliance_statuses.type = ?", "not_implemented")
+			case "non_compliant_due":
+				q = q.Where(
+					"compliance_statuses.type = ? AND compliance_requirements.deadline < ?",
+					"not_implemented", time.Now(),
+				)
+			}
+		}
+		if params.Keyword != "" {
+			keyword := "%" + params.Keyword + "%"
+			q = q.Where(`
             (compliance_clauses.clause_no LIKE ? OR
              compliance_clauses.title_en LIKE ? OR
              compliance_clauses.title_ar LIKE ? OR
@@ -272,14 +300,21 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
              severity_levels.title_ar LIKE ? OR
              CAST(compliance_requirements.deadline AS VARCHAR) LIKE ? OR
              compliance_statuses.title_en LIKE ? OR
-             compliance_statuses.title_ar LIKE ?)`,
-			keyword, keyword, keyword,
-			keyword, keyword,
-			keyword, keyword,
-			keyword, keyword,
-			keyword, keyword, keyword,
-		)
+             compliance_statuses.title_ar LIKE ? OR
+             CAST(compliance_requirements.is_regulation_notification_assessment AS VARCHAR) LIKE ? OR
+             CAST(compliance_requirements.is_risk_based_assessment AS VARCHAR) LIKE ?)`,
+				keyword, keyword, keyword,
+				keyword, keyword,
+				keyword, keyword,
+				keyword, keyword,
+				keyword, keyword, keyword,
+				keyword, keyword,
+			)
+		}
+		return q
 	}
+
+	countQuery = applyCommonFilters(countQuery)
 
 	// Execute count query
 	if err := countQuery.Count(&totalCount).Error; err != nil {
@@ -331,6 +366,7 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
             LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
         `).
 		Where("compliance_clauses.compliance_register_id = ?", complianceID)
+	query = applyCommonFilters(query)
 	if params.SortBy == "" {
 		params.SortBy = "compliance_clauses.clause_no"
 	}

@@ -156,6 +156,18 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 	if params.ClauseID != 0 {
 		query = query.Where("compliance_requirements.compliance_clause_id = ?", params.ClauseID)
 	}
+	if params.IsRegulationNotificationAssessment != nil {
+		query = query.Where(
+			"compliance_requirements.is_regulation_notification_assessment = ?",
+			*params.IsRegulationNotificationAssessment,
+		)
+	}
+	if params.IsRiskBasedAssessment != nil {
+		query = query.Where(
+			"compliance_requirements.is_risk_based_assessment = ?",
+			*params.IsRiskBasedAssessment,
+		)
+	}
 	// Apply dynamic filters if provided
 	for columnName, values := range params.Filters {
 		if columnName == "compliance_status_id" {

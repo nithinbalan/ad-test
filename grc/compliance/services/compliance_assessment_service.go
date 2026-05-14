@@ -231,10 +231,10 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 		tx.Rollback()
 		return err
 	}
-	fmt.Println(compliance.IsRiskBasedAssessment)
-
-	// Only create compliance requirements and controls if it's a risk-based assessment
-	if compliance.IsRiskBasedAssessment {
+		// fmt.Println(compliance.IsRiskBasedAssessment)
+		//
+		// Only create compliance requirements and controls if it's a risk-based assessment
+		// if compliance.IsRiskBasedAssessment {
 		for _, clause := range compliance.ComplianceClauses {
 			clauseDetails, err := cras.complianceClauseSvc.GetFullDetailsByID(clause.ID)
 			if err != nil {
@@ -316,7 +316,6 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 							}
 						}
 					}
-
 				}
 			}
 			// =================================
@@ -337,7 +336,7 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 			// 	}
 			// }
 		}
-	}
+		// }
 
 	addedComplianceAssessments = append(addedComplianceAssessments, map[string]interface{}{
 		"id":                    id,
@@ -866,8 +865,8 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(com
 		return utility.NewForbiddenError("assessment_already_in_progress_for_compliance_register")
 	}
 
-	// validate based on register type
-	if complianceRegister.IsRiskBasedAssessment {
+		// validate based on register type
+		// if complianceRegister.IsRiskBasedAssessment {
 		if complianceRegister.IsRequirementAssessment {
 			hasRequirement, err := cras.repo.HasRequirementForRegister(complianceAssessmentFormDTO.ComplianceRegisterID)
 			if err != nil {
@@ -894,7 +893,7 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(com
 				)
 			}
 		}
-	}
+		// }
 
 	// if complianceRegister.IsRiskBasedAssessment {
 	// 	if complianceRegister.IsControlAssessment {

@@ -279,12 +279,14 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	complianceRequirement := &models.ComplianceRequirement{
 		ComplianceRequirementCategoryID: complianceRequirementFormDTO.ComplianceRequirementCategoryID,
 		// ComplianceStatusID:              complianceRequirementFormDTO.ComplianceStatusID,
-		SeverityLevelID:    complianceRequirementFormDTO.SeverityLevelID,
-		TitleEn:            complianceRequirementFormDTO.TitleEn,
-		TitleAr:            complianceRequirementFormDTO.TitleAr,
-		Deadline:           dates.Deadline,
-		CreatedByID:        currentUserID,
-		ComplianceClauseID: complianceRequirementFormDTO.ComplianceClauseID,
+		SeverityLevelID:                    complianceRequirementFormDTO.SeverityLevelID,
+		TitleEn:                            complianceRequirementFormDTO.TitleEn,
+		TitleAr:                            complianceRequirementFormDTO.TitleAr,
+		Deadline:                           dates.Deadline,
+		IsRegulationNotificationAssessment: complianceRequirementFormDTO.IsRegulationNotificationAssessment,
+		IsRiskBasedAssessment:              complianceRequirementFormDTO.IsRiskBasedAssessment,
+		CreatedByID:                        currentUserID,
+		ComplianceClauseID:                 complianceRequirementFormDTO.ComplianceClauseID,
 	}
 
 	id, err := crs.repo.Create(complianceRequirement, tx)
@@ -566,6 +568,8 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	existingComplianceRequirement.TitleEn = complianceRequirementFormDTO.TitleEn
 	existingComplianceRequirement.TitleAr = complianceRequirementFormDTO.TitleAr
 	existingComplianceRequirement.Deadline = dates.Deadline
+	existingComplianceRequirement.IsRegulationNotificationAssessment = complianceRequirementFormDTO.IsRegulationNotificationAssessment
+	existingComplianceRequirement.IsRiskBasedAssessment = complianceRequirementFormDTO.IsRiskBasedAssessment
 	existingComplianceRequirement.UpdatedByID = &currentUserID
 
 	existingComplianceRequirement.ComplianceClause = nil // Reset preloaded association
@@ -926,9 +930,11 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		}
 		// log changes
 		oldData := map[string]interface{}{
-			"title":             oldComplianceRequirement.TitleEn,
-			"dead_line":         oldComplianceRequirement.DeadlineString,
-			"compliance_clause": oldComplianceRequirement.ComplianceClause.TitleEn,
+			"title":                                 oldComplianceRequirement.TitleEn,
+			"dead_line":                             oldComplianceRequirement.DeadlineString,
+			"compliance_clause":                     oldComplianceRequirement.ComplianceClause.TitleEn,
+			"is_regulation_notification_assessment": oldComplianceRequirement.IsRegulationNotificationAssessment,
+			"is_risk_based_assessment":              oldComplianceRequirement.IsRiskBasedAssessment,
 		}
 		// Add category title if exists
 		if oldComplianceRequirement.ComplianceRequirementCategory != nil {
@@ -941,9 +947,11 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		}
 
 		newData := map[string]interface{}{
-			"title":             existingRequirement.TitleEn,
-			"dead_line":         existingRequirement.DeadlineString,
-			"compliance_clause": existingRequirement.ComplianceClause.TitleEn,
+			"title":                                 existingRequirement.TitleEn,
+			"dead_line":                             existingRequirement.DeadlineString,
+			"compliance_clause":                     existingRequirement.ComplianceClause.TitleEn,
+			"is_regulation_notification_assessment": existingRequirement.IsRegulationNotificationAssessment,
+			"is_risk_based_assessment":              existingRequirement.IsRiskBasedAssessment,
 		}
 		// Add category title if exists
 		if existingRequirement.ComplianceRequirementCategory != nil {
@@ -1516,6 +1524,22 @@ func (crs *ComplianceRequirementService) DeleteInherentRiskAnalysis(complianceRe
 }
 
 func (crs *ComplianceRequirementService) validateComplianceRequirementFormDTO(ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) error {
+	if ComplianceRequirementFormDTO.IsRegulationNotificationAssessment == nil {
+		return utility.NewValidationError(
+			fmt.Errorf("is regulation notification assessment is required"),
+			"required",
+			"is_regulation_notification_assessment",
+		)
+	}
+
+	if ComplianceRequirementFormDTO.IsRiskBasedAssessment == nil {
+		return utility.NewValidationError(
+			fmt.Errorf("is risk based assessment is required"),
+			"required",
+			"is_risk_based_assessment",
+		)
+	}
+
 	if ComplianceRequirementFormDTO.ComplianceRequirementCategoryID != nil {
 		if _, err := crs.complianceRequirementCategorySvc.GetByID(*ComplianceRequirementFormDTO.ComplianceRequirementCategoryID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("compliance requirement category does not exist"), "not_exist", "compliance requirement category")
@@ -1664,7 +1688,7 @@ func (srs *ComplianceRequirementService) ExportComplianceRequirements(data []*co
 // Generate Excel template
 func (cs *ComplianceRequirementService) GenerateRequirementTemplate(complianceID uint) (*os.File, error) {
 	templateHeaders := []string{
-		"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "RequiredDocuments", "ResponsibleUnits",
+		"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "RequiredDocuments", "ResponsibleUnits", "IsRegulationNotificationAssessment", "IsRiskBasedAssessment",
 	}
 	templateData := [][]interface{}{}
 
@@ -1717,14 +1741,16 @@ func (cs *ComplianceRequirementService) GenerateRequirementTemplate(complianceID
 	}
 
 	dropDownConfig := map[string]bool{
-		"Clause":            true,
-		"Category":          true,
-		"SeverityLevel":     true,
-		"TitleEn":           false,
-		"TitleAr":           false,
-		"Deadline":          false,
-		"ResponsibleUnits":  false,
-		"RequiredDocuments": false,
+		"Clause":                             true,
+		"Category":                           true,
+		"SeverityLevel":                      true,
+		"TitleEn":                            false,
+		"TitleAr":                            false,
+		"Deadline":                           false,
+		"ResponsibleUnits":                   false,
+		"RequiredDocuments":                  false,
+		"IsRegulationNotificationAssessment": false,
+		"IsRiskBasedAssessment":              false,
 	}
 	// Generate file
 	file, err := utility.GenerateExcelFileWithSheetsAndDropDown(map[string][][]interface{}{
@@ -1749,8 +1775,8 @@ func (cs *ComplianceRequirementService) ValidateRequirementTemplate(complianceID
 		return nil, err
 	}
 
-	inputHeaders := []string{"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "RequiredDocuments", "ResponsibleUnits"}
-	snakeHeaders := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "required_documents", "responsible_units"}
+	inputHeaders := []string{"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "RequiredDocuments", "ResponsibleUnits", "IsRegulationNotificationAssessment", "IsRiskBasedAssessment"}
+	snakeHeaders := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "required_documents", "responsible_units", "is_regulation_notification_assessment", "is_risk_based_assessment"}
 
 	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
 		return nil, utility.NewValidationError(fmt.Errorf("invalid headers"), "invalid_header", "Requirement Template")
@@ -1818,16 +1844,20 @@ func (cs *ComplianceRequirementService) ImportRequirements(complianceID uint, in
 				requiredDocumentIDs = append(requiredDocumentIDs, &idCopy)
 			}
 		}
+		isRegulationNotificationAssessment := record["is_regulation_notification_assessment"].(bool)
+		isRiskBasedAssessment := record["is_risk_based_assessment"].(bool)
 
 		dto := &complianceDTOs.ComplianceRequirementFormDTO{
-			ComplianceClauseID:              record["clause_id"].(uint),
-			TitleEn:                         record["title_en"].(string),
-			TitleAr:                         record["title_ar"].(string),
-			ComplianceRequirementCategoryID: utility.GetOptionalUintValue(record["category_id"]),
-			SeverityLevelID:                 utility.GetOptionalUintValue(record["severity_level_id"]),
-			Deadline:                        deadlineStr,
-			RequiredDocumentTitleIDs:        requiredDocumentIDs,
-			ResponsibleUnitIDs:              responsibleUnitIDs,
+			ComplianceClauseID:                 record["clause_id"].(uint),
+			TitleEn:                            record["title_en"].(string),
+			TitleAr:                            record["title_ar"].(string),
+			ComplianceRequirementCategoryID:    utility.GetOptionalUintValue(record["category_id"]),
+			SeverityLevelID:                    utility.GetOptionalUintValue(record["severity_level_id"]),
+			Deadline:                           deadlineStr,
+			IsRegulationNotificationAssessment: &isRegulationNotificationAssessment,
+			IsRiskBasedAssessment:              &isRiskBasedAssessment,
+			RequiredDocumentTitleIDs:           requiredDocumentIDs,
+			ResponsibleUnitIDs:                 responsibleUnitIDs,
 		}
 
 		id, err := cs.Create(complianceID, currentUserID, dto)
@@ -1840,7 +1870,7 @@ func (cs *ComplianceRequirementService) ImportRequirements(complianceID uint, in
 }
 
 func (cs *ComplianceRequirementService) validateRequirements(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error) {
-	headers := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "required_documents", "responsible_units"}
+	headers := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "required_documents", "responsible_units", "is_regulation_notification_assessment", "is_risk_based_assessment"}
 
 	// --- Fetch lookup data ---
 
@@ -1978,6 +2008,24 @@ func (cs *ComplianceRequirementService) validateRequirements(complianceID uint, 
 			}
 		}
 
+		// IsRegulationNotificationAssessment
+		if val, exists := record["is_regulation_notification_assessment"]; !exists {
+			rowErrors["is_regulation_notification_assessment"] = "Field is required"
+		} else if parsedValue, ok := parseBoolValue(val); ok {
+			processed["is_regulation_notification_assessment"] = parsedValue
+		} else {
+			rowErrors["is_regulation_notification_assessment"] = "Invalid boolean value (use true/false)"
+		}
+
+		// IsRiskBasedAssessment
+		if val, exists := record["is_risk_based_assessment"]; !exists {
+			rowErrors["is_risk_based_assessment"] = "Field is required"
+		} else if parsedValue, ok := parseBoolValue(val); ok {
+			processed["is_risk_based_assessment"] = parsedValue
+		} else {
+			rowErrors["is_risk_based_assessment"] = "Invalid boolean value (use true/false)"
+		}
+
 		// Required Documents
 		if val, ok := record["required_documents"].(string); ok && val != "" {
 			docNames := strings.Split(val, ",")
@@ -2029,4 +2077,30 @@ func (cs *ComplianceRequirementService) validateRequirements(complianceID uint, 
 	}
 
 	return validated, nil
+}
+
+func parseBoolValue(value interface{}) (bool, bool) {
+	switch v := value.(type) {
+	case bool:
+		return v, true
+	case string:
+		trimmed := strings.TrimSpace(strings.ToLower(v))
+		switch trimmed {
+		case "true", "1", "yes", "y":
+			return true, true
+		case "false", "0", "no", "n":
+			return false, true
+		default:
+			return false, false
+		}
+	case float64:
+		if v == 1 {
+			return true, true
+		}
+		if v == 0 {
+			return false, true
+		}
+	}
+
+	return false, false
 }
