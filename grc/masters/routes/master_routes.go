@@ -45,6 +45,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	commentStatusController := app.MasterModule.CommentStatusController
 	actionPlanMasterController := app.MasterModule.ActionPlanMasterController
 	emailStatusController := app.MasterModule.EmailStatusController
+	locationController := app.MasterModule.LocationController
 
 	masterRoutes.GET("/review-frequencies", reviewFrequencyController.GetAllReviewFrequencies)
 	masterRoutes.GET("/review-frequencies/:id", reviewFrequencyController.GetReviewFrequencyDetails)
@@ -178,4 +179,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	masterRoutes.GET("/email-statuses", emailStatusController.GetAllEmailStatuses)
 	masterRoutes.GET("/email-statuses/:id", emailStatusController.GetEmailStatusDetails)
+
+	// locations
+	masterRoutes.GET("/locations", locationController.GetAllLocations)
+	masterRoutes.POST("/locations", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), locationController.CreateLocation)
+	masterRoutes.GET("/locations/:id", locationController.GetLocationDetails)
+	masterRoutes.PUT("/locations/:id", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), locationController.UpdateLocation)
+	masterRoutes.POST("/locations/delete", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), locationController.DeleteLocations)
+	masterRoutes.PUT("/locations/activate", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), locationController.ActivateLocations)
+	masterRoutes.PUT("/locations/deactivate", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), locationController.DeactivateLocations)
 }

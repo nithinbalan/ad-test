@@ -243,7 +243,7 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Submit(committeeID uint, cu
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%s/organization/internal-committee/%d/workflow", appURL, committeeID),
+				"RedirectURL":           fmt.Sprintf("%s/organization/committee/%d/overview", appURL, committeeID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -800,10 +800,10 @@ func (icwrs *InternalCommitteeWorkflowReviewService) sendApprovalNotification(id
 		appURL := utility.GetAppURL()
 		emailTo := []string{createdByUser.Email}
 		subject := fmt.Sprintf("Internal Committee %s: Approval Notification", committeeDetail.LatestVersion.CommitteeNameEn)
-		redirectURL := fmt.Sprintf("%s/organization/internal-committee/%d/workflow", appURL, committeeDetail.ID)
+		redirectURL := fmt.Sprintf("%s/organization/committee/%d/overview", appURL, committeeDetail.ID)
 
 		if committeeDetail.LatestVersion.CommitteeStatus.Type == "approved" {
-			redirectURL = fmt.Sprintf("%s/organization/internal-committee/%d/overview", appURL, id)
+			redirectURL = fmt.Sprintf("%s/organization/committee/%d/overview", appURL, committeeDetail.ID)
 		}
 
 		emailData := map[string]interface{}{
@@ -868,7 +868,7 @@ func (icwrs *InternalCommitteeWorkflowReviewService) notifyNextLevelUsers(id uin
 			emailTo := []string{responsibleUser.Email}
 			subject := fmt.Sprintf("Internal Committee %s: Review Assigned", committeeDetail.LatestVersion.CommitteeNameEn)
 			appURL := utility.GetAppURL()
-			redirectURL := fmt.Sprintf("%s/organization/internal-committee/%d/workflow", appURL, committeeDetail.ID)
+			redirectURL := fmt.Sprintf("%s/organization/committee/%d/overview", appURL, committeeDetail.ID)
 
 			emailData := map[string]interface{}{
 				"FirstNameEn":           responsibleUser.FirstNameEn,
@@ -957,7 +957,7 @@ func (icwrs *InternalCommitteeWorkflowReviewService) sendRevertNotification(id u
 
 		appURL := utility.GetAppURL()
 		subject := fmt.Sprintf("Internal Committee %s: Rejected Notification", committee.LatestVersion.CommitteeNameEn)
-		redirectURL := fmt.Sprintf("%s/organization/internal-committee/%d/workflow", appURL, committee.ID)
+		redirectURL := fmt.Sprintf("%s/organization/committee/%d/overview", appURL, committee.ID)
 
 		// Send individual emails to each recipient with their name
 		for _, userID := range notificationUserIDs {
