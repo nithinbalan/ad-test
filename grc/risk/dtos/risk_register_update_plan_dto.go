@@ -30,6 +30,9 @@ type RiskRegisterUpdatePlanListDTO struct {
 	RiskChampionLastNameEn         string  `json:"risk_champion_last_name_en"`
 	RiskChampionLastNameAr         string  `json:"risk_champion_last_name_ar"`
 	RiskChampionEmail              string  `json:"risk_champion_email"`
+	RiskChampionInitial            string  `json:"risk_champion_initial"`
+	RiskChampionColor              string  `json:"risk_champion_color"`
+	RiskChampionProfileImagePath   string  `json:"risk_champion_profile_image_path"`
 	StartDate                      string  `json:"start_date"`
 	EndDate                        string  `json:"end_date"`
 	Notes                          *string `json:"notes"`
@@ -721,19 +724,11 @@ type UpdatePlanRiskRegisterFormDTO struct {
 }
 
 // CONTROL REGISTER
-type ControlCountByStatusDTO struct {
-	ImplementationStatusType string `json:"implementation_status_type"`
-	TitleEn                  string `json:"title_en"`
-	TitleAr                  string `json:"title_ar"`
-	ColorCode                string `json:"color_code"`
-	Count                    int64  `json:"count"`
-}
-
 type ControlRegisterUpdatedDTO struct {
-	NotImplemented       *ControlCountByStatusDTO `json:"not_implemented"`
-	PartiallyImplemented *ControlCountByStatusDTO `json:"partially_implemented"`
-	Implemented          *ControlCountByStatusDTO `json:"implemented"`
-	NotApplicable        int64                    `json:"not_applicable"`
+	NotImplemented       int64 `json:"not_implemented"`
+	PartiallyImplemented int64 `json:"partially_implemented"`
+	Implemented          int64 `json:"implemented"`
+	NotApplicable        int64 `json:"not_applicable"`
 }
 
 type UpdatePlanControlTestFormDTO struct {
