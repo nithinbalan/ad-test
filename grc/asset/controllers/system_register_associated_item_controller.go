@@ -40,6 +40,11 @@ func (sraic *SystemRegisterAssociatedItemController) GetAllSystemRegisterSLAs(c 
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
+	// Validate sort_order to prevent SQL injection
+	if sort != "asc" && sort != "desc" {
+		sort = "asc"
+	}
+
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
 		utility.SendInternalErrResp(sraic.db, c, "Invalid page parameter")
@@ -94,6 +99,11 @@ func (sraic *SystemRegisterAssociatedItemController) GetAllSystemRegisterProcess
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
+
+	// Validate sort_order to prevent SQL injection
+	if sort != "asc" && sort != "desc" {
+		sort = "asc"
+	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {

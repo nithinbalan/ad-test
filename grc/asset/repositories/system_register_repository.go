@@ -136,6 +136,11 @@ func (repo *SystemRegisterRepository) GetAll(params *dtos.SystemRegisterListQuer
 		return nil, err
 	}
 
+	// Validate sort order to prevent SQL injection (defense in depth)
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "desc"
+	}
+
 	// Apply sorting and pagination
 	query = query.Order(params.SortBy + " " + params.Sort)
 	if !params.Export {
@@ -147,6 +152,69 @@ func (repo *SystemRegisterRepository) GetAll(params *dtos.SystemRegisterListQuer
 	err := query.Find(&systemRegisters).Error
 	if err != nil {
 		return nil, err
+	}
+
+	// Fetch related data for each system register
+	for _, systemRegister := range systemRegisters {
+		// Get Job Titles
+		var jobTitles []*dtos.SystemRegisterJobTitleListDTO
+		err := repo.db.Table("system_register_job_titles AS srjt").
+			Select(`
+				srjt.id,
+				d.title_en AS title_en,
+				d.title_ar AS title_ar
+			`).
+			Joins("INNER JOIN designations AS d ON d.id = srjt.designation_id").
+			Where("srjt.system_register_id = ?", systemRegister.ID).
+			Scan(&jobTitles).Error
+		if err == nil {
+			systemRegister.JobTitles = jobTitles
+		}
+
+		// Get Operational Locations
+		var operationalLocations []*dtos.SystemRegisterLocationListDTO
+		err = repo.db.Table("system_register_operational_locations AS srol").
+			Select(`
+				srol.id,
+				l.title_en AS title_en,
+				l.title_ar AS title_ar
+			`).
+			Joins("INNER JOIN locations AS l ON l.id = srol.operational_location_id").
+			Where("srol.system_register_id = ?", systemRegister.ID).
+			Scan(&operationalLocations).Error
+		if err == nil {
+			systemRegister.OperationalLocations = operationalLocations
+		}
+
+		// Get Recovery Locations
+		var recoveryLocations []*dtos.SystemRegisterLocationListDTO
+		err = repo.db.Table("system_register_recovery_locations AS srrl").
+			Select(`
+				srrl.id,
+				l.title_en AS title_en,
+				l.title_ar AS title_ar
+			`).
+			Joins("INNER JOIN locations AS l ON l.id = srrl.recovery_location_id").
+			Where("srrl.system_register_id = ?", systemRegister.ID).
+			Scan(&recoveryLocations).Error
+		if err == nil {
+			systemRegister.RecoveryLocations = recoveryLocations
+		}
+
+		// Get Recovery Needed Tools
+		var recoveryNeededTools []*dtos.SystemRegisterRecoveryToolListDTO
+		err = repo.db.Table("system_register_recovery_needed_tools AS srrnt").
+			Select(`
+				srrnt.id,
+				srrt.title_en AS title_en,
+				srrt.title_ar AS title_ar
+			`).
+			Joins("INNER JOIN system_register_recovery_tools AS srrt ON srrt.id = srrnt.recovery_needed_tool_id").
+			Where("srrnt.system_register_id = ?", systemRegister.ID).
+			Scan(&recoveryNeededTools).Error
+		if err == nil {
+			systemRegister.RecoveryNeededTools = recoveryNeededTools
+		}
 	}
 
 	// Calculate total pages

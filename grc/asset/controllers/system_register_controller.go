@@ -28,6 +28,11 @@ func (src *SystemRegisterController) GetAllSystemRegisters(c *gin.Context) {
 	sortBy := c.DefaultQuery("sort_by", "reference_number")
 	keyword := c.Query("keyword")
 
+	// Validate sort_order to prevent SQL injection
+	if sort != "asc" && sort != "desc" {
+		sort = "desc"
+	}
+
 	exportFromContext, exists := c.Get("export")
 	var export bool
 	var err error
