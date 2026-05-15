@@ -17,6 +17,8 @@ type AssociatedItemValidationRepositoryInterface interface {
 	StrategicObjectiveExists(id uint) (*models.StrategicObjective, error)
 	IsAssetMapped(masterName string, columnName string, assetID, masterID uint) (bool, error)
 	AssetExists(id uint) (*models.AssetRegister, error)
+	IsSLAMapped(masterName string, columnName string, slaID, masterID uint) (bool, error)
+	SLAExists(id uint) (*models.SLARegister, error)
 	IsProcessMapped(masterName string, columnName string, processID, masterID uint) (bool, error)
 	ProcessExists(id uint) (*models.Process, error)
 	IsKPIMapped(masterName string, columnName string, kpiID, masterID uint) (bool, error)
@@ -203,6 +205,33 @@ func (repo *AssociatedItemValidationRepository) AssetExists(id uint) (*models.As
 
 	return asset, nil
 
+}
+
+func (repo *AssociatedItemValidationRepository) SLAExists(id uint) (*models.SLARegister, error) {
+	db := repo.db
+
+	var sla *models.SLARegister
+
+	result := db.
+		First(&sla, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return sla, nil
+}
+
+func (repo *AssociatedItemValidationRepository) IsSLAMapped(masterName string, columnName string, slaID, masterID uint) (bool, error) {
+	var count int64
+	err := repo.db.
+		Table(masterName).
+		Where("sla_register_id = ? AND "+columnName+" = ?", slaID, masterID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 func (repo *AssociatedItemValidationRepository) IsProcessMapped(masterName string, columnName string, processID, masterID uint) (bool, error) {
