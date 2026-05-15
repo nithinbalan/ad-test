@@ -74,7 +74,7 @@ func (ruprtas *RiskUpdatePlanRiskTeamAssessmentService) GetRiskTeamAssessmentUse
 	}
 
 	if len(assessments) == 0 {
-		return nil, utility.NewResourceNotFoundError(fmt.Errorf("no risk team assessment found"), planID)
+		return nil, nil
 	}
 
 	var dto riskDTOs.RiskTeamAssessmentUserListDTO
