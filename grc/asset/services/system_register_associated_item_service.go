@@ -78,7 +78,7 @@ func (s *SystemRegisterAssociatedItemService) CreateSLAs(systemRegisterID uint, 
 		mappings = append(mappings, &models.SystemRegisterSLA{
 			SystemRegisterID: systemRegisterID,
 			SLARegisterID:    slaRegisterID,
-			CreatedByID:      currentUserID,
+			CreatedBYID:      currentUserID,
 			CreatedAt:        currentTime,
 		})
 	}
@@ -152,7 +152,7 @@ func (s *SystemRegisterAssociatedItemService) CreateProcesses(
 		mappings = append(mappings, &models.SystemRegisterProcess{
 			SystemRegisterID: systemRegisterID,
 			ProcessID:        processID,
-			CreatedByID:      currentUserID,
+			CreatedBYID:      currentUserID,
 			CreatedAt:        currentTime,
 		})
 	}

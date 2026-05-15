@@ -94,8 +94,7 @@ func (srs *SystemRegisterService) GetFullDetailsByID(id uint, tx ...utility.Data
 }
 
 func (srs *SystemRegisterService) Create(systemRegisterFormDTO *dtos.SystemRegisterFormDTO, currentUserID uint) (uint, error) {
-	tx := srs.repo.BeginTransaction()
-
+	// Validate before starting transaction
 	if err := srs.validateSystemRegisterFormDTO(systemRegisterFormDTO); err != nil {
 		return 0, err
 	}
@@ -104,6 +103,9 @@ func (srs *SystemRegisterService) Create(systemRegisterFormDTO *dtos.SystemRegis
 	if err != nil {
 		return 0, err
 	}
+
+	// Begin transaction only after validation passes
+	tx := srs.repo.BeginTransaction()
 
 	systemRegister := &models.SystemRegister{
 		ReferenceNumber:               referenceNumber,
@@ -237,19 +239,24 @@ func (srs *SystemRegisterService) Create(systemRegisterFormDTO *dtos.SystemRegis
 }
 
 func (srs *SystemRegisterService) Update(id uint, systemRegisterFormDTO *dtos.SystemRegisterFormDTO, currentUserID uint) error {
+	// Validate before starting transaction
+	if err := srs.validateSystemRegisterFormDTO(systemRegisterFormDTO); err != nil {
+		return err
+	}
+
+	// Begin transaction
 	tx := srs.repo.BeginTransaction()
+
+	// Use transaction for all reads to ensure consistent visibility
 	existingSystemRegister, err := srs.repo.GetByID(id)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	oldSystemRegister, err := srs.GetFullDetailsByID(id, tx)
 	if err != nil {
 		tx.Rollback()
-		return err
-	}
-
-	if err := srs.validateSystemRegisterFormDTO(systemRegisterFormDTO); err != nil {
 		return err
 	}
 
@@ -433,13 +440,16 @@ func (srs *SystemRegisterService) Delete(ids []uint, currentUserID uint) ([]uint
 	var successfulIds []uint
 	var deletedSystemRegisters []map[string]interface{}
 
-	tx := srs.repo.BeginTransaction()
-
+	// Process each deletion in its own transaction
 	for _, id := range ids {
+		// Start a new transaction for each ID
+		tx := srs.repo.BeginTransaction()
+
 		systemRegister, err := srs.GetFullDetailsByID(id)
 		if err != nil {
 			tx.Rollback()
-			return nil, err
+			failedIds = append(failedIds, id)
+			continue
 		}
 
 		// Delete related entities
@@ -472,9 +482,17 @@ func (srs *SystemRegisterService) Delete(ids []uint, currentUserID uint) ([]uint
 		if err != nil {
 			tx.Rollback()
 			failedIds = append(failedIds, id)
-		} else {
-			successfulIds = append(successfulIds, id)
+			continue
 		}
+
+		// Commit this transaction
+		if err := tx.Commit(); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		// Only add to successful list after commit succeeds
+		successfulIds = append(successfulIds, id)
 
 		// Store deleted system register details for logging
 		deletedSystemRegisters = append(deletedSystemRegisters, map[string]interface{}{
@@ -482,8 +500,6 @@ func (srs *SystemRegisterService) Delete(ids []uint, currentUserID uint) ([]uint
 			"reference_number": systemRegister.ReferenceNumber,
 		})
 	}
-
-	tx.Commit()
 
 	// Log activity in the background
 	if len(successfulIds) > 0 {

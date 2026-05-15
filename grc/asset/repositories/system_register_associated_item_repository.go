@@ -90,11 +90,6 @@ func (repo *SystemRegisterAssociatedItemRepository) GetAllSLAs(systemRegisterID 
 			LEFT JOIN compliance_statuses ON sla_register.compliance_status_id = compliance_statuses.id
 		`).Where("system_register_slas.system_register_id = ?", systemRegisterID)
 
-	// Calculate total count for pagination
-	if err := query.Count(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
@@ -125,6 +120,11 @@ func (repo *SystemRegisterAssociatedItemRepository) GetAllSLAs(systemRegisterID 
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword)
+	}
+
+	// Calculate total count for pagination (after all filters applied)
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, err
 	}
 
 	if params.SortBy == "" {
