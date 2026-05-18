@@ -96,15 +96,15 @@ func (ruprms *RiskUpdatePlanRiskMitigationService) UpdateRiskMitigation(planID u
 		return err
 	}
 
-	// Count risk mitigations
+	// Count risk mitigations to check if at least one exists
 	riskMitigationCount, err := ruprms.repo.CountRiskMitigationsByPlanID(planID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// Only update timeline completion and percentage when count is 1
-	if riskMitigationCount == 1 {
+	// Update timeline completion only if this is the first risk mitigation (count >= 1)
+	if riskMitigationCount >= 1 && !timeline.IsCompleted {
 		// Update timeline completion
 		if err := ruprms.riskUpdatePlanSvc.UpdateTimelineCompletion(timeline.ID, currentUserID, tx); err != nil {
 			tx.Rollback()
@@ -258,9 +258,47 @@ func (ruprms *RiskUpdatePlanRiskMitigationService) CreateActionPlan(planID uint,
 		return 0, err
 	}
 
+	// Get timeline type for Risk Mitigation
+	timelineType, err := ruprms.timelineTypeSvc.GetByType("risk_mitigation")
+	if err != nil {
+		return 0, err
+	}
+
+	// Get timeline by plan ID and timeline type ID
+	timeline, err := ruprms.riskUpdatePlanSvc.GetTimelineByPlanIDAndTypeID(planID, timelineType.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, utility.NewResourceNotFoundError(err, planID)
+		}
+		return 0, err
+	}
+
+	// Begin transaction
+	tx := ruprms.repo.BeginTransaction()
+
 	// Create action plan using the action plan service
 	actionPlanID, err := ruprms.actionPlanSvc.Create(riskID, currentUserID, formDTO)
 	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	// Update timeline completion only if not already completed
+	if !timeline.IsCompleted {
+		// Update timeline completion
+		if err := ruprms.riskUpdatePlanSvc.UpdateTimelineCompletion(timeline.ID, currentUserID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		// Calculate and update percentage
+		if err := ruprms.riskUpdatePlanSvc.CalculateAndUpdatePercentage(planID, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
 		return 0, err
 	}
 
