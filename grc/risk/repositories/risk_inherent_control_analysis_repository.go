@@ -120,8 +120,6 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
             LEFT JOIN control_efficiency_statuses ON control_efficiency_statuses.id = risk_control_analyses.control_efficiency_status_id
             LEFT JOIN control_implementation_statuses ON control_implementation_statuses.id = risk_control_analyses.control_implementation_status_id
             LEFT JOIN control_effectiveness_ratings ON control_effectiveness_ratings.id = risk_control_analyses.control_effectiveness_rating_id
-            LEFT JOIN control_automations AS control_automation ON control_automation.id = controls.control_automation_id
-            LEFT JOIN control_consistencies AS control_consistency ON control_consistency.id = controls.control_consistency_id
             LEFT JOIN (
                 SELECT ct.control_id, MAX(ct.id) as latest_test_id
                 FROM control_tests ct
@@ -129,6 +127,8 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
             ) AS latest_control_test_ids ON latest_control_test_ids.control_id = controls.id
 			LEFT JOIN control_statuses ON control_statuses.id = controls.control_status_id
             LEFT JOIN control_tests AS latest_control_test ON latest_control_test.id = latest_control_test_ids.latest_test_id
+            LEFT JOIN control_automations ON control_automations.id = latest_control_test.control_automation_id
+            LEFT JOIN control_consistencies ON control_consistencies.id = latest_control_test.control_consistency_id
             LEFT JOIN users AS tested_by ON tested_by.id = latest_control_test.tested_by
             LEFT JOIN users AS created_user ON created_user.id = risk_control_analyses.created_by_id
         `).

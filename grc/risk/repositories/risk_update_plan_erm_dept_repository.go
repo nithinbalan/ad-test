@@ -143,7 +143,10 @@ func (repo *RiskUpdatePlanERMDeptRepository) GetERMDeptEvaluationRisks(timelineI
 			div.title_ar AS division_title_ar,
 			sec.id AS section_id,
 			sec.title_en AS section_title_en,
-			sec.title_ar AS section_title_ar
+			sec.title_ar AS section_title_ar,
+			ss.id AS sub_section_id,
+			ss.title_en AS sub_section_title_en,
+			ss.title_ar AS sub_section_title_ar
 		`).
 		Joins("INNER JOIN risk_register AS rr ON rr.id = rupr.risk_register_id").
 		Joins("LEFT JOIN risk_categories AS rc ON rc.id = rr.risk_category_id").
@@ -168,6 +171,7 @@ func (repo *RiskUpdatePlanERMDeptRepository) GetERMDeptEvaluationRisks(timelineI
 		Joins("LEFT JOIN risk_matrix_risk_rating_values AS rrrv ON rrrv.id = rr.residual_risk_rating_value_id").
 		Joins("LEFT JOIN organization_units AS div ON div.id = rr.division_id").
 		Joins("LEFT JOIN organization_units AS sec ON sec.id = rr.section_id").
+		Joins("LEFT JOIN organization_units AS ss ON ss.id = rr.sub_section_id").
 		Where("rupr.risk_update_plan_timeline_id = ?", timelineID)
 
 	// Apply filters
@@ -482,6 +486,7 @@ func (repo *RiskUpdatePlanERMDeptRepository) GetERMDeptEvaluationControls(timeli
 			rupc.control_id,
 			ct.title_en AS control_type_title_en,
 			ct.title_ar AS control_type_title_ar,
+			ct.type AS control_type,
 			cc.title_en AS control_category_title_en,
 			cc.title_ar AS control_category_title_ar,
 			ou.title_en AS owner_unit_title_en,
@@ -608,8 +613,6 @@ func (repo *RiskUpdatePlanERMDeptRepository) GetERMDeptEvaluationControls(timeli
 		Joins("LEFT JOIN control_categories AS cc ON cc.id = c.control_category_id").
 		Joins("LEFT JOIN organization_units AS ou ON ou.id = c.responsible_unit_id").
 		Joins("LEFT JOIN users AS owner ON owner.id = c.responsible_user_id").
-		Joins("LEFT JOIN control_automations AS ca ON ca.id = c.control_automation_id").
-		Joins("LEFT JOIN control_consistencies AS ccon ON ccon.id = c.control_consistency_id").
 		Joins("LEFT JOIN control_implementation_statuses AS cis ON cis.id = c.control_implementation_status_id").
 		Joins("LEFT JOIN control_efficiency_statuses AS ces ON ces.id = c.control_efficiency_status_id").
 		Joins("LEFT JOIN review_frequencies AS rf ON rf.id = c.review_frequency_id").
@@ -628,6 +631,8 @@ func (repo *RiskUpdatePlanERMDeptRepository) GetERMDeptEvaluationControls(timeli
 			GROUP BY ct.control_id
 		) AS latest_ct_ids ON latest_ct_ids.control_id = c.id`).
 		Joins("LEFT JOIN control_tests AS latest_ct ON latest_ct.id = latest_ct_ids.latest_test_id").
+		Joins("LEFT JOIN control_automations ON control_automations.id = latest_ct.control_automation_id").
+		Joins("LEFT JOIN control_consistencies ON control_consistencies.id = latest_ct.control_consistency_id").
 		Joins("LEFT JOIN users AS ct_tested_by ON ct_tested_by.id = latest_ct.tested_by").
 		Where("rupc.risk_update_plan_timeline_id = ?", timelineID)
 

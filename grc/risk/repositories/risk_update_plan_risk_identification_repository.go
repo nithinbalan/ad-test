@@ -130,7 +130,10 @@ func (repo *RiskUpdatePlanRiskIdentificationRepository) GetAllRiskIdentification
             divisions.title_ar AS division_title_ar,
 			sections.id AS section_id,
             sections.title_en AS section_title_en,
-            sections.title_ar AS section_title_ar
+            sections.title_ar AS section_title_ar,
+			sub_sections.id AS sub_section_id,
+            sub_sections.title_en AS sub_section_title_en,
+            sub_sections.title_ar AS sub_section_title_ar
 
         `).
 		Joins(`
@@ -158,50 +161,59 @@ func (repo *RiskUpdatePlanRiskIdentificationRepository) GetAllRiskIdentification
             LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
 			LEFT JOIN organization_units AS divisions ON divisions.id = risk_register.division_id
 			LEFT JOIN organization_units AS sections ON sections.id = risk_register.section_id
+			LEFT JOIN organization_units AS sub_sections ON sub_sections.id = risk_register.sub_section_id
         `).Where("risk_register.risk_register_update_plan_id = ?", planID)
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
-		query = query.Where(`
-			(risk_register.title LIKE ? OR
-			risk_register.description LIKE ? OR
-			risk_register.reference_number LIKE ? OR
-			risk_categories.title_en LIKE ? OR
-			risk_categories.title_ar LIKE ? OR
-			risk_sources.title_en LIKE ? OR
-			risk_sources.title_ar LIKE ? OR
-			users.first_name_en LIKE ? OR
-			users.first_name_ar LIKE ? OR
-			users.last_name_en LIKE ? OR
-			users.last_name_ar LIKE ? OR
-			risk_statuses.title_en LIKE ? OR
-			risk_statuses.title_ar LIKE ? OR
-			organization_units.title_en LIKE ? OR
-			organization_units.title_ar LIKE ? OR
-			current_risk_rating.title_en LIKE ? OR
-			current_risk_rating.title_ar LIKE ? OR
-			current_impact.title_en LIKE ? OR
-			current_impact.title_ar LIKE ? OR
-			current_likelihood.title_en LIKE ? OR
-			current_likelihood.title_ar LIKE ? OR
-			reported_at LIKE ? OR
-			created_user.first_name_en LIKE ? OR
-			created_user.first_name_ar LIKE ? OR
-			created_user.last_name_en LIKE ? OR
-			created_user.last_name_ar LIKE ? OR
-    		updated_user.first_name_en LIKE ? OR
-			updated_user.first_name_ar LIKE ? OR
-			updated_user.last_name_en LIKE ? OR
-			updated_user.last_name_ar LIKE ? OR
-			review_frequencies.title_en LIKE ? OR
-			review_frequencies.title_ar LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
-	}
 
+		query = query.Where(`
+        (risk_register.title LIKE ? OR
+        risk_register.description LIKE ? OR
+        risk_register.reference_number LIKE ? OR
+        risk_categories.title_en LIKE ? OR
+        risk_categories.title_ar LIKE ? OR
+        risk_sources.title_en LIKE ? OR
+        risk_sources.title_ar LIKE ? OR
+        users.first_name_en LIKE ? OR
+        users.first_name_ar LIKE ? OR
+        users.last_name_en LIKE ? OR
+        users.last_name_ar LIKE ? OR
+        risk_statuses.title_en LIKE ? OR
+        risk_statuses.title_ar LIKE ? OR
+        organization_units.title_en LIKE ? OR
+        organization_units.title_ar LIKE ? OR
+        current_risk_rating.title_en LIKE ? OR
+        current_risk_rating.title_ar LIKE ? OR
+        current_impact.title_en LIKE ? OR
+        current_impact.title_ar LIKE ? OR
+        current_likelihood.title_en LIKE ? OR
+        current_likelihood.title_ar LIKE ? OR
+        reported_at LIKE ? OR
+        created_user.first_name_en LIKE ? OR
+        created_user.first_name_ar LIKE ? OR
+        created_user.last_name_en LIKE ? OR
+        created_user.last_name_ar LIKE ? OR
+        updated_user.first_name_en LIKE ? OR
+        updated_user.first_name_ar LIKE ? OR
+        updated_user.last_name_en LIKE ? OR
+        updated_user.last_name_ar LIKE ? OR
+        review_frequencies.title_en LIKE ? OR
+        review_frequencies.title_ar LIKE ? OR
+        divisions.title_en LIKE ? OR
+        divisions.title_ar LIKE ? OR
+        sections.title_en LIKE ? OR
+        sections.title_ar LIKE ? OR
+        sub_sections.title_en LIKE ? OR
+        sub_sections.title_ar LIKE ?)`,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword,
+		)
+	}
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	// Count total results
@@ -267,6 +279,7 @@ func (repo *RiskUpdatePlanRiskIdentificationRepository) GetRiskIdentificationDet
 		Preload("SubmittedByUser").
 		Preload("Division").
 		Preload("Section").
+		Preload("SubSection").
 		First(&risk, id)
 
 	if result.Error != nil {

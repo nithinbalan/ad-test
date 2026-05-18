@@ -66,6 +66,9 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 		"current_impact_ids",
 		"current_risk_rating_ids",
 		"risk_response_strategy_ids",
+		"division_ids",
+		"section_ids",
+		"sub_section_ids",
 	}
 
 	validSortFields := map[string]string{
@@ -100,6 +103,12 @@ func (rrc *RiskRegisterController) GetAllRiskRegisters(c *gin.Context) {
 		"review_frequency_en":       "review_frequencies.title_en",
 		"review_frequency_ar":       "review_frequencies.title_ar",
 		"next_review_date":          "risk_register.next_review_date",
+		"division_en":               "divisions.title_en",
+		"division_ar":               "divisions.title_ar",
+		"section_en":                "sections.title_en",
+		"section_ar":                "sections.title_ar",
+		"sub_section_en":            "sub_sections.title_en",
+		"sub_section_ar":            "sub_sections.title_ar",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -653,6 +662,9 @@ func (rrc *RiskRegisterController) GetAllIdentifiedRisks(c *gin.Context) {
 		"current_impact_ids",
 		"current_risk_rating_ids",
 		"risk_response_strategy_ids",
+		"division_ids",
+		"section_ids",
+		"sub_section_ids",
 	}
 
 	validSortFields := map[string]string{
@@ -687,6 +699,12 @@ func (rrc *RiskRegisterController) GetAllIdentifiedRisks(c *gin.Context) {
 		"review_frequency_en":       "review_frequencies.title_en",
 		"review_frequency_ar":       "review_frequencies.title_ar",
 		"next_review_date":          "risk_register.next_review_date",
+		"division_en":               "divisions.title_en",
+		"division_ar":               "divisions.title_ar",
+		"section_en":                "sections.title_en",
+		"section_ar":                "sections.title_ar",
+		"sub_section_en":            "sub_sections.title_en",
+		"sub_section_ar":            "sub_sections.title_ar",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

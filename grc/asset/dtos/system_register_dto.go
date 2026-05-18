@@ -8,53 +8,57 @@ import (
 )
 
 type SystemRegisterListDTO struct {
-	ID                            uint                                 `json:"id"`
-	ReferenceNumber               string                               `json:"reference_number"`
-	TitleEn                       string                               `json:"title_en"`
-	TitleAr                       string                               `json:"title_ar"`
-	NumberOfPeopleNecessary       *int                                 `json:"number_of_people_necessary"`
-	BusinessOwnerUnitTitleEn      *string                              `json:"business_owner_unit_title_en"`
-	BusinessOwnerUnitTitleAr      *string                              `json:"business_owner_unit_title_ar"`
-	ITResponsibleUnitTitleEn      *string                              `json:"it_responsible_unit_title_en"`
-	ITResponsibleUnitTitleAr      *string                              `json:"it_responsible_unit_title_ar"`
-	ThirdPartyDependencies        *string                              `json:"third_party_dependencies"`
-	OutsourcingPartners           *string                              `json:"outsourcing_partners"`
-	CustomerUser                  *string                              `json:"customer_user"`
-	ProcessOperationTeamID        *uint                                `json:"process_operation_team_id"`
-	ProcessOperationTeamTitleEn   *string                              `json:"process_operation_team_title_en"`
-	ProcessOperationTeamTitleAr   *string                              `json:"process_operation_team_title_ar"`
-	ProcessRecoveryTeamID         *uint                                `json:"process_recovery_team_id"`
-	ProcessRecoveryTeamTitleEn    *string                              `json:"process_recovery_team_title_en"`
-	ProcessRecoveryTeamTitleAr    *string                              `json:"process_recovery_team_title_ar"`
-	RecoveryManagerFirstNameEn    *string                              `json:"recovery_manager_first_name_en"`
-	RecoveryManagerFirstNameAr    *string                              `json:"recovery_manager_first_name_ar"`
-	RecoveryManagerLastNameEn     *string                              `json:"recovery_manager_last_name_en"`
-	RecoveryManagerLastNameAr     *string                              `json:"recovery_manager_last_name_ar"`
-	RecoveryManagerContactDetails *string                              `json:"recovery_manager_contact_details"`
-	JobTitles                     []*SystemRegisterJobTitleListDTO     `json:"job_titles" gorm:"-"`
-	OperationalLocations          []*SystemRegisterLocationListDTO     `json:"operational_locations" gorm:"-"`
-	RecoveryLocations             []*SystemRegisterLocationListDTO     `json:"recovery_locations" gorm:"-"`
-	RecoveryNeededTools           []*SystemRegisterRecoveryToolListDTO `json:"recovery_needed_tools" gorm:"-"`
-	CreatedUserID                 uint                                 `json:"created_user_id"`
-	CreatedUserFirstNameEn        string                               `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr        string                               `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn         string                               `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr         string                               `json:"created_user_last_name_ar"`
-	CreatedUserInitial            string                               `json:"created_user_initial"`
-	CreatedUserColor              string                               `json:"created_user_color"`
-	CreatedUserEmail              string                               `json:"created_user_email"`
-	CreatedUserProfileImagePath   string                               `json:"created_user_profile_image_path"`
-	CreatedAt                     time.Time                            `json:"created_at"`
-	UpdatedUserID                 *uint                                `json:"updated_user_id"`
-	UpdatedUserFirstNameEn        *string                              `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr        *string                              `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn         string                               `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr         string                               `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial            string                               `json:"updated_user_initial"`
-	UpdatedUserColor              string                               `json:"updated_user_color"`
-	UpdatedUserEmail              string                               `json:"updated_user_email"`
-	UpdatedUserProfileImagePath   string                               `json:"updated_user_profile_image_path"`
-	UpdatedAt                     *time.Time                           `json:"updated_at"`
+	ID                              uint                                 `json:"id"`
+	ReferenceNumber                 string                               `json:"reference_number"`
+	TitleEn                         string                               `json:"title_en"`
+	TitleAr                         string                               `json:"title_ar"`
+	NumberOfPeopleNecessary         *int                                 `json:"number_of_people_necessary"`
+	BusinessOwnerUnitTitleEn        *string                              `json:"business_owner_unit_title_en"`
+	BusinessOwnerUnitTitleAr        *string                              `json:"business_owner_unit_title_ar"`
+	ITResponsibleUnitTitleEn        *string                              `json:"it_responsible_unit_title_en"`
+	ITResponsibleUnitTitleAr        *string                              `json:"it_responsible_unit_title_ar"`
+	ThirdPartyDependencies          *string                              `json:"third_party_dependencies"`
+	OutsourcingPartners             *string                              `json:"outsourcing_partners"`
+	CustomerUser                    *string                              `json:"customer_user"`
+	ProcessOperationTeamID          *uint                                `json:"process_operation_team_id"`
+	ProcessOperationTeamTitleEn     *string                              `json:"process_operation_team_title_en"`
+	ProcessOperationTeamTitleAr     *string                              `json:"process_operation_team_title_ar"`
+	ProcessRecoveryTeamID           *uint                                `json:"process_recovery_team_id"`
+	ProcessRecoveryTeamTitleEn      *string                              `json:"process_recovery_team_title_en"`
+	ProcessRecoveryTeamTitleAr      *string                              `json:"process_recovery_team_title_ar"`
+	RecoveryManagerFirstNameEn      *string                              `json:"recovery_manager_first_name_en"`
+	RecoveryManagerFirstNameAr      *string                              `json:"recovery_manager_first_name_ar"`
+	RecoveryManagerLastNameEn       *string                              `json:"recovery_manager_last_name_en"`
+	RecoveryManagerLastNameAr       *string                              `json:"recovery_manager_last_name_ar"`
+	RecoveryManagerContactDetails   *string                              `json:"recovery_manager_contact_details"`
+	RecoveryManagerInitial          *string                              `json:"recovery_manager_initial"`
+	RecoveryManagerColor            *string                              `json:"recovery_manager_color"`
+	RecoveryManagerEmail            *string                              `json:"recovery_manager_email"`
+	RecoveryManagerProfileImagePath *string                              `json:"recovery_manager_profile_image_path"`
+	JobTitles                       []*SystemRegisterJobTitleListDTO     `json:"job_titles" gorm:"-"`
+	OperationalLocations            []*SystemRegisterLocationListDTO     `json:"operational_locations" gorm:"-"`
+	RecoveryLocations               []*SystemRegisterLocationListDTO     `json:"recovery_locations" gorm:"-"`
+	RecoveryNeededTools             []*SystemRegisterRecoveryToolListDTO `json:"recovery_needed_tools" gorm:"-"`
+	CreatedUserID                   uint                                 `json:"created_user_id"`
+	CreatedUserFirstNameEn          string                               `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr          string                               `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn           string                               `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr           string                               `json:"created_user_last_name_ar"`
+	CreatedUserInitial              string                               `json:"created_user_initial"`
+	CreatedUserColor                string                               `json:"created_user_color"`
+	CreatedUserEmail                string                               `json:"created_user_email"`
+	CreatedUserProfileImagePath     string                               `json:"created_user_profile_image_path"`
+	CreatedAt                       time.Time                            `json:"created_at"`
+	UpdatedUserID                   *uint                                `json:"updated_user_id"`
+	UpdatedUserFirstNameEn          *string                              `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr          *string                              `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn           string                               `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr           string                               `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial              string                               `json:"updated_user_initial"`
+	UpdatedUserColor                string                               `json:"updated_user_color"`
+	UpdatedUserEmail                string                               `json:"updated_user_email"`
+	UpdatedUserProfileImagePath     string                               `json:"updated_user_profile_image_path"`
+	UpdatedAt                       *time.Time                           `json:"updated_at"`
 }
 
 type SystemRegisterListQueryParamsDTO struct {

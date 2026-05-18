@@ -12,8 +12,6 @@ type Control struct {
 	ResponsibleUserID             uint       `json:"owner_id" gorm:"not null" binding:"required"`
 	ControlImplementationStatusID *uint      `json:"control_implementation_status_id" gorm:"default:null"`
 	ControlEfficiencyStatusID     *uint      `json:"control_efficiency_status_id" gorm:"default:null"`
-	ControlAutomationID           *uint      `json:"control_automation_id" gorm:"default:null"`
-	ControlConsistencyID          *uint      `json:"control_consistency_id" gorm:"default:null"`
 	ControlStatusID               *uint      `json:"control_status_id" gorm:"default:null"`
 	ReferenceNumber               string     `json:"reference_number" gorm:"type:varchar(45);not null;unique" binding:"required"`
 	Code                          *string    `json:"code,omitempty" gorm:"type:varchar(45);default:null" binding:"omitempty"`
@@ -58,8 +56,6 @@ type Control struct {
 	ControlImplementationStatus *ControlImplementationStatus `gorm:"foreignKey:ControlImplementationStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ControlEfficiencyStatus     *ControlEfficiencyStatus     `gorm:"foreignKey:ControlEfficiencyStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ControlEffectivenessRating  *ControlEffectivenessRating  `gorm:"foreignKey:ControlEffectivenessRatingID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ControlAutomation           *ControlAutomation           `gorm:"foreignKey:ControlAutomationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ControlConsistency          *ControlConsistency          `gorm:"foreignKey:ControlConsistencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ControlStatus               *ControlStatus               `gorm:"foreignKey:ControlStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ReviewFrequency             *ReviewFrequency             `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	TestResponsibleUser         *User                        `gorm:"foreignKey:TestResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

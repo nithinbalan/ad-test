@@ -16,6 +16,8 @@ type ControlTest struct {
 	ControlEffectivenessScore     *float64   `json:"control_effectiveness_score,omitempty" gorm:"type:decimal(3,2);default:null;check:control_effectiveness_score >= 0 AND control_effectiveness_score <= 5" binding:"omitempty"`
 	ControlEffectivenessRatingID  *uint      `json:"control_effectiveness_rating_id,omitempty" gorm:"default:null" binding:"omitempty"`
 	RiskReduction                 *float64   `json:"risk_reduction,omitempty" gorm:"type:decimal(5,2);default:null;check:risk_reduction >= 0 AND risk_reduction <= 100" binding:"omitempty"`
+	ControlAutomationID           uint       `json:"control_automation_id" gorm:"default:null" binding:"required"`
+	ControlConsistencyID          uint       `json:"control_consistency_id" gorm:"default:null" binding:"required"`
 	Comments                      *string    `json:"comments,omitempty" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
 	TestedSource                  string     `json:"tested_source" gorm:"type:varchar(45);not null" binding:"required"`
 	TestedAt                      time.Time  `json:"tested_at,omitempty" gorm:"type:date;default:null" binding:"omitempty"`
@@ -33,6 +35,8 @@ type ControlTest struct {
 	TestedByUser                *User                        `json:"tested_by_user" gorm:"foreignKey:TestedBy"`
 	UpdatedByUser               *User                        `json:"updated_by_id_user" gorm:"foreignKey:UpdatedByID"`
 	Documents                   []*ControlTestDocument       `json:"documents" gorm:"foreignKey:ControlTestID"`
+	ControlAutomation           *ControlAutomation           `gorm:"foreignKey:ControlAutomationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ControlConsistency          *ControlConsistency          `gorm:"foreignKey:ControlConsistencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskRegisterUpdatePlan      *RiskRegisterUpdatePlan      `gorm:"foreignKey:RiskRegisterUpdatePlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 

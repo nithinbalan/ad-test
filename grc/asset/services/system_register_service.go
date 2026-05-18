@@ -538,28 +538,40 @@ func (srs *SystemRegisterService) ExportSystemRegister(data []*dtos.SystemRegist
 	var headers []string
 	if userSetting.Language == "ar" {
 		headers = []string{
-			"SL No.",
-			"Reference Number",
-			"Number of People Necessary",
-			"Business Owner Unit",
-			"IT Responsible Unit",
-			"Process Operation Team",
-			"Process Recovery Team",
-			"Recovery Manager",
-			"Third Party Dependencies",
-			"Outsourcing Partners",
-			"Customer User",
+			"الرقم التسلسلي",
+			"الرقم المرجعي",
+			"العنوان",
+			"عدد الأشخاص اللازمين",
+			"وحدة مالك العمل",
+			"وحدة تكنولوجيا المعلومات المسؤولة",
+			"فريق عمليات العملية",
+			"فريق استعادة العملية",
+			"مدير الاستعادة",
+			"تفاصيل اتصال مدير الاستعادة",
+			"المسميات الوظيفية",
+			"المواقع التشغيلية",
+			"مواقع الاستعادة",
+			"أدوات الاستعادة المطلوبة",
+			"التبعيات الخارجية",
+			"شركاء الاستعانة بمصادر خارجية",
+			"مستخدم العميل",
 		}
 	} else {
 		headers = []string{
 			"SL No.",
 			"Reference Number",
+			"Title",
 			"Number of People Necessary",
 			"Business Owner Unit",
 			"IT Responsible Unit",
 			"Process Operation Team",
 			"Process Recovery Team",
 			"Recovery Manager",
+			"Recovery Manager Contact Details",
+			"Job Titles",
+			"Operational Locations",
+			"Recovery Locations",
+			"Recovery Needed Tools",
 			"Third Party Dependencies",
 			"Outsourcing Partners",
 			"Customer User",
@@ -573,16 +585,78 @@ func (srs *SystemRegisterService) ExportSystemRegister(data []*dtos.SystemRegist
 			numPeople = fmt.Sprintf("%d", *sr.NumberOfPeopleNecessary)
 		}
 
+		// Prepare job titles
+		jobTitles := ""
+		if len(sr.JobTitles) > 0 {
+			titles := make([]string, len(sr.JobTitles))
+			for j, jt := range sr.JobTitles {
+				if userSetting.Language == "ar" {
+					titles[j] = utility.GetStringValue(jt.TitleAr)
+				} else {
+					titles[j] = utility.GetStringValue(jt.TitleEn)
+				}
+			}
+			jobTitles = fmt.Sprintf("%v", titles)
+		}
+
+		// Prepare operational locations
+		operationalLocations := ""
+		if len(sr.OperationalLocations) > 0 {
+			locations := make([]string, len(sr.OperationalLocations))
+			for j, loc := range sr.OperationalLocations {
+				if userSetting.Language == "ar" {
+					locations[j] = utility.GetStringValue(loc.TitleAr)
+				} else {
+					locations[j] = utility.GetStringValue(loc.TitleEn)
+				}
+			}
+			operationalLocations = fmt.Sprintf("%v", locations)
+		}
+
+		// Prepare recovery locations
+		recoveryLocations := ""
+		if len(sr.RecoveryLocations) > 0 {
+			locations := make([]string, len(sr.RecoveryLocations))
+			for j, loc := range sr.RecoveryLocations {
+				if userSetting.Language == "ar" {
+					locations[j] = utility.GetStringValue(loc.TitleAr)
+				} else {
+					locations[j] = utility.GetStringValue(loc.TitleEn)
+				}
+			}
+			recoveryLocations = fmt.Sprintf("%v", locations)
+		}
+
+		// Prepare recovery needed tools
+		recoveryTools := ""
+		if len(sr.RecoveryNeededTools) > 0 {
+			tools := make([]string, len(sr.RecoveryNeededTools))
+			for j, tool := range sr.RecoveryNeededTools {
+				if userSetting.Language == "ar" {
+					tools[j] = utility.GetStringValue(tool.TitleAr)
+				} else {
+					tools[j] = utility.GetStringValue(tool.TitleEn)
+				}
+			}
+			recoveryTools = fmt.Sprintf("%v", tools)
+		}
+
 		if userSetting.Language == "ar" {
 			rows[i] = []interface{}{
 				i + 1,
 				sr.ReferenceNumber,
+				utility.GetStringValue(sr.TitleAr),
 				numPeople,
 				utility.GetStringValue(sr.BusinessOwnerUnitTitleAr),
 				utility.GetStringValue(sr.ITResponsibleUnitTitleAr),
 				utility.GetStringValue(sr.ProcessOperationTeamTitleAr),
 				utility.GetStringValue(sr.ProcessRecoveryTeamTitleAr),
 				fmt.Sprintf("%s %s", utility.GetStringValue(sr.RecoveryManagerFirstNameAr), utility.GetStringValue(sr.RecoveryManagerLastNameAr)),
+				utility.GetStringValue(sr.RecoveryManagerContactDetails),
+				jobTitles,
+				operationalLocations,
+				recoveryLocations,
+				recoveryTools,
 				utility.GetStringValue(sr.ThirdPartyDependencies),
 				utility.GetStringValue(sr.OutsourcingPartners),
 				utility.GetStringValue(sr.CustomerUser),
@@ -591,12 +665,18 @@ func (srs *SystemRegisterService) ExportSystemRegister(data []*dtos.SystemRegist
 			rows[i] = []interface{}{
 				i + 1,
 				sr.ReferenceNumber,
+				utility.GetStringValue(sr.TitleEn),
 				numPeople,
 				utility.GetStringValue(sr.BusinessOwnerUnitTitleEn),
 				utility.GetStringValue(sr.ITResponsibleUnitTitleEn),
 				utility.GetStringValue(sr.ProcessOperationTeamTitleEn),
 				utility.GetStringValue(sr.ProcessRecoveryTeamTitleEn),
 				fmt.Sprintf("%s %s", utility.GetStringValue(sr.RecoveryManagerFirstNameEn), utility.GetStringValue(sr.RecoveryManagerLastNameEn)),
+				utility.GetStringValue(sr.RecoveryManagerContactDetails),
+				jobTitles,
+				operationalLocations,
+				recoveryLocations,
+				recoveryTools,
 				utility.GetStringValue(sr.ThirdPartyDependencies),
 				utility.GetStringValue(sr.OutsourcingPartners),
 				utility.GetStringValue(sr.CustomerUser),

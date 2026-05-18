@@ -71,6 +71,12 @@ func (rruedc *RiskUpdatePlanERMDeptController) GetERMDepartmentEvaluationRisks(c
 		"review_frequency_en":       "rf.title_en",
 		"review_frequency_ar":       "rf.title_ar",
 		"next_review_date":          "rr.next_review_date",
+		"division_en":               "div.title_en",
+		"division_ar":               "div.title_ar",
+		"section_en":                "sec.title_en",
+		"section_ar":                "sec.title_ar",
+		"sub_section_en":            "ss.title_en",
+		"sub_section_ar":            "ss.title_ar",
 	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)

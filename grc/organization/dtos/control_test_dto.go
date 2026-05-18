@@ -27,6 +27,19 @@ type ControlTestListDTO struct {
 	ControlEffectivenessRatingColorCode  *string                   `json:"control_effectiveness_rating_color_code"`
 	RiskReduction                        *float64                  `json:"risk_reduction"`
 	Comments                             *string                   `json:"comments"`
+	ControlAutomationID                  *uint                     `json:"control_automation_id"`
+	ControlAutomationTitleEn             *string                   `json:"control_automation_title_en"`
+	ControlAutomationTitleAr             *string                   `json:"control_automation_title_ar"`
+	ControlAutomationType                *string                   `json:"control_automation_type"`
+	ControlAutomationScore               *float64                  `json:"control_automation_score"`
+	ControlAutomationStatus              *string                   `json:"control_automation_status"`
+	ControlConsistencyID                 *uint                     `json:"control_consistency_id"`
+	ControlConsistencyTitleEn            *string                   `json:"control_consistency_title_en"`
+	ControlConsistencyTitleAr            *string                   `json:"control_consistency_title_ar"`
+	ControlConsistencyType               *string                   `json:"control_consistency_type"`
+	ControlConsistencyScore              *float64                  `json:"control_consistency_score"`
+	ControlConsistencyStatus             *string                   `json:"control_consistency_status"`
+	ControlConsistencyDescriptionEn      *string                   `json:"control_consistency_description_en"`
 	TestedSource                         string                    `json:"tested_source"`
 	TestedByUserID                       uint                      `json:"tested_by_user_id"`
 	TestedByUserFirstNameEn              string                    `json:"tested_by_user_first_name_en"`
@@ -67,6 +80,8 @@ type ControlTestDetailsDTO struct {
 	ControlEffectivenessRating *ControlEffectivenessRatingDTO `json:"control_effectiveness_rating"`
 	RiskReduction              *float64                       `json:"risk_reduction"`
 	Comments                   *string                        `json:"comments"`
+	ControlAutomation          *ControlAutomationDetailDTO    `json:"control_automation"`
+	ControlConsistency         *ControlConsistencyDetailDTO   `json:"control_consistency"`
 	TestedSource               string                         `json:"tested_source"`
 	TestedAtString             *string                        `json:"tested_at"`
 	UpdatedAt                  *time.Time                     `json:"updated_at"`
@@ -113,6 +128,8 @@ type ControlTestFormDTO struct {
 	Comments                      *string                       `json:"comments" binding:"omitempty"`
 	TestedAt                      *string                       `json:"tested_at" binding:"required"` // assuming this will be a date in string format
 	TestedBy                      uint                          `json:"tested_by" binding:"required"`
+	ControlAutomationID           uint                          `json:"control_automation_id,omitempty" binding:"required"`
+	ControlConsistencyID          uint                          `json:"control_consistency_id,omitempty" binding:"required"`
 	Documents                     []*commonDTOs.DocumentFormDTO `json:"documents" binding:"omitempty"`
 }
 

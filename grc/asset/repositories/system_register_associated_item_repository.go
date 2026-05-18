@@ -380,7 +380,7 @@ func (repo *SystemRegisterAssociatedItemRepository) DeleteSystemRegisterSLA(syst
 		db = tx[0].DB()
 	}
 
-	return db.Where("system_register_id = ? AND sla_register_id = ?", systemRegisterID, slaID).Delete(&models.SystemRegisterSLA{}).Error
+	return db.Where("system_register_id = ? AND id = ?", systemRegisterID, slaID).Delete(&models.SystemRegisterSLA{}).Error
 }
 
 func (repo *SystemRegisterAssociatedItemRepository) DeleteSystemRegisterProcess(systemRegisterID uint, processID uint, tx ...utility.DatabaseTransaction) error {
@@ -389,5 +389,5 @@ func (repo *SystemRegisterAssociatedItemRepository) DeleteSystemRegisterProcess(
 		db = tx[0].DB()
 	}
 
-	return db.Where("system_register_id = ? AND process_id = ?", systemRegisterID, processID).Delete(&models.SystemRegisterProcess{}).Error
+	return db.Where("system_register_id = ? AND id = ?", systemRegisterID, processID).Delete(&models.SystemRegisterProcess{}).Error
 }
