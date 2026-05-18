@@ -47,6 +47,7 @@ type RiskRegister struct {
 	RegistrationDate         *time.Time `json:"registration_date" gorm:"type:datetime;default:null"`
 	DivisionID               uint       `json:"division_id" binding:"required"`
 	SectionID                *uint      `json:"section_id" gorm:"default:null"`
+	SubSectionID             *uint      `json:"sub_section_id" gorm:"default:null"`
 	IsStrategic              bool       `json:"is_strategic" gorm:"not null;default:false"`
 	IsOperational            bool       `json:"is_operational" gorm:"not null;default:false"`
 	ExpectedCause            *string    `json:"expected_cause" gorm:"default:null"`
@@ -82,6 +83,7 @@ type RiskRegister struct {
 	UpdatedByUser           *User                      `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	Section                 *OrganizationUnit          `gorm:"foreignKey:SectionID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	Division                *OrganizationUnit          `gorm:"foreignKey:DivisionID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	SubSection              *OrganizationUnit          `gorm:"foreignKey:SubSectionID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	RiskRegisterUpdatePlan  *RiskRegisterUpdatePlan    `gorm:"foreignKey:RiskRegisterUpdatePlanID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 
 	Documents              *[]RiskDocument              `gorm:"foreignKey:RiskRegisterID"`
@@ -95,6 +97,7 @@ type RiskRegister struct {
 	Assets                 []*RiskAsset                 `gorm:"foreignKey:RiskRegisterID"`
 	Threats                []*RiskThreat                `gorm:"foreignKey:RiskRegisterID"`
 	AuditableItems         []*AuditableItem             `gorm:"foreignKey:RiskRegisterID"`
+	ActionPlans            []*RiskActionPlan            `gorm:"foreignKey:RiskRegisterID"`
 	RiskWorkflows          []*RiskWorkflow              `gorm:"foreignKey:RiskRegisterID"`
 }
 

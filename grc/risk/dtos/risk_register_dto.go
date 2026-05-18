@@ -98,6 +98,9 @@ type RiskRegisterListDTO struct {
 	SectionID                       *uint   `json:"section_id"`
 	SectionTitleEn                  *string `json:"section_title_en"`
 	SectionTitleAr                  *string `json:"section_title_ar"`
+	SubSectionID                    *uint   `json:"sub_section_id"`
+	SubSectionTitleEn               *string `json:"sub_section_title_en"`
+	SubSectionTitleAr               *string `json:"sub_section_title_ar"`
 	IsStrategic                     bool    `json:"is_strategic"`
 	IsOperational                   bool    `json:"is_operational"`
 	ExpectedCause                   *string `json:"expected_cause"`
@@ -188,12 +191,14 @@ type RiskRegisterDetailDTO struct {
 	AssociatedDocuments     []*RiskAssociatedDocumentDTO       `json:"associated_documents"`
 	Assets                  []*RiskAssetDTO                    `json:"assets"`
 	Threats                 []*RiskThreatDTO                   `json:"threats"`
+	ActionPlans             []*RiskActionPlanListDTO           `json:"action_plans"`
 	MarkedAsAuditableItem   bool                               `json:"marked_as_auditable_item"`
 	AuditableItem           *AuditableItemMinimalRiskDetailDTO `json:"auditable_item"`
 	RiskCode                *string                            `json:"risk_code"`
 	RegistrationDateString  *string                            `json:"registration_date"`
 	Division                *settingsDTOs.OrganizationUnitDTO  `json:"division"`
 	Section                 *settingsDTOs.OrganizationUnitDTO  `json:"section"`
+	SubSection              *settingsDTOs.OrganizationUnitDTO  `json:"sub_section"`
 	IsStrategic             bool                               `json:"is_strategic"`
 	IsOperational           bool                               `json:"is_operational"`
 	ExpectedCause           *string                            `json:"expected_cause"`
@@ -316,17 +321,20 @@ type RiskRegisterFormDTO struct {
 	RiskCode                       *string `json:"risk_code"`
 	DivisionID                     uint    `json:"division_id" binding:"required"`
 	SectionID                      *uint   `json:"section_id"`
+	SubSectionID                   *uint   `json:"sub_section_id"`
 	IsStrategic                    bool    `json:"is_strategic"`
 	IsOperational                  bool    `json:"is_operational"`
 	ExpectedCause                  *string `json:"expected_cause"`
+	RegistrationDate               string  `json:"registration_date" binding:"required,datetime=2006-01-02"`
 	Consequence                    *string `json:"consequence"`
 	IsInternal                     bool    `json:"is_internal"`
 	IsExternal                     bool    `json:"is_external"`
 }
 
 type RiskRegisterParsedDates struct {
-	ReportedAt     *time.Time
-	NextReviewDate *time.Time
+	ReportedAt       *time.Time
+	NextReviewDate   *time.Time
+	RegistrationDate *time.Time
 }
 
 type RiskResponseStrategyFormDTO struct {

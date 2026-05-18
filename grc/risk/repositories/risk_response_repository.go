@@ -57,6 +57,7 @@ func (repo *RiskResponseRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("RiskRegister").
 		Preload("RiskRegister.ResidualRiskRating").
 		Preload("RiskRegister.ResidualRiskRatingValue").
+		Preload("RiskRegister.ActionPlans").
 		Preload("WorkflowStatus").
 		Preload("SubmittedBy").
 		Preload("ApprovedBy").

@@ -257,6 +257,9 @@ type ERMDeptEvaluationRiskListDTO struct {
 	SectionID                       *uint   `json:"section_id"`
 	SectionTitleEn                  *string `json:"section_title_en"`
 	SectionTitleAr                  *string `json:"section_title_ar"`
+	SubSectionID                    *uint   `json:"sub_section_id"`
+	SubSectionTitleEn               *string `json:"sub_section_title_en"`
+	SubSectionTitleAr               *string `json:"sub_section_title_ar"`
 	IsStrategic                     bool    `json:"is_strategic"`
 	IsOperational                   bool    `json:"is_operational"`
 	ExpectedCause                   *string `json:"expected_cause"`
@@ -383,6 +386,7 @@ type ERMDeptEvaluationControlListDTO struct {
 	ControlID                            uint                                            `json:"control_id"`
 	ControlTypeTitleEn                   string                                          `json:"control_type_title_en"`
 	ControlTypeTitleAr                   string                                          `json:"control_type_title_ar"`
+	ControlType                          string                                          `json:"control_type"`
 	ControlCategoryTitleEn               string                                          `json:"control_category_title_en"`
 	ControlCategoryTitleAr               string                                          `json:"control_category_title_ar"`
 	OwnerUnitTitleEn                     *string                                         `json:"owner_unit_title_en"`
@@ -684,6 +688,9 @@ type RiskIdentificationListDTO struct {
 	SectionID                       *uint   `json:"section_id"`
 	SectionTitleEn                  *string `json:"section_title_en"`
 	SectionTitleAr                  *string `json:"section_title_ar"`
+	SubSectionID                    *uint   `json:"sub_section_id"`
+	SubSectionTitleEn               *string `json:"sub_section_title_en"`
+	SubSectionTitleAr               *string `json:"sub_section_title_ar"`
 	IsStrategic                     bool    `json:"is_strategic"`
 	IsOperational                   bool    `json:"is_operational"`
 	ExpectedCause                   *string `json:"expected_cause"`
@@ -713,8 +720,10 @@ type UpdatePlanRiskRegisterFormDTO struct {
 	ResidualRiskMatrixLikelihoodID *uint   `json:"residual_risk_matrix_likelihood_id"`
 	ResidualRiskMatrixImpactID     *uint   `json:"residual_risk_matrix_impact_id"`
 	RiskCode                       *string `json:"risk_code"`
+	RegistrationDate               string  `json:"registration_date" binding:"required,datetime=2006-01-02"`
 	DivisionID                     uint    `json:"division_id" binding:"required"`
 	SectionID                      *uint   `json:"section_id"`
+	SubSectionID                   *uint   `json:"sub_section_id"`
 	IsStrategic                    bool    `json:"is_strategic"`
 	IsOperational                  bool    `json:"is_operational"`
 	ExpectedCause                  *string `json:"expected_cause"`
@@ -738,6 +747,8 @@ type UpdatePlanControlTestFormDTO struct {
 	Title                         string                        `json:"title" binding:"required"`
 	Description                   *string                       `json:"description"  binding:"omitempty"`
 	Score                         *uint                         `json:"score" binding:"omitempty"`
+	ControlAutomationID           uint                          `json:"control_automation_id" binding:"required"`
+	ControlConsistencyID          uint                          `json:"control_consistency_id" binding:"required"`
 	Comments                      *string                       `json:"comments" binding:"omitempty"`
 	TestedAt                      *string                       `json:"tested_at" binding:"required"` // assuming this will be a date in string format
 	TestedBy                      uint                          `json:"tested_by" binding:"required"`
@@ -895,6 +906,9 @@ type RiskControlAssociationListDTO struct {
 	SectionID                       *uint                                 `json:"section_id"`
 	SectionTitleEn                  *string                               `json:"section_title_en"`
 	SectionTitleAr                  *string                               `json:"section_title_ar"`
+	SubSectionID                    *uint                                 `json:"sub_section_id"`
+	SubSectionTitleEn               *string                               `json:"sub_section_title_en"`
+	SubSectionTitleAr               *string                               `json:"sub_section_title_ar"`
 	IsStrategic                     bool                                  `json:"is_strategic"`
 	IsOperational                   bool                                  `json:"is_operational"`
 	ExpectedCause                   *string                               `json:"expected_cause"`
