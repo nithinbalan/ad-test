@@ -41,6 +41,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	bcpAssociatedItemController := app.BusinessContinuityModule.BcpAssociatedItemController
 	businessContinuityDurationUnitController := app.BusinessContinuityModule.BusinessContinuityDurationUnitController
 	jobTeamController := app.BusinessContinuityModule.JobTeamController
+	bcmExecutionRecordTypeController := app.BusinessContinuityModule.BCMExecutionRecordTypeController
+	bcmExecutionRecordController := app.BusinessContinuityModule.BCMExecutionRecordController
+	bcmProcessTypeController := app.BusinessContinuityModule.BCMProcessTypeController
+	bcmManualProcedureFormController := app.BusinessContinuityModule.BCMManualProcedureFormController
 	// businessfunctionAssociatedItemController := app.BusinessContinuityModule.BusinessFunctionAssociateItemController
 
 	// bcp phase
@@ -250,9 +254,41 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// job teams
 	businessContinuityRoutes.GET("/job-teams", jobTeamController.GetAllJobTeams)
-	businessContinuityRoutes.GET("/job-teams/:id", middlewares.RolePermissionMiddleware(db, "common_setting", "view"), jobTeamController.GetJobTeamDetails)
-	businessContinuityRoutes.POST("/job-teams", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), jobTeamController.CreateJobTeam)
-	businessContinuityRoutes.PUT("/job-teams/:id", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), jobTeamController.UpdateJobTeam)
-	businessContinuityRoutes.POST("/job-teams/delete", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), jobTeamController.DeleteJobTeams)
+	businessContinuityRoutes.GET("/job-teams/:id", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "view"), jobTeamController.GetJobTeamDetails)
+	businessContinuityRoutes.POST("/job-teams", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), jobTeamController.CreateJobTeam)
+	businessContinuityRoutes.PUT("/job-teams/:id", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), jobTeamController.UpdateJobTeam)
+	businessContinuityRoutes.POST("/job-teams/delete", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), jobTeamController.DeleteJobTeams)
+
+	// bcm execution record types
+	businessContinuityRoutes.GET("/bcm-execution-record-types", bcmExecutionRecordTypeController.GetAllBCMExecutionRecordTypes)
+	businessContinuityRoutes.GET("/bcm-execution-record-types/:id", bcmExecutionRecordTypeController.GetBCMExecutionRecordTypeDetails)
+	businessContinuityRoutes.POST("/bcm-execution-record-types", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmExecutionRecordTypeController.CreateBCMExecutionRecordType)
+	businessContinuityRoutes.PUT("/bcm-execution-record-types/:id", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmExecutionRecordTypeController.UpdateBCMExecutionRecordType)
+	businessContinuityRoutes.POST("/bcm-execution-record-types/delete", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmExecutionRecordTypeController.DeleteBCMExecutionRecordTypes)
+	businessContinuityRoutes.PUT("/bcm-execution-record-types/activate", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmExecutionRecordTypeController.ActivateBCMExecutionRecordTypes)
+	businessContinuityRoutes.PUT("/bcm-execution-record-types/deactivate", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmExecutionRecordTypeController.DeactivateBCMExecutionRecordTypes)
+
+	// bcm execution records
+	businessContinuityRoutes.GET("/bcm-execution-records", bcmExecutionRecordController.GetAllBCMExecutionRecords)
+	businessContinuityRoutes.GET("/bcm-execution-records/:id", bcmExecutionRecordController.GetBCMExecutionRecordFullDetails)
+	businessContinuityRoutes.POST("/bcm-execution-records", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmExecutionRecordController.CreateBCMExecutionRecord)
+	businessContinuityRoutes.PUT("/bcm-execution-records/:id", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmExecutionRecordController.UpdateBCMExecutionRecord)
+	businessContinuityRoutes.POST("/bcm-execution-records/delete", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmExecutionRecordController.DeleteBCMExecutionRecords)
+
+	// bcm process types
+	businessContinuityRoutes.GET("/bcm-process-types", bcmProcessTypeController.GetAllBCMProcessTypes)
+	businessContinuityRoutes.GET("/bcm-process-types/:id", bcmProcessTypeController.GetBCMProcessTypeDetails)
+	businessContinuityRoutes.POST("/bcm-process-types", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmProcessTypeController.CreateBCMProcessType)
+	businessContinuityRoutes.PUT("/bcm-process-types/:id", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmProcessTypeController.UpdateBCMProcessType)
+	businessContinuityRoutes.POST("/bcm-process-types/delete", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmProcessTypeController.DeleteBCMProcessTypes)
+	businessContinuityRoutes.PUT("/bcm-process-types/activate", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmProcessTypeController.ActivateBCMProcessTypes)
+	businessContinuityRoutes.PUT("/bcm-process-types/deactivate", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmProcessTypeController.DeactivateBCMProcessTypes)
+
+	// bcm manual procedure forms
+	businessContinuityRoutes.GET("/bcm-manual-procedure-forms", bcmManualProcedureFormController.GetAllBCMManualProcedureForms)
+	businessContinuityRoutes.GET("/bcm-manual-procedure-forms/:id", bcmManualProcedureFormController.GetBCMManualProcedureFormFullDetails)
+	businessContinuityRoutes.POST("/bcm-manual-procedure-forms", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmManualProcedureFormController.CreateBCMManualProcedureForm)
+	businessContinuityRoutes.PUT("/bcm-manual-procedure-forms/:id", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmManualProcedureFormController.UpdateBCMManualProcedureForm)
+	businessContinuityRoutes.POST("/bcm-manual-procedure-forms/delete", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmManualProcedureFormController.DeleteBCMManualProcedureForms)
 
 }

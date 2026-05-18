@@ -35,6 +35,10 @@ type BusinessContinuityModule struct {
 	BusinessFunctionAssociateItemController          *controllers.BusinessFunctionAssociatedItemController
 	BusinessContinuityDurationUnitController         *controllers.BusinessContinuityDurationUnitController
 	JobTeamController                                *controllers.JobTeamController
+	BCMExecutionRecordTypeController                 *controllers.BCMExecutionRecordTypeController
+	BCMExecutionRecordController                     *controllers.BCMExecutionRecordController
+	BCMProcessTypeController                         *controllers.BCMProcessTypeController
+	BCMManualProcedureFormController                 *controllers.BCMManualProcedureFormController
 
 	BusinessFunctionSvc                  services.BusinessFunctionServiceInterface
 	BcpTeamSvc                           services.BcpTeamServiceInterface
@@ -173,6 +177,22 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	jobTeamSvc := services.NewJobTeamService(jobTeamRepo, sharedModule.ActivityLogService, organizationModule.DesignationSvc)
 	jobTeamController := controllers.NewJobTeamController(jobTeamSvc)
 
+	bcmExecutionRecordTypeRepo := repositories.NewBCMExecutionRecordTypeRepository(db)
+	bcmExecutionRecordTypeSvc := services.NewBCMExecutionRecordTypeService(bcmExecutionRecordTypeRepo, sharedModule.ActivityLogService)
+	bcmExecutionRecordTypeController := controllers.NewBCMExecutionRecordTypeController(bcmExecutionRecordTypeSvc)
+
+	bcmExecutionRecordRepo := repositories.NewBCMExecutionRecordRepository(db)
+	bcmExecutionRecordSvc := services.NewBCMExecutionRecordService(bcmExecutionRecordRepo, sharedModule.ActivityLogService)
+	bcmExecutionRecordController := controllers.NewBCMExecutionRecordController(bcmExecutionRecordSvc)
+
+	bcmProcessTypeRepo := repositories.NewBCMProcessTypeRepository(db)
+	bcmProcessTypeSvc := services.NewBCMProcessTypeService(bcmProcessTypeRepo, sharedModule.ActivityLogService)
+	bcmProcessTypeController := controllers.NewBCMProcessTypeController(bcmProcessTypeSvc)
+
+	bcmManualProcedureFormRepo := repositories.NewBCMManualProcedureFormRepository(db)
+	bcmManualProcedureFormSvc := services.NewBCMManualProcedureFormService(bcmManualProcedureFormRepo, sharedModule.ActivityLogService)
+	bcmManualProcedureFormController := controllers.NewBCMManualProcedureFormController(bcmManualProcedureFormSvc)
+
 	return &BusinessContinuityModule{
 		BusinessFunctionController:                       businessFunctionController,
 		BusinessImpactAssessmentController:               businessImpactAssessmentController,
@@ -200,6 +220,10 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		BusinessFunctionAssociateItemController:          businessFunctionAssociatedItemController,
 		BusinessContinuityDurationUnitController:         businessContinuityDurationUnitController,
 		JobTeamController:                                jobTeamController,
+		BCMExecutionRecordTypeController:                 bcmExecutionRecordTypeController,
+		BCMExecutionRecordController:                     bcmExecutionRecordController,
+		BCMProcessTypeController:                         bcmProcessTypeController,
+		BCMManualProcedureFormController:                 bcmManualProcedureFormController,
 
 		BusinessFunctionSvc:                  businessFunctionSvc,
 		BcpTeamSvc:                           bcpTeamSvc,
