@@ -24,6 +24,8 @@ type ControlTestRepositoryInterface interface {
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
 
 	GetTrendAnalysis(controlID uint) ([]*models.ControlTest, error)
+	GetControlAutomationByID(id uint) (*models.ControlAutomation, error)
+	GetControlConsistencyByID(id uint) (*models.ControlConsistency, error)
 }
 
 type ControlTestRepository struct {
@@ -60,6 +62,18 @@ func (repo *ControlTestRepository) GetAll(controlID uint, params *organizationDT
 			control_tests.score,
 			control_tests.comments,
 			control_tests.tested_source,
+			control_automations.title_en AS control_automation_title_en,
+			control_automations.title_ar AS control_automation_title_ar,
+			control_automations.type AS control_automation_type,
+			control_automations.score AS control_automation_score,
+			control_automations.status AS control_automation_status,
+			control_consistencies.title_en AS control_consistency_title_en,
+			control_consistencies.title_ar AS control_consistency_title_ar,
+			control_consistencies.type AS control_consistency_type,
+			control_consistencies.score AS control_consistency_score,
+			control_consistencies.status AS control_consistency_status,
+			control_consistencies.description_en AS control_consistency_description_en,
+			control_consistencies.description_ar AS control_consistency_description_ar,
 			tested_by_user.id AS tested_by_user_id,
 			tested_by_user.first_name_en AS tested_by_user_first_name_en,
 			tested_by_user.first_name_ar AS tested_by_user_first_name_ar,
@@ -94,6 +108,8 @@ func (repo *ControlTestRepository) GetAll(controlID uint, params *organizationDT
 		Joins("LEFT JOIN control_efficiency_statuses ON control_efficiency_statuses.id = control_tests.control_efficiency_status_id").
 		Joins("LEFT JOIN control_effectiveness_ratings ON control_effectiveness_ratings.id = control_tests.control_effectiveness_rating_id").
 		Joins("LEFT JOIN users AS tested_by_user ON tested_by_user.id = control_tests.tested_by").
+		Joins("LEFT JOIN control_automations ON control_automations.id = control_tests.control_automation_id").
+		Joins("LEFT JOIN control_consistencies ON control_consistencies.id = control_tests.control_consistency_id").
 		Joins("LEFT JOIN users AS updated_by_user ON updated_by_user.id = control_tests.updated_by_id").
 		Where("control_tests.control_id = ?", controlID)
 
@@ -147,10 +163,15 @@ func (repo *ControlTestRepository) GetAll(controlID uint, params *organizationDT
 				tested_by_user.first_name_en LIKE ? OR
 				tested_by_user.first_name_ar LIKE ? OR
 				tested_by_user.last_name_en LIKE ? OR
-				tested_by_user.last_name_ar LIKE ?)`,
+				tested_by_user.last_name_ar LIKE ? OR
+				control_automations.title_en LIKE ? OR
+				control_automations.title_ar LIKE ? OR
+				control_consistencies.title_en LIKE ? OR
+				control_consistencies.title_ar LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	// Sort by the specified column and order
@@ -221,6 +242,8 @@ func (repo *ControlTestRepository) GetFullDetailsByID(id uint, tx ...utility.Dat
 		Preload("ControlEfficiencyStatus").
 		Preload("ControlEffectivenessRating").
 		Preload("TestedByUser").
+		Preload("ControlAutomation").
+		Preload("ControlConsistency").
 		Preload("UpdatedByUser").
 		First(&controlTest, id)
 	if result.Error != nil {
@@ -347,4 +370,20 @@ func (repo *ControlTestRepository) GetTrendAnalysis(controlID uint) ([]*models.C
 	}
 
 	return controlTests, nil
+}
+
+func (repo *ControlTestRepository) GetControlAutomationByID(id uint) (*models.ControlAutomation, error) {
+	var controlAutomation models.ControlAutomation
+	if err := repo.db.Where("id = ?", id).First(&controlAutomation).Error; err != nil {
+		return nil, err
+	}
+	return &controlAutomation, nil
+}
+
+func (repo *ControlTestRepository) GetControlConsistencyByID(id uint) (*models.ControlConsistency, error) {
+	var controlConsistency models.ControlConsistency
+	if err := repo.db.Where("id = ?", id).First(&controlConsistency).Error; err != nil {
+		return nil, err
+	}
+	return &controlConsistency, nil
 }

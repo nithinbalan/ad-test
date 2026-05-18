@@ -133,6 +133,11 @@ func (rrupids *RiskUpdatePlanRiskIdentificationService) CreateRiskIdentification
 		return 0, err
 	}
 
+	dates, err := rrupids.parseUpdatePlanRiskRegisterDates(riskRegisterFormDTO)
+	if err != nil {
+		return 0, err
+	}
+
 	riskMatrix, err := rrupids.riskMatrixSvc.GetByType("erm")
 	if err != nil {
 		return 0, err
@@ -142,8 +147,6 @@ func (rrupids *RiskUpdatePlanRiskIdentificationService) CreateRiskIdentification
 	if err != nil {
 		return 0, err
 	}
-
-	registrationDate := time.Now()
 
 	riskRegister := &models.RiskRegister{
 		RiskCategoryID:           riskRegisterFormDTO.RiskCategoryID,
@@ -157,9 +160,10 @@ func (rrupids *RiskUpdatePlanRiskIdentificationService) CreateRiskIdentification
 		ReviewFrequencyID:        riskRegisterFormDTO.ReviewFrequencyID,
 		LastReviewNote:           riskRegisterFormDTO.LastReviewNote,
 		RiskCode:                 riskRegisterFormDTO.RiskCode,
-		RegistrationDate:         &registrationDate,
+		RegistrationDate:         dates.RegistrationDate,
 		DivisionID:               riskRegisterFormDTO.DivisionID,
 		SectionID:                riskRegisterFormDTO.SectionID,
+		SubSectionID:             riskRegisterFormDTO.SubSectionID,
 		IsStrategic:              riskRegisterFormDTO.IsStrategic,
 		IsOperational:            riskRegisterFormDTO.IsOperational,
 		ExpectedCause:            riskRegisterFormDTO.ExpectedCause,
@@ -456,6 +460,11 @@ func (rrupids *RiskUpdatePlanRiskIdentificationService) UpdateRiskIdentification
 		return err
 	}
 
+	dates, err := rrupids.parseUpdatePlanRiskRegisterDates(riskRegisterFormDTO)
+	if err != nil {
+		return err
+	}
+
 	existingRiskRegister, err := rrupids.riskRegisterSvc.GetByID(id)
 	if err != nil {
 		return err
@@ -480,12 +489,14 @@ func (rrupids *RiskUpdatePlanRiskIdentificationService) UpdateRiskIdentification
 	existingRiskRegister.RiskCode = riskRegisterFormDTO.RiskCode
 	existingRiskRegister.DivisionID = riskRegisterFormDTO.DivisionID
 	existingRiskRegister.SectionID = riskRegisterFormDTO.SectionID
+	existingRiskRegister.SubSectionID = riskRegisterFormDTO.SubSectionID
 	existingRiskRegister.IsStrategic = riskRegisterFormDTO.IsStrategic
 	existingRiskRegister.IsOperational = riskRegisterFormDTO.IsOperational
 	existingRiskRegister.ExpectedCause = riskRegisterFormDTO.ExpectedCause
 	existingRiskRegister.Consequence = riskRegisterFormDTO.Consequence
 	existingRiskRegister.IsInternal = riskRegisterFormDTO.IsInternal
 	existingRiskRegister.IsExternal = riskRegisterFormDTO.IsExternal
+	existingRiskRegister.RegistrationDate = dates.RegistrationDate
 	existingRiskRegister.UpdatedBYID = &currentUserID
 
 	if err := rrupids.repo.UpdateRiskIdentification(existingRiskRegister, tx); err != nil {
@@ -1065,4 +1076,62 @@ func (rrupids *RiskUpdatePlanRiskIdentificationService) validateRiskRegisterForm
 	}
 
 	return nil
+}
+
+func (rrupids *RiskUpdatePlanRiskIdentificationService) parseRiskRegisterDates(dto *riskDTOs.RiskRegisterFormDTO) (*riskDTOs.RiskRegisterParsedDates, error) {
+	parsed := &riskDTOs.RiskRegisterParsedDates{}
+
+	var err error
+
+	if dto.ReportedAt != nil && *dto.ReportedAt != "" {
+		parsed.ReportedAt, err = utility.ParseDate(*dto.ReportedAt)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid reported at"), "invalid_date", "reported at")
+		}
+	}
+
+	if dto.NextReviewDate != nil && *dto.NextReviewDate != "" {
+		parsed.NextReviewDate, err = utility.ParseDate(*dto.NextReviewDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid next review date"), "invalid_date", "next review date")
+		}
+	}
+
+	if dto.RegistrationDate != "" {
+		parsed.RegistrationDate, err = utility.ParseDate(dto.RegistrationDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid registration date"), "invalid_date", "registration date")
+		}
+	}
+
+	return parsed, nil
+}
+
+func (rrupids *RiskUpdatePlanRiskIdentificationService) parseUpdatePlanRiskRegisterDates(dto *riskDTOs.UpdatePlanRiskRegisterFormDTO) (*riskDTOs.RiskRegisterParsedDates, error) {
+	parsed := &riskDTOs.RiskRegisterParsedDates{}
+
+	var err error
+
+	if dto.ReportedAt != nil && *dto.ReportedAt != "" {
+		parsed.ReportedAt, err = utility.ParseDate(*dto.ReportedAt)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid reported at"), "invalid_date", "reported at")
+		}
+	}
+
+	if dto.NextReviewDate != nil && *dto.NextReviewDate != "" {
+		parsed.NextReviewDate, err = utility.ParseDate(*dto.NextReviewDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid next review date"), "invalid_date", "next review date")
+		}
+	}
+
+	if dto.RegistrationDate != "" {
+		parsed.RegistrationDate, err = utility.ParseDate(dto.RegistrationDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid registration date"), "invalid_date", "registration date")
+		}
+	}
+
+	return parsed, nil
 }

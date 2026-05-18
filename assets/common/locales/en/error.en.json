@@ -221,7 +221,7 @@
 ,
 {
   "id": "residual_risk_rating",
-  "translation": "Residual risk rating must be 'high' or 'critical' to submit risk response for review"
+  "translation": "Residual risk rating must be 'high' or 'critical' and at least one action plan must be added to submit risk response for review"
 }
 
 

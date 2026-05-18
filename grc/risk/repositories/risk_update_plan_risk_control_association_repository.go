@@ -295,7 +295,10 @@ func (repo *RiskUpdatePlanRiskControlAssociationRepository) GetRiskControlAssoci
 			divisions.title_ar AS division_title_ar,
 			sections.id AS section_id,
 			sections.title_en AS section_title_en,
-			sections.title_ar AS section_title_ar
+			sections.title_ar AS section_title_ar,
+			sub_sections.id AS sub_section_id,
+			sub_sections.title_en AS sub_section_title_en,
+			sub_sections.title_ar AS sub_section_title_ar
 		`).
 		Joins(`
 			LEFT JOIN risk_categories ON risk_categories.id = risk_register.risk_category_id
@@ -322,6 +325,7 @@ func (repo *RiskUpdatePlanRiskControlAssociationRepository) GetRiskControlAssoci
 			LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
 			LEFT JOIN organization_units AS divisions ON divisions.id = risk_register.division_id
 			LEFT JOIN organization_units AS sections ON sections.id = risk_register.section_id
+			LEFT JOIN organization_units AS sub_sections ON sub_sections.id = risk_register.sub_section_id
 		`).
 		Where("risk_register.id IN ?", riskIDs)
 
