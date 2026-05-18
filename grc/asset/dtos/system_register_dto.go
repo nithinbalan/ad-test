@@ -10,6 +10,8 @@ import (
 type SystemRegisterListDTO struct {
 	ID                            uint                                 `json:"id"`
 	ReferenceNumber               string                               `json:"reference_number"`
+	TitleEn                       string                               `json:"title_en"`
+	TitleAr                       string                               `json:"title_ar"`
 	NumberOfPeopleNecessary       *int                                 `json:"number_of_people_necessary"`
 	BusinessOwnerUnitTitleEn      *string                              `json:"business_owner_unit_title_en"`
 	BusinessOwnerUnitTitleAr      *string                              `json:"business_owner_unit_title_ar"`
@@ -71,6 +73,8 @@ type SystemRegisterListResponseDTO struct {
 }
 
 type SystemRegisterFormDTO struct {
+	TitleEn                       string  `json:"title_en"`
+	TitleAr                       string  `json:"title_ar"`
 	NumberOfPeopleNecessary       *int    `json:"number_of_people_necessary"`
 	BusinessOwnerUnitID           *uint   `json:"business_owner_unit_id"`
 	ITResponsibleUnitID           *uint   `json:"it_responsible_unit_id"`
@@ -90,6 +94,8 @@ type SystemRegisterFormDTO struct {
 type SystemRegisterDetailDTO struct {
 	ID                                 uint                                  `json:"id"`
 	ReferenceNumber                    string                                `json:"reference_number"`
+	TitleEn                            string                                `json:"title_en"`
+	TitleAr                            string                                `json:"title_ar"`
 	NumberOfPeopleNecessary            *int                                  `json:"number_of_people_necessary"`
 	BusinessOwnerUnit                  *organizationDTOs.OrganizationUnitDTO `json:"business_owner_unit"`
 	ITResponsibleUnit                  *organizationDTOs.OrganizationUnitDTO `json:"it_responsible_unit"`

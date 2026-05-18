@@ -57,6 +57,8 @@ func (src *SystemRegisterController) GetAllSystemRegisters(c *gin.Context) {
 
 	validSortFields := map[string]string{
 		"reference_number":                 "system_registers.reference_number",
+		"title_en":                         "system_registers.title_en",
+		"title_ar":                         "system_registers.title_ar",
 		"number_of_people_necessary":       "system_registers.number_of_people_necessary",
 		"third_party_dependencies":         "system_registers.third_party_dependencies",
 		"outsourcing_partners":             "system_registers.outsourcing_partners",
@@ -65,8 +67,10 @@ func (src *SystemRegisterController) GetAllSystemRegisters(c *gin.Context) {
 		"business_owner_unit_ar":           "business_owner_unit.title_ar",
 		"it_responsible_unit_en":           "it_responsible_unit.title_en",
 		"it_responsible_unit_ar":           "it_responsible_unit.title_ar",
-		"process_operation_team":           "process_operation_team.name",
-		"process_recovery_team":            "process_recovery_team.name",
+		"process_operation_team_title_en":  "process_operation_team.title_en",
+		"process_operation_team_title_ar":  "process_operation_team.title_ar",
+		"process_recovery_team_title_en":   "process_recovery_team.title_en",
+		"process_recovery_team_title_ar":   "process_recovery_team.title_ar",
 		"recovery_manager_en":              "recovery_manager.first_name_en",
 		"recovery_manager_ar":              "recovery_manager.first_name_ar",
 		"recovery_manager_contact_details": "system_registers.recovery_manager_contact_details",

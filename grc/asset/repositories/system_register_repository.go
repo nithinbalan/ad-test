@@ -61,6 +61,8 @@ func (repo *SystemRegisterRepository) GetAll(params *dtos.SystemRegisterListQuer
 		Select(`
 			system_registers.id,
 			system_registers.reference_number,
+			system_registers.title_en,
+			system_registers.title_ar,
 			system_registers.number_of_people_necessary,
 			system_registers.third_party_dependencies,
 			system_registers.outsourcing_partners,
@@ -120,6 +122,8 @@ func (repo *SystemRegisterRepository) GetAll(params *dtos.SystemRegisterListQuer
 	if params.Keyword != "" {
 		query = query.Where(`
 			(system_registers.reference_number LIKE ? OR
+			system_registers.title_en LIKE ? OR
+			system_registers.title_ar LIKE ? OR
 			system_registers.third_party_dependencies LIKE ? OR
 			system_registers.outsourcing_partners LIKE ? OR
 			system_registers.customer_user LIKE ? OR
@@ -128,7 +132,7 @@ func (repo *SystemRegisterRepository) GetAll(params *dtos.SystemRegisterListQuer
 			it_responsible_unit.title_en LIKE ? OR
 			it_responsible_unit.title_ar LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	// Calculate total count for pagination
