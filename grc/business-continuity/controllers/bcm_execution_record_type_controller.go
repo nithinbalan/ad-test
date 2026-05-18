@@ -28,6 +28,11 @@ func (controller *BCMExecutionRecordTypeController) GetAllBCMExecutionRecordType
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 
+	// Validate sort_order to prevent SQL injection
+	if sort != "asc" && sort != "desc" {
+		sort = "desc"
+	}
+
 	queryParams := bcmDTOs.BCMExecutionRecordTypeListQueryParamsDTO{
 		Sort:    sort,
 		SortBy:  sortBy,
@@ -126,7 +131,7 @@ func (controller *BCMExecutionRecordTypeController) UpdateBCMExecutionRecordType
 
 func (controller *BCMExecutionRecordTypeController) DeleteBCMExecutionRecordTypes(c *gin.Context) {
 	var request struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {

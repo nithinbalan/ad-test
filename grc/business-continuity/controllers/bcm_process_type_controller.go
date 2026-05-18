@@ -28,6 +28,11 @@ func (controller *BCMProcessTypeController) GetAllBCMProcessTypes(c *gin.Context
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 
+	// Validate sort_order to prevent SQL injection
+	if sort != "asc" && sort != "desc" {
+		sort = "desc"
+	}
+
 	queryParams := bcmDTOs.BCMProcessTypeListQueryParamsDTO{
 		Sort:    sort,
 		SortBy:  sortBy,
@@ -126,7 +131,7 @@ func (controller *BCMProcessTypeController) UpdateBCMProcessType(c *gin.Context)
 
 func (controller *BCMProcessTypeController) DeleteBCMProcessTypes(c *gin.Context) {
 	var request struct {
-		IDs []uint `json:"ids"`
+		IDs []uint `json:"ids" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {

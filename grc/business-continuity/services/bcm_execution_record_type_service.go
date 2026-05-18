@@ -2,8 +2,6 @@ package services
 
 import (
 	"errors"
-	"fmt"
-	"log"
 
 	bcmDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/repositories"
@@ -122,12 +120,18 @@ func (service *BCMExecutionRecordTypeService) Update(id uint, currentUserID uint
 	fieldsToCompare := []string{"TitleEn", "TitleAr", "Status"}
 	changes, err := utility.CompareFields(oldTool, existingTool, fieldsToCompare)
 	if err != nil {
-		log.Println("error :", err.Error())
+		fields := map[string]interface{}{
+			"error": err.Error(),
+		}
+		utility.LogError("Failed to compare fields", fields)
 	}
 
 	changedDataJSON, err := utility.ChangesToJSON(changes)
 	if err != nil {
-		log.Println("error :", err.Error())
+		fields := map[string]interface{}{
+			"error": err.Error(),
+		}
+		utility.LogError("Failed to convert changes to JSON", fields)
 	}
 
 	go func() {
@@ -143,7 +147,10 @@ func (service *BCMExecutionRecordTypeService) Update(id uint, currentUserID uint
 			nil,
 		)
 		if err != nil {
-			fmt.Printf("Failed to log activity: %v\n", err)
+			fields := map[string]interface{}{
+				"error": err.Error(),
+			}
+			utility.LogError("Failed to log activity", fields)
 		}
 	}()
 
@@ -157,16 +164,17 @@ func (service *BCMExecutionRecordTypeService) Delete(ids []uint, currentUserID u
 	for _, id := range ids {
 		tool, err := service.repo.GetByID(id)
 		if err != nil {
-			fmt.Print(err)
+			failedIds = append(failedIds, id)
 			continue
 		}
 
 		err = service.repo.Delete(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
-		} else {
-			successfulIds = append(successfulIds, id)
+			continue
 		}
+
+		successfulIds = append(successfulIds, id)
 		deletedTool = append(deletedTool, map[string]interface{}{
 			"id":       id,
 			"title_en": tool.TitleEn,
@@ -185,7 +193,10 @@ func (service *BCMExecutionRecordTypeService) Delete(ids []uint, currentUserID u
 				nil,
 			)
 			if err != nil {
-				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+				fields := map[string]interface{}{
+					"error": err.Error(),
+				}
+				utility.LogError("Failed to log bulk delete activity", fields)
 			}
 		}()
 	}
@@ -207,7 +218,10 @@ func (service *BCMExecutionRecordTypeService) Activate(ids []uint, currentUserID
 				nil,
 			)
 			if err != nil {
-				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+				fields := map[string]interface{}{
+					"error": err.Error(),
+				}
+				utility.LogError("Failed to log bulk activate activity", fields)
 			}
 		}()
 	}
@@ -229,7 +243,10 @@ func (service *BCMExecutionRecordTypeService) Deactivate(ids []uint, currentUser
 				nil,
 			)
 			if err != nil {
-				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+				fields := map[string]interface{}{
+					"error": err.Error(),
+				}
+				utility.LogError("Failed to log bulk deactivate activity", fields)
 			}
 		}()
 	}

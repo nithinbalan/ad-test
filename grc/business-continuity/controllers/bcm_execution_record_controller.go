@@ -27,6 +27,11 @@ func (controller *BCMExecutionRecordController) GetAllBCMExecutionRecords(c *gin
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 
+	// Validate sort_order to prevent SQL injection
+	if sort != "asc" && sort != "desc" {
+		sort = "desc"
+	}
+
 	queryParams := bcmDTOs.BCMExecutionRecordListQueryParamsDTO{
 		Sort:    sort,
 		SortBy:  sortBy,

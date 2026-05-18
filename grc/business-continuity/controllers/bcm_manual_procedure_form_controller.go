@@ -27,6 +27,11 @@ func (controller *BCMManualProcedureFormController) GetAllBCMManualProcedureForm
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 
+	// Validate sort_order to prevent SQL injection
+	if sort != "asc" && sort != "desc" {
+		sort = "desc"
+	}
+
 	queryParams := bcmDTOs.BCMManualProcedureFormListQueryParamsDTO{
 		Sort:    sort,
 		SortBy:  sortBy,

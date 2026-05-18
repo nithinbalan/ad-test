@@ -2,8 +2,6 @@ package services
 
 import (
 	"errors"
-	"fmt"
-	"log"
 
 	bcmDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/repositories"
@@ -41,7 +39,7 @@ func (service *BCMExecutionRecordService) GetAll(params *bcmDTOs.BCMExecutionRec
 	return service.repo.GetAll(params)
 }
 
-func (service BCMExecutionRecordService) GetByID(id uint) (*models.BCMExecutionRecord, error) {
+func (service *BCMExecutionRecordService) GetByID(id uint) (*models.BCMExecutionRecord, error) {
 	record, err := service.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -159,13 +157,19 @@ func (service *BCMExecutionRecordService) Update(id uint, currentUserID uint, fo
 		fieldsToCompare := []string{"TitleEn", "TitleAr", "OwnerEntityID", "RecordTypeID", "IsBackUpAvailable", "LocationID", "RecoveryPlan"}
 		changes, err := utility.CompareFields(oldRecord, existingRecord, fieldsToCompare)
 		if err != nil {
-			log.Println("error :", err.Error())
+			fields := map[string]interface{}{
+				"error": err.Error(),
+			}
+			utility.LogError("Failed to compare fields", fields)
 			return
 		}
 
 		changedDataJSON, err := utility.ChangesToJSON(changes)
 		if err != nil {
-			log.Println("error :", err.Error())
+			fields := map[string]interface{}{
+				"error": err.Error(),
+			}
+			utility.LogError("Failed to convert changes to JSON", fields)
 			return
 		}
 
@@ -181,7 +185,10 @@ func (service *BCMExecutionRecordService) Update(id uint, currentUserID uint, fo
 			nil,
 		)
 		if err != nil {
-			fmt.Printf("Failed to log activity: %v\n", err)
+			fields := map[string]interface{}{
+				"error": err.Error(),
+			}
+			utility.LogError("Failed to log activity", fields)
 		}
 	}()
 
@@ -224,7 +231,10 @@ func (service *BCMExecutionRecordService) Delete(ids []uint, currentUserID uint)
 				nil,
 			)
 			if err != nil {
-				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+				fields := map[string]interface{}{
+					"error": err.Error(),
+				}
+				utility.LogError("Failed to log bulk delete activity", fields)
 			}
 		}()
 	}
