@@ -7,6 +7,8 @@ import (
 type SystemRegister struct {
 	ID                            uint       `json:"id" gorm:"primaryKey;autoIncrement"`
 	ReferenceNumber               string     `json:"reference_number" gorm:"type:varchar(100);uniqueIndex;not null"`
+	TitleEn                       string     `json:"title_en" gorm:"type:nvarchar(1000);not null"`
+	TitleAr                       string     `json:"title_ar" gorm:"type:nvarchar(1000);not null"`
 	NumberOfPeopleNecessary       *int       `json:"number_of_people_necessary" gorm:"type:int"`
 	BusinessOwnerUnitID           *uint      `json:"business_owner_unit_id" gorm:"type:int"`
 	ITResponsibleUnitID           *uint      `json:"it_responsible_unit_id" gorm:"type:int"`

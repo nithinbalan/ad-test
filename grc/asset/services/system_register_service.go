@@ -109,6 +109,8 @@ func (srs *SystemRegisterService) Create(systemRegisterFormDTO *dtos.SystemRegis
 
 	systemRegister := &models.SystemRegister{
 		ReferenceNumber:               referenceNumber,
+		TitleEn:                       systemRegisterFormDTO.TitleEn,
+		TitleAr:                       systemRegisterFormDTO.TitleAr,
 		NumberOfPeopleNecessary:       systemRegisterFormDTO.NumberOfPeopleNecessary,
 		BusinessOwnerUnitID:           systemRegisterFormDTO.BusinessOwnerUnitID,
 		ITResponsibleUnitID:           systemRegisterFormDTO.ITResponsibleUnitID,
@@ -261,6 +263,8 @@ func (srs *SystemRegisterService) Update(id uint, systemRegisterFormDTO *dtos.Sy
 	}
 
 	// Update fields
+	existingSystemRegister.TitleEn = systemRegisterFormDTO.TitleEn
+	existingSystemRegister.TitleAr = systemRegisterFormDTO.TitleAr
 	existingSystemRegister.NumberOfPeopleNecessary = systemRegisterFormDTO.NumberOfPeopleNecessary
 	existingSystemRegister.BusinessOwnerUnitID = systemRegisterFormDTO.BusinessOwnerUnitID
 	existingSystemRegister.ITResponsibleUnitID = systemRegisterFormDTO.ITResponsibleUnitID
@@ -386,6 +390,8 @@ func (srs *SystemRegisterService) Update(id uint, systemRegisterFormDTO *dtos.Sy
 
 		// log changes
 		oldData := map[string]interface{}{
+			"title_en":                   oldSystemRegister.TitleEn,
+			"title_ar":                   oldSystemRegister.TitleAr,
 			"number_of_people_necessary": oldSystemRegister.NumberOfPeopleNecessary,
 			"third_party_dependencies":   oldSystemRegister.ThirdPartyDependencies,
 			"outsourcing_partners":       oldSystemRegister.OutsourcingPartners,
@@ -393,6 +399,8 @@ func (srs *SystemRegisterService) Update(id uint, systemRegisterFormDTO *dtos.Sy
 		}
 
 		newData := map[string]interface{}{
+			"title_en":                   existingSystemRegister.TitleEn,
+			"title_ar":                   existingSystemRegister.TitleAr,
 			"number_of_people_necessary": existingSystemRegister.NumberOfPeopleNecessary,
 			"third_party_dependencies":   existingSystemRegister.ThirdPartyDependencies,
 			"outsourcing_partners":       existingSystemRegister.OutsourcingPartners,
