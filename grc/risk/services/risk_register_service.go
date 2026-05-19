@@ -20,6 +20,7 @@ import (
 	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
+	settingsDTOs "jethur/grc/settings/dtos"
 	settingsServices "jethur/grc/settings/services"
 
 	"jethur/grc/models"
@@ -2034,6 +2035,17 @@ func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterL
 		headers = []string{
 			"SL No.",
 			"Ref Number",
+			"Risk Code",
+			"Registration Date",
+			"Division",
+			"Section",
+			"Sub Section",
+			"Is Strategic",
+			"Is Operational",
+			"Expected Cause",
+			"Consequence",
+			"Is Internal",
+			"Is External",
 			"Risk Title",
 			"Description",
 			"Risk Category",
@@ -2057,6 +2069,17 @@ func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterL
 		headers = []string{
 			"SL No.",
 			"Ref Number",
+			"Risk Code",
+			"Registration Date",
+			"Division",
+			"Section",
+			"Sub Section",
+			"Is Strategic",
+			"Is Operational",
+			"Expected Cause",
+			"Consequence",
+			"Is Internal",
+			"Is External",
 			"Risk Title",
 			"Description",
 			"Risk Category",
@@ -2088,9 +2111,15 @@ func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterL
 
 		// Assign values based on language preference and check for nil pointers
 		if userSetting.Language == "ar" {
-			riskCategory = *risk.RiskCategoryTitleAr
-			responsibleUnit = *risk.ResponsibleUnitTitleAr
-			responsibleUser = *risk.ResponsibleUserFirstNameAr + " " + *risk.ResponsibleUserLastNameAr
+			if risk.RiskCategoryTitleAr != nil {
+				riskCategory = *risk.RiskCategoryTitleAr
+			}
+			if risk.ResponsibleUnitTitleAr != nil {
+				responsibleUnit = *risk.ResponsibleUnitTitleAr
+			}
+			if risk.ResponsibleUserFirstNameAr != nil && risk.ResponsibleUserLastNameAr != nil {
+				responsibleUser = *risk.ResponsibleUserFirstNameAr + " " + *risk.ResponsibleUserLastNameAr
+			}
 			riskSource = utility.GetStringValue(risk.RiskSourceTitleAr)
 			riskStatus = risk.RiskStatusTitleAr
 			riskResponse = risk.RiskResponseStrategyTitleAr
@@ -2103,9 +2132,15 @@ func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterL
 			reviewFrequency = utility.GetStringValue(risk.ReviewFrequencyTitleAr)
 			severityLevel = utility.GetStringValue(risk.SeverityLevelTitleAr)
 		} else {
-			riskCategory = *risk.RiskCategoryTitleEn
-			responsibleUnit = *risk.ResponsibleUnitTitleEn
-			responsibleUser = *risk.ResponsibleUserFirstNameEn + " " + *risk.ResponsibleUserLastNameEn
+			if risk.RiskCategoryTitleEn != nil {
+				riskCategory = *risk.RiskCategoryTitleEn
+			}
+			if risk.ResponsibleUnitTitleEn != nil {
+				responsibleUnit = *risk.ResponsibleUnitTitleEn
+			}
+			if risk.ResponsibleUserFirstNameEn != nil && risk.ResponsibleUserLastNameEn != nil {
+				responsibleUser = *risk.ResponsibleUserFirstNameEn + " " + *risk.ResponsibleUserLastNameEn
+			}
 			riskSource = utility.GetStringValue(risk.RiskSourceTitleEn)
 			riskStatus = risk.RiskStatusTitleEn
 			riskResponse = risk.RiskResponseStrategyTitleEn
@@ -2124,9 +2159,85 @@ func (cs *RiskRegisterService) ExportRiskRegister(data []*riskDTOs.RiskRegisterL
 		nextReviewDate = utility.GetStringValue(risk.NextReviewDate)
 		reportedAt = utility.GetStringValue(risk.ReportedAt)
 
+		// New fields
+		var riskCode, registrationDate, division, section, subSection string
+		var isStrategic, isOperational, expectedCause, consequence string
+		var isInternal, isExternal string
+
+		if risk.RiskCode != nil {
+			riskCode = *risk.RiskCode
+		}
+		if risk.RegistrationDate != nil {
+			registrationDate = *risk.RegistrationDate
+		}
+
+		if userSetting.Language == "ar" {
+			if risk.DivisionTitleAr != nil {
+				division = *risk.DivisionTitleAr
+			}
+			if risk.SectionTitleAr != nil {
+				section = *risk.SectionTitleAr
+			}
+			if risk.SubSectionTitleAr != nil {
+				subSection = *risk.SubSectionTitleAr
+			}
+		} else {
+			if risk.DivisionTitleEn != nil {
+				division = *risk.DivisionTitleEn
+			}
+			if risk.SectionTitleEn != nil {
+				section = *risk.SectionTitleEn
+			}
+			if risk.SubSectionTitleEn != nil {
+				subSection = *risk.SubSectionTitleEn
+			}
+		}
+
+		if risk.IsStrategic {
+			isStrategic = "Yes"
+		} else {
+			isStrategic = "No"
+		}
+
+		if risk.IsOperational {
+			isOperational = "Yes"
+		} else {
+			isOperational = "No"
+		}
+
+		if risk.ExpectedCause != nil {
+			expectedCause = *risk.ExpectedCause
+		}
+		if risk.Consequence != nil {
+			consequence = *risk.Consequence
+		}
+
+		if risk.IsInternal {
+			isInternal = "Yes"
+		} else {
+			isInternal = "No"
+		}
+
+		if risk.IsExternal {
+			isExternal = "Yes"
+		} else {
+			isExternal = "No"
+		}
+
 		rows[i] = []interface{}{
 			i + 1,
 			risk.ReferenceNumber,
+			riskCode,
+			registrationDate,
+			division,
+			section,
+			subSection,
+			isStrategic,
+			isOperational,
+			expectedCause,
+			consequence,
+			isInternal,
+			isExternal,
 			riskTitle,
 			description,
 			riskCategory,
@@ -2162,41 +2273,34 @@ func (rrs *RiskRegisterService) SetRiskResidualEvaluationService(evaluationSvc R
 
 func (rrs *RiskRegisterService) GenerateRiskTemplate() (*os.File, error) {
 	templateHeaders := []string{
-		"RiskCategory", "RiskSource", "ResponsibleUser", "Title", "Description", "ReportedAt",
-		"ReviewFrequency", "NextReviewDate", "InherentLikelihood", "InherentImpact",
-		"RiskResponseStrategy", "ResidualLikelihood", "ResidualImpact", "SeverityLevel",
+		"RiskClassification", "ResponsibleUnit", "ResponsibleUser", "Title", "Description",
+		"RiskCode", "RegistrationDate", "Division", "Section", "SubSection",
+		"IsStrategic", "IsOperational", "ExpectedCause", "Consequence", "IsInternal", "IsExternal",
 	}
 
 	templateData := [][]interface{}{}
 
-	// Fetch Risk Categories
+	// Fetch Risk Classifications (Categories)
 	categories, err := rrs.riskCategorySvc.GetAll("", "", "", "active")
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch risk categories: %v", err)
+		return nil, fmt.Errorf("failed to fetch risk classifications: %v", err)
 	}
-	categoryData := [][]interface{}{{"RiskCategory"}}
+	categoryData := [][]interface{}{{"RiskClassification"}}
 	for _, cat := range categories {
 		categoryData = append(categoryData, []interface{}{cat.TitleEn})
 	}
 
-	// Fetch Risk Sources
-	sources, err := rrs.riskSourceSvc.GetAll("", "", "", "active")
+	// Fetch Responsible Units (Department - Level 2)
+	responsibleUnits, err := rrs.organizationUnitSvc.GetAll(&settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Status: "active",
+		Level:  2,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch risk sources: %v", err)
+		return nil, fmt.Errorf("failed to fetch responsible units: %v", err)
 	}
-	sourceData := [][]interface{}{{"RiskSource"}}
-	for _, src := range sources {
-		sourceData = append(sourceData, []interface{}{src.TitleEn})
-	}
-
-	// Fetch Severity Level
-	severityLevels, err := rrs.severityLevelSvc.GetAll("", "", "", "active")
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch severity level: %v", err)
-	}
-	severityLevelData := [][]interface{}{{"SeverityLevel"}}
-	for _, src := range severityLevels {
-		severityLevelData = append(severityLevelData, []interface{}{src.TitleEn})
+	responsibleUnitData := [][]interface{}{{"ResponsibleUnit"}}
+	for _, unit := range responsibleUnits {
+		responsibleUnitData = append(responsibleUnitData, []interface{}{unit.TitleEn})
 	}
 
 	// Fetch Users
@@ -2212,56 +2316,75 @@ func (rrs *RiskRegisterService) GenerateRiskTemplate() (*os.File, error) {
 		})
 	}
 
-	// Fetch Review Frequencies
-	reviews, err := rrs.reviewFrequencySvc.GetAll("", "", "", "active")
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch review frequencies: %v", err)
-	}
-	reviewData := [][]interface{}{{"ReviewFrequency"}}
-	for _, rf := range reviews {
-		reviewData = append(reviewData, []interface{}{rf.TitleEn})
-	}
-
-	// Fetch RiskMatrixLikelihoods
-	likelihoods, err := rrs.riskMatrixLikelihoodSvc.GetAll("", "", "", "active")
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch risk matrix likelihoods: %v", err)
-	}
-	likelihoodData := [][]interface{}{{"Likelihood"}}
-	for _, l := range likelihoods {
-		likelihoodData = append(likelihoodData, []interface{}{l.TitleEn})
-	}
-
-	// Fetch RiskMatrixImpacts
-	impacts, err := rrs.riskMatrixImpactSvc.GetAll("", "", "", "active")
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch risk matrix impacts: %v", err)
-	}
-	impactData := [][]interface{}{{"Impact"}}
-	for _, i := range impacts {
-		impactData = append(impactData, []interface{}{i.TitleEn})
-	}
-
-	strategies, err := rrs.riskResponseStrategySvc.GetAll("", "", "", "active")
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch risk response strategies: %v", err)
-	}
-	strategyData := [][]interface{}{{"RiskResponseStrategy"}}
-	for _, s := range strategies {
-		strategyData = append(strategyData, []interface{}{s.TitleEn})
-	}
-
-	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
-		"Template":             append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
-		"RiskCategory":         categoryData,
-		"RiskSource":           sourceData,
-		"ResponsibleUser":      userData,
-		"ReviewFrequency":      reviewData,
-		"Likelihood":           likelihoodData,
-		"Impact":               impactData,
-		"RiskResponseStrategy": strategyData,
-		"SeverityLevel":        severityLevelData,
+	// Fetch Organization Units (Divisions - Level 1)
+	divisions, err := rrs.organizationUnitSvc.GetAll(&settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Status: "active",
+		Level:  1,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch divisions: %v", err)
+	}
+	divisionData := [][]interface{}{{"Division"}}
+	for _, div := range divisions {
+		divisionData = append(divisionData, []interface{}{div.TitleEn})
+	}
+
+	// Fetch Sections (Level 3)
+	sections, err := rrs.organizationUnitSvc.GetAll(&settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Status: "active",
+		Level:  3,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch sections: %v", err)
+	}
+	sectionData := [][]interface{}{{"Section"}}
+	for _, sec := range sections {
+		sectionData = append(sectionData, []interface{}{sec.TitleEn})
+	}
+
+	// Fetch Sub Sections (Level 4)
+	subSections, err := rrs.organizationUnitSvc.GetAll(&settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Status: "active",
+		Level:  4,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch sub sections: %v", err)
+	}
+	subSectionData := [][]interface{}{{"SubSection"}}
+	for _, subSec := range subSections {
+		subSectionData = append(subSectionData, []interface{}{subSec.TitleEn})
+	}
+
+	// Configure which columns should have dropdowns
+	dropDownConfig := map[string]bool{
+		"RiskClassification": true,
+		"ResponsibleUnit":    true,
+		"ResponsibleUser":    true,
+		"Division":           true,
+		"Section":            true,
+		"SubSection":         true,
+		"IsStrategic":        true,
+		"IsOperational":      true,
+		"IsInternal":         true,
+		"IsExternal":         true,
+	}
+
+	// Add boolean dropdown data
+	boolData := [][]interface{}{{"True", "False"}, {"true", "false"}}
+
+	file, err := utility.GenerateExcelFileWithSheetsAndDropDown(map[string][][]interface{}{
+		"Template":           append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+		"RiskClassification": categoryData,
+		"ResponsibleUnit":    responsibleUnitData,
+		"ResponsibleUser":    userData,
+		"Division":           divisionData,
+		"Section":            sectionData,
+		"SubSection":         subSectionData,
+		"IsStrategic":        boolData,
+		"IsOperational":      boolData,
+		"IsInternal":         boolData,
+		"IsExternal":         boolData,
+	}, dropDownConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -2276,17 +2399,15 @@ func (rrs *RiskRegisterService) ValidateRiskTemplate(file io.Reader) ([]map[stri
 	}
 
 	headers := []string{
-		//"RiskCategory",
-		"RiskSource", "ResponsibleUser", "Title", "Description", "ReportedAt",
-		"ReviewFrequency", "NextReviewDate", "InherentLikelihood", "InherentImpact",
-		"RiskResponseStrategy", "ResidualLikelihood", "ResidualImpact", "SeverityLevel",
+		"RiskClassification", "ResponsibleUnit", "ResponsibleUser", "Title", "Description",
+		"RiskCode", "RegistrationDate", "Division", "Section", "SubSection",
+		"IsStrategic", "IsOperational", "ExpectedCause", "Consequence", "IsInternal", "IsExternal",
 	}
 
 	snakeHeaders := []string{
-		//"risk_category",
-		"risk_source", "responsible_user", "title", "description", "reported_at",
-		"review_frequency", "next_review_date", "inherent_likelihood", "inherent_impact",
-		"risk_response_strategy", "residual_likelihood", "residual_impact", "severity_level",
+		"risk_classification", "responsible_unit", "responsible_user", "title", "description",
+		"risk_code", "registration_date", "division", "section", "sub_section",
+		"is_strategic", "is_operational", "expected_cause", "consequence", "is_internal", "is_external",
 	}
 
 	if len(rows) == 0 {
@@ -2341,23 +2462,42 @@ func (rs *RiskRegisterService) ImportRisks(input []map[string]interface{}, curre
 	var createdIDs []uint
 	for _, record := range validatedData {
 
-		reportedAtStr, _ := record["reported_at"].(string)
-		nextReviewDate, _ := record["next_review_date"].(string)
+		registrationDateStr, _ := record["registration_date"].(string)
+
+		// DivisionID is required, default to 0 if not present
+		divisionID := uint(0)
+		if divID, ok := record["division_id"].(uint); ok {
+			divisionID = divID
+		}
+
+		// Parse boolean fields from string to bool
+		parseBool := func(val interface{}) bool {
+			if str, ok := val.(string); ok {
+				return strings.ToLower(str) == "true"
+			}
+			if b, ok := val.(bool); ok {
+				return b
+			}
+			return false
+		}
+
 		dto := &riskDTOs.RiskRegisterFormDTO{
-			//RiskCategoryID:                 record["risk_category_id"].(uint),
-			RiskSourceID:                   utility.GetOptionalUintValue(record["risk_source_id"]),
-			ResponsibleUserID:              utility.GetOptionalUintValue(record["responsible_user_id"]),
-			Title:                          record["title"].(string),
-			Description:                    utility.GetOptionalStringValue(record["description"]),
-			ReportedAt:                     &reportedAtStr,
-			ReviewFrequencyID:              utility.GetOptionalUintValue(record["review_frequency_id"]),
-			NextReviewDate:                 &nextReviewDate,
-			InherentRiskMatrixLikelihoodID: utility.GetOptionalUintValue(record["inherent_likelihood_id"]),
-			InherentRiskMatrixImpactID:     utility.GetOptionalUintValue(record["inherent_impact_id"]),
-			RiskResponseStrategyID:         utility.GetOptionalUintValue(record["risk_response_strategy_id"]),
-			ResidualRiskMatrixLikelihoodID: utility.GetOptionalUintValue(record["residual_likelihood_id"]),
-			ResidualRiskMatrixImpactID:     utility.GetOptionalUintValue(record["residual_impact_id"]),
-			SeverityLevelID:                utility.GetOptionalUintValue(record["severity_level_id"]),
+			RiskCategoryID:    utility.GetOptionalUintValue(record["risk_category_id"]),
+			ResponsibleUnitID: utility.GetOptionalUintValue(record["responsible_unit_id"]),
+			ResponsibleUserID: utility.GetOptionalUintValue(record["responsible_user_id"]),
+			Title:             record["title"].(string),
+			Description:       utility.GetOptionalStringValue(record["description"]),
+			RiskCode:          utility.GetOptionalStringValue(record["risk_code"]),
+			RegistrationDate:  registrationDateStr,
+			DivisionID:        divisionID,
+			SectionID:         utility.GetOptionalUintValue(record["section_id"]),
+			SubSectionID:      utility.GetOptionalUintValue(record["sub_section_id"]),
+			IsStrategic:       parseBool(record["is_strategic"]),
+			IsOperational:     parseBool(record["is_operational"]),
+			ExpectedCause:     utility.GetOptionalStringValue(record["expected_cause"]),
+			Consequence:       utility.GetOptionalStringValue(record["consequence"]),
+			IsInternal:        parseBool(record["is_internal"]),
+			IsExternal:        parseBool(record["is_external"]),
 		}
 
 		id, err := rs.Create(currentUserID, dto)
@@ -2372,8 +2512,9 @@ func (rs *RiskRegisterService) ImportRisks(input []map[string]interface{}, curre
 
 func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]map[string]interface{}, error) {
 	headers := []string{
-		"risk_category", "risk_source", "responsible_user", "title", "description", "reported_at", "review_frequency", "next_review_date", "inherent_likelihood", "inherent_impact",
-		"risk_response_strategy", "residual_likelihood", "residual_impact", "severity_level",
+		"risk_classification", "responsible_unit", "responsible_user", "title", "description",
+		"risk_code", "registration_date", "division", "section", "sub_section",
+		"is_strategic", "is_operational", "expected_cause", "consequence", "is_internal", "is_external",
 	}
 
 	// Fetch risk categories
@@ -2386,24 +2527,17 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 		riskCategoryTitles[strings.TrimSpace(cat.TitleEn)] = cat.ID
 	}
 
-	// Fetch risk sources
-	riskSources, err := rs.riskSourceSvc.GetAll("", "", "", "active")
+	// Fetch Responsible Units (Department - Level 2)
+	responsibleUnits, err := rs.organizationUnitSvc.GetAll(&settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Status: "active",
+		Level:  2,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("error fetching risk sources: %v", err)
+		return nil, fmt.Errorf("error fetching responsible units: %v", err)
 	}
-	riskSourceTitles := make(map[string]uint)
-	for _, src := range riskSources {
-		riskSourceTitles[strings.TrimSpace(src.TitleEn)] = src.ID
-	}
-
-	// Fetch Severity Level
-	severityLevels, err := rs.severityLevelSvc.GetAll("", "", "", "active")
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch severity level: %v", err)
-	}
-	severityLevelTitles := make(map[string]uint)
-	for _, src := range severityLevels {
-		severityLevelTitles[strings.TrimSpace(src.TitleEn)] = src.ID
+	responsibleUnitTitles := make(map[string]uint)
+	for _, unit := range responsibleUnits {
+		responsibleUnitTitles[strings.TrimSpace(unit.TitleEn)] = unit.ID
 	}
 
 	// Fetch users
@@ -2417,44 +2551,43 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 		userFullNames[fullName] = uint(user.ID)
 	}
 
-	// Fetch review frequencies
-	reviewFrequencies, err := rs.reviewFrequencySvc.GetAll("", "", "", "active")
+	// Fetch Organization Units (Divisions - Level 1)
+	divisions, err := rs.organizationUnitSvc.GetAll(&settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Status: "active",
+		Level:  1,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("error fetching review frequencies: %v", err)
+		return nil, fmt.Errorf("error fetching divisions: %v", err)
 	}
-	reviewFrequencyTitles := make(map[string]uint)
-	for _, freq := range reviewFrequencies {
-		reviewFrequencyTitles[strings.TrimSpace(freq.TitleEn)] = freq.ID
+	divisionTitles := make(map[string]uint)
+	for _, div := range divisions {
+		divisionTitles[strings.TrimSpace(div.TitleEn)] = div.ID
 	}
 
-	// Fetch likelihoods
-	likelihoods, err := rs.riskMatrixLikelihoodSvc.GetAll("", "", "", "active")
+	// Fetch Sections (Level 3)
+	sections, err := rs.organizationUnitSvc.GetAll(&settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Status: "active",
+		Level:  3,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("error fetching likelihoods: %v", err)
+		return nil, fmt.Errorf("error fetching sections: %v", err)
 	}
-	likelihoodTitles := make(map[string]uint)
-	for _, l := range likelihoods {
-		likelihoodTitles[strings.TrimSpace(l.TitleEn)] = l.ID
+	sectionTitles := make(map[string]uint)
+	for _, sec := range sections {
+		sectionTitles[strings.TrimSpace(sec.TitleEn)] = sec.ID
 	}
 
-	// Fetch impacts
-	impacts, err := rs.riskMatrixImpactSvc.GetAll("", "", "", "active")
+	// Fetch Sub Sections (Level 4)
+	subSections, err := rs.organizationUnitSvc.GetAll(&settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Status: "active",
+		Level:  4,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("error fetching impacts: %v", err)
+		return nil, fmt.Errorf("error fetching sub sections: %v", err)
 	}
-	impactTitles := make(map[string]uint)
-	for _, i := range impacts {
-		impactTitles[strings.TrimSpace(i.TitleEn)] = i.ID
-	}
-
-	// Risk Response Strategies
-	strategies, err := rs.riskResponseStrategySvc.GetAll("", "", "", "active")
-	if err != nil {
-		return nil, fmt.Errorf("error fetching risk response strategies: %v", err)
-	}
-	strategyTitles := make(map[string]uint)
-	for _, s := range strategies {
-		strategyTitles[strings.TrimSpace(s.TitleEn)] = s.ID
+	subSectionTitles := make(map[string]uint)
+	for _, subSec := range subSections {
+		subSectionTitles[strings.TrimSpace(subSec.TitleEn)] = subSec.ID
 	}
 
 	// for checking unique risks
@@ -2485,31 +2618,22 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 		for _, header := range headers {
 			value, ok := record[header].(string)
 			switch header {
-			case "risk_category":
+			case "risk_classification":
 				if !ok || value == "" {
-					rowErrors[header] = "Risk Category is required"
+					rowErrors[header] = "Risk Classification is required"
 				} else if id, exists := riskCategoryTitles[strings.TrimSpace(value)]; !exists {
-					rowErrors[header] = fmt.Sprintf("Invalid risk category: %s", value)
+					rowErrors[header] = fmt.Sprintf("Invalid risk classification: %s", value)
 				} else {
 					riskRecord["risk_category_id"] = id
 				}
-			case "risk_source":
-				if value == "" {
-					// Allow empty risk source, set to nil in the record
-					riskRecord["risk_source_id"] = nil
-				} else if id, exists := riskSourceTitles[strings.TrimSpace(value)]; !exists {
-					rowErrors[header] = fmt.Sprintf("Invalid risk source: %s", value)
+
+			case "responsible_unit":
+				if !ok || value == "" {
+					rowErrors[header] = "Responsible Unit is required"
+				} else if id, exists := responsibleUnitTitles[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid responsible unit: %s", value)
 				} else {
-					riskRecord["risk_source_id"] = id
-				}
-			case "severity_level":
-				if value == "" {
-					// Allow empty severity level, set to nil in the record
-					riskRecord["severity_level_id"] = nil
-				} else if id, exists := severityLevelTitles[strings.TrimSpace(value)]; !exists {
-					rowErrors[header] = fmt.Sprintf("Invalid severity level: %s", value)
-				} else {
-					riskRecord["severity_level_id"] = id
+					riskRecord["responsible_unit_id"] = id
 				}
 
 			case "responsible_user":
@@ -2537,78 +2661,118 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 
 			case "description":
 
-			case "reported_at":
-				value = strings.TrimSpace(value)
-				if value == "" {
-					rowErrors[header] = "Reported Date is required"
-				} else if _, err := time.Parse("2006-01-02", value); err != nil {
-					rowErrors[header] = "Invalid format. Expected YYYY-MM-DD"
+			case "risk_code":
+				// Optional field, just store the value
+				if value != "" {
+					riskRecord["risk_code"] = value
+				}
+
+			case "registration_date":
+				// Required field
+				if !ok || value == "" {
+					rowErrors[header] = "Registration Date is required"
 				} else {
-					riskRecord["reported_at"] = value
+					riskRecord["registration_date"] = value
 				}
 
-			case "review_frequency":
+			case "division":
+				// Required field
+				if !ok || value == "" {
+					rowErrors[header] = "Division is required"
+				} else if id, exists := divisionTitles[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid division: %s", value)
+				} else {
+					riskRecord["division_id"] = id
+				}
+
+			case "section":
 				if value != "" {
-					if id, exists := reviewFrequencyTitles[strings.TrimSpace(value)]; !exists {
-						rowErrors[header] = fmt.Sprintf("Invalid review frequency: %s", value)
+					if id, exists := sectionTitles[strings.TrimSpace(value)]; !exists {
+						rowErrors[header] = fmt.Sprintf("Invalid section: %s", value)
 					} else {
-						riskRecord["review_frequency_id"] = id
+						riskRecord["section_id"] = id
 					}
 				}
 
-			case "next_review_date":
-				value = strings.TrimSpace(value)
+			case "sub_section":
 				if value != "" {
-					if _, err := time.Parse("2006-01-02", value); err != nil {
-						rowErrors[header] = "Invalid format. Expected YYYY-MM-DD"
+					if id, exists := subSectionTitles[strings.TrimSpace(value)]; !exists {
+						rowErrors[header] = fmt.Sprintf("Invalid sub section: %s", value)
 					} else {
-						riskRecord["next_review_date"] = value
+						riskRecord["sub_section_id"] = id
 					}
 				}
 
-			case "inherent_likelihood":
+			case "is_strategic":
+				// Boolean field - accept Yes/No, True/False, 1/0
 				if value != "" {
-					if id, exists := likelihoodTitles[strings.TrimSpace(value)]; !exists {
-						rowErrors[header] = fmt.Sprintf("Invalid inherent likelihood: %s", value)
+					lowerValue := strings.ToLower(strings.TrimSpace(value))
+					if lowerValue == "yes" || lowerValue == "true" || lowerValue == "1" {
+						riskRecord["is_strategic"] = true
+					} else if lowerValue == "no" || lowerValue == "false" || lowerValue == "0" {
+						riskRecord["is_strategic"] = false
 					} else {
-						riskRecord["inherent_likelihood_id"] = id
+						riskRecord["is_strategic"] = false // default to false
 					}
+				} else {
+					riskRecord["is_strategic"] = false
 				}
 
-			case "inherent_impact":
+			case "is_operational":
+				// Boolean field
 				if value != "" {
-					if id, exists := impactTitles[strings.TrimSpace(value)]; !exists {
-						rowErrors[header] = fmt.Sprintf("Invalid inherent impact: %s", value)
+					lowerValue := strings.ToLower(strings.TrimSpace(value))
+					if lowerValue == "yes" || lowerValue == "true" || lowerValue == "1" {
+						riskRecord["is_operational"] = true
+					} else if lowerValue == "no" || lowerValue == "false" || lowerValue == "0" {
+						riskRecord["is_operational"] = false
 					} else {
-						riskRecord["inherent_impact_id"] = id
+						riskRecord["is_operational"] = false
 					}
+				} else {
+					riskRecord["is_operational"] = false
 				}
 
-			case "risk_response_strategy":
+			case "is_internal":
+				// Boolean field
 				if value != "" {
-					if id, exists := strategyTitles[strings.TrimSpace(value)]; !exists {
-						rowErrors[header] = fmt.Sprintf("Invalid risk response strategy: %s", value)
+					lowerValue := strings.ToLower(strings.TrimSpace(value))
+					if lowerValue == "yes" || lowerValue == "true" || lowerValue == "1" {
+						riskRecord["is_internal"] = true
+					} else if lowerValue == "no" || lowerValue == "false" || lowerValue == "0" {
+						riskRecord["is_internal"] = false
 					} else {
-						riskRecord["risk_response_strategy_id"] = id
+						riskRecord["is_internal"] = false
 					}
+				} else {
+					riskRecord["is_internal"] = false
 				}
 
-			case "residual_likelihood":
+			case "is_external":
+				// Boolean field
 				if value != "" {
-					if id, exists := likelihoodTitles[strings.TrimSpace(value)]; !exists {
-						rowErrors[header] = fmt.Sprintf("Invalid residual likelihood: %s", value)
+					lowerValue := strings.ToLower(strings.TrimSpace(value))
+					if lowerValue == "yes" || lowerValue == "true" || lowerValue == "1" {
+						riskRecord["is_external"] = true
+					} else if lowerValue == "no" || lowerValue == "false" || lowerValue == "0" {
+						riskRecord["is_external"] = false
 					} else {
-						riskRecord["residual_likelihood_id"] = id
+						riskRecord["is_external"] = false
 					}
+				} else {
+					riskRecord["is_external"] = false
 				}
 
-			case "residual_impact":
+			case "expected_cause":
+				// Optional field
 				if value != "" {
-					if id, exists := impactTitles[strings.TrimSpace(value)]; !exists {
-						rowErrors[header] = fmt.Sprintf("Invalid residual impact: %s", value)
-					} else {
-						riskRecord["residual_impact_id"] = id
-					}
+					riskRecord["expected_cause"] = value
+				}
+
+			case "consequence":
+				// Optional field
+				if value != "" {
+					riskRecord["consequence"] = value
 				}
 
 			}
