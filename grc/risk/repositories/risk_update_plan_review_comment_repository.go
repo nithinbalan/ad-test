@@ -78,7 +78,8 @@ func (repo *RiskUpdatePlanReviewCommentRepository) GetAll(riskRegisterUpdatePlan
         risk_update_plan_review_comments.level,
         risk_update_plan_review_comments.created_at,
         risk_update_plan_review_comments.created_by_id AS created_user_id,
-        risk_update_plan_review_comments.parent_comment_id AS parent_comment_id,
+        risk_update_plan_review_comments.risk_update_plan_review_comment_id AS parent_comment_id,
+		comment_statuses.id AS comment_status_id,
         comment_statuses.title_en AS comment_status_title_en,
         comment_statuses.title_ar AS comment_status_title_ar,
         comment_statuses.type AS comment_status_type,
@@ -120,7 +121,7 @@ func (repo *RiskUpdatePlanReviewCommentRepository) GetAll(riskRegisterUpdatePlan
 	countQuery := repo.db.
 		Table("risk_update_plan_review_comments").
 		Joins("LEFT JOIN comment_statuses ON comment_statuses.id = risk_update_plan_review_comments.comment_status_id").
-		Where("risk_update_plan_review_comments.risk_register_update_plan_id = ? AND parent_comment_id IS NULL", riskRegisterUpdatePlanID)
+		Where("risk_update_plan_review_comments.risk_register_update_plan_id = ? AND risk_update_plan_review_comment_id IS NULL", riskRegisterUpdatePlanID)
 
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {

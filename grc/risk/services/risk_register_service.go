@@ -276,8 +276,6 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		return 0, err
 	}
 
-	registrationDate := time.Now()
-
 	riskRegister := &models.RiskRegister{
 		ReferenceNumber:   &referenceNumber,
 		RiskCategoryID:    riskRegisterFormDTO.RiskCategoryID,
@@ -294,15 +292,16 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 		LastReviewNote:    riskRegisterFormDTO.LastReviewNote,
 		SeverityLevelID:   riskRegisterFormDTO.SeverityLevelID,
 		RiskCode:          riskRegisterFormDTO.RiskCode,
-		RegistrationDate:  &registrationDate,
 		DivisionID:        riskRegisterFormDTO.DivisionID,
 		SectionID:         riskRegisterFormDTO.SectionID,
+		SubSectionID:      riskRegisterFormDTO.SubSectionID,
 		IsStrategic:       riskRegisterFormDTO.IsStrategic,
 		IsOperational:     riskRegisterFormDTO.IsOperational,
 		ExpectedCause:     riskRegisterFormDTO.ExpectedCause,
 		Consequence:       riskRegisterFormDTO.Consequence,
 		IsInternal:        riskRegisterFormDTO.IsInternal,
 		IsExternal:        riskRegisterFormDTO.IsExternal,
+		RegistrationDate:  dates.RegistrationDate,
 		CreatedBYID:       currentUserID,
 	}
 
@@ -762,12 +761,14 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 	existingRiskRegister.RiskCode = riskRegisterFormDTO.RiskCode
 	existingRiskRegister.DivisionID = riskRegisterFormDTO.DivisionID
 	existingRiskRegister.SectionID = riskRegisterFormDTO.SectionID
+	existingRiskRegister.SubSectionID = riskRegisterFormDTO.SubSectionID
 	existingRiskRegister.IsStrategic = riskRegisterFormDTO.IsStrategic
 	existingRiskRegister.IsOperational = riskRegisterFormDTO.IsOperational
 	existingRiskRegister.ExpectedCause = riskRegisterFormDTO.ExpectedCause
 	existingRiskRegister.Consequence = riskRegisterFormDTO.Consequence
 	existingRiskRegister.IsInternal = riskRegisterFormDTO.IsInternal
 	existingRiskRegister.IsExternal = riskRegisterFormDTO.IsExternal
+	existingRiskRegister.RegistrationDate = dates.RegistrationDate
 	existingRiskRegister.UpdatedBYID = &currentUserID
 
 	if err := rrs.repo.Update(existingRiskRegister, tx); err != nil {
@@ -1941,6 +1942,13 @@ func (rrs *RiskRegisterService) validateRiskRegisterFormDTO(riskRegisterFormDTO 
 		}
 	}
 
+	// Validate that sub section is under section
+	if riskRegisterFormDTO.SubSectionID != nil && riskRegisterFormDTO.SectionID != nil {
+		if !rrs.organizationUnitSvc.IsUnitUnderParent(*riskRegisterFormDTO.SubSectionID, *riskRegisterFormDTO.SectionID) {
+			return utility.NewValidationError(fmt.Errorf("sub section must be under the section"), "invalid_hierarchy", "sub_section")
+		}
+	}
+
 	return nil
 }
 
@@ -1960,6 +1968,13 @@ func (rrs *RiskRegisterService) parseRiskRegisterDates(dto *riskDTOs.RiskRegiste
 		parsed.NextReviewDate, err = utility.ParseDate(*dto.NextReviewDate)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid next review date"), "invalid_date", "next review date")
+		}
+	}
+
+	if dto.RegistrationDate != "" {
+		parsed.RegistrationDate, err = utility.ParseDate(dto.RegistrationDate)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid registration date"), "invalid_date", "registration date")
 		}
 	}
 

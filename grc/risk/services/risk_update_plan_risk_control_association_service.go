@@ -170,8 +170,14 @@ func (rupras *RiskUpdatePlanRiskControlAssociationService) CreateRiskControlAsso
 
 	tx := rupras.repo.BeginTransaction()
 
-	// Step 1: Risk-Control Mapping
-	// Delete existing risk controls for the given risk register IDs
+	// Step 1: Delete existing control analyses for these risk registers (must be deleted first due to foreign key constraint)
+	if err := rupras.repo.DeleteControlAnalysesByRiskRegisterIDs(riskRegisterIDs, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Step 2: Risk-Control Mapping
+	// Delete existing risk controls for the given risk register IDs (after deleting control analyses)
 	for _, riskRegisterID := range riskRegisterIDs {
 		if err := rupras.repo.DeleteRiskControlsByRiskRegisterID(riskRegisterID, tx); err != nil {
 			tx.Rollback()
@@ -198,12 +204,7 @@ func (rupras *RiskUpdatePlanRiskControlAssociationService) CreateRiskControlAsso
 		return err
 	}
 
-	// Step 2: Control Analysis (using latest control test results)
-	// Delete existing control analyses for these risk registers
-	if err := rupras.repo.DeleteControlAnalysesByRiskRegisterIDs(riskRegisterIDs, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
+	// Step 3: Control Analysis (using latest control test results)
 
 	// Create control analyses using pre-fetched data
 	var controlAnalyses []*models.RiskControlAnalysis

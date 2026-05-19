@@ -51,6 +51,7 @@ func NewControlTestService(
 	controlEfficiencyStatusSvc ControlEfficiencyStatusServiceInterface,
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
 	controlEffectivenessRatingSvc ControlEffectivenessRatingServiceInterface,
+
 ) ControlTestServiceInterface {
 	return &ControlTestService{
 		repo:                           repo,
@@ -148,7 +149,7 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, riskID
 	}
 
 	// Calculate control effectiveness
-	effectivenessScore, effectivenessRatingID, riskReduction, err := cts.CalculateControlEffectiveness(controlID, *dates.TestedAt, transaction)
+	effectivenessScore, effectivenessRatingID, riskReduction, err := cts.CalculateControlEffectiveness(controlID, *dates.TestedAt, &controlTestFormDTO.ControlAutomationID, &controlTestFormDTO.ControlConsistencyID, transaction)
 	if err != nil {
 		return 0, err
 	}
@@ -171,6 +172,8 @@ func (cts *ControlTestService) Create(controlID uint, currentUserID uint, riskID
 		ControlEffectivenessRatingID:  effectivenessRatingID,
 		RiskReduction:                 &riskReduction,
 		Comments:                      controlTestFormDTO.Comments,
+		ControlAutomationID:           controlTestFormDTO.ControlAutomationID,
+		ControlConsistencyID:          controlTestFormDTO.ControlConsistencyID,
 		TestedSource:                  testedSource,
 		TestedBy:                      currentUserID,
 		TestedAt:                      *dates.TestedAt,
@@ -303,7 +306,7 @@ func (cts *ControlTestService) Update(controlID uint, id uint, currentUserID uin
 	}
 
 	// Calculate control effectiveness
-	effectivenessScore, effectivenessRatingID, riskReduction, err := cts.CalculateControlEffectiveness(controlID, *dates.TestedAt, tx)
+	effectivenessScore, effectivenessRatingID, riskReduction, err := cts.CalculateControlEffectiveness(controlID, *dates.TestedAt, &controlTestFormDTO.ControlAutomationID, &controlTestFormDTO.ControlConsistencyID, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -318,6 +321,8 @@ func (cts *ControlTestService) Update(controlID uint, id uint, currentUserID uin
 	existingControlTest.ControlEffectivenessScore = &effectivenessScore
 	existingControlTest.ControlEffectivenessRatingID = effectivenessRatingID
 	existingControlTest.RiskReduction = &riskReduction
+	existingControlTest.ControlAutomationID = controlTestFormDTO.ControlAutomationID
+	existingControlTest.ControlConsistencyID = controlTestFormDTO.ControlConsistencyID
 	existingControlTest.TestedAt = *dates.TestedAt
 	existingControlTest.UpdatedByID = &currentUserID
 
@@ -526,6 +531,18 @@ func (cts *ControlTestService) validateControlTestFormDTO(controlTestFormDTO *or
 		}
 	}
 
+	if controlTestFormDTO.ControlAutomationID > 0 {
+		if _, err := cts.repo.GetControlAutomationByID(controlTestFormDTO.ControlAutomationID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control automation does not exist"), "not_exist", "control automation")
+		}
+	}
+
+	if controlTestFormDTO.ControlConsistencyID > 0 {
+		if _, err := cts.repo.GetControlConsistencyByID(controlTestFormDTO.ControlConsistencyID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("control consistency does not exist"), "not_exist", "control consistency")
+		}
+	}
+
 	return nil
 }
 
@@ -590,9 +607,9 @@ func (cts *ControlTestService) GetTrendAnalysis(controlID uint) ([]*organization
 	return scores, nil
 }
 
-func (cts *ControlTestService) CalculateControlEffectiveness(controlID uint, testedAt time.Time, tx ...utility.DatabaseTransaction) (score float64, ratingID *uint, reductionPercent float64, err error) {
+func (cts *ControlTestService) CalculateControlEffectiveness(controlID uint, testedAt time.Time, controlAutomationID *uint, controlConsistencyID *uint, tx ...utility.DatabaseTransaction) (score float64, ratingID *uint, reductionPercent float64, err error) {
 	// Fetch full control details with all relationships needed for calculation
-	// This includes: ControlType, ControlAutomation, ControlConsistency, AssociatedDocuments, LastTestDate
+	// This includes: ControlType, AssociatedDocuments, LastTestDate
 	control, err := cts.controlSvc.GetFullDetailsByID(controlID, tx...)
 	if err != nil {
 		return 0, nil, 0, err
@@ -615,16 +632,22 @@ func (cts *ControlTestService) CalculateControlEffectiveness(controlID uint, tes
 		hasDocumentation = true
 	}
 
-	// 3. AUTOMATION SCORE
+	// 3. AUTOMATION SCORE - Get from form parameter
 	var automationScore float64 = 0
-	if control.ControlAutomation != nil {
-		automationScore = control.ControlAutomation.Score
+	if controlAutomationID != nil {
+		automation, err := cts.repo.GetControlAutomationByID(*controlAutomationID)
+		if err == nil && automation != nil {
+			automationScore = automation.Score
+		}
 	}
 
-	// 4. CONSISTENCY SCORE
+	// 4. CONSISTENCY SCORE - Get from form parameter
 	var consistencyScore float64 = 0
-	if control.ControlConsistency != nil {
-		consistencyScore = control.ControlConsistency.Score
+	if controlConsistencyID != nil {
+		consistency, err := cts.repo.GetControlConsistencyByID(*controlConsistencyID)
+		if err == nil && consistency != nil {
+			consistencyScore = consistency.Score
+		}
 	}
 
 	// 5. EVIDENCE AGE SCORE (Based on last test date before this test)
@@ -649,8 +672,8 @@ func (cts *ControlTestService) CalculateControlEffectiveness(controlID uint, tes
 			evidenceAgeScore = 0
 		}
 	} else {
-		// No previous test exists, evidence age score is 0
-		evidenceAgeScore = 0
+		// No previous test exists, evidence age score is 1
+		evidenceAgeScore = 1
 	}
 
 	// TOTAL SCORE (0-5)

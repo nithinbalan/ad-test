@@ -64,12 +64,17 @@ func (rrs *RiskResponseReviewService) Submit(riskResponseID uint, currentUserID 
 	}
 
 	//Validate residual risk rating - must be high or critical
-	// if riskResponseDetail.RiskRegister != nil && riskResponseDetail.RiskRegister.ResidualRiskRating != nil {
-	// 	ratingType := riskResponseDetail.RiskRegister.ResidualRiskRating.Type
-	// 	if ratingType != "high" && ratingType != "critical" {
-	// 		return utility.NewValidationError(fmt.Errorf("residual risk rating must be 'high' or 'critical' to submit risk response for review"), "residual_risk_rating", "residual_risk_rating")
-	// 	}
-	// }
+	if riskResponseDetail.RiskRegister != nil && riskResponseDetail.RiskRegister.ResidualRiskRating != nil {
+		ratingType := riskResponseDetail.RiskRegister.ResidualRiskRating.Type
+		if ratingType != "high" && ratingType != "critical" {
+			return utility.NewValidationError(fmt.Errorf("residual risk rating must be 'high' or 'critical' to submit risk response for review"), "residual_risk_rating", "residual_risk_rating")
+		}
+
+		// If residual risk is critical or high, check if at least one action plan exists
+		if len(riskResponseDetail.RiskRegister.ActionPlans) == 0 {
+			return utility.NewValidationError(fmt.Errorf("at least one action plan is required when residual risk rating is 'high' or 'critical'"), "residual_risk_rating", "residual_risk_rating")
+		}
+	}
 
 	// Get the model for database operations
 	riskResponse, err := rrs.riskResponseSvc.GetByID(riskResponseID)

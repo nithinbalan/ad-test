@@ -7,6 +7,8 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
+	organizationServices "jethur/grc/organization/services"
 	riskDTOs "jethur/grc/risk/dtos"
 	riskRepositories "jethur/grc/risk/repositories"
 	"jethur/utility"
@@ -41,6 +43,7 @@ type RiskUpdatePlanERMDeptService struct {
 	riskRegisterSvc   RiskRegisterServiceInterface
 	activityLogSvc    logServices.ActivityLogServiceInterface
 	planStatusSvc     RiskRegisterUpdatePlanStatusServiceInterface
+	controlSvc        organizationServices.ControlServiceInterface
 }
 
 func NewRiskUpdatePlanERMDeptService(
@@ -50,6 +53,7 @@ func NewRiskUpdatePlanERMDeptService(
 	riskRegisterSvc RiskRegisterServiceInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	planStatusSvc RiskRegisterUpdatePlanStatusServiceInterface,
+	controlSvc organizationServices.ControlServiceInterface,
 ) RiskUpdatePlanERMDeptServiceInterface {
 	return &RiskUpdatePlanERMDeptService{
 		repo:              repo,
@@ -58,6 +62,7 @@ func NewRiskUpdatePlanERMDeptService(
 		riskRegisterSvc:   riskRegisterSvc,
 		activityLogSvc:    activityLogSvc,
 		planStatusSvc:     planStatusSvc,
+		controlSvc:        controlSvc,
 	}
 }
 
@@ -363,7 +368,26 @@ func (rupeds *RiskUpdatePlanERMDeptService) GetERMDeptEvaluationControls(planID 
 		return nil, err
 	}
 
-	return rupeds.repo.GetERMDeptEvaluationControls(timeline.ID, params)
+	controls, err := rupeds.repo.GetERMDeptEvaluationControls(timeline.ID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	// Populate associated documents for each control
+	for _, control := range controls.Items {
+		if control.ControlID > 0 {
+			controlDetail, err := rupeds.controlSvc.GetFullDetailsByID(control.ControlID)
+			if err == nil && controlDetail != nil && len(controlDetail.AssociatedDocuments) > 0 {
+				control.AssociatedDocuments = controlDetail.AssociatedDocuments
+			} else {
+				control.AssociatedDocuments = []organizationDTOs.ControlAssociatedDocumentDTO{}
+			}
+		} else {
+			control.AssociatedDocuments = []organizationDTOs.ControlAssociatedDocumentDTO{}
+		}
+	}
+
+	return controls, nil
 }
 
 // ============================================

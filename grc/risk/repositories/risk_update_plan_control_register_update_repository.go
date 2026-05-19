@@ -39,19 +39,19 @@ func (repo *RiskUpdatePlanControlRegisterUpdateRepository) GetControlCountsByImp
 	}
 
 	// Get counts grouped by implementation status type for applicable controls
-	var statusCounts []riskDTOs.ControlCountByStatusDTO
+	var statusCounts []struct {
+		ImplementationStatusType string
+		Count                    int64
+	}
 	err = repo.db.Table("controls").
 		Select(`
 			control_implementation_statuses.type AS implementation_status_type,
-			control_implementation_statuses.title_en,
-			control_implementation_statuses.title_ar,
-			control_implementation_statuses.color_code,
 			COUNT(controls.id) AS count
 		`).
 		Joins("INNER JOIN control_implementation_statuses ON control_implementation_statuses.id = controls.control_implementation_status_id").
 		Where("controls.responsible_unit_id = ?", businessUnitID).
 		Where("controls.is_applicable = ?", true).
-		Group("control_implementation_statuses.type, control_implementation_statuses.title_en, control_implementation_statuses.title_ar, control_implementation_statuses.color_code").
+		Group("control_implementation_statuses.type").
 		Find(&statusCounts).Error
 	if err != nil {
 		return nil, err
@@ -67,37 +67,23 @@ func (repo *RiskUpdatePlanControlRegisterUpdateRepository) GetControlCountsByImp
 		return nil, err
 	}
 
-	// Build response
+	// Build response with all statuses initialized to 0
 	response := &riskDTOs.ControlRegisterUpdatedDTO{
-		NotApplicable: notApplicableCount,
+		NotImplemented:       0,
+		PartiallyImplemented: 0,
+		Implemented:          0,
+		NotApplicable:        notApplicableCount,
 	}
 
+	// Fill in actual counts
 	for _, statusCount := range statusCounts {
 		switch statusCount.ImplementationStatusType {
 		case "not-implemented":
-			response.NotImplemented = &riskDTOs.ControlCountByStatusDTO{
-				ImplementationStatusType: statusCount.ImplementationStatusType,
-				TitleEn:                  statusCount.TitleEn,
-				TitleAr:                  statusCount.TitleAr,
-				ColorCode:                statusCount.ColorCode,
-				Count:                    statusCount.Count,
-			}
+			response.NotImplemented = statusCount.Count
 		case "partially-implemented":
-			response.PartiallyImplemented = &riskDTOs.ControlCountByStatusDTO{
-				ImplementationStatusType: statusCount.ImplementationStatusType,
-				TitleEn:                  statusCount.TitleEn,
-				TitleAr:                  statusCount.TitleAr,
-				ColorCode:                statusCount.ColorCode,
-				Count:                    statusCount.Count,
-			}
+			response.PartiallyImplemented = statusCount.Count
 		case "implemented":
-			response.Implemented = &riskDTOs.ControlCountByStatusDTO{
-				ImplementationStatusType: statusCount.ImplementationStatusType,
-				TitleEn:                  statusCount.TitleEn,
-				TitleAr:                  statusCount.TitleAr,
-				ColorCode:                statusCount.ColorCode,
-				Count:                    statusCount.Count,
-			}
+			response.Implemented = statusCount.Count
 		}
 	}
 

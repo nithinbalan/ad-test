@@ -69,6 +69,12 @@ func (rrupc *RiskUpdatePlanRiskIdentificationController) GetAllRiskIdentificatio
 		"review_frequency_en":       "review_frequencies.title_en",
 		"review_frequency_ar":       "review_frequencies.title_ar",
 		"next_review_date":          "risk_register.next_review_date",
+		"division_en":               "divisions.title_en",
+		"division_ar":               "divisions.title_ar",
+		"section_en":                "sections.title_en",
+		"section_ar":                "sections.title_ar",
+		"sub_section_en":            "sub_sections.title_en",
+		"sub_section_ar":            "sub_sections.title_ar",
 	}
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)

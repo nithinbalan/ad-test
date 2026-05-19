@@ -3,6 +3,7 @@ package repositories
 import (
 	commonDTOs "jethur/grc/common/dtos"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	riskDTOs "jethur/grc/risk/dtos"
 	"jethur/utility"
 
@@ -142,7 +143,10 @@ func (repo *RiskUpdatePlanERMDeptRepository) GetERMDeptEvaluationRisks(timelineI
 			div.title_ar AS division_title_ar,
 			sec.id AS section_id,
 			sec.title_en AS section_title_en,
-			sec.title_ar AS section_title_ar
+			sec.title_ar AS section_title_ar,
+			ss.id AS sub_section_id,
+			ss.title_en AS sub_section_title_en,
+			ss.title_ar AS sub_section_title_ar
 		`).
 		Joins("INNER JOIN risk_register AS rr ON rr.id = rupr.risk_register_id").
 		Joins("LEFT JOIN risk_categories AS rc ON rc.id = rr.risk_category_id").
@@ -167,6 +171,7 @@ func (repo *RiskUpdatePlanERMDeptRepository) GetERMDeptEvaluationRisks(timelineI
 		Joins("LEFT JOIN risk_matrix_risk_rating_values AS rrrv ON rrrv.id = rr.residual_risk_rating_value_id").
 		Joins("LEFT JOIN organization_units AS div ON div.id = rr.division_id").
 		Joins("LEFT JOIN organization_units AS sec ON sec.id = rr.section_id").
+		Joins("LEFT JOIN organization_units AS ss ON ss.id = rr.sub_section_id").
 		Where("rupr.risk_update_plan_timeline_id = ?", timelineID)
 
 	// Apply filters
@@ -481,6 +486,7 @@ func (repo *RiskUpdatePlanERMDeptRepository) GetERMDeptEvaluationControls(timeli
 			rupc.control_id,
 			ct.title_en AS control_type_title_en,
 			ct.title_ar AS control_type_title_ar,
+			ct.type AS control_type,
 			cc.title_en AS control_category_title_en,
 			cc.title_ar AS control_category_title_ar,
 			ou.title_en AS owner_unit_title_en,
@@ -582,15 +588,31 @@ func (repo *RiskUpdatePlanERMDeptRepository) GetERMDeptEvaluationControls(timeli
 			cer.min_score AS control_effectiveness_rating_min_score,
 			cer.max_score AS control_effectiveness_rating_max_score,
 			cer.type AS control_effectiveness_rating_type,
-			c.risk_reduction
+			cer.color_code AS control_effectiveness_rating_color_code,
+			c.risk_reduction,
+			latest_ct.id AS control_test_id,
+			latest_ct.title AS control_test_title,
+			latest_ct.description AS control_test_description,
+			latest_ct.comments AS control_test_comments,
+			latest_ct.score AS control_test_score,
+			latest_ct.control_effectiveness_score AS control_test_effectiveness_score,
+			latest_ct.risk_reduction AS control_test_risk_reduction,
+			CONVERT(VARCHAR, latest_ct.tested_at, 23) AS control_test_tested_at,
+			ct_tested_by.id AS control_test_tested_by_id,
+			ct_tested_by.first_name_en AS control_test_tested_by_first_name_en,
+			ct_tested_by.first_name_ar AS control_test_tested_by_first_name_ar,
+			ct_tested_by.last_name_en AS control_test_tested_by_last_name_en,
+			ct_tested_by.last_name_ar AS control_test_tested_by_last_name_ar,
+			ct_tested_by.initial AS control_test_tested_by_initial,
+			ct_tested_by.color AS control_test_tested_by_color,
+			ct_tested_by.email AS control_test_tested_by_email,
+			ct_tested_by.profile_image_path AS control_test_tested_by_profile_image_path
 		`).
 		Joins("INNER JOIN controls AS c ON c.id = rupc.control_id").
 		Joins("LEFT JOIN control_types AS ct ON ct.id = c.control_type_id").
 		Joins("LEFT JOIN control_categories AS cc ON cc.id = c.control_category_id").
 		Joins("LEFT JOIN organization_units AS ou ON ou.id = c.responsible_unit_id").
 		Joins("LEFT JOIN users AS owner ON owner.id = c.responsible_user_id").
-		Joins("LEFT JOIN control_automations AS ca ON ca.id = c.control_automation_id").
-		Joins("LEFT JOIN control_consistencies AS ccon ON ccon.id = c.control_consistency_id").
 		Joins("LEFT JOIN control_implementation_statuses AS cis ON cis.id = c.control_implementation_status_id").
 		Joins("LEFT JOIN control_efficiency_statuses AS ces ON ces.id = c.control_efficiency_status_id").
 		Joins("LEFT JOIN review_frequencies AS rf ON rf.id = c.review_frequency_id").
@@ -603,6 +625,15 @@ func (repo *RiskUpdatePlanERMDeptRepository) GetERMDeptEvaluationControls(timeli
 		Joins("LEFT JOIN risk_matrix_risk_ratings AS rmrr ON rmrr.id = c.risk_matrix_risk_rating_id").
 		Joins("LEFT JOIN risk_matrix_risk_rating_values AS rmrrv ON rmrrv.id = c.risk_matrix_risk_rating_value_id").
 		Joins("LEFT JOIN control_effectiveness_ratings AS cer ON cer.id = c.control_effectiveness_rating_id").
+		Joins(`LEFT JOIN (
+			SELECT ct.control_id, MAX(ct.id) as latest_test_id
+			FROM control_tests ct
+			GROUP BY ct.control_id
+		) AS latest_ct_ids ON latest_ct_ids.control_id = c.id`).
+		Joins("LEFT JOIN control_tests AS latest_ct ON latest_ct.id = latest_ct_ids.latest_test_id").
+		Joins("LEFT JOIN control_automations ON control_automations.id = latest_ct.control_automation_id").
+		Joins("LEFT JOIN control_consistencies ON control_consistencies.id = latest_ct.control_consistency_id").
+		Joins("LEFT JOIN users AS ct_tested_by ON ct_tested_by.id = latest_ct.tested_by").
 		Where("rupc.risk_update_plan_timeline_id = ?", timelineID)
 
 	// Apply filters
@@ -653,6 +684,31 @@ func (repo *RiskUpdatePlanERMDeptRepository) GetERMDeptEvaluationControls(timeli
 
 	if err := query.Scan(&controls).Error; err != nil {
 		return nil, err
+	}
+
+	// Load control test documents for each control
+	for _, control := range controls {
+		if control.ControlTestID != nil {
+			var documents []organizationDTOs.ControlTestDocumentDTO
+
+			err := repo.db.
+				Table("control_test_documents").
+				Select("id, control_test_id, url, name, original_name, token, type, size").
+				Where("control_test_id = ?", *control.ControlTestID).
+				Scan(&documents).Error
+
+			if err != nil {
+				return nil, err
+			}
+
+			if documents == nil {
+				documents = []organizationDTOs.ControlTestDocumentDTO{}
+			}
+
+			control.ControlTestDocuments = documents
+		} else {
+			control.ControlTestDocuments = []organizationDTOs.ControlTestDocumentDTO{}
+		}
 	}
 
 	pagination := commonDTOs.PaginationInfoDTO{

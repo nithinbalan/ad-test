@@ -86,6 +86,8 @@ func (rupcrus *RiskUpdatePlanControlRegisterUpdateService) CreateControlTest(pla
 		Description:                   controlTestFormDTO.Description,
 		Score:                         controlTestFormDTO.Score,
 		Comments:                      controlTestFormDTO.Comments,
+		ControlAutomationID:           controlTestFormDTO.ControlAutomationID,
+		ControlConsistencyID:          controlTestFormDTO.ControlConsistencyID,
 		TestedAt:                      controlTestFormDTO.TestedAt,
 		TestedBy:                      controlTestFormDTO.TestedBy,
 		Documents:                     controlTestFormDTO.Documents,

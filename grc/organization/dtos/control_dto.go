@@ -91,19 +91,6 @@ type ControlListDTO struct {
 	RiskRatingTitleAr                    *string    `json:"risk_rating_title_ar"`
 	RiskRatingColorCode                  *string    `json:"risk_rating_color_code"`
 	RiskRatingValue                      *uint      `json:"risk_rating_value"`
-	ControlAutomationID                  *uint      `json:"control_automation_id"`
-	ControlAutomationTitleEn             *string    `json:"control_automation_title_en"`
-	ControlAutomationTitleAr             *string    `json:"control_automation_title_ar"`
-	ControlAutomationType                *string    `json:"control_automation_type"`
-	ControlAutomationScore               *float64   `json:"control_automation_score"`
-	ControlAutomationStatus              *string    `json:"control_automation_status"`
-	ControlConsistencyID                 *uint      `json:"control_consistency_id"`
-	ControlConsistencyTitleEn            *string    `json:"control_consistency_title_en"`
-	ControlConsistencyTitleAr            *string    `json:"control_consistency_title_ar"`
-	ControlConsistencyType               *string    `json:"control_consistency_type"`
-	ControlConsistencyScore              *float64   `json:"control_consistency_score"`
-	ControlConsistencyStatus             *string    `json:"control_consistency_status"`
-	ControlConsistencyDescriptionEn      *string    `json:"control_consistency_description_en"`
 	ControlConsistencyDescriptionAr      *string    `json:"control_consistency_description_ar"`
 	ControlEffectivenessScore            *float64   `json:"control_effectiveness_score"`
 	ControlEffectivenessRatingID         *uint      `json:"control_effectiveness_rating_id"`
@@ -179,8 +166,6 @@ type ControlFormDTO struct {
 	Justification                 *string `json:"justification" binding:"omitempty"`
 	ApplicabilityChangeDate       *string `json:"applicability_change_date" binding:"omitempty,datetime=2006-01-02"`
 	ImplementationGuideline       *string `json:"implementation_guideline" binding:"omitempty"`
-	ControlAutomationID           *uint   `json:"control_automation_id" binding:"omitempty"`
-	ControlConsistencyID          *uint   `json:"control_consistency_id" binding:"omitempty"`
 }
 
 type ControlParsedDates struct {
@@ -236,10 +221,6 @@ type ControlDetailDTO struct {
 	ApplicabilityChangeDateString *string                          `json:"applicability_change_date"`
 	ComplianceStatusID            uint                             `json:"compliance_status_id"`
 	ComplianceStatus              *ComplianceStatusDTO             `json:"compliance_status"`
-	ControlAutomationID           *uint                            `json:"control_automation_id"`
-	ControlConsistencyID          *uint                            `json:"control_consistency_id"`
-	ControlAutomation             *ControlAutomationDetailDTO      `json:"control_automation"`
-	ControlConsistency            *ControlConsistencyDetailDTO     `json:"control_consistency"`
 	AssociatedDocuments           []ControlAssociatedDocumentDTO   `json:"associated_documents"`
 	ControlEffectivenessScore     *float64                         `json:"control_effectiveness_score"`
 	ControlEffectivenessRating    *ControlEffectivenessRatingDTO   `json:"control_effectiveness_rating"`
