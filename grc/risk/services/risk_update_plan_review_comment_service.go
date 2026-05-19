@@ -74,6 +74,7 @@ func (ruprcs *RiskUpdatePlanReviewCommentService) GetAll(riskRegisterUpdatePlanI
 			ID:                          comment.ID,
 			Comment:                     comment.Comment,
 			IsEdited:                    comment.IsEdited,
+			CommentStatusID:             comment.CommentStatusID,
 			CommentStatusTitleEn:        comment.CommentStatusTitleEn,
 			CommentStatusTitleAr:        comment.CommentStatusTitleAr,
 			CommentStatusType:           comment.CommentStatusType,
