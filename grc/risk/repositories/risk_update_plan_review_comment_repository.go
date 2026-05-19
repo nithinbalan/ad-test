@@ -79,6 +79,7 @@ func (repo *RiskUpdatePlanReviewCommentRepository) GetAll(riskRegisterUpdatePlan
         risk_update_plan_review_comments.created_at,
         risk_update_plan_review_comments.created_by_id AS created_user_id,
         risk_update_plan_review_comments.risk_update_plan_review_comment_id AS parent_comment_id,
+		comment_statuses.id AS comment_status_id,
         comment_statuses.title_en AS comment_status_title_en,
         comment_statuses.title_ar AS comment_status_title_ar,
         comment_statuses.type AS comment_status_type,
