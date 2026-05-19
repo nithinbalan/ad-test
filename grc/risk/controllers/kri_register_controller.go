@@ -55,7 +55,7 @@ func (krc *KRIRegisterController) GetAllKRIRegisters(c *gin.Context) {
 		"responsible_unit_ids",
 		"level_of_measurement_ids",
 		"risk_responsible_unit_ids",
-		"risk_sub_category_ids",
+		"kri_sub_category_ids",
 		"distribution_status_ids",
 	}
 
@@ -78,8 +78,8 @@ func (krc *KRIRegisterController) GetAllKRIRegisters(c *gin.Context) {
 		"level_of_measurement_ar":  "level_of_measurements.title_ar",
 		"risk_responsible_unit_en": "risk_responsible_units.title_en",
 		"risk_responsible_unit_ar": "risk_responsible_units.title_ar",
-		"risk_sub_category_en":     "risk_sub_categories.title_en",
-		"risk_sub_category_ar":     "risk_sub_categories.title_ar",
+		"kri_sub_category_en":      "kri_sub_categories.title_en",
+		"kri_sub_category_ar":      "kri_sub_categories.title_ar",
 		"distribution_status_en":   "distribution_statuses.title_en",
 		"distribution_status_ar":   "distribution_statuses.title_ar",
 		"annual_target":            "kri_register.annual_target",

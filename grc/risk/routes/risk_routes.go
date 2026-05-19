@@ -25,6 +25,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	potentialRiskController := app.RiskModule.PotentialRiskController
 	potentialRiskStatusUpdateController := app.RiskModule.PotentialRiskStatusUpdateController
 	kriCategoryController := app.RiskModule.KriCategoryController
+	kriSubCategoryController := app.RiskModule.KriSubCategoryController
 	kriRegisterController := app.RiskModule.KriRegisterController
 	kriValueUpdateController := app.RiskModule.KriValueUpdateController
 	riskAppetiteStatementController := app.RiskModule.RiskAppetiteStatementController
@@ -146,6 +147,14 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("/kri-categories/delete", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), kriCategoryController.DeleteKRICategories)
 	riskRoutes.PUT("/kri-categories/activate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), kriCategoryController.ActivateKRICategories)
 	riskRoutes.PUT("/kri-categories/deactivate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), kriCategoryController.DeactivateKRICategories)
+
+	riskRoutes.GET("/kri-sub-categories", kriSubCategoryController.GetAllKRISubCategories)
+	riskRoutes.GET("/kri-sub-categories/:id", kriSubCategoryController.GetKRISubCategoryDetails)
+	riskRoutes.POST("/kri-sub-categories", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), kriSubCategoryController.CreateKRISubCategory)
+	riskRoutes.PUT("/kri-sub-categories/:id", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), kriSubCategoryController.UpdateKRISubCategory)
+	riskRoutes.POST("/kri-sub-categories/delete", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), kriSubCategoryController.DeleteKRISubCategories)
+	riskRoutes.PUT("/kri-sub-categories/activate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), kriSubCategoryController.ActivateKRISubCategories)
+	riskRoutes.PUT("/kri-sub-categories/deactivate", middlewares.RolePermissionMiddleware(db, "risk_setting", "modify"), kriSubCategoryController.DeactivateKRISubCategories)
 
 	riskRoutes.GET("/kri-register/export", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriRegisterController.GetKriRegisterExport)
 	riskRoutes.GET("/kri-register", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriRegisterController.GetAllKRIRegisters)

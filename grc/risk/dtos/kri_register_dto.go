@@ -40,9 +40,9 @@ type KRIRegisterListDTO struct {
 	RiskResponsibleUnitID           *uint    `json:"risk_responsible_unit_id"`
 	RiskResponsibleUnitTitleEn      *string  `json:"risk_responsible_unit_title_en"`
 	RiskResponsibleUnitTitleAr      *string  `json:"risk_responsible_unit_title_ar"`
-	RiskSubCategoryID               *uint    `json:"risk_sub_category_id"`
-	RiskSubCategoryTitleEn          *string  `json:"risk_sub_category_title_en"`
-	RiskSubCategoryTitleAr          *string  `json:"risk_sub_category_title_ar"`
+	KRISubCategoryID                *uint    `json:"kri_sub_category_id"`
+	KRISubCategoryTitleEn           *string  `json:"kri_sub_category_title_en"`
+	KRISubCategoryTitleAr           *string  `json:"kri_sub_category_title_ar"`
 	AnnualTarget                    *float64 `json:"annual_target"`
 	ReviewTarget                    *float64 `json:"review_target"`
 	DistributionStatusID            *uint    `json:"distribution_status_id"`
@@ -118,7 +118,7 @@ type KRIRegisterFormDTO struct {
 	UnitID                       uint     `json:"unit_id" binding:"required"`
 	LevelOfMeasurementID         *uint    `json:"level_of_measurement_id"`
 	RiskResponsibleUnitID        *uint    `json:"risk_responsible_unit_id"`
-	RiskSubCategoryID            *uint    `json:"risk_sub_category_id"`
+	KRISubCategoryID             *uint    `json:"kri_sub_category_id"`
 	AnnualTarget                 *float64 `json:"annual_target"`
 	ReviewTarget                 *float64 `json:"review_target"`
 	DistributionStatusID         *uint    `json:"distribution_status_id"`
@@ -166,8 +166,8 @@ type KRIRegisterDetailsDTO struct {
 	LevelOfMeasurement     *LevelOfMeasurementDTO            `json:"level_of_measurement"`
 	RiskResponsibleUnitID  *uint                             `json:"risk_responsible_unit_id"`
 	RiskResponsibleUnit    *settingsDTOs.OrganizationUnitDTO `json:"risk_responsible_unit"`
-	RiskSubCategoryID      *uint                             `json:"risk_sub_category_id"`
-	RiskSubCategory        *RiskSubCategoryDTO               `json:"risk_sub_category"`
+	KRISubCategoryID       *uint                             `json:"kri_sub_category_id"`
+	KRISubCategory         *KRISubCategoryDTO                `json:"kri_sub_category"`
 	AnnualTarget           *float64                          `json:"annual_target"`
 	ReviewTarget           *float64                          `json:"review_target"`
 	DistributionStatusID   *uint                             `json:"distribution_status_id"`
