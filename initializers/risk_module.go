@@ -18,6 +18,7 @@ type RiskModule struct {
 	PotentialRiskController                        *controllers.PotentialRiskController
 	PotentialRiskStatusUpdateController            *controllers.PotentialRiskStatusUpdateController
 	KriCategoryController                          *controllers.KRICategoryController
+	KriSubCategoryController                       *controllers.KRISubCategoryController
 	KriRegisterController                          *controllers.KRIRegisterController
 	KriValueUpdateController                       *controllers.KRIValueUpdateController
 	RiskAppetiteStatementController                *controllers.RiskAppetiteStatementController
@@ -133,6 +134,10 @@ func NewRiskModule(db *gorm.DB,
 	kriCategorySvc := services.NewKRICategoryService(kriCategoryRepository, sharedModule.ActivityLogService)
 	kriCategoryController := controllers.NewKRICategoryController(kriCategorySvc)
 
+	kriSubCategoryRepo := repositories.NewKRISubCategoryRepository(db)
+	kriSubCategorySvc := services.NewKRISubCategoryService(kriSubCategoryRepo, kriCategoryRepository, sharedModule.ActivityLogService)
+	kriSubCategoryController := controllers.NewKRISubCategoryController(kriSubCategorySvc)
+
 	// set kri categories service to kri library service
 	libraryModule.KriLibrarySvc.SetKriCategoryService(kriCategorySvc)
 
@@ -143,7 +148,7 @@ func NewRiskModule(db *gorm.DB,
 		kriCategorySvc,
 		organizationModule.UserSvc,
 		riskLevelSvc,
-		riskSubCategorySvc,
+		kriSubCategorySvc,
 		levelOfMeasurementSvc,
 		distributionStatusSvc,
 		settingsModule.OrganizationUnitSvc,
@@ -752,6 +757,7 @@ func NewRiskModule(db *gorm.DB,
 		PotentialRiskController:                        potentialRiskController,
 		PotentialRiskStatusUpdateController:            potentialRiskStatusUpdateController,
 		KriCategoryController:                          kriCategoryController,
+		KriSubCategoryController:                       kriSubCategoryController,
 		KriRegisterController:                          kriRegisterController,
 		KriValueUpdateController:                       kriValueUpdateController,
 		RiskAppetiteStatementController:                riskAppetiteStatementController,

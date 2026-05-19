@@ -15,7 +15,7 @@ type KRIRegister struct {
 	UnitID                       *uint    `json:"unit_id" binding:"required" gorm:"not null"`
 	LevelOfMeasurementID         *uint    `json:"level_of_measurement_id"`
 	RiskResponsibleUnitID        *uint    `json:"risk_responsible_unit_id"`
-	RiskSubCategoryID            *uint    `json:"risk_sub_category_id"`
+	KRISubCategoryID             *uint    `json:"kri_sub_category_id"`
 	AnnualTarget                 *float64 `json:"annual_target"`
 	ReviewTarget                 *float64 `json:"review_target"`
 	DistributionStatusID         *uint    `json:"distribution_status_id"`
@@ -55,7 +55,7 @@ type KRIRegister struct {
 	ValueUpdates         []*KRIValueUpdate      `gorm:"foreignKey:KRIRegisterID"`
 	LevelOfMeasurement   *LevelOfMeasurement    `gorm:"foreignKey:LevelOfMeasurementID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	RiskResponsibleUnit  *OrganizationUnit      `gorm:"foreignKey:RiskResponsibleUnitID"`
-	RiskSubCategory      *RiskSubCategory       `gorm:"foreignKey:RiskSubCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	KRISubCategory       *KRISubCategory        `gorm:"foreignKey:KRISubCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	DistributionStatus   *DistributionStatus    `gorm:"foreignKey:DistributionStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SubmittedBy          *User                  `gorm:"foreignKey:SubmittedByID"`
 	ApprovedBy           *User                  `gorm:"foreignKey:ApprovedByID"`

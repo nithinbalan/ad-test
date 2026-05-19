@@ -45,7 +45,7 @@ type KRIRegisterService struct {
 	kriCategorySvc      KRICategoryServiceInterface
 	userSvc             organizationServices.UserServiceInterface
 	riskLevelSvc        RiskLevelServiceInterface
-	riskSubCategorySvc  RiskSubCategoryServiceInterface
+	kriSubCategorySvc   KRISubCategoryServiceInterface
 	levelMeasureSvc     LevelOfMeasurementServiceInterface
 	distributionSvc     DistributionStatusServiceInterface
 	organizationUnitSvc settingsServices.OrganizationUnitServiceInterface
@@ -62,7 +62,7 @@ func NewKRIRegisterService(
 	kriCategorySvc KRICategoryServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	riskLevelSvc RiskLevelServiceInterface,
-	riskSubCategorySvc RiskSubCategoryServiceInterface,
+	kriSubCategorySvc KRISubCategoryServiceInterface,
 	levelMeasureSvc LevelOfMeasurementServiceInterface,
 	distributionSvc DistributionStatusServiceInterface,
 	organizationUnitSvc settingsServices.OrganizationUnitServiceInterface,
@@ -77,7 +77,7 @@ func NewKRIRegisterService(
 		kriCategorySvc:      kriCategorySvc,
 		userSvc:             userSvc,
 		riskLevelSvc:        riskLevelSvc,
-		riskSubCategorySvc:  riskSubCategorySvc,
+		kriSubCategorySvc:   kriSubCategorySvc,
 		levelMeasureSvc:     levelMeasureSvc,
 		distributionSvc:     distributionSvc,
 		organizationUnitSvc: organizationUnitSvc,
@@ -214,7 +214,7 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 		UnitID:                       &kriRegisterFormDTO.UnitID,
 		LevelOfMeasurementID:         kriRegisterFormDTO.LevelOfMeasurementID,
 		RiskResponsibleUnitID:        kriRegisterFormDTO.RiskResponsibleUnitID,
-		RiskSubCategoryID:            kriRegisterFormDTO.RiskSubCategoryID,
+		KRISubCategoryID:             kriRegisterFormDTO.KRISubCategoryID,
 		AnnualTarget:                 kriRegisterFormDTO.AnnualTarget,
 		ReviewTarget:                 kriRegisterFormDTO.ReviewTarget,
 		DistributionStatusID:         kriRegisterFormDTO.DistributionStatusID,
@@ -402,7 +402,7 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 	existingKRIRegister.UnitID = &kriRegisterFormDTO.UnitID
 	existingKRIRegister.LevelOfMeasurementID = kriRegisterFormDTO.LevelOfMeasurementID
 	existingKRIRegister.RiskResponsibleUnitID = kriRegisterFormDTO.RiskResponsibleUnitID
-	existingKRIRegister.RiskSubCategoryID = kriRegisterFormDTO.RiskSubCategoryID
+	existingKRIRegister.KRISubCategoryID = kriRegisterFormDTO.KRISubCategoryID
 	existingKRIRegister.AnnualTarget = kriRegisterFormDTO.AnnualTarget
 	existingKRIRegister.ReviewTarget = kriRegisterFormDTO.ReviewTarget
 	existingKRIRegister.DistributionStatusID = kriRegisterFormDTO.DistributionStatusID
@@ -445,7 +445,7 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 			"unit":                           oldKriRegister.Unit,
 			"level_of_measurement":           utility.GetFieldValue(oldKriRegister.LevelOfMeasurement),
 			"risk_responsible_unit":          utility.GetFieldValue(oldKriRegister.RiskResponsibleUnit),
-			"risk_sub_category":              utility.GetFieldValue(oldKriRegister.RiskSubCategory),
+			"kri_sub_category":               utility.GetFieldValue(oldKriRegister.KRISubCategory),
 			"annual_target":                  oldKriRegister.AnnualTarget,
 			"review_target":                  oldKriRegister.ReviewTarget,
 			"distribution_status":            utility.GetFieldValue(oldKriRegister.DistributionStatus),
@@ -470,7 +470,7 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 			"unit":                           existingKri.Unit,
 			"level_of_measurement":           utility.GetFieldValue(existingKri.LevelOfMeasurement),
 			"risk_responsible_unit":          utility.GetFieldValue(existingKri.RiskResponsibleUnit),
-			"risk_sub_category":              utility.GetFieldValue(existingKri.RiskSubCategory),
+			"kri_sub_category":               utility.GetFieldValue(existingKri.KRISubCategory),
 			"annual_target":                  existingKri.AnnualTarget,
 			"review_target":                  existingKri.ReviewTarget,
 			"distribution_status":            utility.GetFieldValue(existingKri.DistributionStatus),
@@ -864,9 +864,9 @@ func (krs *KRIRegisterService) validateKRIRegisterFormDTO(kriRegisterFormDTO *ri
 		}
 	}
 
-	if kriRegisterFormDTO.RiskSubCategoryID != nil {
-		if _, err := krs.riskSubCategorySvc.GetByID(*kriRegisterFormDTO.RiskSubCategoryID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("risk sub category does not exist"), "not_exist", "risk sub category")
+	if kriRegisterFormDTO.KRISubCategoryID != nil {
+		if _, err := krs.kriSubCategorySvc.GetByID(*kriRegisterFormDTO.KRISubCategoryID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("kri sub category does not exist"), "not_exist", "kri sub category")
 		}
 	}
 

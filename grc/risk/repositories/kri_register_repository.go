@@ -80,8 +80,8 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			level_of_measurements.title_ar AS level_of_measurement_title_ar,
 			risk_responsible_units.title_en AS risk_responsible_unit_title_en,
 			risk_responsible_units.title_ar AS risk_responsible_unit_title_ar,
-			risk_sub_categories.title_en AS risk_sub_category_title_en,
-			risk_sub_categories.title_ar AS risk_sub_category_title_ar,
+			kri_sub_categories.title_en AS kri_sub_category_title_en,
+			kri_sub_categories.title_ar AS kri_sub_category_title_ar,
 			distribution_statuses.title_en AS distribution_status_title_en,
 			distribution_statuses.title_ar AS distribution_status_title_ar,
 			workflow_statuses.id AS workflow_status_id,
@@ -117,7 +117,7 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			LEFT JOIN units ON units.id = kri_register.unit_id
 			LEFT JOIN level_of_measurements ON level_of_measurements.id = kri_register.level_of_measurement_id
 			LEFT JOIN organization_units AS risk_responsible_units ON risk_responsible_units.id = kri_register.risk_responsible_unit_id
-			LEFT JOIN risk_sub_categories ON risk_sub_categories.id = kri_register.risk_sub_category_id
+			LEFT JOIN kri_sub_categories ON kri_sub_categories.id = kri_register.kri_sub_category_id
 			LEFT JOIN distribution_statuses ON distribution_statuses.id = kri_register.distribution_status_id
 			LEFT JOIN workflow_statuses ON workflow_statuses.id = kri_register.workflow_status_id
 			LEFT JOIN users AS created_user ON created_user.id = kri_register.created_by_id
@@ -194,8 +194,8 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			"level_of_measurements.title_ar",
 			"risk_responsible_units.title_en",
 			"risk_responsible_units.title_ar",
-			"risk_sub_categories.title_en",
-			"risk_sub_categories.title_ar",
+			"kri_sub_categories.title_en",
+			"kri_sub_categories.title_ar",
 			"distribution_statuses.title_en",
 			"distribution_statuses.title_ar",
 			"responsible_user.first_name_en",
@@ -294,7 +294,7 @@ func (repo *KRIRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Dat
 		Preload("Unit").
 		Preload("LevelOfMeasurement").
 		Preload("RiskResponsibleUnit").
-		Preload("RiskSubCategory").
+		Preload("KRISubCategory").
 		Preload("DistributionStatus").
 		Preload("ValueUpdates").
 		Preload("CreatedByUser").
