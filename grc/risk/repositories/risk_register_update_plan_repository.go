@@ -145,6 +145,10 @@ func (repo *RiskRegisterUpdatePlanRepository) GetAll(params *riskDTOs.RiskRegist
 	// Apply sorting
 	query = query.Order(params.SortBy + " " + params.Sort)
 
+	// Apply pagination
+	offset := (params.Page - 1) * params.PageSize
+	query = query.Offset(offset).Limit(params.PageSize)
+
 	// Execute query
 	if err := query.Find(&plans).Error; err != nil {
 		return nil, err
