@@ -28,6 +28,7 @@ type ComplianceRequirementRepositoryInterface interface {
 	DeleteClause(clauseID uint, tx ...utility.DatabaseTransaction) error
 
 	CreateComplianceRequirementResponsibleUnits(units []*models.ComplianceRequirementResponsibleUnit, tx ...utility.DatabaseTransaction) error
+	UpdateComplianceRequirementResponsibleUnits(units []*models.ComplianceRequirementResponsibleUnit, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceRequirementResponsibleUnits(unitIds []*uint, tx ...utility.DatabaseTransaction) error
 	CreateComplianceRequirementControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceRequirementControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
@@ -122,13 +123,23 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 	}
 	if params.IsRegulationNotificationAssessment != nil {
 		query = query.Where(
-			"compliance_requirements.is_regulation_notification_assessment = ?",
+			`EXISTS (
+				SELECT 1
+				FROM compliance_requirement_responsible_units crru
+				WHERE crru.compliance_requirement_id = compliance_requirements.id
+				  AND crru.is_regulation_notification_assessment = ?
+			)`,
 			*params.IsRegulationNotificationAssessment,
 		)
 	}
 	if params.IsRiskBasedAssessment != nil {
 		query = query.Where(
-			"compliance_requirements.is_risk_based_assessment = ?",
+			`EXISTS (
+				SELECT 1
+				FROM compliance_requirement_responsible_units crru
+				WHERE crru.compliance_requirement_id = compliance_requirements.id
+				  AND crru.is_risk_based_assessment = ?
+			)`,
 			*params.IsRiskBasedAssessment,
 		)
 	}
@@ -182,13 +193,10 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 				severity_levels.title_ar LIKE ? OR
 				compliance_requirements.deadline LIKE ? OR
 				compliance_statuses.title_en LIKE ? OR
-				compliance_statuses.title_ar LIKE ? OR
-				CAST(compliance_requirements.is_regulation_notification_assessment AS VARCHAR) LIKE ? OR
-				CAST(compliance_requirements.is_risk_based_assessment AS VARCHAR) LIKE ?)`,
+				compliance_statuses.title_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword,
-			keyword, keyword)
+			keyword, keyword, keyword, keyword)
 	}
 
 	if params.SortBy == "" {
@@ -245,13 +253,23 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 	applyCommonFilters := func(q *gorm.DB) *gorm.DB {
 		if params.IsRegulationNotificationAssessment != nil {
 			q = q.Where(
-				"compliance_requirements.is_regulation_notification_assessment = ?",
+				`EXISTS (
+					SELECT 1
+					FROM compliance_requirement_responsible_units crru
+					WHERE crru.compliance_requirement_id = compliance_requirements.id
+					  AND crru.is_regulation_notification_assessment = ?
+				)`,
 				*params.IsRegulationNotificationAssessment,
 			)
 		}
 		if params.IsRiskBasedAssessment != nil {
 			q = q.Where(
-				"compliance_requirements.is_risk_based_assessment = ?",
+				`EXISTS (
+					SELECT 1
+					FROM compliance_requirement_responsible_units crru
+					WHERE crru.compliance_requirement_id = compliance_requirements.id
+					  AND crru.is_risk_based_assessment = ?
+				)`,
 				*params.IsRiskBasedAssessment,
 			)
 		}
@@ -300,15 +318,12 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
              severity_levels.title_ar LIKE ? OR
              CAST(compliance_requirements.deadline AS VARCHAR) LIKE ? OR
              compliance_statuses.title_en LIKE ? OR
-             compliance_statuses.title_ar LIKE ? OR
-             CAST(compliance_requirements.is_regulation_notification_assessment AS VARCHAR) LIKE ? OR
-             CAST(compliance_requirements.is_risk_based_assessment AS VARCHAR) LIKE ?)`,
+             compliance_statuses.title_ar LIKE ?)`,
 				keyword, keyword, keyword,
 				keyword, keyword,
 				keyword, keyword,
 				keyword, keyword,
 				keyword, keyword, keyword,
-				keyword, keyword,
 			)
 		}
 		return q
@@ -566,6 +581,29 @@ func (repo *ComplianceRequirementRepository) CreateComplianceRequirementResponsi
 	}
 	return nil
 }
+
+func (repo *ComplianceRequirementRepository) UpdateComplianceRequirementResponsibleUnits(units []*models.ComplianceRequirementResponsibleUnit, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	for _, unit := range units {
+		if err := db.Model(&models.ComplianceRequirementResponsibleUnit{}).
+			Where("id = ?", unit.ID).
+			Updates(map[string]interface{}{
+				"is_regulation_notification_assessment": unit.IsRegulationNotificationAssessment,
+				"is_risk_based_assessment":              unit.IsRiskBasedAssessment,
+				"updated_by_id":                         unit.UpdatedByID,
+				"updated_at":                            time.Now(),
+			}).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (repo *ComplianceRequirementRepository) DeleteComplianceRequirementResponsibleUnits(unitIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -754,6 +792,8 @@ func (repo *ComplianceRequirementRepository) GetResponsibleUnitRowsByRequirement
 			compliance_requirement_responsible_units.id,
 			compliance_requirement_responsible_units.compliance_requirement_id,
 			compliance_requirement_responsible_units.responsible_unit_id,
+			compliance_requirement_responsible_units.is_regulation_notification_assessment,
+			compliance_requirement_responsible_units.is_risk_based_assessment,
 			compliance_requirement_responsible_units.compliance_assessment_framework_value_id,
 			ou.title_en,
 			ou.title_ar,

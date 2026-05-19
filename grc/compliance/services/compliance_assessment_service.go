@@ -231,112 +231,112 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 		tx.Rollback()
 		return err
 	}
-		// fmt.Println(compliance.IsRiskBasedAssessment)
-		//
-		// Only create compliance requirements and controls if it's a risk-based assessment
-		// if compliance.IsRiskBasedAssessment {
-		for _, clause := range compliance.ComplianceClauses {
-			clauseDetails, err := cras.complianceClauseSvc.GetFullDetailsByID(clause.ID)
-			if err != nil {
-				tx.Rollback()
-				return err
-			}
-			// ====================================
-			// CASE 1: Requirement-based assessment
-			// ====================================
-			if compliance.IsRequirementAssessment {
-				for _, complianceRequirement := range clauseDetails.ComplianceRequirements {
-					requirement := &models.ComplianceAssessmentRequirement{
-						ComplianceAssessmentID:  id,
-						ComplianceRequirementID: uint(complianceRequirement.ID),
-						ComplianceStatusID:      nil,
-						CreatedBYID:             currentUserID,
-					}
-					requirementId, err := cras.repo.CreateComplianceAssessmentRequirement(requirement, tx)
+	// fmt.Println(compliance.IsRiskBasedAssessment)
+	//
+	// Only create compliance requirements and controls if it's a risk-based assessment
+	// if compliance.IsRiskBasedAssessment {
+	for _, clause := range compliance.ComplianceClauses {
+		clauseDetails, err := cras.complianceClauseSvc.GetFullDetailsByID(clause.ID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		// ====================================
+		// CASE 1: Requirement-based assessment
+		// ====================================
+		if compliance.IsRequirementAssessment {
+			for _, complianceRequirement := range clauseDetails.ComplianceRequirements {
+				requirement := &models.ComplianceAssessmentRequirement{
+					ComplianceAssessmentID:  id,
+					ComplianceRequirementID: uint(complianceRequirement.ID),
+					ComplianceStatusID:      nil,
+					CreatedBYID:             currentUserID,
+				}
+				requirementId, err := cras.repo.CreateComplianceAssessmentRequirement(requirement, tx)
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+
+				var deadline *time.Time
+				if complianceRequirement.DeadlineString != nil {
+					parsedDeadline, err := time.Parse("2006-01-02", *complianceRequirement.DeadlineString)
 					if err != nil {
 						tx.Rollback()
 						return err
 					}
+					deadline = &parsedDeadline
+				}
 
-					var deadline *time.Time
-					if complianceRequirement.DeadlineString != nil {
-						parsedDeadline, err := time.Parse("2006-01-02", *complianceRequirement.DeadlineString)
-						if err != nil {
-							tx.Rollback()
-							return err
-						}
-						deadline = &parsedDeadline
+				applicabilityStatus, err := cras.applicablityStatusSvc.GetByType("applicable")
+				if err != nil {
+					return err
+				}
+
+				for _, ru := range complianceRequirement.ResponsibleUnits {
+					// Step 1: Create ComplianceAssessmentRequirementResponsibleUnit one-by-one
+					unit := &models.ComplianceAssessmentRequirementResponsibleUnit{
+						ComplianceAssessmentRequirementID: requirementId,
+						ResponsibleUnitID:                 uint(ru.ResponsibleUnit.ID),
+						Deadline:                          deadline,
+						CreatedBYID:                       currentUserID,
 					}
-
-					applicabilityStatus, err := cras.applicablityStatusSvc.GetByType("applicable")
-					if err != nil {
+					if err := cras.repo.CreateComplianceAssessmentRequirementResponsibleUnit(unit, tx); err != nil {
+						tx.Rollback()
 						return err
 					}
 
-					for _, ru := range complianceRequirement.ResponsibleUnits {
-						// Step 1: Create ComplianceAssessmentRequirementResponsibleUnit one-by-one
-						unit := &models.ComplianceAssessmentRequirementResponsibleUnit{
-							ComplianceAssessmentRequirementID: requirementId,
-							ResponsibleUnitID:                 uint(ru.ResponsibleUnit.ID),
-							Deadline:                          deadline,
-							CreatedBYID:                       currentUserID,
-						}
-						if err := cras.repo.CreateComplianceAssessmentRequirementResponsibleUnit(unit, tx); err != nil {
-							tx.Rollback()
-							return err
-						}
+					// Step 2: Create associated DocumentTitles using the created unit's ID
+					var requirementDocumentTitles []*models.ComplianceAssessmentRequirementDocumentTitle
 
-						// Step 2: Create associated DocumentTitles using the created unit's ID
-						var requirementDocumentTitles []*models.ComplianceAssessmentRequirementDocumentTitle
-
-						for _, documentTitle := range complianceRequirement.RequiredDocumentTitles {
-							doc := &models.ComplianceAssessmentRequirementDocumentTitle{
-								ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
-								RequiredDocumentTitleID:                          &documentTitle.RequiredDocumentTitleID,
-								ApplicabilityStatusID:                            applicabilityStatus.ID,
-								CreatedBYID:                                      currentUserID,
-							}
-							requirementDocumentTitles = append(requirementDocumentTitles, doc)
-						}
-
-						// Add an empty document title (with nil RequiredDocumentTitleID)
-						emptyDoc := &models.ComplianceAssessmentRequirementDocumentTitle{
+					for _, documentTitle := range complianceRequirement.RequiredDocumentTitles {
+						doc := &models.ComplianceAssessmentRequirementDocumentTitle{
 							ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
-							RequiredDocumentTitleID:                          nil,
+							RequiredDocumentTitleID:                          &documentTitle.RequiredDocumentTitleID,
 							ApplicabilityStatusID:                            applicabilityStatus.ID,
 							CreatedBYID:                                      currentUserID,
 						}
-						requirementDocumentTitles = append(requirementDocumentTitles, emptyDoc)
+						requirementDocumentTitles = append(requirementDocumentTitles, doc)
+					}
 
-						// Bulk insert documents for this unit
-						if len(requirementDocumentTitles) > 0 {
-							if err := cras.repo.CreateComplianceAssessmentRequirementDocumentTitle(requirementDocumentTitles, tx); err != nil {
-								tx.Rollback()
-								return err
-							}
+					// Add an empty document title (with nil RequiredDocumentTitleID)
+					emptyDoc := &models.ComplianceAssessmentRequirementDocumentTitle{
+						ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
+						RequiredDocumentTitleID:                          nil,
+						ApplicabilityStatusID:                            applicabilityStatus.ID,
+						CreatedBYID:                                      currentUserID,
+					}
+					requirementDocumentTitles = append(requirementDocumentTitles, emptyDoc)
+
+					// Bulk insert documents for this unit
+					if len(requirementDocumentTitles) > 0 {
+						if err := cras.repo.CreateComplianceAssessmentRequirementDocumentTitle(requirementDocumentTitles, tx); err != nil {
+							tx.Rollback()
+							return err
 						}
 					}
 				}
 			}
-			// =================================
-			// CASE 2: Control-based assessment
-			// =================================
-			// if compliance.IsControlAssessment {
-			// 	for _, control := range clauseDetails.ComplianceControls {
-			// 		assessmentControl := &models.ComplianceAssessmentControl{
-			// 			ComplianceAssessmentID: id,
-			// 			ComplianceControlID:    control.ID,
-			// 			IsCompleted:            false,
-			// 			CreatedBYID:            currentUserID,
-			// 		}
-			// 		if err := cras.repo.CreateComplianceAssessmentControl(assessmentControl, tx); err != nil {
-			// 			tx.Rollback()
-			// 			return err
-			// 		}
-			// 	}
-			// }
 		}
+		// =================================
+		// CASE 2: Control-based assessment
+		// =================================
+		// if compliance.IsControlAssessment {
+		// 	for _, control := range clauseDetails.ComplianceControls {
+		// 		assessmentControl := &models.ComplianceAssessmentControl{
+		// 			ComplianceAssessmentID: id,
+		// 			ComplianceControlID:    control.ID,
+		// 			IsCompleted:            false,
+		// 			CreatedBYID:            currentUserID,
+		// 		}
+		// 		if err := cras.repo.CreateComplianceAssessmentControl(assessmentControl, tx); err != nil {
+		// 			tx.Rollback()
+		// 			return err
+		// 		}
+		// 	}
 		// }
+	}
+	// }
 
 	addedComplianceAssessments = append(addedComplianceAssessments, map[string]interface{}{
 		"id":                    id,
@@ -865,35 +865,55 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(com
 		return utility.NewForbiddenError("assessment_already_in_progress_for_compliance_register")
 	}
 
-		// validate based on register type
-		// if complianceRegister.IsRiskBasedAssessment {
-		if complianceRegister.IsRequirementAssessment {
-			hasRequirement, err := cras.repo.HasRequirementForRegister(complianceAssessmentFormDTO.ComplianceRegisterID)
-			if err != nil {
-				return fmt.Errorf("failed to validate requirements: %w", err)
-			}
-			if !hasRequirement {
-				return utility.NewValidationError(
-					fmt.Errorf("no compliance requirements found for this compliance register"),
-					"requirement_not_exist",
-					"compliance requirement",
-				)
+	// validate based on register type
+	// if complianceRegister.IsRiskBasedAssessment {
+	if complianceRegister.IsRequirementAssessment {
+		requirements, err := cras.repo.GetRequirementsForRegister(complianceAssessmentFormDTO.ComplianceRegisterID)
+		if err != nil {
+			return fmt.Errorf("failed to validate requirements: %w", err)
+		}
+
+		if len(requirements) == 0 {
+			return utility.NewValidationError(
+				fmt.Errorf("no compliance requirements found for this compliance register"),
+				"requirement_not_exist",
+				"compliance requirement",
+			)
+		}
+
+		hasRiskBasedRequirement := false
+		for _, requirement := range requirements {
+			if requirement == nil {
+				continue
 			}
 
-			// Check if all requirements have inherent risk score
-			allHaveInherentScore, err := cras.repo.CheckAllRequirementsHaveInherentScore(complianceAssessmentFormDTO.ComplianceRegisterID)
+			for _, responsibleUnit := range requirement.ResponsibleUnits {
+				if responsibleUnit != nil && responsibleUnit.IsRiskBasedAssessment != nil && *responsibleUnit.IsRiskBasedAssessment {
+					hasRiskBasedRequirement = true
+					break
+				}
+			}
+
+			if hasRiskBasedRequirement {
+				break
+			}
+		}
+
+		if hasRiskBasedRequirement {
+			allRiskBasedHaveInherentScore, err := cras.repo.CheckAllRiskBasedRequirementsHaveInherentScore(complianceAssessmentFormDTO.ComplianceRegisterID)
 			if err != nil {
 				return fmt.Errorf("failed to validate inherent risk scores: %w", err)
 			}
-			if !allHaveInherentScore {
+			if !allRiskBasedHaveInherentScore {
 				return utility.NewValidationError(
-					fmt.Errorf("all requirements must have inherent risk analysis completed before creating assessment"),
+					fmt.Errorf("all risk-based requirements must have inherent risk analysis completed before creating assessment"),
 					"inherent_risk_analysis_incomplete",
 					"compliance requirement",
 				)
 			}
 		}
-		// }
+	}
+	// }
 
 	// if complianceRegister.IsRiskBasedAssessment {
 	// 	if complianceRegister.IsControlAssessment {

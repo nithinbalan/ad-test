@@ -17,6 +17,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -166,7 +167,58 @@ func (cars *ComplianceAssessmentRequirementService) GetAll(assessmentID uint, pa
 		return nil, err
 	}
 
-	return cars.repo.GetAll(assessmentID, params)
+	response, err := cars.repo.GetAll(assessmentID, params)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(response.Items) == 0 {
+		return response, nil
+	}
+
+	assessmentRequirementIDs := make([]uint, 0, len(response.Items))
+	for _, item := range response.Items {
+		assessmentRequirementIDs = append(assessmentRequirementIDs, item.ID)
+	}
+
+	var unitRows []complianceDTOs.ComplianceAssessmentRequirementResponsibleUnitListRowDTO
+	if err := cars.repo.GetResponsibleUnitRowsByAssessmentRequirementIDs(assessmentRequirementIDs, params, &unitRows); err != nil {
+		return nil, err
+	}
+
+	unitMap := make(map[uint][]*complianceDTOs.ComplianceAssessmentRequirementResponsibleUnitListDTO)
+	for _, row := range unitRows {
+		unit := &settingsDTOs.OrganizationUnitDTO{
+			ID:        int(row.ResponsibleUnitID),
+			TitleEn:   row.TitleEn,
+			TitleAr:   row.TitleAr,
+			Status:    row.Status,
+			ColorCode: row.ColorCode,
+		}
+		if row.ParentID != nil {
+			unit.ParentUnit = &settingsDTOs.OrganizationUnitDTO{ID: int(*row.ParentID)}
+		}
+
+		unitDTO := &complianceDTOs.ComplianceAssessmentRequirementResponsibleUnitListDTO{
+			ID:                                 row.ID,
+			AssessmentRequirementID:            row.AssessmentRequirementID,
+			ResponsibleUnitID:                  row.ResponsibleUnitID,
+			IsRegulationNotificationAssessment: row.IsRegulationNotificationAssessment,
+			IsRiskBasedAssessment:              row.IsRiskBasedAssessment,
+			ResponsibleUnit:                    unit,
+		}
+		unitMap[row.AssessmentRequirementID] = append(unitMap[row.AssessmentRequirementID], unitDTO)
+	}
+
+	for _, item := range response.Items {
+		if units, ok := unitMap[item.ID]; ok {
+			item.ResponsibleUnits = units
+		} else {
+			item.ResponsibleUnits = []*complianceDTOs.ComplianceAssessmentRequirementResponsibleUnitListDTO{}
+		}
+	}
+
+	return response, nil
 }
 
 func (cars ComplianceAssessmentRequirementService) GetByID(id uint) (*models.ComplianceAssessmentRequirement, error) {

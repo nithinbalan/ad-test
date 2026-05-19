@@ -6,6 +6,8 @@ type ComplianceRequirementResponsibleUnit struct {
 	ID                                   uint       `json:"id" gorm:"primary_key;autoIncrement"`
 	ComplianceRequirementID              uint       `json:"compliance_requirement_id" gorm:"not null"`
 	ResponsibleUnitID                    uint       `json:"responsible_unit_id" gorm:"not null"`
+	IsRegulationNotificationAssessment   *bool      `json:"is_regulation_notification_assessment" gorm:"default:null"`
+	IsRiskBasedAssessment                *bool      `json:"is_risk_based_assessment" gorm:"default:null"`
 	ComplianceAssessmentFrameworkValueID *uint      `json:"compliance_assessment_framework_value_id" gorm:"default:null"`
 	CompletedByUserID                    *uint      `json:"completed_by_user_id"`
 	CompletedAt                          *time.Time `json:"completed_at" gorm:"type:datetime;default:null"`

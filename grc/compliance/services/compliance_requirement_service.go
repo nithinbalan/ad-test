@@ -151,6 +151,8 @@ func (crs *ComplianceRequirementService) GetRequirementsByComplianceID(complianc
 			ID:                                   row.ID,
 			ComplianceRequirementID:              row.ComplianceRequirementID,
 			ResponsibleUnitID:                    row.ResponsibleUnitID,
+			IsRegulationNotificationAssessment:   row.IsRegulationNotificationAssessment,
+			IsRiskBasedAssessment:                row.IsRiskBasedAssessment,
 			ComplianceAssessmentFrameworkValueID: row.ComplianceAssessmentFrameworkValueID,
 			ResponsibleUnit:                      unit,
 		}
@@ -279,14 +281,12 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	complianceRequirement := &models.ComplianceRequirement{
 		ComplianceRequirementCategoryID: complianceRequirementFormDTO.ComplianceRequirementCategoryID,
 		// ComplianceStatusID:              complianceRequirementFormDTO.ComplianceStatusID,
-		SeverityLevelID:                    complianceRequirementFormDTO.SeverityLevelID,
-		TitleEn:                            complianceRequirementFormDTO.TitleEn,
-		TitleAr:                            complianceRequirementFormDTO.TitleAr,
-		Deadline:                           dates.Deadline,
-		IsRegulationNotificationAssessment: complianceRequirementFormDTO.IsRegulationNotificationAssessment,
-		IsRiskBasedAssessment:              complianceRequirementFormDTO.IsRiskBasedAssessment,
-		CreatedByID:                        currentUserID,
-		ComplianceClauseID:                 complianceRequirementFormDTO.ComplianceClauseID,
+		SeverityLevelID:    complianceRequirementFormDTO.SeverityLevelID,
+		TitleEn:            complianceRequirementFormDTO.TitleEn,
+		TitleAr:            complianceRequirementFormDTO.TitleAr,
+		Deadline:           dates.Deadline,
+		CreatedByID:        currentUserID,
+		ComplianceClauseID: complianceRequirementFormDTO.ComplianceClauseID,
 	}
 
 	id, err := crs.repo.Create(complianceRequirement, tx)
@@ -322,11 +322,13 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	// 	return 0, err
 	// }
 	var responsibleUnits []*models.ComplianceRequirementResponsibleUnit
-	for _, resUnitID := range complianceRequirementFormDTO.ResponsibleUnitIDs {
+	for _, resUnit := range complianceRequirementFormDTO.ResponsibleUnits {
 		unit := &models.ComplianceRequirementResponsibleUnit{
-			ComplianceRequirementID: id,
-			ResponsibleUnitID:       *resUnitID,
-			CreatedByID:             currentUserID,
+			ComplianceRequirementID:            id,
+			ResponsibleUnitID:                  resUnit.ResponsibleUnitID,
+			IsRegulationNotificationAssessment: resUnit.IsRegulationNotificationAssessment,
+			IsRiskBasedAssessment:              resUnit.IsRiskBasedAssessment,
+			CreatedByID:                        currentUserID,
 		}
 		responsibleUnits = append(responsibleUnits, unit)
 	}
@@ -568,8 +570,6 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	existingComplianceRequirement.TitleEn = complianceRequirementFormDTO.TitleEn
 	existingComplianceRequirement.TitleAr = complianceRequirementFormDTO.TitleAr
 	existingComplianceRequirement.Deadline = dates.Deadline
-	existingComplianceRequirement.IsRegulationNotificationAssessment = complianceRequirementFormDTO.IsRegulationNotificationAssessment
-	existingComplianceRequirement.IsRiskBasedAssessment = complianceRequirementFormDTO.IsRiskBasedAssessment
 	existingComplianceRequirement.UpdatedByID = &currentUserID
 
 	existingComplianceRequirement.ComplianceClause = nil // Reset preloaded association
@@ -586,27 +586,52 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		return err
 	}
 	// Get existing responsible unit IDs
-	existingUnitIDs := make(map[uint]uint) // map[unitID]recordID
+	existingUnitIDs := make(map[uint]uint) // map[responsibleUnitID]recordID
+	existingUnitAssessmentMap := make(map[uint]*complianceDTOs.ComplianceRequirementResponsibleUnitDTO)
 	for _, unit := range complianceRequirement.ResponsibleUnits {
-		if unit.ID != 0 {
-			existingUnitIDs[unit.ID] = unit.ID
+		if unit.ID != 0 && unit.ResponsibleUnitID != 0 {
+			existingUnitIDs[unit.ResponsibleUnitID] = unit.ID
+			existingUnitAssessmentMap[unit.ResponsibleUnitID] = unit
 		}
 	}
 
 	// Get new unit IDs from form
-	newUnitIDs := make(map[uint]bool)
-	for _, unitID := range complianceRequirementFormDTO.ResponsibleUnitIDs {
-		newUnitIDs[*unitID] = true
+	newUnitMap := make(map[uint]*complianceDTOs.ComplianceRequirementResponsibleUnitFormDTO)
+	for _, unit := range complianceRequirementFormDTO.ResponsibleUnits {
+		newUnitMap[unit.ResponsibleUnitID] = unit
 	}
 
 	// Add new responsible units
 	var unitsToAdd []*models.ComplianceRequirementResponsibleUnit
-	for _, unitID := range complianceRequirementFormDTO.ResponsibleUnitIDs {
-		if _, exists := existingUnitIDs[*unitID]; !exists {
+	var unitsToUpdate []*models.ComplianceRequirementResponsibleUnit
+	for _, unit := range complianceRequirementFormDTO.ResponsibleUnits {
+		if _, exists := existingUnitIDs[unit.ResponsibleUnitID]; !exists {
 			unitsToAdd = append(unitsToAdd, &models.ComplianceRequirementResponsibleUnit{
-				ComplianceRequirementID: id,
-				ResponsibleUnitID:       *unitID,
-				CreatedByID:             currentUserID,
+				ComplianceRequirementID:            id,
+				ResponsibleUnitID:                  unit.ResponsibleUnitID,
+				IsRegulationNotificationAssessment: unit.IsRegulationNotificationAssessment,
+				IsRiskBasedAssessment:              unit.IsRiskBasedAssessment,
+				CreatedByID:                        currentUserID,
+			})
+			continue
+		}
+
+		existingUnit := existingUnitAssessmentMap[unit.ResponsibleUnitID]
+		if existingUnit != nil &&
+			((existingUnit.IsRegulationNotificationAssessment == nil && unit.IsRegulationNotificationAssessment != nil) ||
+				(existingUnit.IsRegulationNotificationAssessment != nil && unit.IsRegulationNotificationAssessment == nil) ||
+				(existingUnit.IsRegulationNotificationAssessment != nil && unit.IsRegulationNotificationAssessment != nil && *existingUnit.IsRegulationNotificationAssessment != *unit.IsRegulationNotificationAssessment) ||
+				(existingUnit.IsRiskBasedAssessment == nil && unit.IsRiskBasedAssessment != nil) ||
+				(existingUnit.IsRiskBasedAssessment != nil && unit.IsRiskBasedAssessment == nil) ||
+				(existingUnit.IsRiskBasedAssessment != nil && unit.IsRiskBasedAssessment != nil && *existingUnit.IsRiskBasedAssessment != *unit.IsRiskBasedAssessment)) {
+			recordID := existingUnitIDs[unit.ResponsibleUnitID]
+			unitsToUpdate = append(unitsToUpdate, &models.ComplianceRequirementResponsibleUnit{
+				ID:                                 recordID,
+				ComplianceRequirementID:            id,
+				ResponsibleUnitID:                  unit.ResponsibleUnitID,
+				IsRegulationNotificationAssessment: unit.IsRegulationNotificationAssessment,
+				IsRiskBasedAssessment:              unit.IsRiskBasedAssessment,
+				UpdatedByID:                        &currentUserID,
 			})
 		}
 	}
@@ -616,11 +641,17 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 			return err
 		}
 	}
+	if len(unitsToUpdate) > 0 {
+		if err := crs.repo.UpdateComplianceRequirementResponsibleUnits(unitsToUpdate, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 
 	// Delete removed responsible units
 	var unitIDsToDelete []*uint
 	for unitID, recordID := range existingUnitIDs {
-		if _, exists := newUnitIDs[unitID]; !exists {
+		if _, exists := newUnitMap[unitID]; !exists {
 			idToDelete := uint(recordID)
 			unitIDsToDelete = append(unitIDsToDelete, &idToDelete)
 		}
@@ -930,11 +961,9 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		}
 		// log changes
 		oldData := map[string]interface{}{
-			"title":                                 oldComplianceRequirement.TitleEn,
-			"dead_line":                             oldComplianceRequirement.DeadlineString,
-			"compliance_clause":                     oldComplianceRequirement.ComplianceClause.TitleEn,
-			"is_regulation_notification_assessment": oldComplianceRequirement.IsRegulationNotificationAssessment,
-			"is_risk_based_assessment":              oldComplianceRequirement.IsRiskBasedAssessment,
+			"title":             oldComplianceRequirement.TitleEn,
+			"dead_line":         oldComplianceRequirement.DeadlineString,
+			"compliance_clause": oldComplianceRequirement.ComplianceClause.TitleEn,
 		}
 		// Add category title if exists
 		if oldComplianceRequirement.ComplianceRequirementCategory != nil {
@@ -947,11 +976,9 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		}
 
 		newData := map[string]interface{}{
-			"title":                                 existingRequirement.TitleEn,
-			"dead_line":                             existingRequirement.DeadlineString,
-			"compliance_clause":                     existingRequirement.ComplianceClause.TitleEn,
-			"is_regulation_notification_assessment": existingRequirement.IsRegulationNotificationAssessment,
-			"is_risk_based_assessment":              existingRequirement.IsRiskBasedAssessment,
+			"title":             existingRequirement.TitleEn,
+			"dead_line":         existingRequirement.DeadlineString,
+			"compliance_clause": existingRequirement.ComplianceClause.TitleEn,
 		}
 		// Add category title if exists
 		if existingRequirement.ComplianceRequirementCategory != nil {
@@ -1524,20 +1551,40 @@ func (crs *ComplianceRequirementService) DeleteInherentRiskAnalysis(complianceRe
 }
 
 func (crs *ComplianceRequirementService) validateComplianceRequirementFormDTO(ComplianceRequirementFormDTO *complianceDTOs.ComplianceRequirementFormDTO) error {
-	if ComplianceRequirementFormDTO.IsRegulationNotificationAssessment == nil {
+	if len(ComplianceRequirementFormDTO.ResponsibleUnits) == 0 {
 		return utility.NewValidationError(
-			fmt.Errorf("is regulation notification assessment is required"),
+			fmt.Errorf("at least one responsible unit is required"),
 			"required",
-			"is_regulation_notification_assessment",
+			"responsible_units",
 		)
 	}
 
-	if ComplianceRequirementFormDTO.IsRiskBasedAssessment == nil {
-		return utility.NewValidationError(
-			fmt.Errorf("is risk based assessment is required"),
-			"required",
-			"is_risk_based_assessment",
-		)
+	responsibleUnitIDs := make(map[uint]bool)
+	for _, responsibleUnit := range ComplianceRequirementFormDTO.ResponsibleUnits {
+		if responsibleUnit.ResponsibleUnitID == 0 {
+			return utility.NewValidationError(fmt.Errorf("responsible unit id is required"), "required", "responsible_unit_id")
+		}
+		if responsibleUnitIDs[responsibleUnit.ResponsibleUnitID] {
+			return utility.NewValidationError(fmt.Errorf("duplicate responsible unit ID: %d", responsibleUnit.ResponsibleUnitID), "duplicate", "responsible unit")
+		}
+		if responsibleUnit.IsRegulationNotificationAssessment == nil {
+			return utility.NewValidationError(
+				fmt.Errorf("is regulation notification assessment is required for responsible unit id: %d", responsibleUnit.ResponsibleUnitID),
+				"required",
+				"is_regulation_notification_assessment",
+			)
+		}
+		if responsibleUnit.IsRiskBasedAssessment == nil {
+			return utility.NewValidationError(
+				fmt.Errorf("is risk based assessment is required for responsible unit id: %d", responsibleUnit.ResponsibleUnitID),
+				"required",
+				"is_risk_based_assessment",
+			)
+		}
+		if _, err := crs.organizationUnitSvc.GetByID(responsibleUnit.ResponsibleUnitID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("responsible unit does not exist for ID: %d", responsibleUnit.ResponsibleUnitID), "not_exist", "responsible unit")
+		}
+		responsibleUnitIDs[responsibleUnit.ResponsibleUnitID] = true
 	}
 
 	if ComplianceRequirementFormDTO.ComplianceRequirementCategoryID != nil {
@@ -1828,12 +1875,20 @@ func (cs *ComplianceRequirementService) ImportRequirements(complianceID uint, in
 			}
 		}
 
-		// Convert []uint to []*uint
-		var responsibleUnitIDs []*uint
+		// Convert []uint to responsible units
+		var responsibleUnits []*complianceDTOs.ComplianceRequirementResponsibleUnitFormDTO
 		if ids, ok := record["responsible_unit_ids"].([]uint); ok {
+			isRegulationNotificationAssessment := record["is_regulation_notification_assessment"].(bool)
+			isRiskBasedAssessment := record["is_risk_based_assessment"].(bool)
+
 			for _, id := range ids {
-				idCopy := id // prevent pointer reuse
-				responsibleUnitIDs = append(responsibleUnitIDs, &idCopy)
+				regulationNotificationAssessment := isRegulationNotificationAssessment
+				riskBasedAssessment := isRiskBasedAssessment
+				responsibleUnits = append(responsibleUnits, &complianceDTOs.ComplianceRequirementResponsibleUnitFormDTO{
+					ResponsibleUnitID:                  id,
+					IsRegulationNotificationAssessment: &regulationNotificationAssessment,
+					IsRiskBasedAssessment:              &riskBasedAssessment,
+				})
 			}
 		}
 
@@ -1844,20 +1899,15 @@ func (cs *ComplianceRequirementService) ImportRequirements(complianceID uint, in
 				requiredDocumentIDs = append(requiredDocumentIDs, &idCopy)
 			}
 		}
-		isRegulationNotificationAssessment := record["is_regulation_notification_assessment"].(bool)
-		isRiskBasedAssessment := record["is_risk_based_assessment"].(bool)
-
 		dto := &complianceDTOs.ComplianceRequirementFormDTO{
-			ComplianceClauseID:                 record["clause_id"].(uint),
-			TitleEn:                            record["title_en"].(string),
-			TitleAr:                            record["title_ar"].(string),
-			ComplianceRequirementCategoryID:    utility.GetOptionalUintValue(record["category_id"]),
-			SeverityLevelID:                    utility.GetOptionalUintValue(record["severity_level_id"]),
-			Deadline:                           deadlineStr,
-			IsRegulationNotificationAssessment: &isRegulationNotificationAssessment,
-			IsRiskBasedAssessment:              &isRiskBasedAssessment,
-			RequiredDocumentTitleIDs:           requiredDocumentIDs,
-			ResponsibleUnitIDs:                 responsibleUnitIDs,
+			ComplianceClauseID:              record["clause_id"].(uint),
+			TitleEn:                         record["title_en"].(string),
+			TitleAr:                         record["title_ar"].(string),
+			ComplianceRequirementCategoryID: utility.GetOptionalUintValue(record["category_id"]),
+			SeverityLevelID:                 utility.GetOptionalUintValue(record["severity_level_id"]),
+			Deadline:                        deadlineStr,
+			RequiredDocumentTitleIDs:        requiredDocumentIDs,
+			ResponsibleUnits:                responsibleUnits,
 		}
 
 		id, err := cs.Create(complianceID, currentUserID, dto)

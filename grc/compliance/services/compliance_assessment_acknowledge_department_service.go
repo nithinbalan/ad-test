@@ -50,68 +50,43 @@ func NewComplianceAssessmentAcknowledgeDepartmentService(
 }
 
 func (caads *ComplianceAssessmentAcknowledgeDepartmentService) GetAll(assessmentID uint, currentUserID uint, params *complianceDTOs.ComplianceAssessmentAcknowledgeListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentAcknowledgementListResponseDTO, error) {
-	// Get assessment details to check if it's public or shared
-	assessment, err := caads.assessmentSvc.GetFullDetailsByID(assessmentID, nil)
+	if err := caads.ensureRegulationAcknowledgementApplicable(assessmentID); err != nil {
+		return nil, err
+	}
+
+	primaryOrgUnitField, err := caads.getPrimaryOrgUnitField()
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if the compliance register has IsRegulationNotificationAssessment = true
-	// if !assessment.ComplianceRegister.IsRegulationNotificationAssessment {
-	// 	return nil, fmt.Errorf("assessment is not a regulation notification assessment")
-	// }
-
-	// Get organization level settings to determine primary org unit field
-	orgLevel, err := caads.organizationLevelSvc.GetPrimaryLevel()
-	if err != nil {
-		return nil, err
-	}
-
-	primaryOrgUnitField := "organization_unit_1_id"
-	if orgLevel.Level == 2 {
-		primaryOrgUnitField = "organization_unit_2_id"
-	} else if orgLevel.Level == 3 {
-		primaryOrgUnitField = "organization_unit_3_id"
-	}
-
-	// Check if it's public or shared
-	if assessment.ComplianceRegister.IsPublic {
-		// For public assessments, get all active departments
-		return caads.repo.GetAllForPublicAssessment(assessmentID, nil, primaryOrgUnitField, params)
-	} else if assessment.ComplianceRegister.IsShared {
-		// For shared assessments, try to get shared departments first
-		result, err := caads.repo.GetAllForSharedAssessment(assessmentID, uint(assessment.ComplianceRegister.ID), nil, primaryOrgUnitField, params)
-		if err != nil {
-			return nil, err
-		}
-		return result, nil
-	} else {
-		// For non-public/non-shared assessments, use the same active filter as public
-		return caads.repo.GetAllForPublicAssessment(assessmentID, nil, primaryOrgUnitField, params)
-	}
+	// Keep existing visibility behavior by returning the full eligible department set.
+	_ = currentUserID
+	return caads.repo.GetAllForRegulationAssessment(assessmentID, nil, primaryOrgUnitField, params)
 }
 
 func (caads *ComplianceAssessmentAcknowledgeDepartmentService) Create(assessmentID uint, currentUserID uint, acknowledgeFormDTO *complianceDTOs.ComplianceAssessmentAcknowledgeFormDTO) (uint, error) {
 	tx := caads.repo.BeginTransaction()
 
-	// Get assessment details
-	assessment, err := caads.assessmentSvc.GetFullDetailsByID(assessmentID, nil)
-	if err != nil {
+	if err := caads.ensureRegulationAcknowledgementApplicable(assessmentID, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
-
-	// Check if the compliance register has IsRegulationNotificationAssessment = true
-	// if !assessment.ComplianceRegister.IsRegulationNotificationAssessment {
-	// 	tx.Rollback()
-	// 	return 0, utility.NewForbiddenError("assessment_is_not_a_regulation_notification_assessment")
-	// }
 
 	// Get user's primary organization unit ID
 	organizationUnitID, err := caads.userSvc.GetUserPrimaryUnitID(currentUserID)
 	if err != nil {
 		tx.Rollback()
 		return 0, utility.NewForbiddenError("organization_unit_not_set_for_user")
+	}
+
+	isEligibleDepartment, err := caads.repo.IsDepartmentEligibleForRegulationAcknowledgement(assessmentID, organizationUnitID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	if !isEligibleDepartment {
+		tx.Rollback()
+		return 0, utility.NewForbiddenError("user_not_part_of_regulation_requirement_responsible_unit")
 	}
 
 	// Check if department already has an acknowledgment
@@ -143,22 +118,8 @@ func (caads *ComplianceAssessmentAcknowledgeDepartmentService) Create(assessment
 		return 0, err
 	}
 
-	// Get organization level settings to determine primary org unit field
-	orgLevel, err := caads.organizationLevelSvc.GetPrimaryLevel()
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-
-	primaryOrgUnitField := "organization_unit_1_id"
-	if orgLevel.Level == 2 {
-		primaryOrgUnitField = "organization_unit_2_id"
-	} else if orgLevel.Level == 3 {
-		primaryOrgUnitField = "organization_unit_3_id"
-	}
-
 	// Check if all departments have acknowledged within the transaction
-	allAcknowledged, err := caads.repo.CheckAllDepartmentsAcknowledged(assessmentID, primaryOrgUnitField, assessment.ComplianceRegister.IsPublic, assessment.ComplianceRegister.IsShared, uint(assessment.ComplianceRegister.ID), tx)
+	allAcknowledged, err := caads.repo.CheckAllEligibleDepartmentsAcknowledged(assessmentID, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -224,18 +185,10 @@ func (caads *ComplianceAssessmentAcknowledgeDepartmentService) Delete(assessment
 	tx := caads.repo.BeginTransaction()
 	var deletedUser []map[string]interface{}
 
-	// Get assessment details
-	// assessment, err := caads.assessmentSvc.GetFullDetailsByID(assessmentID, nil)
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return 0, err
-	// }
-	//
-	// Check if the compliance register has IsRegulationNotificationAssessment = true
-	// if !assessment.ComplianceRegister.IsRegulationNotificationAssessment {
-	// 	tx.Rollback()
-	// 	return 0, utility.NewForbiddenError("assessment_is_not_a_regulation_notification_assessment")
-	// }
+	if err := caads.ensureRegulationAcknowledgementApplicable(assessmentID, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 
 	// Get user's primary organization unit ID
 	organizationUnitID, err := caads.userSvc.GetUserPrimaryUnitID(currentUserID)
@@ -297,74 +250,60 @@ func (caads *ComplianceAssessmentAcknowledgeDepartmentService) Delete(assessment
 }
 
 func (caads *ComplianceAssessmentAcknowledgeDepartmentService) GetAssessmentAcknowledgmentSummary(assessmentID uint) (*complianceDTOs.ComplianceAssessmentAcknowledgmentSummaryDTO, error) {
-	// Get assessment details
-	assessment, err := caads.assessmentSvc.GetFullDetailsByID(assessmentID, nil)
-	if err != nil {
+	if err := caads.ensureRegulationAcknowledgementApplicable(assessmentID); err != nil {
 		return nil, err
 	}
 
-	// Check if the compliance register has IsRegulationNotificationAssessment = true
-	// if !assessment.ComplianceRegister.IsRegulationNotificationAssessment {
-	// 	return nil, utility.NewForbiddenError("assessment_is_not_a_regulation_notification_assessment")
-	// }
-
-	// Get organization level settings
-	orgLevel, err := caads.organizationLevelSvc.GetPrimaryLevel()
-	if err != nil {
-		return nil, err
-	}
-
-	primaryOrgUnitField := "organization_unit_1_id"
-	if orgLevel.Level == 2 {
-		primaryOrgUnitField = "organization_unit_2_id"
-	} else if orgLevel.Level == 3 {
-		primaryOrgUnitField = "organization_unit_3_id"
-	}
-
-	// Check if it's public or shared
-	if assessment.ComplianceRegister.IsPublic {
-		// For public assessments, get summary for all active departments
-		return caads.repo.GetPublicAssessmentAcknowledgmentSummary(assessmentID)
-	} else if assessment.ComplianceRegister.IsShared {
-		// For shared assessments, get summary only for shared departments
-		return caads.repo.GetSharedAssessmentAcknowledgmentSummary(assessmentID, uint(assessment.ComplianceRegister.ID))
-	} else {
-		// For non-public/non-shared assessments, get summary based on organization unit
-		return caads.repo.GetAssessmentAcknowledgmentSummary(assessmentID, primaryOrgUnitField)
-	}
+	return caads.repo.GetRegulationAssessmentAcknowledgmentSummary(assessmentID)
 }
 
 func (caads *ComplianceAssessmentAcknowledgeDepartmentService) GetAssessmentAcknowledgmentSummaryByOrgUnit(assessmentID uint) ([]complianceDTOs.ComplianceAssessmentAcknowledgmentOrgUnitSummaryDTO, error) {
-	// Get assessment details
-	assessment, err := caads.assessmentSvc.GetFullDetailsByID(assessmentID, nil)
+	if err := caads.ensureRegulationAcknowledgementApplicable(assessmentID); err != nil {
+		return nil, err
+	}
+
+	primaryOrgUnitField, err := caads.getPrimaryOrgUnitField()
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if the compliance register has IsRegulationNotificationAssessment = true
-	// if !assessment.ComplianceRegister.IsRegulationNotificationAssessment {
-	// 	return nil, utility.NewForbiddenError("assessment_is_not_a_regulation_notification_assessment")
-	// }
+	return caads.repo.GetRegulationOrgUnitAcknowledgmentSummary(assessmentID, primaryOrgUnitField)
+}
 
-	// Get organization level settings
+func (caads *ComplianceAssessmentAcknowledgeDepartmentService) ensureRegulationAcknowledgementApplicable(assessmentID uint, tx ...utility.DatabaseTransaction) error {
+	if _, err := caads.assessmentSvc.GetByID(assessmentID); err != nil {
+		return err
+	}
+
+	hasRegulationRequirements, err := caads.repo.HasRegulationNotificationRequirements(assessmentID, tx...)
+	if err != nil {
+		return err
+	}
+	if !hasRegulationRequirements {
+		return utility.NewForbiddenError("assessment_is_not_a_regulation_notification_assessment")
+	}
+
+	return nil
+}
+
+func (caads *ComplianceAssessmentAcknowledgeDepartmentService) getPrimaryOrgUnitField() (string, error) {
 	orgLevel, err := caads.organizationLevelSvc.GetPrimaryLevel()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	primaryOrgUnitField := "organization_unit_1_id"
-	if orgLevel.Level == 2 {
-		primaryOrgUnitField = "organization_unit_2_id"
-	} else if orgLevel.Level == 3 {
-		primaryOrgUnitField = "organization_unit_3_id"
-	}
-
-	// Check if it's public or shared
-	if assessment.ComplianceRegister.IsPublic {
-		// For public assessments, get summary for all organization units
-		return caads.repo.GetPublicAcknowledgmentSummaryByOrgUnit(assessmentID)
-	} else {
-		// For non-public assessments, get summary based on organization unit
-		return caads.repo.GetOrgUnitAcknowledgmentSummary(assessmentID, primaryOrgUnitField)
+	switch orgLevel.Level {
+	case 1:
+		return "organization_unit_1_id", nil
+	case 2:
+		return "organization_unit_2_id", nil
+	case 3:
+		return "organization_unit_3_id", nil
+	case 4:
+		return "organization_unit_4_id", nil
+	case 5:
+		return "organization_unit_5_id", nil
+	default:
+		return "", fmt.Errorf("unsupported primary level")
 	}
 }

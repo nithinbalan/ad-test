@@ -65,8 +65,14 @@ func (caadc *ComplianceAssessmentAcknowledgeDepartmentController) GetAllAcknowle
 
 	acknowledgements, err := caadc.service.GetAll(uint(assessmentID), currentUserID, &queryParams)
 	if err != nil {
-		utility.SendInternalErrResp(caadc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(caadc.db, c, err.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, acknowledgements)
@@ -98,6 +104,9 @@ func (caadc *ComplianceAssessmentAcknowledgeDepartmentController) CreateAcknowle
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(caadc.db, c, e.Error())
 			return
@@ -126,8 +135,14 @@ func (caadc *ComplianceAssessmentAcknowledgeDepartmentController) DeleteAcknowle
 
 	userID, err := caadc.service.Delete(uint(assessmentID), currentUserID)
 	if err != nil {
-		utility.SendInternalErrResp(caadc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(caadc.db, c, err.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -146,8 +161,14 @@ func (caadc *ComplianceAssessmentAcknowledgeDepartmentController) GetAcknowledge
 
 	summary, err := caadc.service.GetAssessmentAcknowledgmentSummary(uint(assessmentID))
 	if err != nil {
-		utility.SendInternalErrResp(caadc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(caadc.db, c, err.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, summary)
@@ -163,8 +184,14 @@ func (caadc *ComplianceAssessmentAcknowledgeDepartmentController) GetAcknowledge
 
 	summaries, err := caadc.service.GetAssessmentAcknowledgmentSummaryByOrgUnit(uint(assessmentID))
 	if err != nil {
-		utility.SendInternalErrResp(caadc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(caadc.db, c, err.Error())
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, summaries)

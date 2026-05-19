@@ -19,6 +19,7 @@ type ComplianceAssessmentRequirementRepositoryInterface interface {
 	GetAllClauses(assessmentID uint, currentUserID uint) ([]*models.ComplianceClause, error)
 	GetClauseRequirementCounts(assessmentID uint) (map[uint]complianceDTOs.ClauseRequirementCountDTO, error)
 	GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentRequirementListResponseDTO, error)
+	GetResponsibleUnitRowsByAssessmentRequirementIDs(assessmentRequirementIDs []uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO, out *[]complianceDTOs.ComplianceAssessmentRequirementResponsibleUnitListRowDTO) error
 	GetByID(id uint) (*models.ComplianceAssessmentRequirement, error)
 	GetFullDetailsByID(requirementId uint, responsibleUnitID uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessmentRequirement, error)
 	Update(complianceAssessmentRequirement *models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) error
@@ -158,13 +159,29 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 	}
 	if params.IsRegulationNotificationAssessment != nil {
 		query = query.Where(
-			"compliance_requirements.is_regulation_notification_assessment = ?",
+			`EXISTS (
+				SELECT 1
+				FROM compliance_assessment_requirement_responsible_units carru
+				JOIN compliance_requirement_responsible_units crru
+					ON crru.compliance_requirement_id = compliance_assessment_requirements.compliance_requirement_id
+					AND crru.responsible_unit_id = carru.responsible_unit_id
+				WHERE carru.compliance_assessment_requirement_id = compliance_assessment_requirements.id
+				  AND crru.is_regulation_notification_assessment = ?
+			)`,
 			*params.IsRegulationNotificationAssessment,
 		)
 	}
 	if params.IsRiskBasedAssessment != nil {
 		query = query.Where(
-			"compliance_requirements.is_risk_based_assessment = ?",
+			`EXISTS (
+				SELECT 1
+				FROM compliance_assessment_requirement_responsible_units carru
+				JOIN compliance_requirement_responsible_units crru
+					ON crru.compliance_requirement_id = compliance_assessment_requirements.compliance_requirement_id
+					AND crru.responsible_unit_id = carru.responsible_unit_id
+				WHERE carru.compliance_assessment_requirement_id = compliance_assessment_requirements.id
+				  AND crru.is_risk_based_assessment = ?
+			)`,
 			*params.IsRiskBasedAssessment,
 		)
 	}
@@ -240,6 +257,39 @@ func (repo *ComplianceAssessmentRequirementRepository) GetAll(assessmentID uint,
 		},
 	}
 	return response, nil
+}
+
+func (repo *ComplianceAssessmentRequirementRepository) GetResponsibleUnitRowsByAssessmentRequirementIDs(assessmentRequirementIDs []uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO, out *[]complianceDTOs.ComplianceAssessmentRequirementResponsibleUnitListRowDTO) error {
+	if len(assessmentRequirementIDs) == 0 {
+		return nil
+	}
+
+	query := repo.db.Table("compliance_assessment_requirement_responsible_units carru").
+		Select(`
+			carru.id,
+			carru.compliance_assessment_requirement_id as assessment_requirement_id,
+			carru.responsible_unit_id,
+			crru.is_regulation_notification_assessment,
+			crru.is_risk_based_assessment,
+			ou.title_en,
+			ou.title_ar,
+			ou.status,
+			ou.color_code,
+			ou.organization_unit_id as parent_id
+		`).
+		Joins("JOIN compliance_assessment_requirements car ON car.id = carru.compliance_assessment_requirement_id").
+		Joins("JOIN compliance_requirement_responsible_units crru ON crru.compliance_requirement_id = car.compliance_requirement_id AND crru.responsible_unit_id = carru.responsible_unit_id").
+		Joins("JOIN organization_units ou ON ou.id = carru.responsible_unit_id").
+		Where("carru.compliance_assessment_requirement_id IN ?", assessmentRequirementIDs)
+
+	if params != nil && params.IsRegulationNotificationAssessment != nil {
+		query = query.Where("crru.is_regulation_notification_assessment = ?", *params.IsRegulationNotificationAssessment)
+	}
+	if params != nil && params.IsRiskBasedAssessment != nil {
+		query = query.Where("crru.is_risk_based_assessment = ?", *params.IsRiskBasedAssessment)
+	}
+
+	return query.Scan(out).Error
 }
 
 func (repo *ComplianceAssessmentRequirementRepository) GetByID(id uint) (*models.ComplianceAssessmentRequirement, error) {
