@@ -631,8 +631,8 @@ func (repo *RiskUpdatePlanERMDeptRepository) GetERMDeptEvaluationControls(timeli
 			GROUP BY ct.control_id
 		) AS latest_ct_ids ON latest_ct_ids.control_id = c.id`).
 		Joins("LEFT JOIN control_tests AS latest_ct ON latest_ct.id = latest_ct_ids.latest_test_id").
-		Joins("LEFT JOIN control_automations ON control_automations.id = latest_ct.control_automation_id").
-		Joins("LEFT JOIN control_consistencies ON control_consistencies.id = latest_ct.control_consistency_id").
+		Joins("LEFT JOIN control_automations AS ca ON ca.id = latest_ct.control_automation_id").
+		Joins("LEFT JOIN control_consistencies AS ccon ON ccon.id = latest_ct.control_consistency_id").
 		Joins("LEFT JOIN users AS ct_tested_by ON ct_tested_by.id = latest_ct.tested_by").
 		Where("rupc.risk_update_plan_timeline_id = ?", timelineID)
 
