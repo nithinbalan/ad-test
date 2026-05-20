@@ -66,13 +66,20 @@ func main() {
 
 	db := config.GetDatabaseInstance() // Obtain the database instance
 
+	// Reconcile any stale pending api_request_logs rows left over from a previous
+	// run that never reached the final UPDATE — mark them failed so they stand out
+	// as crash suspects and don't match newly-created pending rows.
+	middlewares.SweepStalePendingAPILogs(db)
+
 	app := initializers.NewApp(db)
 
 	r.Use(middlewares.CORSMiddleware())
 	r.Use(middlewares.LocalizerMiddleware(bundle))
 	r.Use(middlewares.RecoveryWithDatabaseLog(db))
+	r.Use(middlewares.RequestID())
 	r.Use(middlewares.ThrottleMiddleware(10, 20))
 	r.Use(middlewares.LicenseMiddleware(db))
+	r.Use(middlewares.APILoggingMiddleware(db))
 
 	masterRoutes.RegisterRoutes(app, r)
 	logRoutes.RegisterRoutes(app, r)
