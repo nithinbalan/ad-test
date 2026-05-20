@@ -34,6 +34,7 @@ type KRIRegisterServiceInterface interface {
 
 	ExportKriRegister(data []*riskDTOs.KRIRegisterListDTO, currentUserID uint) (*os.File, error)
 	GetTrendAnalysis(kriID uint, limit int) ([]*riskDTOs.KRITrendAnalysisDTO, error)
+	GetAllFrequencyValues(kriRegisterID uint) ([]*riskDTOs.KRIFrequencyValueListDTO, error)
 
 	DetermineRiskLevel(value int, lowThreshold, mediumThreshold *int) (*models.RiskLevel, error)
 }
@@ -194,23 +195,23 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 	}
 	organizationUnitID = unitID
 
-	var riskLevelID *uint
-	if kriRegisterFormDTO.CurrentValue != nil {
-		riskLevel, err := krs.DetermineRiskLevel(*kriRegisterFormDTO.CurrentValue, kriRegisterFormDTO.LowThreshold, kriRegisterFormDTO.MediumThreshold)
-		if err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-		riskLevelID = &riskLevel.ID
-	}
+	// var riskLevelID *uint
+	// if kriRegisterFormDTO.CurrentValue != nil {
+	// 	riskLevel, err := krs.DetermineRiskLevel(*kriRegisterFormDTO.CurrentValue, kriRegisterFormDTO.LowThreshold, kriRegisterFormDTO.MediumThreshold)
+	// 	if err != nil {
+	// 		tx.Rollback()
+	// 		return 0, err
+	// 	}
+	// 	riskLevelID = &riskLevel.ID
+	// }
 
 	kriRegister := &models.KRIRegister{
-		ReferenceNumber:              &referenceNumber,
-		KRICategoryID:                kriRegisterFormDTO.KRICategoryID,
-		ResponsibleUnitID:            organizationUnitID,
-		ResponsibleUserID:            kriRegisterFormDTO.ResponsibleUserID,
-		ReviewFrequencyID:            kriRegisterFormDTO.ReviewFrequencyID,
-		RiskLevelID:                  riskLevelID,
+		ReferenceNumber:   &referenceNumber,
+		KRICategoryID:     kriRegisterFormDTO.KRICategoryID,
+		ResponsibleUnitID: organizationUnitID,
+		ResponsibleUserID: kriRegisterFormDTO.ResponsibleUserID,
+		ReviewFrequencyID: kriRegisterFormDTO.ReviewFrequencyID,
+		// RiskLevelID:                  riskLevelID,
 		UnitID:                       &kriRegisterFormDTO.UnitID,
 		LevelOfMeasurementID:         kriRegisterFormDTO.LevelOfMeasurementID,
 		RiskResponsibleUnitID:        kriRegisterFormDTO.RiskResponsibleUnitID,
@@ -229,6 +230,8 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 		MinimumSusceptibilityPercent: kriRegisterFormDTO.MinimumSusceptibilityPercent,
 		MaximumSusceptibilityPercent: kriRegisterFormDTO.MaximumSusceptibilityPercent,
 		MaximumTolerablePercent:      kriRegisterFormDTO.MaximumTolerablePercent,
+		IsLowerBetter:                kriRegisterFormDTO.IsLowerBetter,
+		IsHigherBetter:               kriRegisterFormDTO.IsHigherBetter,
 		CreatedBYID:                  currentUserID,
 		UpdatedAt:                    nil,
 	}
@@ -263,6 +266,15 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 	if err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	// Process frequency values if provided
+	if len(kriRegisterFormDTO.FrequencyValues) > 0 {
+		err = krs.processFrequencyValues(id, kriRegisterFormDTO.ReviewFrequencyID, kriRegisterFormDTO.FrequencyValues, currentUserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -414,6 +426,8 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 	existingKRIRegister.MinimumSusceptibilityPercent = kriRegisterFormDTO.MinimumSusceptibilityPercent
 	existingKRIRegister.MaximumSusceptibilityPercent = kriRegisterFormDTO.MaximumSusceptibilityPercent
 	existingKRIRegister.MaximumTolerablePercent = kriRegisterFormDTO.MaximumTolerablePercent
+	existingKRIRegister.IsLowerBetter = kriRegisterFormDTO.IsLowerBetter
+	existingKRIRegister.IsHigherBetter = kriRegisterFormDTO.IsHigherBetter
 
 	if kriRegisterFormDTO.LastReviewedDate != "" {
 		existingKRIRegister.LastReviewedDate = dates.LastReviewedDate
@@ -422,8 +436,32 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 	existingKRIRegister.LastReviewNote = kriRegisterFormDTO.LastReviewNote
 	existingKRIRegister.UpdatedBYID = &currentUserID
 
-	err = krs.repo.Update(existingKRIRegister)
+	tx := krs.repo.BeginTransaction()
+
+	err = krs.repo.Update(existingKRIRegister, tx)
 	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Handle frequency values update
+	if len(kriRegisterFormDTO.FrequencyValues) > 0 {
+		// Delete existing frequency values
+		err = krs.repo.DeleteFrequencyValuesByKRIID(id, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// Create new frequency values
+		err = krs.processFrequencyValues(id, kriRegisterFormDTO.ReviewFrequencyID, kriRegisterFormDTO.FrequencyValues, currentUserID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
 		return err
 	}
 
@@ -726,6 +764,12 @@ func (krs *KRIRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, e
 			continue
 		}
 
+		// Delete frequency values
+		if err := krs.repo.DeleteFrequencyValuesByKRIID(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
 		err = krs.repo.Delete(id, tx)
 		if err != nil {
 			failedIds = append(failedIds, id)
@@ -873,43 +917,6 @@ func (krs *KRIRegisterService) validateKRIRegisterFormDTO(kriRegisterFormDTO *ri
 	if kriRegisterFormDTO.DistributionStatusID != nil {
 		if _, err := krs.distributionSvc.GetByID(*kriRegisterFormDTO.DistributionStatusID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("distribution status does not exist"), "not_exist", "distribution status")
-		}
-	}
-
-	// Susceptibility fields: range check (0–100)
-	if kriRegisterFormDTO.MinimumSusceptibilityPercent != nil {
-		if *kriRegisterFormDTO.MinimumSusceptibilityPercent < 0 || *kriRegisterFormDTO.MinimumSusceptibilityPercent > 100 {
-			return utility.NewValidationError(fmt.Errorf("minimum susceptibility must be between 0 and 100"), "out_of_range", "minimum susceptibility")
-		}
-	}
-	if kriRegisterFormDTO.MaximumSusceptibilityPercent != nil {
-		if *kriRegisterFormDTO.MaximumSusceptibilityPercent < 0 || *kriRegisterFormDTO.MaximumSusceptibilityPercent > 100 {
-			return utility.NewValidationError(fmt.Errorf("maximum susceptibility must be between 0 and 100"), "out_of_range", "maximum susceptibility")
-		}
-	}
-	if kriRegisterFormDTO.MaximumTolerablePercent != nil {
-		if *kriRegisterFormDTO.MaximumTolerablePercent < 0 || *kriRegisterFormDTO.MaximumTolerablePercent > 100 {
-			return utility.NewValidationError(fmt.Errorf("maximum tolerable must be between 0 and 100"), "out_of_range", "maximum tolerable")
-		}
-	}
-
-	// Ordering constraint: maximum_tolerable_percent < maximum_susceptibility_percent < minimum_susceptibility_percent
-	if kriRegisterFormDTO.MaximumSusceptibilityPercent != nil && kriRegisterFormDTO.MinimumSusceptibilityPercent != nil {
-		if *kriRegisterFormDTO.MaximumSusceptibilityPercent >= *kriRegisterFormDTO.MinimumSusceptibilityPercent {
-			return utility.NewValidationError(
-				fmt.Errorf("maximum_susceptibility_percent must be less than minimum_susceptibility_percent"),
-				"kri_maximum_susceptibility_percent_invalid_range",
-				"maximum_susceptibility_percent",
-			)
-		}
-	}
-	if kriRegisterFormDTO.MaximumTolerablePercent != nil && kriRegisterFormDTO.MaximumSusceptibilityPercent != nil {
-		if *kriRegisterFormDTO.MaximumTolerablePercent >= *kriRegisterFormDTO.MaximumSusceptibilityPercent {
-			return utility.NewValidationError(
-				fmt.Errorf("maximum_tolerable_percent must be less than maximum_susceptibility_percent"),
-				"kri_maximum_tolerable_percent_invalid_range",
-				"maximum_tolerable_percent",
-			)
 		}
 	}
 
@@ -1146,4 +1153,77 @@ func (krs *KRIRegisterService) ForceDelete(ids []uint, currentUserID uint) ([]ui
 	}()
 
 	return nil, nil
+}
+
+// Helper function to get month name in English and Arabic
+func getMonthNames(monthType string) (string, string) {
+	monthMap := map[string][2]string{
+		"jan": {"Jan", "يناير"},
+		"feb": {"Feb", "فبراير"},
+		"mar": {"Mar", "مارس"},
+		"apr": {"Apr", "أبريل"},
+		"may": {"May", "مايو"},
+		"jun": {"Jun", "يونيو"},
+		"jul": {"Jul", "يوليو"},
+		"aug": {"Aug", "أغسطس"},
+		"sep": {"Sep", "سبتمبر"},
+		"oct": {"Oct", "أكتوبر"},
+		"nov": {"Nov", "نوفمبر"},
+		"dec": {"Dec", "ديسمبر"},
+	}
+
+	if names, ok := monthMap[monthType]; ok {
+		return names[0], names[1]
+	}
+	return "", ""
+}
+
+// Helper function to process frequency values based on review frequency type
+func (krs *KRIRegisterService) processFrequencyValues(kriRegisterID uint, reviewFrequencyID uint, frequencyValues []*riskDTOs.FrequencyValueFormDTO, currentUserID uint, tx utility.DatabaseTransaction) error {
+	// Get review frequency to check type
+	reviewFrequency, err := krs.reviewFrequencySvc.GetByID(reviewFrequencyID)
+	if err != nil {
+		return err
+	}
+
+	// Only process if review frequency is monthly or quarterly
+	if reviewFrequency.Type != "monthly" && reviewFrequency.Type != "quarterly" {
+		return nil
+	}
+
+	// Validate frequency values based on type
+	if reviewFrequency.Type == "monthly" && len(frequencyValues) != 12 {
+		return utility.NewValidationError(fmt.Errorf("monthly frequency requires 12 values"), "invalid_count", "frequency_values")
+	}
+	if reviewFrequency.Type == "quarterly" && len(frequencyValues) != 4 {
+		return utility.NewValidationError(fmt.Errorf("quarterly frequency requires 4 values (mar, jun, sep, dec)"), "invalid_count", "frequency_values")
+	}
+
+	// Create frequency value records
+	var kriFrequencyValues []*models.KRIFrequencyValue
+	currentYear := time.Now().Year()
+	for _, fv := range frequencyValues {
+		monthEn, monthAr := getMonthNames(fv.Type)
+		if monthEn == "" {
+			return utility.NewValidationError(fmt.Errorf("invalid month type: %s", fv.Type), "invalid_type", "frequency_values")
+		}
+
+		kriFrequencyValue := &models.KRIFrequencyValue{
+			KRIRegisterID: kriRegisterID,
+			Year:          currentYear,
+			MonthEn:       monthEn,
+			MonthAr:       monthAr,
+			Type:          fv.Type,
+			TargetValue:   fv.TargetValue,
+			CreatedBYID:   &currentUserID,
+			CreatedAt:     time.Now(),
+		}
+		kriFrequencyValues = append(kriFrequencyValues, kriFrequencyValue)
+	}
+
+	return krs.repo.CreateFrequencyValues(kriFrequencyValues, tx)
+}
+
+func (krs *KRIRegisterService) GetAllFrequencyValues(kriRegisterID uint) ([]*riskDTOs.KRIFrequencyValueListDTO, error) {
+	return krs.repo.GetAllFrequencyValues(kriRegisterID)
 }

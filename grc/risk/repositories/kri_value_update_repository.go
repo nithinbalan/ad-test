@@ -27,6 +27,10 @@ type KRIValueUpdateRepositoryInterface interface {
 	GetNextKRIValueUpdate(kriRegisterID uint, deletedIDs []uint, tx ...utility.DatabaseTransaction) (*models.KRIValueUpdate, error)
 
 	SetAllIsLatestFalse(kriRegisterID uint, tx ...utility.DatabaseTransaction) error
+
+	UpdateFrequencyValueActualValue(frequencyValueID uint, actualValue int, tx ...utility.DatabaseTransaction) error
+	UpdateFrequencyValueComplete(frequencyValueID uint, actualValue float64, achievementValue float64, toleranceStatusID *uint, isAchieved bool, isMissed bool, tx ...utility.DatabaseTransaction) error
+	GetFrequencyValueByID(frequencyValueID uint, tx ...utility.DatabaseTransaction) (*models.KRIFrequencyValue, error)
 }
 
 type KRIValueUpdateRepository struct {
@@ -56,6 +60,21 @@ func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTO
 			risk_levels.title_en AS risk_level_title_en,
 			risk_levels.title_ar AS risk_level_title_ar,
 			risk_levels.color_code AS risk_level_color_code,
+			kri_frequency_values.id AS kri_frequency_value_id,
+			kri_frequency_values.year AS kri_frequency_value_year,
+			kri_frequency_values.month_en AS kri_frequency_value_month_en,
+			kri_frequency_values.month_ar AS kri_frequency_value_month_ar,
+			kri_frequency_values.type AS kri_frequency_value_type,
+			kri_frequency_values.target_value AS kri_frequency_value_target,
+			kri_frequency_values.actual_value AS kri_frequency_value_actual,
+			kri_frequency_values.achievement_value AS kri_frequency_value_achievement,
+			kri_frequency_values.is_achieved AS kri_frequency_value_is_achieved,
+			kri_frequency_values.is_missed AS kri_frequency_value_is_missed,
+			kri_frequency_values.risk_tolerance_status_id AS kri_frequency_value_tolerance_status_id,
+			kri_risk_tolerance_statuses.color_code AS kri_frequency_value_tolerance_status_color_code,
+			kri_risk_tolerance_statuses.title_en AS kri_frequency_value_tolerance_status_title_en,
+			kri_risk_tolerance_statuses.title_ar AS kri_frequency_value_tolerance_status_title_ar,
+			kri_risk_tolerance_statuses.type AS kri_frequency_value_tolerance_status_type,
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
 			created_user.first_name_ar AS created_user_first_name_ar,
@@ -73,11 +92,13 @@ func (repo *KRIValueUpdateRepository) GetAll(kriRegisterID uint, params *riskDTO
 			updated_user.initial AS updated_user_initial,
 			updated_user.color AS updated_user_color,
 			updated_user.email AS updated_user_email,
-			updated_user.profile_image_path AS updated_user_profile_image_path       
+			updated_user.profile_image_path AS updated_user_profile_image_path
         `).
 		Joins(`
 		    LEFT JOIN kri_register ON kri_register.id = kri_value_updates.kri_register_id
 			LEFT JOIN risk_levels ON risk_levels.id = kri_register.risk_level_id
+			LEFT JOIN kri_frequency_values ON kri_frequency_values.id = kri_value_updates.kri_frequency_value_id
+			LEFT JOIN kri_risk_tolerance_statuses ON kri_risk_tolerance_statuses.id = kri_frequency_values.risk_tolerance_status_id
 			LEFT JOIN users AS created_user ON created_user.id = kri_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = kri_register.updated_by_id
 		`).
@@ -186,7 +207,7 @@ func (repo *KRIValueUpdateRepository) GetFullDetailsByID(id uint, tx ...utility.
 	}
 	var kriValueUpdate *models.KRIValueUpdate
 
-	result := db.Preload("Documents").First(&kriValueUpdate, id)
+	result := db.Preload("Documents").Preload("KRIFrequencyValue.RiskToleranceStatus").First(&kriValueUpdate, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -342,4 +363,47 @@ func (repo *KRIValueUpdateRepository) SetAllIsLatestFalse(kriRegisterID uint, tx
 	return db.Model(&models.KRIValueUpdate{}).
 		Where("kri_register_id = ? AND is_latest = 1", kriRegisterID).
 		Update("is_latest", false).Error
+}
+
+func (repo *KRIValueUpdateRepository) UpdateFrequencyValueActualValue(frequencyValueID uint, actualValue int, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Model(&models.KRIFrequencyValue{}).
+		Where("id = ?", frequencyValueID).
+		Update("actual_value", actualValue).Error
+}
+
+func (repo *KRIValueUpdateRepository) UpdateFrequencyValueComplete(frequencyValueID uint, actualValue float64, achievementValue float64, toleranceStatusID *uint, isAchieved bool, isMissed bool, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	updates := map[string]interface{}{
+		"actual_value":             actualValue,
+		"achievement_value":        achievementValue,
+		"risk_tolerance_status_id": toleranceStatusID,
+		"is_achieved":              isAchieved,
+		"is_missed":                isMissed,
+	}
+
+	return db.Model(&models.KRIFrequencyValue{}).
+		Where("id = ?", frequencyValueID).
+		Updates(updates).Error
+}
+
+func (repo *KRIValueUpdateRepository) GetFrequencyValueByID(frequencyValueID uint, tx ...utility.DatabaseTransaction) (*models.KRIFrequencyValue, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var frequencyValue models.KRIFrequencyValue
+	if err := db.First(&frequencyValue, frequencyValueID).Error; err != nil {
+		return nil, err
+	}
+	return &frequencyValue, nil
 }

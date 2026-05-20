@@ -499,6 +499,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.GET("/kri-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriAssociatedItemController.GetAllClauses)
 	riskRoutes.PUT("/kri-register/:id/clauses", middlewares.RolePermissionMiddleware(db, "kri", "modify"), kriAssociatedItemController.UpdateClauses)
 
+	riskRoutes.GET("/kri-register/:id/frequency-values", middlewares.RolePermissionMiddleware(db, "kri", "view"), kriRegisterController.GetAllKRIFrequencyValues)
+
 	riskRoutes.POST("/identified-risks/:id/submit", middlewares.RolePermissionMiddleware(db, "identified_risk", "view"), riskReviewController.SubmitRisk)
 	riskRoutes.POST("/identified-risks/:id/approve", middlewares.RolePermissionMiddleware(db, "identified_risk", "modify"), riskReviewController.ApproveRisk)
 	riskRoutes.POST("/identified-risks/:id/reject", middlewares.RolePermissionMiddleware(db, "identified_risk", "modify"), riskReviewController.RejectRisk)

@@ -19,16 +19,16 @@ type KRIRegister struct {
 	AnnualTarget                 *float64 `json:"annual_target"`
 	ReviewTarget                 *float64 `json:"review_target"`
 	DistributionStatusID         *uint    `json:"distribution_status_id"`
-	MinimumSusceptibilityPercent *float64 `json:"minimum_susceptibility_percent" gorm:"type:decimal(5,2);null"`
-	MaximumSusceptibilityPercent *float64 `json:"maximum_susceptibility_percent" gorm:"type:decimal(5,2);null"`
-	MaximumTolerablePercent      *float64 `json:"maximum_tolerable_percent" gorm:"type:decimal(5,2);null"`
+	MinimumSusceptibilityPercent *float64 `json:"minimum_susceptibility_percent" gorm:"type:decimal(18,2);null"`
+	MaximumSusceptibilityPercent *float64 `json:"maximum_susceptibility_percent" gorm:"type:decimal(18,2);null"`
+	MaximumTolerablePercent      *float64 `json:"maximum_tolerable_percent" gorm:"type:decimal(18,2);null"`
 	Title                        string   `json:"title" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
 	Description                  *string  `json:"description" gorm:"type:nvarchar(max)"`
-	CalculationType              string   `json:"calculation_type" binding:"required,oneof=automatic, manual" gorm:"type:varchar(10);not null"`
+	CalculationType              string   `json:"calculation_type" binding:"required,oneof=direct ratio" gorm:"type:varchar(10);not null"`
 	LowThreshold                 *int     `json:"low_threshold" gorm:"type:int;null"`
 	MediumThreshold              *int     `json:"medium_threshold" gorm:"type:int;null"`
 	// HighThreshold     *int       `json:"high_threshold" gorm:"type:int;null"`
-	CurrentValue     *int       `json:"current_value" gorm:"type:int;null"`
+	CurrentValue     *float64   `json:"current_value" gorm:"type:decimal(18,2);null"`
 	LastReviewedDate *time.Time `json:"last_reviewed_date" gorm:"type:date"`
 	NextReviewDate   time.Time  `json:"next_review_date" binding:"required" gorm:"type:date;not null"`
 	LastReviewNote   *string    `json:"last_review_note" gorm:"type:nvarchar(max)"`
@@ -42,6 +42,8 @@ type KRIRegister struct {
 	WorkflowStatusID *uint      `json:"workflow_status_id"`
 	ApprovedByID     *uint      `json:"approved_by" gorm:"column:approved_by"`
 	ApprovedAt       *time.Time `json:"approved_at" gorm:"type:datetime"`
+	IsLowerBetter    *bool      `json:"is_lower_better" gorm:"type:bit;default:0"`
+	IsHigherBetter   *bool      `json:"is_higher_better" gorm:"type:bit;default:0"`
 
 	// Relationships
 	KRICategory          *KRICategory           `gorm:"foreignKey:KRICategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -61,6 +63,7 @@ type KRIRegister struct {
 	ApprovedBy           *User                  `gorm:"foreignKey:ApprovedByID"`
 	WorkflowStatus       *WorkflowStatus        `gorm:"foreignKey:WorkflowStatusID"`
 	KRIRegisterWorkflows []*KRIRegisterWorkflow `gorm:"foreignKey:KRIRegisterID"`
+	KRIFrequencyValues   []*KRIFrequencyValue   `gorm:"foreignKey:KRIRegisterID"`
 }
 
 // TableName overrides the table name used by KRIRegister to `kri_register`

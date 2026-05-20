@@ -27,8 +27,9 @@ func (rfc *ReviewFrequencyController) GetAllReviewFrequencies(c *gin.Context) {
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	kri := c.Query("kri")
 
-	reviewFrequencies, err := rfc.service.GetAll(sort, sortBy, keyword, status)
+	reviewFrequencies, err := rfc.service.GetAll(sort, sortBy, keyword, status, kri)
 
 	if err != nil {
 		utility.SendInternalErrResp(rfc.db, c, err.Error())
