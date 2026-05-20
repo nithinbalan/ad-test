@@ -80,7 +80,13 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
 			control_effectiveness_ratings.max_score AS control_effectiveness_rating_max_score,
 			control_effectiveness_ratings.type AS control_effectiveness_rating_type,
 			control_effectiveness_ratings.color_code AS control_effectiveness_rating_color_code,
+			control_automation.id AS control_automation_id,
+			control_automation.title_en AS control_automation_title_en,
+			control_automation.title_ar AS control_automation_title_ar,
 			control_automation.type AS control_automation_type,
+			control_consistency.id AS control_consistency_id,
+			control_consistency.title_en AS control_consistency_title_en,
+			control_consistency.title_ar AS control_consistency_title_ar,
 			control_consistency.type AS control_consistency_type,
 			CONVERT(VARCHAR, latest_control_test.tested_at, 23) AS last_test_date,
 			latest_control_test.title AS control_test_title,
@@ -127,8 +133,8 @@ func (repo *RiskInherentControlAnalysisRepository) GetAll(riskID uint, params *r
             ) AS latest_control_test_ids ON latest_control_test_ids.control_id = controls.id
 			LEFT JOIN control_statuses ON control_statuses.id = controls.control_status_id
             LEFT JOIN control_tests AS latest_control_test ON latest_control_test.id = latest_control_test_ids.latest_test_id
-            LEFT JOIN control_automations ON control_automations.id = latest_control_test.control_automation_id
-            LEFT JOIN control_consistencies ON control_consistencies.id = latest_control_test.control_consistency_id
+            LEFT JOIN control_automations AS control_automation ON control_automation.id = latest_control_test.control_automation_id
+            LEFT JOIN control_consistencies AS control_consistency ON control_consistency.id = latest_control_test.control_consistency_id
             LEFT JOIN users AS tested_by ON tested_by.id = latest_control_test.tested_by
             LEFT JOIN users AS created_user ON created_user.id = risk_control_analyses.created_by_id
         `).
