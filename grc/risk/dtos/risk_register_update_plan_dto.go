@@ -1179,6 +1179,7 @@ type CommonListQueryParamsDTO struct {
 	Keyword  string
 	Page     int
 	PageSize int
+	IsTested *bool
 }
 
 type CommonDocumentFormDTO struct {

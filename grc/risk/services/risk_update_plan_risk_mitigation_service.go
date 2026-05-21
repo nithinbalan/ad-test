@@ -30,6 +30,7 @@ type RiskUpdatePlanRiskMitigationService struct {
 	activityLogSvc    logServices.ActivityLogServiceInterface
 	riskResponseSvc   RiskResponseServiceInterface
 	actionPlanSvc     RiskActionPlanServiceInterface
+	riskTimelineSvc   RiskTimelineServiceInterface
 }
 
 func NewRiskUpdatePlanRiskMitigationService(
@@ -40,6 +41,7 @@ func NewRiskUpdatePlanRiskMitigationService(
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	riskResponseSvc RiskResponseServiceInterface,
 	actionPlanSvc RiskActionPlanServiceInterface,
+	riskTimelineSvc RiskTimelineServiceInterface,
 ) RiskUpdatePlanRiskMitigationServiceInterface {
 	return &RiskUpdatePlanRiskMitigationService{
 		repo:              repo,
@@ -49,6 +51,7 @@ func NewRiskUpdatePlanRiskMitigationService(
 		activityLogSvc:    activityLogSvc,
 		riskResponseSvc:   riskResponseSvc,
 		actionPlanSvc:     actionPlanSvc,
+		riskTimelineSvc:   riskTimelineSvc,
 	}
 }
 
@@ -92,6 +95,28 @@ func (ruprms *RiskUpdatePlanRiskMitigationService) UpdateRiskMitigation(planID u
 
 	// Update risk response strategy
 	if err := ruprms.repo.UpdateRiskResponseStrategy(formDTO.RiskRegisterID, formDTO.RiskResponseStrategyID, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Update individual risk timeline for risk_response
+	riskResponseTimelineType, err := ruprms.riskTimelineSvc.GetByType("risk_response")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	completedStatus, err := ruprms.riskTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	currentTime := time.Now()
+	riskTimelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
+		PerformedByID:    &currentUserID,
+		TimelineStatusID: completedStatus.ID,
+		PerformedAt:      &currentTime,
+	}
+	if err := ruprms.riskTimelineSvc.Update(formDTO.RiskRegisterID, riskTimelineFormDTO, riskResponseTimelineType.ID, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
