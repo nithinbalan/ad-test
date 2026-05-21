@@ -43,6 +43,12 @@ func (rrupc *RiskUpdatePlanBusinessContextController) CreateBusinessContext(c *g
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(rrupc.db, c, e.Error())
 			return
