@@ -659,6 +659,17 @@ func (repo *RiskUpdatePlanERMDeptRepository) GetERMDeptEvaluationControls(timeli
 			keyword, keyword, keyword, keyword, keyword)
 	}
 
+	// Apply is_tested filter
+	if params.IsTested != nil {
+		if *params.IsTested {
+			// Show only tested controls (controls with control tests)
+			query = query.Where("latest_ct.id IS NOT NULL")
+		} else {
+			// Show only untested controls (controls without control tests)
+			query = query.Where("latest_ct.id IS NULL")
+		}
+	}
+
 	// Count total
 	countQuery := query
 	if err := countQuery.Count(&totalCount).Error; err != nil {
