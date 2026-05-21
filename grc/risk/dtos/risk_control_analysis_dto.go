@@ -44,7 +44,13 @@ type RiskControlAnalysisListDTO struct {
 	ControlEffectivenessRatingType       *string                                         `json:"control_effectiveness_rating_type"`
 	ControlEffectivenessRatingColorCode  *string                                         `json:"control_effectiveness_rating_color_code"`
 	RiskReduction                        *float64                                        `json:"risk_reduction"`
+	ControlAutomationID                  *uint                                           `json:"control_automation_id"`
+	ControlAutomationTitleEn             *string                                         `json:"control_automation_title_en"`
+	ControlAutomationTitleAr             *string                                         `json:"control_automation_title_ar"`
 	ControlAutomationType                *string                                         `json:"control_automation_type"`
+	ControlConsistencyID                 *uint                                           `json:"control_consistency_id"`
+	ControlConsistencyTitleEn            *string                                         `json:"control_consistency_title_en"`
+	ControlConsistencyTitleAr            *string                                         `json:"control_consistency_title_ar"`
 	ControlConsistencyType               *string                                         `json:"control_consistency_type"`
 	AssociatedDocuments                  []organizationDTOs.ControlAssociatedDocumentDTO `json:"associated_documents" gorm:"-"`
 	LastTestDate                         *string                                         `json:"last_test_date"`
