@@ -19,8 +19,12 @@ type RiskUpdatePlanRiskControlAssociationRepositoryInterface interface {
 	DeleteControlAnalysesByRiskRegisterIDs(riskRegisterIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetControlAnalysesByRiskRegisterID(riskRegisterID uint) ([]*models.RiskControlAnalysis, error)
 	// Residual Evaluation for Risk Register Update Plan
+	GetResidualEvaluationByRiskRegisterID(riskRegisterID uint, tx ...utility.DatabaseTransaction) (*models.RiskEvaluation, error)
 	DeleteResidualEvaluationsByRiskRegisterIDs(riskRegisterIDs []uint, tx ...utility.DatabaseTransaction) error
 	CreateBulkResidualEvaluations(evaluations []*models.RiskEvaluation, tx ...utility.DatabaseTransaction) error
+	CreateResidualEvaluation(evaluation *models.RiskEvaluation, tx ...utility.DatabaseTransaction) error
+	UpdateResidualEvaluation(evaluation *models.RiskEvaluation, tx ...utility.DatabaseTransaction) error
+	CreateResidualEvaluationHistory(history *models.RiskResidualEvaluationHistory, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskUpdatePlanRiskControlAssociationRepository struct {
@@ -469,4 +473,48 @@ func (repo *RiskUpdatePlanRiskControlAssociationRepository) GetRiskControlAssoci
 	}
 
 	return risks, nil
+}
+
+func (repo *RiskUpdatePlanRiskControlAssociationRepository) GetResidualEvaluationByRiskRegisterID(riskRegisterID uint, tx ...utility.DatabaseTransaction) (*models.RiskEvaluation, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var evaluation *models.RiskEvaluation
+	err := db.Where("risk_register_id = ? AND type = ?", riskRegisterID, "residual").First(&evaluation).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return evaluation, nil
+}
+
+func (repo *RiskUpdatePlanRiskControlAssociationRepository) CreateResidualEvaluation(evaluation *models.RiskEvaluation, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(evaluation).Error
+}
+
+func (repo *RiskUpdatePlanRiskControlAssociationRepository) UpdateResidualEvaluation(evaluation *models.RiskEvaluation, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Save(evaluation).Error
+}
+
+func (repo *RiskUpdatePlanRiskControlAssociationRepository) CreateResidualEvaluationHistory(history *models.RiskResidualEvaluationHistory, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Create(history).Error
 }
