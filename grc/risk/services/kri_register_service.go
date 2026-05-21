@@ -34,6 +34,7 @@ type KRIRegisterServiceInterface interface {
 
 	ExportKriRegister(data []*riskDTOs.KRIRegisterListDTO, currentUserID uint) (*os.File, error)
 	GetTrendAnalysis(kriID uint, limit int) ([]*riskDTOs.KRITrendAnalysisDTO, error)
+	GetFrequencyTrendAnalysis(kriID uint, limit int) ([]*riskDTOs.KRIFrequencyTrendAnalysisDTO, error)
 	GetAllFrequencyValues(kriRegisterID uint) ([]*riskDTOs.KRIFrequencyValueListDTO, error)
 
 	DetermineRiskLevel(value int, lowThreshold, mediumThreshold *int) (*models.RiskLevel, error)
@@ -1084,6 +1085,7 @@ func (krs *KRIRegisterService) DetermineRiskLevel(value int, lowThreshold, mediu
 	return riskLevel, nil
 }
 
+// Old implementation - kept for reference
 func (krs *KRIRegisterService) GetTrendAnalysis(kriID uint, limit int) ([]*riskDTOs.KRITrendAnalysisDTO, error) {
 	kriValueUpdates, err := krs.repo.GetTrendAnalysis(kriID, limit)
 	if err != nil {
@@ -1110,6 +1112,50 @@ func (krs *KRIRegisterService) GetTrendAnalysis(kriID uint, limit int) ([]*riskD
 		reviewedAt := valueUpdate.ReviewedDate.Format("2006-01-02")
 		kriUpdate.ReviewedAtString = reviewedAt
 		trend = append(trend, &kriUpdate)
+	}
+
+	return trend, nil
+}
+
+// New implementation - fetches from kri_frequency_value with month-wise data and risk tolerance status
+func (krs *KRIRegisterService) GetFrequencyTrendAnalysis(kriID uint, limit int) ([]*riskDTOs.KRIFrequencyTrendAnalysisDTO, error) {
+	frequencyValues, err := krs.repo.GetFrequencyTrendAnalysis(kriID, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(frequencyValues) == 0 {
+		return []*riskDTOs.KRIFrequencyTrendAnalysisDTO{}, nil
+	}
+
+	// Map frequency values to DTOs with risk tolerance status details
+	var trend []*riskDTOs.KRIFrequencyTrendAnalysisDTO
+	for _, fv := range frequencyValues {
+		trendDTO := &riskDTOs.KRIFrequencyTrendAnalysisDTO{
+			ID:               fv.ID,
+			KRIRegisterID:    fv.KRIRegisterID,
+			Year:             fv.Year,
+			MonthEn:          fv.MonthEn,
+			MonthAr:          fv.MonthAr,
+			Type:             fv.Type,
+			TargetValue:      fv.TargetValue,
+			ActualValue:      fv.ActualValue,
+			AchievementValue: fv.AchievementValue,
+			IsAchieved:       fv.IsAchieved,
+			IsMissed:         fv.IsMissed,
+			CreatedAt:        fv.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+
+		// Add risk tolerance status details if available
+		if fv.RiskToleranceStatus != nil {
+			trendDTO.RiskToleranceStatusID = &fv.RiskToleranceStatus.ID
+			trendDTO.RiskToleranceStatusEn = &fv.RiskToleranceStatus.TitleEn
+			trendDTO.RiskToleranceStatusAr = &fv.RiskToleranceStatus.TitleAr
+			trendDTO.RiskToleranceColorCode = &fv.RiskToleranceStatus.ColorCode
+			trendDTO.RiskToleranceType = &fv.RiskToleranceStatus.Type
+		}
+
+		trend = append(trend, trendDTO)
 	}
 
 	return trend, nil

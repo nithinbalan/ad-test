@@ -28,6 +28,7 @@ type KRIRegisterRepositoryInterface interface {
 	CreateInitialKriValueUpdate(kriValueUpdate *models.KRIValueUpdate, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteKriValueUpdates(ids []*uint, tx ...utility.DatabaseTransaction) error
 	GetTrendAnalysis(kriId uint, limit int) ([]*models.KRIValueUpdate, error)
+	GetFrequencyTrendAnalysis(kriId uint, limit int) ([]*models.KRIFrequencyValue, error)
 	CreateFrequencyValues(frequencyValues []*models.KRIFrequencyValue, tx ...utility.DatabaseTransaction) error
 	DeleteFrequencyValuesByKRIID(kriRegisterID uint, tx ...utility.DatabaseTransaction) error
 	GetFrequencyValuesByKRIID(kriRegisterID uint, tx ...utility.DatabaseTransaction) ([]*models.KRIFrequencyValue, error)
@@ -440,6 +441,7 @@ func (repo *KRIRegisterRepository) DeleteKriValueUpdates(ids []*uint, tx ...util
 	return nil
 }
 
+// Old implementation - kept for reference
 func (repo *KRIRegisterRepository) GetTrendAnalysis(kriID uint, limit int) ([]*models.KRIValueUpdate, error) {
 	var kriValueUpdate []*models.KRIValueUpdate
 
@@ -453,6 +455,23 @@ func (repo *KRIRegisterRepository) GetTrendAnalysis(kriID uint, limit int) ([]*m
 	}
 
 	return kriValueUpdate, nil
+}
+
+// New implementation - fetches from kri_frequency_value with month-wise data and risk tolerance status
+func (repo *KRIRegisterRepository) GetFrequencyTrendAnalysis(kriID uint, limit int) ([]*models.KRIFrequencyValue, error) {
+	var frequencyValues []*models.KRIFrequencyValue
+
+	result := repo.db.Preload("RiskToleranceStatus").
+		Where("kri_register_id = ? AND achievement_value IS NOT NULL", kriID).
+		Order("year ASC, month_en DESC").
+		Limit(limit).
+		Find(&frequencyValues)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return frequencyValues, nil
 }
 
 func (repo *KRIRegisterRepository) ForceDelete(id uint, tx ...utility.DatabaseTransaction) error {

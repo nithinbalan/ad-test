@@ -290,7 +290,7 @@ func (krc *KRIRegisterController) GetKRITrendAnalysis(c *gin.Context) {
 		return
 	}
 
-	controlTrend, err := krc.service.GetTrendAnalysis(uint(id), 10)
+	controlTrend, err := krc.service.GetFrequencyTrendAnalysis(uint(id), 10)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

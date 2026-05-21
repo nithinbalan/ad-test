@@ -244,6 +244,28 @@ type KRITrendAnalysisDTO struct {
 	Value            float64 `json:"value"`
 }
 
+// New DTO for frequency-based trend analysis
+type KRIFrequencyTrendAnalysisDTO struct {
+	ID               uint     `json:"id"`
+	KRIRegisterID    uint     `json:"kri_register_id"`
+	Year             int      `json:"year"`
+	MonthEn          string   `json:"month_en"`
+	MonthAr          string   `json:"month_ar"`
+	Type             string   `json:"type"`
+	TargetValue      float64  `json:"target_value"`
+	ActualValue      *float64 `json:"actual_value"`
+	AchievementValue *float64 `json:"achievement_value"`
+	IsAchieved       bool     `json:"is_achieved"`
+	IsMissed         bool     `json:"is_missed"`
+	CreatedAt        string   `json:"created_at"`
+	// Risk Tolerance Status details
+	RiskToleranceStatusID  *uint   `json:"risk_tolerance_status_id"`
+	RiskToleranceStatusEn  *string `json:"risk_tolerance_status_en"`
+	RiskToleranceStatusAr  *string `json:"risk_tolerance_status_ar"`
+	RiskToleranceColorCode *string `json:"risk_tolerance_color_code"`
+	RiskToleranceType      *string `json:"risk_tolerance_type"`
+}
+
 type KRIFrequencyValueListDTO struct {
 	ID               uint     `json:"id"`
 	KRIRegisterID    uint     `json:"kri_register_id"`
