@@ -40,6 +40,7 @@ type RiskUpdatePlanRiskIdentificationService struct {
 	notificationSvc      commonServices.NotificationServiceInterface
 	riskSettingsSvc      RiskSettingsServiceInterface
 	riskCategorySvc      RiskCategoryServiceInterface
+	riskTimelineSvc      RiskTimelineServiceInterface
 }
 
 func NewRiskUpdatePlanRiskIdentificationService(
@@ -56,6 +57,7 @@ func NewRiskUpdatePlanRiskIdentificationService(
 	notificationSvc commonServices.NotificationServiceInterface,
 	riskSettingsSvc RiskSettingsServiceInterface,
 	riskCategorySvc RiskCategoryServiceInterface,
+	riskTimelineSvc RiskTimelineServiceInterface,
 ) RiskUpdatePlanRiskIdentificationServiceInterface {
 	return &RiskUpdatePlanRiskIdentificationService{
 		repo:                 repo,
@@ -71,6 +73,7 @@ func NewRiskUpdatePlanRiskIdentificationService(
 		notificationSvc:      notificationSvc,
 		riskSettingsSvc:      riskSettingsSvc,
 		riskCategorySvc:      riskCategorySvc,
+		riskTimelineSvc:      riskTimelineSvc,
 	}
 }
 
@@ -176,6 +179,58 @@ func (rrupids *RiskUpdatePlanRiskIdentificationService) CreateRiskIdentification
 
 	id, err := rrupids.repo.CreateRiskIdentification(riskRegister, tx)
 	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	// Add timeline
+	timelineTypes, err := rrupids.riskTimelineSvc.GetAllTypes()
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	// Get timeline statuses
+	completedStatus, err := rrupids.riskTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	pendingStatus, err := rrupids.riskTimelineSvc.GetByStatusType("pending")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	var timelineFormDTOs []*riskDTOs.RiskTimelineFormDTO
+
+	for _, timelineType := range timelineTypes {
+		var (
+			statusID      uint
+			performedByID *uint
+			currentTime   *time.Time
+		)
+
+		if timelineType.Type == "identified" {
+			statusID = completedStatus.ID
+			performedByID = &currentUserID
+			now := time.Now()
+			currentTime = &now
+		} else {
+			statusID = pendingStatus.ID
+			performedByID = nil
+			currentTime = nil
+		}
+
+		timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
+			RiskRegisterID:     id,
+			RiskTimelineTypeID: timelineType.ID,
+			TimelineStatusID:   statusID,
+			PerformedByID:      performedByID,
+			PerformedAt:        currentTime,
+		}
+		timelineFormDTOs = append(timelineFormDTOs, timelineFormDTO)
+	}
+	if err := rrupids.riskTimelineSvc.Create(timelineFormDTOs, tx); err != nil {
 		tx.Rollback()
 		return 0, err
 	}

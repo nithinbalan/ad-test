@@ -44,6 +44,7 @@ type RiskUpdatePlanRiskControlAssociationService struct {
 	riskInherentEvaluationSvc    RiskInherentEvaluationServiceInterface
 	controlSvc                   organizationServices.ControlServiceInterface
 	controlTestSvc               organizationServices.ControlTestServiceInterface
+	riskTimelineSvc              RiskTimelineServiceInterface
 }
 
 func NewRiskUpdatePlanRiskControlAssociationService(
@@ -68,7 +69,7 @@ func NewRiskUpdatePlanRiskControlAssociationService(
 	riskInherentEvaluationSvc RiskInherentEvaluationServiceInterface,
 	controlSvc organizationServices.ControlServiceInterface,
 	controlTestSvc organizationServices.ControlTestServiceInterface,
-
+	riskTimelineSvc RiskTimelineServiceInterface,
 ) RiskUpdatePlanRiskControlAssociationServiceInterface {
 	return &RiskUpdatePlanRiskControlAssociationService{
 		repo:                         repo,
@@ -92,6 +93,7 @@ func NewRiskUpdatePlanRiskControlAssociationService(
 		riskInherentEvaluationSvc:    riskInherentEvaluationSvc,
 		controlSvc:                   controlSvc,
 		controlTestSvc:               controlTestSvc,
+		riskTimelineSvc:              riskTimelineSvc,
 	}
 }
 
@@ -117,10 +119,21 @@ func (rupras *RiskUpdatePlanRiskControlAssociationService) CreateRiskControlAsso
 		return err
 	}
 
+	// Validate that form has at least one control association
+	if len(formDTO.Residual) == 0 {
+		return utility.NewValidationError(fmt.Errorf("at least one control association is required"), "required", "control associations")
+	}
+
 	// Pre-validate all risk registers and controls outside transaction
-	var riskRegisterIDs []uint
+	riskRegisterMap := make(map[uint]bool) // Track unique risk register IDs
+	riskControlCount := make(map[uint]int) // Track control count per risk
+
 	for _, item := range formDTO.Residual {
-		riskRegisterIDs = append(riskRegisterIDs, item.RiskRegisterID)
+		// Track unique risk register IDs
+		riskRegisterMap[item.RiskRegisterID] = true
+
+		// Count controls per risk
+		riskControlCount[item.RiskRegisterID]++
 
 		// Validate risk register exists
 		if _, err := rupras.riskRegisterSvc.GetByID(item.RiskRegisterID); err != nil {
@@ -130,6 +143,15 @@ func (rupras *RiskUpdatePlanRiskControlAssociationService) CreateRiskControlAsso
 		// Validate control exists
 		if _, err := rupras.controlSvc.GetByID(item.ControlID); err != nil {
 			return utility.NewValidationError(fmt.Errorf("control does not exist for ID: %d", item.ControlID), "not_exist", "control_id")
+		}
+	}
+
+	// Build risk register IDs slice and validate that every risk has at least one control
+	var riskRegisterIDs []uint
+	for riskID := range riskRegisterMap {
+		riskRegisterIDs = append(riskRegisterIDs, riskID)
+		if riskControlCount[riskID] == 0 {
+			return utility.NewValidationError(fmt.Errorf("risk register ID %d must have at least one control", riskID), "required", "control for risk")
 		}
 	}
 
@@ -358,6 +380,50 @@ func (rupras *RiskUpdatePlanRiskControlAssociationService) CreateRiskControlAsso
 	// Update risk register ratings
 	for _, evaluation := range evaluations {
 		if err := rupras.riskRegisterSvc.UpdateRiskRating(evaluation.RiskRegisterID, currentUserID, evaluation, tx, "residual"); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Update individual risk timelines for control_analysis
+	controlAnalysisTimelineType, err := rupras.riskTimelineSvc.GetByType("control_analysis")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	completedStatus, err := rupras.riskTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	currentTime = time.Now()
+	for _, riskID := range riskRegisterIDs {
+		timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
+			PerformedByID:    &currentUserID,
+			TimelineStatusID: completedStatus.ID,
+			PerformedAt:      &currentTime,
+		}
+		if err := rupras.riskTimelineSvc.Update(riskID, timelineFormDTO, controlAnalysisTimelineType.ID, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Update individual risk timelines for residual_risk_analysis
+	residualAnalysisTimelineType, err := rupras.riskTimelineSvc.GetByType("residual_risk_analysis")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	for _, riskID := range riskRegisterIDs {
+		timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
+			PerformedByID:    &currentUserID,
+			TimelineStatusID: completedStatus.ID,
+			PerformedAt:      &currentTime,
+		}
+		if err := rupras.riskTimelineSvc.Update(riskID, timelineFormDTO, residualAnalysisTimelineType.ID, tx); err != nil {
 			tx.Rollback()
 			return err
 		}

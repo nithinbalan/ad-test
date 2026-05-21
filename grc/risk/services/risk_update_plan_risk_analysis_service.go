@@ -42,6 +42,7 @@ type RiskUpdatePlanRiskAnalysisService struct {
 	riskImpactCategorySvc        RiskImpactCategoryServiceInterface
 	riskMatrixImpactGuidelineSvc RiskMatrixImpactGuidelineServiceInterface
 	riskInherentEvaluationSvc    RiskInherentEvaluationServiceInterface
+	riskTimelineSvc              RiskTimelineServiceInterface
 }
 
 func NewRiskUpdatePlanRiskAnalysisService(
@@ -64,6 +65,7 @@ func NewRiskUpdatePlanRiskAnalysisService(
 	riskImpactCategorySvc RiskImpactCategoryServiceInterface,
 	riskMatrixImpactGuidelineSvc RiskMatrixImpactGuidelineServiceInterface,
 	riskInherentEvaluationSvc RiskInherentEvaluationServiceInterface,
+	riskTimelineSvc RiskTimelineServiceInterface,
 ) RiskUpdatePlanRiskAnalysisServiceInterface {
 	return &RiskUpdatePlanRiskAnalysisService{
 		repo:                         repo,
@@ -85,6 +87,7 @@ func NewRiskUpdatePlanRiskAnalysisService(
 		riskImpactCategorySvc:        riskImpactCategorySvc,
 		riskMatrixImpactGuidelineSvc: riskMatrixImpactGuidelineSvc,
 		riskInherentEvaluationSvc:    riskInherentEvaluationSvc,
+		riskTimelineSvc:              riskTimelineSvc,
 	}
 }
 
@@ -182,6 +185,20 @@ func (rrups *RiskUpdatePlanRiskAnalysisService) CreateRiskAnalysis(planID uint, 
 			return err
 		}
 
+		// Validate that each risk has impact, likelihood, and impact analyses with guidelines
+		if evaluationForm.RiskMatrixImpactID == 0 {
+			tx.Rollback()
+			return utility.NewValidationError(fmt.Errorf("risk matrix impact is required"), "required", "risk matrix impact")
+		}
+		if evaluationForm.RiskMatrixLikelihoodID == 0 {
+			tx.Rollback()
+			return utility.NewValidationError(fmt.Errorf("risk matrix likelihood is required"), "required", "risk matrix likelihood")
+		}
+		if len(evaluationForm.RiskImpactAnalyses) == 0 {
+			tx.Rollback()
+			return utility.NewValidationError(fmt.Errorf("at least one risk impact analysis is required"), "required", "risk impact analyses")
+		}
+
 		// Validate form data
 		if _, err := rrups.riskMatrixImpactSvc.GetByID(evaluationForm.RiskMatrixImpactID); err != nil {
 			tx.Rollback()
@@ -271,6 +288,12 @@ func (rrups *RiskUpdatePlanRiskAnalysisService) CreateRiskAnalysis(planID uint, 
 			return err
 		}
 
+		// Validate that guidelines exist for this impact analysis
+		if len(guidelines) == 0 {
+			tx.Rollback()
+			return utility.NewValidationError(fmt.Errorf("no guidelines found for the selected impact category and impact level"), "not_exist", "guidelines")
+		}
+
 		for _, guideline := range guidelines {
 			riskImpactAnalysisGuideline := &models.RiskImpactAnalysisGuideline{
 				RiskImpactAnalysisID:        impactAnalysis.ID,
@@ -288,6 +311,32 @@ func (rrups *RiskUpdatePlanRiskAnalysisService) CreateRiskAnalysis(planID uint, 
 	// Update risk register ratings
 	for _, evaluation := range evaluations {
 		if err := rrups.riskRegisterSvc.UpdateRiskRating(evaluation.RiskRegisterID, currentUserID, evaluation, tx, "inherent"); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Get timeline type and statuses for individual risk timeline updates
+	riskTimelineType, err := rrups.riskTimelineSvc.GetByType("risk_analysis")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	completedStatus, err := rrups.riskTimelineSvc.GetByStatusType("completed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Update timeline for each risk - all risks are validated to have impact, likelihood, and guidelines
+	currentTime := time.Now()
+	for _, analysisItem := range formDTO.Analysis {
+		timelineFormDTO := &riskDTOs.RiskTimelineFormDTO{
+			PerformedByID:    &currentUserID,
+			TimelineStatusID: completedStatus.ID,
+			PerformedAt:      &currentTime,
+		}
+		if err := rrups.riskTimelineSvc.Update(analysisItem.RiskRegisterID, timelineFormDTO, riskTimelineType.ID, tx); err != nil {
 			tx.Rollback()
 			return err
 		}

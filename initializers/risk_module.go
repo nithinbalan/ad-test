@@ -608,6 +608,7 @@ func NewRiskModule(db *gorm.DB,
 		commonModule.NotificationService,
 		riskSettingsSvc,
 		riskCategorySvc,
+		riskTimelineSvc,
 	)
 	riskUpdatePlanRiskIdentificationController := controllers.NewRiskUpdatePlanRiskIdentificationController(riskUpdatePlanRiskIdentificationSvc)
 
@@ -668,6 +669,7 @@ func NewRiskModule(db *gorm.DB,
 		riskImpactCategorySvc,
 		riskMatrixImpactGuidelineSvc,
 		riskInherentEvaluationSvc,
+		riskTimelineSvc,
 	)
 	riskUpdatePlanRiskAnalysisController := controllers.NewRiskUpdatePlanRiskAnalysisController(riskUpdatePlanRiskAnalysisSvc)
 
@@ -695,6 +697,7 @@ func NewRiskModule(db *gorm.DB,
 		riskInherentEvaluationSvc,
 		organizationModule.ControlSvc,
 		organizationModule.ControlTestSvc,
+		riskTimelineSvc,
 	)
 	riskUpdatePlanRiskControlAssociationController := controllers.NewRiskUpdatePlanRiskControlAssociationController(riskUpdatePlanRiskControlAssociationSvc)
 
@@ -708,6 +711,7 @@ func NewRiskModule(db *gorm.DB,
 		sharedModule.ActivityLogService,
 		riskResponseSvc,
 		riskActionPlanSvc,
+		riskTimelineSvc,
 	)
 	riskUpdatePlanRiskMitigationController := controllers.NewRiskUpdatePlanRiskMitigationController(riskUpdatePlanRiskMitigationSvc)
 

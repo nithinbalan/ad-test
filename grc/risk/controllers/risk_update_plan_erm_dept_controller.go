@@ -213,6 +213,7 @@ func (rruedc *RiskUpdatePlanERMDeptController) GetERMDepartmentEvaluationControl
 	sort := c.DefaultQuery("sort_order", "asc")
 	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
+	isTestedStr := c.Query("is_tested")
 
 	validSortFields := map[string]string{
 		"reference_number":         "c.reference_number",
@@ -263,12 +264,24 @@ func (rruedc *RiskUpdatePlanERMDeptController) GetERMDepartmentEvaluationControl
 		return
 	}
 
+	// Parse is_tested filter
+	var isTested *bool
+	if isTestedStr != "" {
+		testedVal, err := strconv.ParseBool(isTestedStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid 'is_tested' parameter"))
+			return
+		}
+		isTested = &testedVal
+	}
+
 	queryParams := riskDTOs.CommonListQueryParamsDTO{
 		Sort:     sort,
 		SortBy:   dbField,
 		Keyword:  keyword,
 		Page:     page,
 		PageSize: pageSize,
+		IsTested: isTested,
 	}
 
 	mappedControls, err := rruedc.service.GetERMDeptEvaluationControls(uint(id), &queryParams)
