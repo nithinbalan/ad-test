@@ -68,8 +68,11 @@ func (repo *RiskMatrixRiskRatingValueRepository) Create(riskMatrixRiskRatingValu
 
 func (repo *RiskMatrixRiskRatingValueRepository) GetRiskByMatrixID(id uint) (*models.RiskRegister, error) {
 	var record models.RiskRegister
-	err := repo.db.Where("risk_matrix_id = ?", id).Error
+	err := repo.db.Where("risk_matrix_id = ?", id).First(&record).Error
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &record, nil
