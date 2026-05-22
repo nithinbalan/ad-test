@@ -287,7 +287,11 @@ func (rupras *RiskUpdatePlanRiskControlAssociationService) CreateRiskControlAsso
 	existingEvaluationsMap := make(map[uint]*models.RiskEvaluation)
 	for _, riskRegisterID := range riskRegisterIDs {
 		existingEval, err := rupras.repo.GetResidualEvaluationByRiskRegisterID(riskRegisterID, tx)
-		if err == nil && existingEval != nil {
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		if existingEval != nil {
 			existingEvaluationsMap[riskRegisterID] = existingEval
 		}
 	}

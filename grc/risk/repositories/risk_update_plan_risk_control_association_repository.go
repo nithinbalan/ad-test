@@ -481,7 +481,7 @@ func (repo *RiskUpdatePlanRiskControlAssociationRepository) GetResidualEvaluatio
 		db = tx[0].DB()
 	}
 
-	var evaluation *models.RiskEvaluation
+	var evaluation models.RiskEvaluation
 	err := db.Where("risk_register_id = ? AND type = ?", riskRegisterID, "residual").First(&evaluation).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -489,7 +489,7 @@ func (repo *RiskUpdatePlanRiskControlAssociationRepository) GetResidualEvaluatio
 		}
 		return nil, err
 	}
-	return evaluation, nil
+	return &evaluation, nil
 }
 
 func (repo *RiskUpdatePlanRiskControlAssociationRepository) CreateResidualEvaluation(evaluation *models.RiskEvaluation, tx ...utility.DatabaseTransaction) error {

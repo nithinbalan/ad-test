@@ -463,7 +463,7 @@ func (repo *KRIRegisterRepository) GetFrequencyTrendAnalysis(kriID uint, limit i
 
 	result := repo.db.Preload("RiskToleranceStatus").
 		Where("kri_register_id = ? AND achievement_value IS NOT NULL", kriID).
-		Order("year ASC, month_en DESC").
+		Order("id ASC").
 		Limit(limit).
 		Find(&frequencyValues)
 
