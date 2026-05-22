@@ -24,29 +24,29 @@ INSERT INTO risk_matrix_risk_rating_values (risk_matrix_risk_rating_id, value)
 VALUES 
 (@LowId, 1),
 (@LowId, 2),
-(@LowId, 3),
-(@LowId, 4);
+(@LowId, 3);
 
 INSERT INTO risk_matrix_risk_rating_values (risk_matrix_risk_rating_id, value)
 VALUES 
+(@MediumId, 4),
 (@MediumId, 5),
 (@MediumId, 6),
 (@MediumId, 7),
 (@MediumId, 8),
-(@MediumId, 9),
-(@MediumId, 10);
+(@MediumId, 9);
 
 INSERT INTO risk_matrix_risk_rating_values (risk_matrix_risk_rating_id, value)
 VALUES 
+(@HighId, 10),
 (@HighId, 11),
 (@HighId, 12),
 (@HighId, 13),
 (@HighId, 14),
-(@HighId, 15),
-(@HighId, 16);
+(@HighId, 15);
 
 INSERT INTO risk_matrix_risk_rating_values (risk_matrix_risk_rating_id, value)
 VALUES 
+(@CriticalId, 16),
 (@CriticalId, 17),
 (@CriticalId, 18),
 (@CriticalId, 19),
