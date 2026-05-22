@@ -6,7 +6,7 @@ import (
 )
 
 type ReviewFrequencyServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ReviewFrequency, error)
+	GetAll(sort string, sortBy string, keyword string, status string, kri string) ([]*models.ReviewFrequency, error)
 	GetByID(id uint) (*models.ReviewFrequency, error)
 }
 
@@ -21,8 +21,8 @@ func NewReviewFrequencyService(repo repositories.ReviewFrequencyRepositoryInterf
 	}
 }
 
-func (rfs *ReviewFrequencyService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ReviewFrequency, error) {
-	return rfs.repo.GetAll(sort, sortBy, keyword, status)
+func (rfs *ReviewFrequencyService) GetAll(sort string, sortBy string, keyword string, status string, kri string) ([]*models.ReviewFrequency, error) {
+	return rfs.repo.GetAll(sort, sortBy, keyword, status, kri)
 }
 
 func (rfs ReviewFrequencyService) GetByID(id uint) (*models.ReviewFrequency, error) {

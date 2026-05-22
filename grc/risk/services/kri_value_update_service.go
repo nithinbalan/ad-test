@@ -37,13 +37,14 @@ type KRIValueUpdateServiceInterface interface {
 
 // Service and implementations
 type KRIValueUpdateService struct {
-	repo               riskRepositories.KRIValueUpdateRepositoryInterface
-	activityLogSvc     logServices.ActivityLogServiceInterface
-	kriRegisterSvc     KRIRegisterServiceInterface
-	distributionSvc    DistributionStatusServiceInterface
-	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface
-	userSvc            organizationServices.UserServiceInterface
-	notificationSvc    commonServices.NotificationServiceInterface
+	repo                  riskRepositories.KRIValueUpdateRepositoryInterface
+	activityLogSvc        logServices.ActivityLogServiceInterface
+	kriRegisterSvc        KRIRegisterServiceInterface
+	distributionSvc       DistributionStatusServiceInterface
+	reviewFrequencySvc    masterServices.ReviewFrequencyServiceInterface
+	userSvc               organizationServices.UserServiceInterface
+	notificationSvc       commonServices.NotificationServiceInterface
+	kriToleranceStatusSvc KRIRiskToleranceStatusServiceInterface
 }
 
 func NewKRIValueUpdateService(
@@ -54,15 +55,17 @@ func NewKRIValueUpdateService(
 	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
 	userSvc organizationServices.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	kriToleranceStatusSvc KRIRiskToleranceStatusServiceInterface,
 ) KRIValueUpdateServiceInterface {
 	return &KRIValueUpdateService{
-		repo:               repo,
-		activityLogSvc:     activityLogSvc,
-		kriRegisterSvc:     kriRegisterSvc,
-		distributionSvc:    distributionSvc,
-		reviewFrequencySvc: reviewFrequencySvc,
-		userSvc:            userSvc,
-		notificationSvc:    notificationSvc,
+		repo:                  repo,
+		activityLogSvc:        activityLogSvc,
+		kriRegisterSvc:        kriRegisterSvc,
+		distributionSvc:       distributionSvc,
+		reviewFrequencySvc:    reviewFrequencySvc,
+		userSvc:               userSvc,
+		notificationSvc:       notificationSvc,
+		kriToleranceStatusSvc: kriToleranceStatusSvc,
 	}
 }
 
@@ -76,7 +79,6 @@ func (kvus *KRIValueUpdateService) GetAll(kriRegisterID uint, params *riskDTOs.K
 }
 
 func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kriValueUpdateFormDTO *riskDTOs.KRIValueUpdateFormDTO) (uint, error) {
-	tx := kvus.repo.BeginTransaction()
 	existingKRIRegister, err := kvus.kriRegisterSvc.GetByID(kriRegisterID)
 	if err != nil {
 		return 0, err
@@ -94,6 +96,8 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 		return 0, err
 	}
 
+	tx := kvus.repo.BeginTransaction()
+
 	calculatedValue, err := kvus.calculateFinalValue(existingKRIRegister, nil, kriValueUpdateFormDTO.Value)
 	if err != nil {
 		tx.Rollback()
@@ -101,16 +105,17 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 	}
 
 	kriValueUpdate := &models.KRIValueUpdate{
-		KRIRegisterID:   kriRegisterID,
-		UnitID:          *existingKRIRegister.UnitID,
-		ReviewedDate:    *dates.ReviewedDate,
-		Value:           &calculatedValue,
-		LowThreshold:    existingKRIRegister.LowThreshold,
-		MediumThreshold: existingKRIRegister.MediumThreshold,
-		Remarks:         kriValueUpdateFormDTO.Remarks,
-		IsLatest:        true,
-		CreatedByID:     currentUserID,
-		UpdatedByID:     &currentUserID,
+		KRIRegisterID:       kriRegisterID,
+		UnitID:              *existingKRIRegister.UnitID,
+		ReviewedDate:        *dates.ReviewedDate,
+		Value:               &calculatedValue,
+		LowThreshold:        existingKRIRegister.LowThreshold,
+		MediumThreshold:     existingKRIRegister.MediumThreshold,
+		Remarks:             kriValueUpdateFormDTO.Remarks,
+		IsLatest:            true,
+		KRIFrequencyValueID: kriValueUpdateFormDTO.KRIFrequencyValueID,
+		CreatedByID:         currentUserID,
+		UpdatedByID:         &currentUserID,
 	}
 
 	// Set all previous value updates for this KRIRegister to IsLatest = false
@@ -125,13 +130,82 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 		return 0, err
 	}
 
-	riskLevel, err := kvus.kriRegisterSvc.DetermineRiskLevel(calculatedValue, existingKRIRegister.LowThreshold, existingKRIRegister.MediumThreshold)
-	if err != nil {
-		return 0, err
+	// Update kri_frequency_values with complete calculation if KRIFrequencyValueID is provided
+	var achievementRatioFloat *float64
+	if kriValueUpdateFormDTO.KRIFrequencyValueID != nil {
+		// Get the frequency value to get target value
+		frequencyValue, err := kvus.repo.GetFrequencyValueByID(*kriValueUpdateFormDTO.KRIFrequencyValueID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		actualValueFloat := *kriValueUpdateFormDTO.Value
+		targetValue := frequencyValue.TargetValue
+
+		// Calculate achievement ratio based on calculation type
+		achievementRatio := kvus.calculateAchievementRatio(
+			existingKRIRegister.CalculationType,
+			actualValueFloat,
+			targetValue,
+		)
+
+		// Determine tolerance status
+		toleranceStatusType, err := kvus.determineToleranceStatus(
+			achievementRatio,
+			existingKRIRegister.IsHigherBetter,
+			existingKRIRegister.IsLowerBetter,
+			existingKRIRegister.MinimumSusceptibilityPercent,
+			existingKRIRegister.MaximumSusceptibilityPercent,
+			existingKRIRegister.MaximumTolerablePercent,
+		)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		// Get tolerance status by type
+		toleranceStatus, err := kvus.kriToleranceStatusSvc.GetByType(toleranceStatusType)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		// Check achieved/missed
+		isAchieved, isMissed := kvus.checkAchievedMissed(
+			actualValueFloat,
+			targetValue,
+			existingKRIRegister.IsHigherBetter,
+		)
+
+		// Update frequency value with all calculated fields
+		if err := kvus.repo.UpdateFrequencyValueComplete(*kriValueUpdateFormDTO.KRIFrequencyValueID, actualValueFloat,
+			achievementRatio,
+			&toleranceStatus.ID,
+			isAchieved,
+			isMissed,
+			tx,
+		); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		// Set achievement ratio as current value
+		achievementRatioFloat = &achievementRatio
 	}
 
-	existingKRIRegister.CurrentValue = &calculatedValue
-	existingKRIRegister.RiskLevelID = &riskLevel.ID
+	// riskLevel, err := kvus.kriRegisterSvc.DetermineRiskLevel(calculatedValue, existingKRIRegister.LowThreshold, existingKRIRegister.MediumThreshold)
+	// if err != nil {
+	// 	return 0, err
+	// }
+
+	// Set CurrentValue to achievement ratio if available, otherwise use calculated value
+	if achievementRatioFloat != nil {
+		existingKRIRegister.CurrentValue = achievementRatioFloat
+	} else {
+		existingKRIRegister.CurrentValue = &calculatedValue
+	}
+	//existingKRIRegister.RiskLevelID = &riskLevel.ID
 	existingKRIRegister.LastReviewNote = kriValueUpdateFormDTO.Remarks
 	existingKRIRegister.LastReviewedDate = dates.ReviewedDate
 	existingKRIRegister.NextReviewDate = nextReviewDate
@@ -217,7 +291,29 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 		}
 		kriValue := calculatedValue
 
-		if existingKRIRegister.MediumThreshold != nil && kriValue > *existingKRIRegister.MediumThreshold {
+		// Check if we should send notification based on tolerance status
+		shouldNotify := false
+		if achievementRatioFloat != nil {
+			// Use achievement ratio for notification check
+			kriValue = *achievementRatioFloat
+
+			// Determine tolerance status for notification
+			toleranceType, _ := kvus.determineToleranceStatus(
+				*achievementRatioFloat,
+				existingKRIRegister.IsHigherBetter,
+				existingKRIRegister.IsLowerBetter,
+				existingKRIRegister.MinimumSusceptibilityPercent,
+				existingKRIRegister.MaximumSusceptibilityPercent,
+				existingKRIRegister.MaximumTolerablePercent,
+			)
+
+			// Send notification if exceeded maximum tolerable
+			if toleranceType == "exceeded_maximum_tolerable" {
+				shouldNotify = true
+			}
+		}
+
+		if shouldNotify {
 			// Get Risks associated with the given kri
 			existingRisks, err := kvus.repo.GetRisksByKriID(kriRegisterID)
 			if err != nil {
@@ -353,12 +449,79 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 	existingKRIUpdate.UnitID = *existingKRIRegister.UnitID
 	existingKRIUpdate.Value = &calculatedValue
 	existingKRIUpdate.Remarks = kriValueUpdateFormDTO.Remarks
+	existingKRIUpdate.KRIFrequencyValueID = kriValueUpdateFormDTO.KRIFrequencyValueID
 	existingKRIRegister.UpdatedBYID = &currentUserID
 
 	err = kvus.repo.Update(existingKRIUpdate, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	// Update kri_frequency_values with complete calculation if KRIFrequencyValueID is provided
+	var achievementRatioFloat *float64
+	if kriValueUpdateFormDTO.KRIFrequencyValueID != nil {
+		// Get the frequency value to get target value
+		frequencyValue, err := kvus.repo.GetFrequencyValueByID(*kriValueUpdateFormDTO.KRIFrequencyValueID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		actualValueFloat := *kriValueUpdateFormDTO.Value
+		targetValue := frequencyValue.TargetValue
+
+		// Calculate achievement ratio based on calculation type
+		achievementRatio := kvus.calculateAchievementRatio(
+			existingKRIRegister.CalculationType,
+			actualValueFloat,
+			targetValue,
+		)
+
+		// Determine tolerance status
+		toleranceStatusType, err := kvus.determineToleranceStatus(
+			achievementRatio,
+			existingKRIRegister.IsHigherBetter,
+			existingKRIRegister.IsLowerBetter,
+			existingKRIRegister.MinimumSusceptibilityPercent,
+			existingKRIRegister.MaximumSusceptibilityPercent,
+			existingKRIRegister.MaximumTolerablePercent,
+		)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// Get tolerance status by type
+		toleranceStatus, err := kvus.kriToleranceStatusSvc.GetByType(toleranceStatusType)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// Check achieved/missed
+		isAchieved, isMissed := kvus.checkAchievedMissed(
+			actualValueFloat,
+			targetValue,
+			existingKRIRegister.IsHigherBetter,
+		)
+
+		// Update frequency value with all calculated fields
+		if err := kvus.repo.UpdateFrequencyValueComplete(
+			*kriValueUpdateFormDTO.KRIFrequencyValueID,
+			actualValueFloat,
+			achievementRatio,
+			&toleranceStatus.ID,
+			isAchieved,
+			isMissed,
+			tx,
+		); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// Set achievement ratio as current value
+		achievementRatioFloat = &achievementRatio
 	}
 
 	reviewFrequency, err := kvus.reviewFrequencySvc.GetByID(existingKRIRegister.ReviewFrequencyID)
@@ -368,13 +531,18 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 
 	nextReviewDate := utility.CalculateNextReviewDate(reviewFrequency.Type)
 
-	riskLevel, err := kvus.kriRegisterSvc.DetermineRiskLevel(calculatedValue, existingKRIRegister.LowThreshold, existingKRIRegister.MediumThreshold)
-	if err != nil {
-		return err
-	}
+	// riskLevel, err := kvus.kriRegisterSvc.DetermineRiskLevel(calculatedValue, existingKRIRegister.LowThreshold, existingKRIRegister.MediumThreshold)
+	// if err != nil {
+	// 	return err
+	// }
 
-	existingKRIRegister.CurrentValue = &calculatedValue
-	existingKRIRegister.RiskLevelID = &riskLevel.ID
+	// Set CurrentValue to achievement ratio if available, otherwise use calculated value
+	if achievementRatioFloat != nil {
+		existingKRIRegister.CurrentValue = achievementRatioFloat
+	} else {
+		existingKRIRegister.CurrentValue = &calculatedValue
+	}
+	//existingKRIRegister.RiskLevelID = &riskLevel.ID
 	existingKRIRegister.LastReviewNote = kriValueUpdateFormDTO.Remarks
 	existingKRIRegister.LastReviewedDate = dates.ReviewedDate
 	existingKRIRegister.NextReviewDate = nextReviewDate
@@ -507,7 +675,30 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 			}
 		}
 		kriValue := calculatedValue
-		if existingKRIRegister.MediumThreshold != nil && kriValue > *existingKRIRegister.MediumThreshold {
+
+		// Check if we should send notification based on tolerance status
+		shouldNotify := false
+		if achievementRatioFloat != nil {
+			// Use achievement ratio for notification check
+			kriValue = *achievementRatioFloat
+
+			// Determine tolerance status for notification
+			toleranceType, _ := kvus.determineToleranceStatus(
+				*achievementRatioFloat,
+				existingKRIRegister.IsHigherBetter,
+				existingKRIRegister.IsLowerBetter,
+				existingKRIRegister.MinimumSusceptibilityPercent,
+				existingKRIRegister.MaximumSusceptibilityPercent,
+				existingKRIRegister.MaximumTolerablePercent,
+			)
+
+			// Send notification if exceeded maximum tolerable
+			if toleranceType == "exceeded_maximum_tolerable" {
+				shouldNotify = true
+			}
+		}
+
+		if shouldNotify {
 			// Get Risks associated with the given kri
 			existingRisks, err := kvus.repo.GetRisksByKriID(kriRegisterID)
 			if err != nil {
@@ -948,14 +1139,14 @@ func (kvus *KRIValueUpdateService) parseKRIValueUpdateDates(dto *riskDTOs.KRIVal
 	return parsed, nil
 }
 
-func (kvus *KRIValueUpdateService) calculateFinalValue(existingKRIRegister *models.KRIRegister, existingKRIUpdate *models.KRIValueUpdate, newValue int) (int, error) {
+func (kvus *KRIValueUpdateService) calculateFinalValue(existingKRIRegister *models.KRIRegister, existingKRIUpdate *models.KRIValueUpdate, newValue *float64) (float64, error) {
 	distributionType, err := kvus.getDistributionType(existingKRIRegister.DistributionStatusID)
 	if err != nil {
 		return 0, err
 	}
 
 	if distributionType == "cumulative" {
-		previousValue := 0
+		previousValue := float64(0)
 		if existingKRIRegister.CurrentValue != nil {
 			previousValue = *existingKRIRegister.CurrentValue
 		}
@@ -965,10 +1156,10 @@ func (kvus *KRIValueUpdateService) calculateFinalValue(existingKRIRegister *mode
 			previousValue -= *existingKRIUpdate.Value
 		}
 
-		return previousValue + newValue, nil
+		return previousValue + *newValue, nil
 	}
 
-	return newValue, nil
+	return *newValue, nil
 }
 
 func (kvus *KRIValueUpdateService) getDistributionType(distributionStatusID *uint) (string, error) {
@@ -982,4 +1173,87 @@ func (kvus *KRIValueUpdateService) getDistributionType(distributionStatusID *uin
 	}
 
 	return strings.ToLower(strings.TrimSpace(distributionStatus.Type)), nil
+}
+
+// calculateAchievementRatio calculates the achievement ratio based on calculation type
+func (kvus *KRIValueUpdateService) calculateAchievementRatio(calculationType string, actualValue float64, targetValue float64) float64 {
+	if calculationType == "direct" {
+		// Direct method: AR = AP (Actual Value)
+		return actualValue
+	}
+	// Ratio method: AR = (AP / AQ) * 100 (Actual / Target * 100)
+	if targetValue == 0 {
+		return 0
+	}
+	return actualValue / targetValue * 100
+}
+
+// determineToleranceStatus determines the risk tolerance status based on thresholds
+func (kvus *KRIValueUpdateService) determineToleranceStatus(
+	achievementRatio float64,
+	isHigherBetter *bool,
+	isLowerBetter *bool,
+	minSusceptibility *float64,
+	maxSusceptibility *float64,
+	maxTolerable *float64,
+) (string, error) {
+	// Determine if higher is better or lower is better
+	higherBetter := false
+	if isHigherBetter != nil && *isHigherBetter {
+		higherBetter = true
+	} else if isLowerBetter != nil && *isLowerBetter {
+		higherBetter = false
+	}
+
+	if higherBetter {
+		// Higher is Better Logic
+		if minSusceptibility != nil && achievementRatio >= *minSusceptibility {
+			return "within_minimum_susceptibility", nil
+		}
+		if maxSusceptibility != nil && achievementRatio >= *maxSusceptibility {
+			return "within_maximum_susceptibility", nil
+		}
+		if maxTolerable != nil && achievementRatio >= *maxTolerable {
+			return "at_maximum_tolerable", nil
+		}
+		return "exceeded_maximum_tolerable", nil
+	} else {
+		// Lower is Better Logic
+		if minSusceptibility != nil && achievementRatio <= *minSusceptibility {
+			return "within_minimum_susceptibility", nil
+		}
+		if maxSusceptibility != nil && achievementRatio <= *maxSusceptibility {
+			return "within_maximum_susceptibility", nil
+		}
+		if maxTolerable != nil && achievementRatio <= *maxTolerable {
+			return "at_maximum_tolerable", nil
+		}
+		return "exceeded_maximum_tolerable", nil
+	}
+}
+
+// checkAchievedMissed determines if target is achieved or missed
+func (kvus *KRIValueUpdateService) checkAchievedMissed(
+	actualValue float64,
+	targetValue float64,
+	isHigherBetter *bool,
+) (isAchieved bool, isMissed bool) {
+	higherBetter := false
+	if isHigherBetter != nil && *isHigherBetter {
+		higherBetter = true
+	}
+
+	if higherBetter {
+		// Higher is better: Achieved if Actual >= Target
+		if actualValue >= targetValue {
+			return true, false
+		}
+		return false, true
+	} else {
+		// Lower is better: Achieved if Actual <= Target
+		if actualValue <= targetValue {
+			return true, false
+		}
+		return false, true
+	}
 }

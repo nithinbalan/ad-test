@@ -290,7 +290,7 @@ func (krc *KRIRegisterController) GetKRITrendAnalysis(c *gin.Context) {
 		return
 	}
 
-	controlTrend, err := krc.service.GetTrendAnalysis(uint(id), 10)
+	controlTrend, err := krc.service.GetFrequencyTrendAnalysis(uint(id), 10)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -328,4 +328,21 @@ func (krc *KRIRegisterController) DeleteForceKRIRegisters(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (krc *KRIRegisterController) GetAllKRIFrequencyValues(c *gin.Context) {
+	kriRegisterIDStr := c.Param("id")
+	kriRegisterID, err := strconv.ParseUint(kriRegisterIDStr, 10, 64)
+	if err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	frequencyValues, err := krc.service.GetAllFrequencyValues(uint(kriRegisterID))
+	if err != nil {
+		utility.SendInternalErrResp(krc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, frequencyValues)
 }

@@ -10,7 +10,7 @@ import (
 
 // Interfaces
 type ReviewFrequencyRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ReviewFrequency, error)
+	GetAll(sort string, sortBy string, keyword string, status string, kri string) ([]*models.ReviewFrequency, error)
 	GetByID(id uint) (*models.ReviewFrequency, error)
 }
 
@@ -25,7 +25,7 @@ func NewReviewFrequencyRepository(db *gorm.DB) *ReviewFrequencyRepository {
 	}
 }
 
-func (repo *ReviewFrequencyRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.ReviewFrequency, error) {
+func (repo *ReviewFrequencyRepository) GetAll(sort string, sortBy string, keyword string, status string, kri string) ([]*models.ReviewFrequency, error) {
 
 	var reviewFrequencies []*models.ReviewFrequency
 
@@ -43,6 +43,10 @@ func (repo *ReviewFrequencyRepository) GetAll(sort string, sortBy string, keywor
 
 	if status == "active" || status == "inactive" {
 		query = query.Where("status = ?", status)
+	}
+
+	if kri == "true" {
+		query = query.Where("type IN (?)", []string{"monthly", "quarterly"})
 	}
 
 	query = query.Order(sortBy + " " + sort)
