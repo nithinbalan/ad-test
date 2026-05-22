@@ -113,7 +113,33 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			updated_user.initial AS updated_user_initial,
 			updated_user.color AS updated_user_color,
 			updated_user.email AS updated_user_email,
-			updated_user.profile_image_path AS updated_user_profile_image_path
+			updated_user.profile_image_path AS updated_user_profile_image_path,
+			latest_frequency.month_en AS latest_frequency_month_en,
+			latest_frequency.month_ar AS latest_frequency_month_ar,
+			latest_frequency.type AS latest_frequency_type,
+			latest_frequency.target_value AS latest_frequency_target_value,
+			latest_frequency.actual_value AS latest_frequency_actual_value,
+			latest_frequency.achievement_value AS latest_frequency_achievement_value,
+			latest_frequency.risk_tolerance_status_id AS latest_frequency_risk_tolerance_status_id,
+			latest_frequency.is_achieved AS latest_frequency_is_achieved,
+			latest_frequency.is_missed AS latest_frequency_is_missed,
+			latest_risk_tolerance.title_en AS latest_risk_tolerance_title_en,
+			latest_risk_tolerance.title_ar AS latest_risk_tolerance_title_ar,
+			latest_risk_tolerance.color_code AS latest_risk_tolerance_color_code,
+			latest_risk_tolerance.type AS latest_risk_tolerance_type,
+			previous_frequency.month_en AS previous_frequency_month_en,
+			previous_frequency.month_ar AS previous_frequency_month_ar,
+			previous_frequency.type AS previous_frequency_type,
+			previous_frequency.target_value AS previous_frequency_target_value,
+			previous_frequency.actual_value AS previous_frequency_actual_value,
+			previous_frequency.achievement_value AS previous_frequency_achievement_value,
+			previous_frequency.risk_tolerance_status_id AS previous_frequency_risk_tolerance_status_id,
+			previous_frequency.is_achieved AS previous_frequency_is_achieved,
+			previous_frequency.is_missed AS previous_frequency_is_missed,
+			previous_risk_tolerance.title_en AS previous_risk_tolerance_title_en,
+			previous_risk_tolerance.title_ar AS previous_risk_tolerance_title_ar,
+			previous_risk_tolerance.color_code AS previous_risk_tolerance_color_code,
+			previous_risk_tolerance.type AS previous_risk_tolerance_type
 		`).
 		Joins(`
 			LEFT JOIN kri_categories ON kri_categories.id = kri_register.kri_category_id
@@ -129,6 +155,12 @@ func (repo *KRIRegisterRepository) GetAll(params *riskDTOs.KRIRegisterListQueryP
 			LEFT JOIN workflow_statuses ON workflow_statuses.id = kri_register.workflow_status_id
 			LEFT JOIN users AS created_user ON created_user.id = kri_register.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = kri_register.updated_by_id
+			LEFT JOIN kri_value_updates AS latest_update ON latest_update.kri_register_id = kri_register.id AND latest_update.is_latest = 1
+			LEFT JOIN kri_frequency_values AS latest_frequency ON latest_frequency.id = latest_update.kri_frequency_value_id
+			LEFT JOIN kri_risk_tolerance_statuses AS latest_risk_tolerance ON latest_risk_tolerance.id = latest_frequency.risk_tolerance_status_id
+			LEFT JOIN kri_value_updates AS previous_update ON previous_update.kri_register_id = kri_register.id AND previous_update.is_previous = 1
+			LEFT JOIN kri_frequency_values AS previous_frequency ON previous_frequency.id = previous_update.kri_frequency_value_id
+			LEFT JOIN kri_risk_tolerance_statuses AS previous_risk_tolerance ON previous_risk_tolerance.id = previous_frequency.risk_tolerance_status_id
 		`)
 
 	// Apply dynamic filters to the query

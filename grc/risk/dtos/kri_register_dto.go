@@ -88,6 +88,34 @@ type KRIRegisterListDTO struct {
 	WorkflowStatusTitleAr           *string  `json:"workflow_status_title_ar"`
 	WorkflowStatusType              *string  `json:"workflow_status_type"`
 	WorkflowStatusColorCode         *string  `json:"workflow_status_color_code"`
+	// Latest frequency value details
+	LatestFrequencyMonthEn               *string  `json:"latest_frequency_month_en"`
+	LatestFrequencyMonthAr               *string  `json:"latest_frequency_month_ar"`
+	LatestFrequencyType                  *string  `json:"latest_frequency_type"`
+	LatestFrequencyTargetValue           *float64 `json:"latest_frequency_target_value"`
+	LatestFrequencyActualValue           *float64 `json:"latest_frequency_actual_value"`
+	LatestFrequencyAchievementValue      *float64 `json:"latest_frequency_achievement_value"`
+	LatestFrequencyRiskToleranceStatusID *uint    `json:"latest_frequency_risk_tolerance_status_id"`
+	LatestFrequencyIsAchieved            *bool    `json:"latest_frequency_is_achieved"`
+	LatestFrequencyIsMissed              *bool    `json:"latest_frequency_is_missed"`
+	LatestRiskToleranceTitleEn           *string  `json:"latest_risk_tolerance_title_en"`
+	LatestRiskToleranceTitleAr           *string  `json:"latest_risk_tolerance_title_ar"`
+	LatestRiskToleranceColorCode         *string  `json:"latest_risk_tolerance_color_code"`
+	LatestRiskToleranceType              *string  `json:"latest_risk_tolerance_type"`
+	// Previous frequency value details
+	PreviousFrequencyMonthEn               *string  `json:"previous_frequency_month_en"`
+	PreviousFrequencyMonthAr               *string  `json:"previous_frequency_month_ar"`
+	PreviousFrequencyType                  *string  `json:"previous_frequency_type"`
+	PreviousFrequencyTargetValue           *float64 `json:"previous_frequency_target_value"`
+	PreviousFrequencyActualValue           *float64 `json:"previous_frequency_actual_value"`
+	PreviousFrequencyAchievementValue      *float64 `json:"previous_frequency_achievement_value"`
+	PreviousFrequencyRiskToleranceStatusID *uint    `json:"previous_frequency_risk_tolerance_status_id"`
+	PreviousFrequencyIsAchieved            *bool    `json:"previous_frequency_is_achieved"`
+	PreviousFrequencyIsMissed              *bool    `json:"previous_frequency_is_missed"`
+	PreviousRiskToleranceTitleEn           *string  `json:"previous_risk_tolerance_title_en"`
+	PreviousRiskToleranceTitleAr           *string  `json:"previous_risk_tolerance_title_ar"`
+	PreviousRiskToleranceColorCode         *string  `json:"previous_risk_tolerance_color_code"`
+	PreviousRiskToleranceType              *string  `json:"previous_risk_tolerance_type"`
 }
 
 type KRIRegisterListQueryParamsDTO struct {

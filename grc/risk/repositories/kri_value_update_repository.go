@@ -360,6 +360,19 @@ func (repo *KRIValueUpdateRepository) SetAllIsLatestFalse(kriRegisterID uint, tx
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
+	// First, set is_previous to false for all records of this KRI register
+	if err := db.Model(&models.KRIValueUpdate{}).
+		Where("kri_register_id = ?", kriRegisterID).
+		Update("is_previous", false).Error; err != nil {
+		return err
+	}
+	// Then set is_previous to true for the current latest record (only one record)
+	if err := db.Model(&models.KRIValueUpdate{}).
+		Where("kri_register_id = ? AND is_latest = 1", kriRegisterID).
+		Update("is_previous", true).Error; err != nil {
+		return err
+	}
+	// Finally set is_latest to false for all records
 	return db.Model(&models.KRIValueUpdate{}).
 		Where("kri_register_id = ? AND is_latest = 1", kriRegisterID).
 		Update("is_latest", false).Error

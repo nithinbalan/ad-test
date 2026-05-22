@@ -113,6 +113,7 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 		MediumThreshold:     existingKRIRegister.MediumThreshold,
 		Remarks:             kriValueUpdateFormDTO.Remarks,
 		IsLatest:            true,
+		IsPrevious:          false,
 		KRIFrequencyValueID: kriValueUpdateFormDTO.KRIFrequencyValueID,
 		CreatedByID:         currentUserID,
 		UpdatedByID:         &currentUserID,
