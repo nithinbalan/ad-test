@@ -1204,6 +1204,50 @@ func (repo *RiskRegisterRepository) ForceDelete(id uint, tx ...utility.DatabaseT
 		JOIN risk_workflows ON risk_workflows.id = risk_workflow_participants.risk_workflow_id
 		WHERE risk_workflows.risk_register_id = ?`,
 
+		`DELETE risk_response_workflow_reviews
+		FROM risk_response_workflow_reviews
+		JOIN risk_response_workflows ON risk_response_workflows.id = risk_response_workflow_reviews.risk_response_workflow_id
+		JOIN risk_responses ON risk_responses.id = risk_response_workflows.risk_response_id
+		WHERE risk_responses.risk_register_id = ?`,
+
+		`DELETE risk_response_workflow_participants
+		FROM risk_response_workflow_participants
+		JOIN risk_response_workflows ON risk_response_workflows.id = risk_response_workflow_participants.risk_response_workflow_id
+		JOIN risk_responses ON risk_responses.id = risk_response_workflows.risk_response_id
+		WHERE risk_responses.risk_register_id = ?`,
+
+		`DELETE risk_response_workflows
+		FROM risk_response_workflows
+		JOIN risk_responses ON risk_responses.id = risk_response_workflows.risk_response_id
+		WHERE risk_responses.risk_register_id = ?`,
+
+		`DELETE risk_response_review_comment_documents
+		FROM risk_response_review_comment_documents
+		JOIN risk_response_review_comments ON risk_response_review_comments.id = risk_response_review_comment_documents.risk_response_review_comment_id
+		JOIN risk_responses ON risk_responses.id = risk_response_review_comments.risk_response_id
+		WHERE risk_responses.risk_register_id = ?`,
+
+		`DELETE risk_response_review_comments
+		FROM risk_response_review_comments
+		JOIN risk_responses ON risk_responses.id = risk_response_review_comments.risk_response_id
+		WHERE risk_responses.risk_register_id = ?`,
+
+		`DELETE risk_responses
+		FROM risk_responses
+		WHERE risk_responses.risk_register_id = ?`,
+
+		`DELETE risk_update_plan_risks
+		FROM risk_update_plan_risks
+		WHERE risk_update_plan_risks.risk_register_id = ?`,
+
+		`DELETE violation_report_risks
+		FROM violation_report_risks
+		WHERE violation_report_risks.risk_register_id = ?`,
+
+		`DELETE risk_residual_evaluation_histories
+		FROM risk_residual_evaluation_histories
+		WHERE risk_residual_evaluation_histories.risk_register_id = ?`,
+
 		`DELETE risk_impact_analysis_guidelines
 		FROM risk_impact_analysis_guidelines
 		JOIN risk_impact_analyses ON risk_impact_analyses.id = risk_impact_analysis_guidelines.risk_impact_analysis_id
