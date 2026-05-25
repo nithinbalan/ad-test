@@ -4,41 +4,65 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
+	settingsDTOs "jethur/grc/settings/dtos"
 	"time"
 )
 
 type ComplianceAssessmentRequirementListDTO struct {
-	ID                                             uint     `json:"id"`
-	ClauseID                                       uint     `json:"clause_id"`
-	ClauseDescriptionEn                            *string  `json:"clause_description_en"`
-	ClauseDescriptionAr                            *string  `json:"clause_description_ar"`
-	ComplianceClauseNo                             string   `json:"compliance_clause_no"`
-	ComplianceClauseTitleEn                        string   `json:"compliance_clause_title_en"`
-	ComplianceClauseTitleAr                        string   `json:"compliance_clause_title_ar"`
-	ComplianceRequirementID                        uint     `json:"compliance_requirement_id"`
-	ComplianceAssessmentRequirementStatusID        *uint    `json:"compliance_assessment_requirement_status_id"`
-	ComplianceRequirementTitleEn                   string   `json:"compliance_requirement_title_en"`
-	ComplianceRequirementTitleAr                   string   `json:"compliance_requirement_title_ar"`
-	ComplianceRequirementCategoryTitleEn           string   `json:"compliance_requirement_category_title_en"`
-	ComplianceRequirementCategoryTitleAr           string   `json:"compliance_requirement_category_title_ar"`
-	SeverityLevelID                                uint     `json:"severity_level_id"`
-	SeverityLevelTitleEn                           string   `json:"severity_level_title_en"`
-	SeverityLevelTitleAr                           string   `json:"severity_level_title_ar"`
-	SeverityLevelColorCode                         string   `json:"severity_level_color_code"`
-	SeverityLevelType                              string   `json:"severity_level_type"`
-	ComplianceAssessmentRequirementStatusTitleEn   string   `json:"compliance_assessment_requirement_status_title_en"`
-	ComplianceAssessmentRequirementStatusTitleAr   string   `json:"compliance_assessment_requirement_status_title_ar"`
-	ComplianceAssessmentRequirementStatusColorCode string   `json:"compliance_assessment_requirement_status_color_code"`
-	ComplianceAssessmentRequirementStatusType      string   `json:"compliance_assessment_requirement_status_type"`
-	CreatedAt                                      string   `json:"created_at"`
-	UpdatedAt                                      *string  `json:"updated_at"`
-	IsAllCompleted                                 bool     `json:"is_all_completed"`
-	AverageResidualRiskScore                       *float64 `json:"average_residual_risk_score"`
-	AverageResidualRiskRatingID                    *uint    `json:"average_residual_risk_rating_id"`
-	AverageResidualRiskRatingTitleEn               *string  `json:"average_residual_risk_rating_title_en"`
-	AverageResidualRiskRatingTitleAr               *string  `json:"average_residual_risk_rating_title_ar"`
-	AverageResidualRiskRatingColorCode             *string  `json:"average_residual_risk_rating_color_code"`
-	AverageResidualRiskRatingType                  *string  `json:"average_residual_risk_rating_type"`
+	ID                                             uint                                                     `json:"id"`
+	ClauseID                                       uint                                                     `json:"clause_id"`
+	ClauseDescriptionEn                            *string                                                  `json:"clause_description_en"`
+	ClauseDescriptionAr                            *string                                                  `json:"clause_description_ar"`
+	ComplianceClauseNo                             string                                                   `json:"compliance_clause_no"`
+	ComplianceClauseTitleEn                        string                                                   `json:"compliance_clause_title_en"`
+	ComplianceClauseTitleAr                        string                                                   `json:"compliance_clause_title_ar"`
+	ComplianceRequirementID                        uint                                                     `json:"compliance_requirement_id"`
+	ComplianceAssessmentRequirementStatusID        *uint                                                    `json:"compliance_assessment_requirement_status_id"`
+	ComplianceRequirementTitleEn                   string                                                   `json:"compliance_requirement_title_en"`
+	ComplianceRequirementTitleAr                   string                                                   `json:"compliance_requirement_title_ar"`
+	ComplianceRequirementCategoryTitleEn           string                                                   `json:"compliance_requirement_category_title_en"`
+	ComplianceRequirementCategoryTitleAr           string                                                   `json:"compliance_requirement_category_title_ar"`
+	SeverityLevelID                                uint                                                     `json:"severity_level_id"`
+	SeverityLevelTitleEn                           string                                                   `json:"severity_level_title_en"`
+	SeverityLevelTitleAr                           string                                                   `json:"severity_level_title_ar"`
+	SeverityLevelColorCode                         string                                                   `json:"severity_level_color_code"`
+	SeverityLevelType                              string                                                   `json:"severity_level_type"`
+	ComplianceAssessmentRequirementStatusTitleEn   string                                                   `json:"compliance_assessment_requirement_status_title_en"`
+	ComplianceAssessmentRequirementStatusTitleAr   string                                                   `json:"compliance_assessment_requirement_status_title_ar"`
+	ComplianceAssessmentRequirementStatusColorCode string                                                   `json:"compliance_assessment_requirement_status_color_code"`
+	ComplianceAssessmentRequirementStatusType      string                                                   `json:"compliance_assessment_requirement_status_type"`
+	CreatedAt                                      string                                                   `json:"created_at"`
+	UpdatedAt                                      *string                                                  `json:"updated_at"`
+	IsAllCompleted                                 bool                                                     `json:"is_all_completed"`
+	AverageResidualRiskScore                       *float64                                                 `json:"average_residual_risk_score"`
+	AverageResidualRiskRatingID                    *uint                                                    `json:"average_residual_risk_rating_id"`
+	AverageResidualRiskRatingTitleEn               *string                                                  `json:"average_residual_risk_rating_title_en"`
+	AverageResidualRiskRatingTitleAr               *string                                                  `json:"average_residual_risk_rating_title_ar"`
+	AverageResidualRiskRatingColorCode             *string                                                  `json:"average_residual_risk_rating_color_code"`
+	AverageResidualRiskRatingType                  *string                                                  `json:"average_residual_risk_rating_type"`
+	ResponsibleUnits                               []*ComplianceAssessmentRequirementResponsibleUnitListDTO `json:"responsible_units" gorm:"-"`
+}
+
+type ComplianceAssessmentRequirementResponsibleUnitListDTO struct {
+	ID                                 uint                              `json:"id"`
+	AssessmentRequirementID            uint                              `json:"assessment_requirement_id"`
+	ResponsibleUnitID                  uint                              `json:"responsible_unit_id"`
+	IsRegulationNotificationAssessment *bool                             `json:"is_regulation_notification_assessment"`
+	IsRiskBasedAssessment              *bool                             `json:"is_risk_based_assessment"`
+	ResponsibleUnit                    *settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+}
+
+type ComplianceAssessmentRequirementResponsibleUnitListRowDTO struct {
+	ID                                 uint   `json:"id"`
+	AssessmentRequirementID            uint   `json:"assessment_requirement_id"`
+	ResponsibleUnitID                  uint   `json:"responsible_unit_id"`
+	IsRegulationNotificationAssessment *bool  `json:"is_regulation_notification_assessment"`
+	IsRiskBasedAssessment              *bool  `json:"is_risk_based_assessment"`
+	TitleEn                            string `json:"title_en"`
+	TitleAr                            string `json:"title_ar"`
+	Status                             string `json:"status"`
+	ColorCode                          string `json:"color_code"`
+	ParentID                           *uint  `json:"parent_id"`
 }
 
 type ComplianceAssessmentRequirementListResponseDTO struct {
@@ -102,14 +126,16 @@ type ComplianceAssessmentRequirementDocumentDTO struct {
 }
 
 type ComplianceAssessmentRequirementListQueryParamsDTO struct {
-	Sort        string
-	SortBy      string
-	Keyword     string
-	Filters     map[string][]string
-	QuickFilter []string
-	Page        int
-	PageSize    int
-	ClauseID    uint
+	Sort                               string
+	SortBy                             string
+	Keyword                            string
+	Filters                            map[string][]string
+	QuickFilter                        []string
+	Page                               int
+	PageSize                           int
+	ClauseID                           uint
+	IsRegulationNotificationAssessment *bool
+	IsRiskBasedAssessment              *bool
 }
 
 type ComplianceAssessmentRequirementClausesListDTO struct {

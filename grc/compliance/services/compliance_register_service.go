@@ -263,8 +263,8 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		Subject:                            complianceRegisterFormDTO.Subject,
 		IsApplicable:                       complianceRegisterFormDTO.IsApplicable,
 		IsNotApplicable:                    complianceRegisterFormDTO.IsNotApplicable,
-		IsRegulationNotificationAssessment: complianceRegisterFormDTO.IsRegulationNotificationAssessment,
-		IsRiskBasedAssessment:              complianceRegisterFormDTO.IsRiskBasedAssessment,
+		// IsRegulationNotificationAssessment: complianceRegisterFormDTO.IsRegulationNotificationAssessment,
+		// IsRiskBasedAssessment:              complianceRegisterFormDTO.IsRiskBasedAssessment,
 		IsPublic:                           complianceRegisterFormDTO.IsPublic,
 		IsShared:                           complianceRegisterFormDTO.IsShared,
 	}
@@ -537,8 +537,8 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 	existingComplianceRegister.Subject = complianceRegisterFormDTO.Subject
 	existingComplianceRegister.IsApplicable = complianceRegisterFormDTO.IsApplicable
 	existingComplianceRegister.IsNotApplicable = complianceRegisterFormDTO.IsNotApplicable
-	existingComplianceRegister.IsRegulationNotificationAssessment = complianceRegisterFormDTO.IsRegulationNotificationAssessment
-	existingComplianceRegister.IsRiskBasedAssessment = complianceRegisterFormDTO.IsRiskBasedAssessment
+	// existingComplianceRegister.IsRegulationNotificationAssessment = complianceRegisterFormDTO.IsRegulationNotificationAssessment
+	// existingComplianceRegister.IsRiskBasedAssessment = complianceRegisterFormDTO.IsRiskBasedAssessment
 	existingComplianceRegister.IsPublic = complianceRegisterFormDTO.IsPublic
 	existingComplianceRegister.IsShared = complianceRegisterFormDTO.IsShared
 
@@ -669,8 +669,8 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			"subject":                               oldComplianceRegister.Subject,
 			"is_applicable":                         oldComplianceRegister.IsApplicable,
 			"is_not_applicable":                     oldComplianceRegister.IsNotApplicable,
-			"is_regulation_notification_assessment": oldComplianceRegister.IsRegulationNotificationAssessment,
-			"is_risk_based_assessment":              oldComplianceRegister.IsRiskBasedAssessment,
+			// "is_regulation_notification_assessment": oldComplianceRegister.IsRegulationNotificationAssessment,
+			// "is_risk_based_assessment":              oldComplianceRegister.IsRiskBasedAssessment,
 		}
 
 		newData := map[string]interface{}{
@@ -703,8 +703,8 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			"subject":                               existingComplianceRegister.Subject,
 			"is_applicable":                         existingComplianceRegister.IsApplicable,
 			"is_not_applicable":                     existingComplianceRegister.IsNotApplicable,
-			"is_regulation_notification_assessment": existingComplianceRegister.IsRegulationNotificationAssessment,
-			"is_risk_based_assessment":              existingComplianceRegister.IsRiskBasedAssessment,
+			// "is_regulation_notification_assessment": existingComplianceRegister.IsRegulationNotificationAssessment,
+			// "is_risk_based_assessment":              existingComplianceRegister.IsRiskBasedAssessment,
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
@@ -1637,13 +1637,14 @@ func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complian
 
 		// Determine assessment type
 		var assessmentType string
-		if item.IsRegulationNotificationAssessment {
-			assessmentType = "Regulation Notification"
-		} else if item.IsRiskBasedAssessment {
-			assessmentType = "Risk Based Assessment"
-		} else {
-			assessmentType = ""
-		}
+		// if item.IsRegulationNotificationAssessment {
+		// 	assessmentType = "Regulation Notification"
+		// } else if item.IsRiskBasedAssessment {
+		// 	assessmentType = "Risk Based Assessment"
+		// } else {
+		// 	assessmentType = ""
+		// }
+		assessmentType = ""
 
 		// Strip HTML tags from subject using regex
 		cleanSubject := item.Subject
@@ -1802,8 +1803,8 @@ func (crs *ComplianceRegisterService) CreateComplianceVersion(currentUserID uint
 		Subject:                            parentCompliance.Subject,
 		IsApplicable:                       parentCompliance.IsApplicable,
 		IsNotApplicable:                    parentCompliance.IsNotApplicable,
-		IsRegulationNotificationAssessment: parentCompliance.IsRegulationNotificationAssessment,
-		IsRiskBasedAssessment:              parentCompliance.IsRiskBasedAssessment,
+		// IsRegulationNotificationAssessment: parentCompliance.IsRegulationNotificationAssessment,
+		// IsRiskBasedAssessment:              parentCompliance.IsRiskBasedAssessment,
 		IsPublic:                           parentCompliance.IsPublic,
 		IsShared:                           parentCompliance.IsShared,
 	}

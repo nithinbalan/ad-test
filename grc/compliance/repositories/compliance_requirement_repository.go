@@ -28,6 +28,7 @@ type ComplianceRequirementRepositoryInterface interface {
 	DeleteClause(clauseID uint, tx ...utility.DatabaseTransaction) error
 
 	CreateComplianceRequirementResponsibleUnits(units []*models.ComplianceRequirementResponsibleUnit, tx ...utility.DatabaseTransaction) error
+	UpdateComplianceRequirementResponsibleUnits(units []*models.ComplianceRequirementResponsibleUnit, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceRequirementResponsibleUnits(unitIds []*uint, tx ...utility.DatabaseTransaction) error
 	CreateComplianceRequirementControls(controls []*models.ComplianceControl, tx ...utility.DatabaseTransaction) error
 	DeleteComplianceRequirementControls(controlIds []*uint, tx ...utility.DatabaseTransaction) error
@@ -120,6 +121,28 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 	if complianceID != 0 {
 		query = query.Where("compliance_clauses.compliance_register_id = ?", complianceID)
 	}
+	if params.IsRegulationNotificationAssessment != nil {
+		query = query.Where(
+			`EXISTS (
+				SELECT 1
+				FROM compliance_requirement_responsible_units crru
+				WHERE crru.compliance_requirement_id = compliance_requirements.id
+				  AND crru.is_regulation_notification_assessment = ?
+			)`,
+			*params.IsRegulationNotificationAssessment,
+		)
+	}
+	if params.IsRiskBasedAssessment != nil {
+		query = query.Where(
+			`EXISTS (
+				SELECT 1
+				FROM compliance_requirement_responsible_units crru
+				WHERE crru.compliance_requirement_id = compliance_requirements.id
+				  AND crru.is_risk_based_assessment = ?
+			)`,
+			*params.IsRiskBasedAssessment,
+		)
+	}
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
@@ -166,11 +189,11 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 			compliance_requirements.title_ar LIKE ? OR
 			compliance_requirement_categories.title_en LIKE ? OR
 			compliance_requirement_categories.title_ar LIKE ? OR
-			severity_levels.title_en LIKE ? OR
-			severity_levels.title_ar LIKE ? OR
-			compliance_requirements.deadline LIKE ? OR
-			compliance_statuses.title_en LIKE ? OR
-			compliance_statuses.title_ar LIKE ?)`,
+				severity_levels.title_en LIKE ? OR
+				severity_levels.title_ar LIKE ? OR
+				compliance_requirements.deadline LIKE ? OR
+				compliance_statuses.title_en LIKE ? OR
+				compliance_statuses.title_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword)
@@ -227,40 +250,63 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by_id").
 		Where("compliance_clauses.compliance_register_id = ?", complianceID)
 
-	// Apply same filters for counting
-	for column, values := range params.Filters {
-		if len(values) > 0 {
-			countQuery = countQuery.Where(column+" IN (?)", values)
-		}
-	}
-	if params.DeadlineFrom != "" {
-		countQuery = countQuery.Where("compliance_requirements.deadline >= ?", params.DeadlineFrom)
-	}
-	if params.DeadlineTo != "" {
-		countQuery = countQuery.Where("compliance_requirements.deadline <= ?", params.DeadlineTo)
-	}
-	if params.DateFrom != "" && params.DateTo != "" {
-		countQuery = countQuery.Where(
-			"compliance_requirements.created_at BETWEEN ? AND ?",
-			params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59",
-		)
-	}
-	for _, filter := range params.QuickFilter {
-		switch filter {
-		case "severe":
-			countQuery = countQuery.Where("severity_levels.type = ?", "high")
-		case "non_compliant":
-			countQuery = countQuery.Where("compliance_statuses.type = ?", "not_implemented")
-		case "non_compliant_due":
-			countQuery = countQuery.Where(
-				"compliance_statuses.type = ? AND compliance_requirements.deadline < ?",
-				"not_implemented", time.Now(),
+	applyCommonFilters := func(q *gorm.DB) *gorm.DB {
+		if params.IsRegulationNotificationAssessment != nil {
+			q = q.Where(
+				`EXISTS (
+					SELECT 1
+					FROM compliance_requirement_responsible_units crru
+					WHERE crru.compliance_requirement_id = compliance_requirements.id
+					  AND crru.is_regulation_notification_assessment = ?
+				)`,
+				*params.IsRegulationNotificationAssessment,
 			)
 		}
-	}
-	if params.Keyword != "" {
-		keyword := "%" + params.Keyword + "%"
-		countQuery = countQuery.Where(`
+		if params.IsRiskBasedAssessment != nil {
+			q = q.Where(
+				`EXISTS (
+					SELECT 1
+					FROM compliance_requirement_responsible_units crru
+					WHERE crru.compliance_requirement_id = compliance_requirements.id
+					  AND crru.is_risk_based_assessment = ?
+				)`,
+				*params.IsRiskBasedAssessment,
+			)
+		}
+
+		for column, values := range params.Filters {
+			if len(values) > 0 {
+				q = q.Where(column+" IN (?)", values)
+			}
+		}
+		if params.DeadlineFrom != "" {
+			q = q.Where("compliance_requirements.deadline >= ?", params.DeadlineFrom)
+		}
+		if params.DeadlineTo != "" {
+			q = q.Where("compliance_requirements.deadline <= ?", params.DeadlineTo)
+		}
+		if params.DateFrom != "" && params.DateTo != "" {
+			q = q.Where(
+				"compliance_requirements.created_at BETWEEN ? AND ?",
+				params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59",
+			)
+		}
+		for _, filter := range params.QuickFilter {
+			switch filter {
+			case "severe":
+				q = q.Where("severity_levels.type = ?", "high")
+			case "non_compliant":
+				q = q.Where("compliance_statuses.type = ?", "not_implemented")
+			case "non_compliant_due":
+				q = q.Where(
+					"compliance_statuses.type = ? AND compliance_requirements.deadline < ?",
+					"not_implemented", time.Now(),
+				)
+			}
+		}
+		if params.Keyword != "" {
+			keyword := "%" + params.Keyword + "%"
+			q = q.Where(`
             (compliance_clauses.clause_no LIKE ? OR
              compliance_clauses.title_en LIKE ? OR
              compliance_clauses.title_ar LIKE ? OR
@@ -273,13 +319,17 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
              CAST(compliance_requirements.deadline AS VARCHAR) LIKE ? OR
              compliance_statuses.title_en LIKE ? OR
              compliance_statuses.title_ar LIKE ?)`,
-			keyword, keyword, keyword,
-			keyword, keyword,
-			keyword, keyword,
-			keyword, keyword,
-			keyword, keyword, keyword,
-		)
+				keyword, keyword, keyword,
+				keyword, keyword,
+				keyword, keyword,
+				keyword, keyword,
+				keyword, keyword, keyword,
+			)
+		}
+		return q
 	}
+
+	countQuery = applyCommonFilters(countQuery)
 
 	// Execute count query
 	if err := countQuery.Count(&totalCount).Error; err != nil {
@@ -331,6 +381,7 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
             LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
         `).
 		Where("compliance_clauses.compliance_register_id = ?", complianceID)
+	query = applyCommonFilters(query)
 	if params.SortBy == "" {
 		params.SortBy = "compliance_clauses.clause_no"
 	}
@@ -530,6 +581,29 @@ func (repo *ComplianceRequirementRepository) CreateComplianceRequirementResponsi
 	}
 	return nil
 }
+
+func (repo *ComplianceRequirementRepository) UpdateComplianceRequirementResponsibleUnits(units []*models.ComplianceRequirementResponsibleUnit, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	for _, unit := range units {
+		if err := db.Model(&models.ComplianceRequirementResponsibleUnit{}).
+			Where("id = ?", unit.ID).
+			Updates(map[string]interface{}{
+				"is_regulation_notification_assessment": unit.IsRegulationNotificationAssessment,
+				"is_risk_based_assessment":              unit.IsRiskBasedAssessment,
+				"updated_by_id":                         unit.UpdatedByID,
+				"updated_at":                            time.Now(),
+			}).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (repo *ComplianceRequirementRepository) DeleteComplianceRequirementResponsibleUnits(unitIds []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
@@ -718,6 +792,8 @@ func (repo *ComplianceRequirementRepository) GetResponsibleUnitRowsByRequirement
 			compliance_requirement_responsible_units.id,
 			compliance_requirement_responsible_units.compliance_requirement_id,
 			compliance_requirement_responsible_units.responsible_unit_id,
+			compliance_requirement_responsible_units.is_regulation_notification_assessment,
+			compliance_requirement_responsible_units.is_risk_based_assessment,
 			compliance_requirement_responsible_units.compliance_assessment_framework_value_id,
 			ou.title_en,
 			ou.title_ar,

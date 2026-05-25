@@ -50,19 +50,21 @@ type ComplianceRequirementListDTO struct {
 }
 
 type ComplianceRequirementListQueryParamsDTO struct {
-	Sort         string
-	SortBy       string
-	Keyword      string
-	Status       string
-	Page         int
-	PageSize     int
-	Filters      map[string][]string
-	QuickFilter  []string
-	DeadlineFrom string
-	DeadlineTo   string
-	DateFrom     string
-	DateTo       string
-	Export       bool
+	Sort                               string
+	SortBy                             string
+	Keyword                            string
+	Status                             string
+	Page                               int
+	PageSize                           int
+	Filters                            map[string][]string
+	QuickFilter                        []string
+	DeadlineFrom                       string
+	DeadlineTo                         string
+	DateFrom                           string
+	DateTo                             string
+	Export                             bool
+	IsRegulationNotificationAssessment *bool
+	IsRiskBasedAssessment              *bool
 }
 
 type ComplianceRequirementListResponseDTO struct {
@@ -93,11 +95,17 @@ type ComplianceRequirementFormDTO struct {
 	SeverityLevelID                 *uint   `json:"severity_level_id"`
 	Deadline                        *string `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
 	// ComplianceStatusID              *uint   `json:"compliance_status_id"`
-	ControlIDs               []*uint `json:"control_ids"`
-	StrategicObjectiveIDs    []*uint `json:"strategic_objective_ids"`
-	DocumentIds              []*uint `json:"document_ids"`
-	RequiredDocumentTitleIDs []*uint `json:"required_document_title_ids"`
-	ResponsibleUnitIDs       []*uint `json:"responsible_unit_ids"`
+	ControlIDs               []*uint                                        `json:"control_ids"`
+	StrategicObjectiveIDs    []*uint                                        `json:"strategic_objective_ids"`
+	DocumentIds              []*uint                                        `json:"document_ids"`
+	RequiredDocumentTitleIDs []*uint                                        `json:"required_document_title_ids"`
+	ResponsibleUnits         []*ComplianceRequirementResponsibleUnitFormDTO `json:"responsible_units"`
+}
+
+type ComplianceRequirementResponsibleUnitFormDTO struct {
+	ResponsibleUnitID                  uint  `json:"responsible_unit_id" binding:"required"`
+	IsRegulationNotificationAssessment *bool `json:"is_regulation_notification_assessment" binding:"required"`
+	IsRiskBasedAssessment              *bool `json:"is_risk_based_assessment" binding:"required"`
 }
 
 type ComplianceRequirementInherentRiskFormDTO struct {
@@ -142,6 +150,9 @@ type ComplianceRequirementDetailDTO struct {
 }
 type ComplianceRequirementResponsibleUnitDTO struct {
 	ID                                 uint                                         `json:"id"`
+	ResponsibleUnitID                  uint                                         `json:"responsible_unit_id"`
+	IsRegulationNotificationAssessment *bool                                        `json:"is_regulation_notification_assessment"`
+	IsRiskBasedAssessment              *bool                                        `json:"is_risk_based_assessment"`
 	ResponsibleUnit                    settingsDTOs.OrganizationUnitDTO             `json:"responsible_unit"`
 	ComplianceAssessmentFrameworkValue *ComplianceAssessmentFrameworkValueDetailDTO `json:"compliance_assessment_framework_value"`
 	CompletedByUser                    *organizationDTOs.UserMinimalDTO             `json:"completed_by_user"`
@@ -202,6 +213,8 @@ type ComplianceRequirementResponsibleUnitListDTO struct {
 	ID                                   uint                              `json:"id"`
 	ComplianceRequirementID              uint                              `json:"compliance_requirement_id"`
 	ResponsibleUnitID                    uint                              `json:"responsible_unit_id"`
+	IsRegulationNotificationAssessment   *bool                             `json:"is_regulation_notification_assessment"`
+	IsRiskBasedAssessment                *bool                             `json:"is_risk_based_assessment"`
 	ComplianceAssessmentFrameworkValueID *uint                             `json:"compliance_assessment_framework_value_id"`
 	ResponsibleUnit                      *settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
 }
@@ -209,6 +222,8 @@ type ComplianceRequirementResponsibleUnitRowDTO struct {
 	ID                                   uint   `json:"id"`
 	ComplianceRequirementID              uint   `json:"compliance_requirement_id"`
 	ResponsibleUnitID                    uint   `json:"responsible_unit_id"`
+	IsRegulationNotificationAssessment   *bool  `json:"is_regulation_notification_assessment"`
+	IsRiskBasedAssessment                *bool  `json:"is_risk_based_assessment"`
 	ComplianceAssessmentFrameworkValueID *uint  `json:"compliance_assessment_framework_value_id"`
 	TitleEn                              string `json:"title_en"`
 	TitleAr                              string `json:"title_ar"`

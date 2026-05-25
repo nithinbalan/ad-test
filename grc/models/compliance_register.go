@@ -53,8 +53,8 @@ type ComplianceRegister struct {
 	Subject                            *string `json:"subject" gorm:"type:nvarchar(max)"`
 	IsApplicable                       bool    `json:"is_applicable default:false"`
 	IsNotApplicable                    bool    `json:"is_not_applicable default:false"`
-	IsRegulationNotificationAssessment bool    `json:"is_regulation_notification_assessment default:false"`
-	IsRiskBasedAssessment              bool    `json:"is_risk_based_assessment default:false"`
+	// IsRegulationNotificationAssessment bool    `json:"is_regulation_notification_assessment default:false"`
+	// IsRiskBasedAssessment              bool    `json:"is_risk_based_assessment default:false"`
 	IsPublic                           bool    `json:"is_public default:false"`
 	IsShared                           bool    `json:"is_shared default:false"`
 	Note                               *string `json:"note" gorm:"type:varchar(max)"`

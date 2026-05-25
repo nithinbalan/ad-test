@@ -23,8 +23,10 @@ type ComplianceAssessmentRepositoryInterface interface {
 
 	IsAssessmentExists(organizationUnitID uint, compliancRegisterID uint, ids []uint) (bool, error)
 	IsAssessmentExistExcludingID(id uint, organizationUnitID uint, compliancRegisterID uint, ids []uint) (bool, error)
+	GetRequirementsForRegister(registerID uint) ([]*models.ComplianceRequirement, error)
 	HasRequirementForRegister(registerID uint) (bool, error)
 	CheckAllRequirementsHaveInherentScore(registerID uint) (bool, error)
+	CheckAllRiskBasedRequirementsHaveInherentScore(registerID uint) (bool, error)
 
 	CreateComplianceAssessmentRequirement(requirements *models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteComplianceAssessmentRequirements(ids []*uint, tx ...utility.DatabaseTransaction) error
@@ -383,6 +385,21 @@ func (repo *ComplianceAssessmentRepository) HasRequirementForRegister(registerID
 	return count > 0, nil
 }
 
+func (repo *ComplianceAssessmentRepository) GetRequirementsForRegister(registerID uint) ([]*models.ComplianceRequirement, error) {
+	var requirements []*models.ComplianceRequirement
+	err := repo.db.
+		Model(&models.ComplianceRequirement{}).
+		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
+		Preload("ResponsibleUnits").
+		Where("compliance_clauses.compliance_register_id = ?", registerID).
+		Find(&requirements).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return requirements, nil
+}
+
 func (repo *ComplianceAssessmentRepository) CheckAllRequirementsHaveInherentScore(registerID uint) (bool, error) {
 	var totalCount int64
 	var withScoreCount int64
@@ -411,6 +428,39 @@ func (repo *ComplianceAssessmentRepository) CheckAllRequirementsHaveInherentScor
 
 	// Return true only if all requirements have inherent risk scores and there's at least one requirement
 	return totalCount > 0 && totalCount == withScoreCount, nil
+}
+
+func (repo *ComplianceAssessmentRepository) CheckAllRiskBasedRequirementsHaveInherentScore(registerID uint) (bool, error) {
+	var totalCount int64
+	var withScoreCount int64
+
+	err := repo.db.
+		Table("compliance_requirements").
+		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
+		Joins("JOIN compliance_requirement_responsible_units crru ON crru.compliance_requirement_id = compliance_requirements.id").
+		Where("compliance_clauses.compliance_register_id = ? AND crru.is_risk_based_assessment = ?", registerID, true).
+		Distinct("compliance_requirements.id").
+		Count(&totalCount).Error
+	if err != nil {
+		return false, err
+	}
+
+	if totalCount == 0 {
+		return true, nil
+	}
+
+	err = repo.db.
+		Table("compliance_requirements").
+		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
+		Joins("JOIN compliance_requirement_responsible_units crru ON crru.compliance_requirement_id = compliance_requirements.id").
+		Where("compliance_clauses.compliance_register_id = ? AND crru.is_risk_based_assessment = ? AND compliance_requirements.inherent_risk_score IS NOT NULL", registerID, true).
+		Distinct("compliance_requirements.id").
+		Count(&withScoreCount).Error
+	if err != nil {
+		return false, err
+	}
+
+	return totalCount == withScoreCount, nil
 }
 func (repo *ComplianceAssessmentRepository) IsAssessmentExistExcludingID(id uint, organizationUnitID uint, complianceRegisterID uint, ids []uint) (bool, error) {
 	db := repo.db

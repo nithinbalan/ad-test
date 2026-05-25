@@ -172,6 +172,10 @@
     "translation": "{{.Field}} must have a valid score range. The scoreMin should be less than scoreMax, and both values must be between 0 and 100."
   },
   {
+    "id": "out_of_range",
+    "translation": "The {{.Field}} value is out of range. It must be between 0 and 100."
+  },
+  {
     "id": "kri_maximum_susceptibility_percent_invalid_range",
     "translation": "Invalid value relationship: maximum susceptibility percent must be less than minimum susceptibility percent, and both fields must be between 0 and 100."
   },

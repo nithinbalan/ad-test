@@ -126,6 +126,22 @@ func (carc *ComplianceAssessmentRequirementController) GetComplianceAssessmentRe
 		PageSize:    pageSize,
 		ClauseID:    clauseID,
 	}
+	if isRegulationNotificationAssessmentStr := c.Query("is_regulation_notification_assessment"); isRegulationNotificationAssessmentStr != "" {
+		val, err := strconv.ParseBool(isRegulationNotificationAssessmentStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, err)
+			return
+		}
+		queryParams.IsRegulationNotificationAssessment = &val
+	}
+	if isRiskBasedAssessmentStr := c.Query("is_risk_based_assessment"); isRiskBasedAssessmentStr != "" {
+		val, err := strconv.ParseBool(isRiskBasedAssessmentStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, err)
+			return
+		}
+		queryParams.IsRiskBasedAssessment = &val
+	}
 
 	requirements, err := carc.service.GetAll(uint(assessmentID), &queryParams)
 	if err != nil {
