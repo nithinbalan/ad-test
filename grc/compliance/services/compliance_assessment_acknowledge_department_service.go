@@ -59,9 +59,7 @@ func (caads *ComplianceAssessmentAcknowledgeDepartmentService) GetAll(assessment
 		return nil, err
 	}
 
-	// Keep existing visibility behavior by returning the full eligible department set.
-	_ = currentUserID
-	return caads.repo.GetAllForRegulationAssessment(assessmentID, nil, primaryOrgUnitField, params)
+	return caads.repo.GetAllForRegulationAssessment(assessmentID, &currentUserID, primaryOrgUnitField, params)
 }
 
 func (caads *ComplianceAssessmentAcknowledgeDepartmentService) Create(assessmentID uint, currentUserID uint, acknowledgeFormDTO *complianceDTOs.ComplianceAssessmentAcknowledgeFormDTO) (uint, error) {

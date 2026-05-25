@@ -1878,8 +1878,23 @@ func (cs *ComplianceRequirementService) ImportRequirements(complianceID uint, in
 		// Convert []uint to responsible units
 		var responsibleUnits []*complianceDTOs.ComplianceRequirementResponsibleUnitFormDTO
 		if ids, ok := record["responsible_unit_ids"].([]uint); ok {
-			isRegulationNotificationAssessment := record["is_regulation_notification_assessment"].(bool)
-			isRiskBasedAssessment := record["is_risk_based_assessment"].(bool)
+			isRegulationNotificationAssessment, ok := record["is_regulation_notification_assessment"].(bool)
+			if !ok {
+				return nil, utility.NewValidationError(
+					fmt.Errorf("is_regulation_notification_assessment must be a boolean"),
+					"invalid_data",
+					"is_regulation_notification_assessment",
+				)
+			}
+
+			isRiskBasedAssessment, ok := record["is_risk_based_assessment"].(bool)
+			if !ok {
+				return nil, utility.NewValidationError(
+					fmt.Errorf("is_risk_based_assessment must be a boolean"),
+					"invalid_data",
+					"is_risk_based_assessment",
+				)
+			}
 
 			for _, id := range ids {
 				regulationNotificationAssessment := isRegulationNotificationAssessment

@@ -270,6 +270,7 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 
 				applicabilityStatus, err := cras.applicablityStatusSvc.GetByType("applicable")
 				if err != nil {
+					tx.Rollback()
 					return err
 				}
 

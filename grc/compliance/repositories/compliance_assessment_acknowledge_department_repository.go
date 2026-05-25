@@ -92,37 +92,45 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAllForRegula
 	var totalCount int64
 
 	keywordFilter := ""
+	keywordArgs := make([]interface{}, 0, 7)
 	if params.Keyword != "" {
-		keywordFilter = fmt.Sprintf(`
-            AND (ack_user.first_name_en LIKE '%%%s%%' 
-            OR ack_user.first_name_ar LIKE '%%%s%%' 
-            OR ack_user.last_name_en LIKE '%%%s%%' 
-            OR ack_user.last_name_ar LIKE '%%%s%%' 
-            OR ack_user.email LIKE '%%%s%%' 
-            OR ed.organization_unit_title_en LIKE '%%%s%%' 
-            OR ed.organization_unit_title_ar LIKE '%%%s%%')`,
-			params.Keyword, params.Keyword, params.Keyword, params.Keyword, params.Keyword, params.Keyword, params.Keyword)
+		keywordFilter = `
+            AND (ack_user.first_name_en LIKE ? 
+            OR ack_user.first_name_ar LIKE ? 
+            OR ack_user.last_name_en LIKE ? 
+            OR ack_user.last_name_ar LIKE ? 
+            OR ack_user.email LIKE ? 
+            OR ed.organization_unit_title_en LIKE ? 
+            OR ed.organization_unit_title_ar LIKE ?)`
+		keywordPattern := "%" + params.Keyword + "%"
+		keywordArgs = append(keywordArgs,
+			keywordPattern,
+			keywordPattern,
+			keywordPattern,
+			keywordPattern,
+			keywordPattern,
+			keywordPattern,
+			keywordPattern,
+		)
 	}
 
-	baseCTE := fmt.Sprintf(`
-        WITH eligible_departments AS (
-            SELECT DISTINCT
-                ou.id AS organization_unit_id,
-                ou.title_en AS organization_unit_title_en,
-                ou.title_ar AS organization_unit_title_ar
-            FROM compliance_assessment_requirements car
-            INNER JOIN compliance_requirements cr ON cr.id = car.compliance_requirement_id
-            INNER JOIN compliance_requirement_responsible_units crru ON crru.compliance_requirement_id = cr.id
-            INNER JOIN organization_units ou ON ou.id = crru.responsible_unit_id
-            WHERE car.compliance_assessment_id = %d
-              AND crru.is_regulation_notification_assessment = 1
-              AND ou.status = 'active'
-        )`, assessmentID)
+	eligibleDepartmentsSubQuery := fmt.Sprintf(`
+        SELECT DISTINCT
+            ou.id AS organization_unit_id,
+            ou.title_en AS organization_unit_title_en,
+            ou.title_ar AS organization_unit_title_ar
+        FROM compliance_assessment_requirements car
+        INNER JOIN compliance_requirements cr ON cr.id = car.compliance_requirement_id
+        INNER JOIN compliance_requirement_responsible_units crru ON crru.compliance_requirement_id = cr.id
+        INNER JOIN organization_units ou ON ou.id = crru.responsible_unit_id
+        WHERE car.compliance_assessment_id = %d
+          AND crru.is_regulation_notification_assessment = 1
+          AND ou.status = 'active'`, assessmentID)
 
 	var fromClause string
 	if currentUserID != nil {
 		fromClause = fmt.Sprintf(`
-        FROM eligible_departments ed
+        FROM (%s) ed
         INNER JOIN users user_filter ON user_filter.id = %d AND (
             user_filter.%s = ed.organization_unit_id OR
             user_filter.organization_unit_2_id = ed.organization_unit_id OR
@@ -136,10 +144,10 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAllForRegula
             ORDER BY caad.id DESC
         ) latest_ack
         LEFT JOIN users ack_user ON latest_ack.user_id = ack_user.id
-        WHERE 1=1 %s`, *currentUserID, primaryOrgUnitField, assessmentID, keywordFilter)
+        WHERE 1=1 %s`, eligibleDepartmentsSubQuery, *currentUserID, primaryOrgUnitField, assessmentID, keywordFilter)
 	} else {
 		fromClause = fmt.Sprintf(`
-        FROM eligible_departments ed
+        FROM (%s) ed
         OUTER APPLY (
             SELECT TOP 1 caad.id, caad.comment, caad.user_id
             FROM compliance_assessment_acknowledge_departments caad
@@ -148,25 +156,10 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAllForRegula
             ORDER BY caad.id DESC
         ) latest_ack
         LEFT JOIN users ack_user ON latest_ack.user_id = ack_user.id
-        WHERE 1=1 %s`, assessmentID, keywordFilter)
+        WHERE 1=1 %s`, eligibleDepartmentsSubQuery, assessmentID, keywordFilter)
 	}
 
-	countQuery := fmt.Sprintf(`
-        %s
-        SELECT COUNT(*)
-        FROM (
-            SELECT ed.organization_unit_id
-            %s
-            GROUP BY ed.organization_unit_id
-        ) AS count_query`, baseCTE, fromClause)
-
-	if err := repo.db.Raw(countQuery).Scan(&totalCount).Error; err != nil {
-		return nil, err
-	}
-
-	offset := (params.Page - 1) * params.PageSize
-	query := fmt.Sprintf(`
-        %s
+	baseQuery := fmt.Sprintf(`
         SELECT
             COALESCE(ack_user.id, 0) AS id,
             COALESCE(ack_user.first_name_en, '') AS first_name_en,
@@ -182,11 +175,23 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAllForRegula
             ed.organization_unit_title_en AS organization_unit_title_en,
             ed.organization_unit_title_ar AS organization_unit_title_ar,
             CASE WHEN latest_ack.id IS NOT NULL THEN 1 ELSE 0 END AS acknowledged
-        %s
-        ORDER BY ed.organization_unit_title_en, ack_user.first_name_en %s
-        OFFSET %d ROWS FETCH NEXT %d ROWS ONLY`, baseCTE, fromClause, params.Sort, offset, params.PageSize)
+        %s`, fromClause)
 
-	if err := repo.db.Raw(query).Scan(&acknowledgementList).Error; err != nil {
+	baseQueryBuilder := func() *gorm.DB {
+		return repo.db.Table("(?) AS regulation_ack", repo.db.Raw(baseQuery, keywordArgs...))
+	}
+
+	if err := baseQueryBuilder().Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	offset := (params.Page - 1) * params.PageSize
+	orderBy := fmt.Sprintf("organization_unit_title_en, first_name_en %s", params.Sort)
+	if err := baseQueryBuilder().
+		Order(orderBy).
+		Offset(offset).
+		Limit(params.PageSize).
+		Scan(&acknowledgementList).Error; err != nil {
 		return nil, err
 	}
 
