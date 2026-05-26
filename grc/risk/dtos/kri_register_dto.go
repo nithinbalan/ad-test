@@ -145,6 +145,7 @@ type KRIRegisterFormDTO struct {
 	KRICategoryID                uint                     `json:"kri_category_id" binding:"required"`
 	ResponsibleUserID            uint                     `json:"responsible_user_id" binding:"required"`
 	ReviewFrequencyID            uint                     `json:"review_frequency_id" binding:"required" gorm:"default:not null"`
+	RiskLevelID                  *uint                    `json:"risk_level_id"`
 	UnitID                       uint                     `json:"unit_id" binding:"required"`
 	LevelOfMeasurementID         *uint                    `json:"level_of_measurement_id"`
 	RiskResponsibleUnitID        *uint                    `json:"risk_responsible_unit_id"`

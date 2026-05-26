@@ -207,12 +207,12 @@ func (krs *KRIRegisterService) Create(currentUserID uint, kriRegisterFormDTO *ri
 	// }
 
 	kriRegister := &models.KRIRegister{
-		ReferenceNumber:   &referenceNumber,
-		KRICategoryID:     kriRegisterFormDTO.KRICategoryID,
-		ResponsibleUnitID: organizationUnitID,
-		ResponsibleUserID: kriRegisterFormDTO.ResponsibleUserID,
-		ReviewFrequencyID: kriRegisterFormDTO.ReviewFrequencyID,
-		// RiskLevelID:                  riskLevelID,
+		ReferenceNumber:              &referenceNumber,
+		KRICategoryID:                kriRegisterFormDTO.KRICategoryID,
+		ResponsibleUnitID:            organizationUnitID,
+		ResponsibleUserID:            kriRegisterFormDTO.ResponsibleUserID,
+		ReviewFrequencyID:            kriRegisterFormDTO.ReviewFrequencyID,
+		RiskLevelID:                  kriRegisterFormDTO.RiskLevelID,
 		UnitID:                       &kriRegisterFormDTO.UnitID,
 		LevelOfMeasurementID:         kriRegisterFormDTO.LevelOfMeasurementID,
 		RiskResponsibleUnitID:        kriRegisterFormDTO.RiskResponsibleUnitID,
@@ -412,6 +412,7 @@ func (krs *KRIRegisterService) Update(id uint, currentUserID uint, kriRegisterFo
 	existingKRIRegister.KRICategoryID = kriRegisterFormDTO.KRICategoryID
 	existingKRIRegister.ResponsibleUserID = kriRegisterFormDTO.ResponsibleUserID
 	existingKRIRegister.ReviewFrequencyID = kriRegisterFormDTO.ReviewFrequencyID
+	existingKRIRegister.RiskLevelID = kriRegisterFormDTO.RiskLevelID
 	existingKRIRegister.UnitID = &kriRegisterFormDTO.UnitID
 	existingKRIRegister.LevelOfMeasurementID = kriRegisterFormDTO.LevelOfMeasurementID
 	existingKRIRegister.RiskResponsibleUnitID = kriRegisterFormDTO.RiskResponsibleUnitID
