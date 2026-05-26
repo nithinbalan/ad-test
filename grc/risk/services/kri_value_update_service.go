@@ -98,6 +98,18 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 
 	tx := kvus.repo.BeginTransaction()
 
+	if kriValueUpdateFormDTO.KRIFrequencyValueID != nil {
+		isUsed, err := kvus.repo.IsFrequencyValueAlreadyUsed(kriRegisterID, *kriValueUpdateFormDTO.KRIFrequencyValueID, nil, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		if isUsed {
+			tx.Rollback()
+			return 0, utility.NewValidationError(fmt.Errorf("this frequency value (month/year/type) has already been used for this KRI register"), "already_used", "Month")
+		}
+	}
+
 	calculatedValue, err := kvus.calculateFinalValue(existingKRIRegister, nil, kriValueUpdateFormDTO.Value)
 	if err != nil {
 		tx.Rollback()
@@ -436,6 +448,18 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 			return utility.NewResourceNotFoundError(err, updateId)
 		}
 		return err
+	}
+
+	if kriValueUpdateFormDTO.KRIFrequencyValueID != nil {
+		isUsed, err := kvus.repo.IsFrequencyValueAlreadyUsed(kriRegisterID, *kriValueUpdateFormDTO.KRIFrequencyValueID, &updateId, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		if isUsed {
+			tx.Rollback()
+			return utility.NewValidationError(fmt.Errorf("this frequency value (month/year/type) has already been used for this KRI register"), "already_used", "kri_frequency_value_id")
+		}
 	}
 
 	calculatedValue, err := kvus.calculateFinalValue(existingKRIRegister, existingKRIUpdate, kriValueUpdateFormDTO.Value)

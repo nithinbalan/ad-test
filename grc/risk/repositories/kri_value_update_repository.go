@@ -31,6 +31,7 @@ type KRIValueUpdateRepositoryInterface interface {
 	UpdateFrequencyValueActualValue(frequencyValueID uint, actualValue int, tx ...utility.DatabaseTransaction) error
 	UpdateFrequencyValueComplete(frequencyValueID uint, actualValue float64, achievementValue float64, toleranceStatusID *uint, isAchieved bool, isMissed bool, tx ...utility.DatabaseTransaction) error
 	GetFrequencyValueByID(frequencyValueID uint, tx ...utility.DatabaseTransaction) (*models.KRIFrequencyValue, error)
+	IsFrequencyValueAlreadyUsed(kriRegisterID uint, frequencyValueID uint, excludeUpdateID *uint, tx ...utility.DatabaseTransaction) (bool, error)
 }
 
 type KRIValueUpdateRepository struct {
@@ -419,4 +420,25 @@ func (repo *KRIValueUpdateRepository) GetFrequencyValueByID(frequencyValueID uin
 		return nil, err
 	}
 	return &frequencyValue, nil
+}
+
+func (repo *KRIValueUpdateRepository) IsFrequencyValueAlreadyUsed(kriRegisterID uint, frequencyValueID uint, excludeUpdateID *uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var count int64
+	query := db.Model(&models.KRIValueUpdate{}).
+		Where("kri_register_id = ? AND kri_frequency_value_id = ?", kriRegisterID, frequencyValueID)
+
+	if excludeUpdateID != nil {
+		query = query.Where("id != ?", *excludeUpdateID)
+	}
+
+	if err := query.Count(&count).Error; err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }
