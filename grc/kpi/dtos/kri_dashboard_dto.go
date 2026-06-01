@@ -25,18 +25,18 @@ type KRIReviewStatusDTO struct {
 }
 
 type KriBreachRawDTO struct {
-	KriID      uint
-	KriTitle   string
-	Value      int
-	ReviewedAt time.Time
-	LowTh      *int
-	MedTh      *int
+	KriID                   uint
+	KriTitle                string
+	Value                   float64
+	ReviewedAt              time.Time
+	RiskToleranceStatusType string
 }
 
 type KriBreachItemDTO struct {
-	Exceeded int    `json:"exceeded"`
-	Date     string `json:"date"`
-	Time     string `json:"time"`
+	Value                   float64 `json:"value"`
+	RiskToleranceStatusType string  `json:"risk_tolerance_status_type"`
+	Date                    string  `json:"date"`
+	Time                    string  `json:"time"`
 }
 
 type KriMostFrequentBreachedResponseDTO struct {
@@ -70,19 +70,26 @@ type KRISeverityBreakdownDTO struct {
 }
 
 type KriExposureRaw struct {
-	ID              uint   `json:"id"`
-	Title           string `json:"title"`
-	Score           *int   `json:"score"`
-	LowThreshold    *int   `json:"low_threshold"`
-	MediumThreshold *int   `json:"medium_threshold"`
+	ID                           uint     `json:"id"`
+	Title                        string   `json:"title"`
+	CurrentValue                 *float64 `json:"current_value"`
+	MinimumSusceptibilityPercent *float64 `json:"minimum_susceptibility_percent"`
+	MaximumSusceptibilityPercent *float64 `json:"maximum_susceptibility_percent"`
+	MaximumTolerablePercent      *float64 `json:"maximum_tolerable_percent"`
+	IsLowerBetter                *bool    `json:"is_lower_better"`
+	IsHigherBetter               *bool    `json:"is_higher_better"`
 }
 
 type KriRiskExposureDTO struct {
-	ID        uint    `json:"id"`
-	Title     string  `json:"title"`
-	Score     int     `json:"score"`
-	Threshold int     `json:"threshold"`
-	Exposure  float64 `json:"exposure"`
+	ID                       uint    `json:"id"`
+	Title                    string  `json:"title"`
+	CurrentValue             float64 `json:"current_value"`
+	ToleranceStatusType      string  `json:"tolerance_status_type"`
+	ToleranceStatusTitleEn   string  `json:"tolerance_status_title_en"`
+	ToleranceStatusTitleAr   string  `json:"tolerance_status_title_ar"`
+	ToleranceStatusColorCode string  `json:"tolerance_status_color_code"`
+	AchievementRatio         float64 `json:"achievement_ratio"`
+	ExposureScore            float64 `json:"exposure_score"`
 }
 
 type KriOrganizationUnitsRawDTO struct {

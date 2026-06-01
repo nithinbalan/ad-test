@@ -3,6 +3,7 @@ package services
 import (
 	kpiDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/kpi/repositories"
+	riskServices "jethur/grc/risk/services"
 	"jethur/utility"
 	"sort"
 	"time"
@@ -20,12 +21,14 @@ type KRIDashboardServiceInterface interface {
 }
 
 type KRIDashboardService struct {
-	repo repositories.KRIDashboardRepositoryInterface
+	repo                  repositories.KRIDashboardRepositoryInterface
+	kriToleranceStatusSvc riskServices.KRIRiskToleranceStatusServiceInterface
 }
 
-func NewKRIDashboardService(repo repositories.KRIDashboardRepositoryInterface) KRIDashboardServiceInterface {
+func NewKRIDashboardService(repo repositories.KRIDashboardRepositoryInterface, kriToleranceStatusSvc riskServices.KRIRiskToleranceStatusServiceInterface) KRIDashboardServiceInterface {
 	return &KRIDashboardService{
-		repo: repo,
+		repo:                  repo,
+		kriToleranceStatusSvc: kriToleranceStatusSvc,
 	}
 }
 
@@ -121,9 +124,9 @@ func (kds *KRIDashboardService) GetKRIMostFrequentBreaches() (*kpiDTOs.KriMostFr
 
 	breachMap := make(map[uint][]kpiDTOs.KriBreachRawDTO)
 
+	// Consider only breaches (at_maximum_tolerable or exceeded_maximum_tolerable)
 	for _, row := range rawList {
-
-		if row.MedTh != nil && row.Value > *row.MedTh {
+		if row.RiskToleranceStatusType == "at_maximum_tolerable" || row.RiskToleranceStatusType == "exceeded_maximum_tolerable" {
 			breachMap[row.KriID] = append(breachMap[row.KriID], row)
 		}
 	}
@@ -159,15 +162,11 @@ func (kds *KRIDashboardService) GetKRIMostFrequentBreaches() (*kpiDTOs.KriMostFr
 	for i := 0; i < limit; i++ {
 		b := breaches[i]
 
-		exceeded := 0
-		if b.MedTh != nil {
-			exceeded = b.Value - *b.MedTh
-		}
-
 		finalBreaches = append(finalBreaches, kpiDTOs.KriBreachItemDTO{
-			Exceeded: exceeded,
-			Date:     b.ReviewedAt.Format("02 Jan 2006"),
-			Time:     b.ReviewedAt.Format("03:04 PM"),
+			Value:                   b.Value,
+			RiskToleranceStatusType: b.RiskToleranceStatusType,
+			Date:                    b.ReviewedAt.Format("02 Jan 2006"),
+			Time:                    b.ReviewedAt.Format("03:04 PM"),
 		})
 	}
 
@@ -214,42 +213,118 @@ func (kds *KRIDashboardService) GetTopKRIRiskExposure(params *kpiDTOs.KriDashboa
 
 	for _, r := range rawList {
 
-		if r.Score == nil {
+		if r.CurrentValue == nil {
 			continue
 		}
 
-		var threshold int
-		if r.MediumThreshold != nil {
-			threshold = *r.MediumThreshold
-		} else if r.LowThreshold != nil {
-			threshold = *r.LowThreshold
-		} else {
+		currentValue := *r.CurrentValue
+
+		// Determine tolerance status type using the same logic as kri_value_update_service
+		toleranceStatusType := kds.determineToleranceStatus(
+			currentValue,
+			r.IsHigherBetter,
+			r.IsLowerBetter,
+			r.MinimumSusceptibilityPercent,
+			r.MaximumSusceptibilityPercent,
+			r.MaximumTolerablePercent,
+		)
+
+		// Calculate exposure score based on tolerance status
+		exposureScore := kds.calculateExposureScore(toleranceStatusType)
+
+		// Fetch tolerance status details from database
+		toleranceStatus, toleranceErr := kds.kriToleranceStatusSvc.GetByType(toleranceStatusType)
+		if toleranceErr != nil || toleranceStatus == nil {
+			// If status not found, continue with empty values
+			items = append(items, kpiDTOs.KriRiskExposureDTO{
+				ID:                       r.ID,
+				Title:                    r.Title,
+				CurrentValue:             currentValue,
+				ToleranceStatusType:      toleranceStatusType,
+				ToleranceStatusTitleEn:   "",
+				ToleranceStatusTitleAr:   "",
+				ToleranceStatusColorCode: "",
+				AchievementRatio:         currentValue,
+				ExposureScore:            exposureScore,
+			})
 			continue
 		}
-
-		if threshold == 0 {
-			continue
-		}
-
-		exposure := float64(*r.Score) / float64(threshold)
 
 		items = append(items, kpiDTOs.KriRiskExposureDTO{
-			ID:        r.ID,
-			Title:     r.Title,
-			Score:     *r.Score,
-			Threshold: threshold,
-			Exposure:  exposure,
+			ID:                       r.ID,
+			Title:                    r.Title,
+			CurrentValue:             currentValue,
+			ToleranceStatusType:      toleranceStatusType,
+			ToleranceStatusTitleEn:   toleranceStatus.TitleEn,
+			ToleranceStatusTitleAr:   toleranceStatus.TitleAr,
+			ToleranceStatusColorCode: toleranceStatus.ColorCode,
+			AchievementRatio:         currentValue,
+			ExposureScore:            exposureScore,
 		})
 	}
+
 	sort.Slice(items, func(i, j int) bool {
-		return items[i].Exposure > items[j].Exposure
+		return items[i].ExposureScore > items[j].ExposureScore
 	})
 
-	// if len(items) > 5 {
-	// 	items = items[:5]
-	// }
-
 	return items, nil
+}
+
+func (kds *KRIDashboardService) determineToleranceStatus(
+	achievementRatio float64,
+	isHigherBetter *bool,
+	isLowerBetter *bool,
+	minSusceptibility *float64,
+	maxSusceptibility *float64,
+	maxTolerable *float64,
+) string {
+	higherBetter := false
+	if isHigherBetter != nil && *isHigherBetter {
+		higherBetter = true
+	} else if isLowerBetter != nil && *isLowerBetter {
+		higherBetter = false
+	}
+
+	if higherBetter {
+		// Higher is Better Logic
+		if minSusceptibility != nil && achievementRatio >= *minSusceptibility {
+			return "within_minimum_susceptibility"
+		}
+		if maxSusceptibility != nil && achievementRatio >= *maxSusceptibility {
+			return "within_maximum_susceptibility"
+		}
+		if maxTolerable != nil && achievementRatio >= *maxTolerable {
+			return "at_maximum_tolerable"
+		}
+		return "exceeded_maximum_tolerable"
+	} else {
+		// Lower is Better Logic
+		if minSusceptibility != nil && achievementRatio <= *minSusceptibility {
+			return "within_minimum_susceptibility"
+		}
+		if maxSusceptibility != nil && achievementRatio <= *maxSusceptibility {
+			return "within_maximum_susceptibility"
+		}
+		if maxTolerable != nil && achievementRatio <= *maxTolerable {
+			return "at_maximum_tolerable"
+		}
+		return "exceeded_maximum_tolerable"
+	}
+}
+
+func (kds *KRIDashboardService) calculateExposureScore(toleranceStatusType string) float64 {
+	switch toleranceStatusType {
+	case "within_minimum_susceptibility":
+		return 0.0
+	case "within_maximum_susceptibility":
+		return 25.0
+	case "at_maximum_tolerable":
+		return 50.0
+	case "exceeded_maximum_tolerable":
+		return 100.0
+	default:
+		return 0.0
+	}
 }
 
 func (kds *KRIDashboardService) GetKRISeverityByOrganizationUnit(params *kpiDTOs.KriDashboardQueryParamsDTO) ([]kpiDTOs.KriSeverityOrganizationUnitDTO, error) {

@@ -49,9 +49,11 @@ func (repo *RiskKriRepository) GetAll(riskID uint, params *riskDTOs.RiskKriListQ
         kri_register.title,
 		kri_register.description AS description,
 		kri_register.calculation_type AS calculation_type,
-		kri_register.low_threshold AS low_threshold,
-		kri_register.medium_threshold AS medium_threshold,
-		kri_register.high_threshold AS high_threshold,
+		kri_register.minimum_susceptibility_percent,
+		kri_register.maximum_susceptibility_percent,
+		kri_register.maximum_tolerable_percent,
+		kri_register.is_lower_better,
+		kri_register.is_higher_better,
 		kri_register.current_value AS current_value,
 		kri_register.last_reviewed_date AS last_reviewed_date,
 		kri_register.next_review_date AS next_review_date,
@@ -144,10 +146,6 @@ func (repo *RiskKriRepository) GetAll(riskID uint, params *riskDTOs.RiskKriListQ
             kri_register.calculation_type LIKE ? OR
             kri_register.description LIKE ? OR
             kri_register.reference_number LIKE ? OR
-            kri_register.low_threshold LIKE ? OR
-            kri_register.medium_threshold LIKE ? OR
-            kri_register.high_threshold LIKE ? OR
-            kri_register.current_value LIKE ? OR
             kri_categories.title_en LIKE ? OR
             kri_categories.title_ar LIKE ? OR
             organization_units.title_en LIKE ? OR
@@ -164,7 +162,7 @@ func (repo *RiskKriRepository) GetAll(riskID uint, params *riskDTOs.RiskKriListQ
             created_user.first_name_ar LIKE ? OR
             created_user.last_name_en LIKE ? OR
             created_user.last_name_ar LIKE ?)
-        `, riskID, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+        `, riskID, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}

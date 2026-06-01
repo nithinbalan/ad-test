@@ -32,7 +32,7 @@ func NewKPIModule(db *gorm.DB, riskModule *RiskModule, organizationModule *Organ
 	complianceDashboardController := controllers.NewComplianceDashboardController(complianceDashboardSvc)
 
 	kriDashboardRepo := repositories.NewKRIDashboardRepository(db)
-	kriDashboardSvc := services.NewKRIDashboardService(kriDashboardRepo)
+	kriDashboardSvc := services.NewKRIDashboardService(kriDashboardRepo, riskModule.KRIRiskToleranceStatusSvc)
 	kriDashboardController := controllers.NewKRIDashboardController(kriDashboardSvc)
 
 	return &KPIModule{
