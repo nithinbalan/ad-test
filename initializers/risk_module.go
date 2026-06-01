@@ -81,18 +81,19 @@ type RiskModule struct {
 	RiskRegisterUpdatePlanReviewController         *controllers.RiskRegisterUpdatePlanReviewController
 	RiskRegisterUpdatePlanReviewCommentController  *controllers.RiskUpdatePlanReviewCommentController
 
-	RiskRegisterSvc         services.RiskRegisterServiceInterface
-	RiskHeatMapSvc          services.RiskHeatmapServiceInterface
-	KriRegisterSvc          services.KRIRegisterServiceInterface
-	KRIWorkflowSvc          services.KRIRegisterWorkflowServiceInterface
-	KRIReviewSvc            services.KRIRegisterReviewServiceInterface
-	KRIReviewCommentSvc     services.KRIRegisterReviewCommentServiceInterface
-	RiskActionPlanSvc       services.RiskActionPlanServiceInterface
-	RiskLevelSvc            services.RiskLevelServiceInterface
-	RiskResponseStrategySvc services.RiskResponseStrategyServiceInterface
-	RiskWorkflowSvc         services.RiskWorkflowServiceInterface
-	RiskReviewSvc           services.RiskReviewServiceInterface
-	RiskReviewCommentSvc    services.RiskReviewCommentServiceInterface
+	RiskRegisterSvc           services.RiskRegisterServiceInterface
+	RiskHeatMapSvc            services.RiskHeatmapServiceInterface
+	KriRegisterSvc            services.KRIRegisterServiceInterface
+	KRIWorkflowSvc            services.KRIRegisterWorkflowServiceInterface
+	KRIReviewSvc              services.KRIRegisterReviewServiceInterface
+	KRIReviewCommentSvc       services.KRIRegisterReviewCommentServiceInterface
+	RiskActionPlanSvc         services.RiskActionPlanServiceInterface
+	RiskLevelSvc              services.RiskLevelServiceInterface
+	RiskResponseStrategySvc   services.RiskResponseStrategyServiceInterface
+	RiskWorkflowSvc           services.RiskWorkflowServiceInterface
+	RiskReviewSvc             services.RiskReviewServiceInterface
+	RiskReviewCommentSvc      services.RiskReviewCommentServiceInterface
+	KRIRiskToleranceStatusSvc services.KRIRiskToleranceStatusServiceInterface
 }
 
 func NewRiskModule(db *gorm.DB,
@@ -827,17 +828,18 @@ func NewRiskModule(db *gorm.DB,
 		RiskRegisterUpdatePlanReviewController:         riskRegisterUpdatePlanReviewController,
 		RiskRegisterUpdatePlanReviewCommentController:  riskRegisterUpdatePlanReviewCommentController,
 
-		RiskRegisterSvc:         riskRegisterSvc,
-		RiskHeatMapSvc:          riskHeatmapSvc,
-		KriRegisterSvc:          kriRegisterSvc,
-		KRIWorkflowSvc:          kriRegisterWorkflowSvc,
-		KRIReviewSvc:            kriRegisterReviewSvc,
-		KRIReviewCommentSvc:     kriRegisterReviewCommentSvc,
-		RiskActionPlanSvc:       riskActionPlanSvc,
-		RiskLevelSvc:            riskLevelSvc,
-		RiskResponseStrategySvc: riskResponseStrategySvc,
-		RiskWorkflowSvc:         riskWorkflowSvc,
-		RiskReviewSvc:           riskReviewSvc,
-		RiskReviewCommentSvc:    riskReviewCommentSvc,
+		RiskRegisterSvc:           riskRegisterSvc,
+		RiskHeatMapSvc:            riskHeatmapSvc,
+		KriRegisterSvc:            kriRegisterSvc,
+		KRIWorkflowSvc:            kriRegisterWorkflowSvc,
+		KRIReviewSvc:              kriRegisterReviewSvc,
+		KRIReviewCommentSvc:       kriRegisterReviewCommentSvc,
+		RiskActionPlanSvc:         riskActionPlanSvc,
+		RiskLevelSvc:              riskLevelSvc,
+		RiskResponseStrategySvc:   riskResponseStrategySvc,
+		RiskWorkflowSvc:           riskWorkflowSvc,
+		RiskReviewSvc:             riskReviewSvc,
+		RiskReviewCommentSvc:      riskReviewCommentSvc,
+		KRIRiskToleranceStatusSvc: kriRiskToleranceStatusSvc,
 	}
 }

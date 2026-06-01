@@ -96,18 +96,18 @@ func (repo *KRIDashboardRepository) GetKRIBreachedEvents() ([]kpiDTOs.KriBreachR
 
 	results := []kpiDTOs.KriBreachRawDTO{}
 
-	query := repo.db.Table("kri_value_updates kvu").
+	query := repo.db.Table("kri_frequency_values kfv").
 		Select(`
             kr.id AS kri_id,
             kr.title AS kri_title,
-            kvu.value AS value,
-            kvu.reviewed_date AS reviewed_at,
-            kvu.low_threshold AS low_th,
-            kvu.medium_threshold AS med_th
+            kfv.actual_value AS value,
+            kfv.created_at AS reviewed_at,
+            krts.type AS risk_tolerance_status_type
         `).
-		Joins("JOIN kri_register kr ON kr.id = kvu.kri_register_id").
-		Where("kvu.value IS NOT NULL").
-		Where("kvu.reviewed_date >= DATEADD(MONTH, -6, GETDATE())")
+		Joins("JOIN kri_register kr ON kr.id = kfv.kri_register_id").
+		Joins("LEFT JOIN kri_risk_tolerance_statuses krts ON krts.id = kfv.risk_tolerance_status_id").
+		Where("kfv.actual_value IS NOT NULL").
+		Where("kfv.created_at >= DATEADD(MONTH, -6, GETDATE())")
 
 	if err := query.Scan(&results).Error; err != nil {
 		return nil, err
@@ -197,9 +197,12 @@ func (repo *KRIDashboardRepository) GetKRIExposure(params *kpiDTOs.KriDashboardQ
 		Select(`
             kr.id,
             kr.title,
-            kr.current_value AS score,
-            kr.low_threshold,
-            kr.medium_threshold
+            kr.current_value,
+            kr.minimum_susceptibility_percent,
+            kr.maximum_susceptibility_percent,
+            kr.maximum_tolerable_percent,
+            kr.is_lower_better,
+            kr.is_higher_better
         `)
 
 	if params.DateFrom != "" && params.DateTo != "" {
