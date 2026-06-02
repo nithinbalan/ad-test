@@ -58,9 +58,13 @@ func (repo *RiskUpdatePlanERMDeptRepository) BeginTransaction() utility.Database
 func (repo *RiskUpdatePlanERMDeptRepository) GetRisksByBusinessUnitID(businessUnitID uint) ([]uint, error) {
 	var riskIDs []uint
 	err := repo.db.Table("risk_register").
-		Select("id").
-		Where("responsible_unit_id = ?", businessUnitID).
-		Pluck("id", &riskIDs).Error
+		Select("risk_register.id").
+		Joins("LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+		Joins("LEFT JOIN risk_register_update_plans ON risk_register_update_plans.id = risk_register.risk_register_update_plan_id").
+		Where("risk_register.responsible_unit_id = ?", businessUnitID).
+		Where("risk_statuses.type NOT IN (?)", []string{"identified", "submitted", "rejected"}).
+		Where("(risk_register_update_plans.approved_by_id IS NOT NULL OR risk_register_update_plans.id IS NULL)").
+		Pluck("risk_register.id", &riskIDs).Error
 
 	return riskIDs, err
 }
