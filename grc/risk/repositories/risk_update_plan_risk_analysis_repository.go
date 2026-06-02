@@ -108,12 +108,17 @@ func (repo *RiskUpdatePlanRiskAnalysisRepository) GetRiskAnalysisList(planID uin
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
-	query = query.Order(params.SortBy + " " + params.Sort)
-
-	// Count total results
+	// Count total results before pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
+
+	// Apply sorting and pagination
+	query = query.Order(params.SortBy + " " + params.Sort)
+
+	// Apply pagination
+	offset := (params.Page - 1) * params.PageSize
+	query = query.Offset(offset).Limit(params.PageSize)
 
 	if err := query.Find(&risks).Error; err != nil {
 		return nil, err
