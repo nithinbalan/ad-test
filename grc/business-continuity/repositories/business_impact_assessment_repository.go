@@ -17,6 +17,8 @@ type BusinessImpactAssessmentRepositoryInterface interface {
 	UpdateBusinessImpactAssessment(businessImpactAssessment *models.BusinessImpactAssessment, tx ...utility.DatabaseTransaction) error
 	CreateRecoveryObjective(businessImpactAssessmentRecoveryObjective *models.BusinessImpactAssessmentRecoveryObjective, tx ...utility.DatabaseTransaction) error
 	UpdateRecoveryObjective(businessImpactAssessmentRecoveryObjective *models.BusinessImpactAssessmentRecoveryObjective, tx ...utility.DatabaseTransaction) error
+	CreateBusinessImpactAssessmentRating(rating *models.BusinessImpactAssessmentRating, tx ...utility.DatabaseTransaction) error
+	DeleteBusinessImpactAssessmentRatingByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 
 	DeleteImpactAssessmentsByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 	DeleteRecoveryObjectivesByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
@@ -317,6 +319,17 @@ func (repo *BusinessImpactAssessmentRepository) GetProcessDetails(id uint, tx ..
 		Preload("ProcessCriticalityLevel").
 		Preload("LastAssessedByUser").
 		Preload("BusinessImpactAssessments").
+		Preload("BusinessImpactAssessments.ImpactCategory").
+		Preload("BusinessImpactAssessments.ImpactAnalysisLevel").
+		Preload("BusinessImpactAssessments.OutageBucket").
+		Preload("BusinessImpactAssessments.OutageBucket.DurationUnit").
+		Preload("BusinessImpactAssessmentRatings").
+		Preload("BusinessImpactAssessmentRatings.OverallImpactLevel").
+		Preload("BusinessImpactAssessmentRatings.BCMBIAImpactLevel").
+		Preload("BusinessImpactAssessmentRatings.BCMBIAImpactLevel.RtoUnit").
+		Preload("BusinessImpactAssessmentRatings.BCMBIAImpactLevel.MtpdUnit").
+		Preload("BusinessImpactAssessmentRatings.BCMBIAImpactLevel.RpoUnit").
+		Preload("BusinessImpactAssessmentRatings.BCMBIAImpactLevel.RspUnit").
 		Preload("ProcessDependencies").
 		Preload("ProcessDependencies.RtoUnit").
 		Preload("ProcessDependencies.MtpdUnit").
@@ -504,4 +517,26 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
 	}
 
 	return results, nil
+}
+
+func (repo *BusinessImpactAssessmentRepository) CreateBusinessImpactAssessmentRating(rating *models.BusinessImpactAssessmentRating, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Create(rating).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *BusinessImpactAssessmentRepository) DeleteBusinessImpactAssessmentRatingByProcessID(processID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("process_id = ?", processID).Delete(&models.BusinessImpactAssessmentRating{}).Error
 }

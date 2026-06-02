@@ -1,0 +1,11 @@
+package dtos
+
+type BCMImpactAnalysisLevelDTO struct {
+	ID        uint   `json:"id"`
+	Type      string `json:"type"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	Score     int    `json:"score"`
+	ColorCode string `json:"color_code"`
+	Status    string `json:"status"`
+}
