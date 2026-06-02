@@ -319,6 +319,9 @@ func (rruedc *RiskUpdatePlanERMDeptController) CreateERMDepartmentEvaluation(c *
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
 		default:
 			utility.SendInternalErrResp(rruedc.db, c, e.Error())
 			return

@@ -106,6 +106,9 @@ func (rrupc *RiskUpdatePlanLeadershipAssessmentController) CreateLeadershipAsses
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
 		default:
 			utility.SendInternalErrResp(rrupc.db, c, e.Error())
 			return
