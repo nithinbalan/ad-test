@@ -63,6 +63,9 @@ type ComplianceRegisterRepositoryInterface interface {
 	DeleteSharedUnits(complianceRegisterID uint, departmentIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetSharedUnitsByComplianceRegisterID(complianceRegisterID uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceRegisterSharedUnit, error)
 
+	// Bulk Import
+	GetAllComplianceTitles() ([]string, error)
+
 	// Note and Observations
 	UpdateNote(complianceRegisterID uint, note *string, tx ...utility.DatabaseTransaction) error
 }
@@ -1690,4 +1693,10 @@ func (repo *ComplianceRegisterRepository) UpdateNote(id uint, note *string, tx .
 		Updates(map[string]interface{}{
 			"note": note,
 		}).Error
+}
+
+func (repo *ComplianceRegisterRepository) GetAllComplianceTitles() ([]string, error) {
+	var titles []string
+	err := repo.db.Model(&models.ComplianceRegister{}).Pluck("title_en", &titles).Error
+	return titles, err
 }

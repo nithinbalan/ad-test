@@ -135,9 +135,6 @@ type BusinessImpactFormDTO struct {
 type BusinessImpactAssessmentFormDTO struct {
 	ProcessID                 *uint                         `json:"process_id"`
 	BusinessImpactAssessments []BusinessImpactAssessmentDTO `json:"business_impact_assessments"`
-	// Old fields - commented out
-	// RiskLevelID               *uint                         `json:"risk_level_id"`
-	// ImpactJustification       *string                       `json:"impact_justification"`
 	// New fields
 	OverallImpactLevelID *uint   `json:"overall_impact_level_id"`
 	ImpactJustification  *string `json:"impact_justification"`
@@ -145,10 +142,6 @@ type BusinessImpactAssessmentFormDTO struct {
 
 type BusinessImpactAssessmentDTO struct {
 	ImpactCategoryID uint `json:"impact_category_id"`
-	// Old fields - commented out
-	// RiskLevelID      *uint   `json:"risk_level_id"`
-	// Cost             *uint   `json:"cost"`
-	// Comments         *string `json:"comments"`
 	// New fields
 	ImpactAnalysisLevelID *uint `json:"impact_analysis_level_id"`
 	OutageBucketID        *uint `json:"outage_bucket_id"`

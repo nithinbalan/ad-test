@@ -34,6 +34,11 @@ func (repo *BCMBIAOutageBucketRepository) GetAll(sort string, sortBy string, key
 	if sortBy == "" {
 		sortBy = "title_en"
 	}
+	// Validate sortBy against allowlist to prevent SQL injection
+	allowedSortBy := map[string]bool{"title_en": true, "title_ar": true, "status": true, "created_at": true, "updated_at": true}
+	if !allowedSortBy[sortBy] {
+		sortBy = "title_en"
+	}
 	if sort != "asc" && sort != "desc" {
 		sort = "asc"
 	}
@@ -49,12 +54,12 @@ func (repo *BCMBIAOutageBucketRepository) GetAll(sort string, sortBy string, key
 }
 
 func (repo *BCMBIAOutageBucketRepository) GetByID(id uint) (*models.BCMBIAOutageBucket, error) {
-	var bcmBiaOutageBucket *models.BCMBIAOutageBucket
+	var bcmBiaOutageBucket models.BCMBIAOutageBucket
 	result := repo.db.First(&bcmBiaOutageBucket, id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return bcmBiaOutageBucket, result.Error
+	return &bcmBiaOutageBucket, nil
 }

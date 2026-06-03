@@ -600,4 +600,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.PUT("/control-consistencies/activate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), controlConsistencyController.ActivateControlConsistencies)
 	complianceRoutes.PUT("/control-consistencies/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), controlConsistencyController.DeactivateControlConsistencies)
 
+	// Compliance Register Bulk Import
+	complianceRoutes.GET("/compliance-register/template", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterController.GenerateComplianceTemplate)
+	complianceRoutes.POST("/compliance-register/template/validate", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterController.ValidateComplianceTemplate)
+	complianceRoutes.POST("/compliance-register/import/validate", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterController.ValidateImportCompliances)
+	complianceRoutes.POST("/compliance-register/import", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterController.ImportCompliances)
 }

@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"jethur/config"
-	//commonDTOs "jethur/grc/common/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	commonServices "jethur/grc/common/services"
 	complianceDTOs "jethur/grc/compliance/dtos"
@@ -21,6 +21,8 @@ import (
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
+	settingsDTOs "jethur/grc/settings/dtos"
+	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -51,6 +53,11 @@ type ComplianceRegisterServiceInterface interface {
 	GetAllVersions(id uint) ([]*complianceDTOs.ComplianceRegisterDetailDTO, error)
 
 	UpdateNote(id uint, currentUserID uint, dto *complianceDTOs.ComplianceRegisterNoteDTO) error
+
+	GenerateComplianceTemplate() (*os.File, error)
+	ValidateComplianceTemplate(file io.Reader) ([]map[string]interface{}, error)
+	ValidateImportCompliances(input []map[string]interface{}) ([]map[string]interface{}, error)
+	ImportCompliances(input []map[string]interface{}, currentUserID uint) ([]uint, error)
 }
 
 // Service and implementations
@@ -72,6 +79,8 @@ type ComplianceRegisterService struct {
 	legislationTypeSvc               LegislationTypeServiceInterface
 	importanceClassificationSvc      ImportanceClassificationServiceInterface
 	secrecyClassificationSvc         SecrecyClassificationServiceInterface
+	issuingAuthoritySvc              IssuingAuthorityServiceInterface
+	organizationUnitSvc              settingsServices.OrganizationUnitServiceInterface
 }
 
 func NewComplianceRegisterService(
@@ -92,6 +101,8 @@ func NewComplianceRegisterService(
 	legislationTypeSvc LegislationTypeServiceInterface,
 	importanceClassificationSvc ImportanceClassificationServiceInterface,
 	secrecyClassificationSvc SecrecyClassificationServiceInterface,
+	issuingAuthoritySvc IssuingAuthorityServiceInterface,
+	organizationUnitSvc settingsServices.OrganizationUnitServiceInterface,
 ) ComplianceRegisterServiceInterface {
 	return &ComplianceRegisterService{
 		repo:                             repo,
@@ -111,6 +122,8 @@ func NewComplianceRegisterService(
 		legislationTypeSvc:               legislationTypeSvc,
 		importanceClassificationSvc:      importanceClassificationSvc,
 		secrecyClassificationSvc:         secrecyClassificationSvc,
+		issuingAuthoritySvc:              issuingAuthoritySvc,
+		organizationUnitSvc:              organizationUnitSvc,
 	}
 }
 
@@ -255,18 +268,18 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 		IsLatest:                true,
 
 		//New Fields
-		LegislativeBodyID:                  complianceRegisterFormDTO.LegislativeBodyID,
-		LegislationTypeID:                  complianceRegisterFormDTO.LegislationTypeID,
-		LegislationNo:                      complianceRegisterFormDTO.LegislationNo,
-		ImportanceClassificationID:         complianceRegisterFormDTO.ImportanceClassificationID,
-		SecrecyClassificationID:            complianceRegisterFormDTO.SecrecyClassificationID,
-		Subject:                            complianceRegisterFormDTO.Subject,
-		IsApplicable:                       complianceRegisterFormDTO.IsApplicable,
-		IsNotApplicable:                    complianceRegisterFormDTO.IsNotApplicable,
+		LegislativeBodyID:          complianceRegisterFormDTO.LegislativeBodyID,
+		LegislationTypeID:          complianceRegisterFormDTO.LegislationTypeID,
+		LegislationNo:              complianceRegisterFormDTO.LegislationNo,
+		ImportanceClassificationID: complianceRegisterFormDTO.ImportanceClassificationID,
+		SecrecyClassificationID:    complianceRegisterFormDTO.SecrecyClassificationID,
+		Subject:                    complianceRegisterFormDTO.Subject,
+		IsApplicable:               complianceRegisterFormDTO.IsApplicable,
+		IsNotApplicable:            complianceRegisterFormDTO.IsNotApplicable,
 		// IsRegulationNotificationAssessment: complianceRegisterFormDTO.IsRegulationNotificationAssessment,
 		// IsRiskBasedAssessment:              complianceRegisterFormDTO.IsRiskBasedAssessment,
-		IsPublic:                           complianceRegisterFormDTO.IsPublic,
-		IsShared:                           complianceRegisterFormDTO.IsShared,
+		IsPublic: complianceRegisterFormDTO.IsPublic,
+		IsShared: complianceRegisterFormDTO.IsShared,
 	}
 
 	id, err := crs.repo.Create(complianceRegister, tx)
@@ -660,15 +673,15 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			// "next_review_date":         oldComplianceRegister.NextReviewDateString,
 			// "last_review_note":         oldComplianceRegister.LastReviewNote,
 			// "last_review_user":         utility.GetFieldValue(oldComplianceRegister.LastReviewedUser).(string),
-			"compliance_review_status":              utility.GetFieldValue(oldComplianceRegister.ComplianceReviewStatus).(string),
-			"legislative_body_id":                   oldComplianceRegister.LegislativeBodyID,
-			"legislation_type_id":                   oldComplianceRegister.LegislationTypeID,
-			"legislation_no":                        oldComplianceRegister.LegislationNo,
-			"importance_classification_id":          oldComplianceRegister.ImportanceClassificationID,
-			"secrecy_classification_id":             oldComplianceRegister.SecrecyClassificationID,
-			"subject":                               oldComplianceRegister.Subject,
-			"is_applicable":                         oldComplianceRegister.IsApplicable,
-			"is_not_applicable":                     oldComplianceRegister.IsNotApplicable,
+			"compliance_review_status":     utility.GetFieldValue(oldComplianceRegister.ComplianceReviewStatus).(string),
+			"legislative_body_id":          oldComplianceRegister.LegislativeBodyID,
+			"legislation_type_id":          oldComplianceRegister.LegislationTypeID,
+			"legislation_no":               oldComplianceRegister.LegislationNo,
+			"importance_classification_id": oldComplianceRegister.ImportanceClassificationID,
+			"secrecy_classification_id":    oldComplianceRegister.SecrecyClassificationID,
+			"subject":                      oldComplianceRegister.Subject,
+			"is_applicable":                oldComplianceRegister.IsApplicable,
+			"is_not_applicable":            oldComplianceRegister.IsNotApplicable,
 			// "is_regulation_notification_assessment": oldComplianceRegister.IsRegulationNotificationAssessment,
 			// "is_risk_based_assessment":              oldComplianceRegister.IsRiskBasedAssessment,
 		}
@@ -694,15 +707,15 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 			// "next_review_date":         oldComplianceRegister.NextReviewDateString,
 			// "last_review_note":         oldComplianceRegister.LastReviewNote,
 			// "last_review_user":         utility.GetFieldValue(oldComplianceRegister.LastReviewedUser).(string),
-			"compliance_review_status":              utility.GetFieldValue(existingComplianceRegister.ComplianceReviewStatus).(string),
-			"legislative_body_id":                   existingComplianceRegister.LegislativeBodyID,
-			"legislation_type_id":                   existingComplianceRegister.LegislationTypeID,
-			"legislation_no":                        existingComplianceRegister.LegislationNo,
-			"importance_classification_id":          existingComplianceRegister.ImportanceClassificationID,
-			"secrecy_classification_id":             existingComplianceRegister.SecrecyClassificationID,
-			"subject":                               existingComplianceRegister.Subject,
-			"is_applicable":                         existingComplianceRegister.IsApplicable,
-			"is_not_applicable":                     existingComplianceRegister.IsNotApplicable,
+			"compliance_review_status":     utility.GetFieldValue(existingComplianceRegister.ComplianceReviewStatus).(string),
+			"legislative_body_id":          existingComplianceRegister.LegislativeBodyID,
+			"legislation_type_id":          existingComplianceRegister.LegislationTypeID,
+			"legislation_no":               existingComplianceRegister.LegislationNo,
+			"importance_classification_id": existingComplianceRegister.ImportanceClassificationID,
+			"secrecy_classification_id":    existingComplianceRegister.SecrecyClassificationID,
+			"subject":                      existingComplianceRegister.Subject,
+			"is_applicable":                existingComplianceRegister.IsApplicable,
+			"is_not_applicable":            existingComplianceRegister.IsNotApplicable,
 			// "is_regulation_notification_assessment": existingComplianceRegister.IsRegulationNotificationAssessment,
 			// "is_risk_based_assessment":              existingComplianceRegister.IsRiskBasedAssessment,
 		}
@@ -1798,15 +1811,15 @@ func (crs *ComplianceRegisterService) CreateComplianceVersion(currentUserID uint
 		LegislationTypeID: parentCompliance.LegislationTypeID,
 		LegislationNo:     parentCompliance.LegislationNo,
 		//ComplianceDeadline:                 parentCompliance.ComplianceDeadline,
-		ImportanceClassificationID:         parentCompliance.ImportanceClassificationID,
-		SecrecyClassificationID:            parentCompliance.SecrecyClassificationID,
-		Subject:                            parentCompliance.Subject,
-		IsApplicable:                       parentCompliance.IsApplicable,
-		IsNotApplicable:                    parentCompliance.IsNotApplicable,
+		ImportanceClassificationID: parentCompliance.ImportanceClassificationID,
+		SecrecyClassificationID:    parentCompliance.SecrecyClassificationID,
+		Subject:                    parentCompliance.Subject,
+		IsApplicable:               parentCompliance.IsApplicable,
+		IsNotApplicable:            parentCompliance.IsNotApplicable,
 		// IsRegulationNotificationAssessment: parentCompliance.IsRegulationNotificationAssessment,
 		// IsRiskBasedAssessment:              parentCompliance.IsRiskBasedAssessment,
-		IsPublic:                           parentCompliance.IsPublic,
-		IsShared:                           parentCompliance.IsShared,
+		IsPublic: parentCompliance.IsPublic,
+		IsShared: parentCompliance.IsShared,
 	}
 
 	parentComplianceRegister, err := crs.GetFullDetailsByID(*complianceRegisterFormDTO.ParentComplianceRegisterID)
@@ -2560,4 +2573,576 @@ func (crs *ComplianceRegisterService) UpdateNote(id uint, currentUserID uint, dt
 	}()
 
 	return nil
+}
+
+func (crs *ComplianceRegisterService) GenerateComplianceTemplate() (*os.File, error) {
+	templateHeaders := []string{
+		"LegislativeBody", "LegislationType", "LegislationNo", "ResponsibleUser",
+		"Title", "Description", "Version", "Deadline",
+		"ImportanceClassification", "SecrecyClassification", "ComplianceFolder", "IssuingAuthority",
+		"IssuingAuthorityCircularNo", "IssuingAuthorityDateOfReceiving", "IssuingAuthorityHijriDateOfReceiving",
+		"ApplicabilityStatement", "AssessSettings", "SharedUnit",
+	}
+
+	templateData := [][]interface{}{}
+
+	// Fetch Legislative Bodies
+	legislativeBodies, err := crs.legislativeBodySvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch legislative bodies: %v", err)
+	}
+	legislativeBodyData := [][]interface{}{{"LegislativeBody"}}
+	for _, body := range legislativeBodies {
+		legislativeBodyData = append(legislativeBodyData, []interface{}{body.TitleEn})
+	}
+
+	// Fetch Legislation Types
+	legislationTypes, err := crs.legislationTypeSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch legislation types: %v", err)
+	}
+	legislationTypeData := [][]interface{}{{"LegislationType"}}
+	for _, lType := range legislationTypes {
+		legislationTypeData = append(legislationTypeData, []interface{}{lType.TitleEn})
+	}
+
+	// Fetch Users
+	users, err := crs.userSvc.GetAllUsers()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch users: %v", err)
+	}
+	userData := [][]interface{}{{"ResponsibleUser", "Email"}}
+	for _, u := range users {
+		userData = append(userData, []interface{}{
+			fmt.Sprintf("%s %s", u.FirstNameEN, u.LastNameEN),
+			u.Email,
+		})
+	}
+
+	// Fetch Importance Classifications
+	importanceClassifications, err := crs.importanceClassificationSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch importance classifications: %v", err)
+	}
+	importanceClassificationData := [][]interface{}{{"ImportanceClassification"}}
+	for _, ic := range importanceClassifications {
+		importanceClassificationData = append(importanceClassificationData, []interface{}{ic.TitleEn})
+	}
+
+	// Fetch Secrecy Classifications
+	secrecyClassifications, err := crs.secrecyClassificationSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch secrecy classifications: %v", err)
+	}
+	secrecyClassificationData := [][]interface{}{{"SecrecyClassification"}}
+	for _, sc := range secrecyClassifications {
+		secrecyClassificationData = append(secrecyClassificationData, []interface{}{sc.TitleEn})
+	}
+
+	// Fetch Issuing Authorities
+	issuingAuthorities, err := crs.issuingAuthoritySvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch issuing authorities: %v", err)
+	}
+	issuingAuthorityData := [][]interface{}{{"IssuingAuthority"}}
+	for _, ia := range issuingAuthorities {
+		issuingAuthorityData = append(issuingAuthorityData, []interface{}{ia.TitleEn})
+	}
+
+	// Fetch Compliance Folders
+	complianceFolders, err := crs.complianceFolderSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch compliance folders: %v", err)
+	}
+	complianceFolderData := [][]interface{}{{"ComplianceFolder"}}
+	for _, folder := range complianceFolders {
+		complianceFolderData = append(complianceFolderData, []interface{}{folder.TitleEn})
+	}
+
+	// Fetch Shared Units (Departments - Level 2)
+	sharedUnits, err := crs.organizationUnitSvc.GetAll(&settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Status: "active",
+		Level:  2,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch shared units: %v", err)
+	}
+	sharedUnitData := [][]interface{}{{"SharedUnit"}}
+	for _, unit := range sharedUnits {
+		sharedUnitData = append(sharedUnitData, []interface{}{unit.TitleEn})
+	}
+
+	// Configure which columns should have dropdowns
+	dropDownConfig := map[string]bool{
+		"LegislativeBody":          true,
+		"LegislationType":          true,
+		"ResponsibleUser":          true,
+		"ImportanceClassification": true,
+		"SecrecyClassification":    true,
+		"ComplianceFolder":         true,
+		"IssuingAuthority":         true,
+		"ApplicabilityStatement":   true,
+		"AssessSettings":           true,
+		"SharedUnit":               true,
+	}
+
+	// Add dropdown data for grouped fields
+	applicabilityData := [][]interface{}{{"ApplicabilityStatement"}, {"Applicable"}, {"Not Applicable"}}
+	assessSettingsData := [][]interface{}{{"AssessSettings"}, {"Public"}, {"Shared"}}
+
+	file, err := utility.GenerateExcelFileWithSheetsAndDropDown(map[string][][]interface{}{
+		"Template":                 append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+		"LegislativeBody":          legislativeBodyData,
+		"LegislationType":          legislationTypeData,
+		"ResponsibleUser":          userData,
+		"ImportanceClassification": importanceClassificationData,
+		"SecrecyClassification":    secrecyClassificationData,
+		"ComplianceFolder":         complianceFolderData,
+		"IssuingAuthority":         issuingAuthorityData,
+		"ApplicabilityStatement":   applicabilityData,
+		"AssessSettings":           assessSettingsData,
+		"SharedUnit":               sharedUnitData,
+	}, dropDownConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
+
+func (crs *ComplianceRegisterService) ValidateComplianceTemplate(file io.Reader) ([]map[string]interface{}, error) {
+	rows, err := utility.ReadExcelFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	headers := []string{
+		"LegislativeBody", "LegislationType", "LegislationNo", "ResponsibleUser",
+		"Title", "Description", "Version", "Deadline",
+		"ImportanceClassification", "SecrecyClassification", "ComplianceFolder", "IssuingAuthority",
+		"IssuingAuthorityCircularNo", "IssuingAuthorityDateOfReceiving", "IssuingAuthorityHijriDateOfReceiving",
+		"ApplicabilityStatement", "AssessSettings", "SharedUnit",
+	}
+
+	snakeHeaders := []string{
+		"legislative_body", "legislation_type", "legislation_no", "responsible_user",
+		"title", "description", "version", "deadline",
+		"importance_classification", "secrecy_classification", "compliance_folder", "issuing_authority",
+		"issuing_authority_circular_no", "issuing_authority_date_of_receiving", "issuing_authority_hijri_date_of_receiving",
+		"applicability_statement", "assess_settings", "shared_unit",
+	}
+
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("empty Excel file")
+	}
+	if !utility.ValidateHeaders(headers, rows[0]) {
+		return nil, utility.NewValidationError(fmt.Errorf("invalid headers"), "invalid_header", "Compliance Template")
+	}
+
+	var input []map[string]interface{}
+	for _, row := range rows[1:] {
+		record := make(map[string]interface{})
+		for i, header := range snakeHeaders {
+			if i < len(row) {
+				record[header] = row[i]
+			} else {
+				record[header] = ""
+			}
+		}
+		input = append(input, record)
+	}
+
+	validatedData, err := crs.validateCompliances(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatedData, nil
+}
+
+func (crs *ComplianceRegisterService) ValidateImportCompliances(input []map[string]interface{}) ([]map[string]interface{}, error) {
+	validatedData, err := crs.validateCompliances(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatedData, nil
+}
+
+func (crs *ComplianceRegisterService) ImportCompliances(input []map[string]interface{}, currentUserID uint) ([]uint, error) {
+	validatedData, err := crs.validateCompliances(input)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, record := range validatedData {
+		if errors, ok := record["errors"].(map[string]interface{}); ok && len(errors) > 0 {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid data in the import file"), "invalid_data", "Invalid Data")
+		}
+	}
+
+	var createdIDs []uint
+	for _, record := range validatedData {
+
+		// Convert date format from MM-DD-YY to YYYY-MM-DD
+		convertDateFormat := func(dateStr string) string {
+			if dateStr == "" {
+				return ""
+			}
+			// Try to parse MM-DD-YY format
+			if parsed, err := time.Parse("01-02-06", dateStr); err == nil {
+				return parsed.Format("2006-01-02")
+			}
+			// Try to parse YYYY-MM-DD format (already correct)
+			if _, err := time.Parse("2006-01-02", dateStr); err == nil {
+				return dateStr
+			}
+			// Return as-is if parsing fails
+			return dateStr
+		}
+
+		// Build IssuingAuthorities array if issuing_authority_id exists
+		var issuingAuthorities []complianceDTOs.ComplianceRegisterIssuingAuthorityFormDTO
+		if issuingAuthorityID := utility.GetOptionalUintValue(record["issuing_authority_id"]); issuingAuthorityID != nil {
+			dateOfReceiving := utility.GetOptionalStringValue(record["issuing_authority_date_of_receiving"])
+			if dateOfReceiving != nil {
+				convertedDate := convertDateFormat(*dateOfReceiving)
+				dateOfReceiving = &convertedDate
+			}
+			entity := &complianceDTOs.ComplianceRegisterIssuingAuthorityEntityFormDTO{
+				CircularNo:           utility.GetOptionalStringValue(record["issuing_authority_circular_no"]),
+				DateOfReceiving:      dateOfReceiving,
+				HijriDateOfReceiving: utility.GetOptionalStringValue(record["issuing_authority_hijri_date_of_receiving"]),
+			}
+			issuingAuthorities = append(issuingAuthorities, complianceDTOs.ComplianceRegisterIssuingAuthorityFormDTO{
+				IssuingAuthorityID: issuingAuthorityID,
+				Entity:             entity,
+			})
+		}
+
+		// Build SharedUnitIDs array if shared_unit_id exists
+		var sharedUnitIDs []*uint
+		if sharedUnitID := utility.GetOptionalUintValue(record["shared_unit_id"]); sharedUnitID != nil {
+			sharedUnitIDs = append(sharedUnitIDs, sharedUnitID)
+		}
+
+		// Get title and description values - will be stored in both En and Ar fields
+		title := record["title"].(string)
+		description := utility.GetOptionalStringValue(record["description"])
+
+		// Convert deadline date format
+		deadline := utility.GetOptionalStringValue(record["deadline"])
+		if deadline != nil {
+			convertedDeadline := convertDateFormat(*deadline)
+			deadline = &convertedDeadline
+		}
+
+		dto := &complianceDTOs.ComplianceRegisterFormDTO{
+			LegislativeBodyID: utility.GetOptionalUintValue(record["legislative_body_id"]),
+			LegislationTypeID: utility.GetOptionalUintValue(record["legislation_type_id"]),
+			LegislationNo:     utility.GetOptionalStringValue(record["legislation_no"]),
+			// ResponsibleUnitID is auto-derived from ResponsibleUserID in Create method
+			ResponsibleUserID:          utility.GetOptionalUintValue(record["responsible_user_id"]),
+			TitleEn:                    title,
+			TitleAr:                    title,
+			DescriptionEn:              description,
+			DescriptionAr:              description,
+			Version:                    utility.GetOptionalStringValue(record["version"]),
+			Deadline:                   deadline,
+			ImportanceClassificationID: utility.GetOptionalUintValue(record["importance_classification_id"]),
+			SecrecyClassificationID:    utility.GetOptionalUintValue(record["secrecy_classification_id"]),
+			ComplianceFolderID:         utility.GetOptionalUintValue(record["compliance_folder_id"]),
+			IsApplicable: func() bool {
+				if v, ok := record["is_applicable"].(bool); ok {
+					return v
+				}
+				return false
+			}(),
+			IsNotApplicable: func() bool {
+				if v, ok := record["is_not_applicable"].(bool); ok {
+					return v
+				}
+				return false
+			}(),
+			IsPublic: func() bool {
+				if v, ok := record["is_public"].(bool); ok {
+					return v
+				}
+				return false
+			}(),
+			IsShared: func() bool {
+				if v, ok := record["is_shared"].(bool); ok {
+					return v
+				}
+				return false
+			}(),
+			IsRequirementAssessment: true,
+			IssuingAuthorities:      issuingAuthorities,
+			SharedUnitIDs:           sharedUnitIDs,
+		}
+
+		id, err := crs.Create(currentUserID, dto)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create compliance for record: %+v, error: %v", record, err)
+		}
+		createdIDs = append(createdIDs, id)
+	}
+
+	return createdIDs, nil
+}
+
+func (crs *ComplianceRegisterService) validateCompliances(input []map[string]interface{}) ([]map[string]interface{}, error) {
+	headers := []string{
+		"legislative_body", "legislation_type", "legislation_no", "responsible_user",
+		"title", "description", "version", "deadline",
+		"importance_classification", "secrecy_classification", "compliance_folder", "issuing_authority",
+		"issuing_authority_circular_no", "issuing_authority_date_of_receiving", "issuing_authority_hijri_date_of_receiving",
+		"applicability_statement", "assess_settings", "shared_unit",
+	}
+
+	// Fetch Legislative Bodies
+	legislativeBodies, err := crs.legislativeBodySvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching legislative bodies: %v", err)
+	}
+	legislativeBodyTitles := make(map[string]uint)
+	for _, body := range legislativeBodies {
+		legislativeBodyTitles[strings.TrimSpace(body.TitleEn)] = body.ID
+	}
+
+	// Fetch Legislation Types
+	legislationTypes, err := crs.legislationTypeSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching legislation types: %v", err)
+	}
+	legislationTypeTitles := make(map[string]uint)
+	for _, lType := range legislationTypes {
+		legislationTypeTitles[strings.TrimSpace(lType.TitleEn)] = lType.ID
+	}
+
+	// Fetch users
+	users, err := crs.userSvc.GetAllUsers()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching users: %v", err)
+	}
+	userFullNames := make(map[string]uint)
+	for _, user := range users {
+		fullName := strings.TrimSpace(user.FirstNameEN + " " + user.LastNameEN)
+		userFullNames[fullName] = uint(user.ID)
+	}
+
+	// Fetch Importance Classifications
+	importanceClassifications, err := crs.importanceClassificationSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching importance classifications: %v", err)
+	}
+	importanceClassificationTitles := make(map[string]uint)
+	for _, ic := range importanceClassifications {
+		importanceClassificationTitles[strings.TrimSpace(ic.TitleEn)] = ic.ID
+	}
+
+	// Fetch Secrecy Classifications
+	secrecyClassifications, err := crs.secrecyClassificationSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching secrecy classifications: %v", err)
+	}
+	secrecyClassificationTitles := make(map[string]uint)
+	for _, sc := range secrecyClassifications {
+		secrecyClassificationTitles[strings.TrimSpace(sc.TitleEn)] = sc.ID
+	}
+
+	// Fetch Compliance Folders
+	complianceFolders, err := crs.complianceFolderSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching compliance folders: %v", err)
+	}
+	complianceFolderTitles := make(map[string]uint)
+	for _, folder := range complianceFolders {
+		complianceFolderTitles[strings.TrimSpace(folder.TitleEn)] = folder.ID
+	}
+
+	// Fetch Issuing Authorities
+	issuingAuthorities, err := crs.issuingAuthoritySvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching issuing authorities: %v", err)
+	}
+	issuingAuthorityTitles := make(map[string]uint)
+	for _, ia := range issuingAuthorities {
+		issuingAuthorityTitles[strings.TrimSpace(ia.TitleEn)] = ia.ID
+	}
+
+	// Fetch Shared Units (Departments - Level 2)
+	sharedUnits, err := crs.organizationUnitSvc.GetAll(&settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Status: "active",
+		Level:  2,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error fetching shared units: %v", err)
+	}
+	sharedUnitTitles := make(map[string]uint)
+	for _, unit := range sharedUnits {
+		sharedUnitTitles[strings.TrimSpace(unit.TitleEn)] = unit.ID
+	}
+
+	// For checking unique compliance titles
+	existingCompliances, err := crs.repo.GetAllComplianceTitles()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching existing compliance titles: %v", err)
+	}
+	existingTitleSet := make(map[string]bool)
+	for _, title := range existingCompliances {
+		existingTitleSet[strings.TrimSpace(strings.ToLower(title))] = true
+	}
+
+	// Track titles seen in the current Excel
+	sheetTitleSet := make(map[string]bool)
+
+	// Perform validation
+	var validatedData []map[string]interface{}
+	for _, record := range input {
+		rowErrors := make(map[string]interface{})
+		complianceRecord := make(map[string]interface{})
+
+		// Copy original data
+		for key, value := range record {
+			complianceRecord[key] = value
+		}
+
+		for _, header := range headers {
+			value, ok := record[header].(string)
+			switch header {
+			case "legislative_body":
+				if !ok || value == "" {
+					rowErrors[header] = "Legislative Body is required"
+				} else if id, exists := legislativeBodyTitles[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid legislative body: %s", value)
+				} else {
+					complianceRecord["legislative_body_id"] = id
+				}
+
+			case "legislation_type":
+				if !ok || value == "" {
+					rowErrors[header] = "Legislation Type is required"
+				} else if id, exists := legislationTypeTitles[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid legislation type: %s", value)
+				} else {
+					complianceRecord["legislation_type_id"] = id
+				}
+
+			case "legislation_no":
+				if !ok || value == "" {
+					rowErrors[header] = "Legislation No is required"
+				}
+
+			case "responsible_user":
+				if !ok || value == "" {
+					rowErrors[header] = "Responsible User is required"
+				} else if id, exists := userFullNames[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid responsible user: %s", value)
+				} else {
+					complianceRecord["responsible_user_id"] = id
+				}
+
+			case "importance_classification":
+				if !ok || value == "" {
+					rowErrors[header] = "Importance Classification is required"
+				} else if id, exists := importanceClassificationTitles[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid importance classification: %s", value)
+				} else {
+					complianceRecord["importance_classification_id"] = id
+				}
+
+			case "secrecy_classification":
+				if !ok || value == "" {
+					rowErrors[header] = "Secrecy Classification is required"
+				} else if id, exists := secrecyClassificationTitles[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid secrecy classification: %s", value)
+				} else {
+					complianceRecord["secrecy_classification_id"] = id
+				}
+
+			case "compliance_folder":
+				if ok && value != "" {
+					if id, exists := complianceFolderTitles[strings.TrimSpace(value)]; !exists {
+						rowErrors[header] = fmt.Sprintf("Invalid compliance folder: %s", value)
+					} else {
+						complianceRecord["compliance_folder_id"] = id
+					}
+				}
+
+			case "issuing_authority":
+				if !ok || value == "" {
+					rowErrors[header] = "Issuing Authority is required"
+				} else if id, exists := issuingAuthorityTitles[strings.TrimSpace(value)]; !exists {
+					rowErrors[header] = fmt.Sprintf("Invalid issuing authority: %s", value)
+				} else {
+					complianceRecord["issuing_authority_id"] = id
+				}
+
+			case "shared_unit":
+				// Check if Shared is selected in AssessSettings
+				isShared := false
+				if sharedVal, ok := complianceRecord["is_shared"].(bool); ok && sharedVal {
+					isShared = true
+				}
+
+				if isShared && (!ok || value == "") {
+					rowErrors[header] = "Shared Unit is required when Assess Settings is 'Shared'"
+				} else if ok && value != "" {
+					if id, exists := sharedUnitTitles[strings.TrimSpace(value)]; !exists {
+						rowErrors[header] = fmt.Sprintf("Invalid shared unit: %s", value)
+					} else {
+						complianceRecord["shared_unit_id"] = id
+					}
+				}
+
+			case "title":
+				if !ok || value == "" {
+					rowErrors[header] = "Title is required"
+				} else {
+					trimmedTitle := strings.TrimSpace(strings.ToLower(value))
+					if existingTitleSet[trimmedTitle] {
+						rowErrors[header] = fmt.Sprintf("Compliance with title '%s' already exists in the system", value)
+					} else if sheetTitleSet[trimmedTitle] {
+						rowErrors[header] = fmt.Sprintf("Duplicate title '%s' found in the sheet", value)
+					} else {
+						sheetTitleSet[trimmedTitle] = true
+					}
+				}
+
+			case "applicability_statement":
+				if ok && value != "" {
+					trimmedValue := strings.TrimSpace(value)
+					if trimmedValue == "Applicable" {
+						complianceRecord["is_applicable"] = true
+						complianceRecord["is_not_applicable"] = false
+					} else if trimmedValue == "Not Applicable" {
+						complianceRecord["is_applicable"] = false
+						complianceRecord["is_not_applicable"] = true
+					} else {
+						rowErrors[header] = fmt.Sprintf("Invalid applicability statement: %s (must be 'Applicable' or 'Not Applicable')", value)
+					}
+				}
+
+			case "assess_settings":
+				if ok && value != "" {
+					trimmedValue := strings.TrimSpace(value)
+					if trimmedValue == "Public" {
+						complianceRecord["is_public"] = true
+						complianceRecord["is_shared"] = false
+					} else if trimmedValue == "Shared" {
+						complianceRecord["is_public"] = false
+						complianceRecord["is_shared"] = true
+					} else {
+						rowErrors[header] = fmt.Sprintf("Invalid assess settings: %s (must be 'Public' or 'Shared')", value)
+					}
+				}
+			}
+		}
+
+		complianceRecord["errors"] = rowErrors
+		validatedData = append(validatedData, complianceRecord)
+	}
+
+	return validatedData, nil
 }
