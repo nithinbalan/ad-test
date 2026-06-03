@@ -305,5 +305,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// bcm bia impact level
 	businessContinuityRoutes.GET("/bcm-bia-impact-levels", bcmBiaImpactLevelController.GetAllBCMBIAImpactLevels)
 	businessContinuityRoutes.GET("/bcm-bia-impact-levels/:id", bcmBiaImpactLevelController.GetBCMBIAImpactLevelFullDetails)
+	businessContinuityRoutes.GET("/bcm-bia-impact-levels/analysis-level/:analysisLevelId", bcmBiaImpactLevelController.GetBCMBIAImpactLevelByImpactAnalysisLevelID)
 
 }
