@@ -53,3 +53,21 @@ func (bbilc *BCMBIAImpactLevelController) GetBCMBIAImpactLevelFullDetails(c *gin
 
 	c.JSON(http.StatusOK, bcmBiaImpactLevel)
 }
+
+func (bbilc *BCMBIAImpactLevelController) GetBCMBIAImpactLevelByImpactAnalysisLevelID(c *gin.Context) {
+	impactAnalysisLevelIDStr := c.Param("analysisLevelId")
+
+	impactAnalysisLevelID, err := strconv.ParseUint(impactAnalysisLevelIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	bcmBiaImpactLevel, err := bbilc.service.GetByImpactAnalysisLevelID(uint(impactAnalysisLevelID))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, bcmBiaImpactLevel)
+}
