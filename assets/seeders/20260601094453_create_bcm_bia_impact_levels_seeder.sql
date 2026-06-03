@@ -3,6 +3,7 @@
 DECLARE @hours_id INT;
 DECLARE @days_id INT;
 DECLARE @weeks_id INT;
+DECLARE @months_id INT;
 
 DECLARE @non_applicable_id INT;
 DECLARE @very_low_id INT;
