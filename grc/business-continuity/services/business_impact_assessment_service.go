@@ -37,16 +37,19 @@ type BusinessImpactAssessmentServiceInterface interface {
 
 // Service and implementations
 type BusinessImpactAssessmentService struct {
-	repo                 businessImpactAssessmentRepositories.BusinessImpactAssessmentRepositoryInterface
-	activityLogSvc       logServices.ActivityLogServiceInterface
-	userSvc              organizationServices.UserServiceInterface
-	impactCategorySvc    masterServices.ImpactCategoryServiceInterface
-	processSvc           organizationServices.ProcessServiceInterface
-	assetRegisterSvc     assetServices.AssetRegisterServiceInterface
-	documentSvc          documentServices.DocumentServiceInterface
-	processDependencySvc organizationServices.ProcessDependencyServiceInterface
-	riskLevelSvc         riskServices.RiskLevelServiceInterface
-	userSettingSvc       organizationServices.UserSettingServiceInterface
+	repo                      businessImpactAssessmentRepositories.BusinessImpactAssessmentRepositoryInterface
+	activityLogSvc            logServices.ActivityLogServiceInterface
+	userSvc                   organizationServices.UserServiceInterface
+	impactCategorySvc         masterServices.ImpactCategoryServiceInterface
+	processSvc                organizationServices.ProcessServiceInterface
+	assetRegisterSvc          assetServices.AssetRegisterServiceInterface
+	documentSvc               documentServices.DocumentServiceInterface
+	processDependencySvc      organizationServices.ProcessDependencyServiceInterface
+	riskLevelSvc              riskServices.RiskLevelServiceInterface
+	userSettingSvc            organizationServices.UserSettingServiceInterface
+	bcmBiaImpactLevelSvc      BCMBIAImpactLevelServiceInterface
+	bcmBiaOutageBucketSvc     BCMBIAOutageBucketServiceInterface
+	bcmImpactAnalysisLevelSvc BCMImpactAnalysisLevelServiceInterface
 }
 
 func NewBusinessImpactAssessmentService(
@@ -60,18 +63,24 @@ func NewBusinessImpactAssessmentService(
 	processDependencySvc organizationServices.ProcessDependencyServiceInterface,
 	riskLevelSvc riskServices.RiskLevelServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
+	bcmBiaImpactLevelSvc BCMBIAImpactLevelServiceInterface,
+	bcmBiaOutageBucketSvc BCMBIAOutageBucketServiceInterface,
+	bcmImpactAnalysisLevelSvc BCMImpactAnalysisLevelServiceInterface,
 ) BusinessImpactAssessmentServiceInterface {
 	return &BusinessImpactAssessmentService{
-		repo:                 repo,
-		activityLogSvc:       activityLogSvc,
-		userSvc:              userSvc,
-		impactCategorySvc:    impactCategorySvc,
-		processSvc:           processSvc,
-		assetRegisterSvc:     assetRegisterSvc,
-		documentSvc:          documentSvc,
-		processDependencySvc: processDependencySvc,
-		riskLevelSvc:         riskLevelSvc,
-		userSettingSvc:       userSettingSvc,
+		repo:                      repo,
+		activityLogSvc:            activityLogSvc,
+		userSvc:                   userSvc,
+		impactCategorySvc:         impactCategorySvc,
+		processSvc:                processSvc,
+		assetRegisterSvc:          assetRegisterSvc,
+		documentSvc:               documentSvc,
+		processDependencySvc:      processDependencySvc,
+		riskLevelSvc:              riskLevelSvc,
+		userSettingSvc:            userSettingSvc,
+		bcmBiaImpactLevelSvc:      bcmBiaImpactLevelSvc,
+		bcmBiaOutageBucketSvc:     bcmBiaOutageBucketSvc,
+		bcmImpactAnalysisLevelSvc: bcmImpactAnalysisLevelSvc,
 	}
 }
 
@@ -121,11 +130,15 @@ func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, business
 		businessImpactAssessment := &models.BusinessImpactAssessment{
 			ProcessID:        businessImpactAssessmentFormDTO.ProcessID,
 			ImpactCategoryID: impactCategory.ID,
-			RiskLevelID:      nil,
-			Cost:             nil,
-			Comments:         nil,
-			IsApplicable:     false,
-			CreatedByID:      currentUserID,
+			// Old fields - commented out
+			// RiskLevelID:      nil,
+			// Cost:             nil,
+			// Comments:         nil,
+			// New fields
+			ImpactAnalysisLevelID: nil,
+			OutageBucketID:        nil,
+			IsApplicable:          false,
+			CreatedByID:           currentUserID,
 		}
 		err := bias.repo.CreateBusinessImpactAssessment(businessImpactAssessment, tx)
 		if err != nil {
@@ -180,10 +193,14 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 			oldBusinessImpactAssessment = append(oldBusinessImpactAssessment, map[string]interface{}{
 				"process_id":         impactAssessment.ProcessID,
 				"impact_category_id": impactAssessment.ImpactCategoryID,
-				"risk_level_id":      impactAssessment.RiskLevelID,
-				"cost":               impactAssessment.Cost,
-				"comments":           impactAssessment.Comments,
-				"is_applicable":      impactAssessment.IsApplicable,
+				// Old fields - commented out
+				// "risk_level_id":      impactAssessment.RiskLevelID,
+				// "cost":               impactAssessment.Cost,
+				// "comments":           impactAssessment.Comments,
+				// New fields
+				"impact_analysis_level_id": impactAssessment.ImpactAnalysisLevelID,
+				"outage_bucket_id":         impactAssessment.OutageBucketID,
+				"is_applicable":            impactAssessment.IsApplicable,
 			})
 		}
 
@@ -197,11 +214,15 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 			businessImpactAssessment := &models.BusinessImpactAssessment{
 				ProcessID:        businessImpactAssessmentFormDTO.ProcessID,
 				ImpactCategoryID: impactAssessment.ImpactCategoryID,
-				RiskLevelID:      impactAssessment.RiskLevelID,
-				Cost:             impactAssessment.Cost,
-				Comments:         impactAssessment.Comments,
-				IsApplicable:     impactAssessment.IsApplicable,
-				CreatedByID:      currentUserID,
+				// Old fields - commented out
+				// RiskLevelID:      impactAssessment.RiskLevelID,
+				// Cost:             impactAssessment.Cost,
+				// Comments:         impactAssessment.Comments,
+				// New fields
+				ImpactAnalysisLevelID: impactAssessment.ImpactAnalysisLevelID,
+				OutageBucketID:        impactAssessment.OutageBucketID,
+				IsApplicable:          impactAssessment.IsApplicable,
+				CreatedByID:           currentUserID,
 			}
 			existingBusinessImpactAssessment = append(existingBusinessImpactAssessment, businessImpactAssessment)
 			err = bias.repo.CreateBusinessImpactAssessment(businessImpactAssessment, tx)
@@ -209,16 +230,47 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 				tx.Rollback()
 				return err
 			}
+
+			// Create BusinessImpactAssessmentRating if ImpactAnalysisLevelID and OutageBucketID are provided
+			if businessImpactAssessmentFormDTO.OverallImpactLevelID != nil {
+				// Find BCMBIAImpactLevel using ImpactAnalysisLevelID
+				bcmBiaImpactLevel, err := bias.bcmBiaImpactLevelSvc.GetByImpactAnalysisLevelID(*businessImpactAssessmentFormDTO.OverallImpactLevelID)
+				if err == nil && bcmBiaImpactLevel != nil {
+					// Delete existing rating for this process to ensure single record
+					err = bias.repo.DeleteBusinessImpactAssessmentRatingByProcessID(*businessImpactAssessmentFormDTO.ProcessID, tx)
+					if err != nil {
+						tx.Rollback()
+						return err
+					}
+
+					// Create rating record
+					rating := &models.BusinessImpactAssessmentRating{
+						ProcessID:            *businessImpactAssessmentFormDTO.ProcessID,
+						OverallImpactLevelID: *businessImpactAssessmentFormDTO.OverallImpactLevelID,
+						BCMBIAImpactLevelID:  bcmBiaImpactLevel.ID,
+						CreatedBYID:          &currentUserID,
+					}
+					err = bias.repo.CreateBusinessImpactAssessmentRating(rating, tx)
+					if err != nil {
+						tx.Rollback()
+						return err
+					}
+				}
+			}
 		}
 
-		// Update the process risk level
+		// Update the process with impact analysis level (highest impact level from frontend)
 		existingProcess, err := bias.processSvc.GetByID(*businessImpactAssessmentFormDTO.ProcessID, tx)
 		if err != nil {
 			tx.Rollback()
 			return err
 		}
 
-		existingProcess.RiskLevelId = businessImpactAssessmentFormDTO.RiskLevelID
+		// Old field - commented out
+		// existingProcess.RiskLevelId = businessImpactAssessmentFormDTO.RiskLevelID
+		// New field: OverallImpactLevelID is passed from frontend (highest impact level across all categories)
+		// Note: Process model needs to have OverallImpactLevelID field added
+		// existingProcess.OverallImpactLevelID = businessImpactAssessmentFormDTO.OverallImpactLevelID
 		existingProcess.ImpactJustification = businessImpactAssessmentFormDTO.ImpactJustification
 		if err := bias.processSvc.UpdateProcessRecoveryObjective(existingProcess, tx); err != nil {
 			tx.Rollback()

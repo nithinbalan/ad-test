@@ -25,6 +25,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	bcpCommunicationPlanController := app.BusinessContinuityModule.BcpCommunicationPlanController
 	bcpTestAndExerciseController := app.BusinessContinuityModule.BcpTestAndExerciseController
 	bcpStatusController := app.BusinessContinuityModule.BcpStatusController
+	bcmImpactAnalysisLevelController := app.BusinessContinuityModule.BCMImpactAnalysisLevelController
+	bcmBiaOutageBucketController := app.BusinessContinuityModule.BCMBIAOutageBucketController
+	bcmBiaImpactLevelController := app.BusinessContinuityModule.BCMBIAImpactLevelController
 	BcpTeamController := app.BusinessContinuityModule.BcpTeamController
 	testAndExerciseStatusController := app.BusinessContinuityModule.TestAndExerciseStatusController
 	testAndExerciseController := app.BusinessContinuityModule.TestAndExerciseController
@@ -290,5 +293,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.POST("/bcm-manual-procedure-forms", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmManualProcedureFormController.CreateBCMManualProcedureForm)
 	businessContinuityRoutes.PUT("/bcm-manual-procedure-forms/:id", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmManualProcedureFormController.UpdateBCMManualProcedureForm)
 	businessContinuityRoutes.POST("/bcm-manual-procedure-forms/delete", middlewares.RolePermissionMiddleware(db, "business_continuity_setting", "modify"), bcmManualProcedureFormController.DeleteBCMManualProcedureForms)
+
+	// bcm impact analysis level
+	businessContinuityRoutes.GET("/bcm-impact-analysis-levels", bcmImpactAnalysisLevelController.GetAllBCMImpactAnalysisLevels)
+	businessContinuityRoutes.GET("/bcm-impact-analysis-levels/:id", bcmImpactAnalysisLevelController.GetBCMImpactAnalysisLevelDetails)
+
+	// bcm bia outage bucket
+	businessContinuityRoutes.GET("/bcm-bia-outage-buckets", bcmBiaOutageBucketController.GetAllBCMBIAOutageBuckets)
+	businessContinuityRoutes.GET("/bcm-bia-outage-buckets/:id", bcmBiaOutageBucketController.GetBCMBIAOutageBucketDetails)
+
+	// bcm bia impact level
+	businessContinuityRoutes.GET("/bcm-bia-impact-levels", bcmBiaImpactLevelController.GetAllBCMBIAImpactLevels)
+	businessContinuityRoutes.GET("/bcm-bia-impact-levels/:id", bcmBiaImpactLevelController.GetBCMBIAImpactLevelFullDetails)
 
 }

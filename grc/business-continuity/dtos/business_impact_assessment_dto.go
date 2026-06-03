@@ -135,16 +135,24 @@ type BusinessImpactFormDTO struct {
 type BusinessImpactAssessmentFormDTO struct {
 	ProcessID                 *uint                         `json:"process_id"`
 	BusinessImpactAssessments []BusinessImpactAssessmentDTO `json:"business_impact_assessments"`
-	RiskLevelID               *uint                         `json:"risk_level_id"`
-	ImpactJustification       *string                       `json:"impact_justification"`
+	// Old fields - commented out
+	// RiskLevelID               *uint                         `json:"risk_level_id"`
+	// ImpactJustification       *string                       `json:"impact_justification"`
+	// New fields
+	OverallImpactLevelID *uint   `json:"overall_impact_level_id"`
+	ImpactJustification  *string `json:"impact_justification"`
 }
 
 type BusinessImpactAssessmentDTO struct {
-	ImpactCategoryID uint    `json:"impact_category_id"`
-	RiskLevelID      *uint   `json:"risk_level_id"`
-	Cost             *uint   `json:"cost"`
-	Comments         *string `json:"comments"`
-	IsApplicable     bool    `json:"is_applicable"`
+	ImpactCategoryID uint `json:"impact_category_id"`
+	// Old fields - commented out
+	// RiskLevelID      *uint   `json:"risk_level_id"`
+	// Cost             *uint   `json:"cost"`
+	// Comments         *string `json:"comments"`
+	// New fields
+	ImpactAnalysisLevelID *uint `json:"impact_analysis_level_id"`
+	OutageBucketID        *uint `json:"outage_bucket_id"`
+	IsApplicable          bool  `json:"is_applicable"`
 }
 
 type BusinessImpactAssessmentRecoveryObjectiveFormDTO struct {
@@ -218,45 +226,46 @@ type BIAMatrixQueryParamsDTO struct {
 }
 
 type BIAProcessDetailDTO struct {
-	ID                        uint                                           `json:"id"`
-	ReferenceNumber           string                                         `json:"reference_number"`
-	TitleEn                   string                                         `json:"title_en"`
-	TitleAr                   string                                         `json:"title_ar"`
-	Description               *string                                        `json:"description"`
-	ProcessGroup              *organizationDTOs.ProcessGroupDTO              `json:"process_group"`
-	ResponsibleUnit           *settingsDTOs.OrganizationUnitDTO              `json:"owner_unit"`
-	ResponsibleUserID         *uint                                          `json:"owner_id"`
-	ResponsibleUser           *organizationDTOs.UserMinimalDTO               `json:"owner"`
-	CreatedByUser             organizationDTOs.UserMinimalDTO                `json:"created_by"`
-	UpdatedByUser             *organizationDTOs.UserMinimalDTO               `json:"updated_by"`
-	LifecycleStatus           masterDTOs.LifecycleStatusDTO                  `json:"status"`
-	Rto                       *int                                           `json:"rto"`
-	RtoUnitId                 *uint                                          `json:"rto_uint_id"`
-	RtoUnit                   masterDTOs.TimeUnitDTO                         `json:"rto_unit"`
-	Mtpd                      *int                                           `json:"mtpd"`
-	MtpdUnitId                *uint                                          `json:"mtpd_uint_id"`
-	MtpdUnit                  masterDTOs.TimeUnitDTO                         `json:"mtpd_unit"`
-	Rpo                       *int                                           `json:"rpo"`
-	RpoUnitId                 *uint                                          `json:"rpo_uint_id"`
-	RpoUnit                   masterDTOs.TimeUnitDTO                         `json:"rpo_unit"`
-	RiskLevelId               *uint                                          `json:"risk_level_id"`
-	RiskMatrixRating          *organizationDTOs.RiskMatrixRiskRatingDTO      `json:"risk_matrix_risk_rating"`
-	RiskMatrixRatingValue     *organizationDTOs.RiskMatrixRiskRatingValueDTO `json:"risk_matrix_rating_value"`
-	LastAssessedAt            *time.Time                                     `json:"last_assessed_at"`
-	LastAssessedByID          *uint                                          `json:"last_assessed_by_id"`
-	LastAssessedByUser        *organizationDTOs.UserMinimalDTO               `json:"last_assessed_by"`
-	IsBiaPerformed            bool                                           `json:"is_bia_performed"`
-	CreatedAt                 time.Time                                      `json:"created_at"`
-	UpdatedAt                 *time.Time                                     `json:"updated_at"`
-	MarkedAsAuditableItem     bool                                           `json:"marked_as_auditable_item"`
-	RiskLevel                 *organizationDTOs.RiskLevelDTO                 `json:"risk_level"`
-	ImpactJustification       *string                                        `json:"impact_justification"`
-	CriticalityJustification  *string                                        `json:"criticality_justification"`
-	ProcessCriticalityLevel   *organizationDTOs.ProcessCriticalityLevelDTO   `json:"process_criticality_level"`
-	BusinessImpactAssessments []*BusinessImpactAssessmentDTO                 `json:"business_impact_assessments"`
-	ProcessDependencies       []*organizationDTOs.ProcessDependencyDetailDTO `json:"process_dependencies"`
-	Risks                     []*ProcessRiskDTO                              `json:"risks"`
-	Incidents                 []*ProcessIncidentDTO                          `json:"incidents"`
+	ID                              uint                                           `json:"id"`
+	ReferenceNumber                 string                                         `json:"reference_number"`
+	TitleEn                         string                                         `json:"title_en"`
+	TitleAr                         string                                         `json:"title_ar"`
+	Description                     *string                                        `json:"description"`
+	ProcessGroup                    *organizationDTOs.ProcessGroupDTO              `json:"process_group"`
+	ResponsibleUnit                 *settingsDTOs.OrganizationUnitDTO              `json:"owner_unit"`
+	ResponsibleUserID               *uint                                          `json:"owner_id"`
+	ResponsibleUser                 *organizationDTOs.UserMinimalDTO               `json:"owner"`
+	CreatedByUser                   organizationDTOs.UserMinimalDTO                `json:"created_by"`
+	UpdatedByUser                   *organizationDTOs.UserMinimalDTO               `json:"updated_by"`
+	LifecycleStatus                 masterDTOs.LifecycleStatusDTO                  `json:"status"`
+	Rto                             *int                                           `json:"rto"`
+	RtoUnitId                       *uint                                          `json:"rto_uint_id"`
+	RtoUnit                         masterDTOs.TimeUnitDTO                         `json:"rto_unit"`
+	Mtpd                            *int                                           `json:"mtpd"`
+	MtpdUnitId                      *uint                                          `json:"mtpd_uint_id"`
+	MtpdUnit                        masterDTOs.TimeUnitDTO                         `json:"mtpd_unit"`
+	Rpo                             *int                                           `json:"rpo"`
+	RpoUnitId                       *uint                                          `json:"rpo_uint_id"`
+	RpoUnit                         masterDTOs.TimeUnitDTO                         `json:"rpo_unit"`
+	RiskLevelId                     *uint                                          `json:"risk_level_id"`
+	RiskMatrixRating                *organizationDTOs.RiskMatrixRiskRatingDTO      `json:"risk_matrix_risk_rating"`
+	RiskMatrixRatingValue           *organizationDTOs.RiskMatrixRiskRatingValueDTO `json:"risk_matrix_rating_value"`
+	LastAssessedAt                  *time.Time                                     `json:"last_assessed_at"`
+	LastAssessedByID                *uint                                          `json:"last_assessed_by_id"`
+	LastAssessedByUser              *organizationDTOs.UserMinimalDTO               `json:"last_assessed_by"`
+	IsBiaPerformed                  bool                                           `json:"is_bia_performed"`
+	CreatedAt                       time.Time                                      `json:"created_at"`
+	UpdatedAt                       *time.Time                                     `json:"updated_at"`
+	MarkedAsAuditableItem           bool                                           `json:"marked_as_auditable_item"`
+	RiskLevel                       *organizationDTOs.RiskLevelDTO                 `json:"risk_level"`
+	ImpactJustification             *string                                        `json:"impact_justification"`
+	CriticalityJustification        *string                                        `json:"criticality_justification"`
+	ProcessCriticalityLevel         *organizationDTOs.ProcessCriticalityLevelDTO   `json:"process_criticality_level"`
+	BusinessImpactAssessments       []*BusinessImpactAssessmentDetailDTO           `json:"business_impact_assessments"`
+	BusinessImpactAssessmentRatings []*BusinessImpactAssessmentRatingDTO           `json:"business_impact_assessment_ratings"`
+	ProcessDependencies             []*organizationDTOs.ProcessDependencyDetailDTO `json:"process_dependencies"`
+	Risks                           []*ProcessRiskDTO                              `json:"risks"`
+	Incidents                       []*ProcessIncidentDTO                          `json:"incidents"`
 }
 
 type ProcessRiskDTO struct {
@@ -296,4 +305,22 @@ type IncidentMinimalDTO struct {
 	ReportedAt       *time.Time                        `json:"reported_at"`
 	IncidentCategory *incidentDTOs.IncidentCategoryDTO `json:"incident_category"`
 	IncidentType     *incidentDTOs.IncidentTypeDTO     `json:"incident_type"`
+}
+
+type BusinessImpactAssessmentDetailDTO struct {
+	ImpactCategory      *masterDTOs.ImpactCategoryDTO `json:"impact_category"`
+	ImpactAnalysisLevel *BCMImpactAnalysisLevelDTO    `json:"impact_analysis_level"`
+	OutageBucket        *BCMBIAOutageBucketDTO        `json:"outage_bucket"`
+	IsApplicable        bool                          `json:"is_applicable"`
+}
+
+type BusinessImpactAssessmentRatingDTO struct {
+	ID                   uint                        `json:"id"`
+	ProcessID            uint                        `json:"process_id"`
+	OverallImpactLevelID uint                        `json:"overall_impact_level_id"`
+	OverallImpactLevel   *BCMImpactAnalysisLevelDTO  `json:"overall_impact_level"`
+	BCMBIAImpactLevelID  uint                        `json:"bcm_bia_impact_level_id"`
+	BCMBIAImpactLevel    *BCMBIAImpactLevelDetailDTO `json:"bcm_bia_impact_level"`
+	CreatedBYID          *uint                       `json:"created_by_id"`
+	CreatedAt            time.Time                   `json:"created_at"`
 }
