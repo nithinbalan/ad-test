@@ -191,7 +191,7 @@ type RiskRegisterDetailDTO struct {
 	AssociatedDocuments     []*RiskAssociatedDocumentDTO       `json:"associated_documents"`
 	Assets                  []*RiskAssetDTO                    `json:"assets"`
 	Threats                 []*RiskThreatDTO                   `json:"threats"`
-	ActionPlans             []*RiskActionPlanListDTO           `json:"action_plans"`
+	ActionPlans             []*RiskActionPlanDetailDTO         `json:"action_plans"`
 	MarkedAsAuditableItem   bool                               `json:"marked_as_auditable_item"`
 	AuditableItem           *AuditableItemMinimalRiskDetailDTO `json:"auditable_item"`
 	RiskCode                *string                            `json:"risk_code"`
