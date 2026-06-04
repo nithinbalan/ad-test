@@ -1447,6 +1447,22 @@ func (repo *ComplianceRegisterRepository) ForceDelete(id uint, tx ...utility.Dat
 		`DELETE FROM compliance_clauses WHERE compliance_clauses.compliance_register_id = ?`,
 		`DELETE FROM compliance_assessments WHERE compliance_assessments.compliance_register_id = ?`,
 		`DELETE FROM compliance_controls WHERE compliance_register_id = ?`,
+
+		/* ========= WORKFLOWS ========= */
+		`DELETE compliance_register_workflow_reviews
+		 FROM compliance_register_workflow_reviews
+		 JOIN compliance_register_workflows
+		 ON compliance_register_workflows.id = compliance_register_workflow_reviews.compliance_register_workflow_id
+		 WHERE compliance_register_workflows.compliance_register_id = ?`,
+
+		`DELETE compliance_register_workflow_participants
+		 FROM compliance_register_workflow_participants
+		 JOIN compliance_register_workflows
+		 ON compliance_register_workflows.id = compliance_register_workflow_participants.compliance_register_workflow_id
+		 WHERE compliance_register_workflows.compliance_register_id = ?`,
+
+		`DELETE FROM compliance_register_workflow_histories WHERE compliance_register_id = ?`,
+		`DELETE FROM compliance_register_workflows WHERE compliance_register_id = ?`,
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
