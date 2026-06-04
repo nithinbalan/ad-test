@@ -615,3 +615,77 @@ func (crc *ComplianceRegisterController) UpdateNote(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+func (crc *ComplianceRegisterController) GenerateComplianceTemplate(c *gin.Context) {
+	file, err := crc.service.GenerateComplianceTemplate()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate template"})
+		return
+	}
+	defer file.Close()
+
+	c.Header("Content-Disposition", "attachment; filename=ComplianceTemplate.xlsx")
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.File(file.Name())
+}
+
+func (crc *ComplianceRegisterController) ValidateComplianceTemplate(c *gin.Context) {
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "File is required"})
+		return
+	}
+
+	openedFile, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file"})
+		return
+	}
+	defer openedFile.Close()
+
+	validatedData, err := crc.service.ValidateComplianceTemplate(openedFile)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, validatedData)
+}
+
+func (crc *ComplianceRegisterController) ValidateImportCompliances(c *gin.Context) {
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	validatedData, err := crc.service.ValidateImportCompliances(input)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, validatedData)
+}
+
+func (crc *ComplianceRegisterController) ImportCompliances(c *gin.Context) {
+	var input []map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	createdIDs, err := crc.service.ImportCompliances(input, uint(currentUserID))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"created_ids": createdIDs})
+}

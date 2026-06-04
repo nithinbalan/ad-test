@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	bcmDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/repositories"
 	"jethur/grc/models"
@@ -36,7 +37,7 @@ func (bbils *BCMBIAImpactLevelService) GetByID(id uint) (*models.BCMBIAImpactLev
 	bcmBiaImpactLevel, err := bbils.repo.GetByID(id)
 
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, id)
 		}
 		return nil, err

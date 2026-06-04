@@ -461,7 +461,6 @@ func (cars *ComplianceAssessmentRequirementService) CreateDocument(complianceAss
 }
 
 func (cars *ComplianceAssessmentRequirementService) DeleteDocuments(complianceAssessmentID uint, requirementID uint, requiredDocumentID uint, ids []uint, currentUserID uint) ([]uint, error) {
-	tx := cars.repo.BeginTransaction()
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedDocument []map[string]interface{}
@@ -486,7 +485,7 @@ func (cars *ComplianceAssessmentRequirementService) DeleteDocuments(complianceAs
 			}
 		}
 
-		// Delete from database
+		// Delete from database (no transaction needed as repo method doesn't use it)
 		err = cars.repo.DeleteDocuments(id)
 		if err != nil {
 			failedIds = append(failedIds, id)
@@ -500,7 +499,7 @@ func (cars *ComplianceAssessmentRequirementService) DeleteDocuments(complianceAs
 		})
 	}
 
-	// Remove files from storage
+	// Remove files from storage (file cleanup should not affect DB operation)
 	if len(successfulIds) > 0 {
 		for _, documents := range documentsToDelete {
 			for _, doc := range documents {
@@ -514,8 +513,11 @@ func (cars *ComplianceAssessmentRequirementService) DeleteDocuments(complianceAs
 					"documents",
 				)
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
-					tx.Rollback()
-					fmt.Printf("Failed to delete file at URL %s: %v\n", doc.URL, err)
+					// Log error but don't fail the operation
+					utility.LogError("Failed to delete file from storage", map[string]interface{}{
+						"url":   doc.URL,
+						"error": err.Error(),
+					})
 				}
 			}
 		}
@@ -531,7 +533,9 @@ func (cars *ComplianceAssessmentRequirementService) DeleteDocuments(complianceAs
 				nil,
 			)
 			if err != nil {
-				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+				utility.LogError("Failed to log bulk delete activity", map[string]interface{}{
+					"error": err.Error(),
+				})
 			}
 		}()
 	}
@@ -789,21 +793,27 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 	}
 	allComplianceAssessmentRequirement, err := cars.GetFullDetailsByID(assessmentID, requirementID, 0)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	oldComplianceAssessmentRequirement, err := cars.GetFullDetailsByID(assessmentID, requirementID, commentForm.ResponsibleUnitID)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 	complianceAssessmentRequirementResponsibleUnit, err := cars.GetComplianceAssessmentRequirementResponsibleUnitByID(oldComplianceAssessmentRequirement.ResponsibleUnit.ID)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
-	if complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirementStatusID == &approvedStatus.ID {
+	// Fix: Dereference both sides for proper comparison
+	if complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirementStatusID != nil &&
+		*complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirementStatusID == approvedStatus.ID {
 		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("requirement is already approved"), "invalid_state", "requirement")
 	}
 	if currentUserID != complianceAssessment.ComplianceRegister.ResponsibleUserID {
+		tx.Rollback()
 		return utility.NewForbiddenError("User is not authorized to approve this assessment")
 	}
 
@@ -895,7 +905,9 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 
 		assessmentDetails, err := cars.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)
 		if err != nil {
-			tx.Rollback()
+			utility.LogError("Failed to fetch assessment details for notification", map[string]interface{}{
+				"error": err.Error(),
+			})
 			return
 		}
 
@@ -984,8 +996,9 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 	if err != nil {
 		return err
 	}
-	// Validate if the current status allows reverting
-	if complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirementStatusID == &revertedStatus.ID {
+	// Validate if the current status allows reverting (Fix: dereference both sides)
+	if complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirementStatusID != nil &&
+		*complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirementStatusID == revertedStatus.ID {
 		return utility.NewValidationError(fmt.Errorf("requirement is already reverted"), "invalid_state", "requirement")
 	}
 
@@ -1059,7 +1072,9 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 
 		assessmentDetails, err := cars.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)
 		if err != nil {
-			tx.Rollback()
+			utility.LogError("Failed to fetch assessment details for notification", map[string]interface{}{
+				"error": err.Error(),
+			})
 			return
 		}
 
@@ -1151,8 +1166,9 @@ func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequiremen
 	if err != nil {
 		return err
 	}
-	// Validate if the current status allows resubmission
-	if complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirementStatusID == &resubmittedStatus.ID {
+	// Validate if the current status allows resubmission (Fix: dereference both sides)
+	if complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirementStatusID != nil &&
+		*complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirementStatusID == resubmittedStatus.ID {
 		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("requirement is already resubmitted"), "invalid_state", "requirement")
 	}
@@ -1216,7 +1232,9 @@ func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequiremen
 
 		assessmentDetails, err := cars.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)
 		if err != nil {
-			tx.Rollback()
+			utility.LogError("Failed to fetch assessment details for notification", map[string]interface{}{
+				"error": err.Error(),
+			})
 			return
 		}
 

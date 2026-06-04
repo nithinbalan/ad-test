@@ -152,6 +152,8 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		legislationTypeSvc,
 		importanceClassificationSvc,
 		secrecyClassificationSvc,
+		issuingAuthoritySvc,
+		settingsModule.OrganizationUnitSvc,
 	)
 	complianceRegisterController := controllers.NewComplianceRegisterController(complianceRegisterSvc)
 
