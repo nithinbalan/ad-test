@@ -58,6 +58,21 @@ func (svc *RiskResponseService) GetFullDetailsByID(id uint, tx ...utility.Databa
 	dto.CreatedAt = riskResponse.CreatedAt
 	dto.UpdatedAt = riskResponse.UpdatedAt
 
+	// Convert ActionPlans dates from time.Time to string
+	if dto.RiskRegister != nil && len(dto.RiskRegister.ActionPlans) > 0 {
+		for i := range dto.RiskRegister.ActionPlans {
+			if riskResponse.RiskRegister != nil && len(riskResponse.RiskRegister.ActionPlans) > i {
+				modelActionPlan := riskResponse.RiskRegister.ActionPlans[i]
+				if modelActionPlan.StartDate != nil {
+					dto.RiskRegister.ActionPlans[i].StartDate = modelActionPlan.StartDate.Format("2006-01-02")
+				}
+				if modelActionPlan.TargetDate != nil {
+					dto.RiskRegister.ActionPlans[i].TargetDate = modelActionPlan.TargetDate.Format("2006-01-02")
+				}
+			}
+		}
+	}
+
 	return &dto, nil
 }
 
@@ -81,6 +96,21 @@ func (svc *RiskResponseService) GetFullDetailsByRiskID(riskRegisterID uint, tx .
 	dto.ApprovedAt = riskResponse.ApprovedAt
 	dto.CreatedAt = riskResponse.CreatedAt
 	dto.UpdatedAt = riskResponse.UpdatedAt
+
+	// Convert ActionPlans dates from time.Time to string
+	if dto.RiskRegister != nil && len(dto.RiskRegister.ActionPlans) > 0 {
+		for i := range dto.RiskRegister.ActionPlans {
+			if riskResponse.RiskRegister != nil && len(riskResponse.RiskRegister.ActionPlans) > i {
+				modelActionPlan := riskResponse.RiskRegister.ActionPlans[i]
+				if modelActionPlan.StartDate != nil {
+					dto.RiskRegister.ActionPlans[i].StartDate = modelActionPlan.StartDate.Format("2006-01-02")
+				}
+				if modelActionPlan.TargetDate != nil {
+					dto.RiskRegister.ActionPlans[i].TargetDate = modelActionPlan.TargetDate.Format("2006-01-02")
+				}
+			}
+		}
+	}
 
 	return &dto, nil
 }
