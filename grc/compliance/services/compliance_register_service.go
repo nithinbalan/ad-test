@@ -1012,24 +1012,34 @@ func (crs *ComplianceRegisterService) Delete(ids []uint, currentUserID uint) ([]
 		return failedIds, nil
 	}
 
-	// Deleting files should not affect the main operation result
+	// Commit DB changes before file cleanup
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	// Deleting files should not affect the main operation result (cleanup after commit)
 	if len(successfulIds) > 0 {
 		for complianceID, documents := range documentsToDelete {
 			for _, doc := range documents {
 				storagePath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10), "documents")
 				if err := utility.RemoveFile(doc.Name, storagePath); err != nil {
-					tx.Rollback()
-					fmt.Printf("Failed to delete file at URL %s: %v\n", doc.URL, err)
+					// Log error but don't fail the operation since DB is already committed
+					utility.LogError("Failed to delete file from storage", map[string]interface{}{
+						"url":   doc.URL,
+						"error": err.Error(),
+					})
 				}
 			}
 			destinationPath := filepath.Join("compliance", "compliance-register", strconv.FormatUint(uint64(complianceID), 10))
 			if err := utility.RemoveFolder(destinationPath); err != nil {
-				tx.Rollback()
+				// Log error but don't fail the operation since DB is already committed
+				utility.LogError("Failed to remove folder", map[string]interface{}{
+					"path":  destinationPath,
+					"error": err.Error(),
+				})
 			}
 		}
 	}
-
-	tx.Commit()
 
 	// Log bulk delete activities for successful deletions
 	if len(successfulIds) > 0 {

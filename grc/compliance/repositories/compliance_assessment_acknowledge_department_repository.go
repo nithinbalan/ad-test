@@ -212,18 +212,20 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAll(assessme
 	var acknowledgementList []complianceDTOs.ComplianceAssessmentAcknowledgementListDTO
 	var totalCount int64
 
-	// Prepare the keyword search filter
+	// Prepare the keyword search filter (SQL injection safe)
 	keywordFilter := ""
+	keywordArgs := make([]interface{}, 0, 7)
 	if params.Keyword != "" {
-		keywordFilter = fmt.Sprintf(`
-            AND (ack_user.first_name_en LIKE '%%%s%%' 
-            OR ack_user.first_name_ar LIKE '%%%s%%' 
-            OR ack_user.last_name_en LIKE '%%%s%%' 
-            OR ack_user.last_name_ar LIKE '%%%s%%' 
-            OR ack_user.email LIKE '%%%s%%' 
-            OR organization_units.title_en LIKE '%%%s%%' 
-            OR organization_units.title_ar LIKE '%%%s%%')`,
-			params.Keyword, params.Keyword, params.Keyword, params.Keyword, params.Keyword, params.Keyword, params.Keyword)
+		keywordPattern := "%" + params.Keyword + "%"
+		keywordFilter = `
+            AND (ack_user.first_name_en LIKE ? 
+            OR ack_user.first_name_ar LIKE ? 
+            OR ack_user.last_name_en LIKE ? 
+            OR ack_user.last_name_ar LIKE ? 
+            OR ack_user.email LIKE ? 
+            OR organization_units.title_en LIKE ? 
+            OR organization_units.title_ar LIKE ?)`
+		keywordArgs = append(keywordArgs, keywordPattern, keywordPattern, keywordPattern, keywordPattern, keywordPattern, keywordPattern, keywordPattern)
 	}
 
 	// Build the main query to show all departments with user details only if someone from that department acknowledged
@@ -310,7 +312,7 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAll(assessme
 			keywordFilter)
 	}
 
-	if err := repo.db.Raw(countQuery).Scan(&totalCount).Error; err != nil {
+	if err := repo.db.Raw(countQuery, keywordArgs...).Scan(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
@@ -318,7 +320,7 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAll(assessme
 	offset := (params.Page - 1) * params.PageSize
 	paginatedQuery := fmt.Sprintf("%s OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", query, offset, params.PageSize)
 
-	if err := repo.db.Raw(paginatedQuery).Scan(&acknowledgementList).Error; err != nil {
+	if err := repo.db.Raw(paginatedQuery, keywordArgs...).Scan(&acknowledgementList).Error; err != nil {
 		return nil, err
 	}
 
@@ -341,18 +343,20 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAllForPublic
 	var acknowledgementList []complianceDTOs.ComplianceAssessmentAcknowledgementListDTO
 	var totalCount int64
 
-	// Prepare the keyword search filter
+	// Prepare the keyword search filter (SQL injection safe)
 	keywordFilter := ""
+	keywordArgs := make([]interface{}, 0, 7)
 	if params.Keyword != "" {
-		keywordFilter = fmt.Sprintf(`
-            AND (ack_user.first_name_en LIKE '%%%s%%' 
-            OR ack_user.first_name_ar LIKE '%%%s%%' 
-            OR ack_user.last_name_en LIKE '%%%s%%' 
-            OR ack_user.last_name_ar LIKE '%%%s%%' 
-            OR ack_user.email LIKE '%%%s%%' 
-            OR organization_units.title_en LIKE '%%%s%%' 
-            OR organization_units.title_ar LIKE '%%%s%%')`,
-			params.Keyword, params.Keyword, params.Keyword, params.Keyword, params.Keyword, params.Keyword, params.Keyword)
+		keywordPattern := "%" + params.Keyword + "%"
+		keywordFilter = `
+            AND (ack_user.first_name_en LIKE ? 
+            OR ack_user.first_name_ar LIKE ? 
+            OR ack_user.last_name_en LIKE ? 
+            OR ack_user.last_name_ar LIKE ? 
+            OR ack_user.email LIKE ? 
+            OR organization_units.title_en LIKE ? 
+            OR organization_units.title_ar LIKE ?)`
+		keywordArgs = append(keywordArgs, keywordPattern, keywordPattern, keywordPattern, keywordPattern, keywordPattern, keywordPattern, keywordPattern)
 	}
 
 	// Build main query for public assessment - show all departments with user details only if acknowledged
@@ -439,7 +443,7 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAllForPublic
 			keywordFilter)
 	}
 
-	if err := repo.db.Raw(countQuery).Scan(&totalCount).Error; err != nil {
+	if err := repo.db.Raw(countQuery, keywordArgs...).Scan(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
@@ -447,7 +451,7 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAllForPublic
 	offset := (params.Page - 1) * params.PageSize
 	paginatedQuery := fmt.Sprintf("%s OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", query, offset, params.PageSize)
 
-	if err := repo.db.Raw(paginatedQuery).Scan(&acknowledgementList).Error; err != nil {
+	if err := repo.db.Raw(paginatedQuery, keywordArgs...).Scan(&acknowledgementList).Error; err != nil {
 		return nil, err
 	}
 
@@ -470,18 +474,20 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAllForShared
 	var acknowledgementList []complianceDTOs.ComplianceAssessmentAcknowledgementListDTO
 	var totalCount int64
 
-	// Prepare the keyword search filter
+	// Prepare the keyword search filter (SQL injection safe)
 	keywordFilter := ""
+	keywordArgs := make([]interface{}, 0, 7)
 	if params.Keyword != "" {
-		keywordFilter = fmt.Sprintf(`
-            AND (ack_user.first_name_en LIKE '%%%s%%' 
-            OR ack_user.first_name_ar LIKE '%%%s%%' 
-            OR ack_user.last_name_en LIKE '%%%s%%' 
-            OR ack_user.last_name_ar LIKE '%%%s%%' 
-            OR ack_user.email LIKE '%%%s%%' 
-            OR organization_units.title_en LIKE '%%%s%%' 
-            OR organization_units.title_ar LIKE '%%%s%%')`,
-			params.Keyword, params.Keyword, params.Keyword, params.Keyword, params.Keyword, params.Keyword, params.Keyword)
+		keywordPattern := "%" + params.Keyword + "%"
+		keywordFilter = `
+            AND (ack_user.first_name_en LIKE ? 
+            OR ack_user.first_name_ar LIKE ? 
+            OR ack_user.last_name_en LIKE ? 
+            OR ack_user.last_name_ar LIKE ? 
+            OR ack_user.email LIKE ? 
+            OR organization_units.title_en LIKE ? 
+            OR organization_units.title_ar LIKE ?)`
+		keywordArgs = append(keywordArgs, keywordPattern, keywordPattern, keywordPattern, keywordPattern, keywordPattern, keywordPattern, keywordPattern)
 	}
 
 	// Build main query for shared assessment - show only shared departments with user details only if acknowledged
@@ -568,7 +574,7 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAllForShared
 			complianceRegisterID, keywordFilter)
 	}
 
-	if err := repo.db.Raw(countQuery).Scan(&totalCount).Error; err != nil {
+	if err := repo.db.Raw(countQuery, keywordArgs...).Scan(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
@@ -576,7 +582,7 @@ func (repo *ComplianceAssessmentAcknowledgeDepartmentRepository) GetAllForShared
 	offset := (params.Page - 1) * params.PageSize
 	paginatedQuery := fmt.Sprintf("%s OFFSET %d ROWS FETCH NEXT %d ROWS ONLY", query, offset, params.PageSize)
 
-	if err := repo.db.Raw(paginatedQuery).Scan(&acknowledgementList).Error; err != nil {
+	if err := repo.db.Raw(paginatedQuery, keywordArgs...).Scan(&acknowledgementList).Error; err != nil {
 		return nil, err
 	}
 
