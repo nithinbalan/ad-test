@@ -45,19 +45,25 @@ type ComplianceRegister struct {
 	IsRequirementAssessment         bool       `json:"is_requirement_assessment" gorm:"column:is_requirement_assessment;not null;default:false"`
 
 	// New  Compliance Fields
-	LegislativeBodyID                  *uint   `json:"legislative_body_id" gorm:"default:null"`
-	LegislationTypeID                  *uint   `json:"legislation_type_id" gorm:"default:null"`
-	LegislationNo                      *string `json:"legislation_no" gorm:"type:nvarchar(500)"`
-	ImportanceClassificationID         *uint   `json:"importance_classification_id" gorm:"default:null"`
-	SecrecyClassificationID            *uint   `json:"secrecy_classification_id" gorm:"default:null"`
-	Subject                            *string `json:"subject" gorm:"type:nvarchar(max)"`
-	IsApplicable                       bool    `json:"is_applicable default:false"`
-	IsNotApplicable                    bool    `json:"is_not_applicable default:false"`
+	LegislativeBodyID          *uint   `json:"legislative_body_id" gorm:"default:null"`
+	LegislationTypeID          *uint   `json:"legislation_type_id" gorm:"default:null"`
+	LegislationNo              *string `json:"legislation_no" gorm:"type:nvarchar(500)"`
+	ImportanceClassificationID *uint   `json:"importance_classification_id" gorm:"default:null"`
+	SecrecyClassificationID    *uint   `json:"secrecy_classification_id" gorm:"default:null"`
+	Subject                    *string `json:"subject" gorm:"type:nvarchar(max)"`
+	IsApplicable               bool    `json:"is_applicable default:false"`
+	IsNotApplicable            bool    `json:"is_not_applicable default:false"`
 	// IsRegulationNotificationAssessment bool    `json:"is_regulation_notification_assessment default:false"`
 	// IsRiskBasedAssessment              bool    `json:"is_risk_based_assessment default:false"`
-	IsPublic                           bool    `json:"is_public default:false"`
-	IsShared                           bool    `json:"is_shared default:false"`
-	Note                               *string `json:"note" gorm:"type:varchar(max)"`
+	IsPublic         bool       `json:"is_public default:false"`
+	IsShared         bool       `json:"is_shared default:false"`
+	Note             *string    `json:"note" gorm:"type:varchar(max)"`
+	WorkflowStatusID *uint      `json:"workflow_status_id" gorm:"default:null"`
+	NextReviewLevel  *int       `json:"next_review_level" gorm:"default:null"`
+	SubmittedBYID    *uint      `json:"submitted_by_id" gorm:"default:null"`
+	SubmittedAt      *time.Time `json:"submitted_at" gorm:"type:datetime;default:null"`
+	ApprovedBYID     *uint      `json:"approved_by_id" gorm:"default:null"`
+	ApprovedAt       *time.Time `json:"approved_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
 	ComplianceCategory            *ComplianceCategory            `gorm:"foreignKey:ComplianceCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -84,12 +90,17 @@ type ComplianceRegister struct {
 	AverageResidualRiskRating     *ComplianceAssessmentRating    `gorm:"foreignKey:AverageResidualRiskRatingID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 
 	//New Relations
-	LegislativeBody              *ComplianceLegislativeBody            `gorm:"foreignKey:LegislativeBodyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	LegislationType              *ComplianceLegislationType            `gorm:"foreignKey:LegislationTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ImportanceClassification     *ComplianceImportanceClassification   `gorm:"foreignKey:ImportanceClassificationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SecrecyClassification        *ComplianceSecrecyClassification      `gorm:"foreignKey:SecrecyClassificationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	IssuingAuthorities           []*ComplianceRegisterIssuingAuthority `gorm:"foreignKey:ComplianceRegisterID"`
-	ComplianceRegisterSharedUnit *[]ComplianceRegisterSharedUnit       `gorm:"foreignKey:ComplianceRegisterID"`
+	LegislativeBody                  *ComplianceLegislativeBody            `gorm:"foreignKey:LegislativeBodyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	LegislationType                  *ComplianceLegislationType            `gorm:"foreignKey:LegislationTypeID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ImportanceClassification         *ComplianceImportanceClassification   `gorm:"foreignKey:ImportanceClassificationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SecrecyClassification            *ComplianceSecrecyClassification      `gorm:"foreignKey:SecrecyClassificationID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	IssuingAuthorities               []*ComplianceRegisterIssuingAuthority `gorm:"foreignKey:ComplianceRegisterID"`
+	ComplianceRegisterSharedUnit     *[]ComplianceRegisterSharedUnit       `gorm:"foreignKey:ComplianceRegisterID"`
+	WorkflowStatus                   *WorkflowStatus                       `gorm:"foreignKey:WorkflowStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SubmittedByUser                  *User                                 `gorm:"foreignKey:SubmittedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ApprovedByUser                   *User                                 `gorm:"foreignKey:ApprovedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ComplianceRegisterWorkflows      []*ComplianceRegisterWorkflow         `gorm:"foreignKey:ComplianceRegisterID"`
+	ComplianceRegisterReviewComments []*ComplianceRegisterReviewComment    `gorm:"foreignKey:ComplianceRegisterID"`
 }
 
 // TableName overrides the table name used by ComplianceRegister to `compliance_register`

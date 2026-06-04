@@ -67,15 +67,22 @@ type ComplianceModule struct {
 	ControlAutomationController  *controllers.ControlAutomationController
 	ControlConsistencyController *controllers.ControlConsistencyController
 
-	ComplianceRegisterSvc          services.ComplianceRegisterServiceInterface
-	ComplianceRequirementSvc       services.ComplianceRequirementServiceInterface
-	ComplianceActionPlanSvc        services.ComplianceActionPlanServiceInterface
-	SlaRegisterSvc                 services.SLARegisterServiceInterface
-	ComplianceActionPlanCommentSvc services.ComplianceActionPlanCommentServiceInterface
-	ComplianceStatusSvc            services.ComplianceStatusServiceInterface
-	ComplianceClausevc             services.ComplianceClauseServiceInterface
-	ControlAutomationSvc           services.ControlAutomationServiceInterface
-	ControlConsistencySvc          services.ControlConsistencyServiceInterface
+	ComplianceRegisterWorkflowController      *controllers.ComplianceRegisterWorkflowController
+	ComplianceRegisterReviewController        *controllers.ComplianceRegisterReviewController
+	ComplianceRegisterReviewCommentController *controllers.ComplianceRegisterReviewCommentController
+
+	ComplianceRegisterSvc              services.ComplianceRegisterServiceInterface
+	ComplianceRegisterWorkflowSvc      services.ComplianceRegisterWorkflowServiceInterface
+	ComplianceRegisterReviewSvc        services.ComplianceRegisterReviewServiceInterface
+	ComplianceRegisterReviewCommentSvc services.ComplianceRegisterReviewCommentServiceInterface
+	ComplianceRequirementSvc           services.ComplianceRequirementServiceInterface
+	ComplianceActionPlanSvc            services.ComplianceActionPlanServiceInterface
+	SlaRegisterSvc                     services.SLARegisterServiceInterface
+	ComplianceActionPlanCommentSvc     services.ComplianceActionPlanCommentServiceInterface
+	ComplianceStatusSvc                services.ComplianceStatusServiceInterface
+	ComplianceClausevc                 services.ComplianceClauseServiceInterface
+	ControlAutomationSvc               services.ControlAutomationServiceInterface
+	ControlConsistencySvc              services.ControlConsistencyServiceInterface
 }
 
 func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule, organizationModule *OrganizationModule, taskModule *TaskModule, settingsModule *SettingsModule, commonModule *CommonModule, documentModule *DocumentModule) *ComplianceModule {
@@ -419,6 +426,44 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	controlConsistencySvc := services.NewControlConsistencyService(controlConsistencyRepo, sharedModule.ActivityLogService)
 	controlConsistencyController := controllers.NewControlConsistencyController(controlConsistencySvc)
 
+	// Compliance Register Workflow Services
+	complianceRegisterWorkflowRepo := repositories.NewComplianceRegisterWorkflowRepository(db)
+	complianceRegisterReviewRepo := repositories.NewComplianceRegisterReviewRepository(db)
+	complianceRegisterWorkflowSvc := services.NewComplianceRegisterWorkflowService(
+		complianceRegisterWorkflowRepo,
+		complianceRegisterReviewRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.WorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		masterModule.WorkflowContextSvc,
+		commonModule.NotificationService,
+	)
+	complianceRegisterWorkflowSvc.SetComplianceRegisterService(complianceRegisterSvc)
+	complianceRegisterWorkflowController := controllers.NewComplianceRegisterWorkflowController(complianceRegisterWorkflowSvc)
+
+	complianceRegisterReviewSvc := services.NewComplianceRegisterReviewService(
+		complianceRegisterReviewRepo,
+		sharedModule.ActivityLogService,
+		complianceRegisterSvc,
+		complianceRegisterWorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+		taskModule.TaskService,
+	)
+	complianceRegisterReviewController := controllers.NewComplianceRegisterReviewController(complianceRegisterReviewSvc)
+
+	complianceRegisterReviewCommentRepo := repositories.NewComplianceRegisterReviewCommentRepository(db)
+	complianceRegisterReviewCommentSvc := services.NewComplianceRegisterReviewCommentService(
+		complianceRegisterReviewCommentRepo,
+		organizationModule.UserSvc,
+		sharedModule.ActivityLogService,
+		complianceRegisterSvc,
+		masterModule.CommentStatusSvc,
+	)
+	complianceRegisterReviewCommentController := controllers.NewComplianceRegisterReviewCommentController(complianceRegisterReviewCommentSvc)
+
 	return &ComplianceModule{
 		ComplianceCategoryController:                                    complianceCategoryController,
 		ComplianceStatusController:                                      complianceStatusController,
@@ -476,15 +521,21 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceAssessmentRequirementResidualRiskAnalysisController: complianceAssessmentRequirementResidualRiskAnalysisController,
 		ControlAutomationController:                                   controlAutomationController,
 		ControlConsistencyController:                                  controlConsistencyController,
+		ComplianceRegisterWorkflowController:                          complianceRegisterWorkflowController,
+		ComplianceRegisterReviewController:                            complianceRegisterReviewController,
+		ComplianceRegisterReviewCommentController:                     complianceRegisterReviewCommentController,
 
-		ComplianceRequirementSvc:       complianceRequirementSvc,
-		ComplianceRegisterSvc:          complianceRegisterSvc,
-		ComplianceActionPlanSvc:        complianceActionPlanSvc,
-		SlaRegisterSvc:                 slaRegisterSvc,
-		ComplianceActionPlanCommentSvc: complianceActionPlanCommentSvc,
-		ComplianceStatusSvc:            complianceStatusSvc,
-		ComplianceClausevc:             compilanceClauseSvc,
-		ControlAutomationSvc:           controlAutomationSvc,
-		ControlConsistencySvc:          controlConsistencySvc,
+		ComplianceRegisterSvc:              complianceRegisterSvc,
+		ComplianceRegisterWorkflowSvc:      complianceRegisterWorkflowSvc,
+		ComplianceRegisterReviewSvc:        complianceRegisterReviewSvc,
+		ComplianceRegisterReviewCommentSvc: complianceRegisterReviewCommentSvc,
+		ComplianceRequirementSvc:           complianceRequirementSvc,
+		ComplianceActionPlanSvc:            complianceActionPlanSvc,
+		SlaRegisterSvc:                     slaRegisterSvc,
+		ComplianceActionPlanCommentSvc:     complianceActionPlanCommentSvc,
+		ComplianceStatusSvc:                complianceStatusSvc,
+		ComplianceClausevc:                 compilanceClauseSvc,
+		ControlAutomationSvc:               controlAutomationSvc,
+		ControlConsistencySvc:              controlConsistencySvc,
 	}
 }

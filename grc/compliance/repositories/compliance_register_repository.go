@@ -429,6 +429,9 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("IssuingAuthorities.Document").
 		Preload("ComplianceRegisterSharedUnit").
 		Preload("ComplianceRegisterSharedUnit.Department").
+		Preload("SubmittedByUser").
+		Preload("ApprovedByUser").
+		Preload("WorkflowStatus").
 		First(&compliance, id)
 
 	if result.Error != nil {
