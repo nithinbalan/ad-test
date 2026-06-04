@@ -1,7 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
 -- Delete all business impact assessments before updating impact categories
-DELETE FROM business_impact_assessments;
 
 -- Update old existing categories with new type values
 UPDATE impact_categories
