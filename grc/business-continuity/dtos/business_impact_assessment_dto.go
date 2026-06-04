@@ -141,11 +141,14 @@ type BusinessImpactAssessmentFormDTO struct {
 }
 
 type BusinessImpactAssessmentDTO struct {
-	ImpactCategoryID uint `json:"impact_category_id"`
-	// New fields
-	ImpactAnalysisLevelID *uint `json:"impact_analysis_level_id"`
+	ImpactCategoryID                 uint                                  `json:"impact_category_id"`
+	IsApplicable                     bool                                  `json:"is_applicable"`
+	BusinessImpactAssessmentAnalysis []BusinessImpactAssessmentAnalysisDTO `json:"business_impact_assessment_analysis"`
+}
+
+type BusinessImpactAssessmentAnalysisDTO struct {
 	OutageBucketID        *uint `json:"outage_bucket_id"`
-	IsApplicable          bool  `json:"is_applicable"`
+	ImpactAnalysisLevelID *uint `json:"impact_analysis_level_id"`
 }
 
 type BusinessImpactAssessmentRecoveryObjectiveFormDTO struct {
@@ -301,10 +304,16 @@ type IncidentMinimalDTO struct {
 }
 
 type BusinessImpactAssessmentDetailDTO struct {
-	ImpactCategory      *masterDTOs.ImpactCategoryDTO `json:"impact_category"`
-	ImpactAnalysisLevel *BCMImpactAnalysisLevelDTO    `json:"impact_analysis_level"`
-	OutageBucket        *BCMBIAOutageBucketDTO        `json:"outage_bucket"`
-	IsApplicable        bool                          `json:"is_applicable"`
+	ImpactCategory                   *masterDTOs.ImpactCategoryDTO               `json:"impact_category"`
+	IsApplicable                     bool                                        `json:"is_applicable"`
+	BusinessImpactAssessmentAnalysis []BusinessImpactAssessmentAnalysisDetailDTO `json:"business_impact_assessment_analysis"`
+}
+
+type BusinessImpactAssessmentAnalysisDetailDTO struct {
+	OutageBucketID        *uint                      `json:"outage_bucket_id"`
+	ImpactAnalysisLevelID *uint                      `json:"impact_analysis_level_id"`
+	OutageBucket          *BCMBIAOutageBucketDTO     `json:"outage_bucket"`
+	ImpactAnalysisLevel   *BCMImpactAnalysisLevelDTO `json:"impact_analysis_level"`
 }
 
 type BusinessImpactAssessmentRatingDTO struct {
