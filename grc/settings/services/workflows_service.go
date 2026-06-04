@@ -335,6 +335,20 @@ func (ws *WorkflowService) CreateWorkFlowLevel(workflowId uint, currentUserID ui
 			tx.Rollback()
 			return 0, err
 		}
+	case "custom-roles":
+		if workflowLevelFormDTO.CustomRoleID == nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("custom role is required for selected level type")
+		}
+
+		participant := &models.WorkflowLevelParticipant{
+			WorkflowLevelID:      id,
+			WorkflowCustomRoleID: workflowLevelFormDTO.CustomRoleID,
+		}
+		if err := ws.repo.CreateParticipant(participant, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	tx.Commit()

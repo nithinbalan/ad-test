@@ -42,7 +42,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	healthCheckController := app.SettingsModule.HealthCheckController
 	themeController := app.SettingsModule.ThemeController
 	brandingController := app.SettingsModule.BrandingController
-
+	workflowCustomRoleController := app.SettingsModule.WorkflowCustomRoleController
 	// Organization Level
 	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
 	settingRoutes.POST("/organization-levels", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), organizationLevelController.CreateOrganizationLevels)
@@ -75,6 +75,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	settingRoutes.GET("/roles/:id/permissions", roleController.GetRolePermissions)
 	settingRoutes.PUT("/roles/:id/permissions", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), roleController.UpdateRolePermissions)
+
+	//customerole
+	settingRoutes.GET("/custom-roles", workflowCustomRoleController.GetAllWorkflowCustomRoles)
 
 	// Organization Unit
 	settingRoutes.GET("/organization-units", organizationUnitController.GetAllOrganizationUnits)
