@@ -328,22 +328,17 @@ func (icws *InternalCommitteeWorkflowService) CreateInternalCommitteeWorkflow(in
 					return err
 				}
 			} else if participant.WorkflowCustomRole != nil {
-				// engagementDetail, err := icws.engagementSvc.GetFullDetailsByID(engagementID)
-				// if err != nil {
-				// 	return err
-				// }
 
 				switch participant.WorkflowCustomRole.Type {
 				case "department_head":
 					if internalCommitee.RequestingEntityID == 0 {
 						return fmt.Errorf("Requesting department not found for this committee")
 					}
-					deptHead, err := icws.organizationUnitsSvc.GetParentOrganizationUnitWithHead(internalCommitee.RequestingEntityID)
+					deptHead, err := icws.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(internalCommitee.RequestingEntityID)
 					if err != nil {
 						return err
 					}
 					if deptHead.HeadUser == nil {
-						fmt.Println("")
 						return utility.NewForbiddenError("Department head is not assigned for the requesting department")
 					}
 					userID := uint(deptHead.HeadUser.ID)
