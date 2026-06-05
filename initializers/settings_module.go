@@ -38,6 +38,7 @@ type SettingsModule struct {
 	HealthCheckController            *controllers.HealthCheckController
 	ThemeController                  *controllers.ThemeController
 	BrandingController               *controllers.BrandingController
+	WorkflowCustomRoleController     *controllers.WorkflowCustomRoleController
 
 	SystemPreferenceSvc       services.SystemPreferenceServiceInterface
 	OrganizationUnitSvc       services.OrganizationUnitServiceInterface
@@ -180,6 +181,10 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	brandingSvc := services.NewBrandingService(brandingRepo, sharedModule.ActivityLogService)
 	brandingController := controllers.NewBrandingController(brandingSvc)
 
+	workflowCustomRoleRepo := repositories.NewWorkflowCustomRoleRepository(db)
+	workflowCustomRoleSvc := services.NewWorkflowCustomRoleService(workflowCustomRoleRepo)
+	workflowCustomRoleController := controllers.NewWorkflowCustomRoleController(workflowCustomRoleSvc)
+
 	return &SettingsModule{
 		OrganizationLevelController:      organizationLevelController,
 		SystemPreferenceController:       systemPreferenceController,
@@ -209,6 +214,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		HealthCheckController:            healthCheckController,
 		ThemeController:                  themeController,
 		BrandingController:               brandingController,
+		WorkflowCustomRoleController:     workflowCustomRoleController,
 
 		SystemPreferenceSvc:       systemPreferenceSvc,
 		OrganizationLevelSvc:      organizationLevelSvc,

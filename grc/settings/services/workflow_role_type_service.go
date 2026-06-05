@@ -10,7 +10,7 @@ import (
 )
 
 type WorkflowLevelTypeServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.WorkflowLevelType, error)
+	GetAll(sort string, sortBy string, keyword string, status string, moduleIdentifier string) ([]*models.WorkflowLevelType, error)
 	GetByID(id uint) (*models.WorkflowLevelType, error)
 	GetByType(levelType string) (*models.WorkflowLevelType, error)
 }
@@ -26,8 +26,8 @@ func NewWorkflowLevelTypeService(repo repositories.WorkflowLevelTypeRepositoryIn
 	}
 }
 
-func (wlt *WorkflowLevelTypeService) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.WorkflowLevelType, error) {
-	return wlt.repo.GetAll(sort, sortBy, keyword, status)
+func (wlt *WorkflowLevelTypeService) GetAll(sort string, sortBy string, keyword string, status string, moduleIdentifier string) ([]*models.WorkflowLevelType, error) {
+	return wlt.repo.GetAll(sort, sortBy, keyword, status, moduleIdentifier)
 }
 
 func (wlt *WorkflowLevelTypeService) GetByID(id uint) (*models.WorkflowLevelType, error) {
