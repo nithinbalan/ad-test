@@ -201,7 +201,7 @@ func (crs *ComplianceRequirementService) GetRequirementsByComplianceID(complianc
 	}, nil
 }
 
-func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error) {
+func (crs *ComplianceRequirementService) GetByID(complianceID uint, id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRequirement, error) {
 	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}
@@ -216,7 +216,7 @@ func (crs ComplianceRequirementService) GetByID(complianceID uint, id uint, tx .
 	return complianceRequirement, nil
 }
 
-func (crs ComplianceRequirementService) GetByComplianceRequirementID(id uint) (*models.ComplianceRequirement, error) {
+func (crs *ComplianceRequirementService) GetByComplianceRequirementID(id uint) (*models.ComplianceRequirement, error) {
 	complianceRequirement, err := crs.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -227,7 +227,7 @@ func (crs ComplianceRequirementService) GetByComplianceRequirementID(id uint) (*
 	return complianceRequirement, nil
 }
 
-func (crs ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceRequirementDetailDTO, error) {
+func (crs *ComplianceRequirementService) GetFullDetailsByID(complianceID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceRequirementDetailDTO, error) {
 	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
 		return nil, err
 	}
@@ -1164,11 +1164,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 func (crs *ComplianceRequirementService) Delete(complianceID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := crs.repo.BeginTransaction()
 	if _, err := crs.complianceRegisterSvc.GetByID(complianceID); err != nil {
-		return nil, err
-	}
-
-	_, err := crs.complianceRegisterSvc.GetByID(complianceID)
-	if err != nil {
+		tx.Rollback()
 		return nil, err
 	}
 
@@ -1492,6 +1488,7 @@ func (crs *ComplianceRequirementService) CreateInherentRiskAnalysis(complianceRe
 	// Create new risk analysis records
 	for _, analysis := range riskAnalysisFormDTO {
 		if analysis.Score == nil {
+			tx.Rollback()
 			return fmt.Errorf("score is required")
 		}
 		record := &models.ComplianceRequirementInherentRiskAnalysis{
@@ -1659,7 +1656,6 @@ func (crs *ComplianceRequirementService) parseComplianceRequirementDates(dto *co
 
 	var err error
 	if dto.Deadline != nil {
-		fmt.Println("hiiii22=", parsed.Deadline)
 		parsed.Deadline, err = utility.ParseDate(*dto.Deadline)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid deadline"), "invalid_date", "deadline")

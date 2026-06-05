@@ -63,6 +63,9 @@ type ComplianceRegisterRepositoryInterface interface {
 	DeleteSharedUnits(complianceRegisterID uint, departmentIDs []uint, tx ...utility.DatabaseTransaction) error
 	GetSharedUnitsByComplianceRegisterID(complianceRegisterID uint, tx ...utility.DatabaseTransaction) ([]*models.ComplianceRegisterSharedUnit, error)
 
+	// Bulk Import
+	GetAllComplianceTitles() ([]string, error)
+
 	// Note and Observations
 	UpdateNote(complianceRegisterID uint, note *string, tx ...utility.DatabaseTransaction) error
 }
@@ -426,6 +429,9 @@ func (repo *ComplianceRegisterRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("IssuingAuthorities.Document").
 		Preload("ComplianceRegisterSharedUnit").
 		Preload("ComplianceRegisterSharedUnit.Department").
+		Preload("SubmittedByUser").
+		Preload("ApprovedByUser").
+		Preload("WorkflowStatus").
 		First(&compliance, id)
 
 	if result.Error != nil {
@@ -1441,6 +1447,22 @@ func (repo *ComplianceRegisterRepository) ForceDelete(id uint, tx ...utility.Dat
 		`DELETE FROM compliance_clauses WHERE compliance_clauses.compliance_register_id = ?`,
 		`DELETE FROM compliance_assessments WHERE compliance_assessments.compliance_register_id = ?`,
 		`DELETE FROM compliance_controls WHERE compliance_register_id = ?`,
+
+		/* ========= WORKFLOWS ========= */
+		`DELETE compliance_register_workflow_reviews
+		 FROM compliance_register_workflow_reviews
+		 JOIN compliance_register_workflows
+		 ON compliance_register_workflows.id = compliance_register_workflow_reviews.compliance_register_workflow_id
+		 WHERE compliance_register_workflows.compliance_register_id = ?`,
+
+		`DELETE compliance_register_workflow_participants
+		 FROM compliance_register_workflow_participants
+		 JOIN compliance_register_workflows
+		 ON compliance_register_workflows.id = compliance_register_workflow_participants.compliance_register_workflow_id
+		 WHERE compliance_register_workflows.compliance_register_id = ?`,
+
+		`DELETE FROM compliance_register_workflow_histories WHERE compliance_register_id = ?`,
+		`DELETE FROM compliance_register_workflows WHERE compliance_register_id = ?`,
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
@@ -1690,4 +1712,10 @@ func (repo *ComplianceRegisterRepository) UpdateNote(id uint, note *string, tx .
 		Updates(map[string]interface{}{
 			"note": note,
 		}).Error
+}
+
+func (repo *ComplianceRegisterRepository) GetAllComplianceTitles() ([]string, error) {
+	var titles []string
+	err := repo.db.Model(&models.ComplianceRegister{}).Pluck("title_en", &titles).Error
+	return titles, err
 }

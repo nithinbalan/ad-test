@@ -35,6 +35,11 @@ func (repo *BCMImpactAnalysisLevelRepository) GetAll(sort string, sortBy string,
 	if sortBy == "" {
 		sortBy = "title_en"
 	}
+	// Validate sortBy against allowlist to prevent SQL injection
+	allowedSortBy := map[string]bool{"title_en": true, "title_ar": true, "status": true, "created_at": true, "updated_at": true}
+	if !allowedSortBy[sortBy] {
+		sortBy = "title_en"
+	}
 	if sort != "asc" && sort != "desc" {
 		sort = "asc"
 	}
@@ -50,18 +55,18 @@ func (repo *BCMImpactAnalysisLevelRepository) GetAll(sort string, sortBy string,
 }
 
 func (repo *BCMImpactAnalysisLevelRepository) GetByID(id uint) (*models.BCMImpactAnalysisLevel, error) {
-	var status *models.BCMImpactAnalysisLevel
+	var status models.BCMImpactAnalysisLevel
 	result := repo.db.First(&status, id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return status, result.Error
+	return &status, nil
 }
 
 func (repo *BCMImpactAnalysisLevelRepository) GetByType(status string) (*models.BCMImpactAnalysisLevel, error) {
-	var bcmImpactAnalysisLevel *models.BCMImpactAnalysisLevel
+	var bcmImpactAnalysisLevel models.BCMImpactAnalysisLevel
 
 	result := repo.db.Where("type = ?", status).First(&bcmImpactAnalysisLevel)
 
@@ -69,5 +74,5 @@ func (repo *BCMImpactAnalysisLevelRepository) GetByType(status string) (*models.
 		return nil, result.Error
 	}
 
-	return bcmImpactAnalysisLevel, nil
+	return &bcmImpactAnalysisLevel, nil
 }

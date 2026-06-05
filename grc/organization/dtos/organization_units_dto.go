@@ -17,14 +17,14 @@ type OrganizationUnitsDTO struct {
 }
 
 type OrganizationUnitUserPrimaryDetailsDTO struct {
-	ID               uint                     `json:"id"`
-	FirstNameEn      string                   `json:"first_name_en"`
-	LastNameEn       string                   `json:"last_name_en"`
-	FirstNameAr      string                   `json:"first_name_ar"`
-	LastNameAr       string                   `json:"last_name_ar"`
-	DesignationEn    string                   `json:"designation_en"`
-	DesignationAr    string                   `json:"designation_ar"`
-	IsHead           bool                     `json:"is_head"`
+	ID            uint   `json:"id"`
+	FirstNameEn   string `json:"first_name_en"`
+	LastNameEn    string `json:"last_name_en"`
+	FirstNameAr   string `json:"first_name_ar"`
+	LastNameAr    string `json:"last_name_ar"`
+	DesignationEn string `json:"designation_en"`
+	DesignationAr string `json:"designation_ar"`
+
 	Initial          string                   `json:"initial"`
 	ProfileImagePath *string                  `json:"profile_image_path"`
 	JobDescriptions  []*JobDescriptionListDTO `json:"job_descriptions" gorm:"-"`
@@ -68,10 +68,6 @@ type OrganizationUnitSummaryDTO struct {
 	OverallControlEfficiency *ControlEfficiencyStatusDTO `json:"overall_control_efficiency"`
 }
 
-type DepartmentHeadUpdateDTO struct {
-	IsHead bool `json:"is_head"`
-}
-
 type ParentOrganizationUnitWithHeadDTO struct {
 	OrganizationUnit OrganizationUnitDTO      `json:"organization_unit"`
 	HeadUser         *OrganizationUnitUserDTO `json:"head_user,omitempty"`
@@ -89,8 +85,8 @@ type OrganizationUnitUserDTO struct {
 	LastNameEn       string  `json:"last_name_en"`
 	FirstNameAr      string  `json:"first_name_ar"`
 	LastNameAr       string  `json:"last_name_ar"`
+	Email            string  `json:"email"`
 	ProfileImagePath *string `json:"profile_image_path,omitempty"`
-	IsHead           bool    `json:"is_head"`
 	Initial          string  `json:"initial"`
 }
 
@@ -168,7 +164,6 @@ type OrganizationUnitUserDetailsDTO struct {
 	DesignationTitleAr string  `json:"designation_title_ar"`
 	RoleTitleEn        string  `json:"role_title_en"`
 	RoleTitleAr        string  `json:"role_title_ar"`
-	IsHead             bool    `json:"is_head"`
 	Initial            string  `json:"initial"`
 	ProfileImagePath   *string `json:"profile_image_path"`
 }

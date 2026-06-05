@@ -29,7 +29,7 @@ func (bbobs *BCMBIAOutageBucketService) GetAll(sort string, sortBy string, keywo
 	return bbobs.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (bbobs BCMBIAOutageBucketService) GetByID(id uint) (*models.BCMBIAOutageBucket, error) {
+func (bbobs *BCMBIAOutageBucketService) GetByID(id uint) (*models.BCMBIAOutageBucket, error) {
 	bcmBiaOutageBucket, err := bbobs.repo.GetByID(id)
 
 	if err != nil {

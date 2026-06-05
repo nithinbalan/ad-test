@@ -24,6 +24,11 @@ type BusinessImpactAssessmentRepositoryInterface interface {
 	DeleteRecoveryObjectivesByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 	GetImpactAssessmentsByProcessID(processID uint) ([]*models.BusinessImpactAssessment, error)
 	GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error)
+
+	// New methods for BusinessImpactAssessmentAnalysis
+	CreateBusinessImpactAssessmentAnalysis(analysis []*models.BusinessImpactAssessmentAnalysis, tx ...utility.DatabaseTransaction) error
+	DeleteBusinessImpactAssessmentAnalysisByAssessmentID(assessmentID uint, tx ...utility.DatabaseTransaction) error
+	GetImpactAssessmentsWithAnalysisByProcessID(processID uint) ([]*models.BusinessImpactAssessment, error)
 }
 
 type BusinessImpactAssessmentRepository struct {
@@ -320,9 +325,10 @@ func (repo *BusinessImpactAssessmentRepository) GetProcessDetails(id uint, tx ..
 		Preload("LastAssessedByUser").
 		Preload("BusinessImpactAssessments").
 		Preload("BusinessImpactAssessments.ImpactCategory").
-		Preload("BusinessImpactAssessments.ImpactAnalysisLevel").
-		Preload("BusinessImpactAssessments.OutageBucket").
-		Preload("BusinessImpactAssessments.OutageBucket.DurationUnit").
+		Preload("BusinessImpactAssessments.BusinessImpactAssessmentAnalysis").
+		Preload("BusinessImpactAssessments.BusinessImpactAssessmentAnalysis.OutageBucket").
+		Preload("BusinessImpactAssessments.BusinessImpactAssessmentAnalysis.OutageBucket.DurationUnit").
+		Preload("BusinessImpactAssessments.BusinessImpactAssessmentAnalysis.ImpactAnalysisLevel").
 		Preload("BusinessImpactAssessmentRatings").
 		Preload("BusinessImpactAssessmentRatings.OverallImpactLevel").
 		Preload("BusinessImpactAssessmentRatings.BCMBIAImpactLevel").
@@ -530,6 +536,44 @@ func (repo *BusinessImpactAssessmentRepository) CreateBusinessImpactAssessmentRa
 	}
 
 	return nil
+}
+
+// New methods for BusinessImpactAssessmentAnalysis
+func (repo *BusinessImpactAssessmentRepository) CreateBusinessImpactAssessmentAnalysis(analysis []*models.BusinessImpactAssessmentAnalysis, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if len(analysis) == 0 {
+		return nil
+	}
+
+	return db.Create(&analysis).Error
+}
+
+func (repo *BusinessImpactAssessmentRepository) DeleteBusinessImpactAssessmentAnalysisByAssessmentID(assessmentID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("business_impact_assessment_id = ?", assessmentID).Delete(&models.BusinessImpactAssessmentAnalysis{}).Error
+}
+
+func (repo *BusinessImpactAssessmentRepository) GetImpactAssessmentsWithAnalysisByProcessID(processID uint) ([]*models.BusinessImpactAssessment, error) {
+	var businessImpactAssessments []*models.BusinessImpactAssessment
+	err := repo.db.Table("business_impact_assessments").
+		Preload("BusinessImpactAssessmentAnalysis.OutageBucket").
+		Preload("BusinessImpactAssessmentAnalysis.ImpactAnalysisLevel").
+		Preload("ImpactCategory").
+		Where("process_id = ?", processID).
+		Order("id").
+		Find(&businessImpactAssessments).Error
+	if err != nil {
+		return nil, err
+	}
+	return businessImpactAssessments, nil
 }
 
 func (repo *BusinessImpactAssessmentRepository) DeleteBusinessImpactAssessmentRatingByProcessID(processID uint, tx ...utility.DatabaseTransaction) error {

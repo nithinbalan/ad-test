@@ -73,6 +73,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceAssessmentAcknowledgeDepartmentController := app.ComplianceModule.ComplianceAssessmentAcknowledgeDepartmentController
 	controlAutomationController := app.ComplianceModule.ControlAutomationController
 	controlConsistencyController := app.ComplianceModule.ControlConsistencyController
+	complianceRegisterReviewController := app.ComplianceModule.ComplianceRegisterReviewController
+	complianceRegisterWorkflowController := app.ComplianceModule.ComplianceRegisterWorkflowController
+	complianceRegisterReviewCommentController := app.ComplianceModule.ComplianceRegisterReviewCommentController
 
 	// Compliance Category
 	complianceRoutes.GET("/compliance-categories", complianceCategoryController.GetAllComplianceCategories)
@@ -600,4 +603,27 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.PUT("/control-consistencies/activate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), controlConsistencyController.ActivateControlConsistencies)
 	complianceRoutes.PUT("/control-consistencies/deactivate", middlewares.RolePermissionMiddleware(db, "compliance_setting", "modify"), controlConsistencyController.DeactivateControlConsistencies)
 
+	// Compliance Register Bulk Import
+	complianceRoutes.GET("/compliance-register/template", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterController.GenerateComplianceTemplate)
+	complianceRoutes.POST("/compliance-register/template/validate", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterController.ValidateComplianceTemplate)
+	complianceRoutes.POST("/compliance-register/import/validate", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterController.ValidateImportCompliances)
+	complianceRoutes.POST("/compliance-register/import", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterController.ImportCompliances)
+
+	//Compliance Register Workflow
+
+	complianceRoutes.POST("/compliance-register/:id/submit", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterReviewController.SubmitComplianceRegister)
+	complianceRoutes.POST("/compliance-register/:id/approve", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterReviewController.ApproveComplianceRegister)
+	complianceRoutes.POST("/compliance-register/:id/revert", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterReviewController.RejectComplianceRegister)
+	complianceRoutes.POST("/compliance-register/:id/reopen", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterReviewController.ReopenComplianceRegister)
+	complianceRoutes.GET("/compliance-register/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceRegisterWorkflowController.GetWorkflowList)
+
+	complianceRoutes.GET("/compliance-register/:id/review-comments", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceRegisterReviewCommentController.GetAllComments)
+	complianceRoutes.GET("/compliance-register/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceRegisterReviewCommentController.GetCommentDetails)
+	complianceRoutes.POST("/compliance-register/:id/review-comments", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterReviewCommentController.CreateComment)
+	complianceRoutes.PUT("/compliance-register/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterReviewCommentController.UpdateComment)
+	complianceRoutes.POST("/compliance-register/:id/review-comments/delete", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterReviewCommentController.DeleteComments)
+	complianceRoutes.PUT("/compliance-register/:id/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterReviewCommentController.ResolveComment)
+
+	unauthenticatedRoutes.GET("/compliance-register/:id/review-comments/:commentId/document-preview", complianceRegisterReviewCommentController.GetDocumentPreview)
+	unauthenticatedRoutes.GET("/compliance-register/:id/review-comments/:commentId/document-download", complianceRegisterReviewCommentController.DownloadDocument)
 }

@@ -292,6 +292,13 @@ type ComplianceRegisterDetailDTO struct {
 	AverageResidualRiskScore           *float64                       `json:"average_residual_risk_score"`
 	AverageResidualRiskRating          *ComplianceAssessmentRatingDTO `json:"average_residual_risk_rating"`
 
+	SubmittedByUser *organizationDTOs.UserMinimalDTO `json:"submitted_by"`
+	SubmittedAt     *time.Time                       `json:"submitted_at"`
+	ApprovedByUser  *organizationDTOs.UserMinimalDTO `json:"approved_by"`
+	ApprovedAt      *time.Time                       `json:"approved_at"`
+	NextReviewLevel *int                             `json:"next_review_level"`
+	WorkflowStatus  *masterDTOs.WorkflowStatusDTO    `json:"workflow_status"`
+
 	// New Relations
 	LegislativeBody              *ComplianceLegislativeBodyDTO            `json:"legislative_body"`
 	LegislationType              *ComplianceLegislationTypeDTO            `json:"legislation_type"`

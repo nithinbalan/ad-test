@@ -96,6 +96,14 @@ func (kvus *KRIValueUpdateService) Create(kriRegisterID, currentUserID uint, kri
 		return 0, err
 	}
 
+	// Validate required fields
+	if existingKRIRegister.UnitID == nil {
+		return 0, utility.NewValidationError(fmt.Errorf("KRI register must have a unit assigned"), "missing_unit", "unit_id")
+	}
+	if dates.ReviewedDate == nil {
+		return 0, utility.NewValidationError(fmt.Errorf("reviewed date is required"), "missing_date", "reviewed_date")
+	}
+
 	tx := kvus.repo.BeginTransaction()
 
 	if kriValueUpdateFormDTO.KRIFrequencyValueID != nil {
@@ -440,6 +448,16 @@ func (kvus *KRIValueUpdateService) Update(kriRegisterID, updateId uint, currentU
 	dates, err := kvus.parseKRIValueUpdateDates(kriValueUpdateFormDTO)
 	if err != nil {
 		return err
+	}
+
+	// Validate required fields
+	if existingKRIRegister.UnitID == nil {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("KRI register must have a unit assigned"), "missing_unit", "unit_id")
+	}
+	if dates.ReviewedDate == nil {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("reviewed date is required"), "missing_date", "reviewed_date")
 	}
 
 	existingKRIUpdate, err := kvus.repo.GetByID(updateId)

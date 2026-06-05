@@ -87,6 +87,11 @@ func (repo *BCMBIAImpactLevelRepository) GetAll(sort string, sortBy string, keyw
 	if sortBy == "" {
 		sortBy = "order"
 	}
+	// Validate sortBy against allowlist to prevent SQL injection
+	allowedSortBy := map[string]bool{"order": true, "classification_en": true, "classification_ar": true, "status": true, "created_at": true, "updated_at": true}
+	if !allowedSortBy[sortBy] {
+		sortBy = "order"
+	}
 	if sort != "asc" && sort != "desc" {
 		sort = "asc"
 	}
@@ -102,14 +107,14 @@ func (repo *BCMBIAImpactLevelRepository) GetAll(sort string, sortBy string, keyw
 }
 
 func (repo *BCMBIAImpactLevelRepository) GetByID(id uint) (*models.BCMBIAImpactLevel, error) {
-	var bcmBiaImpactLevel *models.BCMBIAImpactLevel
+	var bcmBiaImpactLevel models.BCMBIAImpactLevel
 	result := repo.db.First(&bcmBiaImpactLevel, id)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	return bcmBiaImpactLevel, nil
+	return &bcmBiaImpactLevel, nil
 }
 
 func (repo *BCMBIAImpactLevelRepository) GetFullDetailsByID(id uint) (*models.BCMBIAImpactLevel, error) {

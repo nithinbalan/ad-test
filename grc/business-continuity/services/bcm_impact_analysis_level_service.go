@@ -30,7 +30,7 @@ func (bials *BCMImpactAnalysisLevelService) GetAll(sort string, sortBy string, k
 	return bials.repo.GetAll(sort, sortBy, keyword, status)
 }
 
-func (bials BCMImpactAnalysisLevelService) GetByID(id uint) (*models.BCMImpactAnalysisLevel, error) {
+func (bials *BCMImpactAnalysisLevelService) GetByID(id uint) (*models.BCMImpactAnalysisLevel, error) {
 	bcmImpactAnalysisLevel, err := bials.repo.GetByID(id)
 
 	if err != nil {

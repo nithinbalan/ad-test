@@ -492,7 +492,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.GET("/organization-units/:id/policies", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetAllPoliciesByOrganizationUnit)
 	organizationRoutes.GET("/organization-units/:id/processes", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetAllProcessesByOrganizationUnit)
 	organizationRoutes.GET("/organization-units/:id/risks", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetAllRiskByOrganizationUnit)
-	organizationRoutes.GET("/organization-units/:id/details", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetParentOrganizationUnitWithHead)
+	organizationRoutes.GET("/organization-units/:id/details", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetParentOrganizationUnitAndCurrentUnitHead)
 
 	// Organization unit reports
 	organizationRoutes.GET("/organization-units/reports", middlewares.RolePermissionMiddleware(db, "organization_unit", "view"), organizationUnitsController.GetAllOrganizationUnitReports)

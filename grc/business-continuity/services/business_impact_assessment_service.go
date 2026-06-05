@@ -130,15 +130,9 @@ func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, business
 		businessImpactAssessment := &models.BusinessImpactAssessment{
 			ProcessID:        businessImpactAssessmentFormDTO.ProcessID,
 			ImpactCategoryID: impactCategory.ID,
-			// Old fields - commented out
-			// RiskLevelID:      nil,
-			// Cost:             nil,
-			// Comments:         nil,
 			// New fields
-			ImpactAnalysisLevelID: nil,
-			OutageBucketID:        nil,
-			IsApplicable:          false,
-			CreatedByID:           currentUserID,
+			IsApplicable: false,
+			CreatedByID:  currentUserID,
 		}
 		err := bias.repo.CreateBusinessImpactAssessment(businessImpactAssessment, tx)
 		if err != nil {
@@ -184,8 +178,9 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 
 	if businessImpactAssessmentFormDTO.ProcessID != nil {
 		id = *businessImpactAssessmentFormDTO.ProcessID
-		existingImpactAssessments, err := bias.repo.GetImpactAssessmentsByProcessID(*businessImpactAssessmentFormDTO.ProcessID)
+		existingImpactAssessments, err := bias.repo.GetImpactAssessmentsWithAnalysisByProcessID(*businessImpactAssessmentFormDTO.ProcessID)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 
@@ -193,18 +188,11 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 			oldBusinessImpactAssessment = append(oldBusinessImpactAssessment, map[string]interface{}{
 				"process_id":         impactAssessment.ProcessID,
 				"impact_category_id": impactAssessment.ImpactCategoryID,
-				// Old fields - commented out
-				// "risk_level_id":      impactAssessment.RiskLevelID,
-				// "cost":               impactAssessment.Cost,
-				// "comments":           impactAssessment.Comments,
-				// New fields
-				"impact_analysis_level_id": impactAssessment.ImpactAnalysisLevelID,
-				"outage_bucket_id":         impactAssessment.OutageBucketID,
-				"is_applicable":            impactAssessment.IsApplicable,
+				"is_applicable":      impactAssessment.IsApplicable,
 			})
 		}
 
-		// Delete existing BusinessImpactAssessments
+		// Delete existing BusinessImpactAssessments and their analysis records
 		if err := bias.repo.DeleteImpactAssessmentsByProcessID(*businessImpactAssessmentFormDTO.ProcessID, tx); err != nil {
 			tx.Rollback()
 			return err
@@ -214,48 +202,69 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 			businessImpactAssessment := &models.BusinessImpactAssessment{
 				ProcessID:        businessImpactAssessmentFormDTO.ProcessID,
 				ImpactCategoryID: impactAssessment.ImpactCategoryID,
-				// Old fields - commented out
-				// RiskLevelID:      impactAssessment.RiskLevelID,
-				// Cost:             impactAssessment.Cost,
-				// Comments:         impactAssessment.Comments,
-				// New fields
-				ImpactAnalysisLevelID: impactAssessment.ImpactAnalysisLevelID,
-				OutageBucketID:        impactAssessment.OutageBucketID,
-				IsApplicable:          impactAssessment.IsApplicable,
-				CreatedByID:           currentUserID,
+				IsApplicable:     impactAssessment.IsApplicable,
+				CreatedByID:      currentUserID,
 			}
-			existingBusinessImpactAssessment = append(existingBusinessImpactAssessment, businessImpactAssessment)
 			err = bias.repo.CreateBusinessImpactAssessment(businessImpactAssessment, tx)
 			if err != nil {
 				tx.Rollback()
 				return err
 			}
 
-			// Create BusinessImpactAssessmentRating if ImpactAnalysisLevelID and OutageBucketID are provided
-			if businessImpactAssessmentFormDTO.OverallImpactLevelID != nil {
-				// Find BCMBIAImpactLevel using ImpactAnalysisLevelID
-				bcmBiaImpactLevel, err := bias.bcmBiaImpactLevelSvc.GetByImpactAnalysisLevelID(*businessImpactAssessmentFormDTO.OverallImpactLevelID)
-				if err == nil && bcmBiaImpactLevel != nil {
-					// Delete existing rating for this process to ensure single record
-					err = bias.repo.DeleteBusinessImpactAssessmentRatingByProcessID(*businessImpactAssessmentFormDTO.ProcessID, tx)
-					if err != nil {
-						tx.Rollback()
-						return err
-					}
-
-					// Create rating record
-					rating := &models.BusinessImpactAssessmentRating{
-						ProcessID:            *businessImpactAssessmentFormDTO.ProcessID,
-						OverallImpactLevelID: *businessImpactAssessmentFormDTO.OverallImpactLevelID,
-						BCMBIAImpactLevelID:  bcmBiaImpactLevel.ID,
-						CreatedBYID:          &currentUserID,
-					}
-					err = bias.repo.CreateBusinessImpactAssessmentRating(rating, tx)
-					if err != nil {
-						tx.Rollback()
-						return err
-					}
+			// Create analysis records for each outage bucket
+			var analysisRecords []*models.BusinessImpactAssessmentAnalysis
+			for _, analysis := range impactAssessment.BusinessImpactAssessmentAnalysis {
+				analysisRecord := &models.BusinessImpactAssessmentAnalysis{
+					BusinessImpactAssessmentID: businessImpactAssessment.ID,
+					OutageBucketID:             analysis.OutageBucketID,
+					ImpactAnalysisLevelID:      analysis.ImpactAnalysisLevelID,
+					CreatedBYID:                currentUserID,
+					CreatedAt:                  time.Now(),
 				}
+				analysisRecords = append(analysisRecords, analysisRecord)
+			}
+
+			if len(analysisRecords) > 0 {
+				err = bias.repo.CreateBusinessImpactAssessmentAnalysis(analysisRecords, tx)
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
+		}
+
+		// Create BusinessImpactAssessmentRating if ImpactAnalysisLevelID and OutageBucketID are provided
+		// This is process-level, not category-level, so it should be outside the loop
+		if businessImpactAssessmentFormDTO.OverallImpactLevelID != nil && businessImpactAssessmentFormDTO.ProcessID != nil {
+			// Find BCMBIAImpactLevel using ImpactAnalysisLevelID
+			bcmBiaImpactLevel, err := bias.bcmBiaImpactLevelSvc.GetByImpactAnalysisLevelID(*businessImpactAssessmentFormDTO.OverallImpactLevelID)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			if bcmBiaImpactLevel == nil {
+				tx.Rollback()
+				return fmt.Errorf("bcm bia impact level not found for impact analysis level ID: %d", *businessImpactAssessmentFormDTO.OverallImpactLevelID)
+			}
+
+			// Delete existing rating for this process to ensure single record
+			err = bias.repo.DeleteBusinessImpactAssessmentRatingByProcessID(*businessImpactAssessmentFormDTO.ProcessID, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			// Create rating record
+			rating := &models.BusinessImpactAssessmentRating{
+				ProcessID:            *businessImpactAssessmentFormDTO.ProcessID,
+				OverallImpactLevelID: *businessImpactAssessmentFormDTO.OverallImpactLevelID,
+				BCMBIAImpactLevelID:  bcmBiaImpactLevel.ID,
+				CreatedBYID:          &currentUserID,
+			}
+			err = bias.repo.CreateBusinessImpactAssessmentRating(rating, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
 			}
 		}
 
@@ -477,12 +486,19 @@ func (bias *BusinessImpactAssessmentService) Delete(ids []uint, currentUserID ui
 			"title": process.TitleEn,
 		})
 
-		// Delete existing BusinessImpactAssessments
+		// Delete BusinessImpactAssessmentRating first
+		if err := bias.repo.DeleteBusinessImpactAssessmentRatingByProcessID(id, tx); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		// Delete BusinessImpactAssessments (child BusinessImpactAssessmentAnalysis will be auto-deleted by CASCADE)
 		if err := bias.repo.DeleteImpactAssessmentsByProcessID(id, tx); err != nil {
 			tx.Rollback()
 			return nil, err
 		}
 
+		// Delete RecoveryObjectives
 		if err := bias.repo.DeleteRecoveryObjectivesByProcessID(id, tx); err != nil {
 			tx.Rollback()
 			return nil, err

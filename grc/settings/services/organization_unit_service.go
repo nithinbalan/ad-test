@@ -24,6 +24,7 @@ type OrganizationUnitServiceInterface interface {
 	Deactivate(ids []uint, currentUserID uint) error
 	GetByTitleEn(title string) (*models.OrganizationUnit, error)
 	IsUnitUnderParent(unitID uint, parentID uint) bool
+	UpdateUnitHead(unitID uint, userID uint, currentUserID uint) error
 }
 
 type OrganizationUnitService struct {
@@ -294,4 +295,51 @@ func (ous *OrganizationUnitService) GetByTitleEn(title string) (*models.Organiza
 
 func (ous *OrganizationUnitService) IsUnitUnderParent(unitID uint, parentID uint) bool {
 	return ous.repo.IsUnitUnderParent(unitID, parentID)
+}
+func (ous *OrganizationUnitService) UpdateUnitHead(id uint, userID uint, currentUserID uint) error {
+
+	existingOrgUnit, err := ous.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	oldHeadID := existingOrgUnit.OrganizationUnitHeadID
+
+	existingOrgUnit.OrganizationUnitHeadID = &userID
+
+	err = ous.repo.Update(existingOrgUnit)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+
+		changeData := map[string]interface{}{
+			"old": oldHeadID,
+			"new": userID,
+		}
+
+		err := ous.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.OrganizationUnit{}.TableName(),
+			id,
+			changeData,
+			currentUserID,
+			"", "", "", nil,
+		)
+
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.OrganizationUnit{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
+	return nil
 }
