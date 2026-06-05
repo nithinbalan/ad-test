@@ -569,7 +569,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Internal Committee Participants
 	organizationRoutes.POST("/internal-committee-nominee-departments/:nomineeDepartmentId/participants", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.CreateInternalCommitteeParticipants)
 	organizationRoutes.DELETE("/internal-committee-nominee-departments/:nomineeDepartmentId/participants/:participantId", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.DeleteInternalCommitteeParticipant)
-
+	organizationRoutes.POST("/internal-committee-nominee-departments/:nomineeDepartmentId/external-participants", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.CreateExternalCommitteeParticipant)
+	organizationRoutes.DELETE("/internal-committee-nominee-departments/:nomineeDepartmentId/external-participants/:participantId", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.DeleteExternalCommitteeParticipant)
 	//Internal Committee Workflow Review
 	organizationRoutes.POST("/internal-committees/:committeeId/submit", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeWorkflowReviewController.SubmitInternalCommittee)
 	organizationRoutes.POST("/internal-committees/:committeeId/approve", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeWorkflowReviewController.ApproveInternalCommittee)

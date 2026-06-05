@@ -159,14 +159,20 @@ type InternalCommitteeNomineeMembershipTypeDetailDTO struct {
 }
 
 type InternalCommitteeVersionNomineeDepartmentParticipantDTO struct {
-	ID         uint                              `json:"id"`
-	UserID     uint                              `json:"user_id"`
-	User       *UserMinimalDTO                   `json:"user"`
-	Department *settingsDTOs.OrganizationUnitDTO `json:"department"`
+	ID            uint                              `json:"id"`
+	UserID        uint                              `json:"user_id"`
+	User          *UserMinimalDTO                   `json:"user"`
+	Department    *settingsDTOs.OrganizationUnitDTO `json:"department"`
+	ExternalName  *string                           `json:"external_name"`
+	ExternalEmail *string                           `json:"external_email"`
 }
 
 type InternalCommitteeParticipantFormDTO struct {
 	UserIDs []uint `json:"user_ids" binding:"required,min=1"`
+}
+type ExternalParticipantDTO struct {
+	Name  string `json:"name" binding:"required,max=255"`
+	Email string `json:"email" binding:"required,email,max=255"`
 }
 
 type ReformInternalCommitteeDTO struct {
