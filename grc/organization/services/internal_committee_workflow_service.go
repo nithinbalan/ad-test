@@ -373,7 +373,9 @@ func (icws *InternalCommitteeWorkflowService) createWorkflowParticipant(userID u
 	if participant.Role != nil {
 		committeeWorkflowParticipant.RoleID = &participant.Role.ID
 	}
-
+	if participant.WorkflowCustomRole != nil {
+		committeeWorkflowParticipant.CustomRoleID = &participant.WorkflowCustomRole.ID
+	}
 	err := icws.repo.CreateInternalCommitteeWorkflowParticipant(committeeWorkflowParticipant, tx...)
 	if err != nil {
 		return err

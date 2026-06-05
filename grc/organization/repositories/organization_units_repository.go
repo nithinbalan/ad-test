@@ -213,9 +213,10 @@ func (repo *OrganizationUnitsRepository) GetUsersByOrganizationUnit(params *orga
 	// Apply pagination
 	offset := (params.Page - 1) * params.PageSize
 	query = query.Offset(int(offset)).Limit(int(params.PageSize))
+	// Default sorting
+	sortOrder := fmt.Sprintf("%s %s", params.SortBy, params.Sort)
 
-	// Get organization unit head ID
-	var headID uint
+	var headID *uint
 
 	err := repo.db.Table("organization_units").
 		Select("organization_unit_head_id").
@@ -226,13 +227,10 @@ func (repo *OrganizationUnitsRepository) GetUsersByOrganizationUnit(params *orga
 		return nil, err
 	}
 
-	// Apply sorting
-	sortOrder := fmt.Sprintf("%s %s", params.SortBy, params.Sort)
-
-	if headID > 0 {
+	if headID != nil {
 		sortOrder = fmt.Sprintf(
 			"CASE WHEN users.id = %d THEN 0 ELSE 1 END, %s %s",
-			headID,
+			*headID,
 			params.SortBy,
 			params.Sort,
 		)
