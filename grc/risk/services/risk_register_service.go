@@ -539,25 +539,25 @@ func (rrs *RiskRegisterService) Create(currentUserID uint, riskRegisterFormDTO *
 
 		// Also send notification to responsible unit head
 		if riskRegisterFormDTO.ResponsibleUnitID != nil {
-			headUsers, err := rrs.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(*riskRegisterFormDTO.ResponsibleUnitID)
+			headUsers, err := rrs.organizationUnitsSvc.GetParentOrganizationUnitWithHead(*riskRegisterFormDTO.ResponsibleUnitID)
 			if err != nil {
 				utility.LogError("Failed to get responsible unit head users for notification", map[string]interface{}{
 					"unit_id": *riskRegisterFormDTO.ResponsibleUnitID,
 					"error":   err.Error(),
 				})
 			} else {
-				for _, headUser := range headUsers {
+				if headUsers.HeadUser != nil {
 					// Avoid duplicate notifications if the head user is also the responsible user
 					alreadyNotified := false
 					for _, notifiedUserID := range notificationUserIDs {
-						if notifiedUserID == headUser.ID {
+						if notifiedUserID == headUsers.HeadUser.ID {
 							alreadyNotified = true
 							break
 						}
 					}
 					if !alreadyNotified {
-						notificationUserIDs = append(notificationUserIDs, headUser.ID)
-						emailTo = append(emailTo, headUser.Email)
+						notificationUserIDs = append(notificationUserIDs, headUsers.HeadUser.ID)
+						emailTo = append(emailTo, headUsers.HeadUser.Email)
 					}
 				}
 			}
@@ -1126,25 +1126,25 @@ func (rrs *RiskRegisterService) Update(id uint, currentUserID uint, riskRegister
 
 			// Also send notification to responsible unit head
 			if riskRegisterFormDTO.ResponsibleUnitID != nil {
-				headUsers, err := rrs.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(*riskRegisterFormDTO.ResponsibleUnitID)
+				headUsers, err := rrs.organizationUnitsSvc.GetParentOrganizationUnitWithHead(*riskRegisterFormDTO.ResponsibleUnitID)
 				if err != nil {
 					utility.LogError("Failed to get responsible unit head users for notification", map[string]interface{}{
 						"unit_id": *riskRegisterFormDTO.ResponsibleUnitID,
 						"error":   err.Error(),
 					})
 				} else {
-					for _, headUser := range headUsers {
+					if headUsers.HeadUser != nil {
 						// Avoid duplicate notifications if the head user is also the responsible user
 						alreadyNotified := false
 						for _, notifiedUserID := range notificationUserIDs {
-							if notifiedUserID == headUser.ID {
+							if notifiedUserID == headUsers.HeadUser.ID {
 								alreadyNotified = true
 								break
 							}
 						}
 						if !alreadyNotified {
-							notificationUserIDs = append(notificationUserIDs, headUser.ID)
-							emailTo = append(emailTo, headUser.Email)
+							notificationUserIDs = append(notificationUserIDs, headUsers.HeadUser.ID)
+							emailTo = append(emailTo, headUsers.HeadUser.Email)
 						}
 					}
 				}
@@ -1407,25 +1407,25 @@ func (rrs *RiskRegisterService) Delete(ids []uint, currentUserID uint) ([]uint, 
 
 				// Also send notification to responsible unit head
 				if notification.ResponsibleUnitID != nil {
-					headUsers, err := rrs.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(*notification.ResponsibleUnitID)
+					headUsers, err := rrs.organizationUnitsSvc.GetParentOrganizationUnitWithHead(*notification.ResponsibleUnitID)
 					if err != nil {
 						utility.LogError("Failed to get responsible unit head users for notification", map[string]interface{}{
 							"unit_id": *notification.ResponsibleUnitID,
 							"error":   err.Error(),
 						})
 					} else {
-						for _, headUser := range headUsers {
+						if headUsers.HeadUser != nil {
 							// Avoid duplicate notifications if the head user is also the responsible user
 							alreadyNotified := false
 							for _, notifiedUserID := range notificationUserIDs {
-								if notifiedUserID == headUser.ID {
+								if notifiedUserID == headUsers.HeadUser.ID {
 									alreadyNotified = true
 									break
 								}
 							}
 							if !alreadyNotified {
-								notificationUserIDs = append(notificationUserIDs, headUser.ID)
-								emailTo = append(emailTo, headUser.Email)
+								notificationUserIDs = append(notificationUserIDs, headUsers.HeadUser.ID)
+								emailTo = append(emailTo, headUsers.HeadUser.Email)
 							}
 						}
 					}

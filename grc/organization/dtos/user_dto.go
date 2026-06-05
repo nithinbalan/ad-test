@@ -217,7 +217,7 @@ type CurrentUserDetailsDTO struct {
 	OrganizationUnit4ID *uint                      `json:"organization_unit_4_id"`
 	OrganizationUnit5ID *uint                      `json:"organization_unit_5_id"`
 	LicenseType         *masterDTOs.LicenseTypeDTO `json:"license_type"`
-	IsHead              bool                       `json:"is_head"`
+	// IsHead              bool                       `json:"is_head"`
 
 	// Relationship DTOs
 	OrganizationUnit1 *settingDTOs.OrganizationUnitDTO `json:"organization_unit_1"`

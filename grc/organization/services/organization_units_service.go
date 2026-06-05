@@ -22,13 +22,13 @@ import (
 type OrganizationUnitsServiceInterface interface {
 	GetOrganizationUnitsHierarchies(sort string, sortBy string) ([]organizationDTOs.OrganizationUnitsDTO, error)
 	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
-	UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error
+	UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint) error
 	GetOrganizationUnitSummary(unitID uint) (*organizationDTOs.OrganizationUnitSummaryDTO, error)
 	GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	GetAllProcessesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessListResponseDTO, error)
 	GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
 	GetParentOrganizationUnitWithHead(unitID uint) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error)
-	GetHeadUsersByOrganizationUnitID(organizationUnitID uint) ([]*models.User, error)
+	//GetHeadUsersByOrganizationUnitID(organizationUnitID uint) ([]*models.User, error)
 
 	GetAll(params *organizationDTOs.OrganizationUnitReportListQueryParamsDTO) (*organizationDTOs.OrganizationUnitReportListReponseDTO, error)
 	CreateOrganizationUnitReport(currentUserID uint, organizationUnitReportFormDTO *organizationDTOs.OrganizationUnitReportFormDTO) (uint, error)
@@ -210,93 +210,22 @@ func (s *OrganizationUnitsService) GetOrganizationUnitSummary(unitID uint) (*org
 	return dto, nil
 }
 
-func (s *OrganizationUnitsService) UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint, departmentHeadUpdateDTO *organizationDTOs.DepartmentHeadUpdateDTO) error {
+func (s *OrganizationUnitsService) UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint) error {
 
-	// Get primary organization level field
-	primaryLevel, err := s.organizationLevelSvc.GetPrimaryLevel()
+	organizationUnit, err := s.organizationUnitSvc.GetByID(unitID)
 	if err != nil {
 		return err
 	}
-	primaryField := fmt.Sprintf("organization_unit_%d_id", primaryLevel.Level)
 
-	// Get the user first to check if they're already the head
 	user, err := s.userSvc.GetByID(userID)
 	if err != nil {
 		return err
 	}
 
-	// Check if user is already head and belongs to the same unit
-	userPrimaryUnitID, err := s.userRepo.GetUserPrimaryUnitID(primaryField, userID)
+	err = s.organizationUnitSvc.UpdateUnitHead(organizationUnit.ID, user.ID, currentUserID)
 	if err != nil {
 		return err
 	}
-
-	// If user is already head of this unit, no need to update
-	if user.IsHead && userPrimaryUnitID == unitID {
-		return nil
-	}
-
-	// Start transaction
-	tx := s.repo.BeginTransaction()
-
-	// If setting as head, first unset any existing head in this unit
-	if err := s.repo.SetAllIsLatestFalse(unitID, primaryField, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// Old data for logging
-	oldData := map[string]interface{}{
-		"is_head":    user.IsHead,
-		"updated_by": user.UpdatedByID,
-	}
-
-	// Update user head status
-	user.IsHead = true
-	user.UpdatedByID = &currentUserID
-
-	// Save the changes
-	if err := s.userRepo.Update(user, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// New data for logging
-	newData := map[string]interface{}{
-		"is_head":    user.IsHead,
-		"updated_by": user.UpdatedByID,
-	}
-
-	// Commit first before logging
-	if err := tx.Commit(); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// Log the activity asynchronously
-	go func() {
-		err := s.activityLog.LogActivity(
-			models.UpdateAction,
-			models.User{}.TableName(),
-			user.ID,
-			map[string]interface{}{
-				"old": oldData,
-				"new": newData,
-			},
-			currentUserID,
-			"", "", "", nil,
-		)
-		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.User{}.TableName(),
-				"recordID":  user.ID,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
-			utility.LogError("Failed to log activity", fields)
-		}
-	}()
 
 	return nil
 }
@@ -315,15 +244,8 @@ func (s *OrganizationUnitsService) GetAllRiskByOrganizationUnit(unitID uint, par
 
 func (s *OrganizationUnitsService) GetParentOrganizationUnitWithHead(unitID uint) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error) {
 
-	// Get primary organization level field
-	primaryLevel, err := s.organizationLevelSvc.GetPrimaryLevel()
-	if err != nil {
-		return nil, err
-	}
-	primaryField := fmt.Sprintf("organization_unit_%d_id", primaryLevel.Level)
-
 	// Get parent organization unit with head
-	result, err := s.repo.GetParentOrganizationUnitWithHead(unitID, primaryField)
+	result, err := s.repo.GetParentOrganizationUnitWithHead(unitID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get parent organization unit: %w", err)
 	}
@@ -1045,6 +967,6 @@ func (s *OrganizationUnitsService) validateOrganizatoinUnitReportFormDTO(dto *or
 }
 
 // GetHeadUsersByOrganizationUnitID gets all head users for a specific organization unit
-func (s *OrganizationUnitsService) GetHeadUsersByOrganizationUnitID(organizationUnitID uint) ([]*models.User, error) {
-	return s.repo.GetHeadUsersByOrganizationUnitID(organizationUnitID)
-}
+// func (s *OrganizationUnitsService) GetHeadUsersByOrganizationUnitID(organizationUnitID uint) ([]*models.User, error) {
+// 	return s.repo.GetHeadUsersByOrganizationUnitID(organizationUnitID)
+// }

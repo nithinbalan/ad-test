@@ -133,7 +133,7 @@ func (osc *OrganizationUnitsController) GetOrganizationUnitSummary(c *gin.Contex
 }
 
 func (osc *OrganizationUnitsController) UpdatePrimaryOrganizationUnitHead(c *gin.Context) {
-	var form organizationDTOs.DepartmentHeadUpdateDTO
+	// var form organizationDTOs.DepartmentHeadUpdateDTO
 
 	unitID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -147,10 +147,10 @@ func (osc *OrganizationUnitsController) UpdatePrimaryOrganizationUnitHead(c *gin
 		return
 	}
 
-	if err := c.ShouldBindJSON(&form); err != nil {
-		utility.SendInvalidErrResp(c, err)
-		return
-	}
+	// if err := c.ShouldBindJSON(&form); err != nil {
+	// 	utility.SendInvalidErrResp(c, err)
+	// 	return
+	// }
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
@@ -158,7 +158,7 @@ func (osc *OrganizationUnitsController) UpdatePrimaryOrganizationUnitHead(c *gin
 		return
 	}
 
-	err = osc.service.UpdatePrimaryOrganizationUnitHead(uint(unitID), uint(userID), currentUserID, &form)
+	err = osc.service.UpdatePrimaryOrganizationUnitHead(uint(unitID), uint(userID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

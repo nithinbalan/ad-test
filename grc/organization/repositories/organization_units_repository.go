@@ -20,12 +20,12 @@ type OrganizationUnitsRepositoryInterface interface {
 	GetCriticalComplianceCountByUnit(unitID uint) (int64, error)
 	GetOpenRiskCountByUnit(unitID uint) (int64, error)
 	GetControlEfficiencyByUnit(unitID uint) (*organizationDTOs.ControlEfficiencyStatusDTO, error)
-	SetAllIsLatestFalse(orgUnitID uint, primaryField string, tx ...utility.DatabaseTransaction) error
+	//	SetAllIsLatestFalse(orgUnitID uint, primaryField string, tx ...utility.DatabaseTransaction) error
 	GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	GetAllProcessesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessListResponseDTO, error)
 	GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
-	GetParentOrganizationUnitWithHead(unitID uint, primaryField string) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error)
-	GetHeadUsersByOrganizationUnitID(organizationUnitID uint) ([]*models.User, error)
+	GetParentOrganizationUnitWithHead(unitID uint) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error)
+	// GetHeadUsersByOrganizationUnitID(organizationUnitID uint) ([]*models.User, error)
 
 	// Organization Unit Report
 	GetAll(params *organizationDTOs.OrganizationUnitReportListQueryParamsDTO) (*organizationDTOs.OrganizationUnitReportListReponseDTO, error)
@@ -180,7 +180,6 @@ func (repo *OrganizationUnitsRepository) GetUsersByOrganizationUnit(params *orga
 		 users.last_name_en,
 		 users.first_name_ar,
 		 users.last_name_ar,
-		 users.is_head,
 		 users.initial,
 		 users.email,
 		 users.profile_image_path,
@@ -205,8 +204,8 @@ func (repo *OrganizationUnitsRepository) GetUsersByOrganizationUnit(params *orga
 	query = query.Offset(int(offset)).Limit(int(params.PageSize))
 
 	// Apply sorting
-	sortOrder := "CASE WHEN users.is_head = 1 THEN 0 ELSE 1 END, " + params.SortBy + " " + params.Sort
-	query = query.Order(sortOrder)
+	// sortOrder := "CASE WHEN users.is_head = 1 THEN 0 ELSE 1 END, " + params.SortBy + " " + params.Sort
+	// query = query.Order(sortOrder)
 
 	err := query.Find(&users).Error
 	if err != nil {
@@ -401,15 +400,15 @@ func (repo *OrganizationUnitsRepository) GetControlEfficiencyByUnit(unitID uint)
 	return &status, nil
 }
 
-func (repo *OrganizationUnitsRepository) SetAllIsLatestFalse(orgUnitID uint, primaryField string, tx ...utility.DatabaseTransaction) error {
-	db := repo.db
-	if len(tx) > 0 && tx[0] != nil {
-		db = tx[0].DB()
-	}
-	return db.Model(&models.User{}).
-		Where(fmt.Sprintf("%s = ? AND is_head = ?", primaryField), orgUnitID, true).
-		Update("is_head", false).Error
-}
+// func (repo *OrganizationUnitsRepository) SetAllIsLatestFalse(orgUnitID uint, primaryField string, tx ...utility.DatabaseTransaction) error {
+// 	db := repo.db
+// 	if len(tx) > 0 && tx[0] != nil {
+// 		db = tx[0].DB()
+// 	}
+// 	return db.Model(&models.User{}).
+// 		Where(fmt.Sprintf("%s = ? AND is_head = ?", primaryField), orgUnitID, true).
+// 		Update("is_head", false).Error
+// }
 
 func (repo *OrganizationUnitsRepository) GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error) {
 	var documentList []*commonDTOs.AssociatedDocumentListDTO
@@ -897,7 +896,7 @@ func (repo *OrganizationUnitsRepository) GetAllRiskByOrganizationUnit(unitID uin
 }
 
 // GetParentOrganizationUnitWithHead retrieves the main organization unit and its head user
-func (repo *OrganizationUnitsRepository) GetParentOrganizationUnitWithHead(unitID uint, primaryField string) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error) {
+func (repo *OrganizationUnitsRepository) GetParentOrganizationUnitWithHead(unitID uint) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error) {
 	var result organizationDTOs.ParentOrganizationUnitWithHeadDTO
 
 	// First, get the main organization unit (where organization_unit_id is null)
@@ -924,26 +923,29 @@ func (repo *OrganizationUnitsRepository) GetParentOrganizationUnitWithHead(unitI
 
 	// If we found a parent unit, try to find its head user from primary organization unit
 	if parentUnit.ID != 0 {
-		headUserQuery := fmt.Sprintf(`
-            SELECT
-                u.id,
-                u.first_name_en,
-                u.last_name_en,
-                u.first_name_ar,
-                u.last_name_ar,
-                u.profile_image_path,
-                u.is_head,
-				u.initial
-            FROM users u
-            WHERE u.%s = ? AND u.is_head = 1`, primaryField)
+
+		headUserQuery := `
+		SELECT
+			u.id,
+			u.first_name_en,
+			u.last_name_en,
+			u.first_name_ar,
+			u.last_name_ar,
+			u.email,
+			u.profile_image_path,
+			u.initial
+		FROM organization_units ou
+		INNER JOIN users u
+			ON u.id = ou.organization_unit_head_id
+		WHERE ou.id = ?`
 
 		var headUser organizationDTOs.OrganizationUnitUserDTO
+
 		err = repo.db.Raw(headUserQuery, unitID).Scan(&headUser).Error
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("failed to fetch head user: %w", err)
 		}
 
-		// Only set head user if found
 		if headUser.ID != 0 {
 			result.HeadUser = &headUser
 		}
@@ -1072,7 +1074,6 @@ func (repo *OrganizationUnitsRepository) DeleteOrganizationUnitReport(organizati
 	return db.Where("id = ?", organizationUnitReportID).
 		Delete(&models.OrganizationUnitReport{}).Error
 }
-
 func (repo *OrganizationUnitsRepository) GetOrganizationUnitOverview(organizationUnitID uint, level uint) (*organizationDTOs.OrganizationUnitOverviewDTO, error) {
 	var result organizationDTOs.OrganizationUnitOverviewDTO
 
@@ -1080,12 +1081,12 @@ func (repo *OrganizationUnitsRepository) GetOrganizationUnitOverview(organizatio
 
 	query := repo.db.Table("organization_units AS ou").
 		Select(`
-			ou.id AS organization_unit_id, 
+			ou.id AS organization_unit_id,
 			ou.title_en AS organization_unit_title_en,
 			ou.title_ar AS organization_unit_title_ar,
 			CASE
-    			WHEN head.first_name_en IS NULL AND head.last_name_en IS NULL THEN NULL
-    			ELSE LTRIM(RTRIM(CONCAT(head.first_name_en, ' ', head.last_name_en)))
+				WHEN head.first_name_en IS NULL AND head.last_name_en IS NULL THEN NULL
+				ELSE LTRIM(RTRIM(CONCAT(head.first_name_en, ' ', head.last_name_en)))
 			END AS organization_unit_head_name_en,
 			CASE
 				WHEN head.first_name_ar IS NULL AND head.last_name_ar IS NULL THEN NULL
@@ -1094,11 +1095,10 @@ func (repo *OrganizationUnitsRepository) GetOrganizationUnitOverview(organizatio
 			head.email AS organization_unit_head_email,
 			COUNT(DISTINCT users.id) AS total_employees
 		`).
-		Joins(fmt.Sprintf(`
+		Joins(`
 			LEFT JOIN users AS head
-				ON head.is_head = 1
-				AND head.%s = ou.id 
-		`, field)).
+				ON head.id = ou.organization_unit_head_id
+		`).
 		Joins(fmt.Sprintf(`
 			LEFT JOIN users
 				ON users.%s = ou.id
@@ -1106,14 +1106,14 @@ func (repo *OrganizationUnitsRepository) GetOrganizationUnitOverview(organizatio
 		Where("ou.status = ?", "active").
 		Where("ou.id = ?", organizationUnitID).
 		Group(`
-		ou.id, 
-		ou.title_en,
-		ou.title_ar, 
-		head.first_name_en, 
-		head.last_name_en, 
-		head.first_name_ar,
-		head.last_name_ar,
-		head.email
+			ou.id,
+			ou.title_en,
+			ou.title_ar,
+			head.first_name_en,
+			head.last_name_en,
+			head.first_name_ar,
+			head.last_name_ar,
+			head.email
 		`)
 
 	if err := query.Find(&result).Error; err != nil {
@@ -1122,6 +1122,56 @@ func (repo *OrganizationUnitsRepository) GetOrganizationUnitOverview(organizatio
 
 	return &result, nil
 }
+
+// func (repo *OrganizationUnitsRepository) GetOrganizationUnitOverview(organizationUnitID uint, level uint) (*organizationDTOs.OrganizationUnitOverviewDTO, error) {
+// 	var result organizationDTOs.OrganizationUnitOverviewDTO
+
+// 	field := fmt.Sprintf("organization_unit_%d_id", level)
+
+// 	query := repo.db.Table("organization_units AS ou").
+// 		Select(`
+// 			ou.id AS organization_unit_id,
+// 			ou.title_en AS organization_unit_title_en,
+// 			ou.title_ar AS organization_unit_title_ar,
+// 			CASE
+//     			WHEN head.first_name_en IS NULL AND head.last_name_en IS NULL THEN NULL
+//     			ELSE LTRIM(RTRIM(CONCAT(head.first_name_en, ' ', head.last_name_en)))
+// 			END AS organization_unit_head_name_en,
+// 			CASE
+// 				WHEN head.first_name_ar IS NULL AND head.last_name_ar IS NULL THEN NULL
+// 				ELSE LTRIM(RTRIM(CONCAT(head.first_name_ar, ' ', head.last_name_ar)))
+// 			END AS organization_unit_head_name_ar,
+// 			head.email AS organization_unit_head_email,
+// 			COUNT(DISTINCT users.id) AS total_employees
+// 		`).
+// 		Joins(fmt.Sprintf(`
+// 			LEFT JOIN users AS head
+// 				ON head.is_head = 1
+// 				AND head.%s = ou.id
+// 		`, field)).
+// 		Joins(fmt.Sprintf(`
+// 			LEFT JOIN users
+// 				ON users.%s = ou.id
+// 		`, field)).
+// 		Where("ou.status = ?", "active").
+// 		Where("ou.id = ?", organizationUnitID).
+// 		Group(`
+// 		ou.id,
+// 		ou.title_en,
+// 		ou.title_ar,
+// 		head.first_name_en,
+// 		head.last_name_en,
+// 		head.first_name_ar,
+// 		head.last_name_ar,
+// 		head.email
+// 		`)
+
+// 	if err := query.Find(&result).Error; err != nil {
+// 		return nil, err
+// 	}
+
+// 	return &result, nil
+// }
 
 func (repo *OrganizationUnitsRepository) GetOrganizationUnitKeyMetrics(organizationUnitID uint) (*organizationDTOs.OrganizationUnitKeyMatrixDTO, error) {
 	result := &organizationDTOs.OrganizationUnitKeyMatrixDTO{}
@@ -1195,7 +1245,6 @@ func (repo *OrganizationUnitsRepository) GetUsersByOrganizationUnitReport(organi
 			users.last_name_en,
 			users.first_name_ar,
 			users.last_name_ar,
-			users.is_head,
 			users.initial,
 			users.email,
 			users.profile_image_path,
@@ -2218,16 +2267,16 @@ func (repo *OrganizationUnitsRepository) GetOrganizationUnitReportComplianceSumm
 }
 
 // GetHeadUsersByOrganizationUnitID gets all head users for a specific organization unit
-func (repo *OrganizationUnitsRepository) GetHeadUsersByOrganizationUnitID(organizationUnitID uint) ([]*models.User, error) {
-	var users []*models.User
+// func (repo *OrganizationUnitsRepository) GetHeadUsersByOrganizationUnitID(organizationUnitID uint) ([]*models.User, error) {
+// 	var users []*models.User
 
-	err := repo.db.
-		Where("organization_unit_2_id = ? AND is_head = ?", organizationUnitID, true).
-		Find(&users).Error
+// 	err := repo.db.
+// 		Where("organization_unit_2_id = ? AND is_head = ?", organizationUnitID, true).
+// 		Find(&users).Error
 
-	if err != nil {
-		return nil, err
-	}
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return users, nil
-}
+// 	return users, nil
+// }

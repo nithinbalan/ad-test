@@ -168,6 +168,19 @@ func (ics *InternalCommitteeService) GetFullDetailsByID(id uint, tx ...utility.D
 						TitleAr: nomineeDept.NomineeDepartment.TitleAr,
 						Status:  nomineeDept.NomineeDepartment.Status,
 					}
+					if nomineeDept.NomineeDepartment.OrganizationUnitHead != nil {
+						nomineeDeptDTO.NomineeDepartment.OrganizationUnitHead = &settingsDTOs.UserMinimalDTO{
+							ID:               int(nomineeDept.NomineeDepartment.OrganizationUnitHead.ID),
+							FirstNameEN:      nomineeDept.NomineeDepartment.OrganizationUnitHead.FirstNameEn,
+							LastNameEN:       nomineeDept.NomineeDepartment.OrganizationUnitHead.LastNameEn,
+							FirstNameAR:      nomineeDept.NomineeDepartment.OrganizationUnitHead.FirstNameAr,
+							LastNameAR:       nomineeDept.NomineeDepartment.OrganizationUnitHead.LastNameAr,
+							ProfileImagePath: nomineeDept.NomineeDepartment.OrganizationUnitHead.ProfileImagePath,
+							Email:            nomineeDept.NomineeDepartment.OrganizationUnitHead.Email,
+							Initial:          nomineeDept.NomineeDepartment.OrganizationUnitHead.Initial,
+							Color:            nomineeDept.NomineeDepartment.OrganizationUnitHead.Color,
+						}
+					}
 				}
 
 				// Map participants
@@ -337,7 +350,7 @@ func (ics *InternalCommitteeService) Create(currentUserID uint, internalCommitte
 
 		for _, nominee := range internalCommitteeFormDTO.NomineeDepartments {
 			// Get department head users directly
-			headUsers, err := ics.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(nominee.NomineeDepartmentID)
+			headUsers, err := ics.organizationUnitsSvc.GetParentOrganizationUnitWithHead(nominee.NomineeDepartmentID)
 			if err != nil {
 				utility.LogError("Failed to get department head users for notification", map[string]interface{}{
 					"department_id": nominee.NomineeDepartmentID,
@@ -346,7 +359,7 @@ func (ics *InternalCommitteeService) Create(currentUserID uint, internalCommitte
 				continue
 			}
 
-			if len(headUsers) == 0 {
+			if headUsers.HeadUser == nil {
 				continue
 			}
 
@@ -371,13 +384,13 @@ func (ics *InternalCommitteeService) Create(currentUserID uint, internalCommitte
 			}
 
 			// Create notifications for each department head
-			for _, headUser := range headUsers {
+			if headUsers.HeadUser != nil {
 				urlParam := fmt.Sprintf(`{"id":%d}`, committeeID)
 				entity := "internal_committee"
 				action := "department-nomination"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserIDs:              []uint{headUser.ID},
+					UserIDs:              []uint{headUsers.HeadUser.ID},
 					ModuleIdentifier:     "organization",
 					NotificationType:     string(commonDTOs.AssignmentType),
 					ReferenceNumber:      committee.ReferenceNumber,
@@ -392,7 +405,7 @@ func (ics *InternalCommitteeService) Create(currentUserID uint, internalCommitte
 					CreatedByID:          &currentUserID,
 				}
 
-				responsibleUser, err := ics.userSvc.GetByID(headUser.ID)
+				responsibleUser, err := ics.userSvc.GetByID(headUsers.HeadUser.ID)
 				if err != nil {
 					utility.LogError("Failed to fetch head user details for notification", map[string]interface{}{
 						"error": err.Error(),
@@ -602,7 +615,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 		for _, oldNominee := range oldCommittee.LatestVersion.NomineeDepartments {
 			if !newDepartmentIDs[oldNominee.NomineeDepartmentID] {
 				// This department was removed
-				headUsers, err := ics.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(oldNominee.NomineeDepartmentID)
+				headUsers, err := ics.organizationUnitsSvc.GetParentOrganizationUnitWithHead(oldNominee.NomineeDepartmentID)
 				if err != nil {
 					utility.LogError("Failed to get department head users for deletion notification", map[string]interface{}{
 						"department_id": oldNominee.NomineeDepartmentID,
@@ -611,7 +624,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 					continue
 				}
 
-				if len(headUsers) == 0 {
+				if headUsers.HeadUser == nil {
 					continue
 				}
 
@@ -636,13 +649,13 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 				}
 
 				// Create notifications for each department head about removal
-				for _, headUser := range headUsers {
+				if headUsers.HeadUser != nil {
 					urlParam := fmt.Sprintf(`{"id":%d}`, id)
 					entity := "internal_committee"
 					action := "department-nomination-removed"
 
 					dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-						UserIDs:              []uint{headUser.ID},
+						UserIDs:              []uint{headUsers.HeadUser.ID},
 						ModuleIdentifier:     "organization",
 						NotificationType:     string(commonDTOs.InformationType),
 						ReferenceNumber:      committee.ReferenceNumber,
@@ -657,7 +670,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 						CreatedByID:          &currentUserID,
 					}
 
-					responsibleUser, err := ics.userSvc.GetByID(headUser.ID)
+					responsibleUser, err := ics.userSvc.GetByID(headUsers.HeadUser.ID)
 					if err != nil {
 						utility.LogError("Failed to fetch head user details for deletion notification", map[string]interface{}{
 							"error": err.Error(),
@@ -704,7 +717,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 			if !oldDepartmentIDs[nominee.NomineeDepartmentID] {
 				// This is a new department
 				// Get department head users directly
-				headUsers, err := ics.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(nominee.NomineeDepartmentID)
+				headUsers, err := ics.organizationUnitsSvc.GetParentOrganizationUnitWithHead(nominee.NomineeDepartmentID)
 				if err != nil {
 					utility.LogError("Failed to get department head users for notification", map[string]interface{}{
 						"department_id": nominee.NomineeDepartmentID,
@@ -713,7 +726,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 					continue
 				}
 
-				if len(headUsers) == 0 {
+				if headUsers.HeadUser == nil {
 					continue
 				}
 
@@ -738,13 +751,13 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 				}
 
 				// Create notifications for each department head (new department - use create template)
-				for _, headUser := range headUsers {
+				if headUsers.HeadUser != nil {
 					urlParam := fmt.Sprintf(`{"id":%d}`, id)
 					entity := "internal_committee"
 					action := "department-nomination"
 
 					dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-						UserIDs:              []uint{headUser.ID},
+						UserIDs:              []uint{headUsers.HeadUser.ID},
 						ModuleIdentifier:     "organization",
 						NotificationType:     string(commonDTOs.AssignmentType),
 						ReferenceNumber:      committee.ReferenceNumber,
@@ -759,7 +772,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 						CreatedByID:          &currentUserID,
 					}
 
-					responsibleUser, err := ics.userSvc.GetByID(headUser.ID)
+					responsibleUser, err := ics.userSvc.GetByID(headUsers.HeadUser.ID)
 					if err != nil {
 						utility.LogError("Failed to fetch head user details for notification", map[string]interface{}{
 							"error": err.Error(),
@@ -1105,7 +1118,7 @@ func (ics *InternalCommitteeService) ReformCommittee(currentUserID uint, reformD
 
 		for _, nominee := range reformDTO.NomineeDepartments {
 			// Get department head users directly
-			headUsers, err := ics.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(nominee.NomineeDepartmentID)
+			headUsers, err := ics.organizationUnitsSvc.GetParentOrganizationUnitWithHead(nominee.NomineeDepartmentID)
 			if err != nil {
 				utility.LogError("Failed to get department head users for notification", map[string]interface{}{
 					"department_id": nominee.NomineeDepartmentID,
@@ -1114,7 +1127,7 @@ func (ics *InternalCommitteeService) ReformCommittee(currentUserID uint, reformD
 				continue
 			}
 
-			if len(headUsers) == 0 {
+			if headUsers.HeadUser == nil {
 				continue
 			}
 
@@ -1139,13 +1152,13 @@ func (ics *InternalCommitteeService) ReformCommittee(currentUserID uint, reformD
 			}
 
 			// Create notifications for each department head
-			for _, headUser := range headUsers {
+			if headUsers.HeadUser != nil {
 				urlParam := fmt.Sprintf(`{"id":%d}`, newCommittee.ID)
 				entity := "internal_committee"
 				action := "department-nomination"
 
 				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-					UserIDs:              []uint{headUser.ID},
+					UserIDs:              []uint{headUsers.HeadUser.ID},
 					ModuleIdentifier:     "organization",
 					NotificationType:     string(commonDTOs.AssignmentType),
 					ReferenceNumber:      committee.ReferenceNumber,
@@ -1160,7 +1173,7 @@ func (ics *InternalCommitteeService) ReformCommittee(currentUserID uint, reformD
 					CreatedByID:          &currentUserID,
 				}
 
-				responsibleUser, err := ics.userSvc.GetByID(headUser.ID)
+				responsibleUser, err := ics.userSvc.GetByID(headUsers.HeadUser.ID)
 				if err != nil {
 					utility.LogError("Failed to fetch head user details for notification", map[string]interface{}{
 						"error": err.Error(),
@@ -1870,7 +1883,7 @@ func (ics *InternalCommitteeService) DisbandCommittee(committeeID uint, currentU
 
 		for _, nomineeDept := range nomineeDepartments {
 			// Get department head users (following existing pattern)
-			headUsers, err := ics.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(nomineeDept.NomineeDepartmentID)
+			headUsers, err := ics.organizationUnitsSvc.GetParentOrganizationUnitWithHead(nomineeDept.NomineeDepartmentID)
 			if err != nil {
 				utility.LogError("Failed to fetch department head users for disband notification", map[string]interface{}{
 					"error":         err.Error(),
@@ -1880,7 +1893,7 @@ func (ics *InternalCommitteeService) DisbandCommittee(committeeID uint, currentU
 				continue
 			}
 
-			if len(headUsers) == 0 {
+			if headUsers.HeadUser == nil {
 				continue
 			}
 
@@ -1899,9 +1912,9 @@ func (ics *InternalCommitteeService) DisbandCommittee(committeeID uint, currentU
 			var userIDs []uint
 			var userEmails []string
 
-			for _, user := range headUsers {
-				userIDs = append(userIDs, user.ID)
-				userEmails = append(userEmails, user.Email)
+			if headUsers.HeadUser != nil {
+				userIDs = append(userIDs, headUsers.HeadUser.ID)
+				userEmails = append(userEmails, headUsers.HeadUser.Email)
 			}
 
 			// DB Notification

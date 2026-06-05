@@ -474,25 +474,25 @@ func (rrs *RiskReviewService) sendApprovalNotification(id uint, currentUserID ui
 
 		// Also send notification to responsible unit head
 		if riskDetail.ResponsibleUnit != nil {
-			headUsers, err := rrs.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(uint(riskDetail.ResponsibleUnit.ID))
+			headUsers, err := rrs.organizationUnitsSvc.GetParentOrganizationUnitWithHead(uint(riskDetail.ResponsibleUnit.ID))
 			if err != nil {
 				utility.LogError("Failed to get responsible unit head users for notification", map[string]interface{}{
 					"unit_id": riskDetail.ResponsibleUnit.ID,
 					"error":   err.Error(),
 				})
 			} else {
-				for _, headUser := range headUsers {
+				if headUsers.HeadUser != nil {
 					// Avoid duplicate notifications if the head user is also the responsible user
 					alreadyNotified := false
 					for _, notifiedUserID := range notificationUserIDs {
-						if notifiedUserID == headUser.ID {
+						if notifiedUserID == headUsers.HeadUser.ID {
 							alreadyNotified = true
 							break
 						}
 					}
 					if !alreadyNotified {
-						notificationUserIDs = append(notificationUserIDs, headUser.ID)
-						emailTo = append(emailTo, headUser.Email)
+						notificationUserIDs = append(notificationUserIDs, headUsers.HeadUser.ID)
+						emailTo = append(emailTo, headUsers.HeadUser.Email)
 					}
 				}
 			}
@@ -600,25 +600,25 @@ func (rrs *RiskReviewService) notifyNextLevelUsers(id uint, nextRiskWorkflowLeve
 
 		// Also send notification to responsible unit head
 		if riskDetail.ResponsibleUnit != nil {
-			headUsers, err := rrs.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(uint(riskDetail.ResponsibleUnit.ID))
+			headUsers, err := rrs.organizationUnitsSvc.GetParentOrganizationUnitWithHead(uint(riskDetail.ResponsibleUnit.ID))
 			if err != nil {
 				utility.LogError("Failed to get responsible unit head users for notification", map[string]interface{}{
 					"unit_id": riskDetail.ResponsibleUnit.ID,
 					"error":   err.Error(),
 				})
 			} else {
-				for _, headUser := range headUsers {
+				if headUsers.HeadUser != nil {
 					// Avoid duplicate notifications if the head user is also the responsible user
 					alreadyNotified := false
 					for _, notifiedUserID := range notificationUserIDs {
-						if notifiedUserID == headUser.ID {
+						if notifiedUserID == headUsers.HeadUser.ID {
 							alreadyNotified = true
 							break
 						}
 					}
 					if !alreadyNotified {
-						notificationUserIDs = append(notificationUserIDs, headUser.ID)
-						emailTo = append(emailTo, headUser.Email)
+						notificationUserIDs = append(notificationUserIDs, headUsers.HeadUser.ID)
+						emailTo = append(emailTo, headUsers.HeadUser.Email)
 					}
 				}
 			}
@@ -712,25 +712,25 @@ func (rrs *RiskReviewService) sendRejectedNotification(id uint, currentUserID ui
 
 		// Also send notification to responsible unit head
 		if risk.ResponsibleUnit != nil {
-			headUsers, err := rrs.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(uint(risk.ResponsibleUnit.ID))
+			headUsers, err := rrs.organizationUnitsSvc.GetParentOrganizationUnitWithHead(uint(risk.ResponsibleUnit.ID))
 			if err != nil {
 				utility.LogError("Failed to get responsible unit head users for notification", map[string]interface{}{
 					"unit_id": risk.ResponsibleUnit.ID,
 					"error":   err.Error(),
 				})
 			} else {
-				for _, headUser := range headUsers {
+				if headUsers.HeadUser != nil {
 					// Avoid duplicate notifications if the head user is also the responsible user
 					alreadyNotified := false
 					for _, notifiedUserID := range notificationUserIDs {
-						if notifiedUserID == headUser.ID {
+						if notifiedUserID == headUsers.HeadUser.ID {
 							alreadyNotified = true
 							break
 						}
 					}
 					if !alreadyNotified {
-						notificationUserIDs = append(notificationUserIDs, headUser.ID)
-						emailTo = append(emailTo, headUser.Email)
+						notificationUserIDs = append(notificationUserIDs, headUsers.HeadUser.ID)
+						emailTo = append(emailTo, headUsers.HeadUser.Email)
 					}
 				}
 			}
