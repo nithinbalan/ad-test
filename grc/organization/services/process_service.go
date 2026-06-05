@@ -295,7 +295,7 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 			}
 		} else {
 			// Send notification to department head since no responsible user is assigned
-			headUsers, err := ps.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(processFormDTO.OwnerUnitID)
+			headUsers, err := ps.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(processFormDTO.OwnerUnitID)
 			if err != nil {
 				utility.LogError("Failed to fetch department head users for notification", map[string]interface{}{
 					"error":       err.Error(),
@@ -304,7 +304,7 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 				return
 			}
 
-			if len(headUsers) == 0 {
+			if headUsers.HeadUser == nil {
 				utility.LogInfo("No head users found for department", map[string]interface{}{
 					"ownerUnitID": processFormDTO.OwnerUnitID,
 				})
@@ -321,9 +321,9 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 				return
 			}
 
-			for _, headUser := range headUsers {
-				userIDs = append(userIDs, headUser.ID)
-				emailTo = append(emailTo, headUser.Email)
+			if headUsers.HeadUser != nil {
+				userIDs = append(userIDs, headUsers.HeadUser.ID)
+				emailTo = append(emailTo, headUsers.HeadUser.Email)
 			}
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
@@ -644,7 +644,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 				}
 			} else {
 				// OwnerID is null, send notification to department head
-				headUsers, err := ps.organizationUnitsSvc.GetHeadUsersByOrganizationUnitID(processFormDTO.OwnerUnitID)
+				headUsers, err := ps.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(processFormDTO.OwnerUnitID)
 				if err != nil {
 					utility.LogError("Failed to fetch department head users for notification", map[string]interface{}{
 						"error":       err.Error(),
@@ -653,7 +653,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 					return
 				}
 
-				if len(headUsers) == 0 {
+				if headUsers.HeadUser == nil {
 					utility.LogInfo("No head users found for department", map[string]interface{}{
 						"ownerUnitID": processFormDTO.OwnerUnitID,
 					})
@@ -673,9 +673,9 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 				var userIDs []uint
 				var emailTo []string
 
-				for _, headUser := range headUsers {
-					userIDs = append(userIDs, headUser.ID)
-					emailTo = append(emailTo, headUser.Email)
+				if headUsers.HeadUser != nil {
+					userIDs = append(userIDs, headUsers.HeadUser.ID)
+					emailTo = append(emailTo, headUsers.HeadUser.Email)
 				}
 
 				newOwnerAction := "responsible-user-assign"

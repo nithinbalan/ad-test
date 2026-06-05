@@ -34,15 +34,15 @@ type OrganizationChartUserListDTO struct {
 }
 
 type OrganizationChartUserDetailsDTO struct {
-	ID                        uint            `json:"id"`
-	FirstNameEn               string          `json:"first_name_en"`
-	LastNameEn                string          `json:"last_name_en"`
-	FirstNameAr               string          `json:"first_name_ar"`
-	LastNameAr                string          `json:"last_name_ar"`
-	Email                     string          `json:"email"`
-	MobileNumber              *string         `json:"mobile_number"`
-	ProfileImagePath          *string         `json:"profile_image_path"`
-	IsHead                    bool            `json:"is_head"`
+	ID               uint    `json:"id"`
+	FirstNameEn      string  `json:"first_name_en"`
+	LastNameEn       string  `json:"last_name_en"`
+	FirstNameAr      string  `json:"first_name_ar"`
+	LastNameAr       string  `json:"last_name_ar"`
+	Email            string  `json:"email"`
+	MobileNumber     *string `json:"mobile_number"`
+	ProfileImagePath *string `json:"profile_image_path"`
+	// IsHead                    bool            `json:"is_head"`
 	Designation               *DesignationDTO `json:"designation"`
 	PrimaryOrganizationUnitID *uint           `json:"primary_organization_unit_id"`
 	PrimaryOrganizationUnitEn string          `json:"primary_organization_unit_en"`

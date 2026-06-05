@@ -1,12 +1,13 @@
 package dtos
 
 type OrganizationUnitDTO struct {
-	ID         int                  `json:"id"`
-	TitleEn    string               `json:"title_en"`
-	TitleAr    string               `json:"title_ar"`
-	Status     string               `json:"status"`
-	ColorCode  string               `json:"color_code"`
-	ParentUnit *OrganizationUnitDTO `json:"parent_unit"`
+	ID                   int                  `json:"id"`
+	TitleEn              string               `json:"title_en"`
+	TitleAr              string               `json:"title_ar"`
+	Status               string               `json:"status"`
+	ColorCode            string               `json:"color_code"`
+	ParentUnit           *OrganizationUnitDTO `json:"parent_unit"`
+	OrganizationUnitHead *UserMinimalDTO      `json:"unit_head"`
 }
 
 type OrganizationUnitListDTO struct {
