@@ -26,8 +26,8 @@ func (wltc *WorkflowLevelTypeController) GetAllWorkflowLevelTypes(c *gin.Context
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
-
-	workflowLevelTypes, err := wltc.service.GetAll(sort, sortBy, keyword, status)
+	module_identifier := c.Query("module")
+	workflowLevelTypes, err := wltc.service.GetAll(sort, sortBy, keyword, status, module_identifier)
 	if err != nil {
 		utility.SendInternalErrResp(wltc.db, c, err.Error())
 		return

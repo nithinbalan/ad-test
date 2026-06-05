@@ -8,7 +8,7 @@ import (
 
 // Interfaces
 type WorkflowLevelTypeRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.WorkflowLevelType, error)
+	GetAll(sort string, sortBy string, keyword string, status string, moduleIdentifier string) ([]*models.WorkflowLevelType, error)
 	GetByID(id uint) (*models.WorkflowLevelType, error)
 	GetByType(levelType string) (*models.WorkflowLevelType, error)
 }
@@ -24,7 +24,7 @@ func NewWorkflowLevelTypeRepository(db *gorm.DB) *WorkflowLevelTypeRepository {
 	}
 }
 
-func (repo *WorkflowLevelTypeRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*models.WorkflowLevelType, error) {
+func (repo *WorkflowLevelTypeRepository) GetAll(sort string, sortBy string, keyword string, status string, moduleIdentifier string) ([]*models.WorkflowLevelType, error) {
 	var workflowLevelTypes []*models.WorkflowLevelType
 
 	query := repo.db
@@ -41,6 +41,17 @@ func (repo *WorkflowLevelTypeRepository) GetAll(sort string, sortBy string, keyw
 
 	if status == "active" || status == "inactive" {
 		query = query.Where("status = ?", status)
+	}
+
+	if moduleIdentifier == "" {
+		moduleIdentifier = "common"
+	}
+
+	switch moduleIdentifier {
+	case "common":
+		query = query.Where("module_identifier = ?", "common")
+	case "organization":
+		query = query.Where("module_identifier IN ?", []string{"common", "organization"})
 	}
 
 	query = query.Order(sortBy + " " + sort)

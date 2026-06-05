@@ -38,13 +38,14 @@ type InternalCommitteeWorkflowServiceInterface interface {
 }
 
 type InternalCommitteeWorkflowService struct {
-	repo               repositories.InternalCommitteeWorkflowRepositoryInterface
-	activityLogSvc     logSvc.ActivityLogServiceInterface
-	workflowSvc        settinsSvc.WorkflowServiceInterface
-	workflowStatusSvc  masterSvc.WorkflowStatusServiceInterface
-	userSvc            UserServiceInterface
-	committeeSvc       InternalCommitteeServiceInterface
-	workflowContextSvc masterSvc.WorkflowContextServiceInterface
+	repo                 repositories.InternalCommitteeWorkflowRepositoryInterface
+	activityLogSvc       logSvc.ActivityLogServiceInterface
+	workflowSvc          settinsSvc.WorkflowServiceInterface
+	workflowStatusSvc    masterSvc.WorkflowStatusServiceInterface
+	userSvc              UserServiceInterface
+	committeeSvc         InternalCommitteeServiceInterface
+	workflowContextSvc   masterSvc.WorkflowContextServiceInterface
+	organizationUnitsSvc OrganizationUnitsServiceInterface
 }
 
 func NewInternalCommitteeWorkflowService(
@@ -55,15 +56,17 @@ func NewInternalCommitteeWorkflowService(
 	userSvc UserServiceInterface,
 	committeeSvc InternalCommitteeServiceInterface,
 	workflowContextSvc masterSvc.WorkflowContextServiceInterface,
+	organizationUnitsSvc OrganizationUnitsServiceInterface,
 ) InternalCommitteeWorkflowServiceInterface {
 	return &InternalCommitteeWorkflowService{
-		repo:               repo,
-		activityLogSvc:     activityLogSvc,
-		workflowSvc:        workflowSvc,
-		workflowStatusSvc:  workflowStatusSvc,
-		userSvc:            userSvc,
-		committeeSvc:       committeeSvc,
-		workflowContextSvc: workflowContextSvc,
+		repo:                 repo,
+		activityLogSvc:       activityLogSvc,
+		workflowSvc:          workflowSvc,
+		workflowStatusSvc:    workflowStatusSvc,
+		userSvc:              userSvc,
+		committeeSvc:         committeeSvc,
+		workflowContextSvc:   workflowContextSvc,
+		organizationUnitsSvc: organizationUnitsSvc,
 	}
 }
 
@@ -244,7 +247,10 @@ func (icws *InternalCommitteeWorkflowService) GetPreviousVersionWorkflowHistory(
 }
 
 func (icws *InternalCommitteeWorkflowService) CreateInternalCommitteeWorkflow(internalCommitteeID uint, contextType string, currentUserID uint, tx ...utility.DatabaseTransaction) error {
-
+	internalCommitee, err := icws.committeeSvc.GetFullDetailsByID(internalCommitteeID)
+	if err != nil {
+		return err
+	}
 	workflowContext, err := icws.workflowContextSvc.GetByType(contextType)
 	if err != nil {
 		return err
@@ -321,9 +327,31 @@ func (icws *InternalCommitteeWorkflowService) CreateInternalCommitteeWorkflow(in
 				if err != nil {
 					return err
 				}
+			} else if participant.WorkflowCustomRole != nil {
+
+				switch participant.WorkflowCustomRole.Type {
+				case "department_head":
+					if internalCommitee.RequestingEntityID == 0 {
+						return fmt.Errorf("Requesting department not found for this committee")
+					}
+					deptHead, err := icws.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(internalCommitee.RequestingEntityID)
+					if err != nil {
+						return err
+					}
+					if deptHead.HeadUser == nil {
+						return utility.NewForbiddenError("Department head is not assigned for the requesting department")
+					}
+					userID := uint(deptHead.HeadUser.ID)
+					if err = icws.createWorkflowParticipant(userID, workflowID, &participant, currentUserID, tx...); err != nil {
+						return err
+					}
+
+				}
 			}
+
 		}
 	}
+
 	return nil
 }
 
@@ -345,7 +373,9 @@ func (icws *InternalCommitteeWorkflowService) createWorkflowParticipant(userID u
 	if participant.Role != nil {
 		committeeWorkflowParticipant.RoleID = &participant.Role.ID
 	}
-
+	if participant.WorkflowCustomRole != nil {
+		committeeWorkflowParticipant.CustomRoleID = &participant.WorkflowCustomRole.ID
+	}
 	err := icws.repo.CreateInternalCommitteeWorkflowParticipant(committeeWorkflowParticipant, tx...)
 	if err != nil {
 		return err

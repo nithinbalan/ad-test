@@ -49,6 +49,7 @@ func (repo *InternalCommitteeWorkflowRepository) GetWorkflowList(committeeID uin
 		Preload("InternalCommitteeWorkflows.InternalCommitteeWorkflowParticipants").
 		Preload("InternalCommitteeWorkflows.InternalCommitteeWorkflowParticipants.User").
 		Preload("InternalCommitteeWorkflows.InternalCommitteeWorkflowParticipants.Role").
+		Preload("InternalCommitteeWorkflows.InternalCommitteeWorkflowParticipants.CustomRole").
 		Preload("InternalCommitteeWorkflows.InternalCommitteeWorkflowReviews.WorkflowStatus").
 		Preload("InternalCommitteeWorkflows.InternalCommitteeWorkflowReviews.CreatedByUser").
 		Where("id = ?", committeeID).
