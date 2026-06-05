@@ -296,7 +296,6 @@ func (ous *OrganizationUnitService) GetByTitleEn(title string) (*models.Organiza
 func (ous *OrganizationUnitService) IsUnitUnderParent(unitID uint, parentID uint) bool {
 	return ous.repo.IsUnitUnderParent(unitID, parentID)
 }
-
 func (ous *OrganizationUnitService) UpdateUnitHead(id uint, userID uint, currentUserID uint) error {
 
 	existingOrgUnit, err := ous.GetByID(id)
@@ -304,18 +303,27 @@ func (ous *OrganizationUnitService) UpdateUnitHead(id uint, userID uint, current
 		return err
 	}
 
+	oldHeadID := existingOrgUnit.OrganizationUnitHeadID
+
 	existingOrgUnit.OrganizationUnitHeadID = &userID
 
 	err = ous.repo.Update(existingOrgUnit)
 	if err != nil {
 		return err
 	}
+
 	go func() {
+
+		changeData := map[string]interface{}{
+			"old": oldHeadID,
+			"new": userID,
+		}
+
 		err := ous.activityLogSvc.LogActivity(
 			models.UpdateAction,
 			models.OrganizationUnit{}.TableName(),
 			id,
-			userID,
+			changeData,
 			currentUserID,
 			"", "", "", nil,
 		)

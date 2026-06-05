@@ -295,7 +295,7 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 			}
 		} else {
 			// Send notification to department head since no responsible user is assigned
-			headUsers, err := ps.organizationUnitsSvc.GetParentOrganizationUnitWithHead(processFormDTO.OwnerUnitID)
+			headUsers, err := ps.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(processFormDTO.OwnerUnitID)
 			if err != nil {
 				utility.LogError("Failed to fetch department head users for notification", map[string]interface{}{
 					"error":       err.Error(),
@@ -644,7 +644,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 				}
 			} else {
 				// OwnerID is null, send notification to department head
-				headUsers, err := ps.organizationUnitsSvc.GetParentOrganizationUnitWithHead(processFormDTO.OwnerUnitID)
+				headUsers, err := ps.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(processFormDTO.OwnerUnitID)
 				if err != nil {
 					utility.LogError("Failed to fetch department head users for notification", map[string]interface{}{
 						"error":       err.Error(),

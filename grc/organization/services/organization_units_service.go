@@ -22,12 +22,12 @@ import (
 type OrganizationUnitsServiceInterface interface {
 	GetOrganizationUnitsHierarchies(sort string, sortBy string) ([]organizationDTOs.OrganizationUnitsDTO, error)
 	GetUsersByOrganizationUnit(params *organizationDTOs.OrganizationUnitUserPrimaryDetailsQueryParamsDTO, orgUnitID uint) (*organizationDTOs.OrganizationUnitUserPrimaryDetailsResponseDTO, error)
-	UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint) error
+	UpdateOrganizationUnitHead(unitID uint, userID uint, currentUserID uint) error
 	GetOrganizationUnitSummary(unitID uint) (*organizationDTOs.OrganizationUnitSummaryDTO, error)
 	GetAllPoliciesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedDocumentListResponseDTO, error)
 	GetAllProcessesByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*organizationDTOs.ProcessListResponseDTO, error)
 	GetAllRiskByOrganizationUnit(unitID uint, params *commonDTOs.AssociatedItemListQueryParamsDTO) (*commonDTOs.AssociatedRiskListResponseDTO, error)
-	GetParentOrganizationUnitWithHead(unitID uint) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error)
+	GetParentOrganizationUnitAndCurrentUnitHead(unitID uint) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error)
 	//GetHeadUsersByOrganizationUnitID(organizationUnitID uint) ([]*models.User, error)
 
 	GetAll(params *organizationDTOs.OrganizationUnitReportListQueryParamsDTO) (*organizationDTOs.OrganizationUnitReportListReponseDTO, error)
@@ -210,7 +210,7 @@ func (s *OrganizationUnitsService) GetOrganizationUnitSummary(unitID uint) (*org
 	return dto, nil
 }
 
-func (s *OrganizationUnitsService) UpdatePrimaryOrganizationUnitHead(unitID uint, userID uint, currentUserID uint) error {
+func (s *OrganizationUnitsService) UpdateOrganizationUnitHead(unitID uint, userID uint, currentUserID uint) error {
 
 	organizationUnit, err := s.organizationUnitSvc.GetByID(unitID)
 	if err != nil {
@@ -220,6 +220,17 @@ func (s *OrganizationUnitsService) UpdatePrimaryOrganizationUnitHead(unitID uint
 	user, err := s.userSvc.GetByID(userID)
 	if err != nil {
 		return err
+	}
+
+	belongsToUnit :=
+		user.OrganizationUnit1ID == unitID ||
+			(user.OrganizationUnit2ID != nil && *user.OrganizationUnit2ID == unitID) ||
+			(user.OrganizationUnit3ID != nil && *user.OrganizationUnit3ID == unitID) ||
+			(user.OrganizationUnit4ID != nil && *user.OrganizationUnit4ID == unitID) ||
+			(user.OrganizationUnit5ID != nil && *user.OrganizationUnit5ID == unitID)
+
+	if !belongsToUnit {
+		return utility.NewForbiddenError("user does not belong to the specified organization unit")
 	}
 
 	err = s.organizationUnitSvc.UpdateUnitHead(organizationUnit.ID, user.ID, currentUserID)
@@ -242,10 +253,10 @@ func (s *OrganizationUnitsService) GetAllRiskByOrganizationUnit(unitID uint, par
 	return s.repo.GetAllRiskByOrganizationUnit(unitID, params)
 }
 
-func (s *OrganizationUnitsService) GetParentOrganizationUnitWithHead(unitID uint) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error) {
+func (s *OrganizationUnitsService) GetParentOrganizationUnitAndCurrentUnitHead(unitID uint) (*organizationDTOs.ParentOrganizationUnitWithHeadDTO, error) {
 
 	// Get parent organization unit with head
-	result, err := s.repo.GetParentOrganizationUnitWithHead(unitID)
+	result, err := s.repo.GetParentOrganizationUnitAndCurrentUnitHead(unitID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get parent organization unit: %w", err)
 	}

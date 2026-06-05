@@ -133,7 +133,6 @@ func (osc *OrganizationUnitsController) GetOrganizationUnitSummary(c *gin.Contex
 }
 
 func (osc *OrganizationUnitsController) UpdatePrimaryOrganizationUnitHead(c *gin.Context) {
-	// var form organizationDTOs.DepartmentHeadUpdateDTO
 
 	unitID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -147,18 +146,13 @@ func (osc *OrganizationUnitsController) UpdatePrimaryOrganizationUnitHead(c *gin
 		return
 	}
 
-	// if err := c.ShouldBindJSON(&form); err != nil {
-	// 	utility.SendInvalidErrResp(c, err)
-	// 	return
-	// }
-
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(osc.db, c, err.Error())
 		return
 	}
 
-	err = osc.service.UpdatePrimaryOrganizationUnitHead(uint(unitID), uint(userID), currentUserID)
+	err = osc.service.UpdateOrganizationUnitHead(uint(unitID), uint(userID), currentUserID)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -459,7 +453,7 @@ func (osc *OrganizationUnitsController) GetAllRiskByOrganizationUnit(c *gin.Cont
 	c.JSON(http.StatusOK, risks)
 }
 
-func (osc *OrganizationUnitsController) GetParentOrganizationUnitWithHead(c *gin.Context) {
+func (osc *OrganizationUnitsController) GetParentOrganizationUnitAndCurrentUnitHead(c *gin.Context) {
 	unitIDStr := c.Param("id")
 
 	unitID, err := strconv.ParseUint(unitIDStr, 10, 64)
@@ -468,7 +462,7 @@ func (osc *OrganizationUnitsController) GetParentOrganizationUnitWithHead(c *gin
 		return
 	}
 
-	result, err := osc.service.GetParentOrganizationUnitWithHead(uint(unitID))
+	result, err := osc.service.GetParentOrganizationUnitAndCurrentUnitHead(uint(unitID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:

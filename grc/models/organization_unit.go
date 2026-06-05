@@ -13,7 +13,7 @@ type OrganizationUnit struct {
 	OrganizationLevel    *OrganizationLevel `gorm:"foreignKey:OrganizationLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ParentUnit           *OrganizationUnit  `gorm:"foreignKey:OrganizationUnitID"`
 	ChildUnits           []OrganizationUnit `gorm:"foreignKey:OrganizationUnitID"`
-	OrganizationUnitHead *User              `gorm:"foreignKey:OrganizationUnitHeadID;constraint:constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	OrganizationUnitHead *User              `gorm:"foreignKey:OrganizationUnitHeadID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by OrganizationUnit to `organization_units`

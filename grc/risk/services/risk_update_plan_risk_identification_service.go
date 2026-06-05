@@ -318,7 +318,7 @@ func (rrupids *RiskUpdatePlanRiskIdentificationService) CreateRiskIdentification
 
 		// Also send notification to responsible unit head
 		if riskRegisterFormDTO.ResponsibleUnitID != nil {
-			headUsers, err := rrupids.organizationUnitsSvc.GetParentOrganizationUnitWithHead(*riskRegisterFormDTO.ResponsibleUnitID)
+			headUsers, err := rrupids.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(*riskRegisterFormDTO.ResponsibleUnitID)
 			if err != nil {
 				utility.LogError("Failed to get responsible unit head users for notification", map[string]interface{}{
 					"unit_id": *riskRegisterFormDTO.ResponsibleUnitID,
@@ -713,7 +713,7 @@ func (rrupids *RiskUpdatePlanRiskIdentificationService) UpdateRiskIdentification
 
 			// Also send notification to responsible unit head
 			if riskRegisterFormDTO.ResponsibleUnitID != nil {
-				headUsers, err := rrupids.organizationUnitsSvc.GetParentOrganizationUnitWithHead(*riskRegisterFormDTO.ResponsibleUnitID)
+				headUsers, err := rrupids.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(*riskRegisterFormDTO.ResponsibleUnitID)
 				if err != nil {
 					utility.LogError("Failed to get responsible unit head users for notification", map[string]interface{}{
 						"unit_id": *riskRegisterFormDTO.ResponsibleUnitID,
@@ -969,7 +969,7 @@ func (rrupids *RiskUpdatePlanRiskIdentificationService) DeleteRiskIdentification
 
 				// Also send notification to responsible unit head
 				if notification.ResponsibleUnitID != nil {
-					headUsers, err := rrupids.organizationUnitsSvc.GetParentOrganizationUnitWithHead(*notification.ResponsibleUnitID)
+					headUsers, err := rrupids.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(*notification.ResponsibleUnitID)
 					if err != nil {
 						utility.LogError("Failed to get responsible unit head users for notification", map[string]interface{}{
 							"unit_id": *notification.ResponsibleUnitID,

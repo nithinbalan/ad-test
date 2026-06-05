@@ -474,7 +474,7 @@ func (rrs *RiskReviewService) sendApprovalNotification(id uint, currentUserID ui
 
 		// Also send notification to responsible unit head
 		if riskDetail.ResponsibleUnit != nil {
-			headUsers, err := rrs.organizationUnitsSvc.GetParentOrganizationUnitWithHead(uint(riskDetail.ResponsibleUnit.ID))
+			headUsers, err := rrs.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(uint(riskDetail.ResponsibleUnit.ID))
 			if err != nil {
 				utility.LogError("Failed to get responsible unit head users for notification", map[string]interface{}{
 					"unit_id": riskDetail.ResponsibleUnit.ID,
@@ -600,7 +600,7 @@ func (rrs *RiskReviewService) notifyNextLevelUsers(id uint, nextRiskWorkflowLeve
 
 		// Also send notification to responsible unit head
 		if riskDetail.ResponsibleUnit != nil {
-			headUsers, err := rrs.organizationUnitsSvc.GetParentOrganizationUnitWithHead(uint(riskDetail.ResponsibleUnit.ID))
+			headUsers, err := rrs.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(uint(riskDetail.ResponsibleUnit.ID))
 			if err != nil {
 				utility.LogError("Failed to get responsible unit head users for notification", map[string]interface{}{
 					"unit_id": riskDetail.ResponsibleUnit.ID,
@@ -712,7 +712,7 @@ func (rrs *RiskReviewService) sendRejectedNotification(id uint, currentUserID ui
 
 		// Also send notification to responsible unit head
 		if risk.ResponsibleUnit != nil {
-			headUsers, err := rrs.organizationUnitsSvc.GetParentOrganizationUnitWithHead(uint(risk.ResponsibleUnit.ID))
+			headUsers, err := rrs.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(uint(risk.ResponsibleUnit.ID))
 			if err != nil {
 				utility.LogError("Failed to get responsible unit head users for notification", map[string]interface{}{
 					"unit_id": risk.ResponsibleUnit.ID,
