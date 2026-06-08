@@ -233,6 +233,7 @@ func (ws *WorkflowService) GetWorkflowLevels(workflowID uint, tx ...utility.Data
 	var workflowLevelDTO settingsDTOs.WorkflowLevelListDTO
 
 	workflowLevels, err := ws.repo.GetWorkflowLevels(workflowID, tx...)
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utility.NewResourceNotFoundError(err, workflowID)
@@ -330,6 +331,20 @@ func (ws *WorkflowService) CreateWorkFlowLevel(workflowId uint, currentUserID ui
 		participant := &models.WorkflowLevelParticipant{
 			WorkflowLevelID: id,
 			RoleID:          workflowLevelFormDTO.RoleID,
+		}
+		if err := ws.repo.CreateParticipant(participant, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	case "hod":
+		// Handle role by creating a participant with RoleID
+		if workflowLevelFormDTO.UnitID == nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("organisation unit is required for selected level type")
+		}
+		participant := &models.WorkflowLevelParticipant{
+			WorkflowLevelID: id,
+			UnitID:          workflowLevelFormDTO.UnitID,
 		}
 		if err := ws.repo.CreateParticipant(participant, tx); err != nil {
 			tx.Rollback()

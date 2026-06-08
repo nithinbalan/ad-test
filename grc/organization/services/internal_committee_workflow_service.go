@@ -46,6 +46,7 @@ type InternalCommitteeWorkflowService struct {
 	committeeSvc         InternalCommitteeServiceInterface
 	workflowContextSvc   masterSvc.WorkflowContextServiceInterface
 	organizationUnitsSvc OrganizationUnitsServiceInterface
+	settingsOrgUnitSvc   settinsSvc.OrganizationUnitServiceInterface
 }
 
 func NewInternalCommitteeWorkflowService(
@@ -57,6 +58,7 @@ func NewInternalCommitteeWorkflowService(
 	committeeSvc InternalCommitteeServiceInterface,
 	workflowContextSvc masterSvc.WorkflowContextServiceInterface,
 	organizationUnitsSvc OrganizationUnitsServiceInterface,
+	settingsOrgUnitSvc settinsSvc.OrganizationUnitServiceInterface,
 ) InternalCommitteeWorkflowServiceInterface {
 	return &InternalCommitteeWorkflowService{
 		repo:                 repo,
@@ -67,6 +69,7 @@ func NewInternalCommitteeWorkflowService(
 		committeeSvc:         committeeSvc,
 		workflowContextSvc:   workflowContextSvc,
 		organizationUnitsSvc: organizationUnitsSvc,
+		settingsOrgUnitSvc:   settingsOrgUnitSvc,
 	}
 }
 
@@ -347,6 +350,25 @@ func (icws *InternalCommitteeWorkflowService) CreateInternalCommitteeWorkflow(in
 					}
 
 				}
+			} else if participant.Unit != nil {
+				unitDetails, err := icws.settingsOrgUnitSvc.GetFullDetailsByID(uint(participant.Unit.ID))
+				deptHead, err := icws.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(uint(participant.Unit.ID))
+				if err != nil {
+					return err
+				}
+				if deptHead.HeadUser == nil {
+					return utility.NewForbiddenError(
+						fmt.Sprintf(
+							"No head has been assigned to the %s '%s'. Please assign a head and try again.",
+							unitDetails.OrganizationLevel.TitleEn,
+							unitDetails.TitleEn,
+						),
+					)
+				}
+				userID := uint(deptHead.HeadUser.ID)
+				if err = icws.createWorkflowParticipant(userID, workflowID, &participant, currentUserID, tx...); err != nil {
+					return err
+				}
 			}
 
 		}
@@ -376,6 +398,10 @@ func (icws *InternalCommitteeWorkflowService) createWorkflowParticipant(userID u
 	if participant.WorkflowCustomRole != nil {
 		committeeWorkflowParticipant.CustomRoleID = &participant.WorkflowCustomRole.ID
 	}
+	// if participant.Unit != nil {
+	// 	unitID := uint(participant.Unit.ID)
+	// 	committeeWorkflowParticipant.UnitID = &unitID
+	// }
 	err := icws.repo.CreateInternalCommitteeWorkflowParticipant(committeeWorkflowParticipant, tx...)
 	if err != nil {
 		return err
