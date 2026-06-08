@@ -412,45 +412,6 @@ func (icc *InternalCommitteeController) CreateExternalCommitteeParticipant(c *gi
 
 	c.JSON(http.StatusCreated, dtos.IDResponse{ID: createdID})
 }
-func (icc *InternalCommitteeController) DeleteExternalCommitteeParticipant(c *gin.Context) {
-	nomineeDeptIDStr := c.Param("nomineeDepartmentId")
-
-	nomineeDeptID, err := strconv.ParseUint(nomineeDeptIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	participantIDStr := c.Param("participantId")
-
-	participantID, err := strconv.ParseUint(participantIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
-	}
-
-	currentUserID, err := utility.GetCurrentUserID(c)
-	if err != nil {
-		utility.SendInternalErrResp(icc.db, c, err.Error())
-		return
-	}
-
-	err = icc.service.DeleteExternalParticipant(uint(nomineeDeptID), uint(participantID), currentUserID)
-	if err != nil {
-		switch e := err.(type) {
-		case *utility.ValidationError:
-			utility.SendInvalidErrResp(c, e)
-			return
-		default:
-			utility.SendInternalErrResp(icc.db, c, e.Error())
-			return
-		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "External participant deleted successfully",
-	})
-}
 
 func (icc *InternalCommitteeController) DisbandInternalCommittee(c *gin.Context) {
 	fmt.Println("Disbanding internal committee...")

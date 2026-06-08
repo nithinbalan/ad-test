@@ -35,7 +35,6 @@ type InternalCommitteeServiceInterface interface {
 	DeleteParticipant(nomineeDepartmentID uint, participantID uint, currentUserID uint) error
 	ValidateAllDepartmentsHaveParticipants(versionID uint, tx ...utility.DatabaseTransaction) (bool, error)
 	CreateExternalParticipant(currentUserID uint, nomineeDepartmentID uint, dto *organizationDTOs.ExternalParticipantDTO) (uint, error)
-	DeleteExternalParticipant(nomineeDepartmentID uint, participantID uint, currentUserID uint) error
 }
 
 type InternalCommitteeService struct {
@@ -1637,6 +1636,12 @@ func (ics *InternalCommitteeService) DeleteParticipant(nomineeDepartmentID uint,
 			})
 			return
 		}
+		if deletedParticipant.UserID == nil {
+			utility.LogError("Participant has no UserID", map[string]interface{}{
+				"participant_id": deletedParticipant.ID,
+			})
+			return
+		}
 
 		// Get user details
 		user, err := ics.userSvc.GetByID(*deletedParticipant.UserID)
@@ -2041,21 +2046,21 @@ func (ics *InternalCommitteeService) CreateExternalParticipant(currentUserID uin
 	if err != nil {
 		return 0, utility.NewResourceNotFoundError(err, nomineeDepartmentID)
 	}
-	// orgDetail, err := ics.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(nomineeDepartment.NomineeDepartmentID)
-	// if err != nil {
-	// 	return 0, err
-	// }
+	orgDetail, err := ics.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(nomineeDepartment.NomineeDepartmentID)
+	if err != nil {
+		return 0, err
+	}
 
-	// if orgDetail.HeadUser == nil {
-	// 	return 0, utility.NewForbiddenError(
-	// 		"No department head has been assigned to the selected department.",
-	// 	)
-	// }
-	// if orgDetail.HeadUser.ID != currentUserID {
-	// 	return 0, utility.NewForbiddenError(
-	// 		"Only the department head can add participants.",
-	// 	)
-	// }
+	if orgDetail.HeadUser == nil {
+		return 0, utility.NewForbiddenError(
+			"No department head has been assigned to the selected department.",
+		)
+	}
+	if orgDetail.HeadUser.ID != currentUserID {
+		return 0, utility.NewForbiddenError(
+			"Only the department head can add participants.",
+		)
+	}
 
 	tx := ics.repo.BeginTransaction()
 	participant := &models.InternalCommitteeVersionNomineeDepartmentParticipant{
@@ -2072,10 +2077,30 @@ func (ics *InternalCommitteeService) CreateExternalParticipant(currentUserID uin
 		return 0, err
 	}
 	tx.Commit()
+	tx.Commit()
+
+	go func() {
+		err := ics.activityLogSvc.LogActivity(
+			models.CreateAction,
+			"committee_participants",
+			id,
+			map[string]interface{}{
+				"nominee_department_id": nomineeDepartmentID,
+				"external_name":         dto.Name,
+				"external_email":        dto.Email,
+			},
+			currentUserID,
+			"organization",
+			"committee_management",
+			"create external committee participant",
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}()
+
 	return id, nil
-}
-
-func (ics *InternalCommitteeService) DeleteExternalParticipant(nomineeDepartmentID uint, participantID uint, currentUserID uint) error {
-
-	return nil
 }
