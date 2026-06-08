@@ -351,11 +351,17 @@ func (icws *InternalCommitteeWorkflowService) CreateInternalCommitteeWorkflow(in
 
 				}
 			} else if participant.Unit != nil {
+
 				unitDetails, err := icws.settingsOrgUnitSvc.GetFullDetailsByID(uint(participant.Unit.ID))
+				if err != nil {
+					return err
+				}
+
 				deptHead, err := icws.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(uint(participant.Unit.ID))
 				if err != nil {
 					return err
 				}
+
 				if deptHead.HeadUser == nil {
 					return utility.NewForbiddenError(
 						fmt.Sprintf(
@@ -365,8 +371,16 @@ func (icws *InternalCommitteeWorkflowService) CreateInternalCommitteeWorkflow(in
 						),
 					)
 				}
+
 				userID := uint(deptHead.HeadUser.ID)
-				if err = icws.createWorkflowParticipant(userID, workflowID, &participant, currentUserID, tx...); err != nil {
+
+				if err = icws.createWorkflowParticipant(
+					userID,
+					workflowID,
+					&participant,
+					currentUserID,
+					tx...,
+				); err != nil {
 					return err
 				}
 			}

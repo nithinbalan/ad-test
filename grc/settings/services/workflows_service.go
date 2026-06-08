@@ -307,7 +307,6 @@ func (ws *WorkflowService) CreateWorkFlowLevel(workflowId uint, currentUserID ui
 	switch workflowRoleType.Type {
 	case "individual", "multiple-users":
 		// Handle individual and multiple users by looping through user IDs provided in the form DTO
-		fmt.Println(workflowLevelFormDTO.UserIds)
 		if len(workflowLevelFormDTO.UserIds) < 1 {
 			tx.Rollback()
 			return 0, fmt.Errorf("user is required for selected level type")
