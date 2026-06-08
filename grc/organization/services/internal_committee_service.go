@@ -34,6 +34,7 @@ type InternalCommitteeServiceInterface interface {
 	CreateParticipants(currentUserID uint, nomineeDepartmentID uint, dto *organizationDTOs.InternalCommitteeParticipantFormDTO) ([]uint, error)
 	DeleteParticipant(nomineeDepartmentID uint, participantID uint, currentUserID uint) error
 	ValidateAllDepartmentsHaveParticipants(versionID uint, tx ...utility.DatabaseTransaction) (bool, error)
+	CreateExternalParticipant(currentUserID uint, nomineeDepartmentID uint, dto *organizationDTOs.ExternalParticipantDTO) (uint, error)
 }
 
 type InternalCommitteeService struct {
@@ -184,12 +185,52 @@ func (ics *InternalCommitteeService) GetFullDetailsByID(id uint, tx ...utility.D
 				}
 
 				// Map participants
+				// if len(nomineeDept.Participants) > 0 {
+				// 	var participantsDTO []organizationDTOs.InternalCommitteeVersionNomineeDepartmentParticipantDTO
+				// 	for _, participant := range nomineeDept.Participants {
+				// 		participantDTO := organizationDTOs.InternalCommitteeVersionNomineeDepartmentParticipantDTO{
+				// 			ID:     participant.ID,
+				// 			UserID: *participant.UserID,
+				// 		}
+
+				// 		// Map participant user
+				// 		if participant.User != nil {
+				// 			participantDTO.User = &organizationDTOs.UserMinimalDTO{
+				// 				ID:               int(participant.User.ID),
+				// 				FirstNameEN:      participant.User.FirstNameEn,
+				// 				LastNameEN:       participant.User.LastNameEn,
+				// 				FirstNameAR:      participant.User.FirstNameAr,
+				// 				LastNameAR:       participant.User.LastNameAr,
+				// 				Email:            participant.User.Email,
+				// 				Initial:          participant.User.Initial,
+				// 				Color:            participant.User.Color,
+				// 				ProfileImagePath: participant.User.ProfileImagePath,
+				// 			}
+				// 		}
+
+				// 		participantsDTO = append(participantsDTO, participantDTO)
+				// 	}
+				// 	nomineeDeptDTO.Participants = participantsDTO
+				// }
 				if len(nomineeDept.Participants) > 0 {
 					var participantsDTO []organizationDTOs.InternalCommitteeVersionNomineeDepartmentParticipantDTO
+
 					for _, participant := range nomineeDept.Participants {
+
 						participantDTO := organizationDTOs.InternalCommitteeVersionNomineeDepartmentParticipantDTO{
-							ID:     participant.ID,
-							UserID: participant.UserID,
+							ID: participant.ID,
+						}
+
+						if participant.UserID != nil {
+							participantDTO.UserID = *participant.UserID
+						}
+
+						if participant.ExternalName != nil {
+							participantDTO.ExternalName = participant.ExternalName
+						}
+
+						if participant.ExternalEmail != nil {
+							participantDTO.ExternalEmail = participant.ExternalEmail
 						}
 
 						// Map participant user
@@ -209,9 +250,9 @@ func (ics *InternalCommitteeService) GetFullDetailsByID(id uint, tx ...utility.D
 
 						participantsDTO = append(participantsDTO, participantDTO)
 					}
+
 					nomineeDeptDTO.Participants = participantsDTO
 				}
-
 				nomineeDepartmentsDTO = append(nomineeDepartmentsDTO, nomineeDeptDTO)
 			}
 			versionDTO.NomineeDepartments = nomineeDepartmentsDTO
@@ -1322,6 +1363,21 @@ func (ics *InternalCommitteeService) CreateParticipants(currentUserID uint, nomi
 	if err != nil {
 		return nil, utility.NewResourceNotFoundError(err, nomineeDepartmentID)
 	}
+	orgDetail, err := ics.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(nomineeDepartment.NomineeDepartmentID)
+	if err != nil {
+		return nil, err
+	}
+
+	if orgDetail.HeadUser == nil {
+		return nil, utility.NewForbiddenError(
+			"No department head has been assigned to the selected department.",
+		)
+	}
+	if orgDetail.HeadUser.ID != currentUserID {
+		return nil, utility.NewForbiddenError(
+			"Only the department head can add participants.",
+		)
+	}
 
 	tx := ics.repo.BeginTransaction()
 
@@ -1343,7 +1399,7 @@ func (ics *InternalCommitteeService) CreateParticipants(currentUserID uint, nomi
 	for _, userID := range dto.UserIDs {
 		participant := &models.InternalCommitteeVersionNomineeDepartmentParticipant{
 			InternalCommitteeVersionNomineeDepartmentID: nomineeDepartmentID,
-			UserID:       userID,
+			UserID:       &userID,
 			DepartmentID: nomineeDepartment.NomineeDepartmentID, // Set NomineeDepartmentID to DepartmentID
 			CreatedBYID:  &currentUserID,
 		}
@@ -1580,9 +1636,15 @@ func (ics *InternalCommitteeService) DeleteParticipant(nomineeDepartmentID uint,
 			})
 			return
 		}
+		if deletedParticipant.UserID == nil {
+			utility.LogError("Participant has no UserID", map[string]interface{}{
+				"participant_id": deletedParticipant.ID,
+			})
+			return
+		}
 
 		// Get user details
-		user, err := ics.userSvc.GetByID(deletedParticipant.UserID)
+		user, err := ics.userSvc.GetByID(*deletedParticipant.UserID)
 		if err != nil {
 			utility.LogError("Failed to get user details for removal notification", map[string]interface{}{
 				"user_id": deletedParticipant.UserID,
@@ -1606,7 +1668,7 @@ func (ics *InternalCommitteeService) DeleteParticipant(nomineeDepartmentID uint,
 		action := "participant-removed"
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserIDs:              []uint{deletedParticipant.UserID},
+			UserIDs:              []uint{*deletedParticipant.UserID},
 			ModuleIdentifier:     "organization",
 			NotificationType:     string(commonDTOs.InformationType),
 			ReferenceNumber:      committee.ReferenceNumber,
@@ -1976,4 +2038,69 @@ func (ics *InternalCommitteeService) submitDisbandForWorkflow(committeeID uint, 
 
 func (ics *InternalCommitteeService) ValidateAllDepartmentsHaveParticipants(versionID uint, tx ...utility.DatabaseTransaction) (bool, error) {
 	return ics.repo.ValidateAllDepartmentsHaveParticipants(versionID, tx...)
+}
+
+func (ics *InternalCommitteeService) CreateExternalParticipant(currentUserID uint, nomineeDepartmentID uint, dto *organizationDTOs.ExternalParticipantDTO) (uint, error) {
+
+	nomineeDepartment, err := ics.repo.GetNomineeDepartmentByID(nomineeDepartmentID)
+	if err != nil {
+		return 0, utility.NewResourceNotFoundError(err, nomineeDepartmentID)
+	}
+	orgDetail, err := ics.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(nomineeDepartment.NomineeDepartmentID)
+	if err != nil {
+		return 0, err
+	}
+
+	if orgDetail.HeadUser == nil {
+		return 0, utility.NewForbiddenError(
+			"No department head has been assigned to the selected department.",
+		)
+	}
+	if orgDetail.HeadUser.ID != currentUserID {
+		return 0, utility.NewForbiddenError(
+			"Only the department head can add participants.",
+		)
+	}
+
+	tx := ics.repo.BeginTransaction()
+	participant := &models.InternalCommitteeVersionNomineeDepartmentParticipant{
+		InternalCommitteeVersionNomineeDepartmentID: nomineeDepartmentID,
+		UserID:        nil,
+		ExternalName:  &dto.Name,
+		ExternalEmail: &dto.Email,
+		DepartmentID:  nomineeDepartment.NomineeDepartmentID,
+		CreatedBYID:   &currentUserID,
+	}
+	id, err := ics.repo.CreateParticipant(participant, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	tx.Commit()
+	tx.Commit()
+
+	go func() {
+		err := ics.activityLogSvc.LogActivity(
+			models.CreateAction,
+			"committee_participants",
+			id,
+			map[string]interface{}{
+				"nominee_department_id": nomineeDepartmentID,
+				"external_name":         dto.Name,
+				"external_email":        dto.Email,
+			},
+			currentUserID,
+			"organization",
+			"committee_management",
+			"create external committee participant",
+			nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}()
+
+	return id, nil
 }

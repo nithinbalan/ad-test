@@ -322,6 +322,9 @@ func (icc *InternalCommitteeController) CreateInternalCommitteeParticipants(c *g
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(icc.db, c, e.Error())
 			return
@@ -369,6 +372,45 @@ func (icc *InternalCommitteeController) DeleteInternalCommitteeParticipant(c *gi
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Participants deleted successfully",
 	})
+}
+func (icc *InternalCommitteeController) CreateExternalCommitteeParticipant(c *gin.Context) {
+	nomineeDeptIDStr := c.Param("nomineeDepartmentId")
+
+	nomineeDeptID, err := strconv.ParseUint(nomineeDeptIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var participantFormDTO organizationDTOs.ExternalParticipantDTO
+
+	if err := c.ShouldBindJSON(&participantFormDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(icc.db, c, err.Error())
+		return
+	}
+
+	createdID, err := icc.service.CreateExternalParticipant(currentUserID, uint(nomineeDeptID), &participantFormDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(icc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, dtos.IDResponse{ID: createdID})
 }
 
 func (icc *InternalCommitteeController) DisbandInternalCommittee(c *gin.Context) {
