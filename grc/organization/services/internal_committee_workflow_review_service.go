@@ -30,6 +30,7 @@ type InternalCommitteeWorkflowReviewService struct {
 	committeeStatusSvc   InternalCommitteeStatusServiceInterface
 	userSvc              UserServiceInterface
 	notificationSvc      commonServices.NotificationServiceInterface
+	organizationUnitSvc  OrganizationUnitsServiceInterface
 }
 
 func NewInternalCommitteeWorkflowReviewService(
@@ -41,6 +42,7 @@ func NewInternalCommitteeWorkflowReviewService(
 	committeeStatusSvc InternalCommitteeStatusServiceInterface,
 	userSvc UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	organizationUnitSvc OrganizationUnitsServiceInterface,
 ) InternalCommitteeWorkflowReviewServiceInterface {
 	return &InternalCommitteeWorkflowReviewService{
 		repo:                 repo,
@@ -51,6 +53,7 @@ func NewInternalCommitteeWorkflowReviewService(
 		committeeStatusSvc:   committeeStatusSvc,
 		userSvc:              userSvc,
 		notificationSvc:      notificationSvc,
+		organizationUnitSvc:  organizationUnitSvc,
 	}
 }
 
@@ -62,6 +65,34 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Submit(committeeID uint, cu
 	committeeDTO, err := icwrs.committeeSvc.GetFullDetailsByID(committeeID)
 	if err != nil {
 		return err
+	}
+
+	parentUnit, err := icwrs.organizationUnitSvc.GetParentOrganizationUnitAndCurrentUnitHead(committeeDTO.RequestingEntityID)
+	if err != nil {
+		return err
+	}
+
+	parentHead, err := icwrs.organizationUnitSvc.GetParentOrganizationUnitAndCurrentUnitHead(parentUnit.OrganizationUnit.ID)
+	if err != nil {
+		return err
+	}
+
+	if parentHead.HeadUser == nil {
+		return utility.NewForbiddenError(
+			fmt.Sprintf(
+				"No head user is assigned to the parent organization unit '%s'. Please contact the administrator.",
+				parentUnit.OrganizationUnit.TitleEn,
+			),
+		)
+	}
+
+	if parentHead.HeadUser.ID != currentUserID {
+		return utility.NewForbiddenError(
+			fmt.Sprintf(
+				"You are not authorized to submit this request. Only the head of the parent organization unit '%s' can perform this action.",
+				parentUnit.OrganizationUnit.TitleEn,
+			),
+		)
 	}
 
 	if committeeDTO.LatestVersion == nil {

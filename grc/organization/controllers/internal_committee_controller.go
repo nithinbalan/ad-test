@@ -223,6 +223,45 @@ func (icc *InternalCommitteeController) UpdateInternalCommittee(c *gin.Context) 
 	c.Status(http.StatusOK)
 }
 
+func (icc *InternalCommitteeController) UpdateCommitteeDetails(c *gin.Context) {
+	idStr := c.Param("committeeId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var dto organizationDTOs.UpdateCommitteeDetailsDTO
+
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(icc.db, c, err.Error())
+		return
+	}
+
+	err = icc.service.UpdateCommitteeDetails(uint(id), currentUserID, &dto)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(icc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
 func (icc *InternalCommitteeController) ReformInternalCommittee(c *gin.Context) {
 	var reformDTO organizationDTOs.ReformInternalCommitteeDTO
 

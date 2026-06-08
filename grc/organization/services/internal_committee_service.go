@@ -29,7 +29,7 @@ type InternalCommitteeServiceInterface interface {
 	ReformCommittee(currentUserID uint, reformDTO *organizationDTOs.ReformInternalCommitteeDTO) (uint, error)
 	GetLatestVersionByID(id uint) (*models.InternalCommittee, error)
 	DisbandCommittee(committeeID uint, currentUserID uint) error
-
+	UpdateCommitteeDetails(id uint, currentUserID uint, detailsDTO *organizationDTOs.UpdateCommitteeDetailsDTO) error
 	// Participant methods
 	CreateParticipants(currentUserID uint, nomineeDepartmentID uint, dto *organizationDTOs.InternalCommitteeParticipantFormDTO) ([]uint, error)
 	DeleteParticipant(nomineeDepartmentID uint, participantID uint, currentUserID uint) error
@@ -489,6 +489,59 @@ func (ics *InternalCommitteeService) Create(currentUserID uint, internalCommitte
 	}()
 
 	return committeeID, nil
+}
+func (ics *InternalCommitteeService) UpdateCommitteeDetails(id uint, currentUserID uint, detailsDTO *organizationDTOs.UpdateCommitteeDetailsDTO) error {
+	existingCommittee, err := ics.repo.GetByID(id)
+	if err != nil {
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, id)
+		}
+		return err
+	}
+
+	existingCommittee.UpdatedBYID = &currentUserID
+	tx := ics.repo.BeginTransaction()
+	if err := ics.repo.Update(existingCommittee, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Get latest version to update
+	versions, err := ics.repo.GetVersionsByCommitteeID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	// Get latest version to update
+	versions, err = ics.repo.GetVersionsByCommitteeID(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	var latestVersion *models.InternalCommitteeVersion
+	for _, v := range versions {
+		if v.IsLatestVersion != nil && *v.IsLatestVersion {
+			latestVersion = v
+			break
+		}
+	}
+
+	if latestVersion == nil {
+		tx.Rollback()
+		return fmt.Errorf("no latest version found for committee")
+	}
+	latestVersion.RolesAndResponsibilities = detailsDTO.RolesAndResponsibilities
+	latestVersion.CommitteeAuthorities = detailsDTO.CommitteeAuthorities
+	latestVersion.UpdatedBYID = &currentUserID
+
+	if err := ics.repo.UpdateVersion(latestVersion, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+	return nil
 }
 
 func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, internalCommitteeFormDTO *organizationDTOs.InternalCommitteeFormDTO) error {

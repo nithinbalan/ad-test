@@ -565,7 +565,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/internal-committees/reform", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.ReformInternalCommittee)
 	organizationRoutes.POST("/internal-committees/delete", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.DeleteInternalCommittee)
 	organizationRoutes.POST("/internal-committees/:committeeId/disband", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.DisbandInternalCommittee)
-
+	organizationRoutes.PUT("/internal-committees/:committeeId/details", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.UpdateCommitteeDetails)
 	// Internal Committee Participants
 	organizationRoutes.POST("/internal-committee-nominee-departments/:nomineeDepartmentId/participants", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.CreateInternalCommitteeParticipants)
 	organizationRoutes.DELETE("/internal-committee-nominee-departments/:nomineeDepartmentId/participants/:participantId", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.DeleteInternalCommitteeParticipant)

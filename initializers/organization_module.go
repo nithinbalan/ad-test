@@ -372,7 +372,7 @@ func NewOrganizationModule(
 		masterModule.WorkflowStatusSvc,
 		internalCommitteeStatusSvc,
 		userSvc,
-		commonModule.NotificationService,
+		commonModule.NotificationService, organizationUnitsSvc,
 	)
 
 	// Create committee service with all dependencies including workflow services

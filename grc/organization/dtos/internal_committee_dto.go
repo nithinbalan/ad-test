@@ -84,7 +84,10 @@ type InternalCommitteeFormDTO struct {
 	CommitteeAuthorities      *string                                            `json:"committee_authorities"`
 	NomineeDepartments        []InternalCommitteeVersionNomineeDepartmentFormDTO `json:"nominee_departments"`
 }
-
+type UpdateCommitteeDetailsDTO struct {
+	RolesAndResponsibilities *string `json:"roles_and_responsibilities"`
+	CommitteeAuthorities     *string `json:"committee_authorities"`
+}
 type InternalCommitteeVersionNomineeDepartmentFormDTO struct {
 	NomineeDepartmentID   uint  `json:"nominee_department_id"`
 	CommitteeMemberTypeID *uint `json:"committee_member_type_id"`
