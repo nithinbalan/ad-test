@@ -127,6 +127,7 @@ func (repo *OrganizationUnitRepository) GetFullDetailsByID(id uint, tx ...utilit
 
 	result := db.
 		Preload("ParentUnit").
+		Preload("OrganizationLevel").
 		First(&organizationUnit, id)
 
 	if result.Error != nil {

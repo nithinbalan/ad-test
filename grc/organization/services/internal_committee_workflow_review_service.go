@@ -294,7 +294,7 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 	}
 
 	switch currentCommitteeWorkflow.WorkflowLevelType.Type {
-	case "individual", "custom-roles":
+	case "individual", "custom-roles", "hod":
 		if len(currentCommitteeWorkflow.InternalCommitteeWorkflowParticipants) == 0 || currentUserID != currentCommitteeWorkflow.InternalCommitteeWorkflowParticipants[0].UserID {
 			tx.Rollback()
 			return utility.NewForbiddenError("you have no permission to approve")

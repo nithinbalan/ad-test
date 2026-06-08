@@ -1,15 +1,22 @@
 package dtos
 
 type OrganizationUnitDTO struct {
-	ID                   int                  `json:"id"`
-	TitleEn              string               `json:"title_en"`
-	TitleAr              string               `json:"title_ar"`
-	Status               string               `json:"status"`
-	ColorCode            string               `json:"color_code"`
-	ParentUnit           *OrganizationUnitDTO `json:"parent_unit"`
-	OrganizationUnitHead *UserMinimalDTO      `json:"unit_head"`
+	ID                   int                   `json:"id"`
+	TitleEn              string                `json:"title_en"`
+	TitleAr              string                `json:"title_ar"`
+	Status               string                `json:"status"`
+	ColorCode            string                `json:"color_code"`
+	ParentUnit           *OrganizationUnitDTO  `json:"parent_unit"`
+	OrganizationUnitHead *UserMinimalDTO       `json:"unit_head"`
+	OrganizationLevel    *OrganizationLevelDTO `json:"organization_level"`
 }
-
+type OrganizationLevelDTO struct {
+	ID        uint   `json:"id"`
+	Level     int    `json:"level"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	IsPrimary bool   `json:"is_primary"`
+}
 type OrganizationUnitListDTO struct {
 	ID                            uint   `json:"id"`
 	OrganizationLevelID           uint   `json:"organization_level_id"`
