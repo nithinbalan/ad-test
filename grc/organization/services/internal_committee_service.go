@@ -29,6 +29,8 @@ type InternalCommitteeServiceInterface interface {
 	ReformCommittee(currentUserID uint, reformDTO *organizationDTOs.ReformInternalCommitteeDTO) (uint, error)
 	GetLatestVersionByID(id uint) (*models.InternalCommittee, error)
 	DisbandCommittee(committeeID uint, currentUserID uint) error
+	CancelCommittee(committeeID uint, currentUserID uint) error
+	CompleteCommittee(committeeID uint, currentUserID uint) error
 	UpdateCommitteeDetails(id uint, currentUserID uint, detailsDTO *organizationDTOs.UpdateCommitteeDetailsDTO) error
 	// Participant methods
 	CreateParticipants(currentUserID uint, nomineeDepartmentID uint, dto *organizationDTOs.InternalCommitteeParticipantFormDTO) ([]uint, error)
@@ -52,6 +54,7 @@ type InternalCommitteeService struct {
 	workflowReviewSvc          InternalCommitteeWorkflowReviewServiceInterface
 	committeeWorkflowSvc       InternalCommitteeWorkflowServiceInterface
 	workflowStatusSvc          masterServices.WorkflowStatusServiceInterface
+	roleSvc                    settingsServices.RoleServiceInterface
 }
 
 func NewInternalCommitteeService(
@@ -69,6 +72,7 @@ func NewInternalCommitteeService(
 	workflowReviewSvc InternalCommitteeWorkflowReviewServiceInterface,
 	committeeWorkflowSvc InternalCommitteeWorkflowServiceInterface,
 	workflowStatusSvc masterServices.WorkflowStatusServiceInterface,
+	roleSvc settingsServices.RoleServiceInterface,
 ) InternalCommitteeServiceInterface {
 	return &InternalCommitteeService{
 		repo:                       repo,
@@ -85,6 +89,7 @@ func NewInternalCommitteeService(
 		workflowReviewSvc:          workflowReviewSvc,
 		committeeWorkflowSvc:       committeeWorkflowSvc,
 		workflowStatusSvc:          workflowStatusSvc,
+		roleSvc:                    roleSvc,
 	}
 }
 
@@ -490,7 +495,163 @@ func (ics *InternalCommitteeService) Create(currentUserID uint, internalCommitte
 
 	return committeeID, nil
 }
+func (ics *InternalCommitteeService) CancelCommittee(committeeID uint, currentUserID uint) error {
+	existingCommittee, err := ics.repo.GetByID(committeeID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, committeeID)
+		}
+		return err
+	}
+
+	cancelCommit, err := ics.internalCommitteeStatusSvc.GetByType("cancelled")
+	if err != nil {
+		return err
+	}
+	existingCommittee.UpdatedBYID = &currentUserID
+
+	tx := ics.repo.BeginTransaction()
+
+	if err := ics.repo.Update(existingCommittee, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	versions, err := ics.repo.GetVersionsByCommitteeID(committeeID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	var latestVersion *models.InternalCommitteeVersion
+	for _, v := range versions {
+		if v.IsLatestVersion != nil && *v.IsLatestVersion {
+			latestVersion = v
+			break
+		}
+	}
+
+	if latestVersion == nil {
+		tx.Rollback()
+		return fmt.Errorf("no latest version found for committee")
+	}
+
+	now := time.Now()
+
+	latestVersion.CanceledByID = &currentUserID
+	latestVersion.CanceledAt = &now
+	latestVersion.UpdatedBYID = &currentUserID
+	latestVersion.CommitteeStatusID = cancelCommit.ID
+	if err := ics.repo.UpdateVersion(latestVersion, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
+func (ics *InternalCommitteeService) CompleteCommittee(committeeID uint, currentUserID uint) error {
+	hrrole, err := ics.roleSvc.GetByType("committee-admin")
+	if err != nil {
+		return err
+	}
+	userIds, err := ics.userSvc.GetUserIdsByRole(hrrole.ID)
+	if err != nil {
+		return err
+	}
+
+	hasAuthority := false
+	for _, userID := range userIds {
+		if userID == currentUserID {
+			hasAuthority = true
+			break
+		}
+	}
+
+	if !hasAuthority {
+		return utility.NewForbiddenError("Only users with the Commetee admin role can update committee details")
+	}
+
+	existingCommittee, err := ics.repo.GetByID(committeeID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, committeeID)
+		}
+		return err
+	}
+
+	completedStatus, err := ics.internalCommitteeStatusSvc.GetByType("completed")
+	if err != nil {
+		return err
+	}
+
+	existingCommittee.UpdatedBYID = &currentUserID
+
+	tx := ics.repo.BeginTransaction()
+
+	if err := ics.repo.Update(existingCommittee, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	versions, err := ics.repo.GetVersionsByCommitteeID(committeeID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	var latestVersion *models.InternalCommitteeVersion
+	for _, v := range versions {
+		if v.IsLatestVersion != nil && *v.IsLatestVersion {
+			latestVersion = v
+			break
+		}
+	}
+
+	if latestVersion == nil {
+		tx.Rollback()
+		return fmt.Errorf("no latest version found for committee")
+	}
+	now := time.Now()
+	latestVersion.UpdatedBYID = &currentUserID
+	latestVersion.CommitteeStatusID = completedStatus.ID
+	latestVersion.CompletedByID = &currentUserID
+	latestVersion.CompletedAt = &now
+
+	if err := ics.repo.UpdateVersion(latestVersion, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
 func (ics *InternalCommitteeService) UpdateCommitteeDetails(id uint, currentUserID uint, detailsDTO *organizationDTOs.UpdateCommitteeDetailsDTO) error {
+	hrrole, err := ics.roleSvc.GetByType("head-of-hr")
+	if err != nil {
+		return err
+	}
+	userIds, err := ics.userSvc.GetUserIdsByRole(hrrole.ID)
+	if err != nil {
+		return err
+	}
+
+	hasAuthority := false
+	for _, userID := range userIds {
+		if userID == currentUserID {
+			hasAuthority = true
+			break
+		}
+	}
+
+	if !hasAuthority {
+		return utility.NewForbiddenError("Only users with the Head of HR role can update committee details")
+	}
+
 	existingCommittee, err := ics.repo.GetByID(id)
 	if err != nil {
 
@@ -541,6 +702,93 @@ func (ics *InternalCommitteeService) UpdateCommitteeDetails(id uint, currentUser
 		return err
 	}
 	tx.Commit()
+
+	go func() {
+		commeteeAdmin, err := ics.roleSvc.GetByType("committee-admin")
+		if err != nil {
+			utility.LogError("Failed to fetch commeitee admin", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+		userIds, err := ics.userSvc.GetUserIdsByRole(commeteeAdmin.ID)
+		if err != nil {
+			utility.LogError("Failed to all user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		updatedBy, err := ics.userSvc.GetByID(currentUserID)
+		if err != nil {
+			utility.LogError("Failed to fetch updated user", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		committee, err := ics.repo.GetFullDetailsByID(id)
+		if err != nil {
+			utility.LogError("Failed to fetch commetee", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		urlParam := fmt.Sprintf(`{"committee_id":%d}`, id)
+		queryParam := ""
+		entity := "internal-committee"
+		action := "committee-details-updated"
+
+		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+			UserIDs:              userIds,
+			ModuleIdentifier:     "organization",
+			NotificationType:     string(commonDTOs.AssignmentType),
+			HeadingEn:            "Committee Details Updated",
+			HeadingAr:            "تم تحديث تفاصيل اللجنة",
+			Entity:               &entity,
+			Action:               &action,
+			URLParam:             urlParam,
+			QueryParam:           queryParam,
+			IsSystemNotification: false,
+			CreatedByID:          &currentUserID,
+		}
+
+		var emailTo []string
+		for _, userID := range userIds {
+			user, err := ics.userSvc.GetByID(userID)
+			if err != nil {
+				continue
+			}
+			emailTo = append(emailTo, user.Email)
+		}
+
+		appURL := utility.GetAppURL()
+
+		emailData := map[string]interface{}{
+			"ReferemceNumber":      committee.ReferenceNumber,
+			"RequestingDeaprtment": committee.RequestingEntity.TitleEn,
+			"UpdatedByFirstNameEn": updatedBy.FirstNameEn,
+			"UpdatedByLastNameEn":  updatedBy.LastNameEn,
+			"UpdatedOn":            time.Now().Format("2006-01-02"),
+			"UpdatedBy":            fmt.Sprintf("%s %s", updatedBy.FirstNameEn, updatedBy.LastNameEn),
+			"RedirectURL":          fmt.Sprintf("%s//organization/committee/%d/overview", appURL, id),
+		}
+
+		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+			EmailTo:              emailTo,
+			Subject:              fmt.Sprintf("Committee Details Updated: %s", committee.ReferenceNumber),
+			TemplateRelativePath: "organization/templates/email/committee_details_updated.html",
+			EmailData:            emailData,
+		}
+		err = ics.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "committee_management")
+		if err != nil {
+			utility.LogError("Failed to send committee update notification", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}()
+
 	return nil
 }
 
@@ -1871,7 +2119,7 @@ func (ics *InternalCommitteeService) DisbandCommittee(committeeID uint, currentU
 	// Calculate new version number
 	newVersionNumber := *latestVersion.Version + 1
 	isLatestTrue := true
-
+	now := time.Now()
 	// Create new version with disband_required status
 	newVersion := &models.InternalCommitteeVersion{
 		InternalCommitteeID:       committeeID,
@@ -1889,6 +2137,8 @@ func (ics *InternalCommitteeService) DisbandCommittee(committeeID uint, currentU
 		Version:                   &newVersionNumber,
 		IsLatestVersion:           &isLatestTrue,
 		CreatedBYID:               currentUserID,
+		DisbandByID:               &currentUserID,
+		DisbandAt:                 &now,
 	}
 
 	newVersionID, err := ics.repo.CreateVersion(newVersion, tx)

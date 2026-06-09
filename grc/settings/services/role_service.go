@@ -25,6 +25,7 @@ type RoleServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
+	GetByType(roleType string) (*models.Role, error)
 
 	UpdateRolePermissions(roleID uint, currentUserID uint, rolePermissions []*dtos.RolePermissionFormDTO) error
 	GetAllWithPermissions(params *dtos.ModuleListQueryParamsDTO, roleID uint) (*[]dtos.ModuleListDTO, error)
@@ -97,7 +98,18 @@ func (rs RoleService) GetByID(id uint) (*models.Role, error) {
 	}
 	return role, nil
 }
+func (rs RoleService) GetByType(roleType string) (*models.Role, error) {
+	role, err := rs.repo.GetByType(roleType)
 
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, roleType)
+		}
+		return nil, err
+	}
+
+	return role, nil
+}
 func (rs *RoleService) Create(currentUserID uint, role *models.Role) (*models.Role, error) {
 
 	if err := rs.validateRoleForm(role, nil); err != nil {

@@ -141,6 +141,12 @@ type InternalCommitteeVersionDetailDTO struct {
 	WorkflowStatusID          *uint                                                 `json:"workflow_status_id"`
 	WorkflowStatus            *masterDTOs.WorkflowStatusDTO                         `json:"workflow_status"`
 	NomineeDepartments        []*InternalCommitteeVersionNomineeDepartmentDetailDTO `json:"nominee_departments"`
+	CanceledByUser            *UserMinimalDTO                                       `json:"canceled_by"`
+	DisbandByUser             *UserMinimalDTO                                       `json:"disband_by"`
+	CompletedByUser           *UserMinimalDTO                                       `json:"completed_by"`
+	CanceledAt                *time.Time                                            `json:"canceled_at"`
+	DisbandAt                 *time.Time                                            `json:"disband_at"`
+	CompletedAt               *time.Time                                            `json:"completed_at"`
 }
 
 type InternalCommitteeVersionNomineeDepartmentDetailDTO struct {

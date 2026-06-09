@@ -31,6 +31,7 @@ type InternalCommitteeWorkflowReviewService struct {
 	userSvc              UserServiceInterface
 	notificationSvc      commonServices.NotificationServiceInterface
 	organizationUnitSvc  OrganizationUnitsServiceInterface
+	committeeTermSvc     CommitteeTermServiceInterface
 }
 
 func NewInternalCommitteeWorkflowReviewService(
@@ -43,6 +44,7 @@ func NewInternalCommitteeWorkflowReviewService(
 	userSvc UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
 	organizationUnitSvc OrganizationUnitsServiceInterface,
+	committeeTermSvc CommitteeTermServiceInterface,
 ) InternalCommitteeWorkflowReviewServiceInterface {
 	return &InternalCommitteeWorkflowReviewService{
 		repo:                 repo,
@@ -54,6 +56,7 @@ func NewInternalCommitteeWorkflowReviewService(
 		userSvc:              userSvc,
 		notificationSvc:      notificationSvc,
 		organizationUnitSvc:  organizationUnitSvc,
+		committeeTermSvc:     committeeTermSvc,
 	}
 }
 
@@ -298,6 +301,11 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Submit(committeeID uint, cu
 }
 
 func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, currentUserID uint) error {
+	commettetermtype, err := icwrs.committeeTermSvc.GetByType("permanent")
+	if err != nil {
+		return err
+	}
+
 	tx := icwrs.repo.BeginTransaction()
 
 	committeeDetail, err := icwrs.committeeSvc.GetFullDetailsByID(committeeID, tx)
@@ -305,6 +313,7 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 		tx.Rollback()
 		return err
 	}
+	commetteterm := committeeDetail.LatestVersion.CommitteeTerm
 
 	currentApprovalLevel := committeeDetail.LatestVersion.NextReviewLevel
 	if currentApprovalLevel == nil {
@@ -390,9 +399,13 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 						}
 					}
 
+					if commetteterm.ID == commettetermtype.ID {
+						endDate := time.Now().AddDate(3, 0, 0)
+						version.TermEndDate = &endDate
+					}
+					approvedAt := time.Now()
 					version.CommitteeStatusID = finalCommitteeStatus.ID
 					version.WorkflowStatusID = &approvedWorkflowStatus.ID
-					approvedAt := time.Now()
 					version.ApprovedAt = &approvedAt
 					version.ApprovedByID = &currentUserID
 					if err := icwrs.repo.UpdateInternalCommitteeVersion(version, tx); err != nil {
@@ -554,7 +567,10 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 							return err
 						}
 					}
-
+					if commetteterm.ID == commettetermtype.ID {
+						endDate := time.Now().AddDate(3, 0, 0)
+						version.TermEndDate = &endDate
+					}
 					version.CommitteeStatusID = finalCommitteeStatus.ID
 					version.WorkflowStatusID = &approvedWorkflowStatus.ID
 					approvedAt := time.Now()

@@ -1,0 +1,66 @@
+{{ define "content" }}
+<p>Dear Committee Admin,</p>
+
+<p>
+    This is to inform you that the details of a committee have been updated.
+    Please find the updated committee information below:
+</p>
+<p>
+    The committee details have been finalized by the Head of HR, and it is now your responsibility to review and complete the remaining committee workflow process.
+</p>
+<table style="width: 100%; background-color: #fff; border-collapse: collapse; margin: 20px 0;">
+    <tbody>
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">
+                Reference Number
+            </th>
+            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">
+                {{ .ReferemceNumber }}
+            </td>
+        </tr>
+
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">
+                Requesting Department
+            </th>
+            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">
+                {{ .RequestingDeaprtment }}
+            </td>
+        </tr>
+
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">
+                Updated By
+            </th>
+            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">
+                {{ .UpdatedBy }}
+            </td>
+        </tr>
+
+        <tr style="border: 1px solid #EAEDF2;">
+            <th style="text-align: left; width: 30%; padding: 7px; background-color: #F6F6F6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #525967;">
+                Updated On
+            </th>
+            <td style="text-align: center; padding: 7px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1E1E1E;">
+                {{ .UpdatedOn }}
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<p>
+    Please review the updated committee details in the system.
+</p>
+
+<div style="text-align: center;">
+    <a href="{{ .RedirectURL }}"
+       style="background-color: #165D31; color: #ffffff; padding: 10px 20px; text-align: center; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 30px;">
+        View Committee
+    </a>
+</div>
+
+<p>
+    Thank you.
+</p>
+
+{{ end }}
