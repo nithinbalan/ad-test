@@ -322,7 +322,6 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	// 	tx.Rollback()
 	// 	return 0, err
 	// }
-	var responsibleUnits []*models.ComplianceRequirementResponsibleUnit
 	for _, resUnit := range complianceRequirementFormDTO.ResponsibleUnits {
 		orgUnit, err := crs.organizationUnitSvc.GetByID(resUnit.ResponsibleUnitID)
 		if err != nil {
@@ -333,6 +332,10 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 			tx.Rollback()
 			return 0, utility.NewValidationError(fmt.Errorf("responsible unit does not have a unit head"), "no_unit_head", "responsible unit")
 		}
+	}
+
+	var responsibleUnits []*models.ComplianceRequirementResponsibleUnit
+	for _, resUnit := range complianceRequirementFormDTO.ResponsibleUnits {
 		unit := &models.ComplianceRequirementResponsibleUnit{
 			ComplianceRequirementID:            id,
 			ResponsibleUnitID:                  resUnit.ResponsibleUnitID,
@@ -612,9 +615,6 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 		newUnitMap[unit.ResponsibleUnitID] = unit
 	}
 
-	// Add new responsible units
-	var unitsToAdd []*models.ComplianceRequirementResponsibleUnit
-	var unitsToUpdate []*models.ComplianceRequirementResponsibleUnit
 	for _, unit := range complianceRequirementFormDTO.ResponsibleUnits {
 		orgUnit, err := crs.organizationUnitSvc.GetByID(unit.ResponsibleUnitID)
 		if err != nil {
@@ -625,6 +625,12 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 			tx.Rollback()
 			return utility.NewValidationError(fmt.Errorf("responsible unit does not have a unit head"), "no_unit_head", "responsible unit")
 		}
+	}
+
+	// Add new responsible units
+	var unitsToAdd []*models.ComplianceRequirementResponsibleUnit
+	var unitsToUpdate []*models.ComplianceRequirementResponsibleUnit
+	for _, unit := range complianceRequirementFormDTO.ResponsibleUnits {
 		if _, exists := existingUnitIDs[unit.ResponsibleUnitID]; !exists {
 			unitsToAdd = append(unitsToAdd, &models.ComplianceRequirementResponsibleUnit{
 				ComplianceRequirementID:            id,

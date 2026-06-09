@@ -1339,23 +1339,21 @@ func (cars *ComplianceAssessmentRequirementService) getResidualRatingByScore(sco
 			}
 		}
 	}
-	return nil, nil
+	return nil, fmt.Errorf("no residual risk rating found for score %.2f: check rating table ranges", score)
 }
 
 func (cars *ComplianceAssessmentRequirementService) MarkAsNotApplicable(assessmentID uint, requirementID uint, currentUserID uint, form *complianceDTOs.ComplianceAssessmentRequirementNotApplicableFormDTO) error {
-	tx := cars.repo.BeginTransaction()
-
 	details, err := cars.GetFullDetailsByID(assessmentID, requirementID, form.ResponsibleUnitID)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	ru, err := cars.GetComplianceAssessmentRequirementResponsibleUnitByID(details.ResponsibleUnit.ID)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
+
+	tx := cars.repo.BeginTransaction()
 
 	score := form.Score
 	ru.IsNotApplicable = true
@@ -1398,43 +1396,37 @@ func (cars *ComplianceAssessmentRequirementService) MarkAsNotApplicable(assessme
 }
 
 func (cars *ComplianceAssessmentRequirementService) ApproveNotApplicable(assessmentID uint, requirementID uint, currentUserID uint, form *complianceDTOs.ComplianceAssessmentRequirementApproveNotApplicableFormDTO) error {
-	tx := cars.repo.BeginTransaction()
-
 	details, err := cars.GetFullDetailsByID(assessmentID, requirementID, form.ResponsibleUnitID)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	ru, err := cars.GetComplianceAssessmentRequirementResponsibleUnitByID(details.ResponsibleUnit.ID)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	if !ru.IsNotApplicable {
-		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("responsible unit is not marked as not applicable"), "invalid_state", "responsible unit")
 	}
 
 	notApplicableStatus, err := cars.complianceStatusSvc.GetByType("not_applicable")
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	approvedScore := 100
 	residualScore, err := cars.calculateResidualScore(details.ComplianceRequirement.InherentRiskScore, approvedScore)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	ratingID, err := cars.getResidualRatingByScore(residualScore)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
+
+	tx := cars.repo.BeginTransaction()
 
 	ru.Score = &approvedScore
 	ru.ComplianceStatusID = &notApplicableStatus.ID
@@ -1476,31 +1468,27 @@ func (cars *ComplianceAssessmentRequirementService) ApproveNotApplicable(assessm
 }
 
 func (cars *ComplianceAssessmentRequirementService) ComplianceAssessmentRequirementScoreUpdate(assessmentID uint, requirementID uint, currentUserID uint, form *complianceDTOs.ComplianceAssessmentRequirementScoreUpdateFormDTO) error {
-	tx := cars.repo.BeginTransaction()
-
 	details, err := cars.GetFullDetailsByID(assessmentID, requirementID, form.ResponsibleUnitID)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	ru, err := cars.GetComplianceAssessmentRequirementResponsibleUnitByID(details.ResponsibleUnit.ID)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	residualScore, err := cars.calculateResidualScore(details.ComplianceRequirement.InherentRiskScore, form.Score)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
 	ratingID, err := cars.getResidualRatingByScore(residualScore)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
+
+	tx := cars.repo.BeginTransaction()
 
 	score := form.Score
 	statusID := form.ComplianceStatusID
@@ -1527,7 +1515,7 @@ func (cars *ComplianceAssessmentRequirementService) ComplianceAssessmentRequirem
 			models.ComplianceAssessmentRequirementResponsibleUnit{}.TableName(),
 			ru.ID,
 			map[string]interface{}{
-				"is_not_applicable":    false,
+				"is_not_applicable":    form.IsNotApplicable,
 				"score":                form.Score,
 				"compliance_status_id": form.ComplianceStatusID,
 			},

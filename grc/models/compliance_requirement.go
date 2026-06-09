@@ -40,7 +40,7 @@ type ComplianceRequirement struct {
 	InherentRiskAnalysis          []*ComplianceRequirementInherentRiskAnalysis  `gorm:"foreignKey:ComplianceRequirementID"`
 	InherentRiskRating            *ComplianceAssessmentRating                   `gorm:"foreignKey:InherentRiskRatingID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ResidualRiskRating            *ComplianceAssessmentRating                   `gorm:"foreignKey:ResidualRiskRatingID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ResponsibleUser               *User                                         `gorm:"foreignKey:ResponsibleUserID"`
+	ResponsibleUser               *User                                         `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by ComplianceRequirement to `compliance_requirements`
