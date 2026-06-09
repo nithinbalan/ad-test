@@ -99,7 +99,7 @@ func (repo *RoleRepository) GetByType(roleType string) (*models.Role, error) {
 		return nil, result.Error
 	}
 
-	return role, result.Error
+	return role, nil
 }
 func (repo *RoleRepository) GetFullDetailsByID(id uint) (*models.Role, error) {
 	var role *models.Role

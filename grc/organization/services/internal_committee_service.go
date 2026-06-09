@@ -571,7 +571,7 @@ func (ics *InternalCommitteeService) CompleteCommittee(committeeID uint, current
 	}
 
 	if !hasAuthority {
-		return utility.NewForbiddenError("Only users with the Commetee admin role can update committee details")
+		return utility.NewForbiddenError("Only users with the Committee Admin role can complete the committee")
 	}
 
 	existingCommittee, err := ics.repo.GetByID(committeeID)
@@ -772,7 +772,7 @@ func (ics *InternalCommitteeService) UpdateCommitteeDetails(id uint, currentUser
 			"UpdatedByLastNameEn":  updatedBy.LastNameEn,
 			"UpdatedOn":            time.Now().Format("2006-01-02"),
 			"UpdatedBy":            fmt.Sprintf("%s %s", updatedBy.FirstNameEn, updatedBy.LastNameEn),
-			"RedirectURL":          fmt.Sprintf("%s//organization/committee/%d/overview", appURL, id),
+			"RedirectURL":          fmt.Sprintf("%s/organization/committee/%d/overview", appURL, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

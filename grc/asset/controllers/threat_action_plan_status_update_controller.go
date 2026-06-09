@@ -294,7 +294,6 @@ func (tasuc *ThreatActionPlanStatusUpdateController) ApproveThreatActionPlan(c *
 			utility.SendInvalidErrResp(c, e)
 			return
 		case *utility.ForbiddenError:
-			// Return a 403 Forbidden response with the error message
 			utility.SendForbiddenErrResp(c, e.Error())
 		default:
 			utility.SendInternalErrResp(tasuc.db, c, e.Error())

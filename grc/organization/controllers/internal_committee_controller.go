@@ -453,7 +453,7 @@ func (icc *InternalCommitteeController) CreateExternalCommitteeParticipant(c *gi
 }
 
 func (icc *InternalCommitteeController) DisbandInternalCommittee(c *gin.Context) {
-	fmt.Println("Disbanding internal committee...")
+
 	committeeIdStr := c.Param("committeeId")
 
 	committeeId, err := strconv.ParseUint(committeeIdStr, 10, 32)
@@ -487,7 +487,6 @@ func (icc *InternalCommitteeController) DisbandInternalCommittee(c *gin.Context)
 	})
 }
 func (icc *InternalCommitteeController) CancelInternalCommittee(c *gin.Context) {
-	fmt.Println("Cancelling internal committee...")
 
 	committeeIdStr := c.Param("committeeId")
 
@@ -547,6 +546,9 @@ func (icc *InternalCommitteeController) CompleteInternalCommittee(c *gin.Context
 			return
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 			return
 		default:
 			utility.SendInternalErrResp(icc.db, c, e.Error())
