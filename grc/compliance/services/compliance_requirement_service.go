@@ -281,6 +281,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	complianceRequirement := &models.ComplianceRequirement{
 		ComplianceRequirementCategoryID: complianceRequirementFormDTO.ComplianceRequirementCategoryID,
 		// ComplianceStatusID:              complianceRequirementFormDTO.ComplianceStatusID,
+		ResponsibleUserID:  complianceRequirementFormDTO.ResponsibleUserID,
 		SeverityLevelID:    complianceRequirementFormDTO.SeverityLevelID,
 		TitleEn:            complianceRequirementFormDTO.TitleEn,
 		TitleAr:            complianceRequirementFormDTO.TitleAr,
@@ -321,6 +322,18 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	// 	tx.Rollback()
 	// 	return 0, err
 	// }
+	for _, resUnit := range complianceRequirementFormDTO.ResponsibleUnits {
+		orgUnit, err := crs.organizationUnitSvc.GetByID(resUnit.ResponsibleUnitID)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		if orgUnit.OrganizationUnitHeadID == nil {
+			tx.Rollback()
+			return 0, utility.NewValidationError(fmt.Errorf("responsible unit does not have a unit head"), "no_unit_head", "responsible unit")
+		}
+	}
+
 	var responsibleUnits []*models.ComplianceRequirementResponsibleUnit
 	for _, resUnit := range complianceRequirementFormDTO.ResponsibleUnits {
 		unit := &models.ComplianceRequirementResponsibleUnit{
@@ -565,6 +578,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	// Update Compliance Requirement
 	existingComplianceRequirement.ComplianceClauseID = clause.ID
 	existingComplianceRequirement.ComplianceRequirementCategoryID = complianceRequirementFormDTO.ComplianceRequirementCategoryID
+	existingComplianceRequirement.ResponsibleUserID = complianceRequirementFormDTO.ResponsibleUserID
 	// existingComplianceRequirement.ComplianceStatusID = complianceRequirementFormDTO.ComplianceStatusID
 	existingComplianceRequirement.SeverityLevelID = complianceRequirementFormDTO.SeverityLevelID
 	existingComplianceRequirement.TitleEn = complianceRequirementFormDTO.TitleEn
@@ -599,6 +613,18 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	newUnitMap := make(map[uint]*complianceDTOs.ComplianceRequirementResponsibleUnitFormDTO)
 	for _, unit := range complianceRequirementFormDTO.ResponsibleUnits {
 		newUnitMap[unit.ResponsibleUnitID] = unit
+	}
+
+	for _, unit := range complianceRequirementFormDTO.ResponsibleUnits {
+		orgUnit, err := crs.organizationUnitSvc.GetByID(unit.ResponsibleUnitID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		if orgUnit.OrganizationUnitHeadID == nil {
+			tx.Rollback()
+			return utility.NewValidationError(fmt.Errorf("responsible unit does not have a unit head"), "no_unit_head", "responsible unit")
+		}
 	}
 
 	// Add new responsible units

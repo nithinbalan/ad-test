@@ -230,7 +230,12 @@
 {
   "id": "already_used",
   "translation": "This {{.Field}} has already been used"
+},
+{
+  "id": "no_unit_head",
+  "translation": "This {{.Field}} does not have a unit head"
 }
+
 
 
 

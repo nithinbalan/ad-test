@@ -28,6 +28,15 @@ type ComplianceRequirementListDTO struct {
 	ComplianceStatusColorCode            string                                         `json:"compliance_status_color_code"`
 	CreatedAt                            string                                         `json:"created_at"`
 	UpdatedAt                            string                                         `json:"updated_at"`
+	ResponsibleUserID                    uint                                           `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn           string                                         `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr           string                                         `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn            string                                         `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr            string                                         `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial               string                                         `json:"responsible_user_initial"`
+	ResponsibleUserColor                 string                                         `json:"responsible_user_color"`
+	ResponsibleUserEmail                 string                                         `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath      string                                         `json:"responsible_user_profile_image_path"`
 	CreatedUserID                        uint                                           `json:"created_user_id"`
 	CreatedUserFirstNameEn               string                                         `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr               string                                         `json:"created_user_first_name_ar"`
@@ -94,6 +103,7 @@ type ComplianceRequirementFormDTO struct {
 	ComplianceRequirementCategoryID *uint   `json:"compliance_requirement_category_id"`
 	SeverityLevelID                 *uint   `json:"severity_level_id"`
 	Deadline                        *string `json:"deadline" binding:"omitempty,datetime=2006-01-02"`
+	ResponsibleUserID               *uint   `json:"responsible_user_id"`
 	// ComplianceStatusID              *uint   `json:"compliance_status_id"`
 	ControlIDs               []*uint                                        `json:"control_ids"`
 	StrategicObjectiveIDs    []*uint                                        `json:"strategic_objective_ids"`
@@ -147,6 +157,7 @@ type ComplianceRequirementDetailDTO struct {
 	InherentRiskAnalysis          []*ComplianceRequirementInherentRiskDTO          `json:"inherent_risk_analysis"`
 	InherentRiskScore             *float64                                         `json:"inherent_risk_score"`
 	InherentRiskRating            *ComplianceAssessmentRatingDTO                   `json:"inherent_risk_rating"`
+	ResponsibleUser               *organizationDTOs.UserMinimalDTO                 `json:"responsible_user"`
 }
 type ComplianceRequirementResponsibleUnitDTO struct {
 	ID                                 uint                                         `json:"id"`
