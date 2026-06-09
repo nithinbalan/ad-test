@@ -360,7 +360,7 @@ func NewOrganizationModule(
 		userSvc,
 		nil, // Will be set later via SetInternalCommitteeService
 		masterModule.WorkflowContextSvc,
-		organizationUnitsSvc,
+		organizationUnitsSvc, settingsModule.OrganizationUnitSvc,
 	)
 
 	// Create workflow review service (without committee service dependency initially)

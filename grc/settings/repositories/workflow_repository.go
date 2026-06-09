@@ -284,10 +284,13 @@ func (repo *WorkflowRepository) GetWorkflowLevels(workflowID uint, tx ...utility
 		Preload("WorkflowLevels.Participants.User").
 		Preload("WorkflowLevels.Participants.Role").
 		Preload("WorkflowLevels.Participants.WorkflowCustomRole").
+		Preload("WorkflowLevels.Participants.Unit").
+		Preload("WorkflowLevels.Participants.Unit.OrganizationLevel").
 		Where("id = ?", workflowID). // Assuming the primary key field is "id"
 		Find(&workflow).Error; err != nil {
 		return nil, err
 	}
+
 	return workflow, nil
 }
 

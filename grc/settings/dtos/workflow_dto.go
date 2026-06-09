@@ -73,6 +73,7 @@ type WorkflowLevelFormDTO struct {
 	ApprovalType *string `json:"approval_type"`
 	UserIds      []*uint `json:"user_ids"`
 	RoleID       *uint   `json:"role_id"`
+	UnitID       *uint   `json:"unit_id"`
 	CustomRoleID *uint   `json:"custom_role_id"`
 }
 
@@ -113,6 +114,7 @@ type WorkflowLevelParticipantDTO struct {
 	User               *UserMinimalDTO        `json:"user,omitempty"`
 	Role               *RoleDTO               `json:"role,omitempty"`
 	WorkflowCustomRole *WorkflowCustomRoleDTO `json:"custom_role,omitempty"`
+	Unit               *OrganizationUnitDTO   `json:"unit,omitempty"`
 }
 
 type UserMinimalDTO struct {
