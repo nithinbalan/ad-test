@@ -275,6 +275,8 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			query = query.Where("average_residual_rating.type = ?", "critical")
 		case "high":
 			query = query.Where("average_residual_rating.type = ?", "high")
+		case "approved":
+			query = query.Where("compliance_register.approved_by_id IS NOT NULL")
 			// case "archived":
 			//	query = query.Where("lifecycle_statuses.type = ?", "archived")
 		}

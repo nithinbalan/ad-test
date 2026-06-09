@@ -627,6 +627,141 @@ func (carc *ComplianceAssessmentRequirementController) RevertComplianceAssessmen
 	c.Status(http.StatusOK)
 }
 
+func (carc *ComplianceAssessmentRequirementController) MarkAsNotApplicable(c *gin.Context) {
+	var form complianceDTOs.ComplianceAssessmentRequirementNotApplicableFormDTO
+
+	complianceAssessmentID, err := strconv.Atoi(c.Param("assessmentId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementIDStr := c.Param("requirementId")
+	complianceRequirementID, err := strconv.ParseUint(requirementIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&form); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(carc.db, c, err.Error())
+		return
+	}
+
+	err = carc.service.MarkAsNotApplicable(uint(complianceAssessmentID), uint(complianceRequirementID), currentUserID, &form)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(carc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (carc *ComplianceAssessmentRequirementController) ApproveNotApplicable(c *gin.Context) {
+	var form complianceDTOs.ComplianceAssessmentRequirementApproveNotApplicableFormDTO
+
+	complianceAssessmentID, err := strconv.Atoi(c.Param("assessmentId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementIDStr := c.Param("requirementId")
+	complianceRequirementID, err := strconv.ParseUint(requirementIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&form); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(carc.db, c, err.Error())
+		return
+	}
+
+	err = carc.service.ApproveNotApplicable(uint(complianceAssessmentID), uint(complianceRequirementID), currentUserID, &form)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(carc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (carc *ComplianceAssessmentRequirementController) ComplianceAssessmentRequirementScoreUpdate(c *gin.Context) {
+	var form complianceDTOs.ComplianceAssessmentRequirementScoreUpdateFormDTO
+
+	complianceAssessmentID, err := strconv.Atoi(c.Param("assessmentId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementIDStr := c.Param("requirementId")
+	complianceRequirementID, err := strconv.ParseUint(requirementIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&form); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(carc.db, c, err.Error())
+		return
+	}
+
+	err = carc.service.ComplianceAssessmentRequirementScoreUpdate(uint(complianceAssessmentID), uint(complianceRequirementID), currentUserID, &form)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(carc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func (carc *ComplianceAssessmentRequirementController) ResubmitComplianceAssessmentRequirement(c *gin.Context) {
 	var commentFormDTO complianceDTOs.ComplianceAssessmentRequirementCommentFormDTO
 

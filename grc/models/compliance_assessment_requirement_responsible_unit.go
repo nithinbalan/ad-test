@@ -14,12 +14,14 @@ type ComplianceAssessmentRequirementResponsibleUnit struct {
 	Score                                   *int       `json:"score" gorm:"default:null"`
 	Comments                                *string    `json:"comments" gorm:"type:nvarchar(max);default:null"`
 	IsCompleted                             bool       `json:"is_completed" gorm:"not null"`
+	IsNotApplicable                         bool       `json:"is_not_applicable" gorm:"not null;default:false"`
 	CreatedBYID                             uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedBYID                             *uint      `json:"updated_by_id" gorm:"default:null"`
 	CreatedAt                               time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                               *time.Time `json:"updated_at" gorm:"type:datetime"`
 	ResidualRiskRatingID                    *uint      `json:"residual_risk_rating_id" gorm:"default:null"`
 	ResidualRiskScore                       *float64   `json:"residual_risk_score" gorm:"type:decimal(10,2)"`
+	ComplianceStatusID                      *uint      `json:"compliance_status_id" gorm:"default:null"`
 
 	// Relationships
 	ComplianceAssessmentRequirement       *ComplianceAssessmentRequirement                       `gorm:"foreignKey:ComplianceAssessmentRequirementID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
@@ -35,6 +37,7 @@ type ComplianceAssessmentRequirementResponsibleUnit struct {
 	ResidualRiskRating                    *ComplianceAssessmentRating                            `gorm:"foreignKey:ResidualRiskRatingID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ResidualRiskAnalysis                  []*ComplianceAssessmentRequirementResidualRiskAnalysis `gorm:"foreignKey:ComplianceAssessmentRequirementResponsibleUnitID"`
 	ResidualControls                      []*ComplianceAssessmentResidualControl                 `gorm:"foreignKey:ComplianceAssessmentRequirementResponsibleUnitID"`
+	ComplianceStatus                      *ComplianceStatus                                      `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 func (ComplianceAssessmentRequirementResponsibleUnit) TableName() string {

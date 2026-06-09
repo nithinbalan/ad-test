@@ -69,6 +69,14 @@ func (crrs *ComplianceRegisterReviewService) Submit(complianceRegisterID uint, c
 		return err
 	}
 
+	totalRequirements := 0
+	for _, clause := range complianceRegisterDetail.ComplianceClauses {
+		totalRequirements += len(clause.ComplianceRequirements)
+	}
+	if totalRequirements == 0 {
+		return utility.NewValidationError(fmt.Errorf("compliance register has no requirements"), "required", "compliance requirements")
+	}
+
 	if complianceRegister.SubmittedBYID != nil && complianceRegister.WorkflowStatusID != nil {
 		workflowStatus, err := crrs.workflowStatusSvc.GetByID(*complianceRegister.WorkflowStatusID)
 		if err != nil {

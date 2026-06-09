@@ -34,6 +34,7 @@ type ComplianceAssessmentRequirementRepositoryInterface interface {
 	UpdateComplianceStatus(complianceRegisterID uint, complianceStatusID uint, score float64, tx ...utility.DatabaseTransaction) error
 	UpdateComplianceAssessmentRequirementStatus(assessmentReqID uint, complianceStatusID uint, score float64, tx ...utility.DatabaseTransaction) error
 	UpdateClauseComplianceStatus(clauseID uint, statusID uint, score float64, tx ...utility.DatabaseTransaction) error
+	GetComplianceAssessmentRatings() ([]*models.ComplianceAssessmentRating, error)
 }
 
 type ComplianceAssessmentRequirementRepository struct {
@@ -356,7 +357,8 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 		Preload("ResponsibleUnits.ResidualControls").
 		Preload("ResponsibleUnits.ResidualControls.ComplianceAssessmentImpactType").
 		Preload("ResponsibleUnits.ResidualControls.Control").
-		Preload("ResponsibleUnits.ResidualRiskRating")
+		Preload("ResponsibleUnits.ResidualRiskRating").
+		Preload("ResponsibleUnits.ComplianceStatus")
 
 	if err := query.First(&car, requirementId).Error; err != nil {
 		return nil, err
@@ -460,6 +462,15 @@ func (repo *ComplianceAssessmentRequirementRepository) UpdateComplianceAssessmen
 		Where("id = ?", assessmentReqID).
 		Update("compliance_status_id", complianceStatusID).Update("score", score).Error
 }
+func (repo *ComplianceAssessmentRequirementRepository) GetComplianceAssessmentRatings() ([]*models.ComplianceAssessmentRating, error) {
+	var ratings []*models.ComplianceAssessmentRating
+	err := repo.db.Where("status = ?", "active").Order("score_from ASC").Find(&ratings).Error
+	if err != nil {
+		return nil, err
+	}
+	return ratings, nil
+}
+
 func (repo *ComplianceAssessmentRequirementRepository) UpdateClauseComplianceStatus(clauseID uint, statusID uint, score float64, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {

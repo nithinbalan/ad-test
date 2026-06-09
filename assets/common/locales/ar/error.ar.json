@@ -224,6 +224,10 @@
 {
   "id": "already_used",
   "translation": "هذا {{.Field}} مستخدم بالفعل"
+},
+{
+  "id": "no_unit_head",
+  "translation": "هذا {{.Field}} لا يملك رئيس وحدة"
 }
 
 

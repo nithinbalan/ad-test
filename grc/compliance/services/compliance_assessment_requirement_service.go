@@ -44,6 +44,10 @@ type ComplianceAssessmentRequirementServiceInterface interface {
 	RevertComplianceRequirement(assessmentID uint, requirementID uint, currentUserID uint, commentForm *complianceDTOs.ComplianceAssessmentRequirementCommentFormDTO) error
 	ResubmitComplianceRequirement(assessmentID uint, requirementID uint, currentUserID uint, commentForm *complianceDTOs.ComplianceAssessmentRequirementCommentFormDTO) error
 	GetComplianceAssessmentRequirementResponsibleUnitByID(id uint) (*models.ComplianceAssessmentRequirementResponsibleUnit, error)
+
+	MarkAsNotApplicable(assessmentID uint, requirementID uint, currentUserID uint, form *complianceDTOs.ComplianceAssessmentRequirementNotApplicableFormDTO) error
+	ApproveNotApplicable(assessmentID uint, requirementID uint, currentUserID uint, form *complianceDTOs.ComplianceAssessmentRequirementApproveNotApplicableFormDTO) error
+	ComplianceAssessmentRequirementScoreUpdate(assessmentID uint, requirementID uint, currentUserID uint, form *complianceDTOs.ComplianceAssessmentRequirementScoreUpdateFormDTO) error
 }
 
 // Service and implementations
@@ -1311,6 +1315,237 @@ func (cars ComplianceAssessmentRequirementService) GetComplianceAssessmentRequir
 		return nil, err
 	}
 	return complianceAssessmentRequirementResponsibleUnit, nil
+}
+
+func (cars *ComplianceAssessmentRequirementService) calculateResidualScore(inherentScore *float64, scorePercent int) (float64, error) {
+	inherent := 1.0
+	if inherentScore != nil {
+		inherent = *inherentScore
+	}
+	effectiveness := float64(scorePercent) / 100.0
+	residual := 1.0 + (inherent-1.0)*(1.0-effectiveness)
+	return math.Round(residual*100) / 100, nil
+}
+
+func (cars *ComplianceAssessmentRequirementService) getResidualRatingByScore(score float64) (*uint, error) {
+	ratings, err := cars.repo.GetComplianceAssessmentRatings()
+	if err != nil {
+		return nil, err
+	}
+	for _, rating := range ratings {
+		if rating.ScoreFrom != nil && rating.ScoreTo != nil {
+			if score >= *rating.ScoreFrom && score <= *rating.ScoreTo {
+				return &rating.ID, nil
+			}
+		}
+	}
+	return nil, nil
+}
+
+func (cars *ComplianceAssessmentRequirementService) MarkAsNotApplicable(assessmentID uint, requirementID uint, currentUserID uint, form *complianceDTOs.ComplianceAssessmentRequirementNotApplicableFormDTO) error {
+	tx := cars.repo.BeginTransaction()
+
+	details, err := cars.GetFullDetailsByID(assessmentID, requirementID, form.ResponsibleUnitID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	ru, err := cars.GetComplianceAssessmentRequirementResponsibleUnitByID(details.ResponsibleUnit.ID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	score := form.Score
+	ru.IsNotApplicable = true
+	ru.Comments = &form.Comments
+	ru.Score = &score
+	ru.UpdatedBYID = &currentUserID
+
+	if err := cars.repo.UpdateComplianceAssessmentRequirementResponsibleUnit(ru, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	go func() {
+		err := cars.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.ComplianceAssessmentRequirementResponsibleUnit{}.TableName(),
+			ru.ID,
+			map[string]interface{}{
+				"is_not_applicable": true,
+				"comments":          form.Comments,
+				"score":             form.Score,
+			},
+			currentUserID,
+			"compliance", "compliance_assessment", "requirement", nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.ComplianceAssessmentRequirementResponsibleUnit{}.TableName(),
+				"recordID":  ru.ID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (cars *ComplianceAssessmentRequirementService) ApproveNotApplicable(assessmentID uint, requirementID uint, currentUserID uint, form *complianceDTOs.ComplianceAssessmentRequirementApproveNotApplicableFormDTO) error {
+	tx := cars.repo.BeginTransaction()
+
+	details, err := cars.GetFullDetailsByID(assessmentID, requirementID, form.ResponsibleUnitID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	ru, err := cars.GetComplianceAssessmentRequirementResponsibleUnitByID(details.ResponsibleUnit.ID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if !ru.IsNotApplicable {
+		tx.Rollback()
+		return utility.NewValidationError(fmt.Errorf("responsible unit is not marked as not applicable"), "invalid_state", "responsible unit")
+	}
+
+	notApplicableStatus, err := cars.complianceStatusSvc.GetByType("not_applicable")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	approvedScore := 100
+	residualScore, err := cars.calculateResidualScore(details.ComplianceRequirement.InherentRiskScore, approvedScore)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	ratingID, err := cars.getResidualRatingByScore(residualScore)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	ru.Score = &approvedScore
+	ru.ComplianceStatusID = &notApplicableStatus.ID
+	ru.ResidualRiskScore = &residualScore
+	ru.ResidualRiskRatingID = ratingID
+	ru.UpdatedBYID = &currentUserID
+
+	if err := cars.repo.UpdateComplianceAssessmentRequirementResponsibleUnit(ru, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	go func() {
+		err := cars.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.ComplianceAssessmentRequirementResponsibleUnit{}.TableName(),
+			ru.ID,
+			map[string]interface{}{
+				"approved_not_applicable": true,
+				"score":                   approvedScore,
+			},
+			currentUserID,
+			"compliance", "compliance_assessment", "requirement", nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.ComplianceAssessmentRequirementResponsibleUnit{}.TableName(),
+				"recordID":  ru.ID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+	}()
+
+	return nil
+}
+
+func (cars *ComplianceAssessmentRequirementService) ComplianceAssessmentRequirementScoreUpdate(assessmentID uint, requirementID uint, currentUserID uint, form *complianceDTOs.ComplianceAssessmentRequirementScoreUpdateFormDTO) error {
+	tx := cars.repo.BeginTransaction()
+
+	details, err := cars.GetFullDetailsByID(assessmentID, requirementID, form.ResponsibleUnitID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	ru, err := cars.GetComplianceAssessmentRequirementResponsibleUnitByID(details.ResponsibleUnit.ID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	residualScore, err := cars.calculateResidualScore(details.ComplianceRequirement.InherentRiskScore, form.Score)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	ratingID, err := cars.getResidualRatingByScore(residualScore)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	score := form.Score
+	statusID := form.ComplianceStatusID
+	ru.IsNotApplicable = form.IsNotApplicable
+	ru.Score = &score
+	ru.ComplianceStatusID = &statusID
+	ru.ResidualRiskScore = &residualScore
+	ru.ResidualRiskRatingID = ratingID
+	ru.UpdatedBYID = &currentUserID
+	if !form.IsNotApplicable {
+		ru.Comments = nil
+	}
+
+	if err := cars.repo.UpdateComplianceAssessmentRequirementResponsibleUnit(ru, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+
+	go func() {
+		err := cars.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.ComplianceAssessmentRequirementResponsibleUnit{}.TableName(),
+			ru.ID,
+			map[string]interface{}{
+				"is_not_applicable":    false,
+				"score":                form.Score,
+				"compliance_status_id": form.ComplianceStatusID,
+			},
+			currentUserID,
+			"compliance", "compliance_assessment", "requirement", nil,
+		)
+		if err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.ComplianceAssessmentRequirementResponsibleUnit{}.TableName(),
+				"recordID":  ru.ID,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+	}()
+
+	return nil
 }
 
 func (cars *ComplianceAssessmentRequirementService) CalculateComplianceRequirementScores(assessmentID uint, changedRequirementID uint, tx ...utility.DatabaseTransaction) error {

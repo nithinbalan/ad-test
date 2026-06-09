@@ -140,11 +140,13 @@ type ComplianceAssessmentRequirementResponsibleUnitDTO struct {
 	ResidualControls                      []*ComplianceAssessmentResidualControlDTO          `json:"residual_controls"`
 	CompletedByUser                       *organizationDTOs.UserMinimalDTO                   `json:"completed_by_user"`
 	ComplianceStatusID                    *uint                                              `json:"compliance_status_id"`
+	ComplianceStatus                      *ComplianceStatusDTO                               `json:"compliance_status"`
 	IsCompleted                           bool                                               `json:"is_completed"`
+	IsNotApplicable                       bool                                               `json:"is_not_applicable"`
 	Score                                 *int                                               `json:"score"`
 	Comments                              *string                                            `json:"comments"`
 	ComplianceAssessmentRequirementStatus *ComplianceAssessmentRequirementStatusDTO          `json:"compliance_assessment_requirement_status"`
-	CompletedAt                           *time.Time                                         `json:"completed_at"` // ⬅️ new field
+	CompletedAt                           *time.Time                                         `json:"completed_at"`
 	ResidualRiskScore                     *float64                                           `json:"residual_risk_score"`
 	ResidualRiskRating                    *ComplianceAssessmentRatingDTO                     `json:"residual_risk_rating"`
 }
