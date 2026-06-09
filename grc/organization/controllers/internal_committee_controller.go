@@ -223,6 +223,45 @@ func (icc *InternalCommitteeController) UpdateInternalCommittee(c *gin.Context) 
 	c.Status(http.StatusOK)
 }
 
+func (icc *InternalCommitteeController) UpdateCommitteeDetails(c *gin.Context) {
+	idStr := c.Param("committeeId")
+
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var dto organizationDTOs.UpdateCommitteeDetailsDTO
+
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(icc.db, c, err.Error())
+		return
+	}
+
+	err = icc.service.UpdateCommitteeDetails(uint(id), currentUserID, &dto)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(icc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
 func (icc *InternalCommitteeController) ReformInternalCommittee(c *gin.Context) {
 	var reformDTO organizationDTOs.ReformInternalCommitteeDTO
 
@@ -414,7 +453,7 @@ func (icc *InternalCommitteeController) CreateExternalCommitteeParticipant(c *gi
 }
 
 func (icc *InternalCommitteeController) DisbandInternalCommittee(c *gin.Context) {
-	fmt.Println("Disbanding internal committee...")
+
 	committeeIdStr := c.Param("committeeId")
 
 	committeeId, err := strconv.ParseUint(committeeIdStr, 10, 32)
@@ -445,5 +484,79 @@ func (icc *InternalCommitteeController) DisbandInternalCommittee(c *gin.Context)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Committee disbanded successfully",
+	})
+}
+func (icc *InternalCommitteeController) CancelInternalCommittee(c *gin.Context) {
+
+	committeeIdStr := c.Param("committeeId")
+
+	committeeId, err := strconv.ParseUint(committeeIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(icc.db, c, err.Error())
+		return
+	}
+
+	err = icc.service.CancelCommittee(uint(committeeId), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(icc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Committee cancelled successfully",
+	})
+}
+func (icc *InternalCommitteeController) CompleteInternalCommittee(c *gin.Context) {
+	fmt.Println("Completing internal committee...")
+
+	committeeIdStr := c.Param("committeeId")
+
+	committeeId, err := strconv.ParseUint(committeeIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(icc.db, c, err.Error())
+		return
+	}
+
+	err = icc.service.CompleteCommittee(uint(committeeId), currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(icc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Committee completed successfully",
 	})
 }

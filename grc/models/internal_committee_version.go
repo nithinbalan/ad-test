@@ -30,7 +30,12 @@ type InternalCommitteeVersion struct {
 	ApprovedAt                *time.Time `json:"approved_at" gorm:"type:datetime;default:null"`
 	NextReviewLevel           *int       `json:"next_review_level"`
 	WorkflowStatusID          *uint      `json:"workflow_status_id"`
-
+	CanceledByID              *uint      `json:"canceled_by_id"`
+	CanceledAt                *time.Time `json:"canceled_at" gorm:"type:datetime;default:null"`
+	DisbandByID               *uint      `json:"disband_by_id"`
+	DisbandAt                 *time.Time `json:"disband_at" gorm:"type:datetime;default:null"`
+	CompletedByID             *uint      `json:"completed_by_id"`
+	CompletedAt               *time.Time `json:"completed_at" gorm:"type:datetime;default:null"`
 	// Relationships
 	InternalCommittee                          *InternalCommittee                           `gorm:"foreignKey:InternalCommitteeID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	CommitteeType                              *CommitteeType                               `gorm:"foreignKey:CommitteeTypeID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
@@ -44,6 +49,9 @@ type InternalCommitteeVersion struct {
 	UpdatedByUser   *User `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	SubmittedByUser *User `gorm:"foreignKey:SubmittedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ApprovedByUser  *User `gorm:"foreignKey:ApprovedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CanceledByUser  *User `gorm:"foreignKey:CanceledByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	DisbandByUser   *User `gorm:"foreignKey:DisbandByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CompletedByUser *User `gorm:"foreignKey:CompletedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 // TableName overrides the table name used by InternalCommitteeVersion

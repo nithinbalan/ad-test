@@ -30,6 +30,8 @@ type InternalCommitteeWorkflowReviewService struct {
 	committeeStatusSvc   InternalCommitteeStatusServiceInterface
 	userSvc              UserServiceInterface
 	notificationSvc      commonServices.NotificationServiceInterface
+	organizationUnitSvc  OrganizationUnitsServiceInterface
+	committeeTermSvc     CommitteeTermServiceInterface
 }
 
 func NewInternalCommitteeWorkflowReviewService(
@@ -41,6 +43,8 @@ func NewInternalCommitteeWorkflowReviewService(
 	committeeStatusSvc InternalCommitteeStatusServiceInterface,
 	userSvc UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	organizationUnitSvc OrganizationUnitsServiceInterface,
+	committeeTermSvc CommitteeTermServiceInterface,
 ) InternalCommitteeWorkflowReviewServiceInterface {
 	return &InternalCommitteeWorkflowReviewService{
 		repo:                 repo,
@@ -51,6 +55,8 @@ func NewInternalCommitteeWorkflowReviewService(
 		committeeStatusSvc:   committeeStatusSvc,
 		userSvc:              userSvc,
 		notificationSvc:      notificationSvc,
+		organizationUnitSvc:  organizationUnitSvc,
+		committeeTermSvc:     committeeTermSvc,
 	}
 }
 
@@ -62,6 +68,34 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Submit(committeeID uint, cu
 	committeeDTO, err := icwrs.committeeSvc.GetFullDetailsByID(committeeID)
 	if err != nil {
 		return err
+	}
+
+	parentUnit, err := icwrs.organizationUnitSvc.GetParentOrganizationUnitAndCurrentUnitHead(committeeDTO.RequestingEntityID)
+	if err != nil {
+		return err
+	}
+
+	parentHead, err := icwrs.organizationUnitSvc.GetParentOrganizationUnitAndCurrentUnitHead(parentUnit.OrganizationUnit.ID)
+	if err != nil {
+		return err
+	}
+
+	if parentHead.HeadUser == nil {
+		return utility.NewForbiddenError(
+			fmt.Sprintf(
+				"No head user is assigned to the parent organization unit '%s'. Please contact the administrator.",
+				parentUnit.OrganizationUnit.TitleEn,
+			),
+		)
+	}
+
+	if parentHead.HeadUser.ID != currentUserID {
+		return utility.NewForbiddenError(
+			fmt.Sprintf(
+				"You are not authorized to submit this request. Only the head of the parent organization unit '%s' can perform this action.",
+				parentUnit.OrganizationUnit.TitleEn,
+			),
+		)
 	}
 
 	if committeeDTO.LatestVersion == nil {
@@ -267,6 +301,11 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Submit(committeeID uint, cu
 }
 
 func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, currentUserID uint) error {
+	commettetermtype, err := icwrs.committeeTermSvc.GetByType("permanent")
+	if err != nil {
+		return err
+	}
+
 	tx := icwrs.repo.BeginTransaction()
 
 	committeeDetail, err := icwrs.committeeSvc.GetFullDetailsByID(committeeID, tx)
@@ -274,6 +313,7 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 		tx.Rollback()
 		return err
 	}
+	commetteterm := committeeDetail.LatestVersion.CommitteeTerm
 
 	currentApprovalLevel := committeeDetail.LatestVersion.NextReviewLevel
 	if currentApprovalLevel == nil {
@@ -359,9 +399,13 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 						}
 					}
 
+					if commetteterm.ID == commettetermtype.ID {
+						endDate := time.Now().AddDate(3, 0, 0)
+						version.TermEndDate = &endDate
+					}
+					approvedAt := time.Now()
 					version.CommitteeStatusID = finalCommitteeStatus.ID
 					version.WorkflowStatusID = &approvedWorkflowStatus.ID
-					approvedAt := time.Now()
 					version.ApprovedAt = &approvedAt
 					version.ApprovedByID = &currentUserID
 					if err := icwrs.repo.UpdateInternalCommitteeVersion(version, tx); err != nil {
@@ -523,7 +567,10 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 							return err
 						}
 					}
-
+					if commetteterm.ID == commettetermtype.ID {
+						endDate := time.Now().AddDate(3, 0, 0)
+						version.TermEndDate = &endDate
+					}
 					version.CommitteeStatusID = finalCommitteeStatus.ID
 					version.WorkflowStatusID = &approvedWorkflowStatus.ID
 					approvedAt := time.Now()

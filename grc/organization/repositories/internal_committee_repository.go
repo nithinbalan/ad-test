@@ -236,6 +236,9 @@ func (repo *InternalCommitteeRepository) GetFullDetailsByID(id uint, tx ...utili
 				Preload("SubmittedByUser").
 				Preload("ApprovedByUser").
 				Preload("WorkflowStatus").
+				Preload("CanceledByUser").
+				Preload("DisbandByUser").
+				Preload("CompletedByUser").
 				Preload("InternalCommitteeVersionNomineeDepartments").
 				Preload("InternalCommitteeVersionNomineeDepartments.CommitteeMemberType").
 				Preload("InternalCommitteeVersionNomineeDepartments.NomineeDepartment").

@@ -20,6 +20,7 @@ type RoleRepositoryInterface interface {
 	Deactivate(ids []uint) ([]uint, error)
 	ExistsByTitle(titleEn string, titleAr string) (bool, error)
 	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
+	GetByType(roleType string) (*models.Role, error)
 
 	CreateRolePermission(rolePermission *models.RolePermission, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteRolePermissionsByRoleID(roleID uint, tx ...utility.DatabaseTransaction) error
@@ -89,7 +90,17 @@ func (repo *RoleRepository) GetByID(id uint) (*models.Role, error) {
 
 	return role, result.Error
 }
+func (repo *RoleRepository) GetByType(roleType string) (*models.Role, error) {
+	var role *models.Role
 
+	result := repo.db.Where("type = ?", roleType).First(&role)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return role, nil
+}
 func (repo *RoleRepository) GetFullDetailsByID(id uint) (*models.Role, error) {
 	var role *models.Role
 
