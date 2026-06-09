@@ -460,9 +460,18 @@ func (ruprcs *RiskUpdatePlanReviewCommentService) Delete(riskRegisterUpdatePlanI
 			"risk_register_update_plan": riskRegisterUpdatePlanID,
 		})
 
-		// Collect documents for deletion
+		// Collect documents for deletion and delete from DB first
 		if len(comment.Documents) > 0 {
 			documentsToDelete = append(documentsToDelete, comment.Documents...)
+			var docIDs []*uint
+			for _, doc := range comment.Documents {
+				docID := doc.ID
+				docIDs = append(docIDs, &docID)
+			}
+			if err := ruprcs.repo.DeleteDocuments(docIDs, tx); err != nil {
+				failedIDs = append(failedIDs, id)
+				continue
+			}
 		}
 
 		err = ruprcs.repo.Delete(id, tx)
