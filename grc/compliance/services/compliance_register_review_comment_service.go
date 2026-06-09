@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"jethur/config"
+	complianceDTOs "jethur/grc/compliance/dtos"
+	"jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	masterService "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
-	complianceDTOs "jethur/grc/compliance/dtos"
-	"jethur/grc/compliance/repositories"
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
@@ -191,11 +191,11 @@ func (crrcs *ComplianceRegisterReviewCommentService) Create(complianceRegisterID
 
 	comment := &models.ComplianceRegisterReviewComment{
 		ComplianceRegisterID: complianceRegisterID,
-		Comment:               commentFormDTO.Comment,
-		CommentStatusID:       commentStatus.ID,
-		Level:                 complianceRegister.NextReviewLevel,
-		ParentCommentID:       commentFormDTO.ParentCommentID,
-		CreatedBYID:           currentUserID,
+		Comment:              commentFormDTO.Comment,
+		CommentStatusID:      commentStatus.ID,
+		Level:                complianceRegister.NextReviewLevel,
+		ParentCommentID:      commentFormDTO.ParentCommentID,
+		CreatedBYID:          currentUserID,
 	}
 
 	id, err := crrcs.repo.Create(comment, tx)
@@ -219,14 +219,14 @@ func (crrcs *ComplianceRegisterReviewCommentService) Create(complianceRegisterID
 
 		document := &models.ComplianceRegisterReviewCommentDocument{
 			ComplianceRegisterReviewCommentID: id,
-			URL:                                &url,
-			Name:                               doc.FileName,
-			Size:                               &doc.Size,
-			Token:                              &encryptedFilename,
-			OriginalName:                       &doc.OriginalName,
-			Type:                               &doc.Type,
-			CreatedByID:                        currentUserID,
-			CreatedAt:                          time.Now(),
+			URL:                               &url,
+			Name:                              doc.FileName,
+			Size:                              &doc.Size,
+			Token:                             &encryptedFilename,
+			OriginalName:                      &doc.OriginalName,
+			Type:                              &doc.Type,
+			CreatedByID:                       currentUserID,
+			CreatedAt:                         time.Now(),
 		}
 
 		documents = append(documents, document)
@@ -333,14 +333,14 @@ func (crrcs *ComplianceRegisterReviewCommentService) Update(complianceRegisterID
 
 			document := &models.ComplianceRegisterReviewCommentDocument{
 				ComplianceRegisterReviewCommentID: id,
-				URL:                                &url,
-				Name:                               doc.FileName,
-				Size:                               &doc.Size,
-				Token:                              &encryptedFilename,
-				OriginalName:                       &doc.OriginalName,
-				Type:                               &doc.Type,
-				CreatedByID:                        currentUserID,
-				CreatedAt:                          now,
+				URL:                               &url,
+				Name:                              doc.FileName,
+				Size:                              &doc.Size,
+				Token:                             &encryptedFilename,
+				OriginalName:                      &doc.OriginalName,
+				Type:                              &doc.Type,
+				CreatedByID:                       currentUserID,
+				CreatedAt:                         now,
 			}
 
 			newDocuments = append(newDocuments, document)
@@ -455,13 +455,22 @@ func (crrcs *ComplianceRegisterReviewCommentService) Delete(complianceRegisterID
 		}
 
 		deletedComments = append(deletedComments, map[string]interface{}{
-			"id":                    id,
+			"id":                     id,
 			"compliance_register_id": complianceRegisterID,
 		})
 
-		// Collect documents for deletion
+		// Collect documents for deletion and delete from DB first
 		if len(comment.Documents) > 0 {
 			documentsToDelete = append(documentsToDelete, comment.Documents...)
+			var docIDs []*uint
+			for _, doc := range comment.Documents {
+				docID := doc.ID
+				docIDs = append(docIDs, &docID)
+			}
+			if err := crrcs.repo.DeleteDocuments(docIDs, tx); err != nil {
+				failedIDs = append(failedIDs, id)
+				continue
+			}
 		}
 
 		err = crrcs.repo.Delete(id, tx)

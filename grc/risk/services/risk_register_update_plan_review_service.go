@@ -786,7 +786,7 @@ func (rruprs *RiskRegisterUpdatePlanReviewService) sendRejectedNotification(id u
 			UserIDs:              []uint{riskRegisterUpdatePlan.CreatedBYID},
 			ModuleIdentifier:     "risk",
 			NotificationType:     string(commonDTOs.RejectType),
-			HeadingEn:            "Risk Register Update Plan Rejected",
+			HeadingEn:            "Risk Register Update Plan Reverted",
 			HeadingAr:            "تم رفض خطة تحديث سجل المخاطر",
 			TitleEn:              planTitle,
 			TitleAr:              planTitle,
@@ -818,7 +818,7 @@ func (rruprs *RiskRegisterUpdatePlanReviewService) sendRejectedNotification(id u
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              []string{createdByUser.Email},
-			Subject:              "Risk Register Update Plan: Rejected Notification",
+			Subject:              "Risk Register Update Plan: Reverted Notification",
 			TemplateRelativePath: "risk/templates/email/risk_register_update_plan_workflow_reject_user_mail.html",
 			EmailData:            emailData,
 		}

@@ -817,7 +817,7 @@ func (crrs *ComplianceRegisterReviewService) sendRejectedNotification(id uint, c
 			UserIDs:              []uint{complianceRegister.CreatedBYID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.RejectType),
-			HeadingEn:            "Compliance Register Rejected",
+			HeadingEn:            "Compliance Register Reverted",
 			HeadingAr:            "تم رفض سجل الامتثال",
 			ReferenceNumber:      referenceNumber,
 			TitleEn:              complianceTitle,
@@ -851,7 +851,7 @@ func (crrs *ComplianceRegisterReviewService) sendRejectedNotification(id uint, c
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              []string{createdByUser.Email},
-			Subject:              "Compliance Register: Rejected Notification",
+			Subject:              "Compliance Register: Reverted Notification",
 			TemplateRelativePath: "compliance/templates/email/compliance_register_workflow_reject_user_mail.html",
 			EmailData:            emailData,
 		}
