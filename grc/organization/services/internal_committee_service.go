@@ -696,6 +696,7 @@ func (ics *InternalCommitteeService) UpdateCommitteeDetails(id uint, currentUser
 	latestVersion.RolesAndResponsibilities = detailsDTO.RolesAndResponsibilities
 	latestVersion.CommitteeAuthorities = detailsDTO.CommitteeAuthorities
 	latestVersion.UpdatedBYID = &currentUserID
+	latestVersion.IsDetailsUpdated = true
 
 	if err := ics.repo.UpdateVersion(latestVersion, tx); err != nil {
 		tx.Rollback()
