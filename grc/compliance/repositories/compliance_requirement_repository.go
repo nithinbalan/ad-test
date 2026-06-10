@@ -90,24 +90,15 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 			compliance_statuses.title_en AS compliance_status_title_en,
 			compliance_statuses.title_ar AS compliance_status_title_ar,
 			compliance_statuses.color_code AS compliance_status_color_code,
-            responsible_user.id AS responsible_user_id,
-            responsible_user.first_name_en AS responsible_user_first_name_en,
-            responsible_user.first_name_ar AS responsible_user_first_name_ar,
-            responsible_user.last_name_en AS responsible_user_last_name_en,
-            responsible_user.last_name_ar AS responsible_user_last_name_ar,   
-			responsible_user.initial AS responsible_user_initial,
-            responsible_user.color AS responsible_user_color,
-            responsible_user.email AS responsible_user_email,
-            responsible_user.profile_image_path AS responsible_user_profile_image_path, 
 			created_user.id AS created_user_id,
         	created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
             created_user.last_name_en AS created_user_last_name_en,
-            created_user.last_name_ar AS created_user_last_name_ar,   
+            created_user.last_name_ar AS created_user_last_name_ar,
 			created_user.initial AS created_user_initial,
             created_user.color AS created_user_color,
             created_user.email AS created_user_email,
-            created_user.profile_image_path AS created_user_profile_image_path,   
+            created_user.profile_image_path AS created_user_profile_image_path,
 			updated_user.id AS updated_user_id,
     		updated_user.first_name_en AS updated_user_first_name_en,
             updated_user.first_name_ar AS updated_user_first_name_ar,
@@ -116,13 +107,12 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 			updated_user.initial AS updated_user_initial,
             updated_user.color AS updated_user_color,
             updated_user.email AS updated_user_email,
-            updated_user.profile_image_path AS updated_user_profile_image_path 
+            updated_user.profile_image_path AS updated_user_profile_image_path
 		`).
 		Joins(`
 			LEFT JOIN compliance_requirement_categories ON compliance_requirement_categories.id = compliance_requirements.compliance_requirement_category_id
 			LEFT JOIN severity_levels ON severity_levels.id = compliance_requirements.severity_level_id
 			LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_requirements.compliance_status_id
-			LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_requirements.responsible_user_id
 			LEFT JOIN users AS created_user ON created_user.id = compliance_requirements.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by_id
 			LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
@@ -363,15 +353,6 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
             compliance_statuses.title_en AS compliance_status_title_en,
             compliance_statuses.title_ar AS compliance_status_title_ar,
             compliance_statuses.color_code AS compliance_status_color_code,
-            responsible_user.id AS responsible_user_id,
-            responsible_user.first_name_en AS responsible_user_first_name_en,
-            responsible_user.first_name_ar AS responsible_user_first_name_ar,
-            responsible_user.last_name_en AS responsible_user_last_name_en,
-            responsible_user.last_name_ar AS responsible_user_last_name_ar,
-            responsible_user.initial AS responsible_user_initial,
-            responsible_user.color AS responsible_user_color,
-            responsible_user.email AS responsible_user_email,
-            responsible_user.profile_image_path AS responsible_user_profile_image_path,
             created_user.id AS created_user_id,
             created_user.first_name_en AS created_user_first_name_en,
             created_user.first_name_ar AS created_user_first_name_ar,
@@ -395,7 +376,6 @@ func (repo *ComplianceRequirementRepository) GetRequirementsByComplianceID(compl
             LEFT JOIN compliance_requirement_categories ON compliance_requirement_categories.id = compliance_requirements.compliance_requirement_category_id
             LEFT JOIN severity_levels ON severity_levels.id = compliance_requirements.severity_level_id
             LEFT JOIN compliance_statuses ON compliance_statuses.id = compliance_requirements.compliance_status_id
-            LEFT JOIN users AS responsible_user ON responsible_user.id = compliance_requirements.responsible_user_id
             LEFT JOIN users AS created_user ON created_user.id = compliance_requirements.created_by_id
             LEFT JOIN users AS updated_user ON updated_user.id = compliance_requirements.updated_by_id
             LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
@@ -466,10 +446,10 @@ func (repo *ComplianceRequirementRepository) GetFullDetailsByID(id uint, tx ...u
 		Preload("SeverityLevel").
 		Preload("ResponsibleUnits").
 		Preload("ResponsibleUnits.ResponsibleUnit").
+		Preload("ResponsibleUnits.ResponsibleUser").
 		Preload("ResponsibleUnits.ComplianceAssessmentFrameworkValue").
 		Preload("ResponsibleUnits.ComplianceAssessmentFrameworkValue.ComplianceStatus").
 		Preload("ResponsibleUnits.CompletedByUser").
-		Preload("ResponsibleUser").
 		Preload("Controls").
 		Preload("Controls.Control.ControlCategory").
 		Preload("Controls.Control.ControlType").
@@ -613,6 +593,7 @@ func (repo *ComplianceRequirementRepository) UpdateComplianceRequirementResponsi
 		if err := db.Model(&models.ComplianceRequirementResponsibleUnit{}).
 			Where("id = ?", unit.ID).
 			Updates(map[string]interface{}{
+				"responsible_user_id":                   unit.ResponsibleUserID,
 				"is_regulation_notification_assessment": unit.IsRegulationNotificationAssessment,
 				"is_risk_based_assessment":              unit.IsRiskBasedAssessment,
 				"updated_by_id":                         unit.UpdatedByID,
