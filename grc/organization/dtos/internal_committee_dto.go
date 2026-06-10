@@ -147,6 +147,7 @@ type InternalCommitteeVersionDetailDTO struct {
 	CanceledAt                *time.Time                                            `json:"canceled_at"`
 	DisbandAt                 *time.Time                                            `json:"disband_at"`
 	CompletedAt               *time.Time                                            `json:"completed_at"`
+	IsDetailsUpdated          bool                                                  `json:"is_details_updated"`
 }
 
 type InternalCommitteeVersionNomineeDepartmentDetailDTO struct {

@@ -36,6 +36,7 @@ type InternalCommitteeVersion struct {
 	DisbandAt                 *time.Time `json:"disband_at" gorm:"type:datetime;default:null"`
 	CompletedByID             *uint      `json:"completed_by_id"`
 	CompletedAt               *time.Time `json:"completed_at" gorm:"type:datetime;default:null"`
+	IsDetailsUpdated          bool       `json:"is_details_updated" gorm:"type:bit;default:0"`
 	// Relationships
 	InternalCommittee                          *InternalCommittee                           `gorm:"foreignKey:InternalCommitteeID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	CommitteeType                              *CommitteeType                               `gorm:"foreignKey:CommitteeTypeID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
