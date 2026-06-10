@@ -224,3 +224,40 @@ func (rrupc *RiskRegisterUpdatePlanController) DeleteRiskRegisterUpdatePlan(c *g
 		"failed_ids": failedIDs,
 	})
 }
+
+func (rrupc *RiskRegisterUpdatePlanController) ForceDeleteRiskRegisterUpdatePlan(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	// Bind JSON request
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	// Get current user
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(rrupc.db, c, err.Error())
+		return
+	}
+
+	// Call service
+	failedIDs, err := rrupc.service.ForceDelete(request.IDs, currentUserID)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(rrupc.db, c, e.Error())
+			return
+		}
+	}
+
+	// Response
+	c.JSON(http.StatusOK, gin.H{
+		"failed_ids": failedIDs,
+	})
+}

@@ -541,6 +541,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	riskRoutes.POST("/risk-register-update-plans", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.CreateRiskRegisterUpdatePlan)
 	riskRoutes.PUT("/risk-register-update-plans/:id", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.UpdateRiskRegisterUpdatePlan)
 	riskRoutes.POST("/risk-register-update-plans/delete", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.DeleteRiskRegisterUpdatePlan)
+	riskRoutes.POST("/risk-register-update-plans/force-delete", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "modify"), riskRegisterUpdatePlanController.ForceDeleteRiskRegisterUpdatePlan)
 
 	// Workflow
 	riskRoutes.GET("/risk-register-update-plans/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "risk_register_update_plan", "view"), riskRegisterUpdatePlanWorkflowController.GetWorkflowList)

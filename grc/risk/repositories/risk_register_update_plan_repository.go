@@ -39,6 +39,9 @@ type RiskRegisterUpdatePlanRepositoryInterface interface {
 
 	// Risk Operations
 	GetRisksByPlanID(planID uint, tx ...utility.DatabaseTransaction) ([]*models.RiskRegister, error)
+
+	// Force Delete
+	ForceDelete(id uint, tx ...utility.DatabaseTransaction) error
 }
 
 type RiskRegisterUpdatePlanRepository struct {
@@ -493,4 +496,124 @@ func (repo *RiskRegisterUpdatePlanRepository) GetRisksByPlanID(planID uint, tx .
 	}
 
 	return risks, nil
+}
+
+func (repo *RiskRegisterUpdatePlanRepository) ForceDelete(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	queries := []string{
+		// --- Deepest children first ---
+		// Review comment documents (child of review comments)
+		`DELETE FROM risk_update_plan_review_comment_documents
+		WHERE risk_update_plan_review_comment_id IN (
+			SELECT id FROM risk_update_plan_review_comments WHERE risk_register_update_plan_id = ?
+		)`,
+
+		// Review comments
+		`DELETE FROM risk_update_plan_review_comments WHERE risk_register_update_plan_id = ?`,
+
+		// Workflow reviews (child of workflows)
+		`DELETE FROM risk_update_plan_workflow_reviews
+		WHERE risk_register_update_plan_workflow_id IN (
+			SELECT id FROM risk_update_plan_workflows WHERE risk_register_update_plan_id = ?
+		)`,
+
+		// Workflow participants (child of workflows)
+		`DELETE FROM risk_update_plan_workflow_participants
+		WHERE risk_register_update_plan_workflow_id IN (
+			SELECT id FROM risk_update_plan_workflows WHERE risk_register_update_plan_id = ?
+		)`,
+
+		// Workflow histories
+		`DELETE FROM risk_update_plan_workflow_histories WHERE risk_register_update_plan_id = ?`,
+
+		// Workflows
+		`DELETE FROM risk_update_plan_workflows WHERE risk_register_update_plan_id = ?`,
+
+		// Timeline children (deepest first)
+		`DELETE FROM risk_update_plan_erm_dept_documents
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines WHERE risk_update_plan_id = ?
+		)`,
+
+		`DELETE FROM risk_update_plan_introductory_meeting_documents
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines WHERE risk_update_plan_id = ?
+		)`,
+
+		`DELETE FROM risk_update_plan_business_contexts
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines WHERE risk_update_plan_id = ?
+		)`,
+
+		`DELETE FROM risk_update_plan_controls
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines WHERE risk_update_plan_id = ?
+		)`,
+
+		`DELETE FROM risk_update_plan_processes
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines WHERE risk_update_plan_id = ?
+		)`,
+
+		`DELETE FROM risk_update_plan_leadership_assessments
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines WHERE risk_update_plan_id = ?
+		)`,
+
+		`DELETE FROM risk_update_plan_leadership_documents
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines WHERE risk_update_plan_id = ?
+		)`,
+
+		`DELETE FROM risk_update_plan_risk_assessment_workshop_documents
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines WHERE risk_update_plan_id = ?
+		)`,
+
+		`DELETE FROM risk_update_plan_risk_team_assessments
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines WHERE risk_update_plan_id = ?
+		)`,
+
+		`DELETE FROM risk_update_plan_risk_team_documents
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines WHERE risk_update_plan_id = ?
+		)`,
+
+		`DELETE FROM risk_update_plan_risk_workshop_assessment_documents
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines WHERE risk_update_plan_id = ?
+		)`,
+
+		`DELETE FROM risk_update_plan_self_awareness_trainings
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines WHERE risk_update_plan_id = ?
+		)`,
+
+		// Timeline risks
+		`DELETE FROM risk_update_plan_risks
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines WHERE risk_update_plan_id = ?
+		)`,
+
+		// Timelines
+		`DELETE FROM risk_update_plan_timelines WHERE risk_update_plan_id = ?`,
+
+		// Team members
+		`DELETE FROM risk_register_update_plan_team_members WHERE risk_register_update_plan_id = ?`,
+	}
+
+	// Execute all delete queries
+	for _, q := range queries {
+		if err := db.Exec(q, id).Error; err != nil {
+			return err
+		}
+	}
+
+	// Delete the plan itself
+	return db.Delete(&models.RiskRegisterUpdatePlan{}, id).Error
 }
