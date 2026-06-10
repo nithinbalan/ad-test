@@ -1386,6 +1386,223 @@ func (repo *RiskRegisterRepository) ForceDelete(id uint, tx ...utility.DatabaseT
 
 		`DELETE FROM auditable_items
 		WHERE auditable_items.risk_register_id = ?`,
+
+		// --- Risk Register Update Plans and their children ---
+		// First, update risk_register to remove FK reference to update plans
+		`UPDATE risk_register SET risk_register_update_plan_id = NULL WHERE id = ?`,
+
+		// Review comment documents (child of review comments)
+		`DELETE FROM risk_update_plan_review_comment_documents
+		WHERE risk_update_plan_review_comment_id IN (
+			SELECT id FROM risk_update_plan_review_comments
+			WHERE risk_register_update_plan_id IN (
+				SELECT id FROM risk_register_update_plans WHERE id IN (
+					SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+				)
+			)
+		)`,
+
+		// Review comments
+		`DELETE FROM risk_update_plan_review_comments
+		WHERE risk_register_update_plan_id IN (
+			SELECT id FROM risk_register_update_plans WHERE id IN (
+				SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+			)
+		)`,
+
+		// Workflow reviews
+		`DELETE FROM risk_update_plan_workflow_reviews
+		WHERE risk_register_update_plan_workflow_id IN (
+			SELECT id FROM risk_update_plan_workflows
+			WHERE risk_register_update_plan_id IN (
+				SELECT id FROM risk_register_update_plans WHERE id IN (
+					SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+				)
+			)
+		)`,
+
+		// Workflow participants
+		`DELETE FROM risk_update_plan_workflow_participants
+		WHERE risk_register_update_plan_workflow_id IN (
+			SELECT id FROM risk_update_plan_workflows
+			WHERE risk_register_update_plan_id IN (
+				SELECT id FROM risk_register_update_plans WHERE id IN (
+					SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+				)
+			)
+		)`,
+
+		// Workflow histories
+		`DELETE FROM risk_update_plan_workflow_histories
+		WHERE risk_register_update_plan_id IN (
+			SELECT id FROM risk_register_update_plans WHERE id IN (
+				SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+			)
+		)`,
+
+		// Workflows
+		`DELETE FROM risk_update_plan_workflows
+		WHERE risk_register_update_plan_id IN (
+			SELECT id FROM risk_register_update_plans WHERE id IN (
+				SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+			)
+		)`,
+
+		// Timeline children
+		`DELETE FROM risk_update_plan_erm_dept_documents
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines
+			WHERE risk_update_plan_id IN (
+				SELECT id FROM risk_register_update_plans WHERE id IN (
+					SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+				)
+			)
+		)`,
+
+		`DELETE FROM risk_update_plan_introductory_meeting_documents
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines
+			WHERE risk_update_plan_id IN (
+				SELECT id FROM risk_register_update_plans WHERE id IN (
+					SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+				)
+			)
+		)`,
+
+		`DELETE FROM risk_update_plan_business_contexts
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines
+			WHERE risk_update_plan_id IN (
+				SELECT id FROM risk_register_update_plans WHERE id IN (
+					SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+				)
+			)
+		)`,
+
+		`DELETE FROM risk_update_plan_controls
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines
+			WHERE risk_update_plan_id IN (
+				SELECT id FROM risk_register_update_plans WHERE id IN (
+					SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+				)
+			)
+		)`,
+
+		`DELETE FROM risk_update_plan_processes
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines
+			WHERE risk_update_plan_id IN (
+				SELECT id FROM risk_register_update_plans WHERE id IN (
+					SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+				)
+			)
+		)`,
+
+		`DELETE FROM risk_update_plan_leadership_assessments
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines
+			WHERE risk_update_plan_id IN (
+				SELECT id FROM risk_register_update_plans WHERE id IN (
+					SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+				)
+			)
+		)`,
+
+		`DELETE FROM risk_update_plan_leadership_documents
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines
+			WHERE risk_update_plan_id IN (
+				SELECT id FROM risk_register_update_plans WHERE id IN (
+					SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+				)
+			)
+		)`,
+
+		`DELETE FROM risk_update_plan_risk_assessment_workshop_documents
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines
+			WHERE risk_update_plan_id IN (
+				SELECT id FROM risk_register_update_plans WHERE id IN (
+					SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+				)
+			)
+		)`,
+
+		`DELETE FROM risk_update_plan_risk_team_assessments
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines
+			WHERE risk_update_plan_id IN (
+				SELECT id FROM risk_register_update_plans WHERE id IN (
+					SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+				)
+			)
+		)`,
+
+		`DELETE FROM risk_update_plan_risk_team_documents
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines
+			WHERE risk_update_plan_id IN (
+				SELECT id FROM risk_register_update_plans WHERE id IN (
+					SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+				)
+			)
+		)`,
+
+		`DELETE FROM risk_update_plan_risk_workshop_assessment_documents
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines
+			WHERE risk_update_plan_id IN (
+				SELECT id FROM risk_register_update_plans WHERE id IN (
+					SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+				)
+			)
+		)`,
+
+		`DELETE FROM risk_update_plan_self_awareness_trainings
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines
+			WHERE risk_update_plan_id IN (
+				SELECT id FROM risk_register_update_plans WHERE id IN (
+					SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+				)
+			)
+		)`,
+
+		`DELETE FROM risk_update_plan_risks
+		WHERE risk_update_plan_timeline_id IN (
+			SELECT id FROM risk_update_plan_timelines
+			WHERE risk_update_plan_id IN (
+				SELECT id FROM risk_register_update_plans WHERE id IN (
+					SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+				)
+			)
+		)`,
+
+		// Timelines
+		`DELETE FROM risk_update_plan_timelines
+		WHERE risk_update_plan_id IN (
+			SELECT id FROM risk_register_update_plans WHERE id IN (
+				SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+			)
+		)`,
+
+		// Team members
+		`DELETE FROM risk_register_update_plan_team_members
+		WHERE risk_register_update_plan_id IN (
+			SELECT id FROM risk_register_update_plans WHERE id IN (
+				SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+			)
+		)`,
+
+		// Update plans themselves
+		`DELETE FROM risk_register_update_plans
+		WHERE id IN (
+			SELECT risk_register_update_plan_id FROM risk_register WHERE id = ? AND risk_register_update_plan_id IS NOT NULL
+		)`,
+
+		// Safety cleanup: delete any risk_update_plan_risks directly referencing this risk register
+		`DELETE FROM risk_update_plan_risks WHERE risk_register_id = ?`,
 	}
 	// Delete the Risk register
 

@@ -25,6 +25,7 @@ type RiskRegisterUpdatePlanServiceInterface interface {
 	Create(currentUserID uint, formDTO *riskDTOs.RiskRegisterUpdatePlanFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, formDTO *riskDTOs.RiskRegisterUpdatePlanFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
 
 	// Timeline Operations
 	GetTimelineByPlanIDAndTypeID(planID uint, timelineTypeID uint, tx ...utility.DatabaseTransaction) (*models.RiskUpdatePlanTimeline, error)
@@ -393,6 +394,76 @@ func (s *RiskRegisterUpdatePlanService) Delete(ids []uint, currentUserID uint) (
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
 		}()
+	}
+
+	return failedIds, nil
+}
+
+func (s *RiskRegisterUpdatePlanService) ForceDelete(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := s.repo.BeginTransaction()
+	var failedIds []uint
+	var deletedPlans []map[string]interface{}
+
+	for _, id := range ids {
+		plan, err := s.GetFullDetailsByID(id)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		deletedPlans = append(deletedPlans, map[string]interface{}{
+			"id":               id,
+			"division_id":      plan.DivisionID,
+			"business_unit_id": plan.BusinessUnitID,
+			"risk_champion_id": plan.RiskChampionID,
+			"start_date":       plan.StartDateString,
+			"end_date":         plan.EndDateString,
+		})
+
+		if err := s.repo.ForceDelete(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+	}
+
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	tx.Commit()
+
+	// Log bulk delete activities for successful deletions
+	if len(ids) > len(failedIds) {
+		successfulIds := make([]uint, 0)
+		for _, id := range ids {
+			isFailed := false
+			for _, failedId := range failedIds {
+				if id == failedId {
+					isFailed = true
+					break
+				}
+			}
+			if !isFailed {
+				successfulIds = append(successfulIds, id)
+			}
+		}
+
+		if len(successfulIds) > 0 {
+			go func() {
+				err := s.activityLogSvc.LogBulkActivities(
+					models.DeleteAction,
+					models.RiskRegisterUpdatePlan{}.TableName(),
+					successfulIds,
+					deletedPlans,
+					currentUserID,
+					nil,
+				)
+				if err != nil {
+					fmt.Printf("Failed to log bulk delete activity: %v\n", err)
+				}
+			}()
+		}
 	}
 
 	return failedIds, nil
