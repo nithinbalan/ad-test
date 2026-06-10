@@ -254,6 +254,9 @@ func (icc *InternalCommitteeController) UpdateCommitteeDetails(c *gin.Context) {
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(icc.db, c, e.Error())
 			return
