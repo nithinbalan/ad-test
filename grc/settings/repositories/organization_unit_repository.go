@@ -53,12 +53,18 @@ func (repo *OrganizationUnitRepository) GetAll(params *settingsDTOs.Organization
 			parent.id AS parent_organization_unit_id,
             parent.title_en AS parent_organization_unit_title_en,
             parent.title_ar AS parent_organization_unit_title_ar,
+			head_user.id AS organization_unit_head_id,
+			head_user.first_name_en AS organization_unit_head_first_name_en,
+			head_user.first_name_ar AS organization_unit_head_first_name_ar,
+			head_user.last_name_en AS organization_unit_head_last_name_en,
+			head_user.last_name_ar AS organization_unit_head_last_name_ar,
             organization_units.title_en,
             organization_units.title_ar,
 			organization_units.status
         `).
 		Joins("LEFT JOIN organization_levels ON organization_units.organization_level_id = organization_levels.id").
-		Joins("LEFT JOIN organization_units AS parent ON organization_units.organization_unit_id = parent.id")
+		Joins("LEFT JOIN organization_units AS parent ON organization_units.organization_unit_id = parent.id").
+		Joins("LEFT JOIN users AS head_user ON organization_units.organization_unit_head_id = head_user.id")
 
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {

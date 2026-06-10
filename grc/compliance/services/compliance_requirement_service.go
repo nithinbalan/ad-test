@@ -281,7 +281,6 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 	complianceRequirement := &models.ComplianceRequirement{
 		ComplianceRequirementCategoryID: complianceRequirementFormDTO.ComplianceRequirementCategoryID,
 		// ComplianceStatusID:              complianceRequirementFormDTO.ComplianceStatusID,
-		ResponsibleUserID:  complianceRequirementFormDTO.ResponsibleUserID,
 		SeverityLevelID:    complianceRequirementFormDTO.SeverityLevelID,
 		TitleEn:            complianceRequirementFormDTO.TitleEn,
 		TitleAr:            complianceRequirementFormDTO.TitleAr,
@@ -339,6 +338,7 @@ func (crs *ComplianceRequirementService) Create(complianceID uint, currentUserID
 		unit := &models.ComplianceRequirementResponsibleUnit{
 			ComplianceRequirementID:            id,
 			ResponsibleUnitID:                  resUnit.ResponsibleUnitID,
+			ResponsibleUserID:                  resUnit.ResponsibleUserID,
 			IsRegulationNotificationAssessment: resUnit.IsRegulationNotificationAssessment,
 			IsRiskBasedAssessment:              resUnit.IsRiskBasedAssessment,
 			CreatedByID:                        currentUserID,
@@ -578,7 +578,6 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 	// Update Compliance Requirement
 	existingComplianceRequirement.ComplianceClauseID = clause.ID
 	existingComplianceRequirement.ComplianceRequirementCategoryID = complianceRequirementFormDTO.ComplianceRequirementCategoryID
-	existingComplianceRequirement.ResponsibleUserID = complianceRequirementFormDTO.ResponsibleUserID
 	// existingComplianceRequirement.ComplianceStatusID = complianceRequirementFormDTO.ComplianceStatusID
 	existingComplianceRequirement.SeverityLevelID = complianceRequirementFormDTO.SeverityLevelID
 	existingComplianceRequirement.TitleEn = complianceRequirementFormDTO.TitleEn
@@ -635,6 +634,7 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 			unitsToAdd = append(unitsToAdd, &models.ComplianceRequirementResponsibleUnit{
 				ComplianceRequirementID:            id,
 				ResponsibleUnitID:                  unit.ResponsibleUnitID,
+				ResponsibleUserID:                  unit.ResponsibleUserID,
 				IsRegulationNotificationAssessment: unit.IsRegulationNotificationAssessment,
 				IsRiskBasedAssessment:              unit.IsRiskBasedAssessment,
 				CreatedByID:                        currentUserID,
@@ -649,12 +649,16 @@ func (crs *ComplianceRequirementService) Update(complianceID uint, id uint, curr
 				(existingUnit.IsRegulationNotificationAssessment != nil && unit.IsRegulationNotificationAssessment != nil && *existingUnit.IsRegulationNotificationAssessment != *unit.IsRegulationNotificationAssessment) ||
 				(existingUnit.IsRiskBasedAssessment == nil && unit.IsRiskBasedAssessment != nil) ||
 				(existingUnit.IsRiskBasedAssessment != nil && unit.IsRiskBasedAssessment == nil) ||
-				(existingUnit.IsRiskBasedAssessment != nil && unit.IsRiskBasedAssessment != nil && *existingUnit.IsRiskBasedAssessment != *unit.IsRiskBasedAssessment)) {
+				(existingUnit.IsRiskBasedAssessment != nil && unit.IsRiskBasedAssessment != nil && *existingUnit.IsRiskBasedAssessment != *unit.IsRiskBasedAssessment) ||
+				(existingUnit.ResponsibleUserID == nil && unit.ResponsibleUserID != nil) ||
+				(existingUnit.ResponsibleUserID != nil && unit.ResponsibleUserID == nil) ||
+				(existingUnit.ResponsibleUserID != nil && unit.ResponsibleUserID != nil && *existingUnit.ResponsibleUserID != *unit.ResponsibleUserID)) {
 			recordID := existingUnitIDs[unit.ResponsibleUnitID]
 			unitsToUpdate = append(unitsToUpdate, &models.ComplianceRequirementResponsibleUnit{
 				ID:                                 recordID,
 				ComplianceRequirementID:            id,
 				ResponsibleUnitID:                  unit.ResponsibleUnitID,
+				ResponsibleUserID:                  unit.ResponsibleUserID,
 				IsRegulationNotificationAssessment: unit.IsRegulationNotificationAssessment,
 				IsRiskBasedAssessment:              unit.IsRiskBasedAssessment,
 				UpdatedByID:                        &currentUserID,

@@ -18,18 +18,23 @@ type OrganizationLevelDTO struct {
 	IsPrimary bool   `json:"is_primary"`
 }
 type OrganizationUnitListDTO struct {
-	ID                            uint   `json:"id"`
-	OrganizationLevelID           uint   `json:"organization_level_id"`
-	OrganizationLevel             uint8  `json:"organization_level"`
-	OrganizationLevelTitleEn      string `json:"organization_level_title_en"`
-	OrganizationLevelTitleAr      string `json:"organization_level_title_ar"`
-	ParentOrganizationUnitID      uint   `json:"parent_organization_unit_id"`
-	ParentOrganizationUnitTitleEn string `json:"parent_organization_unit_title_en"`
-	ParentOrganizationUnitTitleAr string `json:"parent_organization_unit_title_ar"`
-	ColorCode                     string `json:"color_code"`
-	TitleEn                       string `json:"title_en"`
-	TitleAr                       string `json:"title_ar"`
-	Status                        string `json:"status"`
+	ID                              uint   `json:"id"`
+	OrganizationLevelID             uint   `json:"organization_level_id"`
+	OrganizationLevel               uint8  `json:"organization_level"`
+	OrganizationLevelTitleEn        string `json:"organization_level_title_en"`
+	OrganizationLevelTitleAr        string `json:"organization_level_title_ar"`
+	ParentOrganizationUnitID        uint   `json:"parent_organization_unit_id"`
+	ParentOrganizationUnitTitleEn   string `json:"parent_organization_unit_title_en"`
+	ParentOrganizationUnitTitleAr   string `json:"parent_organization_unit_title_ar"`
+	OrganizationUnitHeadID          *uint  `json:"organization_unit_head_id"`
+	OrganizationUnitHeadFirstNameEn string `json:"organization_unit_head_first_name_en"`
+	OrganizationUnitHeadFirstNameAr string `json:"organization_unit_head_first_name_ar"`
+	OrganizationUnitHeadLastNameEn  string `json:"organization_unit_head_last_name_en"`
+	OrganizationUnitHeadLastNameAr  string `json:"organization_unit_head_last_name_ar"`
+	ColorCode                       string `json:"color_code"`
+	TitleEn                         string `json:"title_en"`
+	TitleAr                         string `json:"title_ar"`
+	Status                          string `json:"status"`
 }
 
 type OrganizationUnitListQueryParamsDTO struct {

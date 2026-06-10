@@ -23,7 +23,6 @@ type ComplianceRequirement struct {
 	InherentRiskScore               *float64   `json:"inherent_risk_score" gorm:"type:decimal(10,2)"`
 	ResidualRiskRatingID            *uint      `json:"residual_risk_rating_id" gorm:"default:null"`
 	ResidualRiskScore               *float64   `json:"residual_risk_score" gorm:"type:decimal(10,2)"`
-	ResponsibleUserID               *uint      `json:"responsible_user_id" gorm:"default:null"`
 
 	// Relationships
 	ComplianceClause              *ComplianceClause                             `gorm:"foreignKey:ComplianceClauseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -40,7 +39,6 @@ type ComplianceRequirement struct {
 	InherentRiskAnalysis          []*ComplianceRequirementInherentRiskAnalysis  `gorm:"foreignKey:ComplianceRequirementID"`
 	InherentRiskRating            *ComplianceAssessmentRating                   `gorm:"foreignKey:InherentRiskRatingID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ResidualRiskRating            *ComplianceAssessmentRating                   `gorm:"foreignKey:ResidualRiskRatingID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ResponsibleUser               *User                                         `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
 // TableName overrides the table name used by ComplianceRequirement to `compliance_requirements`

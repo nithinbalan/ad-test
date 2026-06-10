@@ -6,6 +6,7 @@ type ComplianceRequirementResponsibleUnit struct {
 	ID                                   uint       `json:"id" gorm:"primary_key;autoIncrement"`
 	ComplianceRequirementID              uint       `json:"compliance_requirement_id" gorm:"not null"`
 	ResponsibleUnitID                    uint       `json:"responsible_unit_id" gorm:"not null"`
+	ResponsibleUserID                    *uint      `json:"responsible_user_id" gorm:"default:null"`
 	IsRegulationNotificationAssessment   *bool      `json:"is_regulation_notification_assessment" gorm:"default:null"`
 	IsRiskBasedAssessment                *bool      `json:"is_risk_based_assessment" gorm:"default:null"`
 	ComplianceAssessmentFrameworkValueID *uint      `json:"compliance_assessment_framework_value_id" gorm:"default:null"`
@@ -20,6 +21,7 @@ type ComplianceRequirementResponsibleUnit struct {
 	// Relationships
 	ComplianceRequirement              *ComplianceRequirement              `gorm:"foreignKey:ComplianceRequirementID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ResponsibleUnit                    *OrganizationUnit                   `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ResponsibleUser                    *User                               `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ComplianceAssessmentFrameworkValue *ComplianceAssessmentFrameworkValue `gorm:"foreignKey:ComplianceAssessmentFrameworkValueID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	CompletedByUser                    *User                               `gorm:"foreignKey:CompletedByUserID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
 	CreatedByUser                      *User                               `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
