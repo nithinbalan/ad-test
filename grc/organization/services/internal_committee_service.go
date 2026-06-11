@@ -560,14 +560,23 @@ func (ics *InternalCommitteeService) CompleteCommittee(committeeID uint, current
 	if err != nil {
 		return err
 	}
-	organization, err := ics.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(governance.ApproveDepartment.ID)
-	if organization.HeadUser == nil {
+	organization, err := ics.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(
+		governance.ApproveDepartment.ID,
+	)
+	if err != nil {
+		return err
+	}
+
+	if organization == nil || organization.HeadUser == nil {
 		return utility.NewForbiddenError(
 			"No department head is configured for the governance approval department",
 		)
 	}
+
 	if organization.HeadUser.ID != currentUserID {
-		return utility.NewForbiddenError("Only the head of the governance approval department can complete the committee")
+		return utility.NewForbiddenError(
+			"Only the head of the governance approval department can complete the committee",
+		)
 	}
 
 	existingCommittee, err := ics.repo.GetByID(committeeID)

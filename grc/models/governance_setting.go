@@ -17,8 +17,8 @@ type GovernanceSetting struct {
 	// Relationships
 	ApproveDepartment *OrganizationUnit `gorm:"foreignKey:ApproveDepartmentID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 
-	CreatedByUser *User `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser *User `gorm:"foreignKey:UpdatedBYID"`
+	CreatedByUser *User `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	UpdatedByUser *User `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 // TableName overrides the default table name
