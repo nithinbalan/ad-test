@@ -137,6 +137,12 @@ func (ics *InternalCommitteeService) GetFullDetailsByID(id uint, tx ...utility.D
 			return nil, err
 		}
 
+		// Format term start date string
+		if latestVersion.TermStartDate != nil {
+			termStartDateStr := latestVersion.TermStartDate.Format("2006-01-02")
+			versionDTO.TermStartDateString = &termStartDateStr
+		}
+
 		// Format term end date string
 		if latestVersion.TermEndDate != nil {
 			termEndDateStr := latestVersion.TermEndDate.Format("2006-01-02")
@@ -328,6 +334,7 @@ func (ics *InternalCommitteeService) Create(currentUserID uint, internalCommitte
 		CommitteeNameAr:           internalCommitteeFormDTO.CommitteeNameAr,
 		CommitteeTypeID:           internalCommitteeFormDTO.CommitteeTypeID,
 		CommitteeTermID:           internalCommitteeFormDTO.CommitteeTermID,
+		TermStartDate:             parsedDates.TermStartDate,
 		TermEndDate:               parsedDates.TermEndDate,
 		CommitteeClassificationID: internalCommitteeFormDTO.CommitteeClassificationID,
 		Justification:             internalCommitteeFormDTO.Justification,
@@ -378,6 +385,7 @@ func (ics *InternalCommitteeService) Create(currentUserID uint, internalCommitte
 			"committee_name_ar":          newCommittee.LatestVersion.CommitteeNameAr,
 			"committee_type":             newCommittee.LatestVersion.CommitteeType.TitleEn,
 			"committee_term":             newCommittee.LatestVersion.CommitteeTerm.TitleEn,
+			"term_start_date":            newCommittee.LatestVersion.TermStartDateString,
 			"term_end_date":              newCommittee.LatestVersion.TermEndDateString,
 			"committee_classification":   newCommittee.LatestVersion.CommitteeClassification.TitleEn,
 			"justification":              newCommittee.LatestVersion.Justification,
@@ -863,6 +871,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 	latestVersion.CommitteeNameAr = internalCommitteeFormDTO.CommitteeNameAr
 	latestVersion.CommitteeTypeID = internalCommitteeFormDTO.CommitteeTypeID
 	latestVersion.CommitteeTermID = internalCommitteeFormDTO.CommitteeTermID
+	latestVersion.TermStartDate = parsedDates.TermStartDate
 	latestVersion.TermEndDate = parsedDates.TermEndDate
 	latestVersion.CommitteeClassificationID = internalCommitteeFormDTO.CommitteeClassificationID
 	latestVersion.Justification = internalCommitteeFormDTO.Justification
@@ -913,6 +922,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 			"committee_name_ar":          oldCommittee.LatestVersion.CommitteeNameAr,
 			"committee_type":             oldCommittee.LatestVersion.CommitteeType.TitleEn,
 			"committee_term":             oldCommittee.LatestVersion.CommitteeTerm.TitleEn,
+			"term_start_date":            oldCommittee.LatestVersion.TermStartDateString,
 			"term_end_date":              oldCommittee.LatestVersion.TermEndDateString,
 			"committee_classification":   oldCommittee.LatestVersion.CommitteeClassification.TitleEn,
 			"justification":              oldCommittee.LatestVersion.Justification,
@@ -925,6 +935,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 			"committee_name_ar":          newCommittee.LatestVersion.CommitteeNameAr,
 			"committee_type":             newCommittee.LatestVersion.CommitteeType.TitleEn,
 			"committee_term":             newCommittee.LatestVersion.CommitteeTerm.TitleEn,
+			"term_start_date":            newCommittee.LatestVersion.TermStartDateString,
 			"term_end_date":              newCommittee.LatestVersion.TermEndDateString,
 			"committee_classification":   newCommittee.LatestVersion.CommitteeClassification.TitleEn,
 			"justification":              newCommittee.LatestVersion.Justification,
@@ -1363,6 +1374,7 @@ func (ics *InternalCommitteeService) ReformCommittee(currentUserID uint, reformD
 		CommitteeNameAr:           reformDTO.CommitteeNameAr,
 		CommitteeTypeID:           reformDTO.CommitteeTypeID,
 		CommitteeTermID:           reformDTO.CommitteeTermID,
+		TermStartDate:             parsedDates.TermStartDate,
 		TermEndDate:               parsedDates.TermEndDate,
 		CommitteeClassificationID: reformDTO.CommitteeClassificationID,
 		Justification:             reformDTO.Justification,
@@ -1445,6 +1457,7 @@ func (ics *InternalCommitteeService) ReformCommittee(currentUserID uint, reformD
 			"committee_status":           "reformation",
 			"committee_type":             newCommittee.LatestVersion.CommitteeType.TitleEn,
 			"committee_term":             newCommittee.LatestVersion.CommitteeTerm.TitleEn,
+			"term_start_date":            newCommittee.LatestVersion.TermStartDateString,
 			"term_end_date":              newCommittee.LatestVersion.TermEndDateString,
 			"committee_classification":   newCommittee.LatestVersion.CommitteeClassification.TitleEn,
 			"justification":              newCommittee.LatestVersion.Justification,
@@ -1640,6 +1653,17 @@ func (ics *InternalCommitteeService) parseInternalCommitteeDates(internalCommitt
 	parsed := &organizationDTOs.InternalCommitteeParsedDates{}
 
 	var err error
+
+	if internalCommitteeFormDTO.TermStartDate != nil && *internalCommitteeFormDTO.TermStartDate != "" {
+		parsed.TermStartDate, err = utility.ParseDate(*internalCommitteeFormDTO.TermStartDate)
+		if err != nil {
+			return nil, utility.NewValidationError(
+				fmt.Errorf("invalid term start date"),
+				"invalid_date",
+				"term_start_date",
+			)
+		}
+	}
 
 	if internalCommitteeFormDTO.TermEndDate != nil && *internalCommitteeFormDTO.TermEndDate != "" {
 		parsed.TermEndDate, err = utility.ParseDate(*internalCommitteeFormDTO.TermEndDate)
@@ -2133,6 +2157,7 @@ func (ics *InternalCommitteeService) DisbandCommittee(committeeID uint, currentU
 		CommitteeNameAr:           latestVersion.CommitteeNameAr,
 		CommitteeTypeID:           latestVersion.CommitteeTypeID,
 		CommitteeTermID:           latestVersion.CommitteeTermID,
+		TermStartDate:             latestVersion.TermStartDate,
 		TermEndDate:               latestVersion.TermEndDate,
 		CommitteeClassificationID: latestVersion.CommitteeClassificationID,
 		Justification:             latestVersion.Justification,

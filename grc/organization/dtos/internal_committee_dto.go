@@ -26,6 +26,7 @@ type InternalCommitteeListDTO struct {
 	CommitteeStatusType            string `json:"committee_status_type"`
 	CommitteeStatusColorCode       string `json:"committee_status_color_code"`
 	Version                        string `json:"version"`
+	TermStartDate                  string `json:"term_start_date"`
 	TermEndDate                    string `json:"term_end_date"`
 	Justification                  string `json:"justification"`
 	RolesAndResponsibilities       string `json:"roles_and_responsibilities"`
@@ -77,6 +78,7 @@ type InternalCommitteeFormDTO struct {
 	CommitteeNameAr           string                                             `json:"committee_name_ar" binding:"omitempty,max=500"`
 	CommitteeTypeID           uint                                               `json:"committee_type_id"`
 	CommitteeTermID           uint                                               `json:"committee_term_id"`
+	TermStartDate             *string                                            `json:"term_start_date" binding:"omitempty,datetime=2006-01-02"`
 	TermEndDate               *string                                            `json:"term_end_date" binding:"omitempty,datetime=2006-01-02"`
 	CommitteeClassificationID uint                                               `json:"committee_classification_id"`
 	Justification             *string                                            `json:"justification"`
@@ -94,7 +96,8 @@ type InternalCommitteeVersionNomineeDepartmentFormDTO struct {
 }
 
 type InternalCommitteeParsedDates struct {
-	TermEndDate *time.Time
+	TermStartDate *time.Time
+	TermEndDate   *time.Time
 }
 
 type InternalCommitteeDetailDTO struct {
@@ -118,6 +121,7 @@ type InternalCommitteeVersionDetailDTO struct {
 	CommitteeType             *CommitteeTypeDTO                                     `json:"committee_type"`
 	CommitteeTermID           uint                                                  `json:"committee_term_id"`
 	CommitteeTerm             *CommitteeTermDTO                                     `json:"committee_term"`
+	TermStartDateString       *string                                               `json:"term_start_date"`
 	TermEndDateString         *string                                               `json:"term_end_date"`
 	CommitteeClassificationID uint                                                  `json:"committee_classification_id"`
 	CommitteeClassification   *CommitteeClassificationDetailsDTO                    `json:"committee_classification"`
@@ -191,6 +195,7 @@ type ReformInternalCommitteeDTO struct {
 	CommitteeNameAr           string                                             `json:"committee_name_ar" binding:"omitempty,max=500"`
 	CommitteeTypeID           uint                                               `json:"committee_type_id"`
 	CommitteeTermID           uint                                               `json:"committee_term_id"`
+	TermStartDate             *string                                            `json:"term_start_date" binding:"omitempty,datetime=2006-01-02"`
 	TermEndDate               *string                                            `json:"term_end_date" binding:"omitempty,datetime=2006-01-02"`
 	CommitteeClassificationID uint                                               `json:"committee_classification_id"`
 	Justification             *string                                            `json:"justification"`

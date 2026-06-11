@@ -11,6 +11,7 @@ type InternalCommitteeVersion struct {
 	CommitteeNameAr           string     `json:"committee_name_ar" binding:"required" gorm:"type:nvarchar(max);not null"`
 	CommitteeTypeID           uint       `json:"committee_type_id" binding:"required" gorm:"not null"`
 	CommitteeTermID           uint       `json:"committee_term_id" binding:"required" gorm:"not null"`
+	TermStartDate             *time.Time `json:"term_start_date" gorm:"type:date"`
 	TermEndDate               *time.Time `json:"term_end_date" gorm:"type:date"`
 	CommitteeClassificationID uint       `json:"committee_classification_id" binding:"required" gorm:"not null"`
 	Justification             *string    `json:"justification" gorm:"type:nvarchar(max)"`
