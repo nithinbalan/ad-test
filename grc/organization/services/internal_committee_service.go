@@ -40,28 +40,29 @@ type InternalCommitteeServiceInterface interface {
 }
 
 type InternalCommitteeService struct {
-	repo                       organizationRepositories.InternalCommitteeRepositoryInterface
-	activityLogSvc             logServices.ActivityLogServiceInterface
-	userSvc                    UserServiceInterface
-	organizationUnitSvc        settingsServices.OrganizationUnitServiceInterface
-	committeeTypeSvc           CommitteeTypeServiceInterface
-	committeeMemberTypeSvc     CommitteeMemberTypeServiceInterface
-	committeeTermSvc           CommitteeTermServiceInterface
-	committeeClassificationSvc CommitteeClassificationServiceInterface
-	internalCommitteeStatusSvc InternalCommitteeStatusServiceInterface
-	notificationSvc            commonServices.NotificationServiceInterface
-	organizationUnitsSvc       OrganizationUnitsServiceInterface
-	workflowReviewSvc          InternalCommitteeWorkflowReviewServiceInterface
-	committeeWorkflowSvc       InternalCommitteeWorkflowServiceInterface
-	workflowStatusSvc          masterServices.WorkflowStatusServiceInterface
-	roleSvc                    settingsServices.RoleServiceInterface
+	repo                        organizationRepositories.InternalCommitteeRepositoryInterface
+	activityLogSvc              logServices.ActivityLogServiceInterface
+	userSvc                     UserServiceInterface
+	settingsOrganizationUnitSvc settingsServices.OrganizationUnitServiceInterface
+	committeeTypeSvc            CommitteeTypeServiceInterface
+	committeeMemberTypeSvc      CommitteeMemberTypeServiceInterface
+	committeeTermSvc            CommitteeTermServiceInterface
+	committeeClassificationSvc  CommitteeClassificationServiceInterface
+	internalCommitteeStatusSvc  InternalCommitteeStatusServiceInterface
+	notificationSvc             commonServices.NotificationServiceInterface
+	organizationUnitsSvc        OrganizationUnitsServiceInterface
+	workflowReviewSvc           InternalCommitteeWorkflowReviewServiceInterface
+	committeeWorkflowSvc        InternalCommitteeWorkflowServiceInterface
+	workflowStatusSvc           masterServices.WorkflowStatusServiceInterface
+	roleSvc                     settingsServices.RoleServiceInterface
+	governanceSettingsSvc       GovernanceSettingsServiceInterface
 }
 
 func NewInternalCommitteeService(
 	repo organizationRepositories.InternalCommitteeRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc UserServiceInterface,
-	organizationUnitSvc settingsServices.OrganizationUnitServiceInterface,
+	settingsOrganizationUnitSvc settingsServices.OrganizationUnitServiceInterface,
 	committeeTypeSvc CommitteeTypeServiceInterface,
 	committeeMemberTypeSvc CommitteeMemberTypeServiceInterface,
 	committeeTermSvc CommitteeTermServiceInterface,
@@ -73,23 +74,25 @@ func NewInternalCommitteeService(
 	committeeWorkflowSvc InternalCommitteeWorkflowServiceInterface,
 	workflowStatusSvc masterServices.WorkflowStatusServiceInterface,
 	roleSvc settingsServices.RoleServiceInterface,
+	governanceSettingsSvc GovernanceSettingsServiceInterface,
 ) InternalCommitteeServiceInterface {
 	return &InternalCommitteeService{
-		repo:                       repo,
-		activityLogSvc:             activityLogSvc,
-		userSvc:                    userSvc,
-		organizationUnitSvc:        organizationUnitSvc,
-		committeeTypeSvc:           committeeTypeSvc,
-		committeeMemberTypeSvc:     committeeMemberTypeSvc,
-		committeeTermSvc:           committeeTermSvc,
-		committeeClassificationSvc: committeeClassificationSvc,
-		internalCommitteeStatusSvc: internalCommitteeStatusSvc,
-		notificationSvc:            notificationSvc,
-		organizationUnitsSvc:       organizationUnitsSvc,
-		workflowReviewSvc:          workflowReviewSvc,
-		committeeWorkflowSvc:       committeeWorkflowSvc,
-		workflowStatusSvc:          workflowStatusSvc,
-		roleSvc:                    roleSvc,
+		repo:                        repo,
+		activityLogSvc:              activityLogSvc,
+		userSvc:                     userSvc,
+		settingsOrganizationUnitSvc: settingsOrganizationUnitSvc,
+		committeeTypeSvc:            committeeTypeSvc,
+		committeeMemberTypeSvc:      committeeMemberTypeSvc,
+		committeeTermSvc:            committeeTermSvc,
+		committeeClassificationSvc:  committeeClassificationSvc,
+		internalCommitteeStatusSvc:  internalCommitteeStatusSvc,
+		notificationSvc:             notificationSvc,
+		organizationUnitsSvc:        organizationUnitsSvc,
+		workflowReviewSvc:           workflowReviewSvc,
+		committeeWorkflowSvc:        committeeWorkflowSvc,
+		workflowStatusSvc:           workflowStatusSvc,
+		roleSvc:                     roleSvc,
+		governanceSettingsSvc:       governanceSettingsSvc,
 	}
 }
 
@@ -428,7 +431,7 @@ func (ics *InternalCommitteeService) Create(currentUserID uint, internalCommitte
 			}
 
 			// Get department details
-			department, err := ics.organizationUnitSvc.GetByID(nominee.NomineeDepartmentID)
+			department, err := ics.settingsOrganizationUnitSvc.GetByID(nominee.NomineeDepartmentID)
 			if err != nil {
 				utility.LogError("Failed to get department details for notification", map[string]interface{}{
 					"department_id": nominee.NomineeDepartmentID,
@@ -561,25 +564,27 @@ func (ics *InternalCommitteeService) CancelCommittee(committeeID uint, currentUs
 }
 
 func (ics *InternalCommitteeService) CompleteCommittee(committeeID uint, currentUserID uint) error {
-	hrrole, err := ics.roleSvc.GetByType("committee-admin")
+	governance, err := ics.governanceSettingsSvc.Get()
 	if err != nil {
 		return err
 	}
-	userIds, err := ics.userSvc.GetUserIdsByRole(hrrole.ID)
+	organization, err := ics.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(
+		governance.ApproveDepartment.ID,
+	)
 	if err != nil {
 		return err
 	}
 
-	hasAuthority := false
-	for _, userID := range userIds {
-		if userID == currentUserID {
-			hasAuthority = true
-			break
-		}
+	if organization == nil || organization.HeadUser == nil {
+		return utility.NewForbiddenError(
+			"No department head is configured for the governance approval department",
+		)
 	}
 
-	if !hasAuthority {
-		return utility.NewForbiddenError("Only users with the Committee Admin role can complete the committee")
+	if organization.HeadUser.ID != currentUserID {
+		return utility.NewForbiddenError(
+			"Only the head of the governance approval department can complete the committee",
+		)
 	}
 
 	existingCommittee, err := ics.repo.GetByID(committeeID)
@@ -993,7 +998,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 				}
 
 				// Get department details
-				department, err := ics.organizationUnitSvc.GetByID(oldNominee.NomineeDepartmentID)
+				department, err := ics.settingsOrganizationUnitSvc.GetByID(oldNominee.NomineeDepartmentID)
 				if err != nil {
 					utility.LogError("Failed to get department details for deletion notification", map[string]interface{}{
 						"department_id": oldNominee.NomineeDepartmentID,
@@ -1095,7 +1100,7 @@ func (ics *InternalCommitteeService) Update(id uint, currentUserID uint, interna
 				}
 
 				// Get department details
-				department, err := ics.organizationUnitSvc.GetByID(nominee.NomineeDepartmentID)
+				department, err := ics.settingsOrganizationUnitSvc.GetByID(nominee.NomineeDepartmentID)
 				if err != nil {
 					utility.LogError("Failed to get department details for notification", map[string]interface{}{
 						"department_id": nominee.NomineeDepartmentID,
@@ -1498,7 +1503,7 @@ func (ics *InternalCommitteeService) ReformCommittee(currentUserID uint, reformD
 			}
 
 			// Get department details
-			department, err := ics.organizationUnitSvc.GetByID(nominee.NomineeDepartmentID)
+			department, err := ics.settingsOrganizationUnitSvc.GetByID(nominee.NomineeDepartmentID)
 			if err != nil {
 				utility.LogError("Failed to get department details for notification", map[string]interface{}{
 					"department_id": nominee.NomineeDepartmentID,
@@ -1600,7 +1605,7 @@ func (ics *InternalCommitteeService) validateInternalCommitteeForm(internalCommi
 
 	// Validate nominee departments
 	for _, nominee := range internalCommitteeFormDTO.NomineeDepartments {
-		if _, err := ics.organizationUnitSvc.GetByID(nominee.NomineeDepartmentID); err != nil {
+		if _, err := ics.settingsOrganizationUnitSvc.GetByID(nominee.NomineeDepartmentID); err != nil {
 			return utility.NewValidationError(err, "not_exist", "nominee_department")
 		}
 
@@ -1790,7 +1795,7 @@ func (ics *InternalCommitteeService) CreateParticipants(currentUserID uint, nomi
 		}
 
 		// Get department details
-		department, err := ics.organizationUnitSvc.GetByID(firstParticipant.NomineeDepartment.NomineeDepartmentID)
+		department, err := ics.settingsOrganizationUnitSvc.GetByID(firstParticipant.NomineeDepartment.NomineeDepartmentID)
 		if err != nil {
 			utility.LogError("Failed to get department details for notification", map[string]interface{}{
 				"department_id": firstParticipant.NomineeDepartment.NomineeDepartmentID,
@@ -1954,7 +1959,7 @@ func (ics *InternalCommitteeService) DeleteParticipant(nomineeDepartmentID uint,
 		}
 
 		// Get department details
-		department, err := ics.organizationUnitSvc.GetByID(deletedParticipant.NomineeDepartment.NomineeDepartmentID)
+		department, err := ics.settingsOrganizationUnitSvc.GetByID(deletedParticipant.NomineeDepartment.NomineeDepartmentID)
 		if err != nil {
 			utility.LogError("Failed to get department details for removal notification", map[string]interface{}{
 				"department_id": deletedParticipant.NomineeDepartment.NomineeDepartmentID,
@@ -2289,7 +2294,7 @@ func (ics *InternalCommitteeService) DisbandCommittee(committeeID uint, currentU
 			}
 
 			// Get department details
-			department, err := ics.organizationUnitSvc.GetByID(nomineeDept.NomineeDepartmentID)
+			department, err := ics.settingsOrganizationUnitSvc.GetByID(nomineeDept.NomineeDepartmentID)
 			if err != nil {
 				utility.LogError("Failed to fetch department details for disband notification", map[string]interface{}{
 					"error":         err.Error(),

@@ -224,6 +224,8 @@ func (repo *InternalCommitteeRepository) GetFullDetailsByID(id uint, tx ...utili
 	var internalCommittee *models.InternalCommittee
 	if err := db.Preload("RequestingEntity").
 		Preload("RequestingEntity.OrganizationUnitHead").
+		Preload("RequestingEntity.ParentUnit").
+		Preload("RequestingEntity.ParentUnit.OrganizationUnitHead").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("InternalCommitteeVersions", func(db *gorm.DB) *gorm.DB {
