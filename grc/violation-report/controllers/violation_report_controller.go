@@ -65,7 +65,6 @@ func (vrc *ViolationReportController) GetAllViolationReports(c *gin.Context) {
 		"violation_report_status_ids",
 		"violation_report_channel_ids",
 		"severity_level_ids",
-		"reported_entity_ids",
 		"created_by_ids",
 	}
 
@@ -87,8 +86,9 @@ func (vrc *ViolationReportController) GetAllViolationReports(c *gin.Context) {
 		"severity_level_en":                      "severity_levels.title_en",
 		"severity_level_ar":                      "severity_levels.title_ar",
 		"severity_level_color":                   "severity_levels.color_code",
-		"reported_entity_title_en":               "organization_units.title_en",
-		"reported_entity_title_ar":               "organization_units.title_ar",
+		"reported_entity_title_en":               "violation_reports.reported_entity",
+		"reported_entity_title_ar":               "violation_reports.reported_entity",
+		"reported_entity":                        "violation_reports.reported_entity",
 		"created_at":                             "violation_reports.created_at",
 	}
 

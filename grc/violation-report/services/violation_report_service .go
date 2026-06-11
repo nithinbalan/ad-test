@@ -181,7 +181,7 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 		ViolationReportSubCategoryID: violationReportFormDTO.ViolationReportSubCategoryID,
 		SeverityLevelID:              violationReportFormDTO.SeverityLevelID,
 		ViolationReportStatusID:      violationReportStatus.ID,
-		ReportedEntityID:             violationReportFormDTO.ReportedEntityID,
+		ReportedEntity:               violationReportFormDTO.ReportedEntity,
 		IDOfReporter:                 violationReportFormDTO.IDOfReporter,
 		NameOfReporter:               violationReportFormDTO.NameOfReporter,
 		PhoneOfReporter:              violationReportFormDTO.PhoneOfReporter,
@@ -463,7 +463,7 @@ func (irs *ViolationReportService) Update(id uint, currentUserID uint, violation
 	existingViolationReport.DescriptionEn = violationReportFormDTO.DescriptionEn
 	existingViolationReport.DescriptionAr = violationReportFormDTO.DescriptionAr
 	existingViolationReport.EvidenceDescription = violationReportFormDTO.EvidenceDescription
-	existingViolationReport.ReportedEntityID = violationReportFormDTO.ReportedEntityID
+	existingViolationReport.ReportedEntity = violationReportFormDTO.ReportedEntity
 	existingViolationReport.IDOfReporter = violationReportFormDTO.IDOfReporter
 	existingViolationReport.NameOfReporter = violationReportFormDTO.NameOfReporter
 	existingViolationReport.PhoneOfReporter = violationReportFormDTO.PhoneOfReporter
@@ -575,7 +575,7 @@ func (irs *ViolationReportService) Update(id uint, currentUserID uint, violation
 			"description_en":                oldViolationReport.DescriptionEn,
 			"description_ar":                oldViolationReport.DescriptionAr,
 			"severity_level":                oldViolationReport.SeverityLevel.TitleEn,
-			"reported_entity":               oldViolationReport.ReportedEntity.TitleEn,
+			"reported_entity":               oldViolationReport.ReportedEntity,
 			"reported_at":                   oldViolationReport.ReportedAtString,
 		}
 
@@ -589,7 +589,7 @@ func (irs *ViolationReportService) Update(id uint, currentUserID uint, violation
 			"description_en":                newViolationReport.DescriptionEn,
 			"description_ar":                newViolationReport.DescriptionAr,
 			"severity_level":                newViolationReport.SeverityLevel.TitleEn,
-			"reported_entity":               newViolationReport.ReportedEntity.TitleEn,
+			"reported_entity":               newViolationReport.ReportedEntity,
 			"reported_at":                   newViolationReport.ReportedAtString,
 		}
 
@@ -882,7 +882,7 @@ func (irs *ViolationReportService) ExportViolationReports(data []*violationRepor
 				utility.GetStringValue(report.ViolationReportSubCategoryTitleAr),
 				report.ViolationReportReasonTitleAr,
 				utility.GetStringValue(report.SeverityLevelTitleAr),
-				report.ReportedEntityTitleAr,
+				utility.GetStringValue(report.ReportedEntity),
 				*report.IDOfReporter,
 				utility.GetStringValue(report.NameOfReporter),
 				utility.GetStringValue(report.EmailOfReporter),
@@ -905,7 +905,7 @@ func (irs *ViolationReportService) ExportViolationReports(data []*violationRepor
 				utility.GetStringValue(report.ViolationReportSubCategoryTitleEn),
 				report.ViolationReportReasonTitleEn,
 				utility.GetStringValue(report.SeverityLevelTitleEn),
-				report.ReportedEntityTitleEn,
+				utility.GetStringValue(report.ReportedEntity),
 				*report.IDOfReporter,
 				utility.GetStringValue(report.NameOfReporter),
 				utility.GetStringValue(report.EmailOfReporter),

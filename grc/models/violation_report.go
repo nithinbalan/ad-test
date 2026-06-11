@@ -15,10 +15,10 @@ type ViolationReport struct {
 	EmailOfReporter              *string    `json:"email_of_reporter" gorm:"type:nvarchar(max)"`
 	TitleEn                      string     `json:"title_en" binding:"required" gorm:"type:nvarchar(max);not null"`
 	TitleAr                      string     `json:"title_ar" binding:"required" gorm:"type:nvarchar(max);not null"`
-	ReportedEntityID             uint       `json:"reported_entity_id" binding:"required"`
+	ReportedEntity               *string    `json:"reported_entity" gorm:"type:nvarchar(max)"`
 	DescriptionEn                *string    `json:"description_en" gorm:"type:nvarchar(max)"`
 	DescriptionAr                *string    `json:"description_ar" gorm:"type:nvarchar(max)"`
-	EvidenceDescription          *string    `json:"evidence_description" gorm:"type:nvarchar(max)"`
+	EvidenceDescription          *string    `gorm:"type:nvarchar(max)" json:"evidence_description"`
 	ViolationReportCategoryID    *uint      `json:"violation_report_category_id"`
 	ViolationReportSubCategoryID *uint      `json:"violation_report_sub_category_id"`
 	ViolationReportReasonID      uint       `json:"violation_report_reason_id" binding:"required"`
@@ -27,7 +27,7 @@ type ViolationReport struct {
 	CreatedBYID                  uint       `json:"created_by_id" binding:"required"`
 	UpdatedBYID                  *uint      `json:"updated_by_id"`
 	CreatedAt                    time.Time  `json:"created_at" gorm:"type:datetime;not null"`
-	UpdatedAt                    *time.Time `json:"updated_at" gorm:"type:datetime"`
+	UpdatedAt                    *time.Time `gorm:"type:datetime"`
 
 	ViolationReportChannel     *ViolationReportChannel     `gorm:"foreignKey:ViolationReportChannelID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT"`
 	ViolationReportCategory    *ViolationReportCategory    `gorm:"foreignKey:ViolationReportCategoryID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT"`
@@ -35,7 +35,6 @@ type ViolationReport struct {
 	ViolationReportReason      *ViolationReportReason      `gorm:"foreignKey:ViolationReportReasonID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT"`
 	ViolationReportStatus      *ViolationReportStatus      `gorm:"foreignKey:ViolationReportStatusID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT"`
 	SeverityLevel              *SeverityLevel              `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT"`
-	ReportedEntity             *OrganizationUnit           `gorm:"foreignKey:ReportedEntityID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT"`
 	Documents                  []*ViolationReportDocument  `gorm:"foreignKey:ViolationReportID"`
 	CreatedByUser              *User                       `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT"`
 	UpdatedByUser              *User                       `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT"`
