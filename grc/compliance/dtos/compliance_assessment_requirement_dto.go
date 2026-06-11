@@ -103,17 +103,6 @@ type ComplianceAssessmentRequirementNotApplicableFormDTO struct {
 	Score             int    `json:"score" binding:"min=0,max=100"`
 }
 
-type ComplianceAssessmentRequirementApproveNotApplicableFormDTO struct {
-	ResponsibleUnitID uint `json:"responsible_unit_id" binding:"required"`
-}
-
-type ComplianceAssessmentRequirementScoreUpdateFormDTO struct {
-	ResponsibleUnitID  uint `json:"responsible_unit_id" binding:"required"`
-	ComplianceStatusID uint `json:"compliance_status_id" binding:"required"`
-	Score              int  `json:"score" binding:"required,min=0,max=100"`
-	IsNotApplicable    bool `json:"is_not_applicable"`
-}
-
 type ComplianceAssessmentRequirementDocumentTitleDTO struct {
 	ID                                *uint                                         `json:"id"`
 	ComplianceAssessmentRequirementID uint                                          `json:"compliance_assessment_requirement_id"`

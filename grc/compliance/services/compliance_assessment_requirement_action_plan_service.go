@@ -190,8 +190,15 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 	}
 	complianceAssessmentRequirementResponsibleUnitID := uint(complianceAssessmentRequirementResponsibleUnit.ID)
 
+	// Get register ID from Compliances array for framework assessments
+	var registerID *uint
+	if len(complianceAssessment.Compliances) > 0 && complianceAssessment.Compliances[0].ComplianceRegister != nil {
+		regID := uint(complianceAssessment.Compliances[0].ComplianceRegister.ID)
+		registerID = &regID
+	}
+
 	complianceAssessmentRequirementActionPlan := &models.ComplianceActionPlan{
-		ComplianceRegisterID:                             complianceAssessment.ComplianceRegisterID,
+		ComplianceRegisterID:                             registerID,
 		ComplianceAssessmentRequirementResponsibleUnitID: &complianceAssessmentRequirementResponsibleUnitID,
 		Title:                            ComplianceActionPlanFormDTO.Title,
 		Description:                      ComplianceActionPlanFormDTO.Description,
@@ -236,7 +243,12 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		tx.Rollback()
 		return 0, err
 	}
-	urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, *complianceAssessment.ComplianceRegisterID, id)
+	// Get register ID for URL param
+	var registerIDForURL uint
+	if len(complianceAssessment.Compliances) > 0 && complianceAssessment.Compliances[0].ComplianceRegister != nil {
+		registerIDForURL = uint(complianceAssessment.Compliances[0].ComplianceRegister.ID)
+	}
+	urlParam := fmt.Sprintf(`{"compliance_register_id":%d, "action_plan_id":%d}`, registerIDForURL, id)
 	taskDTO := commonDTOs.TaskFormDTO{
 		ModuleIdentifier:       "compliance_register",
 		ComplianceActionPlanID: &id,
@@ -335,10 +347,18 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Create(complianc
 		emailTo := []string{responsibleUser.Email}
 		subject := fmt.Sprintf("Compliance Assessment Requirement Action Plan%s: Responsibility Assigned", ComplianceActionPlanFormDTO.Title)
 		appURL := utility.GetAppURL()
+		// Get assessment title based on type
+		var assessmentTitle string
+		if len(complianceAssessment.Compliances) > 0 && complianceAssessment.Compliances[0].ComplianceRegister != nil {
+			assessmentTitle = complianceAssessment.Compliances[0].ComplianceRegister.TitleEn
+		} else if complianceAssessment.ResponsibleOrganizationUnit != nil {
+			assessmentTitle = complianceAssessment.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+		}
+
 		emailData := map[string]interface{}{
 			"FirstNameEn":           responsibleUser.FirstNameEn,
 			"LastNameEn":            responsibleUser.LastNameEn,
-			"ComplianceAssessment":  complianceAssessment.ComplianceRegister.TitleEn,
+			"ComplianceAssessment":  assessmentTitle,
 			"ActionPlanTitle":       ComplianceActionPlanFormDTO.Title,
 			"ActionPlanDescription": ComplianceActionPlanFormDTO.Description,
 			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
@@ -449,6 +469,15 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 		if err != nil {
 			return
 		}
+
+		// Get assessment title for notifications
+		var assessmentTitle string
+		if len(complianceAssessment.Compliances) > 0 && complianceAssessment.Compliances[0].ComplianceRegister != nil {
+			assessmentTitle = complianceAssessment.Compliances[0].ComplianceRegister.TitleEn
+		} else if complianceAssessment.ResponsibleOrganizationUnit != nil {
+			assessmentTitle = complianceAssessment.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+		}
+
 		// log changes
 		changedData := make(map[string]interface{})
 		oldData := map[string]interface{}{
@@ -585,7 +614,7 @@ func (caraps *ComplianceAssessmentRequirementActionPlanService) Update(complianc
 			newResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":           newResponsibleUser.FirstNameEn,
 				"LastNameEn":            newResponsibleUser.LastNameEn,
-				"ComplianceAssessment":  complianceAssessment.ComplianceRegister.TitleEn,
+				"ComplianceAssessment":  assessmentTitle,
 				"ActionPlanTitle":       existingComplianceAssessmentRequirementActionPlan.Title,
 				"ActionPlanDescription": existingComplianceAssessmentRequirementActionPlan.Description,
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,

@@ -137,6 +137,7 @@ func (repo *ComplianceClauseRepository) GetFullDetailsByID(clauseID uint) (*mode
 		Preload("ComplianceRequirements.ComplianceRequirementCategory").
 		Preload("ComplianceRequirements.ResponsibleUnits").
 		Preload("ComplianceRequirements.ResponsibleUnits.ResponsibleUnit").
+		Preload("ComplianceRequirements.ResponsibleUnits.ResponsibleUser").
 		Preload("ComplianceRequirements.ResponsibleUnits.ComplianceAssessmentFrameworkValue").
 		Where("id = ?", clauseID).
 		First(&clause).Error

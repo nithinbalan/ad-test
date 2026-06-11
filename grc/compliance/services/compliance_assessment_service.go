@@ -16,6 +16,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 
@@ -171,6 +172,24 @@ func (cras ComplianceAssessmentService) GetFullDetailsByID(id uint, tx ...utilit
 	dto.CreatedAt = model.CreatedAt
 	dto.UpdatedAt = model.UpdatedAt
 
+	if model.Type != nil {
+		dto.Type = *model.Type
+	}
+
+	if model.ResponsibleOrganizationUnit != nil {
+		var responsibleUnit *organizationDTOs.OrganizationUnitDTO
+		if err := mapstructure.Decode(model.ResponsibleOrganizationUnit, &responsibleUnit); err != nil {
+			return nil, err
+		}
+		dto.ResponsibleOrganizationUnit = responsibleUnit
+	}
+
+	var complianceDTO []*complianceDTOs.ComplianceAssessmentComplianceDTO
+	if err := mapstructure.Decode(model.ComplianceAssessmentCompliances, &complianceDTO); err != nil {
+		return nil, err
+	}
+	dto.Compliances = complianceDTO
+
 	return &dto, nil
 }
 
@@ -197,6 +216,18 @@ func (cras *ComplianceAssessmentService) GetFullDetailsByIDOptimized(id uint, tx
 	dto.CreatedAt = model.CreatedAt
 	dto.UpdatedAt = model.UpdatedAt
 
+	var responsibleUnit *organizationDTOs.OrganizationUnitDTO
+	if err := mapstructure.Decode(model.ResponsibleOrganizationUnit, &responsibleUnit); err != nil {
+		return nil, err
+	}
+	dto.ResponsibleOrganizationUnit = responsibleUnit
+
+	var complianceDTO []*complianceDTOs.ComplianceAssessmentComplianceDTO
+	if err := mapstructure.Decode(model.ComplianceAssessmentCompliances, &complianceDTO); err != nil {
+		return nil, err
+	}
+	dto.Compliances = complianceDTO
+
 	return &dto, nil
 }
 
@@ -209,135 +240,314 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 		return err
 	}
 
-	compliance, err := cras.complianceRegisterSvc.GetFullDetailsByID(complianceAssessmentFormDTO.ComplianceRegisterID)
-	if err != nil {
-		return err
-	}
-
 	complianceAssessmentStatus, err := cras.complianceAssessmentStatusSvc.GetByType("draft")
 	if err != nil {
 		return err
 	}
 
 	complianceAssessment := &models.ComplianceAssessment{
-		ComplianceRegisterID:         complianceAssessmentFormDTO.ComplianceRegisterID,
 		ReviewUserID:                 complianceAssessmentFormDTO.ReviewUserID,
 		Description:                  complianceAssessmentFormDTO.Description,
 		CreatedBYID:                  currentUserID,
 		ComplianceAssessmentStatusID: complianceAssessmentStatus.ID,
 	}
+
+	if complianceAssessmentFormDTO.Type == "department" {
+		assessmentType := "department"
+		complianceAssessment.Type = &assessmentType
+		complianceAssessment.ResponsibleUnitID = complianceAssessmentFormDTO.ResponsibleUnitID
+	}
+
 	id, err := cras.repo.Create(complianceAssessment, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	// fmt.Println(compliance.IsRiskBasedAssessment)
-	//
-	// Only create compliance requirements and controls if it's a risk-based assessment
-	// if compliance.IsRiskBasedAssessment {
-	for _, clause := range compliance.ComplianceClauses {
-		clauseDetails, err := cras.complianceClauseSvc.GetFullDetailsByID(clause.ID)
+
+	// Create ComplianceAssessmentCompliance records
+	if complianceAssessmentFormDTO.Type == "framework" {
+		complianceAssessmentCompliance := []*models.ComplianceAssessmentCompliance{
+			{
+				ComplianceRegisterID:   *complianceAssessmentFormDTO.ComplianceRegisterID,
+				ComplianceAssessmentID: id,
+				CreatedByID:            currentUserID,
+			},
+		}
+		err = cras.repo.CreateComplianceAssessmentCompliances(complianceAssessmentCompliance, tx)
 		if err != nil {
 			tx.Rollback()
 			return err
 		}
-		// ====================================
-		// CASE 1: Requirement-based assessment
-		// ====================================
-		if compliance.IsRequirementAssessment {
-			for _, complianceRequirement := range clauseDetails.ComplianceRequirements {
-				requirement := &models.ComplianceAssessmentRequirement{
-					ComplianceAssessmentID:  id,
-					ComplianceRequirementID: uint(complianceRequirement.ID),
-					ComplianceStatusID:      nil,
-					CreatedBYID:             currentUserID,
-				}
-				requirementId, err := cras.repo.CreateComplianceAssessmentRequirement(requirement, tx)
-				if err != nil {
-					tx.Rollback()
-					return err
-				}
+	} else {
+		registerIDs, err := cras.repo.GetRegisterIDsWithResponsibleUnitID(*complianceAssessmentFormDTO.ResponsibleUnitID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		if len(registerIDs) == 0 {
+			tx.Rollback()
+			return utility.NewForbiddenError("assessment_has_no_compliance_registers")
+		}
+		fmt.Println("registerIDs:", registerIDs)
+		var complianceAssessmentCompliance []*models.ComplianceAssessmentCompliance
+		for _, registerID := range registerIDs {
+			complianceAssessmentCompliance = append(complianceAssessmentCompliance, &models.ComplianceAssessmentCompliance{
+				ComplianceRegisterID:   registerID,
+				ComplianceAssessmentID: id,
+				CreatedByID:            currentUserID,
+			})
+		}
+		err = cras.repo.CreateComplianceAssessmentCompliances(complianceAssessmentCompliance, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 
-				var deadline *time.Time
-				if complianceRequirement.DeadlineString != nil {
-					parsedDeadline, err := time.Parse("2006-01-02", *complianceRequirement.DeadlineString)
+	// Process requirements based on type
+	if complianceAssessmentFormDTO.Type == "framework" {
+		compliance, err := cras.complianceRegisterSvc.GetFullDetailsByID(*complianceAssessmentFormDTO.ComplianceRegisterID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		for _, clause := range compliance.ComplianceClauses {
+			clauseDetails, err := cras.complianceClauseSvc.GetFullDetailsByID(clause.ID)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			// ====================================
+			// CASE 1: Requirement-based assessment
+			// ====================================
+			if compliance.IsRequirementAssessment {
+				for _, complianceRequirement := range clauseDetails.ComplianceRequirements {
+					requirement := &models.ComplianceAssessmentRequirement{
+						ComplianceAssessmentID:  id,
+						ComplianceRequirementID: uint(complianceRequirement.ID),
+						ComplianceStatusID:      nil,
+						CreatedBYID:             currentUserID,
+					}
+					requirementId, err := cras.repo.CreateComplianceAssessmentRequirement(requirement, tx)
 					if err != nil {
 						tx.Rollback()
 						return err
 					}
-					deadline = &parsedDeadline
-				}
 
-				applicabilityStatus, err := cras.applicablityStatusSvc.GetByType("applicable")
+					var deadline *time.Time
+					if complianceRequirement.DeadlineString != nil {
+						parsedDeadline, err := time.Parse("2006-01-02", *complianceRequirement.DeadlineString)
+						if err != nil {
+							tx.Rollback()
+							return err
+						}
+						deadline = &parsedDeadline
+					}
+
+					applicabilityStatus, err := cras.applicablityStatusSvc.GetByType("applicable")
+					if err != nil {
+						tx.Rollback()
+						return err
+					}
+
+					for _, ru := range complianceRequirement.ResponsibleUnits {
+						ruid := ru.ResponsibleUser.ID
+						var responsibleUser uint
+						if ruid != 0 {
+							responsibleUser = uint(ruid)
+						}
+						// Step 1: Create ComplianceAssessmentRequirementResponsibleUnit one-by-one
+						unit := &models.ComplianceAssessmentRequirementResponsibleUnit{
+							ComplianceAssessmentRequirementID: requirementId,
+							ResponsibleUnitID:                 uint(ru.ResponsibleUnit.ID),
+							ResponsibleUserID:                 &responsibleUser,
+							Deadline:                          deadline,
+							CreatedBYID:                       currentUserID,
+						}
+						if err := cras.repo.CreateComplianceAssessmentRequirementResponsibleUnit(unit, tx); err != nil {
+							tx.Rollback()
+							return err
+						}
+
+						// Step 2: Create associated DocumentTitles using the created unit's ID
+						var requirementDocumentTitles []*models.ComplianceAssessmentRequirementDocumentTitle
+
+						for _, documentTitle := range complianceRequirement.RequiredDocumentTitles {
+							doc := &models.ComplianceAssessmentRequirementDocumentTitle{
+								ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
+								RequiredDocumentTitleID:                          &documentTitle.RequiredDocumentTitleID,
+								ApplicabilityStatusID:                            applicabilityStatus.ID,
+								CreatedBYID:                                      currentUserID,
+							}
+							requirementDocumentTitles = append(requirementDocumentTitles, doc)
+						}
+
+						// Add an empty document title (with nil RequiredDocumentTitleID)
+						emptyDoc := &models.ComplianceAssessmentRequirementDocumentTitle{
+							ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
+							RequiredDocumentTitleID:                          nil,
+							ApplicabilityStatusID:                            applicabilityStatus.ID,
+							CreatedBYID:                                      currentUserID,
+						}
+						requirementDocumentTitles = append(requirementDocumentTitles, emptyDoc)
+
+						// Bulk insert documents for this unit
+						if len(requirementDocumentTitles) > 0 {
+							if err := cras.repo.CreateComplianceAssessmentRequirementDocumentTitle(requirementDocumentTitles, tx); err != nil {
+								tx.Rollback()
+								return err
+							}
+						}
+					}
+				}
+			}
+			// =================================
+			// CASE 2: Control-based assessment
+			// =================================
+			// if compliance.IsControlAssessment {
+			// 	for _, control := range clauseDetails.ComplianceControls {
+			// 		assessmentControl := &models.ComplianceAssessmentControl{
+			// 			ComplianceAssessmentID: id,
+			// 			ComplianceControlID:    control.ID,
+			// 			IsCompleted:            false,
+			// 			CreatedBYID:            currentUserID,
+			// 		}
+			// 		if err := cras.repo.CreateComplianceAssessmentControl(assessmentControl, tx); err != nil {
+			// 			tx.Rollback()
+			// 			return err
+			// 		}
+			// 	}
+			// }
+		}
+		// }
+	} else {
+		// Department type: Get all registers linked to responsible unit
+		registerIDs, err := cras.repo.GetRegisterIDsWithResponsibleUnitID(*complianceAssessmentFormDTO.ResponsibleUnitID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		for _, registerID := range registerIDs {
+			compliance, err := cras.complianceRegisterSvc.GetFullDetailsByID(registerID)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			for _, clause := range compliance.ComplianceClauses {
+				clauseDetails, err := cras.complianceClauseSvc.GetFullDetailsByID(clause.ID)
 				if err != nil {
 					tx.Rollback()
 					return err
 				}
 
-				for _, ru := range complianceRequirement.ResponsibleUnits {
-					// Step 1: Create ComplianceAssessmentRequirementResponsibleUnit one-by-one
-					unit := &models.ComplianceAssessmentRequirementResponsibleUnit{
-						ComplianceAssessmentRequirementID: requirementId,
-						ResponsibleUnitID:                 uint(ru.ResponsibleUnit.ID),
-						Deadline:                          deadline,
-						CreatedBYID:                       currentUserID,
-					}
-					if err := cras.repo.CreateComplianceAssessmentRequirementResponsibleUnit(unit, tx); err != nil {
-						tx.Rollback()
-						return err
-					}
-
-					// Step 2: Create associated DocumentTitles using the created unit's ID
-					var requirementDocumentTitles []*models.ComplianceAssessmentRequirementDocumentTitle
-
-					for _, documentTitle := range complianceRequirement.RequiredDocumentTitles {
-						doc := &models.ComplianceAssessmentRequirementDocumentTitle{
-							ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
-							RequiredDocumentTitleID:                          &documentTitle.RequiredDocumentTitleID,
-							ApplicabilityStatusID:                            applicabilityStatus.ID,
-							CreatedBYID:                                      currentUserID,
+				if compliance.IsRequirementAssessment {
+					for _, complianceRequirement := range clauseDetails.ComplianceRequirements {
+						fmt.Println("complianceRequirement:", complianceRequirement)
+						// Find matching responsible unit
+						var matchedRU *complianceDTOs.ComplianceRequirementResponsibleUnitDTO
+						for _, ru := range complianceRequirement.ResponsibleUnits {
+							if ru.ResponsibleUnit.ID == int(*complianceAssessmentFormDTO.ResponsibleUnitID) {
+								matchedRU = ru
+								break
+							}
 						}
-						requirementDocumentTitles = append(requirementDocumentTitles, doc)
-					}
+						if matchedRU == nil {
+							continue
+						}
 
-					// Add an empty document title (with nil RequiredDocumentTitleID)
-					emptyDoc := &models.ComplianceAssessmentRequirementDocumentTitle{
-						ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
-						RequiredDocumentTitleID:                          nil,
-						ApplicabilityStatusID:                            applicabilityStatus.ID,
-						CreatedBYID:                                      currentUserID,
-					}
-					requirementDocumentTitles = append(requirementDocumentTitles, emptyDoc)
-
-					// Bulk insert documents for this unit
-					if len(requirementDocumentTitles) > 0 {
-						if err := cras.repo.CreateComplianceAssessmentRequirementDocumentTitle(requirementDocumentTitles, tx); err != nil {
+						requirement := &models.ComplianceAssessmentRequirement{
+							ComplianceAssessmentID:  id,
+							ComplianceRequirementID: uint(complianceRequirement.ID),
+							ComplianceStatusID:      nil,
+							CreatedBYID:             currentUserID,
+						}
+						requirementId, err := cras.repo.CreateComplianceAssessmentRequirement(requirement, tx)
+						if err != nil {
 							tx.Rollback()
 							return err
 						}
+
+						var deadline *time.Time
+						if complianceRequirement.DeadlineString != nil {
+							parsedDeadline, err := time.Parse("2006-01-02", *complianceRequirement.DeadlineString)
+							if err != nil {
+								tx.Rollback()
+								return err
+							}
+							deadline = &parsedDeadline
+						}
+
+						var responsibleUser *uint
+						if matchedRU.ResponsibleUser != nil && matchedRU.ResponsibleUser.ID != 0 {
+							u := uint(matchedRU.ResponsibleUser.ID)
+							responsibleUser = &u
+						}
+
+						applicabilityStatus, err := cras.applicablityStatusSvc.GetByType("applicable")
+						if err != nil {
+							tx.Rollback()
+							return err
+						}
+
+						unit := &models.ComplianceAssessmentRequirementResponsibleUnit{
+							ComplianceAssessmentRequirementID: requirementId,
+							ResponsibleUnitID:                 uint(matchedRU.ResponsibleUnit.ID),
+							Deadline:                          deadline,
+							ResponsibleUserID:                 responsibleUser,
+							CreatedBYID:                       currentUserID,
+						}
+						if err := cras.repo.CreateComplianceAssessmentRequirementResponsibleUnit(unit, tx); err != nil {
+							tx.Rollback()
+							return err
+						}
+
+						var requirementDocumentTitles []*models.ComplianceAssessmentRequirementDocumentTitle
+						for _, documentTitle := range complianceRequirement.RequiredDocumentTitles {
+							doc := &models.ComplianceAssessmentRequirementDocumentTitle{
+								ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
+								RequiredDocumentTitleID:                          &documentTitle.RequiredDocumentTitleID,
+								ApplicabilityStatusID:                            applicabilityStatus.ID,
+								CreatedBYID:                                      currentUserID,
+							}
+							requirementDocumentTitles = append(requirementDocumentTitles, doc)
+						}
+
+						emptyDoc := &models.ComplianceAssessmentRequirementDocumentTitle{
+							ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
+							RequiredDocumentTitleID:                          nil,
+							ApplicabilityStatusID:                            applicabilityStatus.ID,
+							CreatedBYID:                                      currentUserID,
+						}
+						requirementDocumentTitles = append(requirementDocumentTitles, emptyDoc)
+
+						if len(requirementDocumentTitles) > 0 {
+							if err := cras.repo.CreateComplianceAssessmentRequirementDocumentTitle(requirementDocumentTitles, tx); err != nil {
+								tx.Rollback()
+								return err
+							}
+						}
 					}
 				}
+				// Control-based assessment for department type
+				// if compliance.IsControlAssessment {
+				// 	for _, control := range clauseDetails.ComplianceControls {
+				// 		assessmentControl := &models.ComplianceAssessmentControl{
+				// 			ComplianceAssessmentID: id,
+				// 			ComplianceControlID:    control.ID,
+				// 			IsCompleted:            false,
+				// 			CreatedBYID:            currentUserID,
+				// 		}
+				// 		if err := cras.repo.CreateComplianceAssessmentControl(assessmentControl, tx); err != nil {
+				// 			tx.Rollback()
+				// 			return err
+				// 		}
+				// 	}
+				// }
 			}
 		}
-		// =================================
-		// CASE 2: Control-based assessment
-		// =================================
-		// if compliance.IsControlAssessment {
-		// 	for _, control := range clauseDetails.ComplianceControls {
-		// 		assessmentControl := &models.ComplianceAssessmentControl{
-		// 			ComplianceAssessmentID: id,
-		// 			ComplianceControlID:    control.ID,
-		// 			IsCompleted:            false,
-		// 			CreatedBYID:            currentUserID,
-		// 		}
-		// 		if err := cras.repo.CreateComplianceAssessmentControl(assessmentControl, tx); err != nil {
-		// 			tx.Rollback()
-		// 			return err
-		// 		}
-		// 	}
-		// }
 	}
-	// }
 
 	addedComplianceAssessments = append(addedComplianceAssessments, map[string]interface{}{
 		"id":                    id,
@@ -372,80 +582,182 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 		}
 
 		// Send notification and email to review user if assigned
+		// Send notification and email to review user if assigned
 		if complianceAssessmentFormDTO.ReviewUserID != 0 {
 			// Prepare notification
-			urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
 			queryParam := ""
 			entity := "compliance-assessment"
 			action := "review-user-assign"
 
-			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-				UserIDs:              []uint{complianceAssessmentFormDTO.ReviewUserID},
-				ModuleIdentifier:     "compliance",
-				NotificationType:     string(commonDTOs.AssignmentType),
-				HeadingEn:            "Compliance Assessment Review Assigned",
-				HeadingAr:            "تم تعيين مراجعة لتقييم الامتثال",
-				TitleEn:              compliance.TitleEn,
-				TitleAr:              compliance.TitleAr,
-				ReferenceNumber:      compliance.ReferenceNumber,
-				Entity:               &entity,
-				Action:               &action,
-				URLParam:             urlParam,
-				QueryParam:           queryParam,
-				IsSystemNotification: true,
-				CreatedByID:          &currentUserID,
+			for _, id := range createdIds {
+				compliance, err := cras.GetFullDetailsByIDOptimized(id, nil)
+				if err != nil {
+					return
+				}
+				urlParam := fmt.Sprintf(`{"id":%d}`, id)
+
+				var titleEn, titleAr string
+
+				if compliance.Type == "framework" {
+					titleEn = compliance.Compliances[0].ComplianceRegister.TitleEn
+					titleAr = compliance.Compliances[0].ComplianceRegister.TitleAr
+				} else {
+					unitEn := compliance.ResponsibleOrganizationUnit.TitleEn
+					unitAr := compliance.ResponsibleOrganizationUnit.TitleAr
+
+					titleEn = fmt.Sprintf(
+						"Compliance Assessments related to %s Department",
+						unitEn,
+					)
+
+					titleAr = fmt.Sprintf(
+						"تقييمات الامتثال المتعلقة بقسم %s",
+						unitAr,
+					)
+				}
+				dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+					UserIDs:          []uint{complianceAssessmentFormDTO.ReviewUserID},
+					ModuleIdentifier: "compliance",
+					NotificationType: string(commonDTOs.AssignmentType),
+					HeadingEn:        "Compliance Assessment Review Assigned",
+					HeadingAr:        "تم تعيين مراجعة لتقييم الامتثال",
+					TitleEn:          titleEn,
+					TitleAr:          titleAr,
+					//ReferenceNumber:      assessment["compliance_assessment"]["ReferenceNumber"],
+					Entity:               &entity,
+					Action:               &action,
+					URLParam:             urlParam,
+					QueryParam:           queryParam,
+					IsSystemNotification: true,
+					CreatedByID:          &currentUserID,
+				}
+
+				// Prepare email data
+				reviewUser, err := cras.userSvc.GetByID(complianceAssessmentFormDTO.ReviewUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch review user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+
+				assignedBy, err := cras.userSvc.GetByID(currentUserID)
+				if err != nil {
+					utility.LogError("Failed to fetch assigning user", map[string]interface{}{
+						"error": err.Error(),
+					})
+					return
+				}
+
+				emailTo := []string{reviewUser.Email}
+				subject := fmt.Sprintf("Action Required: Review Compliance Assessment - %s", titleEn)
+				appURL := utility.GetAppURL()
+				emailData := map[string]interface{}{
+					"FirstNameEn": reviewUser.FirstNameEn,
+					"LastNameEn":  reviewUser.LastNameEn,
+					"AssignedBy":  fmt.Sprintf("%s %s", assignedBy.FirstNameEn, assignedBy.LastNameEn),
+					"AssignedOn":  time.Now().Format("02-01-2006"),
+					"Description": complianceAssessmentFormDTO.Description,
+					"RedirectURL": fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, id),
+					"Assessments": compliance.Compliances,
+				}
+
+				// Set description if available
+				if complianceAssessmentFormDTO.Description != nil {
+					emailData["Description"] = *complianceAssessmentFormDTO.Description
+				}
+
+				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+					EmailTo:              emailTo,
+					Subject:              subject,
+					TemplateRelativePath: "compliance/templates/email/compliance_assessment_review_user_assign_mail.html",
+					EmailData:            emailData,
+				}
+
+				// Send notification and email
+				if err := cras.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_assessment"); err != nil {
+					utility.LogError("Failed to send notifications", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+
+				userRequirements := make(map[uint][]*complianceDTOs.ComplianceAssessmentRequirementDTO)
+				for _, requirement := range compliance.AssessmentRequirements {
+					for _, ru := range requirement.ResponsibleUnits {
+
+						if ru.ResponsibleUserID == nil {
+							continue
+						}
+
+						userID := *ru.ResponsibleUserID
+
+						userRequirements[userID] = append(userRequirements[userID], requirement)
+					}
+				}
+
+				for userId, requirements := range userRequirements {
+					user, err := cras.userSvc.GetByID(userId)
+					if err != nil {
+						fmt.Println("Unable to get user data")
+						return
+					}
+
+					hasMultiple := len(requirements) > 1
+
+					reqEntity := "compliance-requirement-assignment"
+					reqAction := "review-user-assign"
+
+					reqUrlParam := fmt.Sprintf(`{"id":%d}`, requirements[0].ResponsibleUnits[0].ID)
+
+					reqDBNotificationDTO := commonDTOs.DBNotificationDTO{
+						UserIDs:              []uint{user.ID},
+						ModuleIdentifier:     "compliance_assessment",
+						NotificationType:     string(commonDTOs.AssignmentType),
+						HeadingEn:            "Compliance Assessment Requirement Review Assigned",
+						HeadingAr:            "تم تكليف بمراجعة متطلبات تقييم الامتثال.",
+						TitleEn:              titleEn,
+						TitleAr:              titleAr,
+						Entity:               &reqEntity,
+						Action:               &reqAction,
+						URLParam:             reqUrlParam,
+						QueryParam:           queryParam,
+						IsSystemNotification: true,
+						CreatedByID:          &currentUserID,
+					}
+
+					reqEmailTo := []string{user.Email}
+					reqSubject := fmt.Sprintf("Action Required: Review Compliance Assessment - %s", TruncateString(titleEn, 100))
+					reqEmailData := map[string]interface{}{
+						"FirstNameEn": user.FirstNameEn,
+						"LastNameEn":  user.LastNameEn,
+						"AssignedBy":  fmt.Sprintf("%s %s", assignedBy.FirstNameEn, assignedBy.LastNameEn),
+						"AssignedOn":  time.Now().Format("02-01-2006"),
+						"Description": "",
+						"RedirectURL": fmt.Sprintf("%s/compliance/passive-assessments/%d", appURL, requirements[0].ResponsibleUnits[0].ID),
+						"Requirement": requirements[0],
+						"HasMultiple": hasMultiple,
+					}
+
+					if complianceAssessmentFormDTO.Description != nil {
+						reqEmailData["Description"] = *complianceAssessmentFormDTO.Description
+					}
+
+					reqEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+						EmailTo:              reqEmailTo,
+						Subject:              reqSubject,
+						TemplateRelativePath: "compliance/templates/email/compliance_assessment_requirement_review_user_assign_mail.html",
+						EmailData:            reqEmailData,
+					}
+
+					if err := cras.notificationSvc.SendNotification(&reqDBNotificationDTO, reqEmailNotificationDTO, "compliance_assessment"); err != nil {
+						utility.LogError("Failed to send notifications", map[string]interface{}{
+							"error": err.Error(),
+						})
+					}
+				}
 			}
 
-			// Prepare email data
-			reviewUser, err := cras.userSvc.GetByID(complianceAssessmentFormDTO.ReviewUserID)
-			if err != nil {
-				utility.LogError("Failed to fetch review user", map[string]interface{}{
-					"error": err.Error(),
-				})
-				return
-			}
-
-			assignedBy, err := cras.userSvc.GetByID(currentUserID)
-			if err != nil {
-				utility.LogError("Failed to fetch assigning user", map[string]interface{}{
-					"error": err.Error(),
-				})
-				return
-			}
-
-			emailTo := []string{reviewUser.Email}
-			subject := fmt.Sprintf("Action Required: Review Compliance Assessment [%s] - %s", compliance.ReferenceNumber, compliance.TitleEn)
-			appURL := utility.GetAppURL()
-			emailData := map[string]interface{}{
-				"FirstNameEn":     reviewUser.FirstNameEn,
-				"LastNameEn":      reviewUser.LastNameEn,
-				"TitleEn":         compliance.TitleEn,
-				"TitleAr":         compliance.TitleAr,
-				"ReferenceNumber": compliance.ReferenceNumber,
-				"AssignedBy":      fmt.Sprintf("%s %s", assignedBy.FirstNameEn, assignedBy.LastNameEn),
-				"AssignedOn":      time.Now().Format("2006-01-02"),
-				"Description":     "N/A",
-				"RedirectURL":     fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, id),
-			}
-
-			// Set description if available
-			if complianceAssessmentFormDTO.Description != nil {
-				emailData["Description"] = *complianceAssessmentFormDTO.Description
-			}
-
-			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-				EmailTo:              emailTo,
-				Subject:              subject,
-				TemplateRelativePath: "compliance/templates/email/compliance_assessment_review_user_assign_mail.html",
-				EmailData:            emailData,
-			}
-
-			// Send notification and email
-			if err := cras.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_assessment"); err != nil {
-				utility.LogError("Failed to send notifications", map[string]interface{}{
-					"error": err.Error(),
-				})
-			}
 		}
 	}()
 
@@ -453,26 +765,469 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 }
 
 func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, complianceAssessmentUpdateFormDTO *complianceDTOs.ComplianceAssessmentUpdateFormDTO) error {
-	tx := cras.repo.BeginTransaction()
-
-	existingComplianceAssessment, err := cras.GetByID(id)
+	complianceApprovedStatus, err := cras.complianceAssessmentStatusSvc.GetByType("approved")
 	if err != nil {
 		return err
 	}
 
-	oldComplianceAssessment, err := cras.GetFullDetailsByID(id, tx)
+	complianceAssessmentRevertedStatus, err := cras.complianceAssessmentStatusSvc.GetByType("reverted")
+	if err != nil {
+		return err
+	}
+
+	tx := cras.repo.BeginTransaction()
+
+	existingComplianceAssessment, err := cras.repo.GetFullDetailsByIDOptimized(id, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	existingComplianceAssessment.ComplianceRegisterID = complianceAssessmentUpdateFormDTO.ComplianceRegisterID
-	existingComplianceAssessment.ReviewUserID = complianceAssessmentUpdateFormDTO.ReviewUserID
-	// existingComplianceAssessment.PrimaryUnitID = complianceAssessmentUpdateFormDTO.OrganizationUnitIDs
-	existingComplianceAssessment.Description = complianceAssessmentUpdateFormDTO.Description
-	existingComplianceAssessment.UpdatedBYID = &currentUserID
+	oldComplianceAssessment, err := cras.GetFullDetailsByIDOptimized(id, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 
-	err = cras.repo.Update(existingComplianceAssessment, tx)
+	if *existingComplianceAssessment.Type == "framework" {
+		if existingComplianceAssessment.ComplianceAssessmentStatusID == complianceApprovedStatus.ID || existingComplianceAssessment.ComplianceAssessmentStatusID == complianceAssessmentRevertedStatus.ID {
+			tx.Rollback()
+			return utility.NewForbiddenError("assessment_already_in_progress_for_compliance_register")
+		}
+
+		if existingComplianceAssessment.ComplianceAssessmentCompliances[0].ComplianceRegisterID != *complianceAssessmentUpdateFormDTO.ComplianceRegisterID {
+			if err := cras.repo.DeleteActionPlansByAssessment(id, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if err := cras.repo.DeleteActionPlanCommentDocumentsByAssessment(id, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if err := cras.repo.DeleteActionPlanCommentsByAssessment(id, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if err := cras.repo.DeleteActionPlanStatusUpdateDocumentsByAssessment(id, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if err := cras.repo.DeleteActionPlanStatusUpdatesByAssessment(id, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if len(oldComplianceAssessment.AssessmentRequirements) > 0 {
+				var deleteRequirementIds []*uint
+				var deletedResponsibleUnitIds []*uint
+
+				for _, assmntRequirement := range oldComplianceAssessment.AssessmentRequirements {
+					deleteRequirementIds = append(deleteRequirementIds, assmntRequirement.ID)
+
+					for _, ru := range assmntRequirement.ResponsibleUnits {
+						if len(ru.RequiredDocumentTitles) > 0 {
+							var docTitleIDs []*uint
+							for _, doc := range ru.RequiredDocumentTitles {
+								docTitleIDs = append(docTitleIDs, doc.ID)
+							}
+							if err := cras.repo.DeleteComplianceAssessmentRequirementDocumentTitles(docTitleIDs, tx); err != nil {
+								continue
+							}
+						}
+						deletedResponsibleUnitIds = append(deletedResponsibleUnitIds, &ru.ID)
+					}
+				}
+				if len(deletedResponsibleUnitIds) > 0 {
+					if err := cras.repo.DeleteComplianceAssessmentRequirementResponsibleUnits(deletedResponsibleUnitIds, tx); err != nil {
+						tx.Rollback()
+						return err
+					}
+				}
+				if len(deleteRequirementIds) > 0 {
+					if err := cras.repo.DeleteComplianceAssessmentRequirements(deleteRequirementIds, tx); err != nil {
+						tx.Rollback()
+						return err
+					}
+				}
+			}
+			if len(oldComplianceAssessment.AssessmentControls) > 0 {
+				var deleteControlIds []*uint
+				for _, assmntControl := range oldComplianceAssessment.AssessmentControls {
+					deleteControlIds = append(deleteControlIds, assmntControl.ID)
+				}
+
+				if len(deleteControlIds) > 0 {
+					if err := cras.repo.DeleteComplianceAssessmentControls(deleteControlIds, tx); err != nil {
+					}
+				}
+			}
+
+			compliance, err := cras.complianceRegisterSvc.GetFullDetailsByID(*complianceAssessmentUpdateFormDTO.ComplianceRegisterID)
+			if err != nil {
+				return err
+			}
+
+			for _, clause := range compliance.ComplianceClauses {
+				clauseDetails, err := cras.complianceClauseSvc.GetFullDetailsByID(clause.ID)
+				if err != nil {
+					tx.Rollback()
+					return err
+				}
+
+				if compliance.IsRequirementAssessment {
+					for _, complianceRequirement := range clauseDetails.ComplianceRequirements {
+						requirement := &models.ComplianceAssessmentRequirement{
+							ComplianceAssessmentID:  id,
+							ComplianceRequirementID: uint(complianceRequirement.ID),
+							ComplianceStatusID:      nil,
+							CreatedBYID:             currentUserID,
+						}
+						requirementId, err := cras.repo.CreateComplianceAssessmentRequirement(requirement, tx)
+						if err != nil {
+							tx.Rollback()
+							return err
+						}
+
+						var deadline *time.Time
+						if complianceRequirement.DeadlineString != nil {
+							parsedDeadline, err := time.Parse("2006-01-02", *complianceRequirement.DeadlineString)
+							if err != nil {
+								tx.Rollback()
+								return err
+							}
+							deadline = &parsedDeadline
+						}
+
+						applicabilityStatus, err := cras.applicablityStatusSvc.GetByType("applicable")
+						if err != nil {
+							return err
+						}
+
+						for _, ru := range complianceRequirement.ResponsibleUnits {
+							ruid := ru.ResponsibleUser.ID
+							responsibleUser := uint(ruid)
+							unit := &models.ComplianceAssessmentRequirementResponsibleUnit{
+								ComplianceAssessmentRequirementID: requirementId,
+								ResponsibleUnitID:                 uint(ru.ResponsibleUnit.ID),
+								ResponsibleUserID:                 &responsibleUser,
+								Deadline:                          deadline,
+								CreatedBYID:                       currentUserID,
+							}
+							if err := cras.repo.CreateComplianceAssessmentRequirementResponsibleUnit(unit, tx); err != nil {
+								tx.Rollback()
+								return err
+							}
+
+							var requirementDocumentTitles []*models.ComplianceAssessmentRequirementDocumentTitle
+
+							for _, documentTitle := range complianceRequirement.RequiredDocumentTitles {
+								doc := &models.ComplianceAssessmentRequirementDocumentTitle{
+									ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
+									RequiredDocumentTitleID:                          &documentTitle.RequiredDocumentTitleID,
+									ApplicabilityStatusID:                            applicabilityStatus.ID,
+									CreatedBYID:                                      currentUserID,
+								}
+								requirementDocumentTitles = append(requirementDocumentTitles, doc)
+							}
+
+							emptyDoc := &models.ComplianceAssessmentRequirementDocumentTitle{
+								ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
+								RequiredDocumentTitleID:                          nil,
+								ApplicabilityStatusID:                            applicabilityStatus.ID,
+								CreatedBYID:                                      currentUserID,
+							}
+							requirementDocumentTitles = append(requirementDocumentTitles, emptyDoc)
+
+							if len(requirementDocumentTitles) > 0 {
+								if err := cras.repo.CreateComplianceAssessmentRequirementDocumentTitle(requirementDocumentTitles, tx); err != nil {
+									tx.Rollback()
+									return err
+								}
+							}
+						}
+					}
+				}
+
+				if compliance.IsControlAssessment {
+					for _, control := range clauseDetails.ComplianceControls {
+						assessmentControl := &models.ComplianceAssessmentControl{
+							ComplianceAssessmentID: id,
+							ComplianceControlID:    control.ID,
+							IsCompleted:            false,
+							CreatedBYID:            currentUserID,
+						}
+						if err := cras.repo.CreateComplianceAssessmentControl(assessmentControl, tx); err != nil {
+							tx.Rollback()
+							return err
+						}
+					}
+				}
+			}
+
+			existingAssessmentCompliance := existingComplianceAssessment.ComplianceAssessmentCompliances[0]
+			complianceAssessmentCompliance, err := cras.repo.GetComplianceAssessmentCompliaceByID(existingAssessmentCompliance.ID)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			complianceAssessmentCompliance.ComplianceRegisterID = *complianceAssessmentUpdateFormDTO.ComplianceRegisterID
+			err = cras.repo.UpdateComplianceAssessmentCompliance(complianceAssessmentCompliance, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+
+	} else {
+		if existingComplianceAssessment.ComplianceAssessmentStatusID == complianceApprovedStatus.ID || existingComplianceAssessment.ComplianceAssessmentStatusID == complianceAssessmentRevertedStatus.ID {
+			tx.Rollback()
+			return utility.NewForbiddenError("assessment_already_in_progress_for_compliance_register")
+		}
+
+		existingResponsibleUnitID := *existingComplianceAssessment.ResponsibleUnitID
+		formDtoResponsibleUnitID := *complianceAssessmentUpdateFormDTO.ResponsibleUnitID
+
+		if existingResponsibleUnitID != formDtoResponsibleUnitID {
+			registerIDs, err := cras.repo.GetRegisterIDsWithResponsibleUnitID(*complianceAssessmentUpdateFormDTO.ResponsibleUnitID)
+			if err != nil {
+				return err
+			}
+
+			if err := cras.repo.DeleteActionPlanCommentDocumentsByAssessment(id, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if err := cras.repo.DeleteActionPlanCommentsByAssessment(id, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if err := cras.repo.DeleteActionPlanStatusUpdateDocumentsByAssessment(id, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if err := cras.repo.DeleteActionPlanStatusUpdatesByAssessment(id, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if err := cras.repo.DeleteActionPlansByAssessment(id, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if len(oldComplianceAssessment.AssessmentRequirements) > 0 {
+				var deleteRequirementIds []*uint
+				var deletedResponsibleUnitIds []*uint
+
+				for _, assmntRequirement := range oldComplianceAssessment.AssessmentRequirements {
+					deleteRequirementIds = append(deleteRequirementIds, assmntRequirement.ID)
+
+					for _, ru := range assmntRequirement.ResponsibleUnits {
+						if len(ru.RequiredDocumentTitles) > 0 {
+							var docTitleIDs []*uint
+							for _, doc := range ru.RequiredDocumentTitles {
+								docTitleIDs = append(docTitleIDs, doc.ID)
+							}
+							if err := cras.repo.DeleteComplianceAssessmentRequirementDocumentTitles(docTitleIDs, tx); err != nil {
+								continue
+							}
+						}
+						deletedResponsibleUnitIds = append(deletedResponsibleUnitIds, &ru.ID)
+					}
+				}
+
+				if len(deletedResponsibleUnitIds) > 0 {
+					if err := cras.repo.DeleteComplianceAssessmentRequirementResponsibleUnits(deletedResponsibleUnitIds, tx); err != nil {
+						tx.Rollback()
+						return err
+					}
+				}
+				if len(deleteRequirementIds) > 0 {
+					if err := cras.repo.DeleteComplianceAssessmentRequirements(deleteRequirementIds, tx); err != nil {
+						tx.Rollback()
+						return err
+					}
+				}
+			}
+
+			var complianceAssessmentCompliance []*models.ComplianceAssessmentCompliance
+			var requirementDocumentTitles []*models.ComplianceAssessmentRequirementDocumentTitle
+			for _, assessmentCompliance := range oldComplianceAssessment.Compliances {
+				if err := cras.repo.DeleteComplianceAssessmentCompliance(assessmentCompliance.ID, tx); err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
+
+			complianceSet := make(map[int]struct{})
+
+			for _, registerID := range registerIDs {
+				compliance, err := cras.complianceRegisterSvc.GetFullDetailsByID(registerID)
+				if err != nil {
+					return err
+				}
+				if _, ok := complianceSet[compliance.ID]; ok {
+					continue
+				}
+				complianceSet[compliance.ID] = struct{}{}
+
+				assessmentCompliance := &models.ComplianceAssessmentCompliance{
+					ComplianceRegisterID:   uint(compliance.ID),
+					ComplianceAssessmentID: id,
+					CreatedByID:            currentUserID,
+				}
+
+				complianceAssessmentCompliance = append(complianceAssessmentCompliance, assessmentCompliance)
+
+				for _, clause := range compliance.ComplianceClauses {
+					clauseDetails, err := cras.complianceClauseSvc.GetFullDetailsByID(clause.ID)
+					if err != nil {
+						tx.Rollback()
+						return err
+					}
+
+					if compliance.IsRequirementAssessment {
+						requirementSet := make(map[int]struct{})
+						for _, complianceRequirement := range clauseDetails.ComplianceRequirements {
+							if _, ok := requirementSet[complianceRequirement.ID]; ok {
+								continue
+							}
+
+							var matchedRU *complianceDTOs.ComplianceRequirementResponsibleUnitDTO
+
+							for _, ru := range complianceRequirement.ResponsibleUnits {
+								if ru.ResponsibleUnit.ID == int(*complianceAssessmentUpdateFormDTO.ResponsibleUnitID) {
+									matchedRU = ru
+									break
+								}
+							}
+
+							if matchedRU == nil {
+								continue
+							}
+							requirementSet[complianceRequirement.ID] = struct{}{}
+							requirement := &models.ComplianceAssessmentRequirement{
+								ComplianceAssessmentID:  id,
+								ComplianceRequirementID: uint(complianceRequirement.ID),
+								ComplianceStatusID:      nil,
+								CreatedBYID:             currentUserID,
+							}
+							requirementId, err := cras.repo.CreateComplianceAssessmentRequirement(requirement, tx)
+							if err != nil {
+								tx.Rollback()
+								return err
+							}
+
+							var deadline *time.Time
+							if complianceRequirement.DeadlineString != nil {
+								parsedDeadline, err := time.Parse("2006-01-02", *complianceRequirement.DeadlineString)
+								if err != nil {
+									tx.Rollback()
+									return err
+								}
+								deadline = &parsedDeadline
+							}
+
+							applicabilityStatus, err := cras.applicablityStatusSvc.GetByType("applicable")
+							if err != nil {
+								return err
+							}
+
+							var responsibleUser *uint
+							if matchedRU.ResponsibleUser.ID != 0 {
+								u := uint(matchedRU.ResponsibleUser.ID)
+								responsibleUser = &u
+							}
+							unit := &models.ComplianceAssessmentRequirementResponsibleUnit{
+								ComplianceAssessmentRequirementID: requirementId,
+								ResponsibleUnitID:                 uint(matchedRU.ResponsibleUnit.ID),
+								ResponsibleUserID:                 responsibleUser,
+								Deadline:                          deadline,
+								CreatedBYID:                       currentUserID,
+							}
+							if err := cras.repo.CreateComplianceAssessmentRequirementResponsibleUnit(unit, tx); err != nil {
+								tx.Rollback()
+								return err
+							}
+
+							for _, documentTitle := range complianceRequirement.RequiredDocumentTitles {
+								doc := &models.ComplianceAssessmentRequirementDocumentTitle{
+									ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
+									RequiredDocumentTitleID:                          &documentTitle.RequiredDocumentTitleID,
+									ApplicabilityStatusID:                            applicabilityStatus.ID,
+									CreatedBYID:                                      currentUserID,
+								}
+								requirementDocumentTitles = append(requirementDocumentTitles, doc)
+							}
+
+							emptyDoc := &models.ComplianceAssessmentRequirementDocumentTitle{
+								ComplianceAssessmentRequirementResponsibleUnitID: unit.ID,
+								RequiredDocumentTitleID:                          nil,
+								ApplicabilityStatusID:                            applicabilityStatus.ID,
+								CreatedBYID:                                      currentUserID,
+							}
+							requirementDocumentTitles = append(requirementDocumentTitles, emptyDoc)
+						}
+					}
+
+					if compliance.IsControlAssessment {
+						for _, control := range clauseDetails.ComplianceControls {
+							assessmentControl := &models.ComplianceAssessmentControl{
+								ComplianceAssessmentID: id,
+								ComplianceControlID:    control.ID,
+								IsCompleted:            false,
+								CreatedBYID:            currentUserID,
+							}
+							if err := cras.repo.CreateComplianceAssessmentControl(assessmentControl, tx); err != nil {
+								tx.Rollback()
+								return err
+							}
+						}
+					}
+				}
+			}
+
+			if len(complianceAssessmentCompliance) == 0 {
+				tx.Rollback()
+				return utility.NewForbiddenError("assessment_contains_no_compliances")
+			}
+
+			err = cras.repo.CreateComplianceAssessmentCompliances(complianceAssessmentCompliance, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			if len(requirementDocumentTitles) > 0 {
+				if err := cras.repo.CreateComplianceAssessmentRequirementDocumentTitle(requirementDocumentTitles, tx); err != nil {
+					tx.Rollback()
+					return err
+				}
+			}
+		}
+	}
+
+	complianceAssessment, err := cras.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	complianceAssessment.ReviewUserID = complianceAssessmentUpdateFormDTO.ReviewUserID
+	complianceAssessment.Description = complianceAssessmentUpdateFormDTO.Description
+	if *complianceAssessment.Type == "department" {
+		complianceAssessment.ResponsibleUnitID = complianceAssessmentUpdateFormDTO.ResponsibleUnitID
+	}
+	complianceAssessment.UpdatedBYID = &currentUserID
+
+	err = cras.repo.Update(complianceAssessment, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -481,26 +1236,41 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 	tx.Commit()
 
 	go func() {
-		existingAssessment, err := cras.GetFullDetailsByID(id)
+		existingAssessment, err := cras.GetFullDetailsByIDOptimized(id)
 		if err != nil {
 			return
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
 		// log changes
-		oldData := map[string]interface{}{
-			"compliance_register": oldComplianceAssessment.ComplianceRegister.TitleEn,
-			// "organization_unit":   oldComplianceAssessment.OrganizationUnit.TitleEn,
-			"description": oldComplianceAssessment.Description,
-			"review_user": fmt.Sprintf("%s %s", oldComplianceAssessment.ReviewUser.FirstNameEN, oldComplianceAssessment.ReviewUser.LastNameEN),
+		var oldData map[string]interface{}
+		var newData map[string]interface{}
+		if oldComplianceAssessment.Type == "framework" {
+			oldData = map[string]interface{}{
+				"compliance_register": oldComplianceAssessment.Compliances[0].ComplianceRegister.TitleEn,
+				"description":         oldComplianceAssessment.Description,
+				"review_user":         fmt.Sprintf("%s %s", oldComplianceAssessment.ReviewUser.FirstNameEN, oldComplianceAssessment.ReviewUser.LastNameEN),
+			}
+
+			newData = map[string]interface{}{
+				"compliance_register": existingAssessment.Compliances[0].ComplianceRegister.TitleEn,
+				"description":         existingAssessment.Description,
+				"review_user":         fmt.Sprintf("%s %s", existingAssessment.ReviewUser.FirstNameEN, existingAssessment.ReviewUser.LastNameEN),
+			}
+		} else {
+			oldData = map[string]interface{}{
+				"responsible_unit": oldComplianceAssessment.ResponsibleOrganizationUnit.TitleEn,
+				"description":      oldComplianceAssessment.Description,
+				"review_user":      fmt.Sprintf("%s %s", oldComplianceAssessment.ReviewUser.FirstNameEN, oldComplianceAssessment.ReviewUser.LastNameEN),
+			}
+
+			newData = map[string]interface{}{
+				"responsible_unit": existingAssessment.ResponsibleOrganizationUnit.TitleEn,
+				"description":      existingAssessment.Description,
+				"review_user":      fmt.Sprintf("%s %s", existingAssessment.ReviewUser.FirstNameEN, existingAssessment.ReviewUser.LastNameEN),
+			}
 		}
 
-		newData := map[string]interface{}{
-			"compliance_register": existingAssessment.ComplianceRegister.TitleEn,
-			// "organization_unit":   existingAssessment.OrganizationUnit.TitleEn,
-			"description": existingAssessment.Description,
-			"review_user": fmt.Sprintf("%s %s", existingAssessment.ReviewUser.FirstNameEN, existingAssessment.ReviewUser.LastNameEN),
-		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
 		for k, v := range fieldChanges {
@@ -531,6 +1301,21 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 		// Get the old review user ID for comparison
 		oldReviewUserID := oldComplianceAssessment.ReviewUserID
 
+		var oldTitleEn, oldTitleAr, newTitleEn, newTitleAr, referenceNumber string
+		if oldComplianceAssessment.Type == "framework" {
+			oldTitleEn = oldComplianceAssessment.Compliances[0].ComplianceRegister.TitleEn
+			oldTitleAr = oldComplianceAssessment.Compliances[0].ComplianceRegister.TitleAr
+			newTitleEn = existingAssessment.Compliances[0].ComplianceRegister.TitleEn
+			newTitleAr = existingAssessment.Compliances[0].ComplianceRegister.TitleAr
+			referenceNumber = oldComplianceAssessment.Compliances[0].ComplianceRegister.ReferenceNumber
+		} else {
+			oldTitleEn = oldComplianceAssessment.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+			oldTitleAr = "تقييم " + oldComplianceAssessment.ResponsibleOrganizationUnit.TitleAr
+			newTitleEn = existingAssessment.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+			newTitleAr = "تقييم " + existingAssessment.ResponsibleOrganizationUnit.TitleAr
+			referenceNumber = ""
+		}
+
 		// sends notification if review user has changed
 		if oldReviewUserID != complianceAssessmentUpdateFormDTO.ReviewUserID {
 			urlParam := fmt.Sprintf(`{"id":%d}`, id)
@@ -545,9 +1330,9 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 					NotificationType:     string(commonDTOs.InformationType),
 					HeadingEn:            "Compliance Assessment Review Responsibility Removed",
 					HeadingAr:            "تمت إزالة مسؤولية مراجعة تقييم الامتثال",
-					TitleEn:              oldComplianceAssessment.ComplianceRegister.TitleEn,
-					TitleAr:              oldComplianceAssessment.ComplianceRegister.TitleAr,
-					ReferenceNumber:      oldComplianceAssessment.ComplianceRegister.ReferenceNumber,
+					TitleEn:              oldTitleEn,
+					TitleAr:              oldTitleAr,
+					ReferenceNumber:      referenceNumber,
 					Entity:               &entity,
 					Action:               &oldReviewUserAction,
 					URLParam:             urlParam,
@@ -566,15 +1351,15 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 
 				appURL := utility.GetAppURL()
 				oldReviewUserEmailTo := []string{oldReviewUser.Email}
-				oldReviewUserSubject := fmt.Sprintf("Compliance Assessment/%s: Review Responsibility Removed", oldComplianceAssessment.ComplianceRegister.TitleEn)
+				oldReviewUserSubject := fmt.Sprintf("Compliance Assessment Review Responsibility Removed - %s", TruncateString(oldTitleEn, 100))
 				oldReviewUserTemplateRelativePath := "compliance/templates/email/compliance_assessment_remove_review_user_mail.html"
 				oldReviewUserEmailData := map[string]interface{}{
 					"FirstNameEn":     oldReviewUser.FirstNameEn,
 					"LastNameEn":      oldReviewUser.LastNameEn,
-					"ReferenceNumber": oldComplianceAssessment.ComplianceRegister.ReferenceNumber,
-					"TitleEn":         oldComplianceAssessment.ComplianceRegister.TitleEn,
-					"TitleAr":         oldComplianceAssessment.ComplianceRegister.TitleAr,
-					"Description":     "N/A",
+					"ReferenceNumber": referenceNumber,
+					"TitleEn":         oldTitleEn,
+					"TitleAr":         oldTitleAr,
+					"Description":     "",
 					"RedirectURL":     fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, id),
 				}
 
@@ -608,9 +1393,9 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Compliance Assessment Review Assigned",
 					HeadingAr:            "تم تعيين مراجعة لتقييم الامتثال",
-					TitleEn:              existingAssessment.ComplianceRegister.TitleEn,
-					TitleAr:              existingAssessment.ComplianceRegister.TitleAr,
-					ReferenceNumber:      existingAssessment.ComplianceRegister.ReferenceNumber,
+					TitleEn:              newTitleEn,
+					TitleAr:              newTitleAr,
+					ReferenceNumber:      referenceNumber,
 					Entity:               &entity,
 					Action:               &newReviewUserAction,
 					URLParam:             urlParam,
@@ -637,14 +1422,19 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 
 				appURL := utility.GetAppURL()
 				newReviewUserEmailTo := []string{newReviewUser.Email}
-				newReviewUserSubject := fmt.Sprintf("Action Required: Review Compliance Assessment [%s] - %s", existingAssessment.ComplianceRegister.ReferenceNumber, existingAssessment.ComplianceRegister.TitleEn)
+				var newReviewUserSubject string
+				if existingAssessment.Type == "framework" {
+					newReviewUserSubject = fmt.Sprintf("Action Required: Review Compliance Assessment [%s] - %s", existingAssessment.Compliances[0].ComplianceRegister.ReferenceNumber, TruncateString(existingAssessment.Compliances[0].ComplianceRegister.TitleEn, 100))
+				} else {
+					newReviewUserSubject = fmt.Sprintf("Action Required: Review Compliance Assessment - %s Department assessment", existingAssessment.ResponsibleOrganizationUnit.TitleEn)
+				}
 				newReviewUserTemplateRelativePath := "compliance/templates/email/compliance_assessment_review_user_assign_mail.html"
 				newReviewUserEmailData := map[string]interface{}{
 					"FirstNameEn":     newReviewUser.FirstNameEn,
 					"LastNameEn":      newReviewUser.LastNameEn,
-					"TitleEn":         existingAssessment.ComplianceRegister.TitleEn,
-					"TitleAr":         existingAssessment.ComplianceRegister.TitleAr,
-					"ReferenceNumber": existingAssessment.ComplianceRegister.ReferenceNumber,
+					"TitleEn":         newTitleEn,
+					"TitleAr":         newTitleAr,
+					"ReferenceNumber": referenceNumber,
 					"AssignedBy":      fmt.Sprintf("%s %s", assignedBy.FirstNameEn, assignedBy.LastNameEn),
 					"AssignedOn":      time.Now().Format("2006-01-02"),
 					"Description":     "N/A",
@@ -677,7 +1467,6 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 
 	return nil
 }
-
 func (cras *ComplianceAssessmentService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	tx := cras.repo.BeginTransaction()
 
@@ -750,9 +1539,13 @@ func (cras *ComplianceAssessmentService) Delete(ids []uint, currentUserID uint) 
 			successfulIds = append(successfulIds, id)
 		}
 
+		var titleEn string
+		if len(complianceAssessment.Compliances) > 0 && complianceAssessment.Compliances[0].ComplianceRegister != nil {
+			titleEn = complianceAssessment.Compliances[0].ComplianceRegister.TitleEn
+		}
 		deletedComplianceAssessment = append(deletedComplianceAssessment, map[string]interface{}{
 			"id":       id,
-			"title_en": complianceAssessment.ComplianceRegister.TitleEn,
+			"title_en": titleEn,
 		})
 	}
 
@@ -825,10 +1618,10 @@ func (cras *ComplianceAssessmentService) ForceDelete(ids []uint, currentUserID u
 }
 
 func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(complianceAssessmentFormDTO *complianceDTOs.ComplianceAssessmentFormDTO) error {
-	complianceRegister, err := cras.complianceRegisterSvc.GetByID(complianceAssessmentFormDTO.ComplianceRegisterID)
-	if err != nil {
-		return utility.NewValidationError(fmt.Errorf("compliance register does not exist"), "not_exist", "compliance register")
-	}
+	// complianceRegister, err := cras.complianceRegisterSvc.GetByID(complianceAssessmentFormDTO.ComplianceRegisterID)
+	// if err != nil {
+	// 	return utility.NewValidationError(fmt.Errorf("compliance register does not exist"), "not_exist", "compliance register")
+	// }
 
 	if _, err := cras.userSvc.GetByID(complianceAssessmentFormDTO.ReviewUserID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("review user does not exist"), "not_exist", "review user")
@@ -857,64 +1650,77 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(com
 
 	statusIds = append(statusIds, uint(complianceAssessmentInProgressStatus.ID))
 
-	exists, err := cras.repo.IsAssessmentExists(0, complianceAssessmentFormDTO.ComplianceRegisterID, statusIds)
-	if err != nil {
-		return fmt.Errorf("failed to validate assessment %w", err)
-	}
+	// Only validate compliance register for framework type
+	if complianceAssessmentFormDTO.Type == "framework" {
+		if complianceAssessmentFormDTO.ComplianceRegisterID == nil {
+			return utility.NewValidationError(fmt.Errorf("compliance_register_id is required for framework type"), "compliance_register_id_required", "")
+		}
+		registerID := *complianceAssessmentFormDTO.ComplianceRegisterID
 
-	if exists {
-		return utility.NewForbiddenError("assessment_already_in_progress_for_compliance_register")
-	}
-
-	// validate based on register type
-	// if complianceRegister.IsRiskBasedAssessment {
-	if complianceRegister.IsRequirementAssessment {
-		requirements, err := cras.repo.GetRequirementsForRegister(complianceAssessmentFormDTO.ComplianceRegisterID)
+		exists, err := cras.repo.IsAssessmentExists(0, registerID, statusIds)
 		if err != nil {
-			return fmt.Errorf("failed to validate requirements: %w", err)
+			return fmt.Errorf("failed to validate assessment %w", err)
 		}
 
-		if len(requirements) == 0 {
-			return utility.NewValidationError(
-				fmt.Errorf("no compliance requirements found for this compliance register"),
-				"requirement_not_exist",
-				"compliance requirement",
-			)
+		if exists {
+			return utility.NewForbiddenError("assessment_already_in_progress_for_compliance_register")
 		}
 
-		hasRiskBasedRequirement := false
-		for _, requirement := range requirements {
-			if requirement == nil {
-				continue
+		// Fetch compliance register for validation
+		complianceRegister, err := cras.complianceRegisterSvc.GetByID(registerID)
+		if err != nil {
+			return fmt.Errorf("failed to fetch compliance register: %w", err)
+		}
+
+		// validate based on register type
+		// if complianceRegister.IsRiskBasedAssessment {
+		if complianceRegister.IsRequirementAssessment {
+			requirements, err := cras.repo.GetRequirementsForRegister(registerID)
+			if err != nil {
+				return fmt.Errorf("failed to validate requirements: %w", err)
 			}
 
-			for _, responsibleUnit := range requirement.ResponsibleUnits {
-				if responsibleUnit != nil && responsibleUnit.IsRiskBasedAssessment != nil && *responsibleUnit.IsRiskBasedAssessment {
-					hasRiskBasedRequirement = true
+			if len(requirements) == 0 {
+				return utility.NewValidationError(
+					fmt.Errorf("no compliance requirements found for this compliance register"),
+					"requirement_not_exist",
+					"compliance requirement",
+				)
+			}
+
+			hasRiskBasedRequirement := false
+			for _, requirement := range requirements {
+				if requirement == nil {
+					continue
+				}
+
+				for _, responsibleUnit := range requirement.ResponsibleUnits {
+					if responsibleUnit != nil && responsibleUnit.IsRiskBasedAssessment != nil && *responsibleUnit.IsRiskBasedAssessment {
+						hasRiskBasedRequirement = true
+						break
+					}
+				}
+
+				if hasRiskBasedRequirement {
 					break
 				}
 			}
 
 			if hasRiskBasedRequirement {
-				break
-			}
-		}
-
-		if hasRiskBasedRequirement {
-			allRiskBasedHaveInherentScore, err := cras.repo.CheckAllRiskBasedRequirementsHaveInherentScore(complianceAssessmentFormDTO.ComplianceRegisterID)
-			if err != nil {
-				return fmt.Errorf("failed to validate inherent risk scores: %w", err)
-			}
-			if !allRiskBasedHaveInherentScore {
-				return utility.NewValidationError(
-					fmt.Errorf("all risk-based requirements must have inherent risk analysis completed before creating assessment"),
-					"inherent_risk_analysis_incomplete",
-					"compliance requirement",
-				)
+				allRiskBasedHaveInherentScore, err := cras.repo.CheckAllRiskBasedRequirementsHaveInherentScore(registerID)
+				if err != nil {
+					return fmt.Errorf("failed to validate inherent risk scores: %w", err)
+				}
+				if !allRiskBasedHaveInherentScore {
+					return utility.NewValidationError(
+						fmt.Errorf("all risk-based requirements must have inherent risk analysis completed before creating assessment"),
+						"inherent_risk_analysis_incomplete",
+						"compliance requirement",
+					)
+				}
 			}
 		}
 	}
-	// }
 
 	// if complianceRegister.IsRiskBasedAssessment {
 	// 	if complianceRegister.IsControlAssessment {
@@ -1136,6 +1942,22 @@ func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID
 			return
 		}
 
+		// Get titles based on assessment type
+		var titleEn, titleAr, referenceNumber string
+		if assessmentDetails.Type == "framework" {
+			if len(assessmentDetails.Compliances) > 0 && assessmentDetails.Compliances[0].ComplianceRegister != nil {
+				titleEn = assessmentDetails.Compliances[0].ComplianceRegister.TitleEn
+				titleAr = assessmentDetails.Compliances[0].ComplianceRegister.TitleAr
+				referenceNumber = assessmentDetails.Compliances[0].ComplianceRegister.ReferenceNumber
+			}
+		} else {
+			if assessmentDetails.ResponsibleOrganizationUnit != nil {
+				titleEn = assessmentDetails.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+				titleAr = "تقييم " + assessmentDetails.ResponsibleOrganizationUnit.TitleAr
+				referenceNumber = ""
+			}
+		}
+
 		// Prepare DB Notification
 		urlParam := fmt.Sprintf(`{"id":%d}`, assessmentID)
 		entity := "compliance-assessment"
@@ -1147,9 +1969,9 @@ func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "New Compliance Assessment Submitted",
 			HeadingAr:            "تم تقديم تقييم الامتثال الجديد",
-			TitleEn:              assessmentDetails.ComplianceRegister.TitleEn,
-			TitleAr:              assessmentDetails.ComplianceRegister.TitleAr,
-			ReferenceNumber:      assessmentDetails.ComplianceRegister.ReferenceNumber,
+			TitleEn:              titleEn,
+			TitleAr:              titleAr,
+			ReferenceNumber:      referenceNumber,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -1159,15 +1981,15 @@ func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID
 
 		// Prepare Email Notification
 		emailTo := []string{reviewUser.Email}
-		subject := fmt.Sprintf("Compliance Assessment/%s: Review Assigned", assessmentDetails.ComplianceRegister.TitleEn)
+		subject := fmt.Sprintf("Compliance Assessment/%s: Review Assigned", titleEn)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
 			"ReviewerFirstName": reviewUser.FirstNameEn,
 			"ReviewerLastName":  reviewUser.LastNameEn,
 			// "PrimaryUnit":       assessmentDetails.OrganizationUnit.TitleEn,
-			"ReferenceNumber": assessmentDetails.ComplianceRegister.ReferenceNumber,
-			"TitleEn":         assessmentDetails.ComplianceRegister.TitleEn,
-			"TitleAr":         assessmentDetails.ComplianceRegister.TitleAr,
+			"ReferenceNumber": referenceNumber,
+			"TitleEn":         titleEn,
+			"TitleAr":         titleAr,
 			"Description":     assessment.Description,
 			"CreatedBy":       fmt.Sprintf("%s %s", createdUser.FirstNameEn, createdUser.LastNameEn),
 			"SubmittedAt":     submittedAt.Format("2006-01-02"),
@@ -1243,10 +2065,9 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 		var countWithScore int
 
 		for _, ru := range req.ResponsibleUnits {
-			if ru != nil && ru.ResidualRiskScore != nil {
+			if ru != nil && ru.ResidualRiskScore != nil && !ru.IsNotApplicable {
 				totalResidualScore += *ru.ResidualRiskScore
 				countWithScore++
-
 			}
 		}
 
@@ -1302,11 +2123,12 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 		}
 
 		// STEP 3: Finally cascade to compliance register - use the same assessment average
-		registerID := assessmentDetails.ComplianceRegisterID
-
-		if err := cras.repo.UpdateRegisterAverageResidualScoreAndRating(registerID, assessmentAverageScore, assessmentRatingID, tx); err != nil {
-			tx.Rollback()
-			return err
+		if assessmentDetails.ComplianceRegisterID != nil {
+			registerID := *assessmentDetails.ComplianceRegisterID
+			if err := cras.repo.UpdateRegisterAverageResidualScoreAndRating(registerID, assessmentAverageScore, assessmentRatingID, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
 		}
 	}
 
@@ -1351,6 +2173,22 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 			return
 		}
 
+		// Get titles based on assessment type
+		var titleEn, titleAr, referenceNumber string
+		if assessmentDetails.Type == "framework" {
+			if len(assessmentDetails.Compliances) > 0 && assessmentDetails.Compliances[0].ComplianceRegister != nil {
+				titleEn = assessmentDetails.Compliances[0].ComplianceRegister.TitleEn
+				titleAr = assessmentDetails.Compliances[0].ComplianceRegister.TitleAr
+				referenceNumber = assessmentDetails.Compliances[0].ComplianceRegister.ReferenceNumber
+			}
+		} else {
+			if assessmentDetails.ResponsibleOrganizationUnit != nil {
+				titleEn = assessmentDetails.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+				titleAr = "تقييم " + assessmentDetails.ResponsibleOrganizationUnit.TitleAr
+				referenceNumber = ""
+			}
+		}
+
 		// Prepare DB Notification
 		urlParam := fmt.Sprintf(`{"id":%d}`, assessmentID)
 		entity := "compliance-assessment"
@@ -1362,9 +2200,9 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 			NotificationType:     string(commonDTOs.InformationType),
 			HeadingEn:            "New Compliance Assessment Submitted",
 			HeadingAr:            "تم تقديم تقييم الامتثال الجديد",
-			TitleEn:              assessmentDetails.ComplianceRegister.TitleEn,
-			TitleAr:              assessmentDetails.ComplianceRegister.TitleAr,
-			ReferenceNumber:      assessmentDetails.ComplianceRegister.ReferenceNumber,
+			TitleEn:              titleEn,
+			TitleAr:              titleAr,
+			ReferenceNumber:      referenceNumber,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -1374,15 +2212,15 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 
 		// Prepare Email Notification
 		emailTo := []string{submittedUser.Email}
-		subject := fmt.Sprintf("Compliance Assessment/%s: Approved", assessmentDetails.ComplianceRegister.TitleEn)
+		subject := fmt.Sprintf("Compliance Assessment/%s: Approved", titleEn)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
 			"FirstName": submittedUser.FirstNameEn,
 			"LastName":  submittedUser.LastNameEn,
 			// "PrimaryUnit":     assessmentDetails.OrganizationUnit.TitleEn,
-			"ReferenceNumber": assessmentDetails.ComplianceRegister.ReferenceNumber,
-			"TitleEn":         assessmentDetails.ComplianceRegister.TitleEn,
-			"TitleAr":         assessmentDetails.ComplianceRegister.TitleAr,
+			"ReferenceNumber": referenceNumber,
+			"TitleEn":         titleEn,
+			"TitleAr":         titleAr,
 			"Description":     assessment.Description,
 			"CreatedBy":       fmt.Sprintf("%s %s", createdUser.FirstNameEn, createdUser.LastNameEn),
 			"ApprovedAt":      time.Now().Format("2006-01-02"),
@@ -1882,8 +2720,10 @@ func (cras *ComplianceAssessmentService) CalculateComplianceRequirementScores(as
 			}
 		}
 
-		if err := cras.repo.UpdateComplianceStatus(assessment.ComplianceRegisterID, overallStatusID, overallScore, tx...); err != nil {
-			return nil, err
+		if assessment.ComplianceRegisterID != nil {
+			if err := cras.repo.UpdateComplianceStatus(*assessment.ComplianceRegisterID, overallStatusID, overallScore, tx...); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -2125,15 +2965,19 @@ func (cras *ComplianceAssessmentService) CalculateComplianceControlScores(assess
 		overall := math.Round((sumClauseAvgs/float64(clauseCount))*100) / 100
 		if _, stID := mapPctToBand(overall); stID != nil {
 			// debugf("[OVERALL] score=%.2f statusID=%d → updating register\n", overall, *stID)
-			if err := cras.repo.UpdateComplianceStatus(assessment.ComplianceRegisterID, *stID, overall, tx...); err != nil {
-				// debugf("[OVERALL] update ERROR: %v\n", err)
-				return nil, err
+			if assessment.ComplianceRegisterID != nil {
+				if err := cras.repo.UpdateComplianceStatus(*assessment.ComplianceRegisterID, *stID, overall, tx...); err != nil {
+					// debugf("[OVERALL] update ERROR: %v\n", err)
+					return nil, err
+				}
 			}
 		}
 	} else if totalClauses > 0 && naClauses == totalClauses {
 		// debugf("[OVERALL] all clauses NA → set register NA, score=0\n")
-		if err := cras.repo.UpdateComplianceStatus(assessment.ComplianceRegisterID, notApplicable.ID, 0, tx...); err != nil {
-			return nil, err
+		if assessment.ComplianceRegisterID != nil {
+			if err := cras.repo.UpdateComplianceStatus(*assessment.ComplianceRegisterID, notApplicable.ID, 0, tx...); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -2509,7 +3353,7 @@ func (cras *ComplianceAssessmentService) computeControlSnapshot(assessmentID uin
 	if err != nil {
 		return 0, 0, err
 	}
-	if assessment == nil || assessment.ComplianceRegister == nil {
+	if assessment == nil || len(assessment.Compliances) == 0 || assessment.Compliances[0].ComplianceRegister == nil {
 		return 0, 0, fmt.Errorf("assessment/register not found")
 	}
 
@@ -2519,7 +3363,7 @@ func (cras *ComplianceAssessmentService) computeControlSnapshot(assessmentID uin
 	maxFV := 0
 
 	var frameworkValues []*complianceDTOs.ComplianceAssessmentFrameworkValueDetailDTO
-	if reg := assessment.ComplianceRegister; reg != nil && reg.ComplianceAssessmentFramework != nil {
+	if reg := assessment.Compliances[0].ComplianceRegister; reg != nil && reg.ComplianceAssessmentFramework != nil {
 		if t := reg.ComplianceAssessmentFramework.AssessmentFrameworkType; t != nil {
 			frameworkType = t.Type
 		}
@@ -2810,13 +3654,13 @@ func (cas *ComplianceAssessmentService) ExportComplianceAssessments(data []*comp
 		var complianceRegister, reviewUser, description, status, createdBy string
 
 		if userSetting.Language == "ar" {
-			complianceRegister = assessment.ComplianceRegisterTitleAr
+			complianceRegister = utility.GetStringValue(assessment.ComplianceRegisterTitleAr)
 			reviewUser = assessment.ReviewUserFirstNameAr + " " + assessment.ReviewUserLastNameAr
 			status = assessment.ComplianceAssessmentStatusTitleAr
 			createdBy = assessment.CreatedUserFirstNameAr + " " + assessment.CreatedUserLastNameAr
 			description = utility.GetStringValue(assessment.Description)
 		} else {
-			complianceRegister = assessment.ComplianceRegisterTitleEn
+			complianceRegister = utility.GetStringValue(assessment.ComplianceRegisterTitleEn)
 			reviewUser = assessment.ReviewUserFirstNameEn + " " + assessment.ReviewUserLastNameEn
 			status = assessment.ComplianceAssessmentStatusTitleEn
 			createdBy = assessment.CreatedUserFirstNameEn + " " + assessment.CreatedUserLastNameEn
@@ -2865,4 +3709,15 @@ func (cras *ComplianceAssessmentService) getResidualRiskRatingByScore(score floa
 
 	fmt.Printf("[SERVICE] No rating found for score: %v\n", score)
 	return nil, nil // No rating found
+}
+
+// TruncateString truncates a string to a maximum length and adds "..." if truncated
+func TruncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	if maxLen <= 3 {
+		return s[:maxLen]
+	}
+	return s[:maxLen-3] + "..."
 }

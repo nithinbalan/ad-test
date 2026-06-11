@@ -46,8 +46,6 @@ type ComplianceAssessmentRequirementServiceInterface interface {
 	GetComplianceAssessmentRequirementResponsibleUnitByID(id uint) (*models.ComplianceAssessmentRequirementResponsibleUnit, error)
 
 	MarkAsNotApplicable(assessmentID uint, requirementID uint, currentUserID uint, form *complianceDTOs.ComplianceAssessmentRequirementNotApplicableFormDTO) error
-	ApproveNotApplicable(assessmentID uint, requirementID uint, currentUserID uint, form *complianceDTOs.ComplianceAssessmentRequirementApproveNotApplicableFormDTO) error
-	ComplianceAssessmentRequirementScoreUpdate(assessmentID uint, requirementID uint, currentUserID uint, form *complianceDTOs.ComplianceAssessmentRequirementScoreUpdateFormDTO) error
 }
 
 // Service and implementations
@@ -353,7 +351,15 @@ func (cars ComplianceAssessmentRequirementService) Update(complianceAssessmentId
 		}
 	}
 
-	if complianceAssessmentFrameworkValue.IsApplicable && assessmentDetails.ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType.Type == "percentage" {
+	// Get framework type from compliance register
+	frameworkType := ""
+	if len(assessmentDetails.Compliances) > 0 && assessmentDetails.Compliances[0].ComplianceRegister != nil &&
+		assessmentDetails.Compliances[0].ComplianceRegister.ComplianceAssessmentFramework != nil &&
+		assessmentDetails.Compliances[0].ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType != nil {
+		frameworkType = assessmentDetails.Compliances[0].ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType.Type
+	}
+
+	if complianceAssessmentFrameworkValue.IsApplicable && frameworkType == "percentage" {
 		complianceAssessmentRequirementResponsibleUnit.Score = &complianceRequirementUpdateFormDTO.Score
 	} else {
 		complianceAssessmentRequirementResponsibleUnit.Score = nil
@@ -597,9 +603,9 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 	// 	return utility.NewForbiddenError("score_not_updated")
 	// }
 
-	if complianceAssessmentRequirementResponsibleUnit.ResidualRiskScore == nil {
-		return utility.NewForbiddenError("score_not_updated")
-	}
+	// if complianceAssessmentRequirementResponsibleUnit.ResidualRiskScore == nil {
+	// 	return utility.NewForbiddenError("score_not_updated")
+	// }
 
 	now := time.Now()
 	complianceAssessmentRequirementResponsibleUnit.IsCompleted = true
@@ -816,9 +822,16 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 		tx.Rollback()
 		return utility.NewValidationError(fmt.Errorf("requirement is already approved"), "invalid_state", "requirement")
 	}
-	if currentUserID != complianceAssessment.ComplianceRegister.ResponsibleUserID {
-		tx.Rollback()
-		return utility.NewForbiddenError("User is not authorized to approve this assessment")
+	// Check authorization based on assessment type
+	if complianceAssessment.Type == "framework" {
+		if len(complianceAssessment.Compliances) == 0 || complianceAssessment.Compliances[0].ComplianceRegister == nil {
+			tx.Rollback()
+			return utility.NewForbiddenError("compliance register not found")
+		}
+		if currentUserID != complianceAssessment.Compliances[0].ComplianceRegister.ResponsibleUserID {
+			tx.Rollback()
+			return utility.NewForbiddenError("User is not authorized to approve this assessment")
+		}
 	}
 
 	comment := &models.ComplianceAssessmentRequirementComment{
@@ -832,6 +845,27 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 	if err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	// Apply score update during approval if score is provided
+	if commentForm.ComplianceStatusID != 0 {
+		residualScore, err := cars.calculateResidualScore(oldComplianceAssessmentRequirement.ComplianceRequirement.InherentRiskScore, commentForm.Score)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		ratingID, err := cars.getResidualRatingByScore(residualScore)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		score := commentForm.Score
+		statusID := commentForm.ComplianceStatusID
+		complianceAssessmentRequirementResponsibleUnit.Score = &score
+		complianceAssessmentRequirementResponsibleUnit.ComplianceStatusID = &statusID
+		complianceAssessmentRequirementResponsibleUnit.ResidualRiskScore = &residualScore
+		complianceAssessmentRequirementResponsibleUnit.ResidualRiskRatingID = ratingID
+		complianceAssessmentRequirementResponsibleUnit.IsNotApplicable = commentForm.IsNotApplicable
 	}
 
 	// Update requirement status to "approved"
@@ -915,6 +949,22 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 			return
 		}
 
+		// Get titles based on assessment type
+		var titleEn, titleAr, referenceNumber string
+		if assessmentDetails.Type == "framework" {
+			if len(assessmentDetails.Compliances) > 0 && assessmentDetails.Compliances[0].ComplianceRegister != nil {
+				titleEn = assessmentDetails.Compliances[0].ComplianceRegister.TitleEn
+				titleAr = assessmentDetails.Compliances[0].ComplianceRegister.TitleAr
+				referenceNumber = assessmentDetails.Compliances[0].ComplianceRegister.ReferenceNumber
+			}
+		} else {
+			if assessmentDetails.ResponsibleOrganizationUnit != nil {
+				titleEn = assessmentDetails.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+				titleAr = "تقييم " + assessmentDetails.ResponsibleOrganizationUnit.TitleAr
+				referenceNumber = ""
+			}
+		}
+
 		createdBy, err := cars.userSvc.GetByID(currentUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch created user", map[string]interface{}{
@@ -942,9 +992,9 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Compliance Requirement Approved",
 				HeadingAr:            "تم الموافقة على متطلبات الامتثال",
-				TitleEn:              assessmentDetails.ComplianceRegister.TitleEn,
-				TitleAr:              assessmentDetails.ComplianceRegister.TitleAr,
-				ReferenceNumber:      assessmentDetails.ComplianceRegister.ReferenceNumber,
+				TitleEn:              titleEn,
+				TitleAr:              titleAr,
+				ReferenceNumber:      referenceNumber,
 				Entity:               &entity,
 				Action:               &action,
 				URLParam:             urlParam,
@@ -959,9 +1009,9 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 				EmailData: map[string]interface{}{
 					"FirstNameEn":         completedUser.FirstNameEn,
 					"LastNameEn":          completedUser.LastNameEn,
-					"TitleEn":             assessmentDetails.ComplianceRegister.TitleEn,
-					"TitleAr":             assessmentDetails.ComplianceRegister.TitleAr,
-					"ReferenceNumber":     assessmentDetails.ComplianceRegister.ReferenceNumber,
+					"TitleEn":             titleEn,
+					"TitleAr":             titleAr,
+					"ReferenceNumber":     referenceNumber,
 					"Comment":             commentForm.Comment,
 					"ApprovedByFirstName": createdBy.FirstNameEn,
 					"ApprovedByLastName":  createdBy.LastNameEn,
@@ -1006,8 +1056,14 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 		return utility.NewValidationError(fmt.Errorf("requirement is already reverted"), "invalid_state", "requirement")
 	}
 
-	if currentUserID != complianceAssessment.ComplianceRegister.ResponsibleUserID {
-		return utility.NewForbiddenError("User is not authorized to revert this assessment")
+	// Check authorization based on assessment type
+	if complianceAssessment.Type == "framework" {
+		if len(complianceAssessment.Compliances) == 0 || complianceAssessment.Compliances[0].ComplianceRegister == nil {
+			return utility.NewForbiddenError("compliance register not found")
+		}
+		if currentUserID != complianceAssessment.Compliances[0].ComplianceRegister.ResponsibleUserID {
+			return utility.NewForbiddenError("User is not authorized to revert this assessment")
+		}
 	}
 	tx := cars.repo.BeginTransaction()
 
@@ -1082,6 +1138,22 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 			return
 		}
 
+		// Get titles based on assessment type
+		var titleEn, titleAr, referenceNumber string
+		if assessmentDetails.Type == "framework" {
+			if len(assessmentDetails.Compliances) > 0 && assessmentDetails.Compliances[0].ComplianceRegister != nil {
+				titleEn = assessmentDetails.Compliances[0].ComplianceRegister.TitleEn
+				titleAr = assessmentDetails.Compliances[0].ComplianceRegister.TitleAr
+				referenceNumber = assessmentDetails.Compliances[0].ComplianceRegister.ReferenceNumber
+			}
+		} else {
+			if assessmentDetails.ResponsibleOrganizationUnit != nil {
+				titleEn = assessmentDetails.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+				titleAr = "تقييم " + assessmentDetails.ResponsibleOrganizationUnit.TitleAr
+				referenceNumber = ""
+			}
+		}
+
 		createdBy, err := cars.userSvc.GetByID(currentUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch created user", map[string]interface{}{
@@ -1110,9 +1182,9 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Requirement Reverted",
 				HeadingAr:            "تم إرجاع متطلب الامتثال",
-				TitleEn:              assessmentDetails.ComplianceRegister.TitleEn,
-				TitleAr:              assessmentDetails.ComplianceRegister.TitleAr,
-				ReferenceNumber:      assessmentDetails.ComplianceRegister.ReferenceNumber,
+				TitleEn:              titleEn,
+				TitleAr:              titleAr,
+				ReferenceNumber:      referenceNumber,
 				Entity:               &entity,
 				Action:               &action,
 				URLParam:             urlParam,
@@ -1127,9 +1199,9 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 				EmailData: map[string]interface{}{
 					"FirstNameEn":         completedUser.FirstNameEn,
 					"LastNameEn":          completedUser.LastNameEn,
-					"TitleEn":             assessmentDetails.ComplianceRegister.TitleEn,
-					"TitleAr":             assessmentDetails.ComplianceRegister.TitleAr,
-					"ReferenceNumber":     assessmentDetails.ComplianceRegister.ReferenceNumber,
+					"TitleEn":             titleEn,
+					"TitleAr":             titleAr,
+					"ReferenceNumber":     referenceNumber,
 					"Comment":             commentForm.Comment,
 					"RevertedByFirstName": createdBy.FirstNameEn,
 					"RevertedByLastName":  createdBy.LastNameEn,
@@ -1242,6 +1314,22 @@ func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequiremen
 			return
 		}
 
+		// Get titles based on assessment type
+		var titleEn, titleAr, referenceNumber string
+		if assessmentDetails.Type == "framework" {
+			if len(assessmentDetails.Compliances) > 0 && assessmentDetails.Compliances[0].ComplianceRegister != nil {
+				titleEn = assessmentDetails.Compliances[0].ComplianceRegister.TitleEn
+				titleAr = assessmentDetails.Compliances[0].ComplianceRegister.TitleAr
+				referenceNumber = assessmentDetails.Compliances[0].ComplianceRegister.ReferenceNumber
+			}
+		} else {
+			if assessmentDetails.ResponsibleOrganizationUnit != nil {
+				titleEn = assessmentDetails.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+				titleAr = "تقييم " + assessmentDetails.ResponsibleOrganizationUnit.TitleAr
+				referenceNumber = ""
+			}
+		}
+
 		createdBy, err := cars.userSvc.GetByID(currentUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch responsible user", map[string]interface{}{
@@ -1250,7 +1338,18 @@ func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequiremen
 			return
 		}
 
-		responsibleUser, err := cars.userSvc.GetByID(assessmentDetails.ComplianceRegister.ResponsibleUserID)
+		// Get responsible user ID based on assessment type
+		var responsibleUserID uint
+		if assessmentDetails.Type == "framework" {
+			if len(assessmentDetails.Compliances) > 0 && assessmentDetails.Compliances[0].ComplianceRegister != nil {
+				responsibleUserID = assessmentDetails.Compliances[0].ComplianceRegister.ResponsibleUserID
+			}
+		} else {
+			// For department type, use review user ID
+			responsibleUserID = assessmentDetails.ReviewUserID
+		}
+
+		responsibleUser, err := cars.userSvc.GetByID(responsibleUserID)
 		if err != nil {
 			utility.LogError("Failed to fetch review user", map[string]interface{}{
 				"error": err.Error(),
@@ -1269,9 +1368,9 @@ func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequiremen
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Requirement Resubmitted",
 			HeadingAr:            "إعادة تقديم متطلب الامتثال",
-			TitleEn:              assessmentDetails.ComplianceRegister.TitleEn,
-			TitleAr:              assessmentDetails.ComplianceRegister.TitleAr,
-			ReferenceNumber:      assessmentDetails.ComplianceRegister.ReferenceNumber,
+			TitleEn:              titleEn,
+			TitleAr:              titleAr,
+			ReferenceNumber:      referenceNumber,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -1286,9 +1385,9 @@ func (cars *ComplianceAssessmentRequirementService) ResubmitComplianceRequiremen
 			EmailData: map[string]interface{}{
 				"FirstNameEn":            responsibleUser.FirstNameEn,
 				"LastNameEn":             responsibleUser.LastNameEn,
-				"TitleEn":                assessmentDetails.ComplianceRegister.TitleEn,
-				"TitleAr":                assessmentDetails.ComplianceRegister.TitleAr,
-				"ReferenceNumber":        assessmentDetails.ComplianceRegister.ReferenceNumber,
+				"TitleEn":                titleEn,
+				"TitleAr":                titleAr,
+				"ReferenceNumber":        referenceNumber,
 				"Comment":                commentForm.Comment,
 				"ResubmittedByFirstName": createdBy.FirstNameEn,
 				"ResubmittedByLastName":  createdBy.LastNameEn,
@@ -1348,6 +1447,9 @@ func (cars *ComplianceAssessmentRequirementService) MarkAsNotApplicable(assessme
 		return err
 	}
 
+	if details.ResponsibleUnit == nil {
+		return utility.NewResourceNotFoundError(fmt.Errorf("responsible unit not found for this requirement"), requirementID)
+	}
 	ru, err := cars.GetComplianceAssessmentRequirementResponsibleUnitByID(details.ResponsibleUnit.ID)
 	if err != nil {
 		return err
@@ -1395,156 +1497,15 @@ func (cars *ComplianceAssessmentRequirementService) MarkAsNotApplicable(assessme
 	return nil
 }
 
-func (cars *ComplianceAssessmentRequirementService) ApproveNotApplicable(assessmentID uint, requirementID uint, currentUserID uint, form *complianceDTOs.ComplianceAssessmentRequirementApproveNotApplicableFormDTO) error {
-	details, err := cars.GetFullDetailsByID(assessmentID, requirementID, form.ResponsibleUnitID)
-	if err != nil {
-		return err
-	}
-
-	ru, err := cars.GetComplianceAssessmentRequirementResponsibleUnitByID(details.ResponsibleUnit.ID)
-	if err != nil {
-		return err
-	}
-
-	if !ru.IsNotApplicable {
-		return utility.NewValidationError(fmt.Errorf("responsible unit is not marked as not applicable"), "invalid_state", "responsible unit")
-	}
-
-	notApplicableStatus, err := cars.complianceStatusSvc.GetByType("not_applicable")
-	if err != nil {
-		return err
-	}
-
-	approvedScore := 100
-	residualScore, err := cars.calculateResidualScore(details.ComplianceRequirement.InherentRiskScore, approvedScore)
-	if err != nil {
-		return err
-	}
-
-	ratingID, err := cars.getResidualRatingByScore(residualScore)
-	if err != nil {
-		return err
-	}
-
-	tx := cars.repo.BeginTransaction()
-
-	ru.Score = &approvedScore
-	ru.ComplianceStatusID = &notApplicableStatus.ID
-	ru.ResidualRiskScore = &residualScore
-	ru.ResidualRiskRatingID = ratingID
-	ru.UpdatedBYID = &currentUserID
-
-	if err := cars.repo.UpdateComplianceAssessmentRequirementResponsibleUnit(ru, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	tx.Commit()
-
-	go func() {
-		err := cars.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.ComplianceAssessmentRequirementResponsibleUnit{}.TableName(),
-			ru.ID,
-			map[string]interface{}{
-				"approved_not_applicable": true,
-				"score":                   approvedScore,
-			},
-			currentUserID,
-			"compliance", "compliance_assessment", "requirement", nil,
-		)
-		if err != nil {
-			utility.LogError("Failed to log activity", map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.ComplianceAssessmentRequirementResponsibleUnit{}.TableName(),
-				"recordID":  ru.ID,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			})
-		}
-	}()
-
-	return nil
-}
-
-func (cars *ComplianceAssessmentRequirementService) ComplianceAssessmentRequirementScoreUpdate(assessmentID uint, requirementID uint, currentUserID uint, form *complianceDTOs.ComplianceAssessmentRequirementScoreUpdateFormDTO) error {
-	details, err := cars.GetFullDetailsByID(assessmentID, requirementID, form.ResponsibleUnitID)
-	if err != nil {
-		return err
-	}
-
-	ru, err := cars.GetComplianceAssessmentRequirementResponsibleUnitByID(details.ResponsibleUnit.ID)
-	if err != nil {
-		return err
-	}
-
-	residualScore, err := cars.calculateResidualScore(details.ComplianceRequirement.InherentRiskScore, form.Score)
-	if err != nil {
-		return err
-	}
-
-	ratingID, err := cars.getResidualRatingByScore(residualScore)
-	if err != nil {
-		return err
-	}
-
-	tx := cars.repo.BeginTransaction()
-
-	score := form.Score
-	statusID := form.ComplianceStatusID
-	ru.IsNotApplicable = form.IsNotApplicable
-	ru.Score = &score
-	ru.ComplianceStatusID = &statusID
-	ru.ResidualRiskScore = &residualScore
-	ru.ResidualRiskRatingID = ratingID
-	ru.UpdatedBYID = &currentUserID
-	if !form.IsNotApplicable {
-		ru.Comments = nil
-	}
-
-	if err := cars.repo.UpdateComplianceAssessmentRequirementResponsibleUnit(ru, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	tx.Commit()
-
-	go func() {
-		err := cars.activityLogSvc.LogActivity(
-			models.UpdateAction,
-			models.ComplianceAssessmentRequirementResponsibleUnit{}.TableName(),
-			ru.ID,
-			map[string]interface{}{
-				"is_not_applicable":    form.IsNotApplicable,
-				"score":                form.Score,
-				"compliance_status_id": form.ComplianceStatusID,
-			},
-			currentUserID,
-			"compliance", "compliance_assessment", "requirement", nil,
-		)
-		if err != nil {
-			utility.LogError("Failed to log activity", map[string]interface{}{
-				"action":    models.UpdateAction,
-				"tableName": models.ComplianceAssessmentRequirementResponsibleUnit{}.TableName(),
-				"recordID":  ru.ID,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			})
-		}
-	}()
-
-	return nil
-}
-
 func (cars *ComplianceAssessmentRequirementService) CalculateComplianceRequirementScores(assessmentID uint, changedRequirementID uint, tx ...utility.DatabaseTransaction) error {
 	assessment, err := cars.complianceAssessmentSvc.GetFullDetailsByIDOptimized(assessmentID, tx...)
 	if err != nil {
 		return err
 	}
-	if assessment == nil || assessment.ComplianceRegister == nil {
+	if assessment == nil || len(assessment.Compliances) == 0 || assessment.Compliances[0].ComplianceRegister == nil {
 		return fmt.Errorf("assessment/register not found")
 	}
-	register := assessment.ComplianceRegister
+	register := assessment.Compliances[0].ComplianceRegister
 
 	// ---------- Framework setup ----------
 	frameworkType := ""

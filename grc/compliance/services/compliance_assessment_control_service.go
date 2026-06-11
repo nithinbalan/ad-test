@@ -264,7 +264,7 @@ func (s *ComplianceAssessmentControlService) Update(complianceAssessmentId uint,
 		}
 	}
 
-	if complianceAssessmentFrameworkValue.IsApplicable && assessmentDetails.ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType.Type == "percentage" {
+	if complianceAssessmentFrameworkValue.IsApplicable && len(assessmentDetails.Compliances) > 0 && assessmentDetails.Compliances[0].ComplianceRegister != nil && assessmentDetails.Compliances[0].ComplianceRegister.ComplianceAssessmentFramework != nil && assessmentDetails.Compliances[0].ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType != nil && assessmentDetails.Compliances[0].ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType.Type == "percentage" {
 		control.Score = updateForm.Score
 	} else {
 		control.Score = nil
@@ -395,6 +395,19 @@ func (s *ComplianceAssessmentControlService) ApproveComplianceControl(assessment
 		if control.CompletedByUserID != nil {
 			completedUser, _ := s.userSvc.GetByID(*control.CompletedByUserID)
 
+			// Get assessment title
+			var assessmentTitle string
+			var assessmentTitleAr string
+			var referenceNumber string
+			if len(assessment.Compliances) > 0 && assessment.Compliances[0].ComplianceRegister != nil {
+				assessmentTitle = assessment.Compliances[0].ComplianceRegister.TitleEn
+				assessmentTitleAr = assessment.Compliances[0].ComplianceRegister.TitleAr
+				referenceNumber = assessment.Compliances[0].ComplianceRegister.ReferenceNumber
+			} else if assessment.ResponsibleOrganizationUnit != nil {
+				assessmentTitle = assessment.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+				assessmentTitleAr = assessment.ResponsibleOrganizationUnit.TitleAr + "'s Assessment"
+			}
+
 			urlParam := fmt.Sprintf(`{"assessment_id":%d, "control_id":%d}`, assessmentID, controlID)
 			entity := "compliance-assessment-control"
 			action := "approved"
@@ -406,9 +419,9 @@ func (s *ComplianceAssessmentControlService) ApproveComplianceControl(assessment
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Control Approved",
 				HeadingAr:            "تمت الموافقة على الضبط",
-				TitleEn:              assessment.ComplianceRegister.TitleEn,
-				TitleAr:              assessment.ComplianceRegister.TitleAr,
-				ReferenceNumber:      assessment.ComplianceRegister.ReferenceNumber,
+				TitleEn:              assessmentTitle,
+				TitleAr:              assessmentTitleAr,
+				ReferenceNumber:      referenceNumber,
 				Entity:               &entity,
 				Action:               &action,
 				URLParam:             urlParam,
@@ -425,9 +438,9 @@ func (s *ComplianceAssessmentControlService) ApproveComplianceControl(assessment
 				EmailData: map[string]interface{}{
 					"FirstNameEn":     completedUser.FirstNameEn,
 					"LastNameEn":      completedUser.LastNameEn,
-					"TitleEn":         assessment.ComplianceRegister.TitleEn,
-					"TitleAr":         assessment.ComplianceRegister.TitleAr,
-					"ReferenceNumber": assessment.ComplianceRegister.ReferenceNumber,
+					"TitleEn":         assessmentTitle,
+					"TitleAr":         assessmentTitleAr,
+					"ReferenceNumber": referenceNumber,
 					"Comment":         commentForm.Comment,
 					"ApprovedBy":      createdBy.FirstNameEn,
 					"ApprovalDate":    time.Now().Format("2006-01-02"),
@@ -466,7 +479,11 @@ func (s *ComplianceAssessmentControlService) RevertComplianceControl(assessmentI
 	if err != nil {
 		return err
 	}
-	if currentUserID != assessment.ComplianceRegister.ResponsibleUserID {
+	var revertResponsibleUserID uint
+	if len(assessment.Compliances) > 0 && assessment.Compliances[0].ComplianceRegister != nil {
+		revertResponsibleUserID = assessment.Compliances[0].ComplianceRegister.ResponsibleUserID
+	}
+	if currentUserID != revertResponsibleUserID {
 		return utility.NewForbiddenError("User is not authorized to revert this control")
 	}
 
@@ -508,6 +525,19 @@ func (s *ComplianceAssessmentControlService) RevertComplianceControl(assessmentI
 		if control.CompletedByUserID != nil {
 			completedUser, _ := s.userSvc.GetByID(*control.CompletedByUserID)
 
+			// Get assessment title
+			var assessmentTitle string
+			var assessmentTitleAr string
+			var referenceNumber string
+			if len(assessment.Compliances) > 0 && assessment.Compliances[0].ComplianceRegister != nil {
+				assessmentTitle = assessment.Compliances[0].ComplianceRegister.TitleEn
+				assessmentTitleAr = assessment.Compliances[0].ComplianceRegister.TitleAr
+				referenceNumber = assessment.Compliances[0].ComplianceRegister.ReferenceNumber
+			} else if assessment.ResponsibleOrganizationUnit != nil {
+				assessmentTitle = assessment.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+				assessmentTitleAr = assessment.ResponsibleOrganizationUnit.TitleAr + "'s Assessment"
+			}
+
 			urlParam := fmt.Sprintf(`{"assessment_id":%d, "control_id":%d}`, assessmentID, controlID)
 			entity := "compliance-assessment-control"
 			action := "reverted"
@@ -518,9 +548,9 @@ func (s *ComplianceAssessmentControlService) RevertComplianceControl(assessmentI
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Control Reverted",
 				HeadingAr:            "تم إرجاع الضبط",
-				TitleEn:              assessment.ComplianceRegister.TitleEn,
-				TitleAr:              assessment.ComplianceRegister.TitleAr,
-				ReferenceNumber:      assessment.ComplianceRegister.ReferenceNumber,
+				TitleEn:              assessmentTitle,
+				TitleAr:              assessmentTitleAr,
+				ReferenceNumber:      referenceNumber,
 				Entity:               &entity,
 				Action:               &action,
 				URLParam:             urlParam,
@@ -537,9 +567,9 @@ func (s *ComplianceAssessmentControlService) RevertComplianceControl(assessmentI
 				EmailData: map[string]interface{}{
 					"FirstNameEn":     completedUser.FirstNameEn,
 					"LastNameEn":      completedUser.LastNameEn,
-					"TitleEn":         assessment.ComplianceRegister.TitleEn,
-					"TitleAr":         assessment.ComplianceRegister.TitleAr,
-					"ReferenceNumber": assessment.ComplianceRegister.ReferenceNumber,
+					"TitleEn":         assessmentTitle,
+					"TitleAr":         assessmentTitleAr,
+					"ReferenceNumber": referenceNumber,
 					"Comment":         commentForm.Comment,
 					"RevertedBy":      createdBy.FirstNameEn,
 					"ReversionDate":   time.Now().Format("2006-01-02"),
@@ -608,7 +638,21 @@ func (s *ComplianceAssessmentControlService) ResubmitComplianceControl(assessmen
 
 		assessmentDetails, _ := s.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)
 		createdBy, _ := s.userSvc.GetByID(currentUserID)
-		responsibleUser, _ := s.userSvc.GetByID(assessmentDetails.ComplianceRegister.ResponsibleUserID)
+
+		var resubmitResponsibleUserID uint
+		var resubmitTitle string
+		var resubmitTitleAr string
+		var resubmitReferenceNumber string
+		if len(assessmentDetails.Compliances) > 0 && assessmentDetails.Compliances[0].ComplianceRegister != nil {
+			resubmitResponsibleUserID = assessmentDetails.Compliances[0].ComplianceRegister.ResponsibleUserID
+			resubmitTitle = assessmentDetails.Compliances[0].ComplianceRegister.TitleEn
+			resubmitTitleAr = assessmentDetails.Compliances[0].ComplianceRegister.TitleAr
+			resubmitReferenceNumber = assessmentDetails.Compliances[0].ComplianceRegister.ReferenceNumber
+		} else if assessmentDetails.ResponsibleOrganizationUnit != nil {
+			resubmitTitle = assessmentDetails.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+			resubmitTitleAr = assessmentDetails.ResponsibleOrganizationUnit.TitleAr + "'s Assessment"
+		}
+		responsibleUser, _ := s.userSvc.GetByID(resubmitResponsibleUserID)
 
 		urlParam := fmt.Sprintf(`{"assessment_id":%d, "control_id":%d}`, assessmentID, controlID)
 		entity := "compliance-assessment-control"
@@ -620,9 +664,9 @@ func (s *ComplianceAssessmentControlService) ResubmitComplianceControl(assessmen
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Compliance Control Resubmitted",
 			HeadingAr:            "إعادة تقديم الضبط",
-			TitleEn:              assessmentDetails.ComplianceRegister.TitleEn,
-			TitleAr:              assessmentDetails.ComplianceRegister.TitleAr,
-			ReferenceNumber:      assessmentDetails.ComplianceRegister.ReferenceNumber,
+			TitleEn:              resubmitTitle,
+			TitleAr:              resubmitTitleAr,
+			ReferenceNumber:      resubmitReferenceNumber,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -638,9 +682,9 @@ func (s *ComplianceAssessmentControlService) ResubmitComplianceControl(assessmen
 			EmailData: map[string]interface{}{
 				"FirstNameEn":      responsibleUser.FirstNameEn,
 				"LastNameEn":       responsibleUser.LastNameEn,
-				"TitleEn":          assessmentDetails.ComplianceRegister.TitleEn,
-				"TitleAr":          assessmentDetails.ComplianceRegister.TitleAr,
-				"ReferenceNumber":  assessmentDetails.ComplianceRegister.ReferenceNumber,
+				"TitleEn":          resubmitTitle,
+				"TitleAr":          resubmitTitleAr,
+				"ReferenceNumber":  resubmitReferenceNumber,
 				"Comment":          commentForm.Comment,
 				"ResubmittedBy":    createdBy.FirstNameEn,
 				"ResubmissionDate": time.Now().Format("2006-01-02"),
@@ -657,7 +701,7 @@ func (s *ComplianceAssessmentControlService) CalculateComplianceControlScores(as
 	if err != nil {
 		return err
 	}
-	if assessment == nil || assessment.ComplianceRegister == nil {
+	if assessment == nil || len(assessment.Compliances) == 0 || assessment.Compliances[0].ComplianceRegister == nil {
 		return fmt.Errorf("assessment/register not found")
 	}
 
@@ -668,7 +712,7 @@ func (s *ComplianceAssessmentControlService) CalculateComplianceControlScores(as
 
 	var frameworkValues []*complianceDTOs.ComplianceAssessmentFrameworkValueDetailDTO
 
-	if reg := assessment.ComplianceRegister; reg != nil && reg.ComplianceAssessmentFramework != nil {
+	if reg := assessment.Compliances[0].ComplianceRegister; reg != nil && reg.ComplianceAssessmentFramework != nil {
 		if t := reg.ComplianceAssessmentFramework.AssessmentFrameworkType; t != nil {
 			frameworkType = t.Type
 		}
@@ -708,7 +752,7 @@ func (s *ComplianceAssessmentControlService) CalculateComplianceControlScores(as
 
 	// Helper to map a % to the framework band/status using DTO fields
 	mapPctToBand := func(pct float64) (fvID *uint, statusID *uint) {
-		if assessment.ComplianceRegister == nil || assessment.ComplianceRegister.ComplianceAssessmentFramework == nil {
+		if len(assessment.Compliances) == 0 || assessment.Compliances[0].ComplianceRegister == nil || assessment.Compliances[0].ComplianceRegister.ComplianceAssessmentFramework == nil {
 			return nil, nil
 		}
 		for _, v := range frameworkValues {
@@ -962,7 +1006,11 @@ func (s *ComplianceAssessmentControlService) CalculateComplianceControlScores(as
 	if overallCnt > 0 {
 		overall := round2(overallSum / float64(overallCnt))
 		if _, stID := mapPctToBand(overall); stID != nil {
-			if err := s.repo.UpdateComplianceStatus(uint(assessment.ComplianceRegister.ID), *stID, overall, tx...); err != nil {
+			var registerID uint
+			if len(assessment.Compliances) > 0 && assessment.Compliances[0].ComplianceRegister != nil {
+				registerID = uint(assessment.Compliances[0].ComplianceRegister.ID)
+			}
+			if err := s.repo.UpdateComplianceStatus(registerID, *stID, overall, tx...); err != nil {
 				return err
 			}
 		}

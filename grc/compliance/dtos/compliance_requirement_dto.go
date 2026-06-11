@@ -131,6 +131,7 @@ type ComplianceRequirementDetailDTO struct {
 	ComplianceClause              ComplianceClauseDetailDTO                        `json:"compliance_clause"`
 	TitleEn                       string                                           `json:"title_en"`
 	TitleAr                       string                                           `json:"title_ar"`
+	Guideline                     string                                           `json:"guideline"`
 	ComplianceRequirementCategory *ComplianceRequirementCategoryDTO                `json:"compliance_requirement_category"`
 	SeverityLevel                 *masterDTOs.SeverityLevelDTO                     `json:"severity_level"`
 	DeadlineString                *string                                          `json:"deadline"`
