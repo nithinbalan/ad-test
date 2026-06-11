@@ -514,6 +514,9 @@ func (icc *InternalCommitteeController) CancelInternalCommittee(c *gin.Context) 
 		case *utility.ResourceNotFoundError:
 			utility.SendNotFoundErrResp(c)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(icc.db, c, e.Error())
 			return
