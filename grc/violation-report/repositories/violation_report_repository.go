@@ -70,13 +70,11 @@ func (repo *ViolationReportRepository) GetAll(params *violationReportDTOs.Violat
 			violation_report_channels.title_ar AS violation_report_channel_title_ar,
 			violation_reports.title_en,
 			violation_reports.title_ar,
-			violation_reports.reported_entity_id,
+			violation_reports.reported_entity,
 			violation_reports.id_of_reporter,
 			violation_reports.name_of_reporter,
 			violation_reports.phone_of_reporter,
 			violation_reports.email_of_reporter,
-			organization_units.title_en AS reported_entity_title_en,
-			organization_units.title_ar AS reported_entity_title_ar,
 			violation_reports.description_en,
 			violation_reports.description_ar,
 			violation_reports.violation_report_category_id,
@@ -126,16 +124,15 @@ func (repo *ViolationReportRepository) GetAll(params *violationReportDTOs.Violat
 			LEFT JOIN violation_report_reasons ON violation_report_reasons.id = violation_reports.violation_report_reason_id
 			LEFT JOIN violation_report_statuses ON violation_report_statuses.id = violation_reports.violation_report_status_id
 			LEFT JOIN severity_levels ON severity_levels.id = violation_reports.severity_level_id
-			LEFT JOIN organization_units ON organization_units.id = violation_reports.reported_entity_id
 			LEFT JOIN users AS created_user ON created_user.id = violation_reports.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = violation_reports.updated_by_id
 		`)
 
-		// Add department filter if departmentID is provided (non-admin users)
+	// Add department filter if departmentID is provided (non-admin users)
 	if departmentID != nil {
 		query = query.Where(
 			repo.db.Where("violation_reports.created_by_id = ?", currentUserID).
-				Or("violation_reports.reported_entity_id = ?", *departmentID),
+				Or("violation_report_categories.department_id = ?", *departmentID),
 		)
 	}
 
@@ -169,8 +166,7 @@ func (repo *ViolationReportRepository) GetAll(params *violationReportDTOs.Violat
 			violation_report_statuses.title_ar LIKE ? OR
 			severity_levels.title_en LIKE ? OR
 			severity_levels.title_ar LIKE ? OR
-			organization_units.title_en LIKE ? OR
-			organization_units.title_ar LIKE ? OR
+			violation_reports.reported_entity LIKE ? OR
 			created_user.first_name_en LIKE ? OR
 			created_user.last_name_en LIKE ? OR
 			created_user.email LIKE ?
@@ -179,7 +175,7 @@ func (repo *ViolationReportRepository) GetAll(params *violationReportDTOs.Violat
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword,
 		)
 	}
 
@@ -241,7 +237,6 @@ func (repo *ViolationReportRepository) GetFullDetailsByID(id uint, tx ...utility
 		Preload("ViolationReportStatus").
 		Preload("SeverityLevel").
 		Preload("Documents").
-		Preload("ReportedEntity.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&violationReport, id)

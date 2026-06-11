@@ -4,7 +4,6 @@ import (
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
-	settingsDTOs "jethur/grc/settings/dtos"
 
 	"time"
 )
@@ -22,9 +21,7 @@ type ViolationReportListDTO struct {
 	EmailOfReporter                   *string    `json:"email_of_reporter"`
 	TitleEn                           string     `json:"title_en"`
 	TitleAr                           string     `json:"title_ar"`
-	ReportedEntityID                  uint       `json:"reported_entity_id"`
-	ReportedEntityTitleEn             string     `json:"reported_entity_title_en"`
-	ReportedEntityTitleAr             string     `json:"reported_entity_title_ar"`
+	ReportedEntity                    *string    `json:"reported_entity"`
 	DescriptionEn                     *string    `json:"description_en"`
 	DescriptionAr                     *string    `json:"description_ar"`
 	ViolationReportCategoryID         *uint      `json:"violation_report_category_id"`
@@ -75,7 +72,7 @@ type ViolationReportFormDTO struct {
 	EmailOfReporter              *string                           `json:"email_of_reporter"`
 	TitleEn                      string                            `json:"title_en" binding:"required,max=255"`
 	TitleAr                      string                            `json:"title_ar" binding:"required,max=255"`
-	ReportedEntityID             uint                              `json:"reported_entity_id" binding:"required"`
+	ReportedEntity               *string                           `json:"reported_entity"`
 	DescriptionEn                *string                           `json:"description_en"`
 	DescriptionAr                *string                           `json:"description_ar"`
 	EvidenceDescription          *string                           `json:"evidence_description"`
@@ -145,7 +142,7 @@ type ViolationReportDetailDTO struct {
 	ViolationReportStatus      ViolationReportStatusDTO              `json:"violation_report_status"`
 	SeverityLevel              *masterDTOs.SeverityLevelDTO          `json:"severity_level"`
 	Documents                  []*ViolationReportDocumentDTO         `json:"documents"`
-	ReportedEntity             settingsDTOs.OrganizationUnitDTO      `json:"reported_entity"`
+	ReportedEntity             *string                               `json:"reported_entity"`
 	EvidenceDescription        *string                               `json:"evidence_description"`
 	CreatedAt                  time.Time                             `json:"created_at"`
 	UpdatedAt                  *time.Time                            `json:"updated_at"`
