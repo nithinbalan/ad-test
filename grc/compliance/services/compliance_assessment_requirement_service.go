@@ -585,10 +585,10 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 	if err != nil {
 		return err
 	}
-	allComplianceAssessmentRequirement, err := cars.GetFullDetailsByID(complianceAssessmentId, requirementId, 0)
-	if err != nil {
-		return err
-	}
+	// allComplianceAssessmentRequirement, err := cars.GetFullDetailsByID(complianceAssessmentId, requirementId, 0)
+	// if err != nil {
+	// 	return err
+	// }
 	oldComplianceAssessmentRequirement, err := cars.GetFullDetailsByID(complianceAssessmentId, requirementId, responsibleUnitID)
 	if err != nil {
 		tx.Rollback()
@@ -618,34 +618,34 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 		tx.Rollback()
 		return err
 	}
-	allCompleted := true
-	for _, ru := range allComplianceAssessmentRequirement.ResponsibleUnits {
-		if ru == nil {
-			continue
-		}
-		if ru.ID == complianceAssessmentRequirementResponsibleUnit.ID {
-			// this one is now completed
-			continue
-		}
-		if !ru.IsCompleted {
-			allCompleted = false
-			break
-		}
-	}
+	// allCompleted := true
+	// for _, ru := range allComplianceAssessmentRequirement.ResponsibleUnits {
+	// 	if ru == nil {
+	// 		continue
+	// 	}
+	// 	if ru.ID == complianceAssessmentRequirementResponsibleUnit.ID {
+	// 		// this one is now completed
+	// 		continue
+	// 	}
+	// 	if !ru.IsCompleted {
+	// 		allCompleted = false
+	// 		break
+	// 	}
+	// }
 
-	// Update parent CAR’s IsAllCompleted
-	car, err := cars.repo.GetByID(requirementId)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	car.IsAllCompleted = allCompleted
-	car.UpdatedBYID = &currentUserID
+	// // Update parent CAR’s IsAllCompleted
+	// car, err := cars.repo.GetByID(requirementId)
+	// if err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
+	// car.IsAllCompleted = allCompleted
+	// car.UpdatedBYID = &currentUserID
 
-	if err := cars.repo.Update(car, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
+	// if err := cars.repo.Update(car, tx); err != nil {
+	// 	tx.Rollback()
+	// 	return err
+	// }
 
 	tx.Commit()
 
@@ -900,11 +900,27 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 		return err
 	}
 
+	allCompletedNow := true
+	for _, ru := range allComplianceAssessmentRequirement.ResponsibleUnits {
+		if ru == nil {
+			continue
+		}
+		if ru.ID == complianceAssessmentRequirementResponsibleUnit.ID {
+			// this one is now approved; treat as completed
+			continue
+		}
+		if !ru.IsCompleted {
+			allCompletedNow = false
+			break
+		}
+	}
+
 	if allApproved {
 		car.ComplianceAssessmentRequirementStatusID = &approvedStatus.ID
 	} else {
 		car.ComplianceAssessmentRequirementStatusID = nil
 	}
+	car.IsAllCompleted = allCompletedNow
 	car.UpdatedBYID = &currentUserID
 
 	if err := cars.repo.Update(car, tx); err != nil {
