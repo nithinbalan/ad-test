@@ -65,6 +65,7 @@ type OrganizationModule struct {
 	InternalCommitteeReviewCommentController  *controllers.InternalCommitteeReviewCommentController
 	ControlEffectivenessRatingController      *controllers.ControlEffectivenessRatingController
 	ControlStatusController                   *controllers.ControlStatusController
+	GovernanceSettingsController              *controllers.GovernanceSettingsController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -180,6 +181,10 @@ func NewOrganizationModule(
 	strategicProfileValueRepo := repositories.NewStrategicProfileValueRepository(db)
 	strategicProfileValueSvc := services.NewStrategicProfileValueService(strategicProfileValueRepo, sharedModule.ActivityLogService, strategicProfileRepo)
 	strategicProfileValueController := controllers.NewStrategicProfileValueController(strategicProfileValueSvc)
+
+	governanceSettingsRepo := repositories.NewGovernanceSettingsRepository(db)
+	governanceSettingsSvc := services.NewGovernanceSettingsService(governanceSettingsRepo, sharedModule.ActivityLogService)
+	governanceSettingsController := controllers.NewGovernanceSettingsController(governanceSettingsSvc)
 
 	controlEffectivenessRatingRepo := repositories.NewControlEffectivenessRatingRepository(db)
 	controlEffectivenessRatingSvc := services.NewControlEffectivenessRatingService(controlEffectivenessRatingRepo)
@@ -390,7 +395,7 @@ func NewOrganizationModule(
 		organizationUnitsSvc,
 		internalCommitteeWorkflowReviewSvc,
 		internalCommitteeWorkflowSvc,
-		masterModule.WorkflowStatusSvc, settingsModule.RoleSvc,
+		masterModule.WorkflowStatusSvc, settingsModule.RoleSvc, governanceSettingsSvc,
 	)
 	internalCommitteeController := controllers.NewInternalCommitteeController(internalCommitteeSvc)
 
@@ -467,6 +472,7 @@ func NewOrganizationModule(
 		InternalCommitteeReviewCommentController:  internalCommitteeReviewCommentController,
 		ControlEffectivenessRatingController:      controlEffectivenessRatingController,
 		ControlStatusController:                   controlStatusController,
+		GovernanceSettingsController:              governanceSettingsController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,
