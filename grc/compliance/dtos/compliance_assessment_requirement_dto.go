@@ -100,7 +100,7 @@ type ComplianceAssessmentRequirementUpdateFormDTO struct {
 type ComplianceAssessmentRequirementNotApplicableFormDTO struct {
 	ResponsibleUnitID uint   `json:"responsible_unit_id" binding:"required"`
 	Comments          string `json:"comments" binding:"required"`
-	Score             int    `json:"score" binding:"required,min=0,max=100"`
+	Score             int    `json:"score" binding:"min=0,max=100"`
 }
 
 type ComplianceAssessmentRequirementApproveNotApplicableFormDTO struct {
