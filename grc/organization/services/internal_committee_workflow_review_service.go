@@ -404,6 +404,7 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 						version.TermEndDate = &endDate
 					}
 					approvedAt := time.Now()
+					version.TermStartDate = &approvedAt
 					version.CommitteeStatusID = finalCommitteeStatus.ID
 					version.WorkflowStatusID = &approvedWorkflowStatus.ID
 					version.ApprovedAt = &approvedAt
@@ -572,8 +573,9 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Approve(committeeID uint, c
 						version.TermEndDate = &endDate
 					}
 					version.CommitteeStatusID = finalCommitteeStatus.ID
-					version.WorkflowStatusID = &approvedWorkflowStatus.ID
 					approvedAt := time.Now()
+					version.TermStartDate = &approvedAt
+					version.WorkflowStatusID = &approvedWorkflowStatus.ID
 					version.ApprovedAt = &approvedAt
 					version.ApprovedByID = &currentUserID
 					if err := icwrs.repo.UpdateInternalCommitteeVersion(version, tx); err != nil {
