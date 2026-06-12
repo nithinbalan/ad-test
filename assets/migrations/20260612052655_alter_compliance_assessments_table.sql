@@ -28,5 +28,5 @@ ALTER TABLE compliance_assessments
 DROP COLUMN type;
 
 ALTER TABLE compliance_assessments
-ALTER COLUMN compliance_register_id INT NOT NULL;
+ALTER COLUMN compliance_register_id INT NULL;
 -- +goose StatementEnd
