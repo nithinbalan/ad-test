@@ -155,6 +155,18 @@ func (s *ComplianceAssessmentControlCommentService) Create(assessmentID uint, co
 		}
 
 		urlParam := fmt.Sprintf(`{"assessment_id":%d,"control_id":%d}`, assessmentID, controlID)
+		// Get assessment title and reference for notifications
+		var assessmentTitleEn, assessmentTitleAr, referenceNumber string
+		if len(assessment.Compliances) > 0 && assessment.Compliances[0].ComplianceRegister != nil {
+			assessmentTitleEn = assessment.Compliances[0].ComplianceRegister.TitleEn
+			assessmentTitleAr = assessment.Compliances[0].ComplianceRegister.TitleAr
+			referenceNumber = assessment.Compliances[0].ComplianceRegister.ReferenceNumber
+		} else if assessment.ResponsibleOrganizationUnit != nil {
+			assessmentTitleEn = assessment.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+			assessmentTitleAr = assessment.ResponsibleOrganizationUnit.TitleAr + "'s Assessment"
+			referenceNumber = ""
+		}
+
 		entity := "compliance-assessment-control"
 		action := "comment-added"
 
@@ -164,9 +176,9 @@ func (s *ComplianceAssessmentControlCommentService) Create(assessmentID uint, co
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Comment Added For Compliance Control",
 			HeadingAr:            "تمت إضافة تعليق لضبط الامتثال",
-			TitleEn:              assessment.ComplianceRegister.TitleEn,
-			TitleAr:              assessment.ComplianceRegister.TitleAr,
-			ReferenceNumber:      assessment.ComplianceRegister.ReferenceNumber,
+			TitleEn:              assessmentTitleEn,
+			TitleAr:              assessmentTitleAr,
+			ReferenceNumber:      referenceNumber,
 			Entity:               &entity,
 			Action:               &action,
 			URLParam:             urlParam,
@@ -185,8 +197,8 @@ func (s *ComplianceAssessmentControlCommentService) Create(assessmentID uint, co
 				"Comment":        dto.Comment,
 				"CommentedBy":    createdBy.FirstNameEn,
 				"CommentedOn":    time.Now().Format("2006-01-02"),
-				"ReferenceNo":    assessment.ComplianceRegister.ReferenceNumber,
-				"AssessmentName": assessment.ComplianceRegister.TitleEn,
+				"ReferenceNo":    referenceNumber,
+				"AssessmentName": assessmentTitleEn,
 				"RedirectURL":    fmt.Sprintf("%s/compliance/assessments/%d/controls/%d", utility.GetAppURL(), assessmentID, controlID),
 			},
 		}

@@ -410,8 +410,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.PUT("/compliance-assessments/:assessmentId/requirements/:requirementId/revert", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementController.RevertComplianceAssessmentRequirement)
 	complianceRoutes.PUT("/compliance-assessments/:assessmentId/requirements/:requirementId/resubmit", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementController.ResubmitComplianceAssessmentRequirement)
 	complianceRoutes.PUT("/compliance-assessments/:assessmentId/requirements/:requirementId/mark-as-not-applicable", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementController.MarkAsNotApplicable)
-	complianceRoutes.PUT("/compliance-assessments/:assessmentId/requirements/:requirementId/approve-not-applicable", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementController.ApproveNotApplicable)
-	complianceRoutes.PUT("/compliance-assessments/:assessmentId/requirements/:requirementId/update-score", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementController.ComplianceAssessmentRequirementScoreUpdate)
 
 	// Compliance Requirement Assessment Documents
 	unauthenticatedRoutes.GET("/compliance-assessments/:assessmentId/requirements/:requirementId/required-documents/:documentId/document-download", complianceAssessmentRequirementController.DownloadComplianceAssessmentRequirementDocument)

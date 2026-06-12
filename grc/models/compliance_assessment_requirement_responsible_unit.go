@@ -7,6 +7,7 @@ type ComplianceAssessmentRequirementResponsibleUnit struct {
 	ComplianceAssessmentRequirementID       uint       `json:"compliance_assessment_requirement_id" gorm:"not null"`
 	ResponsibleUnitID                       uint       `json:"responsible_unit_id" gorm:"not null"`
 	Deadline                                *time.Time `json:"deadline" gorm:"default:null"`
+	ResponsibleUserID                       *uint      `json:"responsible_user_id" gorm:"default:null"`
 	ComplianceAssessmentFrameworkValueID    *uint      `json:"compliance_assessment_framework_value_id" gorm:"default:null"`
 	ComplianceAssessmentRequirementStatusID *uint      `json:"compliance_assessment_requirement_status_id" gorm:"default:null"`
 	CompletedByUserID                       *uint      `json:"completed_by_user_id"`
@@ -38,6 +39,7 @@ type ComplianceAssessmentRequirementResponsibleUnit struct {
 	ResidualRiskAnalysis                  []*ComplianceAssessmentRequirementResidualRiskAnalysis `gorm:"foreignKey:ComplianceAssessmentRequirementResponsibleUnitID"`
 	ResidualControls                      []*ComplianceAssessmentResidualControl                 `gorm:"foreignKey:ComplianceAssessmentRequirementResponsibleUnitID"`
 	ComplianceStatus                      *ComplianceStatus                                      `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ResponsibleUser                       *User                                                  `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 func (ComplianceAssessmentRequirementResponsibleUnit) TableName() string {

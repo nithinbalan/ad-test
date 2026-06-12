@@ -173,6 +173,18 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 
 		if complianceAssessment.ComplianceAssessmentStatus.ID == complianceAssessmentStatus.ID {
 			if complianceAssessment.ReviewUserID == currentUserID {
+
+				// Get assessment title
+				var assessmentTitle string
+				var assessmentTitleAr string
+				if len(complianceAssessment.Compliances) > 0 && complianceAssessment.Compliances[0].ComplianceRegister != nil {
+					assessmentTitle = complianceAssessment.Compliances[0].ComplianceRegister.TitleEn
+					assessmentTitleAr = complianceAssessment.Compliances[0].ComplianceRegister.TitleAr
+				} else if complianceAssessment.ResponsibleOrganizationUnit != nil {
+					assessmentTitle = complianceAssessment.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+					assessmentTitleAr = complianceAssessment.ResponsibleOrganizationUnit.TitleAr + "'s Assessment"
+				}
+
 				// if review user added the comment, notification for submitted user
 				// prepare notification
 				urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d}`, complianceAssessmentID, assessmentRequirementID)
@@ -186,8 +198,8 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Comment Added For Compliance Requirement",
 					HeadingAr:            "تمت إضافة التعليق لمتطلبات الامتثال",
-					TitleEn:              complianceAssessment.ComplianceRegister.TitleEn,
-					TitleAr:              complianceAssessment.ComplianceRegister.TitleAr,
+					TitleEn:              assessmentTitle,
+					TitleAr:              assessmentTitleAr,
 					Entity:               &entity,
 					Action:               &action,
 					URLParam:             urlParam,
@@ -217,7 +229,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 				emailData := map[string]interface{}{
 					"FirstNameEn":            submittedUser.FirstNameEn,
 					"LastNameEn":             submittedUser.LastNameEn,
-					"ComplianceAssessment":   complianceAssessment.ComplianceRegister.TitleEn,
+					"ComplianceAssessment":   assessmentTitle,
 					"RequirementTitle":       oldComplianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn,
 					"Comment":                complianceAssessmentRequirementCommentFormDTO.Comment,
 					"CommentedByFirstNameEn": commentedBy.FirstNameEn,
@@ -243,6 +255,17 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 			} else if complianceAssessment.SubmittedByUser.ID == int(currentUserID) {
 				// if submitted user added the comment, notification for review user
 
+				// Get assessment title
+				var assessmentTitle string
+				var assessmentTitleAr string
+				if len(complianceAssessment.Compliances) > 0 && complianceAssessment.Compliances[0].ComplianceRegister != nil {
+					assessmentTitle = complianceAssessment.Compliances[0].ComplianceRegister.TitleEn
+					assessmentTitleAr = complianceAssessment.Compliances[0].ComplianceRegister.TitleAr
+				} else if complianceAssessment.ResponsibleOrganizationUnit != nil {
+					assessmentTitle = complianceAssessment.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+					assessmentTitleAr = complianceAssessment.ResponsibleOrganizationUnit.TitleAr + "'s Assessment"
+				}
+
 				// prepare notification
 				urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d}`, complianceAssessmentID, assessmentRequirementID)
 				queryParam := ""
@@ -255,8 +278,8 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Comment Added For Compliance Requirement",
 					HeadingAr:            "تمت إضافة التعليق لمتطلبات الامتثال",
-					TitleEn:              complianceAssessment.ComplianceRegister.TitleEn,
-					TitleAr:              complianceAssessment.ComplianceRegister.TitleAr,
+					TitleEn:              assessmentTitle,
+					TitleAr:              assessmentTitleAr,
 					Entity:               &entity,
 					Action:               &action,
 					URLParam:             urlParam,
@@ -286,7 +309,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 				emailData := map[string]interface{}{
 					"FirstNameEn":            reviewUser.FirstNameEn,
 					"LastNameEn":             reviewUser.LastNameEn,
-					"ComplianceAssessment":   complianceAssessment.ComplianceRegister.TitleEn,
+					"ComplianceAssessment":   assessmentTitle,
 					"RequirementTitle":       oldComplianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn,
 					"Comment":                complianceAssessmentRequirementCommentFormDTO.Comment,
 					"CommentedByFirstNameEn": commentedBy.FirstNameEn,
@@ -313,6 +336,16 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 			} else {
 				// if other user added the comment, notification for submitted user and review user
 				if complianceAssessment.SubmittedByUser != nil {
+					// Get assessment title
+					var assessmentTitle string
+					var assessmentTitleAr string
+					if len(complianceAssessment.Compliances) > 0 && complianceAssessment.Compliances[0].ComplianceRegister != nil {
+						assessmentTitle = complianceAssessment.Compliances[0].ComplianceRegister.TitleEn
+						assessmentTitleAr = complianceAssessment.Compliances[0].ComplianceRegister.TitleAr
+					} else if complianceAssessment.ResponsibleOrganizationUnit != nil {
+						assessmentTitle = complianceAssessment.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+						assessmentTitleAr = complianceAssessment.ResponsibleOrganizationUnit.TitleAr + "'s Assessment"
+					}
 					// prepare notification
 					urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d}`, complianceAssessmentID, assessmentRequirementID)
 					queryParam := ""
@@ -325,8 +358,8 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 						NotificationType:     string(commonDTOs.AssignmentType),
 						HeadingEn:            "Comment Added For Compliance Requirement",
 						HeadingAr:            "تمت إضافة التعليق لمتطلبات الامتثال",
-						TitleEn:              complianceAssessment.ComplianceRegister.TitleEn,
-						TitleAr:              complianceAssessment.ComplianceRegister.TitleAr,
+						TitleEn:              assessmentTitle,
+						TitleAr:              assessmentTitleAr,
 						Entity:               &entity,
 						Action:               &action,
 						URLParam:             urlParam,
@@ -356,7 +389,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 					emailData := map[string]interface{}{
 						"FirstNameEn":            submittedUser.FirstNameEn,
 						"LastNameEn":             submittedUser.LastNameEn,
-						"ComplianceAssessment":   complianceAssessment.ComplianceRegister.TitleEn,
+						"ComplianceAssessment":   assessmentTitle,
 						"RequirementTitle":       oldComplianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn,
 						"Comment":                complianceAssessmentRequirementCommentFormDTO.Comment,
 						"CommentedByFirstNameEn": commentedBy.FirstNameEn,
@@ -381,6 +414,17 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 					}
 				}
 
+				// Get assessment title
+				var assessmentTitle string
+				var assessmentTitleAr string
+				if len(complianceAssessment.Compliances) > 0 && complianceAssessment.Compliances[0].ComplianceRegister != nil {
+					assessmentTitle = complianceAssessment.Compliances[0].ComplianceRegister.TitleEn
+					assessmentTitleAr = complianceAssessment.Compliances[0].ComplianceRegister.TitleAr
+				} else if complianceAssessment.ResponsibleOrganizationUnit != nil {
+					assessmentTitle = complianceAssessment.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+					assessmentTitleAr = complianceAssessment.ResponsibleOrganizationUnit.TitleAr + "'s Assessment"
+				}
+
 				// prepare notification
 				urlParam := fmt.Sprintf(`{"compliance_assessment_id":%d,"requirement_id":%d}`, complianceAssessmentID, assessmentRequirementID)
 				queryParam := ""
@@ -393,8 +437,8 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 					NotificationType:     string(commonDTOs.AssignmentType),
 					HeadingEn:            "Comment Added For Compliance Requirement",
 					HeadingAr:            "تمت إضافة التعليق لمتطلبات الامتثال",
-					TitleEn:              complianceAssessment.ComplianceRegister.TitleEn,
-					TitleAr:              complianceAssessment.ComplianceRegister.TitleAr,
+					TitleEn:              assessmentTitle,
+					TitleAr:              assessmentTitleAr,
 					Entity:               &entity,
 					Action:               &action,
 					URLParam:             urlParam,
@@ -424,7 +468,7 @@ func (caps *ComplianceAssessmentRequirementCommentService) Create(complianceAsse
 				emailData := map[string]interface{}{
 					"FirstNameEn":            reviewUser.FirstNameEn,
 					"LastNameEn":             reviewUser.LastNameEn,
-					"ComplianceAssessment":   complianceAssessment.ComplianceRegister.TitleEn,
+					"ComplianceAssessment":   assessmentTitle,
 					"RequirementTitle":       oldComplianceAssessmentRequirementResponsibleUnit.ComplianceRequirement.TitleEn,
 					"Comment":                complianceAssessmentRequirementCommentFormDTO.Comment,
 					"CommentedByFirstNameEn": commentedBy.FirstNameEn,

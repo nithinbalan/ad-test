@@ -264,13 +264,21 @@ func (carasus *ComplianceAssessmentControlActionPlanStatusUpdateService) Create(
 				return
 			}
 
+			// Get assessment title
+			var assessmentTitle string
+			if len(complianceAssessment.Compliances) > 0 && complianceAssessment.Compliances[0].ComplianceRegister != nil {
+				assessmentTitle = complianceAssessment.Compliances[0].ComplianceRegister.TitleEn
+			} else if complianceAssessment.ResponsibleOrganizationUnit != nil {
+				assessmentTitle = complianceAssessment.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+			}
+
 			emailTo := []string{reviewUser.Email}
 			subject := fmt.Sprintf("Compliance Assessment Control Action Plan %s: Resolved", complianceActionPlan.Title)
 			appURL := utility.GetAppURL()
 			emailData := map[string]interface{}{
 				"FirstNameEn":           reviewUser.FirstNameEn,
 				"LastNameEn":            reviewUser.LastNameEn,
-				"ComplianceAssessment":  complianceAssessment.ComplianceRegister.TitleEn,
+				"ComplianceAssessment":  assessmentTitle,
 				"ActionPlanTitle":       complianceActionPlan.Title,
 				"ActionPlanDescription": complianceActionPlan.Description,
 				"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
@@ -637,13 +645,21 @@ func (carasus *ComplianceAssessmentControlActionPlanStatusUpdateService) Approve
 			return
 		}
 
+		// Get assessment title
+		var assessmentTitle string
+		if len(complianceAssessment.Compliances) > 0 && complianceAssessment.Compliances[0].ComplianceRegister != nil {
+			assessmentTitle = complianceAssessment.Compliances[0].ComplianceRegister.TitleEn
+		} else if complianceAssessment.ResponsibleOrganizationUnit != nil {
+			assessmentTitle = complianceAssessment.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+		}
+
 		emailTo := []string{responsibleUser.Email}
 		subject := fmt.Sprintf("Compliance Assessment Control Action Plan %s: Closed", existingComplianceActionPlan.Title)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
 			"FirstNameEn":           responsibleUser.FirstNameEn,
 			"LastNameEn":            responsibleUser.LastNameEn,
-			"ComplianceAssessment":  complianceAssessment.ComplianceRegister.TitleEn,
+			"ComplianceAssessment":  assessmentTitle,
 			"ActionPlanTitle":       existingComplianceActionPlan.Title,
 			"ActionPlanDescription": existingComplianceActionPlan.Description,
 			"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,
@@ -800,13 +816,21 @@ func (carasus *ComplianceAssessmentControlActionPlanStatusUpdateService) Revert(
 			return
 		}
 
+		// Get assessment title
+		var assessmentTitle string
+		if len(complianceAssessment.Compliances) > 0 && complianceAssessment.Compliances[0].ComplianceRegister != nil {
+			assessmentTitle = complianceAssessment.Compliances[0].ComplianceRegister.TitleEn
+		} else if complianceAssessment.ResponsibleOrganizationUnit != nil {
+			assessmentTitle = complianceAssessment.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+		}
+
 		emailTo := []string{responsibleUser.Email}
 		subject := fmt.Sprintf("Compliance Assessment Control Action Plan %s: Reopened", existingComplianceActionPlan.Title)
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
 			"FirstNameEn":           responsibleUser.FirstNameEn,
 			"LastNameEn":            responsibleUser.LastNameEn,
-			"ComplianceAssessment":  complianceAssessment.ComplianceRegister.TitleEn,
+			"ComplianceAssessment":  assessmentTitle,
 			"ActionPlanTitle":       existingComplianceActionPlan.Title,
 			"ActionPlanDescription": existingComplianceActionPlan.Description,
 			"ResolvedByFirstNameEn": resolvedBy.FirstNameEn,

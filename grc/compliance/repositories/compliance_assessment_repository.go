@@ -56,6 +56,9 @@ type ComplianceAssessmentRepositoryInterface interface {
 	DeleteComplianceAssessmentControls(ids []*uint, tx ...utility.DatabaseTransaction) error
 	HasControlForRegister(registerID uint) (bool, error)
 
+	GetRegisterIDsWithResponsibleUnitID(responsibleUnitID uint) ([]uint, error)
+	CreateComplianceAssessmentCompliances(compliances []*models.ComplianceAssessmentCompliance, tx ...utility.DatabaseTransaction) error
+
 	UpdateControlComplianceStatus(dto complianceDTOs.ControlSyncUpdateDTO, tx ...utility.DatabaseTransaction) error
 	UpdateComplianceControlMeta(dto complianceDTOs.ControlSyncUpdateDTO, tx ...utility.DatabaseTransaction) error
 
@@ -64,6 +67,18 @@ type ComplianceAssessmentRepositoryInterface interface {
 	GetComplianceScoreSummaryByControl(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error)
 	GetFullDetailsByIDOptimized(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessment, error)
 	ComputeFlagsFast(assessmentID uint, tx ...utility.DatabaseTransaction) (isCompleted, isApproved bool, err error)
+
+	// Action plan deletion methods
+	DeleteActionPlansByAssessment(id uint, tx ...utility.DatabaseTransaction) error
+	DeleteActionPlanCommentDocumentsByAssessment(id uint, tx ...utility.DatabaseTransaction) error
+	DeleteActionPlanCommentsByAssessment(id uint, tx ...utility.DatabaseTransaction) error
+	DeleteActionPlanStatusUpdateDocumentsByAssessment(id uint, tx ...utility.DatabaseTransaction) error
+	DeleteActionPlanStatusUpdatesByAssessment(id uint, tx ...utility.DatabaseTransaction) error
+
+	// Compliance assessment compliance methods
+	GetComplianceAssessmentCompliaceByID(id uint) (*models.ComplianceAssessmentCompliance, error)
+	UpdateComplianceAssessmentCompliance(compliance *models.ComplianceAssessmentCompliance, tx ...utility.DatabaseTransaction) error
+	DeleteComplianceAssessmentCompliance(id uint, tx ...utility.DatabaseTransaction) error
 }
 
 type ComplianceAssessmentRepository struct {
@@ -88,20 +103,25 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
 
 	query := repo.db.Table("compliance_assessments").
 		Select(`
-            compliance_assessments.*,
-			compliance_register.title_en AS compliance_register_title_en,
-			compliance_register.title_ar AS compliance_register_title_ar,
-			compliance_register.is_regulation_notification_assessment AS is_regulation_notification_assessment,
-			compliance_register.is_risk_based_assessment AS is_risk_based_assessment,
+			compliance_assessments.id,
+			compliance_assessments.description,
+			compliance_assessments.[type] AS type,
+			compliance_assessments.created_at,
+			compliance_assessments.updated_at,
+			reg_agg.compliance_register_title_en AS compliance_register_title_en,
+			reg_agg.compliance_register_title_ar AS compliance_register_title_ar,
+			organization_units.id AS responsible_department_id,
+			organization_units.title_en AS responsible_department_title_en,
+			organization_units.title_ar AS responsible_department_title_ar,
 			review_user.id AS review_user_id,
 			review_user.first_name_en AS review_user_first_name_en,
-            review_user.first_name_ar AS review_user_first_name_ar,
-            review_user.last_name_en AS review_user_last_name_en,
-            review_user.last_name_ar AS review_user_last_name_ar,
+			review_user.first_name_ar AS review_user_first_name_ar,
+			review_user.last_name_en AS review_user_last_name_en,
+			review_user.last_name_ar AS review_user_last_name_ar,
 			review_user.initial AS review_user_initial,
-            review_user.color AS review_user_color,
-            review_user.email AS review_user_email,
-            review_user.profile_image_path AS review_user_profile_image_path,
+			review_user.color AS review_user_color,
+			review_user.email AS review_user_email,
+			review_user.profile_image_path AS review_user_profile_image_path,
 			compliance_assessment_statuses.title_en AS compliance_assessment_status_title_en,
 			compliance_assessment_statuses.title_ar AS compliance_assessment_status_title_ar,
 			compliance_assessment_statuses.color_code AS compliance_assessment_status_color_code,
@@ -111,32 +131,41 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
 			average_residual_rating.title_ar AS average_residual_risk_rating_title_ar,
 			average_residual_rating.color_code AS average_residual_risk_rating_color_code,
 			average_residual_rating.type AS average_residual_risk_rating_type,
-        	created_user.id AS created_user_id,
-        	created_user.first_name_en AS created_user_first_name_en,
-        	created_user.first_name_ar AS created_user_first_name_ar,
-        	created_user.last_name_en AS created_user_last_name_en,
-        	created_user.last_name_ar AS created_user_last_name_ar,   
-        	created_user.initial AS created_user_initial,
-        	created_user.color AS created_user_color,
-        	created_user.email AS created_user_email,
-        	created_user.profile_image_path AS created_user_profile_image_path,   
+			created_user.id AS created_user_id,
+			created_user.first_name_en AS created_user_first_name_en,
+			created_user.first_name_ar AS created_user_first_name_ar,
+			created_user.last_name_en AS created_user_last_name_en,
+			created_user.last_name_ar AS created_user_last_name_ar,
+			created_user.initial AS created_user_initial,
+			created_user.color AS created_user_color,
+			created_user.email AS created_user_email,
+			created_user.profile_image_path AS created_user_profile_image_path,
 			updated_user.id AS updated_user_id,
-    		updated_user.first_name_en AS updated_user_first_name_en,
-        	updated_user.first_name_ar AS updated_user_first_name_ar,
-        	updated_user.last_name_en AS updated_user_last_name_en,
-        	updated_user.last_name_ar AS updated_user_last_name_ar,
+			updated_user.first_name_en AS updated_user_first_name_en,
+			updated_user.first_name_ar AS updated_user_first_name_ar,
+			updated_user.last_name_en AS updated_user_last_name_en,
+			updated_user.last_name_ar AS updated_user_last_name_ar,
 			updated_user.initial AS updated_user_initial,
-        	updated_user.color AS updated_user_color,
-        	updated_user.email AS updated_user_email,
-        	updated_user.profile_image_path AS updated_user_profile_image_path        
-        `).
+			updated_user.color AS updated_user_color,
+			updated_user.email AS updated_user_email,
+			updated_user.profile_image_path AS updated_user_profile_image_path
+		`).
 		Joins(`
-		    LEFT JOIN compliance_register ON compliance_register.id = compliance_assessments.compliance_register_id
-		    LEFT JOIN users AS review_user ON review_user.id = compliance_assessments.review_user_id
+			LEFT JOIN (
+				SELECT
+					cac.compliance_assessment_id,
+					STRING_AGG(CAST(cr.title_en AS NVARCHAR(MAX)), ', ') AS compliance_register_title_en,
+					STRING_AGG(CAST(cr.title_ar AS NVARCHAR(MAX)), ', ') AS compliance_register_title_ar
+				FROM compliance_assessment_compliances cac
+				JOIN compliance_register cr ON cr.id = cac.compliance_register_id
+				GROUP BY cac.compliance_assessment_id
+			) reg_agg ON reg_agg.compliance_assessment_id = compliance_assessments.id
+			LEFT JOIN users AS review_user ON review_user.id = compliance_assessments.review_user_id
 			LEFT JOIN compliance_assessment_statuses ON compliance_assessment_statuses.id = compliance_assessments.compliance_assessment_status_id
 			LEFT JOIN compliance_assessment_ratings AS average_residual_rating ON average_residual_rating.id = compliance_assessments.average_residual_risk_rating_id
 			LEFT JOIN users AS created_user ON created_user.id = compliance_assessments.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = compliance_assessments.updated_by_id
+			LEFT JOIN organization_units ON organization_units.id = compliance_assessments.responsible_unit_id
 		`)
 
 	// Apply dynamic filters to the query
@@ -162,27 +191,26 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
-			(compliance_register.title_en LIKE ? OR
-			compliance_register.title_ar LIKE ? OR
-			compliance_register.reference_number LIKE ? OR
+			(reg_agg.compliance_register_title_en LIKE ? OR
+			reg_agg.compliance_register_title_ar LIKE ? OR
 			review_user.first_name_en LIKE ? OR
 			review_user.first_name_ar LIKE ? OR
 			review_user.last_name_en LIKE ? OR
 			review_user.last_name_ar LIKE ? OR
 			review_user.email LIKE ? OR
-            review_user.initial LIKE ? OR
-            review_user.color LIKE ? OR
-            review_user.profile_image_path LIKE ?)`,
+			review_user.initial LIKE ?)`,
 			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword)
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
-	// Calculate total count for pagination
-	query = query.Order(params.SortBy + " " + params.Sort)
+	sortBy := params.SortBy
+	if sortBy == "" {
+		sortBy = "compliance_assessments.created_at"
+	}
+	query = query.Order(sortBy + " " + params.Sort)
 
 	if !params.Export {
 		offset := (params.Page - 1) * params.PageSize
@@ -238,17 +266,18 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByID(id uint, tx ...ut
 	var m models.ComplianceAssessment
 
 	if err := db.
-		Preload("ComplianceRegister").
-		Preload("ComplianceRegister.ComplianceAssessmentFramework").
-		Preload("ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType").
-		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values").
-		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values.ComplianceStatus").
-		Preload("ComplianceRegister.ResponsibleUser").
-		Preload("ComplianceRegister.AverageResidualRiskRating").
-		Preload("ComplianceRegister.IssuingAuthorities").
-		Preload("ComplianceRegister.IssuingAuthorities.IssuingAuthority").
-		Preload("ComplianceRegister.IssuingAuthorities.Entity").
-		Preload("ComplianceRegister.IssuingAuthorities.Document").
+		Preload("ComplianceAssessmentCompliances").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ComplianceAssessmentFramework").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ComplianceAssessmentFramework.Values").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ComplianceAssessmentFramework.Values.ComplianceStatus").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ResponsibleUser").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.AverageResidualRiskRating").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.IssuingAuthorities").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.IssuingAuthorities.IssuingAuthority").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.IssuingAuthorities.Entity").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.IssuingAuthorities.Document").
 		Preload("AverageResidualRiskRating").
 		Preload("AssessmentRequirements").
 		Preload("AssessmentRequirements.ComplianceStatus").
@@ -280,6 +309,7 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByID(id uint, tx ...ut
 		Preload("ReviewedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("ResponsibleOrganizationUnit").
 		First(&m, id).Error; err != nil {
 		return nil, err
 	}
@@ -296,12 +326,13 @@ func (repo *ComplianceAssessmentRepository) GetMinimalDetailsByID(id uint, tx ..
 	var complianceAssessment *models.ComplianceAssessment
 
 	result := db.
-		Preload("ComplianceRegister").
-		Preload("ComplianceRegister.ComplianceAssessmentFramework").
-		Preload("ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType").
-		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values").
-		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values.ComplianceStatus").
-		Preload("ComplianceRegister.ResponsibleUser").
+		Preload("ComplianceAssessmentCompliances").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ComplianceAssessmentFramework").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ComplianceAssessmentFramework.Values").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ComplianceAssessmentFramework.Values.ComplianceStatus").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ResponsibleUser").
 		Preload("AssessmentRequirements").
 		Preload("ReviewUser").
 		Preload("ComplianceAssessmentStatus").
@@ -932,23 +963,25 @@ func (repo *ComplianceAssessmentRepository) GetFullDetailsByIDOptimized(id uint,
 	// 1) Load light header only
 	var a *models.ComplianceAssessment
 	if err := db.
-		Preload("ComplianceRegister").
-		Preload("ComplianceRegister.ComplianceAssessmentFramework").
-		Preload("ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType").
-		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values").
-		Preload("ComplianceRegister.ComplianceAssessmentFramework.Values.ComplianceStatus").
-		Preload("ComplianceRegister.ResponsibleUser").
+		Preload("ComplianceAssessmentCompliances").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ComplianceAssessmentFramework").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ComplianceAssessmentFramework.Values").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ComplianceAssessmentFramework.Values.ComplianceStatus").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ResponsibleUser").
 		Preload("AverageResidualRiskRating").
-		Preload("ComplianceRegister.IssuingAuthorities").
-		Preload("ComplianceRegister.IssuingAuthorities.IssuingAuthority").
-		Preload("ComplianceRegister.IssuingAuthorities.Entity").
-		Preload("ComplianceRegister.IssuingAuthorities.Document").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.IssuingAuthorities").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.IssuingAuthorities.IssuingAuthority").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.IssuingAuthorities.Entity").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.IssuingAuthorities.Document").
 		Preload("ReviewUser").
 		Preload("ComplianceAssessmentStatus").
 		Preload("SubmittedByUser").
 		Preload("ReviewedByUser").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("ResponsibleOrganizationUnit").
 		First(&a, id).
 		Error; err != nil {
 		return nil, err
@@ -1764,4 +1797,157 @@ func (repo *ComplianceAssessmentRepository) GetComplianceAssessmentRatings() ([]
 	}
 
 	return ratings, nil
+}
+
+func (repo *ComplianceAssessmentRepository) GetRegisterIDsWithResponsibleUnitID(responsibleUnitID uint) ([]uint, error) {
+	var registerIDs []uint
+
+	result := repo.db.Table("compliance_requirement_responsible_units").
+		Select("DISTINCT compliance_clauses.compliance_register_id").
+		Joins("JOIN compliance_requirements ON compliance_requirements.id = compliance_requirement_responsible_units.compliance_requirement_id").
+		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
+		Where("compliance_requirement_responsible_units.responsible_unit_id = ?", responsibleUnitID).
+		Pluck("compliance_clauses.compliance_register_id", &registerIDs)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return registerIDs, nil
+}
+
+func (repo *ComplianceAssessmentRepository) CreateComplianceAssessmentCompliances(compliances []*models.ComplianceAssessmentCompliance, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.Create(&compliances)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}
+
+func (repo *ComplianceAssessmentRepository) DeleteActionPlanCommentDocumentsByAssessment(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Exec(`
+		DELETE capcd
+		FROM compliance_action_plan_comment_documents capcd
+		JOIN compliance_action_plan_comments capc
+			ON capc.id = capcd.compliance_action_plan_comment_id
+		JOIN compliance_action_plans cap
+			ON cap.id = capc.compliance_action_plan_id
+		JOIN compliance_assessment_requirement_responsible_units ru
+			ON ru.id = cap.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements r
+			ON r.id = ru.compliance_assessment_requirement_id
+		WHERE r.compliance_assessment_id = ?
+	`, id).Error
+}
+
+func (repo *ComplianceAssessmentRepository) DeleteActionPlanCommentsByAssessment(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Exec(`
+		DELETE capc
+		FROM compliance_action_plan_comments capc
+		JOIN compliance_action_plans cap
+			ON cap.id = capc.compliance_action_plan_id
+		JOIN compliance_assessment_requirement_responsible_units ru
+			ON ru.id = cap.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements r
+			ON r.id = ru.compliance_assessment_requirement_id
+		WHERE r.compliance_assessment_id = ?
+	`, id).Error
+}
+
+func (repo *ComplianceAssessmentRepository) DeleteActionPlanStatusUpdateDocumentsByAssessment(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Exec(`
+		DELETE capsud
+		FROM compliance_action_plan_status_update_documents capsud
+		JOIN compliance_action_plan_status_updates capsu
+			ON capsu.id = capsud.compliance_action_plan_status_update_id
+		JOIN compliance_action_plans cap
+			ON cap.id = capsu.compliance_action_plan_id
+		JOIN compliance_assessment_requirement_responsible_units ru
+			ON ru.id = cap.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements r
+			ON r.id = ru.compliance_assessment_requirement_id
+		WHERE r.compliance_assessment_id = ?
+	`, id).Error
+}
+
+func (repo *ComplianceAssessmentRepository) DeleteActionPlanStatusUpdatesByAssessment(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Exec(`
+		DELETE capsu
+		FROM compliance_action_plan_status_updates capsu
+		JOIN compliance_action_plans cap
+			ON cap.id = capsu.compliance_action_plan_id
+		JOIN compliance_assessment_requirement_responsible_units ru
+			ON ru.id = cap.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements r
+			ON r.id = ru.compliance_assessment_requirement_id
+		WHERE r.compliance_assessment_id = ?
+	`, id).Error
+}
+
+func (repo *ComplianceAssessmentRepository) DeleteActionPlansByAssessment(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Exec(`
+		DELETE cap
+		FROM compliance_action_plans cap
+		JOIN compliance_assessment_requirement_responsible_units ru
+			ON ru.id = cap.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements r
+			ON r.id = ru.compliance_assessment_requirement_id
+		WHERE r.compliance_assessment_id = ?
+	`, id).Error
+}
+
+func (repo *ComplianceAssessmentRepository) GetComplianceAssessmentCompliaceByID(id uint) (*models.ComplianceAssessmentCompliance, error) {
+	var compliance models.ComplianceAssessmentCompliance
+	err := repo.db.Where("id = ?", id).First(&compliance).Error
+	if err != nil {
+		return nil, err
+	}
+	return &compliance, nil
+}
+
+func (repo *ComplianceAssessmentRepository) UpdateComplianceAssessmentCompliance(compliance *models.ComplianceAssessmentCompliance, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Save(compliance).Error
+}
+
+func (repo *ComplianceAssessmentRepository) DeleteComplianceAssessmentCompliance(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("id = ?", id).Delete(&models.ComplianceAssessmentCompliance{}).Error
 }

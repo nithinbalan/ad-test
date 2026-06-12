@@ -9,12 +9,13 @@ import (
 
 type ComplianceAssessmentListDTO struct {
 	ID                                  uint       `json:"id"`
-	ComplianceRegisterID                uint       `json:"compliance_register_id"`
 	ComplianceRegisterTitleEn           string     `json:"compliance_register_title_en"`
 	ComplianceRegisterTitleAr           string     `json:"compliance_register_title_ar"`
-	IsRegulationNotificationAssessment  bool       `json:"is_regulation_notification_assessment"`
-	IsRiskBasedAssessment               bool       `json:"is_risk_based_assessment"`
+	ResponsibleDepartmentID             *uint      `json:"responsible_department_id"`
+	ResponsibleDepartmentTitleEn        *string    `json:"responsible_department_title_en"`
+	ResponsibleDepartmentTitleAr        *string    `json:"responsible_department_title_ar"`
 	Description                         *string    `json:"description"`
+	Type                                string     `json:"type"`
 	ReviewUserID                        uint       `json:"review_user_id"`
 	ReviewUserFirstNameEn               string     `json:"review_user_first_name_en"`
 	ReviewUserFirstNameAr               string     `json:"review_user_first_name_ar"`
@@ -74,42 +75,49 @@ type ComplianceAssessmentListResponseDTO struct {
 }
 
 type ComplianceAssessmentFormDTO struct {
-	ComplianceRegisterID uint `json:"compliance_register_id" binding:"required"`
+	ComplianceRegisterID *uint `json:"compliance_register_id"`
 	// OrganizationUnitIDs  []*uint `json:"organization_unit_ids" binding:"required"`
-	ReviewUserID uint    `json:"review_user_id" binding:"required"`
-	Description  *string `json:"description"`
+	Type              string  `json:"type" binding:"required"`
+	ResponsibleUnitID *uint   `json:"responsible_unit_id"`
+	ReviewUserID      uint    `json:"review_user_id" binding:"required"`
+	Description       *string `json:"description"`
 }
 
 type ComplianceAssessmentUpdateFormDTO struct {
-	ComplianceRegisterID uint    `json:"compliance_register_id" binding:"required"`
+	Type                 string  `json:"type" binding:"required"`
+	ComplianceRegisterID *uint   `json:"compliance_register_id"`
 	ReviewUserID         uint    `json:"review_user_id" binding:"required"`
+	ResponsibleUnitID    *uint   `json:"responsible_unit_id"`
 	Description          *string `json:"description"`
 }
 
 type ComplianceAssessmentDetailDTO struct {
-	ID                   int                          `json:"id"`
-	ComplianceRegisterID *uint                        `json:"compliance_register_id"`
-	ComplianceRegister   *ComplianceRegisterDetailDTO `json:"compliance_register"`
+	ID   int    `json:"id"`
+	Type string `json:"type"`
+	// ComplianceRegisterID *uint                        `json:"compliance_register_id"`
+	// ComplianceRegister   *ComplianceRegisterDetailDTO `json:"compliance_register"`
 	// OrganizationUnitID uint                         `json:"organization_unit_id"`
 	ReviewUserID      uint `json:"review_user_id"`
 	SubmittedByUserID uint `json:"submitted_by_user_id"`
 	// OrganizationUnit           settingsDTOs.OrganizationUnitDTO      `json:"organization_unit"`
-	ReviewUser                 *organizationDTOs.UserMinimalDTO      `json:"review_user"`
-	Description                *string                               `json:"description"`
-	ComplianceAssessmentStatus ComplianceAssessmentStatusDTO         `json:"compliance_assessment_status"`
-	AverageResidualRiskScore   *float64                              `json:"average_residual_risk_score"`
-	AverageResidualRiskRating  *ComplianceAssessmentRatingDTO        `json:"average_residual_risk_rating"`
-	SubmittedByUser            *organizationDTOs.UserMinimalDTO      `json:"submitted_by_user"`
-	SubmittedAt                *time.Time                            `json:"submitted_at"`
-	ReviewedByUser             *organizationDTOs.UserMinimalDTO      `json:"reviewed_by_user"`
-	CreatedAt                  time.Time                             `json:"created_at"`
-	UpdatedAt                  *time.Time                            `json:"updated_at"`
-	CreatedByUser              organizationDTOs.UserMinimalDTO       `json:"created_by_user"`
-	UpdatedByUser              *organizationDTOs.UserMinimalDTO      `json:"updated_by_user"`
-	AssessmentRequirements     []*ComplianceAssessmentRequirementDTO `json:"compliance_requirements"`
-	IsCompleted                bool                                  `json:"is_completed"`
-	IsApproved                 bool                                  `json:"is_approved"`
-	AssessmentControls         []*ComplianceAssessmentControlDTO     `json:"compliance_controls"` // ✅ new field
+	ReviewUser                  *organizationDTOs.UserMinimalDTO      `json:"review_user"`
+	Description                 *string                               `json:"description"`
+	ComplianceAssessmentStatus  ComplianceAssessmentStatusDTO         `json:"compliance_assessment_status"`
+	AverageResidualRiskScore    *float64                              `json:"average_residual_risk_score"`
+	AverageResidualRiskRating   *ComplianceAssessmentRatingDTO        `json:"average_residual_risk_rating"`
+	SubmittedByUser             *organizationDTOs.UserMinimalDTO      `json:"submitted_by_user"`
+	SubmittedAt                 *time.Time                            `json:"submitted_at"`
+	ReviewedByUser              *organizationDTOs.UserMinimalDTO      `json:"reviewed_by_user"`
+	CreatedAt                   time.Time                             `json:"created_at"`
+	UpdatedAt                   *time.Time                            `json:"updated_at"`
+	CreatedByUser               organizationDTOs.UserMinimalDTO       `json:"created_by_user"`
+	UpdatedByUser               *organizationDTOs.UserMinimalDTO      `json:"updated_by_user"`
+	AssessmentRequirements      []*ComplianceAssessmentRequirementDTO `json:"compliance_requirements"`
+	IsCompleted                 bool                                  `json:"is_completed"`
+	IsApproved                  bool                                  `json:"is_approved"`
+	AssessmentControls          []*ComplianceAssessmentControlDTO     `json:"compliance_controls"` // ✅ new field
+	Compliances                 []*ComplianceAssessmentComplianceDTO  `json:"compliances"`
+	ResponsibleOrganizationUnit *organizationDTOs.OrganizationUnitDTO `json:"responsible_unit"`
 }
 
 type ComplianceAssessmentRequirementDTO struct {
@@ -130,6 +138,7 @@ type ComplianceAssessmentRequirementDTO struct {
 type ComplianceAssessmentRequirementResponsibleUnitDTO struct {
 	ID                                    uint                                               `json:"id"`
 	ResponsibleUnitID                     uint                                               `json:"responsible_unit_id"`
+	ResponsibleUserID                     *uint                                              `json:"responsible_user_id"`
 	ResponsibleUnit                       settingsDTOs.OrganizationUnitDTO                   `json:"responsible_unit"`
 	ComplianceAssessmentFrameworkValue    *ComplianceAssessmentFrameworkValueDetailDTO       `json:"compliance_assessment_framework_value"`
 	ComplianceAssessmentRequirement       *ComplianceAssessmentRequirementDetailDTO          `json:"compliance_assessment_requirement"`
@@ -184,6 +193,11 @@ type AssessmentCompletionSummaryGroupedByResponsibleUnitDTO struct {
 // 	PendingCount      int            `json:"pending_count"`
 // }
 
+type ComplianceAssessmentComplianceDTO struct {
+	ID                 uint                         `json:"id"`
+	ComplianceRegister *ComplianceRegisterDetailDTO `json:"compliance_register"`
+}
+
 type ComplianceStatusCountDTO struct {
 	ComplianceStatusID uint   `json:"compliance_status_id"`
 	TitleEn            string `json:"title_en"`
@@ -199,7 +213,7 @@ type ComplianceScoreSummaryDTO struct {
 }
 
 type ResponsibleUnitComplianceScoreDTO struct {
-	ComplianceRegisterID              uint    `json:"compliance_register_id"`
+	ComplianceRegisterID              *uint   `json:"compliance_register_id"`
 	ComplianceAssessmentRequirementID uint    `json:"compliance_assessment_requirement_id"`
 	TotalRequirements                 int     `json:"total_requirements"`
 	ScoredRequirements                int     `json:"scored_requirements"`

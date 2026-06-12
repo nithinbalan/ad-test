@@ -315,10 +315,18 @@ func (cacaps *ComplianceAssessmentControlActionPlanService) Create(complianceAss
 		emailTo := []string{responsibleUser.Email}
 		subject := fmt.Sprintf("Compliance Assessment Requirement Action Plan%s: Responsibility Assigned", ComplianceActionPlanFormDTO.Title)
 		appURL := utility.GetAppURL()
+		// Get assessment title
+		var assessmentTitle string
+		if len(complianceAssessment.Compliances) > 0 && complianceAssessment.Compliances[0].ComplianceRegister != nil {
+			assessmentTitle = complianceAssessment.Compliances[0].ComplianceRegister.TitleEn
+		} else if complianceAssessment.ResponsibleOrganizationUnit != nil {
+			assessmentTitle = complianceAssessment.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+		}
+
 		emailData := map[string]interface{}{
 			"FirstNameEn":           responsibleUser.FirstNameEn,
 			"LastNameEn":            responsibleUser.LastNameEn,
-			"ComplianceAssessment":  complianceAssessment.ComplianceRegister.TitleEn,
+			"ComplianceAssessment":  assessmentTitle,
 			"ActionPlanTitle":       ComplianceActionPlanFormDTO.Title,
 			"ActionPlanDescription": ComplianceActionPlanFormDTO.Description,
 			"AssignedByFirstNameEn": assignedBy.FirstNameEn,
@@ -543,12 +551,21 @@ func (cacaps *ComplianceAssessmentControlActionPlanService) Update(complianceAss
 
 			appURL := utility.GetAppURL()
 
+			// Get assessment title for emails
+			var assessmentTitle string
+			if len(complianceAssessment.Compliances) > 0 && complianceAssessment.Compliances[0].ComplianceRegister != nil {
+				assessmentTitle = complianceAssessment.Compliances[0].ComplianceRegister.TitleEn
+			} else if complianceAssessment.ResponsibleOrganizationUnit != nil {
+				assessmentTitle = complianceAssessment.ResponsibleOrganizationUnit.TitleEn + "'s Assessment"
+			}
+
 			oldResponsibleUserEmailTo := []string{oldResponsibleUser.Email}
 			oldResponsibleUserSubject := fmt.Sprintf("Compliance Assessment Requirement Action Plan%s: Responsibility Removed", existingComplianceAssessmentControlActionPlan.Title)
 			oldResponsibleUserTemplateRelativePath := "compliance/templates/email/compliance_assessment_action_plan_remove_responsible_user_mail.html"
 			oldResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":           oldResponsibleUser.FirstNameEn,
 				"LastNameEn":            oldResponsibleUser.LastNameEn,
+				"ComplianceAssessment":  assessmentTitle,
 				"ActionPlanTitle":       existingComplianceAssessmentControlActionPlan.Title,
 				"ActionPlanDescription": existingComplianceAssessmentControlActionPlan.Description,
 				"RedirectURL":           fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, complianceAssessmentID),
@@ -567,7 +584,7 @@ func (cacaps *ComplianceAssessmentControlActionPlanService) Update(complianceAss
 			newResponsibleUserEmailData := map[string]interface{}{
 				"FirstNameEn":           newResponsibleUser.FirstNameEn,
 				"LastNameEn":            newResponsibleUser.LastNameEn,
-				"ComplianceAssessment":  complianceAssessment.ComplianceRegister.TitleEn,
+				"ComplianceAssessment":  assessmentTitle,
 				"ActionPlanTitle":       existingComplianceAssessmentControlActionPlan.Title,
 				"ActionPlanDescription": existingComplianceAssessmentControlActionPlan.Description,
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
