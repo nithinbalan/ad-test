@@ -146,7 +146,22 @@ func (repo *ComplianceRequirementRepository) GetAll(complianceID uint, params *c
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			switch columnName {
+			case "responsible_unit_id":
+				query = query.Where(`EXISTS (
+					SELECT 1 FROM compliance_requirement_responsible_units crru
+					WHERE crru.compliance_requirement_id = compliance_requirements.id
+					  AND crru.responsible_unit_id IN (?)
+				)`, values)
+			case "responsible_user_id":
+				query = query.Where(`EXISTS (
+					SELECT 1 FROM compliance_requirement_responsible_units crru
+					WHERE crru.compliance_requirement_id = compliance_requirements.id
+					  AND crru.responsible_user_id IN (?)
+				)`, values)
+			default:
+				query = query.Where("compliance_requirements."+columnName+" IN (?)", values)
+			}
 		}
 	}
 

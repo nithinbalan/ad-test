@@ -583,6 +583,50 @@ func (crc *ComplianceReportController) GetComplianceActionPlanExport(c *gin.Cont
 	crc.GetAllComplianceActionPlans(c)
 }
 
+func (crc *ComplianceReportController) GetComplianceRequirementByResponsibleUnit(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	results, err := crc.service.GetComplianceRequirementByResponsibleUnit(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, results)
+}
+
+func (crc *ComplianceReportController) GetComplianceRequirementByResponsibleUser(c *gin.Context) {
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
+
+	queryParams := reportDTOs.ReportListQueryParamsDTO{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+	}
+	results, err := crc.service.GetComplianceRequirementByResponsibleUser(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(crc.db, c, e.Error())
+			return
+		}
+	}
+	c.JSON(http.StatusOK, results)
+}
+
 func (crc *ComplianceReportController) GetComplianceActionPlanByStatus(c *gin.Context) {
 	dateFrom := c.Query("date_from")
 	dateTo := c.Query("date_to")
