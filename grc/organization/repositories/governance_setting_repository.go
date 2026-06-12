@@ -26,6 +26,8 @@ func (repo *GovernanceSettingsRepository) Get() (*models.GovernanceSetting, erro
 
 	result := repo.db.
 		Preload("ApproveDepartment").
+		Preload("ApproveDepartment.OrganizationUnitHead").
+		Preload("ApproveDepartment.ParentUnit").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&governanceSetting)

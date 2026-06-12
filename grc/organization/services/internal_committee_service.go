@@ -569,7 +569,7 @@ func (ics *InternalCommitteeService) CompleteCommittee(committeeID uint, current
 		return err
 	}
 	organization, err := ics.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(
-		governance.ApproveDepartment.ID,
+		governance.ApproveDepartmentID,
 	)
 	if err != nil {
 		return err
