@@ -2122,12 +2122,24 @@ func (cras *ComplianceAssessmentService) ApproveComplianceAssessment(assessmentI
 			return err
 		}
 
-		// STEP 3: Finally cascade to compliance register - use the same assessment average
+		// STEP 3: Cascade to all linked compliance registers
+		// Framework type: uses direct ComplianceRegisterID FK
+		// Department type: ComplianceRegisterID is nil, so iterate ComplianceAssessmentCompliances
 		if assessmentDetails.ComplianceRegisterID != nil {
 			registerID := *assessmentDetails.ComplianceRegisterID
 			if err := cras.repo.UpdateRegisterAverageResidualScoreAndRating(registerID, assessmentAverageScore, assessmentRatingID, tx); err != nil {
 				tx.Rollback()
 				return err
+			}
+		} else {
+			for _, compliance := range assessmentDetails.ComplianceAssessmentCompliances {
+				if compliance == nil {
+					continue
+				}
+				if err := cras.repo.UpdateRegisterAverageResidualScoreAndRating(compliance.ComplianceRegisterID, assessmentAverageScore, assessmentRatingID, tx); err != nil {
+					tx.Rollback()
+					return err
+				}
 			}
 		}
 	}

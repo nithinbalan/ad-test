@@ -1521,6 +1521,7 @@ func (cars *ComplianceAssessmentRequirementService) CalculateComplianceRequireme
 	if assessment == nil || len(assessment.Compliances) == 0 || assessment.Compliances[0].ComplianceRegister == nil {
 		return fmt.Errorf("assessment/register not found")
 	}
+	// Use first register for framework/scoring config (all linked registers share the same framework)
 	register := assessment.Compliances[0].ComplianceRegister
 
 	// ---------- Framework setup ----------
@@ -1949,8 +1950,14 @@ func (cars *ComplianceAssessmentRequirementService) CalculateComplianceRequireme
 			}
 		}
 	}
-	if err := cars.repo.UpdateComplianceStatus(uint(register.ID), overallStatusID, overallScore, tx...); err != nil {
-		return err
+	// Update compliance status for all linked registers (framework: one, department: many)
+	for _, c := range assessment.Compliances {
+		if c == nil || c.ComplianceRegister == nil {
+			continue
+		}
+		if err := cars.repo.UpdateComplianceStatus(uint(c.ComplianceRegister.ID), overallStatusID, overallScore, tx...); err != nil {
+			return err
+		}
 	}
 
 	return nil

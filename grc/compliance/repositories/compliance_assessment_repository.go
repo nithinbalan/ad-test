@@ -332,7 +332,7 @@ func (repo *ComplianceAssessmentRepository) GetMinimalDetailsByID(id uint, tx ..
 		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType").
 		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ComplianceAssessmentFramework.Values").
 		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ComplianceAssessmentFramework.Values.ComplianceStatus").
-		Preload("ComplianceRegister.ResponsibleUser").
+		Preload("ComplianceAssessmentCompliances.ComplianceRegister.ResponsibleUser").
 		Preload("AssessmentRequirements").
 		Preload("ReviewUser").
 		Preload("ComplianceAssessmentStatus").
