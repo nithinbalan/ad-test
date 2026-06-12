@@ -1,11 +1,14 @@
 package dtos
 
-import "time"
+import (
+	settingsDTOs "jethur/grc/settings/dtos"
+	"time"
+)
 
 type GovernanceSettingDTO struct {
-	ID                  uint                `json:"id"`
-	ApproveDepartmentID uint                `json:"approve_department_id"`
-	ApproveDepartment   OrganizationUnitDTO `json:"approve_department"`
+	ID                  uint                              `json:"id"`
+	ApproveDepartmentID uint                              `json:"approve_department_id"`
+	ApproveDepartment   *settingsDTOs.OrganizationUnitDTO `json:"approve_department"`
 
 	CreatedByID   uint           `json:"created_by_id"`
 	CreatedByUser UserMinimalDTO `json:"created_by"`
