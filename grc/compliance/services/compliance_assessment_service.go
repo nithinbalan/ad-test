@@ -358,11 +358,13 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 						}
 						// Step 1: Create ComplianceAssessmentRequirementResponsibleUnit one-by-one
 						unit := &models.ComplianceAssessmentRequirementResponsibleUnit{
-							ComplianceAssessmentRequirementID: requirementId,
-							ResponsibleUnitID:                 uint(ru.ResponsibleUnit.ID),
-							ResponsibleUserID:                 &responsibleUser,
-							Deadline:                          deadline,
-							CreatedBYID:                       currentUserID,
+							ComplianceAssessmentRequirementID:  requirementId,
+							ResponsibleUnitID:                  uint(ru.ResponsibleUnit.ID),
+							ResponsibleUserID:                  &responsibleUser,
+							Deadline:                           deadline,
+							IsRiskBasedAssessment:              ru.IsRiskBasedAssessment,
+							IsRegulationNotificationAssessment: ru.IsRegulationNotificationAssessment,
+							CreatedBYID:                        currentUserID,
 						}
 						if err := cras.repo.CreateComplianceAssessmentRequirementResponsibleUnit(unit, tx); err != nil {
 							tx.Rollback()
@@ -492,11 +494,13 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 						}
 
 						unit := &models.ComplianceAssessmentRequirementResponsibleUnit{
-							ComplianceAssessmentRequirementID: requirementId,
-							ResponsibleUnitID:                 uint(matchedRU.ResponsibleUnit.ID),
-							Deadline:                          deadline,
-							ResponsibleUserID:                 responsibleUser,
-							CreatedBYID:                       currentUserID,
+							ComplianceAssessmentRequirementID:  requirementId,
+							ResponsibleUnitID:                  uint(matchedRU.ResponsibleUnit.ID),
+							Deadline:                           deadline,
+							ResponsibleUserID:                  responsibleUser,
+							IsRiskBasedAssessment:              matchedRU.IsRiskBasedAssessment,
+							IsRegulationNotificationAssessment: matchedRU.IsRegulationNotificationAssessment,
+							CreatedBYID:                        currentUserID,
 						}
 						if err := cras.repo.CreateComplianceAssessmentRequirementResponsibleUnit(unit, tx); err != nil {
 							tx.Rollback()
@@ -911,11 +915,13 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 							ruid := ru.ResponsibleUser.ID
 							responsibleUser := uint(ruid)
 							unit := &models.ComplianceAssessmentRequirementResponsibleUnit{
-								ComplianceAssessmentRequirementID: requirementId,
-								ResponsibleUnitID:                 uint(ru.ResponsibleUnit.ID),
-								ResponsibleUserID:                 &responsibleUser,
-								Deadline:                          deadline,
-								CreatedBYID:                       currentUserID,
+								ComplianceAssessmentRequirementID:  requirementId,
+								ResponsibleUnitID:                  uint(ru.ResponsibleUnit.ID),
+								ResponsibleUserID:                  &responsibleUser,
+								Deadline:                           deadline,
+								IsRiskBasedAssessment:              ru.IsRiskBasedAssessment,
+								IsRegulationNotificationAssessment: ru.IsRegulationNotificationAssessment,
+								CreatedBYID:                        currentUserID,
 							}
 							if err := cras.repo.CreateComplianceAssessmentRequirementResponsibleUnit(unit, tx); err != nil {
 								tx.Rollback()
@@ -952,20 +958,20 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 					}
 				}
 
-				if compliance.IsControlAssessment {
-					for _, control := range clauseDetails.ComplianceControls {
-						assessmentControl := &models.ComplianceAssessmentControl{
-							ComplianceAssessmentID: id,
-							ComplianceControlID:    control.ID,
-							IsCompleted:            false,
-							CreatedBYID:            currentUserID,
-						}
-						if err := cras.repo.CreateComplianceAssessmentControl(assessmentControl, tx); err != nil {
-							tx.Rollback()
-							return err
-						}
-					}
-				}
+				// if compliance.IsControlAssessment {
+				// 	for _, control := range clauseDetails.ComplianceControls {
+				// 		assessmentControl := &models.ComplianceAssessmentControl{
+				// 			ComplianceAssessmentID: id,
+				// 			ComplianceControlID:    control.ID,
+				// 			IsCompleted:            false,
+				// 			CreatedBYID:            currentUserID,
+				// 		}
+				// 		if err := cras.repo.CreateComplianceAssessmentControl(assessmentControl, tx); err != nil {
+				// 			tx.Rollback()
+				// 			return err
+				// 		}
+				// 	}
+				// }
 			}
 
 			existingAssessmentCompliance := existingComplianceAssessment.ComplianceAssessmentCompliances[0]
@@ -1147,11 +1153,13 @@ func (cras *ComplianceAssessmentService) Update(id uint, currentUserID uint, com
 								responsibleUser = &u
 							}
 							unit := &models.ComplianceAssessmentRequirementResponsibleUnit{
-								ComplianceAssessmentRequirementID: requirementId,
-								ResponsibleUnitID:                 uint(matchedRU.ResponsibleUnit.ID),
-								ResponsibleUserID:                 responsibleUser,
-								Deadline:                          deadline,
-								CreatedBYID:                       currentUserID,
+								ComplianceAssessmentRequirementID:  requirementId,
+								ResponsibleUnitID:                  uint(matchedRU.ResponsibleUnit.ID),
+								ResponsibleUserID:                  responsibleUser,
+								Deadline:                           deadline,
+								IsRiskBasedAssessment:              matchedRU.IsRiskBasedAssessment,
+								IsRegulationNotificationAssessment: matchedRU.IsRegulationNotificationAssessment,
+								CreatedBYID:                        currentUserID,
 							}
 							if err := cras.repo.CreateComplianceAssessmentRequirementResponsibleUnit(unit, tx); err != nil {
 								tx.Rollback()
@@ -1785,12 +1793,12 @@ func (cras *ComplianceAssessmentService) AssessmentCompletionRollup(assessmentID
 	if err != nil {
 		return nil, err
 	}
-	if assessment.ComplianceRegister == nil {
+	if len(assessment.ComplianceAssessmentCompliances) == 0 || assessment.ComplianceAssessmentCompliances[0].ComplianceRegister == nil {
 		return nil, fmt.Errorf("assessment %d has no compliance register loaded", assessmentID)
 	}
 
 	switch {
-	case assessment.ComplianceRegister.IsControlAssessment:
+	case assessment.ComplianceAssessmentCompliances[0].ComplianceRegister.IsControlAssessment:
 		return cras.repo.AssessmentControlCompletionRollup(assessmentID)
 	case assessment.ComplianceRegister.IsRequirementAssessment:
 		return cras.repo.AssessmentRequirementCompletionRollup(assessmentID)
@@ -1810,12 +1818,12 @@ func (cras *ComplianceAssessmentService) GetComplianceStatusSummary(assessmentID
 	if err != nil {
 		return nil, err
 	}
-	if assessment.ComplianceRegister == nil {
+	if len(assessment.ComplianceAssessmentCompliances) == 0 || assessment.ComplianceAssessmentCompliances[0].ComplianceRegister == nil {
 		return nil, fmt.Errorf("assessment %d has no compliance register loaded", assessmentID)
 	}
 
 	switch {
-	case assessment.ComplianceRegister.IsControlAssessment:
+	case assessment.ComplianceAssessmentCompliances[0].ComplianceRegister.IsControlAssessment:
 		return cras.repo.GetComplianceStatusSummaryByControl(assessmentID)
 	case assessment.ComplianceRegister.IsRequirementAssessment:
 		return cras.repo.GetComplianceStatusSummaryByRequirement(assessmentID)
@@ -1829,7 +1837,7 @@ func (cras *ComplianceAssessmentService) GetComplianceScoreSummary(assessmentID 
 	if err != nil {
 		return nil, err
 	}
-	if assessment.ComplianceRegister == nil {
+	if len(assessment.ComplianceAssessmentCompliances) == 0 || assessment.ComplianceAssessmentCompliances[0].ComplianceRegister == nil {
 		return nil, fmt.Errorf("assessment %d has no compliance register loaded", assessmentID)
 	}
 	var ruIDs []uint
@@ -1843,9 +1851,9 @@ func (cras *ComplianceAssessmentService) GetComplianceScoreSummary(assessmentID 
 	var avg float64
 
 	switch {
-	case assessment.ComplianceRegister.IsControlAssessment:
+	case assessment.ComplianceAssessmentCompliances[0].ComplianceRegister.IsControlAssessment:
 		total, avg, err = cras.computeControlSnapshot(assessmentID)
-	case assessment.ComplianceRegister.IsRequirementAssessment:
+	case assessment.ComplianceAssessmentCompliances[0].ComplianceRegister.IsRequirementAssessment:
 		total, avg, err = cras.computeRequirementSnapshot(assessmentID, ruIDs...)
 	default:
 		return &complianceDTOs.ComplianceScoreSummaryDTO{TotalRequirements: 0, AverageScore: 0}, nil

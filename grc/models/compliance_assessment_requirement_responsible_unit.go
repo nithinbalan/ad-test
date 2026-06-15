@@ -23,6 +23,8 @@ type ComplianceAssessmentRequirementResponsibleUnit struct {
 	ResidualRiskRatingID                    *uint      `json:"residual_risk_rating_id" gorm:"default:null"`
 	ResidualRiskScore                       *float64   `json:"residual_risk_score" gorm:"type:decimal(10,2)"`
 	ComplianceStatusID                      *uint      `json:"compliance_status_id" gorm:"default:null"`
+	IsRiskBasedAssessment                   *bool      `json:"is_risk_based_assessment" gorm:"default:null"`
+	IsRegulationNotificationAssessment      *bool      `json:"is_regulation_notification_assessment" gorm:"default:null"`
 	IsAcknowledged                          bool       `json:"is_acknowledged" gorm:"not null;default:false"`
 	AcknowledgeUserID                       *uint      `json:"acknowledge_user_id" gorm:"default:null"`
 	AcknowledgeComment                      *string    `json:"acknowledge_comment" gorm:"type:nvarchar(max);default:null"`
