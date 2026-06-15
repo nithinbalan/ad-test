@@ -38,8 +38,13 @@ func (repo *ModuleRepository) GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]
 
 	query := repo.db.Preload("SubModules", func(db *gorm.DB) *gorm.DB {
 		if params.IsActiveSubModule {
-			return db.Where("[modules].is_enable = ?", true).Order("[modules].[order] ASC")
+			db = db.Where("[modules].is_enable = ?", true)
 		}
+
+		if params.IsPassive != nil {
+			db = db.Where("[modules].is_passive = ?", *params.IsPassive)
+		}
+
 		return db.Order("[modules].[order] ASC")
 	}).
 		Where("module_id IS NULL").
@@ -51,8 +56,13 @@ func (repo *ModuleRepository) GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]
 			modules.icon,
 			modules.route,
 			modules.is_enable,
+			modules.is_passive,
 			[modules].[order]  -- Escape the 'order' column
 		`)
+
+	if params.IsPassive != nil {
+		query = query.Where("modules.is_passive = ?", *params.IsPassive)
+	}
 
 	// Apply keyword search
 	if params.Keyword != "" {
@@ -102,6 +112,7 @@ func (repo *ModuleRepository) GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]
 					Icon:       submodule.Icon,
 					Route:      submodule.Route,
 					IsEnable:   submodule.IsEnable,
+					IsPassive:  submodule.IsPassive,
 				}
 				submoduleDTOs = append(submoduleDTOs, submoduleDTO)
 			}
@@ -121,6 +132,7 @@ func (repo *ModuleRepository) GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]
 			Route:      module.Route,
 			IsEnable:   module.IsEnable,
 			SubModules: submoduleDTOs,
+			IsPassive:  module.IsPassive,
 		}
 
 		moduleList = append(moduleList, moduleDTO)
@@ -135,7 +147,7 @@ func (repo *ModuleRepository) GetAll(params *dtos.ModuleListQueryParamsDTO) (*[]
 
 func (repo *ModuleRepository) GetModuleIDByIdentifier(identifier string, tx ...utility.DatabaseTransaction) (uint, error) {
 	var module models.Module
-	
+
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()

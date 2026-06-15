@@ -72,7 +72,7 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 		"user_status_ids",
 		"license_type_ids",
 		"organization_unit_ids", // to get users based on primary organization level
-		"reporting_user_ids", 
+		"reporting_user_ids",
 	}
 
 	validSortFields := map[string]string{
@@ -91,8 +91,6 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
-	
-
 
 	page, err := utility.ParseQueryParamToInt(c, "page", 1)
 	if err != nil {
@@ -185,6 +183,66 @@ func (uc *UserController) GetUserDetails(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, user)
+}
+
+func (uc *UserController) GetAllUsersWithPrimaryUnit(c *gin.Context) {
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "first_name_en")
+	keyword := c.Query("keyword")
+
+	validSortFields := map[string]string{
+		"first_name_en":  "users.first_name_en",
+		"first_name_ar":  "users.first_name_ar",
+		"email":          "users.email",
+		"mobile_number":  "users.mobile_number",
+		"designation_en": "designations.title_en",
+		"designation_ar": "designations.title_ar",
+		"user_status_en": "user_statuses.title_en",
+		"user_status_ar": "user_statuses.title_ar",
+		"name_en":        "CONCAT(users.first_name_en, ' ', users.last_name_en)",
+		"name_ar":        "CONCAT(users.first_name_ar, ' ', users.last_name_ar)",
+	}
+
+	page, err := utility.ParseQueryParamToInt(c, "page", 1)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, "Invalid page parameter")
+		return
+	}
+
+	pageSize, err := utility.ParseQueryParamToInt(c, "page_size", 10)
+	if err != nil {
+		utility.SendInternalErrResp(uc.db, c, "Invalid page_size parameter")
+		return
+	}
+
+	dbField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	queryParams := organizationDTOs.PrimaryUnitUserListQueryParamsDTO{
+		Sort:     sort,
+		SortBy:   dbField,
+		Keyword:  keyword,
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	users, err := uc.service.GetAllUsersWithPrimaryUnit(&queryParams)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		default:
+			utility.SendInternalErrResp(uc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, users)
 }
 
 func (uc *UserController) CreateUser(c *gin.Context) {

@@ -10,6 +10,7 @@ type Module struct {
 	Icon       string `json:"icon" gorm:"size:45" binding:"required"`
 	Route      string `json:"route" gorm:"size:255" binding:"required"`
 	IsEnable   bool   `json:"is_enable"`
+	IsPassive  bool   `json:"is_passive"`
 
 	// Self-referencing relationship
 	Parent     *Module   `json:"parent,omitempty" gorm:"foreignKey:ParentID"`

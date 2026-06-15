@@ -400,3 +400,16 @@ func GetUintValue(value interface{}) uint {
 		return 0
 	}
 }
+
+// IsPassiveAccess reports whether the current request was authorized via the
+// passive track (i.e., a passive role's passive_enabled granted access).
+// When true, list/detail/write handlers must scope data to records the
+// current user is responsible for.
+func IsPassiveAccess(c *gin.Context) bool {
+	v, ok := c.Get("is_passive_access")
+	if !ok {
+		return false
+	}
+	b, _ := v.(bool)
+	return b
+}

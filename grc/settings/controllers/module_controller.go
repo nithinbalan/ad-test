@@ -40,12 +40,24 @@ func (mc *ModuleController) GetAllModules(c *gin.Context) {
 		}
 	}
 
+	isPassiveStr := c.Query("is_passive")
+	var isPassive *bool
+	if isPassiveStr != "" {
+		parsed, err := strconv.ParseBool(isPassiveStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, err)
+			return
+		}
+		isPassive = &parsed
+	}
+
 	queryParams := dtos.ModuleListQueryParamsDTO{
 		Sort:              sort,
 		SortBy:            sortBy,
 		Keyword:           keyword,
 		QuickFilter:       quickFilter,
 		IsActiveSubModule: isActiveSubModule,
+		IsPassive:         isPassive,
 	}
 	modules, err := mc.service.GetAll(&queryParams)
 

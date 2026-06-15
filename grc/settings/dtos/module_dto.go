@@ -5,7 +5,8 @@ type ModuleListQueryParamsDTO struct {
 	Sort              string `json:"sort"`
 	Keyword           string `json:"keyword,omitempty"`
 	QuickFilter       []string
-	IsActiveSubModule bool `json:"is_active_sub_module,omitempty"`
+	IsActiveSubModule bool  `json:"is_active_sub_module,omitempty"`
+	IsPassive         *bool `json:"is_passive,omitempty"`
 }
 
 type ModuleListDTO struct {
@@ -18,6 +19,7 @@ type ModuleListDTO struct {
 	Route      string             `json:"route"`
 	IsEnable   bool               `json:"is_enable"`
 	SubModules []SubModuleListDTO `json:"sub_modules"`
+	IsPassive  bool               `json:"is_passive"`
 }
 
 type ModuleDetailDTO struct {
@@ -43,6 +45,7 @@ type SubModuleListDTO struct {
 	Route       string          `json:"route"`
 	IsEnable    bool            `json:"is_enable"`
 	Permissions map[string]bool `json:"permissions"`
+	IsPassive   bool            `json:"is_passive"`
 }
 
 type ModulePermissionListDTO struct {

@@ -320,7 +320,7 @@ func (rs *RoleService) UpdateRolePermissions(roleID uint, currentUserID uint, ro
 		return err
 	}
 
-	permissionType, err := rs.rolePermissionTypeSvc.GetByType("view")
+	permissionType, err := rs.rolePermissionTypeSvc.GetByType("passive_enabled")
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -342,7 +342,7 @@ func (rs *RoleService) UpdateRolePermissions(roleID uint, currentUserID uint, ro
 		if *role.LicenseTypeID == passiveLicenseType.ID {
 			if rolePermissionDTO.RolePermissionTypeID != permissionType.ID {
 				tx.Rollback()
-				return utility.NewForbiddenError("Only view permissions are allowed for passive role")
+				return utility.NewForbiddenError("Only passive enabled permissions are allowed for passive role")
 			}
 		}
 		rolePermission := &models.RolePermission{
@@ -401,6 +401,18 @@ func (rs *RoleService) validateRolePermissionFormDTO(rolePermissionFormDTO *dtos
 }
 
 func (rs *RoleService) GetAllWithPermissions(params *dtos.ModuleListQueryParamsDTO, roleID uint) (*[]dtos.ModuleListDTO, error) {
+	role, err := rs.GetByID(roleID)
+	if err != nil {
+		return nil, err
+	}
+
+	passiveLicenseType, err := rs.licenseTypeSvc.GetByType("passive")
+	if err != nil {
+		return nil, err
+	}
+
+	isPassiveRole := role.LicenseTypeID != nil && *role.LicenseTypeID == passiveLicenseType.ID
+
 	modules, err := rs.moduleSvc.GetAll(params)
 	if err != nil {
 		return nil, err
@@ -411,12 +423,15 @@ func (rs *RoleService) GetAllWithPermissions(params *dtos.ModuleListQueryParamsD
 		return nil, err
 	}
 
-	var moduleList []dtos.ModuleListDTO
+	moduleList := make([]dtos.ModuleListDTO, 0)
 
 	for _, module := range *modules {
 		var submoduleDTOs []dtos.SubModuleListDTO
 		if module.SubModules != nil {
 			for _, submodule := range module.SubModules {
+				if isPassiveRole && !submodule.IsPassive {
+					continue
+				}
 				subPermissions := initializePermissionsMap(permissionTypes)
 
 				grantedSubPermissions, err := rs.repo.GetPermissionsForModule(roleID, submodule.ID)
@@ -436,6 +451,7 @@ func (rs *RoleService) GetAllWithPermissions(params *dtos.ModuleListQueryParamsD
 					Order:       submodule.Order,
 					IsEnable:    submodule.IsEnable,
 					Permissions: subPermissions,
+					IsPassive:   submodule.IsPassive,
 				}
 				submoduleDTOs = append(submoduleDTOs, submoduleDTO)
 			}
@@ -449,6 +465,7 @@ func (rs *RoleService) GetAllWithPermissions(params *dtos.ModuleListQueryParamsD
 			Order:      module.Order,
 			IsEnable:   module.IsEnable,
 			SubModules: submoduleDTOs,
+			IsPassive:  module.IsPassive,
 		}
 		moduleList = append(moduleList, moduleDTO)
 	}
