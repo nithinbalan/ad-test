@@ -117,6 +117,29 @@ type SLAByComplianceStatusDTO struct {
 	Count                   int64  `json:"count"`
 }
 
+type ComplianceRequirementByResponsibleUnitDTO struct {
+	ResponsibleUnitID        uint   `json:"id"`
+	ResponsibleUnitTitleEn   string `json:"title_en"`
+	ResponsibleUnitTitleAr   string `json:"title_ar"`
+	ResponsibleUnitColorCode string `json:"color_code"`
+	Count                    int64  `json:"count"`
+}
+
+type ComplianceRequirementByResponsibleUserDTO struct {
+	ResponsibleUserID               uint   `json:"id"`
+	ResponsibleUserFirstNameEn      string `json:"first_name_en"`
+	ResponsibleUserFirstNameAr      string `json:"first_name_ar"`
+	ResponsibleUserLastNameEn       string `json:"last_name_en"`
+	ResponsibleUserLastNameAr       string `json:"last_name_ar"`
+	ResponsibleUserTitleEn          string `json:"title_en"`
+	ResponsibleUserTitleAr          string `json:"title_ar"`
+	ResponsibleUserInitial          string `json:"initial"`
+	ResponsibleUserColor            string `json:"color"`
+	ResponsibleUserEmail            string `json:"email"`
+	ResponsibleUserProfileImagePath string `json:"profile_image"`
+	Count                           int64  `json:"count"`
+}
+
 type ReportListQueryParamsDTO struct {
 	DateFrom string `json:"date_from"`
 	DateTo   string `json:"date_to"`

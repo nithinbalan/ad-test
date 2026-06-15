@@ -23,6 +23,9 @@ type ComplianceAssessmentRequirementResponsibleUnit struct {
 	ResidualRiskRatingID                    *uint      `json:"residual_risk_rating_id" gorm:"default:null"`
 	ResidualRiskScore                       *float64   `json:"residual_risk_score" gorm:"type:decimal(10,2)"`
 	ComplianceStatusID                      *uint      `json:"compliance_status_id" gorm:"default:null"`
+	IsAcknowledged                          bool       `json:"is_acknowledged" gorm:"not null;default:false"`
+	AcknowledgeUserID                       *uint      `json:"acknowledge_user_id" gorm:"default:null"`
+	AcknowledgeComment                      *string    `json:"acknowledge_comment" gorm:"type:nvarchar(max);default:null"`
 
 	// Relationships
 	ComplianceAssessmentRequirement       *ComplianceAssessmentRequirement                       `gorm:"foreignKey:ComplianceAssessmentRequirementID;constraint:OnUpdate:RESTRICT,OnDelete:CASCADE;"`
@@ -40,6 +43,7 @@ type ComplianceAssessmentRequirementResponsibleUnit struct {
 	ResidualControls                      []*ComplianceAssessmentResidualControl                 `gorm:"foreignKey:ComplianceAssessmentRequirementResponsibleUnitID"`
 	ComplianceStatus                      *ComplianceStatus                                      `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ResponsibleUser                       *User                                                  `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	AcknowledgeUser                       *User                                                  `gorm:"foreignKey:AcknowledgeUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 func (ComplianceAssessmentRequirementResponsibleUnit) TableName() string {

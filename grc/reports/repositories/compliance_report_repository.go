@@ -17,6 +17,9 @@ type ComplianceReportRepositoryInterface interface {
 	GetComplianceRequirementBySeverity(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementBySeverityLevelDTO, error)
 	GetComplianceRequirementByCategory(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByCategoryDTO, error)
 
+	GetComplianceRequirementByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByResponsibleUnitDTO, error)
+	GetComplianceRequirementByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByResponsibleUserDTO, error)
+
 	GetComplianceActionPlanByStatus(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceActionPlanByStatusDTO, error)
 	GetComplianceActionPlanByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceActionPlanByResponsibleUserDTO, error)
 
@@ -209,6 +212,59 @@ func (repo *ComplianceReportRepository) GetComplianceRequirementByCategory(param
         `).
 		Joins("LEFT JOIN compliance_requirements ON compliance_requirements.compliance_requirement_category_id = compliance_requirement_categories.id").
 		Group("compliance_requirement_categories.id, compliance_requirement_categories.title_en, compliance_requirement_categories.title_ar")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("compliance_requirements.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (repo *ComplianceReportRepository) GetComplianceRequirementByResponsibleUnit(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByResponsibleUnitDTO, error) {
+	results := []*reportDTOs.ComplianceRequirementByResponsibleUnitDTO{}
+
+	query := repo.db.Table("compliance_requirement_responsible_units").
+		Select(`
+			organization_units.id AS responsible_unit_id,
+			organization_units.title_en AS responsible_unit_title_en,
+			organization_units.title_ar AS responsible_unit_title_ar,
+			organization_units.color_code AS responsible_unit_color_code,
+			COUNT(DISTINCT compliance_requirement_responsible_units.compliance_requirement_id) AS count
+		`).
+		Joins("JOIN organization_units ON organization_units.id = compliance_requirement_responsible_units.responsible_unit_id").
+		Joins("JOIN compliance_requirements ON compliance_requirements.id = compliance_requirement_responsible_units.compliance_requirement_id").
+		Group("organization_units.id, organization_units.title_en, organization_units.title_ar, organization_units.color_code")
+
+	if params.DateFrom != "" && params.DateTo != "" {
+		query = query.Where("compliance_requirements.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+	}
+
+	err := query.Scan(&results).Error
+	return results, err
+}
+
+func (repo *ComplianceReportRepository) GetComplianceRequirementByResponsibleUser(params *reportDTOs.ReportListQueryParamsDTO) ([]*reportDTOs.ComplianceRequirementByResponsibleUserDTO, error) {
+	results := []*reportDTOs.ComplianceRequirementByResponsibleUserDTO{}
+
+	query := repo.db.Table("compliance_requirement_responsible_units").
+		Select(`
+			users.id AS responsible_user_id,
+			users.first_name_en AS responsible_user_first_name_en,
+			users.first_name_ar AS responsible_user_first_name_ar,
+			users.last_name_en AS responsible_user_last_name_en,
+			users.last_name_ar AS responsible_user_last_name_ar,
+			CONCAT(users.first_name_en, ' ', users.last_name_en) AS responsible_user_title_en,
+			CONCAT(users.first_name_ar, ' ', users.last_name_ar) AS responsible_user_title_ar,
+			users.initial AS responsible_user_initial,
+			users.color AS responsible_user_color,
+			users.email AS responsible_user_email,
+			users.profile_image_path AS responsible_user_profile_image_path,
+			COUNT(DISTINCT compliance_requirement_responsible_units.compliance_requirement_id) AS count
+		`).
+		Joins("JOIN users ON users.id = compliance_requirement_responsible_units.responsible_user_id").
+		Joins("JOIN compliance_requirements ON compliance_requirements.id = compliance_requirement_responsible_units.compliance_requirement_id").
+		Group("users.id, users.first_name_en, users.first_name_ar, users.last_name_en, users.last_name_ar, users.initial, users.color, users.email, users.profile_image_path")
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("compliance_requirements.created_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")

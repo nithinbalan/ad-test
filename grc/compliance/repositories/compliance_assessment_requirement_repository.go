@@ -16,7 +16,7 @@ import (
 type ComplianceAssessmentRequirementRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 
-	GetAllClauses(assessmentID uint, currentUserID uint) ([]*models.ComplianceClause, error)
+	GetAllClauses(assessmentID uint, currentUserID uint, complianceID uint) ([]*models.ComplianceClause, error)
 	GetClauseRequirementCounts(assessmentID uint) (map[uint]complianceDTOs.ClauseRequirementCountDTO, error)
 	GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentRequirementListResponseDTO, error)
 	GetResponsibleUnitRowsByAssessmentRequirementIDs(assessmentRequirementIDs []uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO, out *[]complianceDTOs.ComplianceAssessmentRequirementResponsibleUnitListRowDTO) error
@@ -52,17 +52,18 @@ func (repo *ComplianceAssessmentRequirementRepository) BeginTransaction() utilit
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *ComplianceAssessmentRequirementRepository) GetAllClauses(assessmentID uint, currentUserID uint) ([]*models.ComplianceClause, error) {
+func (repo *ComplianceAssessmentRequirementRepository) GetAllClauses(assessmentID uint, currentUserID uint, complianceID uint) ([]*models.ComplianceClause, error) {
 	var clauses []*models.ComplianceClause
 
-	// Return all clauses with hierarchical structure for users with full access
+	// Return all clauses with hierarchical structure
 	err := repo.db.
 		Preload("ChildClauses", func(db *gorm.DB) *gorm.DB {
 			return db.Preload("ChildClauses") // Recursive preload
 		}).
 		Joins("JOIN compliance_register ON compliance_register.id = compliance_clauses.compliance_register_id").
-		Joins("JOIN compliance_assessments ON compliance_assessments.compliance_register_id = compliance_register.id").
-		Where("compliance_assessments.id = ?", assessmentID).
+		Joins("JOIN compliance_assessment_compliances ON compliance_assessment_compliances.compliance_register_id = compliance_register.id").
+		Joins("JOIN compliance_assessments ON compliance_assessments.id = compliance_assessment_compliances.compliance_assessment_id").
+		Where("compliance_assessments.id = ? AND compliance_assessment_compliances.id = ?", assessmentID, complianceID).
 		Find(&clauses).Error
 
 	if err != nil {
@@ -270,17 +271,37 @@ func (repo *ComplianceAssessmentRequirementRepository) GetResponsibleUnitRowsByA
 			carru.id,
 			carru.compliance_assessment_requirement_id as assessment_requirement_id,
 			carru.responsible_unit_id,
+			carru.responsible_user_id,
+			carru.is_acknowledged,
+			carru.acknowledge_user_id,
+			carru.acknowledge_comment,
 			crru.is_regulation_notification_assessment,
 			crru.is_risk_based_assessment,
 			ou.title_en,
 			ou.title_ar,
 			ou.status,
 			ou.color_code,
-			ou.organization_unit_id as parent_id
+			ou.organization_unit_id as parent_id,
+			ru.first_name_en as responsible_user_first_name_en,
+			ru.last_name_en as responsible_user_last_name_en,
+			ru.first_name_ar as responsible_user_first_name_ar,
+			ru.last_name_ar as responsible_user_last_name_ar,
+			ru.email as responsible_user_email,
+			ru.initial as responsible_user_initial,
+			ru.color as responsible_user_color,
+			au.first_name_en as acknowledge_user_first_name_en,
+			au.last_name_en as acknowledge_user_last_name_en,
+			au.first_name_ar as acknowledge_user_first_name_ar,
+			au.last_name_ar as acknowledge_user_last_name_ar,
+			au.email as acknowledge_user_email,
+			au.initial as acknowledge_user_initial,
+			au.color as acknowledge_user_color
 		`).
 		Joins("JOIN compliance_assessment_requirements car ON car.id = carru.compliance_assessment_requirement_id").
 		Joins("JOIN compliance_requirement_responsible_units crru ON crru.compliance_requirement_id = car.compliance_requirement_id AND crru.responsible_unit_id = carru.responsible_unit_id").
 		Joins("JOIN organization_units ou ON ou.id = carru.responsible_unit_id").
+		Joins("LEFT JOIN users ru ON ru.id = carru.responsible_user_id").
+		Joins("LEFT JOIN users au ON au.id = carru.acknowledge_user_id").
 		Where("carru.compliance_assessment_requirement_id IN ?", assessmentRequirementIDs)
 
 	if params != nil && params.IsRegulationNotificationAssessment != nil {
@@ -358,7 +379,8 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 		Preload("ResponsibleUnits.ResidualControls.ComplianceAssessmentImpactType").
 		Preload("ResponsibleUnits.ResidualControls.Control").
 		Preload("ResponsibleUnits.ResidualRiskRating").
-		Preload("ResponsibleUnits.ComplianceStatus")
+		Preload("ResponsibleUnits.ComplianceStatus").
+		Preload("ResponsibleUnits.AcknowledgeUser")
 
 	if err := query.First(&car, requirementId).Error; err != nil {
 		return nil, err
