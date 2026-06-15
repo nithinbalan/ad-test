@@ -162,6 +162,8 @@ type ComplianceAssessmentRequirementResponsibleUnitDTO struct {
 	AcknowledgeUserID                     *uint                                              `json:"acknowledge_user_id"`
 	AcknowledgeComment                    *string                                            `json:"acknowledge_comment"`
 	AcknowledgeUser                       *organizationDTOs.UserMinimalDTO                   `json:"acknowledge_user"`
+	IsRiskBasedAssessment                 bool                                               `json:"is_risk_based_assessment"`
+	IsRegulationNotificationAssessment    bool                                               `json:"is_regulation_notification_assessment"`
 }
 
 type AssessmentCompletionSummaryDTO struct {
