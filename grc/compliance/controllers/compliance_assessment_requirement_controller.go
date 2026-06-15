@@ -31,13 +31,20 @@ func (carc *ComplianceAssessmentRequirementController) GetComplianceAssessmentRe
 		return
 	}
 
+	complianceIDStr := c.Param("complianceId")
+	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
 		utility.SendInternalErrResp(carc.db, c, err.Error())
 		return
 	}
 
-	clauses, err := carc.service.GetAllClauses(uint(assessmentID), currentUserID)
+	clauses, err := carc.service.GetAllClauses(uint(assessmentID), currentUserID, uint(complianceID))
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -662,6 +669,53 @@ func (carc *ComplianceAssessmentRequirementController) MarkAsNotApplicable(c *gi
 			return
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(carc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (carc *ComplianceAssessmentRequirementController) AcknowledgeRequirement(c *gin.Context) {
+	var form complianceDTOs.AcknowledgeRequirementFormDTO
+
+	assessmentID, err := strconv.ParseUint(c.Param("assessmentId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementID, err := strconv.ParseUint(c.Param("requirementId"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	if err := c.ShouldBindJSON(&form); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(carc.db, c, err.Error())
+		return
+	}
+
+	err = carc.service.AcknowledgeRequirement(uint(assessmentID), uint(requirementID), currentUserID, &form)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 			return
 		default:
 			utility.SendInternalErrResp(carc.db, c, e.Error())

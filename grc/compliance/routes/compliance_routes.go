@@ -399,7 +399,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.PUT("/compliance-assessments/:assessmentId/submit", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentController.SubmitComplianceAssessment)
 	complianceRoutes.PUT("/compliance-assessments/:assessmentId/approve", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentController.ApproveComplianceAssessment)
 
-	complianceRoutes.GET("/compliance-assessments/:assessmentId/clauses", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentRequirementController.GetComplianceAssessmentRequirementClauses)
+	complianceRoutes.GET("/compliance-assessments/:assessmentId/compliances/:complianceId/clauses", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentRequirementController.GetComplianceAssessmentRequirementClauses)
 
 	complianceRoutes.GET("/compliance-assessments/:assessmentId/requirements", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentRequirementController.GetComplianceAssessmentRequirements)
 	complianceRoutes.GET("/compliance-assessments/:assessmentId/requirements/:requirementId", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "view"), complianceAssessmentRequirementController.GetComplianceAssessmentRequirementDetails)
@@ -410,6 +410,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.PUT("/compliance-assessments/:assessmentId/requirements/:requirementId/revert", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementController.RevertComplianceAssessmentRequirement)
 	complianceRoutes.PUT("/compliance-assessments/:assessmentId/requirements/:requirementId/resubmit", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementController.ResubmitComplianceAssessmentRequirement)
 	complianceRoutes.PUT("/compliance-assessments/:assessmentId/requirements/:requirementId/mark-as-not-applicable", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementController.MarkAsNotApplicable)
+	complianceRoutes.PUT("/compliance-assessments/:assessmentId/requirements/:requirementId/acknowledge", middlewares.RolePermissionMiddleware(db, "compliance_assessment", "modify"), complianceAssessmentRequirementController.AcknowledgeRequirement)
 
 	// Compliance Requirement Assessment Documents
 	unauthenticatedRoutes.GET("/compliance-assessments/:assessmentId/requirements/:requirementId/required-documents/:documentId/document-download", complianceAssessmentRequirementController.DownloadComplianceAssessmentRequirementDocument)

@@ -16,6 +16,7 @@ import (
 	complianceRepositories "jethur/grc/compliance/repositories"
 	logServices "jethur/grc/logs/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"jethur/utility"
@@ -25,7 +26,7 @@ import (
 )
 
 type ComplianceAssessmentRequirementServiceInterface interface {
-	GetAllClauses(assessmentID uint, currentUserID uint) ([]*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO, error)
+	GetAllClauses(assessmentID uint, currentUserID uint, complianceID uint) ([]*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO, error)
 
 	GetAll(assessmentID uint, params *complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO) (*complianceDTOs.ComplianceAssessmentRequirementListResponseDTO, error)
 	GetByID(requirementId uint) (*models.ComplianceAssessmentRequirement, error)
@@ -46,6 +47,7 @@ type ComplianceAssessmentRequirementServiceInterface interface {
 	GetComplianceAssessmentRequirementResponsibleUnitByID(id uint) (*models.ComplianceAssessmentRequirementResponsibleUnit, error)
 
 	MarkAsNotApplicable(assessmentID uint, requirementID uint, currentUserID uint, form *complianceDTOs.ComplianceAssessmentRequirementNotApplicableFormDTO) error
+	AcknowledgeRequirement(assessmentID uint, requirementID uint, currentUserID uint, form *complianceDTOs.AcknowledgeRequirementFormDTO) error
 }
 
 // Service and implementations
@@ -88,8 +90,8 @@ func NewComplianceAssessmentRequirementService(
 	}
 }
 
-func (cars *ComplianceAssessmentRequirementService) GetAllClauses(assessmentID uint, currentUserID uint) ([]*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO, error) {
-	clauses, err := cars.repo.GetAllClauses(assessmentID, currentUserID)
+func (cars *ComplianceAssessmentRequirementService) GetAllClauses(assessmentID uint, currentUserID uint, complianceID uint) ([]*complianceDTOs.ComplianceAssessmentRequirementClausesListDTO, error) {
+	clauses, err := cars.repo.GetAllClauses(assessmentID, currentUserID, complianceID)
 	if err != nil {
 		return nil, err
 	}
@@ -208,6 +210,36 @@ func (cars *ComplianceAssessmentRequirementService) GetAll(assessmentID uint, pa
 			IsRegulationNotificationAssessment: row.IsRegulationNotificationAssessment,
 			IsRiskBasedAssessment:              row.IsRiskBasedAssessment,
 			ResponsibleUnit:                    unit,
+			ResponsibleUserID:                  row.ResponsibleUserID,
+			IsAcknowledged:                     row.IsAcknowledged,
+			AcknowledgeUserID:                  row.AcknowledgeUserID,
+			AcknowledgeComment:                 row.AcknowledgeComment,
+		}
+
+		if row.ResponsibleUserID != nil && row.ResponsibleUserFirstNameEn != nil {
+			unitDTO.ResponsibleUser = &organizationDTOs.UserMinimalDTO{
+				ID:          int(*row.ResponsibleUserID),
+				FirstNameEN: strVal(row.ResponsibleUserFirstNameEn),
+				LastNameEN:  strVal(row.ResponsibleUserLastNameEn),
+				FirstNameAR: strVal(row.ResponsibleUserFirstNameAr),
+				LastNameAR:  strVal(row.ResponsibleUserLastNameAr),
+				Email:       strVal(row.ResponsibleUserEmail),
+				Initial:     strVal(row.ResponsibleUserInitial),
+				Color:       strVal(row.ResponsibleUserColor),
+			}
+		}
+
+		if row.AcknowledgeUserID != nil && row.AcknowledgeUserFirstNameEn != nil {
+			unitDTO.AcknowledgeUser = &organizationDTOs.UserMinimalDTO{
+				ID:          int(*row.AcknowledgeUserID),
+				FirstNameEN: strVal(row.AcknowledgeUserFirstNameEn),
+				LastNameEN:  strVal(row.AcknowledgeUserLastNameEn),
+				FirstNameAR: strVal(row.AcknowledgeUserFirstNameAr),
+				LastNameAR:  strVal(row.AcknowledgeUserLastNameAr),
+				Email:       strVal(row.AcknowledgeUserEmail),
+				Initial:     strVal(row.AcknowledgeUserInitial),
+				Color:       strVal(row.AcknowledgeUserColor),
+			}
 		}
 		unitMap[row.AssessmentRequirementID] = append(unitMap[row.AssessmentRequirementID], unitDTO)
 	}
@@ -1959,6 +1991,72 @@ func (cars *ComplianceAssessmentRequirementService) CalculateComplianceRequireme
 			return err
 		}
 	}
+
+	return nil
+}
+
+func strVal(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+func (cars *ComplianceAssessmentRequirementService) AcknowledgeRequirement(assessmentID uint, requirementID uint, currentUserID uint, form *complianceDTOs.AcknowledgeRequirementFormDTO) error {
+	if _, err := cars.complianceAssessmentSvc.GetByID(assessmentID); err != nil {
+		return err
+	}
+
+	// Check is_regulation_notification_assessment flag from register-level responsible units
+	isTrue := true
+	var unitRows []complianceDTOs.ComplianceAssessmentRequirementResponsibleUnitListRowDTO
+	if err := cars.repo.GetResponsibleUnitRowsByAssessmentRequirementIDs([]uint{requirementID}, &complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO{
+		IsRegulationNotificationAssessment: &isTrue,
+	}, &unitRows); err != nil {
+		return err
+	}
+
+	isEligible := false
+	for _, row := range unitRows {
+		if row.ResponsibleUnitID == form.ResponsibleUnitID {
+			isEligible = true
+			break
+		}
+	}
+	if !isEligible {
+		return utility.NewForbiddenError("requirement_not_notification_based")
+	}
+
+	// Load the responsible unit record to check acknowledgment status and get its ID
+	details, err := cars.GetFullDetailsByID(assessmentID, requirementID, form.ResponsibleUnitID)
+	if err != nil {
+		return err
+	}
+
+	if details.ResponsibleUnit == nil {
+		return utility.NewForbiddenError("responsible_unit_not_found_for_requirement")
+	}
+
+	if details.ResponsibleUnit.IsAcknowledged {
+		return utility.NewValidationError(fmt.Errorf("requirement has already been acknowledged"), "already_acknowledged", "requirement")
+	}
+
+	carru, err := cars.GetComplianceAssessmentRequirementResponsibleUnitByID(details.ResponsibleUnit.ID)
+	if err != nil {
+		return err
+	}
+
+	carru.IsAcknowledged = true
+	carru.AcknowledgeUserID = &currentUserID
+	carru.AcknowledgeComment = form.Comment
+	carru.UpdatedBYID = &currentUserID
+
+	tx := cars.repo.BeginTransaction()
+	if err := cars.repo.UpdateComplianceAssessmentRequirementResponsibleUnit(carru, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
 
 	return nil
 }

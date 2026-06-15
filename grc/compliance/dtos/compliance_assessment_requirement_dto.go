@@ -50,19 +50,43 @@ type ComplianceAssessmentRequirementResponsibleUnitListDTO struct {
 	IsRegulationNotificationAssessment *bool                             `json:"is_regulation_notification_assessment"`
 	IsRiskBasedAssessment              *bool                             `json:"is_risk_based_assessment"`
 	ResponsibleUnit                    *settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
+	ResponsibleUserID                  *uint                             `json:"responsible_user_id"`
+	ResponsibleUser                    *organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
+	IsAcknowledged                     bool                              `json:"is_acknowledged"`
+	AcknowledgeUserID                  *uint                             `json:"acknowledge_user_id"`
+	AcknowledgeComment                 *string                           `json:"acknowledge_comment"`
+	AcknowledgeUser                    *organizationDTOs.UserMinimalDTO  `json:"acknowledge_user"`
 }
 
 type ComplianceAssessmentRequirementResponsibleUnitListRowDTO struct {
-	ID                                 uint   `json:"id"`
-	AssessmentRequirementID            uint   `json:"assessment_requirement_id"`
-	ResponsibleUnitID                  uint   `json:"responsible_unit_id"`
-	IsRegulationNotificationAssessment *bool  `json:"is_regulation_notification_assessment"`
-	IsRiskBasedAssessment              *bool  `json:"is_risk_based_assessment"`
-	TitleEn                            string `json:"title_en"`
-	TitleAr                            string `json:"title_ar"`
-	Status                             string `json:"status"`
-	ColorCode                          string `json:"color_code"`
-	ParentID                           *uint  `json:"parent_id"`
+	ID                                 uint    `json:"id"`
+	AssessmentRequirementID            uint    `json:"assessment_requirement_id"`
+	ResponsibleUnitID                  uint    `json:"responsible_unit_id"`
+	IsRegulationNotificationAssessment *bool   `json:"is_regulation_notification_assessment"`
+	IsRiskBasedAssessment              *bool   `json:"is_risk_based_assessment"`
+	TitleEn                            string  `json:"title_en"`
+	TitleAr                            string  `json:"title_ar"`
+	Status                             string  `json:"status"`
+	ColorCode                          string  `json:"color_code"`
+	ParentID                           *uint   `json:"parent_id"`
+	ResponsibleUserID                  *uint   `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn         *string `json:"responsible_user_first_name_en"`
+	ResponsibleUserLastNameEn          *string `json:"responsible_user_last_name_en"`
+	ResponsibleUserFirstNameAr         *string `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameAr          *string `json:"responsible_user_last_name_ar"`
+	ResponsibleUserEmail               *string `json:"responsible_user_email"`
+	ResponsibleUserInitial             *string `json:"responsible_user_initial"`
+	ResponsibleUserColor               *string `json:"responsible_user_color"`
+	IsAcknowledged                     bool    `json:"is_acknowledged"`
+	AcknowledgeUserID                  *uint   `json:"acknowledge_user_id"`
+	AcknowledgeComment                 *string `json:"acknowledge_comment"`
+	AcknowledgeUserFirstNameEn         *string `json:"acknowledge_user_first_name_en"`
+	AcknowledgeUserLastNameEn          *string `json:"acknowledge_user_last_name_en"`
+	AcknowledgeUserFirstNameAr         *string `json:"acknowledge_user_first_name_ar"`
+	AcknowledgeUserLastNameAr          *string `json:"acknowledge_user_last_name_ar"`
+	AcknowledgeUserEmail               *string `json:"acknowledge_user_email"`
+	AcknowledgeUserInitial             *string `json:"acknowledge_user_initial"`
+	AcknowledgeUserColor               *string `json:"acknowledge_user_color"`
 }
 
 type ComplianceAssessmentRequirementListResponseDTO struct {
@@ -88,6 +112,11 @@ type ComplianceAssessmentRequirementDetailDTO struct {
 	IsAllCompleted                        bool                                                 `json:"is_all_completed"`
 	AverageResidualRiskScore              *float64                                             `json:"average_residual_risk_score"`
 	AverageResidualRiskRating             *ComplianceAssessmentRatingDTO                       `json:"average_residual_risk_rating"`
+}
+
+type AcknowledgeRequirementFormDTO struct {
+	ResponsibleUnitID uint    `json:"responsible_unit_id" binding:"required"`
+	Comment           *string `json:"comment" binding:"omitempty"`
 }
 
 type ComplianceAssessmentRequirementUpdateFormDTO struct {

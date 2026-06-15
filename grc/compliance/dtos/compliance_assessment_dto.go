@@ -158,6 +158,10 @@ type ComplianceAssessmentRequirementResponsibleUnitDTO struct {
 	CompletedAt                           *time.Time                                         `json:"completed_at"`
 	ResidualRiskScore                     *float64                                           `json:"residual_risk_score"`
 	ResidualRiskRating                    *ComplianceAssessmentRatingDTO                     `json:"residual_risk_rating"`
+	IsAcknowledged                        bool                                               `json:"is_acknowledged"`
+	AcknowledgeUserID                     *uint                                              `json:"acknowledge_user_id"`
+	AcknowledgeComment                    *string                                            `json:"acknowledge_comment"`
+	AcknowledgeUser                       *organizationDTOs.UserMinimalDTO                   `json:"acknowledge_user"`
 }
 
 type AssessmentCompletionSummaryDTO struct {
