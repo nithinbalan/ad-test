@@ -2007,26 +2007,6 @@ func (cars *ComplianceAssessmentRequirementService) AcknowledgeRequirement(asses
 		return err
 	}
 
-	// Check is_regulation_notification_assessment flag from register-level responsible units
-	isTrue := true
-	var unitRows []complianceDTOs.ComplianceAssessmentRequirementResponsibleUnitListRowDTO
-	if err := cars.repo.GetResponsibleUnitRowsByAssessmentRequirementIDs([]uint{requirementID}, &complianceDTOs.ComplianceAssessmentRequirementListQueryParamsDTO{
-		IsRegulationNotificationAssessment: &isTrue,
-	}, &unitRows); err != nil {
-		return err
-	}
-
-	isEligible := false
-	for _, row := range unitRows {
-		if row.ResponsibleUnitID == form.ResponsibleUnitID {
-			isEligible = true
-			break
-		}
-	}
-	if !isEligible {
-		return utility.NewForbiddenError("requirement_not_notification_based")
-	}
-
 	// Load the responsible unit record to check acknowledgment status and get its ID
 	details, err := cars.GetFullDetailsByID(assessmentID, requirementID, form.ResponsibleUnitID)
 	if err != nil {
@@ -2037,13 +2017,18 @@ func (cars *ComplianceAssessmentRequirementService) AcknowledgeRequirement(asses
 		return utility.NewForbiddenError("responsible_unit_not_found_for_requirement")
 	}
 
-	if details.ResponsibleUnit.IsAcknowledged {
-		return utility.NewValidationError(fmt.Errorf("requirement has already been acknowledged"), "already_acknowledged", "requirement")
-	}
-
 	carru, err := cars.GetComplianceAssessmentRequirementResponsibleUnitByID(details.ResponsibleUnit.ID)
 	if err != nil {
 		return err
+	}
+
+	// Check if this responsible unit is eligible for acknowledgment (must be regulation notification based)
+	if carru.IsRegulationNotificationAssessment == nil || !*carru.IsRegulationNotificationAssessment {
+		return utility.NewForbiddenError("requirement_not_notification_based")
+	}
+
+	if carru.IsAcknowledged {
+		return utility.NewValidationError(fmt.Errorf("requirement has already been acknowledged"), "already_acknowledged", "requirement")
 	}
 
 	carru.IsAcknowledged = true
