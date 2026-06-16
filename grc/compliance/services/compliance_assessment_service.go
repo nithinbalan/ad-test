@@ -1797,10 +1797,11 @@ func (cras *ComplianceAssessmentService) AssessmentCompletionRollup(assessmentID
 		return nil, fmt.Errorf("assessment %d has no compliance register loaded", assessmentID)
 	}
 
+	complianceRegister := assessment.ComplianceAssessmentCompliances[0].ComplianceRegister
 	switch {
-	case assessment.ComplianceAssessmentCompliances[0].ComplianceRegister.IsControlAssessment:
+	case complianceRegister.IsControlAssessment:
 		return cras.repo.AssessmentControlCompletionRollup(assessmentID)
-	case assessment.ComplianceRegister.IsRequirementAssessment:
+	case complianceRegister.IsRequirementAssessment:
 		return cras.repo.AssessmentRequirementCompletionRollup(assessmentID)
 	default:
 		// fallback: zero summary
@@ -1822,10 +1823,11 @@ func (cras *ComplianceAssessmentService) GetComplianceStatusSummary(assessmentID
 		return nil, fmt.Errorf("assessment %d has no compliance register loaded", assessmentID)
 	}
 
+	complianceRegister := assessment.ComplianceAssessmentCompliances[0].ComplianceRegister
 	switch {
-	case assessment.ComplianceAssessmentCompliances[0].ComplianceRegister.IsControlAssessment:
+	case complianceRegister.IsControlAssessment:
 		return cras.repo.GetComplianceStatusSummaryByControl(assessmentID)
-	case assessment.ComplianceRegister.IsRequirementAssessment:
+	case complianceRegister.IsRequirementAssessment:
 		return cras.repo.GetComplianceStatusSummaryByRequirement(assessmentID)
 	default:
 		return []complianceDTOs.ComplianceStatusCountDTO{}, nil
@@ -1840,6 +1842,8 @@ func (cras *ComplianceAssessmentService) GetComplianceScoreSummary(assessmentID 
 	if len(assessment.ComplianceAssessmentCompliances) == 0 || assessment.ComplianceAssessmentCompliances[0].ComplianceRegister == nil {
 		return nil, fmt.Errorf("assessment %d has no compliance register loaded", assessmentID)
 	}
+
+	complianceRegister := assessment.ComplianceAssessmentCompliances[0].ComplianceRegister
 	var ruIDs []uint
 	if params != nil {
 		if raw := params.Filters["responsible_unit_id"]; len(raw) > 0 {
@@ -1851,9 +1855,9 @@ func (cras *ComplianceAssessmentService) GetComplianceScoreSummary(assessmentID 
 	var avg float64
 
 	switch {
-	case assessment.ComplianceAssessmentCompliances[0].ComplianceRegister.IsControlAssessment:
+	case complianceRegister.IsControlAssessment:
 		total, avg, err = cras.computeControlSnapshot(assessmentID)
-	case assessment.ComplianceAssessmentCompliances[0].ComplianceRegister.IsRequirementAssessment:
+	case complianceRegister.IsRequirementAssessment:
 		total, avg, err = cras.computeRequirementSnapshot(assessmentID, ruIDs...)
 	default:
 		return &complianceDTOs.ComplianceScoreSummaryDTO{TotalRequirements: 0, AverageScore: 0}, nil

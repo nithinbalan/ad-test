@@ -2014,7 +2014,7 @@ func (cars *ComplianceAssessmentRequirementService) AcknowledgeRequirement(asses
 	}
 
 	if details.ResponsibleUnit == nil {
-		return utility.NewForbiddenError("responsible_unit_not_found_for_requirement")
+		return utility.NewForbiddenError("responsible_unit_not_assigned_to_requirement")
 	}
 
 	carru, err := cars.GetComplianceAssessmentRequirementResponsibleUnitByID(details.ResponsibleUnit.ID)
