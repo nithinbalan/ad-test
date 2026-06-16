@@ -638,12 +638,10 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 	// if complianceAssessmentRequirementResponsibleUnit.ResidualRiskScore == nil {
 	// 	return utility.NewForbiddenError("score_not_updated")
 	// }
-
 	now := time.Now()
-	complianceAssessmentRequirementResponsibleUnit.IsCompleted = true
-	complianceAssessmentRequirementResponsibleUnit.UpdatedBYID = &currentUserID
 	complianceAssessmentRequirementResponsibleUnit.CompletedByUserID = &currentUserID
 	complianceAssessmentRequirementResponsibleUnit.CompletedAt = &now
+	complianceAssessmentRequirementResponsibleUnit.UpdatedBYID = &currentUserID
 
 	err = cars.repo.UpdateComplianceAssessmentRequirementResponsibleUnit(complianceAssessmentRequirementResponsibleUnit, tx)
 	if err != nil {
@@ -746,6 +744,8 @@ func (cars ComplianceAssessmentRequirementService) MarkAsOpen(complianceAssessme
 		return err
 	}
 	complianceAssessmentRequirementResponsibleUnit.IsCompleted = false
+	complianceAssessmentRequirementResponsibleUnit.CompletedByUserID = nil
+	complianceAssessmentRequirementResponsibleUnit.CompletedAt = nil
 	complianceAssessmentRequirementResponsibleUnit.UpdatedBYID = &currentUserID
 
 	err = cars.repo.UpdateComplianceAssessmentRequirementResponsibleUnit(complianceAssessmentRequirementResponsibleUnit, tx)
@@ -901,6 +901,8 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 	}
 
 	// Update requirement status to "approved"
+
+	complianceAssessmentRequirementResponsibleUnit.IsCompleted = true
 	complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirementStatusID = &approvedStatus.ID
 	complianceAssessmentRequirementResponsibleUnit.UpdatedBYID = &currentUserID
 
@@ -959,10 +961,31 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 		tx.Rollback()
 		return err
 	}
-	// if err := cars.CalculateComplianceRequirementScores(assessmentID, requirementID, tx); err != nil {
-	// 	tx.Rollback()
-	// 	return err
-	// }
+
+	// Move assessment from draft → in_progress only once
+	assessmentModel, err := cars.complianceAssessmentSvc.GetByID(assessmentID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	assessmentInProgressStatus, err := cars.complianceAssessmentStatusSvc.GetByType("in_progress")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	assessmentDraftStatus, err := cars.complianceAssessmentStatusSvc.GetByType("draft")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if assessmentModel.ComplianceAssessmentStatusID == assessmentDraftStatus.ID {
+		assessmentModel.ComplianceAssessmentStatusID = assessmentInProgressStatus.ID
+		if err := cars.repo.ComplianceAssessmentUpdateStatus(assessmentModel, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	tx.Commit()
 
 	// Log the action
@@ -1139,18 +1162,42 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 		tx.Rollback()
 		return err
 	}
-	// car, err := cars.repo.GetByID(requirementID)
-	// if err != nil {
-	// 	tx.Rollback()
-	// 	return err
-	// }
-	// car.ComplianceAssessmentRequirementStatusID = nil
-	// car.UpdatedBYID = &currentUserID
 
-	// if err := cars.repo.Update(car, tx); err != nil {
-	// 	tx.Rollback()
-	// 	return err
-	// }
+	car, err := cars.repo.GetByID(requirementID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	car.ComplianceAssessmentRequirementStatusID = nil
+	car.UpdatedBYID = &currentUserID
+	if err := cars.repo.Update(car, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Move assessment back from in_progress → draft on revert
+	assessmentModel, err := cars.complianceAssessmentSvc.GetByID(assessmentID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	assessmentInProgressStatus, err := cars.complianceAssessmentStatusSvc.GetByType("in_progress")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	assessmentDraftStatus, err := cars.complianceAssessmentStatusSvc.GetByType("draft")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if assessmentModel.ComplianceAssessmentStatusID == assessmentInProgressStatus.ID {
+		assessmentModel.ComplianceAssessmentStatusID = assessmentDraftStatus.ID
+		if err := cars.repo.ComplianceAssessmentUpdateStatus(assessmentModel, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 
 	tx.Commit()
 
@@ -2031,9 +2078,13 @@ func (cars *ComplianceAssessmentRequirementService) AcknowledgeRequirement(asses
 		return utility.NewValidationError(fmt.Errorf("requirement has already been acknowledged"), "already_acknowledged", "requirement")
 	}
 
+	now := time.Now()
 	carru.IsAcknowledged = true
 	carru.AcknowledgeUserID = &currentUserID
 	carru.AcknowledgeComment = form.Comment
+	carru.IsCompleted = true
+	carru.CompletedByUserID = &currentUserID
+	carru.CompletedAt = &now
 	carru.UpdatedBYID = &currentUserID
 
 	tx := cars.repo.BeginTransaction()
