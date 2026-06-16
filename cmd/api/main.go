@@ -7,6 +7,7 @@ import (
 	auditInsightsRoutes "jethur/grc/audit-insights/routes"
 	auditRoutes "jethur/grc/audit/routes"
 	authRoutes "jethur/grc/auth/routes"
+	awarenessReportingRoutes "jethur/grc/awareness-reporting/routes"
 	businessContinuityRoutes "jethur/grc/business-continuity/routes"
 	commonRoutes "jethur/grc/common/routes"
 	complianceRoutes "jethur/grc/compliance/routes"
@@ -85,6 +86,7 @@ func main() {
 	logRoutes.RegisterRoutes(app, r)
 	meetingRoutes.RegisterRoutes(app, r)
 	authRoutes.RegisterRoutes(app, r)
+	awarenessReportingRoutes.RegisterRoutes(app, r)
 	complianceRoutes.RegisterRoutes(app, r)
 	organizationRoutes.RegisterRoutes(app, r)
 	settingRoutes.RegisterRoutes(app, r)
