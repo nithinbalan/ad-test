@@ -1156,6 +1156,7 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 
 	// Update requirement status to "reverted"
 	complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirementStatusID = &revertedStatus.ID
+	complianceAssessmentRequirementResponsibleUnit.CompletedByUserID = nil
 	complianceAssessmentRequirementResponsibleUnit.UpdatedBYID = &currentUserID
 
 	err = cars.repo.UpdateComplianceAssessmentRequirementResponsibleUnit(complianceAssessmentRequirementResponsibleUnit, tx)
