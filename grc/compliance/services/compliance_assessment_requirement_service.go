@@ -747,6 +747,7 @@ func (cars ComplianceAssessmentRequirementService) MarkAsOpen(complianceAssessme
 	complianceAssessmentRequirementResponsibleUnit.CompletedByUserID = nil
 	complianceAssessmentRequirementResponsibleUnit.CompletedAt = nil
 	complianceAssessmentRequirementResponsibleUnit.IsNotApplicable = false
+	complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirementStatusID = nil
 	complianceAssessmentRequirementResponsibleUnit.UpdatedBYID = &currentUserID
 
 	err = cars.repo.UpdateComplianceAssessmentRequirementResponsibleUnit(complianceAssessmentRequirementResponsibleUnit, tx)
