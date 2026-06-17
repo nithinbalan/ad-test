@@ -24,13 +24,15 @@ type AwarenessCampaignTypeServiceInterface interface {
 	Deactivate(ids []uint, currentUserID uint) error
 }
 
-// Service and implementations
 type AwarenessCampaignTypeService struct {
 	repo           repositories.AwarenessCampaignTypeRepositoryInterface
 	activityLogSvc services.ActivityLogServiceInterface
 }
 
-func NewAwarenessCampaignTypeService(repo repositories.AwarenessCampaignTypeRepositoryInterface, activityLogSvc services.ActivityLogServiceInterface) AwarenessCampaignTypeServiceInterface {
+func NewAwarenessCampaignTypeService(
+	repo repositories.AwarenessCampaignTypeRepositoryInterface, 
+	activityLogSvc services.ActivityLogServiceInterface,
+	) AwarenessCampaignTypeServiceInterface {
 	return &AwarenessCampaignTypeService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
@@ -53,7 +55,12 @@ func (acts AwarenessCampaignTypeService) GetByID(id uint) (*models.AwarenessCamp
 }
 
 func (acts *AwarenessCampaignTypeService) Create(currentUserID uint, awarenessCampaignTypeForm *dtos.AwarenessCampaignTypeFormDTO) (*models.AwarenessCampaignType, error) {
-	
+	if exists, err := acts.repo.ExistsByTitle(awarenessCampaignTypeForm.TitleEn, awarenessCampaignTypeForm.TitleAr); err != nil {
+		return nil, err
+	} else if exists {
+		return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+	}
+
 	awarenessCampaignType := &models.AwarenessCampaignType{
 		TitleEn: awarenessCampaignTypeForm.TitleEn,
 		TitleAr: awarenessCampaignTypeForm.TitleAr,
@@ -89,6 +96,15 @@ func (acts *AwarenessCampaignTypeService) Update(id uint, currentUserID uint, aw
 	if err != nil {
 		return nil, err
 	}
+
+	if awarenessCampaignTypeForm.TitleEn != existingType.TitleEn || awarenessCampaignTypeForm.TitleAr != existingType.TitleAr {
+		if exists, err := acts.repo.ExistsByTitleExcludingID(id, awarenessCampaignTypeForm.TitleEn, awarenessCampaignTypeForm.TitleAr); err != nil {
+			return nil, err
+		} else if exists {
+			return nil, utility.NewValidationError(fmt.Errorf("the title must be unique"), "unique", "title")
+		}
+	}
+
 
 	updatedType := &models.AwarenessCampaignType{
 		TitleEn: awarenessCampaignTypeForm.TitleEn,

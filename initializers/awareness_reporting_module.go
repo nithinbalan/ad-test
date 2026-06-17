@@ -10,6 +10,7 @@ import (
 
 type AwarenessReportingModule struct {
 	AwarenessCampaignTypeController *controllers.AwarenessCampaignTypeController
+	AwarenessChannelController      *controllers.AwarenessChannelController
 }
 
 func NewAwarenessReportingModule(
@@ -18,10 +19,15 @@ func NewAwarenessReportingModule(
 ) *AwarenessReportingModule {
 
 	awarenessCampaignTypeRepo := repositories.NewAwarenessCampaignTypeRepository(db)
-	awarenessCampaignTypeSvc := services.NewAwarenessCampaignTypeService(awarenessCampaignTypeRepo,sharedModule.ActivityLogService,)
-	awarenessCampaignTypeController := controllers.NewAwarenessCampaignTypeController(awarenessCampaignTypeSvc,)
+	awarenessCampaignTypeSvc := services.NewAwarenessCampaignTypeService(awarenessCampaignTypeRepo, sharedModule.ActivityLogService)
+	awarenessCampaignTypeController := controllers.NewAwarenessCampaignTypeController(awarenessCampaignTypeSvc)
+
+	awarenessChannelRepo := repositories.NewAwarenessChannelRepository(db)
+	awarenessChannelSvc := services.NewAwarenessChannelService(awarenessChannelRepo, sharedModule.ActivityLogService)
+	awarenessChannelController := controllers.NewAwarenessChannelController(awarenessChannelSvc)
 
 	return &AwarenessReportingModule{
 		AwarenessCampaignTypeController: awarenessCampaignTypeController,
+		AwarenessChannelController:      awarenessChannelController,
 	}
 }

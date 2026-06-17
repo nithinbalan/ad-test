@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"jethur/grc/models"
+	"jethur/utility"
 
 	"gorm.io/gorm"
 )
@@ -15,6 +16,8 @@ type AwarenessCampaignTypeRepositoryInterface interface {
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
+	ExistsByTitle(titleEn string, titleAr string) (bool, error)
+	ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error)
 }
 
 type AwarenessCampaignTypeRepository struct {
@@ -136,4 +139,32 @@ func (repo *AwarenessCampaignTypeRepository) Deactivate(ids []uint) ([]uint, err
 	}
 
 	return idsToUpdate, nil
+}
+
+func (repo *AwarenessCampaignTypeRepository) ExistsByTitle(titleEn, titleAr string) (bool, error) {
+	var count int64
+
+	// Check for the existence of titleEn or titleAr in a single query
+	err := repo.db.Model(&models.AwarenessCampaignType{}).
+		Where("title_en = ? OR title_ar = ?", titleEn, titleAr).
+		Count(&count).Error
+
+	if err != nil {
+		return false, utility.NewInternalServerError(err)
+
+	}
+	return count > 0, nil
+}
+
+func (repo *AwarenessCampaignTypeRepository) ExistsByTitleExcludingID(id uint, titleEn, titleAr string) (bool, error) {
+	var count int64
+	err := repo.db.Model(&models.AwarenessCampaignType{}).
+		Where("id <> ? AND (title_en = ? OR title_ar = ?)", id, titleEn, titleAr).
+		Count(&count).Error
+
+	if err != nil {
+		return false, utility.NewInternalServerError(err)
+	}
+
+	return count > 0, nil
 }

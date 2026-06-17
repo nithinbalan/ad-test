@@ -17,6 +17,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	db := app.DB
 
 	awarenessCampaignTypeController := app.AwarenessReportingModule.AwarenessCampaignTypeController
+	awarenessChannelController := app.AwarenessReportingModule.AwarenessChannelController
 
 	awarenessRoutes.GET("/awareness-reporting/awareness-campaign-types", awarenessCampaignTypeController.GetAllAwarenessCampaignTypes)
 	awarenessRoutes.GET("/awareness-reporting/awareness-campaign-types/:id", awarenessCampaignTypeController.GetAwarenessCampaignTypeDetails)
@@ -25,4 +26,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	awarenessRoutes.POST("/awareness-reporting/awareness-campaign-types/delete",middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"),awarenessCampaignTypeController.DeleteAwarenessCampaignTypes,)
 	awarenessRoutes.PUT("/awareness-reporting/awareness-campaign-types/activate",middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"),awarenessCampaignTypeController.ActivateAwarenessCampaignTypes,)
 	awarenessRoutes.PUT("/awareness-reporting/awareness-campaign-types/deactivate",middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"),awarenessCampaignTypeController.DeactivateAwarenessCampaignTypes,)
+
+	awarenessRoutes.GET("/awareness-reporting/awareness-channels", awarenessChannelController.GetAllAwarenessChannels)
+	awarenessRoutes.GET("/awareness-reporting/awareness-channels/:id", awarenessChannelController.GetAwarenessChannelDetails)
+	awarenessRoutes.POST("/awareness-reporting/awareness-channels",middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"),awarenessChannelController.CreateAwarenessChannel,)
+	awarenessRoutes.PUT("/awareness-reporting/awareness-channels/:id",middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"),awarenessChannelController.UpdateAwarenessChannel,)
+	awarenessRoutes.POST("/awareness-reporting/awareness-channels/delete",middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"),awarenessChannelController.DeleteAwarenessChannels,)
+	awarenessRoutes.PUT("/awareness-reporting/awareness-channels/activate",middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"),awarenessChannelController.ActivateAwarenessChannels,)
+	awarenessRoutes.PUT("/awareness-reporting/awareness-channels/deactivate",middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"),awarenessChannelController.DeactivateAwarenessChannels,)
 }
