@@ -28,6 +28,11 @@ func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.C
 
 	var complianceID uint64
 	var err error
+	var isPassiveUser bool = false
+
+	if utility.IsPassiveAccess(c) {
+		isPassiveUser = true
+	}
 
 	// Check if complianceID is provided in the URL
 	if complianceIDStr != "" {
@@ -46,7 +51,6 @@ func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.C
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
 
-	// Convert the export parameter to a boolean
 	exportFromContext, exists := c.Get("export")
 	var export bool
 
@@ -66,7 +70,7 @@ func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.C
 		"severity_level_ids",
 		"responsible_user_ids",
 		"action_plan_status_ids",
-		"ids",
+		"action_plan_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -104,9 +108,16 @@ func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.C
 		DateFrom:       dateFrom,
 		DateTo:         dateTo,
 		Export:         export,
+		IsPassiveUser:  isPassiveUser,
 	}
 
-	complianceActionPlans, err := capc.service.GetAll(uint(complianceID), &queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(capc.db, c, err.Error())
+		return
+	}
+
+	complianceActionPlans, err := capc.service.GetAll(uint(complianceID), currentUserID, &queryParams)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ResourceNotFoundError:
@@ -119,12 +130,6 @@ func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.C
 	}
 
 	if export {
-		currentUserID, err := utility.GetCurrentUserID(c)
-		if err != nil {
-			utility.SendInternalErrResp(capc.db, c, err.Error())
-			return
-		}
-
 		excelFile, err := capc.service.ExportComplianceActionPlans(complianceActionPlans.Items, currentUserID)
 		if err != nil {
 			utility.SendInternalErrResp(capc.db, c, err.Error())
@@ -145,10 +150,18 @@ func (capc *ComplianceActionPlanController) GetAllComplianceActionPlans(c *gin.C
 func (capc *ComplianceActionPlanController) GetComplianceActionPlanDetails(c *gin.Context) {
 	complianceIDStr := c.Param("complianceId")
 
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	var complianceID uint64
+	var err error
+
+	// Check if complianceID is provided in the URL
+	if complianceIDStr != "" {
+		complianceID, err = strconv.ParseUint(complianceIDStr, 10, 64)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		complianceID = 0
 	}
 
 	idStr := c.Param("actionPlanId")

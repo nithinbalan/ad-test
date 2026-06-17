@@ -27,10 +27,17 @@ func NewComplianceActionPlanStatusUpdateController(service services.ComplianceAc
 func (casuc *ComplianceActionPlanStatusUpdateController) GetAllComplianceActionPlanStatusUpdates(c *gin.Context) {
 	complianceIDStr := c.Param("complianceId")
 
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	var complianceID uint64
+	var err error
+
+	if complianceIDStr != "" {
+		complianceID, err = strconv.ParseUint(complianceIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		complianceID = 0
 	}
 
 	actionPlanIDStr := c.Param("actionPlanId")
@@ -65,10 +72,17 @@ func (casuc *ComplianceActionPlanStatusUpdateController) CreateComplianceActionP
 
 	complianceIDStr := c.Param("complianceId")
 
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	var complianceID uint64
+	var err error
+
+	if complianceIDStr != "" {
+		complianceID, err = strconv.ParseUint(complianceIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		complianceID = 0
 	}
 
 	actionPlanIDStr := c.Param("actionPlanId")
@@ -114,10 +128,17 @@ func (casuc *ComplianceActionPlanStatusUpdateController) UpdateComplianceActionP
 
 	complianceIDStr := c.Param("complianceId")
 
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	var complianceID uint64
+	var err error
+
+	if complianceIDStr != "" {
+		complianceID, err = strconv.ParseUint(complianceIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		complianceID = 0
 	}
 
 	actionPlanIDStr := c.Param("actionPlanId")
@@ -168,10 +189,17 @@ func (casuc *ComplianceActionPlanStatusUpdateController) UpdateComplianceActionP
 func (casuc *ComplianceActionPlanStatusUpdateController) GetLatestComplianceActionPlanStatusUpdate(c *gin.Context) {
 	complianceIDStr := c.Param("complianceId")
 
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	var complianceID uint64
+	var err error
+
+	if complianceIDStr != "" {
+		complianceID, err = strconv.ParseUint(complianceIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		complianceID = 0
 	}
 
 	actionPlanIDStr := c.Param("actionPlanId")
@@ -200,10 +228,17 @@ func (casuc *ComplianceActionPlanStatusUpdateController) GetLatestComplianceActi
 func (casuc *ComplianceActionPlanStatusUpdateController) GetComplianceActionPlanStatusUpdateDocumentPreview(c *gin.Context) {
 	complianceIDStr := c.Param("complianceId")
 
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	var complianceID uint64
+	var err error
+
+	if complianceIDStr != "" {
+		complianceID, err = strconv.ParseUint(complianceIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		complianceID = 0
 	}
 
 	actionPlanIDStr := c.Param("actionPlanId")
@@ -243,10 +278,17 @@ func (casuc *ComplianceActionPlanStatusUpdateController) GetComplianceActionPlan
 func (casuc *ComplianceActionPlanStatusUpdateController) DownloadComplianceActionPlanStatusUpdateDocument(c *gin.Context) {
 	complianceIDStr := c.Param("complianceId")
 
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 64)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	var complianceID uint64
+	var err error
+
+	if complianceIDStr != "" {
+		complianceID, err = strconv.ParseUint(complianceIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		complianceID = 0
 	}
 
 	actionPlanIDStr := c.Param("actionPlanId")
@@ -297,10 +339,19 @@ func (casuc *ComplianceActionPlanStatusUpdateController) DownloadComplianceActio
 func (casuc *ComplianceActionPlanStatusUpdateController) ApproveComplianceActionPlan(c *gin.Context) {
 	var complianceStatusReviewUserUpdateFormDTO complianceDTOs.ComplianceActionPlanReviewUserStatusUpdateFormDTO
 
-	complianceID, err := strconv.Atoi(c.Param("complianceId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	complianceIDStr := c.Param("complianceId")
+
+	var complianceID uint64
+	var err error
+
+	if complianceIDStr != "" {
+		complianceID, err = strconv.ParseUint(complianceIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		complianceID = 0
 	}
 
 	complianceActionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))
@@ -344,10 +395,19 @@ func (casuc *ComplianceActionPlanStatusUpdateController) ApproveComplianceAction
 func (casuc *ComplianceActionPlanStatusUpdateController) RevertComplianceActionPlan(c *gin.Context) {
 	var complianceStatusReviewUserUpdateFormDTO complianceDTOs.ComplianceActionPlanReviewUserStatusUpdateFormDTO
 
-	complianceID, err := strconv.Atoi(c.Param("complianceId"))
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+	complianceIDStr := c.Param("complianceId")
+
+	var complianceID uint64
+	var err error
+
+	if complianceIDStr != "" {
+		complianceID, err = strconv.ParseUint(complianceIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		complianceID = 0
 	}
 
 	complianceActionPlanID, err := strconv.Atoi(c.Param("actionPlanId"))

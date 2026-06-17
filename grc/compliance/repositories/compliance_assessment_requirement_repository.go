@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -26,6 +27,8 @@ type ComplianceAssessmentRequirementRepositoryInterface interface {
 
 	CreateDocuments(documents []*models.ComplianceAssessmentRequirementRequiredDocument, tx ...utility.DatabaseTransaction) error
 	DeleteDocuments(documentId uint, tx ...utility.DatabaseTransaction) error
+	GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessmentRequirementRequiredDocument, error)
+	UpdateDocument(document *models.ComplianceAssessmentRequirementRequiredDocument, tx ...utility.DatabaseTransaction) error
 
 	CreateComment(comment *models.ComplianceAssessmentRequirementComment, tx ...utility.DatabaseTransaction) error
 	GetComplianceAssessmentRequirementResponsibleUnitByID(id uint) (*models.ComplianceAssessmentRequirementResponsibleUnit, error)
@@ -511,4 +514,32 @@ func (repo *ComplianceAssessmentRequirementRepository) UpdateClauseComplianceSta
 	}
 
 	return nil
+}
+
+func (repo *ComplianceAssessmentRequirementRepository) GetDocumentByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceAssessmentRequirementRequiredDocument, error) {
+	var document *models.ComplianceAssessmentRequirementRequiredDocument
+
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	result := db.First(&document, id)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(result.Error, id)
+		}
+		return nil, result.Error
+	}
+
+	return document, nil
+}
+
+func (repo *ComplianceAssessmentRequirementRepository) UpdateDocument(document *models.ComplianceAssessmentRequirementRequiredDocument, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Save(document).Error
 }

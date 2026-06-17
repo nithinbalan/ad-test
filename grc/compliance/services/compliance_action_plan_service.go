@@ -24,7 +24,7 @@ import (
 )
 
 type ComplianceActionPlanServiceInterface interface {
-	GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
+	GetAll(complianceID uint, currentUserID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error)
 	GetByID(complianceID uint, id uint) (*models.ComplianceActionPlan, error)
 	GetFullDetailsByID(complianceID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceActionPlanDetailDTO, error)
 	Create(complianceID uint, currentUserID uint, ComplianceActionPlanFormDTO *complianceDTOs.ComplianceActionPlanFormDTO) (uint, error)
@@ -49,6 +49,7 @@ type ComplianceActionPlanService struct {
 	userSettingSvc           organizationServices.UserSettingServiceInterface
 	organizationUnitSvc      settingService.OrganizationUnitServiceInterface
 	delegateeUserSvc         commonServices.DelegateeUserserviceInterface
+	roleSvc                  settingService.RoleServiceInterface
 }
 
 func NewComplianceActionPlanService(
@@ -65,6 +66,7 @@ func NewComplianceActionPlanService(
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	organizationUnitSvc settingService.OrganizationUnitServiceInterface,
 	delegateeUserSvc commonServices.DelegateeUserserviceInterface,
+	roleSvc settingService.RoleServiceInterface,
 ) ComplianceActionPlanServiceInterface {
 	return &ComplianceActionPlanService{
 		repo:                     repo,
@@ -80,13 +82,28 @@ func NewComplianceActionPlanService(
 		userSettingSvc:           userSettingSvc,
 		organizationUnitSvc:      organizationUnitSvc,
 		delegateeUserSvc:         delegateeUserSvc,
+		roleSvc:                  roleSvc,
 	}
 }
 
-func (caps *ComplianceActionPlanService) GetAll(complianceID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error) {
+func (caps *ComplianceActionPlanService) GetAll(complianceID uint, currentUserID uint, params *complianceDTOs.ComplianceActionPlanListQueryParamsDTO) (*complianceDTOs.ComplianceActionPlanListResponseDTO, error) {
 	if complianceID != 0 {
 		if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
 			return nil, err
+		}
+	}
+
+	if currentUserID != 0 && complianceID == 0 {
+		params.IsAllAccess = false
+		params.AccessUserID = currentUserID
+
+		isSuperAdmin, err := caps.userSvc.IsSuperAdmin(currentUserID)
+		if err != nil {
+			return nil, err
+		}
+
+		if isSuperAdmin {
+			params.IsAllAccess = true
 		}
 	}
 	return caps.repo.GetAll(complianceID, params, uint(0), nil)
@@ -111,8 +128,10 @@ func (caps ComplianceActionPlanService) GetFullDetailsByID(complianceID uint, id
 	var complianceActionPlanDTO complianceDTOs.ComplianceActionPlanDetailDTO
 
 	// Check if the compliance register exists
-	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
-		return nil, err
+	if complianceID != 0 {
+		if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
+			return nil, err
+		}
 	}
 
 	// Get full details of the compliance action plan
@@ -728,7 +747,7 @@ func (caps *ComplianceActionPlanService) Delete(complianceID uint, ids []uint, c
 		tx.Rollback()
 		return failedIds, nil
 	}
-	
+
 	tx.Commit()
 
 	if len(successfulIds) > 0 {

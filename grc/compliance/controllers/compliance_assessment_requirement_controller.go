@@ -772,3 +772,55 @@ func (carc *ComplianceAssessmentRequirementController) ResubmitComplianceAssessm
 
 	c.Status(http.StatusOK)
 }
+
+func (carc *ComplianceAssessmentRequirementController) UpdateDocument(c *gin.Context) {
+	var formDTO complianceDTOs.ComplianceAssessmentRequirementDocumentUpdateFormDTO
+
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	complianceAssessmentID, err := strconv.Atoi(c.Param("assessmentId"))
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	requirementIDStr := c.Param("requirementId")
+	complianceRequirementID, err := strconv.ParseUint(requirementIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	documentIDStr := c.Param("documentId")
+	documentID, err := strconv.ParseUint(documentIDStr, 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(carc.db, c, err.Error())
+		return
+	}
+
+	err = carc.service.UpdateDocument(uint(complianceAssessmentID), uint(complianceRequirementID), uint(documentID), currentUserID, &formDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(carc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Status(http.StatusOK)
+}

@@ -38,6 +38,7 @@ type ComplianceAssessmentRequirementServiceInterface interface {
 
 	CreateDocument(complianceAssessmentID uint, requirementID uint, requiredDocumentID uint, currentUserID uint, documents []complianceDTOs.ComplianceAssessmentRequirementDocumentFormDTO) error
 	DeleteDocuments(complianceAssessmentID uint, requirementID uint, requiredDocumentID uint, ids []uint, currentUserID uint) ([]uint, error)
+	UpdateDocument(complianceAssessmentID uint, requirementID uint, documentID uint, currentUserID uint, formDTO *complianceDTOs.ComplianceAssessmentRequirementDocumentUpdateFormDTO) error
 
 	GetDocumentPath(complianceAssessmentID, requirementID, id uint, token string) (string, error)
 
@@ -2095,4 +2096,33 @@ func (cars *ComplianceAssessmentRequirementService) AcknowledgeRequirement(asses
 	tx.Commit()
 
 	return nil
+}
+
+func (cars *ComplianceAssessmentRequirementService) UpdateDocument(complianceAssessmentID uint, requirementID uint, documentID uint, currentUserID uint, formDTO *complianceDTOs.ComplianceAssessmentRequirementDocumentUpdateFormDTO) error {
+	document, err := cars.repo.GetDocumentByID(formDTO.ID)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+
+	if formDTO.Status == "approved" {
+		document.ApprovedByID = &currentUserID
+		document.UpdatedByID = currentUserID
+		document.RejectedByID = nil
+		document.ApprovedAt = &now
+		document.UpdatedAt = now
+		document.RejectedAt = nil
+	}
+
+	if formDTO.Status == "rejected" {
+		document.RejectedByID = &currentUserID
+		document.UpdatedByID = currentUserID
+		document.ApprovedByID = nil
+		document.RejectedAt = &now
+		document.UpdatedAt = now
+		document.ApprovedAt = nil
+	}
+
+	return cars.repo.UpdateDocument(document)
 }

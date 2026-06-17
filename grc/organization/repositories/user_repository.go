@@ -63,6 +63,7 @@ type UserRepositoryInterface interface {
 	GetUserModulesWithOpenTasks(userID uint) ([]settingDTOs.ModulePermissionListDTO, error)
 
 	GetUsersByOrganizationUnit(primaryOrgUnitField string, departmentUnitID uint) ([]*models.User, error)
+	IsSuperAdmin(userID uint) (bool, error)
 }
 
 type UserRepository struct {
@@ -1084,4 +1085,13 @@ func (repo *UserRepository) GetUsersByOrganizationUnit(primaryOrgUnitField strin
 	}
 
 	return users, nil
+}
+
+func (repo *UserRepository) IsSuperAdmin(userID uint) (bool, error) {
+	var count int64
+	err := repo.db.Table("user_roles").
+		Joins("JOIN roles ON user_roles.role_id = roles.id").
+		Where("user_roles.user_id = ? AND roles.is_super_admin = ?", userID, true).
+		Count(&count).Error
+	return count > 0, err
 }
