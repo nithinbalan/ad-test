@@ -1,3 +1,4 @@
+
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE awareness_campaign_documents (
@@ -34,3 +35,4 @@ CREATE TABLE awareness_campaign_documents (
 -- +goose StatementBegin
 DROP TABLE awareness_campaign_documents;
 -- +goose StatementEnd
+

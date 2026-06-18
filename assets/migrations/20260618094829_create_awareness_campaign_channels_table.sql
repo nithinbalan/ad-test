@@ -1,3 +1,4 @@
+
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE awareness_campaign_channels
@@ -23,3 +24,4 @@ CREATE TABLE awareness_campaign_channels
 -- +goose StatementBegin
 DROP TABLE awareness_campaign_channels;
 -- +goose StatementEnd
+

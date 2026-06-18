@@ -1,3 +1,4 @@
+
 -- +goose Up
 -- +goose StatementBegin
 ALTER TABLE awareness_campaign_types DROP CONSTRAINT CHK_awareness_campaign_types_type;
