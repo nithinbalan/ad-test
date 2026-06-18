@@ -2553,6 +2553,7 @@ func (ics *InternalCommitteeService) ExportCommitteeFormationToPDF(id uint, curr
 		CommitteeMembership:      committeeMemberShip,
 		Authorities:              authorities,
 		RolesAndResponsibilities: rolesAndResponsibilities,
+		DocumentGenerationDate:   time.Now().Format("02/01/2006"),
 	}
 
 	// Generate PDF

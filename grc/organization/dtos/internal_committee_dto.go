@@ -224,4 +224,5 @@ type CommitteeFormationExportPDFDTO struct {
 	CommitteeMembership      []CommitteeMemberDTO
 	Authorities              []string
 	RolesAndResponsibilities []string
+	DocumentGenerationDate   string
 }
