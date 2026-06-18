@@ -80,6 +80,9 @@ type ComplianceActionPlanListQueryParamsDTO struct {
 	DateFrom       string
 	DateTo         string
 	Export         bool
+	IsAllAccess    bool
+	AccessUserID   uint
+	IsPassiveUser  bool
 }
 
 type ComplianceActionPlanListResponseDTO struct {

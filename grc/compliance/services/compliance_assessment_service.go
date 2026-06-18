@@ -657,14 +657,24 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 				emailTo := []string{reviewUser.Email}
 				subject := fmt.Sprintf("Action Required: Review Compliance Assessment - %s", titleEn)
 				appURL := utility.GetAppURL()
+
+				// Determine assessment type label
+				assessmentType := "Department"
+				if compliance.Type == "framework" {
+					assessmentType = "Framework"
+				}
+
 				emailData := map[string]interface{}{
-					"FirstNameEn": reviewUser.FirstNameEn,
-					"LastNameEn":  reviewUser.LastNameEn,
-					"AssignedBy":  fmt.Sprintf("%s %s", assignedBy.FirstNameEn, assignedBy.LastNameEn),
-					"AssignedOn":  time.Now().Format("02-01-2006"),
-					"Description": complianceAssessmentFormDTO.Description,
-					"RedirectURL": fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, id),
-					"Assessments": compliance.Compliances,
+					"FirstNameEn":    reviewUser.FirstNameEn,
+					"LastNameEn":     reviewUser.LastNameEn,
+					"TitleEn":        titleEn,
+					"TitleAr":        titleAr,
+					"AssessmentType": assessmentType,
+					"AssignedBy":     fmt.Sprintf("%s %s", assignedBy.FirstNameEn, assignedBy.LastNameEn),
+					"AssignedOn":     time.Now().Format("02-01-2006"),
+					"Description":    "",
+					"RedirectURL":    fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, id),
+					"Assessments":    compliance.Compliances,
 				}
 
 				// Set description if available
@@ -712,35 +722,47 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 					reqEntity := "compliance-requirement-assignment"
 					reqAction := "review-user-assign"
 
-					reqUrlParam := fmt.Sprintf(`{"id":%d}`, requirements[0].ResponsibleUnits[0].ID)
-
-					reqDBNotificationDTO := commonDTOs.DBNotificationDTO{
-						UserIDs:              []uint{user.ID},
-						ModuleIdentifier:     "compliance_assessment",
-						NotificationType:     string(commonDTOs.AssignmentType),
-						HeadingEn:            "Compliance Assessment Requirement Review Assigned",
-						HeadingAr:            "تم تكليف بمراجعة متطلبات تقييم الامتثال.",
-						TitleEn:              titleEn,
-						TitleAr:              titleAr,
-						Entity:               &reqEntity,
-						Action:               &reqAction,
-						URLParam:             reqUrlParam,
-						QueryParam:           queryParam,
-						IsSystemNotification: true,
-						CreatedByID:          &currentUserID,
+					// Send one notification per requirement
+					for _, req := range requirements {
+						if len(req.ResponsibleUnits) == 0 {
+							continue
+						}
+						reqUrlParam := fmt.Sprintf(`{"id":%d}`, req.ResponsibleUnits[0].ID)
+						reqDBNotificationDTO := commonDTOs.DBNotificationDTO{
+							UserIDs:              []uint{user.ID},
+							ModuleIdentifier:     "compliance_assessment",
+							NotificationType:     string(commonDTOs.AssignmentType),
+							HeadingEn:            "Compliance Assessment Requirement Review Assigned",
+							HeadingAr:            "تم تكليف بمراجعة متطلبات تقييم الامتثال.",
+							TitleEn:              titleEn,
+							TitleAr:              titleAr,
+							Entity:               &reqEntity,
+							Action:               &reqAction,
+							URLParam:             reqUrlParam,
+							QueryParam:           queryParam,
+							IsSystemNotification: true,
+							CreatedByID:          &currentUserID,
+						}
+						if err := cras.notificationSvc.SendNotification(&reqDBNotificationDTO, nil, "compliance_assessment"); err != nil {
+							utility.LogError("Failed to send requirement notification", map[string]interface{}{
+								"error": err.Error(),
+							})
+						}
 					}
 
+					// Send one email per user with all requirements listed
 					reqEmailTo := []string{user.Email}
 					reqSubject := fmt.Sprintf("Action Required: Review Compliance Assessment - %s", TruncateString(titleEn, 100))
 					reqEmailData := map[string]interface{}{
-						"FirstNameEn": user.FirstNameEn,
-						"LastNameEn":  user.LastNameEn,
-						"AssignedBy":  fmt.Sprintf("%s %s", assignedBy.FirstNameEn, assignedBy.LastNameEn),
-						"AssignedOn":  time.Now().Format("02-01-2006"),
-						"Description": "",
-						"RedirectURL": fmt.Sprintf("%s/compliance/passive-assessments/%d", appURL, requirements[0].ResponsibleUnits[0].ID),
-						"Requirement": requirements[0],
-						"HasMultiple": hasMultiple,
+						"FirstNameEn":  user.FirstNameEn,
+						"LastNameEn":   user.LastNameEn,
+						"AssignedBy":   fmt.Sprintf("%s %s", assignedBy.FirstNameEn, assignedBy.LastNameEn),
+						"AssignedOn":   time.Now().Format("02-01-2006"),
+						"Description":  "",
+						"RedirectURL":  fmt.Sprintf("%s/compliance/passive-assessments/%d", appURL, requirements[0].ResponsibleUnits[0].ID),
+						"BaseURL":      appURL,
+						"Requirements": requirements,
+						"HasMultiple":  hasMultiple,
 					}
 
 					if complianceAssessmentFormDTO.Description != nil {
@@ -754,8 +776,8 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 						EmailData:            reqEmailData,
 					}
 
-					if err := cras.notificationSvc.SendNotification(&reqDBNotificationDTO, reqEmailNotificationDTO, "compliance_assessment"); err != nil {
-						utility.LogError("Failed to send notifications", map[string]interface{}{
+					if err := cras.notificationSvc.SendNotification(nil, reqEmailNotificationDTO, "compliance_assessment"); err != nil {
+						utility.LogError("Failed to send requirement email", map[string]interface{}{
 							"error": err.Error(),
 						})
 					}

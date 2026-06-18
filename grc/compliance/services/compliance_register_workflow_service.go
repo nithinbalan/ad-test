@@ -277,7 +277,7 @@ func (crws *ComplianceRegisterWorkflowService) DeleteComplianceRegisterWorkflows
 func (crws *ComplianceRegisterWorkflowService) ValidateWorkflowBeforeCreate(contextType string, tx ...utility.DatabaseTransaction) error {
 	workflowContext, err := crws.workflowContextSvc.GetByType(contextType)
 	if err != nil {
-		return err
+		return utility.NewForbiddenError("workflow_not_configured")
 	}
 
 	_, err = crws.workflowSvc.GetWorkflowByContext(workflowContext.ID)

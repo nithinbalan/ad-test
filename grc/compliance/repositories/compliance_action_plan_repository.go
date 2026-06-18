@@ -6,6 +6,7 @@ import (
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/models"
 	"jethur/utility"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -81,6 +82,8 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
         review_user.color AS review_user_color,
         review_user.email AS review_user_email,
         review_user.profile_image_path AS review_user_profile_image_path,
+		compliance_register.title_en AS compliance_register_title_en,
+		compliance_register.title_ar AS compliance_register_title_ar,
         created_user.id AS created_user_id,
         created_user.first_name_en AS created_user_first_name_en,
         created_user.first_name_ar AS created_user_first_name_ar,
@@ -107,13 +110,25 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 		LEFT JOIN users AS review_user ON review_user.id = compliance_action_plans.review_user_id
         LEFT JOIN users AS created_user ON created_user.id = compliance_action_plans.created_by_id
         LEFT JOIN users AS updated_user ON updated_user.id = compliance_action_plans.updated_by_id
-        LEFT JOIN compliance_requirements ON compliance_requirements.id = compliance_action_plans.compliance_requirement_id
+    	LEFT JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.id = compliance_action_plans.compliance_assessment_requirement_responsible_unit_id
+        LEFT JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
+        LEFT JOIN compliance_requirements ON compliance_requirements.id = compliance_assessment_requirements.compliance_requirement_id
         LEFT JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
+		LEFT JOIN compliance_assessments ON compliance_assessments.id = compliance_assessment_requirements.compliance_assessment_id
+        LEFT JOIN compliance_register ON compliance_register.id = compliance_assessments.compliance_register_id
+
+		-- control-based path (via compliance_assessment_controls)
+		LEFT JOIN compliance_assessment_controls cac 
+            ON cac.id = compliance_action_plans.compliance_assessment_control_id
+        LEFT JOIN compliance_assessments ca_ctrl 
+            ON ca_ctrl.id = cac.compliance_assessment_id
+        LEFT JOIN compliance_register cr_ctrl 
+            ON cr_ctrl.id = ca_ctrl.compliance_register_id
     `)
 
 	// Conditionally apply compliance ID filter
 	if complianceID != 0 {
-		query = query.Where("compliance_action_plans.compliance_register_id = ?", complianceID)
+		query = query.Where("COALESCE(compliance_assessments.compliance_register_id, ca_ctrl.compliance_register_id) = ?", complianceID)
 	}
 
 	// Conditionally apply compliance ID filter
@@ -123,10 +138,42 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 	if controlID != nil {
 		query = query.Where("compliance_action_plans.compliance_assessment_control_id = ?", controlID)
 	}
+
+	// access control
+	if params.IsPassiveUser && complianceID == 0 {
+		query = query.Where(`
+		(
+		compliance_action_plans.responsible_user_id = ?
+		OR compliance_action_plans.delegatee_user_id = ?
+		)
+		`, params.AccessUserID, params.AccessUserID)
+	} else if !params.IsAllAccess && complianceID == 0 {
+
+		query = query.Where(`
+		(
+		compliance_action_plans.responsible_user_id = ?
+		OR compliance_action_plans.created_by_id = ?
+		OR compliance_action_plans.review_user_id = ?
+		OR COALESCE(compliance_register.responsible_user_id, cr_ctrl.responsible_user_id) = ?
+    	OR COALESCE(compliance_assessments.review_user_id, ca_ctrl.review_user_id) = ?
+		)
+		`,
+			params.AccessUserID,
+			params.AccessUserID,
+			params.AccessUserID,
+			params.AccessUserID,
+			params.AccessUserID,
+		)
+	}
+
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(fmt.Sprintf("compliance_action_plans.%s IN (?)", columnName), values)
+			if columnName == "action_plan_id" {
+				query = query.Where(fmt.Sprintf("compliance_action_plans.%s IN (?)", "id"), values)
+			} else {
+				query = query.Where(fmt.Sprintf("compliance_action_plans.%s IN (?)", columnName), values)
+			}
 		}
 	}
 
@@ -160,24 +207,23 @@ func (repo *ComplianceActionPlanRepository) GetAll(complianceID uint, params *co
 	}
 	// Apply search keyword if exists
 	if params.Keyword != "" {
-		keyword := "%" + params.Keyword + "%"
+		keyword := "%" + strings.ToLower(strings.TrimSpace(params.Keyword)) + "%"
 		query = query.Where(`
-            (compliance_action_plans.title LIKE ? OR
-            action_plan_statuses.title_en LIKE ? OR
-            action_plan_statuses.title_ar LIKE ? OR
+            (LOWER(compliance_action_plans.title) LIKE ? OR
+            LOWER(action_plan_statuses.title_en) LIKE ? OR
+            LOWER(action_plan_statuses.title_ar) LIKE ? OR
             compliance_action_plans.target_date LIKE ? OR
-            responsible_user.first_name_en LIKE ? OR
-            responsible_user.first_name_ar LIKE ? OR
-            responsible_user.last_name_en LIKE ? OR
-            responsible_user.email LIKE ? OR
-            responsible_user.initial LIKE ? OR
-            responsible_user.color LIKE ? OR
-            responsible_user.profile_image_path LIKE ? OR
-            responsible_user.last_name_ar LIKE ?)`,
+            LOWER(responsible_user.first_name_en) LIKE ? OR
+            LOWER(responsible_user.first_name_ar) LIKE ? OR
+            LOWER(responsible_user.last_name_en) LIKE ? OR
+            LOWER(responsible_user.email) LIKE ? OR
+            LOWER(responsible_user.initial) LIKE ? OR
+            LOWER(responsible_user.color) LIKE ? OR
+            LOWER(responsible_user.profile_image_path) LIKE ? OR
+            LOWER(responsible_user.last_name_ar) LIKE ?)`,
 			keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword,
-			keyword)
+			keyword, keyword, keyword, keyword)
 	}
 
 	// Sort by the specified column and order

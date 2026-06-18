@@ -71,6 +71,8 @@ type ComplianceModule struct {
 	ComplianceRegisterReviewController        *controllers.ComplianceRegisterReviewController
 	ComplianceRegisterReviewCommentController *controllers.ComplianceRegisterReviewCommentController
 
+	ComplianceEvidenceSubmissionController *controllers.ComplianceEvidenceSubmissionController
+
 	ComplianceRegisterSvc              services.ComplianceRegisterServiceInterface
 	ComplianceRegisterWorkflowSvc      services.ComplianceRegisterWorkflowServiceInterface
 	ComplianceRegisterReviewSvc        services.ComplianceRegisterReviewServiceInterface
@@ -207,6 +209,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		organizationModule.UserSettingSvc,
 		settingsModule.OrganizationUnitSvc,
 		commonModule.DelegateeUserService,
+		settingsModule.RoleSvc,
 	)
 	complianceActionPlanController := controllers.NewComplianceActionPlanController(complianceActionPlanSvc)
 
@@ -454,6 +457,10 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	)
 	complianceRegisterReviewController := controllers.NewComplianceRegisterReviewController(complianceRegisterReviewSvc)
 
+	evidenceSubmissionRepo := repositories.NewComplianceEvidenceSubmissionRepository(db)
+	evidenceSubmissionSvc := services.NewComplianceEvidenceSubmissionService(evidenceSubmissionRepo, organizationModule.UserSvc)
+	evidenceSubmissionController := controllers.NewComplianceEvidenceSubmissionController(evidenceSubmissionSvc)
+
 	complianceRegisterReviewCommentRepo := repositories.NewComplianceRegisterReviewCommentRepository(db)
 	complianceRegisterReviewCommentSvc := services.NewComplianceRegisterReviewCommentService(
 		complianceRegisterReviewCommentRepo,
@@ -524,6 +531,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 		ComplianceRegisterWorkflowController:                          complianceRegisterWorkflowController,
 		ComplianceRegisterReviewController:                            complianceRegisterReviewController,
 		ComplianceRegisterReviewCommentController:                     complianceRegisterReviewCommentController,
+		ComplianceEvidenceSubmissionController:                        evidenceSubmissionController,
 
 		ComplianceRegisterSvc:              complianceRegisterSvc,
 		ComplianceRegisterWorkflowSvc:      complianceRegisterWorkflowSvc,

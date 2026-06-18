@@ -38,6 +38,7 @@ type ComplianceAssessmentRequirementServiceInterface interface {
 
 	CreateDocument(complianceAssessmentID uint, requirementID uint, requiredDocumentID uint, currentUserID uint, documents []complianceDTOs.ComplianceAssessmentRequirementDocumentFormDTO) error
 	DeleteDocuments(complianceAssessmentID uint, requirementID uint, requiredDocumentID uint, ids []uint, currentUserID uint) ([]uint, error)
+	UpdateDocument(complianceAssessmentID uint, requirementID uint, documentID uint, currentUserID uint, formDTO *complianceDTOs.ComplianceAssessmentRequirementDocumentUpdateFormDTO) error
 
 	GetDocumentPath(complianceAssessmentID, requirementID, id uint, token string) (string, error)
 
@@ -281,6 +282,18 @@ func (cars ComplianceAssessmentRequirementService) GetFullDetailsByID(assessment
 	if err != nil {
 		return nil, err
 	}
+
+	// Explicitly map ComplianceAssessmentCompliances to Compliances
+	if complianceAssessment.ComplianceAssessment != nil {
+		var complianceDTO []*complianceDTOs.ComplianceAssessmentComplianceDTO
+		if err := mapstructure.Decode(complianceAssessment.ComplianceAssessment.ComplianceAssessmentCompliances, &complianceDTO); err != nil {
+			return nil, err
+		}
+		if complianceAssessmentRequirementDTO.ComplianceAssessment != nil {
+			complianceAssessmentRequirementDTO.ComplianceAssessment.Compliances = complianceDTO
+		}
+	}
+
 	var filteredResponsibleUnits []*complianceDTOs.ComplianceAssessmentRequirementResponsibleUnitDTO
 	// If responsibleUnitID is provided, filter to return only that specific responsibleUnit
 	for _, responsibleUnit := range complianceAssessmentRequirementDTO.ResponsibleUnits {
@@ -720,6 +733,88 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 				})
 			}
 		}
+
+		// Send notification and email to compliance register review user
+		if existingAssessmentRequirement.ComplianceAssessment != nil &&
+			len(existingAssessmentRequirement.ComplianceAssessment.Compliances) > 0 &&
+			existingAssessmentRequirement.ComplianceAssessment.Compliances[0].ComplianceRegister != nil &&
+			existingAssessmentRequirement.ComplianceAssessment.Compliances[0].ComplianceRegister.ResponsibleUserID != 0 {
+
+			reviewUserID := existingAssessmentRequirement.ComplianceAssessment.Compliances[0].ComplianceRegister.ResponsibleUserID
+			reviewUser, err := cars.userSvc.GetByID(reviewUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch review user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			completedByUser, err := cars.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch completed by user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			requirementTitleEn := ""
+			requirementTitleAr := ""
+			if existingAssessmentRequirement.ComplianceRequirement.ID != 0 {
+				requirementTitleEn = existingAssessmentRequirement.ComplianceRequirement.TitleEn
+				requirementTitleAr = existingAssessmentRequirement.ComplianceRequirement.TitleAr
+			}
+
+			registerTitleEn := ""
+			registerTitleAr := ""
+			if len(existingAssessmentRequirement.ComplianceAssessment.Compliances) > 0 &&
+				existingAssessmentRequirement.ComplianceAssessment.Compliances[0].ComplianceRegister != nil {
+				registerTitleEn = existingAssessmentRequirement.ComplianceAssessment.Compliances[0].ComplianceRegister.TitleEn
+				registerTitleAr = existingAssessmentRequirement.ComplianceAssessment.Compliances[0].ComplianceRegister.TitleAr
+			}
+
+			entity := "compliance-assessment-requirement"
+			action := "requirement-completed"
+			urlParam := fmt.Sprintf(`{"id":%d}`, requirementId)
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{reviewUserID},
+				ModuleIdentifier:     "compliance",
+				NotificationType:     string(commonDTOs.CompletionType),
+				HeadingEn:            "Compliance Requirement Completed",
+				HeadingAr:            "تم إكمال متطلب الامتثال",
+				TitleEn:              requirementTitleEn,
+				TitleAr:              requirementTitleAr,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: true,
+				CreatedByID:          &currentUserID,
+			}
+
+			appURL := utility.GetAppURL()
+			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              []string{reviewUser.Email},
+				Subject:              fmt.Sprintf("Compliance Requirement Completed - %s", requirementTitleEn),
+				TemplateRelativePath: "compliance/templates/email/compliance_requirement_completed_mail.html",
+				EmailData: map[string]interface{}{
+					"FirstNameEn":        reviewUser.FirstNameEn,
+					"LastNameEn":         reviewUser.LastNameEn,
+					"RequirementTitleEn": requirementTitleEn,
+					"RequirementTitleAr": requirementTitleAr,
+					"RegisterTitleEn":    registerTitleEn,
+					"RegisterTitleAr":    registerTitleAr,
+					"CompletedBy":        fmt.Sprintf("%s %s", completedByUser.FirstNameEn, completedByUser.LastNameEn),
+					"CompletedAt":        time.Now().Format("02-01-2006"),
+					"RedirectURL":        fmt.Sprintf("%s/compliance/assessments/%d/overview", appURL, complianceAssessmentId),
+				},
+			}
+
+			if err := cars.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "compliance_assessment"); err != nil {
+				utility.LogError("Failed to send completion notification", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
 	}()
 
 	return nil
@@ -1101,6 +1196,56 @@ func (cars *ComplianceAssessmentRequirementService) ApproveComplianceRequirement
 				})
 			}
 		}
+
+		// Send notification and email to assessment review user
+		if assessmentDetails.ReviewUser != nil {
+			reviewUser := assessmentDetails.ReviewUser
+
+			reviewUrlParam := fmt.Sprintf(`{"assessment_id":%d, "requirement_id":%d}`, assessmentID, requirementID)
+			reviewEntity := "compliance-assessment-requirement"
+			reviewAction := "approved"
+
+			reviewDBNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{uint(reviewUser.ID)},
+				ModuleIdentifier:     "compliance_register",
+				NotificationType:     string(commonDTOs.InformationType),
+				HeadingEn:            "Compliance Requirement Approved",
+				HeadingAr:            "تم الموافقة على متطلبات الامتثال",
+				TitleEn:              titleEn,
+				TitleAr:              titleAr,
+				ReferenceNumber:      referenceNumber,
+				Entity:               &reviewEntity,
+				Action:               &reviewAction,
+				URLParam:             reviewUrlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			reviewEmailNotification := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              []string{reviewUser.Email},
+				Subject:              fmt.Sprintf("Compliance Requirement #%d Approved", requirementID),
+				TemplateRelativePath: "compliance/templates/email/compliance_requirement_approved.html",
+				EmailData: map[string]interface{}{
+					"FirstNameEn":         reviewUser.FirstNameEN,
+					"LastNameEn":          reviewUser.LastNameEN,
+					"TitleEn":             titleEn,
+					"TitleAr":             titleAr,
+					"ReferenceNumber":     referenceNumber,
+					"Comment":             commentForm.Comment,
+					"ApprovedByFirstName": createdBy.FirstNameEn,
+					"ApprovedByLastName":  createdBy.LastNameEn,
+					"ApprovalDate":        time.Now().Format("2006-01-02"),
+					"RedirectURL":         fmt.Sprintf("%s/compliance/assessments/%d/overview", utility.GetAppURL(), assessmentID),
+				},
+			}
+
+			err = cars.notificationSvc.SendNotification(reviewDBNotificationDTO, reviewEmailNotification, "compliance_assessment")
+			if err != nil {
+				utility.LogError("Failed to send review user notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
 	}()
 
 	return nil
@@ -1259,11 +1404,11 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 			})
 			return
 		}
-		if complianceAssessmentRequirementResponsibleUnit.CompletedByUserID != nil {
+		if complianceAssessmentRequirementResponsibleUnit.ResponsibleUserID != nil {
 
-			completedUser, err := cars.userSvc.GetByID(*complianceAssessmentRequirementResponsibleUnit.CompletedByUserID)
+			responsibleUser, err := cars.userSvc.GetByID(*complianceAssessmentRequirementResponsibleUnit.ResponsibleUserID)
 			if err != nil {
-				utility.LogError("Failed to fetch submitted user", map[string]interface{}{
+				utility.LogError("Failed to fetch responsible user", map[string]interface{}{
 					"error": err.Error(),
 				})
 				return
@@ -1275,7 +1420,7 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 			action := "reverted"
 
 			dbNotification := &commonDTOs.DBNotificationDTO{
-				UserIDs:              []uint{completedUser.ID},
+				UserIDs:              []uint{responsibleUser.ID},
 				ModuleIdentifier:     "compliance_register",
 				NotificationType:     string(commonDTOs.AssignmentType),
 				HeadingEn:            "Compliance Requirement Reverted",
@@ -1291,12 +1436,12 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 			}
 
 			emailNotification := &commonDTOs.EmailNotificationDTO{
-				EmailTo:              []string{completedUser.Email},
+				EmailTo:              []string{responsibleUser.Email},
 				Subject:              fmt.Sprintf("Compliance Requirement #%d Reverted", requirementID),
 				TemplateRelativePath: "compliance/templates/email/compliance_requirement_reverted.html",
 				EmailData: map[string]interface{}{
-					"FirstNameEn":         completedUser.FirstNameEn,
-					"LastNameEn":          completedUser.LastNameEn,
+					"FirstNameEn":         responsibleUser.FirstNameEn,
+					"LastNameEn":          responsibleUser.LastNameEn,
 					"TitleEn":             titleEn,
 					"TitleAr":             titleAr,
 					"ReferenceNumber":     referenceNumber,
@@ -2101,7 +2246,157 @@ func (cars *ComplianceAssessmentRequirementService) AcknowledgeRequirement(asses
 		tx.Rollback()
 		return err
 	}
+
+	// Check if all responsible units are approved and update overall requirement status
+	allComplianceAssessmentRequirement, err := cars.GetFullDetailsByID(assessmentID, requirementID, 0, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	allApproved := true
+	for _, ru := range allComplianceAssessmentRequirement.ResponsibleUnits {
+		if ru == nil {
+			continue
+		}
+		st := ru.ComplianceAssessmentRequirementStatus
+		if st == nil || st.Type != "approved" {
+			allApproved = false
+			break
+		}
+	}
+
+	car, err := cars.repo.GetByID(requirementID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if allApproved {
+		car.ComplianceAssessmentRequirementStatusID = &approvedStatus.ID
+	} else {
+		car.ComplianceAssessmentRequirementStatusID = nil
+	}
+	car.UpdatedBYID = &currentUserID
+
+	if err := cars.repo.Update(car, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	tx.Commit()
 
+	// Send notification and email to assessment review user
+	go func() {
+		assessmentDetails, err := cars.complianceAssessmentSvc.GetFullDetailsByID(assessmentID)
+		if err != nil {
+			utility.LogError("Failed to fetch assessment details for notification", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		if assessmentDetails.ReviewUser != nil {
+			reviewUser := assessmentDetails.ReviewUser
+
+			// Get register titles
+			registerTitleEn := ""
+			registerTitleAr := ""
+			if len(assessmentDetails.Compliances) > 0 && assessmentDetails.Compliances[0].ComplianceRegister != nil {
+				registerTitleEn = assessmentDetails.Compliances[0].ComplianceRegister.TitleEn
+				registerTitleAr = assessmentDetails.Compliances[0].ComplianceRegister.TitleAr
+			}
+
+			// Get requirement titles
+			requirementTitleEn := ""
+			requirementTitleAr := ""
+			if details.ComplianceRequirement.ID != 0 {
+				requirementTitleEn = details.ComplianceRequirement.TitleEn
+				requirementTitleAr = details.ComplianceRequirement.TitleAr
+			}
+
+			acknowledgedByUser, err := cars.userSvc.GetByID(currentUserID)
+			if err != nil {
+				utility.LogError("Failed to fetch acknowledged by user", map[string]interface{}{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			entity := "compliance-assessment-requirement"
+			action := "acknowledged"
+			urlParam := fmt.Sprintf(`{"assessment_id":%d, "requirement_id":%d}`, assessmentID, requirementID)
+
+			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+				UserIDs:              []uint{uint(reviewUser.ID)},
+				ModuleIdentifier:     "compliance_register",
+				NotificationType:     string(commonDTOs.CompletionType),
+				HeadingEn:            "Compliance Requirement Acknowledged",
+				HeadingAr:            "تم إقرار متطلب الامتثال",
+				TitleEn:              registerTitleEn,
+				TitleAr:              registerTitleAr,
+				Entity:               &entity,
+				Action:               &action,
+				URLParam:             urlParam,
+				IsSystemNotification: false,
+				CreatedByID:          &currentUserID,
+			}
+
+			emailNotification := &commonDTOs.EmailNotificationDTO{
+				EmailTo:              []string{reviewUser.Email},
+				Subject:              fmt.Sprintf("Compliance Requirement #%d Acknowledged", requirementID),
+				TemplateRelativePath: "compliance/templates/email/compliance_requirement_acknowledged_mail.html",
+				EmailData: map[string]interface{}{
+					"FirstNameEn":        reviewUser.FirstNameEN,
+					"LastNameEn":         reviewUser.LastNameEN,
+					"RegisterTitleEn":    registerTitleEn,
+					"RegisterTitleAr":    registerTitleAr,
+					"RequirementTitleEn": requirementTitleEn,
+					"RequirementTitleAr": requirementTitleAr,
+					"AcknowledgedBy":     fmt.Sprintf("%s %s", acknowledgedByUser.FirstNameEn, acknowledgedByUser.LastNameEn),
+					"AcknowledgedAt":     time.Now().Format("2006-01-02"),
+					"Comment":            form.Comment,
+					"RedirectURL":        fmt.Sprintf("%s/compliance/assessments/%d/overview", utility.GetAppURL(), assessmentID),
+				},
+			}
+
+			err = cars.notificationSvc.SendNotification(dbNotificationDTO, emailNotification, "compliance_assessment")
+			if err != nil {
+				utility.LogError("Failed to send acknowledgment notifications", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		}
+	}()
+
 	return nil
+}
+
+func (cars *ComplianceAssessmentRequirementService) UpdateDocument(complianceAssessmentID uint, requirementID uint, documentID uint, currentUserID uint, formDTO *complianceDTOs.ComplianceAssessmentRequirementDocumentUpdateFormDTO) error {
+	document, err := cars.repo.GetDocumentByID(formDTO.ID)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+
+	if formDTO.Status == "approved" {
+		document.ApprovedByID = &currentUserID
+		document.UpdatedByID = currentUserID
+		document.RejectedByID = nil
+		document.ApprovedAt = &now
+		document.UpdatedAt = now
+		document.RejectedAt = nil
+	}
+
+	if formDTO.Status == "rejected" {
+		document.RejectedByID = &currentUserID
+		document.UpdatedByID = currentUserID
+		document.ApprovedByID = nil
+		document.RejectedAt = &now
+		document.UpdatedAt = now
+		document.ApprovedAt = nil
+	}
+
+	return cars.repo.UpdateDocument(document)
 }
