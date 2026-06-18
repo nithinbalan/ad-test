@@ -747,6 +747,8 @@ func (cars ComplianceAssessmentRequirementService) MarkAsOpen(complianceAssessme
 	complianceAssessmentRequirementResponsibleUnit.IsCompleted = false
 	complianceAssessmentRequirementResponsibleUnit.CompletedByUserID = nil
 	complianceAssessmentRequirementResponsibleUnit.CompletedAt = nil
+	complianceAssessmentRequirementResponsibleUnit.IsNotApplicable = false
+	complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirementStatusID = nil
 	complianceAssessmentRequirementResponsibleUnit.UpdatedBYID = &currentUserID
 
 	err = cars.repo.UpdateComplianceAssessmentRequirementResponsibleUnit(complianceAssessmentRequirementResponsibleUnit, tx)
@@ -1156,6 +1158,7 @@ func (cars *ComplianceAssessmentRequirementService) RevertComplianceRequirement(
 
 	// Update requirement status to "reverted"
 	complianceAssessmentRequirementResponsibleUnit.ComplianceAssessmentRequirementStatusID = &revertedStatus.ID
+	complianceAssessmentRequirementResponsibleUnit.CompletedByUserID = nil
 	complianceAssessmentRequirementResponsibleUnit.UpdatedBYID = &currentUserID
 
 	err = cars.repo.UpdateComplianceAssessmentRequirementResponsibleUnit(complianceAssessmentRequirementResponsibleUnit, tx)
@@ -2079,6 +2082,11 @@ func (cars *ComplianceAssessmentRequirementService) AcknowledgeRequirement(asses
 		return utility.NewValidationError(fmt.Errorf("requirement has already been acknowledged"), "already_acknowledged", "requirement")
 	}
 
+	approvedStatus, err := cars.complianceAssessmentRequirementStatusSvc.GetByType("approved")
+	if err != nil {
+		return err
+	}
+
 	now := time.Now()
 	carru.IsAcknowledged = true
 	carru.AcknowledgeUserID = &currentUserID
@@ -2086,6 +2094,7 @@ func (cars *ComplianceAssessmentRequirementService) AcknowledgeRequirement(asses
 	carru.IsCompleted = true
 	carru.CompletedByUserID = &currentUserID
 	carru.CompletedAt = &now
+	carru.ComplianceAssessmentRequirementStatusID = &approvedStatus.ID
 	carru.UpdatedBYID = &currentUserID
 
 	tx := cars.repo.BeginTransaction()
