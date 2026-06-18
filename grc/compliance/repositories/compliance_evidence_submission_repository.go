@@ -131,12 +131,12 @@ func (repo *ComplianceEvidenceSubmissionRepository) GetAll(params *complianceDTO
 	if params.Keyword != "" {
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`(
-			compliance_clause_title_en LIKE ? OR
-			compliance_clause_title_ar LIKE ? OR
-			compliance_register_title_en LIKE ? OR
-			compliance_register_title_ar LIKE ? OR
-			compliance_requirement_title_en LIKE ? OR
-			compliance_requirement_title_ar LIKE ?
+			LOWER(compliance_clause_title_en) LIKE LOWER(?) OR
+			LOWER(compliance_clause_title_ar) LIKE LOWER(?) OR
+			LOWER(compliance_register_title_en) LIKE LOWER(?) OR
+			LOWER(compliance_register_title_ar) LIKE LOWER(?) OR
+			LOWER(compliance_requirement_title_en) LIKE LOWER(?) OR
+			LOWER(compliance_requirement_title_ar) LIKE LOWER(?)
 		)`, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 

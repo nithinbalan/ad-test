@@ -339,6 +339,9 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 	query := db.
 		Preload("ComplianceAssessment").
 		Preload("ComplianceAssessment.SubmittedByUser").
+		Preload("ComplianceAssessment.ComplianceAssessmentCompliances").
+		Preload("ComplianceAssessment.ComplianceAssessmentCompliances.ComplianceRegister").
+		Preload("ComplianceAssessment.ComplianceAssessmentCompliances.ComplianceRegister.ResponsibleUser").
 		Preload("ComplianceRequirement").
 		Preload("ComplianceRequirement.ComplianceStatus").
 		Preload("ComplianceRequirement.ComplianceClause").

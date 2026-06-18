@@ -274,11 +274,18 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 			emailTo := []string{reviewUser.Email}
 			subject := fmt.Sprintf("Compliance Action Plan %s: Resolved", complianceActionPlan.Title)
 			appURL := utility.GetAppURL()
+			// Handle nil compliance case for flat routes (complianceID == 0)
+			referenceNumber := ""
+			complianceTitle := ""
+			if compliance != nil {
+				referenceNumber = compliance.ReferenceNumber
+				complianceTitle = compliance.TitleEn
+			}
 			emailData := map[string]interface{}{
 				"FirstNameEn":               reviewUser.FirstNameEn,
 				"LastNameEn":                reviewUser.LastNameEn,
-				"ComplianceReferenceNumber": compliance.ReferenceNumber,
-				"ComplianceTitle":           compliance.TitleEn,
+				"ComplianceReferenceNumber": referenceNumber,
+				"ComplianceTitle":           complianceTitle,
 				"ActionPlanTitle":           complianceActionPlan.Title,
 				"ActionPlanDescription":     complianceActionPlan.Description,
 				"ResolvedByFirstNameEn":     resolvedBy.FirstNameEn,
@@ -658,11 +665,18 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 		emailTo := []string{responsibleUser.Email}
 		subject := fmt.Sprintf("Compliance Action Plan %s: Resolved", existingComplianceActionPlan.Title)
 		appURL := utility.GetAppURL()
+		// Handle nil compliance case for flat routes (complianceID == 0)
+		referenceNumber := ""
+		complianceTitle := ""
+		if compliance != nil {
+			referenceNumber = compliance.ReferenceNumber
+			complianceTitle = compliance.TitleEn
+		}
 		emailData := map[string]interface{}{
 			"FirstNameEn":               responsibleUser.FirstNameEn,
 			"LastNameEn":                responsibleUser.LastNameEn,
-			"ComplianceReferenceNumber": compliance.ReferenceNumber,
-			"ComplianceTitle":           compliance.TitleEn,
+			"ComplianceReferenceNumber": referenceNumber,
+			"ComplianceTitle":           complianceTitle,
 			"ActionPlanTitle":           existingComplianceActionPlan.Title,
 			"ActionPlanDescription":     existingComplianceActionPlan.Description,
 			"ResolvedByFirstNameEn":     resolvedBy.FirstNameEn,
@@ -826,11 +840,18 @@ func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, 
 		emailTo := []string{responsibleUser.Email}
 		subject := fmt.Sprintf("Compliance Action Plan %s: Reopened", existingComplianceActionPlan.Title)
 		appURL := utility.GetAppURL()
+		// Handle nil compliance case for flat routes (complianceID == 0)
+		referenceNumber := ""
+		complianceTitle := ""
+		if compliance != nil {
+			referenceNumber = compliance.ReferenceNumber
+			complianceTitle = compliance.TitleEn
+		}
 		emailData := map[string]interface{}{
 			"FirstNameEn":               responsibleUser.FirstNameEn,
 			"LastNameEn":                responsibleUser.LastNameEn,
-			"ComplianceReferenceNumber": compliance.ReferenceNumber,
-			"ComplianceTitle":           compliance.TitleEn,
+			"ComplianceReferenceNumber": referenceNumber,
+			"ComplianceTitle":           complianceTitle,
 			"ActionPlanTitle":           existingComplianceActionPlan.Title,
 			"ActionPlanDescription":     existingComplianceActionPlan.Description,
 			"ResolvedByFirstNameEn":     resolvedBy.FirstNameEn,

@@ -8,6 +8,7 @@ import (
 
 	complianceDTOs "jethur/grc/compliance/dtos"
 	complianceRepositories "jethur/grc/compliance/repositories"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
 )
@@ -107,6 +108,20 @@ func (cpas *ComplianceEvidenceSubmissionService) GetRequirementAssessmentFullDet
 			}
 			if j >= len(dto.RequiredDocumentTitles[i].Documents) {
 				break
+			}
+			// Copy ApprovedByUser and RejectedByUser from model to DTO
+			sourceDoc := (*responsibleUnit.RequiredDocumentTitles[i].Documents)[j]
+			if sourceDoc.ApprovedByUser != nil {
+				var approvedByUser organizationDTOs.UserMinimalDTO
+				if err := mapstructure.Decode(sourceDoc.ApprovedByUser, &approvedByUser); err == nil {
+					doc.ApprovedByUser = &approvedByUser
+				}
+			}
+			if sourceDoc.RejectedByUser != nil {
+				var rejectedByUser organizationDTOs.UserMinimalDTO
+				if err := mapstructure.Decode(sourceDoc.RejectedByUser, &rejectedByUser); err == nil {
+					doc.RejectedByUser = &rejectedByUser
+				}
 			}
 			dto.RequiredDocumentTitles[i].Documents[j] = doc
 		}

@@ -110,8 +110,10 @@ func (caps *ComplianceActionPlanService) GetAll(complianceID uint, currentUserID
 }
 
 func (caps ComplianceActionPlanService) GetByID(complianceID uint, id uint) (*models.ComplianceActionPlan, error) {
-	if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
-		return nil, err
+	if complianceID != 0 {
+		if _, err := caps.complianceRegisterSvc.GetByID(complianceID); err != nil {
+			return nil, err
+		}
 	}
 
 	complianceActionPlan, err := caps.repo.GetByID(id)

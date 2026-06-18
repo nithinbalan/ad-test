@@ -197,7 +197,7 @@ func (crrs *ComplianceRegisterReviewService) Submit(complianceRegisterID uint, c
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%scompliance/compliance-register/%d", appURL, complianceRegisterDetail.ID),
+				"RedirectURL":           fmt.Sprintf("%s/compliance/register/%d/overview", appURL, complianceRegisterDetail.ID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -608,7 +608,7 @@ func (crrs *ComplianceRegisterReviewService) Reopen(complianceRegisterID uint, c
 		appURL := utility.GetAppURL()
 		emailTo := []string{createdByUser.Email}
 		subject := "Compliance Register: Review Reopened"
-		redirectURL := fmt.Sprintf("%scompliance/compliance-register/%d", appURL, complianceRegisterDetail.ID)
+		redirectURL := fmt.Sprintf("%s/compliance/register/%d/overview", appURL, complianceRegisterDetail.ID)
 
 		emailData := map[string]interface{}{
 			"FirstNameEn":           createdByUser.FirstNameEn,
@@ -687,10 +687,11 @@ func (crrs *ComplianceRegisterReviewService) sendApprovalNotification(id uint, c
 			"Description":           "",
 			"FirstNameEn":           complianceDetail.CreatedByUser.FirstNameEN,
 			"LastNameEn":            complianceDetail.CreatedByUser.LastNameEN,
+			"ReferenceNumber":       referenceNumber,
 			"ApprovedByFirstNameEn": approvedByUser.FirstNameEn,
 			"ApprovedByLastNameEn":  approvedByUser.LastNameEn,
 			"ApprovedAt":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%scompliance/compliance-register/%d", appURL, complianceDetail.ID),
+			"RedirectURL":           fmt.Sprintf("%s/compliance/register/%d/overview", appURL, complianceDetail.ID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -768,12 +769,13 @@ func (crrs *ComplianceRegisterReviewService) notifyNextLevelUsers(id uint, nextW
 				"LastNameEn":            responsibleUser.LastNameEn,
 				"Title":                 complianceTitle,
 				"Description":           "",
+				"ReferenceNumber":       referenceNumber,
 				"ResponsibleUserName":   complianceDetail.CreatedByUser.FirstNameEN + " " + complianceDetail.CreatedByUser.LastNameEN,
 				"ResponsibleUserEmail":  complianceDetail.CreatedByUser.Email,
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%scompliance/compliance-register/%d", appURL, complianceDetail.ID),
+				"RedirectURL":           fmt.Sprintf("%s/compliance/register/%d/overview", appURL, complianceDetail.ID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -854,7 +856,7 @@ func (crrs *ComplianceRegisterReviewService) sendRejectedNotification(id uint, c
 			"RejectedByFirstNameEn": rejectedByUser.FirstNameEn,
 			"RejectedByLastNameEn":  rejectedByUser.LastNameEn,
 			"RejectedAt":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%scompliance/compliance-register/%d", appURL, complianceRegisterDetail.ID),
+			"RedirectURL":           fmt.Sprintf("%s/compliance/register/%d/overview", appURL, complianceRegisterDetail.ID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
