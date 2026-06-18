@@ -139,7 +139,7 @@ type ComplianceAssessmentRequirementResponsibleUnitDTO struct {
 	ID                                    uint                                               `json:"id"`
 	ResponsibleUnitID                     uint                                               `json:"responsible_unit_id"`
 	ResponsibleUserID                     *uint                                              `json:"responsible_user_id"`
-	RespondibleUser                       *organizationDTOs.UserMinimalDTO                   `json:"respondible_user"`
+	ResponsibleUser                       *organizationDTOs.UserMinimalDTO                   `json:"respondible_user"`
 	ResponsibleUnit                       settingsDTOs.OrganizationUnitDTO                   `json:"responsible_unit"`
 	ComplianceAssessmentFrameworkValue    *ComplianceAssessmentFrameworkValueDetailDTO       `json:"compliance_assessment_framework_value"`
 	ComplianceAssessmentRequirement       *ComplianceAssessmentRequirementDetailDTO          `json:"compliance_assessment_requirement"`
