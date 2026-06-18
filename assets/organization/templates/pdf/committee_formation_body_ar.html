@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>قرار تشكيل لجنة</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&display=swap" rel="stylesheet" />
+
+<style>
+
+    *{
+        box-sizing:border-box;
+    }
+
+    body{
+        font-family:'Cairo', sans-serif;
+        color:#222;
+        margin:0;
+        padding:20px;
+        font-size:16px;
+        line-height:1.4;
+        direction: rtl;
+        text-align: right;
+    }
+
+    .report-container{
+        width:100%;
+    }
+
+    .report-title{
+        text-align:center;
+        color:#166534;
+        font-size:32px;
+        font-weight:700;
+        margin-bottom:10px;
+    }
+
+    .reference-number{
+        text-align:center;
+        color:#B8860B;
+        font-size:18px;
+        font-weight:600;
+        margin-bottom:20px;
+    }
+
+    .summary-table{
+        width:100%;
+        border-collapse:collapse;
+        margin-bottom:35px;
+    }
+
+    .summary-table td{
+        border:1px solid #D3D8D5;
+        padding:12px 14px;
+        vertical-align:middle;
+    }
+
+    .summary-label{
+        width:32%;
+        background:#EAF2ED;
+        color:#166534;
+        font-weight:600;
+    }
+
+    .summary-value{
+        background:#FFFFFF;
+    }
+
+    .section-title{
+        color:#166534;
+        font-size:18px;
+        font-weight:700;
+        margin-top:28px;
+        margin-bottom:14px;
+    }
+
+    .intro-paragraph{
+        margin-bottom:6px;
+    }
+
+    .decision-highlight{
+        font-weight:700;
+    }
+
+    .membership-table{
+        width:100%;
+        border-collapse:collapse;
+        margin-top:15px;
+        margin-bottom:25px;
+    }
+
+    .membership-table thead{
+        display:table-header-group;
+    }
+
+    .membership-table th{
+        background:#166534;
+        color:#FFF;
+        border:1px solid #166534;
+        padding:10px;
+        font-weight:600;
+        text-align:right;
+    }
+
+    .membership-table td{
+        border:1px solid #D3D8D5;
+        padding:10px;
+        vertical-align:top;
+    }
+
+    .membership-table tr{
+        page-break-inside:avoid;
+    }
+
+    .membership-table tbody tr:nth-child(odd){
+        background:#F6FAF7;
+    }
+
+    .bullet-list{
+        margin-top:8px;
+        margin-right:20px;
+        padding-right: 20px;
+    }
+
+    .bullet-list li{
+        margin-bottom:8px;
+    }
+
+    .signature-section{
+        margin-top:50px;
+        page-break-inside:avoid;
+    }
+
+    .signature-title{
+        font-weight:700;
+        margin-bottom:25px;
+    }
+
+    .signature-line{
+        margin-top:20px;
+        margin-bottom:20px;
+    }
+
+    .seal-box{
+        width:180px;
+        height:120px;
+        border:1px dashed #999;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        margin-top:20px;
+    }
+
+    .avoid-break{
+        page-break-inside:avoid;
+    }
+
+</style>
+
+</head>
+
+<body>
+
+<div class="report-container">
+
+<div class="report-title">
+    قرار تشكيل لجنة
+</div>
+
+<div class="reference-number">
+    رقم المرجع: {{ .Data.ReferenceNumber }}
+</div>
+
+<table class="summary-table">
+
+    <tr>
+        <td class="summary-label">الرقم المرجعي</td>
+        <td class="summary-value">{{ .Data.ReferenceNumber }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">اسم اللجنة</td>
+        <td class="summary-value">{{ .Data.CommitteeName }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">الجهة الطالبة</td>
+        <td class="summary-value">{{ .Data.RequestingEntity }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">نوع اللجنة</td>
+        <td class="summary-value">{{ .Data.CommitteeTerm }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">تصنيف اللجنة</td>
+        <td class="summary-value">{{ .Data.CommitteeClassification }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">الحالة</td>
+        <td class="summary-value">{{ .Data.Status }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">مقدم الطلب</td>
+        <td class="summary-value">{{ .Data.RequestedBy }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">تاريخ الإنشاء</td>
+        <td class="summary-value">{{ .Data.CreatedAt }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">تاريخ بداية العمل</td>
+        <td class="summary-value">{{ .Data.EffectiveDate }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">تاريخ نهاية المدة</td>
+        <td class="summary-value">{{ .Data.TermEndDate }}  (لجنة {{ .Data.CommitteeTerm }})</td>
+    </tr>
+
+</table>
+
+<div class="section-title">
+    المقدمة
+</div>
+
+<p class="intro-paragraph">
+    إن الرئيس التنفيذي،
+</p>
+
+<p class="intro-paragraph">
+    بناءً على الصلاحيات الممنوحة له،
+</p>
+
+<p class="intro-paragraph">
+    وبناءً على الطلب رقم ({{ .Data.ReferenceNumber }}) وتاريخ ({{ .Data.CreatedAt }}) المقدم من {{ .Data.RequestingEntity }}،
+</p>
+
+<p class="decision-highlight">
+    يقرر ما يلي:
+</p>
+
+<div class="section-title">
+    أولاً: تشكيل اللجنة
+</div>
+
+<p>
+    تشكيل ({{ .Data.CommitteeName }}) لمدة ({{ .Data.CommitteeTerm }}) اعتباراً من تاريخ ({{ .Data.EffectiveDate }}) إلى ({{ .Data.TermEndDate }}).
+</p>
+
+<div class="section-title">
+    ثانياً: عضوية اللجنة
+</div>
+
+<p>
+    تتكون اللجنة بعضوية كل من:
+</p>
+
+<table class="membership-table">
+
+    <thead>
+    <tr>
+        <th style="width:7%">م</th>
+        <th style="width:35%">الاسم</th>
+        <th style="width:33%">العمل الحالي</th>
+        <th style="width:25%">الدور باللجنة</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+    {{ range $index, $member := .Data.CommitteeMembership }}
+
+    <tr>
+        <td>{{ add $index 1 }}</td>
+        <td>{{ $member.Name }}</td>
+        <td>{{ $member.DepartmentName }}</td>
+        <td>{{ $member.CommitteeMemberRoleType }}</td>
+    </tr>
+
+    {{ end }}
+
+    </tbody>
+
+</table>
+
+<div class="section-title">
+    ثالثاً: أدوار ومسؤوليات اللجنة
+</div>
+
+<ul class="bullet-list">
+    {{ range .Data.RolesAndResponsibilities }}
+    <li>{{ . }}</li>
+    {{ end }}
+</ul>
+
+<div class="section-title">
+    رابعاً: صلاحيات اللجنة
+</div>
+
+<ul class="bullet-list">
+    {{ range .Data.Authorities }}
+    <li>{{ . }}</li>
+    {{ end }}
+</ul>
+
+<div class="section-title">
+    خامساً: النفاذ
+</div>
+
+<p>
+    يبلغ هذا القرار لمن يلزم لتنفيذه، ويُعمل به اعتباراً من تاريخه.
+</p>
+
+<table style="width: 100%; border-collapse: collapse; margin-top: 30px; border: 1px solid #D3D8D5; page-break-inside: avoid;">
+    <tr>
+        <td style="width: 50%; border: 1px solid #D3D8D5; padding: 20px; text-align: center; vertical-align: middle;">
+            <div style="font-weight: 700; margin-bottom: 10px;">اعتماد</div>
+            <div style="font-weight: 700;">ختم الجهة</div>
+        </td>
+        <td style="width: 50%; border: 1px solid #D3D8D5; padding: 20px; text-align: center; vertical-align: top;">
+            <div style="font-weight: 700; margin-bottom: 20px;">الرئيس التنفيذي</div>
+            <div style="text-align: right; display: inline-block;">
+                <div style="margin-bottom: 10px;">الاسم: ________________________</div>
+                <div style="margin-bottom: 10px;">التوقيع: ________________________</div>
+                <div style="margin-bottom: 10px;">التاريخ: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/ 1447هـ</div>
+            </div>
+        </td>
+    </tr>
+</table>
+
+</div>
+
+</body>
+</html>

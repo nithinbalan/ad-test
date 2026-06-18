@@ -32,6 +32,7 @@ type InternalCommitteeServiceInterface interface {
 	CancelCommittee(committeeID uint, currentUserID uint) error
 	CompleteCommittee(committeeID uint, currentUserID uint) error
 	UpdateCommitteeDetails(id uint, currentUserID uint, detailsDTO *organizationDTOs.UpdateCommitteeDetailsDTO) error
+	ExportCommitteeFormationToPDF(id uint, currentUserID uint, language string) (string, error)
 	// Participant methods
 	CreateParticipants(currentUserID uint, nomineeDepartmentID uint, dto *organizationDTOs.InternalCommitteeParticipantFormDTO) ([]uint, error)
 	DeleteParticipant(nomineeDepartmentID uint, participantID uint, currentUserID uint) error
@@ -2437,4 +2438,139 @@ func (ics *InternalCommitteeService) CreateExternalParticipant(currentUserID uin
 	}()
 
 	return id, nil
+}
+
+func (ics *InternalCommitteeService) ExportCommitteeFormationToPDF(id uint, currentUserID uint, language string) (string, error) {
+
+	commiteeDetails, err := ics.GetFullDetailsByID(id)
+	if err != nil {
+		return "", utility.NewResourceNotFoundError(err, id)
+	}
+
+	var (
+		committeeName           string
+		requestingEntity        string
+		committeeTerm           string
+		committeeClassification string
+		status                  string
+		requestedBy             string
+	)
+
+	if language == "en" {
+		committeeName = commiteeDetails.LatestVersion.CommitteeNameEn
+		requestingEntity = commiteeDetails.RequestingEntity.TitleEn
+		committeeTerm = commiteeDetails.LatestVersion.CommitteeTerm.TitleEn
+		committeeClassification = commiteeDetails.LatestVersion.CommitteeClassification.TitleEn
+		status = commiteeDetails.LatestVersion.CommitteeStatus.TitleEn
+		requestedBy = commiteeDetails.LatestVersion.CreatedByUser.FirstNameEN + " " + commiteeDetails.LatestVersion.CreatedByUser.LastNameEN
+	} else {
+		committeeName = commiteeDetails.LatestVersion.CommitteeNameAr
+		requestingEntity = commiteeDetails.RequestingEntity.TitleAr
+		committeeTerm = commiteeDetails.LatestVersion.CommitteeTerm.TitleAr
+		committeeClassification = commiteeDetails.LatestVersion.CommitteeClassification.TitleAr
+		status = commiteeDetails.LatestVersion.CommitteeStatus.TitleAr
+		requestedBy = commiteeDetails.LatestVersion.CreatedByUser.FirstNameAR + " " + commiteeDetails.LatestVersion.CreatedByUser.LastNameAR
+	}
+
+	referenceNumber := commiteeDetails.ReferenceNumber
+	createdAt := commiteeDetails.CreatedAt.Format("02 Jan 2006")
+
+	effectiveDate := ""
+	if commiteeDetails.LatestVersion.TermStartDateString != nil {
+		effectiveDate = *commiteeDetails.LatestVersion.TermStartDateString
+	}
+
+	termEndDate := ""
+	if commiteeDetails.LatestVersion.TermEndDateString != nil {
+		termEndDate = *commiteeDetails.LatestVersion.TermEndDateString
+	}
+
+	var committeeMemberShip []organizationDTOs.CommitteeMemberDTO
+
+	if commiteeDetails.LatestVersion != nil {
+		for _, dept := range commiteeDetails.LatestVersion.NomineeDepartments {
+			deptName := ""
+			if dept.NomineeDepartment != nil {
+				if language == "en" {
+					deptName = dept.NomineeDepartment.TitleEn
+				} else {
+					deptName = dept.NomineeDepartment.TitleAr
+				}
+			}
+
+			roleType := ""
+			if dept.MembershipType != nil {
+				if language == "en" {
+					roleType = dept.MembershipType.TitleEn
+				} else {
+					roleType = dept.MembershipType.TitleAr
+				}
+			}
+
+			for _, participant := range dept.Participants {
+				name := ""
+				if participant.User != nil {
+					if language == "en" {
+						name = participant.User.FirstNameEN + " " + participant.User.LastNameEN
+					} else {
+						name = participant.User.FirstNameAR + " " + participant.User.LastNameAR
+					}
+				} else if participant.ExternalName != nil {
+					name = *participant.ExternalName
+				}
+
+				committeeMemberShip = append(committeeMemberShip, organizationDTOs.CommitteeMemberDTO{
+					Name:                    name,
+					DepartmentName:          deptName,
+					CommitteeMemberRoleType: roleType,
+				})
+			}
+		}
+	}
+
+	var authorities []string
+	if commiteeDetails.LatestVersion != nil && commiteeDetails.LatestVersion.CommitteeAuthorities != nil {
+		authorities = utility.ExtractBulletPointsFromHTML(*commiteeDetails.LatestVersion.CommitteeAuthorities)
+	}
+
+	var rolesAndResponsibilities []string
+	if commiteeDetails.LatestVersion != nil && commiteeDetails.LatestVersion.RolesAndResponsibilities != nil {
+		rolesAndResponsibilities = utility.ExtractBulletPointsFromHTML(*commiteeDetails.LatestVersion.RolesAndResponsibilities)
+	}
+
+	// Create view model
+	viewModel := organizationDTOs.CommitteeFormationExportPDFDTO{
+		CommitteeName:            committeeName,
+		RequestingEntity:         requestingEntity,
+		CommitteeTerm:            committeeTerm,
+		CommitteeClassification:  committeeClassification,
+		Status:                   status,
+		RequestedBy:              requestedBy,
+		ReferenceNumber:          referenceNumber,
+		CreatedAt:                createdAt,
+		EffectiveDate:            effectiveDate,
+		TermEndDate:              termEndDate,
+		CommitteeMembership:      committeeMemberShip,
+		Authorities:              authorities,
+		RolesAndResponsibilities: rolesAndResponsibilities,
+	}
+
+	// Generate PDF
+	bodyTemplates := []string{"organization/templates/pdf/committee_formation_body_en.html"}
+	if language == "ar" {
+		bodyTemplates = []string{"organization/templates/pdf/committee_formation_body_ar.html"}
+	}
+	htmlContent, err := utility.GeneratePDFContent(viewModel, bodyTemplates, "", "")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate HTML content: %w", err)
+	}
+
+	pdfFileName := fmt.Sprintf("committee_formation_%s_%d.pdf", language, id)
+
+	// Convert HTML content to a PDF file
+	if err := utility.ConvertHTMLContentToPDF(htmlContent, pdfFileName); err != nil {
+		return "", fmt.Errorf("failed to generate PDF: %w", err)
+	}
+
+	return pdfFileName, nil
 }

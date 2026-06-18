@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Committee Formation Decision</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&display=swap" rel="stylesheet" />
+
+<style>
+
+    *{
+        box-sizing:border-box;
+    }
+
+    body{
+        font-family:'Lexend Deca',sans-serif;
+        color:#222;
+        margin:0;
+        padding:20px;
+        font-size:16px;
+        line-height:1.4;
+    }
+
+    .report-container{
+        width:100%;
+    }
+
+    .report-title{
+        text-align:center;
+        color:#166534;
+        font-size:32px;
+        font-weight:700;
+        margin-bottom:10px;
+    }
+
+    .reference-number{
+        text-align:center;
+        color:#B8860B;
+        font-size:18px;
+        font-weight:600;
+        margin-bottom:20px;
+    }
+
+    .summary-table{
+        width:100%;
+        border-collapse:collapse;
+        margin-bottom:35px;
+    }
+
+    .summary-table td{
+        border:1px solid #D3D8D5;
+        padding:12px 14px;
+        vertical-align:middle;
+    }
+
+    .summary-label{
+        width:32%;
+        background:#EAF2ED;
+        color:#166534;
+        font-weight:600;
+    }
+
+    .summary-value{
+        background:#FFFFFF;
+    }
+
+    .section-title{
+        color:#166534;
+        font-size:18px;
+        font-weight:700;
+        margin-top:28px;
+        margin-bottom:14px;
+    }
+
+    .intro-paragraph{
+        margin-bottom:6px;
+    }
+
+    .decision-highlight{
+        font-weight:700;
+    }
+
+    .membership-table{
+        width:100%;
+        border-collapse:collapse;
+        margin-top:15px;
+        margin-bottom:25px;
+    }
+
+    .membership-table thead{
+        display:table-header-group;
+    }
+
+    .membership-table th{
+        background:#166534;
+        color:#FFF;
+        border:1px solid #166534;
+        padding:10px;
+        font-weight:600;
+        text-align:left;
+    }
+
+    .membership-table td{
+        border:1px solid #D3D8D5;
+        padding:10px;
+        vertical-align:top;
+    }
+
+    .membership-table tr{
+        page-break-inside:avoid;
+    }
+
+    .membership-table tbody tr:nth-child(odd){
+        background:#F6FAF7;
+    }
+
+    .bullet-list{
+        margin-top:8px;
+        margin-left:20px;
+    }
+
+    .bullet-list li{
+        margin-bottom:8px;
+    }
+
+    .signature-section{
+        margin-top:50px;
+        page-break-inside:avoid;
+    }
+
+    .signature-title{
+        font-weight:700;
+        margin-bottom:25px;
+    }
+
+    .signature-line{
+        margin-top:20px;
+        margin-bottom:20px;
+    }
+
+    .seal-box{
+        width:180px;
+        height:120px;
+        border:1px dashed #999;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        margin-top:20px;
+    }
+
+    .avoid-break{
+        page-break-inside:avoid;
+    }
+
+</style>
+
+</head>
+
+<body>
+
+<div class="report-container">
+
+<div class="report-title">
+    Committee Formation Decision
+</div>
+
+<div class="reference-number">
+    Reference Number: {{ .Data.ReferenceNumber }}
+</div>
+
+<table class="summary-table">
+
+    <tr>
+        <td class="summary-label">Reference Number</td>
+        <td class="summary-value">{{ .Data.ReferenceNumber }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">Committee Name</td>
+        <td class="summary-value">{{ .Data.CommitteeName }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">Requesting Entity</td>
+        <td class="summary-value">{{ .Data.RequestingEntity }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">Committee Term</td>
+        <td class="summary-value">{{ .Data.CommitteeTerm }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">Committee Classification</td>
+        <td class="summary-value">{{ .Data.CommitteeClassification }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">Status</td>
+        <td class="summary-value">{{ .Data.Status }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">Requested By</td>
+        <td class="summary-value">{{ .Data.RequestedBy }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">Created At</td>
+        <td class="summary-value">{{ .Data.CreatedAt }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">Effective Date</td>
+        <td class="summary-value">{{ .Data.EffectiveDate }}</td>
+    </tr>
+
+    <tr>
+        <td class="summary-label">Term End Date</td>
+        <td class="summary-value">{{ .Data.TermEndDate }}  ({{ .Data.CommitteeTerm }} committee)</td>
+    </tr>
+
+</table>
+
+<div class="section-title">
+    Preamble
+</div>
+
+<p class="intro-paragraph">
+    The Chief Executive Officer,
+</p>
+
+<p class="intro-paragraph">
+    Pursuant to the powers vested in him,
+</p>
+
+<p class="intro-paragraph">
+    And based on Request No. ({{ .Data.ReferenceNumber }}) dated ({{ .Data.CreatedAt }}), submitted by the {{ .Data.RequestingEntity }},
+</p>
+
+<p class="decision-highlight">
+    Hereby decides the following:
+</p>
+
+<div class="section-title">
+    First: Formation of the Committee
+</div>
+
+<p>
+    To form the ({{ .Data.CommitteeName }}) for a ({{ .Data.CommitteeTerm }}) term, effective from ({{ .Data.EffectiveDate }}) until ({{ .Data.TermEndDate }}).
+</p>
+
+<div class="section-title">
+    Second: Committee Membership
+</div>
+
+<p>
+    The committee shall consist of the following members:
+</p>
+
+<table class="membership-table">
+
+    <thead>
+    <tr>
+        <th style="width:7%">#</th>
+        <th style="width:35%">Name</th>
+        <th style="width:33%">Current Position</th>
+        <th style="width:25%">Committee Role</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+    {{ range $index, $member := .Data.CommitteeMembership }}
+
+    <tr>
+        <td>{{ add $index 1 }}</td>
+        <td>{{ $member.Name }}</td>
+        <td>{{ $member.DepartmentName }}</td>
+        <td>{{ $member.CommitteeMemberRoleType }}</td>
+    </tr>
+
+    {{ end }}
+
+    </tbody>
+
+</table>
+
+<div class="section-title">
+    Third: Roles and Responsibilities
+</div>
+
+<ul class="bullet-list">
+    {{ range .Data.RolesAndResponsibilities }}
+    <li>{{ . }}</li>
+    {{ end }}
+</ul>
+
+<div class="section-title">
+    Fourth: Committee Authorities
+</div>
+
+<ul class="bullet-list">
+    {{ range .Data.Authorities }}
+    <li>{{ . }}</li>
+    {{ end }}
+</ul>
+
+<div class="section-title">
+    Fifth: Enforcement
+</div>
+
+<p>
+    This decision shall be communicated to all concerned parties
+    for implementation and shall take effect from its date.
+</p>
+
+<table style="width: 100%; border-collapse: collapse; margin-top: 30px; border: 1px solid #D3D8D5; page-break-inside: avoid;">
+    <tr>
+        <td style="width: 50%; border: 1px solid #D3D8D5; padding: 20px; text-align: center; vertical-align: top;">
+            <div style="font-weight: 700; margin-bottom: 20px;">Chief Executive Officer</div>
+            <div style="text-align: left; display: inline-block;">
+                <div style="margin-bottom: 10px;">Name: ________________________</div>
+                <div style="margin-bottom: 10px;">Signature: ________________________</div>
+                <div style="margin-left: 100px;">Date: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/ 1447 H</div>
+            </div>
+        </td>
+        <td style="width: 50%; border: 1px solid #D3D8D5; padding: 20px; text-align: center; vertical-align: middle;">
+            <div style="font-weight: 700; margin-bottom: 10px;">Approval</div>
+            <div style="font-weight: 700;">Entity Seal</div>
+        </td>
+    </tr>
+</table>
+
+</div>
+
+</body>
+</html>

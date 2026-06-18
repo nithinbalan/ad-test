@@ -203,3 +203,25 @@ type ReformInternalCommitteeDTO struct {
 	CommitteeAuthorities      *string                                            `json:"committee_authorities"`
 	NomineeDepartments        []InternalCommitteeVersionNomineeDepartmentFormDTO `json:"nominee_departments"`
 }
+
+type CommitteeMemberDTO struct {
+	Name                    string
+	DepartmentName          string
+	CommitteeMemberRoleType string
+}
+
+type CommitteeFormationExportPDFDTO struct {
+	CommitteeName            string
+	RequestingEntity         string
+	CommitteeTerm            string
+	CommitteeClassification  string
+	Status                   string
+	RequestedBy              string
+	ReferenceNumber          string
+	CreatedAt                string
+	EffectiveDate            string
+	TermEndDate              string
+	CommitteeMembership      []CommitteeMemberDTO
+	Authorities              []string
+	RolesAndResponsibilities []string
+}
