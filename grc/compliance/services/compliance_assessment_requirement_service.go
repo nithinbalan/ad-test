@@ -2081,6 +2081,11 @@ func (cars *ComplianceAssessmentRequirementService) AcknowledgeRequirement(asses
 		return utility.NewValidationError(fmt.Errorf("requirement has already been acknowledged"), "already_acknowledged", "requirement")
 	}
 
+	approvedStatus, err := cars.complianceAssessmentRequirementStatusSvc.GetByType("approved")
+	if err != nil {
+		return err
+	}
+
 	now := time.Now()
 	carru.IsAcknowledged = true
 	carru.AcknowledgeUserID = &currentUserID
@@ -2088,6 +2093,7 @@ func (cars *ComplianceAssessmentRequirementService) AcknowledgeRequirement(asses
 	carru.IsCompleted = true
 	carru.CompletedByUserID = &currentUserID
 	carru.CompletedAt = &now
+	carru.ComplianceAssessmentRequirementStatusID = &approvedStatus.ID
 	carru.UpdatedBYID = &currentUserID
 
 	tx := cars.repo.BeginTransaction()
