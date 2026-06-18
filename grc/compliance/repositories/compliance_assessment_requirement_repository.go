@@ -380,7 +380,8 @@ func (repo *ComplianceAssessmentRequirementRepository) GetFullDetailsByID(requir
 		Preload("ResponsibleUnits.ResidualControls.Control").
 		Preload("ResponsibleUnits.ResidualRiskRating").
 		Preload("ResponsibleUnits.ComplianceStatus").
-		Preload("ResponsibleUnits.AcknowledgeUser")
+		Preload("ResponsibleUnits.AcknowledgeUser").
+		Preload("ResponsibleUnits.ResponsibleUser")
 
 	if err := query.First(&car, requirementId).Error; err != nil {
 		return nil, err
