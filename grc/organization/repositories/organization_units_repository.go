@@ -712,6 +712,24 @@ func (repo *OrganizationUnitsRepository) GetAllProcessesByOrganizationUnit(unitI
 
 	totalPages := int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 
+	// Fetch activities for each process
+	for _, process := range processes {
+		var activities []organizationDTOs.ProcessActivityDTO
+
+		err := repo.db.
+			Table("process_activities").
+			Select("id, title_en, title_ar, description_en, description_ar, sequence, estimated_duration, expected_output, created_at, updated_at").
+			Where("process_id = ?", process.ID).
+			Order("sequence ASC").
+			Scan(&activities).Error
+
+		if err != nil {
+			return nil, err
+		}
+
+		process.Activities = activities
+	}
+
 	response := &organizationDTOs.ProcessListResponseDTO{
 		Items: processes,
 		Pagination: commonDTOs.PaginationInfoDTO{
