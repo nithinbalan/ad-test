@@ -112,6 +112,17 @@ func (acs *AwarenessCampaignService) GetFullDetailsByID(id uint, tx ...utility.D
 		detailDTO.AwarenessCampaignID = campaign.AwarenessCampaignDetails.AwarenessCampaignID
 		detailDTO.CreatedAt = campaign.AwarenessCampaignDetails.CreatedAt
 		detailDTO.UpdatedAt = campaign.AwarenessCampaignDetails.UpdatedAt
+
+		for _, ch := range campaign.AwarenessCampaignDetails.Channels {
+			if ch.AwarenessChannel != nil {
+				detailDTO.AwarenessChannels = append(detailDTO.AwarenessChannels, &awarenessDTOs.AwarenessChannelDTO{
+					ID:      ch.AwarenessChannel.ID,
+					TitleEn: ch.AwarenessChannel.TitleEn,
+					TitleAr: ch.AwarenessChannel.TitleAr,
+				})
+			}
+		}
+
 		campaignDTO.Detail = &detailDTO
 	}
 
@@ -205,15 +216,14 @@ func (acs *AwarenessCampaignService) Create(currentUserID uint, formDTO *awarene
 			tx.Rollback()
 			return 0, err
 		}
+		fmt.Println(formDTO.Detail.AwarenessChannelIDs)
 		if len(formDTO.Detail.AwarenessChannelIDs) > 0 {
+			fmt.Println(formDTO.Detail.AwarenessChannelIDs)
 			var channels []*models.AwarenessCampaignChannel
 			for _, channelID := range formDTO.Detail.AwarenessChannelIDs {
-				if channelID == nil {
-					continue
-				}
 				channels = append(channels, &models.AwarenessCampaignChannel{
 					AwarenessCampaignDetailsID: detailID,
-					AwarenessChannelID:         *channelID,
+					AwarenessChannelID:         channelID,
 					CreatedByID:                currentUserID,
 				})
 			}
@@ -477,12 +487,9 @@ func (acs *AwarenessCampaignService) Update(id uint, currentUserID uint, formDTO
 		if len(formDTO.Detail.AwarenessChannelIDs) > 0 {
 			var channels []*models.AwarenessCampaignChannel
 			for _, channelID := range formDTO.Detail.AwarenessChannelIDs {
-				if channelID == nil {
-					continue
-				}
 				channels = append(channels, &models.AwarenessCampaignChannel{
 					AwarenessCampaignDetailsID: detailID,
-					AwarenessChannelID:         *channelID,
+					AwarenessChannelID:         channelID,
 					CreatedByID:                currentUserID,
 				})
 			}
