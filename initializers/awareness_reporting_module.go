@@ -9,14 +9,20 @@ import (
 )
 
 type AwarenessReportingModule struct {
-	AwarenessCampaignTypeController   *controllers.AwarenessCampaignTypeController
-	AwarenessChannelController        *controllers.AwarenessChannelController
-	AwarenessCampaignStatusController *controllers.AwarenessCampaignStatusController
+	AwarenessCampaignTypeController     *controllers.AwarenessCampaignTypeController
+	AwarenessChannelController          *controllers.AwarenessChannelController
+	AwarenessCampaignStatusController   *controllers.AwarenessCampaignStatusController
+	AwarenessPriorityController         *controllers.AwarenessPriorityController
+	AwarenessEvaluationRatingController *controllers.AwarenessEvaluationRatingController
+	AwarenessCampaignController         *controllers.AwarenessCampaignController
 }
 
 func NewAwarenessReportingModule(
 	db *gorm.DB,
 	sharedModule *SharedModule,
+	settingsModule *SettingsModule,
+	organizationModule *OrganizationModule,
+	commonModule *CommonModule,
 ) *AwarenessReportingModule {
 
 	awarenessCampaignTypeRepo := repositories.NewAwarenessCampaignTypeRepository(db)
@@ -31,9 +37,34 @@ func NewAwarenessReportingModule(
 	awarenessCampaignStatusSvc := services.NewAwarenessCampaignStatusService(awarenessCampaignStatusRepo)
 	awarenessCampaignStatusController := controllers.NewAwarenessCampaignStatusController(awarenessCampaignStatusSvc)
 
+	awarenessPriorityRepo := repositories.NewAwarenessPriorityRepository(db)
+	awarenessPrioritySvc := services.NewAwarenessPriorityService(awarenessPriorityRepo)
+	awarenessPriorityController := controllers.NewAwarenessPriorityController(awarenessPrioritySvc)
+
+	awarenessEvaluationRatingRepo := repositories.NewAwarenessEvaluationRatingRepository(db)
+	awarenessEvaluationRatingSvc := services.NewAwarenessEvaluationRatingService(awarenessEvaluationRatingRepo)
+	awarenessEvaluationRatingController := controllers.NewAwarenessEvaluationRatingController(awarenessEvaluationRatingSvc)
+
+	awarenessCampaignRepo := repositories.NewAwarenessCampaignRepository(db)
+	awarenessCampaignSvc := services.NewAwarenessCampaignService(
+		awarenessCampaignRepo,
+		sharedModule.ActivityLogService,
+		awarenessCampaignTypeSvc,
+		awarenessPrioritySvc,
+		awarenessCampaignStatusSvc,
+		awarenessEvaluationRatingSvc,
+		settingsModule.OrganizationUnitSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+	)
+	awarenessCampaignController := controllers.NewAwarenessCampaignController(awarenessCampaignSvc)
+
 	return &AwarenessReportingModule{
-		AwarenessCampaignTypeController:   awarenessCampaignTypeController,
-		AwarenessChannelController:        awarenessChannelController,
-		AwarenessCampaignStatusController: awarenessCampaignStatusController,
+		AwarenessCampaignTypeController:     awarenessCampaignTypeController,
+		AwarenessChannelController:          awarenessChannelController,
+		AwarenessCampaignStatusController:   awarenessCampaignStatusController,
+		AwarenessPriorityController:         awarenessPriorityController,
+		AwarenessEvaluationRatingController: awarenessEvaluationRatingController,
+		AwarenessCampaignController:         awarenessCampaignController,
 	}
 }
