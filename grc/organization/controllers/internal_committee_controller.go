@@ -9,7 +9,9 @@ import (
 	"jethur/grc/organization/services"
 	"jethur/utility"
 	"net/http"
+	"os"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -565,4 +567,51 @@ func (icc *InternalCommitteeController) CompleteInternalCommittee(c *gin.Context
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Committee completed successfully",
 	})
+}
+
+func (icc *InternalCommitteeController) ExportCommitteeFormationToPDF(c *gin.Context) {
+	committeeIdStr := c.Param("committeeId")
+	committeeId, err := strconv.ParseUint(committeeIdStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	language := c.Query("language")
+	if language == "" {
+		language = "en"
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(icc.db, c, err.Error())
+		return
+	}
+
+	fileName, err := icc.service.ExportCommitteeFormationToPDF(uint(committeeId),currentUserID, language)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c,e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(icc.db, c, e.Error())
+			return
+		}
+	}
+
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
+	c.Header("Content-Type", "application/pdf")
+	c.File(fileName)
+	c.Writer.Flush()
+
+	go func() {
+		time.Sleep(2 * time.Second)
+		if err := os.Remove(fileName); err != nil {
+			fmt.Printf("Failed to delete file %s: %v\n", fileName, err)
+		}
+	}()
 }
