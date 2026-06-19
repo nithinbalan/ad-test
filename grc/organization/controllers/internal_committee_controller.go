@@ -584,7 +584,7 @@ func (icc *InternalCommitteeController) ExportCommitteeFormationToPDF(c *gin.Con
 
 	currentUserID, err := utility.GetCurrentUserID(c)
 	if err != nil {
-		utility.SendNotFoundErrResp(c)
+		utility.SendInternalErrResp(icc.db, c, err.Error())
 		return
 	}
 

@@ -2454,36 +2454,60 @@ func (ics *InternalCommitteeService) ExportCommitteeFormationToPDF(id uint, curr
 		committeeClassification string
 		status                  string
 		requestedBy             string
+		effectiveDate           string
+		termEndDate             string
 	)
 
-	if language == "en" {
-		committeeName = commiteeDetails.LatestVersion.CommitteeNameEn
-		requestingEntity = commiteeDetails.RequestingEntity.TitleEn
-		committeeTerm = commiteeDetails.LatestVersion.CommitteeTerm.TitleEn
-		committeeClassification = commiteeDetails.LatestVersion.CommitteeClassification.TitleEn
-		status = commiteeDetails.LatestVersion.CommitteeStatus.TitleEn
-		requestedBy = commiteeDetails.LatestVersion.CreatedByUser.FirstNameEN + " " + commiteeDetails.LatestVersion.CreatedByUser.LastNameEN
-	} else {
-		committeeName = commiteeDetails.LatestVersion.CommitteeNameAr
-		requestingEntity = commiteeDetails.RequestingEntity.TitleAr
-		committeeTerm = commiteeDetails.LatestVersion.CommitteeTerm.TitleAr
-		committeeClassification = commiteeDetails.LatestVersion.CommitteeClassification.TitleAr
-		status = commiteeDetails.LatestVersion.CommitteeStatus.TitleAr
-		requestedBy = commiteeDetails.LatestVersion.CreatedByUser.FirstNameAR + " " + commiteeDetails.LatestVersion.CreatedByUser.LastNameAR
+	if commiteeDetails.RequestingEntity != nil {
+		if language == "en" {
+			requestingEntity = commiteeDetails.RequestingEntity.TitleEn
+		} else {
+			requestingEntity = commiteeDetails.RequestingEntity.TitleAr
+		}
+	}
+
+	if commiteeDetails.LatestVersion != nil {
+		if language == "en" {
+			committeeName = commiteeDetails.LatestVersion.CommitteeNameEn
+			if commiteeDetails.LatestVersion.CommitteeTerm != nil {
+				committeeTerm = commiteeDetails.LatestVersion.CommitteeTerm.TitleEn
+			}
+			if commiteeDetails.LatestVersion.CommitteeClassification != nil {
+				committeeClassification = commiteeDetails.LatestVersion.CommitteeClassification.TitleEn
+			}
+			if commiteeDetails.LatestVersion.CommitteeStatus != nil {
+				status = commiteeDetails.LatestVersion.CommitteeStatus.TitleEn
+			}
+			if commiteeDetails.LatestVersion.CreatedByUser != nil {
+				requestedBy = commiteeDetails.LatestVersion.CreatedByUser.FirstNameEN + " " + commiteeDetails.LatestVersion.CreatedByUser.LastNameEN
+			}
+		} else {
+			committeeName = commiteeDetails.LatestVersion.CommitteeNameAr
+			if commiteeDetails.LatestVersion.CommitteeTerm != nil {
+				committeeTerm = commiteeDetails.LatestVersion.CommitteeTerm.TitleAr
+			}
+			if commiteeDetails.LatestVersion.CommitteeClassification != nil {
+				committeeClassification = commiteeDetails.LatestVersion.CommitteeClassification.TitleAr
+			}
+			if commiteeDetails.LatestVersion.CommitteeStatus != nil {
+				status = commiteeDetails.LatestVersion.CommitteeStatus.TitleAr
+			}
+			if commiteeDetails.LatestVersion.CreatedByUser != nil {
+				requestedBy = commiteeDetails.LatestVersion.CreatedByUser.FirstNameAR + " " + commiteeDetails.LatestVersion.CreatedByUser.LastNameAR
+			}
+		}
+
+		if commiteeDetails.LatestVersion.TermStartDateString != nil {
+			effectiveDate = *commiteeDetails.LatestVersion.TermStartDateString
+		}
+
+		if commiteeDetails.LatestVersion.TermEndDateString != nil {
+			termEndDate = *commiteeDetails.LatestVersion.TermEndDateString
+		}
 	}
 
 	referenceNumber := commiteeDetails.ReferenceNumber
 	createdAt := commiteeDetails.CreatedAt.Format("02 Jan 2006")
-
-	effectiveDate := ""
-	if commiteeDetails.LatestVersion.TermStartDateString != nil {
-		effectiveDate = *commiteeDetails.LatestVersion.TermStartDateString
-	}
-
-	termEndDate := ""
-	if commiteeDetails.LatestVersion.TermEndDateString != nil {
-		termEndDate = *commiteeDetails.LatestVersion.TermEndDateString
-	}
 
 	var committeeMemberShip []organizationDTOs.CommitteeMemberDTO
 
