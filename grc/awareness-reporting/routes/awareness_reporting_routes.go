@@ -21,6 +21,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	awarenessEvaluationRatingController := app.AwarenessReportingModule.AwarenessEvaluationRatingController
 	awarenessCampaignController := app.AwarenessReportingModule.AwarenessCampaignController
 	awarenessMaturityLevelController := app.AwarenessReportingModule.AwarenessMaturityLevelController
+	awarenessAssessmentThemeController := app.AwarenessReportingModule.AwarenessAssessmentThemeController
 
 	// awareness campaign types
 	awarenessRoutes.GET("/awareness-reporting/awareness-campaign-types", awarenessCampaignTypeController.GetAllAwarenessCampaignTypes)
@@ -63,6 +64,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	router.GET("/awareness-reporting/awareness-campaigns/:id/document-download", awarenessCampaignController.DownloadAwarenessCampaignDocument)
 
 	// awareness maturity levels
-	awarenessRoutes.GET("/awareness-reporting/awareness-maturity-levels",awarenessMaturityLevelController.GetAllAwarenessMaturityLevels,)
-	awarenessRoutes.GET("/awareness-reporting/awareness-maturity-levels/:id",awarenessMaturityLevelController.GetAwarenessMaturityLevelDetails,)
+	awarenessRoutes.GET("/awareness-reporting/awareness-maturity-levels", awarenessMaturityLevelController.GetAllAwarenessMaturityLevels)
+	awarenessRoutes.GET("/awareness-reporting/awareness-maturity-levels/:id", awarenessMaturityLevelController.GetAwarenessMaturityLevelDetails)
+
+	// awareness assessment themes
+	awarenessRoutes.GET("/awareness-reporting/awareness-assessment-themes", awarenessAssessmentThemeController.GetAllAwarenessAssessmentThemes)
+	awarenessRoutes.GET("/awareness-reporting/awareness-assessment-themes/:id", awarenessAssessmentThemeController.GetAwarenessAssessmentThemeDetails)
+	awarenessRoutes.POST("/awareness-reporting/awareness-assessment-themes", middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"), awarenessAssessmentThemeController.CreateAwarenessAssessmentTheme)
+	awarenessRoutes.PUT("/awareness-reporting/awareness-assessment-themes/:id", middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"), awarenessAssessmentThemeController.UpdateAwarenessAssessmentTheme)
+	awarenessRoutes.POST("/awareness-reporting/awareness-assessment-themes/delete", middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"), awarenessAssessmentThemeController.DeleteAwarenessAssessmentThemes)
+	awarenessRoutes.PUT("/awareness-reporting/awareness-assessment-themes/activate", middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"), awarenessAssessmentThemeController.ActivateAwarenessAssessmentThemes)
+	awarenessRoutes.PUT("/awareness-reporting/awareness-assessment-themes/deactivate", middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"), awarenessAssessmentThemeController.DeactivateAwarenessAssessmentThemes)
 }
