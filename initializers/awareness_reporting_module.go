@@ -9,14 +9,15 @@ import (
 )
 
 type AwarenessReportingModule struct {
-	AwarenessCampaignTypeController     *controllers.AwarenessCampaignTypeController
-	AwarenessChannelController          *controllers.AwarenessChannelController
-	AwarenessCampaignStatusController   *controllers.AwarenessCampaignStatusController
-	AwarenessPriorityController         *controllers.AwarenessPriorityController
-	AwarenessEvaluationRatingController *controllers.AwarenessEvaluationRatingController
-	AwarenessCampaignController         *controllers.AwarenessCampaignController
-	AwarenessMaturityLevelController    *controllers.AwarenessMaturityLevelController
-	AwarenessAssessmentThemeController  *controllers.AwarenessAssessmentThemeController
+	AwarenessCampaignTypeController       *controllers.AwarenessCampaignTypeController
+	AwarenessChannelController            *controllers.AwarenessChannelController
+	AwarenessCampaignStatusController     *controllers.AwarenessCampaignStatusController
+	AwarenessPriorityController           *controllers.AwarenessPriorityController
+	AwarenessEvaluationRatingController   *controllers.AwarenessEvaluationRatingController
+	AwarenessCampaignController           *controllers.AwarenessCampaignController
+	AwarenessMaturityLevelController      *controllers.AwarenessMaturityLevelController
+	AwarenessAssessmentThemeController    *controllers.AwarenessAssessmentThemeController
+	AwarenessPostCampaignSurveyController *controllers.AwarenessPostCampaignSurveyController
 }
 
 func NewAwarenessReportingModule(
@@ -69,14 +70,25 @@ func NewAwarenessReportingModule(
 	awarenessAssessmentThemeSvc := services.NewAwarenessAssessmentThemeService(awarenessAssessmentThemeRepo, sharedModule.ActivityLogService)
 	awarenessAssessmentThemeController := controllers.NewAwarenessAssessmentThemeController(awarenessAssessmentThemeSvc)
 
+	awarenessPostCampaignSurveyRepo := repositories.NewAwarenessPostCampaignSurveyRepository(db)
+	awarenessPostCampaignSurveySvc := services.NewAwarenessPostCampaignSurveyService(
+		awarenessPostCampaignSurveyRepo,
+		sharedModule.ActivityLogService,
+		awarenessMaturityLevelSvc,
+		awarenessCampaignSvc,
+		awarenessAssessmentThemeSvc,
+	)
+	awarenessPostCampaignSurveyController := controllers.NewAwarenessPostCampaignSurveyController(awarenessPostCampaignSurveySvc)
+
 	return &AwarenessReportingModule{
-		AwarenessCampaignTypeController:     awarenessCampaignTypeController,
-		AwarenessChannelController:          awarenessChannelController,
-		AwarenessCampaignStatusController:   awarenessCampaignStatusController,
-		AwarenessPriorityController:         awarenessPriorityController,
-		AwarenessEvaluationRatingController: awarenessEvaluationRatingController,
-		AwarenessCampaignController:         awarenessCampaignController,
-		AwarenessMaturityLevelController:    awarenessMaturityLevelController,
-		AwarenessAssessmentThemeController:  awarenessAssessmentThemeController,
+		AwarenessCampaignTypeController:       awarenessCampaignTypeController,
+		AwarenessChannelController:            awarenessChannelController,
+		AwarenessCampaignStatusController:     awarenessCampaignStatusController,
+		AwarenessPriorityController:           awarenessPriorityController,
+		AwarenessEvaluationRatingController:   awarenessEvaluationRatingController,
+		AwarenessCampaignController:           awarenessCampaignController,
+		AwarenessMaturityLevelController:      awarenessMaturityLevelController,
+		AwarenessAssessmentThemeController:    awarenessAssessmentThemeController,
+		AwarenessPostCampaignSurveyController: awarenessPostCampaignSurveyController,
 	}
 }

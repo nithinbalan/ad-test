@@ -163,7 +163,7 @@ func (acs *AwarenessCampaignService) Create(currentUserID uint, formDTO *awarene
 		EndDate:                   dates.EndDate,
 		AwarenessCampaignStatusID: formDTO.AwarenessCampaignStatusID,
 		LinkedSecurityControl:     formDTO.LinkedSecurityControl,
-		CreatedByID:               currentUserID,
+		CreatedBYID:               currentUserID,
 	}
 
 	id, err := acs.repo.Create(awarenessCampaign, tx)
@@ -188,27 +188,12 @@ func (acs *AwarenessCampaignService) Create(currentUserID uint, formDTO *awarene
 			SubtypeRole:                 formDTO.Detail.SubtypeRole,
 			Presenter:                   formDTO.Detail.Presenter,
 			Agenda:                      formDTO.Detail.Agenda,
+			SessionStartTime:            formDTO.Detail.SessionStartTime,
+			SessionEndTime:              formDTO.Detail.SessionEndTime,
 			Venue:                       formDTO.Detail.Venue,
 			AttendeeCount:               formDTO.Detail.AttendeeCount,
 			AwarenessEvaluationRatingID: formDTO.Detail.AwarenessEvaluationRatingID,
 			CreatedByID:                 currentUserID,
-		}
-
-		if formDTO.Detail.SessionStartTime != nil && *formDTO.Detail.SessionStartTime != "" {
-			sessionStart, err := utility.ParseDateTime(*formDTO.Detail.SessionStartTime)
-			if err != nil {
-				tx.Rollback()
-				return 0, utility.NewValidationError(fmt.Errorf("invalid session start time: %w", err), "invalid_date", "session_start_time")
-			}
-			detail.SessionStartTime = sessionStart
-		}
-		if formDTO.Detail.SessionEndTime != nil && *formDTO.Detail.SessionEndTime != "" {
-			sessionEnd, err := utility.ParseDateTime(*formDTO.Detail.SessionEndTime)
-			if err != nil {
-				tx.Rollback()
-				return 0, utility.NewValidationError(fmt.Errorf("invalid session end time: %w", err), "invalid_date", "session_end_time")
-			}
-			detail.SessionEndTime = sessionEnd
 		}
 
 		detailID, err := acs.repo.CreateDetail(detail, tx)
@@ -443,25 +428,10 @@ func (acs *AwarenessCampaignService) Update(id uint, currentUserID uint, formDTO
 		existingDetail.Presenter = formDTO.Detail.Presenter
 		existingDetail.Agenda = formDTO.Detail.Agenda
 		existingDetail.Venue = formDTO.Detail.Venue
+		existingDetail.SessionEndTime = formDTO.Detail.SessionEndTime
+		existingDetail.SessionStartTime = formDTO.Detail.SessionStartTime
 		existingDetail.AttendeeCount = formDTO.Detail.AttendeeCount
 		existingDetail.AwarenessEvaluationRatingID = formDTO.Detail.AwarenessEvaluationRatingID
-
-		if formDTO.Detail.SessionStartTime != nil && *formDTO.Detail.SessionStartTime != "" {
-			sessionStart, err := utility.ParseDateTime(*formDTO.Detail.SessionStartTime)
-			if err != nil {
-				tx.Rollback()
-				return utility.NewValidationError(fmt.Errorf("invalid session start time: %w", err), "invalid_date", "session_start_time")
-			}
-			existingDetail.SessionStartTime = sessionStart
-		}
-		if formDTO.Detail.SessionEndTime != nil && *formDTO.Detail.SessionEndTime != "" {
-			sessionEnd, err := utility.ParseDateTime(*formDTO.Detail.SessionEndTime)
-			if err != nil {
-				tx.Rollback()
-				return utility.NewValidationError(fmt.Errorf("invalid session end time: %w", err), "invalid_date", "session_end_time")
-			}
-			existingDetail.SessionEndTime = sessionEnd
-		}
 
 		var detailID uint
 		if isNewDetail {

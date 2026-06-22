@@ -19,7 +19,7 @@ type AwarenessCampaign struct {
 	AwarenessCampaignStatusID uint       `json:"awareness_campaign_status_id" binding:"required"`
 	LinkedSecurityControl     *string    `json:"linked_security_control" gorm:"type:nvarchar(255)"`
 
-	CreatedByID uint       `json:"created_by_id"`
+	CreatedBYID uint       `json:"created_by_id"`
 	CreatedAt   time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedByID *uint      `json:"updated_by_id"`
 	UpdatedAt   *time.Time `json:"updated_at" gorm:"type:datetime"`
@@ -31,7 +31,7 @@ type AwarenessCampaign struct {
 	Owner                   *User                    `gorm:"foreignKey:OwnerID"`
 	OrganizationUnit        *OrganizationUnit        `gorm:"foreignKey:OrganizationUnitID"`
 
-	CreatedByUser *User `gorm:"foreignKey:CreatedByID"`
+	CreatedByUser *User `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser *User `gorm:"foreignKey:UpdatedByID"`
 
 	AwarenessCampaignDetails *AwarenessCampaignDetail `gorm:"foreignKey:AwarenessCampaignID"`

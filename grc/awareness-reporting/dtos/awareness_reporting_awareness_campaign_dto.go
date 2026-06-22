@@ -106,8 +106,8 @@ type AwarenessCampaignDetailFormDTO struct {
 	SubtypeRole                 *string                             `json:"subtype_role"`
 	Presenter                   *string                             `json:"presenter"`
 	Agenda                      *string                             `json:"agenda"`
-	SessionStartTime            *string                             `json:"session_start_time"`
-	SessionEndTime              *string                             `json:"session_end_time"`
+	SessionStartTime            *time.Time                             `json:"session_start_time"`
+	SessionEndTime              *time.Time                          `json:"session_end_time"`
 	Venue                       *string                             `json:"venue"`
 	AttendeeCount               *int                                `json:"attendee_count"`
 	AwarenessEvaluationRatingID *uint                               `json:"awareness_evaluation_rating_id"`
@@ -133,25 +133,6 @@ type AwarenessCampaignDocumentDTO struct {
 	OriginalName string  `json:"original_name"`
 	Type         string  `json:"type"`
 	Size         int     `json:"size"`
-}
-
-type AwarenessCampaignTypeDTO struct {
-	ID      uint   `json:"id"`
-	TitleEn string `json:"title_en"`
-	TitleAr string `json:"title_ar"`
-}
-
-type AwarenessPriorityDTO struct {
-	ID      uint   `json:"id"`
-	TitleEn string `json:"title_en"`
-	TitleAr string `json:"title_ar"`
-}
-
-type AwarenessCampaignStatusDTO struct {
-	ID        uint   `json:"id"`
-	TitleEn   string `json:"title_en"`
-	TitleAr   string `json:"title_ar"`
-	ColorCode string `json:"color_code"`
 }
 
 type AwarenessEvaluationRatingDTO struct {
@@ -211,10 +192,4 @@ type AwarenessCampaignDetailResponseDTO struct {
 type AwarenessCampaignParsedDates struct {
 	StartDate *time.Time
 	EndDate   *time.Time
-}
-
-type AwarenessChannelDTO struct {
-	ID      uint   `json:"id"`
-	TitleEn string `json:"title_en"`
-	TitleAr string `json:"title_ar"`
 }

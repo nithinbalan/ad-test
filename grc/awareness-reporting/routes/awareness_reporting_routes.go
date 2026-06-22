@@ -22,6 +22,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	awarenessCampaignController := app.AwarenessReportingModule.AwarenessCampaignController
 	awarenessMaturityLevelController := app.AwarenessReportingModule.AwarenessMaturityLevelController
 	awarenessAssessmentThemeController := app.AwarenessReportingModule.AwarenessAssessmentThemeController
+	awarenessPostCampaignSurveyController := app.AwarenessReportingModule.AwarenessPostCampaignSurveyController
 
 	// awareness campaign types
 	awarenessRoutes.GET("/awareness-reporting/awareness-campaign-types", awarenessCampaignTypeController.GetAllAwarenessCampaignTypes)
@@ -75,4 +76,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	awarenessRoutes.POST("/awareness-reporting/awareness-assessment-themes/delete", middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"), awarenessAssessmentThemeController.DeleteAwarenessAssessmentThemes)
 	awarenessRoutes.PUT("/awareness-reporting/awareness-assessment-themes/activate", middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"), awarenessAssessmentThemeController.ActivateAwarenessAssessmentThemes)
 	awarenessRoutes.PUT("/awareness-reporting/awareness-assessment-themes/deactivate", middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"), awarenessAssessmentThemeController.DeactivateAwarenessAssessmentThemes)
+
+	// awareness post campaign surveys
+	awarenessRoutes.GET("/awareness-reporting/awareness-post-campaign-surveys", middlewares.RolePermissionMiddleware(db, "awareness_post_campaign_survey", "view"), awarenessPostCampaignSurveyController.GetAllAwarenessPostCampaignSurveys)
+	awarenessRoutes.GET("/awareness-reporting/awareness-post-campaign-surveys/:id", middlewares.RolePermissionMiddleware(db, "awareness_post_campaign_survey", "view"), awarenessPostCampaignSurveyController.GetAwarenessPostCampaignSurveyDetails)
+	awarenessRoutes.POST("/awareness-reporting/awareness-post-campaign-surveys", middlewares.RolePermissionMiddleware(db, "awareness_post_campaign_survey", "modify"), awarenessPostCampaignSurveyController.CreateAwarenessPostCampaignSurvey)
+	awarenessRoutes.PUT("/awareness-reporting/awareness-post-campaign-surveys/:id", middlewares.RolePermissionMiddleware(db, "awareness_post_campaign_survey", "modify"), awarenessPostCampaignSurveyController.UpdateAwarenessPostCampaignSurvey)
+	awarenessRoutes.POST("/awareness-reporting/awareness-post-campaign-surveys/delete", middlewares.RolePermissionMiddleware(db, "awareness_post_campaign_survey", "modify"), awarenessPostCampaignSurveyController.DeleteAwarenessPostCampaignSurveys)
 }
