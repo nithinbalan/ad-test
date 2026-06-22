@@ -254,6 +254,7 @@ type ComplianceRegisterDetailDTO struct {
 	ResponsibleUser                 organizationDTOs.UserMinimalDTO  `json:"responsible_user"`
 	ResponsibleUserID               uint                             `json:"responsible_user_id" binding:"required" gorm:"not null"`
 	ReviewFrequency                 *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
+	ReviewResponsibleUserID         *uint                            `json:"review_responsible_user_id"`
 	ReviewResponsibleUser           *organizationDTOs.UserMinimalDTO `json:"review_responsible_user"`
 	SeverityLevel                   *masterDTOs.SeverityLevelDTO     `json:"severity_level"`
 	Version                         *string                          `json:"version"`

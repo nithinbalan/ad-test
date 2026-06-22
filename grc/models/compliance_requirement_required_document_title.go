@@ -12,9 +12,10 @@ type ComplianceRequirementRequiredDocumentTitle struct {
 	CreatedAt               time.Time `json:"created_at" gorm:"type:datetime;not null"`
 
 	// Relationships
-	ComplianceRequirement *ComplianceRequirement `gorm:"foreignKey:ComplianceRequirementID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	RequiredDocumentTitle *RequiredDocumentTitle `gorm:"foreignKey:RequiredDocumentTitleID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser         *User                  `gorm:"foreignKey:CreatedBYID"`
+	ComplianceRequirement *ComplianceRequirement                             `gorm:"foreignKey:ComplianceRequirementID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RequiredDocumentTitle *RequiredDocumentTitle                             `gorm:"foreignKey:RequiredDocumentTitleID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	Documents             *[]ComplianceAssessmentRequirementRequiredDocument `gorm:"foreignKey:ComplianceAssessmentRequirementDocumentTitleID"`
+	CreatedByUser         *User                                              `gorm:"foreignKey:CreatedBYID"`
 }
 
 func (ComplianceRequirementRequiredDocumentTitle) TableName() string {

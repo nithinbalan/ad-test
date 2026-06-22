@@ -27,11 +27,20 @@ func NewComplianceActionPlanCommentController(service services.ComplianceActionP
 
 func (capc *ComplianceActionPlanCommentController) GetAllComments(c *gin.Context) {
 	complianceIDStr := c.Param("complianceId")
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+
+	var complianceID uint64
+	var err error
+
+	if complianceIDStr != "" {
+		complianceID, err = strconv.ParseUint(complianceIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		complianceID = 0
 	}
+
 	actionPlanIDStr := c.Param("actionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
 	if err != nil {
@@ -56,11 +65,20 @@ func (capc *ComplianceActionPlanCommentController) GetAllComments(c *gin.Context
 
 func (capc *ComplianceActionPlanCommentController) GetCommentDetails(c *gin.Context) {
 	complianceIDStr := c.Param("complianceId")
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+
+	var complianceID uint64
+	var err error
+
+	if complianceIDStr != "" {
+		complianceID, err = strconv.ParseUint(complianceIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		complianceID = 0
 	}
+
 	actionPlanIDStr := c.Param("actionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
 	if err != nil {
@@ -92,11 +110,20 @@ func (capc *ComplianceActionPlanCommentController) GetCommentDetails(c *gin.Cont
 
 func (capc *ComplianceActionPlanCommentController) CreateComment(c *gin.Context) {
 	complianceIDStr := c.Param("complianceId")
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+
+	var complianceID uint64
+	var err error
+
+	if complianceIDStr != "" {
+		complianceID, err = strconv.ParseUint(complianceIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		complianceID = 0
 	}
+
 	actionPlanIDStr := c.Param("actionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
 	if err != nil {
@@ -133,11 +160,20 @@ func (capc *ComplianceActionPlanCommentController) CreateComment(c *gin.Context)
 
 func (capc *ComplianceActionPlanCommentController) UpdateComment(c *gin.Context) {
 	complianceIDStr := c.Param("complianceId")
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+
+	var complianceID uint64
+	var err error
+
+	if complianceIDStr != "" {
+		complianceID, err = strconv.ParseUint(complianceIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		complianceID = 0
 	}
+
 	actionPlanIDStr := c.Param("actionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
 	if err != nil {
@@ -181,11 +217,20 @@ func (capc *ComplianceActionPlanCommentController) UpdateComment(c *gin.Context)
 
 func (capc *ComplianceActionPlanCommentController) DeleteComment(c *gin.Context) {
 	complianceIDStr := c.Param("complianceId")
-	complianceID, err := strconv.ParseUint(complianceIDStr, 10, 32)
-	if err != nil {
-		utility.SendNotFoundErrResp(c)
-		return
+
+	var complianceID uint64
+	var err error
+
+	if complianceIDStr != "" {
+		complianceID, err = strconv.ParseUint(complianceIDStr, 10, 32)
+		if err != nil {
+			utility.SendNotFoundErrResp(c)
+			return
+		}
+	} else {
+		complianceID = 0
 	}
+
 	actionPlanIDStr := c.Param("actionPlanId")
 	actionPlanID, err := strconv.ParseUint(actionPlanIDStr, 10, 32)
 	if err != nil {

@@ -8,35 +8,44 @@ import (
 )
 
 type JobTeamListDTO struct {
-	ID                          uint                 `json:"id"`
-	TitleEn                     string               `json:"title_en"`
-	TitleAr                     string               `json:"title_ar"`
-	Scope                       *string              `json:"scope"`
-	Objective                   *string              `json:"objective"`
-	TeamLeadDesignationID       uint                 `json:"team_lead_designation_id"`
-	TeamLeadDesignationTitleEn  string               `json:"team_lead_designation_title_en"`
-	TeamLeadDesignationTitleAr  string               `json:"team_lead_designation_title_ar"`
-	CreatedUserID               uint                 `json:"created_user_id"`
-	CreatedUserFirstNameEn      string               `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr      string               `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn       string               `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr       string               `json:"created_user_last_name_ar"`
-	CreatedUserEmail            string               `json:"created_user_email"`
-	CreatedUserInitial          string               `json:"created_user_initial"`
-	CreatedUserColor            string               `json:"created_user_color"`
-	CreatedUserProfileImagePath *string              `json:"created_user_profile_image_path"`
-	UpdatedUserID               *uint                `json:"updated_user_id"`
-	UpdatedUserFirstNameEn      string               `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr      string               `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn       string               `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr       string               `json:"updated_user_last_name_ar"`
-	UpdatedUserEmail            string               `json:"updated_user_email"`
-	UpdatedUserInitial          string               `json:"updated_user_initial"`
-	UpdatedUserColor            string               `json:"updated_user_color"`
-	UpdatedUserProfileImagePath *string              `json:"updated_user_profile_image_path"`
-	CreatedAt                   string               `json:"created_at"`
-	UpdatedAt                   string               `json:"updated_at"`
-	Members                     []*JobTeamMembersDTO `json:"members" gorm:"-"`
+	ID                           uint                 `json:"id"`
+	TitleEn                      string               `json:"title_en"`
+	TitleAr                      string               `json:"title_ar"`
+	Scope                        *string              `json:"scope"`
+	Objective                    *string              `json:"objective"`
+	TeamLeadDesignationID        *uint                `json:"team_lead_designation_id"`
+	TeamLeadDesignationTitleEn   string               `json:"team_lead_designation_title_en"`
+	TeamLeadDesignationTitleAr   string               `json:"team_lead_designation_title_ar"`
+	TeamLeadUserID               *uint                `json:"team_lead_user_id"`
+	TeamLeadUserFirstNameEn      string               `json:"team_lead_user_first_name_en"`
+	TeamLeadUserLastNameEn       string               `json:"team_lead_user_last_name_en"`
+	TeamLeadUserFirstNameAr      string               `json:"team_lead_user_first_name_ar"`
+	TeamLeadUserLastNameAr       string               `json:"team_lead_user_last_name_ar"`
+	TeamLeadUserEmail            string               `json:"team_lead_user_email"`
+	TeamLeadUserInitial          string               `json:"team_lead_user_initial"`
+	TeamLeadUserColor            string               `json:"team_lead_user_color"`
+	TeamLeadUserProfileImagePath *string              `json:"team_lead_user_profile_image_path"`
+	CreatedUserID                uint                 `json:"created_user_id"`
+	CreatedUserFirstNameEn       string               `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr       string               `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn        string               `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr        string               `json:"created_user_last_name_ar"`
+	CreatedUserEmail             string               `json:"created_user_email"`
+	CreatedUserInitial           string               `json:"created_user_initial"`
+	CreatedUserColor             string               `json:"created_user_color"`
+	CreatedUserProfileImagePath  *string              `json:"created_user_profile_image_path"`
+	UpdatedUserID                *uint                `json:"updated_user_id"`
+	UpdatedUserFirstNameEn       string               `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr       string               `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn        string               `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr        string               `json:"updated_user_last_name_ar"`
+	UpdatedUserEmail             string               `json:"updated_user_email"`
+	UpdatedUserInitial           string               `json:"updated_user_initial"`
+	UpdatedUserColor             string               `json:"updated_user_color"`
+	UpdatedUserProfileImagePath  *string              `json:"updated_user_profile_image_path"`
+	CreatedAt                    string               `json:"created_at"`
+	UpdatedAt                    string               `json:"updated_at"`
+	Members                      []*JobTeamMembersDTO `json:"members" gorm:"-"`
 }
 
 type JobTeamListQueryParamsDTO struct {
@@ -58,7 +67,8 @@ type JobTeamListResponseDTO struct {
 type JobTeamFormDTO struct {
 	TitleEn               string  `json:"title_en" binding:"required,max=500"`
 	TitleAr               string  `json:"title_ar" binding:"required,max=500"`
-	TeamLeadDesignationID uint    `json:"team_lead_designation_id" binding:"required"`
+	TeamLeadDesignationID *uint   `json:"team_lead_designation_id"`
+	TeamLeadUserID        *uint   `json:"team_lead_user_id"`
 	DesignationIDs        []*uint `json:"designation_ids" binding:"required"`
 	Scope                 *string `json:"scope"`
 	Objective             *string `json:"objective"`
@@ -71,6 +81,7 @@ type JobTeamDetailDTO struct {
 	Scope               *string                          `json:"scope"`
 	Objective           *string                          `json:"objective"`
 	TeamLeadDesignation *organizationDTOs.DesignationDTO `json:"team_lead_designation"`
+	TeamLeadUser        *organizationDTOs.UserMinimalDTO `json:"team_lead_user"`
 	JobTeamMembers      []*JobTeamMembersDTO             `json:"members"`
 	CreatedAt           time.Time                        `json:"created_at"`
 	UpdatedAt           *time.Time                       `json:"updated_at"`

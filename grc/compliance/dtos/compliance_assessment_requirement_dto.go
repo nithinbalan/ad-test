@@ -150,14 +150,16 @@ type ComplianceAssessmentRequirementDocumentFormDTO struct {
 }
 
 type ComplianceAssessmentRequirementDocumentDTO struct {
-	ID           *uint  `json:"id,omitempty"`
-	Language     string `json:"language"`
-	URL          string `json:"url"`
-	Name         string `json:"name"`
-	Token        string `json:"token"`
-	OriginalName string `json:"original_name"`
-	Type         string `json:"type"`
-	Size         int    `json:"size"`
+	ID             *uint                            `json:"id,omitempty"`
+	Language       string                           `json:"language"`
+	URL            string                           `json:"url"`
+	Name           string                           `json:"name"`
+	Token          string                           `json:"token"`
+	OriginalName   string                           `json:"original_name"`
+	Type           string                           `json:"type"`
+	Size           int                              `json:"size"`
+	ApprovedByUser *organizationDTOs.UserMinimalDTO `json:"approved_by"`
+	RejectedByUser *organizationDTOs.UserMinimalDTO `json:"rejected_by"`
 }
 
 type ComplianceAssessmentRequirementListQueryParamsDTO struct {
@@ -186,4 +188,9 @@ type ClauseRequirementCountDTO struct {
 	ID                    uint `json:"id"`
 	TotalRequirements     int  `json:"total_requirements"`
 	CompletedRequirements int  `json:"completed_requirements"`
+}
+
+type ComplianceAssessmentRequirementDocumentUpdateFormDTO struct {
+	ID     uint   `json:"id" binding:"required"`
+	Status string `json:"status" binding:"required,oneof=approved rejected"`
 }

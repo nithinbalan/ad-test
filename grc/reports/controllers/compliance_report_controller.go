@@ -539,7 +539,7 @@ func (crc *ComplianceReportController) GetAllComplianceActionPlans(c *gin.Contex
 		DateTo:         dateTo,
 		Export:         export,
 	}
-	complianceActionPlans, err := crc.complianceActionPlanSvc.GetAll(uint(complianceID), &queryParams)
+	complianceActionPlans, err := crc.complianceActionPlanSvc.GetAll(uint(complianceID), 0, &queryParams)
 
 	if err != nil {
 		switch e := err.(type) {

@@ -73,14 +73,14 @@ func (service *BCMManualProcedureFormService) GetFullDetailsByID(id uint) (*bcmD
 
 func (service *BCMManualProcedureFormService) Create(currentUserID uint, formDTO *bcmDTOs.BCMManualProcedureFormFormDTO) (uint, error) {
 	form := &models.BCMManualProcedureForm{
-		TitleEn:       formDTO.TitleEn,
-		TitleAr:       formDTO.TitleAr,
-		Code:          formDTO.Code,
-		OwnerID:       formDTO.OwnerID,
-		LocationID:    formDTO.LocationID,
-		StakeholderID: formDTO.StakeholderID,
-		Notes:         formDTO.Notes,
-		CreatedBYID:   currentUserID,
+		TitleEn:             formDTO.TitleEn,
+		TitleAr:             formDTO.TitleAr,
+		Code:                formDTO.Code,
+		OwnerEntityID:       formDTO.OwnerEntityID,
+		LocationID:          formDTO.LocationID,
+		InternalStakeholder: formDTO.InternalStakeholder,
+		Notes:               formDTO.Notes,
+		CreatedBYID:         currentUserID,
 	}
 
 	id, err := service.repo.Create(form)
@@ -131,21 +131,21 @@ func (service *BCMManualProcedureFormService) Update(id uint, currentUserID uint
 	}
 
 	oldForm := &models.BCMManualProcedureForm{
-		TitleEn:       existingForm.TitleEn,
-		TitleAr:       existingForm.TitleAr,
-		Code:          existingForm.Code,
-		OwnerID:       existingForm.OwnerID,
-		LocationID:    existingForm.LocationID,
-		StakeholderID: existingForm.StakeholderID,
-		Notes:         existingForm.Notes,
+		TitleEn:             existingForm.TitleEn,
+		TitleAr:             existingForm.TitleAr,
+		Code:                existingForm.Code,
+		OwnerEntityID:       existingForm.OwnerEntityID,
+		LocationID:          existingForm.LocationID,
+		InternalStakeholder: existingForm.InternalStakeholder,
+		Notes:               existingForm.Notes,
 	}
 
 	existingForm.TitleEn = formDTO.TitleEn
 	existingForm.TitleAr = formDTO.TitleAr
 	existingForm.Code = formDTO.Code
-	existingForm.OwnerID = formDTO.OwnerID
+	existingForm.OwnerEntityID = formDTO.OwnerEntityID
 	existingForm.LocationID = formDTO.LocationID
-	existingForm.StakeholderID = formDTO.StakeholderID
+	existingForm.InternalStakeholder = formDTO.InternalStakeholder
 	existingForm.Notes = formDTO.Notes
 	existingForm.UpdatedBYID = &currentUserID
 
@@ -154,7 +154,7 @@ func (service *BCMManualProcedureFormService) Update(id uint, currentUserID uint
 	}
 
 	go func() {
-		fieldsToCompare := []string{"TitleEn", "TitleAr", "Code", "OwnerID", "LocationID", "StakeholderID", "Notes"}
+		fieldsToCompare := []string{"TitleEn", "TitleAr", "Code", "OwnerEntityID", "LocationID", "InternalStakeholder", "Notes"}
 		changes, err := utility.CompareFields(oldForm, existingForm, fieldsToCompare)
 		if err != nil {
 			fields := map[string]interface{}{

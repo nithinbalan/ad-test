@@ -56,16 +56,20 @@ func NewComplianceActionPlanCommentService(repo repositories.ComplianceActionPla
 }
 
 func (caps *ComplianceActionPlanCommentService) GetAll(complianceID uint, actionPlanID uint) ([]*complianceDTOs.ComplianceActionPlanCommentListDTO, error) {
-	if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
-		return nil, err
+	if complianceID != 0 {
+		if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
+			return nil, err
+		}
 	}
 
 	return caps.repo.GetAll(actionPlanID)
 }
 
 func (caps *ComplianceActionPlanCommentService) GetByID(complianceID uint, actionPlanID uint, id uint) (*models.ComplianceActionPlanComment, error) {
-	if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
-		return nil, err
+	if complianceID != 0 {
+		if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
+			return nil, err
+		}
 	}
 
 	comment, err := caps.repo.GetByID(id)
@@ -79,9 +83,11 @@ func (caps *ComplianceActionPlanCommentService) GetByID(complianceID uint, actio
 }
 
 func (caps *ComplianceActionPlanCommentService) GetFullDetailsByID(complianceID uint, actionPlanID uint, id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceActionPlanCommentDetailDTO, error) {
-	if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
-		fmt.Printf("ComplianceActionPlan not found for complianceID %d, actionPlanID %d\n", complianceID, actionPlanID)
-		return nil, err
+	if complianceID != 0 {
+		if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
+			fmt.Printf("ComplianceActionPlan not found for complianceID %d, actionPlanID %d\n", complianceID, actionPlanID)
+			return nil, err
+		}
 	}
 
 	var commentDetail complianceDTOs.ComplianceActionPlanCommentDetailDTO
@@ -107,8 +113,11 @@ func (caps *ComplianceActionPlanCommentService) GetFullDetailsByID(complianceID 
 func (caps *ComplianceActionPlanCommentService) Create(complianceID uint, actionPlanID uint, currentUserID uint, complianceActionPlanCommentFormDTO *complianceDTOs.ComplianceActionPlanCommentFormDTO) (uint, error) {
 	tx := caps.repo.BeginTransaction()
 
-	if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
-		return 0, err
+	if complianceID != 0 {
+		if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	complianceActionPlan, err := caps.complianceActionPlanSvc.GetFullDetailsByID(complianceID, actionPlanID)
@@ -567,8 +576,11 @@ func (caps *ComplianceActionPlanCommentService) Create(complianceID uint, action
 func (caps *ComplianceActionPlanCommentService) Update(complianceID uint, actionPlanID uint, id uint, currentUserID uint, complianceActionPlanCommentFormDTO *complianceDTOs.ComplianceActionPlanCommentFormDTO) error {
 	tx := caps.repo.BeginTransaction()
 
-	if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
-		return err
+	if complianceID != 0 {
+		if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	existingComment, err := caps.GetByID(complianceID, actionPlanID, id)
@@ -718,8 +730,11 @@ func (caps *ComplianceActionPlanCommentService) Update(complianceID uint, action
 
 func (caps *ComplianceActionPlanCommentService) Delete(complianceID uint, actionPlanID uint, ids []uint, currentUserID uint) ([]uint, error) {
 	tx := caps.repo.BeginTransaction()
-	if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
-		return nil, err
+	if complianceID != 0 {
+		if _, err := caps.complianceActionPlanSvc.GetByID(complianceID, actionPlanID); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
 	}
 
 	var failedIDs []uint

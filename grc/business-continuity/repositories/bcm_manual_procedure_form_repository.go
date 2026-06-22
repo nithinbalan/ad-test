@@ -37,28 +37,19 @@ func (repo *BCMManualProcedureFormRepository) GetAll(params *bcmDTOs.BCMManualPr
 			bcm_manual_procedure_forms.title_en,
 			bcm_manual_procedure_forms.title_ar,
 			bcm_manual_procedure_forms.code,
-			bcm_manual_procedure_forms.owner_id,
-			owner.first_name_en AS owner_first_name_en,
-			owner.last_name_en AS owner_last_name_en,
-			owner.first_name_ar AS owner_first_name_ar,
-			owner.last_name_ar AS owner_last_name_ar,
-			owner.email AS owner_email,
-			owner.initial AS owner_initial,
-			owner.color AS owner_color,
-			owner.profile_image_path AS owner_profile_image_path,
+			bcm_manual_procedure_forms.owner_entity_id,
+			owner_unit.title_en AS owner_entity_title_en,
+			owner_unit.title_ar AS owner_entity_title_ar,
 			bcm_manual_procedure_forms.location_id,
 			location.title_en AS location_title_en,
 			location.title_ar AS location_title_ar,
-			bcm_manual_procedure_forms.stakeholder_id,
-			stakeholder.title_en AS stakeholder_title_en,
-			stakeholder.title_ar AS stakeholder_title_ar,
+			bcm_manual_procedure_forms.internal_stakeholder,
 			bcm_manual_procedure_forms.notes,
 			bcm_manual_procedure_forms.created_at,
 			bcm_manual_procedure_forms.updated_at
 		`).
-		Joins("LEFT JOIN users AS owner ON owner.id = bcm_manual_procedure_forms.owner_id").
-		Joins("LEFT JOIN locations AS location ON location.id = bcm_manual_procedure_forms.location_id").
-		Joins("LEFT JOIN stakeholders AS stakeholder ON stakeholder.id = bcm_manual_procedure_forms.stakeholder_id")
+		Joins("LEFT JOIN organization_units AS owner_unit ON owner_unit.id = bcm_manual_procedure_forms.owner_entity_id").
+		Joins("LEFT JOIN locations AS location ON location.id = bcm_manual_procedure_forms.location_id")
 
 	if params.Keyword != "" {
 		query = query.Where(`
@@ -66,18 +57,13 @@ func (repo *BCMManualProcedureFormRepository) GetAll(params *bcmDTOs.BCMManualPr
 				bcm_manual_procedure_forms.title_ar LIKE ? OR
 				bcm_manual_procedure_forms.code LIKE ? OR
 				bcm_manual_procedure_forms.notes LIKE ? OR
-				owner.first_name_en LIKE ? OR
-				owner.first_name_ar LIKE ? OR
-				owner.last_name_en LIKE ? OR
-				owner.last_name_ar LIKE ? OR
-				owner.email LIKE ? OR
+				bcm_manual_procedure_forms.internal_stakeholder LIKE ? OR
+				owner_unit.title_en LIKE ? OR
+				owner_unit.title_ar LIKE ? OR
 				location.title_en LIKE ? OR
-				location.title_ar LIKE ? OR
-				stakeholder.title_en LIKE ? OR
-				stakeholder.title_ar LIKE ?)`,
+				location.title_ar LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
 	// Sort by the specified column and order
@@ -97,7 +83,7 @@ func (repo *BCMManualProcedureFormRepository) GetAll(params *bcmDTOs.BCMManualPr
 
 func (repo *BCMManualProcedureFormRepository) GetByID(id uint) (*models.BCMManualProcedureForm, error) {
 	var form *models.BCMManualProcedureForm
-	result := repo.db.Preload("Owner").Preload("Stakeholder").Preload("Location").Preload("CreatedByUser").Preload("UpdatedByUser").First(&form, id)
+	result := repo.db.Preload("OwnerEntity").Preload("Location").Preload("CreatedByUser").Preload("UpdatedByUser").First(&form, id)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -109,8 +95,7 @@ func (repo *BCMManualProcedureFormRepository) GetByID(id uint) (*models.BCMManua
 func (repo *BCMManualProcedureFormRepository) GetFullDetailsByID(id uint) (*models.BCMManualProcedureForm, error) {
 	var form *models.BCMManualProcedureForm
 	result := repo.db.
-		Preload("Owner").
-		Preload("Stakeholder").
+		Preload("OwnerEntity").
 		Preload("Location").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").

@@ -36,7 +36,7 @@ func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath s
 	if err != nil {
 		return "", err
 	}
-	
+
 	lexandDecaFont400, err := fontToDataURL("fonts/LexendDeca-Regular.woff")
 	if err != nil {
 		return "", err
@@ -62,8 +62,8 @@ func GeneratePDFContent(dto interface{}, templatePaths []string, logoImagePath s
 		"LexandDecaFont400": template.URL(lexandDecaFont400),
 		"LexandDecaFont500": template.URL(lexandDecaFont500),
 		"LexandDecaFont600": template.URL(lexandDecaFont600),
-		"Data":             dto,
-		"ApiPath":          config.GetEnv("API_URL", ""),
+		"Data":              dto,
+		"ApiPath":           config.GetEnv("API_URL", ""),
 	}
 
 	templates := template.New("pdf").Funcs(template.FuncMap{
@@ -651,4 +651,50 @@ func fontToDataURL(fontPath string) (string, error) {
 	}
 	encoded := base64.StdEncoding.EncodeToString(fontData)
 	return "data:font/woff;charset=utf-8;base64," + encoded, nil
+}
+
+func ExtractBulletPointsFromHTML(htmlContent string) []string {
+
+	// Convert common line-breaking tags to new lines
+	replacements := map[string]string{
+		"<br>":   "\n",
+		"<br/>":  "\n",
+		"<br />": "\n",
+		"</p>":   "\n",
+		"</div>": "\n",
+		"</li>":  "\n",
+		"<li>":   "• ",
+	}
+
+	for old, newVal := range replacements {
+		htmlContent = strings.ReplaceAll(htmlContent, old, newVal)
+	}
+
+	// Remove HTML entities
+	htmlContent = strings.ReplaceAll(htmlContent, "&nbsp;", " ")
+
+	// Remove all remaining HTML tags
+	re := regexp.MustCompile(`<[^>]*>`)
+	htmlContent = re.ReplaceAllString(htmlContent, "")
+
+	// Split into lines
+	lines := strings.Split(htmlContent, "\n")
+
+	var result []string
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+
+		if line == "" {
+			continue
+		}
+
+		// Remove bullet symbol if present
+		line = strings.TrimPrefix(line, "•")
+		line = strings.TrimSpace(line)
+
+		result = append(result, line)
+	}
+
+	return result
 }
