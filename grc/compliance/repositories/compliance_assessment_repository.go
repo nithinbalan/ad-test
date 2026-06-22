@@ -1806,7 +1806,9 @@ func (repo *ComplianceAssessmentRepository) GetRegisterIDsWithResponsibleUnitID(
 		Select("DISTINCT compliance_clauses.compliance_register_id").
 		Joins("JOIN compliance_requirements ON compliance_requirements.id = compliance_requirement_responsible_units.compliance_requirement_id").
 		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
+		Joins("JOIN compliance_register ON compliance_register.id = compliance_clauses.compliance_register_id").
 		Where("compliance_requirement_responsible_units.responsible_unit_id = ?", responsibleUnitID).
+		Where("compliance_register.approved_by_id IS NOT NULL").
 		Pluck("compliance_clauses.compliance_register_id", &registerIDs)
 
 	if result.Error != nil {
