@@ -43,6 +43,7 @@ func (repo *JobTeamRepository) GetAll(params *bcDTOs.JobTeamListQueryParamsDTO) 
 
 	// Build the base query with preloading relationships and joins
 	query := repo.db.Preload("TeamLeadDesignation").
+		Preload("TeamLeadUser").
 		Preload("JobTeamMembers").
 		Preload("JobTeamMembers.Designation").
 		Preload("CreatedByUser").
@@ -121,6 +122,7 @@ func (repo *JobTeamRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 	// Load the job team with all related data
 	result := db.
 		Preload("TeamLeadDesignation").
+		Preload("TeamLeadUser").
 		Preload("JobTeamMembers").
 		Preload("JobTeamMembers.Designation").
 		Preload("CreatedByUser").

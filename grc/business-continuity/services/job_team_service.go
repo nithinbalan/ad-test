@@ -60,32 +60,41 @@ func (jts *JobTeamService) GetAll(params *bcDTOs.JobTeamListQueryParamsDTO) (*bc
 		}
 
 		dto := &bcDTOs.JobTeamListDTO{
-			ID:                          jobTeam.ID,
-			TitleEn:                     jobTeam.TitleEn,
-			TitleAr:                     jobTeam.TitleAr,
-			Scope:                       jobTeam.Scope,
-			Objective:                   jobTeam.Objective,
-			TeamLeadDesignationID:       jobTeam.TeamLeadDesignationID,
-			TeamLeadDesignationTitleEn:  getSafeString(jobTeam.TeamLeadDesignation, func(d *models.Designation) string { return d.TitleEn }),
-			TeamLeadDesignationTitleAr:  getSafeString(jobTeam.TeamLeadDesignation, func(d *models.Designation) string { return d.TitleAr }),
-			CreatedUserFirstNameEn:      getSafeString(jobTeam.CreatedByUser, func(u *models.User) string { return u.FirstNameEn }),
-			CreatedUserFirstNameAr:      getSafeString(jobTeam.CreatedByUser, func(u *models.User) string { return u.FirstNameAr }),
-			CreatedUserLastNameEn:       getSafeString(jobTeam.CreatedByUser, func(u *models.User) string { return u.LastNameEn }),
-			CreatedUserLastNameAr:       getSafeString(jobTeam.CreatedByUser, func(u *models.User) string { return u.LastNameAr }),
-			CreatedUserEmail:            getSafeString(jobTeam.CreatedByUser, func(u *models.User) string { return u.Email }),
-			CreatedUserInitial:          getSafeString(jobTeam.CreatedByUser, func(u *models.User) string { return u.Initial }),
-			CreatedUserColor:            getSafeString(jobTeam.CreatedByUser, func(u *models.User) string { return u.Color }),
-			CreatedUserProfileImagePath: getSafeStringPointer(jobTeam.CreatedByUser, func(u *models.User) *string { return u.ProfileImagePath }),
-			UpdatedUserFirstNameEn:      getSafeString(jobTeam.UpdatedByUser, func(u *models.User) string { return u.FirstNameEn }),
-			UpdatedUserFirstNameAr:      getSafeString(jobTeam.UpdatedByUser, func(u *models.User) string { return u.FirstNameAr }),
-			UpdatedUserLastNameEn:       getSafeString(jobTeam.UpdatedByUser, func(u *models.User) string { return u.LastNameEn }),
-			UpdatedUserLastNameAr:       getSafeString(jobTeam.UpdatedByUser, func(u *models.User) string { return u.LastNameAr }),
-			UpdatedUserEmail:            getSafeString(jobTeam.UpdatedByUser, func(u *models.User) string { return u.Email }),
-			UpdatedUserInitial:          getSafeString(jobTeam.UpdatedByUser, func(u *models.User) string { return u.Initial }),
-			UpdatedUserColor:            getSafeString(jobTeam.UpdatedByUser, func(u *models.User) string { return u.Color }),
-			UpdatedUserProfileImagePath: getSafeStringPointer(jobTeam.UpdatedByUser, func(u *models.User) *string { return u.ProfileImagePath }),
-			CreatedAt:                   jobTeam.CreatedAt.String(),
-			UpdatedAt:                   getSafeString(jobTeam.UpdatedAt, func(t *time.Time) string { return t.String() }),
+			ID:                           jobTeam.ID,
+			TitleEn:                      jobTeam.TitleEn,
+			TitleAr:                      jobTeam.TitleAr,
+			Scope:                        jobTeam.Scope,
+			Objective:                    jobTeam.Objective,
+			TeamLeadDesignationID:        jobTeam.TeamLeadDesignationID,
+			TeamLeadDesignationTitleEn:   getSafeString(jobTeam.TeamLeadDesignation, func(d *models.Designation) string { return d.TitleEn }),
+			TeamLeadDesignationTitleAr:   getSafeString(jobTeam.TeamLeadDesignation, func(d *models.Designation) string { return d.TitleAr }),
+			TeamLeadUserID:               jobTeam.TeamLeadUserID,
+			TeamLeadUserFirstNameEn:      getSafeString(jobTeam.TeamLeadUser, func(u *models.User) string { return u.FirstNameEn }),
+			TeamLeadUserLastNameEn:       getSafeString(jobTeam.TeamLeadUser, func(u *models.User) string { return u.LastNameEn }),
+			TeamLeadUserFirstNameAr:      getSafeString(jobTeam.TeamLeadUser, func(u *models.User) string { return u.FirstNameAr }),
+			TeamLeadUserLastNameAr:       getSafeString(jobTeam.TeamLeadUser, func(u *models.User) string { return u.LastNameAr }),
+			TeamLeadUserEmail:            getSafeString(jobTeam.TeamLeadUser, func(u *models.User) string { return u.Email }),
+			TeamLeadUserInitial:          getSafeString(jobTeam.TeamLeadUser, func(u *models.User) string { return u.Initial }),
+			TeamLeadUserColor:            getSafeString(jobTeam.TeamLeadUser, func(u *models.User) string { return u.Color }),
+			TeamLeadUserProfileImagePath: getSafeStringPointer(jobTeam.TeamLeadUser, func(u *models.User) *string { return u.ProfileImagePath }),
+			CreatedUserFirstNameEn:       getSafeString(jobTeam.CreatedByUser, func(u *models.User) string { return u.FirstNameEn }),
+			CreatedUserFirstNameAr:       getSafeString(jobTeam.CreatedByUser, func(u *models.User) string { return u.FirstNameAr }),
+			CreatedUserLastNameEn:        getSafeString(jobTeam.CreatedByUser, func(u *models.User) string { return u.LastNameEn }),
+			CreatedUserLastNameAr:        getSafeString(jobTeam.CreatedByUser, func(u *models.User) string { return u.LastNameAr }),
+			CreatedUserEmail:             getSafeString(jobTeam.CreatedByUser, func(u *models.User) string { return u.Email }),
+			CreatedUserInitial:           getSafeString(jobTeam.CreatedByUser, func(u *models.User) string { return u.Initial }),
+			CreatedUserColor:             getSafeString(jobTeam.CreatedByUser, func(u *models.User) string { return u.Color }),
+			CreatedUserProfileImagePath:  getSafeStringPointer(jobTeam.CreatedByUser, func(u *models.User) *string { return u.ProfileImagePath }),
+			UpdatedUserFirstNameEn:       getSafeString(jobTeam.UpdatedByUser, func(u *models.User) string { return u.FirstNameEn }),
+			UpdatedUserFirstNameAr:       getSafeString(jobTeam.UpdatedByUser, func(u *models.User) string { return u.FirstNameAr }),
+			UpdatedUserLastNameEn:        getSafeString(jobTeam.UpdatedByUser, func(u *models.User) string { return u.LastNameEn }),
+			UpdatedUserLastNameAr:        getSafeString(jobTeam.UpdatedByUser, func(u *models.User) string { return u.LastNameAr }),
+			UpdatedUserEmail:             getSafeString(jobTeam.UpdatedByUser, func(u *models.User) string { return u.Email }),
+			UpdatedUserInitial:           getSafeString(jobTeam.UpdatedByUser, func(u *models.User) string { return u.Initial }),
+			UpdatedUserColor:             getSafeString(jobTeam.UpdatedByUser, func(u *models.User) string { return u.Color }),
+			UpdatedUserProfileImagePath:  getSafeStringPointer(jobTeam.UpdatedByUser, func(u *models.User) *string { return u.ProfileImagePath }),
+			CreatedAt:                    jobTeam.CreatedAt.String(),
+			UpdatedAt:                    getSafeString(jobTeam.UpdatedAt, func(t *time.Time) string { return t.String() }),
 		}
 
 		// Map team members
@@ -168,6 +177,7 @@ func (jts *JobTeamService) Create(currentUserID uint, jobTeamFormDTO *bcDTOs.Job
 		TitleEn:               jobTeamFormDTO.TitleEn,
 		TitleAr:               jobTeamFormDTO.TitleAr,
 		TeamLeadDesignationID: jobTeamFormDTO.TeamLeadDesignationID,
+		TeamLeadUserID:        jobTeamFormDTO.TeamLeadUserID,
 		Scope:                 jobTeamFormDTO.Scope,
 		Objective:             jobTeamFormDTO.Objective,
 		CreatedBYID:           currentUserID,
@@ -256,6 +266,7 @@ func (jts *JobTeamService) Update(id uint, currentUserID uint, jobTeamFormDTO *b
 	existingJobTeam.TitleEn = jobTeamFormDTO.TitleEn
 	existingJobTeam.TitleAr = jobTeamFormDTO.TitleAr
 	existingJobTeam.TeamLeadDesignationID = jobTeamFormDTO.TeamLeadDesignationID
+	existingJobTeam.TeamLeadUserID = jobTeamFormDTO.TeamLeadUserID
 	existingJobTeam.Scope = jobTeamFormDTO.Scope
 	existingJobTeam.Objective = jobTeamFormDTO.Objective
 	existingJobTeam.UpdatedBYID = &currentUserID
@@ -351,13 +362,13 @@ func (jts *JobTeamService) Update(id uint, currentUserID uint, jobTeamFormDTO *b
 		oldData := map[string]interface{}{
 			"title_en":  oldJobTeam.TitleEn,
 			"title_ar":  oldJobTeam.TitleAr,
-			"team_lead": oldJobTeam.TeamLeadDesignation.TitleEn,
+			"team_lead": getSafeString(oldJobTeam.TeamLeadDesignation, func(d *models.Designation) string { return d.TitleEn }),
 		}
 
 		newData := map[string]interface{}{
 			"title_en":  existingJobTeam.TitleEn,
 			"title_ar":  existingJobTeam.TitleAr,
-			"team_lead": existingJobTeam.TeamLeadDesignation.TitleEn,
+			"team_lead": getSafeString(existingJobTeam.TeamLeadDesignation, func(d *models.Designation) string { return d.TitleEn }),
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
@@ -456,12 +467,14 @@ func (jts *JobTeamService) Delete(ids []uint, currentUserID uint) ([]uint, error
 }
 
 func (jts *JobTeamService) validateJobTeamFormDTO(jobTeamFormDTO *bcDTOs.JobTeamFormDTO) error {
-	designation, err := jts.designationSvc.GetByID(jobTeamFormDTO.TeamLeadDesignationID)
-	if err != nil {
-		return utility.NewValidationError(fmt.Errorf("job team lead designation does not exist"), "not_exist", "team lead designation")
-	}
-	if designation.Status != "active" {
-		return utility.NewValidationError(fmt.Errorf("job team lead designation is not active"), "not_active", "team lead designation")
+	if jobTeamFormDTO.TeamLeadDesignationID != nil {
+		designation, err := jts.designationSvc.GetByID(*jobTeamFormDTO.TeamLeadDesignationID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("job team lead designation does not exist"), "not_exist", "team lead designation")
+		}
+		if designation.Status != "active" {
+			return utility.NewValidationError(fmt.Errorf("job team lead designation is not active"), "not_active", "team lead designation")
+		}
 	}
 	// Validate Designation IDs
 	designationIDs := jobTeamFormDTO.DesignationIDs
