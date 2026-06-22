@@ -10,7 +10,7 @@ type BCMExecutionRecord struct {
 	TitleAr           string     `json:"title_ar" binding:"required,max=1000" gorm:"type:varchar(1000);not null"`
 	OwnerEntityID     uint       `json:"owner_entity_id" binding:"required" gorm:"not null"`
 	RecordTypeID      *uint      `json:"record_type_id" gorm:"default:null"`
-	IsBackUpAvailable bool       `json:"is_back_up_available" gorm:"default:0"`
+	IsBackUpAvailable *string    `json:"is_back_up_available" gorm:"type:varchar(20);default:null"`
 	LocationID        *uint      `json:"location_id" gorm:"default:null"`
 	RecoveryPlan      *string    `json:"recovery_plan" gorm:"type:nvarchar(max);default:null"`
 	CreatedBYID       uint       `json:"created_by_id"`
