@@ -20,6 +20,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	awarenessPriorityController := app.AwarenessReportingModule.AwarenessPriorityController
 	awarenessEvaluationRatingController := app.AwarenessReportingModule.AwarenessEvaluationRatingController
 	awarenessCampaignController := app.AwarenessReportingModule.AwarenessCampaignController
+	awarenessMaturityLevelController := app.AwarenessReportingModule.AwarenessMaturityLevelController
 
 	// awareness campaign types
 	awarenessRoutes.GET("/awareness-reporting/awareness-campaign-types", awarenessCampaignTypeController.GetAllAwarenessCampaignTypes)
@@ -60,4 +61,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	router.GET("/awareness-reporting/awareness-campaigns/:id/document-preview", awarenessCampaignController.GetAwarenessCampaignDocumentPreview)
 	router.GET("/awareness-reporting/awareness-campaigns/:id/document-download", awarenessCampaignController.DownloadAwarenessCampaignDocument)
+
+	// awareness maturity levels
+	awarenessRoutes.GET("/awareness-reporting/awareness-maturity-levels",awarenessMaturityLevelController.GetAllAwarenessMaturityLevels,)
+	awarenessRoutes.GET("/awareness-reporting/awareness-maturity-levels/:id",awarenessMaturityLevelController.GetAwarenessMaturityLevelDetails,)
 }

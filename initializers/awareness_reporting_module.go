@@ -15,6 +15,7 @@ type AwarenessReportingModule struct {
 	AwarenessPriorityController         *controllers.AwarenessPriorityController
 	AwarenessEvaluationRatingController *controllers.AwarenessEvaluationRatingController
 	AwarenessCampaignController         *controllers.AwarenessCampaignController
+	AwarenessMaturityLevelController    *controllers.AwarenessMaturityLevelController
 }
 
 func NewAwarenessReportingModule(
@@ -59,6 +60,10 @@ func NewAwarenessReportingModule(
 	)
 	awarenessCampaignController := controllers.NewAwarenessCampaignController(awarenessCampaignSvc)
 
+	awarenessMaturityLevelRepo := repositories.NewAwarenessMaturityLevelRepository(db)
+	awarenessMaturityLevelSvc := services.NewAwarenessMaturityLevelService(awarenessMaturityLevelRepo)
+	awarenessMaturityLevelController := controllers.NewAwarenessMaturityLevelController(awarenessMaturityLevelSvc)
+
 	return &AwarenessReportingModule{
 		AwarenessCampaignTypeController:     awarenessCampaignTypeController,
 		AwarenessChannelController:          awarenessChannelController,
@@ -66,5 +71,6 @@ func NewAwarenessReportingModule(
 		AwarenessPriorityController:         awarenessPriorityController,
 		AwarenessEvaluationRatingController: awarenessEvaluationRatingController,
 		AwarenessCampaignController:         awarenessCampaignController,
+		AwarenessMaturityLevelController:    awarenessMaturityLevelController,
 	}
 }
