@@ -1,3 +1,4 @@
+
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE awareness_post_campaign_survey_themes ( 
@@ -21,3 +22,4 @@ CREATE TABLE awareness_post_campaign_survey_themes (
 -- +goose StatementBegin
 DROP TABLE awareness_post_campaign_survey_themes;
 -- +goose StatementEnd
+

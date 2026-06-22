@@ -16,3 +16,4 @@ CREATE TABLE awareness_assessment_themes
 -- +goose StatementBegin
 DROP TABLE awareness_assessment_themes;
 -- +goose StatementEnd
+
