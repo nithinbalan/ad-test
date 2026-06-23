@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type SystemRegisterRecoveryTool struct {
+type SystemRegisterServiceImportance struct {
 	ID          uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	TitleEn     string     `json:"title_en" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
 	TitleAr     string     `json:"title_ar" binding:"required,max=500" gorm:"type:nvarchar(500);not null"`
@@ -19,7 +19,7 @@ type SystemRegisterRecoveryTool struct {
 	UpdatedByUser *User `gorm:"foreignKey:UpdatedBYID"`
 }
 
-// TableName overrides the table name used by SystemRegisterRecoveryTool to `system_register_recovery_tools`
-func (SystemRegisterRecoveryTool) TableName() string {
-	return "system_register_recovery_tools"
+// TableName overrides the table name used by SystemRegisterServiceImportance to `system_register_service_importances`
+func (SystemRegisterServiceImportance) TableName() string {
+	return "system_register_service_importances"
 }

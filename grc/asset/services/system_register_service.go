@@ -9,7 +9,6 @@ import (
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
 	logServices "jethur/grc/logs/services"
-	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
 	organizationServices "jethur/grc/organization/services"
 	"jethur/utility"
@@ -29,32 +28,20 @@ type SystemRegisterServiceInterface interface {
 }
 
 type SystemRegisterService struct {
-	repo            repositories.SystemRegisterRepositoryInterface
-	activityLogSvc  logServices.ActivityLogServiceInterface
-	userSvc         organizationServices.UserServiceInterface
-	designationSvc  organizationServices.DesignationServiceInterface
-	locationSvc     masterServices.LocationServiceInterface
-	recoveryToolSvc SystemRegisterRecoveryToolServiceInterface
-	userSettingSvc  organizationServices.UserSettingServiceInterface
+	repo           repositories.SystemRegisterRepositoryInterface
+	activityLogSvc logServices.ActivityLogServiceInterface
+	userSettingSvc organizationServices.UserSettingServiceInterface
 }
 
 func NewSystemRegisterService(
 	repo repositories.SystemRegisterRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
-	userSvc organizationServices.UserServiceInterface,
-	designationSvc organizationServices.DesignationServiceInterface,
-	locationSvc masterServices.LocationServiceInterface,
-	recoveryToolSvc SystemRegisterRecoveryToolServiceInterface,
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) SystemRegisterServiceInterface {
 	return &SystemRegisterService{
-		repo:            repo,
-		activityLogSvc:  activityLogSvc,
-		userSvc:         userSvc,
-		designationSvc:  designationSvc,
-		locationSvc:     locationSvc,
-		recoveryToolSvc: recoveryToolSvc,
-		userSettingSvc:  userSettingSvc,
+		repo:           repo,
+		activityLogSvc: activityLogSvc,
+		userSettingSvc: userSettingSvc,
 	}
 }
 
@@ -74,8 +61,6 @@ func (srs *SystemRegisterService) GetByID(id uint) (*models.SystemRegister, erro
 }
 
 func (srs *SystemRegisterService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*dtos.SystemRegisterDetailDTO, error) {
-	var systemRegisterDetailDTO dtos.SystemRegisterDetailDTO
-
 	systemRegister, err := srs.repo.GetFullDetailsByID(id, tx...)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -84,45 +69,77 @@ func (srs *SystemRegisterService) GetFullDetailsByID(id uint, tx ...utility.Data
 		return nil, err
 	}
 
-	err = mapstructure.Decode(systemRegister, &systemRegisterDetailDTO)
-	if err != nil {
+	var detail dtos.SystemRegisterDetailDTO
+	if err := mapstructure.Decode(systemRegister, &detail); err != nil {
 		return nil, err
 	}
 
-	systemRegisterDetailDTO.CreatedAt = systemRegister.CreatedAt
-	return &systemRegisterDetailDTO, nil
+	detail.CreatedAt = systemRegister.CreatedAt
+
+	return &detail, nil
 }
 
 func (srs *SystemRegisterService) Create(systemRegisterFormDTO *dtos.SystemRegisterFormDTO, currentUserID uint) (uint, error) {
-	// Validate before starting transaction
-	if err := srs.validateSystemRegisterFormDTO(systemRegisterFormDTO); err != nil {
-		return 0, err
-	}
-
-	referenceNumber, err := srs.repo.GenerateReferenceNumber()
-	if err != nil {
-		return 0, err
-	}
-
-	// Begin transaction only after validation passes
 	tx := srs.repo.BeginTransaction()
 
+	// If SLA is mapped, fetch SLA details and auto-populate VendorRTO fields only if not provided by user
+	var vendorRTO *int
+	var vendorRTOUnitID *uint
+	if systemRegisterFormDTO.SLARegisterID != nil {
+		slaRegister, err := srs.repo.GetSLARegisterByID(*systemRegisterFormDTO.SLARegisterID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		// Auto-populate VendorRTO from SLA only if user hasn't provided values
+		if systemRegisterFormDTO.VendorRTO == nil {
+			vendorRTO = slaRegister.RTOValue
+		} else {
+			vendorRTO = systemRegisterFormDTO.VendorRTO
+		}
+		if systemRegisterFormDTO.VendorRTOUnitID == nil {
+			vendorRTOUnitID = slaRegister.RTOUnitID
+		} else {
+			vendorRTOUnitID = systemRegisterFormDTO.VendorRTOUnitID
+		}
+	} else {
+		// No SLA mapped, use user-provided values
+		vendorRTO = systemRegisterFormDTO.VendorRTO
+		vendorRTOUnitID = systemRegisterFormDTO.VendorRTOUnitID
+	}
+
 	systemRegister := &models.SystemRegister{
-		ReferenceNumber:               referenceNumber,
-		TitleEn:                       systemRegisterFormDTO.TitleEn,
-		TitleAr:                       systemRegisterFormDTO.TitleAr,
-		NumberOfPeopleNecessary:       systemRegisterFormDTO.NumberOfPeopleNecessary,
-		BusinessOwnerUnitID:           systemRegisterFormDTO.BusinessOwnerUnitID,
-		ITResponsibleUnitID:           systemRegisterFormDTO.ITResponsibleUnitID,
-		ThirdPartyDependencies:        systemRegisterFormDTO.ThirdPartyDependencies,
-		OutsourcingPartners:           systemRegisterFormDTO.OutsourcingPartners,
-		CustomerUser:                  systemRegisterFormDTO.CustomerUser,
-		ProcessOperationTeamID:        systemRegisterFormDTO.ProcessOperationTeamID,
-		ProcessRecoveryTeamID:         systemRegisterFormDTO.ProcessRecoveryTeamID,
-		RecoveryManagerID:             systemRegisterFormDTO.RecoveryManagerID,
-		RecoveryManagerContactDetails: systemRegisterFormDTO.RecoveryManagerContactDetails,
-		CreatedBYID:                   currentUserID,
-		CreatedAt:                     time.Now(),
+		TitleEn:                 systemRegisterFormDTO.TitleEn,
+		TitleAr:                 systemRegisterFormDTO.TitleAr,
+		ServiceDescription:      systemRegisterFormDTO.ServiceDescription,
+		ModulesComponents:       systemRegisterFormDTO.ModulesComponents,
+		ThirdPartyDependencies:  systemRegisterFormDTO.ThirdPartyDependencies,
+		ServiceImportanceID:     systemRegisterFormDTO.ServiceImportanceID,
+		ResponsibleITTeamID:     systemRegisterFormDTO.ResponsibleITTeamID,
+		OutsourcingPartner:      systemRegisterFormDTO.OutsourcingPartner,
+		OperationLocationID:     systemRegisterFormDTO.OperationLocationID,
+		BusinessOwnerID:         systemRegisterFormDTO.BusinessOwnerID,
+		Customers:               systemRegisterFormDTO.Customers,
+		ImpactTypeID:            systemRegisterFormDTO.ImpactTypeID,
+		DisruptionImpactLevelID: systemRegisterFormDTO.DisruptionImpactLevelID,
+		RTO:                     systemRegisterFormDTO.RTO,
+		RTOUnitID:               systemRegisterFormDTO.RTOUnitID,
+		MTPD:                    systemRegisterFormDTO.MTPD,
+		MTPDUnitID:              systemRegisterFormDTO.MTPDUnitID,
+		RPO:                     systemRegisterFormDTO.RPO,
+		RPOUnitID:               systemRegisterFormDTO.RPOUnitID,
+		ITProcesses:             systemRegisterFormDTO.ITProcesses,
+		ITServiceOwnerID:        systemRegisterFormDTO.ITServiceOwnerID,
+		ProcessOperationTeamID:  systemRegisterFormDTO.ProcessOperationTeamID,
+		ProcessRecoveryTeamID:   systemRegisterFormDTO.ProcessRecoveryTeamID,
+		RecoveryManagerID:       systemRegisterFormDTO.RecoveryManagerID,
+		RecoveryManagerPhone:    systemRegisterFormDTO.RecoveryManagerPhone,
+		RecoveryManagerEmail:    systemRegisterFormDTO.RecoveryManagerEmail,
+		RecoveryLocation:        systemRegisterFormDTO.RecoveryLocation,
+		VendorRTO:               vendorRTO,       // Auto-populated from SLA
+		VendorRTOUnitID:         vendorRTOUnitID, // Auto-populated from SLA
+		CreatedBYID:             currentUserID,
+		CreatedAt:               time.Now(),
 	}
 
 	systemRegisterID, err := srs.repo.Create(systemRegister, tx)
@@ -131,73 +148,14 @@ func (srs *SystemRegisterService) Create(systemRegisterFormDTO *dtos.SystemRegis
 		return 0, err
 	}
 
-	// Handle Job Titles
-	if len(systemRegisterFormDTO.JobTitleIDs) > 0 {
-		var jobTitles []*models.SystemRegisterJobTitle
-		for _, jobTitleID := range systemRegisterFormDTO.JobTitleIDs {
-			jobTitles = append(jobTitles, &models.SystemRegisterJobTitle{
-				SystemRegisterID: systemRegisterID,
-				DesignationID:    jobTitleID,
-				CreatedBYID:      currentUserID,
-				CreatedAt:        time.Now(),
-			})
+	if systemRegisterFormDTO.SLARegisterID != nil {
+		sla := &models.SystemRegisterSLA{
+			SystemRegisterID: systemRegisterID,
+			SLARegisterID:    *systemRegisterFormDTO.SLARegisterID,
+			CreatedBYID:      currentUserID,
+			CreatedAt:        time.Now(),
 		}
-
-		if err := srs.repo.CreateJobTitles(jobTitles, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
-
-	// Handle Operational Locations
-	if len(systemRegisterFormDTO.OperationalLocationIDs) > 0 {
-		var operationalLocations []*models.SystemRegisterOperationalLocation
-		for _, locationID := range systemRegisterFormDTO.OperationalLocationIDs {
-			operationalLocations = append(operationalLocations, &models.SystemRegisterOperationalLocation{
-				SystemRegisterID:      systemRegisterID,
-				OperationalLocationID: locationID,
-				CreatedBYID:           currentUserID,
-				CreatedAt:             time.Now(),
-			})
-		}
-
-		if err := srs.repo.CreateOperationalLocations(operationalLocations, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
-
-	// Handle Recovery Locations
-	if len(systemRegisterFormDTO.RecoveryLocationIDs) > 0 {
-		var recoveryLocations []*models.SystemRegisterRecoveryLocation
-		for _, locationID := range systemRegisterFormDTO.RecoveryLocationIDs {
-			recoveryLocations = append(recoveryLocations, &models.SystemRegisterRecoveryLocation{
-				SystemRegisterID:   systemRegisterID,
-				RecoveryLocationID: locationID,
-				CreatedBYID:        currentUserID,
-				CreatedAt:          time.Now(),
-			})
-		}
-
-		if err := srs.repo.CreateRecoveryLocations(recoveryLocations, tx); err != nil {
-			tx.Rollback()
-			return 0, err
-		}
-	}
-
-	// Handle Recovery Needed Tools
-	if len(systemRegisterFormDTO.RecoveryNeededToolIDs) > 0 {
-		var recoveryNeededTools []*models.SystemRegisterRecoveryNeededTool
-		for _, toolID := range systemRegisterFormDTO.RecoveryNeededToolIDs {
-			recoveryNeededTools = append(recoveryNeededTools, &models.SystemRegisterRecoveryNeededTool{
-				SystemRegisterID:     systemRegisterID,
-				RecoveryNeededToolID: toolID,
-				CreatedBYID:          currentUserID,
-				CreatedAt:            time.Now(),
-			})
-		}
-
-		if err := srs.repo.CreateRecoveryNeededTools(recoveryNeededTools, tx); err != nil {
+		if err := srs.repo.CreateSLA(sla, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -206,34 +164,25 @@ func (srs *SystemRegisterService) Create(systemRegisterFormDTO *dtos.SystemRegis
 	tx.Commit()
 
 	go func() {
-		existingSystemRegister, err := srs.GetFullDetailsByID(systemRegisterID)
+		detail, err := srs.GetFullDetailsByID(systemRegisterID)
 		if err != nil {
-			utility.LogError("Failed to fetch system register", map[string]interface{}{
-				"error": err.Error(),
-			})
+			utility.LogError("Failed to fetch system register", map[string]interface{}{"error": err.Error()})
 			return
 		}
-		err = srs.activityLogSvc.LogActivity(
+		if err := srs.activityLogSvc.LogActivity(
 			models.CreateAction,
 			models.SystemRegister{}.TableName(),
 			systemRegisterID,
-			existingSystemRegister,
+			detail,
 			currentUserID,
 			"asset",
 			"system_register",
 			"",
 			nil,
-		)
-		if err != nil {
-			fields := map[string]interface{}{
-				"action":    models.CreateAction,
-				"tableName": models.SystemRegister{}.TableName(),
-				"recordID":  systemRegisterID,
-				"userID":    currentUserID,
-				"error":     err.Error(),
-			}
-
-			utility.LogError("Failed to log system register activity", fields)
+		); err != nil {
+			utility.LogError("Failed to log system register activity", map[string]interface{}{
+				"action": models.CreateAction, "recordID": systemRegisterID, "error": err.Error(),
+			})
 		}
 	}()
 
@@ -241,137 +190,97 @@ func (srs *SystemRegisterService) Create(systemRegisterFormDTO *dtos.SystemRegis
 }
 
 func (srs *SystemRegisterService) Update(id uint, systemRegisterFormDTO *dtos.SystemRegisterFormDTO, currentUserID uint) error {
-	// Validate before starting transaction
-	if err := srs.validateSystemRegisterFormDTO(systemRegisterFormDTO); err != nil {
-		return err
-	}
-
-	// Begin transaction
 	tx := srs.repo.BeginTransaction()
 
-	// Use transaction for all reads to ensure consistent visibility
 	existingSystemRegister, err := srs.repo.GetByID(id)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	oldSystemRegister, err := srs.GetFullDetailsByID(id, tx)
+	oldDetail, err := srs.GetFullDetailsByID(id, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// Update fields
+	// If SLA is mapped, fetch SLA details and auto-populate VendorRTO fields only if not provided by user
+	var vendorRTO *int
+	var vendorRTOUnitID *uint
+	if systemRegisterFormDTO.SLARegisterID != nil {
+		slaRegister, err := srs.repo.GetSLARegisterByID(*systemRegisterFormDTO.SLARegisterID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		// Auto-populate VendorRTO from SLA only if user hasn't provided values
+		if systemRegisterFormDTO.VendorRTO == nil {
+			vendorRTO = slaRegister.RTOValue
+		} else {
+			vendorRTO = systemRegisterFormDTO.VendorRTO
+		}
+		if systemRegisterFormDTO.VendorRTOUnitID == nil {
+			vendorRTOUnitID = slaRegister.RTOUnitID
+		} else {
+			vendorRTOUnitID = systemRegisterFormDTO.VendorRTOUnitID
+		}
+	} else {
+		// No SLA mapped, use user-provided values
+		vendorRTO = systemRegisterFormDTO.VendorRTO
+		vendorRTOUnitID = systemRegisterFormDTO.VendorRTOUnitID
+	}
+
 	existingSystemRegister.TitleEn = systemRegisterFormDTO.TitleEn
 	existingSystemRegister.TitleAr = systemRegisterFormDTO.TitleAr
-	existingSystemRegister.NumberOfPeopleNecessary = systemRegisterFormDTO.NumberOfPeopleNecessary
-	existingSystemRegister.BusinessOwnerUnitID = systemRegisterFormDTO.BusinessOwnerUnitID
-	existingSystemRegister.ITResponsibleUnitID = systemRegisterFormDTO.ITResponsibleUnitID
+	existingSystemRegister.ServiceDescription = systemRegisterFormDTO.ServiceDescription
+	existingSystemRegister.ModulesComponents = systemRegisterFormDTO.ModulesComponents
 	existingSystemRegister.ThirdPartyDependencies = systemRegisterFormDTO.ThirdPartyDependencies
-	existingSystemRegister.OutsourcingPartners = systemRegisterFormDTO.OutsourcingPartners
-	existingSystemRegister.CustomerUser = systemRegisterFormDTO.CustomerUser
+	existingSystemRegister.ServiceImportanceID = systemRegisterFormDTO.ServiceImportanceID
+	existingSystemRegister.ResponsibleITTeamID = systemRegisterFormDTO.ResponsibleITTeamID
+	existingSystemRegister.OutsourcingPartner = systemRegisterFormDTO.OutsourcingPartner
+	existingSystemRegister.OperationLocationID = systemRegisterFormDTO.OperationLocationID
+	existingSystemRegister.BusinessOwnerID = systemRegisterFormDTO.BusinessOwnerID
+	existingSystemRegister.Customers = systemRegisterFormDTO.Customers
+	existingSystemRegister.ImpactTypeID = systemRegisterFormDTO.ImpactTypeID
+	existingSystemRegister.DisruptionImpactLevelID = systemRegisterFormDTO.DisruptionImpactLevelID
+	existingSystemRegister.RTO = systemRegisterFormDTO.RTO
+	existingSystemRegister.RTOUnitID = systemRegisterFormDTO.RTOUnitID
+	existingSystemRegister.MTPD = systemRegisterFormDTO.MTPD
+	existingSystemRegister.MTPDUnitID = systemRegisterFormDTO.MTPDUnitID
+	existingSystemRegister.RPO = systemRegisterFormDTO.RPO
+	existingSystemRegister.RPOUnitID = systemRegisterFormDTO.RPOUnitID
+	existingSystemRegister.ITProcesses = systemRegisterFormDTO.ITProcesses
+	existingSystemRegister.ITServiceOwnerID = systemRegisterFormDTO.ITServiceOwnerID
 	existingSystemRegister.ProcessOperationTeamID = systemRegisterFormDTO.ProcessOperationTeamID
 	existingSystemRegister.ProcessRecoveryTeamID = systemRegisterFormDTO.ProcessRecoveryTeamID
 	existingSystemRegister.RecoveryManagerID = systemRegisterFormDTO.RecoveryManagerID
-	existingSystemRegister.RecoveryManagerContactDetails = systemRegisterFormDTO.RecoveryManagerContactDetails
+	existingSystemRegister.RecoveryManagerPhone = systemRegisterFormDTO.RecoveryManagerPhone
+	existingSystemRegister.RecoveryManagerEmail = systemRegisterFormDTO.RecoveryManagerEmail
+	existingSystemRegister.RecoveryLocation = systemRegisterFormDTO.RecoveryLocation
+	existingSystemRegister.VendorRTO = vendorRTO             // Auto-populated from SLA
+	existingSystemRegister.VendorRTOUnitID = vendorRTOUnitID // Auto-populated from SLA
 	existingSystemRegister.UpdatedBYID = &currentUserID
 	now := time.Now()
 	existingSystemRegister.UpdatedAt = &now
 
-	err = srs.repo.Update(existingSystemRegister, tx)
-	if err != nil {
+	if err := srs.repo.Update(existingSystemRegister, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// Update Job Titles
-	if err := srs.repo.DeleteJobTitles(id, tx); err != nil {
+	if err := srs.repo.DeleteSLAs(id, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	if len(systemRegisterFormDTO.JobTitleIDs) > 0 {
-		var jobTitles []*models.SystemRegisterJobTitle
-		for _, jobTitleID := range systemRegisterFormDTO.JobTitleIDs {
-			jobTitles = append(jobTitles, &models.SystemRegisterJobTitle{
-				SystemRegisterID: id,
-				DesignationID:    jobTitleID,
-				CreatedBYID:      currentUserID,
-				CreatedAt:        time.Now(),
-			})
+	if systemRegisterFormDTO.SLARegisterID != nil {
+		sla := &models.SystemRegisterSLA{
+			SystemRegisterID: id,
+			SLARegisterID:    *systemRegisterFormDTO.SLARegisterID,
+			CreatedBYID:      currentUserID,
+			CreatedAt:        time.Now(),
 		}
-
-		if err := srs.repo.CreateJobTitles(jobTitles, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Update Operational Locations
-	if err := srs.repo.DeleteOperationalLocations(id, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if len(systemRegisterFormDTO.OperationalLocationIDs) > 0 {
-		var operationalLocations []*models.SystemRegisterOperationalLocation
-		for _, locationID := range systemRegisterFormDTO.OperationalLocationIDs {
-			operationalLocations = append(operationalLocations, &models.SystemRegisterOperationalLocation{
-				SystemRegisterID:      id,
-				OperationalLocationID: locationID,
-				CreatedBYID:           currentUserID,
-				CreatedAt:             time.Now(),
-			})
-		}
-
-		if err := srs.repo.CreateOperationalLocations(operationalLocations, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Update Recovery Locations
-	if err := srs.repo.DeleteRecoveryLocations(id, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if len(systemRegisterFormDTO.RecoveryLocationIDs) > 0 {
-		var recoveryLocations []*models.SystemRegisterRecoveryLocation
-		for _, locationID := range systemRegisterFormDTO.RecoveryLocationIDs {
-			recoveryLocations = append(recoveryLocations, &models.SystemRegisterRecoveryLocation{
-				SystemRegisterID:   id,
-				RecoveryLocationID: locationID,
-				CreatedBYID:        currentUserID,
-				CreatedAt:          time.Now(),
-			})
-		}
-
-		if err := srs.repo.CreateRecoveryLocations(recoveryLocations, tx); err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Update Recovery Needed Tools
-	if err := srs.repo.DeleteRecoveryNeededTools(id, tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if len(systemRegisterFormDTO.RecoveryNeededToolIDs) > 0 {
-		var recoveryNeededTools []*models.SystemRegisterRecoveryNeededTool
-		for _, toolID := range systemRegisterFormDTO.RecoveryNeededToolIDs {
-			recoveryNeededTools = append(recoveryNeededTools, &models.SystemRegisterRecoveryNeededTool{
-				SystemRegisterID:     id,
-				RecoveryNeededToolID: toolID,
-				CreatedBYID:          currentUserID,
-				CreatedAt:            time.Now(),
-			})
-		}
-
-		if err := srs.repo.CreateRecoveryNeededTools(recoveryNeededTools, tx); err != nil {
+		if err := srs.repo.CreateSLA(sla, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -380,42 +289,36 @@ func (srs *SystemRegisterService) Update(id uint, systemRegisterFormDTO *dtos.Sy
 	tx.Commit()
 
 	go func() {
-		existingSystemRegister, err := srs.GetFullDetailsByID(id)
+		newDetail, err := srs.GetFullDetailsByID(id)
 		if err != nil {
 			return
 		}
 
-		// Prepare log data
-		changedData := make(map[string]interface{})
-
-		// log changes
 		oldData := map[string]interface{}{
-			"title_en":                   oldSystemRegister.TitleEn,
-			"title_ar":                   oldSystemRegister.TitleAr,
-			"number_of_people_necessary": oldSystemRegister.NumberOfPeopleNecessary,
-			"third_party_dependencies":   oldSystemRegister.ThirdPartyDependencies,
-			"outsourcing_partners":       oldSystemRegister.OutsourcingPartners,
-			"customer_user":              oldSystemRegister.CustomerUser,
+			"title_en":                 oldDetail.TitleEn,
+			"title_ar":                 oldDetail.TitleAr,
+			"service_description":      oldDetail.ServiceDescription,
+			"third_party_dependencies": oldDetail.ThirdPartyDependencies,
+			"outsourcing_partner":      oldDetail.OutsourcingPartner,
+			"customers":                oldDetail.Customers,
+			"recovery_manager_phone":   oldDetail.RecoveryManagerPhone,
+			"recovery_manager_email":   oldDetail.RecoveryManagerEmail,
 		}
 
 		newData := map[string]interface{}{
-			"title_en":                   existingSystemRegister.TitleEn,
-			"title_ar":                   existingSystemRegister.TitleAr,
-			"number_of_people_necessary": existingSystemRegister.NumberOfPeopleNecessary,
-			"third_party_dependencies":   existingSystemRegister.ThirdPartyDependencies,
-			"outsourcing_partners":       existingSystemRegister.OutsourcingPartners,
-			"customer_user":              existingSystemRegister.CustomerUser,
+			"title_en":                 newDetail.TitleEn,
+			"title_ar":                 newDetail.TitleAr,
+			"service_description":      newDetail.ServiceDescription,
+			"third_party_dependencies": newDetail.ThirdPartyDependencies,
+			"outsourcing_partner":      newDetail.OutsourcingPartner,
+			"customers":                newDetail.Customers,
+			"recovery_manager_phone":   newDetail.RecoveryManagerPhone,
+			"recovery_manager_email":   newDetail.RecoveryManagerEmail,
 		}
 
-		// Compare other fields and add them to changedData
-		fieldChanges := utility.CompareFieldChanges(oldData, newData)
-		for k, v := range fieldChanges {
-			changedData[k] = v
-		}
-
-		// Log activity if there are any changes
+		changedData := utility.CompareFieldChanges(oldData, newData)
 		if len(changedData) > 0 {
-			err := srs.activityLogSvc.LogActivity(
+			if err := srs.activityLogSvc.LogActivity(
 				models.UpdateAction,
 				models.SystemRegister{}.TableName(),
 				id,
@@ -425,17 +328,10 @@ func (srs *SystemRegisterService) Update(id uint, systemRegisterFormDTO *dtos.Sy
 				"system_register",
 				"",
 				nil,
-			)
-			if err != nil {
-				fields := map[string]interface{}{
-					"action":    models.UpdateAction,
-					"tableName": models.SystemRegister{}.TableName(),
-					"recordID":  id,
-					"userID":    currentUserID,
-					"error":     err.Error(),
-				}
-
-				utility.LogError("Failed to log activity", fields)
+			); err != nil {
+				utility.LogError("Failed to log activity", map[string]interface{}{
+					"action": models.UpdateAction, "recordID": id, "error": err.Error(),
+				})
 			}
 		}
 	}()
@@ -448,79 +344,51 @@ func (srs *SystemRegisterService) Delete(ids []uint, currentUserID uint) ([]uint
 	var successfulIds []uint
 	var deletedSystemRegisters []map[string]interface{}
 
-	// Process each deletion in its own transaction
 	for _, id := range ids {
-		// Start a new transaction for each ID
 		tx := srs.repo.BeginTransaction()
 
-		systemRegister, err := srs.GetFullDetailsByID(id)
+		systemRegister, err := srs.repo.GetByID(id)
 		if err != nil {
 			tx.Rollback()
 			failedIds = append(failedIds, id)
 			continue
 		}
 
-		// Delete related entities
-		if err := srs.repo.DeleteJobTitles(id, tx); err != nil {
+		if err := srs.repo.DeleteSLAs(id, tx); err != nil {
 			tx.Rollback()
 			failedIds = append(failedIds, id)
 			continue
 		}
 
-		if err := srs.repo.DeleteOperationalLocations(id, tx); err != nil {
+		if err := srs.repo.Delete(id, tx); err != nil {
 			tx.Rollback()
 			failedIds = append(failedIds, id)
 			continue
 		}
 
-		if err := srs.repo.DeleteRecoveryLocations(id, tx); err != nil {
-			tx.Rollback()
-			failedIds = append(failedIds, id)
-			continue
-		}
-
-		if err := srs.repo.DeleteRecoveryNeededTools(id, tx); err != nil {
-			tx.Rollback()
-			failedIds = append(failedIds, id)
-			continue
-		}
-
-		// Delete system register record
-		err = srs.repo.Delete(id, tx)
-		if err != nil {
-			tx.Rollback()
-			failedIds = append(failedIds, id)
-			continue
-		}
-
-		// Commit this transaction
 		if err := tx.Commit(); err != nil {
 			failedIds = append(failedIds, id)
 			continue
 		}
 
-		// Only add to successful list after commit succeeds
 		successfulIds = append(successfulIds, id)
-
-		// Store deleted system register details for logging
 		deletedSystemRegisters = append(deletedSystemRegisters, map[string]interface{}{
-			"id":               id,
-			"reference_number": systemRegister.ReferenceNumber,
+			"id":       id,
+			"title_en": systemRegister.TitleEn,
+			"title_ar": systemRegister.TitleAr,
 		})
 	}
 
-	// Log activity in the background
 	if len(successfulIds) > 0 {
 		go func() {
-			err := srs.activityLogSvc.LogBulkActivities(
+			if err := srs.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
 				models.SystemRegister{}.TableName(),
 				successfulIds,
 				deletedSystemRegisters,
 				currentUserID,
 				nil,
-			)
-			if err != nil {
+			); err != nil {
 				fmt.Printf("Failed to log bulk delete activity: %v\n", err)
 			}
 		}()
@@ -539,189 +407,93 @@ func (srs *SystemRegisterService) ExportSystemRegister(data []*dtos.SystemRegist
 	if userSetting.Language == "ar" {
 		headers = []string{
 			"الرقم التسلسلي",
-			"الرقم المرجعي",
 			"العنوان",
-			"عدد الأشخاص اللازمين",
-			"وحدة مالك العمل",
-			"وحدة تكنولوجيا المعلومات المسؤولة",
+			"وصف الخدمة",
+			"أهمية الخدمة",
+			"فريق تكنولوجيا المعلومات المسؤول",
+			"مالك العمل",
 			"فريق عمليات العملية",
 			"فريق استعادة العملية",
-			"مدير الاستعادة",
-			"تفاصيل اتصال مدير الاستعادة",
-			"المسميات الوظيفية",
-			"المواقع التشغيلية",
-			"مواقع الاستعادة",
-			"أدوات الاستعادة المطلوبة",
-			"التبعيات الخارجية",
-			"شركاء الاستعانة بمصادر خارجية",
-			"مستخدم العميل",
+			"RTO",
+			"وحدة RTO",
+			"MTPD",
+			"وحدة MTPD",
+			"RPO",
+			"وحدة RPO",
+			"RTO المورد",
+			"وحدة RTO المورد",
+			"هاتف مدير الاستعادة",
+			"بريد مدير الاستعادة",
 		}
 	} else {
 		headers = []string{
 			"SL No.",
-			"Reference Number",
 			"Title",
-			"Number of People Necessary",
-			"Business Owner Unit",
-			"IT Responsible Unit",
+			"Service Description",
+			"Service Importance",
+			"Responsible IT Team",
+			"Business Owner",
 			"Process Operation Team",
 			"Process Recovery Team",
-			"Recovery Manager",
-			"Recovery Manager Contact Details",
-			"Job Titles",
-			"Operational Locations",
-			"Recovery Locations",
-			"Recovery Needed Tools",
-			"Third Party Dependencies",
-			"Outsourcing Partners",
-			"Customer User",
+			"RTO",
+			"RTO Unit",
+			"MTPD",
+			"MTPD Unit",
+			"RPO",
+			"RPO Unit",
+			"Vendor RTO",
+			"Vendor RTO Unit",
+			"Recovery Manager Phone",
+			"Recovery Manager Email",
 		}
 	}
 
 	rows := make([][]interface{}, len(data))
 	for i, sr := range data {
-		numPeople := ""
-		if sr.NumberOfPeopleNecessary != nil {
-			numPeople = fmt.Sprintf("%d", *sr.NumberOfPeopleNecessary)
-		}
-
-		// Prepare job titles
-		jobTitles := ""
-		if len(sr.JobTitles) > 0 {
-			titles := make([]string, len(sr.JobTitles))
-			for j, jt := range sr.JobTitles {
-				if userSetting.Language == "ar" {
-					titles[j] = utility.GetStringValue(jt.TitleAr)
-				} else {
-					titles[j] = utility.GetStringValue(jt.TitleEn)
-				}
-			}
-			jobTitles = fmt.Sprintf("%v", titles)
-		}
-
-		// Prepare operational locations
-		operationalLocations := ""
-		if len(sr.OperationalLocations) > 0 {
-			locations := make([]string, len(sr.OperationalLocations))
-			for j, loc := range sr.OperationalLocations {
-				if userSetting.Language == "ar" {
-					locations[j] = utility.GetStringValue(loc.TitleAr)
-				} else {
-					locations[j] = utility.GetStringValue(loc.TitleEn)
-				}
-			}
-			operationalLocations = fmt.Sprintf("%v", locations)
-		}
-
-		// Prepare recovery locations
-		recoveryLocations := ""
-		if len(sr.RecoveryLocations) > 0 {
-			locations := make([]string, len(sr.RecoveryLocations))
-			for j, loc := range sr.RecoveryLocations {
-				if userSetting.Language == "ar" {
-					locations[j] = utility.GetStringValue(loc.TitleAr)
-				} else {
-					locations[j] = utility.GetStringValue(loc.TitleEn)
-				}
-			}
-			recoveryLocations = fmt.Sprintf("%v", locations)
-		}
-
-		// Prepare recovery needed tools
-		recoveryTools := ""
-		if len(sr.RecoveryNeededTools) > 0 {
-			tools := make([]string, len(sr.RecoveryNeededTools))
-			for j, tool := range sr.RecoveryNeededTools {
-				if userSetting.Language == "ar" {
-					tools[j] = utility.GetStringValue(tool.TitleAr)
-				} else {
-					tools[j] = utility.GetStringValue(tool.TitleEn)
-				}
-			}
-			recoveryTools = fmt.Sprintf("%v", tools)
-		}
-
 		if userSetting.Language == "ar" {
 			rows[i] = []interface{}{
 				i + 1,
-				sr.ReferenceNumber,
-				utility.GetStringValue(sr.TitleAr),
-				numPeople,
-				utility.GetStringValue(sr.BusinessOwnerUnitTitleAr),
-				utility.GetStringValue(sr.ITResponsibleUnitTitleAr),
+				sr.TitleAr,
+				utility.GetStringValue(sr.ServiceDescription),
+				utility.GetStringValue(sr.ServiceImportanceTitleAr),
+				utility.GetStringValue(sr.ResponsibleITTeamTitleAr),
+				utility.GetStringValue(sr.BusinessOwnerTitleAr),
 				utility.GetStringValue(sr.ProcessOperationTeamTitleAr),
 				utility.GetStringValue(sr.ProcessRecoveryTeamTitleAr),
-				fmt.Sprintf("%s %s", utility.GetStringValue(sr.RecoveryManagerFirstNameAr), utility.GetStringValue(sr.RecoveryManagerLastNameAr)),
-				utility.GetStringValue(sr.RecoveryManagerContactDetails),
-				jobTitles,
-				operationalLocations,
-				recoveryLocations,
-				recoveryTools,
-				utility.GetStringValue(sr.ThirdPartyDependencies),
-				utility.GetStringValue(sr.OutsourcingPartners),
-				utility.GetStringValue(sr.CustomerUser),
+				utility.GetIntValueAsString(sr.RTO),
+				utility.GetStringValue(sr.RTOUnitTitleAr),
+				utility.GetIntValueAsString(sr.MTPD),
+				utility.GetStringValue(sr.MTPDUnitTitleAr),
+				utility.GetIntValueAsString(sr.RPO),
+				utility.GetStringValue(sr.RPOUnitTitleAr),
+				utility.GetIntValueAsString(sr.VendorRTO),
+				utility.GetStringValue(sr.VendorRTOUnitTitleAr),
+				sr.RecoveryManagerPhone,
+				sr.RecoveryManagerEmail,
 			}
 		} else {
 			rows[i] = []interface{}{
 				i + 1,
-				sr.ReferenceNumber,
-				utility.GetStringValue(sr.TitleEn),
-				numPeople,
-				utility.GetStringValue(sr.BusinessOwnerUnitTitleEn),
-				utility.GetStringValue(sr.ITResponsibleUnitTitleEn),
+				sr.TitleEn,
+				utility.GetStringValue(sr.ServiceDescription),
+				utility.GetStringValue(sr.ServiceImportanceTitleEn),
+				utility.GetStringValue(sr.ResponsibleITTeamTitleEn),
+				utility.GetStringValue(sr.BusinessOwnerTitleEn),
 				utility.GetStringValue(sr.ProcessOperationTeamTitleEn),
 				utility.GetStringValue(sr.ProcessRecoveryTeamTitleEn),
-				fmt.Sprintf("%s %s", utility.GetStringValue(sr.RecoveryManagerFirstNameEn), utility.GetStringValue(sr.RecoveryManagerLastNameEn)),
-				utility.GetStringValue(sr.RecoveryManagerContactDetails),
-				jobTitles,
-				operationalLocations,
-				recoveryLocations,
-				recoveryTools,
-				utility.GetStringValue(sr.ThirdPartyDependencies),
-				utility.GetStringValue(sr.OutsourcingPartners),
-				utility.GetStringValue(sr.CustomerUser),
+				utility.GetIntValueAsString(sr.RTO),
+				utility.GetStringValue(sr.RTOUnitTitleEn),
+				utility.GetIntValueAsString(sr.MTPD),
+				utility.GetStringValue(sr.MTPDUnitTitleEn),
+				utility.GetIntValueAsString(sr.RPO),
+				utility.GetStringValue(sr.RPOUnitTitleEn),
+				utility.GetIntValueAsString(sr.VendorRTO),
+				utility.GetStringValue(sr.VendorRTOUnitTitleEn),
+				sr.RecoveryManagerPhone,
+				sr.RecoveryManagerEmail,
 			}
 		}
 	}
 
 	return utility.GenerateExcelFile(headers, rows)
-}
-
-func (srs *SystemRegisterService) validateSystemRegisterFormDTO(systemRegisterFormDTO *dtos.SystemRegisterFormDTO) error {
-	// Validate recovery manager
-	if systemRegisterFormDTO.RecoveryManagerID != nil {
-		if _, err := srs.userSvc.GetByID(*systemRegisterFormDTO.RecoveryManagerID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("recovery manager does not exist"), "not_exist", "recovery manager")
-		}
-	}
-
-	// Validate job title IDs (designations)
-	for _, jobTitleID := range systemRegisterFormDTO.JobTitleIDs {
-		if _, err := srs.designationSvc.GetByID(jobTitleID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("designation with ID %d does not exist", jobTitleID), "not_exist", "designation")
-		}
-	}
-
-	// Validate operational location IDs
-	for _, locationID := range systemRegisterFormDTO.OperationalLocationIDs {
-		if _, err := srs.locationSvc.GetByID(locationID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("operational location with ID %d does not exist", locationID), "not_exist", "operational location")
-		}
-	}
-
-	// Validate recovery location IDs
-	for _, locationID := range systemRegisterFormDTO.RecoveryLocationIDs {
-		if _, err := srs.locationSvc.GetByID(locationID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("recovery location with ID %d does not exist", locationID), "not_exist", "recovery location")
-		}
-	}
-
-	// Validate recovery needed tool IDs
-	for _, toolID := range systemRegisterFormDTO.RecoveryNeededToolIDs {
-		if _, err := srs.recoveryToolSvc.GetByID(toolID); err != nil {
-			return utility.NewValidationError(fmt.Errorf("recovery tool with ID %d does not exist", toolID), "not_exist", "recovery tool")
-		}
-	}
-
-	return nil
 }

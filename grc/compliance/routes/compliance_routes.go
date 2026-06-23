@@ -41,6 +41,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	slaAssociatedItemController := app.ComplianceModule.SLAAssociatedItemController
 	ComplianceActionPlanCommentController := app.ComplianceModule.ComplianceActionPlanCommentController
 	complianceAssessmentController := app.ComplianceModule.ComplianceAssessmentController
+	complianceRegisterAssessmentController := app.ComplianceModule.ComplianceRegisterAssessmentController
 	complianceAssessmentRequirementController := app.ComplianceModule.ComplianceAssessmentRequirementController
 	complianceFolderController := app.ComplianceModule.ComplianceFolderController
 	complianceAssessmentStatusController := app.ComplianceModule.ComplianceAssessmentStatusController
@@ -672,4 +673,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceRoutes.POST("/compliance-action-plans/:actionPlanId/comments", middlewares.RolePermissionMiddlewareWithPassive(db, "compliance_action_plan", "modify"), ComplianceActionPlanCommentController.CreateComment)
 	complianceRoutes.PUT("/compliance-action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddlewareWithPassive(db, "compliance_action_plan", "modify"), ComplianceActionPlanCommentController.UpdateComment)
 	complianceRoutes.POST("/compliance-action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddlewareWithPassive(db, "compliance_action_plan", "modify"), ComplianceActionPlanCommentController.DeleteComment)
+
+	// Compliance Register Assessments
+	complianceRoutes.GET("/compliance-register/:id/compliance-assessments", middlewares.RolePermissionMiddleware(db, "compliance_register", "view"), complianceRegisterAssessmentController.GetAllComplianceRegisterAssessments)
+	complianceRoutes.POST("/compliance-register/:id/compliance-assessments", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterAssessmentController.CreateComplianceRegisterAssessment)
+	complianceRoutes.POST("/compliance-register/:id/compliance-assessments/delete", middlewares.RolePermissionMiddleware(db, "compliance_register", "modify"), complianceRegisterAssessmentController.DeleteComplianceRegisterAssessments)
 }

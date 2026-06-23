@@ -14,34 +14,34 @@ import (
 	"gorm.io/gorm"
 )
 
-type SystemRegisterRecoveryToolServiceInterface interface {
-	GetAll(params *assetDTOs.SystemRegisterRecoveryToolListQueryParamsDTO) ([]*assetDTOs.SystemRegisterRecoveryToolDTO, error)
-	GetByID(id uint) (*models.SystemRegisterRecoveryTool, error)
-	Create(currentUserID uint, toolFormDTO *assetDTOs.SystemRegisterRecoveryToolFormDTO) (uint, error)
-	Update(id uint, currentUserID uint, toolFormDTO *assetDTOs.SystemRegisterRecoveryToolFormDTO) error
+type SystemRegisterServiceImportanceServiceInterface interface {
+	GetAll(params *assetDTOs.SystemRegisterServiceImportanceListQueryParamsDTO) ([]*assetDTOs.SystemRegisterServiceImportanceDTO, error)
+	GetByID(id uint) (*models.SystemRegisterServiceImportance, error)
+	Create(currentUserID uint, toolFormDTO *assetDTOs.SystemRegisterServiceImportanceFormDTO) (uint, error)
+	Update(id uint, currentUserID uint, toolFormDTO *assetDTOs.SystemRegisterServiceImportanceFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
 }
 
 // Service and implementations
-type SystemRegisterRecoveryToolService struct {
-	repo           repositories.SystemRegisterRecoveryToolRepositoryInterface
+type SystemRegisterServiceImportanceService struct {
+	repo           repositories.SystemRegisterServiceImportanceRepositoryInterface
 	activityLogSvc activityLogServices.ActivityLogServiceInterface
 }
 
-func NewSystemRegisterRecoveryToolService(repo repositories.SystemRegisterRecoveryToolRepositoryInterface, activityLogSvc activityLogServices.ActivityLogServiceInterface) SystemRegisterRecoveryToolServiceInterface {
-	return &SystemRegisterRecoveryToolService{
+func NewSystemRegisterServiceImportanceService(repo repositories.SystemRegisterServiceImportanceRepositoryInterface, activityLogSvc activityLogServices.ActivityLogServiceInterface) SystemRegisterServiceImportanceServiceInterface {
+	return &SystemRegisterServiceImportanceService{
 		repo:           repo,
 		activityLogSvc: activityLogSvc,
 	}
 }
 
-func (srrts *SystemRegisterRecoveryToolService) GetAll(params *assetDTOs.SystemRegisterRecoveryToolListQueryParamsDTO) ([]*assetDTOs.SystemRegisterRecoveryToolDTO, error) {
+func (srrts *SystemRegisterServiceImportanceService) GetAll(params *assetDTOs.SystemRegisterServiceImportanceListQueryParamsDTO) ([]*assetDTOs.SystemRegisterServiceImportanceDTO, error) {
 	return srrts.repo.GetAll(params)
 }
 
-func (srrts SystemRegisterRecoveryToolService) GetByID(id uint) (*models.SystemRegisterRecoveryTool, error) {
+func (srrts SystemRegisterServiceImportanceService) GetByID(id uint) (*models.SystemRegisterServiceImportance, error) {
 	tool, err := srrts.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -52,8 +52,8 @@ func (srrts SystemRegisterRecoveryToolService) GetByID(id uint) (*models.SystemR
 	return tool, nil
 }
 
-func (srrts *SystemRegisterRecoveryToolService) Create(currentUserID uint, toolFormDTO *assetDTOs.SystemRegisterRecoveryToolFormDTO) (uint, error) {
-	tool := &models.SystemRegisterRecoveryTool{
+func (srrts *SystemRegisterServiceImportanceService) Create(currentUserID uint, toolFormDTO *assetDTOs.SystemRegisterServiceImportanceFormDTO) (uint, error) {
+	tool := &models.SystemRegisterServiceImportance{
 		TitleEn:     toolFormDTO.TitleEn,
 		TitleAr:     toolFormDTO.TitleAr,
 		Status:      toolFormDTO.Status,
@@ -73,7 +73,7 @@ func (srrts *SystemRegisterRecoveryToolService) Create(currentUserID uint, toolF
 
 		err = srrts.activityLogSvc.LogActivity(
 			models.CreateAction,
-			models.SystemRegisterRecoveryTool{}.TableName(),
+			models.SystemRegisterServiceImportance{}.TableName(),
 			id,
 			createdTool,
 			currentUserID,
@@ -85,7 +85,7 @@ func (srrts *SystemRegisterRecoveryToolService) Create(currentUserID uint, toolF
 		if err != nil {
 			fields := map[string]interface{}{
 				"action":    models.CreateAction,
-				"tableName": models.SystemRegisterRecoveryTool{}.TableName(),
+				"tableName": models.SystemRegisterServiceImportance{}.TableName(),
 				"recordID":  id,
 				"userID":    currentUserID,
 				"error":     err.Error(),
@@ -98,7 +98,7 @@ func (srrts *SystemRegisterRecoveryToolService) Create(currentUserID uint, toolF
 	return id, nil
 }
 
-func (srrts *SystemRegisterRecoveryToolService) Update(id uint, currentUserID uint, toolFormDTO *assetDTOs.SystemRegisterRecoveryToolFormDTO) error {
+func (srrts *SystemRegisterServiceImportanceService) Update(id uint, currentUserID uint, toolFormDTO *assetDTOs.SystemRegisterServiceImportanceFormDTO) error {
 	oldTool, err := srrts.GetByID(id)
 	if err != nil {
 		return err
@@ -133,7 +133,7 @@ func (srrts *SystemRegisterRecoveryToolService) Update(id uint, currentUserID ui
 	go func() {
 		err := srrts.activityLogSvc.LogActivity(
 			models.UpdateAction,
-			models.SystemRegisterRecoveryTool{}.TableName(),
+			models.SystemRegisterServiceImportance{}.TableName(),
 			id,
 			changedDataJSON,
 			currentUserID,
@@ -151,7 +151,7 @@ func (srrts *SystemRegisterRecoveryToolService) Update(id uint, currentUserID ui
 	return nil
 }
 
-func (srrts *SystemRegisterRecoveryToolService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
+func (srrts *SystemRegisterServiceImportanceService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	var failedIds []uint
 	var successfulIds []uint
 	var deletedTool []map[string]interface{}
@@ -179,7 +179,7 @@ func (srrts *SystemRegisterRecoveryToolService) Delete(ids []uint, currentUserID
 		go func() {
 			err := srrts.activityLogSvc.LogBulkActivities(
 				models.DeleteAction,
-				models.SystemRegisterRecoveryTool{}.TableName(),
+				models.SystemRegisterServiceImportance{}.TableName(),
 				successfulIds,
 				deletedTool,
 				currentUserID,
@@ -194,14 +194,14 @@ func (srrts *SystemRegisterRecoveryToolService) Delete(ids []uint, currentUserID
 	return failedIds, nil
 }
 
-func (srrts *SystemRegisterRecoveryToolService) Activate(ids []uint, currentUserID uint) error {
+func (srrts *SystemRegisterServiceImportanceService) Activate(ids []uint, currentUserID uint) error {
 	successfulIds, err := srrts.repo.Activate(ids)
 
 	if len(successfulIds) > 0 {
 		go func() {
 			err := srrts.activityLogSvc.LogBulkActivities(
 				models.ActivateAction,
-				models.SystemRegisterRecoveryTool{}.TableName(),
+				models.SystemRegisterServiceImportance{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,
@@ -216,14 +216,14 @@ func (srrts *SystemRegisterRecoveryToolService) Activate(ids []uint, currentUser
 	return err
 }
 
-func (srrts *SystemRegisterRecoveryToolService) Deactivate(ids []uint, currentUserID uint) error {
+func (srrts *SystemRegisterServiceImportanceService) Deactivate(ids []uint, currentUserID uint) error {
 	successfulIds, err := srrts.repo.Deactivate(ids)
 
 	if len(successfulIds) > 0 {
 		go func() {
 			err := srrts.activityLogSvc.LogBulkActivities(
 				models.DeactivateAction,
-				models.SystemRegisterRecoveryTool{}.TableName(),
+				models.SystemRegisterServiceImportance{}.TableName(),
 				successfulIds,
 				nil,
 				currentUserID,

@@ -60,7 +60,7 @@ func (repo *SLARegisterRepository) GetAll(params *complianceDTOs.SLARegisterList
 	var totalCount int64
 	query := repo.db.Table("sla_register").
 		Select(`
-            sla_register.*,
+            			sla_register.*,
 			sla_documents.version,
 			CONVERT(VARCHAR, sla_documents.issue_date, 23) AS issue_date,
 			CONVERT(VARCHAR, sla_documents.expiry_date, 23) AS expiry_date,
@@ -113,7 +113,13 @@ func (repo *SLARegisterRepository) GetAll(params *complianceDTOs.SLARegisterList
 			updated_user.initial AS updated_user_initial,
             updated_user.color AS updated_user_color,
             updated_user.email AS updated_user_email,
-            updated_user.profile_image_path AS updated_user_profile_image_path
+            updated_user.profile_image_path AS updated_user_profile_image_path,
+			rto_units.title_en AS rto_unit_title_en,
+			rto_units.title_ar AS rto_unit_title_ar,
+			mtpd_units.title_en AS mtpd_unit_title_en,
+			mtpd_units.title_ar AS mtpd_unit_title_ar,
+			rpo_units.title_en AS rpo_unit_title_en,
+			rpo_units.title_ar AS rpo_unit_title_ar
         `).
 		Joins(`
             LEFT JOIN sla_categories ON sla_register.sla_category_id = sla_categories.id
@@ -121,9 +127,12 @@ func (repo *SLARegisterRepository) GetAll(params *complianceDTOs.SLARegisterList
             LEFT JOIN organization_units ON sla_register.responsible_unit_id = organization_units.id
             LEFT JOIN users AS responsible_users ON sla_register.responsible_user_id = responsible_users.id
             JOIN lifecycle_statuses ON sla_register.lifecycle_status_id = lifecycle_statuses.id
-		    LEFT JOIN compliance_statuses ON sla_register.compliance_status_id = compliance_statuses.id 
+		    LEFT JOIN compliance_statuses ON sla_register.compliance_status_id = compliance_statuses.id
             JOIN users AS created_user ON sla_register.created_by_id = created_user.id
             LEFT JOIN users AS updated_user ON sla_register.updated_by_id = updated_user.id
+			LEFT JOIN business_continuity_duration_units AS rto_units ON sla_register.rto_unit_id = rto_units.id
+			LEFT JOIN business_continuity_duration_units AS mtpd_units ON sla_register.mtpd_unit_id = mtpd_units.id
+			LEFT JOIN business_continuity_duration_units AS rpo_units ON sla_register.rpo_unit_id = rpo_units.id
 			LEFT JOIN sla_documents ON sla_register.id = sla_documents.sla_register_id AND sla_documents.is_latest = 1
 
     `)
@@ -277,6 +286,9 @@ func (repo *SLARegisterRepository) GetFullDetailsByID(id uint, tx ...utility.Dat
 		Preload("ResponsibleUser").
 		Preload("LifecycleStatus").
 		Preload("ComplianceStatus").
+		Preload("RTOUnit").
+		Preload("MTPDUnit").
+		Preload("RPOUnit").
 		Preload("Documents").
 		Preload("Checks").
 		Preload("Processes").

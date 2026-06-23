@@ -17,23 +17,32 @@ type SLARegister struct {
 	TitleAr            string     `json:"title_ar" binding:"required,max=250" gorm:"type:nvarchar(250);not null"`
 	Description        *string    `json:"description" binding:"max=250" gorm:"type:varchar(max)"`
 	Client             string     `json:"client" gorm:"type:varchar(250)"`
+	RTOValue           *int       `json:"rto_value" gorm:"type:int;null"`
+	RTOUnitID          *uint      `json:"rto_unit_id" gorm:"null"`
+	MTPDValue          *int       `json:"mtpd_value" gorm:"type:int;null"`
+	MTPDUnitID         *uint      `json:"mtpd_unit_id" gorm:"null"`
+	RPOValue           *int       `json:"rpo_value" gorm:"type:int;null"`
+	RPOUnitID          *uint      `json:"rpo_unit_id" gorm:"null"`
 	CreatedAt          time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt          *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 	CreatedByID        uint       `json:"created_by_id" gorm:"not null"`
 	UpdatedByID        uint       `json:"updated_by_id" gorm:"default:null"`
 
 	// Relationships
-	SLACategory      *SLACategory      `gorm:"foreignKey:SLACategoryID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	SeverityLevel    *SeverityLevel    `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	ResponsibleUnit  *OrganizationUnit `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	ResponsibleUser  *User             `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	LifecycleStatus  *LifecycleStatus  `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
-	ComplianceStatus *ComplianceStatus `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	Documents        []*SLADocument    `gorm:"foreignKey:SLARegisterID"`
-	Checks           []*SLACheck       `gorm:"foreignKey:SLARegisterID"`
-	Processes        []*SLAProcess     `gorm:"foreignKey:SLARegisterID"`
-	CreatedByUser    *User             `gorm:"foreignKey:CreatedByID"`
-	UpdatedByUser    *User             `gorm:"foreignKey:UpdatedByID"`
+	SLACategory      *SLACategory                    `gorm:"foreignKey:SLACategoryID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	SeverityLevel    *SeverityLevel                  `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	ResponsibleUnit  *OrganizationUnit               `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	ResponsibleUser  *User                           `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	LifecycleStatus  *LifecycleStatus                `gorm:"foreignKey:LifecycleStatusID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT;"`
+	ComplianceStatus *ComplianceStatus               `gorm:"foreignKey:ComplianceStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	RTOUnit          *BusinessContinuityDurationUnit `gorm:"foreignKey:RTOUnitID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT"`
+	MTPDUnit         *BusinessContinuityDurationUnit `gorm:"foreignKey:MTPDUnitID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT"`
+	RPOUnit          *BusinessContinuityDurationUnit `gorm:"foreignKey:RPOUnitID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT"`
+	Documents        []*SLADocument                  `gorm:"foreignKey:SLARegisterID"`
+	Checks           []*SLACheck                     `gorm:"foreignKey:SLARegisterID"`
+	Processes        []*SLAProcess                   `gorm:"foreignKey:SLARegisterID"`
+	CreatedByUser    *User                           `gorm:"foreignKey:CreatedByID"`
+	UpdatedByUser    *User                           `gorm:"foreignKey:UpdatedByID"`
 }
 
 // TableName overrides the table name used by SLARegister to `sla_register`
