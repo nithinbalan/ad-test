@@ -41,9 +41,9 @@ type AssetModule struct {
 	AssetControlAnalysisController                *controllers.AssetControlAnalysisController
 	AssetKriController                            *controllers.AssetKriController
 	TenableController                             *controllers.TenableController
-	SystemRegisterRecoveryToolController          *controllers.SystemRegisterRecoveryToolController
+	SystemRegisterDisruptionLevelController       *controllers.SystemRegisterDisruptionLevelController
+	SystemRegisterServiceImportanceController     *controllers.SystemRegisterServiceImportanceController
 	SystemRegisterController                      *controllers.SystemRegisterController
-	SystemRegisterAssociatedItemController        *controllers.SystemRegisterAssociatedItemController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -264,25 +264,21 @@ func NewAssetModule(db *gorm.DB,
 	tenableSvc := services.NewTenableService(tenableRepo, assetStatusSvc, settingsModule.TenableSettingsSvc, assetCategorySvc, organizationModule.UserSvc, assetRegisterSvc, assetSubCategorySvc)
 	tenableController := controllers.NewTenableController(tenableSvc)
 
-	systemRegisterRecoveryToolRepo := repositories.NewSystemRegisterRecoveryToolRepository(db)
-	systemRegisterRecoveryToolSvc := services.NewSystemRegisterRecoveryToolService(systemRegisterRecoveryToolRepo, sharedModule.ActivityLogService)
-	systemRegisterRecoveryToolController := controllers.NewSystemRegisterRecoveryToolController(systemRegisterRecoveryToolSvc)
+	systemRegisterDisruptionLevelRepo := repositories.NewSystemRegisterDisruptionLevelRepository(db)
+	systemRegisterDisruptionLevelSvc := services.NewSystemRegisterDisruptionLevelService(systemRegisterDisruptionLevelRepo, sharedModule.ActivityLogService)
+	systemRegisterDisruptionLevelController := controllers.NewSystemRegisterDisruptionLevelController(systemRegisterDisruptionLevelSvc)
+
+	systemRegisterServiceImportanceRepo := repositories.NewSystemRegisterServiceImportanceRepository(db)
+	systemRegisterServiceImportanceSvc := services.NewSystemRegisterServiceImportanceService(systemRegisterServiceImportanceRepo, sharedModule.ActivityLogService)
+	systemRegisterServiceImportanceController := controllers.NewSystemRegisterServiceImportanceController(systemRegisterServiceImportanceSvc)
 
 	systemRegisterRepo := repositories.NewSystemRegisterRepository(db)
 	systemRegisterSvc := services.NewSystemRegisterService(
 		systemRegisterRepo,
 		sharedModule.ActivityLogService,
-		organizationModule.UserSvc,
-		organizationModule.DesignationSvc,
-		masterModule.LocationSvc,
-		systemRegisterRecoveryToolSvc,
 		organizationModule.UserSettingSvc,
 	)
 	systemRegisterController := controllers.NewSystemRegisterController(systemRegisterSvc)
-
-	systemRegisterAssociatedItemRepo := repositories.NewSystemRegisterAssociatedItemRepository(db)
-	systemRegisterAssociatedItemSvc := services.NewSystemRegisterAssociatedItemService(systemRegisterAssociatedItemRepo, systemRegisterSvc, commonModule.AssociatedItemValidationService)
-	systemRegisterAssociatedItemController := controllers.NewSystemRegisterAssociatedItemController(systemRegisterAssociatedItemSvc)
 
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
@@ -317,9 +313,9 @@ func NewAssetModule(db *gorm.DB,
 		AssetControlAnalysisController:                assetControlAnalysisController,
 		AssetKriController:                            assetKriController,
 		TenableController:                             tenableController,
-		SystemRegisterRecoveryToolController:          systemRegisterRecoveryToolController,
+		SystemRegisterDisruptionLevelController:       systemRegisterDisruptionLevelController,
+		SystemRegisterServiceImportanceController:     systemRegisterServiceImportanceController,
 		SystemRegisterController:                      systemRegisterController,
-		SystemRegisterAssociatedItemController:        systemRegisterAssociatedItemController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}

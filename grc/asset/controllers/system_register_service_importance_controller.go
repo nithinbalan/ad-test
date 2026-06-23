@@ -11,18 +11,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type SystemRegisterRecoveryToolController struct {
-	service services.SystemRegisterRecoveryToolServiceInterface
+type SystemRegisterServiceImportanceController struct {
+	service services.SystemRegisterServiceImportanceServiceInterface
 	db      *gorm.DB
 }
 
-func NewSystemRegisterRecoveryToolController(service services.SystemRegisterRecoveryToolServiceInterface) *SystemRegisterRecoveryToolController {
-	return &SystemRegisterRecoveryToolController{
+func NewSystemRegisterServiceImportanceController(service services.SystemRegisterServiceImportanceServiceInterface) *SystemRegisterServiceImportanceController {
+	return &SystemRegisterServiceImportanceController{
 		service: service,
 	}
 }
 
-func (srrtc *SystemRegisterRecoveryToolController) GetAllSystemRegisterRecoveryTools(c *gin.Context) {
+func (srrtc *SystemRegisterServiceImportanceController) GetAllSystemRegisterServiceImportances(c *gin.Context) {
 	sort := c.Query("sort_order")
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
@@ -31,7 +31,7 @@ func (srrtc *SystemRegisterRecoveryToolController) GetAllSystemRegisterRecoveryT
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
 
-	queryParams := assetDTOs.SystemRegisterRecoveryToolListQueryParamsDTO{
+	queryParams := assetDTOs.SystemRegisterServiceImportanceListQueryParamsDTO{
 		Sort:    sort,
 		SortBy:  sortBy,
 		Keyword: keyword,
@@ -47,7 +47,7 @@ func (srrtc *SystemRegisterRecoveryToolController) GetAllSystemRegisterRecoveryT
 	c.JSON(http.StatusOK, tools)
 }
 
-func (srrtc *SystemRegisterRecoveryToolController) GetSystemRegisterRecoveryToolDetails(c *gin.Context) {
+func (srrtc *SystemRegisterServiceImportanceController) GetSystemRegisterServiceImportanceDetails(c *gin.Context) {
 	idStr := c.Param("id")
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -65,8 +65,8 @@ func (srrtc *SystemRegisterRecoveryToolController) GetSystemRegisterRecoveryTool
 	c.JSON(http.StatusOK, tool)
 }
 
-func (srrtc *SystemRegisterRecoveryToolController) CreateSystemRegisterRecoveryTool(c *gin.Context) {
-	var tool *assetDTOs.SystemRegisterRecoveryToolFormDTO
+func (srrtc *SystemRegisterServiceImportanceController) CreateSystemRegisterServiceImportance(c *gin.Context) {
+	var tool *assetDTOs.SystemRegisterServiceImportanceFormDTO
 
 	if err := c.ShouldBindJSON(&tool); err != nil {
 		utility.SendInvalidErrResp(c, err)
@@ -92,14 +92,14 @@ func (srrtc *SystemRegisterRecoveryToolController) CreateSystemRegisterRecoveryT
 	c.JSON(http.StatusCreated, id)
 }
 
-func (srrtc *SystemRegisterRecoveryToolController) UpdateSystemRegisterRecoveryTool(c *gin.Context) {
+func (srrtc *SystemRegisterServiceImportanceController) UpdateSystemRegisterServiceImportance(c *gin.Context) {
 	toolID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utility.SendNotFoundErrResp(c)
 		return
 	}
 
-	var updatedTool *assetDTOs.SystemRegisterRecoveryToolFormDTO
+	var updatedTool *assetDTOs.SystemRegisterServiceImportanceFormDTO
 	if err := c.ShouldBindJSON(&updatedTool); err != nil {
 		utility.SendInvalidErrResp(c, err)
 		return
@@ -128,7 +128,7 @@ func (srrtc *SystemRegisterRecoveryToolController) UpdateSystemRegisterRecoveryT
 	c.Status(http.StatusOK)
 }
 
-func (srrtc *SystemRegisterRecoveryToolController) DeleteSystemRegisterRecoveryTools(c *gin.Context) {
+func (srrtc *SystemRegisterServiceImportanceController) DeleteSystemRegisterServiceImportances(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -153,7 +153,7 @@ func (srrtc *SystemRegisterRecoveryToolController) DeleteSystemRegisterRecoveryT
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
 }
 
-func (srrtc *SystemRegisterRecoveryToolController) ActivateSystemRegisterRecoveryTools(c *gin.Context) {
+func (srrtc *SystemRegisterServiceImportanceController) ActivateSystemRegisterServiceImportances(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}
@@ -178,7 +178,7 @@ func (srrtc *SystemRegisterRecoveryToolController) ActivateSystemRegisterRecover
 	c.Status(http.StatusOK)
 }
 
-func (srrtc *SystemRegisterRecoveryToolController) DeactivateSystemRegisterRecoveryTools(c *gin.Context) {
+func (srrtc *SystemRegisterServiceImportanceController) DeactivateSystemRegisterServiceImportances(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`
 	}

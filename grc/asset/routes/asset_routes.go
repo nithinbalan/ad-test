@@ -49,9 +49,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetControlAnalysisController := app.AssetModule.AssetControlAnalysisController
 	assetKriController := app.AssetModule.AssetKriController
 	tenableController := app.AssetModule.TenableController
-	systemRegisterRecoveryToolController := app.AssetModule.SystemRegisterRecoveryToolController
+	systemRegisterDisruptionLevelController := app.AssetModule.SystemRegisterDisruptionLevelController
+	systemRegisterServiceImportanceController := app.AssetModule.SystemRegisterServiceImportanceController
 	systemRegisterController := app.AssetModule.SystemRegisterController
-	systemRegisterAssociatedItemController := app.AssetModule.SystemRegisterAssociatedItemController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -346,14 +346,23 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/tenable/assets/validate", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableController.ValidateTenableAssets)
 	assetRoutes.POST("/tenable/assets/import", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableController.ImportAssets)
 
-	// System Register Recovery Tools
-	assetRoutes.GET("/system-register-recovery-tools", systemRegisterRecoveryToolController.GetAllSystemRegisterRecoveryTools)
-	assetRoutes.GET("/system-register-recovery-tools/:id", systemRegisterRecoveryToolController.GetSystemRegisterRecoveryToolDetails)
-	assetRoutes.POST("/system-register-recovery-tools", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterRecoveryToolController.CreateSystemRegisterRecoveryTool)
-	assetRoutes.PUT("/system-register-recovery-tools/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterRecoveryToolController.UpdateSystemRegisterRecoveryTool)
-	assetRoutes.POST("/system-register-recovery-tools/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterRecoveryToolController.DeleteSystemRegisterRecoveryTools)
-	assetRoutes.PUT("/system-register-recovery-tools/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterRecoveryToolController.ActivateSystemRegisterRecoveryTools)
-	assetRoutes.PUT("/system-register-recovery-tools/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterRecoveryToolController.DeactivateSystemRegisterRecoveryTools)
+	// System Register Disruption Levels
+	assetRoutes.GET("/system-register-disruption-levels", systemRegisterDisruptionLevelController.GetAllSystemRegisterDisruptionLevels)
+	assetRoutes.GET("/system-register-disruption-levels/:id", systemRegisterDisruptionLevelController.GetSystemRegisterDisruptionLevelDetails)
+	assetRoutes.POST("/system-register-disruption-levels", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterDisruptionLevelController.CreateSystemRegisterDisruptionLevel)
+	assetRoutes.PUT("/system-register-disruption-levels/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterDisruptionLevelController.UpdateSystemRegisterDisruptionLevel)
+	assetRoutes.POST("/system-register-disruption-levels/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterDisruptionLevelController.DeleteSystemRegisterDisruptionLevels)
+	assetRoutes.PUT("/system-register-disruption-levels/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterDisruptionLevelController.ActivateSystemRegisterDisruptionLevels)
+	assetRoutes.PUT("/system-register-disruption-levels/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterDisruptionLevelController.DeactivateSystemRegisterDisruptionLevels)
+
+	// System Register Service Importances
+	assetRoutes.GET("/system-register-service-importances", systemRegisterServiceImportanceController.GetAllSystemRegisterServiceImportances)
+	assetRoutes.GET("/system-register-service-importances/:id", systemRegisterServiceImportanceController.GetSystemRegisterServiceImportanceDetails)
+	assetRoutes.POST("/system-register-service-importances", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterServiceImportanceController.CreateSystemRegisterServiceImportance)
+	assetRoutes.PUT("/system-register-service-importances/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterServiceImportanceController.UpdateSystemRegisterServiceImportance)
+	assetRoutes.POST("/system-register-service-importances/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterServiceImportanceController.DeleteSystemRegisterServiceImportances)
+	assetRoutes.PUT("/system-register-service-importances/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterServiceImportanceController.ActivateSystemRegisterServiceImportances)
+	assetRoutes.PUT("/system-register-service-importances/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), systemRegisterServiceImportanceController.DeactivateSystemRegisterServiceImportances)
 
 	// System Register
 	assetRoutes.GET("/system-registers", middlewares.RolePermissionMiddleware(db, "system_register", "view"), systemRegisterController.GetAllSystemRegisters)
@@ -362,15 +371,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/system-registers/:id", middlewares.RolePermissionMiddleware(db, "system_register", "modify"), systemRegisterController.UpdateSystemRegister)
 	assetRoutes.POST("/system-registers/delete", middlewares.RolePermissionMiddleware(db, "system_register", "modify"), systemRegisterController.DeleteSystemRegisters)
 	assetRoutes.GET("/system-registers/export", middlewares.RolePermissionMiddleware(db, "system_register", "view"), systemRegisterController.GetSystemRegistersExport)
-
-	// System Register Associated Items - SLAs
-	assetRoutes.GET("/system-registers/:id/slas", middlewares.RolePermissionMiddleware(db, "system_register", "view"), systemRegisterAssociatedItemController.GetAllSystemRegisterSLAs)
-	assetRoutes.POST("/system-registers/:id/slas", middlewares.RolePermissionMiddleware(db, "system_register", "modify"), systemRegisterAssociatedItemController.CreateSystemRegisterSLAs)
-	assetRoutes.DELETE("/system-registers/:id/slas/:slaId", middlewares.RolePermissionMiddleware(db, "system_register", "modify"), systemRegisterAssociatedItemController.DeleteSystemRegisterSLA)
-
-	// System Register Associated Items - Processes
-	assetRoutes.GET("/system-registers/:id/processes", middlewares.RolePermissionMiddleware(db, "system_register", "view"), systemRegisterAssociatedItemController.GetAllSystemRegisterProcesses)
-	assetRoutes.POST("/system-registers/:id/processes", middlewares.RolePermissionMiddleware(db, "system_register", "modify"), systemRegisterAssociatedItemController.CreateSystemRegisterProcesses)
-	assetRoutes.DELETE("/system-registers/:id/processes/:processId", middlewares.RolePermissionMiddleware(db, "system_register", "modify"), systemRegisterAssociatedItemController.DeleteSystemRegisterProcess)
 
 }

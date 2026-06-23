@@ -174,6 +174,12 @@ func (srs *SLARegisterService) Create(currentUserID uint, slaRegisterFormDTO *co
 		TitleAr:           slaRegisterFormDTO.TitleAr,
 		Description:       slaRegisterFormDTO.Description,
 		Client:            slaRegisterFormDTO.Client,
+		RTOValue:          slaRegisterFormDTO.RTOValue,
+		RTOUnitID:         slaRegisterFormDTO.RTOUnitID,
+		MTPDValue:         slaRegisterFormDTO.MTPDValue,
+		MTPDUnitID:        slaRegisterFormDTO.MTPDUnitID,
+		RPOValue:          slaRegisterFormDTO.RPOValue,
+		RPOUnitID:         slaRegisterFormDTO.RPOUnitID,
 		CreatedByID:       currentUserID,
 	}
 
@@ -404,6 +410,12 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 	existingSLARegister.TitleAr = slaRegisterFormDTO.TitleAr
 	existingSLARegister.Description = slaRegisterFormDTO.Description
 	existingSLARegister.Client = slaRegisterFormDTO.Client
+	existingSLARegister.RTOValue = slaRegisterFormDTO.RTOValue
+	existingSLARegister.RTOUnitID = slaRegisterFormDTO.RTOUnitID
+	existingSLARegister.MTPDValue = slaRegisterFormDTO.MTPDValue
+	existingSLARegister.MTPDUnitID = slaRegisterFormDTO.MTPDUnitID
+	existingSLARegister.RPOValue = slaRegisterFormDTO.RPOValue
+	existingSLARegister.RPOUnitID = slaRegisterFormDTO.RPOUnitID
 	existingSLARegister.UpdatedByID = currentUserID
 
 	if err := srs.repo.Update(existingSLARegister, tx); err != nil {
@@ -561,6 +573,12 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 			"title_ar":          oldSlaRegister.TitleAr,
 			"description":       oldSlaRegister.Description,
 			"client":            oldSlaRegister.Client,
+			"rto_value":         oldSlaRegister.RTOValue,
+			"rto_unit_id":       oldSlaRegister.RTOUnitID,
+			"mtpd_value":        oldSlaRegister.MTPDValue,
+			"mtpd_unit_id":      oldSlaRegister.MTPDUnitID,
+			"rpo_value":         oldSlaRegister.RPOValue,
+			"rpo_unit_id":       oldSlaRegister.RPOUnitID,
 		}
 
 		newData := map[string]interface{}{
@@ -572,6 +590,12 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 			"title_ar":          existingSla.TitleAr,
 			"description":       existingSla.Description,
 			"client":            existingSla.Client,
+			"rto_value":         existingSla.RTOValue,
+			"rto_unit_id":       existingSla.RTOUnitID,
+			"mtpd_value":        existingSla.MTPDValue,
+			"mtpd_unit_id":      existingSla.MTPDUnitID,
+			"rpo_value":         existingSla.RPOValue,
+			"rpo_unit_id":       existingSla.RPOUnitID,
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)

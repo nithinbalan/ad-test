@@ -8,33 +8,33 @@ import (
 )
 
 // Interfaces
-type SystemRegisterRecoveryToolRepositoryInterface interface {
-	GetAll(params *assetDTOs.SystemRegisterRecoveryToolListQueryParamsDTO) ([]*assetDTOs.SystemRegisterRecoveryToolDTO, error)
-	GetByID(id uint) (*models.SystemRegisterRecoveryTool, error)
-	Create(tool *models.SystemRegisterRecoveryTool) (uint, error)
-	Update(tool *models.SystemRegisterRecoveryTool) error
+type SystemRegisterServiceImportanceRepositoryInterface interface {
+	GetAll(params *assetDTOs.SystemRegisterServiceImportanceListQueryParamsDTO) ([]*assetDTOs.SystemRegisterServiceImportanceDTO, error)
+	GetByID(id uint) (*models.SystemRegisterServiceImportance, error)
+	Create(tool *models.SystemRegisterServiceImportance) (uint, error)
+	Update(tool *models.SystemRegisterServiceImportance) error
 	Delete(id uint) error
 	Activate(ids []uint) ([]uint, error)
 	Deactivate(ids []uint) ([]uint, error)
 }
 
 // Implementation
-type SystemRegisterRecoveryToolRepository struct {
+type SystemRegisterServiceImportanceRepository struct {
 	db *gorm.DB
 }
 
-func NewSystemRegisterRecoveryToolRepository(db *gorm.DB) *SystemRegisterRecoveryToolRepository {
-	return &SystemRegisterRecoveryToolRepository{
+func NewSystemRegisterServiceImportanceRepository(db *gorm.DB) *SystemRegisterServiceImportanceRepository {
+	return &SystemRegisterServiceImportanceRepository{
 		db: db,
 	}
 }
 
-func (repo *SystemRegisterRecoveryToolRepository) GetAll(params *assetDTOs.SystemRegisterRecoveryToolListQueryParamsDTO) ([]*assetDTOs.SystemRegisterRecoveryToolDTO, error) {
-	var tools []*assetDTOs.SystemRegisterRecoveryToolDTO
+func (repo *SystemRegisterServiceImportanceRepository) GetAll(params *assetDTOs.SystemRegisterServiceImportanceListQueryParamsDTO) ([]*assetDTOs.SystemRegisterServiceImportanceDTO, error) {
+	var tools []*assetDTOs.SystemRegisterServiceImportanceDTO
 
-	query := repo.db.Table("system_register_recovery_tools").
+	query := repo.db.Table("system_register_service_importances").
 		Select(`
-            system_register_recovery_tools.*`)
+            system_register_service_importances.*`)
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -44,8 +44,8 @@ func (repo *SystemRegisterRecoveryToolRepository) GetAll(params *assetDTOs.Syste
 	}
 	if params.Keyword != "" {
 		query = query.Where(`
-				(system_register_recovery_tools.title_en LIKE ? OR
-				system_register_recovery_tools.title_ar LIKE ?)`,
+				(system_register_service_importances.title_en LIKE ? OR
+				system_register_service_importances.title_ar LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 	// Sort by the specified column and order
@@ -63,8 +63,8 @@ func (repo *SystemRegisterRecoveryToolRepository) GetAll(params *assetDTOs.Syste
 	return tools, result.Error
 }
 
-func (repo *SystemRegisterRecoveryToolRepository) GetByID(id uint) (*models.SystemRegisterRecoveryTool, error) {
-	var tool *models.SystemRegisterRecoveryTool
+func (repo *SystemRegisterServiceImportanceRepository) GetByID(id uint) (*models.SystemRegisterServiceImportance, error) {
+	var tool *models.SystemRegisterServiceImportance
 	result := repo.db.Preload("CreatedByUser").Preload("UpdatedByUser").First(&tool, id)
 
 	if result.Error != nil {
@@ -74,7 +74,7 @@ func (repo *SystemRegisterRecoveryToolRepository) GetByID(id uint) (*models.Syst
 	return tool, nil
 }
 
-func (repo *SystemRegisterRecoveryToolRepository) Create(tool *models.SystemRegisterRecoveryTool) (uint, error) {
+func (repo *SystemRegisterServiceImportanceRepository) Create(tool *models.SystemRegisterServiceImportance) (uint, error) {
 	if err := repo.db.Create(tool).Error; err != nil {
 		return 0, err
 	}
@@ -82,7 +82,7 @@ func (repo *SystemRegisterRecoveryToolRepository) Create(tool *models.SystemRegi
 	return tool.ID, nil
 }
 
-func (repo *SystemRegisterRecoveryToolRepository) Update(updatedTool *models.SystemRegisterRecoveryTool) error {
+func (repo *SystemRegisterServiceImportanceRepository) Update(updatedTool *models.SystemRegisterServiceImportance) error {
 	if err := repo.db.Save(updatedTool).Error; err != nil {
 		return err
 	}
@@ -90,13 +90,13 @@ func (repo *SystemRegisterRecoveryToolRepository) Update(updatedTool *models.Sys
 	return nil
 }
 
-func (repo *SystemRegisterRecoveryToolRepository) Delete(id uint) error {
-	var tool *models.SystemRegisterRecoveryTool
+func (repo *SystemRegisterServiceImportanceRepository) Delete(id uint) error {
+	var tool *models.SystemRegisterServiceImportance
 	if err := repo.db.First(&tool, id).Error; err != nil {
 		return err
 	}
 
-	result := repo.db.Delete(&models.SystemRegisterRecoveryTool{}, id)
+	result := repo.db.Delete(&models.SystemRegisterServiceImportance{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -104,10 +104,10 @@ func (repo *SystemRegisterRecoveryToolRepository) Delete(id uint) error {
 	return nil
 }
 
-func (repo *SystemRegisterRecoveryToolRepository) Activate(ids []uint) ([]uint, error) {
+func (repo *SystemRegisterServiceImportanceRepository) Activate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 	// Fetch IDs of records that are currently 'inactive' and within the provided 'ids' slice
-	if err := repo.db.Model(&models.SystemRegisterRecoveryTool{}).
+	if err := repo.db.Model(&models.SystemRegisterServiceImportance{}).
 		Where("id IN ? AND status = ?", ids, "inactive").
 		Pluck("id", &idsToUpdate).Error; err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func (repo *SystemRegisterRecoveryToolRepository) Activate(ids []uint) ([]uint, 
 
 	// If there are any IDs to update, perform the update operation
 	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.SystemRegisterRecoveryTool{}).
+		if err := repo.db.Model(&models.SystemRegisterServiceImportance{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "active").Error; err != nil {
 			return nil, err
@@ -125,10 +125,10 @@ func (repo *SystemRegisterRecoveryToolRepository) Activate(ids []uint) ([]uint, 
 	return idsToUpdate, nil
 }
 
-func (repo *SystemRegisterRecoveryToolRepository) Deactivate(ids []uint) ([]uint, error) {
+func (repo *SystemRegisterServiceImportanceRepository) Deactivate(ids []uint) ([]uint, error) {
 	var idsToUpdate []uint
 	// Fetch IDs of records that are currently 'active' and within the provided 'ids' slice
-	if err := repo.db.Model(&models.SystemRegisterRecoveryTool{}).
+	if err := repo.db.Model(&models.SystemRegisterServiceImportance{}).
 		Where("id IN ? AND status = ?", ids, "active").
 		Pluck("id", &idsToUpdate).Error; err != nil {
 		return nil, err
@@ -136,7 +136,7 @@ func (repo *SystemRegisterRecoveryToolRepository) Deactivate(ids []uint) ([]uint
 
 	// If there are any IDs to update, perform the update operation
 	if len(idsToUpdate) > 0 {
-		if err := repo.db.Model(&models.SystemRegisterRecoveryTool{}).
+		if err := repo.db.Model(&models.SystemRegisterServiceImportance{}).
 			Where("id IN ?", idsToUpdate).
 			Update("status", "inactive").Error; err != nil {
 			return nil, err

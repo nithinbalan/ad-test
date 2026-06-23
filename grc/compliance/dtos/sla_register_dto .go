@@ -1,12 +1,11 @@
 package dtos
 
 import (
-	"time"
-
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
+	"time"
 )
 
 type SLARegisterListDTO struct {
@@ -41,6 +40,18 @@ type SLARegisterListDTO struct {
 	ComplianceStatusTitleEn         string    `json:"compliance_status_title_en"`
 	ComplianceStatusTitleAr         string    `json:"compliance_status_title_ar"`
 	ComplianceStatusColorCode       string    `json:"compliance_status_color_code"`
+	RTOValue                        *int      `json:"rto_value"`
+	RTOUnitID                       *uint     `json:"rto_unit_id"`
+	RTOUnitTitleEn                  string    `json:"rto_unit_title_en"`
+	RTOUnitTitleAr                  string    `json:"rto_unit_title_ar"`
+	MTPDValue                       *int      `json:"mtpd_value"`
+	MTPDUnitID                      *uint     `json:"mtpd_unit_id"`
+	MTPDUnitTitleEn                 string    `json:"mtpd_unit_title_en"`
+	MTPDUnitTitleAr                 string    `json:"mtpd_unit_title_ar"`
+	RPOValue                        *int      `json:"rpo_value"`
+	RPOUnitID                       *uint     `json:"rpo_unit_id"`
+	RPOUnitTitleEn                  string    `json:"rpo_unit_title_en"`
+	RPOUnitTitleAr                  string    `json:"rpo_unit_title_ar"`
 	CreatedUserID                   uint      `json:"created_user_id"`
 	CreatedUserFirstNameEn          string    `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr          string    `json:"created_user_first_name_ar"`
@@ -107,6 +118,12 @@ type SLARegisterFormDTO struct {
 	TitleAr           string             `json:"title_ar" binding:"required,max=250"`
 	Description       *string            `json:"description"`
 	Client            string             `json:"client" binding:"max=250"`
+	RTOValue          *int               `json:"rto_value"`
+	RTOUnitID         *uint              `json:"rto_unit_id"`
+	MTPDValue         *int               `json:"mtpd_value"`
+	MTPDUnitID        *uint              `json:"mtpd_unit_id"`
+	RPOValue          *int               `json:"rpo_value"`
+	RPOUnitID         *uint              `json:"rpo_unit_id"`
 	Version           string             `json:"version" binding:"required"`
 	IssueDate         string             `json:"issue_date" binding:"omitempty,datetime=2006-01-02"`
 	ExpiryDate        string             `json:"expiry_date" binding:"omitempty,datetime=2006-01-02"`
@@ -171,6 +188,12 @@ type SLARegisterDetailDTO struct {
 	TitleAr           string                           `json:"title_ar"`
 	Description       *string                          `json:"description,omitempty"`
 	Client            string                           `json:"client"`
+	RTOValue          *int                             `json:"rto_value"`
+	RTOUnitID         *DurationUnitDTO                 `json:"rto_unit_id"`
+	MTPDValue         *int                             `json:"mtpd_value"`
+	MTPDUnitID        *DurationUnitDTO                 `json:"mtpd_unit_id"`
+	RPOValue          *int                             `json:"rpo_value"`
+	RPOUnitID         *DurationUnitDTO                 `json:"rpo_unit_id"`
 	CreatedAt         time.Time                        `json:"created_at"`
 	UpdatedAt         *time.Time                       `json:"updated_at"`
 	CreatedByUser     organizationDTOs.UserMinimalDTO  `json:"created_by"`
@@ -201,4 +224,13 @@ type SLACheckAnswerStatusCountResponseDTO struct {
 	TitleAr   string `json:"title_ar"`
 	ColorCode string `json:"color_code"`
 	Count     int    `json:"count"`
+}
+
+type DurationUnitDTO struct {
+	ID      int    `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+	Minutes int    `json:"minutes"`
+	Type    string `json:"type"`
+	Status  string `json:"status"`
 }

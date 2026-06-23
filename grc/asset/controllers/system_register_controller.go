@@ -25,55 +25,38 @@ func NewSystemRegisterController(service services.SystemRegisterServiceInterface
 
 func (src *SystemRegisterController) GetAllSystemRegisters(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "desc")
-	sortBy := c.DefaultQuery("sort_by", "reference_number")
+	sortBy := c.DefaultQuery("sort_by", "title_en")
 	keyword := c.Query("keyword")
 
-	// Validate sort_order to prevent SQL injection
 	if sort != "asc" && sort != "desc" {
 		sort = "desc"
 	}
 
-	exportFromContext, exists := c.Get("export")
-	var export bool
-	var err error
-
-	if exists {
-		export = exportFromContext.(bool)
-	} else {
-		export, err = strconv.ParseBool(c.DefaultQuery("export", "false"))
-		if err != nil {
-			utility.SendInternalErrResp(src.db, c, "Invalid export parameter")
-			return
-		}
-	}
-
 	allowedParams := []string{
-		"business_owner_unit_ids",
-		"it_responsible_unit_ids",
+		"service_importance_ids",
+		"responsible_it_team_ids",
+		"business_owner_ids",
 		"process_operation_team_ids",
 		"process_recovery_team_ids",
-		"recovery_manager_ids",
 	}
 
 	validSortFields := map[string]string{
-		"reference_number":                 "system_registers.reference_number",
-		"title_en":                         "system_registers.title_en",
-		"title_ar":                         "system_registers.title_ar",
-		"number_of_people_necessary":       "system_registers.number_of_people_necessary",
-		"third_party_dependencies":         "system_registers.third_party_dependencies",
-		"outsourcing_partners":             "system_registers.outsourcing_partners",
-		"customer_user":                    "system_registers.customer_user",
-		"business_owner_unit_en":           "business_owner_unit.title_en",
-		"business_owner_unit_ar":           "business_owner_unit.title_ar",
-		"it_responsible_unit_en":           "it_responsible_unit.title_en",
-		"it_responsible_unit_ar":           "it_responsible_unit.title_ar",
-		"process_operation_team_title_en":  "process_operation_team.title_en",
-		"process_operation_team_title_ar":  "process_operation_team.title_ar",
-		"process_recovery_team_title_en":   "process_recovery_team.title_en",
-		"process_recovery_team_title_ar":   "process_recovery_team.title_ar",
-		"recovery_manager_en":              "recovery_manager.first_name_en",
-		"recovery_manager_ar":              "recovery_manager.first_name_ar",
-		"recovery_manager_contact_details": "system_registers.recovery_manager_contact_details",
+		"title_en":                        "system_registers.title_en",
+		"title_ar":                        "system_registers.title_ar",
+		"service_description":             "system_registers.service_description",
+		"service_importance_title_en":     "service_importance.title_en",
+		"service_importance_title_ar":     "service_importance.title_ar",
+		"responsible_it_team_title_en":    "responsible_it_team.title_en",
+		"responsible_it_team_title_ar":    "responsible_it_team.title_ar",
+		"business_owner_title_en":         "business_owner.title_en",
+		"business_owner_title_ar":         "business_owner.title_ar",
+		"process_operation_team_title_en": "process_operation_team.title_en",
+		"process_operation_team_title_ar": "process_operation_team.title_ar",
+		"process_recovery_team_title_en":  "process_recovery_team.title_en",
+		"process_recovery_team_title_ar":  "process_recovery_team.title_ar",
+		"recovery_manager_phone":          "system_registers.recovery_manager_phone",
+		"recovery_manager_email":          "system_registers.recovery_manager_email",
+		"created_at":                      "system_registers.created_at",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -92,9 +75,16 @@ func (src *SystemRegisterController) GetAllSystemRegisters(c *gin.Context) {
 
 	dbField, valid := validSortFields[sortBy]
 	if !valid {
-		err := errors.New("invalid 'sort_by' parameter")
-		utility.SendInvalidErrResp(c, err)
+		utility.SendInvalidErrResp(c, errors.New("invalid 'sort_by' parameter"))
 		return
+	}
+
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, _ = strconv.ParseBool(c.DefaultQuery("export", "false"))
 	}
 
 	params := dtos.SystemRegisterListQueryParamsDTO{
@@ -131,11 +121,15 @@ func (src *SystemRegisterController) GetAllSystemRegisters(c *gin.Context) {
 		c.Header("Content-Disposition", `attachment; filename="SystemRegisters.xlsx"`)
 		c.Header("Content-Type", "application/octet-stream")
 		c.File(excelFile.Name())
-
 		return
 	}
 
 	c.JSON(http.StatusOK, systemRegisters)
+}
+
+func (src *SystemRegisterController) GetSystemRegistersExport(c *gin.Context) {
+	c.Set("export", true)
+	src.GetAllSystemRegisters(c)
 }
 
 func (src *SystemRegisterController) GetSystemRegisterDetails(c *gin.Context) {
@@ -247,9 +241,4 @@ func (src *SystemRegisterController) DeleteSystemRegisters(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
-}
-
-func (src *SystemRegisterController) GetSystemRegistersExport(c *gin.Context) {
-	c.Set("export", true)
-	src.GetAllSystemRegisters(c)
 }
