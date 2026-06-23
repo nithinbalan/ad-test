@@ -22,6 +22,18 @@ type SystemRegisterListDTO struct {
 	ProcessOperationTeamTitleAr *string    `json:"process_operation_team_title_ar"`
 	ProcessRecoveryTeamTitleEn  *string    `json:"process_recovery_team_title_en"`
 	ProcessRecoveryTeamTitleAr  *string    `json:"process_recovery_team_title_ar"`
+	RTO                         *int       `json:"rto"`
+	RTOUnitTitleEn              *string    `json:"rto_unit_title_en"`
+	RTOUnitTitleAr              *string    `json:"rto_unit_title_ar"`
+	MTPD                        *int       `json:"mtpd"`
+	MTPDUnitTitleEn             *string    `json:"mtpd_unit_title_en"`
+	MTPDUnitTitleAr             *string    `json:"mtpd_unit_title_ar"`
+	RPO                         *int       `json:"rpo"`
+	RPOUnitTitleEn              *string    `json:"rpo_unit_title_en"`
+	RPOUnitTitleAr              *string    `json:"rpo_unit_title_ar"`
+	VendorRTO                   *int       `json:"vendor_rto"`
+	VendorRTOUnitTitleEn        *string    `json:"vendor_rto_unit_title_en"`
+	VendorRTOUnitTitleAr        *string    `json:"vendor_rto_unit_title_ar"`
 	RecoveryManagerPhone        string     `json:"recovery_manager_phone"`
 	RecoveryManagerEmail        string     `json:"recovery_manager_email"`
 	CreatedUserID               uint       `json:"created_user_id"`
@@ -110,11 +122,11 @@ type SystemRegisterDetailDTO struct {
 	ImpactType             *ImpactCategoryDTO                    `json:"impact_type"`
 	DisruptionImpactLevel  *SystemRegisterDisruptionLevelDTO     `json:"disruption_impact_level"`
 	RTO                    *int                                  `json:"rto"`
-	RTOUnit                *masterDTOs.TimeUnitDTO               `json:"rto_unit"`
+	RTOUnit                *BusinessContinuityDurationUnitDTO    `json:"rto_unit"`
 	MTPD                   *int                                  `json:"mtpd"`
-	MTPDUnit               *masterDTOs.TimeUnitDTO               `json:"mtpd_unit"`
+	MTPDUnit               *BusinessContinuityDurationUnitDTO    `json:"mtpd_unit"`
 	RPO                    *int                                  `json:"rpo"`
-	RPOUnit                *masterDTOs.TimeUnitDTO               `json:"rpo_unit"`
+	RPOUnit                *BusinessContinuityDurationUnitDTO    `json:"rpo_unit"`
 	ITProcesses            *string                               `json:"it_processes"`
 	ITServiceOwner         *organizationDTOs.DesignationDTO      `json:"it_service_owner"`
 	ProcessOperationTeam   *JobTeamDetailDTO                     `json:"process_operation_team"`
@@ -124,8 +136,8 @@ type SystemRegisterDetailDTO struct {
 	RecoveryManagerEmail   string                                `json:"recovery_manager_email"`
 	RecoveryLocation       *string                               `json:"recovery_location"`
 	VendorRTO              *int                                  `json:"vendor_rto"`
-	VendorRTOUnit          *masterDTOs.TimeUnitDTO               `json:"vendor_rto_unit"`
-	SLA                    *SystemRegisterSLADTO                 `json:"sla"`
+	VendorRTOUnit          *BusinessContinuityDurationUnitDTO    `json:"vendor_rto_unit"`
+	SystemRegisterSLA      *SystemRegisterSLADTO                 `json:"system_register_sla"`
 	CreatedAt              time.Time                             `json:"created_at"`
 	UpdatedAt              *time.Time                            `json:"updated_at"`
 	CreatedByUser          organizationDTOs.UserMinimalDTO       `json:"created_by"`
@@ -171,4 +183,14 @@ type SLADetailDTO struct {
 	TitleEn         string  `json:"title_en"`
 	TitleAr         string  `json:"title_ar"`
 	Description     *string `json:"description,omitempty"`
+}
+
+// BusinessContinuityDurationUnitDTO represents business continuity duration units (not generic time units)
+type BusinessContinuityDurationUnitDTO struct {
+	ID      int    `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+	Minutes int    `json:"minutes"`
+	Type    string `json:"type"`
+	Status  string `json:"status"`
 }

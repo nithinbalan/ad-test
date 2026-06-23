@@ -25,7 +25,7 @@ func NewSystemRegisterController(service services.SystemRegisterServiceInterface
 
 func (src *SystemRegisterController) GetAllSystemRegisters(c *gin.Context) {
 	sort := c.DefaultQuery("sort_order", "desc")
-	sortBy := c.DefaultQuery("sort_by", "title_en")
+	sortBy := c.DefaultQuery("sort_by", "created_at")
 	keyword := c.Query("keyword")
 
 	if sort != "asc" && sort != "desc" {

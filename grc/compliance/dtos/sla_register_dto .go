@@ -189,11 +189,11 @@ type SLARegisterDetailDTO struct {
 	Description       *string                          `json:"description,omitempty"`
 	Client            string                           `json:"client"`
 	RTOValue          *int                             `json:"rto_value"`
-	RTOUnitID         *DurationUnitDTO                 `json:"rto_unit_id"`
+	RTOUnit           *DurationUnitDTO                 `json:"rto_unit"`
 	MTPDValue         *int                             `json:"mtpd_value"`
-	MTPDUnitID        *DurationUnitDTO                 `json:"mtpd_unit_id"`
+	MTPDUnit          *DurationUnitDTO                 `json:"mtpd_unit"`
 	RPOValue          *int                             `json:"rpo_value"`
-	RPOUnitID         *DurationUnitDTO                 `json:"rpo_unit_id"`
+	RPOUnit           *DurationUnitDTO                 `json:"rpo_unit"`
 	CreatedAt         time.Time                        `json:"created_at"`
 	UpdatedAt         *time.Time                       `json:"updated_at"`
 	CreatedByUser     organizationDTOs.UserMinimalDTO  `json:"created_by"`

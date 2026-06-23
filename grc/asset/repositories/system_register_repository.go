@@ -20,6 +20,7 @@ type SystemRegisterRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	CreateSLA(sla *models.SystemRegisterSLA, tx ...utility.DatabaseTransaction) error
 	DeleteSLAs(systemRegisterID uint, tx ...utility.DatabaseTransaction) error
+	GetSLARegisterByID(slaRegisterID uint, tx ...utility.DatabaseTransaction) (*models.SLARegister, error)
 }
 
 // Implementation
@@ -48,6 +49,18 @@ func (repo *SystemRegisterRepository) GetAll(params *dtos.SystemRegisterListQuer
 			system_registers.title_en,
 			system_registers.title_ar,
 			system_registers.service_description,
+			system_registers.rto,
+			rto_unit.title_en AS rto_unit_title_en,
+			rto_unit.title_ar AS rto_unit_title_ar,
+			system_registers.mtpd,
+			mtpd_unit.title_en AS mtpd_unit_title_en,
+			mtpd_unit.title_ar AS mtpd_unit_title_ar,
+			system_registers.rpo,
+			rpo_unit.title_en AS rpo_unit_title_en,
+			rpo_unit.title_ar AS rpo_unit_title_ar,
+			system_registers.vendor_rto,
+			vendor_rto_unit.title_en AS vendor_rto_unit_title_en,
+			vendor_rto_unit.title_ar AS vendor_rto_unit_title_ar,
 			system_registers.recovery_manager_phone,
 			system_registers.recovery_manager_email,
 			service_importance.title_en AS service_importance_title_en,
@@ -86,6 +99,10 @@ func (repo *SystemRegisterRepository) GetAll(params *dtos.SystemRegisterListQuer
 		Joins("LEFT JOIN organization_units AS business_owner ON business_owner.id = system_registers.business_owner_id").
 		Joins("LEFT JOIN job_teams AS process_operation_team ON process_operation_team.id = system_registers.process_operation_team_id").
 		Joins("LEFT JOIN job_teams AS process_recovery_team ON process_recovery_team.id = system_registers.process_recovery_team_id").
+		Joins("LEFT JOIN business_continuity_duration_units AS rto_unit ON rto_unit.id = system_registers.rto_unit_id").
+		Joins("LEFT JOIN business_continuity_duration_units AS mtpd_unit ON mtpd_unit.id = system_registers.mtpd_unit_id").
+		Joins("LEFT JOIN business_continuity_duration_units AS rpo_unit ON rpo_unit.id = system_registers.rpo_unit_id").
+		Joins("LEFT JOIN business_continuity_duration_units AS vendor_rto_unit ON vendor_rto_unit.id = system_registers.vendor_rto_unit_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = system_registers.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = system_registers.updated_by_id")
 
@@ -190,8 +207,8 @@ func (repo *SystemRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.
 		Preload("ProcessRecoveryTeam.TeamLeadUser").
 		Preload("RecoveryManager").
 		Preload("VendorRTOUnit").
-		Preload("SystemRegisterSLAs").
-		Preload("SystemRegisterSLAs.SLARegister").
+		Preload("SystemRegisterSLA").
+		Preload("SystemRegisterSLA.SLARegister").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&systemRegister, id)
@@ -257,4 +274,24 @@ func (repo *SystemRegisterRepository) DeleteSLAs(systemRegisterID uint, tx ...ut
 		return err
 	}
 	return nil
+}
+
+func (repo *SystemRegisterRepository) GetSLARegisterByID(slaRegisterID uint, tx ...utility.DatabaseTransaction) (*models.SLARegister, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var slaRegister *models.SLARegister
+	result := db.
+		Preload("RTOUnit").
+		Preload("MTPDUnit").
+		Preload("RPOUnit").
+		First(&slaRegister, slaRegisterID)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return slaRegister, nil
 }

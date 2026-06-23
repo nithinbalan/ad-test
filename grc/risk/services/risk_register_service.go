@@ -2462,7 +2462,25 @@ func (rs *RiskRegisterService) ImportRisks(input []map[string]interface{}, curre
 	var createdIDs []uint
 	for _, record := range validatedData {
 
+		// Convert date format from MM-DD-YY to YYYY-MM-DD
+		convertDateFormat := func(dateStr string) string {
+			if dateStr == "" {
+				return ""
+			}
+			// Try to parse MM-DD-YY format
+			if parsed, err := time.Parse("01-02-06", dateStr); err == nil {
+				return parsed.Format("2006-01-02")
+			}
+			// Try to parse YYYY-MM-DD format (already correct)
+			if _, err := time.Parse("2006-01-02", dateStr); err == nil {
+				return dateStr
+			}
+			// Return as-is if parsing fails
+			return dateStr
+		}
+
 		registrationDateStr, _ := record["registration_date"].(string)
+		registrationDateStr = convertDateFormat(registrationDateStr)
 
 		// DivisionID is required, default to 0 if not present
 		divisionID := uint(0)
@@ -2777,6 +2795,36 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 
 			}
 
+		}
+
+		// Validate organization unit hierarchy after all IDs are collected
+		if len(rowErrors) == 0 {
+			// Validate that responsible unit is under division
+			if divisionID, hasDivision := riskRecord["division_id"].(uint); hasDivision {
+				if responsibleUnitID, hasResponsibleUnit := riskRecord["responsible_unit_id"].(uint); hasResponsibleUnit {
+					if !rs.organizationUnitSvc.IsUnitUnderParent(responsibleUnitID, divisionID) {
+						rowErrors["responsible_unit"] = "Responsible unit must be under the selected division"
+					}
+				}
+			}
+
+			// Validate that section is under responsible unit
+			if sectionID, hasSection := riskRecord["section_id"].(uint); hasSection {
+				if responsibleUnitID, hasResponsibleUnit := riskRecord["responsible_unit_id"].(uint); hasResponsibleUnit {
+					if !rs.organizationUnitSvc.IsUnitUnderParent(sectionID, responsibleUnitID) {
+						rowErrors["section"] = "Section must be under the responsible unit"
+					}
+				}
+			}
+
+			// Validate that sub section is under section
+			if subSectionID, hasSubSection := riskRecord["sub_section_id"].(uint); hasSubSection {
+				if sectionID, hasSection := riskRecord["section_id"].(uint); hasSection {
+					if !rs.organizationUnitSvc.IsUnitUnderParent(subSectionID, sectionID) {
+						rowErrors["sub_section"] = "Sub section must be under the section"
+					}
+				}
+			}
 		}
 
 		if len(rowErrors) == 0 {

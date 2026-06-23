@@ -82,6 +82,20 @@ func (srs *SystemRegisterService) GetFullDetailsByID(id uint, tx ...utility.Data
 func (srs *SystemRegisterService) Create(systemRegisterFormDTO *dtos.SystemRegisterFormDTO, currentUserID uint) (uint, error) {
 	tx := srs.repo.BeginTransaction()
 
+	// If SLA is mapped, fetch SLA details and auto-populate VendorRTO fields
+	var vendorRTO *int
+	var vendorRTOUnitID *uint
+	if systemRegisterFormDTO.SLARegisterID != nil {
+		slaRegister, err := srs.repo.GetSLARegisterByID(*systemRegisterFormDTO.SLARegisterID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		// Auto-populate VendorRTO from SLA's RTOValue and RTOUnitID
+		vendorRTO = slaRegister.RTOValue
+		vendorRTOUnitID = slaRegister.RTOUnitID
+	}
+
 	systemRegister := &models.SystemRegister{
 		TitleEn:                 systemRegisterFormDTO.TitleEn,
 		TitleAr:                 systemRegisterFormDTO.TitleAr,
@@ -110,8 +124,8 @@ func (srs *SystemRegisterService) Create(systemRegisterFormDTO *dtos.SystemRegis
 		RecoveryManagerPhone:    systemRegisterFormDTO.RecoveryManagerPhone,
 		RecoveryManagerEmail:    systemRegisterFormDTO.RecoveryManagerEmail,
 		RecoveryLocation:        systemRegisterFormDTO.RecoveryLocation,
-		VendorRTO:               systemRegisterFormDTO.VendorRTO,
-		VendorRTOUnitID:         systemRegisterFormDTO.VendorRTOUnitID,
+		VendorRTO:               vendorRTO,       // Auto-populated from SLA
+		VendorRTOUnitID:         vendorRTOUnitID, // Auto-populated from SLA
 		CreatedBYID:             currentUserID,
 		CreatedAt:               time.Now(),
 	}
@@ -178,6 +192,20 @@ func (srs *SystemRegisterService) Update(id uint, systemRegisterFormDTO *dtos.Sy
 		return err
 	}
 
+	// If SLA is mapped, fetch SLA details and auto-populate VendorRTO fields
+	var vendorRTO *int
+	var vendorRTOUnitID *uint
+	if systemRegisterFormDTO.SLARegisterID != nil {
+		slaRegister, err := srs.repo.GetSLARegisterByID(*systemRegisterFormDTO.SLARegisterID, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		// Auto-populate VendorRTO from SLA's RTOValue and RTOUnitID
+		vendorRTO = slaRegister.RTOValue
+		vendorRTOUnitID = slaRegister.RTOUnitID
+	}
+
 	existingSystemRegister.TitleEn = systemRegisterFormDTO.TitleEn
 	existingSystemRegister.TitleAr = systemRegisterFormDTO.TitleAr
 	existingSystemRegister.ServiceDescription = systemRegisterFormDTO.ServiceDescription
@@ -205,8 +233,8 @@ func (srs *SystemRegisterService) Update(id uint, systemRegisterFormDTO *dtos.Sy
 	existingSystemRegister.RecoveryManagerPhone = systemRegisterFormDTO.RecoveryManagerPhone
 	existingSystemRegister.RecoveryManagerEmail = systemRegisterFormDTO.RecoveryManagerEmail
 	existingSystemRegister.RecoveryLocation = systemRegisterFormDTO.RecoveryLocation
-	existingSystemRegister.VendorRTO = systemRegisterFormDTO.VendorRTO
-	existingSystemRegister.VendorRTOUnitID = systemRegisterFormDTO.VendorRTOUnitID
+	existingSystemRegister.VendorRTO = vendorRTO             // Auto-populated from SLA
+	existingSystemRegister.VendorRTOUnitID = vendorRTOUnitID // Auto-populated from SLA
 	existingSystemRegister.UpdatedBYID = &currentUserID
 	now := time.Now()
 	existingSystemRegister.UpdatedAt = &now
@@ -362,6 +390,14 @@ func (srs *SystemRegisterService) ExportSystemRegister(data []*dtos.SystemRegist
 			"مالك العمل",
 			"فريق عمليات العملية",
 			"فريق استعادة العملية",
+			"RTO",
+			"وحدة RTO",
+			"MTPD",
+			"وحدة MTPD",
+			"RPO",
+			"وحدة RPO",
+			"RTO المورد",
+			"وحدة RTO المورد",
 			"هاتف مدير الاستعادة",
 			"بريد مدير الاستعادة",
 		}
@@ -375,6 +411,14 @@ func (srs *SystemRegisterService) ExportSystemRegister(data []*dtos.SystemRegist
 			"Business Owner",
 			"Process Operation Team",
 			"Process Recovery Team",
+			"RTO",
+			"RTO Unit",
+			"MTPD",
+			"MTPD Unit",
+			"RPO",
+			"RPO Unit",
+			"Vendor RTO",
+			"Vendor RTO Unit",
 			"Recovery Manager Phone",
 			"Recovery Manager Email",
 		}
@@ -392,6 +436,14 @@ func (srs *SystemRegisterService) ExportSystemRegister(data []*dtos.SystemRegist
 				utility.GetStringValue(sr.BusinessOwnerTitleAr),
 				utility.GetStringValue(sr.ProcessOperationTeamTitleAr),
 				utility.GetStringValue(sr.ProcessRecoveryTeamTitleAr),
+				utility.GetIntValueAsString(sr.RTO),
+				utility.GetStringValue(sr.RTOUnitTitleAr),
+				utility.GetIntValueAsString(sr.MTPD),
+				utility.GetStringValue(sr.MTPDUnitTitleAr),
+				utility.GetIntValueAsString(sr.RPO),
+				utility.GetStringValue(sr.RPOUnitTitleAr),
+				utility.GetIntValueAsString(sr.VendorRTO),
+				utility.GetStringValue(sr.VendorRTOUnitTitleAr),
 				sr.RecoveryManagerPhone,
 				sr.RecoveryManagerEmail,
 			}
@@ -405,6 +457,14 @@ func (srs *SystemRegisterService) ExportSystemRegister(data []*dtos.SystemRegist
 				utility.GetStringValue(sr.BusinessOwnerTitleEn),
 				utility.GetStringValue(sr.ProcessOperationTeamTitleEn),
 				utility.GetStringValue(sr.ProcessRecoveryTeamTitleEn),
+				utility.GetIntValueAsString(sr.RTO),
+				utility.GetStringValue(sr.RTOUnitTitleEn),
+				utility.GetIntValueAsString(sr.MTPD),
+				utility.GetStringValue(sr.MTPDUnitTitleEn),
+				utility.GetIntValueAsString(sr.RPO),
+				utility.GetStringValue(sr.RPOUnitTitleEn),
+				utility.GetIntValueAsString(sr.VendorRTO),
+				utility.GetStringValue(sr.VendorRTOUnitTitleEn),
 				sr.RecoveryManagerPhone,
 				sr.RecoveryManagerEmail,
 			}

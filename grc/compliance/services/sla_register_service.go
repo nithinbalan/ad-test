@@ -574,11 +574,11 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 			"description":       oldSlaRegister.Description,
 			"client":            oldSlaRegister.Client,
 			"rto_value":         oldSlaRegister.RTOValue,
-			"rto_unit_id":       oldSlaRegister.RTOUnitID,
+			"rto_unit_id":       oldSlaRegister.RTOUnit.ID,
 			"mtpd_value":        oldSlaRegister.MTPDValue,
-			"mtpd_unit_id":      oldSlaRegister.MTPDUnitID,
+			"mtpd_unit_id":      oldSlaRegister.MTPDUnit.ID,
 			"rpo_value":         oldSlaRegister.RPOValue,
-			"rpo_unit_id":       oldSlaRegister.RPOUnitID,
+			"rpo_unit_id":       oldSlaRegister.RPOUnit.ID,
 		}
 
 		newData := map[string]interface{}{
@@ -591,11 +591,11 @@ func (srs *SLARegisterService) Update(id uint, currentUserID uint, slaRegisterFo
 			"description":       existingSla.Description,
 			"client":            existingSla.Client,
 			"rto_value":         existingSla.RTOValue,
-			"rto_unit_id":       existingSla.RTOUnitID,
+			"rto_unit_id":       existingSla.RTOUnit.ID,
 			"mtpd_value":        existingSla.MTPDValue,
-			"mtpd_unit_id":      existingSla.MTPDUnitID,
+			"mtpd_unit_id":      existingSla.MTPDUnit.ID,
 			"rpo_value":         existingSla.RPOValue,
-			"rpo_unit_id":       existingSla.RPOUnitID,
+			"rpo_unit_id":       existingSla.RPOUnit.ID,
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)

@@ -47,17 +47,17 @@ type SystemRegister struct {
 	BusinessOwner         *OrganizationUnit                `gorm:"foreignKey:BusinessOwnerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ImpactType            *ImpactCategory                  `gorm:"foreignKey:ImpactTypeID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	DisruptionImpactLevel *SystemRegisterDisruptionLevel   `gorm:"foreignKey:DisruptionImpactLevelID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RTOUnit               *TimeUnit                        `gorm:"foreignKey:RTOUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	MTPDUnit              *TimeUnit                        `gorm:"foreignKey:MTPDUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RPOUnit               *TimeUnit                        `gorm:"foreignKey:RPOUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RTOUnit               *BusinessContinuityDurationUnit  `gorm:"foreignKey:RTOUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	MTPDUnit              *BusinessContinuityDurationUnit  `gorm:"foreignKey:MTPDUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RPOUnit               *BusinessContinuityDurationUnit  `gorm:"foreignKey:RPOUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ITServiceOwner        *Designation                     `gorm:"foreignKey:ITServiceOwnerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ProcessOperationTeam  *JobTeam                         `gorm:"foreignKey:ProcessOperationTeamID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	ProcessRecoveryTeam   *JobTeam                         `gorm:"foreignKey:ProcessRecoveryTeamID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	RecoveryManager       *Designation                     `gorm:"foreignKey:RecoveryManagerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	VendorRTOUnit         *TimeUnit                        `gorm:"foreignKey:VendorRTOUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	VendorRTOUnit         *BusinessContinuityDurationUnit  `gorm:"foreignKey:VendorRTOUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	CreatedByUser         *User                            `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	UpdatedByUser         *User                            `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	SystemRegisterSLAs    []*SystemRegisterSLA             `gorm:"foreignKey:SystemRegisterID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	SystemRegisterSLA     *SystemRegisterSLA               `gorm:"foreignKey:SystemRegisterID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 func (SystemRegister) TableName() string {
