@@ -23,6 +23,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	awarenessMaturityLevelController := app.AwarenessReportingModule.AwarenessMaturityLevelController
 	awarenessAssessmentThemeController := app.AwarenessReportingModule.AwarenessAssessmentThemeController
 	awarenessPostCampaignSurveyController := app.AwarenessReportingModule.AwarenessPostCampaignSurveyController
+	awarenessHandlingStatusController := app.AwarenessReportingModule.AwarenessHandlingStatusController
+	awarenessReportSubCategoryController := app.AwarenessReportingModule.AwarenessReportSubCategoryController
+	awarenessReportController := app.AwarenessReportingModule.AwarenessReportController
 
 	// awareness campaign types
 	awarenessRoutes.GET("/awareness-reporting/awareness-campaign-types", awarenessCampaignTypeController.GetAllAwarenessCampaignTypes)
@@ -83,4 +86,24 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	awarenessRoutes.POST("/awareness-reporting/awareness-post-campaign-surveys", middlewares.RolePermissionMiddleware(db, "awareness_post_campaign_survey", "modify"), awarenessPostCampaignSurveyController.CreateAwarenessPostCampaignSurvey)
 	awarenessRoutes.PUT("/awareness-reporting/awareness-post-campaign-surveys/:id", middlewares.RolePermissionMiddleware(db, "awareness_post_campaign_survey", "modify"), awarenessPostCampaignSurveyController.UpdateAwarenessPostCampaignSurvey)
 	awarenessRoutes.POST("/awareness-reporting/awareness-post-campaign-surveys/delete", middlewares.RolePermissionMiddleware(db, "awareness_post_campaign_survey", "modify"), awarenessPostCampaignSurveyController.DeleteAwarenessPostCampaignSurveys)
+
+	// awareness handling statuses
+	awarenessRoutes.GET("/awareness-reporting/awareness-handling-statuses", awarenessHandlingStatusController.GetAllAwarenessHandlingStatuses)
+	awarenessRoutes.GET("/awareness-reporting/awareness-handling-statuses/:id", awarenessHandlingStatusController.GetAwarenessHandlingStatusDetails)
+
+	// awareness report sub categories
+	awarenessRoutes.GET("/awareness-reporting/awareness-report-sub-categories", awarenessReportSubCategoryController.GetAllAwarenessReportSubCategories)
+	awarenessRoutes.GET("/awareness-reporting/awareness-report-sub-categories/:id", awarenessReportSubCategoryController.GetAwarenessReportSubCategoryDetails)
+	awarenessRoutes.POST("/awareness-reporting/awareness-report-sub-categories", middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"), awarenessReportSubCategoryController.CreateAwarenessReportSubCategory)
+	awarenessRoutes.PUT("/awareness-reporting/awareness-report-sub-categories/:id", middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"), awarenessReportSubCategoryController.UpdateAwarenessReportSubCategory)
+	awarenessRoutes.POST("/awareness-reporting/awareness-report-sub-categories/delete", middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"), awarenessReportSubCategoryController.DeleteAwarenessReportSubCategories)
+	awarenessRoutes.PUT("/awareness-reporting/awareness-report-sub-categories/activate", middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"), awarenessReportSubCategoryController.ActivateAwarenessReportSubCategories)
+	awarenessRoutes.PUT("/awareness-reporting/awareness-report-sub-categories/deactivate", middlewares.RolePermissionMiddleware(db, "awareness_reporting_setting", "modify"), awarenessReportSubCategoryController.DeactivateAwarenessReportSubCategories)
+
+	// awareness reports
+	awarenessRoutes.GET("/awareness-reporting/awareness-reports", middlewares.RolePermissionMiddleware(db, "awareness_report", "view"), awarenessReportController.GetAllAwarenessReports)
+	awarenessRoutes.GET("/awareness-reporting/awareness-reports/:id", middlewares.RolePermissionMiddleware(db, "awareness_report", "view"), awarenessReportController.GetAwarenessReportDetails)
+	awarenessRoutes.POST("/awareness-reporting/awareness-reports", middlewares.RolePermissionMiddleware(db, "awareness_report", "modify"), awarenessReportController.CreateAwarenessReport)
+	awarenessRoutes.PUT("/awareness-reporting/awareness-reports/:id", middlewares.RolePermissionMiddleware(db, "awareness_report", "modify"), awarenessReportController.UpdateAwarenessReport)
+	awarenessRoutes.POST("/awareness-reporting/awareness-reports/delete", middlewares.RolePermissionMiddleware(db, "awareness_report", "modify"), awarenessReportController.DeleteAwarenessReports)
 }

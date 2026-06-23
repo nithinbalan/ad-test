@@ -18,6 +18,9 @@ type AwarenessReportingModule struct {
 	AwarenessMaturityLevelController      *controllers.AwarenessMaturityLevelController
 	AwarenessAssessmentThemeController    *controllers.AwarenessAssessmentThemeController
 	AwarenessPostCampaignSurveyController *controllers.AwarenessPostCampaignSurveyController
+	AwarenessHandlingStatusController     *controllers.AwarenessHandlingStatusController
+	AwarenessReportSubCategoryController  *controllers.AwarenessReportSubCategoryController
+	AwarenessReportController             *controllers.AwarenessReportController
 }
 
 func NewAwarenessReportingModule(
@@ -26,6 +29,7 @@ func NewAwarenessReportingModule(
 	settingsModule *SettingsModule,
 	organizationModule *OrganizationModule,
 	commonModule *CommonModule,
+	masterModule *MasterModule,
 ) *AwarenessReportingModule {
 
 	awarenessCampaignTypeRepo := repositories.NewAwarenessCampaignTypeRepository(db)
@@ -80,6 +84,31 @@ func NewAwarenessReportingModule(
 	)
 	awarenessPostCampaignSurveyController := controllers.NewAwarenessPostCampaignSurveyController(awarenessPostCampaignSurveySvc)
 
+	awarenessHandlingStatusRepo := repositories.NewAwarenessHandlingStatusRepository(db)
+	awarenessHandlingStatusSvc := services.NewAwarenessHandlingStatusService(awarenessHandlingStatusRepo)
+	awarenessHandlingStatusController := controllers.NewAwarenessHandlingStatusController(awarenessHandlingStatusSvc)
+
+	awarenessReportSubCategoryRepo := repositories.NewAwarenessReportSubCategoryRepository(db)
+	awarenessReportSubCategorySvc := services.NewAwarenessReportSubCategoryService(
+		awarenessReportSubCategoryRepo,
+		sharedModule.ActivityLogService,
+	)
+	awarenessReportSubCategoryController := controllers.NewAwarenessReportSubCategoryController(
+		awarenessReportSubCategorySvc,
+	)
+
+	awarenessReportRepo := repositories.NewAwarenessReportRepository(db)
+	awarenessReportSvc := services.NewAwarenessReportService(
+		awarenessReportRepo,
+		sharedModule.ActivityLogService,
+		awarenessCampaignTypeSvc,
+		awarenessReportSubCategorySvc,
+		masterModule.SeverityLevelSvc,
+		awarenessHandlingStatusSvc,
+		organizationModule.UserSvc,
+	)
+	awarenessReportController := controllers.NewAwarenessReportController(awarenessReportSvc)
+
 	return &AwarenessReportingModule{
 		AwarenessCampaignTypeController:       awarenessCampaignTypeController,
 		AwarenessChannelController:            awarenessChannelController,
@@ -90,5 +119,8 @@ func NewAwarenessReportingModule(
 		AwarenessMaturityLevelController:      awarenessMaturityLevelController,
 		AwarenessAssessmentThemeController:    awarenessAssessmentThemeController,
 		AwarenessPostCampaignSurveyController: awarenessPostCampaignSurveyController,
+		AwarenessHandlingStatusController:     awarenessHandlingStatusController,
+		AwarenessReportSubCategoryController:  awarenessReportSubCategoryController,
+		AwarenessReportController:             awarenessReportController,
 	}
 }
