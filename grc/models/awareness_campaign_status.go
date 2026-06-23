@@ -4,7 +4,7 @@ type AwarenessCampaignStatus struct {
 	ID      uint   `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	TitleEn string `json:"title_en" gorm:"type:nvarchar(100);not null"`
 	TitleAr string `json:"title_ar" gorm:"type:nvarchar(100);not null"`
-	Type    string `json:"type" gorm:"type:varchar(50);not null"`
+	Type    string `json:"type" binding:"required,oneof=planned submitted cancelled complete not_started" gorm:"type:varchar(50);not null"`
 	Status  string `json:"status" gorm:"type:varchar(10);not null"`
 }
 
