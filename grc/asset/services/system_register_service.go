@@ -82,7 +82,7 @@ func (srs *SystemRegisterService) GetFullDetailsByID(id uint, tx ...utility.Data
 func (srs *SystemRegisterService) Create(systemRegisterFormDTO *dtos.SystemRegisterFormDTO, currentUserID uint) (uint, error) {
 	tx := srs.repo.BeginTransaction()
 
-	// If SLA is mapped, fetch SLA details and auto-populate VendorRTO fields
+	// If SLA is mapped, fetch SLA details and auto-populate VendorRTO fields only if not provided by user
 	var vendorRTO *int
 	var vendorRTOUnitID *uint
 	if systemRegisterFormDTO.SLARegisterID != nil {
@@ -91,9 +91,21 @@ func (srs *SystemRegisterService) Create(systemRegisterFormDTO *dtos.SystemRegis
 			tx.Rollback()
 			return 0, err
 		}
-		// Auto-populate VendorRTO from SLA's RTOValue and RTOUnitID
-		vendorRTO = slaRegister.RTOValue
-		vendorRTOUnitID = slaRegister.RTOUnitID
+		// Auto-populate VendorRTO from SLA only if user hasn't provided values
+		if systemRegisterFormDTO.VendorRTO == nil {
+			vendorRTO = slaRegister.RTOValue
+		} else {
+			vendorRTO = systemRegisterFormDTO.VendorRTO
+		}
+		if systemRegisterFormDTO.VendorRTOUnitID == nil {
+			vendorRTOUnitID = slaRegister.RTOUnitID
+		} else {
+			vendorRTOUnitID = systemRegisterFormDTO.VendorRTOUnitID
+		}
+	} else {
+		// No SLA mapped, use user-provided values
+		vendorRTO = systemRegisterFormDTO.VendorRTO
+		vendorRTOUnitID = systemRegisterFormDTO.VendorRTOUnitID
 	}
 
 	systemRegister := &models.SystemRegister{
@@ -192,7 +204,7 @@ func (srs *SystemRegisterService) Update(id uint, systemRegisterFormDTO *dtos.Sy
 		return err
 	}
 
-	// If SLA is mapped, fetch SLA details and auto-populate VendorRTO fields
+	// If SLA is mapped, fetch SLA details and auto-populate VendorRTO fields only if not provided by user
 	var vendorRTO *int
 	var vendorRTOUnitID *uint
 	if systemRegisterFormDTO.SLARegisterID != nil {
@@ -201,9 +213,21 @@ func (srs *SystemRegisterService) Update(id uint, systemRegisterFormDTO *dtos.Sy
 			tx.Rollback()
 			return err
 		}
-		// Auto-populate VendorRTO from SLA's RTOValue and RTOUnitID
-		vendorRTO = slaRegister.RTOValue
-		vendorRTOUnitID = slaRegister.RTOUnitID
+		// Auto-populate VendorRTO from SLA only if user hasn't provided values
+		if systemRegisterFormDTO.VendorRTO == nil {
+			vendorRTO = slaRegister.RTOValue
+		} else {
+			vendorRTO = systemRegisterFormDTO.VendorRTO
+		}
+		if systemRegisterFormDTO.VendorRTOUnitID == nil {
+			vendorRTOUnitID = slaRegister.RTOUnitID
+		} else {
+			vendorRTOUnitID = systemRegisterFormDTO.VendorRTOUnitID
+		}
+	} else {
+		// No SLA mapped, use user-provided values
+		vendorRTO = systemRegisterFormDTO.VendorRTO
+		vendorRTOUnitID = systemRegisterFormDTO.VendorRTOUnitID
 	}
 
 	existingSystemRegister.TitleEn = systemRegisterFormDTO.TitleEn

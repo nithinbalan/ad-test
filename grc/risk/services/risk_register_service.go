@@ -2798,10 +2798,13 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 		}
 
 		// Validate organization unit hierarchy after all IDs are collected
+		// Note: IsUnitUnderParent returns bool without error. If DB lookup fails internally,
+		// it returns false which will be treated as validation error. This is acceptable as
+		// the units have already been validated to exist in the maps above.
 		if len(rowErrors) == 0 {
 			// Validate that responsible unit is under division
-			if divisionID, hasDivision := riskRecord["division_id"].(uint); hasDivision {
-				if responsibleUnitID, hasResponsibleUnit := riskRecord["responsible_unit_id"].(uint); hasResponsibleUnit {
+			if divisionID, hasDivision := riskRecord["division_id"].(uint); hasDivision && divisionID > 0 {
+				if responsibleUnitID, hasResponsibleUnit := riskRecord["responsible_unit_id"].(uint); hasResponsibleUnit && responsibleUnitID > 0 {
 					if !rs.organizationUnitSvc.IsUnitUnderParent(responsibleUnitID, divisionID) {
 						rowErrors["responsible_unit"] = "Responsible unit must be under the selected division"
 					}
@@ -2809,8 +2812,8 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 			}
 
 			// Validate that section is under responsible unit
-			if sectionID, hasSection := riskRecord["section_id"].(uint); hasSection {
-				if responsibleUnitID, hasResponsibleUnit := riskRecord["responsible_unit_id"].(uint); hasResponsibleUnit {
+			if sectionID, hasSection := riskRecord["section_id"].(uint); hasSection && sectionID > 0 {
+				if responsibleUnitID, hasResponsibleUnit := riskRecord["responsible_unit_id"].(uint); hasResponsibleUnit && responsibleUnitID > 0 {
 					if !rs.organizationUnitSvc.IsUnitUnderParent(sectionID, responsibleUnitID) {
 						rowErrors["section"] = "Section must be under the responsible unit"
 					}
@@ -2818,8 +2821,8 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 			}
 
 			// Validate that sub section is under section
-			if subSectionID, hasSubSection := riskRecord["sub_section_id"].(uint); hasSubSection {
-				if sectionID, hasSection := riskRecord["section_id"].(uint); hasSection {
+			if subSectionID, hasSubSection := riskRecord["sub_section_id"].(uint); hasSubSection && subSectionID > 0 {
+				if sectionID, hasSection := riskRecord["section_id"].(uint); hasSection && sectionID > 0 {
 					if !rs.organizationUnitSvc.IsUnitUnderParent(subSectionID, sectionID) {
 						rowErrors["sub_section"] = "Sub section must be under the section"
 					}
