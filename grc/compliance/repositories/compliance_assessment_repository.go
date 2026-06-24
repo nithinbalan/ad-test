@@ -171,7 +171,17 @@ func (repo *ComplianceAssessmentRepository) GetAll(params *complianceDTOs.Compli
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
-		if len(values) > 0 {
+		if len(values) == 0 {
+			continue
+		}
+		switch columnName {
+		case "compliance_register_ids":
+			query = query.Where(`compliance_assessments.id IN (
+				SELECT DISTINCT cac.compliance_assessment_id
+				FROM compliance_assessment_compliances cac
+				WHERE cac.compliance_register_id IN (?)
+			)`, values)
+		default:
 			query = query.Where(columnName+" IN (?)", values)
 		}
 	}
