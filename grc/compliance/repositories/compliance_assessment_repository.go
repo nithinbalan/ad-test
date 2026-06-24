@@ -41,6 +41,7 @@ type ComplianceAssessmentRepositoryInterface interface {
 
 	AssessmentRequirementCompletionRollup(assessmentID uint) (*complianceDTOs.AssessmentCompletionRollupDTO, error)
 	GetComplianceStatusSummaryByRequirement(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error)
+	GetComplianceAssessmentDepartmentSummary(assessmentID uint) (*complianceDTOs.ComplianceAssessmentDepartmentSummaryResponseDTO, error)
 
 	UpdateComplianceRequirementResponsibleUintValue(complianceRequirementValueUpdateDTO complianceDTOs.ComplianceRequirementValueUpdateDTO, tx ...utility.DatabaseTransaction) error
 	UpdateComplianceRequirementStatusUpdate(complianceRequirementValueUpdateDTO complianceDTOs.ComplianceRequirementValueUpdateDTO, tx ...utility.DatabaseTransaction) error
@@ -596,23 +597,15 @@ func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummaryByRequirem
 		FROM compliance_statuses cs
 		LEFT JOIN (
 			SELECT 
-				cafv.compliance_status_id AS compliance_status_id,
+				carru.compliance_status_id,
 				COUNT(*) AS cnt
 			FROM compliance_assessment_requirement_responsible_units carru
 			JOIN compliance_assessment_requirements car
 				ON car.id = carru.compliance_assessment_requirement_id
-			JOIN compliance_assessments ca
-				ON car.compliance_assessment_id = ca.id
-			JOIN compliance_assessment_statuses cas
-				ON ca.compliance_assessment_status_id = cas.id
-			LEFT JOIN compliance_assessment_framework_values cafv
-				ON cafv.id = carru.compliance_assessment_framework_value_id
 			WHERE car.compliance_assessment_id = ?
-			GROUP BY cafv.compliance_status_id
+			GROUP BY carru.compliance_status_id
 		) agg
 			ON agg.compliance_status_id = cs.id
-		-- optional: only active statuses
-		-- WHERE cs.status = 'active'
 		ORDER BY cs.id
 	`
 
@@ -620,6 +613,56 @@ func (repo *ComplianceAssessmentRepository) GetComplianceStatusSummaryByRequirem
 		return nil, err
 	}
 	return out, nil
+}
+
+func (repo *ComplianceAssessmentRepository) GetComplianceAssessmentDepartmentSummary(assessmentID uint) (*complianceDTOs.ComplianceAssessmentDepartmentSummaryResponseDTO, error) {
+	var riskBased []complianceDTOs.ComplianceAssessmentDepartmentSummaryDepartmentDTO
+	var notificationBased []complianceDTOs.ComplianceAssessmentDepartmentSummaryDepartmentDTO
+
+	const riskBasedQuery = `
+		SELECT DISTINCT
+			ou.id AS id,
+			ou.title_en,
+			ou.title_ar
+		FROM organization_units ou
+		JOIN compliance_assessment_requirement_responsible_units carru
+			ON carru.responsible_unit_id = ou.id
+		JOIN compliance_assessment_requirements car
+			ON car.id = carru.compliance_assessment_requirement_id
+		WHERE car.compliance_assessment_id = ?
+		  AND carru.is_risk_based_assessment = 1
+		ORDER BY ou.id
+	`
+
+	const notificationBasedQuery = `
+		SELECT DISTINCT
+			ou.id AS id,
+			ou.title_en,
+			ou.title_ar
+		FROM organization_units ou
+		JOIN compliance_assessment_requirement_responsible_units carru
+			ON carru.responsible_unit_id = ou.id
+		JOIN compliance_assessment_requirements car
+			ON car.id = carru.compliance_assessment_requirement_id
+		WHERE car.compliance_assessment_id = ?
+		  AND carru.is_regulation_notification_assessment = 1
+		ORDER BY ou.id
+	`
+
+	if err := repo.db.Raw(riskBasedQuery, assessmentID).Scan(&riskBased).Error; err != nil {
+		return nil, err
+	}
+
+	if err := repo.db.Raw(notificationBasedQuery, assessmentID).Scan(&notificationBased).Error; err != nil {
+		return nil, err
+	}
+
+	return &complianceDTOs.ComplianceAssessmentDepartmentSummaryResponseDTO{
+		RiskBasedCount:                         len(riskBased),
+		RiskBasedDepartments:                   riskBased,
+		RegulationNotificationBasedCount:       len(notificationBased),
+		RegulationNotificationBasedDepartments: notificationBased,
+	}, nil
 }
 
 func (repo *ComplianceAssessmentRepository) GetComplianceScoreSummaryByRequirement(assessmentID uint) (*complianceDTOs.ComplianceScoreSummaryDTO, error) {

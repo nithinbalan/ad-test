@@ -343,3 +343,16 @@ type ControlSyncUpdateDTO struct {
 type ComplianceAssessmentScoreSummaryQueryParamsDTO struct {
 	Filters map[string][]string `json:"filters"`
 }
+
+type ComplianceAssessmentDepartmentSummaryDepartmentDTO struct {
+	ID      uint   `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+}
+
+type ComplianceAssessmentDepartmentSummaryResponseDTO struct {
+	RiskBasedCount                         int                                                  `json:"risk_based_count"`
+	RiskBasedDepartments                   []ComplianceAssessmentDepartmentSummaryDepartmentDTO `json:"risk_based_departments"`
+	RegulationNotificationBasedCount       int                                                  `json:"regulation_notification_based_count"`
+	RegulationNotificationBasedDepartments []ComplianceAssessmentDepartmentSummaryDepartmentDTO `json:"regulation_notification_based_departments"`
+}
