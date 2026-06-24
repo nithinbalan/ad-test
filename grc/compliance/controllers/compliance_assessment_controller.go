@@ -468,3 +468,20 @@ func (cac *ComplianceAssessmentController) GetControlsApprovalStatus(c *gin.Cont
 
 	c.JSON(http.StatusOK, status)
 }
+
+func (cac *ComplianceAssessmentController) GetComplianceAssessmentDepartmentSummary(c *gin.Context) {
+	idStr := c.Param("assessmentId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	summary, err := cac.service.GetComplianceAssessmentDepartmentSummary(uint(id))
+	if err != nil {
+		utility.SendInternalErrResp(cac.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, summary)
+}

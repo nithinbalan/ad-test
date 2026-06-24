@@ -37,6 +37,7 @@ type ComplianceAssessmentServiceInterface interface {
 	AssessmentCompletionRollup(assessmentID uint) (*complianceDTOs.AssessmentCompletionRollupDTO, error)
 	GetComplianceStatusSummary(assessmentID uint) ([]complianceDTOs.ComplianceStatusCountDTO, error)
 	GetComplianceScoreSummary(assessmentID uint, params *complianceDTOs.ComplianceAssessmentScoreSummaryQueryParamsDTO) (*complianceDTOs.ComplianceScoreSummaryDTO, error)
+	GetComplianceAssessmentDepartmentSummary(assessmentID uint) (*complianceDTOs.ComplianceAssessmentDepartmentSummaryResponseDTO, error)
 
 	SubmitComplianceAssessment(assessmentID uint, currentUserID uint) error
 	ApproveComplianceAssessment(assessmentID uint, currentUserID uint) error
@@ -1894,6 +1895,10 @@ func (cras *ComplianceAssessmentService) GetComplianceScoreSummary(assessmentID 
 	}, nil
 }
 
+func (cras *ComplianceAssessmentService) GetComplianceAssessmentDepartmentSummary(assessmentID uint) (*complianceDTOs.ComplianceAssessmentDepartmentSummaryResponseDTO, error) {
+	return cras.repo.GetComplianceAssessmentDepartmentSummary(assessmentID)
+}
+
 func (cras *ComplianceAssessmentService) SubmitComplianceAssessment(assessmentID uint, currentUserID uint) error {
 	complianceAssessmentInProgressStatus, err := cras.complianceAssessmentStatusSvc.GetByType("in_progress")
 	if err != nil {
@@ -3097,169 +3102,71 @@ func (cras *ComplianceAssessmentService) computeRequirementSnapshot(assessmentID
 	if err != nil {
 		return 0, 0, err
 	}
-	if assessment == nil || assessment.ComplianceRegister == nil {
-		return 0, 0, fmt.Errorf("assessment/register not found")
+	if assessment == nil {
+		return 0, 0, fmt.Errorf("assessment not found")
 	}
-	register := assessment.ComplianceRegister
 
-	// ---------- RU filter (unchanged) ----------
+	// RU filter setup
 	ruFilter := make(map[uint]struct{}, len(responsibleUnitIDs))
 	for _, id := range responsibleUnitIDs {
 		ruFilter[id] = struct{}{}
 	}
 	hasRUFilter := len(ruFilter) > 0
 
-	// ---------- Framework setup (same rules) ----------
-	frameworkType := ""
-	fvMap := make(map[uint]int) // frameworkValueID -> numeric value
-	maxFV := 0
-
-	if f := register.ComplianceAssessmentFramework; f != nil {
-		if f.AssessmentFrameworkType != nil {
-			frameworkType = f.AssessmentFrameworkType.Type
-		}
-		for _, v := range f.Values {
-			if v == nil || v.Value == nil {
-				continue
-			}
-			fvMap[uint(v.ID)] = *v.Value
-			if *v.Value > maxFV {
-				maxFV = *v.Value
-			}
-		}
-	}
-
-	perReqMax := func() float64 {
-		switch frameworkType {
-		case "percentage":
-			return 100.0
-		case "binary":
-			return 1.0
-		case "point", "maturity":
-			if maxFV > 0 {
-				return float64(maxFV)
-			}
-			if frameworkType == "point" {
-				return 2.0
-			}
-			return 5.0
-		default:
-			return 100.0
-		}
-	}()
-
-	// only count MaxPossible when RU has an actual value/score (same rule)
-	ruContributesMax := func(ru *models.ComplianceAssessmentRequirementResponsibleUnit) bool {
-		isApplicable := true
-		if ru.ComplianceAssessmentFrameworkValue != nil {
-			isApplicable = ru.ComplianceAssessmentFrameworkValue.IsApplicable
-		}
-		if !isApplicable {
-			return false
-		}
-		switch frameworkType {
-		case "point", "maturity", "binary":
-			return ru.ComplianceAssessmentFrameworkValueID != nil
-		case "percentage":
-			return ru.Score != nil
-		default:
-			return ru.Score != nil
-		}
-	}
-
 	round2 := func(x float64) float64 { return math.Round(x*100) / 100 }
 
-	// ---------- (A) per-requirement snapshot with RU filter ----------
+	// Calculate per-requirement scores (simplified - no framework logic)
 	type reqScore struct {
-		score   float64 // 0..100 (rounded 2dp)
-		counted bool    // counted in clause averages
+		score   float64
+		counted bool
 		clause  uint
 	}
-	reqScores := make(map[uint]reqScore) // requirementID -> reqScore
+	reqScores := make(map[uint]reqScore)
 
 	for _, r := range assessment.AssessmentRequirements {
 		if r == nil || r.ID == 0 || r.ComplianceRequirement == nil {
 			continue
 		}
 
-		var s, m float64
-		var anyApplicable bool
-		na := 0
-		seenAfterFilter := 0
+		var scoreSum float64
+		var scoreCount int
 
 		for _, ru := range r.ResponsibleUnits {
 			if ru == nil {
 				continue
 			}
-			// RU filter (unchanged)
+
+			// Apply RU filter if specified
 			if hasRUFilter {
 				if _, ok := ruFilter[ru.ResponsibleUnitID]; !ok {
 					continue
 				}
 			}
-			seenAfterFilter++
 
-			isApplicable := true
-			if ru.ComplianceAssessmentFrameworkValue != nil {
-				isApplicable = ru.ComplianceAssessmentFrameworkValue.IsApplicable
-			}
-			if !isApplicable {
-				na++
-				continue
-			}
-			anyApplicable = true
-
-			if ruContributesMax(ru) {
-				m += perReqMax
-			}
-
-			switch frameworkType {
-			case "point", "maturity":
-				if ru.ComplianceAssessmentFrameworkValueID != nil {
-					if val, ok := fvMap[*ru.ComplianceAssessmentFrameworkValueID]; ok {
-						s += float64(val)
-					}
-				}
-			case "percentage":
-				if ru.Score != nil {
-					s += float64(*ru.Score)
-				}
-			case "binary":
-				if ru.ComplianceAssessmentFrameworkValueID != nil {
-					if raw, ok := fvMap[*ru.ComplianceAssessmentFrameworkValueID]; ok && raw > 0 {
-						s += 1.0
-					}
-				}
-			default:
-				if ru.Score != nil {
-					s += float64(*ru.Score)
-				}
+			// Use score directly from responsible unit (no framework logic)
+			if ru.Score != nil {
+				scoreSum += float64(*ru.Score)
+				scoreCount++
 			}
 		}
 
-		if seenAfterFilter == 0 {
+		if scoreCount == 0 {
 			continue
 		}
 
-		out := reqScore{
-			clause: r.ComplianceRequirement.ComplianceClause.ID,
+		// Average score for this requirement across its responsible units
+		avgScore := round2(scoreSum / float64(scoreCount))
+
+		clauseID := uint(0)
+		if r.ComplianceRequirement.ComplianceClause != nil {
+			clauseID = r.ComplianceRequirement.ComplianceClause.ID
 		}
 
-		if !anyApplicable && na > 0 {
-			out.counted = false
-			reqScores[r.ID] = out
-			continue
+		reqScores[r.ID] = reqScore{
+			score:   avgScore,
+			counted: true,
+			clause:  clauseID,
 		}
-		if m == 0 {
-			out.counted = false
-			reqScores[r.ID] = out
-			continue
-		}
-
-		pct := (s / m) * 100.0
-		out.score = round2(pct)
-		out.counted = true
-		reqScores[r.ID] = out
 	}
 
 	// ---------- (B) build clause tree ----------
