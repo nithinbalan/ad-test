@@ -17,7 +17,6 @@ type SystemRegister struct {
 	OperationLocationID     *uint      `json:"operation_location_id" gorm:"type:int"`
 	BusinessOwnerID         *uint      `json:"business_owner_id" gorm:"type:int"`
 	Customers               *string    `json:"customers" gorm:"type:nvarchar(max)"`
-	ImpactTypeID            *uint      `json:"impact_type_id" gorm:"type:int"`
 	DisruptionImpactLevelID *uint      `json:"disruption_impact_level_id" gorm:"type:int"`
 	RTO                     *int       `json:"rto" gorm:"type:int"`
 	RTOUnitID               *uint      `json:"rto_unit_id" gorm:"type:int"`
@@ -41,23 +40,23 @@ type SystemRegister struct {
 	UpdatedAt               *time.Time `json:"updated_at" gorm:"type:datetime;default:null"`
 
 	// Relationships
-	ServiceImportance     *SystemRegisterServiceImportance `gorm:"foreignKey:ServiceImportanceID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ResponsibleITTeam     *JobTeam                         `gorm:"foreignKey:ResponsibleITTeamID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	OperationLocation     *Location                        `gorm:"foreignKey:OperationLocationID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	BusinessOwner         *OrganizationUnit                `gorm:"foreignKey:BusinessOwnerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ImpactType            *ImpactCategory                  `gorm:"foreignKey:ImpactTypeID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	DisruptionImpactLevel *SystemRegisterDisruptionLevel   `gorm:"foreignKey:DisruptionImpactLevelID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RTOUnit               *BusinessContinuityDurationUnit  `gorm:"foreignKey:RTOUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	MTPDUnit              *BusinessContinuityDurationUnit  `gorm:"foreignKey:MTPDUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RPOUnit               *BusinessContinuityDurationUnit  `gorm:"foreignKey:RPOUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ITServiceOwner        *Designation                     `gorm:"foreignKey:ITServiceOwnerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ProcessOperationTeam  *JobTeam                         `gorm:"foreignKey:ProcessOperationTeamID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	ProcessRecoveryTeam   *JobTeam                         `gorm:"foreignKey:ProcessRecoveryTeamID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	RecoveryManager       *Designation                     `gorm:"foreignKey:RecoveryManagerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	VendorRTOUnit         *BusinessContinuityDurationUnit  `gorm:"foreignKey:VendorRTOUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	CreatedByUser         *User                            `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	UpdatedByUser         *User                            `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	SystemRegisterSLA     *SystemRegisterSLA               `gorm:"foreignKey:SystemRegisterID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ServiceImportance         *SystemRegisterServiceImportance `gorm:"foreignKey:ServiceImportanceID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ResponsibleITTeam         *JobTeam                         `gorm:"foreignKey:ResponsibleITTeamID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	OperationLocation         *Location                        `gorm:"foreignKey:OperationLocationID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	BusinessOwner             *OrganizationUnit                `gorm:"foreignKey:BusinessOwnerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	DisruptionImpactLevel     *SystemRegisterDisruptionLevel   `gorm:"foreignKey:DisruptionImpactLevelID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RTOUnit                   *BusinessContinuityDurationUnit  `gorm:"foreignKey:RTOUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	MTPDUnit                  *BusinessContinuityDurationUnit  `gorm:"foreignKey:MTPDUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RPOUnit                   *BusinessContinuityDurationUnit  `gorm:"foreignKey:RPOUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ITServiceOwner            *Designation                     `gorm:"foreignKey:ITServiceOwnerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ProcessOperationTeam      *JobTeam                         `gorm:"foreignKey:ProcessOperationTeamID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ProcessRecoveryTeam       *JobTeam                         `gorm:"foreignKey:ProcessRecoveryTeamID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	RecoveryManager           *Designation                     `gorm:"foreignKey:RecoveryManagerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	VendorRTOUnit             *BusinessContinuityDurationUnit  `gorm:"foreignKey:VendorRTOUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CreatedByUser             *User                            `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	UpdatedByUser             *User                            `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	SystemRegisterSLA         *SystemRegisterSLA               `gorm:"foreignKey:SystemRegisterID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	SystemRegisterImpactTypes []*SystemRegisterImpactType      `gorm:"foreignKey:SystemRegisterID"`
 }
 
 func (SystemRegister) TableName() string {

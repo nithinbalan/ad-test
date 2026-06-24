@@ -117,8 +117,20 @@ func (crac *ComplianceRegisterAssessmentController) CreateComplianceRegisterAsse
 
 	err = crac.service.Create(currentUserID, &complianceAssessmentFormDTO)
 	if err != nil {
-		utility.SendInternalErrResp(crac.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
+		default:
+			utility.SendInternalErrResp(crac.db, c, e.Error())
+			return
+		}
 	}
 
 	c.Status(http.StatusCreated)
@@ -147,7 +159,7 @@ func (crac *ComplianceRegisterAssessmentController) DeleteComplianceRegisterAsse
 		return
 	}
 
-	failedIDs, err := crac.service.Delete(request.IDs, currentUserID)
+	failedIDs, err := crac.service.ForceDelete(request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(crac.db, c, err.Error())
 		return

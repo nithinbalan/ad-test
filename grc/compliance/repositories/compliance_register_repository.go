@@ -1415,6 +1415,12 @@ func (repo *ComplianceRegisterRepository) ForceDelete(id uint, tx ...utility.Dat
 		JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
 		WHERE compliance_clauses.compliance_register_id = ?`,
 
+		`DELETE compliance_requirement_inherent_risk_analysis
+		FROM compliance_requirement_inherent_risk_analysis
+		JOIN compliance_requirements ON compliance_requirements.id = compliance_requirement_inherent_risk_analysis.compliance_requirement_id
+		JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id
+		WHERE compliance_clauses.compliance_register_id = ?`,
+
 		`DELETE compliance_requirements
 		 FROM compliance_requirements
 		 JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id		 
@@ -1447,6 +1453,29 @@ func (repo *ComplianceRegisterRepository) ForceDelete(id uint, tx ...utility.Dat
 		WHERE compliance_clauses.compliance_register_id = ?`,
 
 		`DELETE FROM compliance_clauses WHERE compliance_clauses.compliance_register_id = ?`,
+
+		`DELETE compliance_assessment_acknowledge_departments
+		FROM compliance_assessment_acknowledge_departments
+		JOIN compliance_assessments ON compliance_assessments.id = compliance_assessment_acknowledge_departments.compliance_assessment_id
+		WHERE compliance_assessments.compliance_register_id = ?`,
+
+		`DELETE FROM compliance_assessment_compliances
+		WHERE compliance_register_id = ?`,
+
+		`DELETE compliance_assessment_requirement_residual_risk_analysis
+		FROM compliance_assessment_requirement_residual_risk_analysis
+		JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.id = compliance_assessment_requirement_residual_risk_analysis.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
+		JOIN compliance_assessments ON compliance_assessments.id = compliance_assessment_requirements.compliance_assessment_id
+		WHERE compliance_assessments.compliance_register_id = ?`,
+
+		`DELETE compliance_assessment_residual_controls
+		FROM compliance_assessment_residual_controls
+		JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.id = compliance_assessment_residual_controls.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
+		JOIN compliance_assessments ON compliance_assessments.id = compliance_assessment_requirements.compliance_assessment_id
+		WHERE compliance_assessments.compliance_register_id = ?`,
+
 		`DELETE FROM compliance_assessments WHERE compliance_assessments.compliance_register_id = ?`,
 		`DELETE FROM compliance_controls WHERE compliance_register_id = ?`,
 
@@ -1465,6 +1494,22 @@ func (repo *ComplianceRegisterRepository) ForceDelete(id uint, tx ...utility.Dat
 
 		`DELETE FROM compliance_register_workflow_histories WHERE compliance_register_id = ?`,
 		`DELETE FROM compliance_register_workflows WHERE compliance_register_id = ?`,
+
+		/* ========= ISSUING AUTHORITIES ========= */
+		`DELETE compliance_register_issuing_authority_documents
+		FROM compliance_register_issuing_authority_documents
+		JOIN compliance_register_issuing_authorities ON compliance_register_issuing_authorities.id = compliance_register_issuing_authority_documents.compliance_register_issuing_authority_id
+		WHERE compliance_register_issuing_authorities.compliance_register_id = ?`,
+
+		`DELETE compliance_register_issuing_authority_entities
+		FROM compliance_register_issuing_authority_entities
+		JOIN compliance_register_issuing_authorities ON compliance_register_issuing_authorities.id = compliance_register_issuing_authority_entities.compliance_register_issuing_authority_id
+		WHERE compliance_register_issuing_authorities.compliance_register_id = ?`,
+
+		`DELETE FROM compliance_register_issuing_authorities WHERE compliance_register_id = ?`,
+
+		/* ========= SHARED UNITS ========= */
+		`DELETE FROM compliance_register_shared_units WHERE compliance_register_id = ?`,
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
