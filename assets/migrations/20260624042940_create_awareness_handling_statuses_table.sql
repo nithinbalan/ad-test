@@ -16,3 +16,4 @@ CREATE TABLE awareness_handling_statuses(
 -- +goose StatementBegin
 DROP TABLE awareness_handling_statuses;
 -- +goose StatementEnd
+

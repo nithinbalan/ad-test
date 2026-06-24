@@ -12,3 +12,5 @@ VALUES
 -- +goose StatementBegin
 DELETE FROM awareness_handling_statuses
 -- +goose StatementEnd
+
+
