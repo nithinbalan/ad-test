@@ -201,9 +201,8 @@ func (acs *AwarenessCampaignService) Create(currentUserID uint, formDTO *awarene
 			tx.Rollback()
 			return 0, err
 		}
-		fmt.Println(formDTO.Detail.AwarenessChannelIDs)
+
 		if len(formDTO.Detail.AwarenessChannelIDs) > 0 {
-			fmt.Println(formDTO.Detail.AwarenessChannelIDs)
 			var channels []*models.AwarenessCampaignChannel
 			for _, channelID := range formDTO.Detail.AwarenessChannelIDs {
 				channels = append(channels, &models.AwarenessCampaignChannel{

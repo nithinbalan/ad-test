@@ -19,6 +19,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	ermDashboardController := app.KPIModule.ERMDashboardController
 	complianceDashboardController := app.KPIModule.ComplianceDashboardController
 	kriDashboardController := app.KPIModule.KRIDashboardController
+	awarenessDashboardController := app.KPIModule.AwarenessDashboardController
 
 	//GRCDashboard Summary
 	kpiRoutes.GET("/kpis/grc-summary/compliance", middlewares.RolePermissionMiddleware(db, "grc_dashboard", "view"), grcDashboardController.GetGRCComplianceSummary)
@@ -105,4 +106,19 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/kri/severity-organization-unit", middlewares.RolePermissionMiddleware(db, "kri_dashboard", "view"), kriDashboardController.GetKRISeverityByOrganizationUnit)
 	kpiRoutes.GET("/kpis/kri/severity-category", middlewares.RolePermissionMiddleware(db, "kri_dashboard", "view"), kriDashboardController.GetKRISeverityByCategory)
 	kpiRoutes.GET("/kpis/kri/breaches", middlewares.RolePermissionMiddleware(db, "kri_dashboard", "view"), kriDashboardController.GetKRIMostFrequentBreaches)
+
+	// Awarness Dashboard
+	kpiRoutes.GET("/kpis/awareness-reporting/summary", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetAwarenessPlanSummary)
+	kpiRoutes.GET("/kpis/awareness-reporting/campaigns-by-type", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetCampaignsByType)
+	kpiRoutes.GET("/kpis/awareness-reporting/priority-distribution", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetPriorityDistribution)
+	kpiRoutes.GET("/kpis/awareness-reporting/campaigns-per-month", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetCampaignsPerMonth)
+	kpiRoutes.GET("/kpis/awareness-reporting/channel-mix-per-month", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetChannelMixPerMonth)
+	kpiRoutes.GET("/kpis/awareness-reporting/coverage-by-audience", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetCoverageByAudience)
+
+	kpiRoutes.GET("/awareness-reporting/progress/summary", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetAwarenessProgressSummary)
+	kpiRoutes.GET("/awareness-reporting/progress/completion-by-channel", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetCompletionByChannel)
+	kpiRoutes.GET("/awareness-reporting/progress/completion-per-campaign", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetCompletionPerCampaign)
+	kpiRoutes.GET("/awareness-reporting/progress/survey-completion", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetSurveyCompletionStatus)
+	kpiRoutes.GET("/awareness-reportingprogress/completion-by-department", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetCompletionByDepartment)
+	kpiRoutes.GET("/awareness-reporting/progress/phishing-results", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetPhishingResults)
 }
