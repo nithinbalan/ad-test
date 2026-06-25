@@ -234,6 +234,10 @@
 {
   "id": "no_unit_head",
   "translation": "This {{.Field}} does not have a unit head"
+},
+{
+  "id": "register_not_approved",
+  "translation": "Compliance register must be approved before creating assessment"
 }
 
 

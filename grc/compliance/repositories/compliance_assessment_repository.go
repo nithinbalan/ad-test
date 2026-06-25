@@ -27,6 +27,7 @@ type ComplianceAssessmentRepositoryInterface interface {
 	HasRequirementForRegister(registerID uint) (bool, error)
 	CheckAllRequirementsHaveInherentScore(registerID uint) (bool, error)
 	CheckAllRiskBasedRequirementsHaveInherentScore(registerID uint) (bool, error)
+	CheckDepartmentRiskBasedRequirementsHaveInherentScore(registerID uint, responsibleUnitID uint) (bool, error)
 
 	CreateComplianceAssessmentRequirement(requirements *models.ComplianceAssessmentRequirement, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteComplianceAssessmentRequirements(ids []*uint, tx ...utility.DatabaseTransaction) error
@@ -400,12 +401,27 @@ func (repo *ComplianceAssessmentRepository) IsAssessmentExists(organizationUnitI
 	db := repo.db
 
 	var count int64
+
+	// Framework register is linked through compliance_assessment_compliances
+	if complianceRegisterID > 0 {
+		query := db.Table("compliance_assessments").
+			Joins("JOIN compliance_assessment_compliances cac ON cac.compliance_assessment_id = compliance_assessments.id").
+			Where("compliance_assessments.compliance_assessment_status_id IN ?", ids).
+			Where("cac.compliance_register_id = ?", complianceRegisterID)
+
+		if organizationUnitID > 0 {
+			query = query.Where("compliance_assessments.responsible_unit_id = ?", organizationUnitID)
+		}
+
+		err := query.Count(&count).Error
+		return count > 0, err
+	}
+
 	query := db.Table("compliance_assessments").
-		Where("compliance_register_id = ?", complianceRegisterID).
 		Where("compliance_assessment_status_id IN ?", ids)
 
 	if organizationUnitID > 0 {
-		query = query.Where("organization_unit_id = ?", organizationUnitID)
+		query = query.Where("responsible_unit_id = ?", organizationUnitID)
 	}
 
 	err := query.Count(&count).Error
@@ -504,16 +520,71 @@ func (repo *ComplianceAssessmentRepository) CheckAllRiskBasedRequirementsHaveInh
 
 	return totalCount == withScoreCount, nil
 }
+
+func (repo *ComplianceAssessmentRepository) CheckDepartmentRiskBasedRequirementsHaveInherentScore(registerID uint, responsibleUnitID uint) (bool, error) {
+	var totalCount int64
+	var withScoreCount int64
+
+	err := repo.db.
+		Table("compliance_requirements").
+		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
+		Joins("JOIN compliance_requirement_responsible_units crru ON crru.compliance_requirement_id = compliance_requirements.id").
+		Where("compliance_clauses.compliance_register_id = ?", registerID).
+		Where("crru.responsible_unit_id = ?", responsibleUnitID).
+		Where("crru.is_risk_based_assessment = ?", true).
+		Distinct("compliance_requirements.id").
+		Count(&totalCount).Error
+	if err != nil {
+		return false, err
+	}
+
+	if totalCount == 0 {
+		return true, nil
+	}
+
+	err = repo.db.
+		Table("compliance_requirements").
+		Joins("JOIN compliance_clauses ON compliance_clauses.id = compliance_requirements.compliance_clause_id").
+		Joins("JOIN compliance_requirement_responsible_units crru ON crru.compliance_requirement_id = compliance_requirements.id").
+		Where("compliance_clauses.compliance_register_id = ?", registerID).
+		Where("crru.responsible_unit_id = ?", responsibleUnitID).
+		Where("crru.is_risk_based_assessment = ?", true).
+		Where("compliance_requirements.inherent_risk_score IS NOT NULL").
+		Distinct("compliance_requirements.id").
+		Count(&withScoreCount).Error
+	if err != nil {
+		return false, err
+	}
+
+	return totalCount == withScoreCount, nil
+}
 func (repo *ComplianceAssessmentRepository) IsAssessmentExistExcludingID(id uint, organizationUnitID uint, complianceRegisterID uint, ids []uint) (bool, error) {
 	db := repo.db
 
 	var count int64
+
+	// Framework register is linked through compliance_assessment_compliances
+	if complianceRegisterID > 0 {
+		query := db.Table("compliance_assessments").
+			Joins("JOIN compliance_assessment_compliances cac ON cac.compliance_assessment_id = compliance_assessments.id").
+			Where("compliance_assessments.id <> ?", id).
+			Where("compliance_assessments.compliance_assessment_status_id IN ?", ids).
+			Where("cac.compliance_register_id = ?", complianceRegisterID)
+
+		if organizationUnitID > 0 {
+			query = query.Where("compliance_assessments.responsible_unit_id = ?", organizationUnitID)
+		}
+
+		err := query.Count(&count).Error
+		return count > 0, err
+	}
+
 	query := db.Table("compliance_assessments").
-		Where("id <> ? AND compliance_register_id = ?", id, complianceRegisterID).
+		Where("id <> ?", id).
 		Where("compliance_assessment_status_id IN ?", ids)
 
 	if organizationUnitID > 0 {
-		query = query.Where("organization_unit_id = ?", organizationUnitID)
+		query = query.Where("responsible_unit_id = ?", organizationUnitID)
 	}
 
 	err := query.Count(&count).Error
