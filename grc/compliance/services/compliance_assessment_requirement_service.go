@@ -2284,6 +2284,30 @@ func (cars *ComplianceAssessmentRequirementService) AcknowledgeRequirement(asses
 		return err
 	}
 
+	// Move assessment from draft → in_progress only once
+	assessmentModel, err := cars.complianceAssessmentSvc.GetByID(assessmentID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	assessmentInProgressStatus, err := cars.complianceAssessmentStatusSvc.GetByType("in_progress")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	assessmentDraftStatus, err := cars.complianceAssessmentStatusSvc.GetByType("draft")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if assessmentModel.ComplianceAssessmentStatusID == assessmentDraftStatus.ID {
+		assessmentModel.ComplianceAssessmentStatusID = assessmentInProgressStatus.ID
+		if err := cars.repo.ComplianceAssessmentUpdateStatus(assessmentModel, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	tx.Commit()
 
 	// Send notification and email to assessment review user
