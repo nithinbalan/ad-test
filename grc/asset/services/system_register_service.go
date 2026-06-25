@@ -82,6 +82,17 @@ func (srs *SystemRegisterService) GetFullDetailsByID(id uint, tx ...utility.Data
 func (srs *SystemRegisterService) Create(systemRegisterFormDTO *dtos.SystemRegisterFormDTO, currentUserID uint) (uint, error) {
 	tx := srs.repo.BeginTransaction()
 
+	// Validate impact type IDs
+	for _, impactTypeID := range systemRegisterFormDTO.ImpactTypeIDs {
+		if impactTypeID == nil {
+			continue
+		}
+		if _, err := srs.repo.GetImpactCategoryByID(*impactTypeID, tx); err != nil {
+			tx.Rollback()
+			return 0, utility.NewValidationError(fmt.Errorf("impact type does not exist"), "not_exist", "impact_type_ids")
+		}
+	}
+
 	// If SLA is mapped, fetch SLA details and auto-populate VendorRTO fields only if not provided by user
 	var vendorRTO *int
 	var vendorRTOUnitID *uint
@@ -120,7 +131,6 @@ func (srs *SystemRegisterService) Create(systemRegisterFormDTO *dtos.SystemRegis
 		OperationLocationID:     systemRegisterFormDTO.OperationLocationID,
 		BusinessOwnerID:         systemRegisterFormDTO.BusinessOwnerID,
 		Customers:               systemRegisterFormDTO.Customers,
-		ImpactTypeID:            systemRegisterFormDTO.ImpactTypeID,
 		DisruptionImpactLevelID: systemRegisterFormDTO.DisruptionImpactLevelID,
 		RTO:                     systemRegisterFormDTO.RTO,
 		RTOUnitID:               systemRegisterFormDTO.RTOUnitID,
@@ -146,6 +156,23 @@ func (srs *SystemRegisterService) Create(systemRegisterFormDTO *dtos.SystemRegis
 	if err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+
+	// Create impact type associations
+	for _, impactTypeID := range systemRegisterFormDTO.ImpactTypeIDs {
+		if impactTypeID == nil {
+			continue
+		}
+		impactType := &models.SystemRegisterImpactType{
+			SystemRegisterID: systemRegisterID,
+			ImpactTypeID:     *impactTypeID,
+			CreatedBYID:      &currentUserID,
+			CreatedAt:        time.Now(),
+		}
+		if err := srs.repo.CreateSystemRegisterImpactType(impactType, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	if systemRegisterFormDTO.SLARegisterID != nil {
@@ -204,6 +231,17 @@ func (srs *SystemRegisterService) Update(id uint, systemRegisterFormDTO *dtos.Sy
 		return err
 	}
 
+	// Validate impact type IDs
+	for _, impactTypeID := range systemRegisterFormDTO.ImpactTypeIDs {
+		if impactTypeID == nil {
+			continue
+		}
+		if _, err := srs.repo.GetImpactCategoryByID(*impactTypeID, tx); err != nil {
+			tx.Rollback()
+			return utility.NewValidationError(fmt.Errorf("impact type does not exist"), "not_exist", "impact_type_ids")
+		}
+	}
+
 	// If SLA is mapped, fetch SLA details and auto-populate VendorRTO fields only if not provided by user
 	var vendorRTO *int
 	var vendorRTOUnitID *uint
@@ -241,7 +279,6 @@ func (srs *SystemRegisterService) Update(id uint, systemRegisterFormDTO *dtos.Sy
 	existingSystemRegister.OperationLocationID = systemRegisterFormDTO.OperationLocationID
 	existingSystemRegister.BusinessOwnerID = systemRegisterFormDTO.BusinessOwnerID
 	existingSystemRegister.Customers = systemRegisterFormDTO.Customers
-	existingSystemRegister.ImpactTypeID = systemRegisterFormDTO.ImpactTypeID
 	existingSystemRegister.DisruptionImpactLevelID = systemRegisterFormDTO.DisruptionImpactLevelID
 	existingSystemRegister.RTO = systemRegisterFormDTO.RTO
 	existingSystemRegister.RTOUnitID = systemRegisterFormDTO.RTOUnitID
@@ -266,6 +303,28 @@ func (srs *SystemRegisterService) Update(id uint, systemRegisterFormDTO *dtos.Sy
 	if err := srs.repo.Update(existingSystemRegister, tx); err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	// Sync impact type associations
+	if err := srs.repo.DeleteSystemRegisterImpactTypesBySystemRegisterID(id, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	for _, impactTypeID := range systemRegisterFormDTO.ImpactTypeIDs {
+		if impactTypeID == nil {
+			continue
+		}
+		impactType := &models.SystemRegisterImpactType{
+			SystemRegisterID: id,
+			ImpactTypeID:     *impactTypeID,
+			CreatedBYID:      &currentUserID,
+			CreatedAt:        time.Now(),
+		}
+		if err := srs.repo.CreateSystemRegisterImpactType(impactType, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	if err := srs.repo.DeleteSLAs(id, tx); err != nil {

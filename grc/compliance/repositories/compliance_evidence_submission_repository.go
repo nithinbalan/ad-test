@@ -193,6 +193,16 @@ func (repo *ComplianceEvidenceSubmissionRepository) GetRequirementAssessmentFull
 		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.ResponsibleUnit").
 		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.ComplianceCategory").
 		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.SeverityLevel").
+		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.LegislativeBody").
+		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.LegislationType").
+		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.ImportanceClassification").
+		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.SecrecyClassification").
+		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.IssuingAuthorities").
+		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.IssuingAuthorities.IssuingAuthority").
+		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.IssuingAuthorities.Entity").
+		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.IssuingAuthorities.Document").
+		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.ComplianceRegisterSharedUnit").
+		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.ComplianceRegisterSharedUnit.Department").
 		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType").
 		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.ComplianceAssessmentFramework.Values.ComplianceStatus").
 		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.SeverityLevel").
