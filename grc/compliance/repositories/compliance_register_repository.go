@@ -1512,6 +1512,9 @@ func (repo *ComplianceRegisterRepository) ForceDelete(id uint, tx ...utility.Dat
 
 		/* ========= SHARED UNITS ========= */
 		`DELETE FROM compliance_register_shared_units WHERE compliance_register_id = ?`,
+
+		/* ========= VIOLATION REPORTS ========= */
+		`DELETE FROM violation_report_compliance_registers WHERE compliance_register_id = ?`,
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
