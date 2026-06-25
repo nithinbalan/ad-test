@@ -51,6 +51,13 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 		"responsible_unit_ids",
 		"responsible_user_ids",
 		"lifecycle_status_ids",
+		"division_ids",
+		"process_type_ids",
+		"location_ids",
+		"review_frequency_ids",
+		"is_automatic",
+		"is_manual",
+		"is_can_be_done_manually",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -71,18 +78,30 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 	dateTo := c.Query("date_to")
 
 	validSortFields := map[string]string{
-		"reference_number":     "processes.reference_number",
-		"title_en":             "processes.title_en",
-		"title_ar":             "processes.title_ar",
-		"description":          "processes.description",
-		"process_group_en":     "process_groups.title_en",
-		"process_group_ar":     "process_groups.title_ar",
-		"organization_unit_en": "organization_units.title_en",
-		"organization_unit_ar": "organization_units.title_ar",
-		"owner_en":             "owner.first_name_en",
-		"owner_ar":             "owner.first_name_ar",
-		"status_en":            "lifecycle_statuses.title_en",
-		"status_ar":            "lifecycle_statuses.title_ar",
+		"reference_number":        "processes.reference_number",
+		"title_en":                "processes.title_en",
+		"title_ar":                "processes.title_ar",
+		"description":             "processes.description",
+		"process_group_en":        "process_groups.title_en",
+		"process_group_ar":        "process_groups.title_ar",
+		"organization_unit_en":    "organization_units.title_en",
+		"organization_unit_ar":    "organization_units.title_ar",
+		"owner_en":                "owner.first_name_en",
+		"owner_ar":                "owner.first_name_ar",
+		"status_en":               "lifecycle_statuses.title_en",
+		"status_ar":               "lifecycle_statuses.title_ar",
+		"division_en":             "divisions.title_en",
+		"division_ar":             "divisions.title_ar",
+		"process_type_en":         "bcm_process_types.title_en",
+		"process_type_ar":         "bcm_process_types.title_ar",
+		"location_en":             "locations.title_en",
+		"location_ar":             "locations.title_ar",
+		"review_frequency_en":     "review_frequencies.title_en",
+		"review_frequency_ar":     "review_frequencies.title_ar",
+		"is_automatic":            "processes.is_automatic",
+		"is_manual":               "processes.is_manual",
+		"is_can_be_done_manually": "processes.is_can_be_done_manually",
+		"rush_hour":               "processes.rush_hour",
 	}
 
 	sortField, valid := validSortFields[sortBy]
@@ -200,8 +219,14 @@ func (pc *ProcessController) UpdateProcess(c *gin.Context) {
 
 	err = pc.service.Update(uint(processID), uint(currentUserID), &processFormDTO)
 	if err != nil {
-		utility.SendInternalErrResp(pc.db, c, err.Error())
-		return
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(pc.db, c, e.Error())
+			return
+		}
 	}
 
 	c.Status(http.StatusOK)

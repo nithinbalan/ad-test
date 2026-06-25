@@ -55,6 +55,8 @@ type ProcessService struct {
 	organizationUnitSvc  settingsServices.OrganizationUnitServiceInterface
 	userSettingSvc       UserSettingServiceInterface
 	organizationUnitsSvc OrganizationUnitsServiceInterface
+	locationSvc          masterServices.LocationServiceInterface
+	reviewFrequencySvc   masterServices.ReviewFrequencyServiceInterface
 }
 
 func NewProcessService(
@@ -68,6 +70,8 @@ func NewProcessService(
 	organizationUnitSvc settingsServices.OrganizationUnitServiceInterface,
 	userSettingSvc UserSettingServiceInterface,
 	organizationUnitsSvc OrganizationUnitsServiceInterface,
+	locationSvc masterServices.LocationServiceInterface,
+	reviewFrequencySvc masterServices.ReviewFrequencyServiceInterface,
 ) ProcessServiceInterface {
 	return &ProcessService{
 		repo:                 repo,
@@ -80,6 +84,8 @@ func NewProcessService(
 		organizationUnitSvc:  organizationUnitSvc,
 		userSettingSvc:       userSettingSvc,
 		organizationUnitsSvc: organizationUnitsSvc,
+		locationSvc:          locationSvc,
+		reviewFrequencySvc:   reviewFrequencySvc,
 	}
 }
 
@@ -116,6 +122,7 @@ func (ps *ProcessService) GetFullDetailsByID(id uint, tx ...utility.DatabaseTran
 
 	processDetailDTO.CreatedAt = process.CreatedAt
 	processDetailDTO.UpdatedAt = process.UpdatedAt
+
 	// Map the latest auditable item
 	if len(process.AuditableItems) > 0 {
 		latestAuditableItem := process.AuditableItems[0]
@@ -148,30 +155,52 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 	if err != nil {
 		return 0, err
 	}
-	// organizationUnitID, err := ps.userSvc.GetUserPrimaryUnitID(uint(processFormDTO.OwnerID))
-	// if err != nil {
-	// 	return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
-	// }
 
-	process := &models.Process{
-		ProcessGroupID:    processFormDTO.ProcessGroupID,
-		ResponsibleUserID: processFormDTO.OwnerID,
-		ResponsibleUnitID: processFormDTO.OwnerUnitID,
-		LifecycleStatusID: lifecycleStatus.ID,
-		ReferenceNumber:   referenceNumber,
-		TitleEn:           processFormDTO.TitleEn,
-		TitleAr:           processFormDTO.TitleAr,
-		Description:       processFormDTO.Description,
-		CreatedBYID:       currentUserID,
+	isAutomatic, isManual := ps.resolveExecutionAutomation(processFormDTO.ExecutionAutomation)
+	isCanBeDoneManually := false
+	if processFormDTO.IsCanBeDoneManually != nil {
+		isCanBeDoneManually = *processFormDTO.IsCanBeDoneManually
 	}
 
-	id, err := ps.repo.Create(process)
+	process := &models.Process{
+		ProcessGroupID:                        processFormDTO.ProcessGroupID,
+		ResponsibleUserID:                     processFormDTO.OwnerID,
+		ResponsibleUnitID:                     processFormDTO.OwnerUnitID,
+		LifecycleStatusID:                     &lifecycleStatus.ID,
+		ReferenceNumber:                       referenceNumber,
+		TitleEn:                               processFormDTO.TitleEn,
+		TitleAr:                               processFormDTO.TitleAr,
+		Description:                           processFormDTO.Description,
+		DivisionID:                            processFormDTO.DivisionID,
+		IsAutomatic:                           isAutomatic,
+		IsManual:                              isManual,
+		ProcessTypeID:                         processFormDTO.ProcessTypeID,
+		LocationID:                            processFormDTO.LocationID,
+		AlternativeLocation:                   processFormDTO.AlternativeLocation,
+		RushHour:                              processFormDTO.RushHour,
+		ReviewFrequencyID:                     processFormDTO.ReviewFrequencyID,
+		IsCanBeDoneManually:                   isCanBeDoneManually,
+		TimeToPerformProcedureManually:        processFormDTO.TimeToPerformProcedureManually,
+		StepsToPerformProcedureManually:       processFormDTO.StepsToPerformProcedureManually,
+		RequirementToPerformProcedureManually: processFormDTO.RequirementToPerformProcedureManually,
+		CreatedBYID:                           currentUserID,
+	}
+
+	id, err := ps.repo.Create(process, tx)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 
-	tx.Commit()
+	// Create association records
+	if err := ps.createProcessAssociations(id, currentUserID, processFormDTO, tx); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
 
 	go func() {
 		existingProcess, err := ps.GetFullDetailsByID(process.ID)
@@ -410,7 +439,7 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		return err
 	}
 
-	process, err := ps.GetByID(id)
+	process, err := ps.GetByID(id, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -423,15 +452,11 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		return err
 	}
 
-	// If owner has changed, update the OwnerUnitID
-	// if process.ResponsibleUserID != processFormDTO.OwnerID {
-	// 	organizationUnitID, err := ps.userSvc.GetUserPrimaryUnitID(uint(processFormDTO.OwnerID))
-	// 	if err != nil {
-	// 		tx.Rollback()
-	// 		return utility.NewValidationError(fmt.Errorf("organization unit not set for owner"), "not_exist", "process owner unit")
-	// 	}
-	// 	process.ResponsibleUnitID = organizationUnitID
-	// }
+	isAutomatic, isManual := ps.resolveExecutionAutomation(processFormDTO.ExecutionAutomation)
+	isCanBeDoneManually := false
+	if processFormDTO.IsCanBeDoneManually != nil {
+		isCanBeDoneManually = *processFormDTO.IsCanBeDoneManually
+	}
 
 	process.ProcessGroupID = processFormDTO.ProcessGroupID
 	process.ResponsibleUserID = processFormDTO.OwnerID
@@ -439,10 +464,28 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 	process.TitleEn = processFormDTO.TitleEn
 	process.TitleAr = processFormDTO.TitleAr
 	process.Description = processFormDTO.Description
+	process.DivisionID = processFormDTO.DivisionID
+	process.IsAutomatic = isAutomatic
+	process.IsManual = isManual
+	process.ProcessTypeID = processFormDTO.ProcessTypeID
+	process.LocationID = processFormDTO.LocationID
+	process.AlternativeLocation = processFormDTO.AlternativeLocation
+	process.RushHour = processFormDTO.RushHour
+	process.ReviewFrequencyID = processFormDTO.ReviewFrequencyID
+	process.IsCanBeDoneManually = isCanBeDoneManually
+	process.TimeToPerformProcedureManually = processFormDTO.TimeToPerformProcedureManually
+	process.StepsToPerformProcedureManually = processFormDTO.StepsToPerformProcedureManually
+	process.RequirementToPerformProcedureManually = processFormDTO.RequirementToPerformProcedureManually
 	process.UpdatedBYID = &currentUserID
 
-	err = ps.repo.Update(process)
+	err = ps.repo.Update(process, tx)
 	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Synchronize association records
+	if err := ps.syncProcessAssociations(id, currentUserID, processFormDTO, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -454,7 +497,9 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		return err
 	}
 
-	tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
 
 	go func() {
 
@@ -471,23 +516,47 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 		}
 
 		oldData := map[string]interface{}{
-			"process_group":    oldProcess.ProcessGroup.TitleEn,
-			"owner_unit":       oldProcess.ResponsibleUnit.TitleEn,
-			"owner":            oldOwnerName,
-			"lifecycle_status": oldProcess.LifecycleStatus.TitleEn,
-			"title_en":         oldProcess.TitleEn,
-			"title_ar":         oldProcess.TitleAr,
-			"description":      oldProcess.Description,
+			"process_group":                       oldProcess.ProcessGroup,
+			"owner_unit":                          oldProcess.ResponsibleUnit,
+			"owner":                               oldOwnerName,
+			"lifecycle_status":                    oldProcess.LifecycleStatus,
+			"title_en":                            oldProcess.TitleEn,
+			"title_ar":                            oldProcess.TitleAr,
+			"description":                         oldProcess.Description,
+			"division":                            oldProcess.Division,
+			"is_automatic":                        oldProcess.IsAutomatic,
+			"is_manual":                           oldProcess.IsManual,
+			"process_type":                        oldProcess.ProcessType,
+			"location":                            oldProcess.Location,
+			"alternative_location":                oldProcess.AlternativeLocation,
+			"rush_hour":                           oldProcess.RushHour,
+			"review_frequency":                    oldProcess.ReviewFrequency,
+			"is_can_be_done_manually":             oldProcess.IsCanBeDoneManually,
+			"time_to_perform_procedure_manually":  oldProcess.TimeToPerformProcedureManually,
+			"steps_to_perform_procedure_manually": oldProcess.StepsToPerformProcedureManually,
+			"requirement_to_perform_procedure_manually": oldProcess.RequirementToPerformProcedureManually,
 		}
 
 		newData := map[string]interface{}{
-			"process_group":    existingProcess.ProcessGroup.TitleEn,
-			"owner_unit":       existingProcess.ResponsibleUnit.TitleEn,
-			"owner":            newOwnerName,
-			"lifecycle_status": existingProcess.LifecycleStatus.TitleEn,
-			"title_en":         existingProcess.TitleEn,
-			"title_ar":         existingProcess.TitleAr,
-			"description":      existingProcess.Description,
+			"process_group":                       existingProcess.ProcessGroup,
+			"owner_unit":                          existingProcess.ResponsibleUnit,
+			"owner":                               newOwnerName,
+			"lifecycle_status":                    existingProcess.LifecycleStatus,
+			"title_en":                            existingProcess.TitleEn,
+			"title_ar":                            existingProcess.TitleAr,
+			"description":                         existingProcess.Description,
+			"division":                            existingProcess.Division,
+			"is_automatic":                        existingProcess.IsAutomatic,
+			"is_manual":                           existingProcess.IsManual,
+			"process_type":                        existingProcess.ProcessType,
+			"location":                            existingProcess.Location,
+			"alternative_location":                existingProcess.AlternativeLocation,
+			"rush_hour":                           existingProcess.RushHour,
+			"review_frequency":                    existingProcess.ReviewFrequency,
+			"is_can_be_done_manually":             existingProcess.IsCanBeDoneManually,
+			"time_to_perform_procedure_manually":  existingProcess.TimeToPerformProcedureManually,
+			"steps_to_perform_procedure_manually": existingProcess.StepsToPerformProcedureManually,
+			"requirement_to_perform_procedure_manually": existingProcess.RequirementToPerformProcedureManually,
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
@@ -557,12 +626,16 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 					oldOwnerSubject := fmt.Sprintf("Process/%s: Ownership Removed", process.TitleEn)
 					oldOwnerTemplateRelativePath := "organization/templates/email/process_remove_owner_mail.html"
 
+					processGroupTitleEn := ""
+					if existingProcess.ProcessGroup != nil {
+						processGroupTitleEn = existingProcess.ProcessGroup.TitleEn
+					}
 					oldOwnerEmailData := map[string]interface{}{
 						"FirstNameEn":            oldOwnerUser.FirstNameEn,
 						"LastNameEn":             oldOwnerUser.LastNameEn,
 						"ProcessReferenceNumber": existingProcess.ReferenceNumber,
 						"ProcessName":            existingProcess.TitleEn,
-						"ProcessGroup":           existingProcess.ProcessGroup.TitleEn,
+						"ProcessGroup":           processGroupTitleEn,
 					}
 
 					oldOwnerEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -614,12 +687,16 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 				subject := fmt.Sprintf("Process/%s: Ownership Changed", process.TitleEn)
 				templateRelativePath := "organization/templates/email/process_change_owner_mail.html"
 
+				newOwnerProcessGroup := ""
+				if existingProcess.ProcessGroup != nil {
+					newOwnerProcessGroup = existingProcess.ProcessGroup.TitleEn
+				}
 				emailData := map[string]interface{}{
 					"FirstNameEn":            responsibleUser.FirstNameEn,
 					"LastNameEn":             responsibleUser.LastNameEn,
 					"ProcessReferenceNumber": existingProcess.ReferenceNumber,
 					"ProcessName":            existingProcess.TitleEn,
-					"ProcessGroup":           existingProcess.ProcessGroup.TitleEn,
+					"ProcessGroup":           newOwnerProcessGroup,
 					"NewOwnerFirstNameEn":    responsibleUser.FirstNameEn,
 					"NewOwnerLastNameEn":     responsibleUser.LastNameEn,
 					"AssignedByFirstNameEn":  existingProcess.CreatedByUser.FirstNameEN,
@@ -696,12 +773,16 @@ func (ps *ProcessService) Update(id uint, currentUserID uint, processFormDTO *or
 					CreatedByID:          &currentUserID,
 				}
 
+				deptOwnerProcessGroup := ""
+				if existingProcess.ProcessGroup != nil {
+					deptOwnerProcessGroup = existingProcess.ProcessGroup.TitleEn
+				}
 				emailData := map[string]interface{}{
 					"DepartmentNameEn":       department.TitleEn,
 					"DepartmentNameAr":       department.TitleAr,
 					"ProcessReferenceNumber": existingProcess.ReferenceNumber,
 					"ProcessName":            existingProcess.TitleEn,
-					"ProcessGroup":           existingProcess.ProcessGroup.TitleEn,
+					"ProcessGroup":           deptOwnerProcessGroup,
 					"AssignedByFirstNameEn":  existingProcess.UpdatedByUser.FirstNameEN,
 					"AssignedByLastNameEn":   existingProcess.UpdatedByUser.LastNameEN,
 					"AssignedOn":             existingProcess.UpdatedAt.Format("2006-01-02"),
@@ -751,6 +832,10 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 		}
 
 		// Prepare notification data before deletion
+		processGroupTitle := ""
+		if process.ProcessGroup != nil {
+			processGroupTitle = process.ProcessGroup.TitleEn
+		}
 		notifications = append(notifications, struct {
 			OwnerID         *uint
 			TitleEn         string
@@ -762,7 +847,7 @@ func (ps *ProcessService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 			TitleEn:         process.TitleEn,
 			TitleAr:         process.TitleAr,
 			ReferenceNumber: process.ReferenceNumber,
-			ProcessGroup:    process.ProcessGroup.TitleEn,
+			ProcessGroup:    processGroupTitle,
 		})
 
 		deletedProcesses = append(deletedProcesses, map[string]interface{}{
@@ -939,8 +1024,11 @@ func (ps *ProcessService) Restore(ids []uint, currentUserID uint) ([]uint, error
 }
 
 func (ps *ProcessService) validateProcessFormDTO(processFormDTO *organizationDTOs.ProcessFormDTO) error {
-	if _, err := ps.processGroupSvc.GetByID(uint(processFormDTO.ProcessGroupID)); err != nil {
-		return utility.NewValidationError(fmt.Errorf("process group does not exist"), "not_exist", "process group")
+	// Validate ProcessGroupID only if provided (nullable)
+	if processFormDTO.ProcessGroupID != nil {
+		if _, err := ps.processGroupSvc.GetByID(*processFormDTO.ProcessGroupID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("process group does not exist"), "not_exist", "process group")
+		}
 	}
 
 	// Validate OwnerUnitID (required)
@@ -955,7 +1043,156 @@ func (ps *ProcessService) validateProcessFormDTO(processFormDTO *organizationDTO
 		}
 	}
 
+	// Validate Division if provided
+	if processFormDTO.DivisionID != nil {
+		if _, err := ps.organizationUnitSvc.GetByID(*processFormDTO.DivisionID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("division does not exist"), "not_exist", "division")
+		}
+	}
+
+	// Validate Execution Automation
+	if processFormDTO.ExecutionAutomation == nil || *processFormDTO.ExecutionAutomation == "" {
+		return utility.NewValidationError(fmt.Errorf("execution automation is required"), "required", "execution_automation")
+	}
+	if *processFormDTO.ExecutionAutomation != "automatic" && *processFormDTO.ExecutionAutomation != "manual" {
+		return utility.NewValidationError(fmt.Errorf("execution automation must be automatic or manual"), "invalid", "execution_automation")
+	}
+	if *processFormDTO.ExecutionAutomation == "automatic" {
+		if processFormDTO.SystemRegisterID == nil {
+			return utility.NewValidationError(fmt.Errorf("associated system is required when execution automation is automatic"), "required", "system_register_id")
+		}
+	}
+
+	// Validate ProcessType if provided
+	if processFormDTO.ProcessTypeID != nil {
+		if _, err := ps.repo.GetBCMProcessTypeByID(*processFormDTO.ProcessTypeID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("process type does not exist"), "not_exist", "process_type")
+		}
+	}
+
+	// Validate Location if provided
+	if processFormDTO.LocationID != nil {
+		if _, err := ps.locationSvc.GetByID(*processFormDTO.LocationID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("location does not exist"), "not_exist", "location")
+		}
+	}
+
+	// Validate ReviewFrequency if provided
+	if processFormDTO.ReviewFrequencyID != nil {
+		if _, err := ps.reviewFrequencySvc.GetByID(*processFormDTO.ReviewFrequencyID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("review frequency does not exist"), "not_exist", "review_frequency")
+		}
+	}
+
+	// Validate associated execution records
+	for _, id := range processFormDTO.ExecutionRecordIDs {
+		if id == nil {
+			continue
+		}
+		if _, err := ps.repo.GetBCMExecutionRecordByID(*id); err != nil {
+			return utility.NewValidationError(fmt.Errorf("execution record does not exist"), "not_exist", "execution_record_ids")
+		}
+	}
+
+	// Validate associated manual procedure forms
+	for _, id := range processFormDTO.ManualProcedureFormIDs {
+		if id == nil {
+			continue
+		}
+		if _, err := ps.repo.GetBCMManualProcedureFormByID(*id); err != nil {
+			return utility.NewValidationError(fmt.Errorf("manual procedure form does not exist"), "not_exist", "manual_procedure_form_ids")
+		}
+	}
+
+	// Validate associated system register (single for current use)
+	if processFormDTO.SystemRegisterID != nil {
+		if _, err := ps.repo.GetSystemRegisterByID(*processFormDTO.SystemRegisterID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("system register does not exist"), "not_exist", "system_register_id")
+		}
+	}
+
+	// Validate manual execution fields if process can be done manually
+	if processFormDTO.IsCanBeDoneManually != nil && *processFormDTO.IsCanBeDoneManually {
+		if processFormDTO.TimeToPerformProcedureManually == nil || *processFormDTO.TimeToPerformProcedureManually == "" {
+			return utility.NewValidationError(fmt.Errorf("time to perform procedure manually is required when process can be done manually"), "required", "time_to_perform_procedure_manually")
+		}
+		if processFormDTO.StepsToPerformProcedureManually == nil || *processFormDTO.StepsToPerformProcedureManually == "" {
+			return utility.NewValidationError(fmt.Errorf("steps to perform procedure manually is required when process can be done manually"), "required", "steps_to_perform_procedure_manually")
+		}
+	}
+
 	return nil
+}
+
+func (ps *ProcessService) resolveExecutionAutomation(executionAutomation *string) (bool, bool) {
+	if executionAutomation == nil {
+		return false, false
+	}
+	switch *executionAutomation {
+	case "automatic":
+		return true, false
+	case "manual":
+		return false, true
+	default:
+		return false, false
+	}
+}
+
+func (ps *ProcessService) createProcessAssociations(processID uint, currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO, tx utility.DatabaseTransaction) error {
+	for _, recordID := range processFormDTO.ExecutionRecordIDs {
+		if recordID == nil {
+			continue
+		}
+		record := &models.ProcessExecutionRecord{
+			ProcessID:            processID,
+			BCMExecutionRecordID: *recordID,
+			CreatedBYID:          currentUserID,
+		}
+		if err := ps.repo.CreateProcessExecutionRecord(record, tx); err != nil {
+			return err
+		}
+	}
+
+	for _, formID := range processFormDTO.ManualProcedureFormIDs {
+		if formID == nil {
+			continue
+		}
+		form := &models.ProcessManualProcedureForm{
+			ProcessID:                processID,
+			BCMManualProcedureFormID: *formID,
+			CreatedBYID:              currentUserID,
+		}
+		if err := ps.repo.CreateProcessManualProcedureForm(form, tx); err != nil {
+			return err
+		}
+	}
+
+	if processFormDTO.SystemRegisterID != nil {
+		sr := &models.ProcessSystemRegister{
+			ProcessID:        processID,
+			SystemRegisterID: *processFormDTO.SystemRegisterID,
+			CreatedBYID:      currentUserID,
+		}
+		if err := ps.repo.CreateProcessSystemRegister(sr, tx); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (ps *ProcessService) syncProcessAssociations(processID uint, currentUserID uint, processFormDTO *organizationDTOs.ProcessFormDTO, tx utility.DatabaseTransaction) error {
+	if err := ps.repo.DeleteProcessExecutionRecordsByProcessID(processID, tx); err != nil {
+		return err
+	}
+	if err := ps.repo.DeleteProcessManualProcedureFormsByProcessID(processID, tx); err != nil {
+		return err
+	}
+	if err := ps.repo.DeleteProcessSystemRegistersByProcessID(processID, tx); err != nil {
+		return err
+	}
+
+	return ps.createProcessAssociations(processID, currentUserID, processFormDTO, tx)
 }
 
 func (ps *ProcessService) GetControlSummary(id uint) (map[string]interface{}, error) {
@@ -1245,12 +1482,12 @@ func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, curren
 		}
 
 		processFormDTO := &organizationDTOs.ProcessFormDTO{
-			ProcessGroupID: record["process_group_id"].(uint),
-			OwnerUnitID:    record["owner_unit_id"].(uint),
-			OwnerID:        ownerID,
-			TitleEn:        record["title_en"].(string),
-			TitleAr:        record["title_ar"].(string),
-			Description:    utility.GetOptionalStringValue(record["description"]),
+			//ProcessGroupID: record["process_group_id"].(uint),
+			OwnerUnitID: record["owner_unit_id"].(uint),
+			OwnerID:     ownerID,
+			TitleEn:     record["title_en"].(string),
+			TitleAr:     record["title_ar"].(string),
+			Description: utility.GetOptionalStringValue(record["description"]),
 		}
 
 		if controls, ok := record["control_ids"].([]uint); ok {

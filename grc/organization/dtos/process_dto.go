@@ -88,6 +88,31 @@ type ProcessListDTO struct {
 	RiskRatingColorCode              *string              `json:"risk_rating_color_code"`
 	RiskRatingValue                  *uint                `json:"risk_rating_value"`
 	Activities                       []ProcessActivityDTO `json:"activities" gorm:"-"`
+
+	// New BCM fields
+	DivisionID                            *uint                            `json:"division_id"`
+	DivisionTitleEn                       *string                          `json:"division_title_en"`
+	DivisionTitleAr                       *string                          `json:"division_title_ar"`
+	IsAutomatic                           bool                             `json:"is_automatic"`
+	IsManual                              bool                             `json:"is_manual"`
+	ProcessTypeID                         *uint                            `json:"process_type_id"`
+	ProcessTypeTitleEn                    *string                          `json:"process_type_title_en"`
+	ProcessTypeTitleAr                    *string                          `json:"process_type_title_ar"`
+	LocationID                            *uint                            `json:"location_id"`
+	LocationTitleEn                       *string                          `json:"location_title_en"`
+	LocationTitleAr                       *string                          `json:"location_title_ar"`
+	AlternativeLocation                   *string                          `json:"alternative_location"`
+	RushHour                              *string                          `json:"rush_hour"`
+	ReviewFrequencyID                     *uint                            `json:"review_frequency_id"`
+	ReviewFrequencyTitleEn                *string                          `json:"review_frequency_title_en"`
+	ReviewFrequencyTitleAr                *string                          `json:"review_frequency_title_ar"`
+	IsCanBeDoneManually                   bool                             `json:"is_can_be_done_manually"`
+	TimeToPerformProcedureManually        *string                          `json:"time_to_perform_procedure_manually"`
+	StepsToPerformProcedureManually       *string                          `json:"steps_to_perform_procedure_manually"`
+	RequirementToPerformProcedureManually *string                          `json:"requirement_to_perform_procedure_manually"`
+	ExecutionRecords                      []*ProcessExecutionRecordDTO     `json:"execution_records" gorm:"-"`
+	ManualProcedureForms                  []*ProcessManualProcedureFormDTO `json:"manual_procedure_forms" gorm:"-"`
+	SystemRegister                        *ProcessSystemRegisterDTO        `json:"system_register" gorm:"-"`
 }
 
 // ProcessListQueryParamsDTO defines the filters and search parameters for querying processes
@@ -110,6 +135,11 @@ type ProcessListResponseDTO struct {
 	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
 }
 
+type ProcessMinimalListResponseDTO struct {
+	Items      []*ProcessMinimalDTO         `json:"items"`
+	Pagination commonDTOs.PaginationInfoDTO `json:"pagination"`
+}
+
 type ProcessActivityDTO struct {
 	ID                uint       `json:"id"`
 	TitleEn           string     `json:"title_en"`
@@ -125,7 +155,7 @@ type ProcessActivityDTO struct {
 
 // ProcessFormDTO defines the structure for creating or updating a process
 type ProcessFormDTO struct {
-	ProcessGroupID   uint    `json:"process_group_id" binding:"required"`
+	ProcessGroupID   *uint   `json:"process_group_id"`
 	OwnerUnitID      uint    `json:"owner_unit_id" binding:"required"`
 	OwnerID          *uint   `json:"owner_id"`
 	TitleEn          string  `json:"title_en" binding:"required"`
@@ -134,6 +164,22 @@ type ProcessFormDTO struct {
 	ControlIds       []*uint `json:"control_ids"`
 	AssetRegisterIds []*uint `json:"asset_register_ids"`
 	DocumentIds      []*uint `json:"document_ids"`
+
+	// New BCM form fields
+	DivisionID                            *uint   `json:"division_id"`
+	ExecutionAutomation                   *string `json:"execution_automation"` // "automatic" or "manual"
+	ProcessTypeID                         *uint   `json:"process_type_id"`
+	LocationID                            *uint   `json:"location_id"`
+	AlternativeLocation                   *string `json:"alternative_location"`
+	RushHour                              *string `json:"rush_hour"`
+	ReviewFrequencyID                     *uint   `json:"review_frequency_id"`
+	IsCanBeDoneManually                   *bool   `json:"is_can_be_done_manually"`
+	TimeToPerformProcedureManually        *string `json:"time_to_perform_procedure_manually"`
+	StepsToPerformProcedureManually       *string `json:"steps_to_perform_procedure_manually"`
+	RequirementToPerformProcedureManually *string `json:"requirement_to_perform_procedure_manually"`
+	ExecutionRecordIDs                    []*uint `json:"execution_record_ids"`
+	ManualProcedureFormIDs                []*uint `json:"manual_procedure_form_ids"`
+	SystemRegisterID                      *uint   `json:"system_register_id"`
 }
 
 type ProcessDetailDTO struct {
@@ -178,6 +224,27 @@ type ProcessDetailDTO struct {
 	CriticalityJustification *string                           `json:"criticality_justification"`
 	ProcessCriticalityLevel  *ProcessCriticalityLevelDTO       `json:"process_criticality_level"`
 	ProcessActivities        []ProcessActivityDetailDTO        `json:"process_activities"`
+
+	// New BCM fields
+	DivisionID                            *uint                              `json:"division_id"`
+	Division                              *settingsDTOs.OrganizationUnitDTO  `json:"division"`
+	IsAutomatic                           bool                               `json:"is_automatic"`
+	IsManual                              bool                               `json:"is_manual"`
+	ProcessTypeID                         *uint                              `json:"process_type_id"`
+	ProcessType                           *ProcessTypeDTO                    `json:"process_type"`
+	LocationID                            *uint                              `json:"location_id"`
+	Location                              *masterDTOs.LocationDTO            `json:"location"`
+	AlternativeLocation                   *string                            `json:"alternative_location"`
+	RushHour                              *string                            `json:"rush_hour"`
+	ReviewFrequencyID                     *uint                              `json:"review_frequency_id"`
+	ReviewFrequency                       *masterDTOs.ReviewFrequencyDTO     `json:"review_frequency"`
+	IsCanBeDoneManually                   bool                               `json:"is_can_be_done_manually"`
+	TimeToPerformProcedureManually        *string                            `json:"time_to_perform_procedure_manually"`
+	StepsToPerformProcedureManually       *string                            `json:"steps_to_perform_procedure_manually"`
+	RequirementToPerformProcedureManually *string                            `json:"requirement_to_perform_procedure_manually"`
+	ProcessExecutionRecords               []*ProcessExecutionRecordDetailDTO `json:"process_execution_records"`
+	ProcessManualProcedureForms           []*ProcessManualProcedureDetailDTO `json:"process_manual_procedure_forms"`
+	ProcessSystemRegister                 *ProcessSystemRegisterDetailDTO    `json:"process_system_register"`
 }
 type AuditableItemMinimalDetailDTO struct {
 	ID                  uint                             `json:"id"`
@@ -294,4 +361,116 @@ type RiskLevelDTO struct {
 	TitleAr   string `json:"title_ar"`
 	Type      string `json:"type"`
 	ColorCode string `json:"color_code"`
+}
+
+// ProcessTypeDTO inline minimal DTO for process type (avoids circular import with bcm package)
+type ProcessTypeDTO struct {
+	ID      int    `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+}
+
+// ProcessExecutionRecordDTO represents a linked execution record in process detail
+type ProcessExecutionRecordDTO struct {
+	ID                   uint   `json:"id"`
+	ProcessID            uint   `json:"process_id"`
+	BCMExecutionRecordID uint   `json:"bcm_execution_record_id"`
+	TitleEn              string `json:"title_en"`
+	TitleAr              string `json:"title_ar"`
+}
+
+// ProcessManualProcedureFormDTO represents a linked manual procedure form in process detail
+type ProcessManualProcedureFormDTO struct {
+	ID                       uint    `json:"id"`
+	ProcessID                uint    `json:"process_id"`
+	BCMManualProcedureFormID uint    `json:"bcm_manual_procedure_form_id"`
+	TitleEn                  string  `json:"title_en"`
+	TitleAr                  string  `json:"title_ar"`
+	Code                     *string `json:"code"`
+}
+
+// ProcessSystemRegisterDTO represents a linked system register in process detail
+type ProcessSystemRegisterDTO struct {
+	ID               uint   `json:"id"`
+	ProcessID        uint   `json:"process_id"`
+	SystemRegisterID uint   `json:"system_register_id"`
+	TitleEn          string `json:"title_en"`
+	TitleAr          string `json:"title_ar"`
+}
+
+type ProcessExecutionRecordDetailDTO struct {
+	ID                   *uint                        `json:"id"`
+	ProcessID            uint                         `json:"process_id"`
+	BCMExecutionRecordID uint                         `json:"bcm_execution_record_id"`
+	BCMExecutionRecord   BCMExecutionRecordMinimalDTO `json:"bcm_execution_record"`
+}
+
+type ProcessManualProcedureDetailDTO struct {
+	ID                       *uint                            `json:"id"`
+	ProcessID                uint                             `json:"process_id"`
+	BCMManualProcedureFormID uint                             `json:"bcm_manual_procedure_form_id"`
+	BCMManualProcedureForm   BCMManualProcedureFormMinimalDTO `json:"bcm_manual_procedure_form"`
+}
+
+type ProcessSystemRegisterDetailDTO struct {
+	ID               *uint                    `json:"id"`
+	ProcessID        uint                     `json:"process_id"`
+	SystemRegisterID uint                     `json:"system_register_id"`
+	SystemRegister   SystemRegisterMinimalDTO `json:"system_register"`
+}
+
+type BCMExecutionRecordMinimalDTO struct {
+	ID                uint                       `json:"id"`
+	TitleEn           string                     `json:"title_en"`
+	TitleAr           string                     `json:"title_ar"`
+	OwnerEntity       OrganizationUnitDTO        `json:"owner_entity"`
+	RecordType        *BCMExecutionRecordTypeDTO `json:"record_type"`
+	IsBackUpAvailable *string                    `json:"is_back_up_available"`
+	Location          *masterDTOs.LocationDTO    `json:"location"`
+	RecoveryPlan      *string                    `json:"recovery_plan"`
+}
+
+type BCMManualProcedureFormMinimalDTO struct {
+	ID                  uint                    `json:"id"`
+	TitleEn             string                  `json:"title_en"`
+	TitleAr             string                  `json:"title_ar"`
+	Code                *string                 `json:"code"`
+	OwnerEntity         OrganizationUnitDTO     `json:"owner_entity"`
+	Location            *masterDTOs.LocationDTO `json:"location"`
+	InternalStakeholder *string                 `json:"internal_stakeholder"`
+	Notes               *string                 `json:"notes"`
+}
+
+type SystemRegisterMinimalDTO struct {
+	ID                   uint                               `json:"id"`
+	TitleEn              string                             `json:"title_en"`
+	TitleAr              string                             `json:"title_ar"`
+	ServiceDescription   *string                            `json:"service_description"`
+	ModulesComponents    *string                            `json:"modules_components"`
+	RTO                  *int                               `json:"rto"`
+	RTOUnit              *BusinessContinuityDurationUnitDTO `json:"rto_unit"`
+	MTPD                 *int                               `json:"mtpd"`
+	MTPDUnit             *BusinessContinuityDurationUnitDTO `json:"mtpd_unit"`
+	RPO                  *int                               `json:"rpo"`
+	RPOUnit              *BusinessContinuityDurationUnitDTO `json:"rpo_unit"`
+	RecoveryManager      *DesignationDTO                    `json:"recovery_manager"`
+	RecoveryManagerPhone string                             `json:"recovery_manager_phone"`
+	RecoveryManagerEmail string                             `json:"recovery_manager_email"`
+	RecoveryLocation     *string                            `json:"recovery_location"`
+}
+
+type BusinessContinuityDurationUnitDTO struct {
+	ID      int    `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+	Minutes int    `json:"minutes"`
+	Type    string `json:"type"`
+	Status  string `json:"status"`
+}
+
+type BCMExecutionRecordTypeDTO struct {
+	ID      int    `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+	Status  string `json:"status"`
 }
