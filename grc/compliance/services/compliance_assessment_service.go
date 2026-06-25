@@ -760,7 +760,7 @@ func (cras *ComplianceAssessmentService) Create(currentUserID uint, complianceAs
 						"AssignedBy":   fmt.Sprintf("%s %s", assignedBy.FirstNameEn, assignedBy.LastNameEn),
 						"AssignedOn":   time.Now().Format("02-01-2006"),
 						"Description":  "",
-						"RedirectURL":  fmt.Sprintf("%s/compliance/passive-assessments/%d", appURL, requirements[0].ResponsibleUnits[0].ID),
+						"RedirectURL":  fmt.Sprintf("%s/compliance/department-response/%d/overview", appURL, requirements[0].ResponsibleUnits[0].ID),
 						"BaseURL":      appURL,
 						"Requirements": requirements,
 						"HasMultiple":  hasMultiple,
@@ -1703,6 +1703,14 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(com
 			return fmt.Errorf("failed to fetch compliance register: %w", err)
 		}
 
+		if complianceRegister.ApprovedBYID == nil {
+			return utility.NewValidationError(
+				fmt.Errorf("compliance register must be approved before creating assessment"),
+				"register_not_approved",
+				"compliance register",
+			)
+		}
+
 		// validate based on register type
 		// if complianceRegister.IsRiskBasedAssessment {
 		if complianceRegister.IsRequirementAssessment {
@@ -1749,6 +1757,56 @@ func (cras *ComplianceAssessmentService) validateComplianceAssessmentFormDTO(com
 						"compliance requirement",
 					)
 				}
+			}
+		}
+	} else if complianceAssessmentFormDTO.Type == "department" {
+		if complianceAssessmentFormDTO.ResponsibleUnitID == nil {
+			return utility.NewValidationError(fmt.Errorf("responsible_unit_id is required for department type"), "responsible_unit_id_required", "")
+		}
+		responsibleUnitID := *complianceAssessmentFormDTO.ResponsibleUnitID
+
+		exists, err := cras.repo.IsAssessmentExists(responsibleUnitID, 0, statusIds)
+		if err != nil {
+			return fmt.Errorf("failed to validate assessment %w", err)
+		}
+
+		if exists {
+			return utility.NewForbiddenError("assessment_already_in_progress_for_department")
+		}
+
+		registerIDs, err := cras.repo.GetRegisterIDsWithResponsibleUnitID(responsibleUnitID)
+		if err != nil {
+			return fmt.Errorf("failed to fetch department registers: %w", err)
+		}
+
+		if len(registerIDs) == 0 {
+			return utility.NewValidationError(
+				fmt.Errorf("no compliance registers found for this department"),
+				"register_not_exist",
+				"compliance register",
+			)
+		}
+
+		for _, registerID := range registerIDs {
+			complianceRegister, err := cras.complianceRegisterSvc.GetByID(registerID)
+			if err != nil {
+				return fmt.Errorf("failed to fetch compliance register: %w", err)
+			}
+
+			if !complianceRegister.IsRequirementAssessment {
+				continue
+			}
+
+			allRiskBasedHaveInherentScore, err := cras.repo.CheckDepartmentRiskBasedRequirementsHaveInherentScore(registerID, responsibleUnitID)
+			if err != nil {
+				return fmt.Errorf("failed to validate department inherent risk scores: %w", err)
+			}
+			if !allRiskBasedHaveInherentScore {
+				return utility.NewValidationError(
+					fmt.Errorf("all risk-based requirements for this department must have inherent risk analysis completed before creating assessment"),
+					"inherent_risk_analysis_incomplete",
+					"compliance requirement",
+				)
 			}
 		}
 	}

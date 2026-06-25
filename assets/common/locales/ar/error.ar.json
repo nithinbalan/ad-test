@@ -228,6 +228,10 @@
 {
   "id": "no_unit_head",
   "translation": "هذا {{.Field}} لا يملك رئيس وحدة"
+},
+{
+  "id": "register_not_approved",
+  "translation": "يجب الموافقة على سجل الامتثال قبل إنشاء التقييم"
 }
 
 

@@ -1761,7 +1761,7 @@ func (srs *ComplianceRequirementService) ExportComplianceRequirements(data []*co
 // Generate Excel template
 func (cs *ComplianceRequirementService) GenerateRequirementTemplate(complianceID uint) (*os.File, error) {
 	templateHeaders := []string{
-		"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "RequiredDocuments", "ResponsibleUnits", "IsRegulationNotificationAssessment", "IsRiskBasedAssessment",
+		"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "RequiredDocuments", "ResponsibleUnit", "ResponsibleUser", "AssessmentType",
 	}
 	templateData := [][]interface{}{}
 
@@ -1805,6 +1805,24 @@ func (cs *ComplianceRequirementService) GenerateRequirementTemplate(complianceID
 		responsibleUnitData = append(responsibleUnitData, []interface{}{ru.TitleEn, ru.TitleAr})
 	}
 
+	// Responsible Users
+	users, _ := cs.userSvc.GetAllUsers()
+	userHeaders := []string{"UserName"}
+	userData := [][]interface{}{}
+	for _, u := range users {
+		fullName := strings.TrimSpace(u.FirstNameEN + " " + u.LastNameEN)
+		if fullName != "" {
+			userData = append(userData, []interface{}{fullName})
+		}
+	}
+
+	// Assessment Types
+	assessmentTypeHeaders := []string{"AssessmentType"}
+	assessmentTypeData := [][]interface{}{
+		{"regulation_notification"},
+		{"risk_based"},
+	}
+
 	// Required Documents
 	requiredDocumentTitles, _ := cs.requiredDocumentTitleSvc.GetAll("", "", "", "active")
 	requiredDocumentTitleHeaders := []string{"RequiredDocumentTitleEn", "RequiredDocumentTitleAr"}
@@ -1814,25 +1832,27 @@ func (cs *ComplianceRequirementService) GenerateRequirementTemplate(complianceID
 	}
 
 	dropDownConfig := map[string]bool{
-		"Clause":                             true,
-		"Category":                           true,
-		"SeverityLevel":                      true,
-		"TitleEn":                            false,
-		"TitleAr":                            false,
-		"Deadline":                           false,
-		"ResponsibleUnits":                   false,
-		"RequiredDocuments":                  false,
-		"IsRegulationNotificationAssessment": false,
-		"IsRiskBasedAssessment":              false,
+		"Clause":            true,
+		"Category":          true,
+		"SeverityLevel":     true,
+		"ResponsibleUnit":   true,
+		"ResponsibleUser":   true,
+		"AssessmentType":    true,
+		"TitleEn":           false,
+		"TitleAr":           false,
+		"Deadline":          false,
+		"RequiredDocuments": true,
 	}
 	// Generate file
 	file, err := utility.GenerateExcelFileWithSheetsAndDropDown(map[string][][]interface{}{
-		"Template":         append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
-		"Clause":           append([][]interface{}{utility.ConvertToInterfaceSlice(clauseHeaders)}, clauseData...),
-		"Category":         append([][]interface{}{utility.ConvertToInterfaceSlice(categoryHeaders)}, categoryData...),
-		"SeverityLevel":    append([][]interface{}{utility.ConvertToInterfaceSlice(severityHeaders)}, severityData...),
-		"ResponsibleUnit":  append([][]interface{}{utility.ConvertToInterfaceSlice(responsibleUnitHeaders)}, responsibleUnitData...),
-		"RequiredDocument": append([][]interface{}{utility.ConvertToInterfaceSlice(requiredDocumentTitleHeaders)}, requiredDocumentTitleData...),
+		"Template":          append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+		"Clause":            append([][]interface{}{utility.ConvertToInterfaceSlice(clauseHeaders)}, clauseData...),
+		"Category":          append([][]interface{}{utility.ConvertToInterfaceSlice(categoryHeaders)}, categoryData...),
+		"SeverityLevel":     append([][]interface{}{utility.ConvertToInterfaceSlice(severityHeaders)}, severityData...),
+		"ResponsibleUnit":   append([][]interface{}{utility.ConvertToInterfaceSlice(responsibleUnitHeaders)}, responsibleUnitData...),
+		"ResponsibleUser":   append([][]interface{}{utility.ConvertToInterfaceSlice(userHeaders)}, userData...),
+		"AssessmentType":    append([][]interface{}{utility.ConvertToInterfaceSlice(assessmentTypeHeaders)}, assessmentTypeData...),
+		"RequiredDocuments": append([][]interface{}{utility.ConvertToInterfaceSlice(requiredDocumentTitleHeaders)}, requiredDocumentTitleData...),
 	}, dropDownConfig)
 	if err != nil {
 		return nil, err
@@ -1848,8 +1868,8 @@ func (cs *ComplianceRequirementService) ValidateRequirementTemplate(complianceID
 		return nil, err
 	}
 
-	inputHeaders := []string{"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "RequiredDocuments", "ResponsibleUnits", "IsRegulationNotificationAssessment", "IsRiskBasedAssessment"}
-	snakeHeaders := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "required_documents", "responsible_units", "is_regulation_notification_assessment", "is_risk_based_assessment"}
+	inputHeaders := []string{"Clause", "TitleEn", "TitleAr", "Category", "SeverityLevel", "Deadline", "RequiredDocuments", "ResponsibleUnit", "ResponsibleUser", "AssessmentType"}
+	snakeHeaders := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "required_documents", "responsible_unit", "responsible_user", "assessment_type"}
 
 	if !utility.ValidateHeaders(inputHeaders, rows[0]) {
 		return nil, utility.NewValidationError(fmt.Errorf("invalid headers"), "invalid_header", "Requirement Template")
@@ -1901,9 +1921,9 @@ func (cs *ComplianceRequirementService) ImportRequirements(complianceID uint, in
 			}
 		}
 
-		// Convert []uint to responsible units
+		// Convert single responsible unit
 		var responsibleUnits []*complianceDTOs.ComplianceRequirementResponsibleUnitFormDTO
-		if ids, ok := record["responsible_unit_ids"].([]uint); ok {
+		if unitID, ok := record["responsible_unit_id"].(uint); ok {
 			isRegulationNotificationAssessment, ok := record["is_regulation_notification_assessment"].(bool)
 			if !ok {
 				return nil, utility.NewValidationError(
@@ -1922,15 +1942,14 @@ func (cs *ComplianceRequirementService) ImportRequirements(complianceID uint, in
 				)
 			}
 
-			for _, id := range ids {
-				regulationNotificationAssessment := isRegulationNotificationAssessment
-				riskBasedAssessment := isRiskBasedAssessment
-				responsibleUnits = append(responsibleUnits, &complianceDTOs.ComplianceRequirementResponsibleUnitFormDTO{
-					ResponsibleUnitID:                  id,
-					IsRegulationNotificationAssessment: &regulationNotificationAssessment,
-					IsRiskBasedAssessment:              &riskBasedAssessment,
-				})
-			}
+			regulationNotificationAssessment := isRegulationNotificationAssessment
+			riskBasedAssessment := isRiskBasedAssessment
+			responsibleUnits = append(responsibleUnits, &complianceDTOs.ComplianceRequirementResponsibleUnitFormDTO{
+				ResponsibleUnitID:                  unitID,
+				ResponsibleUserID:                  utility.GetOptionalUintValue(record["responsible_user_id"]),
+				IsRegulationNotificationAssessment: &regulationNotificationAssessment,
+				IsRiskBasedAssessment:              &riskBasedAssessment,
+			})
 		}
 
 		var requiredDocumentIDs []*uint
@@ -1961,7 +1980,7 @@ func (cs *ComplianceRequirementService) ImportRequirements(complianceID uint, in
 }
 
 func (cs *ComplianceRequirementService) validateRequirements(complianceID uint, input []map[string]interface{}) ([]map[string]interface{}, error) {
-	headers := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "required_documents", "responsible_units", "is_regulation_notification_assessment", "is_risk_based_assessment"}
+	headers := []string{"clause", "title_en", "title_ar", "category", "severity_level", "deadline", "required_documents", "responsible_unit", "responsible_user", "assessment_type"}
 
 	// --- Fetch lookup data ---
 
@@ -2024,6 +2043,24 @@ func (cs *ComplianceRequirementService) validateRequirements(complianceID uint, 
 		responsibleUnitMap[strings.TrimSpace(ru.TitleEn)] = ru.ID
 	}
 
+	// Responsible Users
+	users, err := cs.userSvc.GetAllUsers()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching users: %v", err)
+	}
+	userMap := make(map[string]uint)
+	for _, u := range users {
+		fullName := strings.TrimSpace(u.FirstNameEN + " " + u.LastNameEN)
+		email := strings.TrimSpace(u.Email)
+		if fullName != "" {
+			userMap[fullName] = uint(u.ID)
+			userMap[fullName+" ("+email+")"] = uint(u.ID)
+		}
+		if email != "" {
+			userMap[email] = uint(u.ID)
+		}
+	}
+
 	// --- Validate each record ---
 	var validated []map[string]interface{}
 
@@ -2073,48 +2110,45 @@ func (cs *ComplianceRequirementService) validateRequirements(complianceID uint, 
 			rowErrors["severity_level"] = fmt.Sprintf("Invalid severity level: %s", val)
 		}
 
-		// Resposible Units
-		if val, ok := record["responsible_units"].(string); !ok || val == "" {
-			rowErrors["responsible_units"] = "Field is required"
+		// Responsible Unit
+		if val, ok := record["responsible_unit"].(string); !ok || val == "" {
+			rowErrors["responsible_unit"] = "Field is required"
 		} else {
-			unitNames := strings.Split(val, ",")
-			var unitIDs []uint
-			var invalidUnits []string
-
-			for _, name := range unitNames {
-				trimmed := strings.TrimSpace(name)
-				if id, exists := responsibleUnitMap[trimmed]; exists {
-					unitIDs = append(unitIDs, id)
-				} else {
-					invalidUnits = append(invalidUnits, trimmed)
-				}
-			}
-
-			if len(unitIDs) > 0 {
-				processed["responsible_unit_ids"] = unitIDs
-			}
-
-			if len(invalidUnits) > 0 {
-				rowErrors["responsible_units"] = fmt.Sprintf("Invalid responsible units: %s", strings.Join(invalidUnits, ", "))
+			trimmed := strings.TrimSpace(val)
+			if id, exists := responsibleUnitMap[trimmed]; exists {
+				processed["responsible_unit_id"] = id
+			} else {
+				rowErrors["responsible_unit"] = fmt.Sprintf("Invalid responsible unit: %s", trimmed)
 			}
 		}
 
-		// IsRegulationNotificationAssessment
-		if val, exists := record["is_regulation_notification_assessment"]; !exists {
-			rowErrors["is_regulation_notification_assessment"] = "Field is required"
-		} else if parsedValue, ok := parseBoolValue(val); ok {
-			processed["is_regulation_notification_assessment"] = parsedValue
+		// Responsible User
+		if val, ok := record["responsible_user"].(string); !ok || val == "" {
+			rowErrors["responsible_user"] = "Field is required"
 		} else {
-			rowErrors["is_regulation_notification_assessment"] = "Invalid boolean value (use true/false)"
+			trimmed := strings.TrimSpace(val)
+			if id, exists := userMap[trimmed]; exists {
+				processed["responsible_user_id"] = id
+			} else {
+				rowErrors["responsible_user"] = fmt.Sprintf("Invalid responsible user: %s", trimmed)
+			}
 		}
 
-		// IsRiskBasedAssessment
-		if val, exists := record["is_risk_based_assessment"]; !exists {
-			rowErrors["is_risk_based_assessment"] = "Field is required"
-		} else if parsedValue, ok := parseBoolValue(val); ok {
-			processed["is_risk_based_assessment"] = parsedValue
+		// Assessment Type
+		if val, ok := record["assessment_type"].(string); !ok || val == "" {
+			rowErrors["assessment_type"] = "Field is required"
 		} else {
-			rowErrors["is_risk_based_assessment"] = "Invalid boolean value (use true/false)"
+			trimmed := strings.ToLower(strings.TrimSpace(val))
+			switch trimmed {
+			case "regulation_notification":
+				processed["is_regulation_notification_assessment"] = true
+				processed["is_risk_based_assessment"] = false
+			case "risk_based":
+				processed["is_regulation_notification_assessment"] = false
+				processed["is_risk_based_assessment"] = true
+			default:
+				rowErrors["assessment_type"] = "Invalid assessment type (use regulation_notification or risk_based)"
+			}
 		}
 
 		// Required Documents

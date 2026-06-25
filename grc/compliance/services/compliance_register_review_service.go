@@ -565,9 +565,16 @@ func (crrs *ComplianceRegisterReviewService) Reopen(complianceRegisterID uint, c
 		entity := "compliance-register-review"
 		action := "reopened"
 
-		createdByUser, err := crrs.userSvc.GetByID(complianceRegister.CreatedBYID)
+		if complianceRegister.ResponsibleUserID == nil {
+			utility.LogError("Failed to fetch compliance register responsible user", map[string]interface{}{
+				"error": "ResponsibleUserID is nil",
+			})
+			return
+		}
+
+		responsibleUser, err := crrs.userSvc.GetByID(*complianceRegister.ResponsibleUserID)
 		if err != nil {
-			utility.LogError("Failed to fetch compliance register creator", map[string]interface{}{
+			utility.LogError("Failed to fetch compliance register responsible user", map[string]interface{}{
 				"error": err.Error(),
 			})
 			return
@@ -582,7 +589,7 @@ func (crrs *ComplianceRegisterReviewService) Reopen(complianceRegisterID uint, c
 		}
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserIDs:              []uint{complianceRegister.CreatedBYID},
+			UserIDs:              []uint{*complianceRegister.ResponsibleUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.RevertType),
 			HeadingEn:            "Compliance Register Reopened",
@@ -606,13 +613,13 @@ func (crrs *ComplianceRegisterReviewService) Reopen(complianceRegisterID uint, c
 		}
 
 		appURL := utility.GetAppURL()
-		emailTo := []string{createdByUser.Email}
+		emailTo := []string{responsibleUser.Email}
 		subject := "Compliance Register: Review Reopened"
 		redirectURL := fmt.Sprintf("%s/compliance/register/%d/overview", appURL, complianceRegisterDetail.ID)
 
 		emailData := map[string]interface{}{
-			"FirstNameEn":           createdByUser.FirstNameEn,
-			"LastNameEn":            createdByUser.LastNameEn,
+			"FirstNameEn":           responsibleUser.FirstNameEn,
+			"LastNameEn":            responsibleUser.LastNameEn,
 			"Title":                 complianceTitle,
 			"ReferenceNumber":       referenceNumber,
 			"ReopenedByFirstNameEn": reopenedByUser.FirstNameEn,
@@ -641,7 +648,7 @@ func (crrs *ComplianceRegisterReviewService) Reopen(complianceRegisterID uint, c
 
 func (crrs *ComplianceRegisterReviewService) sendApprovalNotification(id uint, currentUserID uint, complianceDetail *complianceDTOs.ComplianceRegisterDetailDTO) {
 	go func() {
-		if complianceDetail.CreatedByUser.ID == 0 {
+		if complianceDetail.ResponsibleUser.ID == 0 {
 			return
 		}
 
@@ -658,7 +665,7 @@ func (crrs *ComplianceRegisterReviewService) sendApprovalNotification(id uint, c
 		}
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserIDs:              []uint{uint(complianceDetail.CreatedByUser.ID)},
+			UserIDs:              []uint{uint(complianceDetail.ResponsibleUser.ID)},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.ApprovalType),
 			HeadingEn:            "Compliance Register Approval",
@@ -685,8 +692,8 @@ func (crrs *ComplianceRegisterReviewService) sendApprovalNotification(id uint, c
 		emailData := map[string]interface{}{
 			"Title":                 complianceTitle,
 			"Description":           "",
-			"FirstNameEn":           complianceDetail.CreatedByUser.FirstNameEN,
-			"LastNameEn":            complianceDetail.CreatedByUser.LastNameEN,
+			"FirstNameEn":           complianceDetail.ResponsibleUser.FirstNameEN,
+			"LastNameEn":            complianceDetail.ResponsibleUser.LastNameEN,
 			"ReferenceNumber":       referenceNumber,
 			"ApprovedByFirstNameEn": approvedByUser.FirstNameEn,
 			"ApprovedByLastNameEn":  approvedByUser.LastNameEn,
@@ -695,7 +702,7 @@ func (crrs *ComplianceRegisterReviewService) sendApprovalNotification(id uint, c
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-			EmailTo:              []string{complianceDetail.CreatedByUser.Email},
+			EmailTo:              []string{complianceDetail.ResponsibleUser.Email},
 			Subject:              "Compliance Register Approval Notification",
 			TemplateRelativePath: "compliance/templates/email/compliance_register_workflow_approve_user_mail.html",
 			EmailData:            emailData,
@@ -797,23 +804,13 @@ func (crrs *ComplianceRegisterReviewService) notifyNextLevelUsers(id uint, nextW
 
 func (crrs *ComplianceRegisterReviewService) sendRejectedNotification(id uint, currentUserID uint, complianceRegisterDetail *complianceDTOs.ComplianceRegisterDetailDTO) {
 	go func() {
-		// Get the compliance register model to get CreatedBYID
-		complianceRegister, err := crrs.complianceRegisterSvc.GetByID(id)
-		if err != nil {
-			return
-		}
-
-		createdByUser, err := crrs.userSvc.GetByID(complianceRegister.CreatedBYID)
-		if err != nil {
-			utility.LogError("Failed to fetch compliance register creator", map[string]interface{}{
-				"error": err.Error(),
-			})
+		if complianceRegisterDetail.ResponsibleUser.ID == 0 {
 			return
 		}
 
 		urlParam := fmt.Sprintf(`{"id":%d}`, complianceRegisterDetail.ID)
 		entity := "compliance-register-review"
-		action := "rejected"
+		action := "reverted"
 
 		// Get compliance details from DTO for notifications
 		var referenceNumber string
@@ -824,7 +821,7 @@ func (crrs *ComplianceRegisterReviewService) sendRejectedNotification(id uint, c
 		}
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
-			UserIDs:              []uint{complianceRegister.CreatedBYID},
+			UserIDs:              []uint{complianceRegisterDetail.ResponsibleUserID},
 			ModuleIdentifier:     "compliance",
 			NotificationType:     string(commonDTOs.RejectType),
 			HeadingEn:            "Compliance Register Reverted",
@@ -849,8 +846,8 @@ func (crrs *ComplianceRegisterReviewService) sendRejectedNotification(id uint, c
 
 		appURL := utility.GetAppURL()
 		emailData := map[string]interface{}{
-			"FirstNameEn":           createdByUser.FirstNameEn,
-			"LastNameEn":            createdByUser.LastNameEn,
+			"FirstNameEn":           complianceRegisterDetail.ResponsibleUser.FirstNameEN,
+			"LastNameEn":            complianceRegisterDetail.ResponsibleUser.LastNameEN,
 			"Title":                 complianceTitle,
 			"ReferenceNumber":       referenceNumber,
 			"RejectedByFirstNameEn": rejectedByUser.FirstNameEn,
@@ -860,7 +857,7 @@ func (crrs *ComplianceRegisterReviewService) sendRejectedNotification(id uint, c
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
-			EmailTo:              []string{createdByUser.Email},
+			EmailTo:              []string{complianceRegisterDetail.ResponsibleUser.Email},
 			Subject:              "Compliance Register: Reverted Notification",
 			TemplateRelativePath: "compliance/templates/email/compliance_register_workflow_reject_user_mail.html",
 			EmailData:            emailData,
