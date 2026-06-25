@@ -1,5 +1,3 @@
-// awareness_plan_dashboard_repository.go
-
 package repositories
 
 import (

@@ -1,5 +1,3 @@
-// awareness_plan_dashboard_service.go
-
 package services
 
 import (
@@ -31,50 +29,50 @@ func NewAwarenessDashboardService(repo awarenessRepositories.AwarenessDashboardR
 	return &AwarenessDashboardService{repo: repo}
 }
 
-func (s *AwarenessDashboardService) GetAwarenessPlanSummary(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) (*awarenessDTOs.AwarenessPlanSummaryDTO, error) {
-	return s.repo.GetAwarenessPlanSummary(params)
+func (ads *AwarenessDashboardService) GetAwarenessPlanSummary(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) (*awarenessDTOs.AwarenessPlanSummaryDTO, error) {
+	return ads.repo.GetAwarenessPlanSummary(params)
 }
 
-func (s *AwarenessDashboardService) GetCampaignsByType(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) ([]*awarenessDTOs.AwarenessCampaignsByTypeDTO, error) {
-	return s.repo.GetCampaignsByType(params)
+func (ads *AwarenessDashboardService) GetCampaignsByType(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) ([]*awarenessDTOs.AwarenessCampaignsByTypeDTO, error) {
+	return ads.repo.GetCampaignsByType(params)
 }
 
-func (s *AwarenessDashboardService) GetPriorityDistribution(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) ([]*awarenessDTOs.AwarenessPriorityDistributionDTO, error) {
-	return s.repo.GetPriorityDistribution(params)
+func (ads *AwarenessDashboardService) GetPriorityDistribution(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) ([]*awarenessDTOs.AwarenessPriorityDistributionDTO, error) {
+	return ads.repo.GetPriorityDistribution(params)
 }
 
-func (s *AwarenessDashboardService) GetCampaignsPerMonth(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) ([]*awarenessDTOs.AwarenessCampaignsPerMonthDTO, error) {
-	return s.repo.GetCampaignsPerMonth(params)
+func (ads *AwarenessDashboardService) GetCampaignsPerMonth(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) ([]*awarenessDTOs.AwarenessCampaignsPerMonthDTO, error) {
+	return ads.repo.GetCampaignsPerMonth(params)
 }
 
-func (s *AwarenessDashboardService) GetChannelMixPerMonth(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) ([]*awarenessDTOs.AwarenessChannelMixPerMonthDTO, error) {
-	return s.repo.GetChannelMixPerMonth(params)
+func (ads *AwarenessDashboardService) GetChannelMixPerMonth(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) ([]*awarenessDTOs.AwarenessChannelMixPerMonthDTO, error) {
+	return ads.repo.GetChannelMixPerMonth(params)
 }
 
-func (s *AwarenessDashboardService) GetCoverageByAudience(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) ([]*awarenessDTOs.AwarenessCoverageByAudienceDTO, error) {
-	return s.repo.GetCoverageByAudience(params)
+func (ads *AwarenessDashboardService) GetCoverageByAudience(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) ([]*awarenessDTOs.AwarenessCoverageByAudienceDTO, error) {
+	return ads.repo.GetCoverageByAudience(params)
 }
 
-func (s *AwarenessDashboardService) GetAwarenessProgressSummary(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) (*awarenessDTOs.AwarenessProgressSummaryDTO, error) {
-	return s.repo.GetAwarenessProgressSummary(params)
+func (ads *AwarenessDashboardService) GetAwarenessProgressSummary(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) (*awarenessDTOs.AwarenessProgressSummaryDTO, error) {
+	return ads.repo.GetAwarenessProgressSummary(params)
 }
 
-func (s *AwarenessDashboardService) GetCompletionByChannel(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) ([]*awarenessDTOs.AwarenessCompletionByChannelDTO, error) {
-	return s.repo.GetCompletionByChannel(params)
+func (ads *AwarenessDashboardService) GetCompletionByChannel(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) ([]*awarenessDTOs.AwarenessCompletionByChannelDTO, error) {
+	return ads.repo.GetCompletionByChannel(params)
 }
 
-func (s *AwarenessDashboardService) GetCompletionPerCampaign(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) ([]*awarenessDTOs.AwarenessCompletionPerCampaignDTO, error) {
-	return s.repo.GetCompletionPerCampaign(params)
+func (ads *AwarenessDashboardService) GetCompletionPerCampaign(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) ([]*awarenessDTOs.AwarenessCompletionPerCampaignDTO, error) {
+	return ads.repo.GetCompletionPerCampaign(params)
 }
 
-func (s *AwarenessDashboardService) GetSurveyCompletionStatus(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) (*awarenessDTOs.AwarenessSurveyCompletionDTO, error) {
-	return s.repo.GetSurveyCompletionStatus(params)
+func (ads *AwarenessDashboardService) GetSurveyCompletionStatus(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) (*awarenessDTOs.AwarenessSurveyCompletionDTO, error) {
+	return ads.repo.GetSurveyCompletionStatus(params)
 }
 
-func (s *AwarenessDashboardService) GetCompletionByDepartment(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) ([]*awarenessDTOs.AwarenessCompletionByDepartmentDTO, error) {
-	return s.repo.GetCompletionByDepartment(params)
+func (ads *AwarenessDashboardService) GetCompletionByDepartment(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) ([]*awarenessDTOs.AwarenessCompletionByDepartmentDTO, error) {
+	return ads.repo.GetCompletionByDepartment(params)
 }
 
-func (s *AwarenessDashboardService) GetPhishingResults(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) (*awarenessDTOs.AwarenessPhishingResultsDTO, error) {
-	return s.repo.GetPhishingResults(params)
+func (ads *AwarenessDashboardService) GetPhishingResults(params *awarenessDTOs.AwarenessDashboardQueryParamsDTO) (*awarenessDTOs.AwarenessPhishingResultsDTO, error) {
+	return ads.repo.GetPhishingResults(params)
 }
