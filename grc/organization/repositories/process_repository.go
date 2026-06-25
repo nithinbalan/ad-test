@@ -28,6 +28,25 @@ type ProcessRepositoryInterface interface {
 	UpdateLifecycleStatusForIDs(ids []uint, statusId uint) ([]uint, error)
 
 	GetControlSummary(processID uint) ([]models.ProcessControl, error)
+
+	// Process BCM associations
+	GetProcessExecutionRecordsByProcessID(processID uint, tx ...utility.DatabaseTransaction) ([]*models.ProcessExecutionRecord, error)
+	CreateProcessExecutionRecord(record *models.ProcessExecutionRecord, tx ...utility.DatabaseTransaction) error
+	DeleteProcessExecutionRecordsByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
+
+	GetProcessManualProcedureFormsByProcessID(processID uint, tx ...utility.DatabaseTransaction) ([]*models.ProcessManualProcedureForm, error)
+	CreateProcessManualProcedureForm(form *models.ProcessManualProcedureForm, tx ...utility.DatabaseTransaction) error
+	DeleteProcessManualProcedureFormsByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
+
+	GetProcessSystemRegistersByProcessID(processID uint, tx ...utility.DatabaseTransaction) ([]*models.ProcessSystemRegister, error)
+	CreateProcessSystemRegister(record *models.ProcessSystemRegister, tx ...utility.DatabaseTransaction) error
+	DeleteProcessSystemRegistersByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
+
+	// Associated entity validation helpers
+	GetBCMProcessTypeByID(id uint, tx ...utility.DatabaseTransaction) (*models.BCMProcessType, error)
+	GetBCMExecutionRecordByID(id uint, tx ...utility.DatabaseTransaction) (*models.BCMExecutionRecord, error)
+	GetBCMManualProcedureFormByID(id uint, tx ...utility.DatabaseTransaction) (*models.BCMManualProcedureForm, error)
+	GetSystemRegisterByID(id uint, tx ...utility.DatabaseTransaction) (*models.SystemRegister, error)
 }
 
 type ProcessRepository struct {
@@ -125,10 +144,31 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		risk_levels.title_en AS risk_level_title_en,
         risk_levels.title_ar AS risk_level_title_ar,
 		risk_levels.color_code AS risk_level_color_code,
-		risk_levels.type AS risk_level_type
+		risk_levels.type AS risk_level_type,
+		processes.division_id,
+		divisions.title_en AS division_title_en,
+		divisions.title_ar AS division_title_ar,
+		processes.is_automatic,
+		processes.is_manual,
+		processes.process_type_id,
+		bcm_process_types.title_en AS process_type_title_en,
+		bcm_process_types.title_ar AS process_type_title_ar,
+		processes.location_id,
+		locations.title_en AS location_title_en,
+		locations.title_ar AS location_title_ar,
+		processes.alternative_location,
+		processes.rush_hour,
+		processes.review_frequency_id,
+		review_frequencies.title_en AS review_frequency_title_en,
+		review_frequencies.title_ar AS review_frequency_title_ar,
+		processes.is_can_be_done_manually,
+		processes.time_to_perform_procedure_manually,
+		processes.steps_to_perform_procedure_manually,
+		processes.requirement_to_perform_procedure_manually
 	`).
 		Joins("LEFT JOIN process_groups ON process_groups.id = processes.process_group_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id").
+		Joins("LEFT JOIN organization_units AS divisions ON divisions.id = processes.division_id").
 		Joins("LEFT JOIN users AS owner ON owner.id = processes.responsible_user_id").
 		Joins("LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = processes.created_by_id").
@@ -140,12 +180,31 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		Joins("LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = processes.risk_matrix_risk_rating_id").
 		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = processes.risk_matrix_risk_rating_value_id").
 		Joins("LEFT JOIN risk_levels ON risk_levels.id = processes.risk_level_id").
-		Joins("LEFT JOIN process_criticality_levels ON process_criticality_levels.id = processes.process_criticality_level_id")
+		Joins("LEFT JOIN process_criticality_levels ON process_criticality_levels.id = processes.process_criticality_level_id").
+		Joins("LEFT JOIN bcm_process_types ON bcm_process_types.id = processes.process_type_id").
+		Joins("LEFT JOIN locations ON locations.id = processes.location_id").
+		Joins("LEFT JOIN review_frequencies ON review_frequencies.id = processes.review_frequency_id")
 
 	// Apply dynamic filters to the query
-	for columnName, values := range params.Filters {
-		if len(values) > 0 {
-			query = query.Where("processes."+columnName+" IN (?)", values)
+	filterColumnMap := map[string]string{
+		"process_group_ids":       "processes.process_group_id",
+		"responsible_unit_ids":    "processes.responsible_unit_id",
+		"responsible_user_ids":    "processes.responsible_user_id",
+		"lifecycle_status_ids":    "processes.lifecycle_status_id",
+		"division_ids":            "processes.division_id",
+		"process_type_ids":        "processes.process_type_id",
+		"location_ids":            "processes.location_id",
+		"review_frequency_ids":    "processes.review_frequency_id",
+		"is_automatic":            "processes.is_automatic",
+		"is_manual":               "processes.is_manual",
+		"is_can_be_done_manually": "processes.is_can_be_done_manually",
+	}
+	for paramName, values := range params.Filters {
+		if len(values) == 0 {
+			continue
+		}
+		if col, ok := filterColumnMap[paramName]; ok {
+			query = query.Where(col+" IN (?)", values)
 		}
 	}
 
@@ -177,6 +236,7 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 
 	// Apply search keyword if exists
 	if params.Keyword != "" {
+		kw := "%" + params.Keyword + "%"
 		query = query.Where(`
 		(processes.reference_number LIKE ? OR
 		 processes.title_en LIKE ? OR
@@ -189,10 +249,17 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		 owner.first_name_en LIKE ? OR
 		 owner.first_name_ar LIKE ? OR
 		 lifecycle_statuses.title_en LIKE ? OR
-		 lifecycle_statuses.title_ar LIKE ?)`,
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
+		 lifecycle_statuses.title_ar LIKE ? OR
+		 divisions.title_en LIKE ? OR
+		 divisions.title_ar LIKE ? OR
+		 bcm_process_types.title_en LIKE ? OR
+		 bcm_process_types.title_ar LIKE ? OR
+		 locations.title_en LIKE ? OR
+		 locations.title_ar LIKE ? OR
+		 review_frequencies.title_en LIKE ? OR
+		 review_frequencies.title_ar LIKE ?)`,
+			kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw,
+			kw, kw, kw, kw, kw, kw, kw, kw)
 	}
 
 	// Count total records for pagination
@@ -212,6 +279,10 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		return nil, err
 	}
 
+	if err := repo.populateProcessListAssociations(processes); err != nil {
+		return nil, err
+	}
+
 	totalPages := 1
 	if !params.Export {
 		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
@@ -227,6 +298,85 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		},
 	}
 	return response, nil
+}
+
+func (repo *ProcessRepository) populateProcessListAssociations(processes []*organizationDTOs.ProcessListDTO) error {
+	if len(processes) == 0 {
+		return nil
+	}
+
+	processIDs := make([]uint, len(processes))
+	for i, p := range processes {
+		processIDs[i] = p.ID
+	}
+
+	var executionRecords []*models.ProcessExecutionRecord
+	if err := repo.db.Where("process_id IN ?", processIDs).Preload("BCMExecutionRecord").Find(&executionRecords).Error; err != nil {
+		return err
+	}
+	execMap := make(map[uint][]*organizationDTOs.ProcessExecutionRecordDTO)
+	for _, er := range executionRecords {
+		if er == nil || er.BCMExecutionRecord == nil {
+			continue
+		}
+		execMap[er.ProcessID] = append(execMap[er.ProcessID], &organizationDTOs.ProcessExecutionRecordDTO{
+			ID:                   er.ID,
+			ProcessID:            er.ProcessID,
+			BCMExecutionRecordID: er.BCMExecutionRecordID,
+			TitleEn:              er.BCMExecutionRecord.TitleEn,
+			TitleAr:              er.BCMExecutionRecord.TitleAr,
+		})
+	}
+
+	var manualForms []*models.ProcessManualProcedureForm
+	if err := repo.db.Where("process_id IN ?", processIDs).Preload("BCMManualProcedureForm").Find(&manualForms).Error; err != nil {
+		return err
+	}
+	formMap := make(map[uint][]*organizationDTOs.ProcessManualProcedureFormDTO)
+	for _, f := range manualForms {
+		if f == nil || f.BCMManualProcedureForm == nil {
+			continue
+		}
+		formMap[f.ProcessID] = append(formMap[f.ProcessID], &organizationDTOs.ProcessManualProcedureFormDTO{
+			ID:                       f.ID,
+			ProcessID:                f.ProcessID,
+			BCMManualProcedureFormID: f.BCMManualProcedureFormID,
+			TitleEn:                  f.BCMManualProcedureForm.TitleEn,
+			TitleAr:                  f.BCMManualProcedureForm.TitleAr,
+			Code:                     f.BCMManualProcedureForm.Code,
+		})
+	}
+
+	var systemRegisters []*models.ProcessSystemRegister
+	if err := repo.db.Where("process_id IN ?", processIDs).Preload("SystemRegister").Find(&systemRegisters).Error; err != nil {
+		return err
+	}
+	srMap := make(map[uint]*organizationDTOs.ProcessSystemRegisterDTO)
+	for _, sr := range systemRegisters {
+		if sr == nil || sr.SystemRegister == nil {
+			continue
+		}
+		if _, exists := srMap[sr.ProcessID]; !exists {
+			srMap[sr.ProcessID] = &organizationDTOs.ProcessSystemRegisterDTO{
+				ID:               sr.ID,
+				ProcessID:        sr.ProcessID,
+				SystemRegisterID: sr.SystemRegisterID,
+				TitleEn:          sr.SystemRegister.TitleEn,
+				TitleAr:          sr.SystemRegister.TitleAr,
+			}
+		}
+	}
+
+	for _, p := range processes {
+		if p == nil {
+			continue
+		}
+		p.ExecutionRecords = execMap[p.ID]
+		p.ManualProcedureForms = formMap[p.ID]
+		p.SystemRegister = srMap[p.ID]
+	}
+
+	return nil
 }
 
 func (repo *ProcessRepository) GetByID(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error) {
@@ -256,6 +406,10 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("ResponsibleUser").
 		Preload("ResponsibleUser.OrganizationUnit1").
 		Preload("LifecycleStatus").
+		Preload("Division").
+		Preload("ProcessType").
+		Preload("Location").
+		Preload("ReviewFrequency").
 		Preload("Risks").
 		Preload("RiskMatrixRating").
 		Preload("RiskMatrixRatingValue").
@@ -276,6 +430,21 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("AuditableItems.ResponsibleUnit").
 		Preload("AuditableItems.AuditorRiskRating").
 		Preload("AuditableItems.CreatedByUser").
+		Preload("ProcessExecutionRecords").
+		Preload("ProcessExecutionRecords.BCMExecutionRecord").
+		Preload("ProcessExecutionRecords.BCMExecutionRecord.OwnerEntity").
+		Preload("ProcessExecutionRecords.BCMExecutionRecord.Location").
+		Preload("ProcessExecutionRecords.BCMExecutionRecord.RecordType").
+		Preload("ProcessManualProcedureForms").
+		Preload("ProcessManualProcedureForms.BCMManualProcedureForm").
+		Preload("ProcessManualProcedureForms.BCMManualProcedureForm.OwnerEntity").
+		Preload("ProcessManualProcedureForms.BCMManualProcedureForm.Location").
+		Preload("ProcessSystemRegister").
+		Preload("ProcessSystemRegister.SystemRegister").
+		Preload("ProcessSystemRegister.SystemRegister.RTOUnit").
+		Preload("ProcessSystemRegister.SystemRegister.MTPDUnit").
+		Preload("ProcessSystemRegister.SystemRegister.RPOUnit").
+		Preload("ProcessSystemRegister.SystemRegister.RecoveryManager").
 		First(&process, id)
 
 	if result.Error != nil {
@@ -311,6 +480,18 @@ func (repo *ProcessRepository) Delete(id uint, tx ...utility.DatabaseTransaction
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
+	}
+
+	if err := db.Where("process_id = ?", id).Delete(&models.ProcessExecutionRecord{}).Error; err != nil {
+		return err
+	}
+
+	if err := db.Where("process_id = ?", id).Delete(&models.ProcessManualProcedureForm{}).Error; err != nil {
+		return err
+	}
+
+	if err := db.Where("process_id = ?", id).Delete(&models.ProcessSystemRegister{}).Error; err != nil {
+		return err
 	}
 
 	if err := db.Delete(&models.Process{}, id).Error; err != nil {
@@ -394,4 +575,146 @@ func (repo *ProcessRepository) GetControlSummary(processID uint) ([]models.Proce
 	}
 
 	return processControls, nil
+}
+
+// ProcessExecutionRecord association methods
+func (repo *ProcessRepository) GetProcessExecutionRecordsByProcessID(processID uint, tx ...utility.DatabaseTransaction) ([]*models.ProcessExecutionRecord, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var records []*models.ProcessExecutionRecord
+	if err := db.Where("process_id = ?", processID).Find(&records).Error; err != nil {
+		return nil, err
+	}
+	return records, nil
+}
+
+func (repo *ProcessRepository) CreateProcessExecutionRecord(record *models.ProcessExecutionRecord, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(record).Error
+}
+
+func (repo *ProcessRepository) DeleteProcessExecutionRecordsByProcessID(processID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("process_id = ?", processID).Delete(&models.ProcessExecutionRecord{}).Error
+}
+
+// ProcessManualProcedureForm association methods
+func (repo *ProcessRepository) GetProcessManualProcedureFormsByProcessID(processID uint, tx ...utility.DatabaseTransaction) ([]*models.ProcessManualProcedureForm, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var forms []*models.ProcessManualProcedureForm
+	if err := db.Where("process_id = ?", processID).Find(&forms).Error; err != nil {
+		return nil, err
+	}
+	return forms, nil
+}
+
+func (repo *ProcessRepository) CreateProcessManualProcedureForm(form *models.ProcessManualProcedureForm, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(form).Error
+}
+
+func (repo *ProcessRepository) DeleteProcessManualProcedureFormsByProcessID(processID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("process_id = ?", processID).Delete(&models.ProcessManualProcedureForm{}).Error
+}
+
+// ProcessSystemRegister association methods
+func (repo *ProcessRepository) GetProcessSystemRegistersByProcessID(processID uint, tx ...utility.DatabaseTransaction) ([]*models.ProcessSystemRegister, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var records []*models.ProcessSystemRegister
+	if err := db.Where("process_id = ?", processID).Find(&records).Error; err != nil {
+		return nil, err
+	}
+	return records, nil
+}
+
+func (repo *ProcessRepository) CreateProcessSystemRegister(record *models.ProcessSystemRegister, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(record).Error
+}
+
+func (repo *ProcessRepository) DeleteProcessSystemRegistersByProcessID(processID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("process_id = ?", processID).Delete(&models.ProcessSystemRegister{}).Error
+}
+
+func (repo *ProcessRepository) GetBCMProcessTypeByID(id uint, tx ...utility.DatabaseTransaction) (*models.BCMProcessType, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var item models.BCMProcessType
+	if err := db.First(&item, id).Error; err != nil {
+		return nil, err
+	}
+	return &item, nil
+}
+
+func (repo *ProcessRepository) GetBCMExecutionRecordByID(id uint, tx ...utility.DatabaseTransaction) (*models.BCMExecutionRecord, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var item models.BCMExecutionRecord
+	if err := db.First(&item, id).Error; err != nil {
+		return nil, err
+	}
+	return &item, nil
+}
+
+func (repo *ProcessRepository) GetBCMManualProcedureFormByID(id uint, tx ...utility.DatabaseTransaction) (*models.BCMManualProcedureForm, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var item models.BCMManualProcedureForm
+	if err := db.First(&item, id).Error; err != nil {
+		return nil, err
+	}
+	return &item, nil
+}
+
+func (repo *ProcessRepository) GetSystemRegisterByID(id uint, tx ...utility.DatabaseTransaction) (*models.SystemRegister, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var item models.SystemRegister
+	if err := db.First(&item, id).Error; err != nil {
+		return nil, err
+	}
+	return &item, nil
 }

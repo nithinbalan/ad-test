@@ -266,7 +266,20 @@ func NewOrganizationModule(
 	controlActionPlanCommentController := controllers.NewControlActionPlanCommentController(controlActionPlanCommentSvc)
 
 	processRepo := repositories.NewProcessRepository(db)
-	processSvc := services.NewProcessService(processRepo, sharedModule.ActivityLogService, processGroupSvc, userSvc, masterModule.LifecycleStatusSvc, controlSvc, commonModule.NotificationService, settingsModule.OrganizationUnitSvc, userSettingSvc, organizationUnitsSvc)
+	processSvc := services.NewProcessService(
+		processRepo,
+		sharedModule.ActivityLogService,
+		processGroupSvc,
+		userSvc,
+		masterModule.LifecycleStatusSvc,
+		controlSvc,
+		commonModule.NotificationService,
+		settingsModule.OrganizationUnitSvc,
+		userSettingSvc,
+		organizationUnitsSvc,
+		masterModule.LocationSvc,
+		masterModule.ReviewFrequencySvc,
+	)
 	processController := controllers.NewProcessController(processSvc)
 
 	userTaskRepo := repositories.NewUserTaskRepository(db)
