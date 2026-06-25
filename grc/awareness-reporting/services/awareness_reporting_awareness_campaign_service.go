@@ -277,7 +277,7 @@ func (acs *AwarenessCampaignService) Create(currentUserID uint, formDTO *awarene
 			id,
 			existingCampaign,
 			currentUserID,
-			"awareness", "awareness_campaign", "campaign", nil,
+			"awareness_reporting", "awareness_campaign", "campaign", nil,
 		)
 		if err != nil {
 			fields := map[string]interface{}{
@@ -295,7 +295,7 @@ func (acs *AwarenessCampaignService) Create(currentUserID uint, formDTO *awarene
 		action := "owner-assign"
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{formDTO.OwnerID},
-			ModuleIdentifier:     "awareness",
+			ModuleIdentifier:     "awareness_reporting",
 			NotificationType:     string(commonDTOs.AssignmentType),
 			HeadingEn:            "Awareness Campaign Ownership Assigned",
 			HeadingAr:            "تم تعيين ملكية حملة التوعية",
@@ -339,7 +339,7 @@ func (acs *AwarenessCampaignService) Create(currentUserID uint, formDTO *awarene
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              emailTo,
 			Subject:              subject,
-			TemplateRelativePath: "awareness/templates/email/awareness_campaign_create_owner_mail.html",
+			TemplateRelativePath: "awareness/templates/email/awareness_campaign_create_responsible_user_mail.html",
 			EmailData:            emailData,
 		}
 		err = acs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "awareness_campaign")
@@ -591,7 +591,7 @@ func (acs *AwarenessCampaignService) Update(id uint, currentUserID uint, formDTO
 				id,
 				changedData,
 				currentUserID,
-				"awareness", "awareness_campaign", "campaign", nil,
+				"awareness_reporting", "awareness_campaign", "campaign", nil,
 			)
 			if err != nil {
 				fields := map[string]interface{}{
@@ -613,7 +613,7 @@ func (acs *AwarenessCampaignService) Update(id uint, currentUserID uint, formDTO
 			oldOwnerAction := "owner-remove"
 			oldOwnerNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserIDs:              []uint{oldOwnerID},
-				ModuleIdentifier:     "awareness",
+				ModuleIdentifier:     "awareness_reporting",
 				NotificationType:     string(commonDTOs.InformationType),
 				HeadingEn:            "Awareness Campaign Ownership Removed",
 				HeadingAr:            "تمت إزالة ملكية حملة التوعية",
