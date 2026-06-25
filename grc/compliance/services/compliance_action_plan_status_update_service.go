@@ -133,6 +133,32 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 		return 0, err
 	}
 
+	var compliance *models.ComplianceRegister
+	if ComplianceID != 0 {
+		complianceRegister, err := casus.complianceRegisterSvc.GetByID(ComplianceID)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		compliance = complianceRegister
+	}
+
+	complianceActionPlan, err := casus.complianceActionPlanSvc.GetByID(ComplianceID, ComplianceActionPlanID)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	if complianceActionPlan.ComplianceRegisterID != nil && ComplianceID == 0 {
+		complianceRegister, err := casus.complianceRegisterSvc.GetByID(*complianceActionPlan.ComplianceRegisterID)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		compliance = complianceRegister
+		ComplianceID = complianceRegister.ID
+	}
+
 	var documents []*models.ComplianceActionPlanStatusUpdateDocument
 
 	for _, doc := range complianceActionPlanStatusUpdateFormDTO.Documents {
@@ -174,16 +200,6 @@ func (casus *ComplianceActionPlanStatusUpdateService) Create(ComplianceID uint, 
 			}
 
 		}
-	}
-
-	compliance, err := casus.complianceRegisterSvc.GetByID(ComplianceID)
-	if err != nil {
-		return 0, err
-	}
-
-	complianceActionPlan, err := casus.complianceActionPlanSvc.GetByID(ComplianceID, ComplianceActionPlanID)
-	if err != nil {
-		return 0, err
 	}
 
 	actionPlanStatus, err := casus.actionPlanStatusSvc.GetByType("completed")
@@ -558,9 +574,18 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 		}
 		compliance = complianceRegister
 	}
+
 	existingComplianceActionPlan, err := capus.complianceActionPlanSvc.GetByID(complianceID, compliaceActionPlanID)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, compliaceActionPlanID)
+	}
+
+	if existingComplianceActionPlan.ComplianceRegisterID != nil && complianceID == 0 {
+		complianceRegister, err := capus.complianceRegisterSvc.GetByID(*existingComplianceActionPlan.ComplianceRegisterID)
+		if err != nil {
+			return err
+		}
+		compliance = complianceRegister
 	}
 
 	if currentUserID != *existingComplianceActionPlan.ReviewUserID {
@@ -580,6 +605,7 @@ func (capus *ComplianceActionPlanStatusUpdateService) Approve(complianceID uint,
 	tx := capus.repo.BeginTransaction()
 
 	if existingComplianceActionPlan.ActionPlanStatusID != complianceActionPlanStatusResolved.ID {
+
 	}
 
 	existingComplianceActionPlan.ActionPlanStatusID = complianceActionPlanClosedStatus.ID
@@ -740,9 +766,18 @@ func (capus *ComplianceActionPlanStatusUpdateService) Revert(complianceID uint, 
 		}
 		compliance = complianceRegister
 	}
+
 	existingComplianceActionPlan, err := capus.complianceActionPlanSvc.GetByID(complianceID, compliaceActionPlanID)
 	if err != nil {
 		return utility.NewResourceNotFoundError(err, compliaceActionPlanID)
+	}
+
+	if existingComplianceActionPlan.ComplianceRegisterID != nil && complianceID == 0 {
+		complianceRegister, err := capus.complianceRegisterSvc.GetByID(*existingComplianceActionPlan.ComplianceRegisterID)
+		if err != nil {
+			return err
+		}
+		compliance = complianceRegister
 	}
 
 	if currentUserID != *existingComplianceActionPlan.ReviewUserID {
