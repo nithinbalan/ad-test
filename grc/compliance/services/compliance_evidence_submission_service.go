@@ -75,6 +75,22 @@ func (cpas *ComplianceEvidenceSubmissionService) GetRequirementAssessmentFullDet
 			if err := mapstructure.Decode(responsibleUnit.ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister, &dto.ComplianceRegister); err != nil {
 				return nil, err
 			}
+
+			// Manually map entity date fields because mapstructure cannot match the "String" suffix
+			sourceRegister := responsibleUnit.ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister
+			for i, authority := range sourceRegister.IssuingAuthorities {
+				if i >= len(dto.ComplianceRegister.IssuingAuthorities) || authority == nil {
+					break
+				}
+				dtoAuthority := dto.ComplianceRegister.IssuingAuthorities[i]
+				if dtoAuthority == nil || dtoAuthority.Entity == nil || authority.Entity == nil {
+					continue
+				}
+				if !authority.Entity.DateOfReceiving.IsZero() {
+					dtoAuthority.Entity.DateOfReceivingString = authority.Entity.DateOfReceiving.Format("2006-01-02")
+				}
+				dtoAuthority.Entity.HijriDateOfReceivingString = authority.Entity.HijriDateOfReceiving
+			}
 		}
 
 		if responsibleUnit.ComplianceAssessmentRequirement.ComplianceAssessment != nil {

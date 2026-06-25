@@ -201,7 +201,9 @@ func (repo *ComplianceEvidenceSubmissionRepository) GetRequirementAssessmentFull
 		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.IssuingAuthorities.IssuingAuthority").
 		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.IssuingAuthorities.Entity").
 		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.IssuingAuthorities.Document").
+		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.CreatedByUser").
 		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.ComplianceRegisterSharedUnit").
+		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.AverageResidualRiskRating").
 		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.ComplianceRegisterSharedUnit.Department").
 		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.ComplianceAssessmentFramework.AssessmentFrameworkType").
 		Preload("ComplianceAssessmentRequirement.ComplianceRequirement.ComplianceClause.ComplianceRegister.ComplianceAssessmentFramework.Values.ComplianceStatus").
