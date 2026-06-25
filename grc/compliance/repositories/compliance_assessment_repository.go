@@ -1728,6 +1728,18 @@ func (repo *ComplianceAssessmentRepository) ForceDelete(id uint, tx ...utility.D
 		JOIN compliance_assessment_controls ON compliance_assessment_controls.id = compliance_action_plans.compliance_assessment_control_id
 		WHERE compliance_assessment_controls.compliance_assessment_id = ?`,
 
+		`DELETE compliance_assessment_requirement_residual_risk_analysis
+		FROM compliance_assessment_requirement_residual_risk_analysis
+		JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.id = compliance_assessment_requirement_residual_risk_analysis.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
+		WHERE compliance_assessment_requirements.compliance_assessment_id = ?`,
+
+		`DELETE compliance_assessment_residual_controls
+		FROM compliance_assessment_residual_controls
+		JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.id = compliance_assessment_residual_controls.compliance_assessment_requirement_responsible_unit_id
+		JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
+		WHERE compliance_assessment_requirements.compliance_assessment_id = ?`,
+
 		`DELETE compliance_assessment_requirement_responsible_units
 		FROM compliance_assessment_requirement_responsible_units
 		JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
@@ -1754,18 +1766,6 @@ func (repo *ComplianceAssessmentRepository) ForceDelete(id uint, tx ...utility.D
 
 		`DELETE FROM compliance_assessment_compliances
 		 WHERE compliance_assessment_id = ?`,
-
-		`DELETE compliance_assessment_requirement_residual_risk_analysis
-		FROM compliance_assessment_requirement_residual_risk_analysis
-		JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.id = compliance_assessment_requirement_residual_risk_analysis.compliance_assessment_requirement_responsible_unit_id
-		JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
-		WHERE compliance_assessment_requirements.compliance_assessment_id = ?`,
-
-		`DELETE compliance_assessment_residual_controls
-		FROM compliance_assessment_residual_controls
-		JOIN compliance_assessment_requirement_responsible_units ON compliance_assessment_requirement_responsible_units.id = compliance_assessment_residual_controls.compliance_assessment_requirement_responsible_unit_id
-		JOIN compliance_assessment_requirements ON compliance_assessment_requirements.id = compliance_assessment_requirement_responsible_units.compliance_assessment_requirement_id
-		WHERE compliance_assessment_requirements.compliance_assessment_id = ?`,
 	}
 
 	for _, q := range queries {
