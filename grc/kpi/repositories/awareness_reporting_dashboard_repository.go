@@ -3,9 +3,10 @@
 package repositories
 
 import (
-	"math"
 	awarenessDTOs "jethur/grc/kpi/dtos"
 	"jethur/grc/models"
+	"math"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -215,15 +216,16 @@ func (repo *AwarenessDashboardRepository) GetAwarenessProgressSummary(params *aw
 
 	var totalWithSurvey, completedSurveys int64
 	surveyTotalQuery := repo.db.Model(&models.AwarenessPostCampaignSurvey{}).
-		Joins("JOIN awareness_campaigns ON awareness_campaigns.id = awareness_post_campaign_surveys.awareness_campaign_id")
+		Joins("JOIN awareness_campaigns ON awareness_campaigns.id = awareness_post_campaign_surveys.linked_campaign_id")
 	surveyTotalQuery = repo.applyDateFilter(surveyTotalQuery, params, "awareness_campaigns")
 	if err := surveyTotalQuery.Count(&totalWithSurvey).Error; err != nil {
 		return nil, err
 	}
 
 	surveyCompletedQuery := repo.db.Model(&models.AwarenessPostCampaignSurvey{}).
-		Joins("JOIN awareness_campaigns ON awareness_campaigns.id = awareness_post_campaign_surveys.awareness_campaign_id").
-		Where("awareness_post_campaign_surveys.status = ?", "completed")
+		Joins("JOIN awareness_campaigns ON awareness_campaigns.id = awareness_post_campaign_surveys.linked_campaign_id").
+		Joins("JOIN awareness_campaign_statuses ON awareness_campaign_statuses.id = awareness_campaigns.awareness_campaign_status_id").
+		Where("awareness_campaign_statuses.type = ?", "completed")
 	surveyCompletedQuery = repo.applyDateFilter(surveyCompletedQuery, params, "awareness_campaigns")
 	if err := surveyCompletedQuery.Count(&completedSurveys).Error; err != nil {
 		return nil, err
@@ -234,11 +236,12 @@ func (repo *AwarenessDashboardRepository) GetAwarenessProgressSummary(params *aw
 	}
 
 	var onTime int64
+	now := time.Now()
 	onTimeQuery := repo.db.Model(&models.AwarenessCampaign{}).
 		Joins("JOIN awareness_campaign_statuses ON awareness_campaign_statuses.id = awareness_campaigns.awareness_campaign_status_id").
 		Where("awareness_campaign_statuses.type = ?", "completed").
 		Where("awareness_campaigns.end_date IS NOT NULL").
-		Where("awareness_campaigns.updated_at <= awareness_campaigns.end_date")
+		Where("awareness_campaigns.end_date >= ?", now)
 	onTimeQuery = repo.applyDateFilter(onTimeQuery, params, "awareness_campaigns")
 	if err := onTimeQuery.Count(&onTime).Error; err != nil {
 		return nil, err
@@ -287,7 +290,6 @@ func (repo *AwarenessDashboardRepository) GetCompletionPerCampaign(params *aware
 			awareness_campaigns.campaign_title,
 			awareness_campaign_statuses.title_en AS status_title_en,
 			awareness_campaign_statuses.title_ar AS status_title_ar,
-			awareness_campaign_statuses.color_code AS status_color_code,
 			CASE
 				WHEN awareness_campaign_statuses.type = 'completed' THEN 100
 				WHEN awareness_campaign_statuses.type = 'submitted' THEN 50
@@ -309,15 +311,16 @@ func (repo *AwarenessDashboardRepository) GetSurveyCompletionStatus(params *awar
 	summary := &awarenessDTOs.AwarenessSurveyCompletionDTO{}
 
 	totalQuery := repo.db.Model(&models.AwarenessPostCampaignSurvey{}).
-		Joins("JOIN awareness_campaigns ON awareness_campaigns.id = awareness_post_campaign_surveys.awareness_campaign_id")
+		Joins("JOIN awareness_campaigns ON awareness_campaigns.id = awareness_post_campaign_surveys.linked_campaign_id")
 	totalQuery = repo.applyDateFilter(totalQuery, params, "awareness_campaigns")
 	if err := totalQuery.Count(&summary.TotalSurveys).Error; err != nil {
 		return nil, err
 	}
 
 	completedQuery := repo.db.Model(&models.AwarenessPostCampaignSurvey{}).
-		Joins("JOIN awareness_campaigns ON awareness_campaigns.id = awareness_post_campaign_surveys.awareness_campaign_id").
-		Where("awareness_post_campaign_surveys.status = ?", "completed")
+		Joins("JOIN awareness_campaigns ON awareness_campaigns.id = awareness_post_campaign_surveys.linked_campaign_id").
+		Joins("JOIN awareness_campaign_statuses ON awareness_campaign_statuses.id = awareness_campaigns.awareness_campaign_status_id").
+		Where("awareness_campaign_statuses.type = ?", "completed")
 	completedQuery = repo.applyDateFilter(completedQuery, params, "awareness_campaigns")
 	if err := completedQuery.Count(&summary.CompletedSurveys).Error; err != nil {
 		return nil, err
@@ -367,7 +370,7 @@ func (repo *AwarenessDashboardRepository) GetPhishingResults(params *awarenessDT
 		`).
 		Joins("JOIN awareness_campaigns ON awareness_campaigns.id = awareness_campaign_details.awareness_campaign_id").
 		Joins("JOIN awareness_campaign_types ON awareness_campaign_types.id = awareness_campaigns.awareness_campaign_type_id").
-		Where("awareness_campaign_types.type = ?", "phishing").
+		Where("awareness_campaign_types.type = ?", "phishing-campaign").
 		Where("awareness_campaign_details.click_rate IS NOT NULL")
 
 	query = repo.applyDateFilter(query, params, "awareness_campaigns")

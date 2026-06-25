@@ -68,7 +68,6 @@ type AwarenessCompletionPerCampaignDTO struct {
 	CompletionPct   float64 `json:"completion_pct"`
 	StatusTitleEn   string  `json:"status_title_en"`
 	StatusTitleAr   string  `json:"status_title_ar"`
-	StatusColorCode string  `json:"status_color_code"`
 }
 
 type AwarenessSurveyCompletionDTO struct {

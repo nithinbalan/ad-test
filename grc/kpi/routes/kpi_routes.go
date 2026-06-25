@@ -115,10 +115,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/awareness-reporting/channel-mix-per-month", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetChannelMixPerMonth)
 	kpiRoutes.GET("/kpis/awareness-reporting/coverage-by-audience", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetCoverageByAudience)
 
-	kpiRoutes.GET("/awareness-reporting/progress/summary", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetAwarenessProgressSummary)
-	kpiRoutes.GET("/awareness-reporting/progress/completion-by-channel", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetCompletionByChannel)
-	kpiRoutes.GET("/awareness-reporting/progress/completion-per-campaign", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetCompletionPerCampaign)
-	kpiRoutes.GET("/awareness-reporting/progress/survey-completion", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetSurveyCompletionStatus)
-	kpiRoutes.GET("/awareness-reportingprogress/completion-by-department", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetCompletionByDepartment)
-	kpiRoutes.GET("/awareness-reporting/progress/phishing-results", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetPhishingResults)
+	kpiRoutes.GET("/kpis/awareness-reporting/progress/summary", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetAwarenessProgressSummary)
+	kpiRoutes.GET("/kpis/awareness-reporting/progress/completion-by-channel", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetCompletionByChannel)
+	kpiRoutes.GET("/kpis/awareness-reporting/progress/completion-per-campaign", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetCompletionPerCampaign)
+	kpiRoutes.GET("/kpis/awareness-reporting/progress/survey-completion", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetSurveyCompletionStatus)
+	kpiRoutes.GET("/kpis/awareness-reporting/progress/completion-by-department", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetCompletionByDepartment)
+	kpiRoutes.GET("/kpis/awareness-reporting/progress/phishing-results", middlewares.RolePermissionMiddleware(db, "awareness_campaign", "view"), awarenessDashboardController.GetPhishingResults)
 }
