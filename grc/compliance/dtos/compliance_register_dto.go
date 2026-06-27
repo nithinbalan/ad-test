@@ -258,7 +258,7 @@ type ComplianceRegisterDetailDTO struct {
 	ReviewResponsibleUser           *organizationDTOs.UserMinimalDTO `json:"review_responsible_user"`
 	SeverityLevel                   *masterDTOs.SeverityLevelDTO     `json:"severity_level"`
 	Version                         *string                          `json:"version"`
-	CreatedAt                       time.Time                        `json:"created_at"`
+	CreatedAtDateString             string                           `json:"created_at"`
 	UpdatedAt                       *time.Time                       `json:"updated_at"`
 	CreatedByUser                   organizationDTOs.UserMinimalDTO  `json:"created_by"`
 	UpdatedByUser                   *organizationDTOs.UserMinimalDTO `json:"updated_by"`
@@ -356,6 +356,7 @@ type ComplianceRegisterIssuingAuthorityEntityDTO struct {
 	CircularNo                 string `json:"circular_no"`
 	DateOfReceivingString      string `json:"date_of_receiving"`
 	HijriDateOfReceivingString string `json:"hijri_date_of_receiving"`
+	CreatedAtDateString        string `json:"created_at"`
 }
 
 type ComplianceRegisterIssuingAuthorityDocumentDTO struct {

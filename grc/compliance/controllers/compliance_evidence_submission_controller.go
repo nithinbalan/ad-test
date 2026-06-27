@@ -66,11 +66,11 @@ func (cpac *ComplianceEvidenceSubmissionController) GetAllAssessments(c *gin.Con
 	}
 
 	allowedParams := []string{
-		"compliance_assessment_requirement_status_id",
-		"responsible_user_id",
-		"responsible_unit_id",
-		"compliance_requirement_id",
-		"compliance_assessment_id",
+		"compliance_assessment_requirement_status_ids",
+		"responsible_user_ids",
+		"responsible_unit_ids",
+		"compliance_requirement_ids",
+		"compliance_assessment_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -111,7 +111,27 @@ func (cpac *ComplianceEvidenceSubmissionController) GetAllAssessments(c *gin.Con
 		return
 	}
 
+	if export {
+		excelFile, err := cpac.service.Export(result.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(cpac.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="Department Responses.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+		return
+	}
+
 	c.JSON(http.StatusOK, result)
+}
+
+func (cpac *ComplianceEvidenceSubmissionController) GetAllAssessmentsExport(c *gin.Context) {
+	c.Set("export", true)
+	cpac.GetAllAssessments(c)
 }
 
 func (cpac *ComplianceEvidenceSubmissionController) GetRequirementAssessmentFullDetails(c *gin.Context) {

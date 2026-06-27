@@ -460,7 +460,7 @@ func NewComplianceModule(db *gorm.DB, sharedModule *SharedModule, masterModule *
 	complianceRegisterReviewController := controllers.NewComplianceRegisterReviewController(complianceRegisterReviewSvc)
 
 	evidenceSubmissionRepo := repositories.NewComplianceEvidenceSubmissionRepository(db)
-	evidenceSubmissionSvc := services.NewComplianceEvidenceSubmissionService(evidenceSubmissionRepo, organizationModule.UserSvc)
+	evidenceSubmissionSvc := services.NewComplianceEvidenceSubmissionService(evidenceSubmissionRepo, organizationModule.UserSvc, organizationModule.UserSettingSvc)
 	evidenceSubmissionController := controllers.NewComplianceEvidenceSubmissionController(evidenceSubmissionSvc)
 
 	complianceRegisterReviewCommentRepo := repositories.NewComplianceRegisterReviewCommentRepository(db)

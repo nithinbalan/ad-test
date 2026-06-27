@@ -633,6 +633,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// Compliance Evidence Submission
 	complianceRoutes.GET("/compliance/department-responses", middlewares.RolePermissionMiddlewareWithPassive(db, "department_response", "view"), complianceEvidenceSubmissionController.GetAllAssessments)
+	complianceRoutes.GET("/compliance/department-responses/export", middlewares.RolePermissionMiddlewareWithPassive(db, "department_response", "view"), complianceEvidenceSubmissionController.GetAllAssessmentsExport)
 	complianceRoutes.GET("/compliance/department-responses/requirement/:id", middlewares.RolePermissionMiddlewareWithPassive(db, "department_response", "view"), complianceEvidenceSubmissionController.GetRequirementAssessmentFullDetails)
 
 	complianceRoutes.PUT("/compliance/department-responses/assessment/:assessmentId/requirement/:requirementId", middlewares.RolePermissionMiddlewareWithPassive(db, "department_response", "modify"), complianceAssessmentRequirementController.UpdateComplianceAssessmentRequirement)

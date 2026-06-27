@@ -72,6 +72,7 @@ func (repo *ComplianceEvidenceSubmissionRepository) GetAll(params *complianceDTO
 			CONVERT(VARCHAR, carru.created_at, 23) AS created_at,
 			CONVERT(VARCHAR, carru.updated_at, 23) AS updated_at,
 			CONVERT(VARCHAR, carru.completed_at, 23) AS completed_at,
+			carru.created_at AS created_at_raw,
 			carru.is_risk_based_assessment,
 			carru.is_regulation_notification_assessment,
 			ca.review_user_id AS review_user_id,
@@ -151,11 +152,16 @@ func (repo *ComplianceEvidenceSubmissionRepository) GetAll(params *complianceDTO
 		params.Sort = "desc"
 	}
 
+	sortColumn := params.SortBy
+	if sortColumn == "created_at" {
+		sortColumn = "created_at_raw"
+	}
+
+	query = query.Order(fmt.Sprintf("%s %s", sortColumn, params.Sort))
+
 	if !params.Export {
 		offset := (params.Page - 1) * params.PageSize
-		query = query.Order(fmt.Sprintf("%s %s", params.SortBy, params.Sort)).
-			Offset(offset).
-			Limit(params.PageSize)
+		query = query.Offset(offset).Limit(params.PageSize)
 	}
 
 	if err := query.Find(&items).Error; err != nil {

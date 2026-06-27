@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
@@ -16,20 +17,24 @@ import (
 type ComplianceEvidenceSubmissionServiceInterface interface {
 	GetAllAssessments(params *complianceDTOs.ComplianceEvidenceSubmissionListQueryParamsDTO, currentUserID uint) (*complianceDTOs.ComplianceEvidenceSubmissionListResponseDTO, error)
 	GetRequirementAssessmentFullDetailsByID(id uint) (*complianceDTOs.ComplianceEvidenceSubmissionRequirementDetailDTO, error)
+	Export(data []*complianceDTOs.ComplianceEvidenceSubmissionListDTO, currentUserID uint) (*os.File, error)
 }
 
 type ComplianceEvidenceSubmissionService struct {
-	repo    complianceRepositories.ComplianceEvidenceSubmissionRepositoryInterface
-	userSvc organizationServices.UserServiceInterface
+	repo           complianceRepositories.ComplianceEvidenceSubmissionRepositoryInterface
+	userSvc        organizationServices.UserServiceInterface
+	userSettingSvc organizationServices.UserSettingServiceInterface
 }
 
 func NewComplianceEvidenceSubmissionService(
 	repo complianceRepositories.ComplianceEvidenceSubmissionRepositoryInterface,
 	userSvc organizationServices.UserServiceInterface,
+	userSettingSvc organizationServices.UserSettingServiceInterface,
 ) ComplianceEvidenceSubmissionServiceInterface {
 	return &ComplianceEvidenceSubmissionService{
-		repo:    repo,
-		userSvc: userSvc,
+		repo:           repo,
+		userSvc:        userSvc,
+		userSettingSvc: userSettingSvc,
 	}
 }
 
@@ -44,6 +49,82 @@ func (cpas *ComplianceEvidenceSubmissionService) GetAllAssessments(params *compl
 	}
 
 	return cpas.repo.GetAll(params, currentUserID)
+}
+
+func (cpas *ComplianceEvidenceSubmissionService) Export(data []*complianceDTOs.ComplianceEvidenceSubmissionListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := cpas.userSettingSvc.GetUserSettingsByUserID(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Compliance Register",
+			"Clause",
+			"Requirement",
+			"Responsible Unit",
+			"Responsible User",
+			"Status",
+			"Completed",
+			"Acknowledged",
+			"Created At",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Compliance Register",
+			"Clause",
+			"Requirement",
+			"Responsible Unit",
+			"Responsible User",
+			"Status",
+			"Completed",
+			"Acknowledged",
+			"Created At",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, item := range data {
+		var complianceRegister, clause, requirement, responsibleUnit, responsibleUser, status string
+
+		if userSetting.Language == "ar" {
+			complianceRegister = item.ComplianceRegisterTitleAr
+			clause = item.ComplianceClauseTitleAr
+			requirement = utility.GetStringValue(item.ComplianceRequirementTitleAr)
+			responsibleUnit = item.ResponsibleUnitTitleAr
+			responsibleUser = utility.GetStringValue(item.ResponsibleUserFirstNameAr) + " " + utility.GetStringValue(item.ResponsibleUserLastNameAr)
+			if item.ComplianceAssessmentRequirementStatusTitleAr != nil {
+				status = *item.ComplianceAssessmentRequirementStatusTitleAr
+			}
+		} else {
+			complianceRegister = item.ComplianceRegisterTitleEn
+			clause = item.ComplianceClauseTitleEn
+			requirement = utility.GetStringValue(item.ComplianceRequirementTitleEn)
+			responsibleUnit = item.ResponsibleUnitTitleEn
+			responsibleUser = utility.GetStringValue(item.ResponsibleUserFirstNameEn) + " " + utility.GetStringValue(item.ResponsibleUserLastNameEn)
+			if item.ComplianceAssessmentRequirementStatusTitleEn != nil {
+				status = *item.ComplianceAssessmentRequirementStatusTitleEn
+			}
+		}
+
+		rows[i] = []interface{}{
+			i + 1,
+			complianceRegister,
+			clause,
+			requirement,
+			responsibleUnit,
+			responsibleUser,
+			status,
+			item.IsCompleted,
+			item.IsAcknowledged,
+			item.CreatedAt,
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }
 
 func (cpas *ComplianceEvidenceSubmissionService) GetRequirementAssessmentFullDetailsByID(id uint) (*complianceDTOs.ComplianceEvidenceSubmissionRequirementDetailDTO, error) {

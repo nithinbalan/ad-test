@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -180,7 +179,7 @@ func (crs ComplianceRegisterService) GetFullDetailsByID(id uint, tx ...utility.D
 		complianceDTO.LastReviewedDateString = &lastReviewDate
 	}
 
-	complianceDTO.CreatedAt = compliance.CreatedAt
+	complianceDTO.CreatedAtDateString = compliance.CreatedAt.Format("2006-01-02")
 	complianceDTO.UpdatedAt = compliance.UpdatedAt
 
 	// Handle issuing authorities date formatting
@@ -1607,108 +1606,70 @@ func (crs *ComplianceRegisterService) GetIssuingAuthorityDocumentPath(authorityI
 // 	return nil, nil
 // }
 
-// NEW EXPORT FUNCTION WITH UPDATED COLUMNS
 func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complianceDTOs.ComplianceRegisterListDTO, currentUserID uint) (*os.File, error) {
-	// Retrieve user settings for language preference
 	userSetting, err := crs.userSettingSvc.GetUserSetting(currentUserID)
 	if err != nil {
 		return nil, err
 	}
 
-	var headers []string
-	// Define headers based on the user's language setting
-	if userSetting.Language == "ar" {
-		headers = []string{
-			"#",
-			"Reference Number",
-			"Title",
-			"Legislative Body",
-			"Legislation Type",
-			"Secrecy Classification",
-			"Importance Classification",
-			"Subject",
-			"Applicability Statement",
-			"Assessment Type",
-		}
-	} else {
-		headers = []string{
-			"#",
-			"Reference Number",
-			"Title",
-			"Legislative Body",
-			"Legislation Type",
-			"Secrecy Classification",
-			"Importance Classification",
-			"Subject",
-			"Applicability Statement",
-			"Assessment Type",
-		}
+	headers := []string{
+		"#",
+		"Reference Number",
+		"Title",
+		"Description",
+		"Deadline",
+		"Legislative Body",
+		"Legislation Type",
+		"Secrecy Classification",
+		"Residual Risk Score",
+		"Residual Risk Rating",
+		"Importance Classification",
 	}
 
-	// Convert data to [][]interface{} based on language preference
 	rows := make([][]interface{}, len(data))
 	for i, item := range data {
-		// Determine applicability statement
-		var applicabilityStatement string
-		if item.IsApplicable {
-			applicabilityStatement = "Applicable"
-		} else if item.IsNotApplicable {
-			applicabilityStatement = "Not Applicable"
-		} else {
-			applicabilityStatement = ""
-		}
-
-		// Determine assessment type
-		var assessmentType string
-		// if item.IsRegulationNotificationAssessment {
-		// 	assessmentType = "Regulation Notification"
-		// } else if item.IsRiskBasedAssessment {
-		// 	assessmentType = "Risk Based Assessment"
-		// } else {
-		// 	assessmentType = ""
-		// }
-		assessmentType = ""
-
-		// Strip HTML tags from subject using regex
-		cleanSubject := item.Subject
-		if cleanSubject != "" {
-			// Remove HTML tags using regex pattern
-			re := regexp.MustCompile(`<[^>]*>`)
-			cleanSubject = re.ReplaceAllString(cleanSubject, "")
-			// Clean up extra whitespace
-			cleanSubject = strings.TrimSpace(cleanSubject)
-		}
+		var title, description, legislativeBody, legislationType, secrecyClassification, residualRiskRating, importanceClassification string
 
 		if userSetting.Language == "ar" {
-			rows[i] = []interface{}{
-				i + 1,
-				item.ReferenceNumber,
-				item.TitleAr,
-				item.LegislativeBodyTitleAr,
-				item.LegislationTypeTitleAr,
-				item.SecrecyClassificationTitleAr,
-				item.ImportanceClassificationTitleAr,
-				cleanSubject,
-				applicabilityStatement,
-				assessmentType,
-			}
+			title = item.TitleAr
+			description = item.DescriptionAr
+			legislativeBody = item.LegislativeBodyTitleAr
+			legislationType = item.LegislationTypeTitleAr
+			secrecyClassification = item.SecrecyClassificationTitleAr
+			importanceClassification = item.ImportanceClassificationTitleAr
+			residualRiskRating = utility.GetStringValue(item.AverageResidualRiskRatingTitleAr)
 		} else {
-			rows[i] = []interface{}{
-				i + 1,
-				item.ReferenceNumber,
-				item.TitleEn,
-				item.LegislativeBodyTitleEn,
-				item.LegislationTypeTitleEn,
-				item.SecrecyClassificationTitleEn,
-				item.ImportanceClassificationTitleEn,
-				cleanSubject,
-				applicabilityStatement,
-				assessmentType,
-			}
+			title = item.TitleEn
+			description = item.DescriptionEn
+			legislativeBody = item.LegislativeBodyTitleEn
+			legislationType = item.LegislationTypeTitleEn
+			secrecyClassification = item.SecrecyClassificationTitleEn
+			importanceClassification = item.ImportanceClassificationTitleEn
+			residualRiskRating = utility.GetStringValue(item.AverageResidualRiskRatingTitleEn)
+		}
+
+		var residualRiskScore interface{}
+		if item.AverageResidualRiskScore != nil {
+			residualRiskScore = *item.AverageResidualRiskScore
+		} else {
+			residualRiskScore = ""
+		}
+
+		rows[i] = []interface{}{
+			i + 1,
+			item.ReferenceNumber,
+			title,
+			description,
+			item.Deadline,
+			legislativeBody,
+			legislationType,
+			secrecyClassification,
+			residualRiskScore,
+			residualRiskRating,
+			importanceClassification,
 		}
 	}
 
-	// Generate the Excel file
 	return utility.GenerateExcelFile(headers, rows)
 }
 
