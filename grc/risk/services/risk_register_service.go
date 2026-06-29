@@ -2528,6 +2528,26 @@ func (rs *RiskRegisterService) ImportRisks(input []map[string]interface{}, curre
 	return createdIDs, nil
 }
 
+func parseBoolValue(val interface{}) bool {
+	if val == nil {
+		return false
+	}
+	if b, ok := val.(bool); ok {
+		return b
+	}
+	if str, ok := val.(string); ok {
+		lowerValue := strings.ToLower(strings.TrimSpace(str))
+		return lowerValue == "true" || lowerValue == "yes" || lowerValue == "1"
+	}
+	if num, ok := val.(float64); ok {
+		return num == 1
+	}
+	if num, ok := val.(int); ok {
+		return num == 1
+	}
+	return false
+}
+
 func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]map[string]interface{}, error) {
 	headers := []string{
 		"risk_classification", "responsible_unit", "responsible_user", "title", "description",
@@ -2721,65 +2741,8 @@ func (rs *RiskRegisterService) validateRisks(input []map[string]interface{}) ([]
 					}
 				}
 
-			case "is_strategic":
-				// Boolean field - accept Yes/No, True/False, 1/0
-				if value != "" {
-					lowerValue := strings.ToLower(strings.TrimSpace(value))
-					if lowerValue == "yes" || lowerValue == "true" || lowerValue == "1" {
-						riskRecord["is_strategic"] = true
-					} else if lowerValue == "no" || lowerValue == "false" || lowerValue == "0" {
-						riskRecord["is_strategic"] = false
-					} else {
-						riskRecord["is_strategic"] = false // default to false
-					}
-				} else {
-					riskRecord["is_strategic"] = false
-				}
-
-			case "is_operational":
-				// Boolean field
-				if value != "" {
-					lowerValue := strings.ToLower(strings.TrimSpace(value))
-					if lowerValue == "yes" || lowerValue == "true" || lowerValue == "1" {
-						riskRecord["is_operational"] = true
-					} else if lowerValue == "no" || lowerValue == "false" || lowerValue == "0" {
-						riskRecord["is_operational"] = false
-					} else {
-						riskRecord["is_operational"] = false
-					}
-				} else {
-					riskRecord["is_operational"] = false
-				}
-
-			case "is_internal":
-				// Boolean field
-				if value != "" {
-					lowerValue := strings.ToLower(strings.TrimSpace(value))
-					if lowerValue == "yes" || lowerValue == "true" || lowerValue == "1" {
-						riskRecord["is_internal"] = true
-					} else if lowerValue == "no" || lowerValue == "false" || lowerValue == "0" {
-						riskRecord["is_internal"] = false
-					} else {
-						riskRecord["is_internal"] = false
-					}
-				} else {
-					riskRecord["is_internal"] = false
-				}
-
-			case "is_external":
-				// Boolean field
-				if value != "" {
-					lowerValue := strings.ToLower(strings.TrimSpace(value))
-					if lowerValue == "yes" || lowerValue == "true" || lowerValue == "1" {
-						riskRecord["is_external"] = true
-					} else if lowerValue == "no" || lowerValue == "false" || lowerValue == "0" {
-						riskRecord["is_external"] = false
-					} else {
-						riskRecord["is_external"] = false
-					}
-				} else {
-					riskRecord["is_external"] = false
-				}
+			case "is_strategic", "is_operational", "is_internal", "is_external":
+				riskRecord[header] = parseBoolValue(record[header])
 
 			case "expected_cause":
 				// Optional field
