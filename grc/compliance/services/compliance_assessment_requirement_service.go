@@ -774,7 +774,7 @@ func (cars ComplianceAssessmentRequirementService) MarkAsCompleted(complianceAss
 
 			entity := "compliance-assessment-requirement"
 			action := "requirement-completed"
-			urlParam := fmt.Sprintf(`{"id":%d}`, requirementId)
+			urlParam := fmt.Sprintf(`{"assessment_id":%d}`, complianceAssessmentId)
 
 			dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 				UserIDs:              []uint{reviewUserID},
