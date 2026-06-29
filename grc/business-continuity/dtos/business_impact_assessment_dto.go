@@ -316,13 +316,41 @@ type BusinessImpactAssessmentAnalysisDetailDTO struct {
 	ImpactAnalysisLevel   *BCMImpactAnalysisLevelDTO `json:"impact_analysis_level"`
 }
 
+type BusinessImpactAssessmentRatingFormDTO struct {
+	RtoFromValue  *int `json:"rto_from_value"`
+	RtoToValue    *int `json:"rto_to_value"`
+	MtpdFromValue *int `json:"mtpd_from_value"`
+	MtpdToValue   *int `json:"mtpd_to_value"`
+	RpoFromValue  *int `json:"rpo_from_value"`
+	RpoToValue    *int `json:"rpo_to_value"`
+	RspFromValue  *int `json:"rsp_from_value"`
+	RspToValue    *int `json:"rsp_to_value"`
+}
+
 type BusinessImpactAssessmentRatingDTO struct {
-	ID                   uint                        `json:"id"`
-	ProcessID            uint                        `json:"process_id"`
-	OverallImpactLevelID uint                        `json:"overall_impact_level_id"`
-	OverallImpactLevel   *BCMImpactAnalysisLevelDTO  `json:"overall_impact_level"`
-	BCMBIAImpactLevelID  uint                        `json:"bcm_bia_impact_level_id"`
-	BCMBIAImpactLevel    *BCMBIAImpactLevelDetailDTO `json:"bcm_bia_impact_level"`
-	CreatedBYID          *uint                       `json:"created_by_id"`
-	CreatedAt            time.Time                   `json:"created_at"`
+	ID                   uint                               `json:"id"`
+	ProcessID            uint                               `json:"process_id"`
+	OverallImpactLevelID uint                               `json:"overall_impact_level_id"`
+	OverallImpactLevel   *BCMImpactAnalysisLevelDTO         `json:"overall_impact_level"`
+	BCMBIAImpactLevelID  uint                               `json:"bcm_bia_impact_level_id"`
+	BCMBIAImpactLevel    *BCMBIAImpactLevelDetailDTO        `json:"bcm_bia_impact_level"`
+	IsEdited             bool                               `json:"is_edited"`
+	RtoFromValue         *int                               `json:"rto_from_value"`
+	RtoToValue           *int                               `json:"rto_to_value"`
+	RtoCondition         *string                            `json:"rto_condition"`
+	RtoUnit              *BusinessContinuityDurationUnitDTO `json:"rto_unit"`
+	MtpdFromValue        *int                               `json:"mtpd_from_value"`
+	MtpdToValue          *int                               `json:"mtpd_to_value"`
+	MtpdCondition        *string                            `json:"mtpd_condition"`
+	MtpdUnit             *BusinessContinuityDurationUnitDTO `json:"mtpd_unit"`
+	RpoFromValue         *int                               `json:"rpo_from_value"`
+	RpoToValue           *int                               `json:"rpo_to_value"`
+	RpoCondition         *string                            `json:"rpo_condition"`
+	RpoUnit              *BusinessContinuityDurationUnitDTO `json:"rpo_unit"`
+	RspFromValue         *int                               `json:"rsp_from_value"`
+	RspToValue           *int                               `json:"rsp_to_value"`
+	RspCondition         *string                            `json:"rsp_condition"`
+	RspUnit              *BusinessContinuityDurationUnitDTO `json:"rsp_unit"`
+	CreatedBYID          *uint                              `json:"created_by_id"`
+	CreatedAt            time.Time                          `json:"created_at"`
 }

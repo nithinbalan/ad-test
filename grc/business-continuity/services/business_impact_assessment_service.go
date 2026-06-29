@@ -27,6 +27,7 @@ type BusinessImpactAssessmentServiceInterface interface {
 	GetProcessDetails(id uint, tx ...utility.DatabaseTransaction) (*businessContinuityDTOs.BIAProcessDetailDTO, error)
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BusinessImpactFormDTO) (uint, error)
 	UpdateImpactAnalysis(businessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactAssessmentFormDTO, currentUserID uint) error
+	UpdateBIARating(id uint, currentUserID uint, dto businessContinuityDTOs.BusinessImpactAssessmentRatingFormDTO) error
 	UpdateRecoveryObjectives(businessImpactAssessmentRecoveryObjectiveFormDTO businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveFormDTO, currentUserID uint) error
 	UpdateProcessCriticality(businessImpactAssessmentProcessCriticalityFormDTO businessContinuityDTOs.BusinessImpactAssessmentProcessCriticalityFormDTO, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
@@ -254,11 +255,28 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 				return err
 			}
 
-			// Create rating record
+			// Create rating record with data copied from BCMBIAImpactLevel
 			rating := &models.BusinessImpactAssessmentRating{
 				ProcessID:            *businessImpactAssessmentFormDTO.ProcessID,
 				OverallImpactLevelID: *businessImpactAssessmentFormDTO.OverallImpactLevelID,
 				BCMBIAImpactLevelID:  bcmBiaImpactLevel.ID,
+				IsEdited:             false,
+				RtoFromValue:         bcmBiaImpactLevel.RtoFromValue,
+				RtoToValue:           bcmBiaImpactLevel.RtoToValue,
+				RtoCondition:         bcmBiaImpactLevel.RtoCondition,
+				RtoUnitID:            bcmBiaImpactLevel.RtoUnitID,
+				MtpdFromValue:        bcmBiaImpactLevel.MtpdFromValue,
+				MtpdToValue:          bcmBiaImpactLevel.MtpdToValue,
+				MtpdCondition:        bcmBiaImpactLevel.MtpdCondition,
+				MtpdUnitID:           bcmBiaImpactLevel.MtpdUnitID,
+				RpoFromValue:         bcmBiaImpactLevel.RpoFromValue,
+				RpoToValue:           bcmBiaImpactLevel.RpoToValue,
+				RpoCondition:         bcmBiaImpactLevel.RpoCondition,
+				RpoUnitID:            bcmBiaImpactLevel.RpoUnitID,
+				RspFromValue:         bcmBiaImpactLevel.RspFromValue,
+				RspToValue:           bcmBiaImpactLevel.RspToValue,
+				RspCondition:         bcmBiaImpactLevel.RspCondition,
+				RspUnitID:            bcmBiaImpactLevel.RspUnitID,
 				CreatedBYID:          &currentUserID,
 			}
 			err = bias.repo.CreateBusinessImpactAssessmentRating(rating, tx)
@@ -324,6 +342,83 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 			}
 		}
 	}()
+	return nil
+}
+
+func (bias *BusinessImpactAssessmentService) UpdateBIARating(id uint, currentUserID uint, dto businessContinuityDTOs.BusinessImpactAssessmentRatingFormDTO) error {
+	existing, err := bias.repo.GetRatingByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utility.NewResourceNotFoundError(err, id)
+		}
+		return err
+	}
+
+	oldData := map[string]interface{}{
+		"rto_from_value":  existing.RtoFromValue,
+		"rto_to_value":    existing.RtoToValue,
+		"mtpd_from_value": existing.MtpdFromValue,
+		"mtpd_to_value":   existing.MtpdToValue,
+		"rpo_from_value":  existing.RpoFromValue,
+		"rpo_to_value":    existing.RpoToValue,
+		"rsp_from_value":  existing.RspFromValue,
+		"rsp_to_value":    existing.RspToValue,
+	}
+
+	existing.RtoFromValue = dto.RtoFromValue
+	existing.RtoToValue = dto.RtoToValue
+	existing.MtpdFromValue = dto.MtpdFromValue
+	existing.MtpdToValue = dto.MtpdToValue
+	existing.RpoFromValue = dto.RpoFromValue
+	existing.RpoToValue = dto.RpoToValue
+	existing.RspFromValue = dto.RspFromValue
+	existing.RspToValue = dto.RspToValue
+	existing.IsEdited = true
+	existing.UpdatedBYID = &currentUserID
+
+	if err := bias.repo.UpdateBusinessImpactAssessmentRating(existing); err != nil {
+		return err
+	}
+
+	go func() {
+		changedData := map[string]interface{}{
+			"rating_values": map[string]interface{}{
+				"old": oldData,
+				"new": map[string]interface{}{
+					"rto_from_value":  dto.RtoFromValue,
+					"rto_to_value":    dto.RtoToValue,
+					"mtpd_from_value": dto.MtpdFromValue,
+					"mtpd_to_value":   dto.MtpdToValue,
+					"rpo_from_value":  dto.RpoFromValue,
+					"rpo_to_value":    dto.RpoToValue,
+					"rsp_from_value":  dto.RspFromValue,
+					"rsp_to_value":    dto.RspToValue,
+				},
+			},
+		}
+		err := bias.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.BusinessImpactAssessmentRating{}.TableName(),
+			id,
+			changedData,
+			currentUserID,
+			"",
+			"",
+			"",
+			nil,
+		)
+		if err != nil {
+			fields := map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.BusinessImpactAssessmentRating{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			}
+			utility.LogError("Failed to log activity", fields)
+		}
+	}()
+
 	return nil
 }
 

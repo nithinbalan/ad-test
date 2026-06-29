@@ -18,6 +18,8 @@ type BusinessImpactAssessmentRepositoryInterface interface {
 	CreateRecoveryObjective(businessImpactAssessmentRecoveryObjective *models.BusinessImpactAssessmentRecoveryObjective, tx ...utility.DatabaseTransaction) error
 	UpdateRecoveryObjective(businessImpactAssessmentRecoveryObjective *models.BusinessImpactAssessmentRecoveryObjective, tx ...utility.DatabaseTransaction) error
 	CreateBusinessImpactAssessmentRating(rating *models.BusinessImpactAssessmentRating, tx ...utility.DatabaseTransaction) error
+	GetRatingByID(id uint) (*models.BusinessImpactAssessmentRating, error)
+	UpdateBusinessImpactAssessmentRating(rating *models.BusinessImpactAssessmentRating, tx ...utility.DatabaseTransaction) error
 	DeleteBusinessImpactAssessmentRatingByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 
 	DeleteImpactAssessmentsByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
@@ -336,6 +338,10 @@ func (repo *BusinessImpactAssessmentRepository) GetProcessDetails(id uint, tx ..
 		Preload("BusinessImpactAssessmentRatings.BCMBIAImpactLevel.MtpdUnit").
 		Preload("BusinessImpactAssessmentRatings.BCMBIAImpactLevel.RpoUnit").
 		Preload("BusinessImpactAssessmentRatings.BCMBIAImpactLevel.RspUnit").
+		Preload("BusinessImpactAssessmentRatings.RtoUnit").
+		Preload("BusinessImpactAssessmentRatings.MtpdUnit").
+		Preload("BusinessImpactAssessmentRatings.RpoUnit").
+		Preload("BusinessImpactAssessmentRatings.RspUnit").
 		Preload("ProcessDependencies").
 		Preload("ProcessDependencies.RtoUnit").
 		Preload("ProcessDependencies.MtpdUnit").
@@ -574,6 +580,22 @@ func (repo *BusinessImpactAssessmentRepository) GetImpactAssessmentsWithAnalysis
 		return nil, err
 	}
 	return businessImpactAssessments, nil
+}
+
+func (repo *BusinessImpactAssessmentRepository) GetRatingByID(id uint) (*models.BusinessImpactAssessmentRating, error) {
+	var rating *models.BusinessImpactAssessmentRating
+	err := repo.db.First(&rating, id).Error
+	return rating, err
+}
+
+func (repo *BusinessImpactAssessmentRepository) UpdateBusinessImpactAssessmentRating(rating *models.BusinessImpactAssessmentRating, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Model(&models.BusinessImpactAssessmentRating{}).Where("id = ?", rating.ID).
+		Select("RtoFromValue", "RtoToValue", "MtpdFromValue", "MtpdToValue", "RpoFromValue", "RpoToValue", "RspFromValue", "RspToValue", "IsEdited", "UpdatedBYID").
+		Updates(rating).Error
 }
 
 func (repo *BusinessImpactAssessmentRepository) DeleteBusinessImpactAssessmentRatingByProcessID(processID uint, tx ...utility.DatabaseTransaction) error {
