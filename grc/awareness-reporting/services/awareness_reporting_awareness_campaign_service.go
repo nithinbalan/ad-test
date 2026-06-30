@@ -15,6 +15,7 @@ import (
 	commonServices "jethur/grc/common/services"
 	logServices "jethur/grc/logs/services"
 	organizationServices "jethur/grc/organization/services"
+	settingsDTOs "jethur/grc/settings/dtos"
 	settingsServices "jethur/grc/settings/services"
 
 	"jethur/grc/models"
@@ -96,7 +97,6 @@ func (acs *AwarenessCampaignService) GetFullDetailsByID(id uint, tx ...utility.D
 		}
 		return nil, err
 	}
-
 	if err := mapstructure.Decode(campaign, &campaignDTO); err != nil {
 		return nil, err
 	}
@@ -124,6 +124,13 @@ func (acs *AwarenessCampaignService) GetFullDetailsByID(id uint, tx ...utility.D
 		}
 
 		campaignDTO.Detail = &detailDTO
+	}
+	if campaign.ResponsibleUnit != nil {
+		var ouDTO settingsDTOs.OrganizationUnitDTO
+		if err := mapstructure.Decode(campaign.ResponsibleUnit, &ouDTO); err != nil {
+			return nil, err
+		}
+		campaignDTO.OrganizationUnit = ouDTO
 	}
 
 	return &campaignDTO, nil
@@ -158,7 +165,7 @@ func (acs *AwarenessCampaignService) Create(currentUserID uint, formDTO *awarene
 		AwarenessPriorityID:       formDTO.AwarenessPriorityID,
 		TargetAudience:            formDTO.TargetAudience,
 		OwnerID:                   formDTO.OwnerID,
-		OrganizationUnitID:        formDTO.OrganizationUnitID,
+		ResponsibleUnitID:         formDTO.OrganizationUnitID,
 		StartDate:                 *dates.StartDate,
 		EndDate:                   dates.EndDate,
 		AwarenessCampaignStatusID: formDTO.AwarenessCampaignStatusID,
@@ -384,7 +391,7 @@ func (acs *AwarenessCampaignService) Update(id uint, currentUserID uint, formDTO
 	existingCampaign.AwarenessPriorityID = formDTO.AwarenessPriorityID
 	existingCampaign.TargetAudience = formDTO.TargetAudience
 	existingCampaign.OwnerID = formDTO.OwnerID
-	existingCampaign.OrganizationUnitID = formDTO.OrganizationUnitID
+	existingCampaign.ResponsibleUnitID = formDTO.OrganizationUnitID
 	if dates.StartDate != nil {
 		existingCampaign.StartDate = *dates.StartDate
 	}

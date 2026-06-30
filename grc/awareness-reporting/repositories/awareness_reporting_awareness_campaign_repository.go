@@ -197,7 +197,7 @@ func (repo *AwarenessCampaignRepository) GetFullDetailsByID(id uint, tx ...utili
 		Preload("AwarenessPriority").
 		Preload("AwarenessCampaignStatus").
 		Preload("Owner").
-		Preload("OrganizationUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
+		Preload("ResponsibleUnit").
 		Preload("AwarenessCampaignDetails").
 		Preload("AwarenessCampaignDetails.Documents").
 		Preload("AwarenessCampaignDetails.AwarenessEvaluationRating").
