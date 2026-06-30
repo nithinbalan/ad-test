@@ -171,6 +171,10 @@ func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, business
 }
 
 func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpactAssessmentFormDTO businessContinuityDTOs.BusinessImpactAssessmentFormDTO, currentUserID uint) error {
+	if err := bias.validateNonDecreasingImpact(businessImpactAssessmentFormDTO.BusinessImpactAssessments); err != nil {
+		return err
+	}
+
 	tx := bias.repo.BeginTransaction()
 
 	var oldBusinessImpactAssessment []map[string]interface{}
@@ -345,6 +349,52 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 	return nil
 }
 
+func (bias *BusinessImpactAssessmentService) validateNonDecreasingImpact(assessments []businessContinuityDTOs.BusinessImpactAssessmentDTO) error {
+	for _, impactAssessment := range assessments {
+		type bucketLevel struct {
+			order int
+			score int
+		}
+		var items []bucketLevel
+
+		for _, analysis := range impactAssessment.BusinessImpactAssessmentAnalysis {
+			if analysis.OutageBucketID == nil || analysis.ImpactAnalysisLevelID == nil {
+				continue
+			}
+			bucket, err := bias.bcmBiaOutageBucketSvc.GetByID(*analysis.OutageBucketID)
+			if err != nil {
+				return utility.NewValidationError(fmt.Errorf("invalid outage_bucket_id: %d", *analysis.OutageBucketID), "not_exist", "outage_bucket_id")
+			}
+			level, err := bias.bcmImpactAnalysisLevelSvc.GetByID(*analysis.ImpactAnalysisLevelID)
+			if err != nil {
+				return utility.NewValidationError(fmt.Errorf("invalid impact_analysis_level_id: %d", *analysis.ImpactAnalysisLevelID), "not_exist", "impact_analysis_level_id")
+			}
+			items = append(items, bucketLevel{order: bucket.Order, score: level.Score})
+		}
+
+		// Sort by outage bucket order
+		for i := 0; i < len(items); i++ {
+			for j := i + 1; j < len(items); j++ {
+				if items[i].order > items[j].order {
+					items[i], items[j] = items[j], items[i]
+				}
+			}
+		}
+
+		// Validate non-decreasing scores
+		for i := 1; i < len(items); i++ {
+			if items[i].score < items[i-1].score {
+				return utility.NewValidationError(
+					fmt.Errorf("impact level must be non-decreasing across outage bucket intervals"),
+					"invalid_range",
+					"impact_analysis_level_id",
+				)
+			}
+		}
+	}
+	return nil
+}
+
 func (bias *BusinessImpactAssessmentService) UpdateBIARating(id uint, currentUserID uint, dto businessContinuityDTOs.BusinessImpactAssessmentRatingFormDTO) error {
 	existing, err := bias.repo.GetRatingByID(id)
 	if err != nil {
@@ -376,6 +426,7 @@ func (bias *BusinessImpactAssessmentService) UpdateBIARating(id uint, currentUse
 		"rpo_to_value":    existing.RpoToValue,
 		"rsp_from_value":  existing.RspFromValue,
 		"rsp_to_value":    existing.RspToValue,
+		"override_reason": existing.OverrideReason,
 	}
 
 	existing.RtoFromValue = dto.RtoFromValue
@@ -386,6 +437,7 @@ func (bias *BusinessImpactAssessmentService) UpdateBIARating(id uint, currentUse
 	existing.RpoToValue = dto.RpoToValue
 	existing.RspFromValue = dto.RspFromValue
 	existing.RspToValue = dto.RspToValue
+	existing.OverrideReason = dto.OverrideReason
 	existing.IsEdited = true
 	existing.UpdatedBYID = &currentUserID
 

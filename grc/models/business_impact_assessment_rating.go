@@ -26,6 +26,7 @@ type BusinessImpactAssessmentRating struct {
 	RspToValue           *int       `json:"rsp_to_value" gorm:"type:int;null"`
 	RspCondition         *string    `json:"rsp_condition" gorm:"type:varchar(20);null"`
 	RspUnitID            *uint      `json:"rsp_unit_id" gorm:"null"`
+	OverrideReason       *string    `json:"override_reason" gorm:"type:nvarchar(max);null"`
 	CreatedBYID          *uint      `json:"created_by_id" gorm:"column:created_by_id"`
 	UpdatedBYID          *uint      `json:"updated_by_id"`
 	CreatedAt            time.Time  `json:"created_at" gorm:"type:datetime;not null"`

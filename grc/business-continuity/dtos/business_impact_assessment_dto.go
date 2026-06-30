@@ -317,14 +317,15 @@ type BusinessImpactAssessmentAnalysisDetailDTO struct {
 }
 
 type BusinessImpactAssessmentRatingFormDTO struct {
-	RtoFromValue  *int `json:"rto_from_value"`
-	RtoToValue    *int `json:"rto_to_value"`
-	MtpdFromValue *int `json:"mtpd_from_value"`
-	MtpdToValue   *int `json:"mtpd_to_value"`
-	RpoFromValue  *int `json:"rpo_from_value"`
-	RpoToValue    *int `json:"rpo_to_value"`
-	RspFromValue  *int `json:"rsp_from_value"`
-	RspToValue    *int `json:"rsp_to_value"`
+	RtoFromValue   *int    `json:"rto_from_value"`
+	RtoToValue     *int    `json:"rto_to_value"`
+	MtpdFromValue  *int    `json:"mtpd_from_value"`
+	MtpdToValue    *int    `json:"mtpd_to_value"`
+	RpoFromValue   *int    `json:"rpo_from_value"`
+	RpoToValue     *int    `json:"rpo_to_value"`
+	RspFromValue   *int    `json:"rsp_from_value"`
+	RspToValue     *int    `json:"rsp_to_value"`
+	OverrideReason *string `json:"override_reason"`
 }
 
 type BusinessImpactAssessmentRatingDTO struct {
@@ -351,6 +352,7 @@ type BusinessImpactAssessmentRatingDTO struct {
 	RspToValue           *int                               `json:"rsp_to_value"`
 	RspCondition         *string                            `json:"rsp_condition"`
 	RspUnit              *BusinessContinuityDurationUnitDTO `json:"rsp_unit"`
+	OverrideReason       *string                            `json:"override_reason"`
 	CreatedBYID          *uint                              `json:"created_by_id"`
 	CreatedAt            time.Time                          `json:"created_at"`
 }
