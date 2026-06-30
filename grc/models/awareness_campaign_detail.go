@@ -23,8 +23,8 @@ type AwarenessCampaignDetail struct {
 	Presenter   *string `json:"presenter" gorm:"type:nvarchar(255)"`
 	Agenda      *string `json:"agenda" gorm:"type:nvarchar(max)"`
 
-	SessionStartTime *time.Time `json:"session_start_time" gorm:"type:time"`
-	SessionEndTime   *time.Time `json:"session_end_time" gorm:"type:time"`
+	SessionStartTime *string `json:"session_start_time" gorm:"type:time"`
+	SessionEndTime   *string `json:"session_end_time" gorm:"type:time"`
 
 	Venue         *string `json:"venue" gorm:"type:nvarchar(255)"`
 	AttendeeCount *int    `json:"attendee_count"`

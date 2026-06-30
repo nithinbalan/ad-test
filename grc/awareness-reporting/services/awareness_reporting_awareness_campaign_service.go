@@ -125,6 +125,15 @@ func (acs *AwarenessCampaignService) GetFullDetailsByID(id uint, tx ...utility.D
 
 		campaignDTO.Detail = &detailDTO
 	}
+
+	startDate := campaign.StartDate.Format("2006-01-02")
+	campaignDTO.StartDateString = &startDate
+
+	if campaign.EndDate != nil {
+		endDate := campaign.EndDate.Format("2006-01-02")
+		campaignDTO.EndDateString = &endDate
+	}
+
 	if campaign.ResponsibleUnit != nil {
 		var ouDTO settingsDTOs.OrganizationUnitDTO
 		if err := mapstructure.Decode(campaign.ResponsibleUnit, &ouDTO); err != nil {
@@ -143,7 +152,7 @@ func (acs *AwarenessCampaignService) Create(currentUserID uint, formDTO *awarene
 		return 0, err
 	}
 
-	dates, err := acs.parseAwarenessCampaignDates(formDTO, currentUserID)
+	dates, err := acs.parseAwarenessCampaignDates(formDTO)
 	if err != nil {
 		return 0, err
 	}
@@ -380,7 +389,7 @@ func (acs *AwarenessCampaignService) Update(id uint, currentUserID uint, formDTO
 		return err
 	}
 
-	dates, err := acs.parseAwarenessCampaignDates(formDTO, currentUserID)
+	dates, err := acs.parseAwarenessCampaignDates(formDTO)
 	if err != nil {
 		return err
 	}
@@ -570,8 +579,8 @@ func (acs *AwarenessCampaignService) Update(id uint, currentUserID uint, formDTO
 			"campaign_title":            oldCampaign.CampaignTitle,
 			"objective":                 oldCampaign.Objective,
 			"target_audience":           oldCampaign.TargetAudience,
-			"start_date":                oldCampaign.StartDate,
-			"end_date":                  oldCampaign.EndDate,
+			"start_date":                oldCampaign.StartDateString,
+			"end_date":                  oldCampaign.EndDateString,
 			"linked_security_control":   utility.GetStringValue(oldCampaign.LinkedSecurityControl),
 		}
 
@@ -581,8 +590,8 @@ func (acs *AwarenessCampaignService) Update(id uint, currentUserID uint, formDTO
 			"campaign_title":            existingFullCampaign.CampaignTitle,
 			"objective":                 existingFullCampaign.Objective,
 			"target_audience":           existingFullCampaign.TargetAudience,
-			"start_date":                existingFullCampaign.StartDate,
-			"end_date":                  existingFullCampaign.EndDate,
+			"start_date":                existingFullCampaign.StartDateString,
+			"end_date":                  existingFullCampaign.EndDateString,
 			"linked_security_control":   utility.GetStringValue(existingFullCampaign.LinkedSecurityControl),
 		}
 
@@ -947,27 +956,30 @@ func (acs *AwarenessCampaignService) validateAwarenessCampaignFormDTO(formDTO *a
 	return nil
 }
 
-func (acs *AwarenessCampaignService) parseAwarenessCampaignDates(dto *awarenessDTOs.AwarenessCampaignFormDTO, currentUserID uint) (*awarenessDTOs.AwarenessCampaignParsedDates, error) {
+func (acs *AwarenessCampaignService) parseAwarenessCampaignDates(dto *awarenessDTOs.AwarenessCampaignFormDTO) (*awarenessDTOs.AwarenessCampaignParsedDates, error) {
 	parsed := &awarenessDTOs.AwarenessCampaignParsedDates{}
 
-	userPreference, err := acs.userSvc.GetCurrentUserDetails(currentUserID)
-	if err != nil {
-		return nil, err
-	}
-
-	timezoneName := userPreference.UserSetting.Timezone.Name
+	var err error
 
 	if dto.StartDate != "" {
-		parsed.StartDate, err = utility.ConvertToUTC(dto.StartDate, timezoneName)
+		parsed.StartDate, err = utility.ParseDate(dto.StartDate)
 		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid start date: %w", err), "invalid_date", "start_date")
+			return nil, utility.NewValidationError(
+				fmt.Errorf("invalid start date"),
+				"invalid_date",
+				"start_date",
+			)
 		}
 	}
 
 	if dto.EndDate != nil && *dto.EndDate != "" {
-		parsed.EndDate, err = utility.ConvertToUTC(*dto.EndDate, timezoneName)
+		parsed.EndDate, err = utility.ParseDate(*dto.EndDate)
 		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid end date: %w", err), "invalid_date", "end_date")
+			return nil, utility.NewValidationError(
+				fmt.Errorf("invalid end date"),
+				"invalid_date",
+				"end_date",
+			)
 		}
 	}
 
