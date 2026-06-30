@@ -354,6 +354,19 @@ func (bias *BusinessImpactAssessmentService) UpdateBIARating(id uint, currentUse
 		return err
 	}
 
+	if dto.RtoFromValue != nil && dto.RtoToValue != nil && *dto.RtoFromValue > *dto.RtoToValue {
+		return utility.NewValidationError(fmt.Errorf("rto_from_value must be less than or equal to rto_to_value"), "invalid_range", "rto_from_value")
+	}
+	if dto.MtpdFromValue != nil && dto.MtpdToValue != nil && *dto.MtpdFromValue > *dto.MtpdToValue {
+		return utility.NewValidationError(fmt.Errorf("mtpd_from_value must be less than or equal to mtpd_to_value"), "invalid_range", "mtpd_from_value")
+	}
+	if dto.RpoFromValue != nil && dto.RpoToValue != nil && *dto.RpoFromValue > *dto.RpoToValue {
+		return utility.NewValidationError(fmt.Errorf("rpo_from_value must be less than or equal to rpo_to_value"), "invalid_range", "rpo_from_value")
+	}
+	if dto.RspFromValue != nil && dto.RspToValue != nil && *dto.RspFromValue > *dto.RspToValue {
+		return utility.NewValidationError(fmt.Errorf("rsp_from_value must be less than or equal to rsp_to_value"), "invalid_range", "rsp_from_value")
+	}
+
 	oldData := map[string]interface{}{
 		"rto_from_value":  existing.RtoFromValue,
 		"rto_to_value":    existing.RtoToValue,
