@@ -569,6 +569,42 @@ func (biac *BusinessImpactAssessmentController) UpdateRecoveryObjective(c *gin.C
 	c.Status(http.StatusOK)
 }
 
+func (biac *BusinessImpactAssessmentController) UpdateBIARating(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	var dto businessContinuityDTOs.BusinessImpactAssessmentRatingFormDTO
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+
+	err = biac.service.UpdateBIARating(uint(id), currentUserID, dto)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+			return
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+		default:
+			utility.SendInternalErrResp(biac.db, c, e.Error())
+			return
+		}
+	}
+	c.Status(http.StatusOK)
+}
+
 func (biac *BusinessImpactAssessmentController) UpdateProcessCriticality(c *gin.Context) {
 	var businessImpactAssessmentProcessCriticalityFormDTO businessContinuityDTOs.BusinessImpactAssessmentProcessCriticalityFormDTO
 

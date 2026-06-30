@@ -73,6 +73,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	controlEffectivenessRatingController := app.OrganizationModule.ControlEffectivenessRatingController
 	controlStatusController := app.OrganizationModule.ControlStatusController
 	governanceSettingsController := app.OrganizationModule.GovernanceSettingsController
+	processDependencyTierController := app.OrganizationModule.ProcessDependencyTierController
+	processExternalDependencyEntityTypeController := app.OrganizationModule.ProcessExternalDependencyEntityTypeController
+	processInternalDependencyController := app.OrganizationModule.ProcessInternalDependencyController
+	processExternalDependencyController := app.OrganizationModule.ProcessExternalDependencyController
+	processEmployeeAnalysisController := app.OrganizationModule.ProcessEmployeeAnalysisController
 	// Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
 	organizationRoutes.POST("/designations/template/validate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.ValidateDesignationTemplate)
@@ -571,7 +576,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.PUT("/internal-committees/:committeeId/complete", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.CompleteInternalCommittee)
 
 	organizationRoutes.GET("/internal-committees/:committeeId/committee-formation/export-pdf", internalCommitteeController.ExportCommitteeFormationToPDF)
-	
+
 	// Internal Committee Participants
 	organizationRoutes.POST("/internal-committee-nominee-departments/:nomineeDepartmentId/participants", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.CreateInternalCommitteeParticipants)
 	organizationRoutes.DELETE("/internal-committee-nominee-departments/:nomineeDepartmentId/participants/:participantId", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.DeleteInternalCommitteeParticipant)
@@ -604,4 +609,39 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Control Status Master
 	organizationRoutes.GET("/control-statuses", controlStatusController.GetAllControlStatuses)
 	organizationRoutes.GET("/control-statuses/:id", controlStatusController.GetControlStatusDetails)
+
+	// Process Dependency Tiers
+	organizationRoutes.GET("/process-dependency-tiers", processDependencyTierController.GetAllProcessDependencyTiers)
+	organizationRoutes.GET("/process-dependency-tiers/:id", processDependencyTierController.GetProcessDependencyTierDetails)
+	organizationRoutes.POST("/process-dependency-tiers", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processDependencyTierController.CreateProcessDependencyTier)
+	organizationRoutes.PUT("/process-dependency-tiers/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processDependencyTierController.UpdateProcessDependencyTier)
+	organizationRoutes.POST("/process-dependency-tiers/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processDependencyTierController.DeleteProcessDependencyTiers)
+
+	// Process Internal Dependencies
+	organizationRoutes.GET("/processes/:processId/internal-dependencies", middlewares.RolePermissionMiddleware(db, "process", "view"), processInternalDependencyController.GetAllProcessInternalDependencies)
+	organizationRoutes.GET("/processes/:processId/internal-dependencies/:internalDependencyId", middlewares.RolePermissionMiddleware(db, "process", "view"), processInternalDependencyController.GetProcessInternalDependencyDetails)
+	organizationRoutes.POST("/processes/:processId/internal-dependencies", middlewares.RolePermissionMiddleware(db, "process", "modify"), processInternalDependencyController.CreateProcessInternalDependency)
+	organizationRoutes.PUT("/processes/:processId/internal-dependencies/:internalDependencyId", middlewares.RolePermissionMiddleware(db, "process", "modify"), processInternalDependencyController.UpdateProcessInternalDependency)
+	organizationRoutes.POST("/processes/:processId/internal-dependencies/delete", middlewares.RolePermissionMiddleware(db, "process", "modify"), processInternalDependencyController.DeleteProcessInternalDependencies)
+
+	// Process External Dependencies
+	organizationRoutes.GET("/processes/:processId/external-dependencies", middlewares.RolePermissionMiddleware(db, "process", "view"), processExternalDependencyController.GetAllProcessExternalDependencies)
+	organizationRoutes.GET("/processes/:processId/external-dependencies/:externalDependencyId", middlewares.RolePermissionMiddleware(db, "process", "view"), processExternalDependencyController.GetProcessExternalDependencyDetails)
+	organizationRoutes.POST("/processes/:processId/external-dependencies", middlewares.RolePermissionMiddleware(db, "process", "modify"), processExternalDependencyController.CreateProcessExternalDependency)
+	organizationRoutes.PUT("/processes/:processId/external-dependencies/:externalDependencyId", middlewares.RolePermissionMiddleware(db, "process", "modify"), processExternalDependencyController.UpdateProcessExternalDependency)
+	organizationRoutes.POST("/processes/:processId/external-dependencies/delete", middlewares.RolePermissionMiddleware(db, "process", "modify"), processExternalDependencyController.DeleteProcessExternalDependencies)
+
+	// Process External Dependency Entity Types
+	organizationRoutes.GET("/process-external-dependency-entity-types", processExternalDependencyEntityTypeController.GetAllProcessExternalDependencyEntityTypes)
+	organizationRoutes.GET("/process-external-dependency-entity-types/:id", processExternalDependencyEntityTypeController.GetProcessExternalDependencyEntityTypeDetails)
+	organizationRoutes.POST("/process-external-dependency-entity-types", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processExternalDependencyEntityTypeController.CreateProcessExternalDependencyEntityType)
+	organizationRoutes.PUT("/process-external-dependency-entity-types/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processExternalDependencyEntityTypeController.UpdateProcessExternalDependencyEntityType)
+	organizationRoutes.POST("/process-external-dependency-entity-types/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processExternalDependencyEntityTypeController.DeleteProcessExternalDependencyEntityTypes)
+
+	// Process Employee Analysis
+	organizationRoutes.GET("/processes/:processId/employee-analyses", middlewares.RolePermissionMiddleware(db, "process", "view"), processEmployeeAnalysisController.GetAllProcessEmployeeAnalyses)
+	organizationRoutes.GET("/processes/:processId/employee-analyses/:id", middlewares.RolePermissionMiddleware(db, "process", "view"), processEmployeeAnalysisController.GetProcessEmployeeAnalysisDetails)
+	organizationRoutes.POST("/processes/:processId/employee-analyses", middlewares.RolePermissionMiddleware(db, "process", "modify"), processEmployeeAnalysisController.CreateProcessEmployeeAnalysis)
+	organizationRoutes.PUT("/processes/:processId/employee-analyses/:id", middlewares.RolePermissionMiddleware(db, "process", "modify"), processEmployeeAnalysisController.UpdateProcessEmployeeAnalysis)
+	organizationRoutes.POST("/processes/:processId/employee-analyses/delete", middlewares.RolePermissionMiddleware(db, "process", "modify"), processEmployeeAnalysisController.DeleteProcessEmployeeAnalyses)
 }
