@@ -5,3 +5,11 @@ type AssetDeviceCategoryFormDTO struct {
 	TitleAr string `json:"title_ar" binding:"required,max=100"`
 	Status  string `json:"status" binding:"required,max=10,oneof=active inactive"`
 }
+
+type AssetDeviceCategoryDTO struct {
+	ID      uint   `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+	Status  string `json:"status"`
+	IsSystem bool  `json:"is_system"`
+}

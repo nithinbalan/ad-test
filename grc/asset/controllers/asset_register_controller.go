@@ -46,6 +46,15 @@ func (arc *AssetRegisterController) GetAllAssets(c *gin.Context) {
 			return
 		}
 	}
+	var isArchived *bool
+	if isArchivedStr := c.Query("is_archived"); isArchivedStr != "" {
+		parsedIsArchived, err := strconv.ParseBool(isArchivedStr)
+		if err != nil {
+			utility.SendInvalidErrResp(c, errors.New("invalid is_archived parameter"))
+			return
+		}
+		isArchived = &parsedIsArchived
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -114,6 +123,7 @@ func (arc *AssetRegisterController) GetAllAssets(c *gin.Context) {
 		AcquisitionDateFrom: acquisitionDateFrom,
 		AcquisitionDateTo:   acquisitionDateTo,
 		Export:              export,
+		IsArchived:          isArchived,
 	}
 
 	assets, err := arc.service.GetAll(&params)
@@ -335,6 +345,56 @@ func (arc *AssetRegisterController) DeleteForceAssets(c *gin.Context) {
 	}
 
 	failedIDs, err := arc.service.ForceDelete(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(arc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (arc *AssetRegisterController) ArchiveAssets(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(arc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := arc.service.Archive(request.IDs, currentUserID)
+	if err != nil {
+		utility.SendInternalErrResp(arc.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (arc *AssetRegisterController) UnarchiveAssets(c *gin.Context) {
+	var request struct {
+		IDs []uint `json:"ids"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(arc.db, c, err.Error())
+		return
+	}
+
+	failedIDs, err := arc.service.Unarchive(request.IDs, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(arc.db, c, err.Error())
 		return

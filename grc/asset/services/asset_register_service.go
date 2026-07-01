@@ -27,6 +27,8 @@ type AssetRegisterServiceInterface interface {
 	Update(id uint, assetForm *dtos.AssetRegisterFormDTO, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	ForceDelete(ids []uint, currentUserID uint) ([]uint, error)
+	Archive(ids []uint, currentUserID uint) ([]uint, error) 
+	Unarchive(ids []uint, currentUserID uint) ([]uint, error)
 
 	UpdateTotalScore(assetID uint, totalScore float64, tx ...utility.DatabaseTransaction) error
 	GetControlSummary(assetID uint) (map[string]interface{}, error)
@@ -37,17 +39,21 @@ type AssetRegisterServiceInterface interface {
 }
 
 type AssetRegisterService struct {
-	repo                                 repositories.AssetRegisterRepositoryInterface
-	activityLogSvc                       logServices.ActivityLogServiceInterface
-	assetTypeSvc                         AssetTypeServiceInterface
-	assetCategorySvc                     AssetCategoryServiceInterface
-	assetStatusSvc                       AssetStatusServiceInterface
-	userSvc                              organizationServices.UserServiceInterface
-	assetCriticalityMatrixRatingScaleSvc AssetCriticalityMatrixRatingScaleServiceInterface
-	assetCriticalityMatrixSvc            AssetCriticalityMatrixServiceInterface
-	userSettingSvc                       organizationServices.UserSettingServiceInterface
-	controlImplementationStatusSvc       organizationServices.ControlImplementationStatusServiceInterface
-	controlEfficiencyStatusSvc           organizationServices.ControlEfficiencyStatusServiceInterface
+	repo                                  repositories.AssetRegisterRepositoryInterface
+	activityLogSvc                        logServices.ActivityLogServiceInterface
+	assetTypeSvc                          AssetTypeServiceInterface
+	assetCategorySvc                      AssetCategoryServiceInterface
+	assetStatusSvc                        AssetStatusServiceInterface
+	userSvc                               organizationServices.UserServiceInterface
+	assetCriticalityMatrixRatingScaleSvc  AssetCriticalityMatrixRatingScaleServiceInterface
+	assetCriticalityMatrixSvc             AssetCriticalityMatrixServiceInterface
+	userSettingSvc                        organizationServices.UserSettingServiceInterface
+	controlImplementationStatusSvc        organizationServices.ControlImplementationStatusServiceInterface
+	controlEfficiencyStatusSvc            organizationServices.ControlEfficiencyStatusServiceInterface
+	assetDeviceCategorySvc                AssetDeviceCategoryServiceInterface
+	assetCriticalityMatrixFactorRatingSvc AssetCriticalityMatrixFactorRatingServiceInterface
+	confidentialityClassificationSvc      ConfidentialityClassificationServiceInterface
+	assetEnvironmentSvc                   AssetEnvironmentServiceInterface
 }
 
 func NewAssetRegisterService(
@@ -62,19 +68,27 @@ func NewAssetRegisterService(
 	userSettingSvc organizationServices.UserSettingServiceInterface,
 	controlImplementationStatusSvc organizationServices.ControlImplementationStatusServiceInterface,
 	controlEfficiencyStatusSvc organizationServices.ControlEfficiencyStatusServiceInterface,
+	assetDeviceCategorySvc AssetDeviceCategoryServiceInterface,
+	assetCriticalityMatrixFactorRatingSvc AssetCriticalityMatrixFactorRatingServiceInterface,
+	confidentialityClassificationSvc ConfidentialityClassificationServiceInterface,
+	assetEnvironmentSvc AssetEnvironmentServiceInterface,
 ) AssetRegisterServiceInterface {
 	return &AssetRegisterService{
-		repo:                                 repo,
-		activityLogSvc:                       activityLogSvc,
-		assetTypeSvc:                         assetTypeSvc,
-		assetCategorySvc:                     assetCategorySvc,
-		assetStatusSvc:                       assetStatusSvc,
-		userSvc:                              userSvc,
-		assetCriticalityMatrixRatingScaleSvc: assetCriticalityMatrixRatingScaleSvc,
-		assetCriticalityMatrixSvc:            assetCriticalityMatrixSvc,
-		userSettingSvc:                       userSettingSvc,
-		controlImplementationStatusSvc:       controlImplementationStatusSvc,
-		controlEfficiencyStatusSvc:           controlEfficiencyStatusSvc,
+		repo:                                  repo,
+		activityLogSvc:                        activityLogSvc,
+		assetTypeSvc:                          assetTypeSvc,
+		assetCategorySvc:                      assetCategorySvc,
+		assetStatusSvc:                        assetStatusSvc,
+		userSvc:                               userSvc,
+		assetCriticalityMatrixRatingScaleSvc:  assetCriticalityMatrixRatingScaleSvc,
+		assetCriticalityMatrixSvc:             assetCriticalityMatrixSvc,
+		userSettingSvc:                        userSettingSvc,
+		controlImplementationStatusSvc:        controlImplementationStatusSvc,
+		controlEfficiencyStatusSvc:            controlEfficiencyStatusSvc,
+		assetDeviceCategorySvc:                assetDeviceCategorySvc,
+		assetCriticalityMatrixFactorRatingSvc: assetCriticalityMatrixFactorRatingSvc,
+		confidentialityClassificationSvc:      confidentialityClassificationSvc,
+		assetEnvironmentSvc:                   assetEnvironmentSvc,
 	}
 }
 
@@ -120,6 +134,18 @@ func (as *AssetRegisterService) GetFullDetailsByID(id uint, tx ...utility.Databa
 	if asset.WarrantyExpiryDate != nil {
 		warrantyExpiryDateString := asset.WarrantyExpiryDate.Format("2006-01-02")
 		assetDetailDTO.WarrantyExpiryDateString = &warrantyExpiryDateString
+	}
+		if asset.InventoryTime != nil {
+		inventoryTimeString := asset.InventoryTime.Format("2006-01-02T15:04:05")
+		assetDetailDTO.InventoryTimeString = &inventoryTimeString
+	}
+	if asset.DiscoveryTime != nil {
+		discoveryTimeString := asset.DiscoveryTime.Format("2006-01-02T15:04:05")
+		assetDetailDTO.DiscoveryTimeString = &discoveryTimeString
+	}
+	if asset.LastResponseTime != nil {
+		lastResponseTimeString := asset.LastResponseTime.Format("2006-01-02T15:04:05")
+		assetDetailDTO.LastResponseTimeString = &lastResponseTimeString
 	}
 	// Add additional fields as necessary for the details screen
 	// For example, setting relationship data or additional fields as required by the DTO
@@ -180,7 +206,25 @@ func (ars *AssetRegisterService) Create(assetRegisterFormDTO *dtos.AssetRegister
 		Manufacturer:             assetRegisterFormDTO.Manufacturer,
 		Model:                    assetRegisterFormDTO.Model,
 		SerialNumber:             assetRegisterFormDTO.SerialNumber,
-		CreatedBYID:              currentUserID,
+
+		TechnicalOwnerID:                assetRegisterFormDTO.TechnicalOwnerID,
+		AdministrativeOwnerID:           assetRegisterFormDTO.AdministrativeOwnerID,
+		Hostname:                        assetRegisterFormDTO.Hostname,
+		IPAddress:                       assetRegisterFormDTO.IPAddress,
+		MACAddress:                      assetRegisterFormDTO.MACAddress,
+		FQDN:                            assetRegisterFormDTO.FQDN,
+		DeviceCategoryID:                assetRegisterFormDTO.DeviceCategoryID,
+		CriticalityClassificationID:     assetRegisterFormDTO.CriticalityClassificationID,
+		ConfidentialityClassificationID: assetRegisterFormDTO.ConfidentialityClassificationID,
+		Region:                          assetRegisterFormDTO.Region,
+		AssignedUserID:                  assetRegisterFormDTO.AssignedUserID,
+		OperatingSystem:                 assetRegisterFormDTO.OperatingSystem,
+		AssetEnvironmentID:              assetRegisterFormDTO.AssetEnvironmentID,
+		InventoryTime:                   dates.InventoryTime,
+		DiscoveryTime:                   dates.DiscoveryTime,
+		LastResponseTime:                dates.LastResponseTime,
+		IsArchived:                      false,
+		CreatedBYID:                     currentUserID,
 	}
 
 	assetID, err := ars.repo.Create(asset, tx)
@@ -319,6 +363,24 @@ func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.Asse
 	existingAsset.Manufacturer = assetRegisterFormDTO.Manufacturer
 	existingAsset.Model = assetRegisterFormDTO.Model
 	existingAsset.SerialNumber = assetRegisterFormDTO.SerialNumber
+
+	existingAsset.TechnicalOwnerID = assetRegisterFormDTO.TechnicalOwnerID
+	existingAsset.AdministrativeOwnerID = assetRegisterFormDTO.AdministrativeOwnerID
+	existingAsset.Hostname = assetRegisterFormDTO.Hostname
+	existingAsset.IPAddress = assetRegisterFormDTO.IPAddress
+	existingAsset.MACAddress = assetRegisterFormDTO.MACAddress
+	existingAsset.FQDN = assetRegisterFormDTO.FQDN
+	existingAsset.DeviceCategoryID = assetRegisterFormDTO.DeviceCategoryID
+	existingAsset.CriticalityClassificationID = assetRegisterFormDTO.CriticalityClassificationID
+	existingAsset.ConfidentialityClassificationID = assetRegisterFormDTO.ConfidentialityClassificationID
+	existingAsset.Region = assetRegisterFormDTO.Region
+	existingAsset.AssignedUserID = assetRegisterFormDTO.AssignedUserID
+	existingAsset.OperatingSystem = assetRegisterFormDTO.OperatingSystem
+	existingAsset.AssetEnvironmentID = assetRegisterFormDTO.AssetEnvironmentID
+	existingAsset.InventoryTime = dates.InventoryTime
+	existingAsset.DiscoveryTime = dates.DiscoveryTime
+	existingAsset.LastResponseTime = dates.LastResponseTime
+
 	existingAsset.UpdatedBYID = &currentUserID
 
 	err = ars.repo.Update(existingAsset, tx)
@@ -434,6 +496,12 @@ func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.Asse
 			"asset_status":       oldAssetRegister.AssetStatus.TitleEn,
 			"location":           oldAssetRegister.Location,
 			"acquisition_date":   oldAssetRegister.AcquisitionDateString,
+			"hostname":           oldAssetRegister.Hostname,
+			"ip_address":         oldAssetRegister.IPAddress,
+			"mac_address":        oldAssetRegister.MACAddress,
+			"fqdn":               oldAssetRegister.FQDN,
+			"region":             oldAssetRegister.Region,
+			"operating_system":   oldAssetRegister.OperatingSystem,
 		}
 
 		newData := map[string]interface{}{
@@ -446,6 +514,12 @@ func (ars *AssetRegisterService) Update(id uint, assetRegisterFormDTO *dtos.Asse
 			"asset_status":       existingAsset.AssetStatus.TitleEn,
 			"location":           existingAsset.Location,
 			"acquisition_date":   existingAsset.AcquisitionDateString,
+			"hostname":           existingAsset.Hostname,
+			"ip_address":         existingAsset.IPAddress,
+			"mac_address":        existingAsset.MACAddress,
+			"fqdn":               existingAsset.FQDN,
+			"region":             existingAsset.Region,
+			"operating_system":   existingAsset.OperatingSystem,
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
@@ -611,6 +685,47 @@ func (ars *AssetRegisterService) validateAssetRegisterFormDTO(assetRegisterFormD
 	if _, err := ars.assetStatusSvc.GetByID(uint(assetRegisterFormDTO.AssetStatusID)); err != nil {
 		return utility.NewValidationError(fmt.Errorf("asset status does not exist"), "not_exist", "asset status")
 	}
+	if assetRegisterFormDTO.TechnicalOwnerID != nil {
+		if _, err := ars.userSvc.GetByID(*assetRegisterFormDTO.TechnicalOwnerID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("technical owner does not exist"), "not_exist", "technical_owner")
+		}
+	}
+
+	if assetRegisterFormDTO.AdministrativeOwnerID != nil {
+		if _, err := ars.userSvc.GetByID(*assetRegisterFormDTO.AdministrativeOwnerID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("administrative owner does not exist"), "not_exist", "administrative_owner")
+		}
+	}
+
+	if assetRegisterFormDTO.AssignedUserID != nil {
+		if _, err := ars.userSvc.GetByID(*assetRegisterFormDTO.AssignedUserID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("assigned user does not exist"), "not_exist", "assigned_user")
+		}
+	}
+
+	if assetRegisterFormDTO.DeviceCategoryID != nil {
+		if _, err := ars.assetDeviceCategorySvc.GetByID(*assetRegisterFormDTO.DeviceCategoryID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("device category does not exist"), "not_exist", "device_category")
+		}
+	}
+
+	if assetRegisterFormDTO.CriticalityClassificationID != nil {
+		if _, err := ars.assetCriticalityMatrixFactorRatingSvc.GetByID(0, *assetRegisterFormDTO.CriticalityClassificationID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("criticality classification does not exist"), "not_exist", "criticality_classification")
+		}
+	}
+
+	if assetRegisterFormDTO.ConfidentialityClassificationID != nil {
+		if _, err := ars.confidentialityClassificationSvc.GetByID(*assetRegisterFormDTO.ConfidentialityClassificationID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("confidentiality classification does not exist"), "not_exist", "confidentiality_classification")
+		}
+	}
+
+	if assetRegisterFormDTO.AssetEnvironmentID != nil {
+		if _, err := ars.assetEnvironmentSvc.GetByID(*assetRegisterFormDTO.AssetEnvironmentID); err != nil {
+			return utility.NewValidationError(fmt.Errorf("asset environment does not exist"), "not_exist", "asset_environment")
+		}
+	}
 
 	return nil
 }
@@ -637,6 +752,27 @@ func (ars *AssetRegisterService) parseAssetRegisterDates(assetRegisterFormDTO *d
 		parsed.WarrantyExpiryDate, err = utility.ParseDate(*assetRegisterFormDTO.WarrantyExpiryDate)
 		if err != nil {
 			return nil, utility.NewValidationError(fmt.Errorf("invalid warranty expiry date"), "invalid_date", "warranty_expiry_date")
+		}
+	}
+
+	if assetRegisterFormDTO.InventoryTime != nil {
+		parsed.InventoryTime, err = utility.ParseDateTime(*assetRegisterFormDTO.InventoryTime)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid inventory time"), "invalid_date", "inventory_time")
+		}
+	}
+
+	if assetRegisterFormDTO.DiscoveryTime != nil {
+		parsed.DiscoveryTime, err = utility.ParseDateTime(*assetRegisterFormDTO.DiscoveryTime)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid discovery time"), "invalid_date", "discovery_time")
+		}
+	}
+
+	if assetRegisterFormDTO.LastResponseTime != nil {
+		parsed.LastResponseTime, err = utility.ParseDateTime(*assetRegisterFormDTO.LastResponseTime)
+		if err != nil {
+			return nil, utility.NewValidationError(fmt.Errorf("invalid last response time"), "invalid_date", "last_response_time")
 		}
 	}
 
@@ -867,4 +1003,104 @@ func (ars *AssetRegisterService) ForceDelete(ids []uint, currentUserID uint) ([]
 	}()
 
 	return nil, nil
+}
+
+func (ars *AssetRegisterService) Archive(ids []uint, currentUserID uint) ([]uint, error) {
+	var failedIds []uint
+	var successfulIds []uint
+	var archivedAssetRegister []map[string]interface{}
+
+	tx := ars.repo.BeginTransaction()
+
+	for _, id := range ids {
+		asset, err := ars.GetFullDetailsByID(id)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		err = ars.repo.Archive(id, tx)
+		if err != nil {
+			tx.Rollback()
+			failedIds = append(failedIds, id)
+		} else {
+			successfulIds = append(successfulIds, id)
+		}
+
+		archivedAssetRegister = append(archivedAssetRegister, map[string]interface{}{
+			"id":       id,
+			"title_en": asset.TitleEn,
+			"title_ar": asset.TitleAr,
+		})
+	}
+
+	tx.Commit()
+
+	if len(successfulIds) > 0 {
+		go func() {
+			err := ars.activityLogSvc.LogBulkActivities(
+				models.ArchiveAction,
+				models.AssetRegister{}.TableName(),
+				successfulIds,
+				archivedAssetRegister,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fmt.Printf("Failed to log bulk archive activity: %v\n", err)
+			}
+		}()
+	}
+
+	return failedIds, nil
+}
+
+func (ars *AssetRegisterService) Unarchive(ids []uint, currentUserID uint) ([]uint, error) {
+	var failedIds []uint
+	var successfulIds []uint
+	var unarchivedAssetRegister []map[string]interface{}
+
+	tx := ars.repo.BeginTransaction()
+
+	for _, id := range ids {
+		asset, err := ars.GetFullDetailsByID(id)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		err = ars.repo.Unarchive(id, tx)
+		if err != nil {
+			tx.Rollback()
+			failedIds = append(failedIds, id)
+		} else {
+			successfulIds = append(successfulIds, id)
+		}
+
+		unarchivedAssetRegister = append(unarchivedAssetRegister, map[string]interface{}{
+			"id":       id,
+			"title_en": asset.TitleEn,
+			"title_ar": asset.TitleAr,
+		})
+	}
+
+	tx.Commit()
+
+	if len(successfulIds) > 0 {
+		go func() {
+			err := ars.activityLogSvc.LogBulkActivities(
+				models.UnarchiveAction,
+				models.AssetRegister{}.TableName(),
+				successfulIds,
+				unarchivedAssetRegister,
+				currentUserID,
+				nil,
+			)
+			if err != nil {
+				fmt.Printf("Failed to log bulk unarchive activity: %v\n", err)
+			}
+		}()
+	}
+
+	return failedIds, nil
 }
