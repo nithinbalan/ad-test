@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE asset_enviornments (
+CREATE TABLE asset_environments (
     id INT PRIMARY KEY IDENTITY(1, 1),
     title_en NVARCHAR(100) NOT NULL,
     title_ar NVARCHAR(100) NOT NULL,
@@ -13,5 +13,5 @@ CREATE TABLE asset_enviornments (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE asset_enviornments;
+DROP TABLE asset_environments;
 -- +goose StatementEnd

@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-INSERT INTO asset_enviornments (
+INSERT INTO asset_environments (
     title_en,
     title_ar,
     type
@@ -14,5 +14,5 @@ VALUES
 
 -- +goose Down
 -- +goose StatementBegin
-DELETE FROM asset_enviornments;
+DELETE FROM asset_environments;
 -- +goose StatementEnd
