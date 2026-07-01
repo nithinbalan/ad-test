@@ -52,6 +52,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	systemRegisterDisruptionLevelController := app.AssetModule.SystemRegisterDisruptionLevelController
 	systemRegisterServiceImportanceController := app.AssetModule.SystemRegisterServiceImportanceController
 	systemRegisterController := app.AssetModule.SystemRegisterController
+	assetDeviceCategoryController := app.AssetModule.AssetDeviceCategoryController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -372,4 +373,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/system-registers/delete", middlewares.RolePermissionMiddleware(db, "system_register", "modify"), systemRegisterController.DeleteSystemRegisters)
 	assetRoutes.GET("/system-registers/export", middlewares.RolePermissionMiddleware(db, "system_register", "view"), systemRegisterController.GetSystemRegistersExport)
 
+	// Asset Device Category
+	assetRoutes.GET("/asset-device-categories", assetDeviceCategoryController.GetAllAssetDeviceCategories)
+	assetRoutes.GET("/asset-device-categories/:id", assetDeviceCategoryController.GetAssetDeviceCategoryDetails)
+	assetRoutes.POST("/asset-device-categories", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetDeviceCategoryController.CreateAssetDeviceCategory)
+	assetRoutes.PUT("/asset-device-categories/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetDeviceCategoryController.UpdateAssetDeviceCategory)
+	assetRoutes.POST("/asset-device-categories/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetDeviceCategoryController.DeleteAssetDeviceCategories)
+	assetRoutes.PUT("/asset-device-categories/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetDeviceCategoryController.ActivateAssetDeviceCategories)
+	assetRoutes.PUT("/asset-device-categories/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetDeviceCategoryController.DeactivateAssetDeviceCategories)
 }

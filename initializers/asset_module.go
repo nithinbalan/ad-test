@@ -43,6 +43,7 @@ type AssetModule struct {
 	TenableController                             *controllers.TenableController
 	SystemRegisterDisruptionLevelController       *controllers.SystemRegisterDisruptionLevelController
 	SystemRegisterServiceImportanceController     *controllers.SystemRegisterServiceImportanceController
+	AssetDeviceCategoryController                 *controllers.AssetDeviceCategoryController
 	SystemRegisterController                      *controllers.SystemRegisterController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
@@ -280,6 +281,10 @@ func NewAssetModule(db *gorm.DB,
 	)
 	systemRegisterController := controllers.NewSystemRegisterController(systemRegisterSvc)
 
+	assetDeviceCategoryRepo := repositories.NewAssetDeviceCategoryRepository(db)
+	assetDeviceCategorySvc := services.NewAssetDeviceCategoryService(assetDeviceCategoryRepo, sharedModule.ActivityLogService)
+	assetDeviceCategoryController := controllers.NewAssetDeviceCategoryController(assetDeviceCategorySvc)	
+
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
 		AssetCategoryController:                       assetCategoryController,
@@ -316,6 +321,7 @@ func NewAssetModule(db *gorm.DB,
 		SystemRegisterDisruptionLevelController:       systemRegisterDisruptionLevelController,
 		SystemRegisterServiceImportanceController:     systemRegisterServiceImportanceController,
 		SystemRegisterController:                      systemRegisterController,
+		AssetDeviceCategoryController:                 assetDeviceCategoryController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}
