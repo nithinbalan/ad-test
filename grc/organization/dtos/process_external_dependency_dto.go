@@ -17,6 +17,10 @@ type ProcessExternalDependencyListDTO struct {
 	DependencyTierTitleAr       *string `json:"dependency_tier_title_ar"`
 	NeededSupportDescription    *string `json:"needed_support_description"`
 	VendorRTO                   *int    `json:"vendor_rto"`
+	SLARegisterID               *uint   `json:"sla_register_id"`
+	SLARegisterTitleEn          *string `json:"sla_register_title_en"`
+	SLARegisterTitleAr          *string `json:"sla_register_title_ar"`
+	InternalStakeholder         *string `json:"internal_stakeholder"`
 	VendorRTOUnitID             *uint   `json:"vendor_rto_unit_id"`
 	VendorRTOUnitTitleEn        *string `json:"vendor_rto_unit_title_en"`
 	VendorRTOUnitTitleAr        *string `json:"vendor_rto_unit_title_ar"`
@@ -53,7 +57,7 @@ type ProcessExternalDependencyDetailDTO struct {
 	NeededSupportDescription *string                                 `json:"needed_support_description"`
 	DependencyTierID         *uint                                   `json:"dependency_tier_id"`
 	DependencyTier           *ProcessDependencyTierDTO               `json:"dependency_tier"`
-	SLARegisterID            *uint                                   `json:"sla_register_id"`
+	SLARegister              *SLADetailDTO                           `json:"sla_register"`
 	VendorRTO                *int                                    `json:"vendor_rto"`
 	VendorRTOUnit            *BusinessContinuityDurationUnitDTO      `json:"vendor_rto_unit"`
 	InternalStakeholder      *string                                 `json:"internal_stakeholder"`
@@ -88,4 +92,12 @@ type ProcessExternalDependencyListQueryParamsDTO struct {
 type ProcessExternalDependencyListResponseDTO struct {
 	Items      []*ProcessExternalDependencyListDTO `json:"items"`
 	Pagination commonDTOs.PaginationInfoDTO        `json:"pagination"`
+}
+
+type SLADetailDTO struct {
+	ID              uint    `json:"id"`
+	ReferenceNumber string  `json:"reference_number"`
+	TitleEn         string  `json:"title_en"`
+	TitleAr         string  `json:"title_ar"`
+	Description     *string `json:"description,omitempty"`
 }

@@ -46,6 +46,10 @@ func (repo *ProcessExternalDependencyRepository) GetAll(processID uint, params *
 			process_external_dependencies.vendor_rto_unit_id,
 			vendor_rto_unit.title_en AS vendor_rto_unit_title_en,
 			vendor_rto_unit.title_ar AS vendor_rto_unit_title_ar,
+			process_external_dependencies.sla_register_id,
+			sla_register.title_en AS sla_register_title_en,
+			sla_register.title_ar AS sla_register_title_ar,
+			process_external_dependencies.internal_stakeholder,
 			process_external_dependencies.contact_number,
 			process_external_dependencies.contact_email,
 			process_external_dependencies.created_by_id,
@@ -76,6 +80,7 @@ func (repo *ProcessExternalDependencyRepository) GetAll(processID uint, params *
 		Joins(`LEFT JOIN business_continuity_duration_units AS vendor_rto_unit ON vendor_rto_unit.id = process_external_dependencies.vendor_rto_unit_id`).
 		Joins(`LEFT JOIN users AS created_user ON created_user.id = process_external_dependencies.created_by_id`).
 		Joins(`LEFT JOIN users AS updated_user ON updated_user.id = process_external_dependencies.updated_by_id`).
+		Joins(`LEFT JOIN sla_register ON sla_register.id = process_external_dependencies.sla_register_id`).
 		Where("process_external_dependencies.process_id = ?", processID)
 
 	if params.Keyword != "" {
@@ -84,8 +89,11 @@ func (repo *ProcessExternalDependencyRepository) GetAll(processID uint, params *
 			process_external_dependencies.entity_name LIKE ? OR
 			entity_type.title_en LIKE ? OR
 			process_dependency_tiers.title_en LIKE ? OR
-			process_external_dependencies.needed_support_description LIKE ?
-		`, keyword, keyword, keyword, keyword)
+			process_external_dependencies.needed_support_description LIKE ? OR
+			sla_register.title_en LIKE ? OR
+			sla_register.title_ar LIKE ? OR
+			process_external_dependencies.internal_stakeholder LIKE ?
+		`, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -132,6 +140,7 @@ func (repo *ProcessExternalDependencyRepository) GetFullDetailsByID(id uint) (*m
 		Preload("Process").
 		Preload("EntityType").
 		Preload("DependencyTier").
+		Preload("SLARegister").
 		Preload("VendorRTOUnit").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
