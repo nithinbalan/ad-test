@@ -43,7 +43,10 @@ type AssetModule struct {
 	TenableController                             *controllers.TenableController
 	SystemRegisterDisruptionLevelController       *controllers.SystemRegisterDisruptionLevelController
 	SystemRegisterServiceImportanceController     *controllers.SystemRegisterServiceImportanceController
+	AssetDeviceCategoryController                 *controllers.AssetDeviceCategoryController
 	SystemRegisterController                      *controllers.SystemRegisterController
+	ConfidentialityClassificationController       *controllers.ConfidentialityClassificationController
+	AssetEnvironmentController                    *controllers.AssetEnvironmentController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -280,6 +283,18 @@ func NewAssetModule(db *gorm.DB,
 	)
 	systemRegisterController := controllers.NewSystemRegisterController(systemRegisterSvc)
 
+	assetDeviceCategoryRepo := repositories.NewAssetDeviceCategoryRepository(db)
+	assetDeviceCategorySvc := services.NewAssetDeviceCategoryService(assetDeviceCategoryRepo, sharedModule.ActivityLogService)
+	assetDeviceCategoryController := controllers.NewAssetDeviceCategoryController(assetDeviceCategorySvc)
+
+	confidentialityClassificationRepo := repositories.NewConfidentialityClassificationRepository(db)
+	confidentialityClassificationSvc := services.NewConfidentialityClassificationService(confidentialityClassificationRepo)
+	confidentialityClassificationController := controllers.NewConfidentialityClassificationController(confidentialityClassificationSvc)	
+
+	assetEnvironmentRepo := repositories.NewAssetEnvironmentRepository(db)
+	assetEnvironmentSvc := services.NewAssetEnvironmentService(assetEnvironmentRepo)
+	assetEnvironmentController := controllers.NewAssetEnvironmentController(assetEnvironmentSvc)
+
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
 		AssetCategoryController:                       assetCategoryController,
@@ -316,7 +331,11 @@ func NewAssetModule(db *gorm.DB,
 		SystemRegisterDisruptionLevelController:       systemRegisterDisruptionLevelController,
 		SystemRegisterServiceImportanceController:     systemRegisterServiceImportanceController,
 		SystemRegisterController:                      systemRegisterController,
+		AssetDeviceCategoryController:                 assetDeviceCategoryController,
+		ConfidentialityClassificationController:       confidentialityClassificationController,
+		AssetEnvironmentController:                    assetEnvironmentController,
 
 		AssetRegisterSvc: assetRegisterSvc,
+		
 	}
 }
