@@ -238,6 +238,10 @@
 {
   "id": "register_not_approved",
   "translation": "Compliance register must be approved before creating assessment"
+},
+{
+  "id": "bucket_range",
+  "translation": "Impact level must be non-decreasing across outage bucket intervals"
 }
 
 

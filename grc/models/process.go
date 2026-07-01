@@ -86,6 +86,8 @@ type Process struct {
 	ProcessExecutionRecords     []*ProcessExecutionRecord     `gorm:"foreignKey:ProcessID"`
 	ProcessManualProcedureForms []*ProcessManualProcedureForm `gorm:"foreignKey:ProcessID"`
 	ProcessSystemRegister       *ProcessSystemRegister        `gorm:"foreignKey:ProcessID"`
+	ProcessEmployeeAnalysis     []*ProcessEmployeeAnalysis    `gorm:"foreignKey:ProcessID"`
+	BCMStaffAllocations         []*BCMStaffAllocation         `gorm:"foreignKey:ProcessID"`
 }
 
 func (Process) TableName() string {

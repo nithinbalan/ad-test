@@ -51,6 +51,7 @@ type BusinessImpactAssessmentService struct {
 	bcmBiaImpactLevelSvc      BCMBIAImpactLevelServiceInterface
 	bcmBiaOutageBucketSvc     BCMBIAOutageBucketServiceInterface
 	bcmImpactAnalysisLevelSvc BCMImpactAnalysisLevelServiceInterface
+	bcmStaffAllocationSvc     BCMStaffAllocationServiceInterface
 }
 
 func NewBusinessImpactAssessmentService(
@@ -67,6 +68,7 @@ func NewBusinessImpactAssessmentService(
 	bcmBiaImpactLevelSvc BCMBIAImpactLevelServiceInterface,
 	bcmBiaOutageBucketSvc BCMBIAOutageBucketServiceInterface,
 	bcmImpactAnalysisLevelSvc BCMImpactAnalysisLevelServiceInterface,
+	bcmStaffAllocationSvc BCMStaffAllocationServiceInterface,
 ) BusinessImpactAssessmentServiceInterface {
 	return &BusinessImpactAssessmentService{
 		repo:                      repo,
@@ -82,6 +84,7 @@ func NewBusinessImpactAssessmentService(
 		bcmBiaImpactLevelSvc:      bcmBiaImpactLevelSvc,
 		bcmBiaOutageBucketSvc:     bcmBiaOutageBucketSvc,
 		bcmImpactAnalysisLevelSvc: bcmImpactAnalysisLevelSvc,
+		bcmStaffAllocationSvc:     bcmStaffAllocationSvc,
 	}
 }
 
@@ -197,7 +200,19 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 			})
 		}
 
-		// Delete existing BusinessImpactAssessments and their analysis records
+		// Delete existing analysis records explicitly before deleting parent assessments
+		if err := bias.repo.DeleteBusinessImpactAssessmentAnalysisByProcessID(*businessImpactAssessmentFormDTO.ProcessID, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// Delete existing staff allocations for this process
+		if err := bias.bcmStaffAllocationSvc.DeleteByProcessID(*businessImpactAssessmentFormDTO.ProcessID, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// Delete existing BusinessImpactAssessments
 		if err := bias.repo.DeleteImpactAssessmentsByProcessID(*businessImpactAssessmentFormDTO.ProcessID, tx); err != nil {
 			tx.Rollback()
 			return err
@@ -312,6 +327,16 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 
 	tx.Commit()
 
+	// Auto-generate staff allocations when process is critical (OverallImpactLevelID is not non_applicable)
+	if businessImpactAssessmentFormDTO.ProcessID != nil && businessImpactAssessmentFormDTO.OverallImpactLevelID != nil {
+		nonApplicableLevel, naErr := bias.bcmImpactAnalysisLevelSvc.GetByType("non_applicable")
+		if naErr == nil && nonApplicableLevel != nil && *businessImpactAssessmentFormDTO.OverallImpactLevelID != nonApplicableLevel.ID {
+			if err := bias.bcmStaffAllocationSvc.GenerateAllocations(*businessImpactAssessmentFormDTO.ProcessID, currentUserID); err != nil {
+				return err
+			}
+		}
+	}
+
 	go func() {
 		changedData := make(map[string]interface{})
 		if len(oldBusinessImpactAssessment) > 0 || len(existingBusinessImpactAssessment) > 0 {
@@ -386,7 +411,7 @@ func (bias *BusinessImpactAssessmentService) validateNonDecreasingImpact(assessm
 			if items[i].score < items[i-1].score {
 				return utility.NewValidationError(
 					fmt.Errorf("impact level must be non-decreasing across outage bucket intervals"),
-					"invalid_range",
+					"bucket_range",
 					"impact_analysis_level_id",
 				)
 			}
@@ -652,7 +677,19 @@ func (bias *BusinessImpactAssessmentService) Delete(ids []uint, currentUserID ui
 			return nil, err
 		}
 
-		// Delete BusinessImpactAssessments (child BusinessImpactAssessmentAnalysis will be auto-deleted by CASCADE)
+		// Delete staff allocations
+		if err := bias.bcmStaffAllocationSvc.DeleteByProcessID(id, tx); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		// Delete BusinessImpactAssessmentAnalysis explicitly before parent
+		if err := bias.repo.DeleteBusinessImpactAssessmentAnalysisByProcessID(id, tx); err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		// Delete BusinessImpactAssessments
 		if err := bias.repo.DeleteImpactAssessmentsByProcessID(id, tx); err != nil {
 			tx.Rollback()
 			return nil, err

@@ -48,6 +48,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	bcmExecutionRecordController := app.BusinessContinuityModule.BCMExecutionRecordController
 	bcmProcessTypeController := app.BusinessContinuityModule.BCMProcessTypeController
 	bcmManualProcedureFormController := app.BusinessContinuityModule.BCMManualProcedureFormController
+	bcmStaffAllocationController := app.BusinessContinuityModule.BCMStaffAllocationController
 	// businessfunctionAssociatedItemController := app.BusinessContinuityModule.BusinessFunctionAssociateItemController
 
 	// bcp phase
@@ -307,5 +308,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.GET("/bcm-bia-impact-levels", bcmBiaImpactLevelController.GetAllBCMBIAImpactLevels)
 	businessContinuityRoutes.GET("/bcm-bia-impact-levels/:id", bcmBiaImpactLevelController.GetBCMBIAImpactLevelFullDetails)
 	businessContinuityRoutes.GET("/bcm-bia-impact-levels/analysis-level/:analysisLevelId", bcmBiaImpactLevelController.GetBCMBIAImpactLevelByImpactAnalysisLevelID)
+
+	// Staff Allocations (auto-generated, user updates is_remote per slot)
+	businessContinuityRoutes.GET("/bia/processes/:processId/staff-allocations", middlewares.RolePermissionMiddleware(db, "bia", "view"), bcmStaffAllocationController.GetFullDetailsByProcessID)
+	businessContinuityRoutes.PUT("/bia/processes/:processId/staff-allocations", middlewares.RolePermissionMiddleware(db, "bia", "modify"), bcmStaffAllocationController.UpdateAllocation)
 
 }
