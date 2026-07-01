@@ -18,6 +18,8 @@ type ProcessEmployeeAnalysisRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 	CreateEmployee(employee *models.ProcessEmployeeAnalysisEmployee, tx ...utility.DatabaseTransaction) error
 	DeleteEmployeesByAnalysisID(analysisID uint, tx ...utility.DatabaseTransaction) error
+	CreateEmployeeTool(tool *models.ProcessEmployeeAnalysisEmployeeTool, tx ...utility.DatabaseTransaction) error
+	DeleteToolsByEmployeeIDs(employeeIDs []uint, tx ...utility.DatabaseTransaction) error
 	BeginTransaction() utility.DatabaseTransaction
 }
 
@@ -133,7 +135,11 @@ func (repo *ProcessEmployeeAnalysisRepository) populateEmployeeAnalysisListAssoc
 	}
 
 	var employees []*models.ProcessEmployeeAnalysisEmployee
-	if err := repo.db.Where("process_employee_analysis_id IN ?", analysisIDs).Preload("User").Find(&employees).Error; err != nil {
+	if err := repo.db.Where("process_employee_analysis_id IN ?", analysisIDs).
+		Preload("User").
+		Preload("Tools").
+		Preload("Tools.EquipmentTool").
+		Find(&employees).Error; err != nil {
 		return err
 	}
 
@@ -141,6 +147,26 @@ func (repo *ProcessEmployeeAnalysisRepository) populateEmployeeAnalysisListAssoc
 	for _, emp := range employees {
 		if emp == nil || emp.User == nil {
 			continue
+		}
+		var toolDTOs []orgDTOs.ProcessEmployeeAnalysisEmployeeToolDTO
+		for _, t := range emp.Tools {
+			toolDTO := orgDTOs.ProcessEmployeeAnalysisEmployeeToolDTO{
+				ID:       t.ID,
+				IsHas:    t.IsHas,
+				IsNeeded: t.IsNeeded,
+			}
+			if t.EquipmentTool != nil {
+				toolDTO.EquipmentTool = orgDTOs.ProcessEquipmentToolDTO{
+					ID:      t.EquipmentTool.ID,
+					TitleEn: t.EquipmentTool.TitleEn,
+					TitleAr: t.EquipmentTool.TitleAr,
+					Status:  t.EquipmentTool.Status,
+				}
+			}
+			toolDTOs = append(toolDTOs, toolDTO)
+		}
+		if toolDTOs == nil {
+			toolDTOs = []orgDTOs.ProcessEmployeeAnalysisEmployeeToolDTO{}
 		}
 		employeeMap[emp.ProcessEmployeeAnalysisID] = append(employeeMap[emp.ProcessEmployeeAnalysisID], orgDTOs.ProcessEmployeeAnalysisEmployeeDTO{
 			ID:                        emp.ID,
@@ -157,6 +183,7 @@ func (repo *ProcessEmployeeAnalysisRepository) populateEmployeeAnalysisListAssoc
 				Email:            emp.User.Email,
 				ProfileImagePath: emp.User.ProfileImagePath,
 			},
+			Tools: toolDTOs,
 		})
 	}
 
@@ -185,6 +212,9 @@ func (repo *ProcessEmployeeAnalysisRepository) GetFullDetailsByID(id uint) (*mod
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		Preload("Employees").
+		Preload("Employees.User").
+		Preload("Employees.Tools").
+		Preload("Employees.Tools.EquipmentTool").
 		First(&item, id).Error
 	return item, err
 }
@@ -232,4 +262,24 @@ func (repo *ProcessEmployeeAnalysisRepository) DeleteEmployeesByAnalysisID(analy
 	}
 	return db.Where("process_employee_analysis_id = ?", analysisID).
 		Delete(&models.ProcessEmployeeAnalysisEmployee{}).Error
+}
+
+func (repo *ProcessEmployeeAnalysisRepository) CreateEmployeeTool(tool *models.ProcessEmployeeAnalysisEmployeeTool, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(tool).Error
+}
+
+func (repo *ProcessEmployeeAnalysisRepository) DeleteToolsByEmployeeIDs(employeeIDs []uint, tx ...utility.DatabaseTransaction) error {
+	if len(employeeIDs) == 0 {
+		return nil
+	}
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Where("process_employee_analysis_employee_id IN ?", employeeIDs).
+		Delete(&models.ProcessEmployeeAnalysisEmployeeTool{}).Error
 }

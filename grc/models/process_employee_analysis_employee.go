@@ -12,9 +12,10 @@ type ProcessEmployeeAnalysisEmployee struct {
 	CreatedAt                 time.Time `json:"created_at" gorm:"type:datetime;not null"`
 
 	// Relationships
-	ProcessEmployeeAnalysis *ProcessEmployeeAnalysis `gorm:"foreignKey:ProcessEmployeeAnalysisID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	User                    *User                    `gorm:"foreignKey:UserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
-	CreatedByUser           *User                    `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ProcessEmployeeAnalysis *ProcessEmployeeAnalysis              `gorm:"foreignKey:ProcessEmployeeAnalysisID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	User                    *User                                 `gorm:"foreignKey:UserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CreatedByUser           *User                                 `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	Tools                   []ProcessEmployeeAnalysisEmployeeTool `gorm:"foreignKey:ProcessEmployeeAnalysisEmployeeID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 }
 
 func (ProcessEmployeeAnalysisEmployee) TableName() string {

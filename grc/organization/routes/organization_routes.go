@@ -78,6 +78,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	processInternalDependencyController := app.OrganizationModule.ProcessInternalDependencyController
 	processExternalDependencyController := app.OrganizationModule.ProcessExternalDependencyController
 	processEmployeeAnalysisController := app.OrganizationModule.ProcessEmployeeAnalysisController
+	processEquipmentToolController := app.OrganizationModule.ProcessEquipmentToolController
 	// Designation
 	organizationRoutes.GET("/designations/template", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.GetDesignationsTemplate)
 	organizationRoutes.POST("/designations/template/validate", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), designationController.ValidateDesignationTemplate)
@@ -644,4 +645,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	organizationRoutes.POST("/processes/:processId/employee-analyses", middlewares.RolePermissionMiddleware(db, "process", "modify"), processEmployeeAnalysisController.CreateProcessEmployeeAnalysis)
 	organizationRoutes.PUT("/processes/:processId/employee-analyses/:id", middlewares.RolePermissionMiddleware(db, "process", "modify"), processEmployeeAnalysisController.UpdateProcessEmployeeAnalysis)
 	organizationRoutes.POST("/processes/:processId/employee-analyses/delete", middlewares.RolePermissionMiddleware(db, "process", "modify"), processEmployeeAnalysisController.DeleteProcessEmployeeAnalyses)
+
+	// Process Equipment Tools
+	organizationRoutes.GET("/process-equipment-tools", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), processEquipmentToolController.GetAllProcessEquipmentTools)
+	organizationRoutes.GET("/process-equipment-tools/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "view"), processEquipmentToolController.GetProcessEquipmentToolDetails)
+	organizationRoutes.POST("/process-equipment-tools", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processEquipmentToolController.CreateProcessEquipmentTool)
+	organizationRoutes.PUT("/process-equipment-tools/:id", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processEquipmentToolController.UpdateProcessEquipmentTool)
+	organizationRoutes.POST("/process-equipment-tools/delete", middlewares.RolePermissionMiddleware(db, "organization_setting", "modify"), processEquipmentToolController.DeleteProcessEquipmentTools)
 }

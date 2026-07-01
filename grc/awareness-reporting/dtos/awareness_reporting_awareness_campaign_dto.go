@@ -25,6 +25,7 @@ type AwarenessCampaignListDTO struct {
 	AwarenessCampaignStatusID      uint       `json:"awareness_campaign_status_id"`
 	AwarenessCampaignStatusTitleEn string     `json:"awareness_campaign_status_title_en"`
 	AwarenessCampaignStatusTitleAr string     `json:"awareness_campaign_status_title_ar"`
+	AwarenessCampaignStatusColorCode string   `json:"awareness_campaign_status_color_code"`
 	OrganizationUnitID             uint       `json:"organization_unit_id"`
 	OrganizationUnitTitleEn        string     `json:"organization_unit_title_en"`
 	OrganizationUnitTitleAr        string     `json:"organization_unit_title_ar"`
