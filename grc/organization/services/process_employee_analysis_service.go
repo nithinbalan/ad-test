@@ -278,7 +278,22 @@ func (peas *ProcessEmployeeAnalysisService) Delete(processID uint, ids []uint, c
 			continue
 		}
 
+		// Collect employee IDs so we can delete their tools first
+		existingFull, _ := peas.repo.GetFullDetailsByID(id)
+		empIDs := make([]uint, 0)
+		if existingFull != nil {
+			for _, e := range existingFull.Employees {
+				empIDs = append(empIDs, e.ID)
+			}
+		}
+
 		tx := peas.repo.BeginTransaction()
+
+		if err := peas.repo.DeleteToolsByEmployeeIDs(empIDs, tx); err != nil {
+			tx.Rollback()
+			failedIds = append(failedIds, id)
+			continue
+		}
 
 		if err := peas.repo.DeleteEmployeesByAnalysisID(id, tx); err != nil {
 			tx.Rollback()
