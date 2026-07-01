@@ -96,10 +96,6 @@ func (acs *AssetDeviceCategoryService) Update(id uint, currentUserID uint, asset
 		return nil, err
 	}
 
-	if existingCategory.IsSystem {
-		return nil, utility.NewValidationError(fmt.Errorf("system categories cannot be modified"), "immutable", "is_system")
-	}
-
 	if assetDeviceCategoryForm.TitleEn != existingCategory.TitleEn || assetDeviceCategoryForm.TitleAr != existingCategory.TitleAr {
 		if exists, err := acs.repo.ExistsByTitleExcludingID(id, assetDeviceCategoryForm.TitleEn, assetDeviceCategoryForm.TitleAr); err != nil {
 			return nil, err
@@ -155,11 +151,6 @@ func (acs *AssetDeviceCategoryService) Delete(ids []uint, currentUserID uint) ([
 		assetDeviceCategory, err := acs.repo.GetByID(id)
 		if err != nil {
 			fmt.Print(err)
-			continue
-		}
-
-		if assetDeviceCategory.IsSystem {
-			failedIds = append(failedIds, id)
 			continue
 		}
 

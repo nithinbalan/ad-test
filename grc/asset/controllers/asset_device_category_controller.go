@@ -114,6 +114,9 @@ func (adcc *AssetDeviceCategoryController) UpdateAssetDeviceCategory(c *gin.Cont
 		case *utility.ValidationError:
 			utility.SendInvalidErrResp(c, e)
 			return
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
+			return
 		default:
 			utility.SendInternalErrResp(adcc.db, c, e.Error())
 			return
