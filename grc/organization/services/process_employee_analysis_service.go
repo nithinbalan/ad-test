@@ -118,14 +118,25 @@ func (peas *ProcessEmployeeAnalysisService) Create(processID uint, currentUserID
 		return 0, err
 	}
 
-	if dto.UserIDs != nil {
-		for _, userID := range *dto.UserIDs {
-			emp := &models.ProcessEmployeeAnalysisEmployee{
-				ProcessEmployeeAnalysisID: id,
-				UserID:                    userID,
-				CreatedBYID:               &currentUserID,
+	for _, u := range dto.Users {
+		emp := &models.ProcessEmployeeAnalysisEmployee{
+			ProcessEmployeeAnalysisID: id,
+			UserID:                    u.UserID,
+			CreatedBYID:               &currentUserID,
+		}
+		if err := peas.repo.CreateEmployee(emp, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		for _, t := range u.Tools {
+			tool := &models.ProcessEmployeeAnalysisEmployeeTool{
+				ProcessEmployeeAnalysisEmployeeID: emp.ID,
+				EquipmentToolID:                   t.EquipmentToolID,
+				IsHas:                             t.IsHas,
+				IsNeeded:                          t.IsNeeded,
+				CreatedBYID:                       &currentUserID,
 			}
-			if err := peas.repo.CreateEmployee(emp, tx); err != nil {
+			if err := peas.repo.CreateEmployeeTool(tool, tx); err != nil {
 				tx.Rollback()
 				return 0, err
 			}
@@ -171,6 +182,15 @@ func (peas *ProcessEmployeeAnalysisService) Update(processID uint, id uint, curr
 		return err
 	}
 
+	// Fetch existing employees before transaction to collect IDs for tool deletion
+	existingFull, _ := peas.repo.GetFullDetailsByID(id)
+	existingEmpIDs := make([]uint, 0)
+	if existingFull != nil {
+		for _, e := range existingFull.Employees {
+			existingEmpIDs = append(existingEmpIDs, e.ID)
+		}
+	}
+
 	tx := peas.repo.BeginTransaction()
 
 	oldData := *existing
@@ -185,19 +205,35 @@ func (peas *ProcessEmployeeAnalysisService) Update(processID uint, id uint, curr
 		return err
 	}
 
+	if err := peas.repo.DeleteToolsByEmployeeIDs(existingEmpIDs, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	if err := peas.repo.DeleteEmployeesByAnalysisID(id, tx); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	if dto.UserIDs != nil {
-		for _, userID := range *dto.UserIDs {
-			emp := &models.ProcessEmployeeAnalysisEmployee{
-				ProcessEmployeeAnalysisID: id,
-				UserID:                    userID,
-				CreatedBYID:               &currentUserID,
+	for _, u := range dto.Users {
+		emp := &models.ProcessEmployeeAnalysisEmployee{
+			ProcessEmployeeAnalysisID: id,
+			UserID:                    u.UserID,
+			CreatedBYID:               &currentUserID,
+		}
+		if err := peas.repo.CreateEmployee(emp, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+		for _, t := range u.Tools {
+			tool := &models.ProcessEmployeeAnalysisEmployeeTool{
+				ProcessEmployeeAnalysisEmployeeID: emp.ID,
+				EquipmentToolID:                   t.EquipmentToolID,
+				IsHas:                             t.IsHas,
+				IsNeeded:                          t.IsNeeded,
+				CreatedBYID:                       &currentUserID,
 			}
-			if err := peas.repo.CreateEmployee(emp, tx); err != nil {
+			if err := peas.repo.CreateEmployeeTool(tool, tx); err != nil {
 				tx.Rollback()
 				return err
 			}

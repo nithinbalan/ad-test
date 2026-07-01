@@ -68,15 +68,34 @@ type ProcessEmployeeAnalysisDetailDTO struct {
 }
 
 type ProcessEmployeeAnalysisFormDTO struct {
-	DesignationID uint    `json:"designation_id" binding:"required"`
-	NormalCount   *int    `json:"normal_count"`
-	CriticalCount *int    `json:"critical_count"`
-	UserIDs       *[]uint `json:"user_ids"`
+	DesignationID uint                       `json:"designation_id" binding:"required"`
+	NormalCount   *int                       `json:"normal_count"`
+	CriticalCount *int                       `json:"critical_count"`
+	Users         []EmployeeWithToolsFormDTO `json:"users"`
+}
+
+type EmployeeWithToolsFormDTO struct {
+	UserID uint                  `json:"user_id" binding:"required"`
+	Tools  []EmployeeToolFormDTO `json:"equipment_tools"`
+}
+
+type EmployeeToolFormDTO struct {
+	EquipmentToolID uint `json:"equipment_tool_id" binding:"required"`
+	IsHas           bool `json:"is_has" binding:"omitempty"`
+	IsNeeded        bool `json:"is_needed" binding:"omitempty"`
 }
 
 type ProcessEmployeeAnalysisEmployeeDTO struct {
-	ID                        uint           `json:"id"`
-	ProcessEmployeeAnalysisID uint           `json:"process_employee_analysis_id"`
-	UserID                    uint           `json:"user_id"`
-	User                      UserMinimalDTO `json:"user"`
+	ID                        uint                                     `json:"id"`
+	ProcessEmployeeAnalysisID uint                                     `json:"process_employee_analysis_id"`
+	UserID                    uint                                     `json:"user_id"`
+	User                      UserMinimalDTO                           `json:"user"`
+	Tools                     []ProcessEmployeeAnalysisEmployeeToolDTO `json:"equipment_tools"`
+}
+
+type ProcessEmployeeAnalysisEmployeeToolDTO struct {
+	ID            uint                    `json:"id"`
+	EquipmentTool ProcessEquipmentToolDTO `json:"equipment_tool"`
+	IsHas         bool                    `json:"is_has"`
+	IsNeeded      bool                    `json:"is_needed"`
 }

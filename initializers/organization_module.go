@@ -71,6 +71,7 @@ type OrganizationModule struct {
 	ProcessInternalDependencyController           *controllers.ProcessInternalDependencyController
 	ProcessExternalDependencyController           *controllers.ProcessExternalDependencyController
 	ProcessEmployeeAnalysisController             *controllers.ProcessEmployeeAnalysisController
+	ProcessEquipmentToolController                *controllers.ProcessEquipmentToolController
 
 	UserSvc                        services.UserServiceInterface
 	UserSettingSvc                 services.UserSettingServiceInterface
@@ -452,6 +453,10 @@ func NewOrganizationModule(
 	processEmployeeAnalysisSvc := services.NewProcessEmployeeAnalysisService(processEmployeeAnalysisRepo, sharedModule.ActivityLogService, processSvc)
 	processEmployeeAnalysisController := controllers.NewProcessEmployeeAnalysisController(processEmployeeAnalysisSvc)
 
+	processEquipmentToolRepo := repositories.NewProcessEquipmentToolRepository(db)
+	processEquipmentToolSvc := services.NewProcessEquipmentToolService(processEquipmentToolRepo, sharedModule.ActivityLogService)
+	processEquipmentToolController := controllers.NewProcessEquipmentToolController(processEquipmentToolSvc)
+
 	return &OrganizationModule{
 		DesignationController:                   designationController,
 		UserStatusController:                    userStatusController,
@@ -516,6 +521,7 @@ func NewOrganizationModule(
 		ProcessInternalDependencyController:           processInternalDependencyController,
 		ProcessExternalDependencyController:           processExternalDependencyController,
 		ProcessEmployeeAnalysisController:             processEmployeeAnalysisController,
+		ProcessEquipmentToolController:                processEquipmentToolController,
 
 		UserSvc:                        userSvc,
 		UserSettingSvc:                 userSettingSvc,
