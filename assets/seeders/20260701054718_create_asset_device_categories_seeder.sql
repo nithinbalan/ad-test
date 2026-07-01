@@ -1,40 +1,25 @@
 -- +goose Up
 -- +goose StatementBegin
-INSERT INTO asset_device_categories (title_en, title_ar, type)
+INSERT INTO asset_device_categories (title_en, title_ar, is_system)
 VALUES
-    ('Servers', N'الخوادم', 'servers'),
-    ('Employee devices', N'أجهزة الموظفين', 'employee-devices'),
-    ('Databases', N'قواعد البيانات', 'databases'),
-    ('Network components', N'مكونات الشبكة', 'network-components'),
-    ('Protection systems', N'أنظمة الحماية', 'protection-systems'),
-    ('User-management systems', N'أنظمة إدارة المستخدمين', 'user-management-systems'),
-    ('Remote-work systems', N'أنظمة العمل عن بُعد', 'remote-work-systems'),
-    ('Internet/browsing services', N'خدمات الإنترنت والتصفح', 'internet-browsing-services'),
-    ('Printers', N'الطابعات', 'printers'),
-    ('Phones', N'الهواتف', 'phones'),
-    ('VMs', N'الآلات الافتراضية', 'vms'),
-    ('Kubernetes', N'كوبرنيتس', 'kubernetes'),
-    ('Routers', N'أجهزة التوجيه', 'routers'),
-    ('Switches', N'المبدلات', 'switches');
+    ('Servers', N'الخوادم', 1),
+    ('Employee devices', N'أجهزة الموظفين', 1),
+    ('Databases', N'قواعد البيانات', 1),
+    ('Network components', N'مكونات الشبكة', 1),
+    ('Protection systems', N'أنظمة الحماية', 1),
+    ('User-management systems', N'أنظمة إدارة المستخدمين', 1),
+    ('Remote-work systems', N'أنظمة العمل عن بُعد', 1),
+    ('Internet/browsing services', N'خدمات الإنترنت والتصفح', 1),
+    ('Printers', N'الطابعات', 1),
+    ('Phones', N'الهواتف', 1),
+    ('VMs', N'الآلات الافتراضية', 1),
+    ('Kubernetes', N'كوبرنيتس', 1),
+    ('Routers', N'أجهزة التوجيه', 1),
+    ('Switches', N'المبدلات', 1);
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
 DELETE FROM asset_device_categories
-WHERE type IN (
-    'servers',
-    'employee-devices',
-    'databases',
-    'network-components',
-    'protection-systems',
-    'user-management-systems',
-    'remote-work-systems',
-    'internet-browsing-services',
-    'printers',
-    'phones',
-    'vms',
-    'kubernetes',
-    'routers',
-    'switches'
-);
+WHERE is_system = 1;
 -- +goose StatementEnd
