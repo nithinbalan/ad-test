@@ -64,6 +64,7 @@ func (repo *AwarenessCampaignRepository) GetAll(params *awarenessDTOs.AwarenessC
 			awareness_priorities.title_ar AS awareness_priority_title_ar,
 			awareness_campaign_statuses.title_en AS awareness_campaign_status_title_en,
 			awareness_campaign_statuses.title_ar AS awareness_campaign_status_title_ar,
+			awareness_campaign_statuses.color_code AS awareness_campaign_status_color_code,
 			organization_units.title_en AS organization_unit_title_en,
 			organization_units.title_ar AS organization_unit_title_ar,
 			owner_user.id AS owner_id,
@@ -197,7 +198,7 @@ func (repo *AwarenessCampaignRepository) GetFullDetailsByID(id uint, tx ...utili
 		Preload("AwarenessPriority").
 		Preload("AwarenessCampaignStatus").
 		Preload("Owner").
-		Preload("OrganizationUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit.ParentUnit").
+		Preload("ResponsibleUnit").
 		Preload("AwarenessCampaignDetails").
 		Preload("AwarenessCampaignDetails.Documents").
 		Preload("AwarenessCampaignDetails.AwarenessEvaluationRating").

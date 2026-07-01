@@ -25,6 +25,7 @@ type AwarenessCampaignListDTO struct {
 	AwarenessCampaignStatusID      uint       `json:"awareness_campaign_status_id"`
 	AwarenessCampaignStatusTitleEn string     `json:"awareness_campaign_status_title_en"`
 	AwarenessCampaignStatusTitleAr string     `json:"awareness_campaign_status_title_ar"`
+	AwarenessCampaignStatusColorCode string   `json:"awareness_campaign_status_color_code"`
 	OrganizationUnitID             uint       `json:"organization_unit_id"`
 	OrganizationUnitTitleEn        string     `json:"organization_unit_title_en"`
 	OrganizationUnitTitleAr        string     `json:"organization_unit_title_ar"`
@@ -106,8 +107,8 @@ type AwarenessCampaignDetailFormDTO struct {
 	SubtypeRole                 *string                             `json:"subtype_role"`
 	Presenter                   *string                             `json:"presenter"`
 	Agenda                      *string                             `json:"agenda"`
-	SessionStartTime            *time.Time                             `json:"session_start_time"`
-	SessionEndTime              *time.Time                          `json:"session_end_time"`
+	SessionStartTime            *string                             `json:"session_start_time"`
+	SessionEndTime              *string                             `json:"session_end_time"`
 	Venue                       *string                             `json:"venue"`
 	AttendeeCount               *int                                `json:"attendee_count"`
 	AwarenessEvaluationRatingID *uint                               `json:"awareness_evaluation_rating_id"`
@@ -158,8 +159,8 @@ type AwarenessCampaignDetailDTO struct {
 	SubtypeRole                *string                         `json:"subtype_role"`
 	Presenter                  *string                         `json:"presenter"`
 	Agenda                     *string                         `json:"agenda"`
-	SessionStartTime           *time.Time                      `json:"session_start_time"`
-	SessionEndTime             *time.Time                      `json:"session_end_time"`
+	SessionStartTime           *string                         `json:"session_start_time"`
+	SessionEndTime             *string                         `json:"session_end_time"`
 	Venue                      *string                         `json:"venue"`
 	AttendeeCount              *int                            `json:"attendee_count"`
 	AwarenessEvaluationRating  *AwarenessEvaluationRatingDTO   `json:"awareness_evaluation_rating"`
@@ -174,8 +175,8 @@ type AwarenessCampaignDetailResponseDTO struct {
 	CampaignTitle           string                           `json:"campaign_title"`
 	Objective               string                           `json:"objective"`
 	TargetAudience          string                           `json:"target_audience"`
-	StartDate               time.Time                        `json:"start_date"`
-	EndDate                 *time.Time                       `json:"end_date"`
+	StartDateString         *string                          `json:"start_date"`
+	EndDateString           *string                          `json:"end_date"`
 	LinkedSecurityControl   *string                          `json:"linked_security_control"`
 	AwarenessCampaignType   AwarenessCampaignTypeDTO         `json:"awareness_campaign_type"`
 	AwarenessPriority       *AwarenessPriorityDTO            `json:"awareness_priority"`

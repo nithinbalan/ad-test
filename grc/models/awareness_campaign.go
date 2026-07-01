@@ -13,7 +13,7 @@ type AwarenessCampaign struct {
 	AwarenessPriorityID       *uint      `json:"awareness_priority_id"`
 	TargetAudience            string     `json:"target_audience" binding:"required" gorm:"type:nvarchar(max);not null"`
 	OwnerID                   uint       `json:"owner_id" binding:"required"`
-	OrganizationUnitID        uint       `json:"organization_unit_id" binding:"required"`
+	ResponsibleUnitID         uint       `json:"organization_unit_id" gorm:"column:organization_unit_id" binding:"required"`
 	StartDate                 time.Time  `json:"start_date" binding:"required" gorm:"type:datetime;not null"`
 	EndDate                   *time.Time `json:"end_date" gorm:"type:datetime"`
 	AwarenessCampaignStatusID uint       `json:"awareness_campaign_status_id" binding:"required"`
@@ -29,10 +29,9 @@ type AwarenessCampaign struct {
 	AwarenessPriority       *AwarenessPriority       `gorm:"foreignKey:AwarenessPriorityID"`
 	AwarenessCampaignStatus *AwarenessCampaignStatus `gorm:"foreignKey:AwarenessCampaignStatusID"`
 	Owner                   *User                    `gorm:"foreignKey:OwnerID"`
-	OrganizationUnit        *OrganizationUnit        `gorm:"foreignKey:OrganizationUnitID"`
-
-	CreatedByUser *User `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser *User `gorm:"foreignKey:UpdatedByID"`
+	ResponsibleUnit         *OrganizationUnit        `gorm:"foreignKey:ResponsibleUnitID;references:ID"`
+	CreatedByUser           *User                    `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser           *User                    `gorm:"foreignKey:UpdatedByID"`
 
 	AwarenessCampaignDetails *AwarenessCampaignDetail `gorm:"foreignKey:AwarenessCampaignID"`
 }
