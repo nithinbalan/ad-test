@@ -53,6 +53,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	systemRegisterServiceImportanceController := app.AssetModule.SystemRegisterServiceImportanceController
 	systemRegisterController := app.AssetModule.SystemRegisterController
 	assetDeviceCategoryController := app.AssetModule.AssetDeviceCategoryController
+	confidentialityClassificationController := app.AssetModule.ConfidentialityClassificationController
+	assetEnvironmentController := app.AssetModule.AssetEnvironmentController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -381,4 +383,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/asset-device-categories/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetDeviceCategoryController.DeleteAssetDeviceCategories)
 	assetRoutes.PUT("/asset-device-categories/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetDeviceCategoryController.ActivateAssetDeviceCategories)
 	assetRoutes.PUT("/asset-device-categories/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetDeviceCategoryController.DeactivateAssetDeviceCategories)
+  
+	// Confidentiality Classification
+	assetRoutes.GET("/confidentiality-classifications", confidentialityClassificationController.GetAllConfidentialityClassifications)
+	assetRoutes.GET("/confidentiality-classifications/:id", confidentialityClassificationController.GetConfidentialityClassificationDetails)
+
+	// Asset Environments
+	assetRoutes.GET("/asset-environments", assetEnvironmentController.GetAllAssetEnvironments)
+	assetRoutes.GET("/asset-environments/:id", assetEnvironmentController.GetAssetEnvironmentDetails)
 }

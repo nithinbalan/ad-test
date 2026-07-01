@@ -45,6 +45,8 @@ type AssetModule struct {
 	SystemRegisterServiceImportanceController     *controllers.SystemRegisterServiceImportanceController
 	AssetDeviceCategoryController                 *controllers.AssetDeviceCategoryController
 	SystemRegisterController                      *controllers.SystemRegisterController
+	ConfidentialityClassificationController       *controllers.ConfidentialityClassificationController
+	AssetEnvironmentController                    *controllers.AssetEnvironmentController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -283,7 +285,15 @@ func NewAssetModule(db *gorm.DB,
 
 	assetDeviceCategoryRepo := repositories.NewAssetDeviceCategoryRepository(db)
 	assetDeviceCategorySvc := services.NewAssetDeviceCategoryService(assetDeviceCategoryRepo, sharedModule.ActivityLogService)
-	assetDeviceCategoryController := controllers.NewAssetDeviceCategoryController(assetDeviceCategorySvc)	
+	assetDeviceCategoryController := controllers.NewAssetDeviceCategoryController(assetDeviceCategorySvc)
+
+	confidentialityClassificationRepo := repositories.NewConfidentialityClassificationRepository(db)
+	confidentialityClassificationSvc := services.NewConfidentialityClassificationService(confidentialityClassificationRepo)
+	confidentialityClassificationController := controllers.NewConfidentialityClassificationController(confidentialityClassificationSvc)	
+
+	assetEnvironmentRepo := repositories.NewAssetEnvironmentRepository(db)
+	assetEnvironmentSvc := services.NewAssetEnvironmentService(assetEnvironmentRepo)
+	assetEnvironmentController := controllers.NewAssetEnvironmentController(assetEnvironmentSvc)
 
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
@@ -322,7 +332,10 @@ func NewAssetModule(db *gorm.DB,
 		SystemRegisterServiceImportanceController:     systemRegisterServiceImportanceController,
 		SystemRegisterController:                      systemRegisterController,
 		AssetDeviceCategoryController:                 assetDeviceCategoryController,
+		ConfidentialityClassificationController:       confidentialityClassificationController,
+		AssetEnvironmentController:                    assetEnvironmentController,
 
 		AssetRegisterSvc: assetRegisterSvc,
+		
 	}
 }
