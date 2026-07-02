@@ -55,6 +55,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetDeviceCategoryController := app.AssetModule.AssetDeviceCategoryController
 	confidentialityClassificationController := app.AssetModule.ConfidentialityClassificationController
 	assetEnvironmentController := app.AssetModule.AssetEnvironmentController
+	installedApplicationController := app.AssetModule.InstalledApplicationController
+	installedRunningApplicationController := app.AssetModule.InstalledRunningApplicationController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -391,4 +393,22 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Asset Environments
 	assetRoutes.GET("/asset-environments", assetEnvironmentController.GetAllAssetEnvironments)
 	assetRoutes.GET("/asset-environments/:id", assetEnvironmentController.GetAssetEnvironmentDetails)
+
+	// Installed Application
+	assetRoutes.GET("/installed-applications", installedApplicationController.GetAllInstalledApplications)
+	assetRoutes.GET("/installed-applications/:id", installedApplicationController.GetInstalledApplicationDetails)
+	assetRoutes.POST("/installed-applications", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), installedApplicationController.CreateInstalledApplication)
+	assetRoutes.PUT("/installed-applications/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), installedApplicationController.UpdateInstalledApplication)
+	assetRoutes.POST("/installed-applications/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), installedApplicationController.DeleteInstalledApplications)
+	assetRoutes.PUT("/installed-applications/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), installedApplicationController.ActivateInstalledApplications)
+	assetRoutes.PUT("/installed-applications/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), installedApplicationController.DeactivateInstalledApplications)
+
+	// Installed Running Application
+	assetRoutes.GET("/installed-running-applications", installedRunningApplicationController.GetAllInstalledRunningApplications)
+	assetRoutes.GET("/installed-running-applications/:id", installedRunningApplicationController.GetInstalledRunningApplicationDetails)
+	assetRoutes.POST("/installed-running-applications", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), installedRunningApplicationController.CreateInstalledRunningApplication)
+	assetRoutes.PUT("/installed-running-applications/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), installedRunningApplicationController.UpdateInstalledRunningApplication)
+	assetRoutes.POST("/installed-running-applications/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), installedRunningApplicationController.DeleteInstalledRunningApplications)
+	assetRoutes.PUT("/installed-running-applications/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), installedRunningApplicationController.ActivateInstalledRunningApplications)
+	assetRoutes.PUT("/installed-running-applications/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), installedRunningApplicationController.DeactivateInstalledRunningApplications)
 }

@@ -47,6 +47,8 @@ type AssetModule struct {
 	SystemRegisterController                      *controllers.SystemRegisterController
 	ConfidentialityClassificationController       *controllers.ConfidentialityClassificationController
 	AssetEnvironmentController                    *controllers.AssetEnvironmentController
+	InstalledApplicationController                *controllers.InstalledApplicationController
+	InstalledRunningApplicationController         *controllers.InstalledRunningApplicationController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -289,11 +291,19 @@ func NewAssetModule(db *gorm.DB,
 
 	confidentialityClassificationRepo := repositories.NewConfidentialityClassificationRepository(db)
 	confidentialityClassificationSvc := services.NewConfidentialityClassificationService(confidentialityClassificationRepo)
-	confidentialityClassificationController := controllers.NewConfidentialityClassificationController(confidentialityClassificationSvc)	
+	confidentialityClassificationController := controllers.NewConfidentialityClassificationController(confidentialityClassificationSvc)
 
 	assetEnvironmentRepo := repositories.NewAssetEnvironmentRepository(db)
 	assetEnvironmentSvc := services.NewAssetEnvironmentService(assetEnvironmentRepo)
 	assetEnvironmentController := controllers.NewAssetEnvironmentController(assetEnvironmentSvc)
+
+	installedApplicationRepo := repositories.NewInstalledApplicationRepository(db)
+	installedApplicationSvc := services.NewInstalledApplicationService(installedApplicationRepo, sharedModule.ActivityLogService)
+	installedApplicationController := controllers.NewInstalledApplicationController(installedApplicationSvc, db)
+
+	installedRunningApplicationRepo := repositories.NewInstalledRunningApplicationRepository(db)
+	installedRunningApplicationSvc := services.NewInstalledRunningApplicationService(installedRunningApplicationRepo, sharedModule.ActivityLogService)
+	installedRunningApplicationController := controllers.NewInstalledRunningApplicationController(installedRunningApplicationSvc, db)		
 
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
@@ -334,8 +344,9 @@ func NewAssetModule(db *gorm.DB,
 		AssetDeviceCategoryController:                 assetDeviceCategoryController,
 		ConfidentialityClassificationController:       confidentialityClassificationController,
 		AssetEnvironmentController:                    assetEnvironmentController,
+		InstalledApplicationController:                installedApplicationController,
+		InstalledRunningApplicationController:         installedRunningApplicationController,
 
 		AssetRegisterSvc: assetRegisterSvc,
-		
 	}
 }
