@@ -63,6 +63,9 @@ func (pedc *ProcessExternalDependencyController) GetAllProcessExternalDependenci
 		"dependency_tier_title_ar":   "process_dependency_tiers.title_ar",
 		"needed_support_description": "process_external_dependencies.needed_support_description",
 		"vendor_rto":                 "process_external_dependencies.vendor_rto",
+		"sla_register_title_en":      "sla_register.title_en",
+		"sla_register_title_ar":      "sla_register.title_ar",
+		"internal_stakeholder":       "process_external_dependencies.internal_stakeholder",
 		"contact_number":             "process_external_dependencies.contact_number",
 		"contact_email":              "process_external_dependencies.contact_email",
 	}
