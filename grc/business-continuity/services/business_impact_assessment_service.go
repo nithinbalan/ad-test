@@ -303,24 +303,29 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 				tx.Rollback()
 				return err
 			}
-		}
 
-		// Update the process with impact analysis level (highest impact level from frontend)
-		existingProcess, err := bias.processSvc.GetByID(*businessImpactAssessmentFormDTO.ProcessID, tx)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		// Old field - commented out
-		// existingProcess.RiskLevelId = businessImpactAssessmentFormDTO.RiskLevelID
-		// New field: OverallImpactLevelID is passed from frontend (highest impact level across all categories)
-		// Note: Process model needs to have OverallImpactLevelID field added
-		// existingProcess.OverallImpactLevelID = businessImpactAssessmentFormDTO.OverallImpactLevelID
-		existingProcess.ImpactJustification = businessImpactAssessmentFormDTO.ImpactJustification
-		if err := bias.processSvc.UpdateProcessRecoveryObjective(existingProcess, tx); err != nil {
-			tx.Rollback()
-			return err
+			// Update the process with impact analysis level, justification, and all RTO/MTPD/RPO fields
+			existingProcess, err := bias.processSvc.GetByID(*businessImpactAssessmentFormDTO.ProcessID, tx)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			existingProcess.ImpactAnalysisLevelID = businessImpactAssessmentFormDTO.OverallImpactLevelID
+			existingProcess.ImpactJustification = businessImpactAssessmentFormDTO.ImpactJustification
+			existingProcess.Rto = bcmBiaImpactLevel.RtoFromValue
+			existingProcess.RtoUnitId = bcmBiaImpactLevel.RtoUnitID
+			existingProcess.RtoCondition = bcmBiaImpactLevel.RtoCondition
+			existingProcess.Mtpd = bcmBiaImpactLevel.MtpdFromValue
+			existingProcess.MtpdUnitId = bcmBiaImpactLevel.MtpdUnitID
+			existingProcess.MtpdCondition = bcmBiaImpactLevel.MtpdCondition
+			existingProcess.Rpo = bcmBiaImpactLevel.RpoFromValue
+			existingProcess.RpoUnitId = bcmBiaImpactLevel.RpoUnitID
+			existingProcess.RpoCondition = bcmBiaImpactLevel.RpoCondition
+			existingProcess.UpdatedBYID = &currentUserID
+			if err := bias.processSvc.UpdateProcessRecoveryObjective(existingProcess, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
 		}
 
 	}
@@ -469,6 +474,19 @@ func (bias *BusinessImpactAssessmentService) UpdateBIARating(id uint, currentUse
 	if err := bias.repo.UpdateBusinessImpactAssessmentRating(existing); err != nil {
 		return err
 	}
+
+	process, err := bias.processSvc.GetByID(existing.ProcessID)
+	if err != nil {
+		return err
+	}
+	process.Rto = existing.RtoFromValue
+	process.UpdatedBYID = &currentUserID
+	tx := bias.repo.BeginTransaction()
+	if err := bias.processSvc.UpdateProcessRecoveryObjective(process, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
 
 	go func() {
 		changedData := map[string]interface{}{

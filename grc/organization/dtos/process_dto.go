@@ -36,14 +36,22 @@ type ProcessListDTO struct {
 	RtoUnitId                        *uint                `json:"rto_uint_id"`
 	RtoUnitTitleEn                   *string              `json:"rto_unit_title_en"`
 	RtoUnitTitleAr                   *string              `json:"rto_unit_title_ar"`
+	RtoCondition                     *string              `json:"rto_condition"`
 	Mtpd                             *uint                `json:"mtpd"`
 	MtpdUnitId                       *uint                `json:"mtpd_uint_id"`
 	MtpdUnitTitleEn                  *string              `json:"mtpd_unit_title_en"`
 	MtpdUnitTitleAr                  *string              `json:"mtpd_unit_title_ar"`
+	MtpdCondition                    *string              `json:"mtpd_condition"`
 	Rpo                              *uint                `json:"rpo"`
 	RpoUnitId                        *uint                `json:"rpo_uint_id"`
 	RpoUnitTitleEn                   *string              `json:"rpo_unit_title_en"`
 	RpoUnitTitleAr                   *string              `json:"rpo_unit_title_ar"`
+	RpoCondition                     *string              `json:"rpo_condition"`
+	ImpactAnalysisLevelId            *uint                `json:"impact_analysis_level_id"`
+	ImpactAnalysisLevelTitleEn       *string              `json:"impact_analysis_level_title_en"`
+	ImpactAnalysisLevelTitleAr       *string              `json:"impact_analysis_level_title_ar"`
+	ImpactAnalysisLevelColorCode     *string              `json:"impact_analysis_level_color_code"`
+	ImpactAnalysisLevelType          *string              `json:"impact_analysis_level_type"`
 	RiskLevelId                      *uint                `json:"risk_level_id"`
 	RiskLevelTitleEn                 *string              `json:"risk_level_title_en"`
 	RiskLevelTitleAr                 *string              `json:"risk_level_title_ar"`
@@ -197,14 +205,19 @@ type ProcessDetailDTO struct {
 	LifecycleStatus          masterDTOs.LifecycleStatusDTO     `json:"status"`
 	Rto                      *int                              `json:"rto"`
 	RtoUnitId                *uint                             `json:"rto_uint_id"`
-	RtoUnit                  masterDTOs.TimeUnitDTO            `json:"rto_unit"`
+	RtoCondition             *string                           `json:"rto_condition"`
+	RtoUnit                  BusinessContinuityDurationUnitDTO `json:"rto_unit"`
 	Mtpd                     *int                              `json:"mtpd"`
 	MtpdUnitId               *uint                             `json:"mtpd_uint_id"`
-	MtpdUnit                 masterDTOs.TimeUnitDTO            `json:"mtpd_unit"`
+	MtpdCondition            *string                           `json:"mtpd_condition"`
+	MtpdUnit                 BusinessContinuityDurationUnitDTO `json:"mtpd_unit"`
 	Rpo                      *int                              `json:"rpo"`
 	RpoUnitId                *uint                             `json:"rpo_uint_id"`
-	RpoUnit                  masterDTOs.TimeUnitDTO            `json:"rpo_unit"`
+	RpoCondition             *string                           `json:"rpo_condition"`
+	RpoUnit                  BusinessContinuityDurationUnitDTO `json:"rpo_unit"`
 	RiskLevelId              *uint                             `json:"risk_level_id"`
+	ImpactAnalysisLevelId    *uint                             `json:"impact_analysis_level_id"`
+	ImpactAnalysisLevel      *BCMImpactAnalysisLevelDTO        `json:"impact_analysis_level"`
 	LastAssessedAt           *time.Time                        `json:"last_assessed_at"`
 	LastAssessedByID         *uint                             `json:"last_assessed_by_id"`
 	LastAssessedByUser       *UserMinimalDTO                   `json:"last_assessed_by"`
@@ -473,4 +486,14 @@ type BCMExecutionRecordTypeDTO struct {
 	TitleEn string `json:"title_en"`
 	TitleAr string `json:"title_ar"`
 	Status  string `json:"status"`
+}
+
+type BCMImpactAnalysisLevelDTO struct {
+	ID        uint   `json:"id"`
+	Type      string `json:"type"`
+	TitleEn   string `json:"title_en"`
+	TitleAr   string `json:"title_ar"`
+	Score     int    `json:"score"`
+	ColorCode string `json:"color_code"`
+	Status    string `json:"status"`
 }

@@ -79,16 +79,24 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		process_groups.title_ar AS process_group_title_ar,
 		processes.rto as rto,
 		processes.rto_unit_id as rto_unit_id,
-		rto_time_unit.title_en AS rto_unit_title_en,
-		rto_time_unit.title_ar AS rto_unit_title_ar,
+		rto_bc_unit.title_en AS rto_unit_title_en,
+		rto_bc_unit.title_ar AS rto_unit_title_ar,
+		processes.rto_condition as rto_condition,
 		processes.mtpd as mtpd,
 		processes.mtpd_unit_id as mtpd_unit_id,
-		mtpd_time_unit.title_en AS mtpd_unit_title_en,
-		mtpd_time_unit.title_ar AS mtpd_unit_title_ar,
+		mtpd_bc_unit.title_en AS mtpd_unit_title_en,
+		mtpd_bc_unit.title_ar AS mtpd_unit_title_ar,
+		processes.mtpd_condition as mtpd_condition,
 		processes.rpo as rpo,
 		processes.rpo_unit_id as rpo_unit_id,
-		rpo_time_unit.title_en AS rpo_unit_title_en,
-		rpo_time_unit.title_ar AS rpo_unit_title_ar,
+		rpo_bc_unit.title_en AS rpo_unit_title_en,
+		rpo_bc_unit.title_ar AS rpo_unit_title_ar,
+		processes.rpo_condition as rpo_condition,
+		processes.impact_analysis_level_id AS impact_analysis_level_id,
+		bcm_impact_analysis_levels.title_en AS impact_analysis_level_title_en,
+		bcm_impact_analysis_levels.title_ar AS impact_analysis_level_title_ar,
+		bcm_impact_analysis_levels.color_code AS impact_analysis_level_color_code,
+		bcm_impact_analysis_levels.type AS impact_analysis_level_type,
 		processes.is_bia_performed,
 		processes.last_assessed_at,
 		last_assessed_user.id AS last_assessed_user_id,
@@ -174,9 +182,10 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		Joins("LEFT JOIN users AS created_user ON created_user.id = processes.created_by_id").
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = processes.updated_by_id").
 		Joins("LEFT JOIN users AS last_assessed_user ON last_assessed_user.id = processes.last_assessed_by_id").
-		Joins("LEFT JOIN time_units AS rto_time_unit ON rto_time_unit.id = processes.rto_unit_id").
-		Joins("LEFT JOIN time_units AS mtpd_time_unit ON mtpd_time_unit.id = processes.mtpd_unit_id").
-		Joins("LEFT JOIN time_units AS rpo_time_unit ON rpo_time_unit.id = processes.rpo_unit_id").
+		Joins("LEFT JOIN business_continuity_duration_units AS rto_bc_unit ON rto_bc_unit.id = processes.rto_unit_id").
+		Joins("LEFT JOIN business_continuity_duration_units AS mtpd_bc_unit ON mtpd_bc_unit.id = processes.mtpd_unit_id").
+		Joins("LEFT JOIN business_continuity_duration_units AS rpo_bc_unit ON rpo_bc_unit.id = processes.rpo_unit_id").
+		Joins("LEFT JOIN bcm_impact_analysis_levels ON bcm_impact_analysis_levels.id = processes.impact_analysis_level_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = processes.risk_matrix_risk_rating_id").
 		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = processes.risk_matrix_risk_rating_value_id").
 		Joins("LEFT JOIN risk_levels ON risk_levels.id = processes.risk_level_id").
@@ -420,6 +429,7 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("RtoUnit").
 		Preload("MtpdUnit").
 		Preload("RpoUnit").
+		Preload("ImpactAnalysisLevel").
 		Preload("RiskLevel").
 		Preload("ProcessCriticalityLevel").
 		Preload("LastAssessedByUser").

@@ -16,10 +16,14 @@ type Process struct {
 	Description                 *string    `json:"description" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
 	Rto                         *int       `json:"rto" gorm:"default:null"`
 	RtoUnitId                   *uint      `json:"rto_uint_id" gorm:"default:null"`
+	RtoCondition                *string    `json:"rto_condition" gorm:"type:varchar(20);null"`
 	Mtpd                        *int       `json:"mtpd" gorm:"default:null"`
 	MtpdUnitId                  *uint      `json:"mtpd_uint_id" gorm:"default:null"`
+	MtpdCondition               *string    `json:"mtpd_condition" gorm:"type:varchar(20);null"`
 	Rpo                         *int       `json:"rpo" gorm:"default:null"`
 	RpoUnitId                   *uint      `json:"rpo_uint_id" gorm:"default:null"`
+	RpoCondition                *string    `json:"rpo_condition" gorm:"type:varchar(20);null"`
+	ImpactAnalysisLevelID       *uint      `json:"impact_analysis_level_id" gorm:"default:null"`
 	RiskLevelId                 *uint      `json:"risk_level_id" gorm:"default:null"`
 	ImpactJustification         *string    `json:"impact_justification" gorm:"default:null"`
 	ProcessCriticalityLevelId   *uint      `json:"process_criticality_level_id" gorm:"default:null"`
@@ -75,12 +79,13 @@ type Process struct {
 	BusinessImpactAssessments       []*BusinessImpactAssessment       `gorm:"foreignKey:ProcessID"`
 	ProcessDependencies             []*ProcessDependency              `gorm:"foreignKey:ProcessID"`
 	ProcessActivities               []*ProcessActivity                `gorm:"foreignKey:ProcessID"`
-	RtoUnit                         *TimeUnit                         `gorm:"foreignKey:RtoUnitId"`
-	MtpdUnit                        *TimeUnit                         `gorm:"foreignKey:MtpdUnitId"`
-	RpoUnit                         *TimeUnit                         `gorm:"foreignKey:RpoUnitId"`
+	RtoUnit                         *BusinessContinuityDurationUnit   `gorm:"foreignKey:RtoUnitId"`
+	MtpdUnit                        *BusinessContinuityDurationUnit   `gorm:"foreignKey:MtpdUnitId"`
+	RpoUnit                         *BusinessContinuityDurationUnit   `gorm:"foreignKey:RpoUnitId"`
 	RiskLevel                       *RiskLevel                        `gorm:"foreignKey:RiskLevelId"`
 	ProcessCriticalityLevel         *ProcessCriticalityLevel          `gorm:"foreignKey:ProcessCriticalityLevelId"`
 	BusinessImpactAssessmentRatings []*BusinessImpactAssessmentRating `gorm:"foreignKey:ProcessID"`
+	ImpactAnalysisLevel             *BCMImpactAnalysisLevel           `gorm:"foreignKey:ImpactAnalysisLevelID"`
 
 	// Process BCM associations
 	ProcessExecutionRecords     []*ProcessExecutionRecord     `gorm:"foreignKey:ProcessID"`
