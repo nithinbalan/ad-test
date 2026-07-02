@@ -66,20 +66,20 @@ type ViolationReportListDTO struct {
 
 type ViolationReportFormDTO struct {
 	ViolationReportChannelID     uint                              `json:"violation_report_channel_id" binding:"required"`
-	IDOfReporter                 *uint                             `json:"id_of_reporter"`
+	IDOfReporter                 *uint                             `json:"id_of_reporter" binding:"required"`
 	NameOfReporter               *string                           `json:"name_of_reporter"`
 	PhoneOfReporter              *string                           `json:"phone_of_reporter"`
 	EmailOfReporter              *string                           `json:"email_of_reporter"`
 	TitleEn                      string                            `json:"title_en" binding:"required,max=255"`
 	TitleAr                      string                            `json:"title_ar" binding:"required,max=255"`
-	ReportedEntity               *string                           `json:"reported_entity"`
+	ReportedEntity               *string                           `json:"reported_entity" binding:"required"`
 	DescriptionEn                *string                           `json:"description_en"`
 	DescriptionAr                *string                           `json:"description_ar"`
 	EvidenceDescription          *string                           `json:"evidence_description"`
-	ViolationReportCategoryID    *uint                             `json:"violation_report_category_id"`
+	ViolationReportCategoryID    *uint                             `json:"violation_report_category_id" binding:"required"`
 	ViolationReportSubCategoryID *uint                             `json:"violation_report_sub_category_id"`
 	ViolationReportReasonID      uint                              `json:"violation_report_reason_id" binding:"required"`
-	SeverityLevelID              *uint                             `json:"severity_level_id"`
+	SeverityLevelID              *uint                             `json:"severity_level_id" binding:"required"`
 	ReportedAt                   string                            `json:"reported_at"`
 	Documents                    []*ViolationReportDocumentFormDTO `json:"documents"`
 }

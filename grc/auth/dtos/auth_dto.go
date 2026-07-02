@@ -57,3 +57,15 @@ type MicrosoftOAuthCallbackDTO struct {
 	Code  string `json:"code" binding:"required"`
 	State string `json:"state"`
 }
+
+type ExternalOAuthTokenFormDTO struct {
+	ClientID     string `json:"client_id" binding:"required"`
+	ClientSecret string `json:"client_secret" binding:"required"`
+	ClientDomain string `json:"client_domain" binding:"required"`
+}
+
+type ExternalOAuthTokenResponseDTO struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   int    `json:"expires_in"`
+}

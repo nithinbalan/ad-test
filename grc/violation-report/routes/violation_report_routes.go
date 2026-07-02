@@ -14,6 +14,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	unauthenticatedRoutes := router.Group("/")
 
+	// external routes
+	externalViolationReportRoutes := router.Group("/external")
+	externalViolationReportRoutes.Use(middlewares.ExternalAuthMiddleware())
+
 	db := app.DB
 
 	violationReportChannelController := app.ViolationReportModule.ViolationReportChannelController
@@ -147,4 +151,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	violationReportRoutes.PUT("/violation-reports/:id/action-plans/:actionPlanId/comments/:commentId", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportActionPlanCommentController.UpdateComment)
 	violationReportRoutes.POST("/violation-reports/:id/action-plans/:actionPlanId/comments/delete", middlewares.RolePermissionMiddleware(db, "violation_report_register", "modify"), violationReportActionPlanCommentController.DeleteComment)
 
+	// External
+	externalViolationReportRoutes.GET("/violation-report-reasons", violationReportStatusController.GetAllViolationReportStatuses)
+	externalViolationReportRoutes.GET("/violation-report-channels", violationReportChannelController.GetAllViolationReportChannels)
+	externalViolationReportRoutes.GET("/violation-report-categories", violationReportCategoryController.GetAllViolationReportCategories)
+	externalViolationReportRoutes.GET("/violation-report-sub-categories", violationReportSubCategoryController.GetAllViolationReportSubCategories)
+	
+	externalViolationReportRoutes.POST("/violation-reports", violationReportController.CreateExternalViolationReport)
 }

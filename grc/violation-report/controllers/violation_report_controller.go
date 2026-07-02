@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	commonDTOs "jethur/grc/common/dtos"
@@ -8,13 +9,16 @@ import (
 	violationReportDTOs "jethur/grc/violation-report/dtos"
 	"jethur/grc/violation-report/services"
 	"jethur/utility"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"gorm.io/gorm"
 )
 
@@ -638,4 +642,75 @@ func (vrc *ViolationReportController) DownloadViolationReportCommentDocument(c *
 	c.Header("Cache-Control", "must-revalidate")
 	c.Header("Pragma", "public")
 	c.File(path)
+}
+
+func (vrc *ViolationReportController) CreateExternalViolationReport(c *gin.Context) {
+	var form violationReportDTOs.ViolationReportFormDTO
+
+	dataStr := c.PostForm("data")
+	if dataStr == "" {
+		utility.SendInvalidErrResp(c, errors.New("missing data field"))
+		return
+	}
+
+	if err := json.Unmarshal([]byte(dataStr), &form); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	if err := binding.Validator.ValidateStruct(&form); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	var files []*multipart.FileHeader
+
+	formFiles, err := c.MultipartForm()
+	if err == nil && formFiles != nil {
+		files = formFiles.File["documents"]
+	}
+
+	if len(files) > 0 {
+		if form.EvidenceDescription == nil || strings.TrimSpace(*form.EvidenceDescription) == "" {
+			utility.SendInvalidErrResp(c, errors.New("evidence_description is required when documents are provided"))
+			return
+		}
+
+		const (
+			MaxDocumentCount = 10
+			MaxDocumentSize  = 10 * 1024 * 1024
+		)
+
+		// Maximum number of documents.
+		if len(files) > MaxDocumentCount {
+			utility.SendInvalidErrResp(c, fmt.Errorf("a maximum of %d documents can be uploaded", MaxDocumentCount))
+			return
+		}
+
+		// Maximum file size.
+		for _, file := range files {
+			if file.Size > MaxDocumentSize {
+				utility.SendInvalidErrResp(
+					c,
+					fmt.Errorf("file '%s' exceeds the maximum allowed size of %d MB", file.Filename, MaxDocumentSize/(1024*1024)),
+				)
+				return
+			}
+		}
+	}
+
+	id, err := vrc.service.CreateExternal(&form, files)
+	if err != nil {
+		switch err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, err)
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(vrc.db, c, err.Error())
+		}
+		return
+	}
+
+	c.JSON(http.StatusCreated, commonDTOs.IDResponse{ID: id})
 }

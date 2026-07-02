@@ -13,6 +13,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	masterRoutes.Use(middlewares.AuthMiddleware(app.DB))
 
+	// external routes
+	externalMasterRoutes := router.Group("/external")
+	externalMasterRoutes.Use(middlewares.ExternalAuthMiddleware())
+
 	db := app.DB
 
 	reviewFrequencyController := app.MasterModule.ReviewFrequencyController
@@ -188,4 +192,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	masterRoutes.POST("/locations/delete", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), locationController.DeleteLocations)
 	masterRoutes.PUT("/locations/activate", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), locationController.ActivateLocations)
 	masterRoutes.PUT("/locations/deactivate", middlewares.RolePermissionMiddleware(db, "common_setting", "modify"), locationController.DeactivateLocations)
+
+	// External
+	externalMasterRoutes.GET("/severity-levels", severityLevelController.GetAllSeverityLevels)
 }

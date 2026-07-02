@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -33,6 +35,7 @@ type ViolationReportServiceInterface interface {
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*violationReportDTOs.ViolationReportDetailDTO, error)
 	GetByID(id uint) (*models.ViolationReport, error)
 	Create(currentUserID uint, violationReportFormDTO *violationReportDTOs.ViolationReportFormDTO) (uint, error)
+	CreateExternal(violationReportFormDTO *violationReportDTOs.ViolationReportFormDTO, files []*multipart.FileHeader) (uint, error)
 	Update(id uint, currentUserID uint, violationReport *violationReportDTOs.ViolationReportFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 	GetDocumentPath(id uint, token string) (string, error)
@@ -432,6 +435,140 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 	return id, nil
 }
 
+func (irs *ViolationReportService) CreateExternal(violationReportFormDTO *violationReportDTOs.ViolationReportFormDTO, files []*multipart.FileHeader) (uint, error) {
+	if err := irs.validateViolationReportFormDTO(violationReportFormDTO); err != nil {
+		return 0, err
+	}
+
+	tx := irs.repo.BeginTransaction()
+
+	superAdmin, err := irs.userSvc.GetSuperAdmin()
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	dates, err := irs.parseViolationReportDates(violationReportFormDTO, superAdmin.ID)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	referenceNumber, err := irs.repo.GenerateReferenceNumber()
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	violationReportStatus, err := irs.violationReportStatusSvc.GetByType("new")
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	violationReport := &models.ViolationReport{
+		ReferenceNumber:              referenceNumber,
+		ViolationReportChannelID:     violationReportFormDTO.ViolationReportChannelID,
+		ViolationReportReasonID:      violationReportFormDTO.ViolationReportReasonID,
+		ViolationReportCategoryID:    violationReportFormDTO.ViolationReportCategoryID,
+		ViolationReportSubCategoryID: violationReportFormDTO.ViolationReportSubCategoryID,
+		SeverityLevelID:              violationReportFormDTO.SeverityLevelID,
+		ViolationReportStatusID:      violationReportStatus.ID,
+		ReportedEntity:               violationReportFormDTO.ReportedEntity,
+		IDOfReporter:                 violationReportFormDTO.IDOfReporter,
+		NameOfReporter:               violationReportFormDTO.NameOfReporter,
+		PhoneOfReporter:              violationReportFormDTO.PhoneOfReporter,
+		EmailOfReporter:              violationReportFormDTO.EmailOfReporter,
+		TitleEn:                      violationReportFormDTO.TitleEn,
+		TitleAr:                      violationReportFormDTO.TitleAr,
+		DescriptionEn:                violationReportFormDTO.DescriptionEn,
+		DescriptionAr:                violationReportFormDTO.DescriptionAr,
+		EvidenceDescription:          violationReportFormDTO.EvidenceDescription,
+		ReportedAt:                   dates.ReportedAt,
+		CreatedBYID:                  superAdmin.ID,
+		IsExternal:                   true,
+	}
+
+	id, err := irs.repo.Create(violationReport, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	var documents []*models.ViolationReportDocument
+
+	for _, file := range files {
+		timestamp := time.Now().UnixNano()
+		sanitizedName := fmt.Sprintf("%d_%s", timestamp, utility.SanitizeFileName(file.Filename))
+
+		dataToEncrypt := []byte(sanitizedName)
+		encryptedFilename, err := utility.EncryptData(dataToEncrypt)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		url := utility.GenerateDocumentURL("violation-report", "violation-report-register", strconv.FormatUint(uint64(id), 10), "documents")
+
+		document := &models.ViolationReportDocument{
+			ViolationReportID: id,
+			URL:               url,
+			Name:              sanitizedName,
+			Size:              int(file.Size),
+			Token:             encryptedFilename,
+			OriginalName:      file.Filename,
+			Type:              file.Header.Get("Content-Type"),
+			CreatedByID:       superAdmin.ID,
+		}
+
+		documents = append(documents, document)
+	}
+
+	if len(documents) > 0 {
+		if err := irs.repo.CreateDocuments(documents, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		storagePath := config.GetEnv("STORAGE_PATH", "")
+		for i, file := range files {
+			doc := documents[i]
+			dstDir := filepath.Join(storagePath, "violation-report", "violation-report-register", strconv.FormatUint(uint64(id), 10), "documents")
+			if err := os.MkdirAll(dstDir, 0755); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+			dst := filepath.Join(dstDir, doc.Name)
+
+			src, err := file.Open()
+			if err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+
+			out, err := os.Create(dst)
+			if err != nil {
+				src.Close()
+				tx.Rollback()
+				return 0, err
+			}
+
+			if _, err := io.Copy(out, src); err != nil {
+				out.Close()
+				src.Close()
+				tx.Rollback()
+				return 0, err
+			}
+			out.Close()
+			src.Close()
+		}
+	}
+
+	tx.Commit()
+
+	return id, nil
+}
+
 func (irs *ViolationReportService) Update(id uint, currentUserID uint, violationReportFormDTO *violationReportDTOs.ViolationReportFormDTO) error {
 
 	tx := irs.repo.BeginTransaction()
@@ -704,13 +841,19 @@ func (irs *ViolationReportService) validateViolationReportFormDTO(violationRepor
 	}
 
 	// Validate violation report category
-	if _, err := irs.violationReportCategorySvc.GetByID(*violationReportFormDTO.ViolationReportCategoryID); err != nil {
+	category, err := irs.violationReportCategorySvc.GetByID(*violationReportFormDTO.ViolationReportCategoryID)
+	if err != nil {
 		return utility.NewValidationError(fmt.Errorf("violation report category does not exist"), "not_exist", "violation_report_category")
 	}
 
 	// Validate violation report sub category if provided
 	if violationReportFormDTO.ViolationReportSubCategoryID != nil {
-		if _, err := irs.violationReportSubCategorySvc.GetByID(*violationReportFormDTO.ViolationReportSubCategoryID); err != nil {
+		subCategory, err := irs.violationReportSubCategorySvc.GetByID(*violationReportFormDTO.ViolationReportSubCategoryID)
+		if err != nil {
+			return utility.NewValidationError(fmt.Errorf("violation report sub category does not exist"), "not_exist", "violation_report_sub_category")
+		}
+
+		if subCategory.ViolationReportCategoryID != category.ID {
 			return utility.NewValidationError(fmt.Errorf("violation report sub category does not exist"), "not_exist", "violation_report_sub_category")
 		}
 	}

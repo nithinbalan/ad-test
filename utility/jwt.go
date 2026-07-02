@@ -15,14 +15,24 @@ import (
 const (
 	AccessTokenDuration  = 30 * 24 * time.Hour // 1 month
 	RefreshTokenDuration = 7 * 24 * time.Hour  // 7 days
+	ExternalAccessTokenDuration = 7 * 24 * time.Hour // 7 days
 )
 
 func getSecretKey() string {
 	return config.GetEnv("ENCRYPTION_KEY", "")
 }
 
+func getExternalSecretKey() string {
+	return config.GetEnv("EXTERNAL_ENCRYPTION_KEY", "")
+}
+
 type UserClaims struct {
 	UserID uint `json:"user_id"`
+	jwt.RegisteredClaims
+}
+
+type ExternalClientClaims struct {
+	ClientID string `json:"client_id"`
 	jwt.RegisteredClaims
 }
 
@@ -107,6 +117,48 @@ func DecodeJWTClaims(token string) (map[string]interface{}, error) {
 	var claims map[string]interface{}
 	if err := json.Unmarshal(decoded, &claims); err != nil {
 		return nil, errors.New("failed to unmarshal JWT claims: " + err.Error())
+	}
+
+	return claims, nil
+}
+
+func GenerateExternalToken(clientID string) (string, error) {
+	return generateExternalTokenWithExpiry(clientID, ExternalAccessTokenDuration)
+}
+
+func generateExternalTokenWithExpiry(clientID string, duration time.Duration) (string, error) {
+	now := time.Now()
+
+	claims := ExternalClientClaims{
+		ClientID: clientID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(duration)),
+			IssuedAt:  jwt.NewNumericDate(now),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	return token.SignedString([]byte(getExternalSecretKey()))
+}
+
+func VerifyExternalToken(tokenStr string) (*ExternalClientClaims, error) {
+	secretKey := getExternalSecretKey()
+
+	token, err := jwt.ParseWithClaims(tokenStr, &ExternalClientClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("unexpected signing method in token")
+		}
+		return []byte(secretKey), nil
+	}, jwt.WithValidMethods([]string{"HS256"}))
+
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(*ExternalClientClaims)
+	if !ok || !token.Valid {
+		return nil, errors.New("invalid token or claims")
 	}
 
 	return claims, nil

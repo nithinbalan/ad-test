@@ -343,3 +343,31 @@ func (ac *AuthController) HandleMicrosoftOAuthCallback(c *gin.Context) {
 
 	c.JSON(http.StatusOK, responseDTO)
 }
+
+func (ac *AuthController) ExternalLogin(c *gin.Context) {
+	var formDTO authDTOs.ExternalOAuthTokenFormDTO
+
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	responseDTO, err := ac.service.GenerateExternalToken(formDTO)
+	if err != nil {
+		switch e := err.(type) {
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+			return
+
+		case *utility.InternalServerError:
+			utility.SendInternalErrResp(ac.db, c, e.Error())
+			return
+
+		default:
+			utility.SendUnauthorizedErrResp(c, "Invalid client credentials")
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, responseDTO)
+}
