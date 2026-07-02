@@ -271,12 +271,16 @@ func (ps *ProcessService) Create(currentUserID uint, processFormDTO *organizatio
 			emailTo = []string{responsibleUser.Email}
 			subject = fmt.Sprintf("Process/%s: Ownership Assigned", processFormDTO.TitleEn)
 			appURL := utility.GetAppURL()
+			processGroupTitleEn := ""
+			if existingProcess.ProcessGroup != nil {
+				processGroupTitleEn = existingProcess.ProcessGroup.TitleEn
+			}
 			emailData = map[string]interface{}{
 				"FirstNameEn":            responsibleUser.FirstNameEn,
 				"LastNameEn":             responsibleUser.LastNameEn,
 				"ProcessReferenceNumber": existingProcess.ReferenceNumber,
 				"ProcessName":            existingProcess.TitleEn,
-				"ProcessGroup":           existingProcess.ProcessGroup.TitleEn,
+				"ProcessGroup":           processGroupTitleEn,
 				"AssignedByFirstNameEn":  existingProcess.CreatedByUser.FirstNameEN,
 				"AssignedByLastNameEn":   existingProcess.CreatedByUser.LastNameEN,
 				"AssignedOn":             existingProcess.CreatedAt.Format("2006-01-02"),

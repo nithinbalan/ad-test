@@ -42,6 +42,7 @@ type BusinessContinuityModule struct {
 	BCMImpactAnalysisLevelController                 *controllers.BCMImpactAnalysisLevelController
 	BCMBIAOutageBucketController                     *controllers.BCMBIAOutageBucketController
 	BCMBIAImpactLevelController                      *controllers.BCMBIAImpactLevelController
+	BCMStaffAllocationController                     *controllers.BCMStaffAllocationController
 
 	BusinessFunctionSvc                  services.BusinessFunctionServiceInterface
 	BcpTeamSvc                           services.BcpTeamServiceInterface
@@ -85,7 +86,11 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	bcmBiaImpactLevelController := controllers.NewBCMBIAImpactLevelController(bcmBiaImpactLevelSvc)
 
 	businessImpactAssessmentRepo := repositories.NewBusinessImpactAssessmentRepository(db)
-	businessImpactAssessmentSvc := services.NewBusinessImpactAssessmentService(businessImpactAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, masterModule.ImpactCategorySvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, documentModule.DocumentSvc, organizationModule.ProcessDependencySvc, riskModule.RiskLevelSvc, organizationModule.UserSettingSvc, bcmBiaImpactLevelSvc, bcmBiaOutageBucketSvc, bcmImpactAnalysisLevelSvc)
+	bcmStaffAllocationRepo := repositories.NewBCMStaffAllocationRepository(db)
+	bcmStaffAllocationSvc := services.NewBCMStaffAllocationService(bcmStaffAllocationRepo, sharedModule.ActivityLogService)
+	bcmStaffAllocationController := controllers.NewBCMStaffAllocationController(bcmStaffAllocationSvc)
+
+	businessImpactAssessmentSvc := services.NewBusinessImpactAssessmentService(businessImpactAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, masterModule.ImpactCategorySvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, documentModule.DocumentSvc, organizationModule.ProcessDependencySvc, riskModule.RiskLevelSvc, organizationModule.UserSettingSvc, bcmBiaImpactLevelSvc, bcmBiaOutageBucketSvc, bcmImpactAnalysisLevelSvc, bcmStaffAllocationSvc)
 	businessImpactAssessmentController := controllers.NewBusinessImpactAssessmentController(businessImpactAssessmentSvc, organizationModule.ProcessAssociatedItemSvc, organizationModule.ProcessDependencySvc, organizationModule.ProcessSvc)
 
 	bcpStatusRepo := repositories.NewBcpStatusRepository(db)
@@ -242,6 +247,7 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		BCMImpactAnalysisLevelController:                 bcmImpactAnalysisLevelController,
 		BCMBIAOutageBucketController:                     bcmBiaOutageBucketController,
 		BCMBIAImpactLevelController:                      bcmBiaImpactLevelController,
+		BCMStaffAllocationController:                     bcmStaffAllocationController,
 
 		BusinessFunctionSvc:                  businessFunctionSvc,
 		BcpTeamSvc:                           bcpTeamSvc,

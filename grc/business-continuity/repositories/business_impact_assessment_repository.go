@@ -30,6 +30,7 @@ type BusinessImpactAssessmentRepositoryInterface interface {
 	// New methods for BusinessImpactAssessmentAnalysis
 	CreateBusinessImpactAssessmentAnalysis(analysis []*models.BusinessImpactAssessmentAnalysis, tx ...utility.DatabaseTransaction) error
 	DeleteBusinessImpactAssessmentAnalysisByAssessmentID(assessmentID uint, tx ...utility.DatabaseTransaction) error
+	DeleteBusinessImpactAssessmentAnalysisByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 	GetImpactAssessmentsWithAnalysisByProcessID(processID uint) ([]*models.BusinessImpactAssessment, error)
 }
 
@@ -348,6 +349,19 @@ func (repo *BusinessImpactAssessmentRepository) GetProcessDetails(id uint, tx ..
 		Preload("ProcessDependencies.RpoUnit").
 		Preload("ProcessDependencies.ProcessDependencySubType").
 		Preload("ProcessDependencies.ProcessDependencySubType.ProcessDependencyType").
+		Preload("ProcessEmployeeAnalysis").
+		Preload("ProcessEmployeeAnalysis.Designation").
+		Preload("ProcessEmployeeAnalysis.Employees").
+		Preload("ProcessEmployeeAnalysis.Employees.User").
+		Preload("BCMStaffAllocations").
+		Preload("BCMStaffAllocations.ProcessEmployeeAnalysis").
+		Preload("BCMStaffAllocations.ProcessEmployeeAnalysis.Designation").
+		Preload("BCMStaffAllocations.ProcessEmployeeAnalysis.Employees").
+		Preload("BCMStaffAllocations.ProcessEmployeeAnalysis.Employees.User").
+		Preload("BCMStaffAllocations.OutageBuckets").
+		Preload("BCMStaffAllocations.OutageBuckets.OutageBucket").
+		Preload("BCMStaffAllocations.OutageBuckets.Users").
+		Preload("BCMStaffAllocations.OutageBuckets.Users.User").
 		First(&process, id)
 
 	if result.Error != nil {
@@ -565,6 +579,15 @@ func (repo *BusinessImpactAssessmentRepository) DeleteBusinessImpactAssessmentAn
 	}
 
 	return db.Where("business_impact_assessment_id = ?", assessmentID).Delete(&models.BusinessImpactAssessmentAnalysis{}).Error
+}
+
+func (repo *BusinessImpactAssessmentRepository) DeleteBusinessImpactAssessmentAnalysisByProcessID(processID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Where("business_impact_assessment_id IN (SELECT id FROM business_impact_assessments WHERE process_id = ?)", processID).Delete(&models.BusinessImpactAssessmentAnalysis{}).Error
 }
 
 func (repo *BusinessImpactAssessmentRepository) GetImpactAssessmentsWithAnalysisByProcessID(processID uint) ([]*models.BusinessImpactAssessment, error) {
