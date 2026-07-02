@@ -70,36 +70,42 @@ func (icwrs *InternalCommitteeWorkflowReviewService) Submit(committeeID uint, cu
 		return err
 	}
 
-	parentUnit, err := icwrs.organizationUnitSvc.GetParentOrganizationUnitAndCurrentUnitHead(committeeDTO.RequestingEntityID)
-	if err != nil {
-		return err
-	}
+	// parentUnit, err := icwrs.organizationUnitSvc.GetParentOrganizationUnitAndCurrentUnitHead(committeeDTO.RequestingEntityID)
+	// if err != nil {
+	// 	return err
+	// }
 
-	parentHead, err := icwrs.organizationUnitSvc.GetParentOrganizationUnitAndCurrentUnitHead(parentUnit.OrganizationUnit.ID)
-	if err != nil {
-		return err
-	}
+	// parentHead, err := icwrs.organizationUnitSvc.GetParentOrganizationUnitAndCurrentUnitHead(parentUnit.OrganizationUnit.ID)
+	// if err != nil {
+	// 	return err
+	// }
 
-	if parentHead.HeadUser == nil {
-		return utility.NewForbiddenError(
-			fmt.Sprintf(
-				"No head user is assigned to the parent organization unit '%s'. Please contact the administrator.",
-				parentUnit.OrganizationUnit.TitleEn,
-			),
-		)
-	}
+	// if parentHead.HeadUser == nil {
+	// 	return utility.NewForbiddenError(
+	// 		fmt.Sprintf(
+	// 			"No head user is assigned to the parent organization unit '%s'. Please contact the administrator.",
+	// 			parentUnit.OrganizationUnit.TitleEn,
+	// 		),
+	// 	)
+	// }
 
-	if parentHead.HeadUser.ID != currentUserID {
-		return utility.NewForbiddenError(
-			fmt.Sprintf(
-				"You are not authorized to submit this request. Only the head of the parent organization unit '%s' can perform this action.",
-				parentUnit.OrganizationUnit.TitleEn,
-			),
-		)
-	}
+	// if parentHead.HeadUser.ID != currentUserID {
+	// 	return utility.NewForbiddenError(
+	// 		fmt.Sprintf(
+	// 			"You are not authorized to submit this request. Only the head of the parent organization unit '%s' can perform this action.",
+	// 			parentUnit.OrganizationUnit.TitleEn,
+	// 		),
+	// 	)
+	// }
 
 	if committeeDTO.LatestVersion == nil {
 		return fmt.Errorf("no latest version found for committee")
+	}
+
+	if committeeDTO.LatestVersion.CreatedByUser.ID != int(currentUserID) {
+		return utility.NewForbiddenError(
+			"You are not authorized to submit this request. Only the Requested by user can perform this action.",
+		)
 	}
 
 	var level int
