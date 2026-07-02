@@ -10,6 +10,13 @@ import (
 
 func ExternalAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+
+		if err := utility.ValidateExternalClientIP(c.ClientIP()); err != nil {
+			utility.SendForbiddenErrResp(c, err.Error())
+			c.Abort()
+			return
+		}
+
 		authHeader := c.GetHeader("Authorization")
 
 		if authHeader == "" {

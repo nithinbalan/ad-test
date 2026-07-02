@@ -352,7 +352,9 @@ func (ac *AuthController) ExternalLogin(c *gin.Context) {
 		return
 	}
 
-	responseDTO, err := ac.service.GenerateExternalToken(formDTO)
+	clientIP := c.ClientIP()
+
+	responseDTO, err := ac.service.GenerateExternalToken(formDTO, clientIP)
 	if err != nil {
 		switch e := err.(type) {
 		case *utility.ValidationError:
@@ -361,6 +363,10 @@ func (ac *AuthController) ExternalLogin(c *gin.Context) {
 
 		case *utility.InternalServerError:
 			utility.SendInternalErrResp(ac.db, c, e.Error())
+			return
+
+		case *utility.ForbiddenError:
+			utility.SendForbiddenErrResp(c, e.Error())
 			return
 
 		default:

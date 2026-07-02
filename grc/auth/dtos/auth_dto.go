@@ -61,7 +61,6 @@ type MicrosoftOAuthCallbackDTO struct {
 type ExternalOAuthTokenFormDTO struct {
 	ClientID     string `json:"client_id" binding:"required"`
 	ClientSecret string `json:"client_secret" binding:"required"`
-	ClientDomain string `json:"client_domain" binding:"required"`
 }
 
 type ExternalOAuthTokenResponseDTO struct {

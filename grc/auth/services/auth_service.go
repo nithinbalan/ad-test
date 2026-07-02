@@ -39,7 +39,7 @@ type AuthServiceInterface interface {
 	GetLoginSettings() (*authDTOs.LoginSettingsDTO, error)
 	GenerateMicrosoftLoginURL() (string, error)
 	HandleOAuthCallback(ctx context.Context, code string, state string) (*authDTOs.LoginResponseDTO, error)
-	GenerateExternalToken(formDTO authDTOs.ExternalOAuthTokenFormDTO) (*authDTOs.ExternalOAuthTokenResponseDTO, error)
+	GenerateExternalToken(formDTO authDTOs.ExternalOAuthTokenFormDTO, clientIP string) (*authDTOs.ExternalOAuthTokenResponseDTO, error)
 }
 
 // Service and implementations
@@ -833,15 +833,17 @@ func (as *AuthService) HandleOAuthCallback(ctx context.Context, code string, sta
 // 	}, nil
 // }
 
-func (service *AuthService) GenerateExternalToken(formDTO authDTOs.ExternalOAuthTokenFormDTO) (*authDTOs.ExternalOAuthTokenResponseDTO, error) {
+func (service *AuthService) GenerateExternalToken(formDTO authDTOs.ExternalOAuthTokenFormDTO, clientIP string) (*authDTOs.ExternalOAuthTokenResponseDTO, error) {
+
+	if err := utility.ValidateExternalClientIP(clientIP); err != nil {
+		return nil, utility.NewForbiddenError(err.Error())
+	}
 
 	clientID := config.GetEnv("EXTERNAL_OAUTH_CLIENT_ID", "")
 	clientSecret := config.GetEnv("EXTERNAL_OAUTH_CLIENT_SECRET", "")
-	clientDomain := config.GetEnv("EXTERNAL_OAUTH_CLIENT_DOMAIN", "")
 
 	if formDTO.ClientID != clientID ||
-		formDTO.ClientSecret != clientSecret ||
-		formDTO.ClientDomain != clientDomain {
+		formDTO.ClientSecret != clientSecret {
 		return nil, errors.New("invalid client credentials")
 	}
 
