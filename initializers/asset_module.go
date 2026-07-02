@@ -61,6 +61,19 @@ func NewAssetModule(db *gorm.DB,
 	documentModule *DocumentModule,
 	complianceModule *ComplianceModule,
 ) *AssetModule {
+
+	assetDeviceCategoryRepo := repositories.NewAssetDeviceCategoryRepository(db)
+	assetDeviceCategorySvc := services.NewAssetDeviceCategoryService(assetDeviceCategoryRepo, sharedModule.ActivityLogService)
+	assetDeviceCategoryController := controllers.NewAssetDeviceCategoryController(assetDeviceCategorySvc)
+
+	confidentialityClassificationRepo := repositories.NewConfidentialityClassificationRepository(db)
+	confidentialityClassificationSvc := services.NewConfidentialityClassificationService(confidentialityClassificationRepo)
+	confidentialityClassificationController := controllers.NewConfidentialityClassificationController(confidentialityClassificationSvc)	
+
+	assetEnvironmentRepo := repositories.NewAssetEnvironmentRepository(db)
+	assetEnvironmentSvc := services.NewAssetEnvironmentService(assetEnvironmentRepo)
+	assetEnvironmentController := controllers.NewAssetEnvironmentController(assetEnvironmentSvc)
+
 	assetTypeRepo := repositories.NewAssetTypeRepository(db)
 	assetTypeSvc := services.NewAssetTypeService(assetTypeRepo, sharedModule.ActivityLogService)
 	assetTypeController := controllers.NewAssetTypeController(assetTypeSvc)
@@ -94,7 +107,7 @@ func NewAssetModule(db *gorm.DB,
 	assetCriticalityMatrixRatingScaleController := controllers.NewAssetCriticalityMatrixRatingScaleController(assetCriticalityMatrixRatingScaleSvc)
 
 	assetRegisterRepo := repositories.NewAssetRegisterRepository(db)
-	assetRegisterSvc := services.NewAssetRegisterService(assetRegisterRepo, sharedModule.ActivityLogService, assetTypeSvc, assetCategorySvc, assetStatusSvc, organizationModule.UserSvc, assetCriticalityMatrixRatingScaleSvc, assetCriticalityMatrixSvc, organizationModule.UserSettingSvc, organizationModule.ControlImplementationStatusSvc, organizationModule.ControlEfficiencyStatusSvc)
+	assetRegisterSvc := services.NewAssetRegisterService(assetRegisterRepo, sharedModule.ActivityLogService, assetTypeSvc, assetCategorySvc, assetStatusSvc, organizationModule.UserSvc, assetCriticalityMatrixRatingScaleSvc, assetCriticalityMatrixSvc, organizationModule.UserSettingSvc, organizationModule.ControlImplementationStatusSvc, organizationModule.ControlEfficiencyStatusSvc,assetDeviceCategorySvc,assetCriticalityMatrixFactorRatingSvc,confidentialityClassificationSvc,assetEnvironmentSvc)
 	assetRegisterController := controllers.NewAssetRegisterController(assetRegisterSvc)
 
 	vulnerabilityTypeRepo := repositories.NewVulnerabilityTypeRepository(db)
@@ -282,18 +295,6 @@ func NewAssetModule(db *gorm.DB,
 		organizationModule.UserSettingSvc,
 	)
 	systemRegisterController := controllers.NewSystemRegisterController(systemRegisterSvc)
-
-	assetDeviceCategoryRepo := repositories.NewAssetDeviceCategoryRepository(db)
-	assetDeviceCategorySvc := services.NewAssetDeviceCategoryService(assetDeviceCategoryRepo, sharedModule.ActivityLogService)
-	assetDeviceCategoryController := controllers.NewAssetDeviceCategoryController(assetDeviceCategorySvc)
-
-	confidentialityClassificationRepo := repositories.NewConfidentialityClassificationRepository(db)
-	confidentialityClassificationSvc := services.NewConfidentialityClassificationService(confidentialityClassificationRepo)
-	confidentialityClassificationController := controllers.NewConfidentialityClassificationController(confidentialityClassificationSvc)	
-
-	assetEnvironmentRepo := repositories.NewAssetEnvironmentRepository(db)
-	assetEnvironmentSvc := services.NewAssetEnvironmentService(assetEnvironmentRepo)
-	assetEnvironmentController := controllers.NewAssetEnvironmentController(assetEnvironmentSvc)
 
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,

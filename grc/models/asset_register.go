@@ -31,10 +31,29 @@ type AssetRegister struct {
 	MtpdUnitId                          *uint      `json:"mtpd_uint_id" gorm:"default:null"`
 	Rpo                                 *int       `json:"rpo" gorm:"default:null"`
 	RpoUnitId                           *uint      `json:"rpo_uint_id" gorm:"default:null"`
-	CreatedBYID                         uint       `json:"created_by_id" gorm:"not null" binding:"required"`
-	CreatedAt                           time.Time  `json:"created_at" gorm:"type:datetime;not null"`
-	UpdatedBYID                         *uint      `json:"updated_by_id,omitempty" gorm:"default:null"`
-	UpdatedAt                           *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
+
+	TechnicalOwnerID                *uint      `json:"technical_owner_id,omitempty" gorm:"default:null"`
+	AdministrativeOwnerID           *uint      `json:"administrative_owner_id,omitempty" gorm:"default:null"`
+	Hostname                        *string    `json:"hostname,omitempty" gorm:"type:nvarchar(255);default:null"`
+	IPAddress                       *string    `json:"ip_address,omitempty" gorm:"column:ip_address;type:nvarchar(100);default:null"`
+	MACAddress                      *string    `json:"mac_address,omitempty" gorm:"column:mac_address;type:nvarchar(100);default:null"`
+	FQDN                            *string    `json:"fqdn,omitempty" gorm:"column:fqdn;type:nvarchar(255);default:null"`
+	DeviceCategoryID                *uint      `json:"device_category_id,omitempty" gorm:"default:null"`
+	CriticalityClassificationID     *uint      `json:"criticality_classification_id,omitempty" gorm:"default:null"`
+	ConfidentialityClassificationID *uint      `json:"confidentiality_classification_id,omitempty" gorm:"default:null"`
+	Region                          *string    `json:"region,omitempty" gorm:"type:nvarchar(255);default:null"`
+	AssignedUserID                  *uint      `json:"assigned_user_id,omitempty" gorm:"default:null"`
+	OperatingSystem                 *string    `json:"operating_system,omitempty" gorm:"type:nvarchar(255);default:null"`
+	AssetEnvironmentID              *uint      `json:"asset_environment_id,omitempty" gorm:"default:null"`
+	InventoryTime                   *time.Time `json:"inventory_time,omitempty" gorm:"type:datetime;default:null"`
+	DiscoveryTime                   *time.Time `json:"discovery_time,omitempty" gorm:"type:datetime;default:null"`
+	LastResponseTime                *time.Time `json:"last_response_time,omitempty" gorm:"type:datetime;default:null"`
+	IsArchived                      bool       `json:"is_archived" gorm:"column:is_archived;not null;default:false"`
+
+	CreatedBYID uint       `json:"created_by_id" gorm:"not null" binding:"required"`
+	CreatedAt   time.Time  `json:"created_at" gorm:"type:datetime;not null"`
+	UpdatedBYID *uint      `json:"updated_by_id,omitempty" gorm:"default:null"`
+	UpdatedAt   *time.Time `json:"updated_at,omitempty" gorm:"type:datetime;default:null"`
 
 	// Relationships
 	AssetCategory                     *AssetCategory                     `gorm:"foreignKey:AssetCategoryID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
@@ -48,6 +67,14 @@ type AssetRegister struct {
 	Contributions                     []*AssetCriticalityContribution    `gorm:"foreignKey:AssetRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Documents                         *[]AssetDocument                   `gorm:"foreignKey:AssetRegisterID"`
 	KRIs                              []*AssetKri                        `gorm:"foreignKey:AssetRegisterID"`
+
+	TechnicalOwner                *User                               `json:"technical_owner,omitempty" gorm:"foreignKey:TechnicalOwnerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	AdministrativeOwner           *User                               `json:"administrative_owner,omitempty" gorm:"foreignKey:AdministrativeOwnerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	AssignedUser                  *User                               `json:"assigned_user,omitempty" gorm:"foreignKey:AssignedUserID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	DeviceCategory                *AssetDeviceCategory                `json:"device_category,omitempty" gorm:"foreignKey:DeviceCategoryID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	CriticalityClassification     *AssetCriticalityMatrixFactorRating `json:"criticality_classification,omitempty" gorm:"foreignKey:CriticalityClassificationID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	ConfidentialityClassification *ConfidentialityClassification      `json:"confidentiality_classification,omitempty" gorm:"foreignKey:ConfidentialityClassificationID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	AssetEnvironment              *AssetEnvironment                   `json:"asset_environment,omitempty" gorm:"foreignKey:AssetEnvironmentID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 
 	CreatedByUser *User `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	UpdatedByUser *User `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

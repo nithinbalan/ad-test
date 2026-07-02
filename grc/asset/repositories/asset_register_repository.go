@@ -29,6 +29,9 @@ type AssetRegisterRepositoryInterface interface {
 	CreateAssetDocuments(documents []*models.AssetDocument, tx ...utility.DatabaseTransaction) error
 	DeleteAssetDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.AssetDocument, error)
+
+	Archive(id uint, tx ...utility.DatabaseTransaction) error 
+	Unarchive(id uint, tx ...utility.DatabaseTransaction) error
 }
 
 // Implementation
@@ -120,6 +123,12 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 		if len(values) > 0 {
 			query = query.Where("asset_register."+columnName+" IN (?)", values)
 		}
+	}
+
+	if params.IsArchived != nil {
+		query = query.Where("asset_register.is_archived = ?", *params.IsArchived)
+	} else {
+		query = query.Where("asset_register.is_archived = ?", false)
 	}
 
 	// Apply acquisition_date filters
@@ -219,6 +228,13 @@ func (repo *AssetRegisterRepository) GetFullDetailsByID(id uint, tx ...utility.D
 		Preload("Documents").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
+		Preload("TechnicalOwner").
+		Preload("AdministrativeOwner").
+		Preload("AssignedUser").
+		Preload("DeviceCategory").
+		Preload("CriticalityClassification").
+		Preload("ConfidentialityClassification").
+		Preload("AssetEnvironment").
 		First(&asset, id)
 
 	if result.Error != nil {
@@ -390,4 +406,28 @@ func (repo *AssetRegisterRepository) ForceDelete(id uint, tx ...utility.Database
 
 	/* ================= ROOT ================= */
 	return db.Delete(&models.Threat{}, id).Error
+}
+
+func (repo *AssetRegisterRepository) Archive(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var assetRegister *models.AssetRegister
+	if err := db.First(&assetRegister, id).Error; err != nil {
+		return err
+	}
+	return db.Model(&models.AssetRegister{}).Where("id = ?", id).Update("is_archived", true).Error
+}
+
+func (repo *AssetRegisterRepository) Unarchive(id uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var assetRegister *models.AssetRegister
+	if err := db.First(&assetRegister, id).Error; err != nil {
+		return err
+	}
+	return db.Model(&models.AssetRegister{}).Where("id = ?", id).Update("is_archived", false).Error
 }

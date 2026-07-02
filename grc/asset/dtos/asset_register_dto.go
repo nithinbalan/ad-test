@@ -76,6 +76,7 @@ type AssetRegisterListQueryParamsDTO struct {
 	AcquisitionDateFrom string
 	AcquisitionDateTo   string
 	Export              bool
+	IsArchived          *bool
 }
 
 type AssetRegisterListResponseDTO struct {
@@ -99,12 +100,32 @@ type AssetRegisterFormDTO struct {
 	Model              *string                       `json:"model" binding:"omitempty"`
 	SerialNumber       *string                       `json:"serial_number" binding:"omitempty"`
 	Documents          []*commonDTOs.DocumentFormDTO `json:"documents"`
+
+	TechnicalOwnerID                *uint   `json:"technical_owner_id" binding:"omitempty"`
+	AdministrativeOwnerID           *uint   `json:"administrative_owner_id" binding:"omitempty"`
+	Hostname                        *string `json:"hostname" binding:"omitempty"`
+	IPAddress                       *string `json:"ip_address" binding:"omitempty"`
+	MACAddress                      *string `json:"mac_address" binding:"omitempty"`
+	FQDN                            *string `json:"fqdn" binding:"omitempty"`
+	DeviceCategoryID                *uint   `json:"device_category_id" binding:"omitempty"`
+	CriticalityClassificationID     *uint   `json:"criticality_classification_id" binding:"omitempty"`
+	ConfidentialityClassificationID *uint   `json:"confidentiality_classification_id" binding:"omitempty"`
+	Region                          *string `json:"region" binding:"omitempty"`
+	AssignedUserID                  *uint   `json:"assigned_user_id" binding:"omitempty"`
+	OperatingSystem                 *string `json:"operating_system" binding:"omitempty"`
+	AssetEnvironmentID              *uint   `json:"asset_environment_id" binding:"omitempty"`
+	InventoryTime                   *string `json:"inventory_time" binding:"omitempty,datetime=2006-01-02T15:04:05"`
+	DiscoveryTime                   *string `json:"discovery_time" binding:"omitempty,datetime=2006-01-02T15:04:05"`
+	LastResponseTime                *string `json:"last_response_time" binding:"omitempty,datetime=2006-01-02T15:04:05"`
 }
 
 type AssetRegisterParsedDates struct {
 	AcquisitionDate    *time.Time
 	AssignmentDate     *time.Time
 	WarrantyExpiryDate *time.Time
+	InventoryTime      *time.Time
+	DiscoveryTime      *time.Time
+	LastResponseTime   *time.Time
 }
 
 type AssetRegisterDetailDTO struct {
@@ -135,6 +156,24 @@ type AssetRegisterDetailDTO struct {
 	CreatedByUser                     organizationDTOs.UserMinimalDTO       `json:"created_by"`
 	UpdatedByUser                     *organizationDTOs.UserMinimalDTO      `json:"updated_by"`
 	Kris                              []*AssetKRIDTO                        `json:"kris"`
+
+	Hostname                      *string                                `json:"hostname"`
+	IPAddress                     *string                                `json:"ip_address"`
+	MACAddress                    *string                                `json:"mac_address"`
+	FQDN                          *string                                `json:"fqdn"`
+	Region                        *string                                `json:"region"`
+	OperatingSystem               *string                                `json:"operating_system"`
+	IsArchived                    bool                                   `json:"is_archived"`
+	InventoryTimeString           *string                                `json:"inventory_time"`
+	DiscoveryTimeString           *string                                `json:"discovery_time"`
+	LastResponseTimeString        *string                                `json:"last_response_time"`
+	TechnicalOwner                *organizationDTOs.UserMinimalDTO       `json:"technical_owner"`
+	AdministrativeOwner           *organizationDTOs.UserMinimalDTO       `json:"administrative_owner"`
+	AssignedUser                  *organizationDTOs.UserMinimalDTO       `json:"assigned_user"`
+	DeviceCategory                *AssetDeviceCategoryDTO                `json:"device_category"`
+	CriticalityClassification     *AssetCriticalityMatrixFactorRatingDTO `json:"criticality_classification"`
+	ConfidentialityClassification *ConfidentialityClassificationDTO      `json:"confidentiality_classification"`
+	AssetEnvironment              *AssetEnvironmentDTO                   `json:"asset_environment"`
 }
 
 type AssetKRIDTO struct {
