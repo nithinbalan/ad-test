@@ -44,7 +44,7 @@ func (repo *AssetCriticalityMatrixRepository) GetAll() ([]*models.AssetCriticali
 	var matrices []*models.AssetCriticalityMatrix
 
 	err := repo.db.
-		Where("status = ?", "active").
+		Where("asset_criticality_matrices.status = ?", "active").
 		Preload("Factors").
 		Preload("FactorRatings").
 		Preload("RatingScales").
