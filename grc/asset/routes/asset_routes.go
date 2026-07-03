@@ -55,6 +55,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetDeviceCategoryController := app.AssetModule.AssetDeviceCategoryController
 	confidentialityClassificationController := app.AssetModule.ConfidentialityClassificationController
 	assetEnvironmentController := app.AssetModule.AssetEnvironmentController
+	applicationController := app.AssetModule.ApplicationController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -393,4 +394,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Asset Environments
 	assetRoutes.GET("/asset-environments", assetEnvironmentController.GetAllAssetEnvironments)
 	assetRoutes.GET("/asset-environments/:id", assetEnvironmentController.GetAssetEnvironmentDetails)
+
+	// Applications
+	assetRoutes.GET("/applications", applicationController.GetAllApplications)
+	assetRoutes.GET("/applications/:id", applicationController.GetApplicationDetails)
+	assetRoutes.POST("/applications", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), applicationController.CreateApplication)
+	assetRoutes.PUT("/applications/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), applicationController.UpdateApplication)
+	assetRoutes.POST("/applications/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), applicationController.DeleteApplications)
+	assetRoutes.PUT("/applications/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), applicationController.ActivateApplications)
+	assetRoutes.PUT("/applications/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), applicationController.DeactivateApplications)
 }
