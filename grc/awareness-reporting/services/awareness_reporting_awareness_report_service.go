@@ -118,7 +118,7 @@ func (ars *AwarenessReportService) Create(currentUserID uint, formDTO *awareness
 		HandlingOwnerID:           formDTO.HandlingOwnerID,
 		ClosureDate:               formDTO.ClosureDate,
 		Result:                    formDTO.Result,
-		CreatedByID:               currentUserID,
+		CreatedBYID:               currentUserID,
 	}
 
 	id, err := ars.repo.Create(awarenessReport, tx)
@@ -188,7 +188,7 @@ func (ars *AwarenessReportService) Update(id uint, currentUserID uint, formDTO *
 	existingReport.HandlingOwnerID = formDTO.HandlingOwnerID
 	existingReport.ClosureDate = formDTO.ClosureDate
 	existingReport.Result = formDTO.Result
-	existingReport.UpdatedByID = &currentUserID
+	existingReport.UpdatedBYID = &currentUserID
 
 	if err := ars.repo.Update(existingReport, tx); err != nil {
 		tx.Rollback()
