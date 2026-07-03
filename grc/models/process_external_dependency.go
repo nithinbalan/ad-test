@@ -25,6 +25,7 @@ type ProcessExternalDependency struct {
 	// Relationships
 	Process        *Process                             `gorm:"foreignKey:ProcessID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	EntityType     *ProcessExternalDependencyEntityType `gorm:"foreignKey:EntityTypeID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
+	SLARegister    *SLARegister                         `gorm:"foreignKey:SLARegisterID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	DependencyTier *ProcessDependencyTier               `gorm:"foreignKey:DependencyTierID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	VendorRTOUnit  *BusinessContinuityDurationUnit      `gorm:"foreignKey:VendorRTOUnitID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	CreatedByUser  *User                                `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
