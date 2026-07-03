@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"errors"
-	commonDTOs "jethur/grc/common/dtos"
 	awarenessDTOs "jethur/grc/awareness-reporting/dtos"
 	"jethur/grc/awareness-reporting/services"
+	commonDTOs "jethur/grc/common/dtos"
 	"jethur/utility"
 	"net/http"
 	"strconv"
@@ -41,17 +41,18 @@ func (apcsc *AwarenessPostCampaignSurveyController) GetAllAwarenessPostCampaignS
 	}
 
 	validSortFields := map[string]string{
-		"reference_number":       "awareness_post_campaign_surveys.reference_number",
-		"send_date":              "awareness_post_campaign_surveys.send_date",
-		"target_audience":        "awareness_post_campaign_surveys.target_audience",
-		"recipients":             "awareness_post_campaign_surveys.recipients",
-		"response_rate":          "awareness_post_campaign_surveys.response_rate",
-		"question_count":         "awareness_post_campaign_surveys.question_count",
-		"average_rating":         "awareness_post_campaign_surveys.average_rating",
-		"executing_party":        "awareness_post_campaign_surveys.executing_party",
-		"linked_campaign_title":  "awareness_campaigns.campaign_title",
+		"reference_number":        "awareness_post_campaign_surveys.reference_number",
+		"send_date":               "awareness_post_campaign_surveys.send_date",
+		"target_audience":         "awareness_post_campaign_surveys.target_audience",
+		"recipients":              "awareness_post_campaign_surveys.recipients",
+		"response_rate":           "awareness_post_campaign_surveys.response_rate",
+		"question_count":          "awareness_post_campaign_surveys.question_count",
+		"average_rating":          "awareness_post_campaign_surveys.average_rating",
+		"executing_party":         "awareness_post_campaign_surveys.executing_party",
+		"linked_campaign_title":   "awareness_campaigns.campaign_title",
 		"maturity_level_title_en": "awareness_maturity_levels.title_en",
 		"maturity_level_title_ar": "awareness_maturity_levels.title_ar",
+		"recommendations":         "awareness_post_campaign_surveys.recommendations",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
