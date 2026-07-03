@@ -114,6 +114,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.POST("/business-impact-assessments/delete", middlewares.RolePermissionMiddleware(db, "bia", "modify"), businessImpactAssessmentController.DeleteBusinessImpactAssessments)
 	businessContinuityRoutes.GET("/bia-matrix", middlewares.RolePermissionMiddleware(db, "bia_matrics", "view"), businessImpactAssessmentController.GetBIAMatrix)
 	businessContinuityRoutes.GET("/bia-matrix/export", middlewares.RolePermissionMiddleware(db, "bia_matrics", "view"), businessImpactAssessmentController.GetBiaMatrixExport)
+	businessContinuityRoutes.GET("/bia/critical-systems", middlewares.RolePermissionMiddleware(db, "bia", "view"), businessImpactAssessmentController.GetCriticalSystems)
 
 	// Business Continuity Plan
 	unauthenticatedRoutes.GET("/business-continuity-plans/:id/document-preview", businessContinuityPlanController.GetBusinessContinuityPlanDocumentPreview)

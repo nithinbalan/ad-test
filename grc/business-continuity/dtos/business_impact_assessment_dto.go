@@ -113,6 +113,49 @@ type BusinessImpactAssessmentRecoveryObjectiveListDTO struct {
 	UpdatedUserProfileImagePath *string `json:"updated_user_profile_image_path"`
 }
 
+type CriticalSystemListDTO struct {
+	SystemRegisterID      uint                       `json:"system_register_id"`
+	SystemRegisterTitleEn string                     `json:"system_register_title_en"`
+	SystemRegisterTitleAr string                     `json:"system_register_title_ar"`
+	ServiceDescription    *string                    `json:"service_description"`
+	RTO                   *int                       `json:"rto"`
+	RTOUnitTitleEn        *string                    `json:"rto_unit_title_en"`
+	RTOUnitTitleAr        *string                    `json:"rto_unit_title_ar"`
+	MTPD                  *int                       `json:"mtpd"`
+	MTPDUnitTitleEn       *string                    `json:"mtpd_unit_title_en"`
+	MTPDUnitTitleAr       *string                    `json:"mtpd_unit_title_ar"`
+	RPO                   *int                       `json:"rpo"`
+	RPOUnitTitleEn        *string                    `json:"rpo_unit_title_en"`
+	RPOUnitTitleAr        *string                    `json:"rpo_unit_title_ar"`
+	RecoveryManagerPhone  string                     `json:"recovery_manager_phone"`
+	RecoveryManagerEmail  string                     `json:"recovery_manager_email"`
+	RecoveryLocation      *string                    `json:"recovery_location"`
+	VendorRTO             *int                       `json:"vendor_rto"`
+	VendorRTOUnitTitleEn  *string                    `json:"vendor_rto_unit_title_en"`
+	VendorRTOUnitTitleAr  *string                    `json:"vendor_rto_unit_title_ar"`
+	CriticalProcessCount  int                        `json:"critical_process_count"`
+	CriticalProcesses     []CriticalSystemProcessDTO `json:"critical_processes"`
+}
+
+type CriticalSystemProcessDTO struct {
+	ProcessID                    uint    `json:"process_id"`
+	ProcessTitleEn               string  `json:"process_title_en"`
+	ProcessTitleAr               string  `json:"process_title_ar"`
+	ImpactAnalysisLevelID        *uint   `json:"impact_analysis_level_id"`
+	ImpactAnalysisLevelTitleEn   *string `json:"impact_analysis_level_title_en"`
+	ImpactAnalysisLevelTitleAr   *string `json:"impact_analysis_level_title_ar"`
+	ImpactAnalysisLevelColorCode *string `json:"impact_analysis_level_color_code"`
+	Rto                          *int    `json:"rto"`
+	RtoUnitTitleEn               *string `json:"rto_unit_title_en"`
+	RtoUnitTitleAr               *string `json:"rto_unit_title_ar"`
+	Mtpd                         *int    `json:"mtpd"`
+	MtpdUnitTitleEn              *string `json:"mtpd_unit_title_en"`
+	MtpdUnitTitleAr              *string `json:"mtpd_unit_title_ar"`
+	Rpo                          *int    `json:"rpo"`
+	RpoUnitTitleEn               *string `json:"rpo_unit_title_en"`
+	RpoUnitTitleAr               *string `json:"rpo_unit_title_ar"`
+}
+
 type BusinessImpactAssessmentListQueryParamsDTO struct {
 	Sort        string
 	SortBy      string
