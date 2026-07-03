@@ -242,7 +242,17 @@
 {
   "id": "bucket_range",
   "translation": "Impact level must be non-decreasing across outage bucket intervals"
+},
+{
+  "id": "not_valid",
+  "translation": "The selected process has not undergone BIA."
+},
+{
+  "id": "not_found",
+  "translation": "The {{.Field}} was not found."
 }
+
+
 
 
 

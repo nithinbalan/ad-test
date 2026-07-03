@@ -27,6 +27,7 @@ type BusinessFunctionRepositoryInterface interface {
 	GetTestAndExercisesByBcpID(bcpID uint) ([]*models.TestAndExercise, error)
 	GetBcpTestAndExercisesByBcpID(bcpID uint) ([]*models.BcpTestAndExercise, error)
 	GetProcessWithCriticality(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error)
+	GetProcessWithImpactLevel(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error)
 	CreateBusinessFunctionProcess(processes []*models.BusinessFunctionProcess, tx ...utility.DatabaseTransaction) error
 	DeleteBusinessFunctionProcess(BusinessFunctionID uint, processId uint, tx ...utility.DatabaseTransaction) error
 }
@@ -229,6 +230,7 @@ func (repo *BusinessFunctionRepository) GetFullDetailsByID(id uint, tx ...utilit
 		Preload("SeverityLevel").
 		Preload("Processes").
 		Preload("Processes.Process").
+		Preload("Processes.Process.ImpactAnalysisLevel").
 		Preload("Processes.Process.MtpdUnit").
 		Preload("Processes.Process.RpoUnit").
 		Preload("Processes.Process.RtoUnit").
@@ -390,6 +392,20 @@ func (repo *BusinessFunctionRepository) GetProcessWithCriticality(id uint, tx ..
 
 	var process models.Process
 	err := db.Preload("ProcessCriticalityLevel").First(&process, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &process, nil
+}
+
+func (repo *BusinessFunctionRepository) GetProcessWithImpactLevel(id uint, tx ...utility.DatabaseTransaction) (*models.Process, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var process models.Process
+	err := db.Preload("ImpactAnalysisLevel").First(&process, id).Error
 	if err != nil {
 		return nil, err
 	}

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
@@ -140,26 +139,17 @@ func (bfs *BusinessFunctionService) Create(currentUserID uint, businessFunctionF
 		CreatedBYID:       currentUserID,
 	}
 
-	// find highest criticality level of process
-	var highestCriticalityLevelID *uint
-	if len(businessFunctionFormDTO.ProcessIDs) > 0 {
-		criticalityMap := map[string]int{"low": 1, "medium": 2, "high": 3}
-		var maxScore int
-		for _, processID := range businessFunctionFormDTO.ProcessIDs {
-			process, err := bfs.repo.GetProcessWithCriticality(*processID, tx)
-			if err != nil {
-				tx.Rollback()
-				return 0, fmt.Errorf("failed to fetch process criticality: %v", err)
-			}
-			if process.ProcessCriticalityLevel != nil {
-				score := criticalityMap[strings.ToLower(process.ProcessCriticalityLevel.Type)]
-				if score > maxScore {
-					maxScore = score
-					highestCriticalityLevelID = &process.ProcessCriticalityLevel.ID
-				}
-			}
+	// Validate: all processes must have a non-null and non non_applicable impact analysis level
+	for _, processID := range businessFunctionFormDTO.ProcessIDs {
+		process, err := bfs.repo.GetProcessWithImpactLevel(*processID, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, fmt.Errorf("failed to fetch process impact level: %v", err)
 		}
-		businessFunction.HighestProcessCriticalityLevelID = highestCriticalityLevelID
+		if process.ImpactAnalysisLevel == nil || process.ImpactAnalysisLevel.Type == "non_applicable" {
+			tx.Rollback()
+			return 0, utility.NewValidationError(fmt.Errorf("process %d does not have a valid impact analysis level", *processID), "not_valid", "process_id")
+		}
 	}
 
 	id, err := bfs.repo.Create(businessFunction, tx)
@@ -314,28 +304,18 @@ func (bfs *BusinessFunctionService) Update(id uint, currentUserID uint, business
 		}
 	}
 
-	// Determine the highest process criticality level
-	var highestCriticalityLevelID *uint
-	if len(businessFunctionFormDTO.ProcessIDs) > 0 {
-		criticalityMap := map[string]int{"low": 1, "medium": 2, "high": 3}
-		var maxScore int
-		for _, processID := range businessFunctionFormDTO.ProcessIDs {
-			process, err := bfs.repo.GetProcessWithCriticality(*processID, tx)
-			if err != nil {
-				tx.Rollback()
-				return fmt.Errorf("failed to fetch process criticality: %v", err)
-			}
-			if process.ProcessCriticalityLevel != nil {
-				score := criticalityMap[strings.ToLower(process.ProcessCriticalityLevel.Type)]
-				if score > maxScore {
-					maxScore = score
-					highestCriticalityLevelID = &process.ProcessCriticalityLevel.ID
-				}
-			}
+	// Validate: all processes must have a non-null and non non_applicable impact analysis level
+	for _, processID := range businessFunctionFormDTO.ProcessIDs {
+		process, err := bfs.repo.GetProcessWithImpactLevel(*processID, tx)
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("failed to fetch process impact level: %v", err)
+		}
+		if process.ImpactAnalysisLevel == nil || process.ImpactAnalysisLevel.Type == "non_applicable" {
+			tx.Rollback()
+			return utility.NewValidationError(fmt.Errorf("process %d does not have a valid impact analysis level", *processID), "not_valid", "process_id")
 		}
 	}
-
-	existingBusinessFunction.HighestProcessCriticalityLevelID = highestCriticalityLevelID
 
 	if err := bfs.repo.Update(existingBusinessFunction, tx); err != nil {
 		tx.Rollback()
