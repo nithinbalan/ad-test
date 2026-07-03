@@ -234,7 +234,13 @@ func (repo *BusinessContinuityPlanRepository) GetFullDetailsByID(id uint, tx ...
 		Preload("Processes.SystemRegisters.SystemRegister.RPOUnit").
 		Preload("Processes.SystemRegisters.SystemRegister.RecoveryManager").
 		Preload("Processes.InternalDependencies").
+		Preload("Processes.InternalDependencies.SupportingUnit").
+		Preload("Processes.InternalDependencies.DependencyTier").
 		Preload("Processes.ExternalDependencies").
+		Preload("Processes.ExternalDependencies.EntityType").
+		Preload("Processes.ExternalDependencies.DependencyTier").
+		Preload("Processes.ExternalDependencies.SLARegister").
+		Preload("Processes.ExternalDependencies.VendorRTOUnit").
 		Preload("Processes.EmployeeAnalyses").
 		Preload("Processes.EmployeeAnalyses.Designation").
 		Preload("Processes.EmployeeAnalyses.Employees").
