@@ -67,9 +67,7 @@ func (arc *AwarenessReportController) GetAllAwarenessReports(c *gin.Context) {
 		"awareness_handling_status_title_ar":     "awareness_handling_statuses.title_ar",
 		"handling_owner_first_name_en":           "handling_owner_user.first_name_en",
 		"handling_owner_first_name_ar":           "handling_owner_user.first_name_ar",
-		"handling_owner_last_name_en":            "handling_owner_user.last_name_en",
-		"handling_owner_last_name_ar":            "handling_owner_user.last_name_ar",
-		"handling_owner_email":                   "handling_owner_user.email",
+		"result":								   "awareness_reports.result",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
