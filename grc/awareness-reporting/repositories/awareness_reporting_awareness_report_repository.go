@@ -173,8 +173,8 @@ func (repo *AwarenessReportRepository) GetFullDetailsByID(id uint, tx ...utility
 		Preload("SeverityLevel").
 		Preload("AwarenessHandlingStatus").
 		Preload("HandlingOwner").
-		Preload("CreatedByUser").
-		Preload("UpdatedByUser").
+		Preload("CreatedBYUser").
+		Preload("UpdatedBYUser").
 		First(&report, id)
 
 	if result.Error != nil {

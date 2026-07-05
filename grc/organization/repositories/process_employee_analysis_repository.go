@@ -85,8 +85,22 @@ func (repo *ProcessEmployeeAnalysisRepository) GetAll(processID uint, params *or
 		keyword := "%" + params.Keyword + "%"
 		query = query.Where(`
 			designations.title_en LIKE ? OR
-			designations.title_ar LIKE ?
-		`, keyword, keyword)
+			designations.title_ar LIKE ? OR
+			processes.title_en LIKE ? OR
+			processes.title_ar LIKE ? OR
+			created_user.first_name_en LIKE ? OR
+			created_user.first_name_ar LIKE ? OR
+			created_user.last_name_en LIKE ? OR
+			created_user.last_name_ar LIKE ? OR
+			created_user.email LIKE ? OR
+			updated_user.first_name_en LIKE ? OR
+			updated_user.first_name_ar LIKE ? OR
+			updated_user.last_name_en LIKE ? OR
+			updated_user.last_name_ar LIKE ? OR
+			updated_user.email LIKE ?
+		`, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {

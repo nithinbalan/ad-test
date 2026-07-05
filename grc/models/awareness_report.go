@@ -18,9 +18,9 @@ type AwarenessReport struct {
 	ClosureDate              *time.Time `json:"closure_date" gorm:"type:datetime"`
 	Result                   *string    `json:"result" gorm:"type:nvarchar(max)"`
 
-	CreatedByID uint       `json:"created_by_id" gorm:"not null"`
+	CreatedBYID uint       `json:"created_by_id" gorm:"not null"`
 	CreatedAt   time.Time  `json:"created_at" gorm:"type:datetime;not null"`
-	UpdatedByID *uint      `json:"updated_by_id" gorm:"default:null"`
+	UpdatedBYID *uint      `json:"updated_by_id" gorm:"default:null"`
 	UpdatedAt   *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
@@ -30,8 +30,8 @@ type AwarenessReport struct {
 	AwarenessHandlingStatus  *AwarenessHandlingStatus    `gorm:"foreignKey:AwarenessHandlingStatusID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
 	HandlingOwner            *User                       `gorm:"foreignKey:HandlingOwnerID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
 
-	CreatedByUser *User `gorm:"foreignKey:CreatedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
-	UpdatedByUser *User `gorm:"foreignKey:UpdatedByID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
+	CreatedBYUser *User `gorm:"foreignKey:CreatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
+	UpdatedBYUser *User `gorm:"foreignKey:UpdatedBYID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
 }
 
 func (AwarenessReport) TableName() string {
