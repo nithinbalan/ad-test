@@ -618,7 +618,7 @@ func (repo *BusinessImpactAssessmentRepository) UpdateBusinessImpactAssessmentRa
 		db = tx[0].DB()
 	}
 	return db.Model(&models.BusinessImpactAssessmentRating{}).Where("id = ?", rating.ID).
-		Select("RtoFromValue", "RtoToValue", "MtpdFromValue", "MtpdToValue", "RpoFromValue", "RpoToValue", "RspFromValue", "RspToValue", "IsEdited", "UpdatedBYID").
+		Select("RtoFromValue", "IsEdited", "OverrideReason", "UpdatedBYID").
 		Updates(rating).Error
 }
 
