@@ -30,6 +30,7 @@ type TestAndExerciseServiceInterface interface {
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	GetTestAndExerciseProcessByID(id uint) (*models.TestAndExerciseProcess, error)
+	GetTestAndExerciseSystemRegisterByID(id uint) (*models.TestAndExerciseSystemRegister, error)
 	ExportTestAndExercise(data []*businessContinuityDTOs.TestAndExerciseListDTO, currentUserID uint) (*os.File, error)
 }
 
@@ -202,6 +203,31 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 		}
 	}
 
+	// Save System Registers
+	var testAndExerciseSystemRegisters []*models.TestAndExerciseSystemRegister
+	systemRegisterIds := make(map[uint]bool)
+	for _, bcpSystemRegister := range bcpTestAndExercise.BcpTestAndExerciseSystemRegisters {
+		systemRegister := &models.TestAndExerciseSystemRegister{
+			TestAndExerciseID: id,
+			SystemRegisterID:  bcpSystemRegister.SystemRegisterID,
+			PlannedRto:        bcpSystemRegister.SystemRegister.RTO,
+			PlannedRtoUnitId:  bcpSystemRegister.SystemRegister.RTOUnitID,
+			PlannedMtpd:       bcpSystemRegister.SystemRegister.MTPD,
+			PlannedMtpdUnitId: bcpSystemRegister.SystemRegister.MTPDUnitID,
+			PlannedRpo:        bcpSystemRegister.SystemRegister.RPO,
+			PlannedRpoUnitId:  bcpSystemRegister.SystemRegister.RPOUnitID,
+			CreatedBYID:       currentUserID,
+		}
+		testAndExerciseSystemRegisters = append(testAndExerciseSystemRegisters, systemRegister)
+		systemRegisterIds[bcpSystemRegister.SystemRegisterID] = true
+	}
+	if len(testAndExerciseSystemRegisters) > 0 {
+		if err := tes.repo.CreateTestAndExerciseSystemRegisters(testAndExerciseSystemRegisters, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	//  save recovery action plan
 
 	businessContinuityPlan, err := tes.businessContinuityPlanSvc.GetFullDetailsByID(testAndExerciseFormDTO.BusinessContinuityPlanID, tx)
@@ -247,7 +273,7 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 
 			process := &models.TestAndExerciseRecoveryActionPlan{
 				TestAndExerciseID:  id,
-				ProcessID:          bcpRecoveryPlan.BcpProcess.Process.ID,
+				ProcessID:          &bcpRecoveryPlan.BcpProcess.Process.ID,
 				Title:              bcpRecoveryPlan.Title,
 				SeverityLevelID:    &bcpRecoveryPlan.SeverityLevel.ID,
 				BcpPhaseID:         &bcpRecoveryPlan.BcpPhaseID,
@@ -294,7 +320,7 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 
 			process := &models.TestAndExerciseCommunicationActionPlan{
 				TestAndExerciseID:               id,
-				ProcessID:                       bcpCommunicationPlan.BcpProcess.ProcessID,
+				ProcessID:                       &bcpCommunicationPlan.BcpProcess.ProcessID,
 				Title:                           bcpCommunicationPlan.Title,
 				BcpPhaseID:                      bcpCommunicationPlan.BcpPhaseID,
 				ResponsibleUserID:               bcpCommunicationPlan.ResponsibleUserID,
@@ -462,6 +488,58 @@ func (tes *TestAndExerciseService) Update(id uint, currentUserID uint, testAndEx
 				return err
 			}
 		}
+
+		// Handle System Registers
+		existingSystemRegisterIDs := make(map[uint]bool)
+		for _, sr := range existingTestAndExercise.TestAndExerciseSystemRegisters {
+			existingSystemRegisterIDs[sr.SystemRegisterID] = true
+		}
+
+		newSystemRegisterIDs := make(map[uint]bool)
+		for _, sr := range bcpTestAndExercise.BcpTestAndExerciseSystemRegisters {
+			newSystemRegisterIDs[sr.SystemRegisterID] = true
+		}
+
+		// Add new System Registers
+		var systemRegistersToAdd []*models.TestAndExerciseSystemRegister
+		for _, newSR := range bcpTestAndExercise.BcpTestAndExerciseSystemRegisters {
+			if _, exists := existingSystemRegisterIDs[newSR.SystemRegisterID]; !exists {
+				systemRegister := &models.TestAndExerciseSystemRegister{
+					TestAndExerciseID: id,
+					SystemRegisterID:  newSR.SystemRegisterID,
+					PlannedRto:        newSR.SystemRegister.RTO,
+					PlannedRtoUnitId:  newSR.SystemRegister.RTOUnitID,
+					PlannedMtpd:       newSR.SystemRegister.MTPD,
+					PlannedMtpdUnitId: newSR.SystemRegister.MTPDUnitID,
+					PlannedRpo:        newSR.SystemRegister.RPO,
+					PlannedRpoUnitId:  newSR.SystemRegister.RPOUnitID,
+					CreatedBYID:       currentUserID,
+				}
+				systemRegistersToAdd = append(systemRegistersToAdd, systemRegister)
+			}
+		}
+
+		if len(systemRegistersToAdd) > 0 {
+			if err := tes.repo.CreateTestAndExerciseSystemRegisters(systemRegistersToAdd, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+
+		// Remove System Registers not in the new list
+		var deleteSystemRegisterIDs []*uint
+		for _, existingSR := range existingTestAndExercise.TestAndExerciseSystemRegisters {
+			if _, exists := newSystemRegisterIDs[existingSR.SystemRegisterID]; !exists {
+				deleteSystemRegisterIDs = append(deleteSystemRegisterIDs, existingSR.ID)
+			}
+		}
+
+		if len(deleteSystemRegisterIDs) > 0 {
+			if err := tes.repo.DeleteTestAndExerciseSystemRegisters(deleteSystemRegisterIDs, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
 	}
 
 	tx.Commit()
@@ -553,6 +631,17 @@ func (tes *TestAndExerciseService) Delete(ids []uint, currentUserID uint) ([]uin
 			}
 		}
 
+		if len(testAndExercise.TestAndExerciseSystemRegisters) > 0 {
+			var deleteSystemRegisterIDs []*uint
+			for _, sr := range testAndExercise.TestAndExerciseSystemRegisters {
+				deleteSystemRegisterIDs = append(deleteSystemRegisterIDs, sr.ID)
+			}
+			if err := tes.repo.DeleteTestAndExerciseSystemRegisters(deleteSystemRegisterIDs, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+
 		if len(testAndExercise.TestAndExerciseRecoveryActionPlans) > 0 {
 			var deleteRecoveryActionPlanIDs []*uint
 			for _, recoveryActionPlan := range testAndExercise.TestAndExerciseRecoveryActionPlans {
@@ -635,6 +724,18 @@ func (tes TestAndExerciseService) GetTestAndExerciseProcessByID(id uint) (*model
 	}
 
 	return TestAndExerciseProcess, nil
+}
+
+func (tes TestAndExerciseService) GetTestAndExerciseSystemRegisterByID(id uint) (*models.TestAndExerciseSystemRegister, error) {
+	testAndExerciseSystemRegister, err := tes.repo.GetTestAndExerciseSystemRegisterByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, id)
+		}
+		return nil, err
+	}
+
+	return testAndExerciseSystemRegister, nil
 }
 
 func (tes *TestAndExerciseService) ExportTestAndExercise(data []*businessContinuityDTOs.TestAndExerciseListDTO, currentUserID uint) (*os.File, error) {

@@ -3,6 +3,7 @@ package dtos
 import (
 	"time"
 
+	assetDTOs "jethur/grc/asset/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
@@ -14,9 +15,12 @@ type TestAndExerciseRecoveryActionPlanListDTO struct {
 	BcpPhaseID                      *uint      `json:"bcp_phase_id"`
 	BcpPhaseTitleEn                 *string    `json:"bcp_phase_title_en"`
 	BcpPhaseTitleAr                 *string    `json:"bcp_phase_title_ar"`
-	ProcessID                       uint       `json:"process_id"`
-	ProcessTitleEn                  string     `json:"process_title_en"`
-	ProcessTitleAr                  string     `json:"process_title_ar"`
+	ProcessID                       *uint      `json:"process_id"`
+	ProcessTitleEn                  *string    `json:"process_title_en"`
+	ProcessTitleAr                  *string    `json:"process_title_ar"`
+	SystemRegisterID                *uint      `json:"system_register_id"`
+	SystemRegisterTitleEn           *string    `json:"system_register_title_en"`
+	SystemRegisterTitleAr           *string    `json:"system_register_title_ar"`
 	SeverityLevelID                 *uint      `json:"severity_level_id"`
 	SeverityLevelTitleEn            *string    `json:"severity_level_title_en"`
 	SeverityLevelTitleAr            *string    `json:"severity_level_title_ar"`
@@ -76,8 +80,10 @@ type TestAndExerciseRecoveryActionPlanDetailDTO struct {
 	TestAndExercise         TestAndExerciseDetailDTO                 `json:"test_and_exercise"`
 	BcpPhaseID              *uint                                    `json:"bcp_phase_id"`
 	BcpPhase                BcpPhaseDTO                              `json:"bcp_phase"`
-	ProcessID               uint                                     `json:"process_id"`
-	Process                 organizationDTOs.ProcessDetailDTO        `json:"process"`
+	ProcessID               *uint                                    `json:"process_id"`
+	Process                 *organizationDTOs.ProcessDetailDTO       `json:"process"`
+	SystemRegisterID        *uint                                    `json:"system_register_id"`
+	SystemRegister          *assetDTOs.SystemRegisterDetailDTO       `json:"system_register"`
 	SeverityLevelID         *uint                                    `json:"severity_level_id"`
 	SeverityLevel           *masterDTOs.SeverityLevelDTO             `json:"severity_level"`
 	Title                   string                                   `json:"title"`
@@ -120,7 +126,8 @@ type TestAndExerciseRecoveryActionPlanFormDTO struct {
 	Title             string  `json:"title"`
 	Description       *string `json:"description"`
 	BcpPhaseID        *uint   `json:"bcp_phase_id"`
-	ProcessID         uint    `json:"process_id" binding:"required"`
+	ProcessID         *uint   `json:"process_id"`
+	SystemRegisterID  *uint   `json:"system_register_id"`
 	SeverityLevelID   *uint   `json:"severity_level_id"`
 	ResponsibleUserID uint    `json:"responsible_user_id" binding:"required"`
 	TargetDate        string  `json:"target_date" binding:"required"`

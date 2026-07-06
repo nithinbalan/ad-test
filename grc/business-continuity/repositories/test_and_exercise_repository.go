@@ -26,6 +26,10 @@ type TestAndExerciseRepositoryInterface interface {
 	CreateTestAndExerciseProcesses(bcpProcesses []*models.TestAndExerciseProcess, tx ...utility.DatabaseTransaction) error
 	DeleteTestAndExerciseProcesses(bcpProcessIds []*uint, tx ...utility.DatabaseTransaction) error
 
+	GetTestAndExerciseSystemRegisterByID(id uint) (*models.TestAndExerciseSystemRegister, error)
+	CreateTestAndExerciseSystemRegisters(systemRegisters []*models.TestAndExerciseSystemRegister, tx ...utility.DatabaseTransaction) error
+	DeleteTestAndExerciseSystemRegisters(systemRegisterIds []*uint, tx ...utility.DatabaseTransaction) error
+
 	CreateTestAndExerciseRecoveryActionPlans(bcpRecoveryActionPlans *models.TestAndExerciseRecoveryActionPlan, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteTestAndExerciseRecoveryActionPlans(bcpRecoveryActionPlanIds []*uint, tx ...utility.DatabaseTransaction) error
 
@@ -198,6 +202,15 @@ func (repo *TestAndExerciseRepository) GetFullDetailsByID(id uint, tx ...utility
 		Preload("TestAndExerciseProcesses.ActualMtpdUnit").
 		Preload("TestAndExerciseProcesses.ActualRpoUnit").
 		Preload("TestAndExerciseProcesses.Timeliness").
+		Preload("TestAndExerciseSystemRegisters").
+		Preload("TestAndExerciseSystemRegisters.SystemRegister").
+		Preload("TestAndExerciseSystemRegisters.PlannedRtoUnit").
+		Preload("TestAndExerciseSystemRegisters.PlannedMtpdUnit").
+		Preload("TestAndExerciseSystemRegisters.PlannedRpoUnit").
+		Preload("TestAndExerciseSystemRegisters.ActualRtoUnit").
+		Preload("TestAndExerciseSystemRegisters.ActualMtpdUnit").
+		Preload("TestAndExerciseSystemRegisters.ActualRpoUnit").
+		Preload("TestAndExerciseSystemRegisters.Timeliness").
 		Preload("TestAndExerciseRecoveryActionPlans").
 		Preload("TestAndExerciseCommunicationActionPlans").
 		Preload("TestAndExerciseStatus").
@@ -367,4 +380,39 @@ func (repo *TestAndExerciseRepository) GetTestAndExerciseProcessByID(id uint) (*
 
 	return TestAndExerciseProcess, nil
 
+}
+
+func (repo *TestAndExerciseRepository) GetTestAndExerciseSystemRegisterByID(id uint) (*models.TestAndExerciseSystemRegister, error) {
+	var testAndExerciseSystemRegister *models.TestAndExerciseSystemRegister
+
+	result := repo.db.First(&testAndExerciseSystemRegister, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return testAndExerciseSystemRegister, nil
+}
+
+func (repo *TestAndExerciseRepository) CreateTestAndExerciseSystemRegisters(systemRegisters []*models.TestAndExerciseSystemRegister, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&systemRegisters).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *TestAndExerciseRepository) DeleteTestAndExerciseSystemRegisters(systemRegisterIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", systemRegisterIds).Delete(&models.TestAndExerciseSystemRegister{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

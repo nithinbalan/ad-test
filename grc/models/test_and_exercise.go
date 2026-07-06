@@ -26,6 +26,7 @@ type TestAndExercise struct {
 	BcpTestAndExercise                      *BcpTestAndExercise                       `gorm:"foreignKey:BcpTestAndExerciseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	TestAndExerciseStatus                   *TestAndExerciseStatus                    `gorm:"foreignKey:TestAndExerciseStatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	TestAndExerciseProcesses                []*TestAndExerciseProcess                 `gorm:"foreignKey:TestAndExerciseID"`
+	TestAndExerciseSystemRegisters          []*TestAndExerciseSystemRegister          `gorm:"foreignKey:TestAndExerciseID"`
 	TestAndExerciseRecoveryActionPlans      []*TestAndExerciseRecoveryActionPlan      `gorm:"foreignKey:TestAndExerciseID"`
 	TestAndExerciseCommunicationActionPlans []*TestAndExerciseCommunicationActionPlan `gorm:"foreignKey:TestAndExerciseID"`
 	TestAndExerciseTestResult               *TestAndExerciseTestResult                `gorm:"foreignKey:TestAndExerciseID"`

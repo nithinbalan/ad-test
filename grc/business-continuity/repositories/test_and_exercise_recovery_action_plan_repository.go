@@ -47,11 +47,14 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
             test_and_exercise_recovery_action_plans.test_and_exercise_id,
             test_and_exercise_recovery_action_plans.bcp_phase_id,
             test_and_exercise_recovery_action_plans.process_id,
+            test_and_exercise_recovery_action_plans.system_register_id,
 			test_and_exercise_recovery_action_plans.percentage,
 			bcp_phases.title_en AS bcp_phase_title_en,
 			bcp_phases.title_ar AS bcp_phase_title_ar,
             processes.title_en AS process_title_en, 
             processes.title_ar AS process_title_ar, 
+            system_registers.title_en AS system_register_title_en,
+            system_registers.title_ar AS system_register_title_ar,
             test_and_exercise_recovery_action_plans.severity_level_id,
             severity_levels.title_en AS severity_level_title_en, 
             severity_levels.title_ar AS severity_level_title_ar, 
@@ -108,6 +111,7 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
         `).
 		Joins(`LEFT JOIN bcp_phases ON bcp_phases.id = test_and_exercise_recovery_action_plans.bcp_phase_id`).
 		Joins(`LEFT JOIN processes ON processes.id = test_and_exercise_recovery_action_plans.process_id`).
+		Joins(`LEFT JOIN system_registers ON system_registers.id = test_and_exercise_recovery_action_plans.system_register_id`).
 		Joins(`LEFT JOIN severity_levels ON severity_levels.id = test_and_exercise_recovery_action_plans.severity_level_id`).
 		Joins(`LEFT JOIN users AS responsible_user ON responsible_user.id = test_and_exercise_recovery_action_plans.responsible_user_id`).
 		Joins("LEFT JOIN users AS review_user ON review_user.id = test_and_exercise_recovery_action_plans.review_user_id").
@@ -138,6 +142,8 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
 			bcp_phases.title_ar LIKE ? OR
 			processes.title_en LIKE ? OR
 			processes.title_ar LIKE ? OR
+			system_registers.title_en LIKE ? OR
+			system_registers.title_ar LIKE ? OR
 			organization_units.title_en LIKE ? OR
 			organization_units.title_ar LIKE ? OR
 			responsible_user.first_name_en LIKE ? OR
@@ -158,7 +164,7 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetAll(testAndExerciseI
 			updated_user.first_name_ar LIKE ? OR
 			updated_user.last_name_ar LIKE ? OR
 			updated_user.email LIKE ?)`,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword,
@@ -196,6 +202,7 @@ func (repo *TestAndExerciseRecoveryActionPlanRepository) GetFullDetailsByID(id u
 		Preload("TestAndExercise.BcpTestAndExercise").
 		Preload("BcpPhase").
 		Preload("Process").
+		Preload("SystemRegister").
 		Preload("SeverityLevel").
 		Preload("ActionPlanStatus").
 		Preload("ResponsibleUser").

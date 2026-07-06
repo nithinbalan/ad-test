@@ -21,15 +21,15 @@ type BcpRecoveryPlan struct {
 	UpdatedAt                *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
-	BusinessContinuityPlan *BusinessContinuityPlan `gorm:"foreignKey:BusinessContinuityPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	BcpPhase               *BcpPhase               `gorm:"foreignKey:BcpPhaseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	BcpProcess             *BcpProcess             `gorm:"foreignKey:BcpProcessID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	SeverityLevel          *SeverityLevel          `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	TargetCompletionUnit   *TimeUnit               `gorm:"foreignKey:TargetCompletionUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser        *User                   `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUnit        *OrganizationUnit       `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	CreatedByUser          *User                   `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser          *User                   `gorm:"foreignKey:UpdatedBYID"`
+	BusinessContinuityPlan *BusinessContinuityPlan         `gorm:"foreignKey:BusinessContinuityPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	BcpPhase               *BcpPhase                       `gorm:"foreignKey:BcpPhaseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	BcpProcess             *BcpProcess                     `gorm:"foreignKey:BcpProcessID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SeverityLevel          *SeverityLevel                  `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	TargetCompletionUnit   *BusinessContinuityDurationUnit `gorm:"foreignKey:TargetCompletionUnitId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser        *User                           `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit        *OrganizationUnit               `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	CreatedByUser          *User                           `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser          *User                           `gorm:"foreignKey:UpdatedBYID"`
 }
 
 func (BcpRecoveryPlan) TableName() string {

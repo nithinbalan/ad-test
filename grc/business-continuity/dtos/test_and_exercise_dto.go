@@ -3,6 +3,7 @@ package dtos
 import (
 	"time"
 
+	assetDTOs "jethur/grc/asset/dtos"
 	commonDTOs "jethur/grc/common/dtos"
 	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
@@ -85,6 +86,7 @@ type TestAndExerciseDetailDTO struct {
 	BcpTestAndExerciseID                    uint                                         `json:"bcp_test_and_exercise_id"`
 	BcpTestAndExercise                      *BcpTestAndExerciseDetailDTO                 `json:"bcp_test_and_exercise"`
 	TestAndExerciseProcesses                []*TestAndExerciseProcessDTO                 `json:"test_and_exercise_processes"`
+	TestAndExerciseSystemRegisters          []*TestAndExerciseSystemRegisterDTO          `json:"test_and_exercise_system_registers"`
 	TestAndExerciseRecoveryActionPlans      []*TestAndExerciseRecoveryActionPlanDTO      `json:"test_and_exercise_recovery_action_plans"`
 	TestAndExerciseCommunicationActionPlans []*TestAndExerciseCommunicationActionPlanDTO `json:"test_and_exercise_communication_action_plans"`
 	TestingDateString                       string                                       `json:"testing_date"`
@@ -127,34 +129,66 @@ type TestAndExerciseProcessDTO struct {
 }
 
 type TestAndExerciseRecoveryActionPlanDTO struct {
-	ID                *uint                             `json:"id"`
-	TestAndExerciseID uint                              `json:"test_and_exercise_id"`
-	ProcessID         uint                              `json:"process_id"`
-	Process           organizationDTOs.ProcessDetailDTO `json:"process"`
-	BcpPhaseID        uint                              `json:"bcp_phase_id"`
-	BcpPhase          BcpPhaseDTO                       `json:"bcp_phase"`
-	SeverityLevel     *masterDTOs.SeverityLevelDTO      `json:"severity_level"`
-	ResponsibleUserID uint                              `json:"responsible_user_id" binding:"required" gorm:"not null"`
-	ResponsibleUser   organizationDTOs.UserMinimalDTO   `json:"responsible_user"`
-	ResponsibleUnitID uint                              `json:"responsible_unit_id"`
-	ResponsibleUnit   settingsDTOs.OrganizationUnitDTO  `json:"responsible_unit"`
-	TargetDateString  *string                           `json:"target_date"`
+	ID                *uint                              `json:"id"`
+	TestAndExerciseID uint                               `json:"test_and_exercise_id"`
+	ProcessID         *uint                              `json:"process_id"`
+	Process           *organizationDTOs.ProcessDetailDTO `json:"process"`
+	SystemRegisterID  *uint                              `json:"system_register_id"`
+	SystemRegister    *assetDTOs.SystemRegisterDetailDTO `json:"system_register"`
+	BcpPhaseID        uint                               `json:"bcp_phase_id"`
+	BcpPhase          BcpPhaseDTO                        `json:"bcp_phase"`
+	SeverityLevel     *masterDTOs.SeverityLevelDTO       `json:"severity_level"`
+	ResponsibleUserID uint                               `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	ResponsibleUser   organizationDTOs.UserMinimalDTO    `json:"responsible_user"`
+	ResponsibleUnitID uint                               `json:"responsible_unit_id"`
+	ResponsibleUnit   settingsDTOs.OrganizationUnitDTO   `json:"responsible_unit"`
+	TargetDateString  *string                            `json:"target_date"`
 }
 
 type TestAndExerciseCommunicationActionPlanDTO struct {
-	ID                *uint                             `json:"id"`
-	TestAndExerciseID uint                              `json:"test_and_exercise_id"`
-	ProcessID         uint                              `json:"process_id"`
-	Process           organizationDTOs.ProcessDetailDTO `json:"process"`
-	BcpPhaseID        uint                              `json:"bcp_phase_id"`
-	BcpPhase          BcpPhaseDTO                       `json:"bcp_phase"`
-	ResponsibleUserID uint                              `json:"responsible_user_id" binding:"required" gorm:"not null"`
-	ResponsibleUser   organizationDTOs.UserMinimalDTO   `json:"responsible_user"`
-	ResponsibleUnitID uint                              `json:"responsible_unit_id"`
-	ResponsibleUnit   settingsDTOs.OrganizationUnitDTO  `json:"responsible_unit"`
-	Frequency         *string                           `json:"frequency"`
-	Recipient         *string                           `json:"recipient"`
-	Channel           *string                           `json:"channel"`
+	ID                *uint                              `json:"id"`
+	TestAndExerciseID uint                               `json:"test_and_exercise_id"`
+	ProcessID         *uint                              `json:"process_id"`
+	Process           *organizationDTOs.ProcessDetailDTO `json:"process"`
+	SystemRegisterID  *uint                              `json:"system_register_id"`
+	SystemRegister    *assetDTOs.SystemRegisterDetailDTO `json:"system_register"`
+	BcpPhaseID        uint                               `json:"bcp_phase_id"`
+	BcpPhase          BcpPhaseDTO                        `json:"bcp_phase"`
+	ResponsibleUserID uint                               `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	ResponsibleUser   organizationDTOs.UserMinimalDTO    `json:"responsible_user"`
+	ResponsibleUnitID uint                               `json:"responsible_unit_id"`
+	ResponsibleUnit   settingsDTOs.OrganizationUnitDTO   `json:"responsible_unit"`
+	Frequency         *string                            `json:"frequency"`
+	Recipient         *string                            `json:"recipient"`
+	Channel           *string                            `json:"channel"`
+}
+
+type TestAndExerciseSystemRegisterDTO struct {
+	ID                *uint                              `json:"id"`
+	TestAndExerciseID uint                               `json:"test_and_exercise_id"`
+	SystemRegisterID  uint                               `json:"system_register_id"`
+	SystemRegister    *assetDTOs.SystemRegisterDetailDTO `json:"system_register"`
+	PlannedRto        *int                               `json:"planned_rto"`
+	PlannedRtoUnitId  *uint                              `json:"planned_rto_unit_id"`
+	PlannedRtoUnit    *BusinessContinuityDurationUnitDTO `json:"planned_rto_unit"`
+	PlannedMtpd       *int                               `json:"planned_mtpd"`
+	PlannedMtpdUnitId *uint                              `json:"planned_mtpd_unit_id"`
+	PlannedMtpdUnit   *BusinessContinuityDurationUnitDTO `json:"planned_mtpd_unit"`
+	PlannedRpo        *int                               `json:"planned_rpo"`
+	PlannedRpoUnitId  *uint                              `json:"planned_rpo_unit_id"`
+	PlannedRpoUnit    *BusinessContinuityDurationUnitDTO `json:"planned_rpo_unit"`
+	ActualRto         *int                               `json:"actual_rto"`
+	ActualRtoUnitId   *uint                              `json:"actual_rto_unit_id"`
+	ActualRtoUnit     *BusinessContinuityDurationUnitDTO `json:"actual_rto_unit"`
+	ActualMtpd        *int                               `json:"actual_mtpd"`
+	ActualMtpdUnitId  *uint                              `json:"actual_mtpd_unit_id"`
+	ActualMtpdUnit    *BusinessContinuityDurationUnitDTO `json:"actual_mtpd_unit"`
+	ActualRpo         *int                               `json:"actual_rpo"`
+	ActualRpoUnitId   *uint                              `json:"actual_rpo_unit_id"`
+	ActualRpoUnit     *BusinessContinuityDurationUnitDTO `json:"actual_rpo_unit"`
+	TimelinessID      *uint                              `json:"timeliness_id"`
+	Timeliness        TimelinessDTO                      `json:"timeliness"`
+	IsRecovered       bool                               `json:"is_recovered"`
 }
 
 type TestAndExerciseParsedDates struct {

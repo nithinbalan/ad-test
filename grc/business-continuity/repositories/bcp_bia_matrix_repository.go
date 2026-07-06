@@ -59,7 +59,15 @@ func (repo *BcpBiaMatrixRepository) GetAllKeyProcess(bcpId uint, params *busines
 			risk_matrix_risk_rating_values.value AS risk_rating_value,
             lifecycle_statuses.title_en AS lifecycle_status_title_en,
 			lifecycle_statuses.title_ar AS lifecycle_status_title_ar,
-			lifecycle_statuses.color_code AS lifecycle_status_color_code
+			lifecycle_statuses.color_code AS lifecycle_status_color_code,
+			processes.impact_analysis_level_id AS impact_analysis_level_id,
+			bcm_impact_analysis_levels.title_en AS impact_analysis_level_title_en,
+			bcm_impact_analysis_levels.title_ar AS impact_analysis_level_title_ar,
+			bcm_impact_analysis_levels.color_code AS impact_analysis_level_color_code,
+			bcm_impact_analysis_levels.type AS impact_analysis_level_type,
+			process_system_registers.system_register_id AS system_register_id,
+			system_registers.title_en AS system_register_title_en,
+			system_registers.title_ar AS system_register_title_ar
         `).
 		Joins(`
 			LEFT JOIN processes ON processes.id = bcp_processes.process_id
@@ -68,6 +76,9 @@ func (repo *BcpBiaMatrixRepository) GetAllKeyProcess(bcpId uint, params *busines
 			LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = processes.risk_matrix_risk_rating_value_id
 			LEFT JOIN lifecycle_statuses ON lifecycle_statuses.id = processes.lifecycle_status_id
 			LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id
+			LEFT JOIN bcm_impact_analysis_levels ON bcm_impact_analysis_levels.id = processes.impact_analysis_level_id
+			LEFT JOIN process_system_registers ON process_system_registers.process_id = processes.id
+			LEFT JOIN system_registers ON system_registers.id = process_system_registers.system_register_id
         `).Where("bcp_processes.business_continuity_plan_id = ?", bcpId)
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
@@ -117,6 +128,7 @@ func (repo *BcpBiaMatrixRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("Processes.RtoUnit").
 		Preload("Processes.MtpdUnit").
 		Preload("Processes.RpoUnit").
+		Preload("Processes.ImpactAnalysisLevel").
 		Preload("Processes.RiskLevel").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").

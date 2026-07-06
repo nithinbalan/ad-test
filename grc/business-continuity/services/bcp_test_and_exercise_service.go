@@ -129,19 +129,19 @@ func (btes *BcpTestAndExerciseService) Create(bcpId uint, currentUserID uint, bc
 		return 0, err
 	}
 
-	// Save BcpProcesses
-	var bcpProcesses []*models.BcpTestAndExerciseBcpProcess
-	for _, bcpProcessID := range bcpTestAndExerciseFormDTO.BcpProcessIDs {
-		bcpProcess := &models.BcpTestAndExerciseBcpProcess{
+	// Save SystemRegisters
+	var systemRegisters []*models.BcpTestAndExerciseSystemRegister
+	for _, systemRegisterID := range bcpTestAndExerciseFormDTO.SystemRegisterIDs {
+		systemRegister := &models.BcpTestAndExerciseSystemRegister{
 			BcpTestAndExerciseID: id,
-			BcpProcessID:         *bcpProcessID,
+			SystemRegisterID:     *systemRegisterID,
 			CreatedBYID:          currentUserID,
 		}
-		bcpProcesses = append(bcpProcesses, bcpProcess)
+		systemRegisters = append(systemRegisters, systemRegister)
 	}
 
-	if len(bcpProcesses) > 0 {
-		if err := btes.repo.CreateBcpTestAndExerciseBcpProcesses(bcpProcesses, tx); err != nil {
+	if len(systemRegisters) > 0 {
+		if err := btes.repo.CreateBcpTestAndExerciseSystemRegisters(systemRegisters, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -223,59 +223,59 @@ func (btes *BcpTestAndExerciseService) Update(bcpId uint, id uint, currentUserID
 		return err
 	}
 
-	// Collect existing bcpProcess IDs
+	// Collect existing SystemRegister IDs
 	existingTestAndExercise, err := btes.GetFullDetailsByID(bcpId, id, tx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	existingBcpProcessIDs := make(map[uint]bool)
-	for _, proc := range existingTestAndExercise.BcpTestAndExerciseBcpProcesses {
-		existingBcpProcessIDs[proc.BcpProcessID] = true
+	existingSystemRegisterIDs := make(map[uint]bool)
+	for _, sr := range existingTestAndExercise.BcpTestAndExerciseSystemRegisters {
+		existingSystemRegisterIDs[sr.SystemRegisterID] = true
 	}
 
-	// Collect new bcpProcess IDs
-	newBcpProcessIDs := make(map[uint]bool)
-	for _, proc := range bcpTestAndExerciseFormDTO.BcpProcessIDs {
-		newBcpProcessIDs[*proc] = true
+	// Collect new SystemRegister IDs
+	newSystemRegisterIDs := make(map[uint]bool)
+	for _, sr := range bcpTestAndExerciseFormDTO.SystemRegisterIDs {
+		newSystemRegisterIDs[*sr] = true
 	}
 
-	// Add new bcpProcesses
-	var bcpProcessesToAdd []*models.BcpTestAndExerciseBcpProcess
-	for _, newBcpProcessID := range bcpTestAndExerciseFormDTO.BcpProcessIDs {
-		if _, exists := existingBcpProcessIDs[*newBcpProcessID]; !exists {
-			// Create a new TestAndExercise bcpProcess record
-			bcpProcess := &models.BcpTestAndExerciseBcpProcess{
+	// Add new SystemRegisters
+	var systemRegistersToAdd []*models.BcpTestAndExerciseSystemRegister
+	for _, newSystemRegisterID := range bcpTestAndExerciseFormDTO.SystemRegisterIDs {
+		if _, exists := existingSystemRegisterIDs[*newSystemRegisterID]; !exists {
+			// Create a new TestAndExercise system register record
+			systemRegister := &models.BcpTestAndExerciseSystemRegister{
 				BcpTestAndExerciseID: id,
-				BcpProcessID:         *newBcpProcessID,
+				SystemRegisterID:     *newSystemRegisterID,
 				CreatedBYID:          currentUserID,
 			}
-			bcpProcessesToAdd = append(bcpProcessesToAdd, bcpProcess)
+			systemRegistersToAdd = append(systemRegistersToAdd, systemRegister)
 		}
 	}
 
-	// Save the new bcpProcesses
-	if len(bcpProcessesToAdd) > 0 {
-		if err := btes.repo.CreateBcpTestAndExerciseBcpProcesses(bcpProcessesToAdd, tx); err != nil {
+	// Save the new SystemRegisters
+	if len(systemRegistersToAdd) > 0 {
+		if err := btes.repo.CreateBcpTestAndExerciseSystemRegisters(systemRegistersToAdd, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
 	}
 
-	// Remove bcpProcesses not in the new list
-	var deleteBcpProcessIDs []*uint
+	// Remove SystemRegisters not in the new list
+	var deleteSystemRegisterIDs []*uint
 
-	for _, existingProcess := range existingTestAndExercise.BcpTestAndExerciseBcpProcesses {
-		if _, exists := newBcpProcessIDs[existingProcess.BcpProcessID]; !exists {
-			// Append bcpProcess to delete list
-			deleteBcpProcessIDs = append(deleteBcpProcessIDs, existingProcess.ID)
+	for _, existingSystemRegister := range existingTestAndExercise.BcpTestAndExerciseSystemRegisters {
+		if _, exists := newSystemRegisterIDs[existingSystemRegister.SystemRegisterID]; !exists {
+			// Append system register to delete list
+			deleteSystemRegisterIDs = append(deleteSystemRegisterIDs, existingSystemRegister.ID)
 		}
 	}
 
-	// Delete bcpProcesses not in the new list
-	if len(deleteBcpProcessIDs) > 0 {
-		if err := btes.repo.DeleteBcpTestAndExerciseBcpProcesses(deleteBcpProcessIDs, tx); err != nil {
+	// Delete SystemRegisters not in the new list
+	if len(deleteSystemRegisterIDs) > 0 {
+		if err := btes.repo.DeleteBcpTestAndExerciseSystemRegisters(deleteSystemRegisterIDs, tx); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -288,28 +288,28 @@ func (btes *BcpTestAndExerciseService) Update(bcpId uint, id uint, currentUserID
 			return
 		}
 
-		// Determine bcpProcess changes
+		// Determine system register changes
 
-		processesAdded := []uint{}
-		processesRemoved := []uint{}
-		for id := range newBcpProcessIDs {
-			if !existingBcpProcessIDs[id] {
-				processesAdded = append(processesAdded, id)
+		systemRegistersAdded := []uint{}
+		systemRegistersRemoved := []uint{}
+		for srID := range newSystemRegisterIDs {
+			if !existingSystemRegisterIDs[srID] {
+				systemRegistersAdded = append(systemRegistersAdded, srID)
 			}
 		}
-		for id := range existingBcpProcessIDs {
-			if !newBcpProcessIDs[id] {
-				processesRemoved = append(processesRemoved, id)
+		for srID := range existingSystemRegisterIDs {
+			if !newSystemRegisterIDs[srID] {
+				systemRegistersRemoved = append(systemRegistersRemoved, srID)
 			}
 		}
 		// Prepare log data
 		changedData := make(map[string]interface{})
 		associatedItems := make(map[string]interface{})
 
-		if len(processesAdded) > 0 || len(processesRemoved) > 0 {
-			associatedItems["process_ids"] = map[string]interface{}{
-				"added":   processesAdded,
-				"removed": processesRemoved,
+		if len(systemRegistersAdded) > 0 || len(systemRegistersRemoved) > 0 {
+			associatedItems["system_register_ids"] = map[string]interface{}{
+				"added":   systemRegistersAdded,
+				"removed": systemRegistersRemoved,
 			}
 		}
 
@@ -391,12 +391,12 @@ func (btes *BcpTestAndExerciseService) Delete(bcpId uint, ids []uint, currentUse
 			"title": bcpTestAndExercise.Title,
 		})
 
-		if len(bcpTestAndExercise.BcpTestAndExerciseBcpProcesses) > 0 {
-			var deleteprocessIDs []*uint
-			for _, process := range bcpTestAndExercise.BcpTestAndExerciseBcpProcesses {
-				deleteprocessIDs = append(deleteprocessIDs, process.ID)
+		if len(bcpTestAndExercise.BcpTestAndExerciseSystemRegisters) > 0 {
+			var deleteSystemRegisterIDs []*uint
+			for _, systemRegister := range bcpTestAndExercise.BcpTestAndExerciseSystemRegisters {
+				deleteSystemRegisterIDs = append(deleteSystemRegisterIDs, systemRegister.ID)
 			}
-			if err := btes.repo.DeleteBcpTestAndExerciseBcpProcesses(deleteprocessIDs, tx); err != nil {
+			if err := btes.repo.DeleteBcpTestAndExerciseSystemRegisters(deleteSystemRegisterIDs, tx); err != nil {
 				tx.Rollback()
 				return nil, err
 			}

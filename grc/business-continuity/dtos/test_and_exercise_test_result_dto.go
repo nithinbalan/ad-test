@@ -9,15 +9,16 @@ import (
 )
 
 type TestAndExerciseTestResultFormDTO struct {
-	TestCompletionDate            string                             `json:"test_completion_date" binding:"required"`
-	CommunicationFeedbackOptionID uint                               `json:"communication_feedback_option_id" binding:"required"`
-	RecoveryFeedbackOptionID      uint                               `json:"recovery_feedback_option_id" binding:"required"`
-	TestResultOptionID            uint                               `json:"test_result_option_id" binding:"required"`
-	TestObservations              *string                            `json:"test_observations"`
-	Recommendations               *string                            `json:"recommendations"`
-	Findings                      *string                            `json:"findings"`
-	TestAndExerciseProcesses      []*TestAndExerciseProcessesFormDTO `json:"test_and_exercise_processes" binding:"required"`
-	Documents                     []*commonDTOs.DocumentFormDTO      `json:"documents" binding:"omitempty"`
+	TestCompletionDate             string                                   `json:"test_completion_date" binding:"required"`
+	CommunicationFeedbackOptionID  uint                                     `json:"communication_feedback_option_id" binding:"required"`
+	RecoveryFeedbackOptionID       uint                                     `json:"recovery_feedback_option_id" binding:"required"`
+	TestResultOptionID             uint                                     `json:"test_result_option_id" binding:"required"`
+	TestObservations               *string                                  `json:"test_observations"`
+	Recommendations                *string                                  `json:"recommendations"`
+	Findings                       *string                                  `json:"findings"`
+	TestAndExerciseProcesses       []*TestAndExerciseProcessesFormDTO       `json:"test_and_exercise_processes" binding:"required"`
+	TestAndExerciseSystemRegisters []*TestAndExerciseSystemRegistersFormDTO `json:"test_and_exercise_system_registers" binding:"required"`
+	Documents                      []*commonDTOs.DocumentFormDTO            `json:"documents" binding:"omitempty"`
 }
 
 type TestAndExerciseProcessesFormDTO struct {
@@ -76,6 +77,18 @@ type TestAndExerciseProcessDetailsDTO struct {
 	PlannedRpo        *int                    `json:"planned_rpo"`
 	PlannedRpoUnitId  *uint                   `json:"planned_rpo_unit_id"`
 	PlannedRpoUnit    *masterDTOs.TimeUnitDTO `json:"planned_rpo_unit"`
+}
+
+type TestAndExerciseSystemRegistersFormDTO struct {
+	ID               uint  `json:"id"`
+	IsRecovered      bool  `json:"is_recovered"`
+	TimelinessID     *uint `json:"timeliness_id"`
+	ActualRto        *int  `json:"actual_rto"`
+	ActualRtoUnitId  *uint `json:"actual_rto_unit_id"`
+	ActualMtpd       *int  `json:"actual_mtpd"`
+	ActualMtpdUnitId *uint `json:"actual_mtpd_unit_id"`
+	ActualRpo        *int  `json:"actual_rpo"`
+	ActualRpoUnitId  *uint `json:"actual_rpo_unit_id"`
 }
 
 type TestAndExerciseTestResultParsedDates struct {
