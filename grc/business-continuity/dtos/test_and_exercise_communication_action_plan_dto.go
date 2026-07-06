@@ -3,6 +3,7 @@ package dtos
 import (
 	"time"
 
+	assetDTOs "jethur/grc/asset/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
 )
@@ -13,8 +14,12 @@ type TestAndExerciseCommunicationActionPlanListDTO struct {
 	BcpPhaseID                             uint    `json:"bcp_phase_id"`
 	BcpPhaseTitleEn                        string  `json:"bcp_phase_title_en"`
 	BcpPhaseTitleAr                        string  `json:"bcp_phase_title_ar"`
-	ProcessTitleEn                         string  `json:"process_title_en"`
-	ProcessTitleAr                         string  `json:"process_title_ar"`
+	ProcessID                              *uint   `json:"process_id"`
+	ProcessTitleEn                         *string `json:"process_title_en"`
+	ProcessTitleAr                         *string `json:"process_title_ar"`
+	SystemRegisterID                       *uint   `json:"system_register_id"`
+	SystemRegisterTitleEn                  *string `json:"system_register_title_en"`
+	SystemRegisterTitleAr                  *string `json:"system_register_title_ar"`
 	ResponsibleUserID                      uint    `json:"responsible_user_id"`
 	ResponsibleUserFirstNameEn             string  `json:"responsible_user_first_name_en"`
 	ResponsibleUserFirstNameAr             string  `json:"responsible_user_first_name_ar"`
@@ -65,7 +70,8 @@ type TestAndExerciseCommunicationActionPlanListQueryParamsDTO struct {
 
 type TestAndExerciseCommunicationActionPlanFormDTO struct {
 	BcpPhaseID        uint    `json:"bcp_phase_id" binding:"required"`
-	ProcessID         uint    `json:"process_id" binding:"required"`
+	ProcessID         *uint   `json:"process_id"`
+	SystemRegisterID  *uint   `json:"system_register_id"`
 	Title             string  `json:"title" binding:"required"`
 	ResponsibleUserID uint    `json:"responsible_user_id" binding:"required"`
 	Frequency         *string `json:"frequency"`
@@ -75,27 +81,29 @@ type TestAndExerciseCommunicationActionPlanFormDTO struct {
 }
 
 type TestAndExerciseCommunicationActionPlanDetailDTO struct {
-	ID                            int                               `json:"id"`
-	Title                         string                            `json:"title"`
-	TestAndExercise               TestAndExerciseDetailDTO          `json:"test_and_exercise"`
-	BcpPhaseID                    uint                              `json:"bcp_phase_id"`
-	BcpPhase                      BcpPhaseDTO                       `json:"bcp_phase"`
-	ProcessID                     uint                              `json:"process_id"`
-	Process                       organizationDTOs.ProcessDetailDTO `json:"process"`
-	ResponsibleUserID             uint                              `json:"responsible_user_id"`
-	ResponsibleUser               organizationDTOs.UserMinimalDTO   `json:"responsible_user"`
-	ResponsibleUnitID             uint                              `json:"responsible_unit_id"`
-	ResponsibleUnit               settingsDTOs.OrganizationUnitDTO  `json:"responsible_unit"`
-	Frequency                     *string                           `json:"frequency"`
-	Recipient                     *string                           `json:"recipient"`
-	Channel                       *string                           `json:"channel"`
-	Description                   *string                           `json:"description"`
-	CommunicationActionPlanStatus CommunicationActionPlanStatusDTO  `json:"communication_action_plan_status"`
-	Comment                       *string                           `json:"comment"`
-	CreatedAt                     time.Time                         `json:"created_at"`
-	UpdatedAt                     *time.Time                        `json:"updated_at"`
-	CreatedByUser                 organizationDTOs.UserMinimalDTO   `json:"created_by_user"`
-	UpdatedByUser                 *organizationDTOs.UserMinimalDTO  `json:"updated_by_user"`
+	ID                            int                                `json:"id"`
+	Title                         string                             `json:"title"`
+	TestAndExercise               TestAndExerciseDetailDTO           `json:"test_and_exercise"`
+	BcpPhaseID                    uint                               `json:"bcp_phase_id"`
+	BcpPhase                      BcpPhaseDTO                        `json:"bcp_phase"`
+	ProcessID                     *uint                              `json:"process_id"`
+	Process                       *organizationDTOs.ProcessDetailDTO `json:"process"`
+	SystemRegisterID              *uint                              `json:"system_register_id"`
+	SystemRegister                *assetDTOs.SystemRegisterDetailDTO `json:"system_register"`
+	ResponsibleUserID             uint                               `json:"responsible_user_id"`
+	ResponsibleUser               organizationDTOs.UserMinimalDTO    `json:"responsible_user"`
+	ResponsibleUnitID             uint                               `json:"responsible_unit_id"`
+	ResponsibleUnit               settingsDTOs.OrganizationUnitDTO   `json:"responsible_unit"`
+	Frequency                     *string                            `json:"frequency"`
+	Recipient                     *string                            `json:"recipient"`
+	Channel                       *string                            `json:"channel"`
+	Description                   *string                            `json:"description"`
+	CommunicationActionPlanStatus CommunicationActionPlanStatusDTO   `json:"communication_action_plan_status"`
+	Comment                       *string                            `json:"comment"`
+	CreatedAt                     time.Time                          `json:"created_at"`
+	UpdatedAt                     *time.Time                         `json:"updated_at"`
+	CreatedByUser                 organizationDTOs.UserMinimalDTO    `json:"created_by_user"`
+	UpdatedByUser                 *organizationDTOs.UserMinimalDTO   `json:"updated_by_user"`
 }
 
 type TaeCommunicationActionPlanStatusUpdateFormDTO struct {

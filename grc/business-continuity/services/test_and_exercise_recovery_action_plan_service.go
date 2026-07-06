@@ -145,6 +145,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Create(testAndExerciseID
 		TestAndExerciseID:  testAndExerciseID,
 		BcpPhaseID:         recoveryActionPlanFormDTO.BcpPhaseID,
 		ProcessID:          recoveryActionPlanFormDTO.ProcessID,
+		SystemRegisterID:   recoveryActionPlanFormDTO.SystemRegisterID,
 		SeverityLevelID:    recoveryActionPlanFormDTO.SeverityLevelID,
 		Title:              recoveryActionPlanFormDTO.Title,
 		Description:        recoveryActionPlanFormDTO.Description,
@@ -353,6 +354,7 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 
 	existingRecoveryPlan.BcpPhaseID = recoveryActionPlanFormDTO.BcpPhaseID
 	existingRecoveryPlan.ProcessID = recoveryActionPlanFormDTO.ProcessID
+	existingRecoveryPlan.SystemRegisterID = recoveryActionPlanFormDTO.SystemRegisterID
 	existingRecoveryPlan.SeverityLevelID = recoveryActionPlanFormDTO.SeverityLevelID
 	existingRecoveryPlan.Title = recoveryActionPlanFormDTO.Title
 	existingRecoveryPlan.Description = recoveryActionPlanFormDTO.Description
@@ -412,11 +414,29 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 
 		changedData := make(map[string]interface{})
 
+		oldProcessTitle := ""
+		if oldRecoveryActionPlan.Process != nil {
+			oldProcessTitle = oldRecoveryActionPlan.Process.TitleEn
+		}
+		newProcessTitle := ""
+		if existingActionPlan.Process != nil {
+			newProcessTitle = existingActionPlan.Process.TitleEn
+		}
+		oldSystemRegisterTitle := ""
+		if oldRecoveryActionPlan.SystemRegister != nil {
+			oldSystemRegisterTitle = oldRecoveryActionPlan.SystemRegister.TitleEn
+		}
+		newSystemRegisterTitle := ""
+		if existingActionPlan.SystemRegister != nil {
+			newSystemRegisterTitle = existingActionPlan.SystemRegister.TitleEn
+		}
+
 		// log changes
 		oldData := map[string]interface{}{
 			"responsible_user": fmt.Sprintf("%s %s", oldRecoveryActionPlan.ResponsibleUser.FirstNameEN, oldRecoveryActionPlan.ResponsibleUser.LastNameEN),
 			"bcp_phase":        oldRecoveryActionPlan.BcpPhase.TitleEn,
-			"process":          oldRecoveryActionPlan.Process.TitleEn,
+			"process":          oldProcessTitle,
+			"system_register":  oldSystemRegisterTitle,
 			"severity_level":   oldRecoveryActionPlan.SeverityLevel.TitleEn,
 			"target_date":      oldRecoveryActionPlan.TargetDateString,
 		}
@@ -424,7 +444,8 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) Update(testAndExerciseID
 		newData := map[string]interface{}{
 			"responsible_user": fmt.Sprintf("%s %s", existingActionPlan.ResponsibleUser.FirstNameEN, existingActionPlan.ResponsibleUser.LastNameEN),
 			"bcp_phase":        existingActionPlan.BcpPhase.TitleEn,
-			"process":          existingActionPlan.Process.TitleEn,
+			"process":          newProcessTitle,
+			"system_register":  newSystemRegisterTitle,
 			"severity_level":   existingActionPlan.SeverityLevel.TitleEn,
 			"target_date":      existingActionPlan.TargetDateString,
 		}

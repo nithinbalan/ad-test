@@ -42,8 +42,12 @@ func (repo *TestAndExerciseCommunicationActionPlanRepository) GetAll(testAndExer
             test_and_exercise_communication_action_plans.*,
 			bcp_phases.title_en AS bcp_phase_title_en,
 			bcp_phases.title_ar AS bcp_phase_title_ar,
+			processes.id AS process_id,
 			processes.title_en AS process_title_en,
 			processes.title_ar AS process_title_ar,
+			system_registers.id AS system_register_id,
+			system_registers.title_en AS system_register_title_en,
+			system_registers.title_ar AS system_register_title_ar,
 			communication_action_plan_statuses.title_en AS communication_action_plan_status_title_en,
 			communication_action_plan_statuses.title_ar AS communication_action_plan_status_title_ar,
 			communication_action_plan_statuses.color_code AS communication_action_plan_status_color_code,
@@ -78,6 +82,7 @@ func (repo *TestAndExerciseCommunicationActionPlanRepository) GetAll(testAndExer
 		Joins(`
 			LEFT JOIN bcp_phases ON bcp_phases.id = test_and_exercise_communication_action_plans.bcp_phase_id
 			LEFT JOIN processes ON processes.id = test_and_exercise_communication_action_plans.process_id
+			LEFT JOIN system_registers ON system_registers.id = test_and_exercise_communication_action_plans.system_register_id
 		    LEFT JOIN users AS responsible_user ON responsible_user.id = test_and_exercise_communication_action_plans.responsible_user_id
 			LEFT JOIN communication_action_plan_statuses ON communication_action_plan_statuses.id = test_and_exercise_communication_action_plans.communication_action_plan_status_id
 			LEFT JOIN users AS created_user ON created_user.id = test_and_exercise_communication_action_plans.created_by_id
@@ -105,6 +110,10 @@ func (repo *TestAndExerciseCommunicationActionPlanRepository) GetAll(testAndExer
             responsible_user.initial LIKE ? OR
             responsible_user.color LIKE ? OR
             responsible_user.profile_image_path LIKE ? OR
+			processes.title_en LIKE ? OR
+			processes.title_ar LIKE ? OR
+			system_registers.title_en LIKE ? OR
+			system_registers.title_ar LIKE ? OR
 			created_user.first_name_en LIKE ? OR
 			created_user.first_name_ar LIKE ? OR
 			created_user.last_name_en LIKE ? OR
@@ -115,7 +124,7 @@ func (repo *TestAndExerciseCommunicationActionPlanRepository) GetAll(testAndExer
 			updated_user.last_name_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword)
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
@@ -155,6 +164,7 @@ func (repo *TestAndExerciseCommunicationActionPlanRepository) GetFullDetailsByID
 		Preload("TestAndExercise").
 		Preload("BcpPhase").
 		Preload("Process").
+		Preload("SystemRegister").
 		Preload("ResponsibleUser").
 		Preload("CommunicationActionPlanStatus").
 		Preload("CreatedByUser").

@@ -8,7 +8,8 @@ type TestAndExerciseRecoveryActionPlan struct {
 	ID                 uint       `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	TestAndExerciseID  uint       `json:"bcp_test_and_exercise_id" binding:"required"`
 	BcpPhaseID         *uint      `json:"bcp_phase_id"`
-	ProcessID          uint       `json:"process_id" binding:"required"`
+	ProcessID          *uint      `json:"process_id"`
+	SystemRegisterID   *uint      `json:"system_register_id"`
 	SeverityLevelID    *uint      `json:"severity_level_id"`
 	Title              string     `json:"title"`
 	Description        *string    `json:"description"`
@@ -29,6 +30,7 @@ type TestAndExerciseRecoveryActionPlan struct {
 	TestAndExercise         *TestAndExercise                     `gorm:"foreignKey:TestAndExerciseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	BcpPhase                *BcpPhase                            `gorm:"foreignKey:BcpPhaseID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	Process                 *Process                             `gorm:"foreignKey:ProcessID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	SystemRegister          *SystemRegister                      `gorm:"foreignKey:SystemRegisterID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	SeverityLevel           *SeverityLevel                       `gorm:"foreignKey:SeverityLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ActionPlanStatus        *ActionPlanStatus                    `gorm:"foreignKey:ActionPlanStatusId;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 	ResponsibleUser         *User                                `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

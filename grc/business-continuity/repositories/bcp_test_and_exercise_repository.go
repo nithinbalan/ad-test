@@ -20,6 +20,9 @@ type BcpTestAndExerciseRepositoryInterface interface {
 
 	CreateBcpTestAndExerciseBcpProcesses(bcpProcesses []*models.BcpTestAndExerciseBcpProcess, tx ...utility.DatabaseTransaction) error
 	DeleteBcpTestAndExerciseBcpProcesses(bcpProcessIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreateBcpTestAndExerciseSystemRegisters(systemRegisters []*models.BcpTestAndExerciseSystemRegister, tx ...utility.DatabaseTransaction) error
+	DeleteBcpTestAndExerciseSystemRegisters(systemRegisterIds []*uint, tx ...utility.DatabaseTransaction) error
 }
 
 type BcpTestAndExerciseRepository struct {
@@ -175,6 +178,8 @@ func (repo *BcpTestAndExerciseRepository) GetFullDetailsByID(id uint, tx ...util
 		Preload("BcpTestAndExerciseBcpProcesses").
 		Preload("BcpTestAndExerciseBcpProcesses.BcpProcess").
 		Preload("BcpTestAndExerciseBcpProcesses.BcpProcess.Process").
+		Preload("BcpTestAndExerciseSystemRegisters").
+		Preload("BcpTestAndExerciseSystemRegisters.SystemRegister").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&BcpTestAndExercise, id)
@@ -242,6 +247,30 @@ func (repo *BcpTestAndExerciseRepository) DeleteBcpTestAndExerciseBcpProcesses(b
 
 	// Delete processes by IDs
 	if err := db.Where("id IN (?)", bcpProcessIds).Delete(&models.BcpTestAndExerciseBcpProcess{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *BcpTestAndExerciseRepository) CreateBcpTestAndExerciseSystemRegisters(systemRegisters []*models.BcpTestAndExerciseSystemRegister, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&systemRegisters).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *BcpTestAndExerciseRepository) DeleteBcpTestAndExerciseSystemRegisters(systemRegisterIds []*uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	if err := db.Where("id IN (?)", systemRegisterIds).Delete(&models.BcpTestAndExerciseSystemRegister{}).Error; err != nil {
 		return err
 	}
 

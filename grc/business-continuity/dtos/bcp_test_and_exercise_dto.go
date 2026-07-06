@@ -68,25 +68,26 @@ type BcpTestAndExerciseFormDTO struct {
 	Objective         *string `json:"objective"`
 	Scenario          *string `json:"scenario"`
 	SuccessCriteria   *string `json:"success_criteria"`
-	BcpProcessIDs     []*uint `json:"bcp_process_ids"`
+	SystemRegisterIDs []*uint `json:"system_register_ids"`
 }
 
 type BcpTestAndExerciseDetailDTO struct {
-	ID                             int                              `json:"id"`
-	Title                          string                           `json:"title"`
-	Objective                      *string                          `json:"objective"`
-	Scenario                       *string                          `json:"scenario"`
-	SuccessCriteria                *string                          `json:"success_criteria"`
-	BusinessContinuityPlan         BusinessContinuityPlanDetailDTO  `json:"business_continuity_plan"`
-	ResponsibleUserID              *uint                            `json:"responsible_user_id" binding:"required" gorm:"not null"`
-	ResponsibleUser                *organizationDTOs.UserMinimalDTO `json:"responsible_user"`
-	ReviewFrequencyID              *uint                            `json:"review_frequency_id"`
-	ReviewFrequency                *masterDTOs.ReviewFrequencyDTO   `json:"review_frequency"`
-	BcpTestAndExerciseBcpProcesses []*BcpTestAndExerciseBcpProcess  `json:"bcp_test_and_exercise_bcp_processes"`
-	CreatedAt                      time.Time                        `json:"created_at"`
-	UpdatedAt                      *time.Time                       `json:"updated_at"`
-	CreatedByUser                  organizationDTOs.UserMinimalDTO  `json:"created_by_user"`
-	UpdatedByUser                  *organizationDTOs.UserMinimalDTO `json:"updated_by_user"`
+	ID                                int                                 `json:"id"`
+	Title                             string                              `json:"title"`
+	Objective                         *string                             `json:"objective"`
+	Scenario                          *string                             `json:"scenario"`
+	SuccessCriteria                   *string                             `json:"success_criteria"`
+	BusinessContinuityPlan            BusinessContinuityPlanDetailDTO     `json:"business_continuity_plan"`
+	ResponsibleUserID                 *uint                               `json:"responsible_user_id" binding:"required" gorm:"not null"`
+	ResponsibleUser                   *organizationDTOs.UserMinimalDTO    `json:"responsible_user"`
+	ReviewFrequencyID                 *uint                               `json:"review_frequency_id"`
+	ReviewFrequency                   *masterDTOs.ReviewFrequencyDTO      `json:"review_frequency"`
+	BcpTestAndExerciseBcpProcesses    []*BcpTestAndExerciseBcpProcess     `json:"bcp_test_and_exercise_bcp_processes"`
+	BcpTestAndExerciseSystemRegisters []*BcpTestAndExerciseSystemRegister `json:"bcp_test_and_exercise_system_registers"`
+	CreatedAt                         time.Time                           `json:"created_at"`
+	UpdatedAt                         *time.Time                          `json:"updated_at"`
+	CreatedByUser                     organizationDTOs.UserMinimalDTO     `json:"created_by_user"`
+	UpdatedByUser                     *organizationDTOs.UserMinimalDTO    `json:"updated_by_user"`
 }
 
 type BcpTestAndExerciseBcpProcess struct {
@@ -94,4 +95,23 @@ type BcpTestAndExerciseBcpProcess struct {
 	BcpTestAndExerciseID uint          `json:"bcp_test_and_exercise_id"`
 	BcpProcessID         uint          `json:"bcp_process_id"`
 	BcpProcess           BcpProcessDTO `json:"bcp_process"`
+}
+
+type BcpTestAndExerciseSystemRegister struct {
+	ID                   *uint                                     `json:"id"`
+	BcpTestAndExerciseID uint                                      `json:"bcp_test_and_exercise_id"`
+	SystemRegisterID     uint                                      `json:"system_register_id"`
+	SystemRegister       BcpTestAndExerciseSystemRegisterDetailDTO `json:"system_register"`
+}
+
+type BcpTestAndExerciseSystemRegisterDetailDTO struct {
+	ID         uint   `json:"id"`
+	TitleEn    string `json:"title_en"`
+	TitleAr    string `json:"title_ar"`
+	RTO        *int   `json:"rto"`
+	RTOUnitID  *uint  `json:"rto_unit_id"`
+	MTPD       *int   `json:"mtpd"`
+	MTPDUnitID *uint  `json:"mtpd_unit_id"`
+	RPO        *int   `json:"rpo"`
+	RPOUnitID  *uint  `json:"rpo_unit_id"`
 }

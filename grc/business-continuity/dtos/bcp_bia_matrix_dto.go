@@ -30,6 +30,14 @@ type BcpKeyProcessListDTO struct {
 	RiskRatingTitleAr            *string `json:"risk_rating_title_ar"`
 	RiskRatingColorCode          *string `json:"risk_rating_color_code"`
 	RiskRatingValue              *uint   `json:"risk_rating_value"`
+	ImpactAnalysisLevelID        *uint   `json:"impact_analysis_level_id"`
+	ImpactAnalysisLevelTitleEn   *string `json:"impact_analysis_level_title_en"`
+	ImpactAnalysisLevelTitleAr   *string `json:"impact_analysis_level_title_ar"`
+	ImpactAnalysisLevelColorCode *string `json:"impact_analysis_level_color_code"`
+	ImpactAnalysisLevelType      *string `json:"impact_analysis_level_type"`
+	SystemRegisterID             *uint   `json:"system_register_id"`
+	SystemRegisterTitleEn        *string `json:"system_register_title_en"`
+	SystemRegisterTitleAr        *string `json:"system_register_title_ar"`
 }
 
 type BcpKeyProcessListQueryParamsDTO struct {
@@ -62,19 +70,24 @@ type BcpBiaMatrixDetailDTO struct {
 }
 
 type BcpProcessDetailsDTO struct {
-	ID          uint                    `json:"id"`
-	Process     ProcessDetailDTO        `json:"process"`
-	Rto         *int                    `json:"rto"`
-	RtoUnitId   *uint                   `json:"rto_unit_id"`
-	RtoUnit     *masterDTOs.TimeUnitDTO `json:"rto_unit"`
-	Mtpd        *int                    `json:"mtpd"`
-	MtpdUnitId  *uint                   `json:"mtpd_unit_id"`
-	MtpdUnit    *masterDTOs.TimeUnitDTO `json:"mtpd_unit"`
-	Rpo         *int                    `json:"rpo"`
-	RpoUnitId   *uint                   `json:"rpo_unit_id"`
-	RpoUnit     *masterDTOs.TimeUnitDTO `json:"rpo_unit"`
-	RiskLevelId *uint                   `json:"risk_level_id"`
-	RiskLevel   riskDTOs.RiskLevelDTO   `json:"risk_level"`
+	ID                    uint                               `json:"id"`
+	Process               ProcessDetailDTO                   `json:"process"`
+	Rto                   *int                               `json:"rto"`
+	RtoUnitId             *uint                              `json:"rto_unit_id"`
+	RtoUnit               *BusinessContinuityDurationUnitDTO `json:"rto_unit"`
+	RtoCondition          *string                            `json:"rto_condition"`
+	Mtpd                  *int                               `json:"mtpd"`
+	MtpdUnitId            *uint                              `json:"mtpd_unit_id"`
+	MtpdUnit              *BusinessContinuityDurationUnitDTO `json:"mtpd_unit"`
+	MtpdCondition         *string                            `json:"mtpd_condition"`
+	Rpo                   *int                               `json:"rpo"`
+	RpoUnitId             *uint                              `json:"rpo_unit_id"`
+	RpoUnit               *BusinessContinuityDurationUnitDTO `json:"rpo_unit"`
+	RpoCondition          *string                            `json:"rpo_condition"`
+	RiskLevelId           *uint                              `json:"risk_level_id"`
+	RiskLevel             riskDTOs.RiskLevelDTO              `json:"risk_level"`
+	ImpactAnalysisLevelId *uint                              `json:"impact_analysis_level_id"`
+	ImpactAnalysisLevel   *BCMImpactAnalysisLevelDTO         `json:"impact_analysis_level"`
 }
 type ProcessDetailDTO struct {
 	ID              uint   `json:"id"`

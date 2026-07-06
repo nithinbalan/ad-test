@@ -95,6 +95,10 @@ func (tecaps *TestAndExerciseCommunicationActionPlanService) Create(testAndExerc
 		return 0, utility.NewValidationError(fmt.Errorf("organization unit not set for responsible user"), "not_exist", "test and exercise responsible unit")
 	}
 
+	if testAndExerciseFormDTO.ProcessID == nil && testAndExerciseFormDTO.SystemRegisterID == nil {
+		return 0, utility.NewValidationError(fmt.Errorf("either process_id or system_register_id is required"), "required", "process_id or system_register_id")
+	}
+
 	communicationActionPlanStatus, err := tecaps.communicationActionPlanStatusSvc.GetByType("pending")
 	if err != nil {
 		return 0, err
@@ -104,6 +108,7 @@ func (tecaps *TestAndExerciseCommunicationActionPlanService) Create(testAndExerc
 		TestAndExerciseID:               testAndExerciseId,
 		BcpPhaseID:                      testAndExerciseFormDTO.BcpPhaseID,
 		ProcessID:                       testAndExerciseFormDTO.ProcessID,
+		SystemRegisterID:                testAndExerciseFormDTO.SystemRegisterID,
 		Title:                           testAndExerciseFormDTO.Title,
 		ResponsibleUserID:               testAndExerciseFormDTO.ResponsibleUserID,
 		ResponsibleUnitID:               responsibleUnitID,
@@ -182,6 +187,7 @@ func (tecaps *TestAndExerciseCommunicationActionPlanService) Update(testAndExerc
 	existingTestAndExerciseCommunicationActionPlan.TestAndExerciseID = testAndExerciseId
 	existingTestAndExerciseCommunicationActionPlan.BcpPhaseID = testAndExerciseFormDTO.BcpPhaseID
 	existingTestAndExerciseCommunicationActionPlan.ProcessID = testAndExerciseFormDTO.ProcessID
+	existingTestAndExerciseCommunicationActionPlan.SystemRegisterID = testAndExerciseFormDTO.SystemRegisterID
 	existingTestAndExerciseCommunicationActionPlan.Title = testAndExerciseFormDTO.Title
 	existingTestAndExerciseCommunicationActionPlan.ResponsibleUserID = testAndExerciseFormDTO.ResponsibleUserID
 	existingTestAndExerciseCommunicationActionPlan.Frequency = testAndExerciseFormDTO.Frequency
@@ -206,10 +212,28 @@ func (tecaps *TestAndExerciseCommunicationActionPlanService) Update(testAndExerc
 		changedData := make(map[string]interface{})
 
 		// log changes
+		oldProcessTitle := ""
+		if oldTestAndExerciseCommunicationActionPlan.Process != nil {
+			oldProcessTitle = oldTestAndExerciseCommunicationActionPlan.Process.TitleEn
+		}
+		newProcessTitle := ""
+		if existingTestAndExerciseCommunicationActionPlan.Process != nil {
+			newProcessTitle = existingTestAndExerciseCommunicationActionPlan.Process.TitleEn
+		}
+		oldSystemRegisterTitle := ""
+		if oldTestAndExerciseCommunicationActionPlan.SystemRegister != nil {
+			oldSystemRegisterTitle = oldTestAndExerciseCommunicationActionPlan.SystemRegister.TitleEn
+		}
+		newSystemRegisterTitle := ""
+		if existingTestAndExerciseCommunicationActionPlan.SystemRegister != nil {
+			newSystemRegisterTitle = existingTestAndExerciseCommunicationActionPlan.SystemRegister.TitleEn
+		}
+
 		oldData := map[string]interface{}{
 			"responsible_user": fmt.Sprintf("%s %s", oldTestAndExerciseCommunicationActionPlan.ResponsibleUser.FirstNameEN, oldTestAndExerciseCommunicationActionPlan.ResponsibleUser.LastNameEN),
 			"bcp_phase":        oldTestAndExerciseCommunicationActionPlan.BcpPhase.TitleEn,
-			"process":          oldTestAndExerciseCommunicationActionPlan.Process.TitleEn,
+			"process":          oldProcessTitle,
+			"system_register":  oldSystemRegisterTitle,
 			"description":      oldTestAndExerciseCommunicationActionPlan.Description,
 			"frequency":        oldTestAndExerciseCommunicationActionPlan.Frequency,
 			"recipient":        oldTestAndExerciseCommunicationActionPlan.Recipient,
@@ -219,7 +243,8 @@ func (tecaps *TestAndExerciseCommunicationActionPlanService) Update(testAndExerc
 		newData := map[string]interface{}{
 			"responsible_user": fmt.Sprintf("%s %s", existingTestAndExerciseCommunicationActionPlan.ResponsibleUser.FirstNameEN, existingTestAndExerciseCommunicationActionPlan.ResponsibleUser.LastNameEN),
 			"bcp_phase":        existingTestAndExerciseCommunicationActionPlan.BcpPhase.TitleEn,
-			"process":          existingTestAndExerciseCommunicationActionPlan.Process.TitleEn,
+			"process":          newProcessTitle,
+			"system_register":  newSystemRegisterTitle,
 			"description":      existingTestAndExerciseCommunicationActionPlan.Description,
 			"frequency":        existingTestAndExerciseCommunicationActionPlan.Frequency,
 			"recipient":        existingTestAndExerciseCommunicationActionPlan.Recipient,

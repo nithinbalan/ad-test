@@ -82,7 +82,7 @@ func (repo *BcpRecoveryPlanRepository) GetAll(bcpId uint, params *businessContin
 			LEFT JOIN bcp_phases ON bcp_phases.id = bcp_recovery_plans.bcp_phase_id
 			LEFT JOIN bcp_processes ON bcp_processes.id = bcp_recovery_plans.bcp_process_id
 			LEFT JOIN processes ON processes.id = bcp_processes.process_id
-			LEFT JOIN time_units AS target_completion_unit ON target_completion_unit.id = bcp_recovery_plans.target_completion_unit_id
+			LEFT JOIN business_continuity_duration_units AS target_completion_unit ON target_completion_unit.id = bcp_recovery_plans.target_completion_unit_id
 		    LEFT JOIN users AS responsible_user ON responsible_user.id = bcp_recovery_plans.responsible_user_id
 			LEFT JOIN users AS created_user ON created_user.id = bcp_recovery_plans.created_by_id
 			LEFT JOIN users AS updated_user ON updated_user.id = bcp_recovery_plans.updated_by_id

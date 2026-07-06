@@ -16,6 +16,7 @@ type TestAndExerciseTestResultRepositoryInterface interface {
 	Delete(id uint, tx ...utility.DatabaseTransaction) error
 
 	UpdateTestAndExerciseProcess(process *models.TestAndExerciseProcess, tx ...utility.DatabaseTransaction) error
+	UpdateTestAndExerciseSystemRegister(systemRegister *models.TestAndExerciseSystemRegister, tx ...utility.DatabaseTransaction) error
 	CreateDocuments(docs []*models.TestAndExerciseTestResultDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.TestAndExerciseTestResultDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
@@ -72,6 +73,15 @@ func (repo *TestAndExerciseTestResultRepository) GetFullDetailsByID(testAndExerc
 		Preload("TestAndExercise.TestAndExerciseProcesses.ActualMtpdUnit").
 		Preload("TestAndExercise.TestAndExerciseProcesses.ActualRpoUnit").
 		Preload("TestAndExercise.TestAndExerciseProcesses.Timeliness").
+		Preload("TestAndExercise.TestAndExerciseSystemRegisters").
+		Preload("TestAndExercise.TestAndExerciseSystemRegisters.SystemRegister").
+		Preload("TestAndExercise.TestAndExerciseSystemRegisters.PlannedRtoUnit").
+		Preload("TestAndExercise.TestAndExerciseSystemRegisters.PlannedMtpdUnit").
+		Preload("TestAndExercise.TestAndExerciseSystemRegisters.PlannedRpoUnit").
+		Preload("TestAndExercise.TestAndExerciseSystemRegisters.ActualRtoUnit").
+		Preload("TestAndExercise.TestAndExerciseSystemRegisters.ActualMtpdUnit").
+		Preload("TestAndExercise.TestAndExerciseSystemRegisters.ActualRpoUnit").
+		Preload("TestAndExercise.TestAndExerciseSystemRegisters.Timeliness").
 		Preload("CommunicationFeedbackOption").
 		Preload("RecoveryFeedbackOption").
 		Preload("TestResultOption").
@@ -130,6 +140,17 @@ func (repo *TestAndExerciseTestResultRepository) UpdateTestAndExerciseProcess(pr
 		db = tx[0].DB()
 	}
 	if err := db.Save(process).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *TestAndExerciseTestResultRepository) UpdateTestAndExerciseSystemRegister(systemRegister *models.TestAndExerciseSystemRegister, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(systemRegister).Error; err != nil {
 		return err
 	}
 	return nil

@@ -20,13 +20,14 @@ type BcpTestAndExercise struct {
 	UpdatedAt                *time.Time `json:"updated_at" gorm:"type:datetime"`
 
 	// Relationships
-	BusinessContinuityPlan         *BusinessContinuityPlan         `gorm:"foreignKey:BusinessContinuityPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUser                *User                           `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ResponsibleUnit                *OrganizationUnit               `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	ReviewFrequency                *ReviewFrequency                `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	BcpTestAndExerciseBcpProcesses []*BcpTestAndExerciseBcpProcess `gorm:"foreignKey:BcpTestAndExerciseID"`
-	CreatedByUser                  *User                           `gorm:"foreignKey:CreatedBYID"`
-	UpdatedByUser                  *User                           `gorm:"foreignKey:UpdatedBYID"`
+	BusinessContinuityPlan            *BusinessContinuityPlan             `gorm:"foreignKey:BusinessContinuityPlanID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUser                   *User                               `gorm:"foreignKey:ResponsibleUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ResponsibleUnit                   *OrganizationUnit                   `gorm:"foreignKey:ResponsibleUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	ReviewFrequency                   *ReviewFrequency                    `gorm:"foreignKey:ReviewFrequencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
+	BcpTestAndExerciseBcpProcesses    []*BcpTestAndExerciseBcpProcess     `gorm:"foreignKey:BcpTestAndExerciseID"`
+	BcpTestAndExerciseSystemRegisters []*BcpTestAndExerciseSystemRegister `gorm:"foreignKey:BcpTestAndExerciseID"`
+	CreatedByUser                     *User                               `gorm:"foreignKey:CreatedBYID"`
+	UpdatedByUser                     *User                               `gorm:"foreignKey:UpdatedBYID"`
 }
 
 func (BcpTestAndExercise) TableName() string {

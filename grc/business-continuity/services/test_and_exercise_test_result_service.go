@@ -145,6 +145,31 @@ func (tetrs *TestAndExerciseTestResultService) Create(testAndExerciseId uint, cu
 		}
 	}
 
+	for _, testAndExerciseSystemRegister := range testAndExerciseTestResultFormDTO.TestAndExerciseSystemRegisters {
+
+		existingSystemRegister, err := tetrs.testAndExerciseSvc.GetTestAndExerciseSystemRegisterByID(testAndExerciseSystemRegister.ID)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		existingSystemRegister.ActualRto = testAndExerciseSystemRegister.ActualRto
+		existingSystemRegister.ActualRtoUnitId = testAndExerciseSystemRegister.ActualRtoUnitId
+		existingSystemRegister.ActualMtpd = testAndExerciseSystemRegister.ActualMtpd
+		existingSystemRegister.ActualMtpdUnitId = testAndExerciseSystemRegister.ActualMtpdUnitId
+		existingSystemRegister.ActualRpo = testAndExerciseSystemRegister.ActualRpo
+		existingSystemRegister.ActualRpoUnitId = testAndExerciseSystemRegister.ActualRpoUnitId
+		existingSystemRegister.TimelinessID = testAndExerciseSystemRegister.TimelinessID
+		existingSystemRegister.IsRecovered = testAndExerciseSystemRegister.IsRecovered
+		existingSystemRegister.UpdatedBYID = &currentUserID
+
+		err = tetrs.repo.UpdateTestAndExerciseSystemRegister(existingSystemRegister, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
 	var documents []*models.TestAndExerciseTestResultDocument
 
 	// Iterate over each document in the array
@@ -282,6 +307,31 @@ func (tetrs *TestAndExerciseTestResultService) Update(testAndExerciseId uint, cu
 		existingProcess.UpdatedBYID = &currentUserID
 
 		err = tetrs.repo.UpdateTestAndExerciseProcess(existingProcess, tx)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	for _, testAndExerciseSystemRegister := range testAndExerciseTestResultFormDTO.TestAndExerciseSystemRegisters {
+
+		existingSystemRegister, err := tetrs.testAndExerciseSvc.GetTestAndExerciseSystemRegisterByID(testAndExerciseSystemRegister.ID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		existingSystemRegister.ActualRto = testAndExerciseSystemRegister.ActualRto
+		existingSystemRegister.ActualRtoUnitId = testAndExerciseSystemRegister.ActualRtoUnitId
+		existingSystemRegister.ActualMtpd = testAndExerciseSystemRegister.ActualMtpd
+		existingSystemRegister.ActualMtpdUnitId = testAndExerciseSystemRegister.ActualMtpdUnitId
+		existingSystemRegister.ActualRpo = testAndExerciseSystemRegister.ActualRpo
+		existingSystemRegister.ActualRpoUnitId = testAndExerciseSystemRegister.ActualRpoUnitId
+		existingSystemRegister.TimelinessID = testAndExerciseSystemRegister.TimelinessID
+		existingSystemRegister.IsRecovered = testAndExerciseSystemRegister.IsRecovered
+		existingSystemRegister.UpdatedBYID = &currentUserID
+
+		err = tetrs.repo.UpdateTestAndExerciseSystemRegister(existingSystemRegister, tx)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -468,6 +518,33 @@ func (tetrs *TestAndExerciseTestResultService) Delete(testAndExerciseId uint, cu
 		existingProcess.UpdatedBYID = &currentUserID
 
 		err = tetrs.repo.UpdateTestAndExerciseProcess(existingProcess, tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	// Delete-> update testAndExerciseSystemRegister
+
+	for _, testAndExerciseSystemRegister := range testAndExercise.TestAndExerciseSystemRegisters {
+
+		existingSystemRegister, err := tetrs.testAndExerciseSvc.GetTestAndExerciseSystemRegisterByID(*testAndExerciseSystemRegister.ID)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+
+		existingSystemRegister.ActualRto = nil
+		existingSystemRegister.ActualRtoUnitId = nil
+		existingSystemRegister.ActualMtpd = nil
+		existingSystemRegister.ActualMtpdUnitId = nil
+		existingSystemRegister.ActualRpo = nil
+		existingSystemRegister.ActualRpoUnitId = nil
+		existingSystemRegister.TimelinessID = nil
+		existingSystemRegister.IsRecovered = false
+		existingSystemRegister.UpdatedBYID = &currentUserID
+
+		err = tetrs.repo.UpdateTestAndExerciseSystemRegister(existingSystemRegister, tx)
 		if err != nil {
 			tx.Rollback()
 			return 0, err
