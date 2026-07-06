@@ -30,7 +30,7 @@ type AssetRegisterRepositoryInterface interface {
 	DeleteAssetDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.AssetDocument, error)
 
-	Archive(id uint, tx ...utility.DatabaseTransaction) error 
+	Archive(id uint, tx ...utility.DatabaseTransaction) error
 	Unarchive(id uint, tx ...utility.DatabaseTransaction) error
 }
 
@@ -68,6 +68,7 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 			asset_register.manufacturer,
 			asset_register.model,
 			asset_register.serial_number,
+			asset_register.is_archived,
 			asset_categories.title_en AS asset_category_title_en,
 			asset_categories.title_ar AS asset_category_title_ar,
 			asset_sub_categories.title_en AS asset_sub_category_title_en,
@@ -107,7 +108,55 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 			updated_user.initial AS updated_user_initial,
 			updated_user.color AS updated_user_color,
 			updated_user.email AS updated_user_email,
-			updated_user.profile_image_path AS updated_user_profile_image_path
+			updated_user.profile_image_path AS updated_user_profile_image_path,
+
+			asset_register.rto,
+			asset_register.rto_unit_id,
+			asset_register.mtpd,
+			asset_register.mtpd_unit_id,
+			asset_register.rpo,
+			asset_register.rpo_unit_id,
+
+			technical_owner.id AS technical_owner_id,
+			technical_owner.first_name_en AS technical_owner_first_name_en,
+			technical_owner.first_name_ar AS technical_owner_first_name_ar,
+			technical_owner.last_name_en AS technical_owner_last_name_en,
+			technical_owner.last_name_ar AS technical_owner_last_name_ar,
+
+			administrative_owner.id AS administrative_owner_id,
+			administrative_owner.first_name_en AS administrative_owner_first_name_en,
+			administrative_owner.first_name_ar AS administrative_owner_first_name_ar,
+			administrative_owner.last_name_en AS administrative_owner_last_name_en,
+			administrative_owner.last_name_ar AS administrative_owner_last_name_ar,
+
+			assigned_user.id AS assigned_user_id,
+			assigned_user.first_name_en AS assigned_user_first_name_en,
+			assigned_user.first_name_ar AS assigned_user_first_name_ar,
+			assigned_user.last_name_en AS assigned_user_last_name_en,
+			assigned_user.last_name_ar AS assigned_user_last_name_ar,
+
+			asset_register.hostname,
+			asset_register.ip_address,
+			asset_register.mac_address,
+			asset_register.fqdn,
+			asset_register.region,
+			asset_register.operating_system,
+
+			device_categories.title_en AS device_category_title_en,
+			device_categories.title_ar AS device_category_title_ar,
+
+			criticality_classifications.title_en AS criticality_classification_title_en,
+			criticality_classifications.title_ar AS criticality_classification_title_ar,
+
+			confidentiality_classifications.title_en AS confidentiality_classification_title_en,
+			confidentiality_classifications.title_ar AS confidentiality_classification_title_ar,
+
+			asset_environments.title_en AS asset_environment_title_en,
+			asset_environments.title_ar AS asset_environment_title_ar,
+
+			CONVERT(VARCHAR, asset_register.inventory_time, 120) AS inventory_time,
+			CONVERT(VARCHAR, asset_register.discovery_time, 120) AS discovery_time,
+			CONVERT(VARCHAR, asset_register.last_response_time, 120) AS last_response_time
 		`).
 		Joins("LEFT JOIN asset_categories ON asset_categories.id = asset_register.asset_category_id").
 		Joins("LEFT JOIN asset_sub_categories ON asset_sub_categories.id = asset_register.asset_sub_category_id").
@@ -116,7 +165,14 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 		Joins("LEFT JOIN organization_units ON organization_units.id = asset_register.responsible_unit_id").
 		Joins("LEFT JOIN users AS responsible_user ON responsible_user.id = asset_register.responsible_user_id").
 		Joins("LEFT JOIN users AS created_user ON created_user.id = asset_register.created_by_id").
-		Joins("LEFT JOIN users AS updated_user ON updated_user.id = asset_register.updated_by_id")
+		Joins("LEFT JOIN users AS updated_user ON updated_user.id = asset_register.updated_by_id").
+		Joins("LEFT JOIN users AS technical_owner ON technical_owner.id = asset_register.technical_owner_id").
+		Joins("LEFT JOIN users AS administrative_owner ON administrative_owner.id = asset_register.administrative_owner_id").
+		Joins("LEFT JOIN users AS assigned_user ON assigned_user.id = asset_register.assigned_user_id").
+		Joins("LEFT JOIN asset_device_categories AS device_categories ON device_categories.id = asset_register.device_category_id").
+		Joins("LEFT JOIN asset_criticality_matrix_factor_ratings AS criticality_classifications ON criticality_classifications.id = asset_register.criticality_classification_id").
+		Joins("LEFT JOIN confidentiality_classifications ON confidentiality_classifications.id = asset_register.confidentiality_classification_id").
+		Joins("LEFT JOIN asset_environments ON asset_environments.id = asset_register.asset_environment_id")
 
 	// Apply filters
 	for columnName, values := range params.Filters {
@@ -131,7 +187,6 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 		query = query.Where("asset_register.is_archived = ?", false)
 	}
 
-	// Apply acquisition_date filters
 	if params.AcquisitionDateFrom != "" {
 		query = query.Where("asset_register.acquisition_date >= ?", params.AcquisitionDateFrom)
 	}
@@ -139,7 +194,6 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 		query = query.Where("asset_register.acquisition_date <= ?", params.AcquisitionDateTo)
 	}
 
-	// Apply search keyword if exists
 	if params.Keyword != "" {
 		query = query.Where(`
 			(asset_register.title_en LIKE ? OR
@@ -154,38 +208,37 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 			asset_categories.title_en LIKE ? OR
 			asset_categories.title_ar LIKE ? OR
 			asset_statuses.title_en LIKE ? OR
-			asset_statuses.title_ar LIKE ?)`,
+			asset_statuses.title_ar LIKE ? OR
+			asset_register.hostname LIKE ? OR
+			asset_register.ip_address LIKE ? OR
+			asset_register.fqdn LIKE ?)`,
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
 			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%",
-			"%"+params.Keyword+"%", "%"+params.Keyword+"%")
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%",
+			"%"+params.Keyword+"%", "%"+params.Keyword+"%", "%"+params.Keyword+"%")
 	}
 
-	// Calculate total count for pagination
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
-	// Apply sorting and pagination
 	query = query.Order(params.SortBy + " " + params.Sort)
 	if !params.Export {
 		offset := (params.Page - 1) * params.PageSize
 		query = query.Offset(offset).Limit(params.PageSize)
 	}
 
-	// Execute query
 	err := query.Find(&assets).Error
 	if err != nil {
 		return nil, err
 	}
 
-	// Calculate total pages
 	totalPages := 1
 	if !params.Export {
 		totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 	}
 
-	// Prepare response
 	response := &dtos.AssetRegisterListResponseDTO{
 		Items: assets,
 		Pagination: commonDTOs.PaginationInfoDTO{

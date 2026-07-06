@@ -913,14 +913,27 @@ func (ars *AssetRegisterService) ExportAsset(data []*dtos.AssetRegisterListDTO, 
 	var headers []string
 	if userSetting.Language == "ar" {
 		headers = []string{
-			"SL No.",
-			"Reference Number",
-			"Title",
-			"Category",
-			"Asset Status",
-			"Location",
-			"Responsible User",
-			"Acquisition Date",
+			"الرقم التسلسلي",
+			"الرقم المرجعي",
+			"العنوان",
+			"الفئة",
+			"حالة الأصل",
+			"الموقع",
+			"المستخدم المسؤول",
+			"تاريخ الاقتناء",
+			"المالك الفني",
+			"المالك الإداري",
+			"المستخدم المعين",
+			"اسم المضيف",
+			"عنوان IP",
+			"عنوان MAC",
+			"FQDN",
+			"المنطقة",
+			"نظام التشغيل",
+			"فئة الجهاز",
+			"تصنيف الأهمية",
+			"تصنيف السرية",
+			"بيئة الأصل",
 		}
 	} else {
 		headers = []string{
@@ -932,6 +945,19 @@ func (ars *AssetRegisterService) ExportAsset(data []*dtos.AssetRegisterListDTO, 
 			"Location",
 			"Responsible User",
 			"Acquisition Date",
+			"Technical Owner",
+			"Administrative Owner",
+			"Assigned User",
+			"Hostname",
+			"IP Address",
+			"MAC Address",
+			"FQDN",
+			"Region",
+			"Operating System",
+			"Device Category",
+			"Criticality Classification",
+			"Confidentiality Classification",
+			"Asset Environment",
 		}
 	}
 
@@ -947,6 +973,25 @@ func (ars *AssetRegisterService) ExportAsset(data []*dtos.AssetRegisterListDTO, 
 				utility.GetStringValue(asset.Location),
 				fmt.Sprintf("%s %s", asset.ResponsibleUserFirstNameAr, asset.ResponsibleUserLastNameAr),
 				asset.AcquisitionDate,
+				fmt.Sprintf("%s %s",
+					utility.GetStringValue(asset.TechnicalOwnerFirstNameAr),
+					utility.GetStringValue(asset.TechnicalOwnerLastNameAr)),
+				fmt.Sprintf("%s %s",
+					utility.GetStringValue(asset.AdministrativeOwnerFirstNameAr),
+					utility.GetStringValue(asset.AdministrativeOwnerLastNameAr)),
+				fmt.Sprintf("%s %s",
+					utility.GetStringValue(asset.AssignedUserFirstNameAr),
+					utility.GetStringValue(asset.AssignedUserLastNameAr)),
+				utility.GetStringValue(asset.Hostname),
+				utility.GetStringValue(asset.IPAddress),
+				utility.GetStringValue(asset.MACAddress),
+				utility.GetStringValue(asset.FQDN),
+				utility.GetStringValue(asset.Region),
+				utility.GetStringValue(asset.OperatingSystem),
+				utility.GetStringValue(asset.DeviceCategoryTitleAr),
+				utility.GetStringValue(asset.CriticalityClassificationTitleAr),
+				utility.GetStringValue(asset.ConfidentialityClassificationTitleAr),
+				utility.GetStringValue(asset.AssetEnvironmentTitleAr),
 			}
 		} else {
 			rows[i] = []interface{}{
@@ -958,6 +1003,25 @@ func (ars *AssetRegisterService) ExportAsset(data []*dtos.AssetRegisterListDTO, 
 				utility.GetStringValue(asset.Location),
 				fmt.Sprintf("%s %s", asset.ResponsibleUserFirstNameEn, asset.ResponsibleUserLastNameEn),
 				asset.AcquisitionDate,
+				fmt.Sprintf("%s %s",
+					utility.GetStringValue(asset.TechnicalOwnerFirstNameEn),
+					utility.GetStringValue(asset.TechnicalOwnerLastNameEn)),
+				fmt.Sprintf("%s %s",
+					utility.GetStringValue(asset.AdministrativeOwnerFirstNameEn),
+					utility.GetStringValue(asset.AdministrativeOwnerLastNameEn)),
+				fmt.Sprintf("%s %s",
+					utility.GetStringValue(asset.AssignedUserFirstNameEn),
+					utility.GetStringValue(asset.AssignedUserLastNameEn)),
+				utility.GetStringValue(asset.Hostname),
+				utility.GetStringValue(asset.IPAddress),
+				utility.GetStringValue(asset.MACAddress),
+				utility.GetStringValue(asset.FQDN),
+				utility.GetStringValue(asset.Region),
+				utility.GetStringValue(asset.OperatingSystem),
+				utility.GetStringValue(asset.DeviceCategoryTitleEn),
+				utility.GetStringValue(asset.CriticalityClassificationTitleEn),
+				utility.GetStringValue(asset.ConfidentialityClassificationTitleEn),
+				utility.GetStringValue(asset.AssetEnvironmentTitleEn),
 			}
 		}
 	}
@@ -1004,29 +1068,26 @@ func (ars *AssetRegisterService) ForceDelete(ids []uint, currentUserID uint) ([]
 
 	return nil, nil
 }
-
 func (ars *AssetRegisterService) Archive(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := ars.repo.BeginTransaction() 
+
 	var failedIds []uint
 	var successfulIds []uint
 	var archivedAssetRegister []map[string]interface{}
 
-	tx := ars.repo.BeginTransaction()
-
 	for _, id := range ids {
 		asset, err := ars.GetFullDetailsByID(id)
 		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-
-		err = ars.repo.Archive(id, tx)
-		if err != nil {
-			tx.Rollback()
 			failedIds = append(failedIds, id)
-		} else {
-			successfulIds = append(successfulIds, id)
+			continue 
 		}
 
+		if err := ars.repo.Archive(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		successfulIds = append(successfulIds, id)
 		archivedAssetRegister = append(archivedAssetRegister, map[string]interface{}{
 			"id":       id,
 			"title_en": asset.TitleEn,
@@ -1034,7 +1095,17 @@ func (ars *AssetRegisterService) Archive(ids []uint, currentUserID uint) ([]uint
 		})
 	}
 
-	tx.Commit()
+	if len(failedIds) > 0 {
+		tx.Rollback() 
+		return failedIds, nil
+	}
+
+	if err := tx.Commit(); err != nil {
+		utility.LogError("Failed to commit asset archive transaction", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return nil, err
+	}
 
 	if len(successfulIds) > 0 {
 		go func() {
@@ -1054,29 +1125,26 @@ func (ars *AssetRegisterService) Archive(ids []uint, currentUserID uint) ([]uint
 
 	return failedIds, nil
 }
-
 func (ars *AssetRegisterService) Unarchive(ids []uint, currentUserID uint) ([]uint, error) {
+	tx := ars.repo.BeginTransaction()
+
 	var failedIds []uint
 	var successfulIds []uint
 	var unarchivedAssetRegister []map[string]interface{}
 
-	tx := ars.repo.BeginTransaction()
-
 	for _, id := range ids {
 		asset, err := ars.GetFullDetailsByID(id)
 		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-
-		err = ars.repo.Unarchive(id, tx)
-		if err != nil {
-			tx.Rollback()
 			failedIds = append(failedIds, id)
-		} else {
-			successfulIds = append(successfulIds, id)
+			continue
 		}
 
+		if err := ars.repo.Unarchive(id, tx); err != nil {
+			failedIds = append(failedIds, id)
+			continue
+		}
+
+		successfulIds = append(successfulIds, id)
 		unarchivedAssetRegister = append(unarchivedAssetRegister, map[string]interface{}{
 			"id":       id,
 			"title_en": asset.TitleEn,
@@ -1084,7 +1152,17 @@ func (ars *AssetRegisterService) Unarchive(ids []uint, currentUserID uint) ([]ui
 		})
 	}
 
-	tx.Commit()
+	if len(failedIds) > 0 {
+		tx.Rollback()
+		return failedIds, nil
+	}
+
+	if err := tx.Commit(); err != nil {
+		utility.LogError("Failed to commit asset unarchive transaction", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return nil, err
+	}
 
 	if len(successfulIds) > 0 {
 		go func() {

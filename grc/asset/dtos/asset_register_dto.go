@@ -42,6 +42,44 @@ type AssetRegisterListDTO struct {
 	AssetCriticalityMatrixRatingScaleTitleEn   string     `json:"asset_criticality_matrix_rating_scale_title_en"`
 	AssetCriticalityMatrixRatingScaleTitleAr   string     `json:"asset_criticality_matrix_rating_scale_title_ar"`
 	AssetCriticalityMatrixRatingScaleColorCode string     `json:"asset_criticality_matrix_rating_scale_color_code"`
+	Rto                                        *int       `json:"rto"`
+	RtoUnitId                                  *uint      `json:"rto_unit_id"`
+	Mtpd                                       *int       `json:"mtpd"`
+	MtpdUnitId                                 *uint      `json:"mtpd_unit_id"`
+	Rpo                                        *int       `json:"rpo"`
+	RpoUnitId                                  *uint      `json:"rpo_unit_id"`
+	TechnicalOwnerID                           *uint      `json:"technical_owner_id"`
+	TechnicalOwnerFirstNameEn                  *string    `json:"technical_owner_first_name_en"`
+	TechnicalOwnerFirstNameAr                  *string    `json:"technical_owner_first_name_ar"`
+	TechnicalOwnerLastNameEn                   *string    `json:"technical_owner_last_name_en"`
+	TechnicalOwnerLastNameAr                   *string    `json:"technical_owner_last_name_ar"`
+	AdministrativeOwnerID                      *uint      `json:"administrative_owner_id"`
+	AdministrativeOwnerFirstNameEn             *string    `json:"administrative_owner_first_name_en"`
+	AdministrativeOwnerFirstNameAr             *string    `json:"administrative_owner_first_name_ar"`
+	AdministrativeOwnerLastNameEn              *string    `json:"administrative_owner_last_name_en"`
+	AdministrativeOwnerLastNameAr              *string    `json:"administrative_owner_last_name_ar"`
+	AssignedUserID                             *uint      `json:"assigned_user_id"`
+	AssignedUserFirstNameEn                    *string    `json:"assigned_user_first_name_en"`
+	AssignedUserFirstNameAr                    *string    `json:"assigned_user_first_name_ar"`
+	AssignedUserLastNameEn                     *string    `json:"assigned_user_last_name_en"`
+	AssignedUserLastNameAr                     *string    `json:"assigned_user_last_name_ar"`
+	Hostname                                   *string    `json:"hostname"`
+	IPAddress                                  *string    `json:"ip_address"`
+	MACAddress                                 *string    `json:"mac_address"`
+	FQDN                                       *string    `json:"fqdn"`
+	Region                                     *string    `json:"region"`
+	OperatingSystem                            *string    `json:"operating_system"`
+	DeviceCategoryTitleEn                      *string    `json:"device_category_title_en"`
+	DeviceCategoryTitleAr                      *string    `json:"device_category_title_ar"`
+	CriticalityClassificationTitleEn           *string    `json:"criticality_classification_title_en"`
+	CriticalityClassificationTitleAr           *string    `json:"criticality_classification_title_ar"`
+	ConfidentialityClassificationTitleEn       *string    `json:"confidentiality_classification_title_en"`
+	ConfidentialityClassificationTitleAr       *string    `json:"confidentiality_classification_title_ar"`
+	AssetEnvironmentTitleEn                    *string    `json:"asset_environment_title_en"`
+	AssetEnvironmentTitleAr                    *string    `json:"asset_environment_title_ar"`
+	InventoryTime                              *string    `json:"inventory_time"`
+	DiscoveryTime                              *string    `json:"discovery_time"`
+	LastResponseTime                           *string    `json:"last_response_time"`
 	CreatedUserID                              uint       `json:"created_user_id"`
 	CreatedUserFirstNameEn                     string     `json:"created_user_first_name_en"`
 	CreatedUserFirstNameAr                     string     `json:"created_user_first_name_ar"`
