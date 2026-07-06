@@ -178,16 +178,24 @@ func (bcps *BusinessContinuityPlanService) Create(currentUserID uint, businessCo
 			ProcessID:                existingProcess.ProcessID,
 			BusinessContinuityPlanID: id,
 			RiskLevelID:              existingProcess.Process.RiskLevelId,
+			ImpactAnalysisLevelID:    existingProcess.Process.ImpactAnalysisLevelId,
 			Rto:                      existingProcess.Process.Rto,
 			RtoUnitId:                existingProcess.Process.RtoUnitId,
+			RtoCondition:             existingProcess.Process.RtoCondition,
 			Mtpd:                     existingProcess.Process.Mtpd,
 			MtpdUnitId:               existingProcess.Process.MtpdUnitId,
+			MtpdCondition:            existingProcess.Process.MtpdCondition,
 			Rpo:                      existingProcess.Process.Rpo,
 			RpoUnitId:                existingProcess.Process.RpoUnitId,
+			RpoCondition:             existingProcess.Process.RpoCondition,
 			CreatedBYID:              currentUserID,
 		}
-		err := bcps.repo.CreateBcpProcesses(bcpProcess, tx)
+		bcpProcessID, err := bcps.repo.CreateBcpProcesses(bcpProcess, tx)
 		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		if err := bcps.snapshotProcessChildren(existingProcess.ProcessID, bcpProcessID, currentUserID, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -329,11 +337,17 @@ func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, b
 
 	if businessContinuityPlanFormDTO.BusinessFunctionID != oldBusinessContinuityPlan.BusinessFunctionID {
 		if len(oldBusinessContinuityPlan.Processes) > 0 {
-			var deleteprocessIDs []*uint
+			var deleteProcessIDs []uint
+			var deleteProcessPtrIDs []*uint
 			for _, process := range oldBusinessContinuityPlan.Processes {
-				deleteprocessIDs = append(deleteprocessIDs, process.ID)
+				deleteProcessIDs = append(deleteProcessIDs, *process.ID)
+				deleteProcessPtrIDs = append(deleteProcessPtrIDs, process.ID)
 			}
-			if err := bcps.repo.DeleteBcpProcesses(deleteprocessIDs, tx); err != nil {
+			if err := bcps.repo.DeleteBcpProcessChildrenByBcpProcessIDs(deleteProcessIDs, tx); err != nil {
+				tx.Rollback()
+				return err
+			}
+			if err := bcps.repo.DeleteBcpProcesses(deleteProcessPtrIDs, tx); err != nil {
 				tx.Rollback()
 				return err
 			}
@@ -348,16 +362,24 @@ func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, b
 				ProcessID:                existingProcess.ProcessID,
 				BusinessContinuityPlanID: id,
 				RiskLevelID:              existingProcess.Process.RiskLevelId,
+				ImpactAnalysisLevelID:    existingProcess.Process.ImpactAnalysisLevelId,
 				Rto:                      existingProcess.Process.Rto,
+				RtoCondition:             existingProcess.Process.RtoCondition,
 				RtoUnitId:                existingProcess.Process.RtoUnitId,
 				Mtpd:                     existingProcess.Process.Mtpd,
+				MtpdCondition:            existingProcess.Process.MtpdCondition,
 				MtpdUnitId:               existingProcess.Process.MtpdUnitId,
 				Rpo:                      existingProcess.Process.Rpo,
+				RpoCondition:             existingProcess.Process.RpoCondition,
 				RpoUnitId:                existingProcess.Process.RpoUnitId,
 				CreatedBYID:              currentUserID,
 			}
-			err := bcps.repo.CreateBcpProcesses(bcpProcess, tx)
+			bcpProcessID, err := bcps.repo.CreateBcpProcesses(bcpProcess, tx)
 			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			if err := bcps.snapshotProcessChildren(existingProcess.ProcessID, bcpProcessID, currentUserID, tx); err != nil {
 				tx.Rollback()
 				return err
 			}
@@ -534,6 +556,164 @@ func (bcps *BusinessContinuityPlanService) Update(id uint, currentUserID uint, b
 	return nil
 }
 
+// snapshotProcessChildren copies all child-table data from the Process (by processID)
+// into the corresponding BcpProcess child tables, so BCP data is isolated from future Process changes.
+func (bcps *BusinessContinuityPlanService) snapshotProcessChildren(processID uint, bcpProcessID uint, currentUserID uint, tx utility.DatabaseTransaction) error {
+	process, err := bcps.repo.GetProcessWithChildrenByID(processID)
+	if err != nil {
+		return err
+	}
+
+	// Execution records
+	for _, er := range process.ProcessExecutionRecords {
+		if err := bcps.repo.CreateBcpProcessExecutionRecord(&models.BcpProcessExecutionRecord{
+			BcpProcessID:         bcpProcessID,
+			BCMExecutionRecordID: er.BCMExecutionRecordID,
+			CreatedBYID:          &currentUserID,
+		}, tx); err != nil {
+			return err
+		}
+	}
+
+	// Manual procedure forms
+	for _, mf := range process.ProcessManualProcedureForms {
+		if err := bcps.repo.CreateBcpProcessManualProcedureForm(&models.BcpProcessManualProcedureForm{
+			BcpProcessID:             bcpProcessID,
+			BCMManualProcedureFormID: mf.BCMManualProcedureFormID,
+			CreatedBYID:              &currentUserID,
+		}, tx); err != nil {
+			return err
+		}
+	}
+
+	// System register (single)
+	if process.ProcessSystemRegister != nil {
+		if err := bcps.repo.CreateBcpProcessSystemRegister(&models.BcpProcessSystemRegister{
+			BcpProcessID:     bcpProcessID,
+			SystemRegisterID: process.ProcessSystemRegister.SystemRegisterID,
+			CreatedBYID:      &currentUserID,
+		}, tx); err != nil {
+			return err
+		}
+	}
+
+	// Internal dependencies
+	for _, dep := range process.InternalDependencies {
+		if err := bcps.repo.CreateBcpProcessInternalDependency(&models.BcpProcessInternalDependency{
+			BcpProcessID:             bcpProcessID,
+			SupportingUnitID:         dep.SupportingUnitID,
+			DependencyTierID:         dep.DependencyTierID,
+			DependencyPercentageFrom: dep.DependencyPercentageFrom,
+			DependencyPercentageTo:   dep.DependencyPercentageTo,
+			RequiredSupport:          dep.RequiredSupport,
+			Notes:                    dep.Notes,
+			CreatedBYID:              &currentUserID,
+		}, tx); err != nil {
+			return err
+		}
+	}
+
+	// External dependencies
+	for _, dep := range process.ExternalDependencies {
+		if err := bcps.repo.CreateBcpProcessExternalDependency(&models.BcpProcessExternalDependency{
+			BcpProcessID:             bcpProcessID,
+			EntityName:               dep.EntityName,
+			EntityTypeID:             dep.EntityTypeID,
+			NeededSupportDescription: dep.NeededSupportDescription,
+			DependencyTierID:         dep.DependencyTierID,
+			SLARegisterID:            dep.SLARegisterID,
+			VendorRTO:                dep.VendorRTO,
+			VendorRTOUnitID:          dep.VendorRTOUnitID,
+			InternalStakeholder:      dep.InternalStakeholder,
+			ContactNumber:            dep.ContactNumber,
+			ContactEmail:             dep.ContactEmail,
+			CreatedBYID:              &currentUserID,
+		}, tx); err != nil {
+			return err
+		}
+	}
+
+	// Employee analysis (with nested employees and tools)
+	// Build a map: original ProcessEmployeeAnalysis.ID -> new BcpProcessEmployeeAnalysis.ID
+	eaIDMap := make(map[uint]uint)
+	for _, ea := range process.ProcessEmployeeAnalysis {
+		bcpEaID, err := bcps.repo.CreateBcpProcessEmployeeAnalysis(&models.BcpProcessEmployeeAnalysis{
+			BcpProcessID:  bcpProcessID,
+			DesignationID: ea.DesignationID,
+			NormalCount:   ea.NormalCount,
+			CriticalCount: ea.CriticalCount,
+			CreatedBYID:   &currentUserID,
+		}, tx)
+		if err != nil {
+			return err
+		}
+		eaIDMap[ea.ID] = bcpEaID
+		for _, emp := range ea.Employees {
+			bcpEmpID, err := bcps.repo.CreateBcpProcessEmployeeAnalysisEmployee(&models.BcpProcessEmployeeAnalysisEmployee{
+				BcpProcessEmployeeAnalysisID: bcpEaID,
+				UserID:                       emp.UserID,
+				CreatedBYID:                  &currentUserID,
+			}, tx)
+			if err != nil {
+				return err
+			}
+			for _, tool := range emp.Tools {
+				if err := bcps.repo.CreateBcpProcessEmployeeAnalysisEmployeeTool(&models.BcpProcessEmployeeAnalysisEmployeeTool{
+					BcpProcessEmployeeAnalysisEmployeeID: bcpEmpID,
+					EquipmentToolID:                      tool.EquipmentToolID,
+					IsHas:                                tool.IsHas,
+					IsNeeded:                             tool.IsNeeded,
+					CreatedBYID:                          &currentUserID,
+				}, tx); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	// BCM Staff allocations (with outage buckets and their users)
+	for _, sa := range process.BCMStaffAllocations {
+		var bcpEaIDPtr *uint
+		if sa.ProcessEmployeeAnalysisID != nil {
+			if mappedID, ok := eaIDMap[*sa.ProcessEmployeeAnalysisID]; ok {
+				bcpEaIDPtr = &mappedID
+			}
+		}
+		bcpSaID, err := bcps.repo.CreateBcpProcessStaffAllocation(&models.BcpProcessStaffAllocation{
+			BcpProcessID:                 bcpProcessID,
+			BcpProcessEmployeeAnalysisID: bcpEaIDPtr,
+			CreatedBYID:                  &currentUserID,
+		}, tx)
+		if err != nil {
+			return err
+		}
+		for _, ob := range sa.OutageBuckets {
+			bucketID := ob.OutageBucketID
+			bcpObID, err := bcps.repo.CreateBcpProcessAllocationOutageBucket(&models.BcpProcessAllocationOutageBucket{
+				BcpProcessAllocationID: bcpSaID,
+				OutageBucketID:         bucketID,
+				IsSkipped:              ob.IsSkipped,
+				CreatedBYID:            &currentUserID,
+			}, tx)
+			if err != nil {
+				return err
+			}
+			for _, u := range ob.Users {
+				if err := bcps.repo.CreateBcpProcessAllocationOutageBucketUser(&models.BcpProcessAllocationOutageBucketUser{
+					BcpProcessAllocationOutageBucketID: bcpObID,
+					UserID:                             &u.UserID,
+					IsRemote:                           u.IsRemote,
+					CreatedBYID:                        &currentUserID,
+				}, tx); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func (bcps *BusinessContinuityPlanService) Delete(ids []uint, currentUserID uint) ([]uint, error) {
 	tx := bcps.repo.BeginTransaction()
 	var failedIds []uint
@@ -556,11 +736,18 @@ func (bcps *BusinessContinuityPlanService) Delete(ids []uint, currentUserID uint
 		})
 
 		if len(businessContinuityPlan.Processes) > 0 {
-			var deleteprocessIDs []*uint
+			var deleteProcessIDs []uint
+			var deleteProcessPtrIDs []*uint
 			for _, process := range businessContinuityPlan.Processes {
-				deleteprocessIDs = append(deleteprocessIDs, process.ID)
+				deleteProcessIDs = append(deleteProcessIDs, *process.ID)
+				deleteProcessPtrIDs = append(deleteProcessPtrIDs, process.ID)
 			}
-			if err := bcps.repo.DeleteBcpProcesses(deleteprocessIDs, tx); err != nil {
+			if err := bcps.repo.DeleteBcpProcessChildrenByBcpProcessIDs(deleteProcessIDs, tx); err != nil {
+				tx.Rollback()
+				failedIds = append(failedIds, id)
+				continue
+			}
+			if err := bcps.repo.DeleteBcpProcesses(deleteProcessPtrIDs, tx); err != nil {
 				tx.Rollback()
 				failedIds = append(failedIds, id)
 				continue

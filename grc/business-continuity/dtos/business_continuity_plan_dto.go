@@ -2,7 +2,6 @@ package dtos
 
 import (
 	commonDTOs "jethur/grc/common/dtos"
-	masterDTOs "jethur/grc/masters/dtos"
 	organizationDTOs "jethur/grc/organization/dtos"
 	settingsDTOs "jethur/grc/settings/dtos"
 	"time"
@@ -107,40 +106,55 @@ type BusinessContinuityPlanDetailDTO struct {
 	ResponsibleUser    *organizationDTOs.UserMinimalDTO `json:"responsible_user"`
 	ResponsibleUnit    settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
 
-	BcpStatus             BcpStatusDTO                     `json:"bcp_status"`
-	Rto                   *int                             `json:"rto"`
-	RtoUnitId             *uint                            `json:"rto_unit_id"`
-	RtoUnit               *masterDTOs.TimeUnitDTO          `json:"rto_unit"`
-	Mtpd                  *int                             `json:"mtpd"`
-	MtpdUnitId            *uint                            `json:"mtpd_unit_id"`
-	MtpdUnit              *masterDTOs.TimeUnitDTO          `json:"mtpd_unit"`
-	Rpo                   *int                             `json:"rpo"`
-	RpoUnitId             *uint                            `json:"rpo_unit_id"`
-	RpoUnit               *masterDTOs.TimeUnitDTO          `json:"rpo_unit"`
-	Processes             []*BcpProcessDTO                 `json:"processes"`
-	Documents             []*BcpDocumentDTO                `json:"documents" gorm:"-"`
-	BcpRecoveryPlans      []*BcpRecoveryPlanDetailDTO      `json:"bcp_recovery_plans"`
-	BcpCommunicationPlans []*BcpCommunicationPlanDetailDTO `json:"bcp_communication_plans"`
-	CreatedAt             time.Time                        `json:"created_at"`
-	UpdatedAt             *time.Time                       `json:"updated_at"`
-	CreatedByUser         organizationDTOs.UserMinimalDTO  `json:"created_by"`
-	UpdatedByUser         *organizationDTOs.UserMinimalDTO `json:"updated_by"`
+	BcpStatus             BcpStatusDTO                       `json:"bcp_status"`
+	Rto                   *int                               `json:"rto"`
+	RtoUnitId             *uint                              `json:"rto_unit_id"`
+	RtoUnit               *BusinessContinuityDurationUnitDTO `json:"rto_unit"`
+	RtoCondition          *string                            `json:"rto_condition"`
+	Mtpd                  *int                               `json:"mtpd"`
+	MtpdUnitId            *uint                              `json:"mtpd_unit_id"`
+	MtpdUnit              *BusinessContinuityDurationUnitDTO `json:"mtpd_unit"`
+	MtpdCondition         *string                            `json:"mtpd_condition"`
+	Rpo                   *int                               `json:"rpo"`
+	RpoUnitId             *uint                              `json:"rpo_unit_id"`
+	RpoUnit               *BusinessContinuityDurationUnitDTO `json:"rpo_unit"`
+	RpoCondition          *string                            `json:"rpo_condition"`
+	Processes             []*BcpProcessDTO                   `json:"processes"`
+	Documents             []*BcpDocumentDTO                  `json:"documents" gorm:"-"`
+	BcpRecoveryPlans      []*BcpRecoveryPlanDetailDTO        `json:"bcp_recovery_plans"`
+	BcpCommunicationPlans []*BcpCommunicationPlanDetailDTO   `json:"bcp_communication_plans"`
+	CreatedAt             time.Time                          `json:"created_at"`
+	UpdatedAt             *time.Time                         `json:"updated_at"`
+	CreatedByUser         organizationDTOs.UserMinimalDTO    `json:"created_by"`
+	UpdatedByUser         *organizationDTOs.UserMinimalDTO   `json:"updated_by"`
 }
 
 type BcpProcessDTO struct {
-	ID                       *uint                             `json:"id"`
-	BusinessContinuityPlanID uint                              `json:"business_continuity_plan_id"`
-	ProcessID                uint                              `json:"process_id"`
-	Rto                      *int                              `json:"rto"`
-	RtoUnitId                *uint                             `json:"rto_unit_id"`
-	RtoUnit                  *masterDTOs.TimeUnitDTO           `json:"rto_unit"`
-	Mtpd                     *int                              `json:"mtpd"`
-	MtpdUnitId               *uint                             `json:"mtpd_unit_id"`
-	MtpdUnit                 *masterDTOs.TimeUnitDTO           `json:"mtpd_unit"`
-	Rpo                      *int                              `json:"rpo"`
-	RpoUnitId                *uint                             `json:"rpo_unit_id"`
-	RpoUnit                  *masterDTOs.TimeUnitDTO           `json:"rpo_unit"`
-	Process                  organizationDTOs.ProcessDetailDTO `json:"process"`
+	ID                       *uint                              `json:"id"`
+	BusinessContinuityPlanID uint                               `json:"business_continuity_plan_id"`
+	ProcessID                uint                               `json:"process_id"`
+	ImpactAnalysisLevelID    *uint                              `json:"impact_analysis_level_id"`
+	ImpactAnalysisLevel      *BCMImpactAnalysisLevelDTO         `json:"impact_analysis_level"`
+	Rto                      *int                               `json:"rto"`
+	RtoUnitId                *uint                              `json:"rto_unit_id"`
+	RtoUnit                  *BusinessContinuityDurationUnitDTO `json:"rto_unit"`
+	RtoCondition             *string                            `json:"rto_condition"`
+	Mtpd                     *int                               `json:"mtpd"`
+	MtpdUnitId               *uint                              `json:"mtpd_unit_id"`
+	MtpdUnit                 *BusinessContinuityDurationUnitDTO `json:"mtpd_unit"`
+	MtpdCondition            *string                            `json:"mtpd_condition"`
+	Rpo                      *int                               `json:"rpo"`
+	RpoUnitId                *uint                              `json:"rpo_unit_id"`
+	RpoUnit                  *BusinessContinuityDurationUnitDTO `json:"rpo_unit"`
+	RpoCondition             *string                            `json:"rpo_condition"`
+	Process                  organizationDTOs.ProcessDetailDTO  `json:"process"`
+	ExecutionRecords         []*ExecutionRecordDTO              `json:"execution_records"`
+	ManualProcedureForms     []*ManualProcedureDTO              `json:"manual_procedure_forms"`
+	SystemRegisters          []*SystemRegisterDTO               `json:"system_register"`
+	InternalDependencies     []*InternalDependencyDTO           `json:"internal_dependencies"`
+	ExternalDependencies     []*ExternalDependencyDTO           `json:"external_dependencies"`
+	EmployeeAnalyses         []*EmployeeAnalysisDTO             `json:"employee_analyses"`
+	StaffAllocations         []*StaffAllocationDTO              `json:"staff_allocations"`
 }
 
 type BcpDocumentDTO struct {
@@ -159,4 +173,93 @@ type BcpTestSummaryDTO struct {
 	SuccessfulTests  int `json:"successful_tests"`
 	FailedTests      int `json:"failed_tests"`
 	PartiallySuccess int `json:"partially_success"`
+}
+
+// Detail Dto
+type ExecutionRecordDTO struct {
+	ID                 *uint                                         `json:"id"`
+	BCMExecutionRecord organizationDTOs.BCMExecutionRecordMinimalDTO `json:"bcm_execution_record"`
+}
+
+type ManualProcedureDTO struct {
+	ID                     *uint                                             `json:"id"`
+	BCMManualProcedureForm organizationDTOs.BCMManualProcedureFormMinimalDTO `json:"bcm_manual_procedure_form"`
+}
+
+type SystemRegisterDTO struct {
+	ID             *uint                                     `json:"id"`
+	SystemRegister organizationDTOs.SystemRegisterMinimalDTO `json:"system_register"`
+}
+
+type InternalDependencyDTO struct {
+	ID                       uint                                       `json:"id"`
+	SupportingUnitID         uint                                       `json:"supporting_unit_id"`
+	SupportingUnit           *organizationDTOs.OrganizationUnit1DTO     `json:"supporting_unit"`
+	DependencyTierID         uint                                       `json:"dependency_tier_id"`
+	DependencyTier           *organizationDTOs.ProcessDependencyTierDTO `json:"dependency_tier"`
+	DependencyPercentageFrom *int                                       `json:"dependency_percentage_from"`
+	DependencyPercentageTo   *int                                       `json:"dependency_percentage_to"`
+	RequiredSupport          *string                                    `json:"required_support"`
+	Notes                    *string                                    `json:"notes"`
+}
+
+type ExternalDependencyDTO struct {
+	ID                       uint                                                     `json:"id"`
+	EntityName               string                                                   `json:"entity_name"`
+	EntityTypeID             *uint                                                    `json:"entity_type_id"`
+	EntityType               *organizationDTOs.ProcessExternalDependencyEntityTypeDTO `json:"entity_type"`
+	NeededSupportDescription *string                                                  `json:"needed_support_description"`
+	DependencyTierID         *uint                                                    `json:"dependency_tier_id"`
+	DependencyTier           *organizationDTOs.ProcessDependencyTierDTO               `json:"dependency_tier"`
+	SLARegister              *organizationDTOs.SLADetailDTO                           `json:"sla_register"`
+	VendorRTO                *int                                                     `json:"vendor_rto"`
+	VendorRTOUnit            *BusinessContinuityDurationUnitDTO                       `json:"vendor_rto_unit"`
+	InternalStakeholder      *string                                                  `json:"internal_stakeholder"`
+	ContactNumber            *string                                                  `json:"contact_number"`
+	ContactEmail             *string                                                  `json:"contact_email"`
+}
+
+type EmployeeAnalysisDTO struct {
+	ID            uint                             `json:"id"`
+	DesignationID uint                             `json:"designation_id"`
+	Designation   *organizationDTOs.DesignationDTO `json:"designation"`
+	NormalCount   *int                             `json:"normal_count"`
+	CriticalCount *int                             `json:"critical_count"`
+	Employees     []EmployeeAnalysisEmployeeDTO    `json:"employees"`
+}
+
+type EmployeeAnalysisEmployeeDTO struct {
+	ID                        uint                              `json:"id"`
+	ProcessEmployeeAnalysisID uint                              `json:"process_employee_analysis_id"`
+	UserID                    uint                              `json:"user_id"`
+	User                      organizationDTOs.UserMinimalDTO   `json:"user"`
+	Tools                     []EmployeeAnalysisEmployeeToolDTO `json:"equipment_tools"`
+}
+
+type EmployeeAnalysisEmployeeToolDTO struct {
+	ID            uint                                     `json:"id"`
+	EquipmentTool organizationDTOs.ProcessEquipmentToolDTO `json:"equipment_tool"`
+	IsHas         bool                                     `json:"is_has"`
+	IsNeeded      bool                                     `json:"is_needed"`
+}
+
+type StaffAllocationDTO struct {
+	ID                         uint                       `json:"id"`
+	BcpProcessEmployeeAnalysis *EmployeeAnalysisDTO       `json:"bcp_process_employee_analysis"`
+	OutageBuckets              []StaffAllocationBucketDTO `json:"outage_buckets"`
+}
+
+type StaffAllocationBucketDTO struct {
+	ID             uint                     `json:"id"`
+	OutageBucketID uint                     `json:"outage_bucket_id"`
+	OutageBucket   BCMBIAOutageBucketDTO    `json:"outage_bucket"`
+	IsSkipped      bool                     `json:"is_skipped"`
+	Users          []StaffAllocationUserDTO `json:"users"`
+}
+
+type StaffAllocationUserDTO struct {
+	ID       uint                             `json:"id"`
+	UserID   uint                             `json:"user_id"`
+	User     *organizationDTOs.UserMinimalDTO `json:"user"`
+	IsRemote bool                             `json:"is_remote"`
 }

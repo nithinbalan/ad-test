@@ -32,6 +32,7 @@ type BusinessImpactAssessmentRepositoryInterface interface {
 	DeleteBusinessImpactAssessmentAnalysisByAssessmentID(assessmentID uint, tx ...utility.DatabaseTransaction) error
 	DeleteBusinessImpactAssessmentAnalysisByProcessID(processID uint, tx ...utility.DatabaseTransaction) error
 	GetImpactAssessmentsWithAnalysisByProcessID(processID uint) ([]*models.BusinessImpactAssessment, error)
+	GetCriticalSystems() ([]*businessContinuityDTOs.CriticalSystemListDTO, error)
 }
 
 type BusinessImpactAssessmentRepository struct {
@@ -628,4 +629,190 @@ func (repo *BusinessImpactAssessmentRepository) DeleteBusinessImpactAssessmentRa
 	}
 
 	return db.Where("process_id = ?", processID).Delete(&models.BusinessImpactAssessmentRating{}).Error
+}
+
+func (repo *BusinessImpactAssessmentRepository) GetCriticalSystems() ([]*businessContinuityDTOs.CriticalSystemListDTO, error) {
+	type systemRow struct {
+		SystemRegisterID      uint    `gorm:"column:system_register_id"`
+		SystemRegisterTitleEn string  `gorm:"column:system_register_title_en"`
+		SystemRegisterTitleAr string  `gorm:"column:system_register_title_ar"`
+		ServiceDescription    *string `gorm:"column:service_description"`
+		RTO                   *int    `gorm:"column:rto"`
+		RTOUnitTitleEn        *string `gorm:"column:rto_unit_title_en"`
+		RTOUnitTitleAr        *string `gorm:"column:rto_unit_title_ar"`
+		MTPD                  *int    `gorm:"column:mtpd"`
+		MTPDUnitTitleEn       *string `gorm:"column:mtpd_unit_title_en"`
+		MTPDUnitTitleAr       *string `gorm:"column:mtpd_unit_title_ar"`
+		RPO                   *int    `gorm:"column:rpo"`
+		RPOUnitTitleEn        *string `gorm:"column:rpo_unit_title_en"`
+		RPOUnitTitleAr        *string `gorm:"column:rpo_unit_title_ar"`
+		RecoveryManagerPhone  string  `gorm:"column:recovery_manager_phone"`
+		RecoveryManagerEmail  string  `gorm:"column:recovery_manager_email"`
+		RecoveryLocation      *string `gorm:"column:recovery_location"`
+		VendorRTO             *int    `gorm:"column:vendor_rto"`
+		VendorRTOUnitTitleEn  *string `gorm:"column:vendor_rto_unit_title_en"`
+		VendorRTOUnitTitleAr  *string `gorm:"column:vendor_rto_unit_title_ar"`
+	}
+
+	type processRow struct {
+		SystemRegisterID             uint    `gorm:"column:system_register_id"`
+		ProcessID                    uint    `gorm:"column:process_id"`
+		ProcessTitleEn               string  `gorm:"column:process_title_en"`
+		ProcessTitleAr               string  `gorm:"column:process_title_ar"`
+		ImpactAnalysisLevelID        *uint   `gorm:"column:impact_analysis_level_id"`
+		ImpactAnalysisLevelTitleEn   *string `gorm:"column:impact_analysis_level_title_en"`
+		ImpactAnalysisLevelTitleAr   *string `gorm:"column:impact_analysis_level_title_ar"`
+		ImpactAnalysisLevelColorCode *string `gorm:"column:impact_analysis_level_color_code"`
+		Rto                          *int    `gorm:"column:rto"`
+		RtoUnitTitleEn               *string `gorm:"column:rto_unit_title_en"`
+		RtoUnitTitleAr               *string `gorm:"column:rto_unit_title_ar"`
+		Mtpd                         *int    `gorm:"column:mtpd"`
+		MtpdUnitTitleEn              *string `gorm:"column:mtpd_unit_title_en"`
+		MtpdUnitTitleAr              *string `gorm:"column:mtpd_unit_title_ar"`
+		Rpo                          *int    `gorm:"column:rpo"`
+		RpoUnitTitleEn               *string `gorm:"column:rpo_unit_title_en"`
+		RpoUnitTitleAr               *string `gorm:"column:rpo_unit_title_ar"`
+	}
+
+	var systemRows []systemRow
+	err := repo.db.Table("system_registers sr").
+		Select(`
+			sr.id                       AS system_register_id,
+			sr.title_en                 AS system_register_title_en,
+			sr.title_ar                 AS system_register_title_ar,
+			sr.service_description      AS service_description,
+			sr.rto                      AS rto,
+			rto_unit.title_en           AS rto_unit_title_en,
+			rto_unit.title_ar           AS rto_unit_title_ar,
+			sr.mtpd                     AS mtpd,
+			mtpd_unit.title_en          AS mtpd_unit_title_en,
+			mtpd_unit.title_ar          AS mtpd_unit_title_ar,
+			sr.rpo                      AS rpo,
+			rpo_unit.title_en           AS rpo_unit_title_en,
+			rpo_unit.title_ar           AS rpo_unit_title_ar,
+			sr.recovery_manager_phone   AS recovery_manager_phone,
+			sr.recovery_manager_email   AS recovery_manager_email,
+			sr.recovery_location        AS recovery_location,
+			sr.vendor_rto               AS vendor_rto,
+			vrto_unit.title_en          AS vendor_rto_unit_title_en,
+			vrto_unit.title_ar          AS vendor_rto_unit_title_ar
+		`).
+		Joins(`
+			INNER JOIN process_system_registers psr ON psr.system_register_id = sr.id
+			INNER JOIN processes p ON p.id = psr.process_id
+			INNER JOIN bcm_impact_analysis_levels ial ON ial.id = p.impact_analysis_level_id
+			LEFT  JOIN business_continuity_duration_units rto_unit  ON rto_unit.id  = sr.rto_unit_id
+			LEFT  JOIN business_continuity_duration_units mtpd_unit ON mtpd_unit.id = sr.mtpd_unit_id
+			LEFT  JOIN business_continuity_duration_units rpo_unit  ON rpo_unit.id  = sr.rpo_unit_id
+			LEFT  JOIN business_continuity_duration_units vrto_unit ON vrto_unit.id = sr.vendor_rto_unit_id
+		`).
+		Where("p.impact_analysis_level_id IS NOT NULL AND ial.type != ?", "non_applicable").
+		Group("sr.id, sr.title_en, sr.title_ar, sr.service_description, sr.rto, rto_unit.title_en, rto_unit.title_ar, sr.mtpd, mtpd_unit.title_en, mtpd_unit.title_ar, sr.rpo, rpo_unit.title_en, rpo_unit.title_ar, sr.recovery_manager_phone, sr.recovery_manager_email, sr.recovery_location, sr.vendor_rto, vrto_unit.title_en, vrto_unit.title_ar").
+		Order("sr.id").
+		Find(&systemRows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	if len(systemRows) == 0 {
+		return []*businessContinuityDTOs.CriticalSystemListDTO{}, nil
+	}
+
+	// Collect system IDs
+	systemIDs := make([]uint, 0, len(systemRows))
+	for _, s := range systemRows {
+		systemIDs = append(systemIDs, s.SystemRegisterID)
+	}
+
+	// Fetch critical processes grouped by system register
+	var processRows []processRow
+	err = repo.db.Table("processes p").
+		Select(`
+			psr.system_register_id              AS system_register_id,
+			p.id                                AS process_id,
+			p.title_en                          AS process_title_en,
+			p.title_ar                          AS process_title_ar,
+			p.impact_analysis_level_id          AS impact_analysis_level_id,
+			ial.title_en                        AS impact_analysis_level_title_en,
+			ial.title_ar                        AS impact_analysis_level_title_ar,
+			ial.color_code                      AS impact_analysis_level_color_code,
+			p.rto                               AS rto,
+			rto_unit.title_en                   AS rto_unit_title_en,
+			rto_unit.title_ar                   AS rto_unit_title_ar,
+			p.mtpd                              AS mtpd,
+			mtpd_unit.title_en                  AS mtpd_unit_title_en,
+			mtpd_unit.title_ar                  AS mtpd_unit_title_ar,
+			p.rpo                               AS rpo,
+			rpo_unit.title_en                   AS rpo_unit_title_en,
+			rpo_unit.title_ar                   AS rpo_unit_title_ar
+		`).
+		Joins(`
+			INNER JOIN process_system_registers psr ON psr.process_id = p.id
+			INNER JOIN bcm_impact_analysis_levels ial ON ial.id = p.impact_analysis_level_id
+			LEFT  JOIN business_continuity_duration_units rto_unit  ON rto_unit.id  = p.rto_unit_id
+			LEFT  JOIN business_continuity_duration_units mtpd_unit ON mtpd_unit.id = p.mtpd_unit_id
+			LEFT  JOIN business_continuity_duration_units rpo_unit  ON rpo_unit.id  = p.rpo_unit_id
+		`).
+		Where("p.impact_analysis_level_id IS NOT NULL AND ial.type != ? AND psr.system_register_id IN (?)", "non_applicable", systemIDs).
+		Order("psr.system_register_id, p.id").
+		Find(&processRows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Build process map keyed by system_register_id
+	processMap := make(map[uint][]businessContinuityDTOs.CriticalSystemProcessDTO)
+	for _, pr := range processRows {
+		processMap[pr.SystemRegisterID] = append(processMap[pr.SystemRegisterID], businessContinuityDTOs.CriticalSystemProcessDTO{
+			ProcessID:                    pr.ProcessID,
+			ProcessTitleEn:               pr.ProcessTitleEn,
+			ProcessTitleAr:               pr.ProcessTitleAr,
+			ImpactAnalysisLevelID:        pr.ImpactAnalysisLevelID,
+			ImpactAnalysisLevelTitleEn:   pr.ImpactAnalysisLevelTitleEn,
+			ImpactAnalysisLevelTitleAr:   pr.ImpactAnalysisLevelTitleAr,
+			ImpactAnalysisLevelColorCode: pr.ImpactAnalysisLevelColorCode,
+			Rto:                          pr.Rto,
+			RtoUnitTitleEn:               pr.RtoUnitTitleEn,
+			RtoUnitTitleAr:               pr.RtoUnitTitleAr,
+			Mtpd:                         pr.Mtpd,
+			MtpdUnitTitleEn:              pr.MtpdUnitTitleEn,
+			MtpdUnitTitleAr:              pr.MtpdUnitTitleAr,
+			Rpo:                          pr.Rpo,
+			RpoUnitTitleEn:               pr.RpoUnitTitleEn,
+			RpoUnitTitleAr:               pr.RpoUnitTitleAr,
+		})
+	}
+
+	result := make([]*businessContinuityDTOs.CriticalSystemListDTO, 0, len(systemRows))
+	for _, s := range systemRows {
+		processes := processMap[s.SystemRegisterID]
+		if processes == nil {
+			processes = []businessContinuityDTOs.CriticalSystemProcessDTO{}
+		}
+		result = append(result, &businessContinuityDTOs.CriticalSystemListDTO{
+			SystemRegisterID:      s.SystemRegisterID,
+			SystemRegisterTitleEn: s.SystemRegisterTitleEn,
+			SystemRegisterTitleAr: s.SystemRegisterTitleAr,
+			ServiceDescription:    s.ServiceDescription,
+			RTO:                   s.RTO,
+			RTOUnitTitleEn:        s.RTOUnitTitleEn,
+			RTOUnitTitleAr:        s.RTOUnitTitleAr,
+			MTPD:                  s.MTPD,
+			MTPDUnitTitleEn:       s.MTPDUnitTitleEn,
+			MTPDUnitTitleAr:       s.MTPDUnitTitleAr,
+			RPO:                   s.RPO,
+			RPOUnitTitleEn:        s.RPOUnitTitleEn,
+			RPOUnitTitleAr:        s.RPOUnitTitleAr,
+			RecoveryManagerPhone:  s.RecoveryManagerPhone,
+			RecoveryManagerEmail:  s.RecoveryManagerEmail,
+			RecoveryLocation:      s.RecoveryLocation,
+			VendorRTO:             s.VendorRTO,
+			VendorRTOUnitTitleEn:  s.VendorRTOUnitTitleEn,
+			VendorRTOUnitTitleAr:  s.VendorRTOUnitTitleAr,
+			CriticalProcessCount:  len(processes),
+			CriticalProcesses:     processes,
+		})
+	}
+
+	return result, nil
 }

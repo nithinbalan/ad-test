@@ -34,6 +34,7 @@ type BusinessImpactAssessmentServiceInterface interface {
 	GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error)
 
 	ExportBiaMatrix(data []businessContinuityDTOs.BIAMatrixResponseDTO, currentUserID uint) (*os.File, error)
+	GetCriticalSystems() ([]*businessContinuityDTOs.CriticalSystemListDTO, error)
 }
 
 // Service and implementations
@@ -829,4 +830,8 @@ func (bias *BusinessImpactAssessmentService) ExportBiaMatrix(data []businessCont
 		}
 	}
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (bias *BusinessImpactAssessmentService) GetCriticalSystems() ([]*businessContinuityDTOs.CriticalSystemListDTO, error) {
+	return bias.repo.GetCriticalSystems()
 }

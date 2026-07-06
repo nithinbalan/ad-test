@@ -17,10 +17,13 @@ type BusinessFunction struct {
 	LastReviewDate                   *time.Time `json:"last_review_date"`
 	Rto                              *int       `json:"rto"`
 	RtoUnitId                        *uint      `json:"rto_unit_id"`
+	RtoCondition                     *string    `json:"rto_condition" gorm:"type:varchar(20);null"`
 	Mtpd                             *int       `json:"mtpd"`
 	MtpdUnitId                       *uint      `json:"mtpd_unit_id"`
+	MtpdCondition                    *string    `json:"mtpd_condition" gorm:"type:varchar(20);null"`
 	Rpo                              *int       `json:"rpo"`
 	RpoUnitId                        *uint      `json:"rpo_unit_id"`
+	RpoCondition                     *string    `json:"rpo_condition" gorm:"type:varchar(20);null"`
 	HighestProcessCriticalityLevelID *uint      `json:"highest_process_criticality_level_id" gorm:"default:null"`
 	CreatedBYID                      uint       `json:"created_by_id" binding:"required"`
 	UpdatedBYID                      *uint      `json:"updated_by_id"`
@@ -38,6 +41,10 @@ type BusinessFunction struct {
 	BusinessContinuityPlans      []BusinessContinuityPlan `gorm:"foreignKey:BusinessFunctionID"`
 	LatestBusinessContinuityPlan *BusinessContinuityPlan  `gorm:"foreignKey:BusinessFunctionID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;where:is_latest_version = true"`
 	ProcessCriticalityLevel      *ProcessCriticalityLevel `gorm:"foreignKey:HighestProcessCriticalityLevelID"`
+
+	RtoUnit  *BusinessContinuityDurationUnit `gorm:"foreignKey:RtoUnitId"`
+	MtpdUnit *BusinessContinuityDurationUnit `gorm:"foreignKey:MtpdUnitId"`
+	RpoUnit  *BusinessContinuityDurationUnit `gorm:"foreignKey:RpoUnitId"`
 }
 
 // TableName overrides the table name used by BusinessFunction to `business_functions`

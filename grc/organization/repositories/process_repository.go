@@ -234,6 +234,8 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 			query = query.Where("processes.is_bia_performed = ?", true)
 		case "bia_not_performed":
 			query = query.Where("processes.is_bia_performed = ?", false)
+		case "is_critical":
+			query = query.Where("bcm_impact_analysis_levels.type != ? AND bcm_impact_analysis_levels.type IS NOT NULL", "non_applicable")
 		case "high":
 			query = query.Where("process_criticality_levels.type = ?", "high")
 		case "medium":

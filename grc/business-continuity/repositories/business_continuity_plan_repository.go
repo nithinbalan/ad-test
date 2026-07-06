@@ -23,7 +23,7 @@ type BusinessContinuityPlanRepositoryInterface interface {
 	GenerateReferenceNumber() (string, error)
 
 	GetBusinessContinuityPlanByBusinessFunctionID(businessFunctionId uint) (*models.BusinessContinuityPlan, error)
-	CreateBcpProcesses(bcpProcess *models.BcpProcess, tx ...utility.DatabaseTransaction) error
+	CreateBcpProcesses(bcpProcess *models.BcpProcess, tx ...utility.DatabaseTransaction) (uint, error)
 	DeleteBcpProcesses(bcpProcessIds []*uint, tx ...utility.DatabaseTransaction) error
 	CreateDocuments(docs []*models.BcpDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.BcpDocument, error)
@@ -31,6 +31,21 @@ type BusinessContinuityPlanRepositoryInterface interface {
 
 	GetBcpRisksByBcpId(bcpId uint) ([]models.BcpRisk, error)
 	GetTestAndExercisesByBcpID(bcpID uint) ([]*models.TestAndExercise, error)
+
+	// BCP Process child table snapshot methods
+	GetProcessWithChildrenByID(processID uint) (*models.Process, error)
+	CreateBcpProcessExecutionRecord(record *models.BcpProcessExecutionRecord, tx ...utility.DatabaseTransaction) error
+	CreateBcpProcessManualProcedureForm(form *models.BcpProcessManualProcedureForm, tx ...utility.DatabaseTransaction) error
+	CreateBcpProcessSystemRegister(sr *models.BcpProcessSystemRegister, tx ...utility.DatabaseTransaction) error
+	CreateBcpProcessInternalDependency(dep *models.BcpProcessInternalDependency, tx ...utility.DatabaseTransaction) error
+	CreateBcpProcessExternalDependency(dep *models.BcpProcessExternalDependency, tx ...utility.DatabaseTransaction) error
+	CreateBcpProcessEmployeeAnalysis(analysis *models.BcpProcessEmployeeAnalysis, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateBcpProcessEmployeeAnalysisEmployee(employee *models.BcpProcessEmployeeAnalysisEmployee, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateBcpProcessEmployeeAnalysisEmployeeTool(tool *models.BcpProcessEmployeeAnalysisEmployeeTool, tx ...utility.DatabaseTransaction) error
+	CreateBcpProcessStaffAllocation(alloc *models.BcpProcessStaffAllocation, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateBcpProcessAllocationOutageBucket(bucket *models.BcpProcessAllocationOutageBucket, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateBcpProcessAllocationOutageBucketUser(user *models.BcpProcessAllocationOutageBucketUser, tx ...utility.DatabaseTransaction) error
+	DeleteBcpProcessChildrenByBcpProcessIDs(bcpProcessIDs []uint, tx ...utility.DatabaseTransaction) error
 }
 
 type BusinessContinuityPlanRepository struct {
@@ -197,15 +212,53 @@ func (repo *BusinessContinuityPlanRepository) GetFullDetailsByID(id uint, tx ...
 		Preload("MtpdUnit").
 		Preload("RpoUnit").
 		Preload("Processes").
+		Preload("Processes.ImpactAnalysisLevel").
+		Preload("Processes.RtoUnit").
+		Preload("Processes.MtpdUnit").
+		Preload("Processes.RpoUnit").
 		Preload("Processes.Process").
 		Preload("Processes.Process.ResponsibleUser").
-		Preload("BcpRecoveryPlans").
-		Preload("BcpRecoveryPlans.SeverityLevel").
-		Preload("BcpRecoveryPlans.BcpProcess").
-		Preload("BcpRecoveryPlans.BcpProcess.Process").
-		Preload("BcpRecoveryPlans.TargetCompletionUnit").
-		Preload("BcpCommunicationPlans").
-		Preload("BcpCommunicationPlans.BcpProcess").
+		Preload("Processes.ExecutionRecords").
+		Preload("Processes.ExecutionRecords.BCMExecutionRecord").
+		Preload("Processes.ExecutionRecords.BCMExecutionRecord.OwnerEntity").
+		Preload("Processes.ExecutionRecords.BCMExecutionRecord.Location").
+		Preload("Processes.ExecutionRecords.BCMExecutionRecord.RecordType").
+		Preload("Processes.ManualProcedureForms").
+		Preload("Processes.ManualProcedureForms.BCMManualProcedureForm").
+		Preload("Processes.ManualProcedureForms.BCMManualProcedureForm.OwnerEntity").
+		Preload("Processes.ManualProcedureForms.BCMManualProcedureForm.Location").
+		Preload("Processes.SystemRegisters").
+		Preload("Processes.SystemRegisters.SystemRegister").
+		Preload("Processes.SystemRegisters.SystemRegister.RTOUnit").
+		Preload("Processes.SystemRegisters.SystemRegister.MTPDUnit").
+		Preload("Processes.SystemRegisters.SystemRegister.RPOUnit").
+		Preload("Processes.SystemRegisters.SystemRegister.RecoveryManager").
+		Preload("Processes.InternalDependencies").
+		Preload("Processes.InternalDependencies.SupportingUnit").
+		Preload("Processes.InternalDependencies.DependencyTier").
+		Preload("Processes.ExternalDependencies").
+		Preload("Processes.ExternalDependencies.EntityType").
+		Preload("Processes.ExternalDependencies.DependencyTier").
+		Preload("Processes.ExternalDependencies.SLARegister").
+		Preload("Processes.ExternalDependencies.VendorRTOUnit").
+		Preload("Processes.EmployeeAnalyses").
+		Preload("Processes.EmployeeAnalyses.Designation").
+		Preload("Processes.EmployeeAnalyses.Employees").
+		Preload("Processes.EmployeeAnalyses.Employees.User").
+		Preload("Processes.EmployeeAnalyses.Employees.Tools").
+		Preload("Processes.EmployeeAnalyses.Employees.Tools.EquipmentTool").
+		Preload("Processes.StaffAllocations").
+		Preload("Processes.StaffAllocations.BcpProcessEmployeeAnalysis").
+		Preload("Processes.StaffAllocations.OutageBuckets.OutageBucket").
+		Preload("Processes.StaffAllocations.OutageBuckets.Users.User").
+
+		// Preload("BcpRecoveryPlans").
+		// Preload("BcpRecoveryPlans.SeverityLevel").
+		// Preload("BcpRecoveryPlans.BcpProcess").
+		// Preload("BcpRecoveryPlans.BcpProcess.Process").
+		// Preload("BcpRecoveryPlans.TargetCompletionUnit").
+		// Preload("BcpCommunicationPlans").
+		// Preload("BcpCommunicationPlans.BcpProcess").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&businessContinuityPlan, id)
@@ -302,15 +355,15 @@ func (repo *BusinessContinuityPlanRepository) GetBusinessContinuityPlanByBusines
 	return &businessContinuityPlan, nil
 }
 
-func (repo *BusinessContinuityPlanRepository) CreateBcpProcesses(bcpProcess *models.BcpProcess, tx ...utility.DatabaseTransaction) error {
+func (repo *BusinessContinuityPlanRepository) CreateBcpProcesses(bcpProcess *models.BcpProcess, tx ...utility.DatabaseTransaction) (uint, error) {
 	db := repo.db
 	if len(tx) > 0 && tx[0] != nil {
 		db = tx[0].DB()
 	}
 	if err := db.Create(bcpProcess).Error; err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return bcpProcess.ID, nil
 }
 
 func (repo *BusinessContinuityPlanRepository) DeleteBcpProcesses(bcpProcessIds []*uint, tx ...utility.DatabaseTransaction) error {
@@ -358,6 +411,182 @@ func (repo *BusinessContinuityPlanRepository) DeleteDocuments(docIds []*uint, tx
 		return err
 	}
 
+	return nil
+}
+
+func (repo *BusinessContinuityPlanRepository) GetProcessWithChildrenByID(processID uint) (*models.Process, error) {
+	var process models.Process
+	err := repo.db.
+		Preload("ProcessExecutionRecords").
+		Preload("ProcessManualProcedureForms").
+		Preload("ProcessSystemRegister").
+		Preload("InternalDependencies").
+		Preload("ExternalDependencies").
+		Preload("ProcessEmployeeAnalysis").
+		Preload("ProcessEmployeeAnalysis.Employees").
+		Preload("ProcessEmployeeAnalysis.Employees.Tools").
+		Preload("BCMStaffAllocations").
+		Preload("BCMStaffAllocations.OutageBuckets").
+		Preload("BCMStaffAllocations.OutageBuckets.Users").
+		First(&process, processID).Error
+	return &process, err
+}
+
+func (repo *BusinessContinuityPlanRepository) CreateBcpProcessExecutionRecord(record *models.BcpProcessExecutionRecord, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(record).Error
+}
+
+func (repo *BusinessContinuityPlanRepository) CreateBcpProcessManualProcedureForm(form *models.BcpProcessManualProcedureForm, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(form).Error
+}
+
+func (repo *BusinessContinuityPlanRepository) CreateBcpProcessSystemRegister(sr *models.BcpProcessSystemRegister, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(sr).Error
+}
+
+func (repo *BusinessContinuityPlanRepository) CreateBcpProcessInternalDependency(dep *models.BcpProcessInternalDependency, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(dep).Error
+}
+
+func (repo *BusinessContinuityPlanRepository) CreateBcpProcessExternalDependency(dep *models.BcpProcessExternalDependency, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(dep).Error
+}
+
+func (repo *BusinessContinuityPlanRepository) CreateBcpProcessEmployeeAnalysis(analysis *models.BcpProcessEmployeeAnalysis, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	err := db.Create(analysis).Error
+	return analysis.ID, err
+}
+
+func (repo *BusinessContinuityPlanRepository) CreateBcpProcessEmployeeAnalysisEmployee(employee *models.BcpProcessEmployeeAnalysisEmployee, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	err := db.Create(employee).Error
+	return employee.ID, err
+}
+
+func (repo *BusinessContinuityPlanRepository) CreateBcpProcessEmployeeAnalysisEmployeeTool(tool *models.BcpProcessEmployeeAnalysisEmployeeTool, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(tool).Error
+}
+
+func (repo *BusinessContinuityPlanRepository) CreateBcpProcessStaffAllocation(alloc *models.BcpProcessStaffAllocation, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	err := db.Create(alloc).Error
+	return alloc.ID, err
+}
+
+func (repo *BusinessContinuityPlanRepository) CreateBcpProcessAllocationOutageBucket(bucket *models.BcpProcessAllocationOutageBucket, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	err := db.Create(bucket).Error
+	return bucket.ID, err
+}
+
+func (repo *BusinessContinuityPlanRepository) CreateBcpProcessAllocationOutageBucketUser(user *models.BcpProcessAllocationOutageBucketUser, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	return db.Create(user).Error
+}
+
+// DeleteBcpProcessChildrenByBcpProcessIDs deletes all child table records for the given bcp_process IDs
+// in the correct order to respect FK constraints.
+func (repo *BusinessContinuityPlanRepository) DeleteBcpProcessChildrenByBcpProcessIDs(bcpProcessIDs []uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if len(bcpProcessIDs) == 0 {
+		return nil
+	}
+
+	// Delete outage bucket users
+	if err := db.Where(
+		"bcp_process_allocation_outage_bucket_id IN (SELECT id FROM bcp_process_allocation_outage_buckets WHERE bcp_process_allocation_id IN (SELECT id FROM bcp_process_staff_allocations WHERE bcp_process_id IN (?)))",
+		bcpProcessIDs).Delete(&models.BcpProcessAllocationOutageBucketUser{}).Error; err != nil {
+		return err
+	}
+	// Delete outage buckets
+	if err := db.Where(
+		"bcp_process_allocation_id IN (SELECT id FROM bcp_process_staff_allocations WHERE bcp_process_id IN (?))",
+		bcpProcessIDs).Delete(&models.BcpProcessAllocationOutageBucket{}).Error; err != nil {
+		return err
+	}
+	// Delete staff allocations
+	if err := db.Where("bcp_process_id IN (?)", bcpProcessIDs).Delete(&models.BcpProcessStaffAllocation{}).Error; err != nil {
+		return err
+	}
+	// Delete employee analysis employee tools
+	if err := db.Where(
+		"bcp_process_employee_analysis_employee_id IN (SELECT id FROM bcp_process_employee_analysis_employees WHERE bcp_process_employee_analysis_id IN (SELECT id FROM bcp_process_employee_analysis WHERE bcp_process_id IN (?)))",
+		bcpProcessIDs).Delete(&models.BcpProcessEmployeeAnalysisEmployeeTool{}).Error; err != nil {
+		return err
+	}
+	// Delete employee analysis employees
+	if err := db.Where(
+		"bcp_process_employee_analysis_id IN (SELECT id FROM bcp_process_employee_analysis WHERE bcp_process_id IN (?))",
+		bcpProcessIDs).Delete(&models.BcpProcessEmployeeAnalysisEmployee{}).Error; err != nil {
+		return err
+	}
+	// Delete employee analysis
+	if err := db.Where("bcp_process_id IN (?)", bcpProcessIDs).Delete(&models.BcpProcessEmployeeAnalysis{}).Error; err != nil {
+		return err
+	}
+	// Delete execution records
+	if err := db.Where("bcp_process_id IN (?)", bcpProcessIDs).Delete(&models.BcpProcessExecutionRecord{}).Error; err != nil {
+		return err
+	}
+	// Delete manual procedure forms
+	if err := db.Where("bcp_process_id IN (?)", bcpProcessIDs).Delete(&models.BcpProcessManualProcedureForm{}).Error; err != nil {
+		return err
+	}
+	// Delete system registers
+	if err := db.Where("bcp_process_id IN (?)", bcpProcessIDs).Delete(&models.BcpProcessSystemRegister{}).Error; err != nil {
+		return err
+	}
+	// Delete internal dependencies
+	if err := db.Where("bcp_process_id IN (?)", bcpProcessIDs).Delete(&models.BcpProcessInternalDependency{}).Error; err != nil {
+		return err
+	}
+	// Delete external dependencies
+	if err := db.Where("bcp_process_id IN (?)", bcpProcessIDs).Delete(&models.BcpProcessExternalDependency{}).Error; err != nil {
+		return err
+	}
 	return nil
 }
 

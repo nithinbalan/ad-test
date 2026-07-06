@@ -779,3 +779,13 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessesExport(c *gin.Con
 
 	biac.GetAllProcesses(c)
 }
+
+func (biac *BusinessImpactAssessmentController) GetCriticalSystems(c *gin.Context) {
+	systems, err := biac.service.GetCriticalSystems()
+	if err != nil {
+		utility.SendInternalErrResp(biac.db, c, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, systems)
+}
