@@ -145,9 +145,6 @@ func (repo *AssetRegisterRepository) GetAll(params *dtos.AssetRegisterListQueryP
 			device_categories.title_en AS device_category_title_en,
 			device_categories.title_ar AS device_category_title_ar,
 
-			criticality_classifications.title_en AS criticality_classification_title_en,
-			criticality_classifications.title_ar AS criticality_classification_title_ar,
-
 			confidentiality_classifications.title_en AS confidentiality_classification_title_en,
 			confidentiality_classifications.title_ar AS confidentiality_classification_title_ar,
 
