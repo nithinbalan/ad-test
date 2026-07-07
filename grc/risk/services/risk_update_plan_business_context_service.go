@@ -82,7 +82,7 @@ func (rupbcs *RiskUpdatePlanBusinessContextService) CreateBusinessContext(planID
 
 	// Validate that business context data exists
 	if orgBusinessContext == nil {
-		return utility.NewValidationError(fmt.Errorf("no business context data found for this business unit"), "not_exist", "business context")
+		return utility.NewValidationError(fmt.Errorf("no business context data found for this business unit"), "empty_data", "business context")
 	}
 
 	tx := rupbcs.repo.BeginTransaction()

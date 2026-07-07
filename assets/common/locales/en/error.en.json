@@ -250,6 +250,10 @@
 {
   "id": "not_found",
   "translation": "The {{.Field}} was not found."
+},
+{
+  "id": "empty_data",
+  "translation": "No {{.Field}} is available for the selected Organization/Department in the update plan. Please add {{.Field}} in the appropriate section before continuing."
 }
 
 
