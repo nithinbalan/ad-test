@@ -72,18 +72,26 @@ type BcpBiaMatrixDetailDTO struct {
 type BcpProcessDetailsDTO struct {
 	ID                    uint                               `json:"id"`
 	Process               ProcessDetailDTO                   `json:"process"`
-	Rto                   *int                               `json:"rto"`
+	RtoFromValue          *int                               `json:"rto_from_value"`
+	RtoToValue            *int                               `json:"rto_to_value"`
 	RtoUnitId             *uint                              `json:"rto_unit_id"`
 	RtoUnit               *BusinessContinuityDurationUnitDTO `json:"rto_unit"`
 	RtoCondition          *string                            `json:"rto_condition"`
-	Mtpd                  *int                               `json:"mtpd"`
+	MtpdFromValue         *int                               `json:"mtpd_from_value"`
+	MtpdToValue           *int                               `json:"mtpd_to_value"`
 	MtpdUnitId            *uint                              `json:"mtpd_unit_id"`
 	MtpdUnit              *BusinessContinuityDurationUnitDTO `json:"mtpd_unit"`
 	MtpdCondition         *string                            `json:"mtpd_condition"`
-	Rpo                   *int                               `json:"rpo"`
+	RpoFromValue          *int                               `json:"rpo_from_value"`
+	RpoToValue            *int                               `json:"rpo_to_value"`
 	RpoUnitId             *uint                              `json:"rpo_unit_id"`
 	RpoUnit               *BusinessContinuityDurationUnitDTO `json:"rpo_unit"`
 	RpoCondition          *string                            `json:"rpo_condition"`
+	RspFromValue          *int                               `json:"rsp_from_value"`
+	RspToValue            *int                               `json:"rsp_to_value"`
+	RspUnitID             *uint                              `json:"rsp_unit_id"`
+	RspUnit               *BusinessContinuityDurationUnitDTO `json:"rsp_unit"`
+	RspCondition          *string                            `json:"rsp_condition"`
 	RiskLevelId           *uint                              `json:"risk_level_id"`
 	RiskLevel             riskDTOs.RiskLevelDTO              `json:"risk_level"`
 	ImpactAnalysisLevelId *uint                              `json:"impact_analysis_level_id"`
@@ -107,13 +115,23 @@ type BcpProcessFormDTO struct {
 }
 
 type ProcessFormDTO struct {
-	ID          uint  `json:"id"`
-	ProcessID   uint  `json:"process_id"`
-	RiskLevelID *uint `json:"risk_level_id"`
-	Rto         *int  `json:"rto"`
-	RtoUnitId   *uint `json:"rto_unit_id"`
-	Mtpd        *int  `json:"mtpd"`
-	MtpdUnitId  *uint `json:"mtpd_unit_id"`
-	Rpo         *int  `json:"rpo"`
-	RpoUnitId   *uint `json:"rpo_unit_id"`
+	ID            uint    `json:"id"`
+	ProcessID     uint    `json:"process_id"`
+	RiskLevelID   *uint   `json:"risk_level_id"`
+	RtoFromValue  *int    `json:"rto_from_value"`
+	RtoToValue    *int    `json:"rto_to_value"`
+	RtoUnitId     *uint   `json:"rto_unit_id"`
+	RtoCondition  *string `json:"rto_condition"`
+	MtpdFromValue *int    `json:"mtpd_from_value"`
+	MtpdToValue   *int    `json:"mtpd_to_value"`
+	MtpdUnitId    *uint   `json:"mtpd_unit_id"`
+	MtpdCondition *string `json:"mtpd_condition"`
+	RpoFromValue  *int    `json:"rpo_from_value"`
+	RpoToValue    *int    `json:"rpo_to_value"`
+	RpoUnitId     *uint   `json:"rpo_unit_id"`
+	RpoCondition  *string `json:"rpo_condition"`
+	RspFromValue  *int    `json:"rsp_from_value"`
+	RspToValue    *int    `json:"rsp_to_value"`
+	RspUnitID     *uint   `json:"rsp_unit_id"`
+	RspCondition  *string `json:"rsp_condition"`
 }

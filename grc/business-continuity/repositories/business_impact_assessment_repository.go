@@ -477,17 +477,37 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
 			pcl_proc.title_ar AS process_criticality_title_ar,
 			pcl_proc.color_code AS process_criticality_color,
 
-			processes.rto AS process_rto,
-			processes.mtpd AS process_mtpd,
-			processes.rpo AS process_rpo,
+			processes.impact_analysis_level_id AS impact_analysis_level_id,
+			impact_levels.title_en AS impact_analysis_level_title_en,
+			impact_levels.title_ar AS impact_analysis_level_title_ar,
+			impact_levels.color_code AS impact_analysis_level_color_code,
+			impact_levels.type AS impact_analysis_level_type,
+
+			processes.rto_from_value AS process_rto_from_value,
+			processes.rto_to_value AS process_rto_to_value,
+			processes.rto_condition AS process_rto_condition,
+			processes.rto_unit_id AS process_rto_unit_id,
 			time_units_rto.title_en AS process_rto_unit_title_en,
 			time_units_rto.title_ar AS process_rto_unit_title_ar,
+			processes.mtpd_from_value AS process_mtpd_from_value,
+			processes.mtpd_to_value AS process_mtpd_to_value,
+			processes.mtpd_condition AS process_mtpd_condition,
 			processes.mtpd_unit_id AS process_mtpd_unit_id,
 			time_units_mtpd.title_en AS process_mtpd_unit_title_en,
 			time_units_mtpd.title_ar AS process_mtpd_unit_title_ar,
+			processes.rpo_from_value AS process_rpo_from_value,
+			processes.rpo_to_value AS process_rpo_to_value,
+			processes.rpo_condition AS process_rpo_condition,
 			processes.rpo_unit_id AS process_rpo_unit_id,
 			time_units_rpo.title_en AS process_rpo_unit_title_en,
 			time_units_rpo.title_ar AS process_rpo_unit_title_ar,
+			processes.rsp_from_value AS process_rsp_from_value,
+			processes.rsp_to_value AS process_rsp_to_value,
+			processes.rsp_condition AS process_rsp_condition,
+			processes.rsp_unit_id AS process_rsp_unit_id,
+			time_units_rsp.title_en AS process_rsp_unit_title_en,
+			time_units_rsp.title_ar AS process_rsp_unit_title_ar,
+
 			processes.risk_level_id AS risk_level_id,
 			risk_levels.title_en AS risk_level_title_en,
 			risk_levels.title_ar AS risk_level_title_ar,
@@ -499,10 +519,12 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
 		    LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id
 			LEFT JOIN process_criticality_levels AS pcl_bf ON pcl_bf.id = business_functions.highest_process_criticality_level_id
 			LEFT JOIN process_criticality_levels AS pcl_proc ON pcl_proc.id = processes.process_criticality_level_id
+			LEFT JOIN bcm_impact_analysis_levels AS impact_levels ON impact_levels.id = processes.impact_analysis_level_id
 			LEFT JOIN risk_levels ON risk_levels.id = processes.risk_level_id
 			LEFT JOIN time_units AS time_units_rto ON time_units_rto.id = processes.rto_unit_id
 			LEFT JOIN time_units AS time_units_mtpd ON time_units_mtpd.id = processes.mtpd_unit_id
 			LEFT JOIN time_units AS time_units_rpo ON time_units_rpo.id = processes.rpo_unit_id
+			LEFT JOIN time_units AS time_units_rsp ON time_units_rsp.id = processes.rsp_unit_id
 		`).
 		Where("processes.is_bia_performed = ?", 1)
 

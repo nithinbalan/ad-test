@@ -124,12 +124,22 @@ func (bbms *BcpBiaMatrixService) Update(bcpId uint, currentUserID uint, bcpProce
 			return utility.NewResourceNotFoundError(err, bcpId)
 		}
 
-		existingBcpProcess.Rto = process.Rto
+		existingBcpProcess.RtoFromValue = process.RtoFromValue
+		existingBcpProcess.RtoToValue = process.RtoToValue
 		existingBcpProcess.RtoUnitId = process.RtoUnitId
-		existingBcpProcess.Mtpd = process.Mtpd
+		existingBcpProcess.RtoCondition = process.RtoCondition
+		existingBcpProcess.MtpdFromValue = process.MtpdFromValue
+		existingBcpProcess.MtpdToValue = process.MtpdToValue
 		existingBcpProcess.MtpdUnitId = process.MtpdUnitId
-		existingBcpProcess.Rpo = process.Rpo
+		existingBcpProcess.MtpdCondition = process.MtpdCondition
+		existingBcpProcess.RpoFromValue = process.RpoFromValue
+		existingBcpProcess.RpoToValue = process.RpoToValue
 		existingBcpProcess.RpoUnitId = process.RpoUnitId
+		existingBcpProcess.RpoCondition = process.RpoCondition
+		existingBcpProcess.RspFromValue = process.RspFromValue
+		existingBcpProcess.RspToValue = process.RspToValue
+		existingBcpProcess.RspUnitID = process.RspUnitID
+		existingBcpProcess.RspCondition = process.RspCondition
 		existingBcpProcess.RiskLevelID = process.RiskLevelID
 		existingBcpProcess.UpdatedBYID = &currentUserID
 

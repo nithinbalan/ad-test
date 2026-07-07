@@ -142,17 +142,17 @@ func (s *BCMStaffAllocationService) GenerateAllocations(processID uint, currentU
 	}
 
 	// Step 3: determine first active bucket order based on RSP
-	// Convert RSP to minutes, find which bucket the RSP falls into,
-	// then skip all buckets before it.
-	// Example: RSP = 2 Days (2880 min) falls into "1-3 Days" bucket → skip 0-8h, 8-24h
+	// Find the first bucket whose start time (FromValue) is >= RSP.
+	// This ensures allocation starts when employees are actually available (at or after RSP).
+	// Example: RSP = 1 Day (1440 min) → start at "1-3 Days" bucket (FromValue = 1440 min)
 	firstActiveOrder := buckets[0].Order
 	if rating.RspFromValue != nil && rating.RspUnit != nil {
 		rspMinutes := *rating.RspFromValue * rating.RspUnit.Minutes
 		for _, b := range buckets {
 			if b.DurationUnit != nil {
 				bucketFromMinutes := b.FromValue * b.DurationUnit.Minutes
-				bucketToMinutes := b.ToValue * b.DurationUnit.Minutes
-				if rspMinutes >= bucketFromMinutes && rspMinutes <= bucketToMinutes {
+				// Start allocation at the first bucket whose start time >= RSP
+				if bucketFromMinutes >= rspMinutes {
 					firstActiveOrder = b.Order
 					break
 				}

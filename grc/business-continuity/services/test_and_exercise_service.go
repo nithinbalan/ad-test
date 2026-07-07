@@ -185,11 +185,11 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 		process := &models.TestAndExerciseProcess{
 			TestAndExerciseID: id,
 			ProcessID:         bcpProcess.BcpProcess.ProcessID,
-			PlannedRto:        bcpProcess.BcpProcess.Rto,
+			PlannedRto:        bcpProcess.BcpProcess.RtoFromValue,
 			PlannedRtoUnitId:  bcpProcess.BcpProcess.RtoUnitId,
-			PlannedMtpd:       bcpProcess.BcpProcess.Mtpd,
+			PlannedMtpd:       bcpProcess.BcpProcess.MtpdFromValue,
 			PlannedMtpdUnitId: bcpProcess.BcpProcess.MtpdUnitId,
-			PlannedRpo:        bcpProcess.BcpProcess.Rpo,
+			PlannedRpo:        bcpProcess.BcpProcess.RpoFromValue,
 			PlannedRpoUnitId:  bcpProcess.BcpProcess.RpoUnitId,
 			CreatedBYID:       currentUserID,
 		}
@@ -451,11 +451,11 @@ func (tes *TestAndExerciseService) Update(id uint, currentUserID uint, testAndEx
 				bcpProcess := &models.TestAndExerciseProcess{
 					TestAndExerciseID: id,
 					ProcessID:         *newProcess.BcpProcess.ID,
-					PlannedRto:        newProcess.BcpProcess.Rto,
+					PlannedRto:        newProcess.BcpProcess.RtoFromValue,
 					PlannedRtoUnitId:  newProcess.BcpProcess.RtoUnitId,
-					PlannedMtpd:       newProcess.BcpProcess.Mtpd,
+					PlannedMtpd:       newProcess.BcpProcess.MtpdFromValue,
 					PlannedMtpdUnitId: newProcess.BcpProcess.MtpdUnitId,
-					PlannedRpo:        newProcess.BcpProcess.Rpo,
+					PlannedRpo:        newProcess.BcpProcess.RpoFromValue,
 					PlannedRpoUnitId:  newProcess.BcpProcess.RpoUnitId,
 					CreatedBYID:       currentUserID,
 				}

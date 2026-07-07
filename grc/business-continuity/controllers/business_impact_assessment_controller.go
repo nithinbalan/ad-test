@@ -64,6 +64,7 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 		"lifecycle_status_ids",
 		"risk_level_ids",
 		"process_criticality_level_ids",
+		"impact_analysis_level_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

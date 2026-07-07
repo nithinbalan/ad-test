@@ -10,15 +10,22 @@ type BcpProcess struct {
 	ProcessID                uint       `json:"process_id" binding:"required"`
 	RiskLevelID              *uint      `json:"risk_level_id"`
 	ImpactAnalysisLevelID    *uint      `json:"impact_analysis_level_id" gorm:"default:null"`
-	Rto                      *int       `json:"rto"`
-	RtoUnitId                *uint      `json:"rto_unit_id"`
+	RtoFromValue             *int       `json:"rto_from_value" gorm:"type:int;null"`
+	RtoToValue               *int       `json:"rto_to_value" gorm:"type:int;null"`
+	RtoUnitId                *uint      `json:"rto_unit_id" gorm:"default:null"`
 	RtoCondition             *string    `json:"rto_condition" gorm:"type:varchar(20);null"`
-	Mtpd                     *int       `json:"mtpd"`
-	MtpdUnitId               *uint      `json:"mtpd_unit_id"`
+	MtpdFromValue            *int       `json:"mtpd_from_value" gorm:"type:int;null"`
+	MtpdToValue              *int       `json:"mtpd_to_value" gorm:"type:int;null"`
+	MtpdUnitId               *uint      `json:"mtpd_unit_id" gorm:"default:null"`
 	MtpdCondition            *string    `json:"mtpd_condition" gorm:"type:varchar(20);null"`
-	Rpo                      *int       `json:"rpo"`
-	RpoUnitId                *uint      `json:"rpo_unit_id"`
+	RpoFromValue             *int       `json:"rpo_from_value" gorm:"type:int;null"`
+	RpoToValue               *int       `json:"rpo_to_value" gorm:"type:int;null"`
+	RpoUnitId                *uint      `json:"rpo_unit_id" gorm:"default:null"`
 	RpoCondition             *string    `json:"rpo_condition" gorm:"type:varchar(20);null"`
+	RspFromValue             *int       `json:"rsp_from_value" gorm:"type:int;null"`
+	RspToValue               *int       `json:"rsp_to_value" gorm:"type:int;null"`
+	RspCondition             *string    `json:"rsp_condition" gorm:"type:varchar(20);null"`
+	RspUnitID                *uint      `json:"rsp_unit_id" gorm:"null"`
 	CreatedBYID              uint       `json:"created_by_id" binding:"required"`
 	UpdatedBYID              *uint      `json:"updated_by_id"`
 	CreatedAt                time.Time  `json:"created_at" gorm:"type:datetime;not null"`
@@ -31,6 +38,7 @@ type BcpProcess struct {
 	RtoUnit                *BusinessContinuityDurationUnit `gorm:"foreignKey:RtoUnitId"`
 	MtpdUnit               *BusinessContinuityDurationUnit `gorm:"foreignKey:MtpdUnitId"`
 	RpoUnit                *BusinessContinuityDurationUnit `gorm:"foreignKey:RpoUnitId"`
+	RspUnit                *BusinessContinuityDurationUnit `gorm:"foreignKey:RspUnitID"`
 	CreatedByUser          *User                           `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser          *User                           `gorm:"foreignKey:UpdatedBYID"`
 	ImpactAnalysisLevel    *BCMImpactAnalysisLevel         `gorm:"foreignKey:ImpactAnalysisLevelID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`

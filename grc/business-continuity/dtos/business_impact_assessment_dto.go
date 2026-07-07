@@ -235,17 +235,36 @@ type BIAMatrixResponseDTO struct {
 	ProcessCriticalityTitleAr *string `json:"process_criticality_title_ar"`
 	ProcessCriticalityColor   *string `json:"process_criticality_color"`
 
-	ProcessRTO             int     `json:"process_rto"`
-	ProcessMTPD            int     `json:"process_mtpd"`
-	ProcessRPO             int     `json:"process_rpo"`
+	ImpactAnalysisLevelID        *uint   `json:"impact_analysis_level_id"`
+	ImpactAnalysisLevelTitleEn   *string `json:"impact_analysis_level_title_en"`
+	ImpactAnalysisLevelTitleAr   *string `json:"impact_analysis_level_title_ar"`
+	ImpactAnalysisLevelColorCode *string `json:"impact_analysis_level_color_code"`
+	ImpactAnalysisLevelType      *string `json:"impact_analysis_level_type"`
+
+	ProcessRTOFromValue    *int    `json:"process_rto_from_value"`
+	ProcessRTOToValue      *int    `json:"process_rto_to_value"`
+	ProcessRTOCondition    *string `json:"process_rto_condition"`
+	ProcessRTOUnitID       *uint   `json:"process_rto_unit_id"`
 	ProcessRTOUnitTitleEn  *string `json:"process_rto_unit_title_en"`
 	ProcessRTOUnitTitleAr  *string `json:"process_rto_unit_title_ar"`
+	ProcessMTPDFromValue   *int    `json:"process_mtpd_from_value"`
+	ProcessMTPDToValue     *int    `json:"process_mtpd_to_value"`
+	ProcessMTPDCondition   *string `json:"process_mtpd_condition"`
 	ProcessMTPDUnitID      *uint   `json:"process_mtpd_unit_id"`
 	ProcessMTPDUnitTitleEn *string `json:"process_mtpd_unit_title_en"`
 	ProcessMTPDUnitTitleAr *string `json:"process_mtpd_unit_title_ar"`
+	ProcessRPOFromValue    *int    `json:"process_rpo_from_value"`
+	ProcessRPOToValue      *int    `json:"process_rpo_to_value"`
+	ProcessRPOCondition    *string `json:"process_rpo_condition"`
 	ProcessRPOUnitID       *uint   `json:"process_rpo_unit_id"`
 	ProcessRPOUnitTitleEn  *string `json:"process_rpo_unit_title_en"`
 	ProcessRPOUnitTitleAr  *string `json:"process_rpo_unit_title_ar"`
+	ProcessRSPFromValue    *int    `json:"process_rsp_from_value"`
+	ProcessRSPToValue      *int    `json:"process_rsp_to_value"`
+	ProcessRSPCondition    *string `json:"process_rsp_condition"`
+	ProcessRSPUnitID       *uint   `json:"process_rsp_unit_id"`
+	ProcessRSPUnitTitleEn  *string `json:"process_rsp_unit_title_en"`
+	ProcessRSPUnitTitleAr  *string `json:"process_rsp_unit_title_ar"`
 
 	RiskLevelID        *uint   `json:"risk_level_id"`
 	RiskLevelTitleEn   *string `json:"risk_level_title_en"`

@@ -135,18 +135,26 @@ type BcpProcessDTO struct {
 	ProcessID                uint                               `json:"process_id"`
 	ImpactAnalysisLevelID    *uint                              `json:"impact_analysis_level_id"`
 	ImpactAnalysisLevel      *BCMImpactAnalysisLevelDTO         `json:"impact_analysis_level"`
-	Rto                      *int                               `json:"rto"`
+	RtoFromValue             *int                               `json:"rto_from_value"`
+	RtoToValue               *int                               `json:"rto_to_value"`
 	RtoUnitId                *uint                              `json:"rto_unit_id"`
 	RtoUnit                  *BusinessContinuityDurationUnitDTO `json:"rto_unit"`
 	RtoCondition             *string                            `json:"rto_condition"`
-	Mtpd                     *int                               `json:"mtpd"`
+	MtpdFromValue            *int                               `json:"mtpd_from_value"`
+	MtpdToValue              *int                               `json:"mtpd_to_value"`
 	MtpdUnitId               *uint                              `json:"mtpd_unit_id"`
 	MtpdUnit                 *BusinessContinuityDurationUnitDTO `json:"mtpd_unit"`
 	MtpdCondition            *string                            `json:"mtpd_condition"`
-	Rpo                      *int                               `json:"rpo"`
+	RpoFromValue             *int                               `json:"rpo_from_value"`
+	RpoToValue               *int                               `json:"rpo_to_value"`
 	RpoUnitId                *uint                              `json:"rpo_unit_id"`
 	RpoUnit                  *BusinessContinuityDurationUnitDTO `json:"rpo_unit"`
 	RpoCondition             *string                            `json:"rpo_condition"`
+	RspFromValue             *int                               `json:"rsp_from_value"`
+	RspToValue               *int                               `json:"rsp_to_value"`
+	RspUnitID                *uint                              `json:"rsp_unit_id"`
+	RspUnit                  *BusinessContinuityDurationUnitDTO `json:"rsp_unit"`
+	RspCondition             *string                            `json:"rsp_condition"`
 	Process                  organizationDTOs.ProcessDetailDTO  `json:"process"`
 	ExecutionRecords         []*ExecutionRecordDTO              `json:"execution_records"`
 	ManualProcedureForms     []*ManualProcedureDTO              `json:"manual_procedure_forms"`

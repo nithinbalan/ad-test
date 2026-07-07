@@ -128,6 +128,7 @@ func (repo *BcpBiaMatrixRepository) GetFullDetailsByID(id uint, tx ...utility.Da
 		Preload("Processes.RtoUnit").
 		Preload("Processes.MtpdUnit").
 		Preload("Processes.RpoUnit").
+		Preload("Processes.RspUnit").
 		Preload("Processes.ImpactAnalysisLevel").
 		Preload("Processes.RiskLevel").
 		Preload("CreatedByUser").

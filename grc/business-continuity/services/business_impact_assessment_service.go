@@ -783,44 +783,70 @@ func (bias *BusinessImpactAssessmentService) ExportBiaMatrix(data []businessCont
 			"SL No.",
 			"Business Function",
 			"Process",
+			"Impact Analysis Level",
 			"Risk Level",
 			"RTO",
 			"MTPD",
 			"RPO",
+			"RSP",
 		}
 	} else {
 		headers = []string{
 			"SL No.",
 			"Business Function",
 			"Process",
+			"Impact Analysis Level",
 			"Risk Level",
 			"RTO",
 			"MTPD",
 			"RPO",
+			"RSP",
 		}
 	}
 
 	rows := make([][]interface{}, len(data))
 	for i, bia := range data {
+		// Helper function to format from/to values
+		formatRange := func(fromValue *int, toValue *int, condition *string, unitTitle *string) string {
+			if fromValue == nil && toValue == nil {
+				return ""
+			}
+			if fromValue != nil && toValue != nil && *fromValue == *toValue {
+				return utility.GetIntValueAsString(*fromValue) + " " + utility.GetStringValue(unitTitle)
+			}
+			if condition != nil && *condition != "" {
+				if *condition == "less_than" {
+					return "< " + utility.GetIntValueAsString(*toValue) + " " + utility.GetStringValue(unitTitle)
+				} else if *condition == "greater_than" {
+					return "> " + utility.GetIntValueAsString(*fromValue) + " " + utility.GetStringValue(unitTitle)
+				}
+			}
+			return utility.GetIntValueAsString(*fromValue) + " - " + utility.GetIntValueAsString(*toValue) + " " + utility.GetStringValue(unitTitle)
+		}
+
 		if userSetting.Language == "ar" {
 			rows[i] = []interface{}{
 				i + 1,
 				bia.BusinessFunctionTitle,
 				bia.ProcessTitleAr,
-				*bia.RiskLevelTitleAr,
-				utility.GetIntValueAsString(bia.ProcessRTO) + " " + utility.GetStringValue(bia.ProcessRTOUnitTitleAr),
-				utility.GetIntValueAsString(bia.ProcessMTPD) + " " + utility.GetStringValue(bia.ProcessMTPDUnitTitleAr),
-				utility.GetIntValueAsString(bia.ProcessRPO) + " " + utility.GetStringValue(bia.ProcessRPOUnitTitleAr),
+				utility.GetStringValue(bia.ImpactAnalysisLevelTitleAr),
+				utility.GetStringValue(bia.RiskLevelTitleAr),
+				formatRange(bia.ProcessRTOFromValue, bia.ProcessRTOToValue, bia.ProcessRTOCondition, bia.ProcessRTOUnitTitleAr),
+				formatRange(bia.ProcessMTPDFromValue, bia.ProcessMTPDToValue, bia.ProcessMTPDCondition, bia.ProcessMTPDUnitTitleAr),
+				formatRange(bia.ProcessRPOFromValue, bia.ProcessRPOToValue, bia.ProcessRPOCondition, bia.ProcessRPOUnitTitleAr),
+				formatRange(bia.ProcessRSPFromValue, bia.ProcessRSPToValue, bia.ProcessRSPCondition, bia.ProcessRSPUnitTitleAr),
 			}
 		} else {
 			rows[i] = []interface{}{
 				i + 1,
 				bia.BusinessFunctionTitle,
 				bia.ProcessTitleEn,
-				*bia.RiskLevelTitleEn,
-				utility.GetIntValueAsString(bia.ProcessRTO) + " " + utility.GetStringValue(bia.ProcessRTOUnitTitleEn),
-				utility.GetIntValueAsString(bia.ProcessMTPD) + " " + utility.GetStringValue(bia.ProcessMTPDUnitTitleEn),
-				utility.GetIntValueAsString(bia.ProcessRPO) + " " + utility.GetStringValue(bia.ProcessRPOUnitTitleEn),
+				utility.GetStringValue(bia.ImpactAnalysisLevelTitleEn),
+				utility.GetStringValue(bia.RiskLevelTitleEn),
+				formatRange(bia.ProcessRTOFromValue, bia.ProcessRTOToValue, bia.ProcessRTOCondition, bia.ProcessRTOUnitTitleEn),
+				formatRange(bia.ProcessMTPDFromValue, bia.ProcessMTPDToValue, bia.ProcessMTPDCondition, bia.ProcessMTPDUnitTitleEn),
+				formatRange(bia.ProcessRPOFromValue, bia.ProcessRPOToValue, bia.ProcessRPOCondition, bia.ProcessRPOUnitTitleEn),
+				formatRange(bia.ProcessRSPFromValue, bia.ProcessRSPToValue, bia.ProcessRSPCondition, bia.ProcessRSPUnitTitleEn),
 			}
 		}
 	}
