@@ -46,6 +46,7 @@ type BusinessContinuityPlanRepositoryInterface interface {
 	CreateBcpProcessAllocationOutageBucket(bucket *models.BcpProcessAllocationOutageBucket, tx ...utility.DatabaseTransaction) (uint, error)
 	CreateBcpProcessAllocationOutageBucketUser(user *models.BcpProcessAllocationOutageBucketUser, tx ...utility.DatabaseTransaction) error
 	DeleteBcpProcessChildrenByBcpProcessIDs(bcpProcessIDs []uint, tx ...utility.DatabaseTransaction) error
+	GetAllEquipmentTools(tx ...utility.DatabaseTransaction) ([]models.ProcessEquipmentTool, error)
 }
 
 type BusinessContinuityPlanRepository struct {
@@ -614,4 +615,20 @@ func (repo *BusinessContinuityPlanRepository) GetTestAndExercisesByBcpID(bcpID u
 	}
 
 	return testAndExercises, nil
+}
+
+func (repo *BusinessContinuityPlanRepository) GetAllEquipmentTools(tx ...utility.DatabaseTransaction) ([]models.ProcessEquipmentTool, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var equipmentTools []models.ProcessEquipmentTool
+	result := db.Where("status = ?", "active").Find(&equipmentTools)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return equipmentTools, nil
 }

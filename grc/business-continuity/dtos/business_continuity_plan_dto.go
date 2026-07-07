@@ -106,27 +106,28 @@ type BusinessContinuityPlanDetailDTO struct {
 	ResponsibleUser    *organizationDTOs.UserMinimalDTO `json:"responsible_user"`
 	ResponsibleUnit    settingsDTOs.OrganizationUnitDTO `json:"responsible_unit"`
 
-	BcpStatus             BcpStatusDTO                       `json:"bcp_status"`
-	Rto                   *int                               `json:"rto"`
-	RtoUnitId             *uint                              `json:"rto_unit_id"`
-	RtoUnit               *BusinessContinuityDurationUnitDTO `json:"rto_unit"`
-	RtoCondition          *string                            `json:"rto_condition"`
-	Mtpd                  *int                               `json:"mtpd"`
-	MtpdUnitId            *uint                              `json:"mtpd_unit_id"`
-	MtpdUnit              *BusinessContinuityDurationUnitDTO `json:"mtpd_unit"`
-	MtpdCondition         *string                            `json:"mtpd_condition"`
-	Rpo                   *int                               `json:"rpo"`
-	RpoUnitId             *uint                              `json:"rpo_unit_id"`
-	RpoUnit               *BusinessContinuityDurationUnitDTO `json:"rpo_unit"`
-	RpoCondition          *string                            `json:"rpo_condition"`
-	Processes             []*BcpProcessDTO                   `json:"processes"`
-	Documents             []*BcpDocumentDTO                  `json:"documents" gorm:"-"`
-	BcpRecoveryPlans      []*BcpRecoveryPlanDetailDTO        `json:"bcp_recovery_plans"`
-	BcpCommunicationPlans []*BcpCommunicationPlanDetailDTO   `json:"bcp_communication_plans"`
-	CreatedAt             time.Time                          `json:"created_at"`
-	UpdatedAt             *time.Time                         `json:"updated_at"`
-	CreatedByUser         organizationDTOs.UserMinimalDTO    `json:"created_by"`
-	UpdatedByUser         *organizationDTOs.UserMinimalDTO   `json:"updated_by"`
+	BcpStatus             BcpStatusDTO                               `json:"bcp_status"`
+	Rto                   *int                                       `json:"rto"`
+	RtoUnitId             *uint                                      `json:"rto_unit_id"`
+	RtoUnit               *BusinessContinuityDurationUnitDTO         `json:"rto_unit"`
+	RtoCondition          *string                                    `json:"rto_condition"`
+	Mtpd                  *int                                       `json:"mtpd"`
+	MtpdUnitId            *uint                                      `json:"mtpd_unit_id"`
+	MtpdUnit              *BusinessContinuityDurationUnitDTO         `json:"mtpd_unit"`
+	MtpdCondition         *string                                    `json:"mtpd_condition"`
+	Rpo                   *int                                       `json:"rpo"`
+	RpoUnitId             *uint                                      `json:"rpo_unit_id"`
+	RpoUnit               *BusinessContinuityDurationUnitDTO         `json:"rpo_unit"`
+	RpoCondition          *string                                    `json:"rpo_condition"`
+	Processes             []*BcpProcessDTO                           `json:"processes"`
+	Documents             []*BcpDocumentDTO                          `json:"documents" gorm:"-"`
+	BcpRecoveryPlans      []*BcpRecoveryPlanDetailDTO                `json:"bcp_recovery_plans"`
+	BcpCommunicationPlans []*BcpCommunicationPlanDetailDTO           `json:"bcp_communication_plans"`
+	EquipmentTools        []organizationDTOs.ProcessEquipmentToolDTO `json:"equipment_tools"`
+	CreatedAt             time.Time                                  `json:"created_at"`
+	UpdatedAt             *time.Time                                 `json:"updated_at"`
+	CreatedByUser         organizationDTOs.UserMinimalDTO            `json:"created_by"`
+	UpdatedByUser         *organizationDTOs.UserMinimalDTO           `json:"updated_by"`
 }
 
 type BcpProcessDTO struct {

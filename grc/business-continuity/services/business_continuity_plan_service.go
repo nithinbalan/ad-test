@@ -95,6 +95,12 @@ func (bcps BusinessContinuityPlanService) GetFullDetailsByID(id uint, tx ...util
 		return nil, err
 	}
 
+	// Load all equipment tools
+	equipmentTools, err := bcps.repo.GetAllEquipmentTools(tx...)
+	if err == nil {
+		businessContinuityPlan.EquipmentTools = equipmentTools
+	}
+
 	// Map the result to your DTO
 	err = mapstructure.Decode(businessContinuityPlan, &businessContinuityPlanDTO)
 	if err != nil {
