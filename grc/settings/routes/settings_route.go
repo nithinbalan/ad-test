@@ -43,6 +43,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	themeController := app.SettingsModule.ThemeController
 	brandingController := app.SettingsModule.BrandingController
 	workflowCustomRoleController := app.SettingsModule.WorkflowCustomRoleController
+	qualysController := app.SettingsModule.QualysSettingController
+	
 	// Organization Level
 	settingRoutes.GET("/organization-levels", organizationLevelController.GetAllOrganizationLevels)
 	settingRoutes.POST("/organization-levels", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), organizationLevelController.CreateOrganizationLevels)
@@ -219,4 +221,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	settingRoutes.GET("/branding-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), brandingController.GetAllBranding)
 	settingRoutes.PUT("/branding-settings/:id", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), brandingController.UpdateBranding)
 	unauthenticatedRoutes.GET("/branding-settings/image-preview", brandingController.GetBrandingPreviewImage)
+
+	settingRoutes.GET("/qualys-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), qualysController.GetQualysSettings)
+	settingRoutes.POST("/qualys-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), qualysController.SaveQualysSettings)
+	settingRoutes.DELETE("/qualys-settings", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), qualysController.DeleteQualysSettings)
+	settingRoutes.POST("/qualys-settings/test-connection", middlewares.RolePermissionMiddleware(db, "general_setting", "modify"), qualysController.TestConnection)
+	settingRoutes.GET("/qualys-settings/check-saved-connection", middlewares.RolePermissionMiddleware(db, "general_setting", "view"), qualysController.CheckSavedConnection)
 }

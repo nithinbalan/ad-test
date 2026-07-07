@@ -39,6 +39,7 @@ type SettingsModule struct {
 	ThemeController                  *controllers.ThemeController
 	BrandingController               *controllers.BrandingController
 	WorkflowCustomRoleController     *controllers.WorkflowCustomRoleController
+	QualysSettingController          *controllers.QualysSettingsController
 
 	SystemPreferenceSvc       services.SystemPreferenceServiceInterface
 	OrganizationUnitSvc       services.OrganizationUnitServiceInterface
@@ -56,6 +57,7 @@ type SettingsModule struct {
 	ThemeSvc                  services.ThemeServiceInterface
 	TenableSettingsSvc        services.TenableSettingsServiceInterface
 	BrandingSettingSvc        services.BrandingServiceInterface
+	QualysSettingSvc          services.QualysSettingsServiceInterface
 }
 
 func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *MasterModule) *SettingsModule {
@@ -185,6 +187,10 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 	workflowCustomRoleSvc := services.NewWorkflowCustomRoleService(workflowCustomRoleRepo)
 	workflowCustomRoleController := controllers.NewWorkflowCustomRoleController(workflowCustomRoleSvc)
 
+	qualysSettingRepo := repositories.NewQualysSettingsRepository(db)
+	qualysSettingSvc := services.NewQualysSettingsService(qualysSettingRepo, integrationSvc, sharedModule.ActivityLogService)
+	qualisSettingController := controllers.NewQualysSettingsController(qualysSettingSvc)
+
 	return &SettingsModule{
 		OrganizationLevelController:      organizationLevelController,
 		SystemPreferenceController:       systemPreferenceController,
@@ -215,6 +221,7 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		ThemeController:                  themeController,
 		BrandingController:               brandingController,
 		WorkflowCustomRoleController:     workflowCustomRoleController,
+		QualysSettingController:          qualisSettingController,
 
 		SystemPreferenceSvc:       systemPreferenceSvc,
 		OrganizationLevelSvc:      organizationLevelSvc,
@@ -232,5 +239,6 @@ func NewSettingsModule(db *gorm.DB, sharedModule *SharedModule, masterModule *Ma
 		ThemeSvc:                  themeSvc,
 		TenableSettingsSvc:        tenableSettingsSvc,
 		BrandingSettingSvc:        brandingSvc,
+		QualysSettingSvc:          qualysSettingSvc,
 	}
 }
