@@ -28,6 +28,10 @@ type ActiveDirectoryConnectionError struct {
 	err error
 }
 
+type QualysConnectionError struct {
+	err error
+}
+
 type TenableConnectionError struct {
 	err error
 }
@@ -57,6 +61,10 @@ func (e *ActiveDirectoryConnectionError) Error() string {
 }
 
 func (e *TenableConnectionError) Error() string {
+	return e.err.Error()
+}
+
+func (e *QualysConnectionError) Error() string {
 	return e.err.Error()
 }
 
@@ -100,4 +108,8 @@ func NewActiveDirectoryConnectionError(err error) error {
 
 func NewTenableConnectionError(err error) error {
 	return &TenableConnectionError{err: err}
+}
+
+func NewQualysConnectionError(err error) error {
+	return &QualysConnectionError{err: err}
 }
