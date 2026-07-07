@@ -104,10 +104,12 @@ func (s *BCMStaffAllocationService) UpdateAllocation(processID uint, currentUser
 // then one BCMStaffAllocationOutageBucket child row per outage bucket.
 //
 // Logic:
-//  1. Fetch BIA Rating → RspFromValue
-//  2. Fetch all active outage buckets ordered by [order] ASC
-//  3. First bucket where bucket.FromValue >= RSP is the first ACTIVE interval;
-//     all buckets before it have IsSkipped = true
+//  1. Fetch BIA Rating → RspFromValue + RspUnit (preloaded)
+//  2. Fetch all active outage buckets ordered by [order] ASC (with DurationUnit preloaded)
+//  3. Convert RSP to minutes (RspFromValue * RspUnit.Minutes).
+//     Find which bucket the RSP falls into (bucketFrom <= rspMinutes <= bucketTo).
+//     That bucket is the first ACTIVE interval; all buckets before it have IsSkipped = true.
+//     Example: RSP = 2 Days (2880 min) falls into 1-3 Days bucket → skip 0-8h, 8-24h
 //  4. For each ProcessEmployeeAnalysis (ordered by ID ASC):
 //     a. Create one BCMStaffAllocation parent row
 //     b. For each bucket: create one BCMStaffAllocationOutageBucket child row
@@ -140,13 +142,20 @@ func (s *BCMStaffAllocationService) GenerateAllocations(processID uint, currentU
 	}
 
 	// Step 3: determine first active bucket order based on RSP
+	// Convert RSP to minutes, find which bucket the RSP falls into,
+	// then skip all buckets before it.
+	// Example: RSP = 2 Days (2880 min) falls into "1-3 Days" bucket → skip 0-8h, 8-24h
 	firstActiveOrder := buckets[0].Order
-	if rating.RspFromValue != nil {
-		rsp := *rating.RspFromValue
+	if rating.RspFromValue != nil && rating.RspUnit != nil {
+		rspMinutes := *rating.RspFromValue * rating.RspUnit.Minutes
 		for _, b := range buckets {
-			if b.FromValue >= rsp {
-				firstActiveOrder = b.Order
-				break
+			if b.DurationUnit != nil {
+				bucketFromMinutes := b.FromValue * b.DurationUnit.Minutes
+				bucketToMinutes := b.ToValue * b.DurationUnit.Minutes
+				if rspMinutes >= bucketFromMinutes && rspMinutes <= bucketToMinutes {
+					firstActiveOrder = b.Order
+					break
+				}
 			}
 		}
 	}

@@ -313,15 +313,22 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 			}
 			existingProcess.ImpactAnalysisLevelID = businessImpactAssessmentFormDTO.OverallImpactLevelID
 			existingProcess.ImpactJustification = businessImpactAssessmentFormDTO.ImpactJustification
-			existingProcess.Rto = bcmBiaImpactLevel.RtoFromValue
+			existingProcess.RtoFromValue = bcmBiaImpactLevel.RtoFromValue
+			existingProcess.RtoToValue = bcmBiaImpactLevel.RtoToValue
 			existingProcess.RtoUnitId = bcmBiaImpactLevel.RtoUnitID
 			existingProcess.RtoCondition = bcmBiaImpactLevel.RtoCondition
-			existingProcess.Mtpd = bcmBiaImpactLevel.MtpdFromValue
+			existingProcess.MtpdFromValue = bcmBiaImpactLevel.MtpdFromValue
+			existingProcess.MtpdToValue = bcmBiaImpactLevel.MtpdToValue
 			existingProcess.MtpdUnitId = bcmBiaImpactLevel.MtpdUnitID
 			existingProcess.MtpdCondition = bcmBiaImpactLevel.MtpdCondition
-			existingProcess.Rpo = bcmBiaImpactLevel.RpoFromValue
+			existingProcess.RpoFromValue = bcmBiaImpactLevel.RpoFromValue
+			existingProcess.RpoToValue = bcmBiaImpactLevel.RpoToValue
 			existingProcess.RpoUnitId = bcmBiaImpactLevel.RpoUnitID
 			existingProcess.RpoCondition = bcmBiaImpactLevel.RpoCondition
+			existingProcess.RspFromValue = bcmBiaImpactLevel.RspFromValue
+			existingProcess.RspToValue = bcmBiaImpactLevel.RspToValue
+			existingProcess.RspUnitID = bcmBiaImpactLevel.RspUnitID
+			existingProcess.RspCondition = bcmBiaImpactLevel.RspCondition
 			existingProcess.UpdatedBYID = &currentUserID
 			if err := bias.processSvc.UpdateProcessRecoveryObjective(existingProcess, tx); err != nil {
 				tx.Rollback()
@@ -457,7 +464,8 @@ func (bias *BusinessImpactAssessmentService) UpdateBIARating(id uint, currentUse
 	if err != nil {
 		return err
 	}
-	process.Rto = existing.RtoFromValue
+	process.RtoFromValue = existing.RtoFromValue
+	process.RtoToValue = existing.RtoToValue
 	process.UpdatedBYID = &currentUserID
 	tx := bias.repo.BeginTransaction()
 	if err := bias.processSvc.UpdateProcessRecoveryObjective(process, tx); err != nil {
@@ -573,11 +581,11 @@ func (bias *BusinessImpactAssessmentService) UpdateRecoveryObjectives(businessIm
 			return err
 		}
 
-		existingProcess.Rto = businessImpactAssessmentRecoveryObjectiveFormDTO.Rto
+		existingProcess.RtoFromValue = businessImpactAssessmentRecoveryObjectiveFormDTO.Rto
 		existingProcess.RtoUnitId = businessImpactAssessmentRecoveryObjectiveFormDTO.RtoUnitId
-		existingProcess.Mtpd = businessImpactAssessmentRecoveryObjectiveFormDTO.Mtpd
+		existingProcess.MtpdFromValue = businessImpactAssessmentRecoveryObjectiveFormDTO.Mtpd
 		existingProcess.MtpdUnitId = businessImpactAssessmentRecoveryObjectiveFormDTO.MtpdUnitId
-		existingProcess.Rpo = businessImpactAssessmentRecoveryObjectiveFormDTO.Rpo
+		existingProcess.RpoFromValue = businessImpactAssessmentRecoveryObjectiveFormDTO.Rpo
 		existingProcess.RpoUnitId = businessImpactAssessmentRecoveryObjectiveFormDTO.RpoUnitId
 		existingProcess.UpdatedBYID = &currentUserID
 
@@ -702,12 +710,22 @@ func (bias *BusinessImpactAssessmentService) Delete(ids []uint, currentUserID ui
 			tx.Rollback()
 			return nil, err
 		}
-		existingProcess.Rto = nil
+		existingProcess.RtoFromValue = nil
+		existingProcess.RtoToValue = nil
 		existingProcess.RtoUnitId = nil
-		existingProcess.Mtpd = nil
+		existingProcess.RtoCondition = nil
+		existingProcess.MtpdFromValue = nil
+		existingProcess.MtpdToValue = nil
 		existingProcess.MtpdUnitId = nil
-		existingProcess.Rpo = nil
+		existingProcess.MtpdCondition = nil
+		existingProcess.RpoFromValue = nil
+		existingProcess.RpoToValue = nil
 		existingProcess.RpoUnitId = nil
+		existingProcess.RpoCondition = nil
+		existingProcess.RspFromValue = nil
+		existingProcess.RspToValue = nil
+		existingProcess.RspUnitID = nil
+		existingProcess.RspCondition = nil
 		existingProcess.IsBiaPerformed = false
 		existingProcess.RiskLevelId = nil
 		existingProcess.ImpactJustification = nil

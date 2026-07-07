@@ -119,13 +119,13 @@ func (repo *BCMStaffAllocationRepository) DeleteByProcessID(processID uint, tx .
 
 func (repo *BCMStaffAllocationRepository) GetRatingByProcessID(processID uint) (*models.BusinessImpactAssessmentRating, error) {
 	var rating models.BusinessImpactAssessmentRating
-	err := repo.db.Where("process_id = ?", processID).First(&rating).Error
+	err := repo.db.Where("process_id = ?", processID).Preload("RspUnit").First(&rating).Error
 	return &rating, err
 }
 
 func (repo *BCMStaffAllocationRepository) GetOutageBuckets() ([]*models.BCMBIAOutageBucket, error) {
 	var buckets []*models.BCMBIAOutageBucket
-	err := repo.db.Where("status = 'active'").Order("[order] ASC").Find(&buckets).Error
+	err := repo.db.Where("status = 'active'").Preload("DurationUnit").Order("[order] ASC").Find(&buckets).Error
 	return buckets, err
 }
 

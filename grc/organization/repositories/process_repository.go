@@ -77,21 +77,30 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		processes.marked_as_auditable_item,
 		process_groups.title_en AS process_group_title_en,
 		process_groups.title_ar AS process_group_title_ar,
-		processes.rto as rto,
+		processes.rto_from_value as rto_from_value,
+		processes.rto_to_value as rto_to_value,
 		processes.rto_unit_id as rto_unit_id,
 		rto_bc_unit.title_en AS rto_unit_title_en,
 		rto_bc_unit.title_ar AS rto_unit_title_ar,
 		processes.rto_condition as rto_condition,
-		processes.mtpd as mtpd,
+		processes.mtpd_from_value as mtpd_from_value,
+		processes.mtpd_to_value as mtpd_to_value,
 		processes.mtpd_unit_id as mtpd_unit_id,
 		mtpd_bc_unit.title_en AS mtpd_unit_title_en,
 		mtpd_bc_unit.title_ar AS mtpd_unit_title_ar,
 		processes.mtpd_condition as mtpd_condition,
-		processes.rpo as rpo,
+		processes.rpo_from_value as rpo_from_value,
+		processes.rpo_to_value as rpo_to_value,
 		processes.rpo_unit_id as rpo_unit_id,
 		rpo_bc_unit.title_en AS rpo_unit_title_en,
 		rpo_bc_unit.title_ar AS rpo_unit_title_ar,
 		processes.rpo_condition as rpo_condition,
+		processes.rsp_from_value as rsp_from_value,
+		processes.rsp_to_value as rsp_to_value,
+		processes.rsp_unit_id as rsp_unit_id,
+		rsp_bc_unit.title_en AS rsp_unit_title_en,
+		rsp_bc_unit.title_ar AS rsp_unit_title_ar,
+		processes.rsp_condition as rsp_condition,
 		processes.impact_analysis_level_id AS impact_analysis_level_id,
 		bcm_impact_analysis_levels.title_en AS impact_analysis_level_title_en,
 		bcm_impact_analysis_levels.title_ar AS impact_analysis_level_title_ar,
@@ -185,6 +194,7 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		Joins("LEFT JOIN business_continuity_duration_units AS rto_bc_unit ON rto_bc_unit.id = processes.rto_unit_id").
 		Joins("LEFT JOIN business_continuity_duration_units AS mtpd_bc_unit ON mtpd_bc_unit.id = processes.mtpd_unit_id").
 		Joins("LEFT JOIN business_continuity_duration_units AS rpo_bc_unit ON rpo_bc_unit.id = processes.rpo_unit_id").
+		Joins("LEFT JOIN business_continuity_duration_units AS rsp_bc_unit ON rsp_bc_unit.id = processes.rsp_unit_id").
 		Joins("LEFT JOIN bcm_impact_analysis_levels ON bcm_impact_analysis_levels.id = processes.impact_analysis_level_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = processes.risk_matrix_risk_rating_id").
 		Joins("LEFT JOIN risk_matrix_risk_rating_values ON risk_matrix_risk_rating_values.id = processes.risk_matrix_risk_rating_value_id").
@@ -431,6 +441,7 @@ func (repo *ProcessRepository) GetFullDetailsByID(id uint, tx ...utility.Databas
 		Preload("RtoUnit").
 		Preload("MtpdUnit").
 		Preload("RpoUnit").
+		Preload("RspUnit").
 		Preload("ImpactAnalysisLevel").
 		Preload("RiskLevel").
 		Preload("ProcessCriticalityLevel").

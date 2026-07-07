@@ -14,15 +14,22 @@ type Process struct {
 	TitleEn                     string     `json:"title_en" gorm:"type:nvarchar(500);not null" binding:"required"`
 	TitleAr                     string     `json:"title_ar" gorm:"type:nvarchar(500);not null" binding:"required"`
 	Description                 *string    `json:"description" gorm:"type:nvarchar(MAX);default:null" binding:"omitempty"`
-	Rto                         *int       `json:"rto" gorm:"default:null"`
+	RtoFromValue                *int       `json:"rto_from_value" gorm:"type:int;null"`
+	RtoToValue                  *int       `json:"rto_to_value" gorm:"type:int;null"`
 	RtoUnitId                   *uint      `json:"rto_uint_id" gorm:"default:null"`
 	RtoCondition                *string    `json:"rto_condition" gorm:"type:varchar(20);null"`
-	Mtpd                        *int       `json:"mtpd" gorm:"default:null"`
+	MtpdFromValue               *int       `json:"mtpd_from_value" gorm:"type:int;null"`
+	MtpdToValue                 *int       `json:"mtpd_to_value" gorm:"type:int;null"`
 	MtpdUnitId                  *uint      `json:"mtpd_uint_id" gorm:"default:null"`
 	MtpdCondition               *string    `json:"mtpd_condition" gorm:"type:varchar(20);null"`
-	Rpo                         *int       `json:"rpo" gorm:"default:null"`
+	RpoFromValue                *int       `json:"rpo_from_value" gorm:"type:int;null"`
+	RpoToValue                  *int       `json:"rpo_to_value" gorm:"type:int;null"`
 	RpoUnitId                   *uint      `json:"rpo_uint_id" gorm:"default:null"`
 	RpoCondition                *string    `json:"rpo_condition" gorm:"type:varchar(20);null"`
+	RspFromValue                *int       `json:"rsp_from_value" gorm:"type:int;null"`
+	RspToValue                  *int       `json:"rsp_to_value" gorm:"type:int;null"`
+	RspCondition                *string    `json:"rsp_condition" gorm:"type:varchar(20);null"`
+	RspUnitID                   *uint      `json:"rsp_unit_id" gorm:"null"`
 	ImpactAnalysisLevelID       *uint      `json:"impact_analysis_level_id" gorm:"default:null"`
 	RiskLevelId                 *uint      `json:"risk_level_id" gorm:"default:null"`
 	ImpactJustification         *string    `json:"impact_justification" gorm:"default:null"`
@@ -82,6 +89,7 @@ type Process struct {
 	RtoUnit                         *BusinessContinuityDurationUnit   `gorm:"foreignKey:RtoUnitId"`
 	MtpdUnit                        *BusinessContinuityDurationUnit   `gorm:"foreignKey:MtpdUnitId"`
 	RpoUnit                         *BusinessContinuityDurationUnit   `gorm:"foreignKey:RpoUnitId"`
+	RspUnit                         *BusinessContinuityDurationUnit   `gorm:"foreignKey:RspUnitID"`
 	RiskLevel                       *RiskLevel                        `gorm:"foreignKey:RiskLevelId"`
 	ProcessCriticalityLevel         *ProcessCriticalityLevel          `gorm:"foreignKey:ProcessCriticalityLevelId"`
 	BusinessImpactAssessmentRatings []*BusinessImpactAssessmentRating `gorm:"foreignKey:ProcessID"`
