@@ -49,6 +49,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	bcmProcessTypeController := app.BusinessContinuityModule.BCMProcessTypeController
 	bcmManualProcedureFormController := app.BusinessContinuityModule.BCMManualProcedureFormController
 	bcmStaffAllocationController := app.BusinessContinuityModule.BCMStaffAllocationController
+	biaProcessController := app.BusinessContinuityModule.BiaProcessController
+	biaProcessReviewController := app.BusinessContinuityModule.BiaProcessReviewController
+	biaProcessWorkflowController := app.BusinessContinuityModule.BiaProcessWorkflowController
+	biaProcessReviewCommentController := app.BusinessContinuityModule.BiaProcessReviewCommentController
 	// businessfunctionAssociatedItemController := app.BusinessContinuityModule.BusinessFunctionAssociateItemController
 
 	// bcp phase
@@ -313,5 +317,24 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Staff Allocations (auto-generated, user updates is_remote per slot)
 	businessContinuityRoutes.GET("/bia/processes/:processId/staff-allocations", middlewares.RolePermissionMiddleware(db, "bia", "view"), bcmStaffAllocationController.GetFullDetailsByProcessID)
 	businessContinuityRoutes.PUT("/bia/processes/:processId/staff-allocations", middlewares.RolePermissionMiddleware(db, "bia", "modify"), bcmStaffAllocationController.UpdateAllocation)
+
+	// BIA Process
+	businessContinuityRoutes.GET("/bia-process-details/:processId", middlewares.RolePermissionMiddleware(db, "bia", "view"), biaProcessController.GetBiaProcessDetails)
+
+	businessContinuityRoutes.POST("/bia-process/:id/submit", middlewares.RolePermissionMiddleware(db, "bia", "modify"), biaProcessReviewController.SubmitBiaProcess)
+	businessContinuityRoutes.POST("/bia-process/:id/approve", middlewares.RolePermissionMiddleware(db, "bia", "modify"), biaProcessReviewController.ApproveBiaProcess)
+	businessContinuityRoutes.POST("/bia-process/:id/revert", middlewares.RolePermissionMiddleware(db, "bia", "modify"), biaProcessReviewController.RejectBiaProcess)
+	businessContinuityRoutes.POST("/bia-process/:id/reopen", middlewares.RolePermissionMiddleware(db, "bia", "modify"), biaProcessReviewController.ReopenBiaProcess)
+	businessContinuityRoutes.GET("/bia-process/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "bia", "view"), biaProcessWorkflowController.GetWorkflowList)
+
+	businessContinuityRoutes.GET("/bia-process/:id/review-comments", middlewares.RolePermissionMiddleware(db, "bia", "view"), biaProcessReviewCommentController.GetAllComments)
+	businessContinuityRoutes.GET("/bia-process/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "bia", "view"), biaProcessReviewCommentController.GetCommentDetails)
+	businessContinuityRoutes.POST("/bia-process/:id/review-comments", middlewares.RolePermissionMiddleware(db, "bia", "modify"), biaProcessReviewCommentController.CreateComment)
+	businessContinuityRoutes.PUT("/bia-process/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "bia", "modify"), biaProcessReviewCommentController.UpdateComment)
+	businessContinuityRoutes.POST("/bia-process/:id/review-comments/delete", middlewares.RolePermissionMiddleware(db, "bia", "modify"), biaProcessReviewCommentController.DeleteComments)
+	businessContinuityRoutes.PUT("/bia-process/:id/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "bia", "modify"), biaProcessReviewCommentController.ResolveComment)
+
+	unauthenticatedRoutes.GET("/bia-process/:id/review-comments/:commentId/document-preview", biaProcessReviewCommentController.GetDocumentPreview)
+	unauthenticatedRoutes.GET("/bia-process/:id/review-comments/:commentId/document-download", biaProcessReviewCommentController.DownloadDocument)
 
 }
