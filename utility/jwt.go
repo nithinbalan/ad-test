@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	AccessTokenDuration  = 30 * 24 * time.Hour // 1 month
-	RefreshTokenDuration = 7 * 24 * time.Hour  // 7 days
-	ExternalAccessTokenDuration = 7 * 24 * time.Hour // 7 days
+	AccessTokenDuration         = 30 * 24 * time.Hour // 1 month
+	RefreshTokenDuration        = 7 * 24 * time.Hour  // 7 days
+	ExternalAccessTokenDuration = 7 * 24 * time.Hour  // 7 days
 )
 
 func getSecretKey() string {
@@ -23,7 +23,11 @@ func getSecretKey() string {
 }
 
 func getExternalSecretKey() string {
-	return config.GetEnv("EXTERNAL_ENCRYPTION_KEY", "")
+	key := config.GetEnv("EXTERNAL_ENCRYPTION_KEY", "")
+	if key == "" {
+		LogFatal("EXTERNAL_ENCRYPTION_KEY not found in environment variables", nil)
+	}
+	return key
 }
 
 type UserClaims struct {

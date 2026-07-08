@@ -523,7 +523,6 @@ func (irs *ViolationReportService) CreateExternal(violationReportFormDTO *violat
 
 		documents = append(documents, document)
 	}
-
 	if len(documents) > 0 {
 		if err := irs.repo.CreateDocuments(documents, tx); err != nil {
 			tx.Rollback()
@@ -531,17 +530,29 @@ func (irs *ViolationReportService) CreateExternal(violationReportFormDTO *violat
 		}
 
 		storagePath := config.GetEnv("STORAGE_PATH", "")
+
+		var savedFiles []string
+
+		cleanupFiles := func() {
+			for _, path := range savedFiles {
+				_ = os.Remove(path)
+			}
+		}
+
 		for i, file := range files {
 			doc := documents[i]
 			dstDir := filepath.Join(storagePath, "violation-report", "violation-report-register", strconv.FormatUint(uint64(id), 10), "documents")
 			if err := os.MkdirAll(dstDir, 0755); err != nil {
+				cleanupFiles()
 				tx.Rollback()
 				return 0, err
 			}
+
 			dst := filepath.Join(dstDir, doc.Name)
 
 			src, err := file.Open()
 			if err != nil {
+				cleanupFiles()
 				tx.Rollback()
 				return 0, err
 			}
@@ -549,6 +560,7 @@ func (irs *ViolationReportService) CreateExternal(violationReportFormDTO *violat
 			out, err := os.Create(dst)
 			if err != nil {
 				src.Close()
+				cleanupFiles()
 				tx.Rollback()
 				return 0, err
 			}
@@ -556,11 +568,19 @@ func (irs *ViolationReportService) CreateExternal(violationReportFormDTO *violat
 			if _, err := io.Copy(out, src); err != nil {
 				out.Close()
 				src.Close()
+
+				_ = os.Remove(dst) // Remove partial/empty file
+				cleanupFiles()
+
 				tx.Rollback()
 				return 0, err
 			}
+
 			out.Close()
 			src.Close()
+
+			// Track successfully written files
+			savedFiles = append(savedFiles, dst)
 		}
 	}
 
