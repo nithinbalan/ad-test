@@ -604,9 +604,9 @@ func (tetrs *TestAndExerciseTestResultService) UpdateTestResultSystemRegister(te
 	}
 
 	existing.TestCompletionDate = testCompletionDate
-	existing.CommunicationFeedbackOptionID = formDTO.CommunicationFeedbackOptionID
-	existing.RecoveryFeedbackOptionID = formDTO.RecoveryFeedbackOptionID
-	existing.TestResultOptionID = formDTO.TestResultOptionID
+	existing.CommunicationFeedbackOptionID = &formDTO.CommunicationFeedbackOptionID
+	existing.RecoveryFeedbackOptionID = &formDTO.RecoveryFeedbackOptionID
+	existing.TestResultOptionID = &formDTO.TestResultOptionID
 
 	if err := tetrs.repo.UpdateTestResultSystemRegister(existing, tx); err != nil {
 		tx.Rollback()

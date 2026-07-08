@@ -9,9 +9,9 @@ type TestAndExerciseTestResultSystemRegister struct {
 	TestAndExerciseTestResultID   uint       `json:"test_and_exercise_test_result_id" binding:"required" gorm:"not null;index"`
 	SystemRegisterID              uint       `json:"system_register_id" binding:"required" gorm:"not null"`
 	TestCompletionDate            *time.Time `json:"test_completion_date"`
-	CommunicationFeedbackOptionID uint       `json:"communication_feedback_option_id"`
-	RecoveryFeedbackOptionID      uint       `json:"recovery_feedback_option_id"`
-	TestResultOptionID            uint       `json:"test_result_option_id"`
+	CommunicationFeedbackOptionID *uint      `json:"communication_feedback_option_id"`
+	RecoveryFeedbackOptionID      *uint      `json:"recovery_feedback_option_id"`
+	TestResultOptionID            *uint      `json:"test_result_option_id"`
 	CreatedBYID                   uint       `json:"created_by_id" binding:"required" gorm:"not null"`
 	CreatedAt                     time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 
