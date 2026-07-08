@@ -643,7 +643,7 @@ func (repo *BusinessContinuityPlanRepository) GetAllOutageBuckets(tx ...utility.
 	var outageBuckets []models.BCMBIAOutageBucket
 	result := db.Where("status = ?", "active").
 		Preload("DurationUnit").
-		Order("`order` ASC").
+		Order("[order] ASC").
 		Find(&outageBuckets)
 
 	if result.Error != nil {
