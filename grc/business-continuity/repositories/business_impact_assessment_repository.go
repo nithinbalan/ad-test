@@ -685,13 +685,19 @@ func (repo *BusinessImpactAssessmentRepository) GetCriticalSystems() ([]*busines
 		ImpactAnalysisLevelTitleEn   *string `gorm:"column:impact_analysis_level_title_en"`
 		ImpactAnalysisLevelTitleAr   *string `gorm:"column:impact_analysis_level_title_ar"`
 		ImpactAnalysisLevelColorCode *string `gorm:"column:impact_analysis_level_color_code"`
-		Rto                          *int    `gorm:"column:rto"`
+		RtoFromValue                 *int    `gorm:"column:rto_from_value"`
+		RtoToValue                   *int    `gorm:"column:rto_to_value"`
+		RtoCondition                 *string `gorm:"column:rto_condition"`
 		RtoUnitTitleEn               *string `gorm:"column:rto_unit_title_en"`
 		RtoUnitTitleAr               *string `gorm:"column:rto_unit_title_ar"`
-		Mtpd                         *int    `gorm:"column:mtpd"`
+		MtpdFromValue                *int    `gorm:"column:mtpd_from_value"`
+		MtpdToValue                  *int    `gorm:"column:mtpd_to_value"`
+		MtpdCondition                *string `gorm:"column:mtpd_condition"`
 		MtpdUnitTitleEn              *string `gorm:"column:mtpd_unit_title_en"`
 		MtpdUnitTitleAr              *string `gorm:"column:mtpd_unit_title_ar"`
-		Rpo                          *int    `gorm:"column:rpo"`
+		RpoFromValue                 *int    `gorm:"column:rpo_from_value"`
+		RpoToValue                   *int    `gorm:"column:rpo_to_value"`
+		RpoCondition                 *string `gorm:"column:rpo_condition"`
 		RpoUnitTitleEn               *string `gorm:"column:rpo_unit_title_en"`
 		RpoUnitTitleAr               *string `gorm:"column:rpo_unit_title_ar"`
 	}
@@ -758,13 +764,19 @@ func (repo *BusinessImpactAssessmentRepository) GetCriticalSystems() ([]*busines
 			ial.title_en                        AS impact_analysis_level_title_en,
 			ial.title_ar                        AS impact_analysis_level_title_ar,
 			ial.color_code                      AS impact_analysis_level_color_code,
-			p.rto                               AS rto,
+			p.rto_from_value                    AS rto_from_value,
+			p.rto_to_value                      AS rto_to_value,
+			p.rto_condition                     AS rto_condition,
 			rto_unit.title_en                   AS rto_unit_title_en,
 			rto_unit.title_ar                   AS rto_unit_title_ar,
-			p.mtpd                              AS mtpd,
+			p.mtpd_from_value                   AS mtpd_from_value,
+			p.mtpd_to_value                     AS mtpd_to_value,
+			p.mtpd_condition                    AS mtpd_condition,
 			mtpd_unit.title_en                  AS mtpd_unit_title_en,
 			mtpd_unit.title_ar                  AS mtpd_unit_title_ar,
-			p.rpo                               AS rpo,
+			p.rpo_from_value                    AS rpo_from_value,
+			p.rpo_to_value                      AS rpo_to_value,
+			p.rpo_condition                     AS rpo_condition,
 			rpo_unit.title_en                   AS rpo_unit_title_en,
 			rpo_unit.title_ar                   AS rpo_unit_title_ar
 		`).
@@ -793,13 +805,19 @@ func (repo *BusinessImpactAssessmentRepository) GetCriticalSystems() ([]*busines
 			ImpactAnalysisLevelTitleEn:   pr.ImpactAnalysisLevelTitleEn,
 			ImpactAnalysisLevelTitleAr:   pr.ImpactAnalysisLevelTitleAr,
 			ImpactAnalysisLevelColorCode: pr.ImpactAnalysisLevelColorCode,
-			Rto:                          pr.Rto,
+			RtoFromValue:                 pr.RtoFromValue,
+			RtoToValue:                   pr.RtoToValue,
+			RtoCondition:                 pr.RtoCondition,
 			RtoUnitTitleEn:               pr.RtoUnitTitleEn,
 			RtoUnitTitleAr:               pr.RtoUnitTitleAr,
-			Mtpd:                         pr.Mtpd,
+			MtpdFromValue:                pr.MtpdFromValue,
+			MtpdToValue:                  pr.MtpdToValue,
+			MtpdCondition:                pr.MtpdCondition,
 			MtpdUnitTitleEn:              pr.MtpdUnitTitleEn,
 			MtpdUnitTitleAr:              pr.MtpdUnitTitleAr,
-			Rpo:                          pr.Rpo,
+			RpoFromValue:                 pr.RpoFromValue,
+			RpoToValue:                   pr.RpoToValue,
+			RpoCondition:                 pr.RpoCondition,
 			RpoUnitTitleEn:               pr.RpoUnitTitleEn,
 			RpoUnitTitleAr:               pr.RpoUnitTitleAr,
 		})

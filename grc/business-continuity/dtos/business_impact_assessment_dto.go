@@ -145,13 +145,19 @@ type CriticalSystemProcessDTO struct {
 	ImpactAnalysisLevelTitleEn   *string `json:"impact_analysis_level_title_en"`
 	ImpactAnalysisLevelTitleAr   *string `json:"impact_analysis_level_title_ar"`
 	ImpactAnalysisLevelColorCode *string `json:"impact_analysis_level_color_code"`
-	Rto                          *int    `json:"rto"`
+	RtoFromValue                 *int    `json:"rto_from_value"`
+	RtoToValue                   *int    `json:"rto_to_value"`
+	RtoCondition                 *string `json:"rto_condition"`
 	RtoUnitTitleEn               *string `json:"rto_unit_title_en"`
 	RtoUnitTitleAr               *string `json:"rto_unit_title_ar"`
-	Mtpd                         *int    `json:"mtpd"`
+	MtpdFromValue                *int    `json:"mtpd_from_value"`
+	MtpdToValue                  *int    `json:"mtpd_to_value"`
+	MtpdCondition                *string `json:"mtpd_condition"`
 	MtpdUnitTitleEn              *string `json:"mtpd_unit_title_en"`
 	MtpdUnitTitleAr              *string `json:"mtpd_unit_title_ar"`
-	Rpo                          *int    `json:"rpo"`
+	RpoFromValue                 *int    `json:"rpo_from_value"`
+	RpoToValue                   *int    `json:"rpo_to_value"`
+	RpoCondition                 *string `json:"rpo_condition"`
 	RpoUnitTitleEn               *string `json:"rpo_unit_title_en"`
 	RpoUnitTitleAr               *string `json:"rpo_unit_title_ar"`
 }
