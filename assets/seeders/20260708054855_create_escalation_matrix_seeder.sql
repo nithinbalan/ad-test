@@ -17,7 +17,7 @@ INSERT INTO sla_escalation_matrix (
     remediation_days,
     is_email,
     is_alert,
-    escalation_level_id,
+    role_id,
     status
 )
 VALUES
