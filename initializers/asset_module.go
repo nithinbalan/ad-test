@@ -48,6 +48,7 @@ type AssetModule struct {
 	ConfidentialityClassificationController       *controllers.ConfidentialityClassificationController
 	AssetEnvironmentController                    *controllers.AssetEnvironmentController
 	ApplicationController                         *controllers.ApplicationController
+	SLAEscalationMatrixController                 *controllers.SLAEscalationMatrixController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -301,6 +302,10 @@ func NewAssetModule(db *gorm.DB,
 	)
 	systemRegisterController := controllers.NewSystemRegisterController(systemRegisterSvc)
 
+	slaEscalationMatrixRepo := repositories.NewSLAEscalationMatrixRepository(db)
+	slaEscalationMatrixSvc := services.NewSLAEscalationMatrixService(slaEscalationMatrixRepo, sharedModule.ActivityLogService)
+	slaEscalationMatrixController := controllers.NewSLAEscalationMatrixController(slaEscalationMatrixSvc)
+
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
 		AssetCategoryController:                       assetCategoryController,
@@ -341,6 +346,7 @@ func NewAssetModule(db *gorm.DB,
 		ConfidentialityClassificationController:       confidentialityClassificationController,
 		AssetEnvironmentController:                    assetEnvironmentController,
 		ApplicationController:                         applicationController,
+		SLAEscalationMatrixController:                 slaEscalationMatrixController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}
