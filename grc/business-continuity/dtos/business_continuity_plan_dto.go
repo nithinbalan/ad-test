@@ -183,6 +183,7 @@ type BcpTestSummaryDTO struct {
 	SuccessfulTests  int `json:"successful_tests"`
 	FailedTests      int `json:"failed_tests"`
 	PartiallySuccess int `json:"partially_success"`
+	NotTestedTests   int `json:"not_tested_tests"`
 }
 
 // Detail Dto

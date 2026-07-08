@@ -968,28 +968,33 @@ func (bcs *BusinessContinuityPlanService) GetTestSummary(bcpID uint) (*businessC
 		return nil, err
 	}
 
-	var successful, partiallySuccess, failure int
-	executedCount := 0
+	var successful, partiallySuccess, failure, notTested int
 
 	for _, testExercise := range executedTests {
-		if testExercise == nil {
+		if testExercise == nil || testExercise.TestAndExerciseTestResult == nil {
 			continue
 		}
 
-		if testExercise.TestAndExerciseTestResult != nil && testExercise.TestAndExerciseTestResult.TestResultOption != nil {
-			executedCount++
-			switch testExercise.TestAndExerciseTestResult.TestResultOption.Type {
+		for _, sr := range testExercise.TestAndExerciseTestResult.TestResultSystemRegisters {
+			if sr.TestResultOption == nil {
+				continue
+			}
+			switch sr.TestResultOption.Type {
 			case "successful":
 				successful++
 			case "partially_successful":
 				partiallySuccess++
 			case "failure":
 				failure++
+			case "not_tested":
+				notTested++
 			}
 		}
 	}
 
-	// Calculate test score (assuming score is percentage of successful tests)
+	executedCount := successful + partiallySuccess + failure
+
+	// Calculate test score (percentage of successful tests out of tested ones)
 	testScore := 0
 	if executedCount > 0 {
 		testScore = (successful * 100) / executedCount
@@ -1001,5 +1006,6 @@ func (bcs *BusinessContinuityPlanService) GetTestSummary(bcpID uint) (*businessC
 		SuccessfulTests:  successful,
 		FailedTests:      failure,
 		PartiallySuccess: partiallySuccess,
+		NotTestedTests:   notTested,
 	}, nil
 }

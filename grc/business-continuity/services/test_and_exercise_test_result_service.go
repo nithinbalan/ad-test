@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"jethur/config"
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
@@ -24,6 +25,7 @@ type TestAndExerciseTestResultServiceInterface interface {
 	GetByID(testAndExerciseId uint) (*models.TestAndExerciseTestResult, error)
 	Create(testAndExerciseId uint, currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.TestAndExerciseTestResultFormDTO) (uint, error)
 	Update(testAndExerciseId uint, currentUserID uint, TestAndExerciseTestResult *businessContinuityDTOs.TestAndExerciseTestResultFormDTO) error
+	UpdateTestResultSystemRegister(testResultSystemRegisterID uint, currentUserID uint, formDTO *businessContinuityDTOs.TestResultSystemRegisterFormDTO) error
 	Delete(testAndExerciseId uint, currentUserID uint) (uint, error)
 
 	GetDocumentPath(testAndExerciseId uint, token string) (string, error)
@@ -78,9 +80,12 @@ func (tetrs TestAndExerciseTestResultService) GetFullDetailsByID(testAndExercise
 		return nil, err
 	}
 
-	if testAndExerciseTestResult.TestCompletionDate != nil {
-		testCompletionDate := testAndExerciseTestResult.TestCompletionDate.Format("2006-01-02")
-		testAndExerciseTestResultDTO.TestCompletionDateString = testCompletionDate
+	for i, sr := range testAndExerciseTestResult.TestResultSystemRegisters {
+		if i < len(testAndExerciseTestResultDTO.TestResultSystemRegisters) && testAndExerciseTestResultDTO.TestResultSystemRegisters[i] != nil {
+			if sr.TestCompletionDate != nil {
+				testAndExerciseTestResultDTO.TestResultSystemRegisters[i].TestCompletionDateString = sr.TestCompletionDate.Format("2006-01-02")
+			}
+		}
 	}
 
 	if testAndExerciseTestResult.TestAndExercise.TestingDate != nil {
@@ -97,21 +102,12 @@ func (tetrs TestAndExerciseTestResultService) GetFullDetailsByID(testAndExercise
 func (tetrs *TestAndExerciseTestResultService) Create(testAndExerciseId uint, currentUserID uint, testAndExerciseTestResultFormDTO *businessContinuityDTOs.TestAndExerciseTestResultFormDTO) (uint, error) {
 	tx := tetrs.repo.BeginTransaction()
 
-	dates, err := tetrs.parseTestAndExerciseTestResultDates(testAndExerciseTestResultFormDTO)
-	if err != nil {
-		return 0, err
-	}
-
 	TestAndExerciseTestResult := &models.TestAndExerciseTestResult{
-		TestAndExerciseID:             testAndExerciseId,
-		TestCompletionDate:            dates.TestCompletionDate,
-		CommunicationFeedbackOptionID: testAndExerciseTestResultFormDTO.CommunicationFeedbackOptionID,
-		RecoveryFeedbackOptionID:      testAndExerciseTestResultFormDTO.RecoveryFeedbackOptionID,
-		TestResultOptionID:            testAndExerciseTestResultFormDTO.TestResultOptionID,
-		TestObservations:              testAndExerciseTestResultFormDTO.TestObservations,
-		Recommendations:               testAndExerciseTestResultFormDTO.Recommendations,
-		Findings:                      testAndExerciseTestResultFormDTO.Findings,
-		CreatedBYID:                   currentUserID,
+		TestAndExerciseID: testAndExerciseId,
+		TestObservations:  testAndExerciseTestResultFormDTO.TestObservations,
+		Recommendations:   testAndExerciseTestResultFormDTO.Recommendations,
+		Findings:          testAndExerciseTestResultFormDTO.Findings,
+		CreatedBYID:       currentUserID,
 	}
 
 	id, err := tetrs.repo.Create(TestAndExerciseTestResult, tx)
@@ -267,20 +263,10 @@ func (tetrs *TestAndExerciseTestResultService) Update(testAndExerciseId uint, cu
 		return err
 	}
 
-	dates, err := tetrs.parseTestAndExerciseTestResultDates(testAndExerciseTestResultFormDTO)
-	if err != nil {
-		return err
-	}
-
 	existingTestAndExerciseTestResult.TestAndExerciseID = testAndExerciseId
-	existingTestAndExerciseTestResult.TestCompletionDate = dates.TestCompletionDate
-	existingTestAndExerciseTestResult.CommunicationFeedbackOptionID = testAndExerciseTestResultFormDTO.CommunicationFeedbackOptionID
-	existingTestAndExerciseTestResult.RecoveryFeedbackOptionID = testAndExerciseTestResultFormDTO.RecoveryFeedbackOptionID
-	existingTestAndExerciseTestResult.TestResultOptionID = testAndExerciseTestResultFormDTO.TestResultOptionID
 	existingTestAndExerciseTestResult.TestObservations = testAndExerciseTestResultFormDTO.TestObservations
 	existingTestAndExerciseTestResult.Recommendations = testAndExerciseTestResultFormDTO.Recommendations
 	existingTestAndExerciseTestResult.Findings = testAndExerciseTestResultFormDTO.Findings
-	existingTestAndExerciseTestResult.UpdatedBYID = &currentUserID
 
 	err = tetrs.repo.Update(existingTestAndExerciseTestResult, tx)
 	if err != nil {
@@ -427,23 +413,15 @@ func (tetrs *TestAndExerciseTestResultService) Update(testAndExerciseId uint, cu
 
 		// log changes
 		oldData := map[string]interface{}{
-			"communication_feedback_option": oldTestAndExerciseTestResult.CommunicationFeedbackOption.TitleEn,
-			"recovery_feedback_option":      oldTestAndExerciseTestResult.RecoveryFeedbackOption.TitleEn,
-			"test_result_option":            oldTestAndExerciseTestResult.TestResultOption.TitleEn,
-			"test_observationd":             oldTestAndExerciseTestResult.TestObservations,
-			"recommendations":               oldTestAndExerciseTestResult.Recommendations,
-			"findings":                      oldTestAndExerciseTestResult.Findings,
-			"test_completion_date":          oldTestAndExerciseTestResult.TestCompletionDateString,
+			"test_observations": oldTestAndExerciseTestResult.TestObservations,
+			"recommendations":   oldTestAndExerciseTestResult.Recommendations,
+			"findings":          oldTestAndExerciseTestResult.Findings,
 		}
 
 		newData := map[string]interface{}{
-			"communication_feedback_option": existingTestAndExerciseTestResult.CommunicationFeedbackOption.TitleEn,
-			"recovery_feedback_option":      existingTestAndExerciseTestResult.RecoveryFeedbackOption.TitleEn,
-			"test_result_option":            existingTestAndExerciseTestResult.TestResultOption.TitleEn,
-			"test_observationd":             existingTestAndExerciseTestResult.TestObservations,
-			"recommendations":               existingTestAndExerciseTestResult.Recommendations,
-			"findings":                      existingTestAndExerciseTestResult.Findings,
-			"test_completion_date":          existingTestAndExerciseTestResult.TestCompletionDateString,
+			"test_observations": existingTestAndExerciseTestResult.TestObservations,
+			"recommendations":   existingTestAndExerciseTestResult.Recommendations,
+			"findings":          existingTestAndExerciseTestResult.Findings,
 		}
 		// Compare other fields and add them to changedData
 		fieldChanges := utility.CompareFieldChanges(oldData, newData)
@@ -607,19 +585,35 @@ func (tetrs *TestAndExerciseTestResultService) Delete(testAndExerciseId uint, cu
 	return failedId, nil
 }
 
-func (tetrs *TestAndExerciseTestResultService) parseTestAndExerciseTestResultDates(dto *businessContinuityDTOs.TestAndExerciseTestResultFormDTO) (*businessContinuityDTOs.TestAndExerciseTestResultParsedDates, error) {
-	parsed := &businessContinuityDTOs.TestAndExerciseTestResultParsedDates{}
+func (tetrs *TestAndExerciseTestResultService) UpdateTestResultSystemRegister(testResultSystemRegisterID uint, currentUserID uint, formDTO *businessContinuityDTOs.TestResultSystemRegisterFormDTO) error {
+	tx := tetrs.repo.BeginTransaction()
 
-	var err error
+	existing, err := tetrs.repo.GetTestResultSystemRegisterByID(testResultSystemRegisterID)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, testResultSystemRegisterID)
+	}
 
-	if &dto.TestCompletionDate != nil {
-		parsed.TestCompletionDate, err = utility.ParseDate(dto.TestCompletionDate)
+	var testCompletionDate *time.Time
+	if formDTO.TestCompletionDate != "" {
+		testCompletionDate, err = utility.ParseDate(formDTO.TestCompletionDate)
 		if err != nil {
-			return nil, utility.NewValidationError(fmt.Errorf("invalid test completion date"), "invalid_date", "test completion date")
+			tx.Rollback()
+			return utility.NewValidationError(fmt.Errorf("invalid test completion date"), "invalid_date", "test completion date")
 		}
 	}
 
-	return parsed, nil
+	existing.TestCompletionDate = testCompletionDate
+	existing.CommunicationFeedbackOptionID = formDTO.CommunicationFeedbackOptionID
+	existing.RecoveryFeedbackOptionID = formDTO.RecoveryFeedbackOptionID
+	existing.TestResultOptionID = formDTO.TestResultOptionID
+
+	if err := tetrs.repo.UpdateTestResultSystemRegister(existing, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (tetrs *TestAndExerciseTestResultService) GetDocumentPath(testAndExerciseID uint, token string) (string, error) {

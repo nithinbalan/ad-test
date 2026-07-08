@@ -221,3 +221,38 @@ func (tetrc *TestAndExerciseTestResultController) DownloadTestAndExerciseTestRes
 	// Serve the file
 	c.File(testResultDocumentPath)
 }
+
+func (tetrc *TestAndExerciseTestResultController) UpdateTestResultSystemRegister(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tetrc.db, c, err.Error())
+		return
+	}
+
+	var formDTO businessContinuityDTOs.TestResultSystemRegisterFormDTO
+	if err := c.ShouldBindJSON(&formDTO); err != nil {
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
+
+	if err := tetrc.service.UpdateTestResultSystemRegister(uint(id), currentUserID, &formDTO); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		case *utility.ValidationError:
+			utility.SendInvalidErrResp(c, e)
+		default:
+			utility.SendInternalErrResp(tetrc.db, c, e.Error())
+		}
+		return
+	}
+
+	c.Status(http.StatusOK)
+}

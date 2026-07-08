@@ -32,6 +32,8 @@ type TestAndExerciseServiceInterface interface {
 	GetTestAndExerciseProcessByID(id uint) (*models.TestAndExerciseProcess, error)
 	GetTestAndExerciseSystemRegisterByID(id uint) (*models.TestAndExerciseSystemRegister, error)
 	ExportTestAndExercise(data []*businessContinuityDTOs.TestAndExerciseListDTO, currentUserID uint) (*os.File, error)
+
+	GetTestResultSummary(testAndExerciseID uint) (*businessContinuityDTOs.TestResultSummaryDTO, error)
 }
 
 // Service and implementations
@@ -223,6 +225,33 @@ func (tes *TestAndExerciseService) Create(currentUserID uint, testAndExerciseFor
 	}
 	if len(testAndExerciseSystemRegisters) > 0 {
 		if err := tes.repo.CreateTestAndExerciseSystemRegisters(testAndExerciseSystemRegisters, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	// Auto-create TestAndExerciseTestResult with one child row per system register
+	testResult := &models.TestAndExerciseTestResult{
+		TestAndExerciseID: id,
+		CreatedBYID:       currentUserID,
+	}
+	testResultID, err := tes.repo.CreateTestAndExerciseTestResult(testResult, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	if len(bcpTestAndExercise.BcpTestAndExerciseSystemRegisters) > 0 {
+		var testResultSystemRegisters []*models.TestAndExerciseTestResultSystemRegister
+		for _, bcpSR := range bcpTestAndExercise.BcpTestAndExerciseSystemRegisters {
+			item := &models.TestAndExerciseTestResultSystemRegister{
+				TestAndExerciseTestResultID: testResultID,
+				SystemRegisterID:            bcpSR.SystemRegisterID,
+				CreatedBYID:                 currentUserID,
+			}
+			testResultSystemRegisters = append(testResultSystemRegisters, item)
+		}
+		if err := tes.repo.CreateTestAndExerciseTestResultSystemRegisters(testResultSystemRegisters, tx); err != nil {
 			tx.Rollback()
 			return 0, err
 		}
@@ -785,4 +814,53 @@ func (tes *TestAndExerciseService) ExportTestAndExercise(data []*businessContinu
 	}
 
 	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (tes *TestAndExerciseService) GetTestResultSummary(testAndExerciseID uint) (*businessContinuityDTOs.TestResultSummaryDTO, error) {
+	items, err := tes.repo.GetTestResultSystemRegistersByTestAndExerciseID(testAndExerciseID)
+	if err != nil {
+		return nil, err
+	}
+
+	optionMap := make(map[uint]*businessContinuityDTOs.TestResultSummaryOptionDTO)
+	var optionOrder []uint
+
+	for _, sr := range items {
+		if sr.TestResultOption == nil {
+			continue
+		}
+		optID := sr.TestResultOption.ID
+		if _, exists := optionMap[optID]; !exists {
+			optionMap[optID] = &businessContinuityDTOs.TestResultSummaryOptionDTO{
+				TitleEn:         sr.TestResultOption.TitleEn,
+				TitleAr:         sr.TestResultOption.TitleAr,
+				ColorCode:       sr.TestResultOption.ColorCode,
+				Type:            sr.TestResultOption.Type,
+				Count:           0,
+				SystemRegisters: []*businessContinuityDTOs.TestResultSummarySystemRegisterDTO{},
+			}
+			optionOrder = append(optionOrder, optID)
+		}
+		opt := optionMap[optID]
+		opt.Count++
+		if sr.SystemRegister != nil {
+			opt.SystemRegisters = append(opt.SystemRegisters, &businessContinuityDTOs.TestResultSummarySystemRegisterDTO{
+				ID:      sr.SystemRegister.ID,
+				TitleEn: sr.SystemRegister.TitleEn,
+				TitleAr: sr.SystemRegister.TitleAr,
+			})
+		}
+	}
+
+	var options []*businessContinuityDTOs.TestResultSummaryOptionDTO
+	for _, id := range optionOrder {
+		options = append(options, optionMap[id])
+	}
+	if options == nil {
+		options = []*businessContinuityDTOs.TestResultSummaryOptionDTO{}
+	}
+
+	return &businessContinuityDTOs.TestResultSummaryDTO{
+		Options: options,
+	}, nil
 }

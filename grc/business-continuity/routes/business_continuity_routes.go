@@ -203,6 +203,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	businessContinuityRoutes.POST("/test-and-exercises/:testAndExerciseId/test-result-analysis", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseTestResultController.CreateTestAndExerciseTestResult)
 	businessContinuityRoutes.PUT("/test-and-exercises/:testAndExerciseId/test-result-analysis", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseTestResultController.UpdateTestAndExerciseTestResult)
 	businessContinuityRoutes.DELETE("/test-and-exercises/:testAndExerciseId/test-result-analysis", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseTestResultController.DeleteTestAndExerciseTestResults)
+	businessContinuityRoutes.GET("/test-and-exercises/:testAndExerciseId/test-result-summary", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "view"), testAndExerciseController.GetTestResultSummary)
+	businessContinuityRoutes.PUT("/test-result-system-registers/:id", middlewares.RolePermissionMiddleware(db, "test_and_exercise", "modify"), testAndExerciseTestResultController.UpdateTestResultSystemRegister)
 
 	// Recovery Action Plan
 	unauthenticatedRoutes.GET("/test-and-exercises/:testAndExerciseId/recovery-action-plans/:actionPlanId/status-updates/:id/document-download", taeRecoveryActionPlanStatusUpdateController.DownloadTaeRecoveryActionPlanStatusUpdateDocument)

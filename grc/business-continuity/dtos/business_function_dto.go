@@ -119,6 +119,7 @@ type BusinessFunctionOverallTestResultDTO struct {
 	Successful       int `json:"successful"`
 	PartiallySuccess int `json:"partially_success"`
 	Failure          int `json:"failure"`
+	NotTested        int `json:"not_tested"`
 	TestPlanned      int `json:"test_planned"`
 	TestExecuted     int `json:"test_executed"`
 	OverallScore     int `json:"overall_score"`

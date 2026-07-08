@@ -244,3 +244,25 @@ func (tec *TestAndExerciseController) GetAllTestAndExerciseExport(c *gin.Context
 
 	tec.GetAllTestAndExercises(c)
 }
+
+func (tec *TestAndExerciseController) GetTestResultSummary(c *gin.Context) {
+	idStr := c.Param("testAndExerciseId")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	summary, err := tec.service.GetTestResultSummary(uint(id))
+	if err != nil {
+		switch err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(tec.db, c, err.Error())
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, summary)
+}
