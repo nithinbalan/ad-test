@@ -57,6 +57,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetEnvironmentController := app.AssetModule.AssetEnvironmentController
 	applicationController := app.AssetModule.ApplicationController
 	slaEscalationMatrixController := app.AssetModule.SLAEscalationMatrixController
+	vulnerabilitySettingsController := app.AssetModule.VulnerabilitySettingsController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -413,4 +414,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/sla-escalation-matrix/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), slaEscalationMatrixController.DeleteMatrices)
 	assetRoutes.PUT("/sla-escalation-matrix/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), slaEscalationMatrixController.ActivateMatrices)
 	assetRoutes.PUT("/sla-escalation-matrix/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), slaEscalationMatrixController.DeactivateMatrices)
+
+	// Vulnerability Settings
+	assetRoutes.GET("/vulnerability-settings", vulnerabilitySettingsController.GetAllVulnerabilitySettings)
+	assetRoutes.PUT("/vulnerability-settings", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"),vulnerabilitySettingsController.UpdateVulnerabilitySettings)
 }
