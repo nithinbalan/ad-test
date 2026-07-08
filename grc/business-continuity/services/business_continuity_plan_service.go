@@ -101,6 +101,12 @@ func (bcps BusinessContinuityPlanService) GetFullDetailsByID(id uint, tx ...util
 		businessContinuityPlan.EquipmentTools = equipmentTools
 	}
 
+	// Load all outage buckets
+	outageBuckets, err := bcps.repo.GetAllOutageBuckets(tx...)
+	if err == nil {
+		businessContinuityPlan.OutageBuckets = outageBuckets
+	}
+
 	// Map the result to your DTO
 	err = mapstructure.Decode(businessContinuityPlan, &businessContinuityPlanDTO)
 	if err != nil {

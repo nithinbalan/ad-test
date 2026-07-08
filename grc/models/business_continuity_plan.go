@@ -41,6 +41,7 @@ type BusinessContinuityPlan struct {
 	BcpRecoveryPlans      []BcpRecoveryPlan      `gorm:"foreignKey:BusinessContinuityPlanID"`
 	BcpCommunicationPlans []BcpCommunicationPlan `gorm:"foreignKey:BusinessContinuityPlanID"`
 	EquipmentTools        []ProcessEquipmentTool `gorm:"-"`
+	OutageBuckets         []BCMBIAOutageBucket   `gorm:"-"`
 	CreatedByUser         *User                  `gorm:"foreignKey:CreatedBYID"`
 	UpdatedByUser         *User                  `gorm:"foreignKey:UpdatedBYID"`
 }

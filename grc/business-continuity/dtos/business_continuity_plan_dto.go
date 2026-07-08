@@ -124,6 +124,7 @@ type BusinessContinuityPlanDetailDTO struct {
 	BcpRecoveryPlans      []*BcpRecoveryPlanDetailDTO                `json:"bcp_recovery_plans"`
 	BcpCommunicationPlans []*BcpCommunicationPlanDetailDTO           `json:"bcp_communication_plans"`
 	EquipmentTools        []organizationDTOs.ProcessEquipmentToolDTO `json:"equipment_tools"`
+	OutageBuckets         []BCMBIAOutageBucketDTO                    `json:"outage_buckets"`
 	CreatedAt             time.Time                                  `json:"created_at"`
 	UpdatedAt             *time.Time                                 `json:"updated_at"`
 	CreatedByUser         organizationDTOs.UserMinimalDTO            `json:"created_by"`
