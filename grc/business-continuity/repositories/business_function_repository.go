@@ -234,6 +234,7 @@ func (repo *BusinessFunctionRepository) GetFullDetailsByID(id uint, tx ...utilit
 		Preload("Processes.Process.MtpdUnit").
 		Preload("Processes.Process.RpoUnit").
 		Preload("Processes.Process.RtoUnit").
+		Preload("Processes.Process.RspUnit").
 		Preload("Processes.Process.ProcessGroup").
 		Preload("Processes.Process.RiskLevel").
 		Preload("Processes.Process.ResponsibleUnit").
