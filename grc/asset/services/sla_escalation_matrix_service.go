@@ -53,7 +53,6 @@ func (sems *SLAEscalationMatrixService) GetByID(id uint) (*models.SLAEscalationM
 }
 
 func (sems *SLAEscalationMatrixService) Create(currentUserID uint, matrix *models.SLAEscalationMatrix) (*models.SLAEscalationMatrix, error) {
-	// Check if severity already has an entry
 	if exists, err := sems.repo.ExistsBySeverityID(matrix.SeverityID); err != nil {
 		return nil, err
 	} else if exists {
@@ -91,7 +90,6 @@ func (sems *SLAEscalationMatrixService) Update(id, currentUserID uint, updatedMa
 		return nil, err
 	}
 
-	// Validate unique severity for update
 	if updatedMatrix.SeverityID != existingMatrix.SeverityID {
 		if exists, err := sems.repo.ExistsBySeverityIDExcludingID(id, updatedMatrix.SeverityID); err != nil {
 			return nil, err

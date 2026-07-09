@@ -105,11 +105,23 @@ func (repo *SLAEscalationMatrixRepository) Create(matrix *models.SLAEscalationMa
 
 func (repo *SLAEscalationMatrixRepository) Update(id uint, updatedMatrix *models.SLAEscalationMatrix) (*models.SLAEscalationMatrix, error) {
 	var matrix models.SLAEscalationMatrix
+
 	if err := repo.db.First(&matrix, id).Error; err != nil {
 		return nil, err
 	}
 
-	if err := repo.db.Model(&matrix).Updates(updatedMatrix).Error; err != nil {
+	if err := repo.db.Model(&matrix).Updates(map[string]interface{}{
+		"severity_id":      updatedMatrix.SeverityID,
+		"remediation_days": updatedMatrix.RemediationDays,
+		"is_email":         updatedMatrix.IsEmail,
+		"is_alert":         updatedMatrix.IsAlert,
+		"role_id":          updatedMatrix.RoleID,
+		"status":           updatedMatrix.Status,
+	}).Error; err != nil {
+		return nil, err
+	}
+
+	if err := repo.db.First(&matrix, id).Error; err != nil {
 		return nil, err
 	}
 
