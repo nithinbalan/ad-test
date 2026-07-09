@@ -982,11 +982,11 @@ func (bcs *BusinessContinuityPlanService) GetTestSummary(bcpID uint) (*businessC
 			switch sr.TestResultOption.Type {
 			case "successful":
 				successful++
-			case "partially_successful":
+			case "partially-successful":
 				partiallySuccess++
 			case "failure":
 				failure++
-			case "not_tested":
+			case "not-tested":
 				notTested++
 			}
 		}

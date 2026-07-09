@@ -94,20 +94,39 @@ func (repo *BiaProcessReviewCommentRepository) GetAll(biaProcessID uint, current
 		return nil, err
 	}
 
-	for _, comment := range comments {
-		var documents []*businessContinuityDTOs.BiaProcessReviewCommentDocumentDTO
+	if len(comments) > 0 {
+		var commentIDs []uint
+		for _, comment := range comments {
+			commentIDs = append(commentIDs, comment.ID)
+		}
+
+		type docWithCommentID struct {
+			BiaProcessReviewCommentID uint `gorm:"column:bia_process_review_comment_id"`
+			businessContinuityDTOs.BiaProcessReviewCommentDocumentDTO
+		}
+		var allDocuments []docWithCommentID
 		err := repo.db.
 			Table("bia_process_review_comment_documents").
-			Select("id, url, name, original_name, token, type, size").
-			Where("bia_process_review_comment_id = ?", comment.ID).
-			Scan(&documents).Error
+			Select("id, bia_process_review_comment_id, url, name, original_name, token, type, size").
+			Where("bia_process_review_comment_id IN ?", commentIDs).
+			Scan(&allDocuments).Error
 		if err != nil {
 			return nil, err
 		}
-		if documents == nil {
-			documents = []*businessContinuityDTOs.BiaProcessReviewCommentDocumentDTO{}
+
+		docMap := make(map[uint][]*businessContinuityDTOs.BiaProcessReviewCommentDocumentDTO)
+		for _, doc := range allDocuments {
+			d := doc.BiaProcessReviewCommentDocumentDTO
+			docMap[doc.BiaProcessReviewCommentID] = append(docMap[doc.BiaProcessReviewCommentID], &d)
 		}
-		comment.Documents = documents
+
+		for _, comment := range comments {
+			if docs, ok := docMap[comment.ID]; ok {
+				comment.Documents = docs
+			} else {
+				comment.Documents = []*businessContinuityDTOs.BiaProcessReviewCommentDocumentDTO{}
+			}
+		}
 	}
 
 	countQuery := repo.db.
@@ -231,5 +250,17 @@ func (repo *BiaProcessReviewCommentRepository) GetDocumentByID(id uint) (*models
 
 func (repo *BiaProcessReviewCommentRepository) DeleteDocuments(documentIDs []*uint, tx ...utility.DatabaseTransaction) error {
 	db := repo.db
-	return db.Where("id IN ?", documentIDs).Delete(&models.BiaProcessReviewCommentDocument{}).Error
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	var ids []uint
+	for _, id := range documentIDs {
+		if id != nil {
+			ids = append(ids, *id)
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	return db.Where("id IN ?", ids).Delete(&models.BiaProcessReviewCommentDocument{}).Error
 }

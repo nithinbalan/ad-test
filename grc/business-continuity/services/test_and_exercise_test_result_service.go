@@ -267,6 +267,7 @@ func (tetrs *TestAndExerciseTestResultService) Update(testAndExerciseId uint, cu
 	existingTestAndExerciseTestResult.TestObservations = testAndExerciseTestResultFormDTO.TestObservations
 	existingTestAndExerciseTestResult.Recommendations = testAndExerciseTestResultFormDTO.Recommendations
 	existingTestAndExerciseTestResult.Findings = testAndExerciseTestResultFormDTO.Findings
+	existingTestAndExerciseTestResult.UpdatedBYID = &currentUserID
 
 	err = tetrs.repo.Update(existingTestAndExerciseTestResult, tx)
 	if err != nil {
