@@ -220,9 +220,11 @@ func (repo *TestAndExerciseRepository) GetFullDetailsByID(id uint, tx ...utility
 		Preload("TestAndExerciseCommunicationActionPlans").
 		Preload("TestAndExerciseStatus").
 		Preload("TestAndExerciseTestResult").
-		Preload("TestAndExerciseTestResult.CommunicationFeedbackOption").
-		Preload("TestAndExerciseTestResult.RecoveryFeedbackOption").
-		Preload("TestAndExerciseTestResult.TestResultOption").
+		Preload("TestAndExerciseTestResult.TestResultSystemRegisters").
+		Preload("TestAndExerciseTestResult.TestResultSystemRegisters.SystemRegister").
+		Preload("TestAndExerciseTestResult.TestResultSystemRegisters.CommunicationFeedbackOption").
+		Preload("TestAndExerciseTestResult.TestResultSystemRegisters.RecoveryFeedbackOption").
+		Preload("TestAndExerciseTestResult.TestResultSystemRegisters.TestResultOption").
 		Preload("CreatedByUser").
 		Preload("UpdatedByUser").
 		First(&TestAndExercise, id)
