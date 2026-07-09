@@ -4,9 +4,12 @@ package dtos
 type SLAEscalationMatrixListDTO struct {
 	ID              uint      `json:"id"`
 
-	SeverityID      uint      `json:"severity_id"`
-	SeverityTitleEn string    `json:"severity_title_en"`
-	SeverityTitleAr string    `json:"severity_title_ar"`
+	SeverityID             uint   `json:"severity_id"`
+	SeverityTitleEn        string `json:"severity_title_en"`
+	SeverityTitleAr        string `json:"severity_title_ar"`
+	SeverityLevelType      string `json:"severity_level_type"`
+	SeverityLevelColorCode string `json:"severity_level_color_code"`
+	SeverityLevelWeight    int    `json:"severity_level_weight"`
 
 	RemediationDays int       `json:"remediation_days"`
 
