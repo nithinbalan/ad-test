@@ -56,6 +56,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	confidentialityClassificationController := app.AssetModule.ConfidentialityClassificationController
 	assetEnvironmentController := app.AssetModule.AssetEnvironmentController
 	applicationController := app.AssetModule.ApplicationController
+	slaEscalationMatrixController := app.AssetModule.SLAEscalationMatrixController
+	vulnerabilitySettingsController := app.AssetModule.VulnerabilitySettingsController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -150,6 +152,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/vulnerabilities/force-delete", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.DeleteForceVulnerabilities)
 	assetRoutes.GET("/assets/:id/vulnerability-summary", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityController.GetVulnerabilitySummary)
 	assetRoutes.GET("/vulnerabilities/export", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityController.GetVulnerabilitiesExport)
+	assetRoutes.PUT("/vulnerabilities/:id/reject", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.RejectVulnerability)
+	assetRoutes.PUT("/vulnerabilities/:id/approve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.ApproveVulnerability)
+
 	// Threat types
 	assetRoutes.GET("/threat-types", threatTypeController.GetAllThreatTypes)
 	assetRoutes.GET("/threat-types/:id", threatTypeController.GetThreatTypeDetails)
@@ -386,7 +391,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/asset-device-categories/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetDeviceCategoryController.DeleteAssetDeviceCategories)
 	assetRoutes.PUT("/asset-device-categories/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetDeviceCategoryController.ActivateAssetDeviceCategories)
 	assetRoutes.PUT("/asset-device-categories/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), assetDeviceCategoryController.DeactivateAssetDeviceCategories)
-  
+
 	// Confidentiality Classification
 	assetRoutes.GET("/confidentiality-classifications", confidentialityClassificationController.GetAllConfidentialityClassifications)
 	assetRoutes.GET("/confidentiality-classifications/:id", confidentialityClassificationController.GetConfidentialityClassificationDetails)
@@ -403,4 +408,17 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/applications/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), applicationController.DeleteApplications)
 	assetRoutes.PUT("/applications/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), applicationController.ActivateApplications)
 	assetRoutes.PUT("/applications/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), applicationController.DeactivateApplications)
+
+	// SLA Escalation Matrix
+	assetRoutes.GET("/sla-escalation-matrix", slaEscalationMatrixController.GetAllMatrices)
+	assetRoutes.GET("/sla-escalation-matrix/:id", slaEscalationMatrixController.GetMatrixDetails)
+	assetRoutes.POST("/sla-escalation-matrix", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), slaEscalationMatrixController.CreateMatrix)
+	assetRoutes.PUT("/sla-escalation-matrix/:id", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), slaEscalationMatrixController.UpdateMatrix)
+	assetRoutes.POST("/sla-escalation-matrix/delete", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), slaEscalationMatrixController.DeleteMatrices)
+	assetRoutes.PUT("/sla-escalation-matrix/activate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), slaEscalationMatrixController.ActivateMatrices)
+	assetRoutes.PUT("/sla-escalation-matrix/deactivate", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), slaEscalationMatrixController.DeactivateMatrices)
+
+	// Vulnerability Settings
+	assetRoutes.GET("/vulnerability-settings", vulnerabilitySettingsController.GetAllVulnerabilitySettings)
+	assetRoutes.PUT("/vulnerability-settings", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), vulnerabilitySettingsController.UpdateVulnerabilitySettings)
 }
