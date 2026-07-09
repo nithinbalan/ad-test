@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
 	"jethur/grc/logs/services"
 	"jethur/grc/models"
@@ -15,7 +16,7 @@ import (
 )
 
 type SLAEscalationMatrixServiceInterface interface {
-	GetAll(sort, sortBy, keyword, status string) ([]*models.SLAEscalationMatrix, error)
+	GetAll(sort, sortBy, keyword, status string) ([]*dtos.SLAEscalationMatrixListDTO, error)
 	GetByID(id uint) (*models.SLAEscalationMatrix, error)
 	Create(currentUserID uint, matrix *models.SLAEscalationMatrix) (*models.SLAEscalationMatrix, error)
 	Update(id, currentUserID uint, matrix *models.SLAEscalationMatrix) (*models.SLAEscalationMatrix, error)
@@ -37,7 +38,7 @@ func NewSLAEscalationMatrixService(repo repositories.SLAEscalationMatrixReposito
 	}
 }
 
-func (sems *SLAEscalationMatrixService) GetAll(sort, sortBy, keyword, status string) ([]*models.SLAEscalationMatrix, error) {
+func (sems *SLAEscalationMatrixService)GetAll(sort, sortBy, keyword, status string) ([]*dtos.SLAEscalationMatrixListDTO, error) {
 	return sems.repo.GetAll(sort, sortBy, keyword, status)
 }
 
