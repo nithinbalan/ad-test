@@ -2,6 +2,7 @@ package routes
 
 import (
 	"jethur/initializers"
+	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
@@ -33,5 +34,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	authRoutes.POST("/auth/callback/microsoft", authController.HandleMicrosoftOAuthCallback)
 
 	// External OAuth Login
-	authRoutes.POST("/external/oauth/login", authController.ExternalLogin)
+	authRoutes.POST("/external/oauth/login", middlewares.ExternalOAuthThrottleMiddleware(), authController.ExternalLogin)
 }

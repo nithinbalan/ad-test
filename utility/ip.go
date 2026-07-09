@@ -6,17 +6,39 @@ import (
 	"strings"
 )
 
-func ValidateExternalClientIP(clientIP string) error {
-	allowedIPs := config.GetEnv("EXTERNAL_ALLOWED_IPS", "")
-	if allowedIPs == "" {
-		return nil // IP allowlisting disabled
-	}
+var (
+	externalAllowedIPSet map[string]bool
+	ipsInitialized       bool
+)
 
-	for _, ip := range strings.Split(allowedIPs, ",") {
-		if strings.TrimSpace(ip) == clientIP {
-			return nil
+func initAllowedIPs() {
+	externalAllowedIPSet = make(map[string]bool)
+
+	allowedIPs := config.GetEnv("EXTERNAL_ALLOWED_IPS", "")
+	if allowedIPs != "" {
+		for _, ip := range strings.Split(allowedIPs, ",") {
+			ip = strings.TrimSpace(ip)
+			if ip != "" {
+				externalAllowedIPSet[ip] = true
+			}
 		}
 	}
 
-	return fmt.Errorf("Access denied from this network.")
+	ipsInitialized = true
+}
+
+func ValidateExternalClientIP(clientIP string) error {
+	if !ipsInitialized {
+		initAllowedIPs()
+	}
+
+	if len(externalAllowedIPSet) == 0 {
+		return nil // IP allowlisting disabled
+	}
+
+	if externalAllowedIPSet[clientIP] {
+		return nil
+	}
+
+	return fmt.Errorf("access denied from this network")
 }

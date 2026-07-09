@@ -25,12 +25,13 @@ func ExternalAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		if tokenString == authHeader {
+		if !strings.HasPrefix(authHeader, "Bearer ") {
 			utility.SendUnauthorizedErrResp(c, "invalid authorization header format")
 			c.Abort()
 			return
 		}
+
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 		claims, err := utility.VerifyExternalToken(tokenString)
 		if err != nil {
