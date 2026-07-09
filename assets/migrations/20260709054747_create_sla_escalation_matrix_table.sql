@@ -22,3 +22,4 @@ CREATE TABLE sla_escalation_matrix (
 -- +goose StatementBegin
 DROP TABLE sla_escalation_matrix;
 -- +goose StatementEnd
+

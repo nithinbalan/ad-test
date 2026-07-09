@@ -33,3 +33,4 @@ VALUES
 -- +goose StatementBegin
 DELETE FROM sla_escalation_matrix;
 -- +goose StatementEnd
+
