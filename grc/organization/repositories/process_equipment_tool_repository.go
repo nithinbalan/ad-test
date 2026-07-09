@@ -36,6 +36,9 @@ func (repo *ProcessEquipmentToolRepository) GetAll(params *dtos.ProcessEquipment
 	if params.Status == "active" || params.Status == "inactive" {
 		query = query.Where("status = ?", params.Status)
 	}
+	if params.Type != "" {
+		query = query.Where("type = ?", params.Type)
+	}
 	if params.SortBy == "" {
 		params.SortBy = "created_at"
 	}
