@@ -2,6 +2,7 @@ package routes
 
 import (
 	"jethur/initializers"
+	"jethur/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,6 +30,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	unauthenticatedRoutes.GET("/login-settings", authController.GetLoginSettings)
 
 	//Azure_AD login
-	authRoutes.GET("/active-directory-settings/login-url",authController.GetLoginURL)
-    authRoutes.POST("/auth/callback/microsoft",authController.HandleMicrosoftOAuthCallback)
+	authRoutes.GET("/active-directory-settings/login-url", authController.GetLoginURL)
+	authRoutes.POST("/auth/callback/microsoft", authController.HandleMicrosoftOAuthCallback)
+
+	// External OAuth Login
+	authRoutes.POST("/external/oauth/login", middlewares.ExternalOAuthThrottleMiddleware(), authController.ExternalLogin)
 }

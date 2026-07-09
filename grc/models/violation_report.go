@@ -28,6 +28,7 @@ type ViolationReport struct {
 	UpdatedBYID                  *uint      `json:"updated_by_id"`
 	CreatedAt                    time.Time  `json:"created_at" gorm:"type:datetime;not null"`
 	UpdatedAt                    *time.Time `gorm:"type:datetime"`
+	IsExternal                   bool       `json:"is_external"`
 
 	ViolationReportChannel     *ViolationReportChannel     `gorm:"foreignKey:ViolationReportChannelID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT"`
 	ViolationReportCategory    *ViolationReportCategory    `gorm:"foreignKey:ViolationReportCategoryID;constraint:OnUpdate:RESTRICT,OnDelete:RESTRICT"`

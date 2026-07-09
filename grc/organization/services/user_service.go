@@ -82,6 +82,7 @@ type UserServiceInterface interface {
 
 	GetUsersByOrganizationUnit(departmentUnitID uint) ([]*models.User, error)
 	IsSuperAdmin(userID uint) (bool, error)
+	GetSuperAdmin(tx ...utility.DatabaseTransaction) (*models.User, error)
 }
 
 type UserService struct {
@@ -2763,4 +2764,17 @@ func (us *UserService) SyncAzureGroups() ([]map[string]interface{}, error) {
 
 func (us *UserService) IsSuperAdmin(userID uint) (bool, error) {
 	return us.repo.IsSuperAdmin(userID)
+}
+
+func (us *UserService) GetSuperAdmin(tx ...utility.DatabaseTransaction) (*models.User, error) {
+	user, err := us.repo.GetSuperAdmin(tx...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utility.NewResourceNotFoundError(err, "super-admin")
+		}
+
+		return nil, err
+	}
+
+	return user, nil
 }

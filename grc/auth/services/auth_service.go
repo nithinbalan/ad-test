@@ -7,12 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"jethur/config"
 	authDTOs "jethur/grc/auth/dtos"
 	commonDTOs "jethur/grc/common/dtos"
-	settingsDTOs "jethur/grc/settings/dtos"
 	commonService "jethur/grc/common/services"
 	"jethur/grc/models"
 	"jethur/grc/organization/services"
+	settingsDTOs "jethur/grc/settings/dtos"
 	settingService "jethur/grc/settings/services"
 	"jethur/utility"
 
@@ -38,6 +39,7 @@ type AuthServiceInterface interface {
 	GetLoginSettings() (*authDTOs.LoginSettingsDTO, error)
 	GenerateMicrosoftLoginURL() (string, error)
 	HandleOAuthCallback(ctx context.Context, code string, state string) (*authDTOs.LoginResponseDTO, error)
+	GenerateExternalToken(formDTO authDTOs.ExternalOAuthTokenFormDTO, clientIP string) (*authDTOs.ExternalOAuthTokenResponseDTO, error)
 }
 
 // Service and implementations
@@ -70,7 +72,7 @@ func NewAuthService(
 		activeDirectorySettingSvc: activeDirectorySettingSvc,
 		integrationSvc:            integrationSvc,
 		systemPrefSvc:             systemPrefSvc,
-		brandingSvc:               brandingSvc,	
+		brandingSvc:               brandingSvc,
 	}
 }
 
@@ -830,3 +832,29 @@ func (as *AuthService) HandleOAuthCallback(ctx context.Context, code string, sta
 // 		IsMFAEnabled: false,
 // 	}, nil
 // }
+
+func (service *AuthService) GenerateExternalToken(formDTO authDTOs.ExternalOAuthTokenFormDTO, clientIP string) (*authDTOs.ExternalOAuthTokenResponseDTO, error) {
+
+	if err := utility.ValidateExternalClientIP(clientIP); err != nil {
+		return nil, utility.NewForbiddenError(err.Error())
+	}
+
+	clientID := config.GetEnv("EXTERNAL_OAUTH_CLIENT_ID", "")
+	clientSecret := config.GetEnv("EXTERNAL_OAUTH_CLIENT_SECRET", "")
+
+	if formDTO.ClientID != clientID ||
+		formDTO.ClientSecret != clientSecret {
+		return nil, errors.New("invalid client credentials")
+	}
+
+	token, err := utility.GenerateExternalToken(clientID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &authDTOs.ExternalOAuthTokenResponseDTO{
+		AccessToken: token,
+		TokenType:   "Bearer",
+		ExpiresIn:   int(utility.ExternalAccessTokenDuration.Seconds()),
+	}, nil
+}

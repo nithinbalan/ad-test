@@ -64,6 +64,7 @@ type UserRepositoryInterface interface {
 
 	GetUsersByOrganizationUnit(primaryOrgUnitField string, departmentUnitID uint) ([]*models.User, error)
 	IsSuperAdmin(userID uint) (bool, error)
+	GetSuperAdmin(tx ...utility.DatabaseTransaction) (*models.User, error)
 }
 
 type UserRepository struct {
@@ -1094,4 +1095,26 @@ func (repo *UserRepository) IsSuperAdmin(userID uint) (bool, error) {
 		Where("user_roles.user_id = ? AND roles.is_super_admin = ?", userID, true).
 		Count(&count).Error
 	return count > 0, err
+}
+
+func (repo *UserRepository) GetSuperAdmin(tx ...utility.DatabaseTransaction) (*models.User, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var user models.User
+
+	err := db.
+		Model(&models.User{}).
+		Joins("INNER JOIN user_roles ur ON ur.user_id = users.id").
+		Joins("INNER JOIN roles r ON r.id = ur.role_id").
+		Where("r.type = ?", "super-admin").
+		First(&user).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
