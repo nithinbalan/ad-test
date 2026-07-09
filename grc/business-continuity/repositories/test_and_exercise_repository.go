@@ -35,6 +35,11 @@ type TestAndExerciseRepositoryInterface interface {
 
 	CreateTestAndExerciseCommunicationActionPlans(bcpCommunicationActionPlans []*models.TestAndExerciseCommunicationActionPlan, tx ...utility.DatabaseTransaction) error
 	DeleteTestAndExerciseCommunicationActionPlans(bcpCommunicationActionPlanIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreateTestAndExerciseTestResult(testResult *models.TestAndExerciseTestResult, tx ...utility.DatabaseTransaction) (uint, error)
+	CreateTestAndExerciseTestResultSystemRegisters(items []*models.TestAndExerciseTestResultSystemRegister, tx ...utility.DatabaseTransaction) error
+
+	GetTestResultSystemRegistersByTestAndExerciseID(testAndExerciseID uint) ([]*models.TestAndExerciseTestResultSystemRegister, error)
 }
 
 type TestAndExerciseRepository struct {
@@ -338,6 +343,45 @@ func (repo *TestAndExerciseRepository) DeleteTestAndExerciseCommunicationActionP
 		return err
 	}
 
+	return nil
+}
+
+func (repo *TestAndExerciseRepository) CreateTestAndExerciseTestResult(testResult *models.TestAndExerciseTestResult, tx ...utility.DatabaseTransaction) (uint, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(testResult).Error; err != nil {
+		return 0, err
+	}
+	return testResult.ID, nil
+}
+
+func (repo *TestAndExerciseRepository) GetTestResultSystemRegistersByTestAndExerciseID(testAndExerciseID uint) ([]*models.TestAndExerciseTestResultSystemRegister, error) {
+	var items []*models.TestAndExerciseTestResultSystemRegister
+
+	result := repo.db.
+		Joins("JOIN test_and_exercise_test_results ON test_and_exercise_test_results.id = test_and_exercise_test_result_system_registers.test_and_exercise_test_result_id").
+		Where("test_and_exercise_test_results.test_and_exercise_id = ?", testAndExerciseID).
+		Preload("SystemRegister").
+		Preload("TestResultOption").
+		Find(&items)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return items, nil
+}
+
+func (repo *TestAndExerciseRepository) CreateTestAndExerciseTestResultSystemRegisters(items []*models.TestAndExerciseTestResultSystemRegister, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&items).Error; err != nil {
+		return err
+	}
 	return nil
 }
 

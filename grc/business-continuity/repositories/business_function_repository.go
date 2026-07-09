@@ -234,6 +234,7 @@ func (repo *BusinessFunctionRepository) GetFullDetailsByID(id uint, tx ...utilit
 		Preload("Processes.Process.MtpdUnit").
 		Preload("Processes.Process.RpoUnit").
 		Preload("Processes.Process.RtoUnit").
+		Preload("Processes.Process.RspUnit").
 		Preload("Processes.Process.ProcessGroup").
 		Preload("Processes.Process.RiskLevel").
 		Preload("Processes.Process.ResponsibleUnit").
@@ -360,7 +361,8 @@ func (repo *BusinessFunctionRepository) GetTestAndExercisesByBcpID(bcpID uint) (
 
 	result := repo.db.
 		Preload("TestAndExerciseTestResult").
-		Preload("TestAndExerciseTestResult.TestResultOption").
+		Preload("TestAndExerciseTestResult.TestResultSystemRegisters").
+		Preload("TestAndExerciseTestResult.TestResultSystemRegisters.TestResultOption").
 		Where("business_continuity_plan_id = ?", bcpID).
 		Find(&testAndExercises)
 

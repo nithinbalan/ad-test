@@ -163,6 +163,25 @@ type TestAndExerciseCommunicationActionPlanDTO struct {
 	Channel           *string                            `json:"channel"`
 }
 
+type TestResultSummarySystemRegisterDTO struct {
+	ID      uint   `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
+}
+
+type TestResultSummaryOptionDTO struct {
+	TitleEn         string                                `json:"title_en"`
+	TitleAr         string                                `json:"title_ar"`
+	ColorCode       string                                `json:"color_code"`
+	Type            string                                `json:"type"`
+	Count           int                                   `json:"count"`
+	SystemRegisters []*TestResultSummarySystemRegisterDTO `json:"system_registers"`
+}
+
+type TestResultSummaryDTO struct {
+	Options []*TestResultSummaryOptionDTO `json:"options"`
+}
+
 type TestAndExerciseSystemRegisterDTO struct {
 	ID                *uint                              `json:"id"`
 	TestAndExerciseID uint                               `json:"test_and_exercise_id"`

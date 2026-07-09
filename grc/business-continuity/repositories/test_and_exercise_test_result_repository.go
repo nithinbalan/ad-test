@@ -20,6 +20,10 @@ type TestAndExerciseTestResultRepositoryInterface interface {
 	CreateDocuments(docs []*models.TestAndExerciseTestResultDocument, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.TestAndExerciseTestResultDocument, error)
 	DeleteDocuments(docIds []*uint, tx ...utility.DatabaseTransaction) error
+
+	CreateTestResultSystemRegisters(items []*models.TestAndExerciseTestResultSystemRegister, tx ...utility.DatabaseTransaction) error
+	GetTestResultSystemRegisterByID(id uint) (*models.TestAndExerciseTestResultSystemRegister, error)
+	UpdateTestResultSystemRegister(item *models.TestAndExerciseTestResultSystemRegister, tx ...utility.DatabaseTransaction) error
 }
 
 type TestAndExerciseTestResultRepository struct {
@@ -82,12 +86,13 @@ func (repo *TestAndExerciseTestResultRepository) GetFullDetailsByID(testAndExerc
 		Preload("TestAndExercise.TestAndExerciseSystemRegisters.ActualMtpdUnit").
 		Preload("TestAndExercise.TestAndExerciseSystemRegisters.ActualRpoUnit").
 		Preload("TestAndExercise.TestAndExerciseSystemRegisters.Timeliness").
-		Preload("CommunicationFeedbackOption").
-		Preload("RecoveryFeedbackOption").
-		Preload("TestResultOption").
 		Preload("Documents").
+		Preload("TestResultSystemRegisters").
+		Preload("TestResultSystemRegisters.SystemRegister").
+		Preload("TestResultSystemRegisters.CommunicationFeedbackOption").
+		Preload("TestResultSystemRegisters.RecoveryFeedbackOption").
+		Preload("TestResultSystemRegisters.TestResultOption").
 		Preload("CreatedByUser").
-		Preload("UpdatedByUser").
 		First(&testAndExerciseTestResult)
 
 	if result.Error != nil {
@@ -187,5 +192,35 @@ func (repo *TestAndExerciseTestResultRepository) DeleteDocuments(docIds []*uint,
 		return err
 	}
 
+	return nil
+}
+
+func (repo *TestAndExerciseTestResultRepository) CreateTestResultSystemRegisters(items []*models.TestAndExerciseTestResultSystemRegister, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Create(&items).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *TestAndExerciseTestResultRepository) GetTestResultSystemRegisterByID(id uint) (*models.TestAndExerciseTestResultSystemRegister, error) {
+	var item models.TestAndExerciseTestResultSystemRegister
+	if err := repo.db.First(&item, id).Error; err != nil {
+		return nil, err
+	}
+	return &item, nil
+}
+
+func (repo *TestAndExerciseTestResultRepository) UpdateTestResultSystemRegister(item *models.TestAndExerciseTestResultSystemRegister, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+	if err := db.Save(item).Error; err != nil {
+		return err
+	}
 	return nil
 }

@@ -596,7 +596,7 @@ func (bfs *BusinessFunctionService) GetTestResults(businessFunctionID uint) (*bu
 	}
 
 	// Initialize counters
-	var successful, partiallySuccess, failure, testPlanned, testExecuted int
+	var successful, partiallySuccess, failure, notTested, testPlanned, testExecuted int
 
 	// Get test results from the latest BCP
 	if businessFunction.LatestBusinessContinuityPlan != nil {
@@ -612,39 +612,43 @@ func (bfs *BusinessFunctionService) GetTestResults(businessFunctionID uint) (*bu
 		if err != nil {
 			return nil, err
 		}
+		testExecuted = len(executedTests)
 
 		for _, testExercise := range executedTests {
-			fmt.Println("testExercise", testExercise)
-			if testExercise == nil {
+			if testExercise == nil || testExercise.TestAndExerciseTestResult == nil {
 				continue
 			}
 
-			if testExercise.TestAndExerciseTestResult != nil && testExercise.TestAndExerciseTestResult.TestResultOption != nil {
-				fmt.Println("testExercise.TestAndExerciseTestResult.TestResultOption.Type", testExercise.TestAndExerciseTestResult.TestResultOption.Type)
-				testExecuted++
-				switch testExercise.TestAndExerciseTestResult.TestResultOption.Type {
+			for _, sr := range testExercise.TestAndExerciseTestResult.TestResultSystemRegisters {
+				if sr.TestResultOption == nil {
+					continue
+				}
+				switch sr.TestResultOption.Type {
 				case "successful":
 					successful++
-				case "partially_successful":
+				case "partially-successful":
 					partiallySuccess++
 				case "failure":
 					failure++
+				case "not-tested":
+					notTested++
 				}
 			}
 		}
 	}
 
-	// Calculate overall score
-	totalTests := successful + partiallySuccess + failure
+	// Calculate overall score (excluding not_tested from denominator)
+	totalTested := successful + partiallySuccess + failure
 	overallScore := 0
-	if totalTests > 0 {
-		overallScore = (successful * 100) / totalTests
+	if totalTested > 0 {
+		overallScore = (successful * 100) / totalTested
 	}
 
 	return &businessContinuityDTOs.BusinessFunctionOverallTestResultDTO{
 		Successful:       successful,
 		PartiallySuccess: partiallySuccess,
 		Failure:          failure,
+		NotTested:        notTested,
 		TestPlanned:      testPlanned,
 		TestExecuted:     testExecuted,
 		OverallScore:     overallScore,

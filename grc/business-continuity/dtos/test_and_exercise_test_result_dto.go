@@ -9,16 +9,20 @@ import (
 )
 
 type TestAndExerciseTestResultFormDTO struct {
-	TestCompletionDate             string                                   `json:"test_completion_date" binding:"required"`
-	CommunicationFeedbackOptionID  uint                                     `json:"communication_feedback_option_id" binding:"required"`
-	RecoveryFeedbackOptionID       uint                                     `json:"recovery_feedback_option_id" binding:"required"`
-	TestResultOptionID             uint                                     `json:"test_result_option_id" binding:"required"`
 	TestObservations               *string                                  `json:"test_observations"`
 	Recommendations                *string                                  `json:"recommendations"`
 	Findings                       *string                                  `json:"findings"`
 	TestAndExerciseProcesses       []*TestAndExerciseProcessesFormDTO       `json:"test_and_exercise_processes" binding:"required"`
 	TestAndExerciseSystemRegisters []*TestAndExerciseSystemRegistersFormDTO `json:"test_and_exercise_system_registers" binding:"required"`
 	Documents                      []*commonDTOs.DocumentFormDTO            `json:"documents" binding:"omitempty"`
+}
+
+type TestResultSystemRegisterFormDTO struct {
+	ID                            uint   `json:"id" binding:"required"`
+	TestCompletionDate            string `json:"test_completion_date"`
+	CommunicationFeedbackOptionID uint   `json:"communication_feedback_option_id"`
+	RecoveryFeedbackOptionID      uint   `json:"recovery_feedback_option_id"`
+	TestResultOptionID            uint   `json:"test_result_option_id"`
 }
 
 type TestAndExerciseProcessesFormDTO struct {
@@ -34,23 +38,28 @@ type TestAndExerciseProcessesFormDTO struct {
 }
 
 type TestAndExerciseTestResultDetailDTO struct {
-	ID                            uint                                    `json:"id"`
-	TestAndExercise               TestAndExerciseDetailDTO                `json:"test_and_exercise"`
-	TestCompletionDateString      string                                  `json:"test_completion_date"`
-	CommunicationFeedbackOptionID uint                                    `json:"communication_feedback_option_id"`
-	RecoveryFeedbackOptionID      uint                                    `json:"recovery_feedback_option_id"`
-	TestResultOptionID            uint                                    `json:"test_result_option_id"`
-	TestObservations              *string                                 `json:"test_observations"`
-	Recommendations               *string                                 `json:"recommendations"`
-	Findings                      *string                                 `json:"findings"`
-	CommunicationFeedbackOption   FeedbackOptionDTO                       `json:"communication_feedback_option"`
-	RecoveryFeedbackOption        FeedbackOptionDTO                       `json:"recovery_feedback_option"`
-	TestResultOption              TestResultOptionDTO                     `json:"test_result_option"`
-	Documents                     []*TestAndExerciseTestResultDocumentDTO `json:"documents" gorm:"-"`
-	CreatedAt                     time.Time                               `json:"created_at"`
-	UpdatedAt                     *time.Time                              `json:"updated_at"`
-	CreatedByUser                 organizationDTOs.UserMinimalDTO         `json:"created_by_user"`
-	UpdatedByUser                 *organizationDTOs.UserMinimalDTO        `json:"updated_by_user"`
+	ID                        uint                                    `json:"id"`
+	TestAndExercise           TestAndExerciseDetailDTO                `json:"test_and_exercise"`
+	TestObservations          *string                                 `json:"test_observations"`
+	Recommendations           *string                                 `json:"recommendations"`
+	Findings                  *string                                 `json:"findings"`
+	Documents                 []*TestAndExerciseTestResultDocumentDTO `json:"documents" gorm:"-"`
+	TestResultSystemRegisters []*TestResultSystemRegisterDetailDTO    `json:"test_result_system_registers"`
+	CreatedAt                 time.Time                               `json:"created_at"`
+	UpdatedAt                 *time.Time                              `json:"updated_at"`
+	CreatedByUser             organizationDTOs.UserMinimalDTO         `json:"created_by_user"`
+}
+
+type TestResultSystemRegisterDetailDTO struct {
+	ID                            uint                `json:"id"`
+	SystemRegister                SystemRegisterDTO   `json:"system_register"`
+	TestCompletionDateString      string              `json:"test_completion_date"`
+	CommunicationFeedbackOptionID uint                `json:"communication_feedback_option_id"`
+	RecoveryFeedbackOptionID      uint                `json:"recovery_feedback_option_id"`
+	TestResultOptionID            uint                `json:"test_result_option_id"`
+	CommunicationFeedbackOption   FeedbackOptionDTO   `json:"communication_feedback_option"`
+	RecoveryFeedbackOption        FeedbackOptionDTO   `json:"recovery_feedback_option"`
+	TestResultOption              TestResultOptionDTO `json:"test_result_option"`
 }
 
 type TestAndExerciseProcessDetailsDTO struct {

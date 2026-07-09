@@ -53,6 +53,8 @@ type BusinessImpactAssessmentService struct {
 	bcmBiaOutageBucketSvc     BCMBIAOutageBucketServiceInterface
 	bcmImpactAnalysisLevelSvc BCMImpactAnalysisLevelServiceInterface
 	bcmStaffAllocationSvc     BCMStaffAllocationServiceInterface
+	biaProcessSvc             BiaProcessServiceInterface
+	biaProcessWorkflowSvc     BiaProcessWorkflowServiceInterface
 }
 
 func NewBusinessImpactAssessmentService(
@@ -70,6 +72,8 @@ func NewBusinessImpactAssessmentService(
 	bcmBiaOutageBucketSvc BCMBIAOutageBucketServiceInterface,
 	bcmImpactAnalysisLevelSvc BCMImpactAnalysisLevelServiceInterface,
 	bcmStaffAllocationSvc BCMStaffAllocationServiceInterface,
+	biaProcessSvc BiaProcessServiceInterface,
+	biaProcessWorkflowSvc BiaProcessWorkflowServiceInterface,
 ) BusinessImpactAssessmentServiceInterface {
 	return &BusinessImpactAssessmentService{
 		repo:                      repo,
@@ -86,6 +90,8 @@ func NewBusinessImpactAssessmentService(
 		bcmBiaOutageBucketSvc:     bcmBiaOutageBucketSvc,
 		bcmImpactAnalysisLevelSvc: bcmImpactAnalysisLevelSvc,
 		bcmStaffAllocationSvc:     bcmStaffAllocationSvc,
+		biaProcessSvc:             biaProcessSvc,
+		biaProcessWorkflowSvc:     biaProcessWorkflowSvc,
 	}
 }
 
@@ -339,6 +345,13 @@ func (bias *BusinessImpactAssessmentService) UpdateImpactAnalysis(businessImpact
 	}
 
 	tx.Commit()
+
+	// Create BiaProcess record if not exists
+	if businessImpactAssessmentFormDTO.ProcessID != nil {
+		if err := bias.biaProcessSvc.CreateIfNotExists(*businessImpactAssessmentFormDTO.ProcessID, currentUserID); err != nil {
+			return err
+		}
+	}
 
 	// Auto-generate staff allocations when process is critical (OverallImpactLevelID is not non_applicable)
 	if businessImpactAssessmentFormDTO.ProcessID != nil && businessImpactAssessmentFormDTO.OverallImpactLevelID != nil {
@@ -674,6 +687,19 @@ func (bias *BusinessImpactAssessmentService) Delete(ids []uint, currentUserID ui
 			"id":    id,
 			"title": process.TitleEn,
 		})
+
+		// Delete BiaProcess workflows, histories, review comments, then BiaProcess itself
+		biaProcess, biaProcessErr := bias.biaProcessSvc.GetByProcessID(id, tx)
+		if biaProcessErr == nil && biaProcess != nil {
+			if err := bias.biaProcessWorkflowSvc.DeleteAllWorkflowsForBiaProcess(biaProcess.ID, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+			if err := bias.biaProcessSvc.DeleteByProcessID(id, tx); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
 
 		// Delete BusinessImpactAssessmentRating first
 		if err := bias.repo.DeleteBusinessImpactAssessmentRatingByProcessID(id, tx); err != nil {

@@ -43,6 +43,10 @@ type BusinessContinuityModule struct {
 	BCMBIAOutageBucketController                     *controllers.BCMBIAOutageBucketController
 	BCMBIAImpactLevelController                      *controllers.BCMBIAImpactLevelController
 	BCMStaffAllocationController                     *controllers.BCMStaffAllocationController
+	BiaProcessController                             *controllers.BiaProcessController
+	BiaProcessReviewController                       *controllers.BiaProcessReviewController
+	BiaProcessWorkflowController                     *controllers.BiaProcessWorkflowController
+	BiaProcessReviewCommentController                *controllers.BiaProcessReviewCommentController
 
 	BusinessFunctionSvc                  services.BusinessFunctionServiceInterface
 	BcpTeamSvc                           services.BcpTeamServiceInterface
@@ -90,7 +94,49 @@ func NewBusinessContinuityModule(db *gorm.DB,
 	bcmStaffAllocationSvc := services.NewBCMStaffAllocationService(bcmStaffAllocationRepo, sharedModule.ActivityLogService)
 	bcmStaffAllocationController := controllers.NewBCMStaffAllocationController(bcmStaffAllocationSvc)
 
-	businessImpactAssessmentSvc := services.NewBusinessImpactAssessmentService(businessImpactAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, masterModule.ImpactCategorySvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, documentModule.DocumentSvc, organizationModule.ProcessDependencySvc, riskModule.RiskLevelSvc, organizationModule.UserSettingSvc, bcmBiaImpactLevelSvc, bcmBiaOutageBucketSvc, bcmImpactAnalysisLevelSvc, bcmStaffAllocationSvc)
+	biaProcessRepo := repositories.NewBiaProcessRepository(db)
+	biaProcessSvc := services.NewBiaProcessService(biaProcessRepo)
+
+	biaProcessReviewRepo := repositories.NewBiaProcessReviewRepository(db)
+	biaProcessWorkflowRepo := repositories.NewBiaProcessWorkflowRepository(db)
+	biaProcessReviewCommentRepo := repositories.NewBiaProcessReviewCommentRepository(db)
+
+	biaProcessWorkflowSvc := services.NewBiaProcessWorkflowService(
+		biaProcessWorkflowRepo,
+		biaProcessReviewRepo,
+		sharedModule.ActivityLogService,
+		settingsModule.WorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		masterModule.WorkflowContextSvc,
+	)
+	biaProcessWorkflowSvc.SetBiaProcessService(biaProcessSvc)
+	biaProcessWorkflowController := controllers.NewBiaProcessWorkflowController(biaProcessWorkflowSvc)
+
+	biaProcessReviewSvc := services.NewBiaProcessReviewService(
+		biaProcessReviewRepo,
+		sharedModule.ActivityLogService,
+		biaProcessSvc,
+		biaProcessWorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+		organizationModule.ProcessSvc,
+	)
+	biaProcessReviewController := controllers.NewBiaProcessReviewController(biaProcessReviewSvc)
+
+	biaProcessReviewCommentSvc := services.NewBiaProcessReviewCommentService(
+		biaProcessReviewCommentRepo,
+		organizationModule.UserSvc,
+		sharedModule.ActivityLogService,
+		biaProcessSvc,
+		masterModule.CommentStatusSvc,
+	)
+	biaProcessReviewCommentController := controllers.NewBiaProcessReviewCommentController(biaProcessReviewCommentSvc)
+
+	biaProcessController := controllers.NewBiaProcessController(biaProcessSvc)
+
+	businessImpactAssessmentSvc := services.NewBusinessImpactAssessmentService(businessImpactAssessmentRepo, sharedModule.ActivityLogService, organizationModule.UserSvc, masterModule.ImpactCategorySvc, organizationModule.ProcessSvc, assetModule.AssetRegisterSvc, documentModule.DocumentSvc, organizationModule.ProcessDependencySvc, riskModule.RiskLevelSvc, organizationModule.UserSettingSvc, bcmBiaImpactLevelSvc, bcmBiaOutageBucketSvc, bcmImpactAnalysisLevelSvc, bcmStaffAllocationSvc, biaProcessSvc, biaProcessWorkflowSvc)
 	businessImpactAssessmentController := controllers.NewBusinessImpactAssessmentController(businessImpactAssessmentSvc, organizationModule.ProcessAssociatedItemSvc, organizationModule.ProcessDependencySvc, organizationModule.ProcessSvc)
 
 	bcpStatusRepo := repositories.NewBcpStatusRepository(db)
@@ -248,6 +294,10 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		BCMBIAOutageBucketController:                     bcmBiaOutageBucketController,
 		BCMBIAImpactLevelController:                      bcmBiaImpactLevelController,
 		BCMStaffAllocationController:                     bcmStaffAllocationController,
+		BiaProcessController:                             biaProcessController,
+		BiaProcessReviewController:                       biaProcessReviewController,
+		BiaProcessWorkflowController:                     biaProcessWorkflowController,
+		BiaProcessReviewCommentController:                biaProcessReviewCommentController,
 
 		BusinessFunctionSvc:                  businessFunctionSvc,
 		BcpTeamSvc:                           bcpTeamSvc,

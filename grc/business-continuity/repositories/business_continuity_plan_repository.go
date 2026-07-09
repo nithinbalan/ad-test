@@ -607,7 +607,8 @@ func (repo *BusinessContinuityPlanRepository) GetTestAndExercisesByBcpID(bcpID u
 
 	result := repo.db.
 		Preload("TestAndExerciseTestResult").
-		Preload("TestAndExerciseTestResult.TestResultOption").
+		Preload("TestAndExerciseTestResult.TestResultSystemRegisters").
+		Preload("TestAndExerciseTestResult.TestResultSystemRegisters.TestResultOption").
 		Where("business_continuity_plan_id = ?", bcpID).
 		Find(&testAndExercises)
 
