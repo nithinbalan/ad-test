@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"time"
 
 	"jethur/grc/asset/dtos"
 	"jethur/grc/asset/repositories"
@@ -61,9 +60,6 @@ func (sems *SLAEscalationMatrixService) Create(currentUserID uint, matrix *model
 		return nil, utility.NewValidationError(fmt.Errorf("this severity level already has an SLA entry"), "unique", "severity_id")
 	}
 
-	matrix.CreatedByID = currentUserID
-	matrix.CreatedAt = time.Now()
-
 	createdMatrix, err := sems.repo.Create(matrix)
 	if err != nil {
 		return nil, err
@@ -109,7 +105,7 @@ func (sems *SLAEscalationMatrixService) Update(id, currentUserID uint, updatedMa
 		return nil, err
 	}
 
-	fieldsToCompare := []string{"SeverityID", "RemediationDays", "IsEmail", "IsAlert", "EscalationLevelID", "Status"}
+	fieldsToCompare := []string{"SeverityID", "RemediationDays", "IsEmail", "IsAlert", "RoleID", "Status"}
 	changes, err := utility.CompareFields(existingMatrix, updatedMatrix, fieldsToCompare)
 	if err != nil {
 		log.Println("error :", err.Error())

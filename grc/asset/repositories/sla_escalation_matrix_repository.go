@@ -45,42 +45,21 @@ func (repo *SLAEscalationMatrixRepository) GetAll(sort, sortBy, keyword, status 
 			sla_escalation_matrix.role_id,
 			roles.title_en AS role_title_en,
 			roles.title_ar AS role_title_ar,
-			sla_escalation_matrix.status,
-			created_user.id AS created_by_id,
-			created_user.first_name_en AS created_by_first_name_en,
-			created_user.first_name_ar AS created_by_first_name_ar,
-			created_user.last_name_en AS created_by_last_name_en,
-			created_user.last_name_ar AS created_by_last_name_ar,
-			created_user.initial AS created_by_initial,
-			created_user.color AS created_by_color,
-			created_user.email AS created_by_email,
-			created_user.profile_image_path AS created_by_profile_image_path,
-			sla_escalation_matrix.created_at
+			sla_escalation_matrix.status
 		`).
 		Joins("LEFT JOIN severity_levels ON severity_levels.id = sla_escalation_matrix.severity_id").
-		Joins("LEFT JOIN roles ON roles.id = sla_escalation_matrix.role_id").
-		Joins("LEFT JOIN users AS created_user ON created_user.id = sla_escalation_matrix.created_by_id")
+		Joins("LEFT JOIN roles ON roles.id = sla_escalation_matrix.role_id")
 
-	// Keyword filter
 	if keyword != "" {
 		keyword = "%" + keyword + "%"
+
 		query = query.Where(`
 			sla_escalation_matrix.status LIKE ? OR
 			severity_levels.title_en LIKE ? OR
 			severity_levels.title_ar LIKE ? OR
 			roles.title_en LIKE ? OR
-			roles.title_ar LIKE ? OR
-			created_user.first_name_en LIKE ? OR
-			created_user.first_name_ar LIKE ? OR
-			created_user.last_name_en LIKE ? OR
-			created_user.last_name_ar LIKE ? OR
-			created_user.email LIKE ?
+			roles.title_ar LIKE ?
 		`,
-			keyword,
-			keyword,
-			keyword,
-			keyword,
-			keyword,
 			keyword,
 			keyword,
 			keyword,
@@ -103,8 +82,7 @@ func (repo *SLAEscalationMatrixRepository) GetAll(sort, sortBy, keyword, status 
 
 	query = query.Order(sortBy + " " + sort)
 
-	err := query.Find(&matrices).Error
-	if err != nil {
+	if err := query.Find(&matrices).Error; err != nil {
 		return nil, err
 	}
 
