@@ -37,8 +37,8 @@ func (repo *SLAEscalationMatrixRepository) GetAll(sort, sortBy, keyword, status 
 		Select(`
 			sla_escalation_matrix.id,
 			sla_escalation_matrix.severity_id,
-			severity_levels.title_en AS severity_title_en,
-			severity_levels.title_ar AS severity_title_ar,
+			severity_levels.title_en AS severity_level_title_en,
+			severity_levels.title_ar AS severity_level_title_ar,
 			severity_levels.type AS severity_level_type,
 			severity_levels.color_code AS severity_level_color_code,
 			severity_levels.weight AS severity_level_weight,
