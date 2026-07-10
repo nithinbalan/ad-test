@@ -18,7 +18,6 @@ type TestAndExerciseTestResultFormDTO struct {
 }
 
 type TestResultSystemRegisterFormDTO struct {
-	ID                            uint   `json:"id" binding:"required"`
 	TestCompletionDate            string `json:"test_completion_date"`
 	CommunicationFeedbackOptionID uint   `json:"communication_feedback_option_id"`
 	RecoveryFeedbackOptionID      uint   `json:"recovery_feedback_option_id"`
