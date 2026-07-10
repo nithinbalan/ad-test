@@ -51,7 +51,7 @@ type TestAndExerciseTestResultDetailDTO struct {
 
 type TestResultSystemRegisterDetailDTO struct {
 	ID                            uint                `json:"id"`
-	SystemRegister                SystemRegisterDTO   `json:"system_register"`
+	SystemRegister                SystemDTO           `json:"system_register"`
 	TestCompletionDateString      string              `json:"test_completion_date"`
 	CommunicationFeedbackOptionID uint                `json:"communication_feedback_option_id"`
 	RecoveryFeedbackOptionID      uint                `json:"recovery_feedback_option_id"`
@@ -111,4 +111,10 @@ type TestAndExerciseTestResultDocumentDTO struct {
 	Token        string `json:"token"`
 	OriginalName string `json:"original_name"`
 	Type         string `json:"type"`
+}
+
+type SystemDTO struct {
+	ID      uint   `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
 }
