@@ -11,7 +11,7 @@ type SLAEscalationMatrixRepositoryInterface interface {
 	GetAll(sort, sortBy, keyword, status string) ([]*dtos.SLAEscalationMatrixListDTO, error)
 	GetByID(id uint) (*models.SLAEscalationMatrix, error)
 	Create(matrix *models.SLAEscalationMatrix) (*models.SLAEscalationMatrix, error)
-	Update(id uint, matrix *models.SLAEscalationMatrix) (*models.SLAEscalationMatrix, error)
+	Update(matrix *models.SLAEscalationMatrix) error
 	Delete(id uint) error
 
 	Activate(ids []uint) ([]uint, error)
@@ -103,29 +103,12 @@ func (repo *SLAEscalationMatrixRepository) Create(matrix *models.SLAEscalationMa
 	return matrix, result.Error
 }
 
-func (repo *SLAEscalationMatrixRepository) Update(id uint, updatedMatrix *models.SLAEscalationMatrix) (*models.SLAEscalationMatrix, error) {
-	var matrix models.SLAEscalationMatrix
-
-	if err := repo.db.First(&matrix, id).Error; err != nil {
-		return nil, err
+func (repo *SLAEscalationMatrixRepository) Update(matrix *models.SLAEscalationMatrix) error {
+	db := repo.db
+	if err := db.Save(matrix).Error; err != nil {
+		return err
 	}
-
-	if err := repo.db.Model(&matrix).Updates(map[string]interface{}{
-		"severity_id":      updatedMatrix.SeverityID,
-		"remediation_days": updatedMatrix.RemediationDays,
-		"is_email":         updatedMatrix.IsEmail,
-		"is_alert":         updatedMatrix.IsAlert,
-		"role_id":          updatedMatrix.RoleID,
-		"status":           updatedMatrix.Status,
-	}).Error; err != nil {
-		return nil, err
-	}
-
-	if err := repo.db.First(&matrix, id).Error; err != nil {
-		return nil, err
-	}
-
-	return &matrix, nil
+	return nil
 }
 
 func (repo *SLAEscalationMatrixRepository) Delete(id uint) error {
