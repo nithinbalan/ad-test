@@ -88,7 +88,7 @@ func (repo *TestAndExerciseTestResultRepository) GetFullDetailsByID(testAndExerc
 		Preload("TestAndExercise.TestAndExerciseSystemRegisters.Timeliness").
 		Preload("Documents").
 		Preload("TestResultSystemRegisters").
-		Preload("TestResultSystemRegisters.SystemRegister.SystemRegister").
+		Preload("TestResultSystemRegisters.SystemRegister").
 		Preload("TestResultSystemRegisters.CommunicationFeedbackOption").
 		Preload("TestResultSystemRegisters.RecoveryFeedbackOption").
 		Preload("TestResultSystemRegisters.TestResultOption").
