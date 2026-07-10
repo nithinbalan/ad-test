@@ -49,6 +49,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetControlAnalysisController := app.AssetModule.AssetControlAnalysisController
 	assetKriController := app.AssetModule.AssetKriController
 	tenableController := app.AssetModule.TenableController
+	qualysKBController := app.AssetModule.QualysController
 	systemRegisterDisruptionLevelController := app.AssetModule.SystemRegisterDisruptionLevelController
 	systemRegisterServiceImportanceController := app.AssetModule.SystemRegisterServiceImportanceController
 	systemRegisterController := app.AssetModule.SystemRegisterController
@@ -356,6 +357,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("/tenable/assets", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), tenableController.GetAllAssets)
 	assetRoutes.POST("/tenable/assets/validate", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableController.ValidateTenableAssets)
 	assetRoutes.POST("/tenable/assets/import", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableController.ImportAssets)
+
+	//qualys knowledge base
+	assetRoutes.GET("/qualys/:qid", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), qualysKBController.GetKBDetailsByQID)
 
 	// System Register Disruption Levels
 	assetRoutes.GET("/system-register-disruption-levels", systemRegisterDisruptionLevelController.GetAllSystemRegisterDisruptionLevels)

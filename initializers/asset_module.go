@@ -41,6 +41,7 @@ type AssetModule struct {
 	AssetControlAnalysisController                *controllers.AssetControlAnalysisController
 	AssetKriController                            *controllers.AssetKriController
 	TenableController                             *controllers.TenableController
+	QualysController                              *controllers.QualysController
 	SystemRegisterDisruptionLevelController       *controllers.SystemRegisterDisruptionLevelController
 	SystemRegisterServiceImportanceController     *controllers.SystemRegisterServiceImportanceController
 	AssetDeviceCategoryController                 *controllers.AssetDeviceCategoryController
@@ -130,7 +131,7 @@ func NewAssetModule(db *gorm.DB,
 	vulnerabilityStatusController := controllers.NewVulnerabilityStatusController(vulnerabilityStatusSvc)
 
 	vulnerabilityRepo := repositories.NewVulnerabilityRepository(db)
-	vulnerabilitySvc := services.NewVulnerabilityService(vulnerabilityRepo, sharedModule.ActivityLogService, vulnerabilityTypeSvc, masterModule.SeverityLevelSvc, vulnerabilityStatusSvc, organizationModule.UserSvc, organizationModule.UserSettingSvc,vulnerabilityStatusSvc,vulnerabilitySettingsSvc)
+	vulnerabilitySvc := services.NewVulnerabilityService(vulnerabilityRepo, sharedModule.ActivityLogService, vulnerabilityTypeSvc, masterModule.SeverityLevelSvc, vulnerabilityStatusSvc, organizationModule.UserSvc, organizationModule.UserSettingSvc, vulnerabilityStatusSvc, vulnerabilitySettingsSvc)
 	vulnerabilityController := controllers.NewVulnerabilityController(vulnerabilitySvc)
 
 	threatTypeRepo := repositories.NewThreatTypeRepository(db)
@@ -291,6 +292,10 @@ func NewAssetModule(db *gorm.DB,
 	tenableSvc := services.NewTenableService(tenableRepo, assetStatusSvc, settingsModule.TenableSettingsSvc, assetCategorySvc, organizationModule.UserSvc, assetRegisterSvc, assetSubCategorySvc)
 	tenableController := controllers.NewTenableController(tenableSvc)
 
+	qualysRepo := repositories.NewQualysRepository()
+	qualysSvc := services.NewQualysService(qualysRepo, settingsModule.QualysSettingSvc)
+	qualysController := controllers.NewQualysController(qualysSvc)
+
 	systemRegisterDisruptionLevelRepo := repositories.NewSystemRegisterDisruptionLevelRepository(db)
 	systemRegisterDisruptionLevelSvc := services.NewSystemRegisterDisruptionLevelService(systemRegisterDisruptionLevelRepo, sharedModule.ActivityLogService)
 	systemRegisterDisruptionLevelController := controllers.NewSystemRegisterDisruptionLevelController(systemRegisterDisruptionLevelSvc)
@@ -344,6 +349,7 @@ func NewAssetModule(db *gorm.DB,
 		AssetControlAnalysisController:                assetControlAnalysisController,
 		AssetKriController:                            assetKriController,
 		TenableController:                             tenableController,
+		QualysController:                              qualysController,
 		SystemRegisterDisruptionLevelController:       systemRegisterDisruptionLevelController,
 		SystemRegisterServiceImportanceController:     systemRegisterServiceImportanceController,
 		SystemRegisterController:                      systemRegisterController,
