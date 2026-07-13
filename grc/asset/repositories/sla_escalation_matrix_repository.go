@@ -48,10 +48,14 @@ func (repo *SLAEscalationMatrixRepository) GetAll(sort, sortBy, keyword, status 
 			sla_escalation_matrix.role_id,
 			roles.title_en AS role_title_en,
 			roles.title_ar AS role_title_ar,
+			sla_escalation_matrix.notifiying_role_id,
+			notifying_roles.title_en AS notifiying_role_title_en,
+			notifying_roles.title_ar AS notifiying_role_title_ar,
 			sla_escalation_matrix.status
 		`).
 		Joins("LEFT JOIN severity_levels ON severity_levels.id = sla_escalation_matrix.severity_id").
-		Joins("LEFT JOIN roles ON roles.id = sla_escalation_matrix.role_id")
+		Joins("LEFT JOIN roles ON roles.id = sla_escalation_matrix.role_id").
+		Joins("LEFT JOIN roles AS notifying_roles ON notifying_roles.id = sla_escalation_matrix.notifiying_role_id")
 
 	if keyword != "" {
 		keyword = "%" + keyword + "%"
