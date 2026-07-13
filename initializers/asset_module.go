@@ -50,6 +50,7 @@ type AssetModule struct {
 	ApplicationController                         *controllers.ApplicationController
 	SLAEscalationMatrixController                 *controllers.SLAEscalationMatrixController
 	VulnerabilitySettingsController               *controllers.VulnerabilitySettingsController
+	AssetRiskRegisterController                   *controllers.AssetRiskRegisterController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -130,7 +131,7 @@ func NewAssetModule(db *gorm.DB,
 	vulnerabilityStatusController := controllers.NewVulnerabilityStatusController(vulnerabilityStatusSvc)
 
 	vulnerabilityRepo := repositories.NewVulnerabilityRepository(db)
-	vulnerabilitySvc := services.NewVulnerabilityService(vulnerabilityRepo, sharedModule.ActivityLogService, vulnerabilityTypeSvc, masterModule.SeverityLevelSvc, vulnerabilityStatusSvc, organizationModule.UserSvc, organizationModule.UserSettingSvc,vulnerabilityStatusSvc,vulnerabilitySettingsSvc)
+	vulnerabilitySvc := services.NewVulnerabilityService(vulnerabilityRepo, sharedModule.ActivityLogService, vulnerabilityTypeSvc, masterModule.SeverityLevelSvc, vulnerabilityStatusSvc, organizationModule.UserSvc, organizationModule.UserSettingSvc, vulnerabilityStatusSvc, vulnerabilitySettingsSvc)
 	vulnerabilityController := controllers.NewVulnerabilityController(vulnerabilitySvc)
 
 	threatTypeRepo := repositories.NewThreatTypeRepository(db)
@@ -311,6 +312,10 @@ func NewAssetModule(db *gorm.DB,
 	slaEscalationMatrixSvc := services.NewSLAEscalationMatrixService(slaEscalationMatrixRepo, sharedModule.ActivityLogService)
 	slaEscalationMatrixController := controllers.NewSLAEscalationMatrixController(slaEscalationMatrixSvc)
 
+	assetRiskRegisterRepo := repositories.NewAssetRiskRegisterRepository(db)
+	assetRiskRegisterSvc := services.NewAssetRiskRegisterService(assetRiskRegisterRepo, settingsModule.OrganizationUnitSvc, organizationModule.UserSvc, assetRegisterSvc, vulnerabilitySvc, sharedModule.ActivityLogService)
+	assetRiskReigsterController := controllers.NewAssetRiskRegisterController(assetRiskRegisterSvc)
+
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
 		AssetCategoryController:                       assetCategoryController,
@@ -353,6 +358,7 @@ func NewAssetModule(db *gorm.DB,
 		ApplicationController:                         applicationController,
 		SLAEscalationMatrixController:                 slaEscalationMatrixController,
 		VulnerabilitySettingsController:               vulnerabilitySettingsController,
+		AssetRiskRegisterController:                   assetRiskReigsterController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}

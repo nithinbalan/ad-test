@@ -56,6 +56,12 @@ type RiskRegister struct {
 	IsExternal               bool       `json:"is_external" gorm:"not null;default:false"`
 	RiskRegisterUpdatePlanID *uint      `json:"risk_register_update_plan_id" gorm:"default:null"`
 
+	IsCyberRisk          bool    `json:"is_cyber_risk" gorm:"not null;default:false"`
+	Justification        *string `json:"justification" gorm:"type:nvarchar(max);default:null"`
+	ConfidentialityScore *int    `json:"confidentiality_score" gorm:"default:null"`
+	IntegrityScore       *int    `json:"integrity_score" gorm:"default:null"`
+	AvailabilityScore    *int    `json:"availability_score" gorm:"default:null"`
+
 	// Relationships
 	RiskCategory            *RiskCategory              `gorm:"foreignKey:RiskCategoryID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
 	RiskSource              *RiskSource                `gorm:"foreignKey:RiskSourceID;constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION"`
@@ -96,6 +102,7 @@ type RiskRegister struct {
 	AssociatedDocuments    []*RiskAssociatedDocument    `gorm:"foreignKey:RiskRegisterID"`
 	Assets                 []*RiskAsset                 `gorm:"foreignKey:RiskRegisterID"`
 	Threats                []*RiskThreat                `gorm:"foreignKey:RiskRegisterID"`
+	Vulnerabilities        []*RiskVulnerability         `gorm:"foreignKey:RiskRegisterID"`
 	AuditableItems         []*AuditableItem             `gorm:"foreignKey:RiskRegisterID"`
 	ActionPlans            []*RiskActionPlan            `gorm:"foreignKey:RiskRegisterID"`
 	RiskWorkflows          []*RiskWorkflow              `gorm:"foreignKey:RiskRegisterID"`

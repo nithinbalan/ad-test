@@ -58,6 +58,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	applicationController := app.AssetModule.ApplicationController
 	slaEscalationMatrixController := app.AssetModule.SLAEscalationMatrixController
 	vulnerabilitySettingsController := app.AssetModule.VulnerabilitySettingsController
+	assetRiskRegisterController := app.AssetModule.AssetRiskRegisterController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -421,4 +422,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Vulnerability Settings
 	assetRoutes.GET("/vulnerability-settings", vulnerabilitySettingsController.GetAllVulnerabilitySettings)
 	assetRoutes.PUT("/vulnerability-settings", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), vulnerabilitySettingsController.UpdateVulnerabilitySettings)
+
+	// Asset Risk Register
+	assetRoutes.GET("/asset-risk-register", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskRegisterController.GetAllAssetRiskRegisters)
+	assetRoutes.GET("/asset-risk-register/:id", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskRegisterController.GetAssetRiskRegisterDetails)
+	assetRoutes.POST("/asset-risk-register", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRegisterController.CreateAssetRiskRegister)
+	assetRoutes.PUT("/asset-risk-register/:id", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRegisterController.UpdateAssetRiskRegister)
+	assetRoutes.POST("/asset-risk-register/delete", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRegisterController.DeleteAssetRiskRegisters)
 }
