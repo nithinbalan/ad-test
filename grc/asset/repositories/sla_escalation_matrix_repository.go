@@ -19,6 +19,7 @@ type SLAEscalationMatrixRepositoryInterface interface {
 
 	ExistsBySeverityID(severityID uint) (bool, error)
 	ExistsBySeverityIDExcludingID(id uint, severityID uint) (bool, error)
+	GetActiveEscalationBySeverityID(severityID uint) (*models.SLAEscalationMatrix, error)
 }
 
 type SLAEscalationMatrixRepository struct {
@@ -180,4 +181,16 @@ func (repo *SLAEscalationMatrixRepository) Deactivate(ids []uint) ([]uint, error
 	}
 
 	return idsToUpdate, nil
+}
+
+func (repo *SLAEscalationMatrixRepository) GetActiveEscalationBySeverityID(severityID uint) (*models.SLAEscalationMatrix, error) {
+	var matrix models.SLAEscalationMatrix
+	err := repo.db.
+		Where("severity_id = ? AND status = ?", severityID, "active").
+		First(&matrix).
+		Error
+	if err != nil {
+		return nil, err
+	}
+	return &matrix, nil
 }
