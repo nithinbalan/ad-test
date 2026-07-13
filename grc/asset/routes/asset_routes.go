@@ -154,6 +154,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("/vulnerabilities/export", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityController.GetVulnerabilitiesExport)
 	assetRoutes.PUT("/vulnerabilities/:id/reject", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.RejectVulnerability)
 	assetRoutes.PUT("/vulnerabilities/:id/approve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.ApproveVulnerability)
+	assetRoutes.PUT("/vulnerabilities/:id/deferred", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.DeferVulnerability)
+	assetRoutes.POST("/vulnerability-remediation/:id",middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.CreateVulnerabilityRemediation)
 
 	// Threat types
 	assetRoutes.GET("/threat-types", threatTypeController.GetAllThreatTypes)

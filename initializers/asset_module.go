@@ -130,7 +130,7 @@ func NewAssetModule(db *gorm.DB,
 	vulnerabilityStatusController := controllers.NewVulnerabilityStatusController(vulnerabilityStatusSvc)
 
 	vulnerabilityRepo := repositories.NewVulnerabilityRepository(db)
-	vulnerabilitySvc := services.NewVulnerabilityService(vulnerabilityRepo, sharedModule.ActivityLogService, vulnerabilityTypeSvc, masterModule.SeverityLevelSvc, vulnerabilityStatusSvc, organizationModule.UserSvc, organizationModule.UserSettingSvc,vulnerabilityStatusSvc,vulnerabilitySettingsSvc)
+	vulnerabilitySvc := services.NewVulnerabilityService(vulnerabilityRepo, sharedModule.ActivityLogService, vulnerabilityTypeSvc, masterModule.SeverityLevelSvc, vulnerabilityStatusSvc, organizationModule.UserSvc, organizationModule.UserSettingSvc,vulnerabilityStatusSvc,vulnerabilitySettingsSvc,organizationModule.ControlSvc,commonModule.NotificationService)
 	vulnerabilityController := controllers.NewVulnerabilityController(vulnerabilitySvc)
 
 	threatTypeRepo := repositories.NewThreatTypeRepository(db)
