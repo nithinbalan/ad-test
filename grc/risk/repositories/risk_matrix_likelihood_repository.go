@@ -10,7 +10,7 @@ import (
 
 // Interfaces
 type RiskMatrixLikelihoodRepositoryInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixLikelihoodDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, matrixType string) ([]*riskDTOs.RiskMatrixLikelihoodDTO, error)
 	GetByID(id uint) (*models.RiskMatrixLikelihood, error)
 	Create(likelihood *models.RiskMatrixLikelihood) (uint, error)
 	Update(likelihood *models.RiskMatrixLikelihood) error
@@ -32,7 +32,7 @@ func NewRiskMatrixLikelihoodRepository(db *gorm.DB) *RiskMatrixLikelihoodReposit
 	}
 }
 
-func (repo *RiskMatrixLikelihoodRepository) GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixLikelihoodDTO, error) {
+func (repo *RiskMatrixLikelihoodRepository) GetAll(sort string, sortBy string, keyword string, status string, matrixType string) ([]*riskDTOs.RiskMatrixLikelihoodDTO, error) {
 	var likelihoods []*riskDTOs.RiskMatrixLikelihoodDTO
 
 	query := repo.db.Table("risk_matrix_likelihoods").
@@ -41,6 +41,8 @@ func (repo *RiskMatrixLikelihoodRepository) GetAll(sort string, sortBy string, k
 		Joins(`
 		    LEFT JOIN risk_matrix ON risk_matrix.id = risk_matrix_likelihoods.risk_matrix_id
 		`)
+
+	query = query.Where("risk_matrix.type = ?", matrixType)
 
 	if keyword != "" {
 		query = query.Where(`
