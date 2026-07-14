@@ -45,10 +45,13 @@ func (bcpc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *g
 		}
 	}
 
+	quickFilter := c.QueryArray("quick_filter")
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"business_function_ids",
 		"responsible_user_ids",
+		"bcp_status_ids",
 	}
 	validSortFields := map[string]string{
 		"id":                      "id",
@@ -76,13 +79,14 @@ func (bcpc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *g
 		return
 	}
 	queryParams := businessContinuityDTOs.BusinessContinuityPlanListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortField,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		Filters:  filters,
-		Export:   export,
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+		Export:      export,
 	}
 	businessContinuityPlans, err := bcpc.service.GetAll(&queryParams)
 

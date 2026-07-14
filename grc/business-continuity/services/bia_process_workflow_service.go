@@ -1,6 +1,8 @@
 package services
 
 import (
+	"fmt"
+
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
 	businessContinuityRepositories "jethur/grc/business-continuity/repositories"
 	logSvc "jethur/grc/logs/services"
@@ -36,14 +38,17 @@ type BiaProcessWorkflowServiceInterface interface {
 }
 
 type BiaProcessWorkflowService struct {
-	repo               businessContinuityRepositories.BiaProcessWorkflowRepositoryInterface
-	reviewRepo         businessContinuityRepositories.BiaProcessReviewRepositoryInterface
-	activityLogSvc     logSvc.ActivityLogServiceInterface
-	workflowSvc        settingsSvc.WorkflowServiceInterface
-	workflowStatusSvc  masterSvc.WorkflowStatusServiceInterface
-	userSvc            organizationSvc.UserServiceInterface
-	biaProcessSvc      BiaProcessServiceInterface
-	workflowContextSvc masterSvc.WorkflowContextServiceInterface
+	repo                 businessContinuityRepositories.BiaProcessWorkflowRepositoryInterface
+	reviewRepo           businessContinuityRepositories.BiaProcessReviewRepositoryInterface
+	activityLogSvc       logSvc.ActivityLogServiceInterface
+	workflowSvc          settingsSvc.WorkflowServiceInterface
+	workflowStatusSvc    masterSvc.WorkflowStatusServiceInterface
+	userSvc              organizationSvc.UserServiceInterface
+	biaProcessSvc        BiaProcessServiceInterface
+	workflowContextSvc   masterSvc.WorkflowContextServiceInterface
+	organizationUnitsSvc organizationSvc.OrganizationUnitsServiceInterface
+	settingsOrgUnitSvc   settingsSvc.OrganizationUnitServiceInterface
+	processSvc           organizationSvc.ProcessServiceInterface
 }
 
 func NewBiaProcessWorkflowService(
@@ -54,15 +59,21 @@ func NewBiaProcessWorkflowService(
 	workflowStatusSvc masterSvc.WorkflowStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
 	workflowContextSvc masterSvc.WorkflowContextServiceInterface,
+	organizationUnitsSvc organizationSvc.OrganizationUnitsServiceInterface,
+	settingsOrgUnitSvc settingsSvc.OrganizationUnitServiceInterface,
+	processSvc organizationSvc.ProcessServiceInterface,
 ) BiaProcessWorkflowServiceInterface {
 	return &BiaProcessWorkflowService{
-		repo:               repo,
-		reviewRepo:         reviewRepo,
-		activityLogSvc:     activityLogSvc,
-		workflowSvc:        workflowSvc,
-		workflowStatusSvc:  workflowStatusSvc,
-		userSvc:            userSvc,
-		workflowContextSvc: workflowContextSvc,
+		repo:                 repo,
+		reviewRepo:           reviewRepo,
+		activityLogSvc:       activityLogSvc,
+		workflowSvc:          workflowSvc,
+		workflowStatusSvc:    workflowStatusSvc,
+		userSvc:              userSvc,
+		workflowContextSvc:   workflowContextSvc,
+		organizationUnitsSvc: organizationUnitsSvc,
+		settingsOrgUnitSvc:   settingsOrgUnitSvc,
+		processSvc:           processSvc,
 	}
 }
 
@@ -188,6 +199,54 @@ func (svc *BiaProcessWorkflowService) CreateBiaProcessWorkflow(biaProcessID uint
 				if err := svc.createWorkflowParticipant(userID, workflowID, &participant, currentUserID, tx...); err != nil {
 					return err
 				}
+			} else if participant.WorkflowCustomRole != nil {
+				switch participant.WorkflowCustomRole.Type {
+				case "department_head":
+					biaProcess, err := svc.biaProcessSvc.GetByID(biaProcessID, tx...)
+					if err != nil {
+						return err
+					}
+					process, err := svc.processSvc.GetByID(biaProcess.ProcessID, tx...)
+					if err != nil {
+						return err
+					}
+					if process.ResponsibleUnitID == 0 {
+						return fmt.Errorf("responsible unit not found for this BIA process")
+					}
+					deptHead, err := svc.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(process.ResponsibleUnitID)
+					if err != nil {
+						return err
+					}
+					if deptHead.HeadUser == nil {
+						return utility.NewForbiddenError("Department head is not assigned for the responsible unit")
+					}
+					userID := uint(deptHead.HeadUser.ID)
+					if err = svc.createWorkflowParticipant(userID, workflowID, &participant, currentUserID, tx...); err != nil {
+						return err
+					}
+				}
+			} else if participant.Unit != nil {
+				unitDetails, err := svc.settingsOrgUnitSvc.GetFullDetailsByID(uint(participant.Unit.ID))
+				if err != nil {
+					return err
+				}
+				deptHead, err := svc.organizationUnitsSvc.GetParentOrganizationUnitAndCurrentUnitHead(uint(participant.Unit.ID))
+				if err != nil {
+					return err
+				}
+				if deptHead.HeadUser == nil {
+					return utility.NewForbiddenError(
+						fmt.Sprintf(
+							"No head has been assigned to the %s '%s'. Please assign a head and try again.",
+							unitDetails.OrganizationLevel.TitleEn,
+							unitDetails.TitleEn,
+						),
+					)
+				}
+				userID := uint(deptHead.HeadUser.ID)
+				if err = svc.createWorkflowParticipant(userID, workflowID, &participant, currentUserID, tx...); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -202,6 +261,9 @@ func (svc *BiaProcessWorkflowService) createWorkflowParticipant(userID uint, bia
 	}
 	if participant.Role != nil {
 		workflowParticipant.RoleID = &participant.Role.ID
+	}
+	if participant.WorkflowCustomRole != nil {
+		workflowParticipant.CustomRoleID = &participant.WorkflowCustomRole.ID
 	}
 	return svc.repo.CreateBiaProcessWorkflowParticipant(workflowParticipant, tx...)
 }

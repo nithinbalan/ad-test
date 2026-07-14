@@ -13,6 +13,7 @@ import (
 	logServices "jethur/grc/logs/services"
 	masterServices "jethur/grc/masters/services"
 	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
 	organizationServices "jethur/grc/organization/services"
 	riskServices "jethur/grc/risk/services"
 	"jethur/utility"
@@ -34,6 +35,7 @@ type BusinessImpactAssessmentServiceInterface interface {
 	GetBIAMatrix(params *businessContinuityDTOs.BIAMatrixQueryParamsDTO) ([]businessContinuityDTOs.BIAMatrixResponseDTO, error)
 
 	ExportBiaMatrix(data []businessContinuityDTOs.BIAMatrixResponseDTO, currentUserID uint) (*os.File, error)
+	ExportBia(data []*organizationDTOs.ProcessListDTO, currentUserID uint) (*os.File, error)
 	GetCriticalSystems() ([]*businessContinuityDTOs.CriticalSystemListDTO, error)
 }
 
@@ -876,6 +878,120 @@ func (bias *BusinessImpactAssessmentService) ExportBiaMatrix(data []businessCont
 			}
 		}
 	}
+	return utility.GenerateExcelFile(headers, rows)
+}
+
+func (bias *BusinessImpactAssessmentService) ExportBia(data []*organizationDTOs.ProcessListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := bias.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Title",
+			"Impact Analysis Level",
+			"RTO",
+			"MTPD",
+			"RPO",
+			"RSP",
+			"Last Assessed At",
+			"Last Assessed By",
+			"Created At",
+			"Created By",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Title",
+			"Impact Analysis Level",
+			"RTO",
+			"MTPD",
+			"RPO",
+			"RSP",
+			"Last Assessed At",
+			"Last Assessed By",
+			"Created At",
+			"Created By",
+		}
+	}
+
+	formatRange := func(fromValue *int, toValue *int, condition *string, unitTitle *string) string {
+		if fromValue == nil && toValue == nil {
+			return ""
+		}
+		unit := utility.GetStringValue(unitTitle)
+		cond := ""
+		if condition != nil {
+			cond = *condition
+		}
+		switch cond {
+		case "exact":
+			if fromValue != nil {
+				return utility.GetIntValueAsString(*fromValue) + " " + unit
+			}
+		case "range":
+			if fromValue != nil && toValue != nil {
+				return utility.GetIntValueAsString(*fromValue) + "-" + utility.GetIntValueAsString(*toValue) + " " + unit
+			}
+			if fromValue != nil {
+				return utility.GetIntValueAsString(*fromValue) + " " + unit
+			}
+		case "less_than":
+			if fromValue != nil {
+				return utility.GetIntValueAsString(*fromValue) + " " + unit + " or less"
+			}
+		case "greater_than":
+			if fromValue != nil {
+				return utility.GetIntValueAsString(*fromValue) + "+ " + unit
+			}
+		}
+		if fromValue != nil {
+			return utility.GetIntValueAsString(*fromValue) + " " + unit
+		}
+		return ""
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, process := range data {
+		lastAssessedAt := ""
+		if process.LastAssessedAt != nil {
+			lastAssessedAt = process.LastAssessedAt.Format("2006-01-02")
+		}
+		createdAt := process.CreatedAt.Format("2006-01-02")
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				process.TitleAr,
+				utility.GetStringValue(process.ImpactAnalysisLevelTitleAr),
+				formatRange(process.RtoFromValue, process.RtoToValue, process.RtoCondition, process.RtoUnitTitleAr),
+				formatRange(process.MtpdFromValue, process.MtpdToValue, process.MtpdCondition, process.MtpdUnitTitleAr),
+				formatRange(process.RpoFromValue, process.RpoToValue, process.RpoCondition, process.RpoUnitTitleAr),
+				formatRange(process.RspFromValue, process.RspToValue, process.RspCondition, process.RspUnitTitleAr),
+				lastAssessedAt,
+				fmt.Sprintf("%s %s", utility.GetStringValue(process.LastAssessedUserFirstNameAr), utility.GetStringValue(process.LastAssessedUserLastNameAr)),
+				createdAt,
+				fmt.Sprintf("%s %s", process.CreatedUserFirstNameAr, process.CreatedUserLastNameAr),
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				process.TitleEn,
+				utility.GetStringValue(process.ImpactAnalysisLevelTitleEn),
+				formatRange(process.RtoFromValue, process.RtoToValue, process.RtoCondition, process.RtoUnitTitleEn),
+				formatRange(process.MtpdFromValue, process.MtpdToValue, process.MtpdCondition, process.MtpdUnitTitleEn),
+				formatRange(process.RpoFromValue, process.RpoToValue, process.RpoCondition, process.RpoUnitTitleEn),
+				formatRange(process.RspFromValue, process.RspToValue, process.RspCondition, process.RspUnitTitleEn),
+				lastAssessedAt,
+				fmt.Sprintf("%s %s", utility.GetStringValue(process.LastAssessedUserFirstNameEn), utility.GetStringValue(process.LastAssessedUserLastNameEn)),
+				createdAt,
+				fmt.Sprintf("%s %s", process.CreatedUserFirstNameEn, process.CreatedUserLastNameEn),
+			}
+		}
+	}
+
 	return utility.GenerateExcelFile(headers, rows)
 }
 

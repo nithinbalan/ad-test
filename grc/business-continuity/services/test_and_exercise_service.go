@@ -778,37 +778,63 @@ func (tes *TestAndExerciseService) ExportTestAndExercise(data []*businessContinu
 		headers = []string{
 			"SL No.",
 			"Reference Number",
-			"Title",
+			"Test Name",
+			"Comment",
 			"Business Function",
+			"Responsible User",
 			"Testing Date",
+			"Status",
+			"Created Date",
+			"Created By",
 		}
 	} else {
 		headers = []string{
 			"SL No.",
 			"Reference Number",
-			"Title",
+			"Test Name",
+			"Comment",
 			"Business Function",
+			"Responsible User",
 			"Testing Date",
+			"Status",
+			"Created Date",
+			"Created By",
 		}
 	}
 
 	rows := make([][]interface{}, len(data))
 	for i, testAndExercise := range data {
+		createdDate := testAndExercise.CreatedAt
+		if t, err := time.Parse(time.RFC3339, testAndExercise.CreatedAt); err == nil {
+			createdDate = t.Format("2006-01-02")
+		} else if t, err := time.Parse("2006-01-02T15:04:05.999Z", testAndExercise.CreatedAt); err == nil {
+			createdDate = t.Format("2006-01-02")
+		}
 		if userSetting.Language == "ar" {
 			rows[i] = []interface{}{
 				i + 1,
 				testAndExercise.ReferenceNumber,
 				testAndExercise.BcpTestAndExerciseTitle,
+				utility.GetStringValue(testAndExercise.Description),
 				testAndExercise.BusinessFunctionTitle,
+				fmt.Sprintf("%s %s", utility.GetStringValue(testAndExercise.ResponsibleUserFirstNameAr), utility.GetStringValue(testAndExercise.ResponsibleUserLastNameAr)),
 				testAndExercise.TestingDate,
+				testAndExercise.TestAndExerciseStatusTitleAr,
+				createdDate,
+				fmt.Sprintf("%s %s", testAndExercise.CreatedUserFirstNameAr, testAndExercise.CreatedUserLastNameAr),
 			}
 		} else {
 			rows[i] = []interface{}{
 				i + 1,
 				testAndExercise.ReferenceNumber,
 				testAndExercise.BcpTestAndExerciseTitle,
+				utility.GetStringValue(testAndExercise.Description),
 				testAndExercise.BusinessFunctionTitle,
+				fmt.Sprintf("%s %s", utility.GetStringValue(testAndExercise.ResponsibleUserFirstNameEn), utility.GetStringValue(testAndExercise.ResponsibleUserLastNameEn)),
 				testAndExercise.TestingDate,
+				testAndExercise.TestAndExerciseStatusTitleEn,
+				createdDate,
+				fmt.Sprintf("%s %s", testAndExercise.CreatedUserFirstNameEn, testAndExercise.CreatedUserLastNameEn),
 			}
 		}
 	}

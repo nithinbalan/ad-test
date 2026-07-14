@@ -45,9 +45,13 @@ func (tec *TestAndExerciseController) GetAllTestAndExercises(c *gin.Context) {
 		}
 	}
 
+	quickFilter := c.QueryArray("quick_filter")
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"responsible_user_ids",
+		"system_register_ids",
+		"test_and_exercise_status_ids",
 	}
 	validSortFields := map[string]string{
 		"title":                          "bcp_test_and_exercises.title",
@@ -78,13 +82,14 @@ func (tec *TestAndExerciseController) GetAllTestAndExercises(c *gin.Context) {
 		return
 	}
 	queryParams := businessContinuityDTOs.TestAndExerciseListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortField,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		Filters:  filters,
-		Export:   export,
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+		Export:      export,
 	}
 	testAndExercises, err := tec.service.GetAll(&queryParams)
 
