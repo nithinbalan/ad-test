@@ -25,6 +25,8 @@ type AssetRiskRegisterServiceInterface interface {
 	Create(currentUserID uint, dto *assetRiskDTOs.AssetRiskRegisterFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, dto *assetRiskDTOs.AssetRiskRegisterFormDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+
+	GetRiskStatusByType(status string, tx ...utility.DatabaseTransaction) (*models.RiskStatus, error)
 }
 
 type AssetRiskRegisterService struct {
@@ -92,14 +94,13 @@ func (arrs AssetRiskRegisterService) GetFullDetailsByID(id uint, tx ...utility.D
 }
 
 func (arrs *AssetRiskRegisterService) Create(currentUserID uint, dto *assetRiskDTOs.AssetRiskRegisterFormDTO) (id uint, err error) {
-	if err = arrs.validateAssetRiskRegisterFormDTO(dto); err != nil {
-		return
+	if err := arrs.validateAssetRiskRegisterFormDTO(dto); err != nil {
+		return 0, err
 	}
 
-	var dates *assetRiskDTOs.AssetRiskRegisterParsedDates
-	dates, err = arrs.parseAssetRiskRegisterDates(dto)
+	dates, err := arrs.parseAssetRiskRegisterDates(dto)
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	tx := arrs.repo.BeginTransaction()
@@ -118,40 +119,39 @@ func (arrs *AssetRiskRegisterService) Create(currentUserID uint, dto *assetRiskD
 		err = tx.Commit()
 	}()
 
-	var referenceNumber string
-	referenceNumber, err = arrs.repo.GenerateReferenceNumber(tx)
+	referenceNumber, err := arrs.repo.GenerateReferenceNumber(tx)
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	riskStatus, err := arrs.repo.GetRiskStatusByType("identified", tx)
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	impactScore := max(dto.ConfidentialityScore, dto.IntegrityScore, dto.AvailabilityScore)
 
 	impact, err := arrs.repo.GetImpactByScore(impactScore, tx)
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	likelihood, err := arrs.repo.GetLikelihoodByID(dto.CurrentLikelihoodID, tx)
 	if err != nil {
 		err = utility.NewValidationError(fmt.Errorf("likelihood does not exist"), "not_exist", "likelihood")
-		return
+		return 0, err
 	}
 
 	riskValue := impact.Score * likelihood.Score
 
 	riskRatingValue, err := arrs.repo.GetRiskRatingValueByValue(int(riskValue), tx)
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	riskRating, err := arrs.repo.GetRiskRatingByID(riskRatingValue.RiskMatrixRiskRatingID, tx)
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	riskRegister := &models.RiskRegister{
@@ -185,7 +185,7 @@ func (arrs *AssetRiskRegisterService) Create(currentUserID uint, dto *assetRiskD
 
 	id, err = arrs.repo.Create(riskRegister, tx)
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	if dto.AssetID != nil {
@@ -196,7 +196,7 @@ func (arrs *AssetRiskRegisterService) Create(currentUserID uint, dto *assetRiskD
 		}
 
 		if err = arrs.repo.CreateRiskAsset(riskAsset, tx); err != nil {
-			return
+			return 0, err
 		}
 	}
 
@@ -206,23 +206,23 @@ func (arrs *AssetRiskRegisterService) Create(currentUserID uint, dto *assetRiskD
 		CreatedByID:     currentUserID,
 	}
 
-	if err = arrs.repo.CreateRiskVulnerability(riskVulnerability, tx); err != nil {
-		return
+	if err := arrs.repo.CreateRiskVulnerability(riskVulnerability, tx); err != nil {
+		return 0, err
 	}
 
 	timelineTypes, err := arrs.repo.GetAllTimelineTypes(tx)
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	completedStatus, err := arrs.repo.GetTimelineStatusByType("completed", tx)
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	pendingStatus, err := arrs.repo.GetTimelineStatusByType("pending", tx)
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	var timelineModels []models.RiskTimeline
@@ -252,8 +252,8 @@ func (arrs *AssetRiskRegisterService) Create(currentUserID uint, dto *assetRiskD
 		})
 	}
 
-	if err = arrs.repo.CreateRiskTimeline(timelineModels, tx); err != nil {
-		return
+	if err := arrs.repo.CreateRiskTimeline(timelineModels, tx); err != nil {
+		return 0, err
 	}
 
 	go func() {
@@ -286,18 +286,17 @@ func (arrs *AssetRiskRegisterService) Create(currentUserID uint, dto *assetRiskD
 		}
 	}()
 
-	return
+	return id, err
 }
 
 func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *assetRiskDTOs.AssetRiskRegisterFormDTO) (err error) {
 	if err = arrs.validateAssetRiskRegisterFormDTO(dto); err != nil {
-		return
+		return err
 	}
 
-	var dates *assetRiskDTOs.AssetRiskRegisterParsedDates
-	dates, err = arrs.parseAssetRiskRegisterDates(dto)
+	dates, err := arrs.parseAssetRiskRegisterDates(dto)
 	if err != nil {
-		return
+		return err
 	}
 
 	tx := arrs.repo.BeginTransaction()
@@ -318,37 +317,37 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 
 	existingRiskRegister, err := arrs.repo.GetByID(id, tx)
 	if err != nil {
-		return
+		return err
 	}
 
 	oldRiskRegister, err := arrs.GetFullDetailsByID(id, tx)
 	if err != nil {
-		return
+		return err
 	}
 
 	impactScore := max(dto.ConfidentialityScore, dto.IntegrityScore, dto.AvailabilityScore)
 
 	impact, err := arrs.repo.GetImpactByScore(impactScore, tx)
 	if err != nil {
-		return
+		return err
 	}
 
 	likelihood, err := arrs.repo.GetLikelihoodByID(dto.CurrentLikelihoodID, tx)
 	if err != nil {
 		err = utility.NewValidationError(fmt.Errorf("likelihood does not exist"), "not_exist", "likelihood")
-		return
+		return err
 	}
 
 	riskValue := impact.Score * likelihood.Score
 
 	riskRatingValue, err := arrs.repo.GetRiskRatingValueByValue(int(riskValue), tx)
 	if err != nil {
-		return
+		return err
 	}
 
 	riskRating, err := arrs.repo.GetRiskRatingByID(riskRatingValue.RiskMatrixRiskRatingID, tx)
 	if err != nil {
-		return
+		return err
 	}
 
 	now := time.Now()
@@ -379,13 +378,13 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 	existingRiskRegister.UpdatedBYID = &currentUserID
 	existingRiskRegister.UpdatedAt = &now
 
-	if err = arrs.repo.Update(existingRiskRegister, tx); err != nil {
-		return
+	if err := arrs.repo.Update(existingRiskRegister, tx); err != nil {
+		return err
 	}
 
 	existingRisk, err := arrs.repo.GetFullDetailsByID(id, tx)
 	if err != nil {
-		return
+		return err
 	}
 
 	// Update Asset
@@ -397,8 +396,8 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 				CreatedByID:     currentUserID,
 			}
 
-			if err = arrs.repo.CreateRiskAsset(asset, tx); err != nil {
-				return
+			if err := arrs.repo.CreateRiskAsset(asset, tx); err != nil {
+				return err
 			}
 		} else if existingRisk.Assets[0].AssetRegisterID != *dto.AssetID {
 			asset := &models.RiskAsset{
@@ -407,13 +406,13 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 				AssetRegisterID: *dto.AssetID,
 			}
 
-			if err = arrs.repo.UpdateRiskAssetByRiskId(asset, tx); err != nil {
-				return
+			if err := arrs.repo.UpdateRiskAssetByRiskId(asset, tx); err != nil {
+				return err
 			}
 		}
 	} else if len(existingRisk.Assets) > 0 {
-		if err = arrs.repo.DeleteRiskAssetByRiskId(id); err != nil {
-			return
+		if err := arrs.repo.DeleteRiskAssetByRiskId(id); err != nil {
+			return err
 		}
 	}
 	// Update Vulnerability
@@ -424,8 +423,8 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 			CreatedByID:     currentUserID,
 		}
 
-		if err = arrs.repo.CreateRiskVulnerability(vulnerability, tx); err != nil {
-			return
+		if err := arrs.repo.CreateRiskVulnerability(vulnerability, tx); err != nil {
+			return err
 		}
 	} else if existingRisk.Vulnerabilities[0].VulnerabilityID != dto.VulnerabilityID {
 		vulnerability := &models.RiskVulnerability{
@@ -434,8 +433,8 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 			VulnerabilityID: dto.VulnerabilityID,
 		}
 
-		if err = arrs.repo.UpdateRiskVulnerabilityByRiskId(vulnerability, tx); err != nil {
-			return
+		if err := arrs.repo.UpdateRiskVulnerabilityByRiskId(vulnerability, tx); err != nil {
+			return err
 		}
 	}
 	go func() {
@@ -544,7 +543,7 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 		}
 	}()
 
-	return
+	return err
 }
 
 func (arrs *AssetRiskRegisterService) Delete(ids []uint, currentUserID uint) (failedIDs []uint, err error) {
@@ -568,10 +567,9 @@ func (arrs *AssetRiskRegisterService) Delete(ids []uint, currentUserID uint) (fa
 	var deletedRiskRegisters []map[string]interface{}
 
 	for _, id := range ids {
-		risk, getErr := arrs.GetFullDetailsByID(id, tx)
-		if getErr != nil {
-			err = getErr
-			return
+		risk, err := arrs.GetFullDetailsByID(id, tx)
+		if err != nil {
+			return failedIDs, err
 		}
 
 		deletedRiskRegisters = append(deletedRiskRegisters, map[string]interface{}{
@@ -605,7 +603,7 @@ func (arrs *AssetRiskRegisterService) Delete(ids []uint, currentUserID uint) (fa
 	}
 
 	if len(failedIDs) > 0 {
-		return
+		return failedIDs, err
 	}
 
 	if len(successfulIDs) > 0 {
@@ -627,7 +625,11 @@ func (arrs *AssetRiskRegisterService) Delete(ids []uint, currentUserID uint) (fa
 		}()
 	}
 
-	return
+	return failedIDs, err
+}
+
+func (arrs *AssetRiskRegisterService) GetRiskStatusByType(status string, tx ...utility.DatabaseTransaction) (*models.RiskStatus, error) {
+	return arrs.repo.GetRiskStatusByType(status, tx...)
 }
 
 func (arrs *AssetRiskRegisterService) validateAssetRiskRegisterFormDTO(dto *assetRiskDTOs.AssetRiskRegisterFormDTO) error {
