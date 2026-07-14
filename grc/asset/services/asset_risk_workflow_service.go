@@ -1,0 +1,278 @@
+package services
+
+import (
+	assetRiskDTOs "jethur/grc/asset/dtos"
+	"jethur/grc/asset/repositories"
+	masterDTOs "jethur/grc/masters/dtos"
+	masterSvc "jethur/grc/masters/services"
+	"jethur/grc/models"
+	organizationDTOs "jethur/grc/organization/dtos"
+	organizationSvc "jethur/grc/organization/services"
+	settingDTOs "jethur/grc/settings/dtos"
+	settinsSvc "jethur/grc/settings/services"
+	"jethur/utility"
+	"time"
+)
+
+type AssetRiskWorkflowServiceInterface interface {
+	GetRiskWorkflowList(riskID uint, tx ...utility.DatabaseTransaction) (*assetRiskDTOs.AssetRiskWorkflowListDTO, error)
+	CreateRiskWorkflow(riskRegisterID uint, contextType string, currentUserID uint, tx ...utility.DatabaseTransaction) error
+
+	GetRiskWorkflowByLevel(riskWorkflowID uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.RiskWorkflow, error)
+	GetRiskWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskWorkflow, error)
+	GetNextLevel(riskWorkflowID uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.RiskWorkflow, error)
+	CheckAllParticipantsApproved(workflowID uint, workflowParticipants []*models.RiskWorkflowParticipant, tx ...utility.DatabaseTransaction) (bool, error)
+	UpdateRiskWorkflow(riskWorkflow *models.RiskWorkflow, tx ...utility.DatabaseTransaction) error
+
+	ValidateWorkflowBeforeCreate(contextType string, tx ...utility.DatabaseTransaction) error
+}
+
+type AssetRiskWorkflowService struct {
+	repo               repositories.AssetRiskWorkflowRepositoryInterface
+	workflowSvc        settinsSvc.WorkflowServiceInterface
+	workflowStatusSvc  masterSvc.WorkflowStatusServiceInterface
+	userSvc            organizationSvc.UserServiceInterface
+	workflowContextSvc masterSvc.WorkflowContextServiceInterface
+}
+
+func NewAssetRiskWorkflowService(
+	repo repositories.AssetRiskWorkflowRepositoryInterface,
+	workflowSvc settinsSvc.WorkflowServiceInterface,
+	workflowStatusSvc masterSvc.WorkflowStatusServiceInterface,
+	userSvc organizationSvc.UserServiceInterface,
+	workflowContextSvc masterSvc.WorkflowContextServiceInterface,
+) AssetRiskWorkflowServiceInterface {
+	return &AssetRiskWorkflowService{
+		repo:               repo,
+		workflowSvc:        workflowSvc,
+		workflowStatusSvc:  workflowStatusSvc,
+		userSvc:            userSvc,
+		workflowContextSvc: workflowContextSvc,
+	}
+}
+
+func (arws *AssetRiskWorkflowService) GetRiskWorkflowList(riskID uint, tx ...utility.DatabaseTransaction) (*assetRiskDTOs.AssetRiskWorkflowListDTO, error) {
+	riskWorkflow, err := arws.repo.GetWorkflowList(riskID, tx...)
+	if err != nil {
+		return nil, err
+	}
+
+	dto := &assetRiskDTOs.AssetRiskWorkflowListDTO{
+		ID:              riskWorkflow.ID,
+		RiskRegisterID:  riskWorkflow.ID,
+		SubmittedAt:     riskWorkflow.SubmittedAt,
+		SubmittedByUser: arws.mapUserToDTO(riskWorkflow.SubmittedByUser),
+		RiskWorkflows:   []*assetRiskDTOs.WorkflowListDTO{},
+	}
+
+	for _, workflow := range riskWorkflow.RiskWorkflows {
+		workflowDTO := &assetRiskDTOs.WorkflowListDTO{
+			Level:         workflow.Level,
+			ApprovalType:  workflow.ApprovalTypes,
+			CurrentStatus: arws.mapWorkflowStatusToDTO(workflow.WorkflowStatus),
+			ApprovedUsers: []*organizationDTOs.UserMinimalDTO{},
+			ReviewUsers:   []*organizationDTOs.UserMinimalDTO{},
+		}
+
+		var lastApprovedAt *time.Time
+		var lastRejectedAt *time.Time
+		for _, review := range workflow.RiskWorkflowReviews {
+			userDTO := arws.mapUserToDTO(review.CreatedByUser)
+			if review.WorkflowStatus.Type == "approve" {
+				workflowDTO.ApprovedUsers = append(workflowDTO.ApprovedUsers, userDTO)
+				if lastApprovedAt == nil || review.CreatedAt.After(*lastApprovedAt) {
+					t := review.CreatedAt
+					lastApprovedAt = &t
+				}
+			}
+			if review.WorkflowStatus.Type == "reject" {
+				workflowDTO.RejectedUser = userDTO
+				if lastRejectedAt == nil || review.CreatedAt.After(*lastRejectedAt) {
+					t := review.CreatedAt
+					lastRejectedAt = &t
+				}
+			}
+		}
+
+		for _, participant := range workflow.RiskWorkflowParticipants {
+			userDTO := arws.mapUserToDTO(participant.User)
+			workflowDTO.ReviewUsers = append(workflowDTO.ReviewUsers, userDTO)
+		}
+
+		workflowDTO.ApprovedAt = lastApprovedAt
+		workflowDTO.RejectedAt = lastRejectedAt
+		dto.RiskWorkflows = append(dto.RiskWorkflows, workflowDTO)
+	}
+
+	return dto, nil
+}
+
+func (arws *AssetRiskWorkflowService) CreateRiskWorkflow(riskRegisterID uint, contextType string, currentUserID uint, tx ...utility.DatabaseTransaction) error {
+	workflowContext, err := arws.workflowContextSvc.GetByType(contextType)
+	if err != nil {
+		return err
+	}
+
+	workflow, err := arws.workflowSvc.GetWorkflowByContext(workflowContext.ID)
+	if err != nil {
+		return err
+	}
+
+	workflowLevels, err := arws.workflowSvc.GetWorkflowLevels(workflow.ID, tx...)
+	if err != nil {
+		return err
+	}
+
+	workflowStatus, err := arws.workflowStatusSvc.GetByType("pending")
+	if err != nil {
+		return err
+	}
+
+	for _, level := range workflowLevels.WorkflowLevels {
+		riskWorkflow := &models.RiskWorkflow{
+			RiskRegisterID:      riskRegisterID,
+			Level:               level.Level,
+			WorkflowLevelTypeID: level.WorkflowLevelType.ID,
+			ApprovalTypes:       level.ApprovalType,
+			WorkflowStatusID:    workflowStatus.ID,
+			CreatedBYID:         currentUserID,
+		}
+
+		riskWorkflowID, err := arws.repo.CreateRiskWorkflow(riskWorkflow, tx...)
+		if err != nil {
+			return err
+		}
+
+		for _, participant := range level.Participants {
+			if participant.Role != nil {
+				userIds, err := arws.userSvc.GetUserIdsByRole(participant.Role.ID, tx...)
+				if err != nil {
+					return err
+				}
+
+				for _, userId := range userIds {
+					if err := arws.createWorkflowParticipant(userId, riskWorkflowID, &participant, currentUserID, tx...); err != nil {
+						return err
+					}
+				}
+			} else if participant.User != nil {
+				userId := uint(participant.User.ID)
+				if err := arws.createWorkflowParticipant(userId, riskWorkflowID, &participant, currentUserID, tx...); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (arws *AssetRiskWorkflowService) UpdateRiskWorkflow(riskWorkflow *models.RiskWorkflow, tx ...utility.DatabaseTransaction) error {
+	return arws.repo.UpdateRiskWorkflow(riskWorkflow, tx...)
+}
+
+func (arws *AssetRiskWorkflowService) createWorkflowParticipant(userID uint, riskWorkflowID uint, participant *settingDTOs.WorkflowLevelParticipantDTO, currentUserID uint, tx ...utility.DatabaseTransaction) error {
+	riskWorkflowParticipant := &models.RiskWorkflowParticipant{
+		RiskWorkflowID: riskWorkflowID,
+		UserID:         userID,
+		CreatedBYID:    currentUserID,
+	}
+
+	if participant.Role != nil {
+		riskWorkflowParticipant.RoleID = &participant.Role.ID
+	}
+
+	return arws.repo.CreateRiskWorkflowParticipant(riskWorkflowParticipant, tx...)
+}
+
+func (arws *AssetRiskWorkflowService) GetRiskWorkflowByLevel(riskWorkflowID uint, currentApprovalLevel int, tx ...utility.DatabaseTransaction) (*models.RiskWorkflow, error) {
+	return arws.repo.GetRiskWorkflowByLevel(riskWorkflowID, currentApprovalLevel, tx...)
+}
+
+func (arws *AssetRiskWorkflowService) GetRiskWorkflowByID(id uint, tx ...utility.DatabaseTransaction) (*models.RiskWorkflow, error) {
+	return arws.repo.GetRiskWorkflowByID(id, tx...)
+}
+
+func (arws *AssetRiskWorkflowService) GetNextLevel(riskWorkflowID uint, currentLevel int, tx ...utility.DatabaseTransaction) (*models.RiskWorkflow, error) {
+	return arws.repo.GetNextLevel(riskWorkflowID, currentLevel, tx...)
+}
+
+func (arws *AssetRiskWorkflowService) CheckAllParticipantsApproved(workflowID uint, workflowParticipants []*models.RiskWorkflowParticipant, tx ...utility.DatabaseTransaction) (bool, error) {
+	count, err := arws.repo.CountApprovedParticipants(workflowID, tx...)
+	if err != nil {
+		return false, err
+	}
+
+	if count < len(workflowParticipants) {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (arws *AssetRiskWorkflowService) mapUserToDTO(user *models.User) *organizationDTOs.UserMinimalDTO {
+	if user == nil {
+		return nil
+	}
+	return &organizationDTOs.UserMinimalDTO{
+		ID:               int(user.ID),
+		FirstNameEN:      user.FirstNameEn,
+		LastNameEN:       user.LastNameEn,
+		FirstNameAR:      user.FirstNameAr,
+		LastNameAR:       user.LastNameAr,
+		ProfileImagePath: user.ProfileImagePath,
+		Email:            user.Email,
+		Initial:          user.Initial,
+		Color:            user.Color,
+	}
+}
+
+func (arws *AssetRiskWorkflowService) mapWorkflowStatusToDTO(status *models.WorkflowStatus) masterDTOs.WorkflowStatusDTO {
+	if status == nil {
+		return masterDTOs.WorkflowStatusDTO{}
+	}
+	return masterDTOs.WorkflowStatusDTO{
+		ID:        status.ID,
+		TitleEn:   status.TitleEn,
+		TitleAr:   status.TitleAr,
+		ColorCode: status.ColorCode,
+		Status:    status.Status,
+		Type:      status.Type,
+	}
+}
+
+func (arws *AssetRiskWorkflowService) ValidateWorkflowBeforeCreate(contextType string, tx ...utility.DatabaseTransaction) error {
+	workflowContext, err := arws.workflowContextSvc.GetByType(contextType)
+	if err != nil {
+		return err
+	}
+
+	workflow, err := arws.workflowSvc.GetWorkflowByContext(workflowContext.ID)
+	if err != nil {
+		return err
+	}
+	if workflow == nil {
+		return utility.NewForbiddenError("workflow not configured")
+	}
+
+	workflowLevels, err := arws.workflowSvc.GetWorkflowLevels(workflow.ID, tx...)
+	if err != nil {
+		return err
+	}
+	if len(workflowLevels.WorkflowLevels) == 0 {
+		return utility.NewForbiddenError("workflow levels not found")
+	}
+
+	hasParticipants := false
+	for _, level := range workflowLevels.WorkflowLevels {
+		if len(level.Participants) > 0 {
+			hasParticipants = true
+			break
+		}
+	}
+
+	if !hasParticipants {
+		return utility.NewForbiddenError("participants not configured")
+	}
+
+	return nil
+}

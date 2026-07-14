@@ -59,6 +59,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	slaEscalationMatrixController := app.AssetModule.SLAEscalationMatrixController
 	vulnerabilitySettingsController := app.AssetModule.VulnerabilitySettingsController
 	assetRiskRegisterController := app.AssetModule.AssetRiskRegisterController
+	assetRiskWorkflowController := app.AssetModule.AssetRiskWorkflowController
+	assetRiskReviewController := app.AssetModule.AssetRiskReviewController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -429,4 +431,10 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/asset-risk-register", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRegisterController.CreateAssetRiskRegister)
 	assetRoutes.PUT("/asset-risk-register/:id", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRegisterController.UpdateAssetRiskRegister)
 	assetRoutes.POST("/asset-risk-register/delete", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRegisterController.DeleteAssetRiskRegisters)
+
+	// Risk Acceptance Workflow
+	assetRoutes.POST("/asset-risk-register/:id/submit", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskReviewController.SubmitAssetRiskRegister)
+	assetRoutes.POST("/asset-risk-register/:id/approve", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskReviewController.ApproveAssetRiskRegister)
+	assetRoutes.POST("/asset-risk-register/:id/reject", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskReviewController.RejectAssetRiskRegister)
+	assetRoutes.GET("/asset-risk-register/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskWorkflowController.GetWorkflowList)
 }

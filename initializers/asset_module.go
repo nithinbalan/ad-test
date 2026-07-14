@@ -51,6 +51,8 @@ type AssetModule struct {
 	SLAEscalationMatrixController                 *controllers.SLAEscalationMatrixController
 	VulnerabilitySettingsController               *controllers.VulnerabilitySettingsController
 	AssetRiskRegisterController                   *controllers.AssetRiskRegisterController
+	AssetRiskWorkflowController                   *controllers.AssetRiskWorkflowController
+	AssetRiskReviewController                     *controllers.AssetRiskReviewController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -316,6 +318,27 @@ func NewAssetModule(db *gorm.DB,
 	assetRiskRegisterSvc := services.NewAssetRiskRegisterService(assetRiskRegisterRepo, settingsModule.OrganizationUnitSvc, organizationModule.UserSvc, assetRegisterSvc, vulnerabilitySvc, sharedModule.ActivityLogService)
 	assetRiskReigsterController := controllers.NewAssetRiskRegisterController(assetRiskRegisterSvc)
 
+	assetRiskWorkflowRepo := repositories.NewAssetRiskWorkflowRepository(db)
+	assetRiskWorkflowSvc := services.NewAssetRiskWorkflowService(
+		assetRiskWorkflowRepo,
+		settingsModule.WorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		masterModule.WorkflowContextSvc,
+	)
+	assetRiskWorkflowController := controllers.NewAssetRiskWorkflowController(assetRiskWorkflowSvc)
+
+	assetRiskReviewRepo := repositories.NewAssetRiskReviewRepository(db)
+	assetRiskReviewSvc := services.NewAssetRiskReviewService(
+		assetRiskReviewRepo,
+		assetRiskRegisterSvc,
+		assetRiskWorkflowSvc,
+		masterModule.WorkflowStatusSvc,
+		organizationModule.UserSvc,
+		commonModule.NotificationService,
+	)
+	assetRiskReviewController := controllers.NewAssetRiskReviewController(assetRiskReviewSvc)
+
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
 		AssetCategoryController:                       assetCategoryController,
@@ -359,6 +382,8 @@ func NewAssetModule(db *gorm.DB,
 		SLAEscalationMatrixController:                 slaEscalationMatrixController,
 		VulnerabilitySettingsController:               vulnerabilitySettingsController,
 		AssetRiskRegisterController:                   assetRiskReigsterController,
+		AssetRiskWorkflowController:                   assetRiskWorkflowController,
+		AssetRiskReviewController:                     assetRiskReviewController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}
