@@ -429,4 +429,5 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	//Qulays Vulnerability History
 	assetRoutes.GET("/vulnerabilities/:id/qualys-history",qualysVulnerabilityHistoryController.GetAllQualysVulnerabilityHistories)
 	assetRoutes.POST("/vulnerabilities/:id/qualys-history/:historyId/documents", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), qualysVulnerabilityHistoryController.CreateQualysVulnerabilityHistoryDocuments)
+	unauthenticatedRoutes.GET("/vulnerabilities/:id/qualys-history/:historyId/document-preview", qualysVulnerabilityHistoryController.GetQualysVulnerabilityHistoryDocumentPreview)
 }

@@ -314,7 +314,7 @@ func NewAssetModule(db *gorm.DB,
 	slaEscalationMatrixController := controllers.NewSLAEscalationMatrixController(slaEscalationMatrixSvc)
 
 	qualysVulnerabilityHistoryRepo := repositories.NewQulaysVulnerabilityHistoryRepository(db)
-	qualysVulnerabilityHistorySvc := services.NewQualysVulnerabilityHistoryService(qualysVulnerabilityHistoryRepo)
+	qualysVulnerabilityHistorySvc := services.NewQualysVulnerabilityHistoryService(qualysVulnerabilityHistoryRepo,vulnerabilitySvc)
 	qualysVulnerabilityHistoryController := controllers.NewQualysVulnerabilityHistoryController(qualysVulnerabilityHistorySvc)
 
 	return &AssetModule{
