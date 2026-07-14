@@ -5,7 +5,7 @@ DECLARE @assetModuleID INT;
 SET @assetModuleID = (SELECT id FROM modules WHERE identifier = 'asset');
 
 INSERT INTO workflow_contexts (module_id, title_en, title_ar, type) VALUES
-(@assetRiskModuleID, 'Risk Acceptance Workflow', 'سير عمل قبول المخاطر', 'asset_risk');
+(@assetModuleID, 'Risk Acceptance Workflow', 'سير عمل قبول المخاطر', 'asset_risk');
 -- +goose StatementEnd
 
 -- +goose Down
