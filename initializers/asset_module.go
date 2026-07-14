@@ -50,6 +50,7 @@ type AssetModule struct {
 	ApplicationController                         *controllers.ApplicationController
 	SLAEscalationMatrixController                 *controllers.SLAEscalationMatrixController
 	VulnerabilitySettingsController               *controllers.VulnerabilitySettingsController
+	VulnerabilityReportController                 *controllers.VulnerabilityReportController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -130,7 +131,7 @@ func NewAssetModule(db *gorm.DB,
 	vulnerabilityStatusController := controllers.NewVulnerabilityStatusController(vulnerabilityStatusSvc)
 
 	vulnerabilityRepo := repositories.NewVulnerabilityRepository(db)
-	vulnerabilitySvc := services.NewVulnerabilityService(vulnerabilityRepo, sharedModule.ActivityLogService, vulnerabilityTypeSvc, masterModule.SeverityLevelSvc, vulnerabilityStatusSvc, organizationModule.UserSvc, organizationModule.UserSettingSvc,vulnerabilityStatusSvc,vulnerabilitySettingsSvc,organizationModule.ControlSvc,commonModule.NotificationService)
+	vulnerabilitySvc := services.NewVulnerabilityService(vulnerabilityRepo, sharedModule.ActivityLogService, vulnerabilityTypeSvc, masterModule.SeverityLevelSvc, vulnerabilityStatusSvc, organizationModule.UserSvc, organizationModule.UserSettingSvc, vulnerabilityStatusSvc, vulnerabilitySettingsSvc, organizationModule.ControlSvc, commonModule.NotificationService)
 	vulnerabilityController := controllers.NewVulnerabilityController(vulnerabilitySvc)
 
 	threatTypeRepo := repositories.NewThreatTypeRepository(db)
@@ -311,6 +312,10 @@ func NewAssetModule(db *gorm.DB,
 	slaEscalationMatrixSvc := services.NewSLAEscalationMatrixService(slaEscalationMatrixRepo, sharedModule.ActivityLogService)
 	slaEscalationMatrixController := controllers.NewSLAEscalationMatrixController(slaEscalationMatrixSvc)
 
+	vulnerabilityReportRepo := repositories.NewVulnerabilityReportRepository(db)
+	vulnerabilityReportSvc := services.NewVulnerabilityReportService(vulnerabilityReportRepo, sharedModule.ActivityLogService)
+	vulnerabilityReportController := controllers.NewVulnerabilityReportController(vulnerabilityReportSvc)
+
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
 		AssetCategoryController:                       assetCategoryController,
@@ -353,6 +358,7 @@ func NewAssetModule(db *gorm.DB,
 		ApplicationController:                         applicationController,
 		SLAEscalationMatrixController:                 slaEscalationMatrixController,
 		VulnerabilitySettingsController:               vulnerabilitySettingsController,
+		VulnerabilityReportController:                 vulnerabilityReportController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}
