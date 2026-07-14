@@ -117,7 +117,7 @@ func (repo *BCMManualProcedureFormRepository) Create(form *models.BCMManualProce
 }
 
 func (repo *BCMManualProcedureFormRepository) Update(form *models.BCMManualProcedureForm) error {
-	if err := repo.db.Save(form).Error; err != nil {
+	if err := repo.db.Model(&models.BCMManualProcedureForm{}).Where("id = ?", form.ID).Updates(form).Error; err != nil {
 		return err
 	}
 

@@ -133,7 +133,7 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 			return
 		}
 
-		excelFile, err := biac.processSvc.ExportProcesses(processes.Items, currentUserID)
+		excelFile, err := biac.service.ExportBia(processes.Items, currentUserID)
 		if err != nil {
 			utility.SendInternalErrResp(biac.db, c, err.Error())
 			return
@@ -141,7 +141,7 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 		defer excelFile.Close()
 
 		c.Header("Content-Description", "File Transfer")
-		c.Header("Content-Disposition", `attachment; filename="Processes.xlsx"`)
+		c.Header("Content-Disposition", `attachment; filename="BusinessImpactAnalysis.xlsx"`)
 		c.Header("Content-Type", "application/octet-stream")
 		c.File(excelFile.Name())
 
@@ -383,6 +383,11 @@ func (biac *BusinessImpactAssessmentController) GetAllProcessDependencies(c *gin
 		return
 	}
 	c.JSON(http.StatusOK, result)
+}
+
+func (biac *BusinessImpactAssessmentController) GetAllBIAExport(c *gin.Context) {
+	c.Set("export", true)
+	biac.GetAllProcesses(c)
 }
 
 func (biac *BusinessImpactAssessmentController) GetAllBIAImpactAnalysis(c *gin.Context) {

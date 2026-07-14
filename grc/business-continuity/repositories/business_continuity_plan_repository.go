@@ -122,9 +122,30 @@ func (repo *BusinessContinuityPlanRepository) GetAll(params *businessContinuityD
 			LEFT JOIN users AS updated_user ON updated_user.id = business_continuity_plans.updated_by_id
         `)
 	// Apply dynamic filters to the query
+	joinedProcessTables := false
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where("business_continuity_plans."+columnName+" IN (?)", values)
+			if columnName == "bcp_status_id" {
+				query = query.Where("bcp_statuses.id IN (?)", values)
+			} else {
+				query = query.Where("business_continuity_plans."+columnName+" IN (?)", values)
+			}
+		}
+	}
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		if !joinedProcessTables {
+			query = query.
+				Joins(`LEFT JOIN bcp_processes ON bcp_processes.bcp_id = business_continuity_plans.id`).
+				Joins(`LEFT JOIN processes AS bcp_proc ON bcp_proc.id = bcp_processes.process_id`).
+				Joins(`LEFT JOIN bcm_impact_analysis_levels ON bcm_impact_analysis_levels.id = bcp_proc.impact_analysis_level_id`)
+			joinedProcessTables = true
+		}
+		switch filter {
+		case "is_critical":
+			query = query.Where("bcp_proc.impact_analysis_level_id IS NOT NULL AND bcm_impact_analysis_levels.type != ?", "non_applicable")
+		case "is_not_critical":
+			query = query.Where("(bcp_proc.impact_analysis_level_id IS NULL OR bcm_impact_analysis_levels.type = ?)", "non_applicable")
 		}
 	}
 	// Calculate total count for pagination

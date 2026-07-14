@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"jethur/config"
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
@@ -865,41 +866,71 @@ func (bfs *BusinessContinuityPlanService) ExportBusinessContinuityPlan(data []*b
 		headers = []string{
 			"SL No.",
 			"Reference Number",
-			"Title",
-			"RTO",
-			"MTPD",
-			"RPO",
+			"Business Function",
+			"Version",
+			"Responsible User",
+			"Status",
+			"Purpose",
+			"Scope",
+			"Objectives",
+			"Assumptions",
+			"Created By",
+			"Created At",
 		}
 	} else {
 		headers = []string{
 			"SL No.",
 			"Reference Number",
-			"Title",
-			"RTO",
-			"MTPD",
-			"RPO",
+			"Business Function",
+			"Version",
+			"Responsible User",
+			"Status",
+			"Purpose",
+			"Scope",
+			"Objectives",
+			"Assumptions",
+			"Created By",
+			"Created At",
 		}
 	}
 
 	rows := make([][]interface{}, len(data))
 	for i, bcp := range data {
+		createdDate := bcp.CreatedAt
+		if t, err := time.Parse(time.RFC3339, bcp.CreatedAt); err == nil {
+			createdDate = t.Format("2006-01-02")
+		} else if t, err := time.Parse("2006-01-02T15:04:05.999Z", bcp.CreatedAt); err == nil {
+			createdDate = t.Format("2006-01-02")
+		}
 		if userSetting.Language == "ar" {
 			rows[i] = []interface{}{
 				i + 1,
 				bcp.ReferenceNumber,
 				bcp.BusinessFunctionTitle,
-				utility.GetIntValueAsString(bcp.Rto) + " " + utility.GetStringValue(bcp.RtoUnitTitleAr),
-				utility.GetIntValueAsString(bcp.Mtpd) + " " + utility.GetStringValue(bcp.MtpdUnitTitleAr),
-				utility.GetIntValueAsString(bcp.Rpo) + " " + utility.GetStringValue(bcp.RpoUnitTitleAr),
+				utility.GetIntValueAsString(bcp.Version),
+				fmt.Sprintf("%s %s", bcp.ResponsibleUserFirstNameAr, bcp.ResponsibleUserLastNameAr),
+				bcp.BcpStatusTitleAr,
+				utility.GetStringValue(bcp.Purpose),
+				utility.GetStringValue(bcp.Scope),
+				utility.GetStringValue(bcp.Objectives),
+				utility.GetStringValue(bcp.Assumptions),
+				fmt.Sprintf("%s %s", bcp.CreatedUserFirstNameAr, bcp.CreatedUserLastNameAr),
+				createdDate,
 			}
 		} else {
 			rows[i] = []interface{}{
 				i + 1,
 				bcp.ReferenceNumber,
 				bcp.BusinessFunctionTitle,
-				utility.GetIntValueAsString(bcp.Rto) + " " + utility.GetStringValue(bcp.RtoUnitTitleEn),
-				utility.GetIntValueAsString(bcp.Mtpd) + " " + utility.GetStringValue(bcp.MtpdUnitTitleEn),
-				utility.GetIntValueAsString(bcp.Rpo) + " " + utility.GetStringValue(bcp.RpoUnitTitleEn),
+				utility.GetIntValueAsString(bcp.Version),
+				fmt.Sprintf("%s %s", bcp.ResponsibleUserFirstNameEn, bcp.ResponsibleUserLastNameEn),
+				bcp.BcpStatusTitleEn,
+				utility.GetStringValue(bcp.Purpose),
+				utility.GetStringValue(bcp.Scope),
+				utility.GetStringValue(bcp.Objectives),
+				utility.GetStringValue(bcp.Assumptions),
+				fmt.Sprintf("%s %s", bcp.CreatedUserFirstNameEn, bcp.CreatedUserLastNameEn),
+				createdDate,
 			}
 		}
 	}

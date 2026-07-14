@@ -109,9 +109,35 @@ func (repo *TestAndExerciseRepository) GetAll(params *businessContinuityDTOs.Tes
 			LEFT JOIN users AS updated_user ON updated_user.id = test_and_exercises.updated_by_id
         `)
 	// Apply dynamic filters to the query
+	joinedSystemRegisterTable := false
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			if columnName == "system_register_id" {
+				if !joinedSystemRegisterTable {
+					query = query.Joins(`LEFT JOIN test_and_exercise_system_registers AS tae_sr ON tae_sr.test_and_exercise_id = test_and_exercises.id`)
+					joinedSystemRegisterTable = true
+				}
+				query = query.Where("tae_sr.system_register_id IN (?)", values)
+			} else if columnName == "test_and_exercise_status_id" {
+				query = query.Where("test_and_exercise_statuses.id IN (?)", values)
+			} else {
+				query = query.Where("test_and_exercises."+columnName+" IN (?)", values)
+			}
+		}
+	}
+	// Apply quick filters
+	for _, filter := range params.QuickFilter {
+		switch filter {
+		case "is_critical":
+			if !joinedSystemRegisterTable {
+				query = query.Joins(`LEFT JOIN test_and_exercise_system_registers AS tae_sr ON tae_sr.test_and_exercise_id = test_and_exercises.id`)
+				joinedSystemRegisterTable = true
+			}
+			query = query.Where("tae_sr.system_register_id IS NOT NULL")
+		case "is_not_critical":
+			query = query.Where(`test_and_exercises.id NOT IN (
+				SELECT test_and_exercise_id FROM test_and_exercise_system_registers WHERE system_register_id IS NOT NULL
+			)`)
 		}
 	}
 	// Calculate total count for pagination

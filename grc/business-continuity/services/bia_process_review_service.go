@@ -164,7 +164,7 @@ func (svc *BiaProcessReviewService) Approve(biaProcessID uint, currentUserID uin
 	}
 
 	switch currentWorkflow.WorkflowLevelType.Type {
-	case "individual":
+	case "individual", "custom-roles", "hod":
 		if len(currentWorkflow.BiaProcessWorkflowParticipants) == 0 {
 			tx.Rollback()
 			return utility.NewValidationError(fmt.Errorf("workflow has no participants"), "not_exist", "workflow")
