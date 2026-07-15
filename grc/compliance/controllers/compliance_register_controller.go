@@ -161,7 +161,13 @@ func (crc *ComplianceRegisterController) GetAllComplianceRegisters(c *gin.Contex
 			queryParams.IsParent = &val
 		}
 	}
-	compliances, err := crc.service.GetAll(&queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	compliances, err := crc.service.GetAll(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
 		return

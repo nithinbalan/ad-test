@@ -156,7 +156,7 @@ func (krs *KRIRegisterReviewService) Submit(kriRegisterID uint, currentUserID ui
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%srisk/kri-register/%d/overview", appURL, kriRegisterID),
+				"RedirectURL":           fmt.Sprintf("%s/risk/kri-register/%d/overview", appURL, kriRegisterID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -498,7 +498,7 @@ func (krs *KRIRegisterReviewService) sendApprovalNotification(id uint, currentUs
 			"ApprovedByFirstNameEn": approvedByUser.FirstNameEn,
 			"ApprovedByLastNameEn":  approvedByUser.LastNameEn,
 			"ApprovedAt":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%srisk/kri-register/%d/overview", appURL, id),
+			"RedirectURL":           fmt.Sprintf("%s/risk/kri-register/%d/overview", appURL, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -562,7 +562,7 @@ func (krs *KRIRegisterReviewService) notifyNextLevelUsers(id uint, nextWorkflowL
 				"AssignedByFirstNameEn": kriDetail.ResponsibleUser.FirstNameEN,
 				"AssignedByLastNameEn":  kriDetail.ResponsibleUser.LastNameEN,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%srisk/kri-register/%d/overview", appURL, id),
+				"RedirectURL":           fmt.Sprintf("%s/risk/kri-register/%d/overview", appURL, id),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -624,7 +624,7 @@ func (krs *KRIRegisterReviewService) sendRejectedNotification(id uint, currentUs
 			"RejectedByFirstNameEn": rejectedByUser.FirstNameEn,
 			"RejectedByLastNameEn":  rejectedByUser.LastNameEn,
 			"ApprovedAt":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%srisk/kri-register/%d/overview", appURL, id),
+			"RedirectURL":           fmt.Sprintf("%s/risk/kri-register/%d/overview", appURL, id),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
