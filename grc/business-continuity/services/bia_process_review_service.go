@@ -501,7 +501,7 @@ func (svc *BiaProcessReviewService) notifyReviewUsers(biaProcessID uint, workflo
 	action := "review-user-assign"
 	urlParam := fmt.Sprintf(`{"id":%d}`, process.ID)
 	appURL := utility.GetAppURL()
-	redirectURL := fmt.Sprintf("%sbusiness-continuity/business-impact-analysis/%d/overview", appURL, process.ID)
+	redirectURL := fmt.Sprintf("%s/business-continuity/business-impact-analysis/%d/overview", appURL, process.ID)
 
 	assignedBy, err := svc.userSvc.GetByID(currentUserID)
 	if err != nil {
@@ -565,7 +565,7 @@ func (svc *BiaProcessReviewService) sendApprovalNotification(biaProcessID uint, 
 	action := "approval"
 	urlParam := fmt.Sprintf(`{"id":%d}`, process.ID)
 	appURL := utility.GetAppURL()
-	redirectURL := fmt.Sprintf("%sbusiness-continuity/business-impact-analysis/%d/overview", appURL, process.ID)
+	redirectURL := fmt.Sprintf("%s/business-continuity/business-impact-analysis/%d/overview", appURL, process.ID)
 
 	biaProcess, err := svc.biaProcessSvc.GetByID(biaProcessID)
 	if err != nil || biaProcess.CreatedBYID == nil {
@@ -632,7 +632,7 @@ func (svc *BiaProcessReviewService) sendRevertNotification(biaProcessID uint, cu
 	action := "reverted"
 	urlParam := fmt.Sprintf(`{"id":%d}`, process.ID)
 	appURL := utility.GetAppURL()
-	redirectURL := fmt.Sprintf("%sbusiness-continuity/business-impact-analysis/%d/overview", appURL, process.ID)
+	redirectURL := fmt.Sprintf("%s/business-continuity/business-impact-analysis/%d/overview", appURL, process.ID)
 
 	biaProcess, err := svc.biaProcessSvc.GetByID(biaProcessID)
 	if err != nil || biaProcess.CreatedBYID == nil {
@@ -699,7 +699,7 @@ func (svc *BiaProcessReviewService) sendReopenNotification(biaProcessID uint, cu
 	action := "reopened"
 	urlParam := fmt.Sprintf(`{"id":%d}`, process.ID)
 	appURL := utility.GetAppURL()
-	redirectURL := fmt.Sprintf("%sbusiness-continuity/business-impact-analysis/%d/overview", appURL, process.ID)
+	redirectURL := fmt.Sprintf("%s/business-continuity/business-impact-analysis/%d/overview", appURL, process.ID)
 
 	biaProcess, err := svc.biaProcessSvc.GetByID(biaProcessID)
 	if err != nil || biaProcess.CreatedBYID == nil {

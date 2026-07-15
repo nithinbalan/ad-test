@@ -155,10 +155,10 @@ func (repo *SLAActionPlanRepository) GetAll(slaID uint, params *complianceDTOs.S
 
 	// Sort by the specified column and order
 	if params.SortBy == "" {
-		params.SortBy = "title" // Default sort by title if no sortBy is specified
+		params.SortBy = "sla_action_plans.title"
 	}
 	if params.Sort != "asc" && params.Sort != "desc" {
-		params.Sort = "asc" // Default order is ascending if not specified
+		params.Sort = "asc"
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)

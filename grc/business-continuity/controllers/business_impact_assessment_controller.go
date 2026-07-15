@@ -36,8 +36,8 @@ func NewBusinessImpactAssessmentController(service services.BusinessImpactAssess
 }
 
 func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) {
-	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "title_en")
+	sort := c.DefaultQuery("sort_order", "desc")
+	sortBy := c.DefaultQuery("sort_by", "created_at")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
@@ -65,6 +65,7 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 		"risk_level_ids",
 		"process_criticality_level_ids",
 		"impact_analysis_level_ids",
+		"workflow_status_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -97,6 +98,7 @@ func (biac *BusinessImpactAssessmentController) GetAllProcesses(c *gin.Context) 
 		"owner_ar":             "owner.first_name_ar",
 		"status_en":            "lifecycle_statuses.title_en",
 		"status_ar":            "lifecycle_statuses.title_ar",
+		"created_at":           "processes.created_at",
 	}
 
 	sortField, valid := validSortFields[sortBy]
@@ -391,8 +393,8 @@ func (biac *BusinessImpactAssessmentController) GetAllBIAExport(c *gin.Context) 
 }
 
 func (biac *BusinessImpactAssessmentController) GetAllBIAImpactAnalysis(c *gin.Context) {
-	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "process_title_en")
+	sort := c.DefaultQuery("sort_order", "desc")
+	sortBy := c.DefaultQuery("sort_by", "created_at")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
@@ -403,6 +405,7 @@ func (biac *BusinessImpactAssessmentController) GetAllBIAImpactAnalysis(c *gin.C
 		"responsible_unit_ids",
 		"responsible_user_ids",
 		"process_criticality_level_ids",
+		"workflow_status_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -415,6 +418,7 @@ func (biac *BusinessImpactAssessmentController) GetAllBIAImpactAnalysis(c *gin.C
 		"asset_register_title_ar": "asset_register.title_ar",
 		"risk_level_title_en":     "risk_levels.title_en",
 		"risk_level_title_ar":     "risk_levels.title_ar",
+		"created_at":              "business_impact_assessments.created_at",
 	}
 
 	sortField, valid := validSortFields[sortBy]
@@ -442,8 +446,20 @@ func (biac *BusinessImpactAssessmentController) GetAllBIAImpactAnalysis(c *gin.C
 }
 
 func (biac *BusinessImpactAssessmentController) GetAllBIARecoveryObjectives(c *gin.Context) {
-	sort := c.DefaultQuery("sort_order", "asc")
+	sort := c.DefaultQuery("sort_order", "desc")
+	sortBy := c.DefaultQuery("sort_by", "created_at")
 	keyword := c.Query("keyword")
+
+	validSortFields := map[string]string{
+		"created_at": "process_dependencies.created_at",
+	}
+
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		err := errors.New("invalid 'sort_by' parameter")
+		utility.SendInvalidErrResp(c, err)
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -454,6 +470,7 @@ func (biac *BusinessImpactAssessmentController) GetAllBIARecoveryObjectives(c *g
 
 	queryParams := businessContinuityDTOs.BusinessImpactAssessmentRecoveryObjectiveListQueryParamsDTO{
 		Sort:    sort,
+		SortBy:  sortField,
 		Keyword: keyword,
 		Filters: filters,
 	}
@@ -668,8 +685,8 @@ func (biac *BusinessImpactAssessmentController) DeleteBusinessImpactAssessments(
 }
 
 func (biac *BusinessImpactAssessmentController) GetBIAMatrix(c *gin.Context) {
-	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "business_function_title")
+	sort := c.DefaultQuery("sort_order", "desc")
+	sortBy := c.DefaultQuery("sort_by", "created_at")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 

@@ -175,6 +175,14 @@ func (repo *TestAndExerciseRepository) GetAll(params *businessContinuityDTOs.Tes
 		return nil, err
 	}
 
+	// Sort by the specified column and order
+	if params.SortBy == "" {
+		params.SortBy = "test_and_exercises.created_at"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "desc"
+	}
+
 	query = query.Order(params.SortBy + " " + params.Sort)
 
 	offset := (params.Page - 1) * params.PageSize
