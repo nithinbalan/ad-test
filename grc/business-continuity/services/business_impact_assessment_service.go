@@ -130,6 +130,21 @@ func (bias *BusinessImpactAssessmentService) GetProcessDetails(id uint, tx ...ut
 func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, businessImpactAssessmentFormDTO *businessContinuityDTOs.BusinessImpactFormDTO) (uint, error) {
 	tx := bias.repo.BeginTransaction()
 
+	if businessImpactAssessmentFormDTO.ProcessID == nil {
+		tx.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("process is required"), "required", "process_id")
+	}
+
+	process, err := bias.repo.GetProcessDetails(*businessImpactAssessmentFormDTO.ProcessID, tx)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	if len(process.ProcessEmployeeAnalysis) == 0 {
+		tx.Rollback()
+		return 0, utility.NewValidationError(fmt.Errorf("employee analysis is required before adding a process to BIA"), "employee_analysise_required", "employee_analysise")
+	}
+
 	impactCategories, err := bias.impactCategorySvc.GetAll("", "", "", "active")
 	if err != nil {
 		tx.Rollback()
@@ -152,12 +167,6 @@ func (bias *BusinessImpactAssessmentService) Create(currentUserID uint, business
 			tx.Rollback()
 			return 0, err
 		}
-	}
-
-	process, err := bias.processSvc.GetFullDetailsByID(*businessImpactAssessmentFormDTO.ProcessID, tx)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
 	}
 
 	existingProcess, err := bias.processSvc.GetByID(*businessImpactAssessmentFormDTO.ProcessID, tx)

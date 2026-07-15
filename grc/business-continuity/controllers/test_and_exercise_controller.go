@@ -220,6 +220,32 @@ func (tec *TestAndExerciseController) UpdateTestAndExercise(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+func (tec *TestAndExerciseController) MarkAsCompleted(c *gin.Context) {
+	testAndExerciseID, err := strconv.ParseUint(c.Param("testAndExerciseId"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(tec.db, c, err.Error())
+		return
+	}
+
+	if err := tec.service.MarkAsCompleted(uint(testAndExerciseID), currentUserID); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(tec.db, c, e.Error())
+		}
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func (tec *TestAndExerciseController) DeleteTestAndExercises(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`

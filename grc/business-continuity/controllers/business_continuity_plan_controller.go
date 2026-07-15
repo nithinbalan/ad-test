@@ -216,6 +216,32 @@ func (bcpc *BusinessContinuityPlanController) UpdateBusinessContinuityPlan(c *gi
 	c.Status(http.StatusOK)
 }
 
+func (bcpc *BusinessContinuityPlanController) MarkAsCompleted(c *gin.Context) {
+	businessContinuityPlanID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(bcpc.db, c, err.Error())
+		return
+	}
+
+	if err := bcpc.service.MarkAsCompleted(uint(businessContinuityPlanID), currentUserID); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(bcpc.db, c, e.Error())
+		}
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func (bcpc *BusinessContinuityPlanController) DeleteBusinessContinuityPlans(c *gin.Context) {
 	var request struct {
 		IDs []uint `json:"ids"`

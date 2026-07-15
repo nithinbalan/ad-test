@@ -28,6 +28,7 @@ type BusinessContinuityPlanServiceInterface interface {
 	GetByID(id uint) (*models.BusinessContinuityPlan, error)
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.BusinessContinuityPlanFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, businessContinuityPlan *businessContinuityDTOs.BusinessContinuityPlanFormDTO) error
+	MarkAsCompleted(id uint, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	UpdateRecoveryObjectives(businessContinuityPlan *models.BusinessContinuityPlan, tx utility.DatabaseTransaction) error
@@ -1039,4 +1040,64 @@ func (bcs *BusinessContinuityPlanService) GetTestSummary(bcpID uint) (*businessC
 		PartiallySuccess: partiallySuccess,
 		NotTestedTests:   notTested,
 	}, nil
+}
+
+func (bcps *BusinessContinuityPlanService) MarkAsCompleted(id uint, currentUserID uint) error {
+	tx := bcps.repo.BeginTransaction()
+
+	businessContinuityPlan, err := bcps.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+
+	publishedStatus, err := bcps.bcpStatusSvc.GetByType("published")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	oldBcpStatusID := businessContinuityPlan.BcpStatusID
+	businessContinuityPlan.BcpStatusID = publishedStatus.ID
+	businessContinuityPlan.UpdatedBYID = &currentUserID
+	if err := bcps.repo.Update(businessContinuityPlan, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	go func() {
+		changedData := utility.CompareFieldChanges(
+			map[string]interface{}{"bcp_status_id": oldBcpStatusID},
+			map[string]interface{}{"bcp_status_id": publishedStatus.ID},
+		)
+		if len(changedData) == 0 {
+			return
+		}
+
+		if err := bcps.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.BusinessContinuityPlan{}.TableName(),
+			id,
+			changedData,
+			currentUserID,
+			"business_continuity",
+			"bcp",
+			"business_continuity_plan",
+			nil,
+		); err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.BusinessContinuityPlan{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+	}()
+
+	return nil
 }
