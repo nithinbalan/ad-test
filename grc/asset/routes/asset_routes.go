@@ -58,6 +58,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	applicationController := app.AssetModule.ApplicationController
 	slaEscalationMatrixController := app.AssetModule.SLAEscalationMatrixController
 	vulnerabilitySettingsController := app.AssetModule.VulnerabilitySettingsController
+	qualysVulnerabilityHistoryController := app.AssetModule.QualysVulnerabilityHistoryController
+
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -423,4 +425,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Vulnerability Settings
 	assetRoutes.GET("/vulnerability-settings", vulnerabilitySettingsController.GetAllVulnerabilitySettings)
 	assetRoutes.PUT("/vulnerability-settings", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), vulnerabilitySettingsController.UpdateVulnerabilitySettings)
+
+	//Qulays Vulnerability History
+	assetRoutes.GET("/vulnerabilities/:id/qualys-history",qualysVulnerabilityHistoryController.GetAllQualysVulnerabilityHistories)
+	assetRoutes.POST("/vulnerabilities/:id/qualys-history/:historyId/documents", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), qualysVulnerabilityHistoryController.CreateQualysVulnerabilityHistoryDocuments)
+	unauthenticatedRoutes.GET("/vulnerabilities/:id/qualys-history/:historyId/document-preview", qualysVulnerabilityHistoryController.GetQualysVulnerabilityHistoryDocumentPreview)
 }
