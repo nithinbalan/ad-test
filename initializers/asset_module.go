@@ -53,6 +53,7 @@ type AssetModule struct {
 	AssetRiskRegisterController                   *controllers.AssetRiskRegisterController
 	AssetRiskWorkflowController                   *controllers.AssetRiskWorkflowController
 	AssetRiskReviewController                     *controllers.AssetRiskReviewController
+	AssetRiskReviewCommentController              *controllers.AssetRiskReviewCommentController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -315,7 +316,7 @@ func NewAssetModule(db *gorm.DB,
 	slaEscalationMatrixController := controllers.NewSLAEscalationMatrixController(slaEscalationMatrixSvc)
 
 	assetRiskRegisterRepo := repositories.NewAssetRiskRegisterRepository(db)
-	assetRiskRegisterSvc := services.NewAssetRiskRegisterService(assetRiskRegisterRepo, settingsModule.OrganizationUnitSvc, organizationModule.UserSvc, assetRegisterSvc, vulnerabilitySvc, sharedModule.ActivityLogService)
+	assetRiskRegisterSvc := services.NewAssetRiskRegisterService(assetRiskRegisterRepo, settingsModule.OrganizationUnitSvc, organizationModule.UserSvc, assetRegisterSvc, vulnerabilitySvc, sharedModule.ActivityLogService, commonModule.NotificationService)
 	assetRiskReigsterController := controllers.NewAssetRiskRegisterController(assetRiskRegisterSvc)
 
 	assetRiskWorkflowRepo := repositories.NewAssetRiskWorkflowRepository(db)
@@ -338,6 +339,15 @@ func NewAssetModule(db *gorm.DB,
 		commonModule.NotificationService,
 	)
 	assetRiskReviewController := controllers.NewAssetRiskReviewController(assetRiskReviewSvc)
+
+	assetRiskReviewCommentRepo := repositories.NewAssetRiskReviewCommentRepository(db)
+	assetRiskReviewCommentSvc := services.NewAssetRiskReviewCommentService(
+		assetRiskReviewCommentRepo,
+		sharedModule.ActivityLogService,
+		assetRiskRegisterSvc,
+		masterModule.CommentStatusSvc,
+	)
+	assetRiskReviewCommentController := controllers.NewAssetRiskReviewCommentController(assetRiskReviewCommentSvc)
 
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
@@ -384,6 +394,7 @@ func NewAssetModule(db *gorm.DB,
 		AssetRiskRegisterController:                   assetRiskReigsterController,
 		AssetRiskWorkflowController:                   assetRiskWorkflowController,
 		AssetRiskReviewController:                     assetRiskReviewController,
+		AssetRiskReviewCommentController:              assetRiskReviewCommentController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}

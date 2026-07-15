@@ -37,6 +37,7 @@ func (repo *AssetRiskWorkflowRepository) GetWorkflowList(riskID uint, tx ...util
 
 	var risk models.RiskRegister
 	result := db.
+		Preload("RiskStatus").
 		Preload("SubmittedByUser").
 		Preload("RiskWorkflows").
 		Preload("RiskWorkflows.WorkflowStatus").

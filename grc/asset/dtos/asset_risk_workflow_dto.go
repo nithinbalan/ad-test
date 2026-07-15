@@ -11,9 +11,11 @@ type AssetRiskWorkflowListDTO struct {
 	RiskRegisterID  uint                             `json:"risk_register_id"`
 	SubmittedAt     *time.Time                       `json:"submitted_at"`
 	SubmittedByUser *organizationDTOs.UserMinimalDTO `json:"submitted_by"`
-	// ApprovedAt      *time.Time                       `json:"approved_at"`
-	// ApprovedByUser  *organizationDTOs.UserMinimalDTO `json:"approved_by"`
-	RiskWorkflows []*WorkflowListDTO `json:"workflows"`
+	ApprovedAt      *time.Time                       `json:"approved_at"`
+	ApprovedByUser  *organizationDTOs.UserMinimalDTO `json:"approved_by"`
+	NextReviewLevel *int                             `json:"next_review_level"`
+	CurrentStatus   *masterDTOs.WorkflowStatusDTO    `json:"workflow_status"`
+	RiskWorkflows   []*WorkflowListDTO               `json:"workflows"`
 }
 
 type WorkflowListDTO struct {

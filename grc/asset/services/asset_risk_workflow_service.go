@@ -57,12 +57,45 @@ func (arws *AssetRiskWorkflowService) GetRiskWorkflowList(riskID uint, tx ...uti
 		return nil, err
 	}
 
+	overallStatus, err := arws.mapOverallWorkflowStatus(riskWorkflow)
+	if err != nil {
+		return nil, err
+	}
+
 	dto := &assetRiskDTOs.AssetRiskWorkflowListDTO{
 		ID:              riskWorkflow.ID,
 		RiskRegisterID:  riskWorkflow.ID,
 		SubmittedAt:     riskWorkflow.SubmittedAt,
 		SubmittedByUser: arws.mapUserToDTO(riskWorkflow.SubmittedByUser),
+		NextReviewLevel: riskWorkflow.NextReviewLevel,
+		CurrentStatus:   overallStatus,
 		RiskWorkflows:   []*assetRiskDTOs.WorkflowListDTO{},
+	}
+
+	var maxLevel int
+	for _, workflow := range riskWorkflow.RiskWorkflows {
+		if workflow.Level > maxLevel {
+			maxLevel = workflow.Level
+		}
+	}
+
+	// Final ApprovedAt/ApprovedByUser only apply once every level has been approved.
+	if riskWorkflow.RiskStatus != nil && riskWorkflow.RiskStatus.Type == "open" {
+		for _, workflow := range riskWorkflow.RiskWorkflows {
+			if workflow.Level != maxLevel {
+				continue
+			}
+			for _, review := range workflow.RiskWorkflowReviews {
+				if review.WorkflowStatus.Type != "approve" {
+					continue
+				}
+				if dto.ApprovedAt == nil || review.CreatedAt.After(*dto.ApprovedAt) {
+					t := review.CreatedAt
+					dto.ApprovedAt = &t
+					dto.ApprovedByUser = arws.mapUserToDTO(review.CreatedByUser)
+				}
+			}
+		}
 	}
 
 	for _, workflow := range riskWorkflow.RiskWorkflows {
@@ -238,6 +271,36 @@ func (arws *AssetRiskWorkflowService) mapWorkflowStatusToDTO(status *models.Work
 		Status:    status.Status,
 		Type:      status.Type,
 	}
+}
+
+func (arws *AssetRiskWorkflowService) mapOverallWorkflowStatus(riskRegister *models.RiskRegister) (*masterDTOs.WorkflowStatusDTO, error) {
+	if riskRegister.RiskStatus == nil {
+		return nil, nil
+	}
+
+	var statusType string
+	switch riskRegister.RiskStatus.Type {
+	case "rejected":
+		statusType = "reject"
+	case "open":
+		statusType = "approve"
+	case "submitted":
+		if riskRegister.NextReviewLevel != nil && *riskRegister.NextReviewLevel == 1 {
+			statusType = "submit"
+		} else {
+			statusType = "in_progress"
+		}
+	default:
+		return nil, nil
+	}
+
+	workflowStatus, err := arws.workflowStatusSvc.GetByType(statusType)
+	if err != nil {
+		return nil, err
+	}
+
+	status := arws.mapWorkflowStatusToDTO(workflowStatus)
+	return &status, nil
 }
 
 func (arws *AssetRiskWorkflowService) ValidateWorkflowBeforeCreate(contextType string, tx ...utility.DatabaseTransaction) error {

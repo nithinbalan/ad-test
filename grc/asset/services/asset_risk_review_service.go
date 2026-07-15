@@ -81,19 +81,32 @@ func (arrs *AssetRiskReviewService) Submit(riskID uint, currentUserID uint) (err
 		return err
 	}
 
-	if err := arrs.riskWorkflowSvc.CreateRiskWorkflow(riskRegister.ID, "asset_risk", currentUserID, tx); err != nil {
+	submittedRiskStatus, err := arrs.riskSvc.GetRiskStatusByType("submitted", tx)
+	if err != nil {
 		return err
 	}
 
-	riskStatus, err := arrs.riskSvc.GetRiskStatusByType("submitted", tx)
+	identifiedRiskStatus, err := arrs.riskSvc.GetRiskStatusByType("identified", tx)
 	if err != nil {
+		return err
+	}
+
+	if riskRegister.NextReviewLevel != nil {
+		return utility.NewValidationError(fmt.Errorf("risk has already been submitted"), "already_submitted", "risk")
+	}
+
+	if riskRegister.RiskStatusID != identifiedRiskStatus.ID {
+		return utility.NewValidationError(fmt.Errorf("workflow has already completed"), "already_completed", "risk")
+	}
+
+	if err := arrs.riskWorkflowSvc.CreateRiskWorkflow(riskRegister.ID, "asset_risk", currentUserID, tx); err != nil {
 		return err
 	}
 
 	level := 1
 	now := time.Now()
 
-	riskRegister.RiskStatusID = riskStatus.ID
+	riskRegister.RiskStatusID = submittedRiskStatus.ID
 	riskRegister.SubmittedBy = &currentUserID
 	riskRegister.SubmittedAt = &now
 	riskRegister.NextReviewLevel = &level
@@ -210,6 +223,7 @@ func (arrs *AssetRiskReviewService) Approve(riskID uint, currentUserID uint) (er
 				return err
 			}
 			riskRegister.RiskStatusID = openStatus.ID
+			riskRegister.NextReviewLevel = nil
 			if err := arrs.repo.UpdateRisk(riskRegister, tx); err != nil {
 				return err
 			}
@@ -220,6 +234,7 @@ func (arrs *AssetRiskReviewService) Approve(riskID uint, currentUserID uint) (er
 			}
 			notify = func() {
 				arrs.sendApprovalNotification(currentUserID, riskDetail)
+				arrs.sendResponsibleUserAssignNotification(currentUserID, riskDetail)
 			}
 		} else {
 			riskRegister.NextReviewLevel = &nextRiskWorkflowLevel.Level
@@ -284,6 +299,7 @@ func (arrs *AssetRiskReviewService) Approve(riskID uint, currentUserID uint) (er
 				return err
 			}
 			riskRegister.RiskStatusID = openStatus.ID
+			riskRegister.NextReviewLevel = nil
 			if err := arrs.repo.UpdateRisk(riskRegister, tx); err != nil {
 				return err
 			}
@@ -294,6 +310,7 @@ func (arrs *AssetRiskReviewService) Approve(riskID uint, currentUserID uint) (er
 			}
 			notify = func() {
 				arrs.sendApprovalNotification(currentUserID, riskDetail)
+				arrs.sendResponsibleUserAssignNotification(currentUserID, riskDetail)
 			}
 		} else {
 			riskRegister.NextReviewLevel = &nextRiskWorkflowLevel.Level
@@ -353,6 +370,17 @@ func (arrs *AssetRiskReviewService) Reject(riskID uint, currentUserID uint) (err
 		return err
 	}
 
+	allowed := false
+	for _, participant := range currentRiskWorkflow.RiskWorkflowParticipants {
+		if participant.UserID == currentUserID {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		return utility.NewForbiddenError("you have no permission to reject")
+	}
+
 	workflowStatus, err := arrs.workflowStatusSvc.GetByType("reject")
 	if err != nil {
 		return err
@@ -384,6 +412,7 @@ func (arrs *AssetRiskReviewService) Reject(riskID uint, currentUserID uint) (err
 	}
 
 	riskRegister.RiskStatusID = riskStatus.ID
+	riskRegister.NextReviewLevel = nil
 	if err := arrs.repo.UpdateRisk(riskRegister, tx); err != nil {
 		return err
 	}
@@ -425,7 +454,7 @@ func (arrs *AssetRiskReviewService) notifyWorkflowParticipants(riskRegister *mod
 
 		dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 			UserIDs:              []uint{participant.User.ID},
-			ModuleIdentifier:     "asset_risk",
+			ModuleIdentifier:     "vulnerability",
 			NotificationType:     string(commonDTOs.ReviewType),
 			ReferenceNumber:      *riskRegister.ReferenceNumber,
 			HeadingEn:            "Asset Risk Acceptance Workflow",
@@ -457,11 +486,69 @@ func (arrs *AssetRiskReviewService) notifyWorkflowParticipants(riskRegister *mod
 			EmailData:            emailData,
 		}
 
-		if err := arrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "asset_risk"); err != nil {
+		if err := arrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "vulnerability"); err != nil {
 			utility.LogError("Failed to send notifications", map[string]interface{}{
 				"error": err.Error(),
 			})
 		}
+	}
+}
+
+func (arrs *AssetRiskReviewService) sendResponsibleUserAssignNotification(currentUserID uint, riskDetail *assetRiskDTOs.AssetRiskRegisterDetailDTO) {
+	responsibleUserID := uint(riskDetail.ResponsibleUser.ID)
+
+	responsibleUser, err := arrs.userSvc.GetByID(responsibleUserID)
+	if err != nil {
+		utility.LogError("Failed to fetch responsible user", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	urlParam := fmt.Sprintf(`{"id":%d}`, riskDetail.ID)
+	entity := "asset-risk-register"
+	action := "responsible-user-assign"
+
+	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
+		UserIDs:              []uint{responsibleUserID},
+		ModuleIdentifier:     "asset_risk",
+		NotificationType:     string(commonDTOs.AssignmentType),
+		HeadingEn:            "Risk Register Responsibility Assigned",
+		HeadingAr:            "مسؤولية تسجيل المخاطر المعينة",
+		ReferenceNumber:      riskDetail.ReferenceNumber,
+		TitleEn:              riskDetail.Title,
+		TitleAr:              riskDetail.Title,
+		Entity:               &entity,
+		Action:               &action,
+		URLParam:             urlParam,
+		IsSystemNotification: false,
+		CreatedByID:          &currentUserID,
+	}
+
+	appURL := utility.GetAppURL()
+	emailData := map[string]interface{}{
+		"FirstNameEn":          responsibleUser.FirstNameEn,
+		"LastNameEn":           responsibleUser.LastNameEn,
+		"RiskReferenceNumber":  riskDetail.ReferenceNumber,
+		"RiskTitle":            riskDetail.Title,
+		"RiskJustification":    utility.GetStringValue(riskDetail.Justification),
+		"CreatedByFirstNameEn": riskDetail.CreatedByUser.FirstNameEN,
+		"CreatedByLastNameEn":  riskDetail.CreatedByUser.LastNameEN,
+		"AssignedOn":           time.Now().Format("2006-01-02"),
+		"RedirectURL":          fmt.Sprintf("%s/asset/asset-risk-register/%d/overview", appURL, riskDetail.ID),
+	}
+
+	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
+		EmailTo:              []string{responsibleUser.Email},
+		Subject:              fmt.Sprintf("Asset Risk Register/%s: Responsibility Assigned", riskDetail.Title),
+		TemplateRelativePath: "asset/templates/email/asset_risk_register_create_responsible_user_mail.html",
+		EmailData:            emailData,
+	}
+
+	if err := arrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "asset_risk"); err != nil {
+		utility.LogError("Failed to send responsible user assign notification", map[string]interface{}{
+			"error": err.Error(),
+		})
 	}
 }
 
@@ -481,7 +568,7 @@ func (arrs *AssetRiskReviewService) sendApprovalNotification(currentUserID uint,
 
 	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 		UserIDs:              []uint{responsibleUserID},
-		ModuleIdentifier:     "asset_risk",
+		ModuleIdentifier:     "vulnerability",
 		NotificationType:     string(commonDTOs.ApprovalType),
 		HeadingEn:            "Asset Risk Acceptance Workflow",
 		HeadingAr:            "سير عمل قبول مخاطر الأصول",
@@ -515,7 +602,7 @@ func (arrs *AssetRiskReviewService) sendApprovalNotification(currentUserID uint,
 		EmailData:            emailData,
 	}
 
-	if err := arrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "asset_risk"); err != nil {
+	if err := arrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "vulnerability"); err != nil {
 		utility.LogError("Failed to send approval notification email", map[string]interface{}{
 			"error": err.Error(),
 		})
@@ -538,7 +625,7 @@ func (arrs *AssetRiskReviewService) sendRejectedNotification(currentUserID uint,
 
 	dbNotificationDTO := &commonDTOs.DBNotificationDTO{
 		UserIDs:              []uint{responsibleUserID},
-		ModuleIdentifier:     "asset_risk",
+		ModuleIdentifier:     "vulnerability",
 		NotificationType:     string(commonDTOs.RejectType),
 		HeadingEn:            "Asset Risk Acceptance Workflow",
 		HeadingAr:            "سير عمل قبول مخاطر الأصول",
@@ -572,7 +659,7 @@ func (arrs *AssetRiskReviewService) sendRejectedNotification(currentUserID uint,
 		EmailData:            emailData,
 	}
 
-	if err := arrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "asset_risk"); err != nil {
+	if err := arrs.notificationSvc.SendNotification(dbNotificationDTO, emailNotificationDTO, "vulnerability"); err != nil {
 		utility.LogError("Failed to send rejected notification email", map[string]interface{}{
 			"error": err.Error(),
 		})
