@@ -23,6 +23,7 @@ type SLAEscalationMatrixServiceInterface interface {
 
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
+	GetActiveEscalationBySeverityID(severityID uint) (*models.SLAEscalationMatrix, error)
 }
 
 type SLAEscalationMatrixService struct {
@@ -72,8 +73,8 @@ func (sems *SLAEscalationMatrixService) Create(currentUserID uint, matrix *model
 			createdMatrix,
 			currentUserID,
 			"governance",
-			"sla_escalation_matrix",
-			"sla_escalation_matrix",
+			"asset",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -98,7 +99,7 @@ func (sems *SLAEscalationMatrixService) Update(id, currentUserID uint, updatedMa
 		}
 	}
 
-	fieldsToCompare := []string{"SeverityID", "RemediationDays", "IsEmail", "IsAlert", "RoleID", "Status"}
+	fieldsToCompare := []string{"SeverityID", "RemediationDays", "IsEmail", "IsAlert", "RoleID", "NotifiyingRoleID","Status"}
 	changes, err := utility.CompareFields(existingMatrix, updatedMatrix, fieldsToCompare)
 	if err != nil {
 		log.Println("error :", err.Error())
@@ -114,6 +115,7 @@ func (sems *SLAEscalationMatrixService) Update(id, currentUserID uint, updatedMa
 	existingMatrix.IsEmail = updatedMatrix.IsEmail
 	existingMatrix.IsAlert = updatedMatrix.IsAlert
 	existingMatrix.RoleID = updatedMatrix.RoleID
+	existingMatrix.NotifiyingRoleID = updatedMatrix.NotifiyingRoleID
 	existingMatrix.Status = updatedMatrix.Status
 
 	if err := sems.repo.Update(existingMatrix); err != nil {
@@ -128,8 +130,8 @@ func (sems *SLAEscalationMatrixService) Update(id, currentUserID uint, updatedMa
 			changedDataJSON,
 			currentUserID,
 			"governance",
-			"sla_escalation_matrix",
-			"sla_escalation_matrix",
+			"asset",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -225,4 +227,8 @@ func (sems *SLAEscalationMatrixService) Deactivate(ids []uint, currentUserID uin
 	}
 
 	return err
+}
+
+func (sems *SLAEscalationMatrixService) GetActiveEscalationBySeverityID(severityID uint) (*models.SLAEscalationMatrix, error) {
+	return sems.repo.GetActiveEscalationBySeverityID(severityID)
 }

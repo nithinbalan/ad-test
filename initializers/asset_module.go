@@ -51,6 +51,7 @@ type AssetModule struct {
 	ApplicationController                         *controllers.ApplicationController
 	SLAEscalationMatrixController                 *controllers.SLAEscalationMatrixController
 	VulnerabilitySettingsController               *controllers.VulnerabilitySettingsController
+	QualysVulnerabilityHistoryController          *controllers.QualysVulnerabilityHistoryController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
 }
@@ -134,8 +135,27 @@ func NewAssetModule(db *gorm.DB,
 	qualysSvc := services.NewQualysService(qualysRepo, settingsModule.QualysSettingSvc)
 	qualysController := controllers.NewQualysController(qualysSvc)
 
+	slaEscalationMatrixRepo := repositories.NewSLAEscalationMatrixRepository(db)
+	slaEscalationMatrixSvc := services.NewSLAEscalationMatrixService(slaEscalationMatrixRepo, sharedModule.ActivityLogService)
+	slaEscalationMatrixController := controllers.NewSLAEscalationMatrixController(slaEscalationMatrixSvc)
+
 	vulnerabilityRepo := repositories.NewVulnerabilityRepository(db)
-	vulnerabilitySvc := services.NewVulnerabilityService(vulnerabilityRepo, sharedModule.ActivityLogService, vulnerabilityTypeSvc, masterModule.SeverityLevelSvc, vulnerabilityStatusSvc, organizationModule.UserSvc, organizationModule.UserSettingSvc, vulnerabilityStatusSvc, vulnerabilitySettingsSvc,qualysSvc,assetRegisterSvc,organizationModule.ControlSvc,commonModule.NotificationService)
+	vulnerabilitySvc := services.NewVulnerabilityService(
+		vulnerabilityRepo,
+		sharedModule.ActivityLogService,
+		vulnerabilityTypeSvc,
+		masterModule.SeverityLevelSvc,
+		vulnerabilityStatusSvc,
+		organizationModule.UserSvc,
+		organizationModule.UserSettingSvc,
+		vulnerabilityStatusSvc,
+		vulnerabilitySettingsSvc,
+		qualysSvc,
+		assetRegisterSvc,
+		organizationModule.ControlSvc,
+		commonModule.NotificationService,
+		slaEscalationMatrixSvc,
+	)
 	vulnerabilityController := controllers.NewVulnerabilityController(vulnerabilitySvc)
 
 	threatTypeRepo := repositories.NewThreatTypeRepository(db)
@@ -312,9 +332,9 @@ func NewAssetModule(db *gorm.DB,
 	)
 	systemRegisterController := controllers.NewSystemRegisterController(systemRegisterSvc)
 
-	slaEscalationMatrixRepo := repositories.NewSLAEscalationMatrixRepository(db)
-	slaEscalationMatrixSvc := services.NewSLAEscalationMatrixService(slaEscalationMatrixRepo, sharedModule.ActivityLogService)
-	slaEscalationMatrixController := controllers.NewSLAEscalationMatrixController(slaEscalationMatrixSvc)
+	qualysVulnerabilityHistoryRepo := repositories.NewQulaysVulnerabilityHistoryRepository(db)
+	qualysVulnerabilityHistorySvc := services.NewQualysVulnerabilityHistoryService(qualysVulnerabilityHistoryRepo, vulnerabilitySvc)
+	qualysVulnerabilityHistoryController := controllers.NewQualysVulnerabilityHistoryController(qualysVulnerabilityHistorySvc)
 
 	return &AssetModule{
 		AssetTypeController:                           assetTypeController,
@@ -359,6 +379,7 @@ func NewAssetModule(db *gorm.DB,
 		ApplicationController:                         applicationController,
 		SLAEscalationMatrixController:                 slaEscalationMatrixController,
 		VulnerabilitySettingsController:               vulnerabilitySettingsController,
+		QualysVulnerabilityHistoryController:          qualysVulnerabilityHistoryController,
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}
