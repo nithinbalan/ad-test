@@ -535,19 +535,21 @@ func (cs *ControlService) Delete(ids []uint, currentUserID uint) ([]uint, error)
 		}
 
 		// Prepare notification data before deletion
-		notifications = append(notifications, struct {
-			OwnerID         *uint
-			TitleEn         string
-			TitleAr         string
-			Description     string
-			ReferenceNumber string
-		}{
-			OwnerID:         control.ResponsibleUserID,
-			TitleEn:         control.TitleEn,
-			TitleAr:         control.TitleAr,
-			Description:     *control.Description,
-			ReferenceNumber: control.ReferenceNumber,
-		})
+		if control.ResponsibleUserID != nil {
+			notifications = append(notifications, struct {
+				OwnerID         *uint
+				TitleEn         string
+				TitleAr         string
+				Description     string
+				ReferenceNumber string
+			}{
+				OwnerID:         control.ResponsibleUserID,
+				TitleEn:         control.TitleEn,
+				TitleAr:         control.TitleAr,
+				Description:     utility.GetStringValue(control.Description),
+				ReferenceNumber: control.ReferenceNumber,
+			})
+		}
 
 		// Perform deletion
 		err = cs.repo.Delete(id)

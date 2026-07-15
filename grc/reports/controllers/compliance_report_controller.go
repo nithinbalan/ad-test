@@ -150,7 +150,13 @@ func (crc *ComplianceReportController) GetAllComplianceRegisters(c *gin.Context)
 		Export:             export,
 	}
 
-	compliances, err := crc.complianceRegisterSvc.GetAll(&queryParams)
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(crc.db, c, err.Error())
+		return
+	}
+
+	compliances, err := crc.complianceRegisterSvc.GetAll(&queryParams, currentUserID)
 	if err != nil {
 		utility.SendInternalErrResp(crc.db, c, err.Error())
 		return

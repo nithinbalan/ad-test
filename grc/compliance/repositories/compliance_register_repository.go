@@ -14,7 +14,7 @@ import (
 
 type ComplianceRegisterRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
-	GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
+	GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO, currentUserID uint, primaryUnitID uint, isSuperAdmin bool) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetByID(id uint) (*models.ComplianceRegister, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*models.ComplianceRegister, error)
 	Create(complianceRegister *models.ComplianceRegister, tx ...utility.DatabaseTransaction) (uint, error)
@@ -85,7 +85,7 @@ func (repo *ComplianceRegisterRepository) BeginTransaction() utility.DatabaseTra
 	return utility.NewGormDatabaseTransaction(repo.db)
 }
 
-func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
+func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO, currentUserID uint, primaryUnitID uint, isSuperAdmin bool) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
 
 	var complianceRegisters []*complianceDTOs.ComplianceRegisterListDTO
 	var totalCount int64
@@ -199,6 +199,22 @@ func (repo *ComplianceRegisterRepository) GetAll(params *complianceDTOs.Complian
 			LEFT JOIN compliance_secrecy_classifications AS secrecy_classifications ON secrecy_classifications.id = compliance_register.secrecy_classification_id
 			LEFT JOIN compliance_assessment_ratings AS average_residual_rating ON average_residual_rating.id = compliance_register.average_residual_risk_rating_id
 		`)
+
+	if !isSuperAdmin {
+		query = query.Where(`
+			compliance_register.is_public = ?
+			OR compliance_register.created_by_id = ?
+			OR compliance_register.responsible_user_id = ?
+			OR (
+				compliance_register.is_shared = ?
+				AND EXISTS (
+					SELECT 1
+					FROM compliance_register_shared_units
+					WHERE compliance_register_shared_units.compliance_register_id = compliance_register.id
+						AND compliance_register_shared_units.department_id = ?
+				)
+			)`, true, currentUserID, currentUserID, true, primaryUnitID)
+	}
 
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
