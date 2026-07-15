@@ -130,8 +130,12 @@ func NewAssetModule(db *gorm.DB,
 	vulnerabilityStatusSvc := services.NewVulnerabilityStatusService(vulnerabilityStatusRepo)
 	vulnerabilityStatusController := controllers.NewVulnerabilityStatusController(vulnerabilityStatusSvc)
 
+	qualysRepo := repositories.NewQualysRepository()
+	qualysSvc := services.NewQualysService(qualysRepo, settingsModule.QualysSettingSvc)
+	qualysController := controllers.NewQualysController(qualysSvc)
+
 	vulnerabilityRepo := repositories.NewVulnerabilityRepository(db)
-	vulnerabilitySvc := services.NewVulnerabilityService(vulnerabilityRepo, sharedModule.ActivityLogService, vulnerabilityTypeSvc, masterModule.SeverityLevelSvc, vulnerabilityStatusSvc, organizationModule.UserSvc, organizationModule.UserSettingSvc, vulnerabilityStatusSvc, vulnerabilitySettingsSvc)
+	vulnerabilitySvc := services.NewVulnerabilityService(vulnerabilityRepo, sharedModule.ActivityLogService, vulnerabilityTypeSvc, masterModule.SeverityLevelSvc, vulnerabilityStatusSvc, organizationModule.UserSvc, organizationModule.UserSettingSvc, vulnerabilityStatusSvc, vulnerabilitySettingsSvc,qualysSvc,assetRegisterSvc)
 	vulnerabilityController := controllers.NewVulnerabilityController(vulnerabilitySvc)
 
 	threatTypeRepo := repositories.NewThreatTypeRepository(db)
@@ -291,10 +295,6 @@ func NewAssetModule(db *gorm.DB,
 	tenableRepo := repositories.NewTenableRepository()
 	tenableSvc := services.NewTenableService(tenableRepo, assetStatusSvc, settingsModule.TenableSettingsSvc, assetCategorySvc, organizationModule.UserSvc, assetRegisterSvc, assetSubCategorySvc)
 	tenableController := controllers.NewTenableController(tenableSvc)
-
-	qualysRepo := repositories.NewQualysRepository()
-	qualysSvc := services.NewQualysService(qualysRepo, settingsModule.QualysSettingSvc)
-	qualysController := controllers.NewQualysController(qualysSvc)
 
 	systemRegisterDisruptionLevelRepo := repositories.NewSystemRegisterDisruptionLevelRepository(db)
 	systemRegisterDisruptionLevelSvc := services.NewSystemRegisterDisruptionLevelService(systemRegisterDisruptionLevelRepo, sharedModule.ActivityLogService)
