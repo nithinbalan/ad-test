@@ -230,18 +230,15 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 
 	// Apply dynamic filters to the query
 	filterColumnMap := map[string]string{
-		"process_group_ids":       "processes.process_group_id",
-		"responsible_unit_ids":    "processes.responsible_unit_id",
-		"responsible_user_ids":    "processes.responsible_user_id",
-		"lifecycle_status_ids":    "processes.lifecycle_status_id",
-		"division_ids":            "processes.division_id",
-		"process_type_ids":        "processes.process_type_id",
-		"location_ids":            "processes.location_id",
-		"review_frequency_ids":    "processes.review_frequency_id",
-		"is_automatic":            "processes.is_automatic",
-		"is_manual":               "processes.is_manual",
-		"is_can_be_done_manually": "processes.is_can_be_done_manually",
-		"workflow_status_ids":     "bia_processes.workflow_status_id",
+		"process_group_id":    "processes.process_group_id",
+		"responsible_unit_id": "processes.responsible_unit_id",
+		"responsible_user_id": "processes.responsible_user_id",
+		"lifecycle_status_id": "processes.lifecycle_status_id",
+		"division_id":         "processes.division_id",
+		"process_type_id":     "processes.process_type_id",
+		"location_id":         "processes.location_id",
+		"review_frequency_id": "processes.review_frequency_id",
+		"workflow_status_id":  "bia_processes.workflow_status_id",
 	}
 	for paramName, values := range params.Filters {
 		if len(values) == 0 {
@@ -269,6 +266,12 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 			query = query.Where("processes.is_bia_performed = ?", true)
 		case "bia_not_performed":
 			query = query.Where("processes.is_bia_performed = ?", false)
+		case "is_automatic":
+			query = query.Where("processes.is_automatic = ?", true)
+		case "is_manual":
+			query = query.Where("processes.is_manual = ?", true)
+		case "is_can_be_done_manually":
+			query = query.Where("processes.is_can_be_done_manually = ?", true)
 		case "is_critical":
 			query = query.Where("bcm_impact_analysis_levels.type != ? AND bcm_impact_analysis_levels.type IS NOT NULL AND bia_processes.approved_by_id IS NOT NULL", "non_applicable")
 		case "high":
