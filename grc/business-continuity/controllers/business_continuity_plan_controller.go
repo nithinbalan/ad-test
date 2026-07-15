@@ -26,8 +26,8 @@ func NewBusinessContinuityPlanController(service services.BusinessContinuityPlan
 }
 
 func (bcpc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *gin.Context) {
-	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "business_function_title")
+	sort := c.DefaultQuery("sort_order", "desc")
+	sortBy := c.DefaultQuery("sort_by", "created_at")
 	keyword := c.Query("keyword")
 
 	// Convert the export parameter to a boolean
@@ -57,6 +57,7 @@ func (bcpc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *g
 		"id":                      "id",
 		"reference_number":        "business_continuity_plans.reference_number",
 		"business_function_title": "business_functions.title",
+		"created_at":              "business_continuity_plans.created_at",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

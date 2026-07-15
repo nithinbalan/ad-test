@@ -130,6 +130,21 @@ type ProcessListDTO struct {
 	ExecutionRecords                      []*ProcessExecutionRecordDTO     `json:"execution_records" gorm:"-"`
 	ManualProcedureForms                  []*ProcessManualProcedureFormDTO `json:"manual_procedure_forms" gorm:"-"`
 	SystemRegister                        *ProcessSystemRegisterDTO        `json:"system_register" gorm:"-"`
+	WorkflowStatusID                      *uint                            `json:"workflow_status_id"`
+	WorkflowStatusTitleEn                 *string                          `json:"workflow_status_title_en"`
+	WorkflowStatusTitleAr                 *string                          `json:"workflow_status_title_ar"`
+	WorkflowStatusType                    *string                          `json:"workflow_status_type"`
+	WorkflowStatusColorCode               *string                          `json:"workflow_status_color_code"`
+	ApprovedByID                          *uint                            `json:"approved_by_id"`
+	ApprovedByFirstNameEn                 *string                          `json:"approved_by_first_name_en"`
+	ApprovedByFirstNameAr                 *string                          `json:"approved_by_first_name_ar"`
+	ApprovedByLastNameEn                  *string                          `json:"approved_by_last_name_en"`
+	ApprovedByLastNameAr                  *string                          `json:"approved_by_last_name_ar"`
+	ApprovedByInitial                     *string                          `json:"approved_by_initial"`
+	ApprovedByColor                       *string                          `json:"approved_by_color"`
+	ApprovedByEmail                       *string                          `json:"approved_by_email"`
+	ApprovedByProfileImagePath            *string                          `json:"approved_by_profile_image_path"`
+	ApprovedAt                            *string                          `json:"approved_at"`
 }
 
 // ProcessListQueryParamsDTO defines the filters and search parameters for querying processes

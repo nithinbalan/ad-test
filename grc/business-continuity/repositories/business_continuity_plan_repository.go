@@ -136,7 +136,7 @@ func (repo *BusinessContinuityPlanRepository) GetAll(params *businessContinuityD
 	for _, filter := range params.QuickFilter {
 		if !joinedProcessTables {
 			query = query.
-				Joins(`LEFT JOIN bcp_processes ON bcp_processes.bcp_id = business_continuity_plans.id`).
+				Joins(`LEFT JOIN bcp_processes ON bcp_processes.business_continuity_plan_id = business_continuity_plans.id`).
 				Joins(`LEFT JOIN processes AS bcp_proc ON bcp_proc.id = bcp_processes.process_id`).
 				Joins(`LEFT JOIN bcm_impact_analysis_levels ON bcm_impact_analysis_levels.id = bcp_proc.impact_analysis_level_id`)
 			joinedProcessTables = true
@@ -172,6 +172,14 @@ func (repo *BusinessContinuityPlanRepository) GetAll(params *businessContinuityD
 
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
+	}
+
+	// Sort by the specified column and order
+	if params.SortBy == "" {
+		params.SortBy = "business_continuity_plans.created_at"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "desc"
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)
