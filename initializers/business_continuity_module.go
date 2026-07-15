@@ -109,6 +109,9 @@ func NewBusinessContinuityModule(db *gorm.DB,
 		masterModule.WorkflowStatusSvc,
 		organizationModule.UserSvc,
 		masterModule.WorkflowContextSvc,
+		organizationModule.OrganizationUnitsSvc,
+		settingsModule.OrganizationUnitSvc,
+		organizationModule.ProcessSvc,
 	)
 	biaProcessWorkflowSvc.SetBiaProcessService(biaProcessSvc)
 	biaProcessWorkflowController := controllers.NewBiaProcessWorkflowController(biaProcessWorkflowSvc)

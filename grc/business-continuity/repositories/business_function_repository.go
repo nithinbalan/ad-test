@@ -109,7 +109,11 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
 			}
 
 			if columnName == "responsible_unit_id" {
-				query = query.Where(columnName+" IN (?)", values)
+				query = query.Where("organization_units.id IN (?)", values)
+			} else if columnName == "process_id" {
+				query = query.Where("processes.id IN (?)", values)
+			} else if columnName == "process_criticality_level_id" {
+				query = query.Where("process_criticality_levels.id IN (?)", values)
 			} else {
 				query = query.Where("business_functions."+columnName+" IN (?)", values)
 			}
@@ -184,6 +188,14 @@ func (repo *BusinessFunctionRepository) GetAll(params *businessContinuityDTOs.Bu
 
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
+	}
+
+	// Sort by the specified column and order
+	if params.SortBy == "" {
+		params.SortBy = "business_functions.created_at"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "desc"
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)

@@ -47,6 +47,12 @@ type ProcessRepositoryInterface interface {
 	GetBCMExecutionRecordByID(id uint, tx ...utility.DatabaseTransaction) (*models.BCMExecutionRecord, error)
 	GetBCMManualProcedureFormByID(id uint, tx ...utility.DatabaseTransaction) (*models.BCMManualProcedureForm, error)
 	GetSystemRegisterByID(id uint, tx ...utility.DatabaseTransaction) (*models.SystemRegister, error)
+
+	// GetAll helpers for import template dropdowns
+	GetAllBCMProcessTypes() ([]*models.BCMProcessType, error)
+	GetAllBCMExecutionRecords() ([]*models.BCMExecutionRecord, error)
+	GetAllBCMManualProcedureForms() ([]*models.BCMManualProcedureForm, error)
+	GetAllSystemRegisters() ([]*models.SystemRegister, error)
 }
 
 type ProcessRepository struct {
@@ -181,9 +187,27 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		processes.is_can_be_done_manually,
 		processes.time_to_perform_procedure_manually,
 		processes.steps_to_perform_procedure_manually,
-		processes.requirement_to_perform_procedure_manually
+		processes.requirement_to_perform_procedure_manually,
+		bia_processes.workflow_status_id AS workflow_status_id,
+		workflow_statuses.title_en AS workflow_status_title_en,
+		workflow_statuses.title_ar AS workflow_status_title_ar,
+		workflow_statuses.type AS workflow_status_type,
+		workflow_statuses.color_code AS workflow_status_color_code,
+		bia_processes.approved_by_id AS approved_by_id,
+		approved_by.first_name_en AS approved_by_first_name_en,
+		approved_by.first_name_ar AS approved_by_first_name_ar,
+		approved_by.last_name_en AS approved_by_last_name_en,
+		approved_by.last_name_ar AS approved_by_last_name_ar,
+		approved_by.initial AS approved_by_initial,
+		approved_by.color AS approved_by_color,
+		approved_by.email AS approved_by_email,
+		approved_by.profile_image_path AS approved_by_profile_image_path,
+		CONVERT(VARCHAR, bia_processes.approved_at, 23) AS approved_at
 	`).
 		Joins("LEFT JOIN process_groups ON process_groups.id = processes.process_group_id").
+		Joins("LEFT JOIN bia_processes ON bia_processes.process_id = processes.id").
+		Joins("LEFT JOIN workflow_statuses ON workflow_statuses.id = bia_processes.workflow_status_id").
+		Joins("LEFT JOIN users AS approved_by ON approved_by.id = bia_processes.approved_by_id").
 		Joins("LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id").
 		Joins("LEFT JOIN organization_units AS divisions ON divisions.id = processes.division_id").
 		Joins("LEFT JOIN users AS owner ON owner.id = processes.responsible_user_id").
@@ -217,6 +241,7 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		"is_automatic":            "processes.is_automatic",
 		"is_manual":               "processes.is_manual",
 		"is_can_be_done_manually": "processes.is_can_be_done_manually",
+		"workflow_status_ids":     "bia_processes.workflow_status_id",
 	}
 	for paramName, values := range params.Filters {
 		if len(values) == 0 {
@@ -245,7 +270,7 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		case "bia_not_performed":
 			query = query.Where("processes.is_bia_performed = ?", false)
 		case "is_critical":
-			query = query.Where("bcm_impact_analysis_levels.type != ? AND bcm_impact_analysis_levels.type IS NOT NULL", "non_applicable")
+			query = query.Where("bcm_impact_analysis_levels.type != ? AND bcm_impact_analysis_levels.type IS NOT NULL AND bia_processes.approved_by_id IS NOT NULL", "non_applicable")
 		case "high":
 			query = query.Where("process_criticality_levels.type = ?", "high")
 		case "medium":
@@ -278,9 +303,15 @@ func (repo *ProcessRepository) GetAll(params *organizationDTOs.ProcessListQueryP
 		 locations.title_en LIKE ? OR
 		 locations.title_ar LIKE ? OR
 		 review_frequencies.title_en LIKE ? OR
-		 review_frequencies.title_ar LIKE ?)`,
+		 review_frequencies.title_ar LIKE ? OR
+		 workflow_statuses.title_en LIKE ? OR
+		 workflow_statuses.title_ar LIKE ? OR
+		 approved_by.first_name_en LIKE ? OR
+		 approved_by.first_name_ar LIKE ? OR
+		 approved_by.last_name_en LIKE ? OR
+		 approved_by.last_name_ar LIKE ?)`,
 			kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw,
-			kw, kw, kw, kw, kw, kw, kw, kw)
+			kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw)
 	}
 
 	// Count total records for pagination
@@ -740,4 +771,36 @@ func (repo *ProcessRepository) GetSystemRegisterByID(id uint, tx ...utility.Data
 		return nil, err
 	}
 	return &item, nil
+}
+
+func (repo *ProcessRepository) GetAllBCMProcessTypes() ([]*models.BCMProcessType, error) {
+	var items []*models.BCMProcessType
+	if err := repo.db.Where("status = ?", "active").Order("title_en").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (repo *ProcessRepository) GetAllBCMExecutionRecords() ([]*models.BCMExecutionRecord, error) {
+	var items []*models.BCMExecutionRecord
+	if err := repo.db.Order("title_en").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (repo *ProcessRepository) GetAllBCMManualProcedureForms() ([]*models.BCMManualProcedureForm, error) {
+	var items []*models.BCMManualProcedureForm
+	if err := repo.db.Order("title_en").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (repo *ProcessRepository) GetAllSystemRegisters() ([]*models.SystemRegister, error) {
+	var items []*models.SystemRegister
+	if err := repo.db.Order("title_en").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
 }

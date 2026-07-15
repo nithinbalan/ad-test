@@ -614,6 +614,26 @@ func (tetrs *TestAndExerciseTestResultService) UpdateTestResultSystemRegister(te
 		return err
 	}
 
+	areAllSystemRegistersUpdated, err := tetrs.repo.AreAllTestResultSystemRegistersUpdated(existing.TestAndExerciseTestResultID, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if areAllSystemRegistersUpdated {
+		testAndExercise, err := tetrs.testAndExerciseSvc.GetByID(existing.TestAndExerciseTestResult.TestAndExerciseID)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		testAndExercise.IsSytemRegisterUpdated = true
+		if err := tetrs.repo.UpdateTestAndExercise(testAndExercise, tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
 	return tx.Commit()
 }
 

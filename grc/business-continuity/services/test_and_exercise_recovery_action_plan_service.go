@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	businessContinuityDTOs "jethur/grc/business-continuity/dtos"
@@ -28,6 +29,7 @@ type TestAndExerciseRecoveryActionPlanServiceInterface interface {
 	Update(testAndExerciseID uint, id uint, currentUserID uint, dto *businessContinuityDTOs.TestAndExerciseRecoveryActionPlanFormDTO) error
 	Delete(testAndExerciseID uint, ids []uint, currentUserID uint) ([]uint, error)
 	StatusUpdate(testAndExerciseId uint, id uint, currentUserID uint, testAndExerciseRecoveryActionPlanStatusUpdateFormDTO *businessContinuityDTOs.TaeRecoveryActionPlanStatusUpdateFormDTO, tx utility.DatabaseTransaction) error
+	ExportTestAndExerciseRecoveryActionPlan(data []*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListDTO, currentUserID uint) (*os.File, error)
 }
 
 type TestAndExerciseRecoveryActionPlanService struct {
@@ -852,4 +854,85 @@ func (teraps *TestAndExerciseRecoveryActionPlanService) StatusUpdate(actionPlanI
 	}
 
 	return nil
+}
+
+func (teraps *TestAndExerciseRecoveryActionPlanService) ExportTestAndExerciseRecoveryActionPlan(data []*businessContinuityDTOs.TestAndExerciseRecoveryActionPlanListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := teraps.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers []string
+	if userSetting.Language == "ar" {
+		headers = []string{
+			"SL No.",
+			"Title",
+			"Description",
+			"Process",
+			"Priority Level",
+			"Responsible User",
+			"Target Date",
+			"Percentage",
+			"Review User",
+			"Status",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Title",
+			"Description",
+			"Process",
+			"Priority Level",
+			"Responsible User",
+			"Target Date",
+			"Percentage",
+			"Review User",
+			"Status",
+		}
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, ap := range data {
+		percentage := ""
+		if ap.Percentage != nil {
+			percentage = fmt.Sprintf("%d%%", *ap.Percentage)
+		}
+		targetDate := utility.GetStringValue(ap.TargetDate)
+		if targetDate != "" {
+			if t, err := time.Parse(time.RFC3339, targetDate); err == nil {
+				targetDate = t.Format("2006-01-02")
+			} else if t, err := time.Parse("2006-01-02T15:04:05.999Z", targetDate); err == nil {
+				targetDate = t.Format("2006-01-02")
+			}
+		}
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				ap.Title,
+				utility.GetStringValue(ap.Description),
+				utility.GetStringValue(ap.ProcessTitleAr),
+				utility.GetStringValue(ap.SeverityLevelTitleAr),
+				fmt.Sprintf("%s %s", ap.ResponsibleUserFirstNameAr, ap.ResponsibleUserLastNameAr),
+				targetDate,
+				percentage,
+				fmt.Sprintf("%s %s", utility.GetStringValue(ap.ReviewUserFirstNameAr), utility.GetStringValue(ap.ReviewUserLastNameAr)),
+				utility.GetStringValue(ap.ActionPlanStatusTitleAr),
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				ap.Title,
+				utility.GetStringValue(ap.Description),
+				utility.GetStringValue(ap.ProcessTitleEn),
+				utility.GetStringValue(ap.SeverityLevelTitleEn),
+				fmt.Sprintf("%s %s", ap.ResponsibleUserFirstNameEn, ap.ResponsibleUserLastNameEn),
+				targetDate,
+				percentage,
+				fmt.Sprintf("%s %s", utility.GetStringValue(ap.ReviewUserFirstNameEn), utility.GetStringValue(ap.ReviewUserLastNameEn)),
+				utility.GetStringValue(ap.ActionPlanStatusTitleEn),
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
 }
