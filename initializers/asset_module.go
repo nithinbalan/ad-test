@@ -313,7 +313,7 @@ func NewAssetModule(db *gorm.DB,
 	slaEscalationMatrixController := controllers.NewSLAEscalationMatrixController(slaEscalationMatrixSvc)
 
 	vulnerabilityReportRepo := repositories.NewVulnerabilityReportRepository(db)
-	vulnerabilityReportSvc := services.NewVulnerabilityReportService(vulnerabilityReportRepo, sharedModule.ActivityLogService)
+	vulnerabilityReportSvc := services.NewVulnerabilityReportService(vulnerabilityReportRepo, sharedModule.ActivityLogService,settingsModule.ReportTemplateSettingSvc)
 	vulnerabilityReportController := controllers.NewVulnerabilityReportController(vulnerabilityReportSvc)
 
 	return &AssetModule{
