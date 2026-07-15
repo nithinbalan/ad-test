@@ -106,7 +106,7 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
 			approved_by.color AS approved_by_color,
 			approved_by.email AS approved_by_email,
 			approved_by.profile_image_path AS approved_by_profile_image_path,
-			CONVERT(VARCHAR, bia_processes.approved_at, 23) AS approved_at,
+			CONVERT(VARCHAR, bia_processes.approved_at, 23) AS approved_at
         `).
 		Joins(`
 		    LEFT JOIN processes ON processes.id = business_impact_assessments.process_id
@@ -124,9 +124,12 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			if columnName == "workflow_status_ids" {
+			switch columnName {
+			case "workflow_status_ids":
 				query = query.Where("bia_processes.workflow_status_id IN (?)", values)
-			} else {
+			case "process_id", "process_ids":
+				query = query.Where("business_impact_assessments.process_id IN (?)", values)
+			default:
 				query = query.Where(columnName+" IN (?)", values)
 			}
 		}

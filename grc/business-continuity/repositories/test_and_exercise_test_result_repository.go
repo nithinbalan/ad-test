@@ -24,6 +24,8 @@ type TestAndExerciseTestResultRepositoryInterface interface {
 	CreateTestResultSystemRegisters(items []*models.TestAndExerciseTestResultSystemRegister, tx ...utility.DatabaseTransaction) error
 	GetTestResultSystemRegisterByID(id uint) (*models.TestAndExerciseTestResultSystemRegister, error)
 	UpdateTestResultSystemRegister(item *models.TestAndExerciseTestResultSystemRegister, tx ...utility.DatabaseTransaction) error
+	AreAllTestResultSystemRegistersUpdated(testResultID uint, tx ...utility.DatabaseTransaction) (bool, error)
+	UpdateTestAndExercise(testAndExercise *models.TestAndExercise, tx ...utility.DatabaseTransaction) error
 }
 
 type TestAndExerciseTestResultRepository struct {
@@ -208,7 +210,7 @@ func (repo *TestAndExerciseTestResultRepository) CreateTestResultSystemRegisters
 
 func (repo *TestAndExerciseTestResultRepository) GetTestResultSystemRegisterByID(id uint) (*models.TestAndExerciseTestResultSystemRegister, error) {
 	var item models.TestAndExerciseTestResultSystemRegister
-	if err := repo.db.First(&item, id).Error; err != nil {
+	if err := repo.db.Preload("TestAndExerciseTestResult").First(&item, id).Error; err != nil {
 		return nil, err
 	}
 	return &item, nil
@@ -223,4 +225,35 @@ func (repo *TestAndExerciseTestResultRepository) UpdateTestResultSystemRegister(
 		return err
 	}
 	return nil
+}
+
+func (repo *TestAndExerciseTestResultRepository) AreAllTestResultSystemRegistersUpdated(testResultID uint, tx ...utility.DatabaseTransaction) (bool, error) {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	var totalCount, updatedCount int64
+	if err := db.Model(&models.TestAndExerciseTestResultSystemRegister{}).
+		Where("test_and_exercise_test_result_id = ?", testResultID).
+		Count(&totalCount).Error; err != nil {
+		return false, err
+	}
+
+	if err := db.Model(&models.TestAndExerciseTestResultSystemRegister{}).
+		Where("test_and_exercise_test_result_id = ? AND test_result_option_id IS NOT NULL", testResultID).
+		Count(&updatedCount).Error; err != nil {
+		return false, err
+	}
+
+	return totalCount > 0 && totalCount == updatedCount, nil
+}
+
+func (repo *TestAndExerciseTestResultRepository) UpdateTestAndExercise(testAndExercise *models.TestAndExercise, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	return db.Save(testAndExercise).Error
 }

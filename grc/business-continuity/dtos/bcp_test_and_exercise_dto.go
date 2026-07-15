@@ -9,40 +9,41 @@ import (
 )
 
 type BcpTestAndExerciseListDTO struct {
-	ID                              uint    `json:"id"`
-	Title                           string  `json:"title"`
-	Objective                       *string `json:"objective"`
-	Scenario                        *string `json:"scenario"`
-	SuccessCriteria                 *string `json:"success_criteria"`
-	ReviewFrequencyTitleEn          *string `json:"review_frequency_title_en"`
-	ReviewFrequencyTitleAr          *string `json:"review_frequency_title_ar"`
-	ResponsibleUserID               *uint   `json:"responsible_user_id"`
-	ResponsibleUserFirstNameEn      *string `json:"responsible_user_first_name_en"`
-	ResponsibleUserFirstNameAr      *string `json:"responsible_user_first_name_ar"`
-	ResponsibleUserLastNameEn       *string `json:"responsible_user_last_name_en"`
-	ResponsibleUserLastNameAr       *string `json:"responsible_user_last_name_ar"`
-	ResponsibleUserInitial          *string `json:"responsible_user_initial"`
-	ResponsibleUserColor            *string `json:"responsible_user_color"`
-	ResponsibleUserEmail            *string `json:"responsible_user_email"`
-	ResponsibleUserProfileImagePath *string `json:"responsible_user_profile_image_path"`
-	CreatedUserID                   uint    `json:"created_user_id"`
-	CreatedUserFirstNameEn          string  `json:"created_user_first_name_en"`
-	CreatedUserFirstNameAr          string  `json:"created_user_first_name_ar"`
-	CreatedUserLastNameEn           string  `json:"created_user_last_name_en"`
-	CreatedUserLastNameAr           string  `json:"created_user_last_name_ar"`
-	CreatedUserInitial              string  `json:"created_user_initial"`
-	CreatedUserColor                string  `json:"created_user_color"`
-	CreatedUserEmail                string  `json:"created_user_email"`
-	CreatedUserProfileImagePath     string  `json:"created_user_profile_image_path"`
-	UpdatedUserID                   *uint   `json:"updated_user_id"`
-	UpdatedUserFirstNameEn          *string `json:"updated_user_first_name_en"`
-	UpdatedUserFirstNameAr          *string `json:"updated_user_first_name_ar"`
-	UpdatedUserLastNameEn           *string `json:"updated_user_last_name_en"`
-	UpdatedUserLastNameAr           *string `json:"updated_user_last_name_ar"`
-	UpdatedUserInitial              *string `json:"updated_user_initial"`
-	UpdatedUserColor                *string `json:"updated_user_color"`
-	UpdatedUserEmail                *string `json:"updated_user_email"`
-	UpdatedUserProfileImagePath     *string `json:"updated_user_profile_image_path"`
+	ID                                uint                                `json:"id"`
+	Title                             string                              `json:"title"`
+	Objective                         *string                             `json:"objective"`
+	Scenario                          *string                             `json:"scenario"`
+	SuccessCriteria                   *string                             `json:"success_criteria"`
+	ReviewFrequencyTitleEn            *string                             `json:"review_frequency_title_en"`
+	ReviewFrequencyTitleAr            *string                             `json:"review_frequency_title_ar"`
+	ResponsibleUserID                 *uint                               `json:"responsible_user_id"`
+	ResponsibleUserFirstNameEn        *string                             `json:"responsible_user_first_name_en"`
+	ResponsibleUserFirstNameAr        *string                             `json:"responsible_user_first_name_ar"`
+	ResponsibleUserLastNameEn         *string                             `json:"responsible_user_last_name_en"`
+	ResponsibleUserLastNameAr         *string                             `json:"responsible_user_last_name_ar"`
+	ResponsibleUserInitial            *string                             `json:"responsible_user_initial"`
+	ResponsibleUserColor              *string                             `json:"responsible_user_color"`
+	ResponsibleUserEmail              *string                             `json:"responsible_user_email"`
+	ResponsibleUserProfileImagePath   *string                             `json:"responsible_user_profile_image_path"`
+	CreatedUserID                     uint                                `json:"created_user_id"`
+	CreatedUserFirstNameEn            string                              `json:"created_user_first_name_en"`
+	CreatedUserFirstNameAr            string                              `json:"created_user_first_name_ar"`
+	CreatedUserLastNameEn             string                              `json:"created_user_last_name_en"`
+	CreatedUserLastNameAr             string                              `json:"created_user_last_name_ar"`
+	CreatedUserInitial                string                              `json:"created_user_initial"`
+	CreatedUserColor                  string                              `json:"created_user_color"`
+	CreatedUserEmail                  string                              `json:"created_user_email"`
+	CreatedUserProfileImagePath       string                              `json:"created_user_profile_image_path"`
+	UpdatedUserID                     *uint                               `json:"updated_user_id"`
+	UpdatedUserFirstNameEn            *string                             `json:"updated_user_first_name_en"`
+	UpdatedUserFirstNameAr            *string                             `json:"updated_user_first_name_ar"`
+	UpdatedUserLastNameEn             *string                             `json:"updated_user_last_name_en"`
+	UpdatedUserLastNameAr             *string                             `json:"updated_user_last_name_ar"`
+	UpdatedUserInitial                *string                             `json:"updated_user_initial"`
+	UpdatedUserColor                  *string                             `json:"updated_user_color"`
+	UpdatedUserEmail                  *string                             `json:"updated_user_email"`
+	UpdatedUserProfileImagePath       *string                             `json:"updated_user_profile_image_path"`
+	BcpTestAndExerciseSystemRegisters []*SystemRegisterMinimalDto `json:"system_registers" gorm:"-"`
 }
 
 type BcpTestAndExerciseListQueryParamsDTO struct {
@@ -114,4 +115,10 @@ type BcpTestAndExerciseSystemRegisterDetailDTO struct {
 	MTPDUnitID *uint  `json:"mtpd_unit_id"`
 	RPO        *int   `json:"rpo"`
 	RPOUnitID  *uint  `json:"rpo_unit_id"`
+}
+
+type SystemRegisterMinimalDto struct {
+	ID      uint   `json:"id"`
+	TitleEn string `json:"title_en"`
+	TitleAr string `json:"title_ar"`
 }

@@ -27,6 +27,7 @@ type TestAndExerciseServiceInterface interface {
 	GetByID(id uint) (*models.TestAndExercise, error)
 	Create(currentUserID uint, businessContinuityDTOs *businessContinuityDTOs.TestAndExerciseFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, TestAndExercise *businessContinuityDTOs.TestAndExerciseFormDTO) error
+	MarkAsCompleted(id uint, currentUserID uint) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
 
 	GetTestAndExerciseProcessByID(id uint) (*models.TestAndExerciseProcess, error)
@@ -889,4 +890,86 @@ func (tes *TestAndExerciseService) GetTestResultSummary(testAndExerciseID uint) 
 	return &businessContinuityDTOs.TestResultSummaryDTO{
 		Options: options,
 	}, nil
+}
+
+func (tes *TestAndExerciseService) MarkAsCompleted(id uint, currentUserID uint) error {
+	tx := tes.repo.BeginTransaction()
+
+	testAndExercise, err := tes.repo.GetByID(id)
+	if err != nil {
+		tx.Rollback()
+		return utility.NewResourceNotFoundError(err, id)
+	}
+
+	completedStatus, err := tes.testAndExerciseStatusSvc.GetByType("completed")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	businessContinuityPlan, err := tes.businessContinuityPlanSvc.GetByID(testAndExercise.BusinessContinuityPlanID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	oldTestAndExerciseStatusID := testAndExercise.TestAndExerciseStatusID
+	oldIsTestAndExerciseCompleted := businessContinuityPlan.IsTestAndExerciseCompleted
+
+	testAndExercise.TestAndExerciseStatusID = completedStatus.ID
+	testAndExercise.UpdatedBYID = &currentUserID
+	if err := tes.repo.Update(testAndExercise, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	businessContinuityPlan.IsTestAndExerciseCompleted = true
+	businessContinuityPlan.UpdatedBYID = &currentUserID
+	if err := tes.businessContinuityPlanSvc.UpdateRecoveryObjectives(businessContinuityPlan, tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	go func() {
+		changedData := utility.CompareFieldChanges(
+			map[string]interface{}{
+				"test_and_exercise_status_id":    oldTestAndExerciseStatusID,
+				"is_test_and_exercise_completed": oldIsTestAndExerciseCompleted,
+			},
+			map[string]interface{}{
+				"test_and_exercise_status_id":    completedStatus.ID,
+				"is_test_and_exercise_completed": true,
+			},
+		)
+
+		if len(changedData) == 0 {
+			return
+		}
+
+		if err := tes.activityLogSvc.LogActivity(
+			models.UpdateAction,
+			models.TestAndExercise{}.TableName(),
+			id,
+			changedData,
+			currentUserID,
+			"business_continuity",
+			"test_and_exercise",
+			"test_and_exercise",
+			nil,
+		); err != nil {
+			utility.LogError("Failed to log activity", map[string]interface{}{
+				"action":    models.UpdateAction,
+				"tableName": models.TestAndExercise{}.TableName(),
+				"recordID":  id,
+				"userID":    currentUserID,
+				"error":     err.Error(),
+			})
+		}
+	}()
+
+	return nil
 }
