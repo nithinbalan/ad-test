@@ -111,6 +111,11 @@ func (bfs BusinessFunctionService) GetFullDetailsByID(id uint, tx ...utility.Dat
 	businessFunctionDTO.CreatedAt = businessFunction.CreatedAt
 	businessFunctionDTO.UpdatedAt = businessFunction.UpdatedAt
 
+	if businessFunction.LatestBusinessContinuityPlan != nil && businessFunctionDTO.LatestBusinessContinuityPlan != nil {
+		businessFunctionDTO.LatestBusinessContinuityPlan.CreatedAt = businessFunction.LatestBusinessContinuityPlan.CreatedAt
+		businessFunctionDTO.LatestBusinessContinuityPlan.UpdatedAt = businessFunction.LatestBusinessContinuityPlan.UpdatedAt
+	}
+
 	return &businessFunctionDTO, nil
 }
 
@@ -519,42 +524,52 @@ func (bfs *BusinessFunctionService) ExportBusinessFunction(data []*businessConti
 	if userSetting.Language == "ar" {
 		headers = []string{
 			"SL No.",
-			"Reference Number",
-			"Title",
-			"Desctiption",
-			"Severity Level",
-			"Responsible User",
-		}
-	} else {
-		headers = []string{
-			"SL No.",
-			"Reference Number",
 			"Title",
 			"Description",
 			"Severity Level",
 			"Responsible User",
+			"Created At",
+			"Created By",
+		}
+	} else {
+		headers = []string{
+			"SL No.",
+			"Title",
+			"Description",
+			"Severity Level",
+			"Responsible User",
+			"Created At",
+			"Created By",
 		}
 	}
 
 	rows := make([][]interface{}, len(data))
 	for i, businessFunction := range data {
+		createdDate := businessFunction.CreatedAt
+		if t, err := time.Parse(time.RFC3339, businessFunction.CreatedAt); err == nil {
+			createdDate = t.Format("2006-01-02")
+		} else if t, err := time.Parse("2006-01-02T15:04:05.999Z", businessFunction.CreatedAt); err == nil {
+			createdDate = t.Format("2006-01-02")
+		}
 		if userSetting.Language == "ar" {
 			rows[i] = []interface{}{
 				i + 1,
-				businessFunction.ReferenceNumber,
 				businessFunction.Title,
-				businessFunction.Description,
+				utility.GetStringValue(businessFunction.Description),
 				businessFunction.SeverityLevelTitleAr,
 				fmt.Sprintf("%s %s", businessFunction.ResponsibleUserFirstNameAr, businessFunction.ResponsibleUserLastNameAr),
+				createdDate,
+				fmt.Sprintf("%s %s", businessFunction.CreatedUserFirstNameAr, businessFunction.CreatedUserLastNameAr),
 			}
 		} else {
 			rows[i] = []interface{}{
 				i + 1,
-				businessFunction.ReferenceNumber,
 				businessFunction.Title,
-				businessFunction.Description,
+				utility.GetStringValue(businessFunction.Description),
 				businessFunction.SeverityLevelTitleEn,
 				fmt.Sprintf("%s %s", businessFunction.ResponsibleUserFirstNameEn, businessFunction.ResponsibleUserLastNameEn),
+				createdDate,
+				fmt.Sprintf("%s %s", businessFunction.CreatedUserFirstNameEn, businessFunction.CreatedUserLastNameEn),
 			}
 		}
 	}

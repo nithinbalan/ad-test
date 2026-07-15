@@ -59,6 +59,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	slaEscalationMatrixController := app.AssetModule.SLAEscalationMatrixController
 	vulnerabilitySettingsController := app.AssetModule.VulnerabilitySettingsController
 	vulnerabilityReportController := app.AssetModule.VulnerabilityReportController
+	qualysVulnerabilityHistoryController := app.AssetModule.QualysVulnerabilityHistoryController
+
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -431,4 +433,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/vulnerability-reports", vulnerabilityReportController.CreateVulnerabilityReport)
 	assetRoutes.DELETE("/vulnerability-reports/:vulnerabilityReportId", vulnerabilityReportController.DeleteVulnerabilityReport)
 	assetRoutes.GET("/vulnerability-reports/:vulnerabilityReportId/export-pdf", vulnerabilityReportController.GetVulnerabilityReportExportZip)
+
+	//Qulays Vulnerability History
+	assetRoutes.GET("/vulnerabilities/:id/qualys-history",qualysVulnerabilityHistoryController.GetAllQualysVulnerabilityHistories)
+	assetRoutes.POST("/vulnerabilities/:id/qualys-history/:historyId/documents", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), qualysVulnerabilityHistoryController.CreateQualysVulnerabilityHistoryDocuments)
+	unauthenticatedRoutes.GET("/vulnerabilities/:id/qualys-history/:historyId/document-preview", qualysVulnerabilityHistoryController.GetQualysVulnerabilityHistoryDocumentPreview)
 }

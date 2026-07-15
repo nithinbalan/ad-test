@@ -135,6 +135,48 @@ func (repo *BcpTestAndExerciseRepository) GetAll(bcpId uint, params *businessCon
 		return nil, err
 	}
 
+	if len(BcpTestAndExercises) > 0 {
+		testAndExerciseIDs := make([]uint, len(BcpTestAndExercises))
+		systemRegistersByTestAndExerciseID := make(map[uint][]*businessContinuityDTOs.SystemRegisterMinimalDto)
+
+		for i, testAndExercise := range BcpTestAndExercises {
+			testAndExerciseIDs[i] = testAndExercise.ID
+		}
+
+		var systemRegisterRows []struct {
+			BcpTestAndExerciseID  uint
+			SystemRegisterID      uint
+			SystemRegisterTitleEn string
+			SystemRegisterTitleAr string
+		}
+
+		err = repo.db.Table("bcp_test_and_exercise_system_registers").
+			Select(`
+				bcp_test_and_exercise_system_registers.bcp_test_and_exercise_id,
+				bcp_test_and_exercise_system_registers.system_register_id,
+				system_registers.title_en AS system_register_title_en,
+				system_registers.title_ar AS system_register_title_ar
+			`).
+			Joins("LEFT JOIN system_registers ON system_registers.id = bcp_test_and_exercise_system_registers.system_register_id").
+			Where("bcp_test_and_exercise_system_registers.bcp_test_and_exercise_id IN (?)", testAndExerciseIDs).
+			Scan(&systemRegisterRows).Error
+		if err != nil {
+			return nil, err
+		}
+
+		for _, row := range systemRegisterRows {
+			systemRegistersByTestAndExerciseID[row.BcpTestAndExerciseID] = append(systemRegistersByTestAndExerciseID[row.BcpTestAndExerciseID], &businessContinuityDTOs.SystemRegisterMinimalDto{
+				ID:      row.SystemRegisterID,
+				TitleEn: row.SystemRegisterTitleEn,
+				TitleAr: row.SystemRegisterTitleAr,
+			})
+		}
+
+		for _, testAndExercise := range BcpTestAndExercises {
+			testAndExercise.BcpTestAndExerciseSystemRegisters = systemRegistersByTestAndExerciseID[testAndExercise.ID]
+		}
+	}
+
 	totalPages := 1
 	totalPages = int((totalCount + int64(params.PageSize) - 1) / int64(params.PageSize))
 

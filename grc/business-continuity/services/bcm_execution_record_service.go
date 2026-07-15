@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"time"
 
 	bcmDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/repositories"
@@ -147,6 +148,8 @@ func (service *BCMExecutionRecordService) Update(id uint, currentUserID uint, fo
 	existingRecord.IsBackUpAvailable = formDTO.IsBackUpAvailable
 	existingRecord.LocationID = formDTO.LocationID
 	existingRecord.RecoveryPlan = formDTO.RecoveryPlan
+	now := time.Now()
+	existingRecord.UpdatedAt = &now
 	existingRecord.UpdatedBYID = &currentUserID
 
 	if err := service.repo.Update(existingRecord); err != nil {

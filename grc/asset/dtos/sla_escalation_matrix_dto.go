@@ -19,5 +19,9 @@ type SLAEscalationMatrixListDTO struct {
 	RoleTitleEn string `json:"role_title_en"`
 	RoleTitleAr string `json:"role_title_ar"`
 
+	NotifiyingRoleID      *uint   `json:"notifiying_role_id"`
+	NotifiyingRoleTitleEn *string `json:"notifiying_role_title_en"`
+	NotifiyingRoleTitleAr *string `json:"notifiying_role_title_ar"`
+
 	Status string `json:"status"`
 }

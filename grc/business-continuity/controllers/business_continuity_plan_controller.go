@@ -26,8 +26,8 @@ func NewBusinessContinuityPlanController(service services.BusinessContinuityPlan
 }
 
 func (bcpc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *gin.Context) {
-	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "business_function_title")
+	sort := c.DefaultQuery("sort_order", "desc")
+	sortBy := c.DefaultQuery("sort_by", "created_at")
 	keyword := c.Query("keyword")
 
 	// Convert the export parameter to a boolean
@@ -45,15 +45,19 @@ func (bcpc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *g
 		}
 	}
 
+	quickFilter := c.QueryArray("quick_filter")
+
 	// Define an array of allowed parameter names
 	allowedParams := []string{
 		"business_function_ids",
 		"responsible_user_ids",
+		"bcp_status_ids",
 	}
 	validSortFields := map[string]string{
 		"id":                      "id",
 		"reference_number":        "business_continuity_plans.reference_number",
 		"business_function_title": "business_functions.title",
+		"created_at":              "business_continuity_plans.created_at",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())
@@ -76,13 +80,14 @@ func (bcpc *BusinessContinuityPlanController) GetAllBusinessContinuityPlans(c *g
 		return
 	}
 	queryParams := businessContinuityDTOs.BusinessContinuityPlanListQueryParamsDTO{
-		Sort:     sort,
-		SortBy:   sortField,
-		Keyword:  keyword,
-		Page:     page,
-		PageSize: pageSize,
-		Filters:  filters,
-		Export:   export,
+		Sort:        sort,
+		SortBy:      sortField,
+		Keyword:     keyword,
+		Page:        page,
+		PageSize:    pageSize,
+		Filters:     filters,
+		QuickFilter: quickFilter,
+		Export:      export,
 	}
 	businessContinuityPlans, err := bcpc.service.GetAll(&queryParams)
 
@@ -206,6 +211,32 @@ func (bcpc *BusinessContinuityPlanController) UpdateBusinessContinuityPlan(c *gi
 			utility.SendInternalErrResp(bcpc.db, c, e.Error())
 			return
 		}
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (bcpc *BusinessContinuityPlanController) MarkAsCompleted(c *gin.Context) {
+	businessContinuityPlanID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utility.SendNotFoundErrResp(c)
+		return
+	}
+
+	currentUserID, err := utility.GetCurrentUserID(c)
+	if err != nil {
+		utility.SendInternalErrResp(bcpc.db, c, err.Error())
+		return
+	}
+
+	if err := bcpc.service.MarkAsCompleted(uint(businessContinuityPlanID), currentUserID); err != nil {
+		switch e := err.(type) {
+		case *utility.ResourceNotFoundError:
+			utility.SendNotFoundErrResp(c)
+		default:
+			utility.SendInternalErrResp(bcpc.db, c, e.Error())
+		}
+		return
 	}
 
 	c.Status(http.StatusOK)

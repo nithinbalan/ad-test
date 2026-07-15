@@ -55,9 +55,7 @@ func (pc *ProcessController) GetAllProcesses(c *gin.Context) {
 		"process_type_ids",
 		"location_ids",
 		"review_frequency_ids",
-		"is_automatic",
-		"is_manual",
-		"is_can_be_done_manually",
+		"workflow_status_ids",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

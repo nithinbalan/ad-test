@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strings"
 
@@ -14,6 +15,7 @@ import (
 	"jethur/grc/models"
 	organizationDTOs "jethur/grc/organization/dtos"
 	organizationRepositories "jethur/grc/organization/repositories"
+	settingsDTOs "jethur/grc/settings/dtos"
 	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
 
@@ -1262,10 +1264,10 @@ func (ps *ProcessService) GetControlSummary(id uint) (map[string]interface{}, er
 	}
 
 	summary := map[string]interface{}{
-		"total_control_score":       (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
+		"total_control_score":       math.Round((float64(implementationStatusCount["implemented"])/float64(totalControls))*10000) / 100,
 		"implementation_status":     implementationStatus,
-		"efficiency_percentage":     (float64(efficiencyStatusCount["efficient"]) / float64(totalControls)) * 100,
-		"implementation_percentage": (float64(implementationStatusCount["implemented"]) / float64(totalControls)) * 100,
+		"efficiency_percentage":     math.Round((float64(efficiencyStatusCount["efficient"])/float64(totalControls))*10000) / 100,
+		"implementation_percentage": math.Round((float64(implementationStatusCount["implemented"])/float64(totalControls))*10000) / 100,
 		"total_efficiency":          efficiencyStatus,
 		"total_control_count":       totalControls,
 	}
@@ -1279,55 +1281,92 @@ func (ps *ProcessService) ExportProcesses(data []*organizationDTOs.ProcessListDT
 		return nil, err
 	}
 
-	fmt.Println(userSetting)
-
-	var headers []string
-	if userSetting.Language == "ar" {
-		headers = []string{
-			"SL No.",
-			"Reference Number",
-			"Title",
-			"Description",
-			"Process Group",
-			"Owner Unit",
-			"Owner Name",
-			"Lifecycle Status",
-		}
-	} else {
-		headers = []string{
-			"SL No.",
-			"Reference Number",
-			"Title",
-			"Description",
-			"Process Group",
-			"Owner Unit",
-			"Owner Name",
-			"Lifecycle Status",
-		}
+	headers := []string{
+		"Ref. No.",
+		"Title",
+		"Description",
+		"Responsible Unit",
+		"Process Owner",
+		"Type",
+		"Location",
+		"Alternative Location",
+		"Rush Hour",
+		"Frequency",
+		"Associated System",
+		"Execution Automation",
+		"Can be done manually",
+		"Time to perform procedure manually",
+		"Requirement to perform procedure manually",
+		"Steps to perform procedure manually",
+		"Created By",
+		"Status",
 	}
 
 	rows := make([][]interface{}, len(data))
 	for i, process := range data {
+		automation := ""
+		if process.IsAutomatic && process.IsManual {
+			automation = "Automatic & Manual"
+		} else if process.IsAutomatic {
+			automation = "Automatic"
+		} else if process.IsManual {
+			automation = "Manual"
+		}
+
+		canBeDoneManually := "No"
+		if process.IsCanBeDoneManually {
+			canBeDoneManually = "Yes"
+		}
+
+		associatedSystem := ""
+		if process.SystemRegister != nil {
+			if userSetting.Language == "ar" {
+				associatedSystem = process.SystemRegister.TitleAr
+			} else {
+				associatedSystem = process.SystemRegister.TitleEn
+			}
+		}
+
 		if userSetting.Language == "ar" {
 			rows[i] = []interface{}{
-				i + 1,
 				process.ReferenceNumber,
 				process.TitleAr,
 				utility.GetStringValue(process.Description),
-				process.ProcessGroupTitleAr,
 				utility.GetStringValue(process.OwnerUnitTitleAr),
-				utility.GetStringValue(process.OwnerFirstNameAr) + " " + utility.GetStringValue(process.OwnerLastNameAr),
+				fmt.Sprintf("%s %s", utility.GetStringValue(process.OwnerFirstNameAr), utility.GetStringValue(process.OwnerLastNameAr)),
+				utility.GetStringValue(process.ProcessTypeTitleAr),
+				utility.GetStringValue(process.LocationTitleAr),
+				utility.GetStringValue(process.AlternativeLocation),
+				utility.GetStringValue(process.RushHour),
+				utility.GetStringValue(process.ReviewFrequencyTitleAr),
+				associatedSystem,
+				automation,
+				canBeDoneManually,
+				utility.GetStringValue(process.TimeToPerformProcedureManually),
+				utility.GetStringValue(process.RequirementToPerformProcedureManually),
+				utility.GetStringValue(process.StepsToPerformProcedureManually),
+				fmt.Sprintf("%s %s", process.CreatedUserFirstNameAr, process.CreatedUserLastNameAr),
 				process.LifecycleStatusTitleAr,
 			}
 		} else {
 			rows[i] = []interface{}{
-				i + 1,
 				process.ReferenceNumber,
 				process.TitleEn,
 				utility.GetStringValue(process.Description),
-				process.ProcessGroupTitleEn,
 				utility.GetStringValue(process.OwnerUnitTitleEn),
-				utility.GetStringValue(process.OwnerFirstNameEn) + " " + utility.GetStringValue(process.OwnerLastNameEn),
+				fmt.Sprintf("%s %s", utility.GetStringValue(process.OwnerFirstNameEn), utility.GetStringValue(process.OwnerLastNameEn)),
+				utility.GetStringValue(process.ProcessTypeTitleEn),
+				utility.GetStringValue(process.LocationTitleEn),
+				utility.GetStringValue(process.AlternativeLocation),
+				utility.GetStringValue(process.RushHour),
+				utility.GetStringValue(process.ReviewFrequencyTitleEn),
+				associatedSystem,
+				automation,
+				canBeDoneManually,
+				utility.GetStringValue(process.TimeToPerformProcedureManually),
+				utility.GetStringValue(process.RequirementToPerformProcedureManually),
+				utility.GetStringValue(process.StepsToPerformProcedureManually),
+				fmt.Sprintf("%s %s", process.CreatedUserFirstNameEn, process.CreatedUserLastNameEn),
 				process.LifecycleStatusTitleEn,
 			}
 		}
@@ -1347,64 +1386,165 @@ func (ps *ProcessService) UpdateProcessRiskRating(process *models.Process, tx ut
 }
 
 func (ps *ProcessService) GenerateProcessTemplate() (*os.File, error) {
-	// Headers for the first sheet (Template)
+	// Headers for the Template sheet — column names must match reference sheet names for dropdowns
 	templateHeaders := []string{
-		"ProcessGroup", "Owner", "TitleEn", "TitleAr", "Description", "Controls",
+		"TitleEn", "TitleAr", "Description",
+		"Division", "Department", "ResponsibleUser",
+		"ExecutionAutomation", "Type", "Location",
+		"AlternativeLocation", "RushHour", "Frequency",
+		"ExecutionRecords", "SystemRegister", "CanBeDoneManually",
+		"TimeToPerformProcedureManually", "StepsToPerformProcedureManually",
+		"RequirementToPerformProcedureManually", "ManualProcedureForms",
 	}
 	templateData := [][]interface{}{} // Empty template data
 
-	// Fetch process groups for the second sheet
-	processGroups, err := ps.processGroupSvc.GetAll("", "", "", "active")
-	if err != nil {
-		return nil, err
-	}
-
-	// Headers and data for the second sheet (ProcessGroup)
-	processGroupHeaders := []string{"ProcessGroupTitleEn", "ProcessGroupTitleAr"}
-	processGroupData := [][]interface{}{}
-	for _, group := range processGroups {
-		processGroupData = append(processGroupData, []interface{}{group.TitleEn, group.TitleAr})
-	}
-
-	// Headers and data for the third sheet (Owner)
-	// Fetch user details
+	// Sheet: ResponsibleUser (name matches template column for dropdown)
 	users, err := ps.userSvc.GetAllUsers()
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch owners: %v", err)
+		return nil, fmt.Errorf("failed to fetch users: %v", err)
 	}
-
-	// Prepare data for Owner sheet
-	ownerHeaders := []string{"OwnerName", "Email", "Designation", "PrimaryDepartment"}
-	ownerData := [][]interface{}{}
+	responsibleUserData := [][]interface{}{{"ResponsibleUser"}}
 	for _, user := range users {
-		ownerData = append(ownerData, []interface{}{
-			fmt.Sprintf("%s %s", user.FirstNameEN, user.LastNameEN),
-			user.Email,
-			user.Designation,
-			user.PrimaryUnit,
-		})
+		fullName := strings.TrimSpace(fmt.Sprintf("%s %s", user.FirstNameEN, user.LastNameEN))
+		if fullName != "" {
+			responsibleUserData = append(responsibleUserData, []interface{}{fullName})
+		}
 	}
 
-	// Fetch controls for the fourth sheet
-	controls, err := ps.controlSvc.GetAllControls()
+	// Sheet: Division (level=1 org units)
+	divisionParams := &settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Sort: "title_en", SortBy: "title_en", Keyword: "", ParentUnitIDs: []uint{}, Level: 1,
+	}
+	divisionUnits, err := ps.organizationUnitSvc.GetAll(divisionParams)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch divisions: %v", err)
+	}
+	divisionData := [][]interface{}{{"Division"}}
+	for _, unit := range divisionUnits {
+		if unit.TitleEn != "" {
+			divisionData = append(divisionData, []interface{}{unit.TitleEn})
+		}
 	}
 
-	// Headers and data for the fourth sheet (Controls)
-	controlHeaders := []string{"Controls"}
-	controlData := [][]interface{}{}
-	for _, control := range controls {
-		controlData = append(controlData, []interface{}{control.TitleEn})
+	// Sheet: Department (level=2 org units)
+	departmentParams := &settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Sort: "title_en", SortBy: "title_en", Keyword: "", ParentUnitIDs: []uint{}, Level: 2,
+	}
+	departmentUnits, err := ps.organizationUnitSvc.GetAll(departmentParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch departments: %v", err)
+	}
+	departmentData := [][]interface{}{{"Department"}}
+	for _, unit := range departmentUnits {
+		if unit.TitleEn != "" {
+			departmentData = append(departmentData, []interface{}{unit.TitleEn})
+		}
 	}
 
-	// Generate the Excel file with "Template," "ProcessGroup," "Owner," and "Controls" sheets
-	file, err := utility.GenerateExcelFileWithSheets(map[string][][]interface{}{
-		"Template":     append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
-		"ProcessGroup": append([][]interface{}{utility.ConvertToInterfaceSlice(processGroupHeaders)}, processGroupData...),
-		"Owner":        append([][]interface{}{utility.ConvertToInterfaceSlice(ownerHeaders)}, ownerData...),
-		"Controls":     append([][]interface{}{utility.ConvertToInterfaceSlice(controlHeaders)}, controlData...),
-	})
+	// Sheet: Location
+	locations, err := ps.locationSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch locations: %v", err)
+	}
+	locationData := [][]interface{}{{"Location"}}
+	for _, loc := range locations {
+		if loc.TitleEn != "" {
+			locationData = append(locationData, []interface{}{loc.TitleEn})
+		}
+	}
+
+	// Sheet: Frequency
+	frequencies, err := ps.reviewFrequencySvc.GetAll("", "", "", "active", "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch review frequencies: %v", err)
+	}
+	frequencyData := [][]interface{}{{"Frequency"}}
+	for _, freq := range frequencies {
+		if freq.TitleEn != "" {
+			frequencyData = append(frequencyData, []interface{}{freq.TitleEn})
+		}
+	}
+
+	// Sheet: Type (BCMProcessType)
+	processTypes, err := ps.repo.GetAllBCMProcessTypes()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch process types: %v", err)
+	}
+	typeData := [][]interface{}{{"Type"}}
+	for _, pt := range processTypes {
+		if pt.TitleEn != "" {
+			typeData = append(typeData, []interface{}{pt.TitleEn})
+		}
+	}
+
+	// Sheet: ExecutionRecords (BCMExecutionRecord)
+	execRecords, err := ps.repo.GetAllBCMExecutionRecords()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch execution records: %v", err)
+	}
+	execRecordsData := [][]interface{}{{"ExecutionRecords"}}
+	for _, er := range execRecords {
+		if er.TitleEn != "" {
+			execRecordsData = append(execRecordsData, []interface{}{er.TitleEn})
+		}
+	}
+
+	// Sheet: SystemRegister
+	systemRegisters, err := ps.repo.GetAllSystemRegisters()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch system registers: %v", err)
+	}
+	systemRegisterData := [][]interface{}{{"SystemRegister"}}
+	for _, sr := range systemRegisters {
+		if sr.TitleEn != "" {
+			systemRegisterData = append(systemRegisterData, []interface{}{sr.TitleEn})
+		}
+	}
+
+	// Sheet: ManualProcedureForms (BCMManualProcedureForm)
+	manualForms, err := ps.repo.GetAllBCMManualProcedureForms()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch manual procedure forms: %v", err)
+	}
+	manualFormsData := [][]interface{}{{"ManualProcedureForms"}}
+	for _, mf := range manualForms {
+		if mf.TitleEn != "" {
+			manualFormsData = append(manualFormsData, []interface{}{mf.TitleEn})
+		}
+	}
+
+	// Fixed-value sheets for enum columns
+	executionAutomationData := [][]interface{}{{"ExecutionAutomation"}, {"automatic"}, {"manual"}}
+	canBeDoneManuallyData := [][]interface{}{{"CanBeDoneManually"}, {"yes"}, {"no"}}
+
+	dropDownConfig := map[string]bool{
+		"Division":             true,
+		"Department":           true,
+		"ResponsibleUser":      true,
+		"ExecutionAutomation":  true,
+		"Type":                 true,
+		"Location":             true,
+		"Frequency":            true,
+		"ExecutionRecords":     true,
+		"SystemRegister":       true,
+		"ManualProcedureForms": true,
+		"CanBeDoneManually":    true,
+	}
+
+	file, err := utility.GenerateExcelFileWithSheetsAndDropDown(map[string][][]interface{}{
+		"Template":             append([][]interface{}{utility.ConvertToInterfaceSlice(templateHeaders)}, templateData...),
+		"Division":             divisionData,
+		"Department":           departmentData,
+		"ResponsibleUser":      responsibleUserData,
+		"ExecutionAutomation":  executionAutomationData,
+		"Type":                 typeData,
+		"Location":             locationData,
+		"Frequency":            frequencyData,
+		"ExecutionRecords":     execRecordsData,
+		"SystemRegister":       systemRegisterData,
+		"ManualProcedureForms": manualFormsData,
+		"CanBeDoneManually":    canBeDoneManuallyData,
+	}, dropDownConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -1419,12 +1559,27 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 		return nil, err
 	}
 
-	// Define headers in the input format and map them to snake case
-	inputHeaders := []string{"ProcessGroup", "Owner", "TitleEn", "TitleAr", "Description", "Controls"}
-	snakeCaseHeaders := []string{"process_group", "owner", "title_en", "title_ar", "description", "controls"}
-
 	if len(rows) == 0 {
 		return nil, fmt.Errorf("empty Excel file")
+	}
+
+	inputHeaders := []string{
+		"TitleEn", "TitleAr", "Description",
+		"Division", "Department", "ResponsibleUser",
+		"ExecutionAutomation", "Type", "Location",
+		"AlternativeLocation", "RushHour", "Frequency",
+		"ExecutionRecords", "SystemRegister", "CanBeDoneManually",
+		"TimeToPerformProcedureManually", "StepsToPerformProcedureManually",
+		"RequirementToPerformProcedureManually", "ManualProcedureForms",
+	}
+	snakeCaseHeaders := []string{
+		"title_en", "title_ar", "description",
+		"division", "department", "responsible_user",
+		"execution_automation", "type", "location",
+		"alternative_location", "rush_hour", "frequency",
+		"execution_records", "system_register", "can_be_done_manually",
+		"time_to_perform_procedure_manually", "steps_to_perform_procedure_manually",
+		"requirement_to_perform_procedure_manually", "manual_procedure_forms",
 	}
 
 	// Validate headers
@@ -1440,7 +1595,7 @@ func (ps *ProcessService) ValidateProcessTemplate(file io.Reader) ([]map[string]
 			if i < len(row) {
 				record[header] = row[i]
 			} else {
-				record[header] = "" // Pad missing columns
+				record[header] = ""
 			}
 		}
 		input = append(input, record)
@@ -1477,32 +1632,51 @@ func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, curren
 
 	var createdProcessIDs []uint
 	for _, record := range validatedData {
-		// Handle optional OwnerID
-		var ownerID *uint
-		if ownerIDVal, ok := record["owner_id"]; ok && ownerIDVal != nil {
-			if oid, ok := ownerIDVal.(uint); ok {
-				ownerID = &oid
-			}
-		}
-
 		processFormDTO := &organizationDTOs.ProcessFormDTO{
-			//ProcessGroupID: record["process_group_id"].(uint),
-			OwnerUnitID: record["owner_unit_id"].(uint),
-			OwnerID:     ownerID,
-			TitleEn:     record["title_en"].(string),
-			TitleAr:     record["title_ar"].(string),
-			Description: utility.GetOptionalStringValue(record["description"]),
+			OwnerUnitID:                           record["owner_unit_id"].(uint),
+			TitleEn:                               record["title_en"].(string),
+			TitleAr:                               record["title_ar"].(string),
+			Description:                           utility.GetOptionalStringValue(record["description"]),
+			ExecutionAutomation:                   utility.GetOptionalStringValue(record["execution_automation"]),
+			AlternativeLocation:                   utility.GetOptionalStringValue(record["alternative_location"]),
+			RushHour:                              utility.GetOptionalStringValue(record["rush_hour"]),
+			TimeToPerformProcedureManually:        utility.GetOptionalStringValue(record["time_to_perform_procedure_manually"]),
+			StepsToPerformProcedureManually:       utility.GetOptionalStringValue(record["steps_to_perform_procedure_manually"]),
+			RequirementToPerformProcedureManually: utility.GetOptionalStringValue(record["requirement_to_perform_procedure_manually"]),
 		}
 
-		if controls, ok := record["control_ids"].([]uint); ok {
-			var controlIDs []*uint
-			for _, id := range controls {
-				controlID := id
-				controlIDs = append(controlIDs, &controlID)
+		if ownerID, ok := record["responsible_user_id"].(uint); ok {
+			processFormDTO.OwnerID = &ownerID
+		}
+		if divisionID, ok := record["division_id"].(uint); ok {
+			processFormDTO.DivisionID = &divisionID
+		}
+		if processTypeID, ok := record["process_type_id"].(uint); ok {
+			processFormDTO.ProcessTypeID = &processTypeID
+		}
+		if locationID, ok := record["location_id"].(uint); ok {
+			processFormDTO.LocationID = &locationID
+		}
+		if frequencyID, ok := record["frequency_id"].(uint); ok {
+			processFormDTO.ReviewFrequencyID = &frequencyID
+		}
+		if systemRegisterID, ok := record["system_register_id"].(uint); ok {
+			processFormDTO.SystemRegisterID = &systemRegisterID
+		}
+		if canBeDoneManually, ok := record["can_be_done_manually"].(bool); ok {
+			processFormDTO.IsCanBeDoneManually = &canBeDoneManually
+		}
+		if executionRecordIDs, ok := record["execution_record_ids"].([]uint); ok {
+			for _, id := range executionRecordIDs {
+				id := id
+				processFormDTO.ExecutionRecordIDs = append(processFormDTO.ExecutionRecordIDs, &id)
 			}
-			processFormDTO.ControlIds = controlIDs
-		} else {
-			processFormDTO.ControlIds = nil
+		}
+		if manualFormIDs, ok := record["manual_procedure_form_ids"].([]uint); ok {
+			for _, id := range manualFormIDs {
+				id := id
+				processFormDTO.ManualProcedureFormIDs = append(processFormDTO.ManualProcedureFormIDs, &id)
+			}
 		}
 
 		processID, err := ps.Create(currentUserID, processFormDTO)
@@ -1517,19 +1691,17 @@ func (ps *ProcessService) ImportProcesses(input []map[string]interface{}, curren
 }
 
 func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]map[string]interface{}, error) {
-	headers := []string{"process_group", "owner", "title_en", "title_ar", "description", "controls"}
-
-	// Fetch process group titles and map to IDs
-	processGroups, err := ps.processGroupSvc.GetAll("", "", "", "active")
-	if err != nil {
-		return nil, fmt.Errorf("error fetching process groups: %v", err)
-	}
-	processGroupTitles := make(map[string]uint)
-	for _, group := range processGroups {
-		processGroupTitles[strings.TrimSpace(group.TitleEn)] = group.ID
+	headers := []string{
+		"title_en", "title_ar", "description",
+		"division", "department", "responsible_user",
+		"execution_automation", "type", "location",
+		"alternative_location", "rush_hour", "frequency",
+		"execution_records", "system_register", "can_be_done_manually",
+		"time_to_perform_procedure_manually", "steps_to_perform_procedure_manually",
+		"requirement_to_perform_procedure_manually", "manual_procedure_forms",
 	}
 
-	// Fetch user full names and map to IDs
+	// Fetch user full names → IDs
 	users, err := ps.userSvc.GetAllUsers()
 	if err != nil {
 		return nil, fmt.Errorf("error fetching users: %v", err)
@@ -1540,88 +1712,264 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 		userFullNames[fullName] = uint(user.ID)
 	}
 
-	// Fetch control titles and map to IDs
-	controls, err := ps.controlSvc.GetAllControls()
-	if err != nil {
-		return nil, fmt.Errorf("error fetching controls: %v", err)
+	// Fetch division titles (level=1) → IDs
+	divisionParams := &settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Sort: "", SortBy: "", Keyword: "", ParentUnitIDs: []uint{}, Level: 1,
 	}
-	controlTitles := make(map[string]uint)
-	for _, control := range controls {
-		controlTitles[strings.TrimSpace(control.TitleEn)] = control.ID
+	divisionUnits, err := ps.organizationUnitSvc.GetAll(divisionParams)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching divisions: %v", err)
+	}
+	divisionTitles := make(map[string]uint)
+	for _, unit := range divisionUnits {
+		divisionTitles[strings.TrimSpace(unit.TitleEn)] = unit.ID
 	}
 
-	// Perform validation
+	// Fetch department titles (level=2) → IDs
+	departmentParams := &settingsDTOs.OrganizationUnitListQueryParamsDTO{
+		Sort: "", SortBy: "", Keyword: "", ParentUnitIDs: []uint{}, Level: 2,
+	}
+	departmentUnits, err := ps.organizationUnitSvc.GetAll(departmentParams)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching departments: %v", err)
+	}
+	departmentTitles := make(map[string]uint)
+	for _, unit := range departmentUnits {
+		departmentTitles[strings.TrimSpace(unit.TitleEn)] = unit.ID
+	}
+
+	// Fetch location titles → IDs
+	locations, err := ps.locationSvc.GetAll("", "", "", "active")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching locations: %v", err)
+	}
+	locationTitles := make(map[string]uint)
+	for _, loc := range locations {
+		locationTitles[strings.TrimSpace(loc.TitleEn)] = loc.ID
+	}
+
+	// Fetch review frequency titles → IDs
+	frequencies, err := ps.reviewFrequencySvc.GetAll("", "", "", "active", "")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching review frequencies: %v", err)
+	}
+	frequencyTitles := make(map[string]uint)
+	for _, freq := range frequencies {
+		frequencyTitles[strings.TrimSpace(freq.TitleEn)] = freq.ID
+	}
+
+	// Fetch process type titles → IDs
+	processTypes, err := ps.repo.GetAllBCMProcessTypes()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching process types: %v", err)
+	}
+	processTypeTitles := make(map[string]uint)
+	for _, pt := range processTypes {
+		processTypeTitles[strings.TrimSpace(pt.TitleEn)] = pt.ID
+	}
+
+	// Fetch execution record titles → IDs
+	execRecords, err := ps.repo.GetAllBCMExecutionRecords()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching execution records: %v", err)
+	}
+	execRecordTitles := make(map[string]uint)
+	for _, er := range execRecords {
+		execRecordTitles[strings.TrimSpace(er.TitleEn)] = er.ID
+	}
+
+	// Fetch system register titles → IDs
+	systemRegisters, err := ps.repo.GetAllSystemRegisters()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching system registers: %v", err)
+	}
+	systemRegisterTitles := make(map[string]uint)
+	for _, sr := range systemRegisters {
+		systemRegisterTitles[strings.TrimSpace(sr.TitleEn)] = sr.ID
+	}
+
+	// Fetch manual procedure form titles → IDs
+	manualForms, err := ps.repo.GetAllBCMManualProcedureForms()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching manual procedure forms: %v", err)
+	}
+	manualFormTitles := make(map[string]uint)
+	for _, mf := range manualForms {
+		manualFormTitles[strings.TrimSpace(mf.TitleEn)] = mf.ID
+	}
+
 	var validatedData []map[string]interface{}
 
 	for _, record := range input {
 		rowErrors := make(map[string]interface{})
 		processedRecord := make(map[string]interface{})
 
-		// Copy the original record for the response
 		for key, value := range record {
 			processedRecord[key] = value
 		}
 
-		// Validate fields and map IDs
 		for _, header := range headers {
-			value, ok := record[header].(string)
+			value, _ := record[header].(string)
+			value = strings.TrimSpace(value)
+
 			switch header {
-			case "process_group":
-				if !ok || value == "" {
-					rowErrors["process_group"] = "Field is required"
-				} else if id, exists := processGroupTitles[strings.TrimSpace(value)]; !exists {
-					rowErrors["process_group"] = fmt.Sprintf("Invalid process group title: %s", value)
-				} else {
-					processedRecord["process_group_id"] = id // Add the ID
-				}
-
-			case "owner":
-				if !ok || value == "" {
-					rowErrors["owner"] = "Field is required"
-				} else if id, exists := userFullNames[strings.TrimSpace(value)]; !exists {
-					rowErrors["owner"] = fmt.Sprintf("Invalid owner name: %s", value)
-				} else {
-					processedRecord["owner_id"] = id // Add the ID
-				}
-
-			case "controls":
-				if ok && value != "" { // Validate only if controls field is provided
-					controlList := utility.ParseCommaSeparatedValues(value)
-					var controlIDs []uint
-					invalidControls := []string{}
-					for _, control := range controlList {
-						trimmedControl := strings.TrimSpace(control)
-						if id, exists := controlTitles[trimmedControl]; exists {
-							controlIDs = append(controlIDs, id)
-						} else {
-							invalidControls = append(invalidControls, fmt.Sprintf("Invalid control: %s", trimmedControl))
-						}
-					}
-					if len(invalidControls) > 0 {
-						rowErrors["controls"] = strings.Join(invalidControls, "; ") // Combine errors into a single string
-					} else {
-						processedRecord["control_ids"] = controlIDs // Add the IDs as []uint
-					}
-				}
-
 			case "title_en", "title_ar":
-				if !ok || value == "" {
+				if value == "" {
 					rowErrors[header] = "Field is required"
 				}
 
-			case "description":
-				// Optional field, no validation needed
+			case "department":
+				if value == "" {
+					rowErrors["department"] = "Field is required"
+				} else if id, exists := departmentTitles[value]; !exists {
+					rowErrors["department"] = fmt.Sprintf("Invalid department: %s", value)
+				} else {
+					processedRecord["owner_unit_id"] = id
+				}
+
+			case "division":
+				if value != "" {
+					if id, exists := divisionTitles[value]; !exists {
+						rowErrors["division"] = fmt.Sprintf("Invalid division: %s", value)
+					} else {
+						processedRecord["division_id"] = id
+					}
+				}
+
+			case "responsible_user":
+				if value != "" {
+					if id, exists := userFullNames[value]; !exists {
+						rowErrors["responsible_user"] = fmt.Sprintf("Invalid user: %s", value)
+					} else {
+						processedRecord["responsible_user_id"] = id
+					}
+				}
+
+			case "execution_automation":
+				if value == "" {
+					rowErrors["execution_automation"] = "Field is required"
+				} else {
+					normalized := strings.ToLower(value)
+					if normalized != "automatic" && normalized != "manual" {
+						rowErrors["execution_automation"] = "Must be 'automatic' or 'manual'"
+					} else {
+						processedRecord["execution_automation"] = normalized
+					}
+				}
+
+			case "location":
+				if value != "" {
+					if id, exists := locationTitles[value]; !exists {
+						rowErrors["location"] = fmt.Sprintf("Invalid location: %s", value)
+					} else {
+						processedRecord["location_id"] = id
+					}
+				}
+
+			case "frequency":
+				if value != "" {
+					if id, exists := frequencyTitles[value]; !exists {
+						rowErrors["frequency"] = fmt.Sprintf("Invalid frequency: %s", value)
+					} else {
+						processedRecord["frequency_id"] = id
+					}
+				}
+
+			case "can_be_done_manually":
+				if value == "" {
+					rowErrors["can_be_done_manually"] = "Field is required"
+				} else {
+					normalized := strings.ToLower(value)
+					if normalized != "yes" && normalized != "no" {
+						rowErrors["can_be_done_manually"] = "Must be 'yes' or 'no'"
+					} else {
+						processedRecord["can_be_done_manually"] = normalized == "yes"
+					}
+				}
+
+			case "type":
+				if value != "" {
+					if id, exists := processTypeTitles[value]; !exists {
+						rowErrors["type"] = fmt.Sprintf("Invalid type: %s", value)
+					} else {
+						processedRecord["process_type_id"] = id
+					}
+				}
+
+			case "execution_records":
+				if value != "" {
+					titles := utility.ParseCommaSeparatedValues(value)
+					var ids []uint
+					var invalidVals []string
+					for _, t := range titles {
+						t = strings.TrimSpace(t)
+						if id, exists := execRecordTitles[t]; exists {
+							ids = append(ids, id)
+						} else {
+							invalidVals = append(invalidVals, t)
+						}
+					}
+					if len(invalidVals) > 0 {
+						rowErrors["execution_records"] = fmt.Sprintf("Invalid execution records: %s", strings.Join(invalidVals, ", "))
+					} else {
+						processedRecord["execution_record_ids"] = ids
+					}
+				}
+
+			case "system_register":
+				if value != "" {
+					if id, exists := systemRegisterTitles[value]; !exists {
+						rowErrors["system_register"] = fmt.Sprintf("Invalid system register: %s", value)
+					} else {
+						processedRecord["system_register_id"] = id
+					}
+				}
+
+			case "manual_procedure_forms":
+				if value != "" {
+					titles := utility.ParseCommaSeparatedValues(value)
+					var ids []uint
+					var invalidVals []string
+					for _, t := range titles {
+						t = strings.TrimSpace(t)
+						if id, exists := manualFormTitles[t]; exists {
+							ids = append(ids, id)
+						} else {
+							invalidVals = append(invalidVals, t)
+						}
+					}
+					if len(invalidVals) > 0 {
+						rowErrors["manual_procedure_forms"] = fmt.Sprintf("Invalid manual procedure forms: %s", strings.Join(invalidVals, ", "))
+					} else {
+						processedRecord["manual_procedure_form_ids"] = ids
+					}
+				}
 			}
 		}
 
-		// Add errors or success record
+		// Cross-field: execution_automation=automatic requires system_register
+		if autoVal, ok := processedRecord["execution_automation"].(string); ok && autoVal == "automatic" {
+			if _, hasSR := processedRecord["system_register_id"]; !hasSR {
+				rowErrors["system_register"] = "System register is required when execution automation is 'automatic'"
+			}
+		}
+
+		// Cross-field: can_be_done_manually=yes requires time and steps fields
+		if canBeDone, ok := processedRecord["can_be_done_manually"].(bool); ok && canBeDone {
+			if v, _ := record["time_to_perform_procedure_manually"].(string); strings.TrimSpace(v) == "" {
+				rowErrors["time_to_perform_procedure_manually"] = "Field is required when 'Can Be Done Manually' is yes"
+			}
+			if v, _ := record["steps_to_perform_procedure_manually"].(string); strings.TrimSpace(v) == "" {
+				rowErrors["steps_to_perform_procedure_manually"] = "Field is required when 'Can Be Done Manually' is yes"
+			}
+		}
+
 		if len(rowErrors) == 0 {
 			processedRecord["errors"] = nil
 		} else {
-			// Ensure all keys are present in the `errors` map
 			for _, header := range headers {
 				if _, exists := rowErrors[header]; !exists {
-					rowErrors[header] = "" // Empty string for other fields
+					rowErrors[header] = ""
 				}
 			}
 			processedRecord["errors"] = rowErrors
