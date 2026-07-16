@@ -42,6 +42,7 @@ type UserListDTO struct {
 	UserStatusColorCode      string  `json:"user_status_color_code"`
 	UserStatusIsActive       bool    `json:"user_status_is_active"`
 	ReportingUsersCount      int     `json:"reporting_users_count"`
+	IsADUser                 bool    `json:"is_ad_user"`
 }
 
 type UserListQueryParamsDTO struct {
@@ -109,6 +110,7 @@ type UserFormDTO struct {
 	IsSentEmail         bool    `json:"is_sent_email"`
 	ReportingUserID     *uint   `json:"reporting_user_id"`
 	LicenseTypeID       *uint   `json:"license_type_id"`
+	IsADUser            bool    `json:"is_ad_user"`
 }
 
 type UserUpdateDTO struct {
@@ -179,6 +181,7 @@ type UserDetailsDTO struct {
 	CreatedAt        time.Time                 `json:"created_at"`
 	UpdatedAt        time.Time                 `json:"updated_at"`
 	PrimaryUnitID    *uint                     `json:"primary_unit_id"`
+	IsADUser         bool                      `json:"is_ad_user"`
 	LicenseType      masterDTOs.LicenseTypeDTO `json:"license_type"`
 	DelegationUser   *UserMinimalDTO           `json:"delegatee_user"`
 
@@ -241,6 +244,7 @@ type CurrentUserDetailsDTO struct {
 	OrganizationUnit4ID *uint                      `json:"organization_unit_4_id"`
 	OrganizationUnit5ID *uint                      `json:"organization_unit_5_id"`
 	LicenseType         *masterDTOs.LicenseTypeDTO `json:"license_type"`
+	IsADUser            bool                       `json:"is_ad_user"`
 
 	// Relationship DTOs
 	OrganizationUnit1 *settingDTOs.OrganizationUnitDTO `json:"organization_unit_1"`

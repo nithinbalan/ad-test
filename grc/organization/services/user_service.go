@@ -417,6 +417,7 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		Color:               color,
 		ReportingUserID:     userFormDTO.ReportingUserID,
 		LicenseTypeID:       &license.ID,
+		IsADUser:            userFormDTO.IsADUser,
 	}
 
 	userID, err := us.repo.Create(user, tx)
@@ -445,14 +446,16 @@ func (us *UserService) Create(currentUserID uint, userFormDTO *userDTOs.UserForm
 		}
 	}
 
-	userSecurityDTO := &userDTOs.UserSecurityFormDTO{
-		PasswordHash: string(passwordHash),
-		IsMFA:        false,
-	}
+	if userFormDTO.IsADUser == false {
+		userSecurityDTO := &userDTOs.UserSecurityFormDTO{
+			PasswordHash: string(passwordHash),
+			IsMFA:        false,
+		}
 
-	if err = us.userSettingSvc.CreateUserSecurity(userID, userSecurityDTO, tx); err != nil {
-		tx.Rollback()
-		return 0, err
+		if err = us.userSettingSvc.CreateUserSecurity(userID, userSecurityDTO, tx); err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 	}
 
 	userSettingDTO := &userDTOs.UserSettingFormDTO{
@@ -1521,6 +1524,7 @@ func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID
 
 	var createdUserIDs []uint
 	for _, record := range validatedData {
+
 		initial := generateInitial(
 			record["first_name_en"].(string),
 			record["last_name_en"].(string),
@@ -1538,6 +1542,7 @@ func (us *UserService) ImportUsers(input []map[string]interface{}, currentUserID
 			CreatedByID:   currentUserID,
 			Initial:       initial,
 			Color:         color,
+			IsADUser:      true,
 		}
 
 		// Dynamically set organization_unit_1_id, organization_unit_2_id, etc.

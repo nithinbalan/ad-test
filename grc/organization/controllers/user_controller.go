@@ -259,6 +259,7 @@ func (uc *UserController) CreateUser(c *gin.Context) {
 		return
 	}
 
+	userFormDTO.IsADUser = false
 	id, err := uc.service.Create(currentUserID, &userFormDTO)
 
 	if err != nil {

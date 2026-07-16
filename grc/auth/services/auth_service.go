@@ -77,6 +77,11 @@ func NewAuthService(
 }
 
 func (as *AuthService) Authenticate(email string, password string, ipAddress string, location string, device string, browser string) (*authDTOs.LoginResponseDTO, error) {
+    // Get user
+	user, err := as.userService.GetByEmail(email)
+	if err != nil {
+		return nil, err
+	}
 
 	// ✅ First, if not admin email, check AD
 	if !strings.EqualFold(email, "admin@jethur.com") {
@@ -90,7 +95,7 @@ func (as *AuthService) Authenticate(email string, password string, ipAddress str
 			if err != nil {
 				return nil, utility.NewInternalServerError(err)
 			}
-			if adSetting != nil {
+			if adSetting != nil && user.IsADUser{
 				if response, err := as.LoginWithActiveDirectory(email, password, ipAddress, location, device, browser); err != nil {
 					return nil, err
 				} else if response != nil {
@@ -99,11 +104,7 @@ func (as *AuthService) Authenticate(email string, password string, ipAddress str
 			}
 		}
 	}
-	// Get user
-	user, err := as.userService.GetByEmail(email)
-	if err != nil {
-		return nil, err
-	}
+	
 
 	// Get userSecurity
 	userSecurity, err := as.userSettingService.GetUserSecurityByUserID(user.ID)
@@ -553,6 +554,13 @@ func (as *AuthService) LoginWithActiveDirectory(email, password, ip, location, d
 		return nil, fmt.Errorf("AD user not found: %w", err)
 	}
 
+	entry := sr.Entries[0]
+	userDN := entry.DN
+
+	if err := l.Bind(userDN, password); err != nil {
+		return nil, fmt.Errorf("invalid credentials:%w", err)
+	}
+	
 	user, err := as.userService.GetByEmail(email)
 	if err != nil {
 		return nil, utility.NewResourceNotFoundError(err, email)
