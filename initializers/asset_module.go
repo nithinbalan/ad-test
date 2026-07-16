@@ -337,6 +337,7 @@ func NewAssetModule(db *gorm.DB,
 		masterModule.WorkflowStatusSvc,
 		organizationModule.UserSvc,
 		commonModule.NotificationService,
+		vulnerabilityStatusSvc,
 	)
 	assetRiskReviewController := controllers.NewAssetRiskReviewController(assetRiskReviewSvc)
 

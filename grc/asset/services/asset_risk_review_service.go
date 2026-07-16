@@ -21,12 +21,13 @@ type AssetRiskReviewServiceInterface interface {
 }
 
 type AssetRiskReviewService struct {
-	repo              repositories.AssetRiskReviewRepositoryInterface
-	riskSvc           AssetRiskRegisterServiceInterface
-	riskWorkflowSvc   AssetRiskWorkflowServiceInterface
-	workflowStatusSvc masterServices.WorkflowStatusServiceInterface
-	userSvc           organizationSvc.UserServiceInterface
-	notificationSvc   commonServices.NotificationServiceInterface
+	repo                   repositories.AssetRiskReviewRepositoryInterface
+	riskSvc                AssetRiskRegisterServiceInterface
+	riskWorkflowSvc        AssetRiskWorkflowServiceInterface
+	workflowStatusSvc      masterServices.WorkflowStatusServiceInterface
+	userSvc                organizationSvc.UserServiceInterface
+	notificationSvc        commonServices.NotificationServiceInterface
+	vulnerabilityStatusSvc VulnerabilityStatusServiceInterface
 }
 
 func NewAssetRiskReviewService(
@@ -36,14 +37,16 @@ func NewAssetRiskReviewService(
 	workflowStatusSvc masterServices.WorkflowStatusServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
 	notificationSvc commonServices.NotificationServiceInterface,
+	vulnerabilityStatusSvc VulnerabilityStatusServiceInterface,
 ) AssetRiskReviewServiceInterface {
 	return &AssetRiskReviewService{
-		repo:              repo,
-		riskSvc:           riskSvc,
-		riskWorkflowSvc:   riskWorkflowSvc,
-		workflowStatusSvc: workflowStatusSvc,
-		userSvc:           userSvc,
-		notificationSvc:   notificationSvc,
+		repo:                   repo,
+		riskSvc:                riskSvc,
+		riskWorkflowSvc:        riskWorkflowSvc,
+		workflowStatusSvc:      workflowStatusSvc,
+		userSvc:                userSvc,
+		notificationSvc:        notificationSvc,
+		vulnerabilityStatusSvc: vulnerabilityStatusSvc,
 	}
 }
 
@@ -114,6 +117,23 @@ func (arrs *AssetRiskReviewService) Submit(riskID uint, currentUserID uint) (err
 
 	if err := arrs.repo.UpdateRisk(riskRegister, tx); err != nil {
 		return err
+	}
+
+	riskDetail, err := arrs.riskSvc.GetFullDetailsByID(riskID, tx)
+	if err != nil {
+		return err
+	}
+
+	if len(riskDetail.Vulnerabilities) > 0 {
+		vulnerabilityStatus, err := arrs.vulnerabilityStatusSvc.GetByType("risk-acceptance-requested")
+		if err != nil {
+			return err
+		}
+
+		vulnerabilityID := riskDetail.Vulnerabilities[0].VulnerabilityID
+		if err := arrs.repo.UpdateVulnerabilityStatusByID(vulnerabilityID, vulnerabilityStatus.ID, tx); err != nil {
+			return err
+		}
 	}
 
 	riskWorkflowLevel, err := arrs.riskWorkflowSvc.GetRiskWorkflowByLevel(riskRegister.ID, level, tx)
@@ -232,6 +252,19 @@ func (arrs *AssetRiskReviewService) Approve(riskID uint, currentUserID uint) (er
 			if err != nil {
 				return err
 			}
+
+			if len(riskDetail.Vulnerabilities) > 0 {
+				vulnerabilityStatus, err := arrs.vulnerabilityStatusSvc.GetByType("risk-accepted")
+				if err != nil {
+					return err
+				}
+
+				vulnerabilityID := riskDetail.Vulnerabilities[0].VulnerabilityID
+				if err := arrs.repo.UpdateVulnerabilityStatusByID(vulnerabilityID, vulnerabilityStatus.ID, tx); err != nil {
+					return err
+				}
+			}
+
 			notify = func() {
 				arrs.sendApprovalNotification(currentUserID, riskDetail)
 				arrs.sendResponsibleUserAssignNotification(currentUserID, riskDetail)
@@ -308,6 +341,19 @@ func (arrs *AssetRiskReviewService) Approve(riskID uint, currentUserID uint) (er
 			if err != nil {
 				return err
 			}
+
+			if len(riskDetail.Vulnerabilities) > 0 {
+				vulnerabilityStatus, err := arrs.vulnerabilityStatusSvc.GetByType("risk-accepted")
+				if err != nil {
+					return err
+				}
+
+				vulnerabilityID := riskDetail.Vulnerabilities[0].VulnerabilityID
+				if err := arrs.repo.UpdateVulnerabilityStatusByID(vulnerabilityID, vulnerabilityStatus.ID, tx); err != nil {
+					return err
+				}
+			}
+
 			notify = func() {
 				arrs.sendApprovalNotification(currentUserID, riskDetail)
 				arrs.sendResponsibleUserAssignNotification(currentUserID, riskDetail)
@@ -421,6 +467,19 @@ func (arrs *AssetRiskReviewService) Reject(riskID uint, currentUserID uint) (err
 	if err != nil {
 		return err
 	}
+
+	if len(riskDetail.Vulnerabilities) > 0 {
+		vulnerabilityStatus, err := arrs.vulnerabilityStatusSvc.GetByType("risk-acceptance-rejected")
+		if err != nil {
+			return err
+		}
+
+		vulnerabilityID := riskDetail.Vulnerabilities[0].VulnerabilityID
+		if err := arrs.repo.UpdateVulnerabilityStatusByID(vulnerabilityID, vulnerabilityStatus.ID, tx); err != nil {
+			return err
+		}
+	}
+
 	notify = func() {
 		arrs.sendRejectedNotification(currentUserID, riskDetail)
 	}

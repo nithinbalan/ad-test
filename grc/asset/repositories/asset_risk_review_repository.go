@@ -11,6 +11,7 @@ type AssetRiskReviewRepositoryInterface interface {
 	BeginTransaction() utility.DatabaseTransaction
 	CreateRiskReview(riskReview *models.RiskWorkflowReview, tx ...utility.DatabaseTransaction) error
 	UpdateRisk(risk *models.RiskRegister, tx ...utility.DatabaseTransaction) error
+	UpdateVulnerabilityStatusByID(vulnerabilityID uint, vulnerabilityStatusID uint, tx ...utility.DatabaseTransaction) error
 }
 
 type AssetRiskReviewRepository struct {
@@ -42,4 +43,20 @@ func (repo *AssetRiskReviewRepository) UpdateRisk(risk *models.RiskRegister, tx 
 		db = tx[0].DB()
 	}
 	return db.Save(risk).Error
+}
+
+func (repo *AssetRiskReviewRepository) UpdateVulnerabilityStatusByID(vulnerabilityID uint, vulnerabilityStatusID uint, tx ...utility.DatabaseTransaction) error {
+	db := repo.db
+	if len(tx) > 0 && tx[0] != nil {
+		db = tx[0].DB()
+	}
+
+	updates := map[string]interface{}{
+		"vulnerability_status_id": vulnerabilityStatusID,
+	}
+
+	return db.
+		Model(&models.Vulnerability{}).
+		Where("id = ?", vulnerabilityID).
+		Updates(updates).Error
 }
