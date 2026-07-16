@@ -50,6 +50,7 @@ type AssetModule struct {
 	ApplicationController                         *controllers.ApplicationController
 	SLAEscalationMatrixController                 *controllers.SLAEscalationMatrixController
 	VulnerabilitySettingsController               *controllers.VulnerabilitySettingsController
+	VulnerabilityReportController                 *controllers.VulnerabilityReportController
 	QualysVulnerabilityHistoryController          *controllers.QualysVulnerabilityHistoryController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
@@ -313,6 +314,10 @@ func NewAssetModule(db *gorm.DB,
 	slaEscalationMatrixSvc := services.NewSLAEscalationMatrixService(slaEscalationMatrixRepo, sharedModule.ActivityLogService)
 	slaEscalationMatrixController := controllers.NewSLAEscalationMatrixController(slaEscalationMatrixSvc)
 
+	vulnerabilityReportRepo := repositories.NewVulnerabilityReportRepository(db)
+	vulnerabilityReportSvc := services.NewVulnerabilityReportService(vulnerabilityReportRepo, sharedModule.ActivityLogService,settingsModule.ReportTemplateSettingSvc)
+	vulnerabilityReportController := controllers.NewVulnerabilityReportController(vulnerabilityReportSvc)
+
 	qualysVulnerabilityHistoryRepo := repositories.NewQulaysVulnerabilityHistoryRepository(db)
 	qualysVulnerabilityHistorySvc := services.NewQualysVulnerabilityHistoryService(qualysVulnerabilityHistoryRepo,vulnerabilitySvc)
 	qualysVulnerabilityHistoryController := controllers.NewQualysVulnerabilityHistoryController(qualysVulnerabilityHistorySvc)
@@ -359,7 +364,9 @@ func NewAssetModule(db *gorm.DB,
 		ApplicationController:                         applicationController,
 		SLAEscalationMatrixController:                 slaEscalationMatrixController,
 		VulnerabilitySettingsController:               vulnerabilitySettingsController,
+		VulnerabilityReportController:                 vulnerabilityReportController,
 		QualysVulnerabilityHistoryController:          qualysVulnerabilityHistoryController,
+
 
 		AssetRegisterSvc: assetRegisterSvc,
 	}
