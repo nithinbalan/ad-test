@@ -404,6 +404,7 @@ func NewOrganizationModule(
 		internalCommitteeRepo,
 		sharedModule.ActivityLogService,
 		userSvc,
+		userSettingSvc,
 		settingsModule.OrganizationUnitSvc,
 		committeeTypeSvc,
 		committeeMemberTypeSvc,

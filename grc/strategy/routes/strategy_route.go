@@ -227,6 +227,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	// strategic intiative
 	strategyRoutes.GET("/strategic-intiatives", strategicIntiativeController.GetAllStrategicIntiatives)
+	strategyRoutes.GET("/strategic-intiatives/export", strategicIntiativeController.GetStrategicInitiativesExport)
 	strategyRoutes.GET("/strategic-intiatives/:id", strategicIntiativeController.GetStrategicIntiativeDetails)
 	strategyRoutes.POST("/strategic-intiatives", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "modify"), strategicIntiativeController.CreateStrategicIntiative)
 	strategyRoutes.PUT("/strategic-intiatives/:id", middlewares.RolePermissionMiddleware(db, "strategy_intiative", "modify"), strategicIntiativeController.UpdateStrategicIntiative)

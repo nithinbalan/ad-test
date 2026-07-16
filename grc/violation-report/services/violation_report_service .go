@@ -324,8 +324,8 @@ func (irs *ViolationReportService) Create(currentUserID uint, violationReportFor
 						NotificationType:     string(commonDTOs.AssignmentType),
 						HeadingEn:            "New Violation Report Assigned to Your Department",
 						HeadingAr:            "تم تعيين تقرير مخالفة جديد لقسمك",
-						TitleEn:              violationReportFormDTO.TitleEn,
-						TitleAr:              violationReportFormDTO.TitleAr,
+						TitleEn:              fmt.Sprintf("%s - %s", referenceNumber, violationReportFormDTO.TitleEn),
+						TitleAr:              fmt.Sprintf("%s - %s", referenceNumber, violationReportFormDTO.TitleAr),
 						Entity:               &entity,
 						Action:               &action,
 						URLParam:             urlParam,
@@ -902,6 +902,14 @@ func (irs *ViolationReportService) validateViolationReportFormDTO(violationRepor
 		email := strings.TrimSpace(*violationReportFormDTO.EmailOfReporter)
 		if email != "" && !utility.IsValidEmail(email) {
 			return utility.NewValidationError(fmt.Errorf("email of reporter is invalid"), "invalid", "email_of_reporter")
+		}
+	}
+
+	// Validate reporter phone format if provided
+	if violationReportFormDTO.PhoneOfReporter != nil {
+		phone := strings.TrimSpace(*violationReportFormDTO.PhoneOfReporter)
+		if phone != "" && !utility.IsValidPhone(phone) {
+			return utility.NewValidationError(fmt.Errorf("phone of reporter is invalid"), "invalid", "phone_of_reporter")
 		}
 	}
 

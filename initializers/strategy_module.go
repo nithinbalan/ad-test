@@ -173,6 +173,7 @@ func NewStrategyModule(db *gorm.DB,
 		sharedModule.ActivityLogService,
 		settingsModule.OrganizationUnitSvc,
 		organizationModule.UserSvc,
+		organizationModule.UserSettingSvc,
 	)
 	strategicIntiativeController := controllers.NewStrategicIntiativeController(strategicIntiativeSvc)
 	strategicObjectiveAssociatedItemRepo := repositories.NewStrategicObectiveAssociatedItemRepository(db)
