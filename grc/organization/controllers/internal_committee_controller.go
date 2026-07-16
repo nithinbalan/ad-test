@@ -123,8 +123,24 @@ func (icc *InternalCommitteeController) GetAllInternalCommittees(c *gin.Context)
 
 	// If export is true, generate and return the Excel file
 	if export {
-		// TODO: Implement export functionality
-		c.JSON(http.StatusNotImplemented, gin.H{"message": "Export not implemented yet"})
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(icc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := icc.service.ExportInternalCommittees(internalCommittees.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(icc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="InternalCommittees.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
 		return
 	}
 
@@ -614,4 +630,10 @@ func (icc *InternalCommitteeController) ExportCommitteeFormationToPDF(c *gin.Con
 			fmt.Printf("Failed to delete file %s: %v\n", fileName, err)
 		}
 	}()
+}
+
+func (icc *InternalCommitteeController) GetInternalCommitteesExport(c *gin.Context) {
+	c.Set("export", true)
+
+	icc.GetAllInternalCommittees(c)
 }

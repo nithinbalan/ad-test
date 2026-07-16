@@ -13,9 +13,12 @@ import (
 	settingsDTOs "jethur/grc/settings/dtos"
 	settingsServices "jethur/grc/settings/services"
 	"jethur/utility"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
+	"golang.org/x/net/html"
 	"gorm.io/gorm"
 )
 
@@ -33,6 +36,7 @@ type InternalCommitteeServiceInterface interface {
 	CompleteCommittee(committeeID uint, currentUserID uint) error
 	UpdateCommitteeDetails(id uint, currentUserID uint, detailsDTO *organizationDTOs.UpdateCommitteeDetailsDTO) error
 	ExportCommitteeFormationToPDF(id uint, currentUserID uint, language string) (string, error)
+	ExportInternalCommittees(data []*organizationDTOs.InternalCommitteeListDTO, currentUserID uint) (*os.File, error)
 	// Participant methods
 	CreateParticipants(currentUserID uint, nomineeDepartmentID uint, dto *organizationDTOs.InternalCommitteeParticipantFormDTO) ([]uint, error)
 	DeleteParticipant(nomineeDepartmentID uint, participantID uint, currentUserID uint) error
@@ -44,6 +48,7 @@ type InternalCommitteeService struct {
 	repo                        organizationRepositories.InternalCommitteeRepositoryInterface
 	activityLogSvc              logServices.ActivityLogServiceInterface
 	userSvc                     UserServiceInterface
+	userSettingSvc              UserSettingServiceInterface
 	settingsOrganizationUnitSvc settingsServices.OrganizationUnitServiceInterface
 	committeeTypeSvc            CommitteeTypeServiceInterface
 	committeeMemberTypeSvc      CommitteeMemberTypeServiceInterface
@@ -63,6 +68,7 @@ func NewInternalCommitteeService(
 	repo organizationRepositories.InternalCommitteeRepositoryInterface,
 	activityLogSvc logServices.ActivityLogServiceInterface,
 	userSvc UserServiceInterface,
+	userSettingSvc UserSettingServiceInterface,
 	settingsOrganizationUnitSvc settingsServices.OrganizationUnitServiceInterface,
 	committeeTypeSvc CommitteeTypeServiceInterface,
 	committeeMemberTypeSvc CommitteeMemberTypeServiceInterface,
@@ -81,6 +87,7 @@ func NewInternalCommitteeService(
 		repo:                        repo,
 		activityLogSvc:              activityLogSvc,
 		userSvc:                     userSvc,
+		userSettingSvc:              userSettingSvc,
 		settingsOrganizationUnitSvc: settingsOrganizationUnitSvc,
 		committeeTypeSvc:            committeeTypeSvc,
 		committeeMemberTypeSvc:      committeeMemberTypeSvc,
@@ -2598,4 +2605,91 @@ func (ics *InternalCommitteeService) ExportCommitteeFormationToPDF(id uint, curr
 	}
 
 	return pdfFileName, nil
+}
+
+func (ics *InternalCommitteeService) ExportInternalCommittees(data []*organizationDTOs.InternalCommitteeListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := ics.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	headers := []string{
+		"#",
+		"Reference No",
+		"Committee Name",
+		"Requesting Entity",
+		"Committee Term",
+		"Committee Type",
+		"Term End Date",
+		"Committee Classification",
+		"Justification",
+		"Roles and Responsibilities",
+		"Committee Authorities",
+		"Status",
+		"Created By",
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, committee := range data {
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				i + 1,
+				committee.ReferenceNumber,
+				committee.CommitteeNameAr,
+				committee.RequestingEntityTitleAr,
+				committee.CommitteeTermTitleAr,
+				committee.CommitteeTypeTitleAr,
+				committee.TermEndDate,
+				committee.CommitteeClassificationTitleAr,
+				stripHTML(&committee.Justification),
+				stripHTML(&committee.RolesAndResponsibilities),
+				stripHTML(&committee.CommitteeAuthorities),
+				committee.CommitteeStatusTitleAr,
+				fmt.Sprintf("%s %s", committee.CreatedUserFirstNameAr, committee.CreatedUserLastNameAr),
+			}
+		} else {
+			rows[i] = []interface{}{
+				i + 1,
+				committee.ReferenceNumber,
+				committee.CommitteeNameEn,
+				committee.RequestingEntityTitleEn,
+				committee.CommitteeTermTitleEn,
+				committee.CommitteeTypeTitleEn,
+				committee.TermEndDate,
+				committee.CommitteeClassificationTitleEn,
+				stripHTML(&committee.Justification),
+				stripHTML(&committee.RolesAndResponsibilities),
+				stripHTML(&committee.CommitteeAuthorities),
+				committee.CommitteeStatusTitleEn,
+				fmt.Sprintf("%s %s", committee.CreatedUserFirstNameEn, committee.CreatedUserLastNameEn),
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
+}
+
+func stripHTML(content *string) string {
+	if content == nil {
+		return ""
+	}
+
+	document, err := html.Parse(strings.NewReader(*content))
+	if err != nil {
+		return *content
+	}
+
+	var text strings.Builder
+	var collectText func(*html.Node)
+	collectText = func(node *html.Node) {
+		if node.Type == html.TextNode {
+			text.WriteString(node.Data)
+		}
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			collectText(child)
+		}
+	}
+
+	collectText(document)
+	return strings.TrimSpace(text.String())
 }

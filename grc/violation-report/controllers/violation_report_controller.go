@@ -93,6 +93,11 @@ func (vrc *ViolationReportController) GetAllViolationReports(c *gin.Context) {
 		"reported_entity_title_en":               "violation_reports.reported_entity",
 		"reported_entity_title_ar":               "violation_reports.reported_entity",
 		"reported_entity":                        "violation_reports.reported_entity",
+		"id_of_reporter":                         "violation_reports.id_of_reporter",
+		"name_of_reporter":                       "violation_reports.name_of_reporter",
+		"phone_of_reporter":                      "violation_reports.phone_of_reporter",
+		"email_of_reporter":                      "violation_reports.email_of_reporter",
+		"created_by":                             "violation_reports.created_by_id",
 		"created_at":                             "violation_reports.created_at",
 	}
 
