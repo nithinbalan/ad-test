@@ -160,10 +160,11 @@ type RiskAssetDTO struct {
 }
 
 type RiskVulnerabilityDTO struct {
-	ID              *uint                   `json:"id"`
-	RiskRegisterID  uint                    `json:"risk_register_id"`
-	VulnerabilityID uint                    `json:"vulnerability_id"`
-	Vulnerability   VulnerabilityDetailsDTO `json:"vulnerability"`
+	ID              *uint                      `json:"id"`
+	RiskRegisterID  uint                       `json:"risk_register_id"`
+	VulnerabilityID uint                       `json:"vulnerability_id"`
+	Vulnerability   VulnerabilityDetailsDTO    `json:"vulnerability"`
+	RiskRegister    AssetRiskRegisterDetailDTO `json:"risk_register"`
 }
 
 type RiskMatrixLikelihoodDTO struct {
