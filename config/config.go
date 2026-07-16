@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -11,21 +12,24 @@ import (
 func LoadEnv() {
 	exePath, err := os.Executable()
 	if err != nil {
-		panic("Cannot find executable path")
+		log.Println("Cannot find executable path, using existing environment variables")
+		return
 	}
+
 	dir := filepath.Dir(exePath)
 	envPath := filepath.Join(dir, ".env")
 
-	if _, err := os.Stat(envPath); os.IsNotExist(err) {
-		if err := godotenv.Load(); err != nil {
-			panic("Error loading default .env file")
+	if _, err := os.Stat(envPath); err == nil {
+		if err := godotenv.Load(envPath); err != nil {
+			log.Println("Failed to load .env from executable path:", err)
+		} else {
+			log.Println("Loaded .env from:", envPath)
 		}
 	} else {
-		if err := godotenv.Load(envPath); err != nil {
-			panic("Error loading .env file from " + envPath)
+		if err := godotenv.Load(); err != nil {
+			log.Println(".env not found, using container/system environment variables")
 		}
 	}
-
 }
 
 func GetEnv(key, defaultValue string) string {
@@ -41,10 +45,12 @@ func GetIntEnv(key string, defaultValue int) int {
 	if value == "" {
 		return defaultValue
 	}
+
 	intValue, err := strconv.Atoi(value)
 	if err != nil {
 		return defaultValue
 	}
+
 	return intValue
 }
 
@@ -58,5 +64,6 @@ func GetBoolEnv(key string, defaultValue bool) bool {
 	if err != nil {
 		return defaultValue
 	}
+
 	return boolValue
 }

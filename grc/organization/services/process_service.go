@@ -1825,6 +1825,7 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 					rowErrors["department"] = fmt.Sprintf("Invalid department: %s", value)
 				} else {
 					processedRecord["owner_unit_id"] = id
+					processedRecord["department_id"] = id
 				}
 
 			case "division":

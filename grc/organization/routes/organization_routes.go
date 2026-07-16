@@ -566,6 +566,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	//Internal Committee
 	organizationRoutes.GET("/internal-committees", internalCommitteeController.GetAllInternalCommittees)
+	organizationRoutes.GET("/internal-committees/export", internalCommitteeController.GetInternalCommitteesExport)
 	organizationRoutes.GET("/internal-committees/:committeeId", internalCommitteeController.GetInternalCommitteeDetails)
 	organizationRoutes.POST("/internal-committees", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.CreateInternalCommittee)
 	organizationRoutes.PUT("/internal-committees/:committeeId", middlewares.RolePermissionMiddleware(db, "committee_management", "modify"), internalCommitteeController.UpdateInternalCommittee)

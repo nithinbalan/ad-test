@@ -142,6 +142,28 @@ func (repo *ViolationReportRepository) GetAll(params *violationReportDTOs.Violat
 		}
 	}
 
+	// Apply quick filters
+	for _, quickFilter := range params.QuickFilter {
+		switch quickFilter {
+		case "open":
+			query = query.Where("violation_report_statuses.type = ?", "new")
+		case "in_progress":
+			query = query.Where("violation_report_statuses.type = ?", "in_progress")
+		case "closed_rejected":
+			query = query.Where("violation_report_statuses.type = ?", "closed_rejected")
+		case "closed_resolved":
+			query = query.Where("violation_report_statuses.type = ?", "closed_resolved")
+		case "closed_irrelevant":
+			query = query.Where("violation_report_statuses.type = ?", "closed_irrelevant")
+		case "closed_no_violation_found":
+			query = query.Where("violation_report_statuses.type = ?", "closed_no_violation_found")
+		case "closed_referred_to_entity":
+			query = query.Where("violation_report_statuses.type = ?", "closed_referred_to_entity")
+		case "high":
+			query = query.Where("severity_levels.type = ?", "high")
+		}
+	}
+
 	if params.ReportedAt != "" {
 		query = query.Where("violation_reports.reported_at >= ?", params.ReportedAt)
 	}
