@@ -59,6 +59,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	applicationController := app.AssetModule.ApplicationController
 	slaEscalationMatrixController := app.AssetModule.SLAEscalationMatrixController
 	vulnerabilitySettingsController := app.AssetModule.VulnerabilitySettingsController
+	vulnerabilityReportController := app.AssetModule.VulnerabilityReportController
 	qualysVulnerabilityHistoryController := app.AssetModule.QualysVulnerabilityHistoryController
 
 
@@ -158,7 +159,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/vulnerabilities/:id/reject", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.RejectVulnerability)
 	assetRoutes.PUT("/vulnerabilities/:id/approve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.ApproveVulnerability)
 	assetRoutes.PUT("/vulnerabilities/:id/deferred", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.DeferVulnerability)
-	assetRoutes.POST("/vulnerability-remediation/:id",middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.CreateVulnerabilityRemediation)
+	assetRoutes.POST("/vulnerability-remediation/:id", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.CreateVulnerabilityRemediation)
 
 	// Threat types
 	assetRoutes.GET("/threat-types", threatTypeController.GetAllThreatTypes)
@@ -429,6 +430,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	// Vulnerability Settings
 	assetRoutes.GET("/vulnerability-settings", vulnerabilitySettingsController.GetAllVulnerabilitySettings)
 	assetRoutes.PUT("/vulnerability-settings", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), vulnerabilitySettingsController.UpdateVulnerabilitySettings)
+
+	// Vulnerability Report
+	assetRoutes.GET("/vulnerability-reports", vulnerabilityReportController.GetAllVulnerabilityReports)
+	assetRoutes.GET("/vulnerability-reports/:vulnerabilityReportId", vulnerabilityReportController.GetVulnerabilityReportDetails)
+	assetRoutes.POST("/vulnerability-reports", vulnerabilityReportController.CreateVulnerabilityReport)
+	assetRoutes.DELETE("/vulnerability-reports/:vulnerabilityReportId", vulnerabilityReportController.DeleteVulnerabilityReport)
+	assetRoutes.GET("/vulnerability-reports/:vulnerabilityReportId/export-pdf", vulnerabilityReportController.GetVulnerabilityReportExportZip)
 
 	//Qulays Vulnerability History
 	assetRoutes.GET("/vulnerabilities/:id/qualys-history",qualysVulnerabilityHistoryController.GetAllQualysVulnerabilityHistories)
