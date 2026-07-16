@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	commonDTOs "jethur/grc/common/dtos"
 	complianceDTOs "jethur/grc/compliance/dtos"
 	"jethur/grc/compliance/services"
@@ -32,11 +33,25 @@ func (sapc *SLAActionPlanController) GetAllSLAActionPlans(c *gin.Context) {
 		return
 	}
 
-	sort := c.Query("sort_order")
-	sortBy := c.Query("sort_by")
+	sort := c.DefaultQuery("sort_order", "asc")
+	sortBy := c.DefaultQuery("sort_by", "title")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
 	quickFilter := c.QueryArray("quick_filter")
+
+	validSortFields := map[string]string{
+		"title":               "sla_action_plans.title",
+		"target_date":         "sla_action_plans.target_date",
+		"severity_level_en":   "severity_levels.title_en",
+		"responsible_user_en": "responsible_user.first_name_en",
+		"status_en":           "action_plan_statuses.title_en",
+	}
+
+	sortField, valid := validSortFields[sortBy]
+	if !valid {
+		utility.SendInvalidErrResp(c, errors.New("invalid 'sort_by' parameter"))
+		return
+	}
 
 	// Define an array of allowed parameter names
 	allowedParams := []string{
@@ -66,7 +81,7 @@ func (sapc *SLAActionPlanController) GetAllSLAActionPlans(c *gin.Context) {
 
 	queryParams := complianceDTOs.SLAActionPlanListQueryParamsDTO{
 		Sort:           sort,
-		SortBy:         sortBy,
+		SortBy:         sortField,
 		Keyword:        keyword,
 		Status:         status,
 		Page:           page,

@@ -25,11 +25,12 @@ import (
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
+	"golang.org/x/net/html"
 	"gorm.io/gorm"
 )
 
 type ComplianceRegisterServiceInterface interface {
-	GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
+	GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO, currentUserID uint) (*complianceDTOs.ComplianceRegisterListResponseDTO, error)
 	GetFullDetailsByID(id uint, tx ...utility.DatabaseTransaction) (*complianceDTOs.ComplianceRegisterDetailDTO, error)
 	GetByID(id uint) (*models.ComplianceRegister, error)
 	Create(currentUserID uint, complianceRegisterFormDTO *complianceDTOs.ComplianceRegisterFormDTO) (uint, error)
@@ -126,8 +127,21 @@ func NewComplianceRegisterService(
 	}
 }
 
-func (crs *ComplianceRegisterService) GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
-	return crs.repo.GetAll(params)
+func (crs *ComplianceRegisterService) GetAll(params *complianceDTOs.ComplianceRegisterListQueryParamsDTO, currentUserID uint) (*complianceDTOs.ComplianceRegisterListResponseDTO, error) {
+	isSuperAdmin, err := crs.userSvc.IsSuperAdmin(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	var primaryUnitID uint
+	if !isSuperAdmin {
+		primaryUnitID, err = crs.userSvc.GetUserPrimaryUnitID(currentUserID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return crs.repo.GetAll(params, currentUserID, primaryUnitID, isSuperAdmin)
 }
 
 func (crs ComplianceRegisterService) GetByID(id uint) (*models.ComplianceRegister, error) {
@@ -428,7 +442,7 @@ func (crs *ComplianceRegisterService) Create(currentUserID uint, complianceRegis
 			"ComplianceReferenceNumber": complianceRegister.ReferenceNumber,
 			"ComplianceTitleEn":         complianceRegister.TitleEn,
 			"ComplianceTitleAr":         complianceRegister.TitleAr,
-			"ComplianceDescription":     complianceRegister.DescriptionEn,
+			"ComplianceDescription":     stripHTML(complianceRegister.DescriptionEn),
 			"SeverityLevel":             severityLevelTitle,
 			"CreatedByFirstNameEn":      createdBy.FirstNameEn,
 			"CreatedByLastNameEn":       createdBy.LastNameEn,
@@ -824,7 +838,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 				"ComplianceReferenceNumber": existingComplianceRegister.ReferenceNumber,
 				"ComplianceTitle":           existingComplianceRegister.TitleEn,
 				"ComplianceTitleAr":         existingComplianceRegister.TitleAr,
-				"ComplianceDescription":     existingComplianceRegister.DescriptionEn,
+				"ComplianceDescription":     stripHTML(existingComplianceRegister.DescriptionEn),
 				"UpdatedByFirstNameEn":      updatedByUser.FirstNameEn,
 				"UpdatedByLastNameEn":       updatedByUser.LastNameEn,
 				"RedirectURL":               fmt.Sprintf("%s/compliance/register/%d", appURL, id),
@@ -846,7 +860,7 @@ func (crs *ComplianceRegisterService) Update(id uint, currentUserID uint, compli
 				"ComplianceReferenceNumber": existingComplianceRegister.ReferenceNumber,
 				"ComplianceTitle":           existingComplianceRegister.TitleEn,
 				"ComplianceTitleAr":         existingComplianceRegister.TitleAr,
-				"ComplianceDescription":     existingComplianceRegister.DescriptionEn,
+				"ComplianceDescription":     stripHTML(existingComplianceRegister.DescriptionEn),
 				"AssignedByFirstNameEn":     updatedByUser.FirstNameEn,
 				"AssignedByLastNameEn":      updatedByUser.LastNameEn,
 				"AssignedOn":                time.Now().Format("2006-01-02"),
@@ -1624,6 +1638,7 @@ func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complian
 		"Residual Risk Score",
 		"Residual Risk Rating",
 		"Importance Classification",
+		"Assess Settings",
 	}
 
 	rows := make([][]interface{}, len(data))
@@ -1648,6 +1663,13 @@ func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complian
 			residualRiskRating = utility.GetStringValue(item.AverageResidualRiskRatingTitleEn)
 		}
 
+		assessSettings := ""
+		if item.IsShared {
+			assessSettings = "Shared"
+		} else if item.IsPublic {
+			assessSettings = "Public"
+		}
+
 		var residualRiskScore interface{}
 		if item.AverageResidualRiskScore != nil {
 			residualRiskScore = *item.AverageResidualRiskScore
@@ -1667,6 +1689,7 @@ func (crs *ComplianceRegisterService) ExportComplianceRegisters(data []*complian
 			residualRiskScore,
 			residualRiskRating,
 			importanceClassification,
+			assessSettings,
 		}
 	}
 
@@ -3116,4 +3139,29 @@ func (crs *ComplianceRegisterService) validateCompliances(input []map[string]int
 	}
 
 	return validatedData, nil
+}
+
+func stripHTML(content *string) string {
+	if content == nil {
+		return ""
+	}
+
+	document, err := html.Parse(strings.NewReader(*content))
+	if err != nil {
+		return *content
+	}
+
+	var text strings.Builder
+	var collectText func(*html.Node)
+	collectText = func(node *html.Node) {
+		if node.Type == html.TextNode {
+			text.WriteString(node.Data)
+		}
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			collectText(child)
+		}
+	}
+
+	collectText(document)
+	return strings.TrimSpace(text.String())
 }

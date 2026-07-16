@@ -39,6 +39,14 @@ func (terapc *TestAndExerciseRecoveryActionPlanController) GetAllTestAndExercise
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, _ = strconv.ParseBool(c.DefaultQuery("export", "false"))
+	}
+
 	allowedParams := []string{
 		"bcp_phase_ids",
 		"process_ids",
@@ -88,7 +96,33 @@ func (terapc *TestAndExerciseRecoveryActionPlanController) GetAllTestAndExercise
 		return
 	}
 
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(terapc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := terapc.service.ExportTestAndExerciseRecoveryActionPlan(actionPlans, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(terapc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="RecoveryActionPlan.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+		return
+	}
+
 	c.JSON(http.StatusOK, actionPlans)
+}
+
+func (terapc *TestAndExerciseRecoveryActionPlanController) GetAllTestAndExerciseRecoveryActionPlansExport(c *gin.Context) {
+	c.Set("export", true)
+	terapc.GetAllTestAndExerciseRecoveryActionPlans(c)
 }
 
 func (terapc *TestAndExerciseRecoveryActionPlanController) GetByID(c *gin.Context) {

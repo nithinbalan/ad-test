@@ -11,7 +11,7 @@ type SLAEscalationMatrixRepositoryInterface interface {
 	GetAll(sort, sortBy, keyword, status string) ([]*dtos.SLAEscalationMatrixListDTO, error)
 	GetByID(id uint) (*models.SLAEscalationMatrix, error)
 	Create(matrix *models.SLAEscalationMatrix) (*models.SLAEscalationMatrix, error)
-	Update(id uint, matrix *models.SLAEscalationMatrix) (*models.SLAEscalationMatrix, error)
+	Update(matrix *models.SLAEscalationMatrix) error
 	Delete(id uint) error
 
 	Activate(ids []uint) ([]uint, error)
@@ -19,6 +19,7 @@ type SLAEscalationMatrixRepositoryInterface interface {
 
 	ExistsBySeverityID(severityID uint) (bool, error)
 	ExistsBySeverityIDExcludingID(id uint, severityID uint) (bool, error)
+	GetActiveEscalationBySeverityID(severityID uint) (*models.SLAEscalationMatrix, error)
 }
 
 type SLAEscalationMatrixRepository struct {
@@ -48,10 +49,14 @@ func (repo *SLAEscalationMatrixRepository) GetAll(sort, sortBy, keyword, status 
 			sla_escalation_matrix.role_id,
 			roles.title_en AS role_title_en,
 			roles.title_ar AS role_title_ar,
+			sla_escalation_matrix.notifiying_role_id,
+			notifying_roles.title_en AS notifiying_role_title_en,
+			notifying_roles.title_ar AS notifiying_role_title_ar,
 			sla_escalation_matrix.status
 		`).
 		Joins("LEFT JOIN severity_levels ON severity_levels.id = sla_escalation_matrix.severity_id").
-		Joins("LEFT JOIN roles ON roles.id = sla_escalation_matrix.role_id")
+		Joins("LEFT JOIN roles ON roles.id = sla_escalation_matrix.role_id").
+		Joins("LEFT JOIN roles AS notifying_roles ON notifying_roles.id = sla_escalation_matrix.notifiying_role_id")
 
 	if keyword != "" {
 		keyword = "%" + keyword + "%"
@@ -103,17 +108,12 @@ func (repo *SLAEscalationMatrixRepository) Create(matrix *models.SLAEscalationMa
 	return matrix, result.Error
 }
 
-func (repo *SLAEscalationMatrixRepository) Update(id uint, updatedMatrix *models.SLAEscalationMatrix) (*models.SLAEscalationMatrix, error) {
-	var matrix models.SLAEscalationMatrix
-	if err := repo.db.First(&matrix, id).Error; err != nil {
-		return nil, err
+func (repo *SLAEscalationMatrixRepository) Update(matrix *models.SLAEscalationMatrix) error {
+	db := repo.db
+	if err := db.Save(matrix).Error; err != nil {
+		return err
 	}
-
-	if err := repo.db.Model(&matrix).Updates(updatedMatrix).Error; err != nil {
-		return nil, err
-	}
-
-	return &matrix, nil
+	return nil
 }
 
 func (repo *SLAEscalationMatrixRepository) Delete(id uint) error {
@@ -181,4 +181,16 @@ func (repo *SLAEscalationMatrixRepository) Deactivate(ids []uint) ([]uint, error
 	}
 
 	return idsToUpdate, nil
+}
+
+func (repo *SLAEscalationMatrixRepository) GetActiveEscalationBySeverityID(severityID uint) (*models.SLAEscalationMatrix, error) {
+	var matrix models.SLAEscalationMatrix
+	err := repo.db.
+		Where("severity_id = ? AND status = ?", severityID, "active").
+		First(&matrix).
+		Error
+	if err != nil {
+		return nil, err
+	}
+	return &matrix, nil
 }

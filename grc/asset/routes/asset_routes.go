@@ -62,6 +62,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRiskWorkflowController := app.AssetModule.AssetRiskWorkflowController
 	assetRiskReviewController := app.AssetModule.AssetRiskReviewController
 	assetRiskReviewCommentController := app.AssetModule.AssetRiskReviewCommentController
+	qualysVulnerabilityHistoryController := app.AssetModule.QualysVulnerabilityHistoryController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -158,6 +159,8 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("/vulnerabilities/export", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityController.GetVulnerabilitiesExport)
 	assetRoutes.PUT("/vulnerabilities/:id/reject", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.RejectVulnerability)
 	assetRoutes.PUT("/vulnerabilities/:id/approve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.ApproveVulnerability)
+	assetRoutes.PUT("/vulnerabilities/:id/deferred", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.DeferVulnerability)
+	assetRoutes.POST("/vulnerability-remediation/:id", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.CreateVulnerabilityRemediation)
 
 	// Threat types
 	assetRoutes.GET("/threat-types", threatTypeController.GetAllThreatTypes)
@@ -446,4 +449,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/asset-risk-register/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewCommentController.UpdateComment)
 	assetRoutes.POST("/asset-risk-register/:id/review-comments/delete", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewCommentController.DeleteComment)
 	assetRoutes.PUT("/asset-risk-register/:id/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewCommentController.ResolveComment)
+
+	//Qulays Vulnerability History
+	assetRoutes.GET("/vulnerabilities/:id/qualys-history", qualysVulnerabilityHistoryController.GetAllQualysVulnerabilityHistories)
+	assetRoutes.POST("/vulnerabilities/:id/qualys-history/:historyId/documents", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), qualysVulnerabilityHistoryController.CreateQualysVulnerabilityHistoryDocuments)
+	unauthenticatedRoutes.GET("/vulnerabilities/:id/qualys-history/:historyId/document-preview", qualysVulnerabilityHistoryController.GetQualysVulnerabilityHistoryDocumentPreview)
 }

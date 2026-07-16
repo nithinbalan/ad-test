@@ -91,10 +91,28 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
 			updated_user.initial AS updated_user_initial,
             updated_user.color AS updated_user_color,
             updated_user.email AS updated_user_email,
-            updated_user.profile_image_path AS updated_user_profile_image_path  
+            updated_user.profile_image_path AS updated_user_profile_image_path,
+			bia_processes.workflow_status_id AS workflow_status_id,
+			workflow_statuses.title_en AS workflow_status_title_en,
+			workflow_statuses.title_ar AS workflow_status_title_ar,
+			workflow_statuses.type AS workflow_status_type,
+			workflow_statuses.color_code AS workflow_status_color_code,
+			bia_processes.approved_by_id AS approved_by_id,
+			approved_by.first_name_en AS approved_by_first_name_en,
+			approved_by.first_name_ar AS approved_by_first_name_ar,
+			approved_by.last_name_en AS approved_by_last_name_en,
+			approved_by.last_name_ar AS approved_by_last_name_ar,
+			approved_by.initial AS approved_by_initial,
+			approved_by.color AS approved_by_color,
+			approved_by.email AS approved_by_email,
+			approved_by.profile_image_path AS approved_by_profile_image_path,
+			CONVERT(VARCHAR, bia_processes.approved_at, 23) AS approved_at
         `).
 		Joins(`
 		    LEFT JOIN processes ON processes.id = business_impact_assessments.process_id
+			LEFT JOIN bia_processes ON bia_processes.process_id = processes.id
+			LEFT JOIN workflow_statuses ON workflow_statuses.id = bia_processes.workflow_status_id
+			LEFT JOIN users AS approved_by ON approved_by.id = bia_processes.approved_by_id
 		    LEFT JOIN organization_units ON organization_units.id = processes.responsible_unit_id
 		    LEFT JOIN process_criticality_levels ON process_criticality_levels.id = processes.process_criticality_level_id
 		    LEFT JOIN asset_register ON asset_register.id = business_impact_assessments.asset_register_id
@@ -106,7 +124,14 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
 	// Apply dynamic filters to the query
 	for columnName, values := range params.Filters {
 		if len(values) > 0 {
-			query = query.Where(columnName+" IN (?)", values)
+			switch columnName {
+			case "workflow_status_ids":
+				query = query.Where("bia_processes.workflow_status_id IN (?)", values)
+			case "process_id", "process_ids":
+				query = query.Where("business_impact_assessments.process_id IN (?)", values)
+			default:
+				query = query.Where(columnName+" IN (?)", values)
+			}
 		}
 	}
 	// Apply quick filters
@@ -139,6 +164,8 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
 			impact_categories.title_ar LIKE ? OR
 			risk_levels.title_en LIKE ? OR
 			risk_levels.title_ar LIKE ? OR
+			workflow_statuses.title_en LIKE ? OR
+			workflow_statuses.title_ar LIKE ? OR
 			created_user.first_name_en LIKE ? OR
 			created_user.first_name_ar LIKE ? OR
 			created_user.last_name_en LIKE ? OR
@@ -146,16 +173,29 @@ func (repo *BusinessImpactAssessmentRepository) GetAllImpactAnalysis(params *bus
     		updated_user.first_name_en LIKE ? OR
 			updated_user.first_name_ar LIKE ? OR
 			updated_user.last_name_en LIKE ? OR
-			updated_user.last_name_ar LIKE ?)`,
+			updated_user.last_name_ar LIKE ? OR
+			approved_by.first_name_en LIKE ? OR
+			approved_by.first_name_ar LIKE ? OR
+			approved_by.last_name_en LIKE ? OR
+			approved_by.last_name_ar LIKE ?)`,
 			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
-			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword)
+			keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword, keyword,
+			keyword, keyword, keyword, keyword)
 	}
 
 	if err := query.Count(&totalCount).Error; err != nil {
 		return nil, err
 	}
 
-	query = query.Order("business_impact_assessments.id")
+	// Sort by the specified column and order
+	if params.SortBy == "" {
+		params.SortBy = "business_impact_assessments.created_at"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "desc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
 
 	err := query.Find(&businessImpactAssessments).Error
 	if err != nil {
@@ -280,7 +320,15 @@ func (repo *BusinessImpactAssessmentRepository) GetAllRecoveryObjectives(params 
 		return nil, err
 	}
 
-	query = query.Order("process_dependencies.id")
+	// Sort by the specified column and order
+	if params.SortBy == "" {
+		params.SortBy = "process_dependencies.created_at"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "desc"
+	}
+
+	query = query.Order(params.SortBy + " " + params.Sort)
 
 	err := query.Find(&recoveryObjectives).Error
 	if err != nil {
@@ -557,6 +605,14 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
 			risk_levels.title_en LIKE ? OR 
 			risk_levels.title_ar LIKE ?`,
 			keyword, keyword, keyword, keyword, keyword)
+	}
+
+	// Sort by the specified column and order
+	if params.SortBy == "" {
+		params.SortBy = "processes.created_at"
+	}
+	if params.Sort != "asc" && params.Sort != "desc" {
+		params.Sort = "desc"
 	}
 
 	query = query.Order(params.SortBy + " " + params.Sort)

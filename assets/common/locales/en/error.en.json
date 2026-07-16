@@ -254,7 +254,12 @@
 {
   "id": "empty_data",
   "translation": "No {{.Field}} is available for the selected Organization/Department in the update plan. Please add {{.Field}} in the appropriate section before continuing."
+},
+{
+  "id": "employee_analysise_required",
+  "translation": "Employee analysis is required before adding a process to BIA."
 }
+
 
 
 

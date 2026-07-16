@@ -173,7 +173,7 @@ func (rruprs *RiskRegisterUpdatePlanReviewService) Submit(riskRegisterUpdatePlan
 					"SubmittedByFirstNameEn": submittedBy.FirstNameEn,
 					"SubmittedByLastNameEn":  submittedBy.LastNameEn,
 					"SubmittedOn":            time.Now().Format("2006-01-02"),
-					"RedirectURL":            fmt.Sprintf("%srisk/risk-register-update-plan/%d/overview", appURL, riskRegisterUpdatePlan.ID),
+					"RedirectURL":            fmt.Sprintf("%s/risk/risk-register-update-plan/%d/overview", appURL, riskRegisterUpdatePlan.ID),
 				}
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -666,7 +666,7 @@ func (rruprs *RiskRegisterUpdatePlanReviewService) sendApprovalNotification(id u
 			"ApprovedByFirstNameEn": approvedByUser.FirstNameEn,
 			"ApprovedByLastNameEn":  approvedByUser.LastNameEn,
 			"ApprovedAt":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%srisk/risk-register-update-plan/%d/overview", appURL, planDetail.ID),
+			"RedirectURL":           fmt.Sprintf("%s/risk/risk-register-update-plan/%d/overview", appURL, planDetail.ID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -746,7 +746,7 @@ func (rruprs *RiskRegisterUpdatePlanReviewService) notifyNextLevelUsers(id uint,
 				"AssignedByFirstNameEn": assignedBy.FirstNameEn,
 				"AssignedByLastNameEn":  assignedBy.LastNameEn,
 				"AssignedOn":            time.Now().Format("2006-01-02"),
-				"RedirectURL":           fmt.Sprintf("%srisk/risk-register-update-plan/%d/overview", appURL, planDetail.ID),
+				"RedirectURL":           fmt.Sprintf("%s/risk/risk-register-update-plan/%d/overview", appURL, planDetail.ID),
 			}
 
 			emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
@@ -813,7 +813,7 @@ func (rruprs *RiskRegisterUpdatePlanReviewService) sendRejectedNotification(id u
 			"RejectedByFirstNameEn": rejectedByUser.FirstNameEn,
 			"RejectedByLastNameEn":  rejectedByUser.LastNameEn,
 			"RejectedAt":            time.Now().Format("2006-01-02"),
-			"RedirectURL":           fmt.Sprintf("%srisk/risk-register-update-plan/%d/overview", appURL, riskRegisterUpdatePlan.ID),
+			"RedirectURL":           fmt.Sprintf("%s/risk/risk-register-update-plan/%d/overview", appURL, riskRegisterUpdatePlan.ID),
 		}
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{

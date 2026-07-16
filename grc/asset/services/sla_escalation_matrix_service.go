@@ -53,7 +53,6 @@ func (sems *SLAEscalationMatrixService) GetByID(id uint) (*models.SLAEscalationM
 }
 
 func (sems *SLAEscalationMatrixService) Create(currentUserID uint, matrix *models.SLAEscalationMatrix) (*models.SLAEscalationMatrix, error) {
-	// Check if severity already has an entry
 	if exists, err := sems.repo.ExistsBySeverityID(matrix.SeverityID); err != nil {
 		return nil, err
 	} else if exists {
@@ -73,8 +72,8 @@ func (sems *SLAEscalationMatrixService) Create(currentUserID uint, matrix *model
 			createdMatrix,
 			currentUserID,
 			"governance",
-			"sla_escalation_matrix",
-			"sla_escalation_matrix",
+			"asset",
+			"",
 			nil,
 		)
 		if err != nil {
@@ -91,7 +90,6 @@ func (sems *SLAEscalationMatrixService) Update(id, currentUserID uint, updatedMa
 		return nil, err
 	}
 
-	// Validate unique severity for update
 	if updatedMatrix.SeverityID != existingMatrix.SeverityID {
 		if exists, err := sems.repo.ExistsBySeverityIDExcludingID(id, updatedMatrix.SeverityID); err != nil {
 			return nil, err
@@ -100,12 +98,7 @@ func (sems *SLAEscalationMatrixService) Update(id, currentUserID uint, updatedMa
 		}
 	}
 
-	result, err := sems.repo.Update(id, updatedMatrix)
-	if err != nil {
-		return nil, err
-	}
-
-	fieldsToCompare := []string{"SeverityID", "RemediationDays", "IsEmail", "IsAlert", "RoleID", "Status"}
+	fieldsToCompare := []string{"SeverityID", "RemediationDays", "IsEmail", "IsAlert", "RoleID", "NotifiyingRoleID","Status"}
 	changes, err := utility.CompareFields(existingMatrix, updatedMatrix, fieldsToCompare)
 	if err != nil {
 		log.Println("error :", err.Error())
@@ -116,23 +109,36 @@ func (sems *SLAEscalationMatrixService) Update(id, currentUserID uint, updatedMa
 		log.Println("error :", err.Error())
 	}
 
+	existingMatrix.SeverityID = updatedMatrix.SeverityID
+	existingMatrix.RemediationDays = updatedMatrix.RemediationDays
+	existingMatrix.IsEmail = updatedMatrix.IsEmail
+	existingMatrix.IsAlert = updatedMatrix.IsAlert
+	existingMatrix.RoleID = updatedMatrix.RoleID
+	existingMatrix.NotifiyingRoleID = updatedMatrix.NotifiyingRoleID
+	existingMatrix.Status = updatedMatrix.Status
+
+	if err := sems.repo.Update(existingMatrix); err != nil {
+		return nil, err
+	}
+
 	go func() {
 		err := sems.activityLogSvc.LogActivity(
 			models.UpdateAction,
 			models.SLAEscalationMatrix{}.TableName(),
-			result.ID,
+			existingMatrix.ID,
 			changedDataJSON,
 			currentUserID,
 			"governance",
-			"sla_escalation_matrix",
-			"sla_escalation_matrix",
+			"asset",
+			"",
 			nil,
 		)
 		if err != nil {
 			fmt.Printf("Failed to log update activity: %v\n", err)
 		}
 	}()
-	return result, err
+
+	return existingMatrix, nil
 }
 
 func (sems *SLAEscalationMatrixService) Delete(ids []uint, currentUserID uint) ([]uint, error) {

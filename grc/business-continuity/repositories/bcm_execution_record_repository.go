@@ -121,7 +121,7 @@ func (repo *BCMExecutionRecordRepository) Create(record *models.BCMExecutionReco
 }
 
 func (repo *BCMExecutionRecordRepository) Update(record *models.BCMExecutionRecord) error {
-	if err := repo.db.Save(record).Error; err != nil {
+	if err := repo.db.Model(&models.BCMExecutionRecord{}).Where("id = ?", record.ID).Updates(record).Error; err != nil {
 		return err
 	}
 

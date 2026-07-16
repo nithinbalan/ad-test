@@ -46,6 +46,21 @@ type BusinessImpactAssessmentListDTO struct {
 	UpdatedUserColor            *string `json:"updated_user_color"`
 	UpdatedUserEmail            *string `json:"updated_user_email"`
 	UpdatedUserProfileImagePath *string `json:"updated_user_profile_image_path"`
+	WorkflowStatusID            *uint   `json:"workflow_status_id"`
+	WorkflowStatusTitleEn       *string `json:"workflow_status_title_en"`
+	WorkflowStatusTitleAr       *string `json:"workflow_status_title_ar"`
+	WorkflowStatusType          *string `json:"workflow_status_type"`
+	WorkflowStatusColorCode     *string `json:"workflow_status_color_code"`
+	ApprovedByID                *uint   `json:"approved_by_id"`
+	ApprovedByFirstNameEn       *string `json:"approved_by_first_name_en"`
+	ApprovedByFirstNameAr       *string `json:"approved_by_first_name_ar"`
+	ApprovedByLastNameEn        *string `json:"approved_by_last_name_en"`
+	ApprovedByLastNameAr        *string `json:"approved_by_last_name_ar"`
+	ApprovedByInitial           *string `json:"approved_by_initial"`
+	ApprovedByColor             *string `json:"approved_by_color"`
+	ApprovedByEmail             *string `json:"approved_by_email"`
+	ApprovedByProfileImagePath  *string `json:"approved_by_profile_image_path"`
+	ApprovedAt                  *string `json:"approved_at"`
 }
 
 type BusinessImpactAssessmentRecoveryObjectiveListDTO struct {

@@ -25,8 +25,8 @@ func NewBusinessFunctionController(service services.BusinessFunctionServiceInter
 }
 
 func (bfc *BusinessFunctionController) GetAllBusinessFunctions(c *gin.Context) {
-	sort := c.DefaultQuery("sort_order", "asc")
-	sortBy := c.DefaultQuery("sort_by", "title")
+	sort := c.DefaultQuery("sort_order", "desc")
+	sortBy := c.DefaultQuery("sort_by", "created_at")
 	keyword := c.Query("keyword")
 	quickFilter := c.QueryArray("quick_filter")
 
@@ -66,6 +66,7 @@ func (bfc *BusinessFunctionController) GetAllBusinessFunctions(c *gin.Context) {
 		"responsible_user_last_name_en":  "responsible_user.last_name_en",
 		"responsible_user_last_name_ar":  "responsible_user.last_name_ar",
 		"responsible_user_email":         "responsible_user.email",
+		"created_at":                     "business_functions.created_at",
 	}
 
 	filters := utility.ParseQueryFilters(allowedParams, c.Request.URL.Query())

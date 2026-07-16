@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"time"
 
 	bcmDTOs "jethur/grc/business-continuity/dtos"
 	"jethur/grc/business-continuity/repositories"
@@ -147,6 +148,8 @@ func (service *BCMManualProcedureFormService) Update(id uint, currentUserID uint
 	existingForm.LocationID = formDTO.LocationID
 	existingForm.InternalStakeholder = formDTO.InternalStakeholder
 	existingForm.Notes = formDTO.Notes
+	now := time.Now()
+	existingForm.UpdatedAt = &now
 	existingForm.UpdatedBYID = &currentUserID
 
 	if err := service.repo.Update(existingForm); err != nil {

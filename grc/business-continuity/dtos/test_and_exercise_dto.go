@@ -92,6 +92,7 @@ type TestAndExerciseDetailDTO struct {
 	TestingDateString                       string                                       `json:"testing_date"`
 	Description                             *string                                      `json:"description"`
 	TestAndExerciseStatusID                 uint                                         `json:"test_and_exercise_status_id"`
+	IsSytemRegisterUpdated                  bool                                         `json:"is_sytem_register_updated"`
 	TestAndExerciseStatus                   TestAndExerciseStatusDTO                     `json:"test_and_exercise_status"`
 	TestAndExerciseTestResult               *TestAndExerciseTestResultDetailDTO          `json:"test_and_exercise_test_result"`
 	CreatedAt                               time.Time                                    `json:"created_at"`
