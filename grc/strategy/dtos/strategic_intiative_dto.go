@@ -32,7 +32,7 @@ type StrategicIntiativeListDTO struct {
 	StrategicInitiativeStatusType      *string `json:"strategic_initiative_status_type"`
 
 	CompletionPercentage   *float64 `json:"completion_percentage"`
-	KPIs                   *string  `json:"kpis"`
+	KPIs                   *string  `json:"kpis" gorm:"column:kpis"`
 	ExpectedBenefitsEn     *string  `json:"expected_benefits_en"`
 	ExpectedBenefitsAr     *string  `json:"expected_benefits_ar"`
 	Budget                 *float64 `json:"budget"`
@@ -115,6 +115,7 @@ type StrategicIntiativeListQueryParamsDTO struct {
 	QuickFilter []string
 	StartDate   string
 	EndDate     string
+	Export      bool
 }
 
 type StrategicIntiativeDetailDTO struct {
