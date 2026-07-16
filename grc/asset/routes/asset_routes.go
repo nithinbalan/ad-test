@@ -62,6 +62,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRiskWorkflowController := app.AssetModule.AssetRiskWorkflowController
 	assetRiskReviewController := app.AssetModule.AssetRiskReviewController
 	assetRiskReviewCommentController := app.AssetModule.AssetRiskReviewCommentController
+	vulnerabilityReportController := app.AssetModule.VulnerabilityReportController
 	qualysVulnerabilityHistoryController := app.AssetModule.QualysVulnerabilityHistoryController
 
 	// Asset Type
@@ -449,6 +450,13 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/asset-risk-register/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewCommentController.UpdateComment)
 	assetRoutes.POST("/asset-risk-register/:id/review-comments/delete", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewCommentController.DeleteComment)
 	assetRoutes.PUT("/asset-risk-register/:id/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewCommentController.ResolveComment)
+
+	// Vulnerability Report
+	assetRoutes.GET("/vulnerability-reports", vulnerabilityReportController.GetAllVulnerabilityReports)
+	assetRoutes.GET("/vulnerability-reports/:vulnerabilityReportId", vulnerabilityReportController.GetVulnerabilityReportDetails)
+	assetRoutes.POST("/vulnerability-reports", vulnerabilityReportController.CreateVulnerabilityReport)
+	assetRoutes.DELETE("/vulnerability-reports/:vulnerabilityReportId", vulnerabilityReportController.DeleteVulnerabilityReport)
+	assetRoutes.GET("/vulnerability-reports/:vulnerabilityReportId/export-pdf", vulnerabilityReportController.GetVulnerabilityReportExportZip)
 
 	//Qulays Vulnerability History
 	assetRoutes.GET("/vulnerabilities/:id/qualys-history", qualysVulnerabilityHistoryController.GetAllQualysVulnerabilityHistories)

@@ -54,6 +54,7 @@ type AssetModule struct {
 	AssetRiskWorkflowController                   *controllers.AssetRiskWorkflowController
 	AssetRiskReviewController                     *controllers.AssetRiskReviewController
 	AssetRiskReviewCommentController              *controllers.AssetRiskReviewCommentController
+	VulnerabilityReportController                 *controllers.VulnerabilityReportController
 	QualysVulnerabilityHistoryController          *controllers.QualysVulnerabilityHistoryController
 
 	AssetRegisterSvc services.AssetRegisterServiceInterface
@@ -352,6 +353,10 @@ func NewAssetModule(db *gorm.DB,
 	)
 	assetRiskReviewCommentController := controllers.NewAssetRiskReviewCommentController(assetRiskReviewCommentSvc)
 
+	vulnerabilityReportRepo := repositories.NewVulnerabilityReportRepository(db)
+	vulnerabilityReportSvc := services.NewVulnerabilityReportService(vulnerabilityReportRepo, sharedModule.ActivityLogService, settingsModule.ReportTemplateSettingSvc)
+	vulnerabilityReportController := controllers.NewVulnerabilityReportController(vulnerabilityReportSvc)
+
 	qualysVulnerabilityHistoryRepo := repositories.NewQulaysVulnerabilityHistoryRepository(db)
 	qualysVulnerabilityHistorySvc := services.NewQualysVulnerabilityHistoryService(qualysVulnerabilityHistoryRepo, vulnerabilitySvc)
 	qualysVulnerabilityHistoryController := controllers.NewQualysVulnerabilityHistoryController(qualysVulnerabilityHistorySvc)
@@ -402,6 +407,7 @@ func NewAssetModule(db *gorm.DB,
 		AssetRiskWorkflowController:                   assetRiskWorkflowController,
 		AssetRiskReviewController:                     assetRiskReviewController,
 		AssetRiskReviewCommentController:              assetRiskReviewCommentController,
+		VulnerabilityReportController:                 vulnerabilityReportController,
 		QualysVulnerabilityHistoryController:          qualysVulnerabilityHistoryController,
 
 		AssetRegisterSvc: assetRegisterSvc,
