@@ -432,11 +432,11 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.PUT("/vulnerability-settings", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), vulnerabilitySettingsController.UpdateVulnerabilitySettings)
 
 	// Vulnerability Report
-	assetRoutes.GET("/vulnerability-reports", vulnerabilityReportController.GetAllVulnerabilityReports)
-	assetRoutes.GET("/vulnerability-reports/:vulnerabilityReportId", vulnerabilityReportController.GetVulnerabilityReportDetails)
-	assetRoutes.POST("/vulnerability-reports", vulnerabilityReportController.CreateVulnerabilityReport)
-	assetRoutes.DELETE("/vulnerability-reports/:vulnerabilityReportId", vulnerabilityReportController.DeleteVulnerabilityReport)
-	assetRoutes.GET("/vulnerability-reports/:vulnerabilityReportId/export-pdf", vulnerabilityReportController.GetVulnerabilityReportExportZip)
+	assetRoutes.GET("/vulnerability-reports", middlewares.RolePermissionMiddleware(db, "asset_report", "view"), vulnerabilityReportController.GetAllVulnerabilityReports)
+	assetRoutes.GET("/vulnerability-reports/:vulnerabilityReportId", middlewares.RolePermissionMiddleware(db, "asset_report", "view"), vulnerabilityReportController.GetVulnerabilityReportDetails)
+	assetRoutes.POST("/vulnerability-reports", middlewares.RolePermissionMiddleware(db, "asset_report", "view"), vulnerabilityReportController.CreateVulnerabilityReport)
+	assetRoutes.DELETE("/vulnerability-reports/:vulnerabilityReportId", middlewares.RolePermissionMiddleware(db, "asset_report", "view"), vulnerabilityReportController.DeleteVulnerabilityReport)
+	assetRoutes.GET("/vulnerability-reports/:vulnerabilityReportId/export-pdf", middlewares.RolePermissionMiddleware(db, "asset_report", "view"), vulnerabilityReportController.GetVulnerabilityReportExportZip)
 
 	//Qulays Vulnerability History
 	assetRoutes.GET("/vulnerabilities/:id/qualys-history", qualysVulnerabilityHistoryController.GetAllQualysVulnerabilityHistories)

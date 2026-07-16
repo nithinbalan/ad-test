@@ -9,11 +9,12 @@ import (
 )
 
 type KPIModule struct {
-	GRCDashboardController        *controllers.GRCDashboardController
-	ERMDashboardController        *controllers.ERMDashboardController
-	ComplianceDashboardController *controllers.ComplianceDashboardController
-	KRIDashboardController        *controllers.KRIDashboardController
-	AwarenessDashboardController  *controllers.AwarenessDashboardController
+	GRCDashboardController           *controllers.GRCDashboardController
+	ERMDashboardController           *controllers.ERMDashboardController
+	ComplianceDashboardController    *controllers.ComplianceDashboardController
+	KRIDashboardController           *controllers.KRIDashboardController
+	AwarenessDashboardController     *controllers.AwarenessDashboardController
+	VulnerabilityDashboardController *controllers.VulnerabilityDashboardController
 
 	GrcDashboardSvc services.GRCDashboardServiceInterface
 }
@@ -40,12 +41,17 @@ func NewKPIModule(db *gorm.DB, riskModule *RiskModule, organizationModule *Organ
 	awarenessDashboardSvc := services.NewAwarenessDashboardService(awarenessDashboardRepo)
 	awarenessDashboardController := controllers.NewAwarenessDashboardController(awarenessDashboardSvc)
 
+	vulnerabilityDashboardRepo := repositories.NewVulnerabilityDashboardRepository(db)
+	vulnerabilityDashboardSvc := services.NewVulnerabilityDashboardService(vulnerabilityDashboardRepo)
+	vulnerabilityDashboardController := controllers.NewVulnerabilityDashboardController(vulnerabilityDashboardSvc, db)
+
 	return &KPIModule{
-		GRCDashboardController:        grcDashboardController,
-		ERMDashboardController:        ermDashboardController,
-		ComplianceDashboardController: complianceDashboardController,
-		KRIDashboardController:        kriDashboardController,
-		AwarenessDashboardController:  awarenessDashboardController,
+		GRCDashboardController:           grcDashboardController,
+		ERMDashboardController:           ermDashboardController,
+		ComplianceDashboardController:    complianceDashboardController,
+		KRIDashboardController:           kriDashboardController,
+		AwarenessDashboardController:     awarenessDashboardController,
+		VulnerabilityDashboardController: vulnerabilityDashboardController,
 
 		GrcDashboardSvc: grcDashboardSvc,
 	}
