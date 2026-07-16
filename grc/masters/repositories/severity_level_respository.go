@@ -13,6 +13,7 @@ type SeverityLevelRepositoryInterface interface {
 	GetAll(sort string, sortBy string, keyword string, status string) ([]*models.SeverityLevel, error)
 	GetByID(id uint) (*models.SeverityLevel, error)
 	GetMaxSeverityWeight(tx ...utility.DatabaseTransaction) (int, error)
+	GetByType(status string) (*models.SeverityLevel, error)
 }
 
 // implementation
@@ -77,4 +78,16 @@ func (repo *SeverityLevelRepository) GetMaxSeverityWeight(tx ...utility.Database
 		return 0, err
 	}
 	return maxWeight, nil
+}
+
+func (repo *SeverityLevelRepository) GetByType(status string) (*models.SeverityLevel, error) {
+	var severityLevel *models.SeverityLevel
+
+	result := repo.db.Where("type = ?", status).First(&severityLevel)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return severityLevel, nil
 }

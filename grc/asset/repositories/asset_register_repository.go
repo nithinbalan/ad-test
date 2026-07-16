@@ -7,6 +7,7 @@ import (
 	"jethur/grc/models"
 	"jethur/utility"
 	"strconv"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -29,6 +30,8 @@ type AssetRegisterRepositoryInterface interface {
 	CreateAssetDocuments(documents []*models.AssetDocument, tx ...utility.DatabaseTransaction) error
 	DeleteAssetDocuments(documentIds []*uint, tx ...utility.DatabaseTransaction) error
 	GetDocumentByID(id uint) (*models.AssetDocument, error)
+
+	GetAssetLookupMap() (map[string]uint, error)
 
 	Archive(id uint, tx ...utility.DatabaseTransaction) error
 	Unarchive(id uint, tx ...utility.DatabaseTransaction) error
@@ -480,4 +483,33 @@ func (repo *AssetRegisterRepository) Unarchive(id uint, tx ...utility.DatabaseTr
 		return err
 	}
 	return db.Model(&models.AssetRegister{}).Where("id = ?", id).Update("is_archived", false).Error
+}
+
+func (repo *AssetRegisterRepository) GetAssetLookupMap() (map[string]uint, error) {
+	type assetLookup struct {
+		ID      uint
+		TitleEn string
+	}
+
+	var assets []assetLookup
+
+	err := repo.db.
+		Table("asset_register").
+		Select("id, title_en").
+		Where("status = ?", "active").
+		Find(&assets).Error
+	if err != nil {
+		return nil, err
+	}
+
+	lookup := make(map[string]uint)
+
+	for _, asset := range assets {
+		key := strings.ToLower(strings.TrimSpace(asset.TitleEn))
+		if key != "" {
+			lookup[key] = asset.ID
+		}
+	}
+
+	return lookup, nil
 }
