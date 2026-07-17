@@ -258,12 +258,15 @@ func (dr *MyDashboardRepository) GetAssignedRisks(userID uint, limit int) ([]org
 			COALESCE(rr.updated_at, rr.created_at) as last_updated
 		FROM risk_register rr
 		LEFT JOIN severity_levels sl ON rr.severity_level_id = sl.id
+		LEFT JOIN risk_statuses rs ON rr.risk_status_id = rs.id
 		WHERE rr.responsible_user_id = ?
+			AND rr.is_cyber_risk = 0
+			AND rs.type NOT IN (?)
 		ORDER BY COALESCE(rr.updated_at, rr.created_at) DESC
 		OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY
 	`
 
-	if err := dr.db.Raw(query, userID, limit).Scan(&flatRisks).Error; err != nil {
+	if err := dr.db.Raw(query, userID, models.PendingRiskStatusTypes, limit).Scan(&flatRisks).Error; err != nil {
 		return nil, err
 	}
 
