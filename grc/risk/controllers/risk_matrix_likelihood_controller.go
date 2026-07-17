@@ -27,8 +27,9 @@ func (rmlc *RiskMatrixLikelihoodController) GetAllRiskMatrixLikelihoods(c *gin.C
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	matrixType := c.DefaultQuery("type", "erm")
 
-	likelihoods, err := rmlc.service.GetAll(sort, sortBy, keyword, status)
+	likelihoods, err := rmlc.service.GetAll(sort, sortBy, keyword, status, matrixType)
 
 	if err != nil {
 		utility.SendInternalErrResp(rmlc.db, c, err.Error())
