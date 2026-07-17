@@ -113,7 +113,10 @@ func (repo *GRCDashboardRepository) GetGRCRiskSummary(params *kpiDTOs.GRCDashboa
 
 	var totalRisks, closedRisks, openHighRiskRatings int64
 
-	totalRiskQuery := repo.db.Model(&models.RiskRegister{})
+	totalRiskQuery := repo.db.Model(&models.RiskRegister{}).
+		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+		Where("risk_statuses.type NOT IN (?)", models.PendingRiskStatusTypes).
+		Where("risk_register.is_cyber_risk = ?", false)
 	if params.DateFrom != "" && params.DateTo != "" {
 		totalRiskQuery = totalRiskQuery.Where("reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
@@ -124,7 +127,8 @@ func (repo *GRCDashboardRepository) GetGRCRiskSummary(params *kpiDTOs.GRCDashboa
 
 	closedRiskQuery := repo.db.Model(&models.RiskRegister{}).
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
-		Where("risk_statuses.type = ?", "closed")
+		Where("risk_statuses.type = ?", "closed").
+		Where("risk_register.is_cyber_risk = ?", false)
 	if params.DateFrom != "" && params.DateTo != "" {
 		closedRiskQuery = closedRiskQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
@@ -153,7 +157,8 @@ func (repo *GRCDashboardRepository) GetGRCRiskSummary(params *kpiDTOs.GRCDashboa
 		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 		Where("risk_matrix_risk_ratings.type = ?", highestRating).
-		Where("risk_statuses.type = ?", "open")
+		Where("risk_statuses.type = ?", "open").
+		Where("risk_register.is_cyber_risk = ?", false)
 	if params.DateFrom != "" && params.DateTo != "" {
 		highRiskQuery = highRiskQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
@@ -475,7 +480,10 @@ func (repo *GRCDashboardRepository) GetGRCRiskOverview(params *kpiDTOs.GRCDashbo
 
 	// Query to calculate total risks registered
 	riskQuery := repo.db.Model(&models.RiskRegister{}).
-		Joins("JOIN risk_matrix_risk_ratings ON risk_register.current_risk_rating_id = risk_matrix_risk_ratings.id")
+		Joins("JOIN risk_matrix_risk_ratings ON risk_register.current_risk_rating_id = risk_matrix_risk_ratings.id").
+		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+		Where("risk_statuses.type NOT IN (?)", models.PendingRiskStatusTypes).
+		Where("risk_register.is_cyber_risk = ?", false)
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		riskQuery = riskQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -502,7 +510,10 @@ func (repo *GRCDashboardRepository) GetGRCRiskOverview(params *kpiDTOs.GRCDashbo
 	for _, rating := range riskRatings {
 		var count int64
 		err := repo.db.Model(&models.RiskRegister{}).
+			Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 			Where("current_risk_rating_id = ?", rating.ID).
+			Where("risk_statuses.type NOT IN (?)", models.PendingRiskStatusTypes).
+			Where("risk_register.is_cyber_risk = ?", false).
 			Count(&count).Error
 		if err != nil {
 			return nil, err
@@ -598,6 +609,9 @@ func (repo *GRCDashboardRepository) GetTopRiskRegisters(params *kpiDTOs.GRCDashb
 		`).
 		Joins("JOIN risk_matrix_risk_rating_values ON risk_register.current_risk_rating_value_id = risk_matrix_risk_rating_values.id").
 		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_rating_values.risk_matrix_risk_rating_id = risk_matrix_risk_ratings.id").
+		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+		Where("risk_statuses.type NOT IN (?)", models.PendingRiskStatusTypes).
+		Where("risk_register.is_cyber_risk = ?", false).
 		Order("risk_matrix_risk_rating_values.value DESC")
 
 	if params.DateFrom != "" && params.DateTo != "" {

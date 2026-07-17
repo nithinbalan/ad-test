@@ -258,8 +258,23 @@
 {
   "id": "employee_analysise_required",
   "translation": "Employee analysis is required before adding a process to BIA."
+},
+{
+  "id": "workflow_already_submitted",
+  "translation": "The {{.Field}} workflow has already been submitted."
+},
+{
+  "id": "workflow_already_completed",
+  "translation": "The {{.Field}} workflow has already been completed."
+},
+{
+  "id": "workflow_not_active",
+  "translation": "The {{.Field}} workflow is not active."
+},
+{
+  "id": "review_comment_workflow_not_active",
+  "translation": "Review comments can only be added while the {{.Field}} workflow is active."
 }
-
 
 
 

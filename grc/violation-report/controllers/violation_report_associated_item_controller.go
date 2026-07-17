@@ -476,7 +476,7 @@ func (iaic *ViolationReportAssociatedItemController) DeleteViolationReportAsset(
 }
 
 func (iaic *ViolationReportAssociatedItemController) CreateViolationReportComplianceRegister(c *gin.Context) {
-	var input commonDTOs.AssociatedComplianceMapDTO
+	var input commonDTOs.AssociatedComplianceRegisterMapDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utility.SendInvalidErrResp(c, utility.NewValidationError(err, "invalid_input", "request_body"))
 		return

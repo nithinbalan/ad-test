@@ -62,8 +62,9 @@ func (repo *RiskUpdatePlanERMDeptRepository) GetRisksByBusinessUnitID(businessUn
 		Joins("LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 		Joins("LEFT JOIN risk_register_update_plans ON risk_register_update_plans.id = risk_register.risk_register_update_plan_id").
 		Where("risk_register.responsible_unit_id = ?", businessUnitID).
-		Where("risk_statuses.type NOT IN (?)", []string{"identified", "submitted", "rejected"}).
+		Where("risk_statuses.type NOT IN (?)", models.PendingRiskStatusTypes).
 		Where("(risk_register_update_plans.approved_by_id IS NOT NULL OR risk_register_update_plans.id IS NULL)").
+		Where("risk_register.is_cyber_risk = ?", false).
 		Pluck("risk_register.id", &riskIDs).Error
 
 	return riskIDs, err
@@ -277,18 +278,35 @@ func (repo *RiskUpdatePlanERMDeptRepository) GetERMDeptEvaluationProcesses(timel
 			p.marked_as_auditable_item,
 			pg.title_en AS process_group_title_en,
 			pg.title_ar AS process_group_title_ar,
-			p.rto,
-			p.rto_unit_id,
-			rto_time_unit.title_en AS rto_unit_title_en,
-			rto_time_unit.title_ar AS rto_unit_title_ar,
-			p.mtpd,
-			p.mtpd_unit_id,
-			mtpd_time_unit.title_en AS mtpd_unit_title_en,
-			mtpd_time_unit.title_ar AS mtpd_unit_title_ar,
-			p.rpo,
-			p.rpo_unit_id,
-			rpo_time_unit.title_en AS rpo_unit_title_en,
-			rpo_time_unit.title_ar AS rpo_unit_title_ar,
+			p.rto_from_value as rto_from_value,
+			p.rto_to_value as rto_to_value,
+			p.rto_unit_id as rto_unit_id,
+			rto_bc_unit.title_en AS rto_unit_title_en,
+			rto_bc_unit.title_ar AS rto_unit_title_ar,
+			p.rto_condition as rto_condition,
+			p.mtpd_from_value as mtpd_from_value,
+			p.mtpd_to_value as mtpd_to_value,
+			p.mtpd_unit_id as mtpd_unit_id,
+			mtpd_bc_unit.title_en AS mtpd_unit_title_en,
+			mtpd_bc_unit.title_ar AS mtpd_unit_title_ar,
+			p.mtpd_condition as mtpd_condition,
+			p.rpo_from_value as rpo_from_value,
+			p.rpo_to_value as rpo_to_value,
+			p.rpo_unit_id as rpo_unit_id,
+			rpo_bc_unit.title_en AS rpo_unit_title_en,
+			rpo_bc_unit.title_ar AS rpo_unit_title_ar,
+			p.rpo_condition as rpo_condition,
+			p.rsp_from_value as rsp_from_value,
+			p.rsp_to_value as rsp_to_value,
+			p.rsp_unit_id as rsp_unit_id,
+			rsp_bc_unit.title_en AS rsp_unit_title_en,
+			rsp_bc_unit.title_ar AS rsp_unit_title_ar,
+			p.rsp_condition as rsp_condition,
+			p.impact_analysis_level_id AS impact_analysis_level_id,
+			bcm_impact_analysis_levels.title_en AS impact_analysis_level_title_en,
+			bcm_impact_analysis_levels.title_ar AS impact_analysis_level_title_ar,
+			bcm_impact_analysis_levels.color_code AS impact_analysis_level_color_code,
+			bcm_impact_analysis_levels.type AS impact_analysis_level_type,
 			p.is_bia_performed,
 			p.last_assessed_at,
 			last_assessed_user.id AS last_assessed_user_id,
@@ -355,9 +373,11 @@ func (repo *RiskUpdatePlanERMDeptRepository) GetERMDeptEvaluationProcesses(timel
 		Joins("LEFT JOIN users AS cu ON cu.id = p.created_by_id").
 		Joins("LEFT JOIN users AS uu ON uu.id = p.updated_by_id").
 		Joins("LEFT JOIN users AS last_assessed_user ON last_assessed_user.id = p.last_assessed_by_id").
-		Joins("LEFT JOIN time_units AS rto_time_unit ON rto_time_unit.id = p.rto_unit_id").
-		Joins("LEFT JOIN time_units AS mtpd_time_unit ON mtpd_time_unit.id = p.mtpd_unit_id").
-		Joins("LEFT JOIN time_units AS rpo_time_unit ON rpo_time_unit.id = p.rpo_unit_id").
+		Joins("LEFT JOIN business_continuity_duration_units AS rto_bc_unit ON rto_bc_unit.id = p.rto_unit_id").
+		Joins("LEFT JOIN business_continuity_duration_units AS mtpd_bc_unit ON mtpd_bc_unit.id = p.mtpd_unit_id").
+		Joins("LEFT JOIN business_continuity_duration_units AS rpo_bc_unit ON rpo_bc_unit.id = p.rpo_unit_id").
+		Joins("LEFT JOIN business_continuity_duration_units AS rsp_bc_unit ON rsp_bc_unit.id = p.rsp_unit_id").
+		Joins("LEFT JOIN bcm_impact_analysis_levels ON bcm_impact_analysis_levels.id = p.impact_analysis_level_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings AS rmrr ON rmrr.id = p.risk_matrix_risk_rating_id").
 		Joins("LEFT JOIN risk_matrix_risk_rating_values AS rmrrv ON rmrrv.id = p.risk_matrix_risk_rating_value_id").
 		Joins("LEFT JOIN risk_levels AS rl ON rl.id = p.risk_level_id").

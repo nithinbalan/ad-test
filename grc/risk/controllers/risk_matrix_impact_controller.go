@@ -27,8 +27,9 @@ func (rmic *RiskMatrixImpactController) GetAllRiskMatrixImpacts(c *gin.Context) 
 	sortBy := c.Query("sort_by")
 	keyword := c.Query("keyword")
 	status := c.Query("status")
+	matrixType := c.DefaultQuery("type", "erm")
 
-	impacts, err := rmic.service.GetAll(sort, sortBy, keyword, status)
+	impacts, err := rmic.service.GetAll(sort, sortBy, keyword, status, matrixType)
 
 	if err != nil {
 		utility.SendInternalErrResp(rmic.db, c, err.Error())

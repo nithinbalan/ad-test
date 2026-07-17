@@ -28,8 +28,6 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	vulnerabilityTypeController := app.AssetModule.VulnerabilityTypeController
 	vulnerabilityStatusController := app.AssetModule.VulnerabilityStatusController
 	vulnerabilityController := app.AssetModule.VulnerabilityController
-	vulnerabilityWorkflowController := app.AssetModule.VulnerabilityWorkflowController
-	vulnerabilityReviewController := app.AssetModule.VulnerabilityReviewController
 	threatTypeController := app.AssetModule.ThreatTypeController
 	threatStatusController := app.AssetModule.ThreatStatusController
 	threatController := app.AssetModule.ThreatController
@@ -63,6 +61,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	vulnerabilitySettingsController := app.AssetModule.VulnerabilitySettingsController
 	vulnerabilityReportController := app.AssetModule.VulnerabilityReportController
 	qualysVulnerabilityHistoryController := app.AssetModule.QualysVulnerabilityHistoryController
+	assetRiskRegisterController := app.AssetModule.AssetRiskRegisterController
+	assetRiskWorkflowController := app.AssetModule.AssetRiskWorkflowController
+	assetRiskReviewController := app.AssetModule.AssetRiskReviewController
+	assetRiskReviewCommentController := app.AssetModule.AssetRiskReviewCommentController
+	vulnerabilityWorkflowController := app.AssetModule.VulnerabilityWorkflowController
+	vulnerabilityReviewController := app.AssetModule.VulnerabilityReviewController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -445,9 +449,31 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/vulnerabilities/:id/qualys-history/:historyId/documents", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), qualysVulnerabilityHistoryController.CreateQualysVulnerabilityHistoryDocuments)
 	unauthenticatedRoutes.GET("/vulnerabilities/:id/qualys-history/:historyId/document-preview", qualysVulnerabilityHistoryController.GetQualysVulnerabilityHistoryDocumentPreview)
 
+	// Asset Risk Register
+	assetRoutes.GET("/asset-risk-register", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskRegisterController.GetAllAssetRiskRegisters)
+	assetRoutes.GET("/asset-risk-register/:id", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskRegisterController.GetAssetRiskRegisterDetails)
+	assetRoutes.POST("/asset-risk-register", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskRegisterController.CreateAssetRiskRegister)
+	assetRoutes.PUT("/asset-risk-register/:id", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRegisterController.UpdateAssetRiskRegister)
+	assetRoutes.POST("/asset-risk-register/delete", middlewares.RolePermissionMiddleware(db, "asset_risk", "modify"), assetRiskRegisterController.DeleteAssetRiskRegisters)
+
+	// Risk Acceptance Workflow
+	assetRoutes.POST("/asset-risk-register/:id/submit", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewController.SubmitAssetRiskRegister)
+	assetRoutes.POST("/asset-risk-register/:id/approve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewController.ApproveAssetRiskRegister)
+	assetRoutes.POST("/asset-risk-register/:id/reject", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewController.RejectAssetRiskRegister)
+	assetRoutes.GET("/asset-risk-register/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), assetRiskWorkflowController.GetWorkflowList)
+
+	// Risk Acceptance Workflow Review Comment
+	assetRoutes.GET("/asset-risk-register/:id/review-comments", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), assetRiskReviewCommentController.GetAllComments)
+	assetRoutes.GET("/asset-risk-register/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), assetRiskReviewCommentController.GetCommentDetails)
+	assetRoutes.POST("/asset-risk-register/:id/review-comments", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewCommentController.CreateComment)
+	assetRoutes.PUT("/asset-risk-register/:id/review-comments/:commentId", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewCommentController.UpdateComment)
+	assetRoutes.POST("/asset-risk-register/:id/review-comments/delete", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewCommentController.DeleteComment)
+	assetRoutes.PUT("/asset-risk-register/:id/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewCommentController.ResolveComment)
+
 	//  Vulnerability Reject Workflow
 	assetRoutes.POST("/vulnerabilities/:id/submit", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityReviewController.SubmitVulnerability)
 	assetRoutes.POST("/vulnerabilities/:id/approve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityReviewController.ApproveVulnerability)
 	assetRoutes.POST("/vulnerabilities/:id/reject", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityReviewController.RejectVulnerability)
 	assetRoutes.GET("/vulnerabilities/:id/workflow-list", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityWorkflowController.GetWorkflowList)
+
 }

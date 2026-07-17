@@ -14,7 +14,7 @@ import (
 )
 
 type RiskMatrixImpactServiceInterface interface {
-	GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixImpactDTO, error)
+	GetAll(sort string, sortBy string, keyword string, status string, matrixType string) ([]*riskDTOs.RiskMatrixImpactDTO, error)
 	GetByID(id uint) (*models.RiskMatrixImpact, error)
 	Create(currentUserID uint, riskMatrixImpactFormDTO *riskDTOs.RiskMatrixImpactFormDTO) (uint, error)
 	Update(id uint, currentUserID uint, riskMatrixImpactFormDTO *riskDTOs.RiskMatrixImpactFormDTO) error
@@ -38,8 +38,8 @@ func NewRiskMatrixImpactService(repo repositories.RiskMatrixImpactRepositoryInte
 	}
 }
 
-func (rmis *RiskMatrixImpactService) GetAll(sort string, sortBy string, keyword string, status string) ([]*riskDTOs.RiskMatrixImpactDTO, error) {
-	return rmis.repo.GetAll(sort, sortBy, keyword, status)
+func (rmis *RiskMatrixImpactService) GetAll(sort string, sortBy string, keyword string, status string, matrixType string) ([]*riskDTOs.RiskMatrixImpactDTO, error) {
+	return rmis.repo.GetAll(sort, sortBy, keyword, status, matrixType)
 }
 
 func (rmis RiskMatrixImpactService) GetByID(id uint) (*models.RiskMatrixImpact, error) {

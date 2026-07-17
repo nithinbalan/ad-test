@@ -22,6 +22,7 @@ type AssociatedItemValidationServiceInterface interface {
 	ValidateProjectMapping(masterID uint, projectIds []uint, tableName string, columnName string) error
 	ValidateBCPMapping(masterID uint, bcppIds []uint, tableName string, columnName string) error
 	ValidateClauseIDs(clauseIDs []uint) ([]*models.ComplianceClause, error)
+	ValidateComplianceRegisterIDs(complianceRegisterIDs []uint) ([]*models.ComplianceRegister, error)
 }
 
 // Service struct
@@ -453,4 +454,33 @@ func (aivs *AssociatedItemValidationService) ValidateClauseIDs(clauseIDs []uint)
 	}
 
 	return clauses, nil
+}
+
+func (aivs *AssociatedItemValidationService) ValidateComplianceRegisterIDs(complianceRegisterIDs []uint) ([]*models.ComplianceRegister, error) {
+	seen := make(map[uint]bool)
+	for _, id := range complianceRegisterIDs {
+		if seen[id] {
+			return nil, utility.NewValidationError(fmt.Errorf("duplicate compliance register ID: %d", id), "duplicate", "compliance_register_id")
+		}
+		seen[id] = true
+	}
+
+	complianceRegisters, err := aivs.repo.GetComplianceRegistersByIDs(complianceRegisterIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch compliance registers: %w", err)
+	}
+
+	foundComplianceRegisterIDs := make(map[uint]bool)
+	for _, complianceRegister := range complianceRegisters {
+		foundComplianceRegisterIDs[complianceRegister.ID] = true
+	}
+
+	for _, id := range complianceRegisterIDs {
+		if !foundComplianceRegisterIDs[id] {
+			return nil, utility.NewValidationError(
+				fmt.Errorf("compliance register does not exist for ID: %d", id), "not_exist", "compliance_register_id")
+		}
+	}
+
+	return complianceRegisters, nil
 }

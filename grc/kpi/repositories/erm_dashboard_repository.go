@@ -60,9 +60,10 @@ func (repo *ERMDashboardRepository) GetERMRiskOverview(params *kpiDTOs.ERMDashbo
 	row := repo.db.Table("risk_register").
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
+		Where("risk_register.is_cyber_risk = ?", false).
 		Select(`
-        SUM(CASE WHEN risk_statuses.type = 'open' THEN 1 ELSE 0 END) AS open_risks,
-        SUM(CASE WHEN risk_statuses.type = 'closed' THEN 1 ELSE 0 END) AS closed_risks,
+        ISNULL(SUM(CASE WHEN risk_statuses.type = 'open' THEN 1 ELSE 0 END), 0) AS open_risks,
+        ISNULL(SUM(CASE WHEN risk_statuses.type = 'closed' THEN 1 ELSE 0 END), 0) AS closed_risks,
         COUNT(*) AS total_risks
     `)
 
@@ -96,7 +97,8 @@ func (repo *ERMDashboardRepository) GetERMRiskOverview(params *kpiDTOs.ERMDashbo
 		Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 		Where("risk_matrix_risk_ratings.type = ?", highestRating).
-		Where("risk_statuses.type = ?", "open")
+		Where("risk_statuses.type = ?", "open").
+		Where("risk_register.is_cyber_risk = ?", false)
 	if params.DateFrom != "" && params.DateTo != "" {
 		highRiskQuery = highRiskQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
@@ -114,7 +116,8 @@ func (repo *ERMDashboardRepository) GetERMRiskDistribution(params *kpiDTOs.ERMDa
 	riskQuery := repo.db.Model(&models.RiskRegister{}).
 		Joins("JOIN risk_matrix_risk_ratings ON risk_register.current_risk_rating_id = risk_matrix_risk_ratings.id").
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
-		Where("risk_statuses.type IN ?", []string{"open", "closed"})
+		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
+		Where("risk_register.is_cyber_risk = ?", false)
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		riskQuery = riskQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -198,6 +201,7 @@ func (repo *ERMDashboardRepository) GetERMOverdueRisks(params *kpiDTOs.ERMDashbo
 		Where("next_review_date < ?", currentTime).
 		Where("next_review_date IS NOT NULL").
 		Where("risk_statuses.type = ?", "open").
+		Where("risk_register.is_cyber_risk = ?", false).
 		Group(`
 			risk_matrix_risk_ratings.id,
 			risk_matrix_risk_ratings.type,
@@ -262,6 +266,7 @@ func (repo *ERMDashboardRepository) GetERMRisksAboveAppetite(params *kpiDTOs.ERM
 		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
 		Where("risk_appetite_tolerance_levels.type = ?", "above").
 		Where("risk_evaluations.type = ?", "inherent").
+		Where("risk_register.is_cyber_risk = ?", false).
 		Group(`
         risk_matrix_risk_ratings.id,
         risk_matrix_risk_ratings.type,
@@ -325,7 +330,8 @@ func (repo *ERMDashboardRepository) GetERMLeadershipAttentionMetrics(params *kpi
 			Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 			Joins("JOIN risk_matrix_risk_ratings ON risk_matrix_risk_ratings.id = risk_register.current_risk_rating_id").
 			Where("risk_statuses.type = ?", "open").
-			Where("risk_matrix_risk_ratings.type = ?", highestRating)
+			Where("risk_matrix_risk_ratings.type = ?", highestRating).
+			Where("risk_register.is_cyber_risk = ?", false)
 
 		if params.DateFrom != "" && params.DateTo != "" {
 			query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -388,14 +394,14 @@ func (repo *ERMDashboardRepository) GetERMControlEfficiencySummary(params *kpiDT
 		Joins("JOIN risk_statuses ON risk_register.risk_status_id = risk_statuses.id").
 		Joins("LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id").
 		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
+		Where("risk_register.is_cyber_risk = ?", false).
 		Select(`
 			COUNT(DISTINCT controls.id) AS total_controls,
 			COUNT(DISTINCT CASE WHEN control_efficiency_statuses.type = 'efficient' THEN controls.id END) AS efficient_controls
 		`)
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		query = query.Joins("JOIN risk_register ON risk_register.id = risk_controls.risk_register_id").
-			Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := query.Row().Scan(&totalControls, &efficientControls)
@@ -427,6 +433,8 @@ func (repo *ERMDashboardRepository) GetERMControlEfficiencyBreakdown(params *kpi
 		`).
 		Joins("JOIN controls ON risk_controls.control_id = controls.id").
 		Joins("JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id").
+		Joins("JOIN risk_register ON risk_register.id = risk_controls.risk_register_id").
+		Where("risk_register.is_cyber_risk = ?", false).
 		Group(`
         control_efficiency_statuses.id,
         control_efficiency_statuses.title_en,
@@ -437,8 +445,7 @@ func (repo *ERMDashboardRepository) GetERMControlEfficiencyBreakdown(params *kpi
 		Order("control_efficiency_statuses.id")
 
 	if params.DateFrom != "" && params.DateTo != "" {
-		query = query.Joins("JOIN risk_register ON risk_register.id = risk_controls.risk_register_id").
-			Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
+		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
 	}
 
 	err := query.Scan(&summary).Error
@@ -462,6 +469,7 @@ func (repo *ERMDashboardRepository) GetERMControlsOverview(params *kpiDTOs.ERMDa
 		Joins("LEFT JOIN control_implementation_statuses ON controls.control_implementation_status_id = control_implementation_statuses.id").
 		Joins("LEFT JOIN control_efficiency_statuses ON controls.control_efficiency_status_id = control_efficiency_statuses.id").
 		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
+		Where("risk_register.is_cyber_risk = ?", false).
 		Select(`
 			COUNT(DISTINCT controls.id) AS total_controls,
 			COUNT(DISTINCT CASE WHEN control_implementation_statuses.type = 'implemented' THEN controls.id END) AS implemented_controls,
@@ -514,6 +522,7 @@ func (repo *ERMDashboardRepository) GetERMControlsOverview(params *kpiDTOs.ERMDa
 		`).
 		Where("risk_matrix_risk_ratings.type = ?", highestRating).
 		Where("risk_statuses.type = ?", "open").
+		Where("risk_register.is_cyber_risk = ?", false).
 		Scan(&highRiskControlResult).Error
 	if err != nil {
 		return nil, err
@@ -545,6 +554,7 @@ func (repo *ERMDashboardRepository) GetERMRiskAppetiteOverview(params *kpiDTOs.E
 		Joins("JOIN risk_appetite_tolerance_levels tl ON tl.id = raa.risk_appetite_tolerance_level_id AND tl.status = 'active'").
 		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
 		Where("parent_unit.status = ?", "active").
+		Where("risk_register.is_cyber_risk = ?", false).
 		Select(`
 			parent_unit.title_en AS organization_unit,
 			tl.id AS level_id, tl.title_en, tl.title_ar, tl.color_code, tl.type,
@@ -568,7 +578,8 @@ func (repo *ERMDashboardRepository) GetERMRiskAppetiteOverview(params *kpiDTOs.E
 		Joins("LEFT JOIN organization_units parent_unit ON COALESCE(ru.organization_unit_id, ru.id) = parent_unit.id").
 		Joins("JOIN organization_levels ol ON ol.id = ru.organization_level_id AND ol.is_primary = ?", true).
 		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
-		Where("parent_unit.status = ?", "active")
+		Where("parent_unit.status = ?", "active").
+		Where("risk_register.is_cyber_risk = ?", false)
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		totalQuery = totalQuery.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -631,10 +642,11 @@ func (repo *ERMDashboardRepository) GetERMRiskAppetiteSummary(params *kpiDTOs.ER
 		`).
 		Joins("JOIN risk_appetite_alignments ON risk_appetite_alignments.risk_evaluation_id = risk_evaluations.id").
 		Joins(`
-			JOIN risk_appetite_tolerance_levels 
-			ON risk_appetite_tolerance_levels.id = risk_appetite_alignments.risk_appetite_tolerance_level_id 
+			JOIN risk_appetite_tolerance_levels
+			ON risk_appetite_tolerance_levels.id = risk_appetite_alignments.risk_appetite_tolerance_level_id
 			AND risk_appetite_tolerance_levels.status = 'active'
 		`).
+		Where("risk_register.is_cyber_risk = ?", false).
 		Select(`
 			risk_appetite_tolerance_levels.id,
 			risk_appetite_tolerance_levels.type,
@@ -689,7 +701,8 @@ func (repo *ERMDashboardRepository) GetERMRiskAgingStatus(params *kpiDTOs.ERMDas
 	// Base query
 	baseQuery := repo.db.Table("risk_register").
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
-		Where("risk_statuses.type IN ?", []string{"open", "closed"})
+		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
+		Where("risk_register.is_cyber_risk = ?", false)
 
 	// Apply date filters if provided
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -702,16 +715,16 @@ func (repo *ERMDashboardRepository) GetERMRiskAgingStatus(params *kpiDTOs.ERMDas
 
 	// Calculate aging periods using DATEDIFF from reported_at to current date
 	row := baseQuery.Select(`
-        SUM(CASE WHEN risk_statuses.type = 'open' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 0 AND 90 THEN 1 ELSE 0 END) AS risks_0_to_90_open,
-        SUM(CASE WHEN risk_statuses.type = 'closed' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 0 AND 90 THEN 1 ELSE 0 END) AS risks_0_to_90_closed,
-        SUM(CASE WHEN risk_statuses.type = 'open' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 91 AND 180 THEN 1 ELSE 0 END) AS risks_91_to_180_open,
-        SUM(CASE WHEN risk_statuses.type = 'closed' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 91 AND 180 THEN 1 ELSE 0 END) AS risks_91_to_180_closed,
-        SUM(CASE WHEN risk_statuses.type = 'open' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 181 AND 365 THEN 1 ELSE 0 END) AS risks_181_to_365_open,
-        SUM(CASE WHEN risk_statuses.type = 'closed' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 181 AND 365 THEN 1 ELSE 0 END) AS risks_181_to_365_closed,
-        SUM(CASE WHEN risk_statuses.type = 'open' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 366 AND 730 THEN 1 ELSE 0 END) AS risks_1_to_2_years_open,
-        SUM(CASE WHEN risk_statuses.type = 'closed' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 366 AND 730 THEN 1 ELSE 0 END) AS risks_1_to_2_years_closed,
-        SUM(CASE WHEN risk_statuses.type = 'open' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) > 730 THEN 1 ELSE 0 END) AS risks_above_2_years_open,
-        SUM(CASE WHEN risk_statuses.type = 'closed' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) > 730 THEN 1 ELSE 0 END) AS risks_above_2_years_closed
+        ISNULL(SUM(CASE WHEN risk_statuses.type = 'open' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 0 AND 90 THEN 1 ELSE 0 END), 0) AS risks_0_to_90_open,
+        ISNULL(SUM(CASE WHEN risk_statuses.type = 'closed' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 0 AND 90 THEN 1 ELSE 0 END), 0) AS risks_0_to_90_closed,
+        ISNULL(SUM(CASE WHEN risk_statuses.type = 'open' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 91 AND 180 THEN 1 ELSE 0 END), 0) AS risks_91_to_180_open,
+        ISNULL(SUM(CASE WHEN risk_statuses.type = 'closed' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 91 AND 180 THEN 1 ELSE 0 END), 0) AS risks_91_to_180_closed,
+        ISNULL(SUM(CASE WHEN risk_statuses.type = 'open' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 181 AND 365 THEN 1 ELSE 0 END), 0) AS risks_181_to_365_open,
+        ISNULL(SUM(CASE WHEN risk_statuses.type = 'closed' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 181 AND 365 THEN 1 ELSE 0 END), 0) AS risks_181_to_365_closed,
+        ISNULL(SUM(CASE WHEN risk_statuses.type = 'open' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 366 AND 730 THEN 1 ELSE 0 END), 0) AS risks_1_to_2_years_open,
+        ISNULL(SUM(CASE WHEN risk_statuses.type = 'closed' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) BETWEEN 366 AND 730 THEN 1 ELSE 0 END), 0) AS risks_1_to_2_years_closed,
+        ISNULL(SUM(CASE WHEN risk_statuses.type = 'open' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) > 730 THEN 1 ELSE 0 END), 0) AS risks_above_2_years_open,
+        ISNULL(SUM(CASE WHEN risk_statuses.type = 'closed' AND DATEDIFF(day, risk_register.reported_at, GETDATE()) > 730 THEN 1 ELSE 0 END), 0) AS risks_above_2_years_closed
     `)
 
 	err := row.Scan(&result).Error
@@ -760,7 +773,9 @@ func (repo *ERMDashboardRepository) GetERMRiskTreatmentPlanProgress(params *kpiD
 
 	query := repo.db.Table("risk_action_plans").
 		Joins("JOIN action_plan_statuses ON action_plan_statuses.id = risk_action_plans.action_plan_status_id").
+		Joins("JOIN risk_register ON risk_register.id = risk_action_plans.risk_register_id").
 		Where("action_plan_statuses.status = ?", "active").
+		Where("risk_register.is_cyber_risk = ?", false).
 		Select(`
 			action_plan_statuses.id,
 			action_plan_statuses.title_en,
@@ -837,7 +852,7 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params
 				FROM risk_register rr
 				JOIN risk_strategic_objectives rso
 				ON rr.id = rso.risk_register_id
-				WHERE rso.strategic_objective_id = so.id
+				WHERE rso.strategic_objective_id = so.id AND rr.is_cyber_risk = 0
 			) as linked_risks,
             COUNT(CASE WHEN rmrr.type = '%s' THEN 1 END) as high_risk_count,
             COALESCE(
@@ -906,7 +921,7 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskOverview(params
 	baseQuery := repo.db.Table("strategic_objectives so").
 		Select(selectQuery).
 		Joins("JOIN risk_strategic_objectives rso ON so.id = rso.strategic_objective_id").
-		Joins("LEFT JOIN risk_register rr ON rr.id = rso.risk_register_id").
+		Joins("LEFT JOIN risk_register rr ON rr.id = rso.risk_register_id AND rr.is_cyber_risk = 0").
 		Joins("LEFT JOIN risk_matrix_risk_ratings rmrr ON rmrr.id = rr.current_risk_rating_id").
 		Joins(`
             LEFT JOIN risk_evaluations re
@@ -974,7 +989,7 @@ func (repo *ERMDashboardRepository) GetERMStrategicObjectivesRiskSummary(params 
         COUNT(DISTINCT CASE WHEN rso.strategic_objective_id IS NULL THEN so.id END) as objectives_with_no_risk_linked
     `).
 		Joins("LEFT JOIN risk_strategic_objectives rso ON so.id = rso.strategic_objective_id").
-		Joins("LEFT JOIN risk_register rr ON rr.id = rso.risk_register_id").
+		Joins("LEFT JOIN risk_register rr ON rr.id = rso.risk_register_id AND rr.is_cyber_risk = 0").
 		Joins("LEFT JOIN risk_matrix_risk_ratings rmrr ON rmrr.id = rr.current_risk_rating_id").
 		Where("so.status = ?", "active")
 
@@ -1008,7 +1023,8 @@ func (repo *ERMDashboardRepository) GetERMRiskSummaryByOrganizationUnit(params *
 			GROUP BY rap.risk_register_id
 		) overdue_ap ON overdue_ap.risk_register_id = rr.id`).
 		Where("ru.status = ?", "active").
-		Where("rs.type IN ?", []string{"open", "closed"})
+		Where("rs.type IN ?", []string{"open", "closed"}).
+		Where("rr.is_cyber_risk = ?", false)
 
 	// Date filtering
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -1119,6 +1135,7 @@ func (repo *ERMDashboardRepository) GetERMRiskCategorySummary(params *kpiDTOs.ER
 		Joins("JOIN risk_categories rc ON rc.id = risk_register.risk_category_id AND rc.status = ?", "active").
 		Joins("JOIN risk_statuses rs ON rs.id = risk_register.risk_status_id AND rs.status = ?", "active").
 		Where("rs.type IN ?", []string{"open", "closed"}).
+		Where("risk_register.is_cyber_risk = ?", false).
 		Group("rc.id, rc.title_en, rc.title_ar")
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -1152,6 +1169,7 @@ func (repo *ERMDashboardRepository) GetERMRiskSourceSummary(params *kpiDTOs.ERMD
 		Joins("JOIN risk_sources rs ON rs.id = risk_register.risk_source_id AND rs.status = ?", "active").
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id AND risk_statuses.status = ?", "active").
 		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
+		Where("risk_register.is_cyber_risk = ?", false).
 		Group("rs.id, rs.title_en, rs.title_ar")
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -1181,7 +1199,8 @@ func (repo *ERMDashboardRepository) GetERMRiskStatusSummary(params *kpiDTOs.ERMD
 			JOIN risk_statuses rs
 			ON rs.id = risk_register.risk_status_id
 			AND rs.status = ?
-			AND rs.type IN ?`, "active", []string{"open", "closed"})
+			AND rs.type IN ?`, "active", []string{"open", "closed"}).
+		Where("risk_register.is_cyber_risk = ?", false)
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -1220,7 +1239,8 @@ func (repo *ERMDashboardRepository) GetERMRiskOrganizationUnitSummary(params *kp
 		Joins("JOIN organization_levels ol ON ol.id = ru.organization_level_id AND ol.is_primary = ?", true).
 		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id AND risk_statuses.status = ?", "active").
 		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
-		Where("ru.status = ?", "active"). 
+		Where("ru.status = ?", "active").
+		Where("risk_register.is_cyber_risk = ?", false).
 		Select(`
 			ru.title_en AS organization_unit_title_en,
 			ru.title_ar AS organization_unit_title_ar, 
@@ -1250,6 +1270,7 @@ func (repo *ERMDashboardRepository) GetERMRisksIdentifiedSummary() ([]kpiDTOs.ER
 	query := repo.db.Model(&models.RiskRegister{}).
 		Joins("JOIN risk_statuses rs ON rs.id = risk_register.risk_status_id AND rs.status = ?", "active").
 		Where("rs.type IN ?", []string{"open", "closed"}).
+		Where("risk_register.is_cyber_risk = ?", false).
 		Where("reported_at IS NOT NULL").
 		Where("YEAR(reported_at) BETWEEN ? AND ?", startYear, currentYear).
 		Select("YEAR(reported_at) AS year, COUNT(*) AS count").
@@ -1270,6 +1291,7 @@ func (repo *ERMDashboardRepository) GetERMRiskResponseStrategySummary(params *kp
 		Joins("JOIN risk_statuses rs ON rs.id = risk_register.risk_status_id AND rs.status = ?", "active").
 		Joins("JOIN risk_response_strategies rrs ON rrs.id = risk_register.risk_response_strategy_id AND rrs.status = ?", "active").
 		Where("rs.type IN ?", []string{"open", "closed"}).
+		Where("risk_register.is_cyber_risk = ?", false).
 		Select(`
 			rrs.title_en AS response_strategy_title_en,
 			rrs.title_ar AS response_strategy_title_ar, 
@@ -1298,7 +1320,8 @@ func (repo *ERMDashboardRepository) GetERMRiskControlEfficiencySummary(params *k
 	totalQuery := repo.db.Model(&models.RiskControlAnalysis{}).
 		Joins("JOIN risk_controls rc ON rc.id = risk_control_analyses.risk_control_id").
 		Joins("JOIN risk_register rr ON rr.id = rc.risk_register_id").
-		Where("risk_control_analyses.type = ?", "inherent")
+		Where("risk_control_analyses.type = ?", "inherent").
+		Where("rr.is_cyber_risk = ?", false)
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		totalQuery = totalQuery.Where("rr.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -1320,7 +1343,8 @@ func (repo *ERMDashboardRepository) GetERMRiskControlEfficiencySummary(params *k
         `).
 		Joins("JOIN risk_controls rc ON rc.id = rca.risk_control_id").
 		Joins("JOIN risk_register rr ON rr.id = rc.risk_register_id").
-		Where("rca.type = ?", "inherent")
+		Where("rca.type = ?", "inherent").
+		Where("rr.is_cyber_risk = ?", false)
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("rr.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -1361,7 +1385,9 @@ func (repo *ERMDashboardRepository) GetERMRiskMitigationPlanStatusSummary(params
 			COUNT(rap.id) AS count,
 			SUM(COUNT(rap.id)) OVER() AS total
 		`).
-		Joins("JOIN action_plan_statuses aps ON aps.id = rap.action_plan_status_id AND aps.status = 'active'")
+		Joins("JOIN action_plan_statuses aps ON aps.id = rap.action_plan_status_id AND aps.status = 'active'").
+		Joins("JOIN risk_register ON risk_register.id = rap.risk_register_id").
+		Where("risk_register.is_cyber_risk = ?", false)
 
 	if params.DateFrom != "" && params.DateTo != "" {
 		query = query.Where("risk_register.reported_at BETWEEN ? AND ?", params.DateFrom+" 00:00:00", params.DateTo+" 23:59:59")
@@ -1479,6 +1505,7 @@ func (repo *ERMDashboardRepository) GetERMOpenRisksSummary(params *kpiDTOs.ERMDa
 		Joins("LEFT JOIN risk_appetite_tolerance_levels ratl ON ratl.id = raa.risk_appetite_tolerance_level_id AND ratl.status = ?", "active").
 		Where("rs.type = ?", "open").
 		Where("parent_unit.status = ?", "active").
+		Where("rr.is_cyber_risk = ?", false).
 		Group("rr.id, rr.title, rc.title_en, parent_unit.title_en, irms.title_en, iein.value, rms.title_en, cein.value, rr.reported_at").
 		Having("COUNT(DISTINCT rc_control.id) > 0")
 
@@ -1618,6 +1645,7 @@ func (repo *ERMDashboardRepository) GetTopRiskRegisters(params *kpiDTOs.ERMDashb
             LEFT JOIN risk_matrix_risk_rating_values AS residual_risk_rating_value ON residual_risk_rating_value.id = risk_register.residual_risk_rating_value_id
         `).
 		Where("risk_statuses.type IN ?", []string{"open", "closed"}).
+		Where("risk_register.is_cyber_risk = ?", false).
 		Order("current_risk_rating_value DESC")
 
 	if params.DateFrom != "" && params.DateTo != "" {
