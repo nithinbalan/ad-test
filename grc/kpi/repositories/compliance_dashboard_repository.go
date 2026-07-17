@@ -371,7 +371,10 @@ func (repo *ComplianceDashboardRepository) GetPolicyOverview(params *kpiDTOs.Com
 		Joins("JOIN risk_associated_documents rad ON rad.document_id = dcr.document_id").
 		Joins("JOIN risk_register rr ON rr.id = rad.risk_register_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings rmrr ON rmrr.id = rr.current_risk_rating_id").
+		Joins("JOIN risk_statuses rs ON rs.id = rr.risk_status_id").
 		Where("rmrr.type = ?", highestRating).
+		Where("rs.type NOT IN (?)", models.PendingRiskStatusTypes).
+		Where("rr.is_cyber_risk = ?", false).
 		Distinct("dcr.document_id")
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -402,8 +405,11 @@ func (repo *ComplianceDashboardRepository) GetPolicyOverview(params *kpiDTOs.Com
 		Joins("JOIN risk_register rr ON rr.id = rad.risk_register_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings rmrr ON rmrr.id = rr.current_risk_rating_id").
 		Joins("LEFT JOIN document_acknowledge_users dcu ON dcu.document_id = dcr.document_id").
+		Joins("JOIN risk_statuses rs ON rs.id = rr.risk_status_id").
 		Where("dcu.id IS NULL").
 		Where("rmrr.type = ?", highestRating).
+		Where("rs.type NOT IN (?)", models.PendingRiskStatusTypes).
+		Where("rr.is_cyber_risk = ?", false).
 		Distinct("dcr.document_id")
 
 	if params.DateFrom != "" && params.DateTo != "" {
@@ -809,7 +815,10 @@ func (repo *ComplianceDashboardRepository) GetControlOverview(params *kpiDTOs.Co
 		Joins("JOIN risk_compliance_requirements AS rcr ON rcr.compliance_register_id = ca.compliance_register_id").
 		Joins("JOIN risk_register AS rr ON rr.id = rcr.risk_register_id").
 		Joins("LEFT JOIN risk_matrix_risk_ratings AS rmrr ON rmrr.id = rr.current_risk_rating_id").
-		Where("rmrr.type = ?", highestRating)
+		Joins("JOIN risk_statuses AS rs ON rs.id = rr.risk_status_id").
+		Where("rmrr.type = ?", highestRating).
+		Where("rs.type NOT IN (?)", models.PendingRiskStatusTypes).
+		Where("rr.is_cyber_risk = ?", false)
 
 	highRiskQuery = applyDateFilter(highRiskQuery, "cac")
 

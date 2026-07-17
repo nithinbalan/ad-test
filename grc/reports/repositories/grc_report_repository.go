@@ -694,7 +694,10 @@ func (repo *GRCReportRepository) GetRisksByDateRange(startDate, endDate time.Tim
 		Preload("RiskResponseStrategy").
 		Preload("CurrentRiskRating").
 		Preload("KRIs.KriRegister").
+		Joins("JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 		Where("reported_at BETWEEN ? AND ?", startDate, endDate).
+		Where("risk_statuses.type NOT IN (?)", models.PendingRiskStatusTypes).
+		Where("risk_register.is_cyber_risk = ?", false).
 		Find(&risks).Error
 
 	return risks, err
@@ -780,6 +783,8 @@ func (repo *GRCReportRepository) GetTopFiveRisksByRatingValue(startDate time.Tim
 		Joins("LEFT JOIN risk_matrix_impacts AS residual_impact ON residual_impact.id = risk_register.residual_impact_id").
 		Joins("LEFT JOIN risk_response_strategies ON risk_response_strategies.id = risk_register.risk_response_strategy_id").
 		Where("risk_register.reported_at BETWEEN ? AND ?", startDate, endDate).
+		Where("risk_statuses.type NOT IN (?)", models.PendingRiskStatusTypes).
+		Where("risk_register.is_cyber_risk = ?", false).
 		Order("risk_register.current_risk_rating_value_id DESC").
 		Limit(5).
 		Find(&risks).Error
@@ -839,6 +844,8 @@ func (repo *GRCReportRepository) GetKRIsByDateRange(startDate, endDate time.Time
 		Joins("INNER JOIN kri_register ON kri_register.id = risk_kris.kri_register_id").
 		Joins("LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 		Where("risk_register.reported_at BETWEEN ? AND ?", startDate, endDate).
+		Where("risk_statuses.type NOT IN (?)", models.PendingRiskStatusTypes).
+		Where("risk_register.is_cyber_risk = ?", false).
 		Find(&results).Error
 
 	if err != nil {
@@ -896,7 +903,10 @@ func (repo *GRCReportRepository) GetRiskControlsByDateRange(startDate, endDate t
 		Joins("LEFT JOIN review_frequencies AS test_frequency ON test_frequency.id = controls.test_frequency_id").
 		Joins("LEFT JOIN users AS test_user ON test_user.id = controls.test_responsible_user_id").
 		Joins("LEFT JOIN risk_register ON risk_register.id = risk_controls.risk_register_id").
+		Joins("LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
 		Where("risk_register.reported_at BETWEEN ? AND ?", startDate, endDate).
+		Where("risk_statuses.type NOT IN (?)", models.PendingRiskStatusTypes).
+		Where("risk_register.is_cyber_risk = ?", false).
 		Find(&controls).Error
 
 	if err != nil {
@@ -1160,6 +1170,8 @@ func (repo *GRCReportRepository) GetRiskTrend(startDate time.Time, endDate time.
 		FROM risk_register r
 		LEFT JOIN risk_statuses rs ON r.risk_status_id = rs.id
 		WHERE r.created_at BETWEEN ? AND ?
+			AND r.is_cyber_risk = 0
+			AND rs.type NOT IN (?)
 		GROUP BY YEAR(r.created_at), MONTH(r.created_at)
 		ORDER BY year, month
 	`
@@ -1168,6 +1180,7 @@ func (repo *GRCReportRepository) GetRiskTrend(startDate time.Time, endDate time.
 		startDate, endDate, // for new_risks
 		startDate, endDate, // for closed_risks
 		startDate, endDate, // where filter
+		models.PendingRiskStatusTypes, // excluded status types
 	).Scan(&fetched).Error
 
 	if err != nil {

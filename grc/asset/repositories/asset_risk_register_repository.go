@@ -138,6 +138,8 @@ func (repo *AssetRiskRegisterRepository) GetAll(params *assetRiskDTOs.AssetRiskR
 		Joins("LEFT JOIN users AS updated_user ON updated_user.id = risk_register.updated_by_id").
 		Joins("LEFT JOIN risk_assets ON risk_assets.risk_register_id = risk_register.id").
 		Joins("LEFT JOIN risk_vulnerabilities ON risk_vulnerabilities.risk_register_id = risk_register.id").
+		Joins("LEFT JOIN risk_statuses ON risk_statuses.id = risk_register.risk_status_id").
+		Where("risk_statuses.type NOT IN (?)", models.PendingRiskStatusTypes).
 		Where("risk_register.is_cyber_risk = ?", true)
 
 	// Search
