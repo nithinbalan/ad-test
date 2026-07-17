@@ -83,6 +83,33 @@ func ConvertToUTC(localTime string, timezoneName string) (*time.Time, error) {
 	return &utcTime, nil
 }
 
+func ConvertToUTCWithLayouts(localTime string, timezoneName string) (*time.Time, error) {
+	// Load the location using the timezone name
+	location, err := time.LoadLocation(timezoneName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load timezone: %w", err)
+	}
+
+	// Try common datetime layouts in order of specificity
+	layouts := []string{
+		"2006-01-02T15:04:05",
+		"2006-01-02 15:04:05",
+		"2006-01-02T15:04",
+		"2006-01-02 15:04",
+		"2006-01-02",
+	}
+
+	for _, layout := range layouts {
+		parsedTime, err := time.ParseInLocation(layout, localTime, location)
+		if err == nil {
+			utcTime := parsedTime.UTC()
+			return &utcTime, nil
+		}
+	}
+
+	return nil, fmt.Errorf("invalid time format")
+}
+
 func ParseUnixTimestamp(value interface{}) time.Time {
 	switch v := value.(type) {
 	case float64:

@@ -419,7 +419,7 @@ func (repo *AssociatedItemValidationRepository) GetComplianceRegistersByIDs(ids 
 	db := repo.db
 	var complianceRegisters []*models.ComplianceRegister
 	if err := db.
-		Select("id, name").
+		Select("id").
 		Where("id IN ?", ids).
 		Find(&complianceRegisters).Error; err != nil {
 		return nil, err
