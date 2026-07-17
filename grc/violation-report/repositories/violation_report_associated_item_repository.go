@@ -868,7 +868,7 @@ func (repo *ViolationReportAssociatedItemRepository) DeleteViolationReportCompli
 		db = tx[0].DB()
 	}
 	return db.
-		Where("compliance_register_id = ? AND violation_report_id = ?", complianceRegisterID, violationReportID).
+		Where("id = ? AND violation_report_id = ?", complianceRegisterID, violationReportID).
 		Delete(&models.ViolationReportComplianceRegister{}).
 		Error
 }
