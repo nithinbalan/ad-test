@@ -616,7 +616,7 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 		}
 
 		appURL := utility.GetAppURL()
-		redirectURL := fmt.Sprintf("%s/asset/asset-risk-register/%d/overview", appURL, id)
+		redirectURL := fmt.Sprintf("%s/asset/risks/%d/overview", appURL, id)
 
 		oldResponsibleUserEmailData := map[string]interface{}{
 			"FirstNameEn":          oldResponsibleUser.FirstNameEn,
@@ -631,7 +631,7 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 
 		oldResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              []string{oldResponsibleUser.Email},
-			Subject:              fmt.Sprintf("Asset Risk Register/%s: Responsibility Removed", newRisk.Title),
+			Subject:              fmt.Sprintf("Asset Risk Register: %s - Responsibility Removed", newRisk.Title),
 			TemplateRelativePath: "asset/templates/email/asset_risk_register_remove_responsible_user_mail.html",
 			EmailData:            oldResponsibleUserEmailData,
 		}
@@ -650,7 +650,7 @@ func (arrs *AssetRiskRegisterService) Update(id uint, currentUserID uint, dto *a
 
 		newResponsibleUserEmailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              []string{newResponsibleUser.Email},
-			Subject:              fmt.Sprintf("Asset Risk Register/%s: Responsibility Assigned", newRisk.Title),
+			Subject:              fmt.Sprintf("Asset Risk Register: %s - Responsibility Assigned", newRisk.Title),
 			TemplateRelativePath: "asset/templates/email/asset_risk_register_change_responsible_user_mail.html",
 			EmailData:            newResponsibleUserEmailData,
 		}
@@ -800,7 +800,7 @@ func (arrs *AssetRiskRegisterService) Delete(ids []uint, currentUserID uint) (fa
 
 				emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 					EmailTo:              []string{responsibleUser.Email},
-					Subject:              fmt.Sprintf("Asset Risk Register/%s: Deleted", notification.Title),
+					Subject:              fmt.Sprintf("Asset Risk Register: %s - Deleted", notification.Title),
 					TemplateRelativePath: "asset/templates/email/asset_risk_register_delete_mail.html",
 					EmailData:            emailData,
 				}

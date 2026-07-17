@@ -510,11 +510,21 @@ func (arrs *AssetRiskReviewService) notifyWorkflowParticipants(riskRegister *mod
 		return
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, riskRegister.ID)
+	riskDetail, err := arrs.riskSvc.GetFullDetailsByID(riskRegister.ID)
+	if err != nil {
+		utility.LogError("Failed to fetch risk register details", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	vulnerabilityID := riskDetail.Vulnerabilities[0].VulnerabilityID
+
+	urlParam := fmt.Sprintf(`{"vulnerability_id":%d, "risk_register_id":%d}`, vulnerabilityID, riskRegister.ID)
 	entity := "asset-risk-review"
 	action := "review-user-assign"
 	appURL := utility.GetAppURL()
-	redirectURL := fmt.Sprintf("%s/asset/asset-risk-register/%d/workflow", appURL, riskRegister.ID)
+	redirectURL := fmt.Sprintf("%s/asset/vulnerabilities/%d/overview", appURL, vulnerabilityID)
 
 	for _, participant := range workflowLevel.RiskWorkflowParticipants {
 		responsibleUser, err := arrs.userSvc.GetByID(participant.User.ID)
@@ -530,8 +540,8 @@ func (arrs *AssetRiskReviewService) notifyWorkflowParticipants(riskRegister *mod
 			ModuleIdentifier:     "vulnerability",
 			NotificationType:     string(commonDTOs.ReviewType),
 			ReferenceNumber:      *riskRegister.ReferenceNumber,
-			HeadingEn:            "Asset Risk Acceptance Workflow",
-			HeadingAr:            "سير عمل قبول مخاطر الأصول",
+			HeadingEn:            "Risk Acceptance Workflow",
+			HeadingAr:            "سير عمل قبول المخاطر",
 			TitleEn:              riskRegister.Title,
 			TitleAr:              riskRegister.Title,
 			Entity:               &entity,
@@ -554,7 +564,7 @@ func (arrs *AssetRiskReviewService) notifyWorkflowParticipants(riskRegister *mod
 
 		emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 			EmailTo:              []string{responsibleUser.Email},
-			Subject:              fmt.Sprintf("Asset Risk Acceptance Workflow: %s - Review Assigned", riskRegister.Title),
+			Subject:              fmt.Sprintf("Risk Acceptance Workflow: %s - Review Assigned", riskRegister.Title),
 			TemplateRelativePath: "asset/templates/email/asset_risk_workflow_review_user_mail.html",
 			EmailData:            emailData,
 		}
@@ -608,12 +618,12 @@ func (arrs *AssetRiskReviewService) sendResponsibleUserAssignNotification(curren
 		"CreatedByFirstNameEn": riskDetail.CreatedByUser.FirstNameEN,
 		"CreatedByLastNameEn":  riskDetail.CreatedByUser.LastNameEN,
 		"AssignedOn":           time.Now().Format("2006-01-02"),
-		"RedirectURL":          fmt.Sprintf("%s/asset/asset-risk-register/%d/overview", appURL, riskDetail.ID),
+		"RedirectURL":          fmt.Sprintf("%s/asset/risks/%d/overview", appURL, riskDetail.ID),
 	}
 
 	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 		EmailTo:              []string{responsibleUser.Email},
-		Subject:              fmt.Sprintf("Asset Risk Register/%s: Responsibility Assigned", riskDetail.Title),
+		Subject:              fmt.Sprintf("Asset Risk Register: %s - Responsibility Assigned", riskDetail.Title),
 		TemplateRelativePath: "asset/templates/email/asset_risk_register_create_responsible_user_mail.html",
 		EmailData:            emailData,
 	}
@@ -634,7 +644,9 @@ func (arrs *AssetRiskReviewService) sendApprovalNotification(currentUserID uint,
 		return
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, riskDetail.ID)
+	vulnerabilityID := riskDetail.Vulnerabilities[0].VulnerabilityID
+
+	urlParam := fmt.Sprintf(`{"vulnerability_id":%d, "risk_register_id":%d}`, vulnerabilityID, riskDetail.ID)
 	entity := "asset-risk-review"
 	action := "approval"
 	responsibleUserID := uint(riskDetail.ResponsibleUser.ID)
@@ -643,8 +655,8 @@ func (arrs *AssetRiskReviewService) sendApprovalNotification(currentUserID uint,
 		UserIDs:              []uint{responsibleUserID},
 		ModuleIdentifier:     "vulnerability",
 		NotificationType:     string(commonDTOs.ApprovalType),
-		HeadingEn:            "Asset Risk Acceptance Workflow",
-		HeadingAr:            "سير عمل قبول مخاطر الأصول",
+		HeadingEn:            "Risk Acceptance Workflow",
+		HeadingAr:            "سير عمل قبول المخاطر",
 		ReferenceNumber:      riskDetail.ReferenceNumber,
 		TitleEn:              riskDetail.Title,
 		TitleAr:              riskDetail.Title,
@@ -656,7 +668,7 @@ func (arrs *AssetRiskReviewService) sendApprovalNotification(currentUserID uint,
 	}
 
 	appURL := utility.GetAppURL()
-	redirectURL := fmt.Sprintf("%s/asset/asset-risk-register/%d/overview", appURL, riskDetail.ID)
+	redirectURL := fmt.Sprintf("%s/asset/vulnerabilities/%d/overview", appURL, vulnerabilityID)
 
 	emailData := map[string]interface{}{
 		"FirstNameEn":           riskDetail.ResponsibleUser.FirstNameEN,
@@ -670,7 +682,7 @@ func (arrs *AssetRiskReviewService) sendApprovalNotification(currentUserID uint,
 
 	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 		EmailTo:              []string{riskDetail.ResponsibleUser.Email},
-		Subject:              fmt.Sprintf("Asset Risk Acceptance Workflow: %s - Approved", riskDetail.Title),
+		Subject:              fmt.Sprintf("Risk Acceptance Workflow: %s - Approved", riskDetail.Title),
 		TemplateRelativePath: "asset/templates/email/asset_risk_workflow_approve_user_mail.html",
 		EmailData:            emailData,
 	}
@@ -691,7 +703,9 @@ func (arrs *AssetRiskReviewService) sendRejectedNotification(currentUserID uint,
 		return
 	}
 
-	urlParam := fmt.Sprintf(`{"id":%d}`, riskDetail.ID)
+	vulnerabilityID := riskDetail.Vulnerabilities[0].VulnerabilityID
+
+	urlParam := fmt.Sprintf(`{"vulnerability_id":%d, "risk_register_id":%d}`, vulnerabilityID, riskDetail.ID)
 	entity := "asset-risk-review"
 	action := "rejected"
 	responsibleUserID := uint(riskDetail.ResponsibleUser.ID)
@@ -700,8 +714,8 @@ func (arrs *AssetRiskReviewService) sendRejectedNotification(currentUserID uint,
 		UserIDs:              []uint{responsibleUserID},
 		ModuleIdentifier:     "vulnerability",
 		NotificationType:     string(commonDTOs.RejectType),
-		HeadingEn:            "Asset Risk Acceptance Workflow",
-		HeadingAr:            "سير عمل قبول مخاطر الأصول",
+		HeadingEn:            "Risk Acceptance Workflow",
+		HeadingAr:            "سير عمل قبول المخاطر",
 		ReferenceNumber:      riskDetail.ReferenceNumber,
 		TitleEn:              riskDetail.Title,
 		TitleAr:              riskDetail.Title,
@@ -713,7 +727,7 @@ func (arrs *AssetRiskReviewService) sendRejectedNotification(currentUserID uint,
 	}
 
 	appURL := utility.GetAppURL()
-	redirectURL := fmt.Sprintf("%s/asset/asset-risk-register/%d/workflow", appURL, riskDetail.ID)
+	redirectURL := fmt.Sprintf("%s/asset/vulnerabilities/%d/overview", appURL, vulnerabilityID)
 
 	emailData := map[string]interface{}{
 		"FirstNameEn":           riskDetail.ResponsibleUser.FirstNameEN,
@@ -727,7 +741,7 @@ func (arrs *AssetRiskReviewService) sendRejectedNotification(currentUserID uint,
 
 	emailNotificationDTO := &commonDTOs.EmailNotificationDTO{
 		EmailTo:              []string{riskDetail.ResponsibleUser.Email},
-		Subject:              fmt.Sprintf("Asset Risk Acceptance Workflow: %s - Rejected", riskDetail.Title),
+		Subject:              fmt.Sprintf("Risk Acceptance Workflow: %s - Rejected", riskDetail.Title),
 		TemplateRelativePath: "asset/templates/email/asset_risk_workflow_reject_user_mail.html",
 		EmailData:            emailData,
 	}
