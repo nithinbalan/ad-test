@@ -24,7 +24,7 @@ type ViolationReportAssociatedItemServiceInterface interface {
 	DeleteViolationReportControl(violationReportID uint, controlID uint) error
 	CreateViolationReportAsset(violationReportID uint, currentUserID uint, dto *commonDTOs.AssociatedAssetMapDTO) error
 	DeleteViolationReportAsset(violationReportID uint, assetID uint) error
-	CreateViolationReportComplianceRegister(violationReportID uint, currentUserID uint, dto *commonDTOs.AssociatedComplianceMapDTO) error
+	CreateViolationReportComplianceRegister(violationReportID uint, currentUserID uint, dto *commonDTOs.AssociatedComplianceRegisterMapDTO) error
 	DeleteViolationReportComplianceRegister(violationReportID uint, complianceRegisterID uint) error
 }
 
@@ -254,20 +254,20 @@ func (vias *ViolationReportAssociatedItemService) DeleteViolationReportAsset(vio
 	return tx.Commit()
 }
 
-func (vias *ViolationReportAssociatedItemService) CreateViolationReportComplianceRegister(violationReportID, currentUserID uint, dto *commonDTOs.AssociatedComplianceMapDTO) error {
+func (vias *ViolationReportAssociatedItemService) CreateViolationReportComplianceRegister(violationReportID, currentUserID uint, dto *commonDTOs.AssociatedComplianceRegisterMapDTO) error {
 	if _, err := vias.violationReportSvc.GetByID(violationReportID); err != nil {
 		return utility.NewValidationError(fmt.Errorf("violation report does not exist for ID: %d", violationReportID), "not_exist", "violation_report_id")
 	}
-	if err := vias.validationSvc.ValidateComplianceMapping(violationReportID, dto.ClauseIDs, "violation_report_compliance_registers", "violation_report_id"); err != nil {
+	if _, err := vias.validationSvc.ValidateComplianceRegisterIDs(dto.ComplianceRegisterIDs); err != nil {
 		return err
 	}
 	tx := vias.repo.BeginTransaction()
 	var mappings []*models.ViolationReportComplianceRegister
 	currentTime := time.Now()
 
-	for _, clauseID := range dto.ClauseIDs {
+	for _, complianceRegisterID := range dto.ComplianceRegisterIDs {
 		mappings = append(mappings, &models.ViolationReportComplianceRegister{
-			ComplianceRegisterID: clauseID,
+			ComplianceRegisterID: complianceRegisterID,
 			ViolationReportID:    violationReportID,
 			CreatedByID:          currentUserID,
 			CreatedAt:            currentTime,

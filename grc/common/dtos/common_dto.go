@@ -325,6 +325,10 @@ type AssociatedComplianceMapDTO struct {
 	ClauseIDs []uint `json:"clause_ids" binding:"required"`
 }
 
+type AssociatedComplianceRegisterMapDTO struct {
+	ComplianceRegisterIDs []uint `json:"compliance_register_ids" binding:"required"`
+}
+
 type AssociatedDocumentListDTO struct {
 	ID                              uint       `json:"id"`
 	DocumentID                      uint       `json:"document_id"`
