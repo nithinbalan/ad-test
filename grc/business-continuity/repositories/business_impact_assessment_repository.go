@@ -569,10 +569,10 @@ func (repo *BusinessImpactAssessmentRepository) GetBIAMatrix(params *businessCon
 			LEFT JOIN process_criticality_levels AS pcl_proc ON pcl_proc.id = processes.process_criticality_level_id
 			LEFT JOIN bcm_impact_analysis_levels AS impact_levels ON impact_levels.id = processes.impact_analysis_level_id
 			LEFT JOIN risk_levels ON risk_levels.id = processes.risk_level_id
-			LEFT JOIN time_units AS time_units_rto ON time_units_rto.id = processes.rto_unit_id
-			LEFT JOIN time_units AS time_units_mtpd ON time_units_mtpd.id = processes.mtpd_unit_id
-			LEFT JOIN time_units AS time_units_rpo ON time_units_rpo.id = processes.rpo_unit_id
-			LEFT JOIN time_units AS time_units_rsp ON time_units_rsp.id = processes.rsp_unit_id
+			LEFT JOIN business_continuity_duration_units AS time_units_rto ON time_units_rto.id = processes.rto_unit_id
+			LEFT JOIN business_continuity_duration_units AS time_units_mtpd ON time_units_mtpd.id = processes.mtpd_unit_id
+			LEFT JOIN business_continuity_duration_units AS time_units_rpo ON time_units_rpo.id = processes.rpo_unit_id
+			LEFT JOIN business_continuity_duration_units AS time_units_rsp ON time_units_rsp.id = processes.rsp_unit_id
 		`).
 		Where("processes.is_bia_performed = ?", 1)
 
