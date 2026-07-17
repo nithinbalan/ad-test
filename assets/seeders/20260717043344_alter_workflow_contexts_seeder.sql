@@ -28,3 +28,4 @@ VALUES (
 DELETE FROM workflow_contexts
 WHERE type = 'vulnerability-reject';
 -- +goose StatementEnd
+
