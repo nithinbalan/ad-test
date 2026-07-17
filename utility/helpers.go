@@ -337,6 +337,11 @@ func IsValidEmail(email string) bool {
 	return re.MatchString(email)
 }
 
+func IsValidPhone(phone string) bool {
+	re := regexp.MustCompile(`^[\d\s\-\(\)\+]+$`)
+	return re.MatchString(phone) && len(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(phone, " ", ""), "-", ""), "(", ""), ")", "")) >= 7
+}
+
 func IsValidPassword(password string) bool {
 	// Password should contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character
 	var (

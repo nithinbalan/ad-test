@@ -23,6 +23,7 @@ type SLAEscalationMatrixServiceInterface interface {
 
 	Activate(ids []uint, currentUserID uint) error
 	Deactivate(ids []uint, currentUserID uint) error
+	GetActiveEscalationBySeverityID(severityID uint) (*models.SLAEscalationMatrix, error)
 }
 
 type SLAEscalationMatrixService struct {
@@ -226,4 +227,8 @@ func (sems *SLAEscalationMatrixService) Deactivate(ids []uint, currentUserID uin
 	}
 
 	return err
+}
+
+func (sems *SLAEscalationMatrixService) GetActiveEscalationBySeverityID(severityID uint) (*models.SLAEscalationMatrix, error) {
+	return sems.repo.GetActiveEscalationBySeverityID(severityID)
 }

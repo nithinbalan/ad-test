@@ -1825,6 +1825,7 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 					rowErrors["department"] = fmt.Sprintf("Invalid department: %s", value)
 				} else {
 					processedRecord["owner_unit_id"] = id
+					processedRecord["department_id"] = id
 				}
 
 			case "division":
@@ -1876,15 +1877,27 @@ func (ps *ProcessService) validateProcesses(input []map[string]interface{}) ([]m
 				}
 
 			case "can_be_done_manually":
-				if value == "" {
-					rowErrors["can_be_done_manually"] = "Field is required"
-				} else {
-					normalized := strings.ToLower(value)
+				var isCanBeDoneManually bool
+				switch v := record[header].(type) {
+				case bool:
+					isCanBeDoneManually = v
+				case string:
+					v = strings.TrimSpace(v)
+					if v == "" {
+						rowErrors["can_be_done_manually"] = "Field is required"
+						break
+					}
+					normalized := strings.ToLower(v)
 					if normalized != "yes" && normalized != "no" {
 						rowErrors["can_be_done_manually"] = "Must be 'yes' or 'no'"
-					} else {
-						processedRecord["can_be_done_manually"] = normalized == "yes"
+						break
 					}
+					isCanBeDoneManually = normalized == "yes"
+				default:
+					rowErrors["can_be_done_manually"] = "Must be 'yes' or 'no'"
+				}
+				if _, hasError := rowErrors["can_be_done_manually"]; !hasError {
+					processedRecord["can_be_done_manually"] = isCanBeDoneManually
 				}
 
 			case "type":

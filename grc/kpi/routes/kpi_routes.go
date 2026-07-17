@@ -20,6 +20,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	complianceDashboardController := app.KPIModule.ComplianceDashboardController
 	kriDashboardController := app.KPIModule.KRIDashboardController
 	awarenessDashboardController := app.KPIModule.AwarenessDashboardController
+	vulnerabilityDashboardController := app.KPIModule.VulnerabilityDashboardController
 
 	//GRCDashboard Summary
 	kpiRoutes.GET("/kpis/grc-summary/compliance", middlewares.RolePermissionMiddleware(db, "grc_dashboard", "view"), grcDashboardController.GetGRCComplianceSummary)
@@ -121,4 +122,15 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	kpiRoutes.GET("/kpis/awareness-reporting/progress/survey-completion", middlewares.RolePermissionMiddleware(db, "awareness_reporting_dashboard", "view"), awarenessDashboardController.GetSurveyCompletionStatus)
 	kpiRoutes.GET("/kpis/awareness-reporting/progress/completion-by-department", middlewares.RolePermissionMiddleware(db, "awareness_reporting_dashboard", "view"), awarenessDashboardController.GetCompletionByDepartment)
 	kpiRoutes.GET("/kpis/awareness-reporting/progress/phishing-results", middlewares.RolePermissionMiddleware(db, "awareness_reporting_dashboard", "view"), awarenessDashboardController.GetPhishingResults)
+
+	// Vulnerability Dashboard
+	kpiRoutes.GET("/kpis/vulnerability/summary", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityDashboardController.GetVulnerabilitySummary)
+	kpiRoutes.GET("/kpis/vulnerability/severity-level", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityDashboardController.GetVulnerabilitySeverityBreakdown)
+	kpiRoutes.GET("/kpis/vulnerability/status-distribution", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityDashboardController.GetVulnerabilityStatusDistribution)
+	kpiRoutes.GET("/kpis/vulnerability/source-distribution", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityDashboardController.GetVulnerabilitySourceDistribution)
+	kpiRoutes.GET("/kpis/vulnerability/recent", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityDashboardController.GetRecentVulnerabilities)
+	kpiRoutes.GET("/kpis/vulnerability/by-responsible-unit", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityDashboardController.GetVulnerabilitiesByBusinessUnit)
+	kpiRoutes.GET("/kpis/vulnerability/trend", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityDashboardController.GetVulnerabilityTrend)
+	kpiRoutes.GET("/kpis/vulnerability/by-asset-category", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityDashboardController.GetVulnerabilitiesByAssetCategory)
+	kpiRoutes.GET("/kpis/vulnerability/top-assets", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityDashboardController.GetTopVulnerableAssets)
 }

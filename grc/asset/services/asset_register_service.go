@@ -35,6 +35,8 @@ type AssetRegisterServiceInterface interface {
 	UpdateAssetRecoveryObjective(asset *models.AssetRegister, tx utility.DatabaseTransaction) error
 	GetDocumentPath(id uint, token string) (string, error)
 
+	GetAssetLookupMap() (map[string]uint, error)
+
 	ExportAsset(data []*dtos.AssetRegisterListDTO, currentUserID uint) (*os.File, error)
 }
 
@@ -1177,4 +1179,8 @@ func (ars *AssetRegisterService) Unarchive(ids []uint, currentUserID uint) ([]ui
 	}
 
 	return failedIds, nil
+}
+
+func (ars *AssetRegisterService) GetAssetLookupMap() (map[string]uint, error) {
+    return ars.repo.GetAssetLookupMap()
 }

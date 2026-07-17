@@ -91,6 +91,7 @@ func (service *InternalCommitteeReviewCommentService) GetAll(committeeID uint, c
 			CommentStatusID:             comment.CommentStatusID,
 			CommentStatusTitleEn:        comment.CommentStatusTitleEn,
 			CommentStatusTitleAr:        comment.CommentStatusTitleAr,
+			CommentStatusType:           comment.CommentStatusType,
 			CommentStatusColorCode:      comment.CommentStatusColorCode,
 			InternalCommitteeVersionID:  comment.InternalCommitteeVersionID,
 			CreatedAt:                   comment.CreatedAt,

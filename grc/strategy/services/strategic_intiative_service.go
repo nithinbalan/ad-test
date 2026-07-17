@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"jethur/grc/logs/services"
@@ -13,6 +15,7 @@ import (
 	"jethur/utility"
 
 	"github.com/mitchellh/mapstructure"
+	"golang.org/x/net/html"
 	"gorm.io/gorm"
 
 	organizationSvc "jethur/grc/organization/services"
@@ -26,6 +29,7 @@ type StrategicIntiativeServiceInterface interface {
 	Update(id uint, currentUserID uint, dto *dtos.StrategicIntiativeFormDTO) error
 	UpdateStatusAndCompletion(id uint, currentUserID uint, dto *dtos.StrategicIntiativeStatusCompletionUpdateDTO) error
 	Delete(ids []uint, currentUserID uint) ([]uint, error)
+	ExportStrategicInitiatives(data []*dtos.StrategicIntiativeListDTO, currentUserID uint) (*os.File, error)
 }
 
 // Service and implementations
@@ -33,9 +37,10 @@ type StrategicIntiativeService struct {
 	repo                                repositories.StrategicIntiativeRepositoryInterface
 	strategicInitiativeStatusUpdateRepo repositories.StrategyInitiativeStatusUpdateRepositoryInterface
 	strategicInitiativeStatusRepo       repositories.StrategicInitiativeStatusRepositoryInterface
-	activityLogSvc                services.ActivityLogServiceInterface
-	organizationUnitSvc           settingsSvc.OrganizationUnitServiceInterface
-	userSvc                       organizationSvc.UserServiceInterface
+	activityLogSvc                      services.ActivityLogServiceInterface
+	organizationUnitSvc                 settingsSvc.OrganizationUnitServiceInterface
+	userSvc                             organizationSvc.UserServiceInterface
+	userSettingSvc                      organizationSvc.UserSettingServiceInterface
 }
 
 func NewStrategicIntiativeService(repo repositories.StrategicIntiativeRepositoryInterface,
@@ -44,14 +49,16 @@ func NewStrategicIntiativeService(repo repositories.StrategicIntiativeRepository
 	activityLogSvc services.ActivityLogServiceInterface,
 	organizationUnitSvc settingsSvc.OrganizationUnitServiceInterface,
 	userSvc organizationSvc.UserServiceInterface,
+	userSettingSvc organizationSvc.UserSettingServiceInterface,
 ) StrategicIntiativeServiceInterface {
 	return &StrategicIntiativeService{
-		repo:                          repo,
+		repo:                                repo,
 		strategicInitiativeStatusUpdateRepo: strategicInitiativeStatusUpdateRepo,
-		strategicInitiativeStatusRepo: strategicInitiativeStatusRepo,
-		activityLogSvc:                activityLogSvc,
-		organizationUnitSvc:           organizationUnitSvc,
-		userSvc:                       userSvc,
+		strategicInitiativeStatusRepo:       strategicInitiativeStatusRepo,
+		activityLogSvc:                      activityLogSvc,
+		organizationUnitSvc:                 organizationUnitSvc,
+		userSvc:                             userSvc,
+		userSettingSvc:                      userSettingSvc,
 	}
 }
 
@@ -427,4 +434,118 @@ func (sis *StrategicIntiativeService) parseStrategicIntiativeDates(dto *dtos.Str
 	}
 
 	return parsed, nil
+}
+
+func (sis *StrategicIntiativeService) ExportStrategicInitiatives(data []*dtos.StrategicIntiativeListDTO, currentUserID uint) (*os.File, error) {
+	userSetting, err := sis.userSettingSvc.GetUserSetting(currentUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	headers := []string{
+		"Title",
+		"Description",
+		"Objectives",
+		"Recommendations",
+		"Owner Department",
+		"KPIs",
+		"Expected Benefits",
+		"Budget",
+		"Resource Requirements",
+		"Dependencies",
+		"Responsible Unit",
+		"Status",
+		"Responsible User",
+		"Start Date",
+		"End Date",
+	}
+
+	rows := make([][]interface{}, len(data))
+	for i, initiative := range data {
+		budget := ""
+		if initiative.Budget != nil {
+			budget = fmt.Sprintf("%.2f", *initiative.Budget)
+		}
+
+		if userSetting.Language == "ar" {
+			rows[i] = []interface{}{
+				initiative.TitleAr,
+				stripHTML(initiative.DescriptionAr),
+				stripHTML(initiative.ObjectivesAr),
+				stripHTML(initiative.RecommendationsAr),
+				utility.GetStringValue(initiative.OwnerDepartmentTitleAr),
+				stripHTML(initiative.KPIs),
+				stripHTML(initiative.ExpectedBenefitsAr),
+				budget,
+				stripHTML(initiative.ResourceRequirementsAr),
+				stripHTML(initiative.DependenciesAr),
+				utility.GetStringValue(initiative.ResponsibleUnitTitleAr),
+				utility.GetStringValue(initiative.StrategicInitiativeStatusTitleAr),
+				fmt.Sprintf("%s %s", utility.GetStringValue(initiative.ResponsibleUserFirstNameAr), utility.GetStringValue(initiative.ResponsibleUserLastNameAr)),
+				formatDateOnly(initiative.StartDate),
+				formatDateOnly(initiative.EndDate),
+			}
+		} else {
+			rows[i] = []interface{}{
+				initiative.TitleEn,
+				stripHTML(initiative.DescriptionEn),
+				stripHTML(initiative.ObjectivesEn),
+				stripHTML(initiative.RecommendationsEn),
+				utility.GetStringValue(initiative.OwnerDepartmentTitleEn),
+				stripHTML(initiative.KPIs),
+				stripHTML(initiative.ExpectedBenefitsEn),
+				budget,
+				stripHTML(initiative.ResourceRequirementsEn),
+				stripHTML(initiative.DependenciesEn),
+				utility.GetStringValue(initiative.ResponsibleUnitTitleEn),
+				utility.GetStringValue(initiative.StrategicInitiativeStatusTitleEn),
+				fmt.Sprintf("%s %s", utility.GetStringValue(initiative.ResponsibleUserFirstNameEn), utility.GetStringValue(initiative.ResponsibleUserLastNameEn)),
+				formatDateOnly(initiative.StartDate),
+				formatDateOnly(initiative.EndDate),
+			}
+		}
+	}
+
+	return utility.GenerateExcelFile(headers, rows)
+}
+
+func stripHTML(content *string) string {
+	if content == nil {
+		return ""
+	}
+
+	document, err := html.Parse(strings.NewReader(*content))
+	if err != nil {
+		return *content
+	}
+
+	var text strings.Builder
+	var collectText func(*html.Node)
+	collectText = func(node *html.Node) {
+		if node.Type == html.TextNode {
+			text.WriteString(node.Data)
+		}
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			collectText(child)
+		}
+	}
+
+	collectText(document)
+	return strings.TrimSpace(text.String())
+}
+
+func formatDateOnly(date *string) string {
+	if date == nil || strings.TrimSpace(*date) == "" {
+		return ""
+	}
+
+	parsedDate, err := time.Parse("2006-01-02T15:04:05Z07:00", *date)
+	if err != nil {
+		parsedDate, err = time.Parse("2006-01-02 15:04:05", *date)
+		if err != nil {
+			return *date
+		}
+	}
+
+	return parsedDate.Format("2006-01-02")
 }

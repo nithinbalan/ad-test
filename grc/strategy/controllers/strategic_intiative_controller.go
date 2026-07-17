@@ -31,6 +31,20 @@ func (soc *StrategicIntiativeController) GetAllStrategicIntiatives(c *gin.Contex
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
 
+	// Convert the export parameter to a boolean
+	exportFromContext, exists := c.Get("export")
+	var export bool
+	if exists {
+		export = exportFromContext.(bool)
+	} else {
+		export, err := strconv.ParseBool(c.DefaultQuery("export", "false"))
+		if err != nil {
+			utility.SendInternalErrResp(soc.db, c, "Invalid export parameter")
+			return
+		}
+		_ = export
+	}
+
 	allowedParams := []string{
 		"responsible_user_ids",
 		"responsible_unit_ids",
@@ -73,6 +87,7 @@ func (soc *StrategicIntiativeController) GetAllStrategicIntiatives(c *gin.Contex
 		QuickFilter: quickFilter,
 		StartDate:   startDate,
 		EndDate:     endDate,
+		Export:      export,
 	}
 
 	list, err := soc.service.GetAll(&queryParams)
@@ -80,6 +95,30 @@ func (soc *StrategicIntiativeController) GetAllStrategicIntiatives(c *gin.Contex
 		utility.SendInternalErrResp(soc.db, c, err.Error())
 		return
 	}
+
+	// If export is true, generate and return the Excel file
+	if export {
+		currentUserID, err := utility.GetCurrentUserID(c)
+		if err != nil {
+			utility.SendInternalErrResp(soc.db, c, err.Error())
+			return
+		}
+
+		excelFile, err := soc.service.ExportStrategicInitiatives(list.Items, currentUserID)
+		if err != nil {
+			utility.SendInternalErrResp(soc.db, c, err.Error())
+			return
+		}
+		defer excelFile.Close()
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", `attachment; filename="GovernanceInitiatives.xlsx"`)
+		c.Header("Content-Type", "application/octet-stream")
+		c.File(excelFile.Name())
+
+		return
+	}
+
 	c.JSON(http.StatusOK, list)
 }
 
@@ -191,6 +230,12 @@ func (sic *StrategicIntiativeController) DeleteStrategicIntiatives(c *gin.Contex
 	}
 
 	c.JSON(http.StatusOK, gin.H{"failed_ids": failedIDs})
+}
+
+func (sic *StrategicIntiativeController) GetStrategicInitiativesExport(c *gin.Context) {
+	c.Set("export", true)
+
+	sic.GetAllStrategicIntiatives(c)
 }
 
 func (sic *StrategicIntiativeController) UpdateStrategicIntiativeStatusAndCompletion(c *gin.Context) {

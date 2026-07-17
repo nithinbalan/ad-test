@@ -49,6 +49,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetControlAnalysisController := app.AssetModule.AssetControlAnalysisController
 	assetKriController := app.AssetModule.AssetKriController
 	tenableController := app.AssetModule.TenableController
+	qualysKBController := app.AssetModule.QualysController
 	systemRegisterDisruptionLevelController := app.AssetModule.SystemRegisterDisruptionLevelController
 	systemRegisterServiceImportanceController := app.AssetModule.SystemRegisterServiceImportanceController
 	systemRegisterController := app.AssetModule.SystemRegisterController
@@ -58,12 +59,12 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	applicationController := app.AssetModule.ApplicationController
 	slaEscalationMatrixController := app.AssetModule.SLAEscalationMatrixController
 	vulnerabilitySettingsController := app.AssetModule.VulnerabilitySettingsController
+	vulnerabilityReportController := app.AssetModule.VulnerabilityReportController
+	qualysVulnerabilityHistoryController := app.AssetModule.QualysVulnerabilityHistoryController
 	assetRiskRegisterController := app.AssetModule.AssetRiskRegisterController
 	assetRiskWorkflowController := app.AssetModule.AssetRiskWorkflowController
 	assetRiskReviewController := app.AssetModule.AssetRiskReviewController
 	assetRiskReviewCommentController := app.AssetModule.AssetRiskReviewCommentController
-	vulnerabilityReportController := app.AssetModule.VulnerabilityReportController
-	qualysVulnerabilityHistoryController := app.AssetModule.QualysVulnerabilityHistoryController
 
 	// Asset Type
 	assetRoutes.GET("/asset-types", assetTypeController.GetAllAssetTypes)
@@ -152,6 +153,7 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 
 	assetRoutes.GET("/vulnerabilities", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityController.GetAllVulnerabilities)
 	assetRoutes.GET("/vulnerabilities/:id", middlewares.RolePermissionMiddleware(db, "vulnerability", "view"), vulnerabilityController.GetVulnerabilityDetails)
+	assetRoutes.POST("/vulnerabilities/:id/qualys-sync", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.SyncVulnerabilityFromQualys)
 	assetRoutes.POST("/vulnerabilities", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.CreateVulnerability)
 	assetRoutes.PUT("/vulnerabilities/:id", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.UpdateVulnerability)
 	assetRoutes.POST("/vulnerabilities/delete", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), vulnerabilityController.DeleteVulnerabilities)
@@ -365,6 +367,9 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/tenable/assets/validate", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableController.ValidateTenableAssets)
 	assetRoutes.POST("/tenable/assets/import", middlewares.RolePermissionMiddleware(db, "asset_register", "modify"), tenableController.ImportAssets)
 
+	//qualys knowledge base
+	assetRoutes.GET("/qualys/:qid", middlewares.RolePermissionMiddleware(db, "asset_register", "view"), qualysKBController.GetKBDetailsByQID)
+
 	// System Register Disruption Levels
 	assetRoutes.GET("/system-register-disruption-levels", systemRegisterDisruptionLevelController.GetAllSystemRegisterDisruptionLevels)
 	assetRoutes.GET("/system-register-disruption-levels/:id", systemRegisterDisruptionLevelController.GetSystemRegisterDisruptionLevelDetails)
@@ -430,6 +435,18 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.GET("/vulnerability-settings", vulnerabilitySettingsController.GetAllVulnerabilitySettings)
 	assetRoutes.PUT("/vulnerability-settings", middlewares.RolePermissionMiddleware(db, "asset_setting", "modify"), vulnerabilitySettingsController.UpdateVulnerabilitySettings)
 
+	// Vulnerability Report
+	assetRoutes.GET("/vulnerability-reports", middlewares.RolePermissionMiddleware(db, "asset_report", "view"), vulnerabilityReportController.GetAllVulnerabilityReports)
+	assetRoutes.GET("/vulnerability-reports/:vulnerabilityReportId", middlewares.RolePermissionMiddleware(db, "asset_report", "view"), vulnerabilityReportController.GetVulnerabilityReportDetails)
+	assetRoutes.POST("/vulnerability-reports", middlewares.RolePermissionMiddleware(db, "asset_report", "view"), vulnerabilityReportController.CreateVulnerabilityReport)
+	assetRoutes.DELETE("/vulnerability-reports/:vulnerabilityReportId", middlewares.RolePermissionMiddleware(db, "asset_report", "view"), vulnerabilityReportController.DeleteVulnerabilityReport)
+	assetRoutes.GET("/vulnerability-reports/:vulnerabilityReportId/export-pdf", middlewares.RolePermissionMiddleware(db, "asset_report", "view"), vulnerabilityReportController.GetVulnerabilityReportExportZip)
+
+	//Qulays Vulnerability History
+	assetRoutes.GET("/vulnerabilities/:id/qualys-history", qualysVulnerabilityHistoryController.GetAllQualysVulnerabilityHistories)
+	assetRoutes.POST("/vulnerabilities/:id/qualys-history/:historyId/documents", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), qualysVulnerabilityHistoryController.CreateQualysVulnerabilityHistoryDocuments)
+	unauthenticatedRoutes.GET("/vulnerabilities/:id/qualys-history/:historyId/document-preview", qualysVulnerabilityHistoryController.GetQualysVulnerabilityHistoryDocumentPreview)
+
 	// Asset Risk Register
 	assetRoutes.GET("/asset-risk-register", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskRegisterController.GetAllAssetRiskRegisters)
 	assetRoutes.GET("/asset-risk-register/:id", middlewares.RolePermissionMiddleware(db, "asset_risk", "view"), assetRiskRegisterController.GetAssetRiskRegisterDetails)
@@ -451,15 +468,4 @@ func RegisterRoutes(app *initializers.App, router *gin.Engine) {
 	assetRoutes.POST("/asset-risk-register/:id/review-comments/delete", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewCommentController.DeleteComment)
 	assetRoutes.PUT("/asset-risk-register/:id/review-comments/:commentId/resolve", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), assetRiskReviewCommentController.ResolveComment)
 
-	// Vulnerability Report
-	assetRoutes.GET("/vulnerability-reports", vulnerabilityReportController.GetAllVulnerabilityReports)
-	assetRoutes.GET("/vulnerability-reports/:vulnerabilityReportId", vulnerabilityReportController.GetVulnerabilityReportDetails)
-	assetRoutes.POST("/vulnerability-reports", vulnerabilityReportController.CreateVulnerabilityReport)
-	assetRoutes.DELETE("/vulnerability-reports/:vulnerabilityReportId", vulnerabilityReportController.DeleteVulnerabilityReport)
-	assetRoutes.GET("/vulnerability-reports/:vulnerabilityReportId/export-pdf", vulnerabilityReportController.GetVulnerabilityReportExportZip)
-
-	//Qulays Vulnerability History
-	assetRoutes.GET("/vulnerabilities/:id/qualys-history", qualysVulnerabilityHistoryController.GetAllQualysVulnerabilityHistories)
-	assetRoutes.POST("/vulnerabilities/:id/qualys-history/:historyId/documents", middlewares.RolePermissionMiddleware(db, "vulnerability", "modify"), qualysVulnerabilityHistoryController.CreateQualysVulnerabilityHistoryDocuments)
-	unauthenticatedRoutes.GET("/vulnerabilities/:id/qualys-history/:historyId/document-preview", qualysVulnerabilityHistoryController.GetQualysVulnerabilityHistoryDocumentPreview)
 }
